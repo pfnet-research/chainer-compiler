@@ -7,4 +7,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
 
 add_subdirectory(compiler)
 add_subdirectory(common)
+add_subdirectory(runtime)
 add_subdirectory(tools)

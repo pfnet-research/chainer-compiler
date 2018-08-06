@@ -11,7 +11,6 @@ add_library(oniku_compiler
   )
 
 include_directories(../googletest/googletest/include)
-
 link_directories(../googletest/googletest)
 add_executable(compiler_test
   code_emitter_test.cc

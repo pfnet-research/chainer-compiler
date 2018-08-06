@@ -46,6 +46,8 @@ public:
         return static_cast<T*>(data_.get())[index];
     }
 
+    const void* GetRawData() const { return data_.get(); }
+
 private:
     std::vector<int64_t> dims_;
     Dtype dtype_;

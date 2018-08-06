@@ -22,6 +22,8 @@ public:
 
     void ToONNX(onnx::ModelProto* xmodel) const;
 
+    const Graph& graph() const { return *graph_; }
+
 private:
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;

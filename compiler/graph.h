@@ -21,6 +21,9 @@ public:
 
     void ToONNX(onnx::GraphProto* xgraph) const;
 
+    const std::vector<std::unique_ptr<Value>>& values() const { return values_; }
+    const std::vector<std::unique_ptr<Node>>& nodes() const { return nodes_; }
+
 private:
     std::vector<std::unique_ptr<Value>> values_;
     std::vector<std::unique_ptr<Node>> nodes_;
