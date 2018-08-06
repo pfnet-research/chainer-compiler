@@ -34,8 +34,22 @@ private:
 #define CHECK(cond) \
     while (!(cond)) oniku::FailMessageStream("Check `" #cond "' failed!", __func__, __FILE__, __LINE__)
 
-#ifndef NDEBUG
+#define CHECK_EQ(a, b) \
+    while ((a) != (b)) \
+    oniku::FailMessageStream("Check `" #a "' == `" #b "' failed!", __func__, __FILE__, __LINE__) << "(" << a << " vs " << b << ")"
+
+#define CHECK_NE(a, b) \
+    while ((a) == (b)) \
+    oniku::FailMessageStream("Check `" #a "' != `" #b "' failed!", __func__, __FILE__, __LINE__) << "(" << a << " vs " << b << ")"
+
+#ifdef NDEBUG
 #define DCHECK(cond)
+#define DCHECK_EQ(a, b)
+#define DCHECK_NE(a, b)
+#else
+#define DCHECK(cond) CHECK(cond)
+#define DCHECK_EQ(a, b) CHECK_EQ(a, b)
+#define DCHECK_NE(a, b) CHECK_NE(a, b)
 #endif
 
 }  // namespace oniku

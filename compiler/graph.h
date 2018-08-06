@@ -19,6 +19,8 @@ public:
     Graph(const Graph&) = delete;
     Graph& operator=(const Graph&) = delete;
 
+    void ToONNX(onnx::GraphProto* xgraph) const;
+
 private:
     std::vector<std::unique_ptr<Value>> values_;
     std::vector<std::unique_ptr<Node>> nodes_;

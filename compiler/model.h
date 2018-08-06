@@ -20,6 +20,8 @@ public:
     Model(const Model&) = delete;
     Model& operator=(const Model&) = delete;
 
+    void ToONNX(onnx::ModelProto* xmodel) const;
+
 private:
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;

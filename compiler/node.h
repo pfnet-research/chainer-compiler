@@ -11,11 +11,13 @@ class Value;
 
 class Node {
 public:
-    Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    explicit Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
     ~Node();
 
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
+
+    void ToONNX(onnx::NodeProto* xnode) const;
 
     const std::vector<Value*>& inputs() const { return inputs_; }
     const std::vector<Value*>& outputs() const { return outputs_; }

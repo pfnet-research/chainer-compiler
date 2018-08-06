@@ -4,6 +4,7 @@
 
 #include <common/log.h>
 #include <compiler/graph.h>
+#include <compiler/serializer_util.h>
 
 namespace oniku {
 
@@ -22,5 +23,22 @@ Model::Model(const onnx::ModelProto& xmodel)
 }
 
 Model::~Model() {}
+
+void Model::ToONNX(onnx::ModelProto* xmodel) const {
+    SET_PRIM(xmodel, ir_version);
+    for (const onnx::OperatorSetIdProto& opset : opset_import_) {
+        *xmodel->add_opset_import() = opset;
+    }
+    SET_STRING(xmodel, producer_name);
+    SET_STRING(xmodel, producer_version);
+    SET_STRING(xmodel, domain);
+    SET_STRING(xmodel, doc_string);
+    graph_->ToONNX(xmodel->mutable_graph());
+    for (const auto& p : metadata_props_) {
+        onnx::StringStringEntryProto* metadata = xmodel->add_metadata_props();
+        metadata->set_key(p.first);
+        metadata->set_value(p.second);
+    }
+}
 
 }  // namespace oniku
