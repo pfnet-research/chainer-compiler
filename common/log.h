@@ -9,12 +9,17 @@ namespace oniku {
 
 class FailMessageStream {
 public:
-    FailMessageStream(const std::string msg, const char* func, const char* file, int line)
-        : msg_(msg), func_(func), file_(file), line_(line) {}
+    FailMessageStream(const std::string msg, const char* func, const char* file, int line, bool is_check=true)
+        : msg_(msg), func_(func), file_(file), line_(line), is_check_(is_check) {}
 
     ~FailMessageStream() {
-        std::cerr << msg_ << " in " << func_ << " at " << file_ << ":" << line_ << ": " << oss_.str() << std::endl;
-        std::abort();
+        if (is_check_) {
+            std::cerr << msg_ << " in " << func_ << " at " << file_ << ":" << line_ << ": " << oss_.str() << std::endl;
+            std::abort();
+        } else {
+            std::cerr << oss_.str() << std::endl;
+            std::exit(1);
+        }
     }
 
     template <class T>
@@ -29,7 +34,10 @@ private:
     const char* func_;
     const char* file_;
     const int line_;
+    const bool is_check_;
 };
+
+#define QFAIL() oniku::FailMessageStream("", __func__, __FILE__, __LINE__, false)
 
 #define CHECK(cond) \
     while (!(cond)) oniku::FailMessageStream("Check `" #cond "' failed!", __func__, __FILE__, __LINE__)

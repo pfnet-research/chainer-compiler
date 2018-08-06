@@ -7,6 +7,7 @@ add_library(oniku_compiler
   node.cc
   tensor.cc
   value.cc
+  xchainer.cc
   )
 
 include_directories(../googletest/googletest/include)
@@ -26,3 +27,8 @@ target_link_libraries(compiler_test
   )
 
 add_test(NAME compiler_test COMMAND compiler_test)
+
+add_executable(compiler main.cc)
+target_link_libraries(compiler oniku_compiler)
+target_link_libraries(compiler onnx_proto)
+target_link_libraries(compiler protobuf)

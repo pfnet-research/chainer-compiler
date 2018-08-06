@@ -7,12 +7,12 @@
 
 #include <onnx/onnx.pb.h>
 
+#include <common/log.h>
 #include <common/protoutil.h>
 
 int main(int argc, const char** argv) {
     if (argc <= 1) {
-        std::cerr << "Usage: " << argv[0] << " <onnx>" << std::endl;
-        exit(1);
+        QFAIL() << "Usage: " << argv[0] << " <onnx>";
     }
 
     onnx::ModelProto model(LoadLargeProto<onnx::ModelProto>(argv[1]));
