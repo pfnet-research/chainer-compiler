@@ -18,3 +18,10 @@ fi
 if [ ! -e googletest/googletest/libgtest.a ]; then
     (cd googletest/googletest && cmake . && make)
 fi
+
+if [ ! -e data/mnist/model.onnx ]; then
+    rm -rf data/mnist*
+    (mkdir -p data && cd data && \
+         wget https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz && \
+         tar -xvzf mnist.tar.gz)
+fi
