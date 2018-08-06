@@ -9,7 +9,7 @@ namespace oniku {
 
 class FailMessageStream {
 public:
-    FailMessageStream(const std::string msg, const char* func, const char* file, int line, bool is_check=true)
+    FailMessageStream(const std::string msg, const char* func, const char* file, int line, bool is_check = true)
         : msg_(msg), func_(func), file_(file), line_(line), is_check_(is_check) {}
 
     ~FailMessageStream() {
