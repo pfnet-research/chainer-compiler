@@ -116,6 +116,16 @@ Tensor::UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<
 }
 
 template <typename To>
+Tensor::UniqueData LoadDataFromRawData(const std::string& data, int64_t num_elements) {
+    CHECK_EQ(num_elements * sizeof(To), data.size());
+    Tensor::UniqueData p(std::malloc(data.size()), &std::free);
+    for (int i = 0; i < num_elements; ++i) {
+        static_cast<To*>(p.get())[i] = reinterpret_cast<const To*>(&data[0])[i];
+    }
+    return p;
+}
+
+template <typename To>
 void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* a) {
     CHECK_LE(t.ElementSize(), sizeof(To));
     for (int64_t i = 0; i < t.NumElements(); ++i) {
@@ -132,36 +142,72 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
       name_(xtensor.name()),
       doc_string_(xtensor.doc_string()) {
     CHECK(!xtensor.has_segment()) << "Segmented TensorProto not supported";
-    // TODO(hamaji): Support this.
-    CHECK(!xtensor.has_raw_data()) << "raw_data is not supported yet";
 
-    switch (dtype_) {
-        case Tensor::Dtype::kBool:
-            data_.reset(LoadDataFromRepeated<int32_t, bool>(xtensor.int32_data()).release());
-            break;
-        case Tensor::Dtype::kInt8:
-            data_.reset(LoadDataFromRepeated<int32_t, int8_t>(xtensor.int32_data()).release());
-            break;
-        case Tensor::Dtype::kInt16:
-            data_.reset(LoadDataFromRepeated<int32_t, int16_t>(xtensor.int32_data()).release());
-            break;
-        case Tensor::Dtype::kInt32:
-            data_.reset(LoadDataFromRepeated<int32_t, int32_t>(xtensor.int32_data()).release());
-            break;
-        case Tensor::Dtype::kInt64:
-            data_.reset(LoadDataFromRepeated<int64_t, int64_t>(xtensor.int64_data()).release());
-            break;
-        case Tensor::Dtype::kUInt8:
-            data_.reset(LoadDataFromRepeated<int32_t, uint8_t>(xtensor.int32_data()).release());
-            break;
-        case Tensor::Dtype::kFloat32:
-            data_.reset(LoadDataFromRepeated<float, float>(xtensor.float_data()).release());
-            break;
-        case Tensor::Dtype::kFloat64:
-            data_.reset(LoadDataFromRepeated<double, double>(xtensor.double_data()).release());
-            break;
-        default:
-            CHECK(false) << "Unknown data type: " << ToString(dtype_);
+    if (xtensor.has_raw_data()) {
+        CHECK_EQ(0, xtensor.float_data_size());
+        CHECK_EQ(0, xtensor.int32_data_size());
+        CHECK_EQ(0, xtensor.string_data_size());
+        CHECK_EQ(0, xtensor.int64_data_size());
+        CHECK_EQ(0, xtensor.double_data_size());
+        CHECK_EQ(0, xtensor.uint64_data_size());
+
+        switch (dtype_) {
+            case Tensor::Dtype::kBool:
+                data_.reset(LoadDataFromRawData<bool>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kInt8:
+                data_.reset(LoadDataFromRawData<int8_t>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kInt16:
+                data_.reset(LoadDataFromRawData<int16_t>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kInt32:
+                data_.reset(LoadDataFromRawData<int32_t>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kInt64:
+                data_.reset(LoadDataFromRawData<int64_t>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kUInt8:
+                data_.reset(LoadDataFromRawData<uint8_t>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kFloat32:
+                data_.reset(LoadDataFromRawData<float>(xtensor.raw_data(), NumElements()).release());
+                break;
+            case Tensor::Dtype::kFloat64:
+                data_.reset(LoadDataFromRawData<double>(xtensor.raw_data(), NumElements()).release());
+                break;
+            default:
+                CHECK(false) << "Unknown data type: " << ToString(dtype_);
+        }
+    } else {
+        switch (dtype_) {
+            case Tensor::Dtype::kBool:
+                data_.reset(LoadDataFromRepeated<int32_t, bool>(xtensor.int32_data()).release());
+                break;
+            case Tensor::Dtype::kInt8:
+                data_.reset(LoadDataFromRepeated<int32_t, int8_t>(xtensor.int32_data()).release());
+                break;
+            case Tensor::Dtype::kInt16:
+                data_.reset(LoadDataFromRepeated<int32_t, int16_t>(xtensor.int32_data()).release());
+                break;
+            case Tensor::Dtype::kInt32:
+                data_.reset(LoadDataFromRepeated<int32_t, int32_t>(xtensor.int32_data()).release());
+                break;
+            case Tensor::Dtype::kInt64:
+                data_.reset(LoadDataFromRepeated<int64_t, int64_t>(xtensor.int64_data()).release());
+                break;
+            case Tensor::Dtype::kUInt8:
+                data_.reset(LoadDataFromRepeated<int32_t, uint8_t>(xtensor.int32_data()).release());
+                break;
+            case Tensor::Dtype::kFloat32:
+                data_.reset(LoadDataFromRepeated<float, float>(xtensor.float_data()).release());
+                break;
+            case Tensor::Dtype::kFloat64:
+                data_.reset(LoadDataFromRepeated<double, double>(xtensor.double_data()).release());
+                break;
+            default:
+                CHECK(false) << "Unknown data type: " << ToString(dtype_);
+        }
     }
 }
 
