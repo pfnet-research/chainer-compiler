@@ -10,8 +10,7 @@ Proto LoadLargeProto(std::string const& filename) {
     Proto proto;
     ::google::protobuf::io::IstreamInputStream iis(&ifs);
     ::google::protobuf::io::CodedInputStream cis(&iis);
-    cis.SetTotalBytesLimit(std::numeric_limits<int>::max(),
-                           std::numeric_limits<int>::max());
+    cis.SetTotalBytesLimit(std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
     CHECK(proto.ParseFromCodedStream(&cis)) << "failed to parse " << filename;
     return proto;
 }

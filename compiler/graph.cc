@@ -10,27 +10,22 @@
 
 namespace oniku {
 
-Graph::Graph(const onnx::GraphProto& xgraph)
-    : name_(xgraph.name()),
-      doc_string_(xgraph.doc_string()) {
+Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_(xgraph.doc_string()) {
     std::map<std::string, Value*> values_by_name;
     for (const onnx::ValueInfoProto& input : xgraph.input()) {
         Value* value = new Value(input, Value::Kind::kInput);
         values_.emplace_back(value);
-        CHECK(values_by_name.emplace(value->name(), value).second)
-            << "Duplicated value name: " << value->name();
+        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& output : xgraph.output()) {
         Value* value = new Value(output, Value::Kind::kOutput);
         values_.emplace_back(value);
-        CHECK(values_by_name.emplace(value->name(), value).second)
-            << "Duplicated value name: " << value->name();
+        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& temp : xgraph.value_info()) {
         Value* value = new Value(temp, Value::Kind::kTemp);
         values_.emplace_back(value);
-        CHECK(values_by_name.emplace(value->name(), value).second)
-            << "Duplicated value name: " << value->name();
+        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
 
     for (const onnx::NodeProto& xnode : xgraph.node()) {
@@ -52,7 +47,6 @@ Graph::Graph(const onnx::GraphProto& xgraph)
     }
 }
 
-Graph::~Graph() {
-}
+Graph::~Graph() {}
 
 }  // namespace oniku
