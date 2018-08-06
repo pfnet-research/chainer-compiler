@@ -27,13 +27,13 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
         xnode->add_output(value->name());
     }
 
-    SET_STRING(xnode, name);
-    SET_STRING(xnode, op_type);
-    SET_STRING(xnode, domain);
+    DUMP_STRING(xnode, name);
+    DUMP_STRING(xnode, op_type);
+    DUMP_STRING(xnode, domain);
     for (const onnx::AttributeProto& xattr : unknown_attributes_) {
         *xnode->add_attribute() = xattr;
     }
-    SET_STRING(xnode, doc_string);
+    DUMP_STRING(xnode, doc_string);
 }
 
 }  // namespace oniku

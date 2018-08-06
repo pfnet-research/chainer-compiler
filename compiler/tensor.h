@@ -38,7 +38,13 @@ public:
     const std::string& name() const { return name_; }
     const std::string& doc_string() const { return doc_string_; }
 
+    int ElementSize() const;
     int64_t NumElements() const;
+
+    template <typename T>
+    T Get(int index) const {
+        return static_cast<T*>(data_.get())[index];
+    }
 
 private:
     std::vector<int64_t> dims_;

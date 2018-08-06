@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include <common/log.h>
+#include <compiler/serializer_util.h>
 
 namespace oniku {
 
@@ -58,6 +59,29 @@ std::string ToString(Tensor::Dtype type) {
     }
 }
 
+onnx::TensorProto::DataType ToONNX(Tensor::Dtype type) {
+    switch (type) {
+        case Tensor::Dtype::kBool:
+            return onnx::TensorProto::BOOL;
+        case Tensor::Dtype::kInt8:
+            return onnx::TensorProto::INT8;
+        case Tensor::Dtype::kInt16:
+            return onnx::TensorProto::INT16;
+        case Tensor::Dtype::kInt32:
+            return onnx::TensorProto::INT32;
+        case Tensor::Dtype::kInt64:
+            return onnx::TensorProto::INT64;
+        case Tensor::Dtype::kUInt8:
+            return onnx::TensorProto::UINT8;
+        case Tensor::Dtype::kFloat32:
+            return onnx::TensorProto::FLOAT;
+        case Tensor::Dtype::kFloat64:
+            return onnx::TensorProto::DOUBLE;
+        default:
+            CHECK(false) << "Unknown data type: " << ToString(type);
+    }
+}
+
 int SizeOf(Tensor::Dtype type) {
     switch (type) {
         case Tensor::Dtype::kBool:
@@ -88,6 +112,13 @@ Tensor::UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<
         static_cast<To*>(p.get())[i] = a.Get(i);
     }
     return p;
+}
+
+template <typename To>
+void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* a) {
+    for (int64_t i = 0; i < t.NumElements(); ++i) {
+        a->Add(t.Get<To>(i));
+    }
 }
 
 }  // namespace
@@ -134,7 +165,43 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
 
 Tensor::~Tensor() {}
 
-void Tensor::ToONNX(onnx::TensorProto* xtensor) { CHECK(false) << "TODO"; }
+void Tensor::ToONNX(onnx::TensorProto* xtensor) {
+    for (int64_t d : dims_) xtensor->add_dims(d);
+    xtensor->set_data_type(oniku::ToONNX(dtype_));
+    DUMP_STRING(xtensor, name);
+    DUMP_STRING(xtensor, doc_string);
+
+    switch (dtype_) {
+        case Tensor::Dtype::kBool:
+            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            break;
+        case Tensor::Dtype::kInt8:
+            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            break;
+        case Tensor::Dtype::kInt16:
+            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            break;
+        case Tensor::Dtype::kInt32:
+            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            break;
+        case Tensor::Dtype::kInt64:
+            DumpDataToRepeated(*this, xtensor->mutable_int64_data());
+            break;
+        case Tensor::Dtype::kUInt8:
+            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            break;
+        case Tensor::Dtype::kFloat32:
+            DumpDataToRepeated(*this, xtensor->mutable_float_data());
+            break;
+        case Tensor::Dtype::kFloat64:
+            DumpDataToRepeated(*this, xtensor->mutable_double_data());
+            break;
+        default:
+            CHECK(false) << "Unknown data type: " << ToString(dtype_);
+    }
+}
+
+int Tensor::ElementSize() const { return SizeOf(dtype_); }
 
 int64_t Tensor::NumElements() const {
     int num = 1;

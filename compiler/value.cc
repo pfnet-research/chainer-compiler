@@ -11,9 +11,9 @@ Value::Value(const onnx::ValueInfoProto& xvalue, Kind kind)
 Value::~Value() {}
 
 void Value::ToONNX(onnx::ValueInfoProto* xvalue) {
-    SET_STRING(xvalue, name);
+    DUMP_STRING(xvalue, name);
     *xvalue->mutable_type() = type_;
-    SET_STRING(xvalue, doc_string);
+    DUMP_STRING(xvalue, doc_string);
 }
 
 void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) { initializer_.reset(tensor.release()); }

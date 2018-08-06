@@ -25,14 +25,15 @@ Model::Model(const onnx::ModelProto& xmodel)
 Model::~Model() {}
 
 void Model::ToONNX(onnx::ModelProto* xmodel) const {
-    SET_PRIM(xmodel, ir_version);
+    DUMP_PRIM(xmodel, ir_version);
     for (const onnx::OperatorSetIdProto& opset : opset_import_) {
         *xmodel->add_opset_import() = opset;
     }
-    SET_STRING(xmodel, producer_name);
-    SET_STRING(xmodel, producer_version);
-    SET_STRING(xmodel, domain);
-    SET_STRING(xmodel, doc_string);
+    DUMP_STRING(xmodel, producer_name);
+    DUMP_STRING(xmodel, producer_version);
+    DUMP_STRING(xmodel, domain);
+    DUMP_PRIM(xmodel, model_version);
+    DUMP_STRING(xmodel, doc_string);
     graph_->ToONNX(xmodel->mutable_graph());
     for (const auto& p : metadata_props_) {
         onnx::StringStringEntryProto* metadata = xmodel->add_metadata_props();
