@@ -1,6 +1,7 @@
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
 add_library(oniku_compiler
+  code_emitter.cc
   graph.cc
   model.cc
   node.cc
@@ -12,6 +13,7 @@ include_directories(../googletest/googletest/include)
 
 link_directories(../googletest/googletest)
 add_executable(compiler_test
+  code_emitter_test.cc
   model_test.cc
   )
 target_link_libraries(compiler_test

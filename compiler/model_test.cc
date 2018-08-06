@@ -48,7 +48,7 @@ TEST(ModelTest, DumpSimpleONNX) {
     Model model(xmodel);
     onnx::ModelProto xmodel2;
     model.ToONNX(&xmodel2);
-    ASSERT_EQ(xmodel.DebugString(), xmodel2.DebugString());
+    EXPECT_EQ(xmodel.DebugString(), xmodel2.DebugString());
 }
 
 TEST(ModelTest, LoadMNIST) {
@@ -72,7 +72,7 @@ TEST(ModelTest, DumpMNIST) {
     }
     ReorderInitializers(xmodel.mutable_graph());
 
-    ASSERT_EQ(xmodel.DebugString(), xmodel2.DebugString());
+    EXPECT_EQ(xmodel.DebugString(), xmodel2.DebugString());
 }
 
 }  // namespace
