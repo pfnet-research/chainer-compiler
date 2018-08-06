@@ -15,7 +15,6 @@ add_executable(compiler_test
   model_test.cc
   )
 target_link_libraries(compiler_test
-  oniku_common
   oniku_compiler
   onnx_proto
   protobuf
