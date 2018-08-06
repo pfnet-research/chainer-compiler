@@ -107,6 +107,7 @@ int SizeOf(Tensor::Dtype type) {
 
 template <typename From, typename To>
 Tensor::UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<From>& a) {
+    static_assert(sizeof(From) >= sizeof(To));
     Tensor::UniqueData p(std::malloc(sizeof(To) * a.size()), &std::free);
     for (int i = 0; i < a.size(); ++i) {
         static_cast<To*>(p.get())[i] = a.Get(i);
@@ -116,6 +117,7 @@ Tensor::UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<
 
 template <typename To>
 void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* a) {
+    CHECK_LE(t.ElementSize(), sizeof(To));
     for (int64_t i = 0; i < t.NumElements(); ++i) {
         a->Add(t.Get<To>(i));
     }
