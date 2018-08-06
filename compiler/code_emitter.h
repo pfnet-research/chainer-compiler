@@ -18,6 +18,8 @@ public:
         return *this;
     }
 
+    void EmitWithoutIndent(const std::string& code);
+
 private:
     void Emit(const std::string& code);
 

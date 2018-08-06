@@ -31,7 +31,7 @@ public:
     Tensor(const Tensor&) = delete;
     Tensor& operator=(const Tensor&) = delete;
 
-    void ToONNX(onnx::TensorProto* xtensor);
+    void ToONNX(onnx::TensorProto* xtensor) const;
 
     const std::vector<int64_t> dims() const { return dims_; }
     Dtype dtype() const { return dtype_; }

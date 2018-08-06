@@ -213,7 +213,7 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
 
 Tensor::~Tensor() {}
 
-void Tensor::ToONNX(onnx::TensorProto* xtensor) {
+void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
     for (int64_t d : dims_) xtensor->add_dims(d);
     xtensor->set_data_type(oniku::ToONNX(dtype_));
     DUMP_STRING(xtensor, name);

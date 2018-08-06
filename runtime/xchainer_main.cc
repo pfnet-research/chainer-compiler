@@ -5,6 +5,7 @@
 
 #include <xchainer/array.h>
 #include <xchainer/context.h>
+#include <xchainer/numeric.h>
 #include <xchainer/routines/creation.h>
 
 #include <common/log.h>
@@ -13,6 +14,8 @@
 
 namespace oniku {
 namespace runtime {
+
+InOuts RunGraph(const InOuts& inputs);
 
 void RunMain(int argc, const char** argv) {
     if (argc <= 1) {
@@ -23,8 +26,8 @@ void RunMain(int argc, const char** argv) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
 
-    std::map<std::string, xchainer::Array> inputs;
-    std::map<std::string, xchainer::Array> expectations;
+    InOuts inputs;
+    InOuts expectations;
     for (int i = 1; i < argc; ++i) {
         const std::string arg(argv[i]);
         bool is_input = false;
@@ -48,6 +51,17 @@ void RunMain(int argc, const char** argv) {
         } else {
             CHECK(expectations.emplace(xtensor.name(), tensor).second) << "Duplicate output tensor: " << xtensor.name();
         }
+    }
+
+    InOuts outputs = RunGraph(inputs);
+
+    for (const auto& p : expectations) {
+        const std::string key = p.first;
+        xchainer::Array expected = p.second;
+        auto found = outputs.find(key);
+        CHECK(found != outputs.end()) << "Output does not contain " << key;
+        xchainer::Array actual = found->second;
+        CHECK(xchainer::AllClose(expected, actual)) << "\nExpected: " << expected << "\nActual: " << actual;
     }
 }
 

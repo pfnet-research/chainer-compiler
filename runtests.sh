@@ -23,7 +23,7 @@ for onnx in "${onnx_tests}"; do
     exe="out/${name}.exe"
 
     echo "${onnx}..."
-    ./compiler/compiler "${onnx}" > "${cc}"
+    ./compiler/compiler "${onnx_model}" > "${cc}"
     "${CXX}" \
         -g -I. \
         -Igsl-lite/include \

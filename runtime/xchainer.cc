@@ -14,6 +14,16 @@
 namespace oniku {
 namespace runtime {
 
+xchainer::Array GetOrDie(const InOuts& m, std::string name) {
+    auto found = m.find(name);
+    CHECK(found != m.end()) << "Input value not exist: " << name;
+    return found->second;
+}
+
+void SetOrDie(InOuts& m, std::string name, xchainer::Array a) {
+    CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name;
+}
+
 xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     Tensor tensor(xtensor);
     int64_t size = tensor.ElementSize() * tensor.NumElements();

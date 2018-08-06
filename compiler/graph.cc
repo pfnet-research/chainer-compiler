@@ -55,6 +55,11 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
 
         Node* node = new Node(xnode, inputs, outputs);
         nodes_.emplace_back(node);
+
+        for (Value* input : inputs)
+            input->AddUser(node);
+        for (Value* output : outputs)
+            output->SetProducer(node);
     }
 }
 
@@ -79,7 +84,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
         }
         value->ToONNX(xvalue);
 
-        if (Tensor* initializer = value->initializer()) {
+        if (const Tensor* initializer = value->initializer()) {
             onnx::TensorProto* xtensor = xgraph->add_initializer();
             initializer->ToONNX(xtensor);
         }
