@@ -234,26 +234,44 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
 }
 
 void EmitComputation(const Graph& graph, CodeEmitter& ce) {
+    // Find necessary nodes.
     std::queue<const Value*> q;
     for (const auto& value : graph.values()) {
         if (value->kind() == Value::Kind::kOutput) q.push(value.get());
     }
 
-    std::set<const Node*> seen;
-    std::vector<const Node*> nodes;
+    std::map<const Node*, int> input_counts;
     while (!q.empty()) {
         const Value* value = q.front();
         q.pop();
         if (const Node* node = value->producer()) {
-            if (!seen.emplace(node).second) continue;
-
-            nodes.push_back(node);
+            if (!input_counts.emplace(node, node->inputs().size()).second) continue;
             for (const Value* input : node->inputs()) {
                 q.push(input);
             }
         }
     }
-    std::reverse(nodes.begin(), nodes.end());
+
+    // Then, sort them topologically.
+    for (const auto& value : graph.values()) {
+        if (value->kind() == Value::Kind::kInput) q.push(value.get());
+    }
+
+    std::vector<const Node*> nodes;
+    while (!q.empty()) {
+        const Value* value = q.front();
+        q.pop();
+        for (const Node* node : value->users()) {
+            auto found = input_counts.find(node);
+            if (found == input_counts.end()) continue;
+            int input_counts = --found->second;
+            if (input_counts > 0) continue;
+            nodes.push_back(node);
+            for (const Value* output : node->outputs()) {
+                q.push(output);
+            }
+        }
+    }
 
     for (const Node* node : nodes) {
         EmitNode(*node, ce);
