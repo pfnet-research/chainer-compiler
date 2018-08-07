@@ -128,6 +128,9 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
     if (node.op_type() == "Add") {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), node.inputs()[0]->name() + " + " + node.inputs()[1]->name(), ce);
+    } else if (node.op_type() == "Dropout") {
+        // TODO(hamaji): Dropout does nothing for now.
+        EmitSingleArrayAssignment(out_name(), in_name(), ce);
     } else if (node.op_type() == "Conv") {
         CHECK_EQ(2UL, node.inputs().size());
         // TODO(xchainer): Support dilation.
