@@ -1,4 +1,6 @@
+#include <queue>
 #include <map>
+#include <set>
 #include <string>
 
 #include <onnx/onnx.pb.h>
@@ -17,6 +19,8 @@ namespace runtime {
 
 InOuts RunGraph(const InOuts& inputs);
 
+namespace {
+
 void RunMain(int argc, const char** argv) {
     if (argc <= 1) {
         QFAIL() << "Usage: " << argv[0] << " <onnx>"
@@ -28,28 +32,50 @@ void RunMain(int argc, const char** argv) {
 
     InOuts inputs;
     InOuts expectations;
+    std::queue<std::string> input_names;
+    std::queue<std::string> output_names;
     for (int i = 1; i < argc; ++i) {
-        const std::string arg(argv[i]);
-        bool is_input = false;
+        const std::string arg(argv[i++]);
+        if (i == argc) {
+            QFAIL() << "No argument specified for " << arg;
+        }
+
         if (arg == "-in") {
-            is_input = true;
+            onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(argv[i]));
+            xchainer::Array tensor(MakeArrayFromONNX(xtensor));
+            std::string name = xtensor.name();
+            if (name.empty()) {
+                CHECK(!input_names.empty());
+                name = input_names.front();
+                input_names.pop();
+            }
+            CHECK(inputs.emplace(name, tensor).second) << "Duplicate input tensor: " << name;
         } else if (arg == "-out") {
-            is_input = false;
+            onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(argv[i]));
+            xchainer::Array tensor(MakeArrayFromONNX(xtensor));
+            std::string name = xtensor.name();
+            if (name.empty()) {
+                CHECK(!output_names.empty());
+                name = output_names.front();
+                output_names.pop();
+            }
+            CHECK(expectations.emplace(name, tensor).second) << "Duplicate output tensor: " << name;
+        } else if (arg == "-onnx") {
+            onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(argv[i]));
+            for (const auto& initializer : xmodel.graph().initializer()) {
+                xchainer::Array tensor(MakeArrayFromONNX(initializer));
+                CHECK(inputs.emplace(initializer.name(), tensor).second) << "Duplicate input tensor: " << initializer.name();
+            }
+            for (const auto& input : xmodel.graph().input()) {
+                if (!inputs.count(input.name())) {
+                    input_names.push(input.name());
+                }
+            }
+            for (const auto& output : xmodel.graph().output()) {
+                output_names.push(output.name());
+            }
         } else {
             QFAIL() << "Unknown flag: " << arg;
-        }
-
-        ++i;
-        if (i == argc) {
-            QFAIL() << "No tensor specified for " << arg;
-        }
-
-        onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(argv[i]));
-        xchainer::Array tensor(MakeArrayFromONNX(xtensor));
-        if (is_input) {
-            CHECK(inputs.emplace(xtensor.name(), tensor).second) << "Duplicate input tensor: " << xtensor.name();
-        } else {
-            CHECK(expectations.emplace(xtensor.name(), tensor).second) << "Duplicate output tensor: " << xtensor.name();
         }
     }
 
@@ -65,6 +91,7 @@ void RunMain(int argc, const char** argv) {
     }
 }
 
+}  // namespace
 }  // namespace runtime
 }  // namespace oniku
 

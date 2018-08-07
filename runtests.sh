@@ -81,12 +81,15 @@ for onnx in "${onnx_tests[@]}"; do
 
     for test_data_set in $(echo "${onnx}/test_data_set_*"); do
         args=""
+        args="${args} -onnx ${onnx_model}"
         for a in $(echo "${test_data_set}/input_*.pb"); do
             args="${args} -in ${a}"
         done
         for a in $(echo "${test_data_set}/output_*.pb"); do
             args="${args} -out ${a}"
         done
-        "./${exe}" ${args}
+        if ! "./${exe}" ${args}; then
+            echo FAIL: "./${exe}" ${args}
+        fi
     done
 done
