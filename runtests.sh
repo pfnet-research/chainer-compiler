@@ -62,6 +62,21 @@ if [ $# = "0" ]; then
     # TODO(hamaji): Relax equality check for "large_number" tests.
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_softmax_example )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_logsoftmax_example_1 )
+
+    # TODO(hamaji): Support non-2D AveragePool.
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_default )
+    # TODO(hamaji): They seem to be OK. Just adjust thresholds.
+    # onnx/onnx/backend/test/data/node/test_averagepool_2d_pads
+    # onnx/onnx/backend/test/data/node/test_averagepool_2d_pads_count_include_pad
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_pads )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_pads_count_include_pad )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_strides )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_strides )
+    # TODO(hamaji): auto_pad is not supported.
+    # onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_same_upper )
+    # onnx/onnx/backend/test/data/node/test_averagepool_2d_same_lower
+    # onnx/onnx/backend/test/data/node/test_averagepool_2d_same_upper
+
 else
     onnx_tests+=( $@ )
 fi

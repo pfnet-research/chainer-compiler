@@ -31,6 +31,7 @@ public:
     const std::vector<int>& pads() const { return pads_; }
     const std::vector<int>& strides() const { return strides_; }
     const std::vector<int>& dilations() const { return dilations_; }
+    bool count_include_pad() const { return count_include_pad_; }
 
     double alpha() const { return alpha_; }
     double beta() const { return beta_; }
@@ -52,6 +53,7 @@ private:
     std::vector<int> pads_;
     std::vector<int> strides_;
     std::vector<int> dilations_;
+    bool count_include_pad_ = false;
 
     float alpha_, beta_;
     bool trans_a_, trans_b_;

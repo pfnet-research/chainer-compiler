@@ -172,13 +172,21 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
             r = oss.str();
         }
         EmitSingleArrayAssignment(out_name(), r, ce);
-    } else if (node.op_type() == "MaxPool") {
+    } else if (node.op_type() == "MaxPool" || node.op_type() == "AveragePool") {
         const std::string& strides_sym = emit_strides();
         const std::string& pads_sym = emit_pads();
         std::vector<int> kernel_shape = node.kernel_shape();
         const std::string& kernel_shape_sym = gen_sym("kernel_shape");
         EmitIntStackVector(kernel_shape_sym, kernel_shape, ce);
-        EmitSingleArrayAssignment(out_name(), "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ")", ce);
+        std::string r;
+        if (node.op_type() == "MaxPool") {
+            r = "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ")";
+        } else {
+            const std::string pad_mode = node.count_include_pad() ? "kZero" : "kIgnore";
+            r = "xchainer::AveragePool(" +
+                Join({in_name(), kernel_shape_sym, strides_sym, pads_sym, "xchainer::AveragePoolPadMode::" + pad_mode}) + ")";
+        }
+        EmitSingleArrayAssignment(out_name(), r, ce);
     } else if (node.op_type() == "MatMul") {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name()}) + ")", ce);

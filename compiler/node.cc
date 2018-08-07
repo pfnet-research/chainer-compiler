@@ -54,6 +54,10 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
             CHECK(op_type_ == "Softmax" || op_type_ == "LogSoftmax");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
             axis_ = xattr.i();
+        } else if (xattr.name() == "count_include_pad") {
+            CHECK(op_type_ == "AveragePool");
+            CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
+            count_include_pad_ = xattr.i() != 0;
         } else {
             unknown_attributes_.push_back(xattr);
         }
@@ -115,6 +119,9 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     }
     if (op_type_ == "Softmax") {
         add_int_attr("axis", axis_);
+    }
+    if (op_type_ == "AveragePool") {
+        add_int_attr("count_include_pad_", count_include_pad_);
     }
     for (const onnx::AttributeProto& xattr : unknown_attributes_) {
         *xnode->add_attribute() = xattr;
