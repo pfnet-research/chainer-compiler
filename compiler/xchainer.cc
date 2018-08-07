@@ -89,20 +89,18 @@ void EmitIntStackVector(const std::string& name,
 }
 
 void EmitNode(const Node& node, CodeEmitter& ce) {
+    auto in_name = [&node]() {
+        CHECK_EQ(1UL, node.inputs().size());
+        return node.inputs().front()->name();
+    };
+
     auto out_name = [&node]() {
         CHECK_EQ(1UL, node.outputs().size());
         return node.outputs().front()->name();
     };
 
-    if (node.op_type() == "Add") {
-        CHECK_EQ(2UL, node.inputs().size());
-        EmitSingleArrayAssignment(out_name(), node.inputs()[0]->name() + " + " + node.inputs()[1]->name(), ce);
-    } else if (node.op_type() == "Conv") {
-        CHECK_EQ(2UL, node.inputs().size());
-        std::vector<int> strides = node.strides();
+    auto emit_pads = [&node, &ce]() {
         std::vector<int> pads = node.pads();
-        // TODO(hamaji): Infer strides/dilations for non-2D convolutions.
-        if (strides.empty()) strides = {1, 1};
         if (pads.empty()) {
             pads = {0, 0};
         } else {
@@ -114,10 +112,30 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
             }
             pads.resize(pads.size() / 2);
         }
-
-        EmitIntStackVector("strides", strides, ce);
         EmitIntStackVector("pads", pads, ce);
+    };
+
+    auto emit_strides = [&node, &ce]() {
+        std::vector<int> strides = node.strides();
+        // TODO(hamaji): Infer strides for non-2D convolutions/pools.
+        if (strides.empty()) strides = {1, 1};
+        EmitIntStackVector("strides", strides, ce);
+    };
+
+    if (node.op_type() == "Add") {
+        CHECK_EQ(2UL, node.inputs().size());
+        EmitSingleArrayAssignment(out_name(), node.inputs()[0]->name() + " + " + node.inputs()[1]->name(), ce);
+    } else if (node.op_type() == "Conv") {
+        CHECK_EQ(2UL, node.inputs().size());
+        emit_strides();
+        emit_pads();
         EmitSingleArrayAssignment(out_name(), "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", "strides", "pads"}) + ")", ce);
+    } else if (node.op_type() == "MaxPool") {
+        emit_strides();
+        emit_pads();
+        std::vector<int> kernel_shape = node.kernel_shape();
+        EmitIntStackVector("kernel_shape", kernel_shape, ce);
+        EmitSingleArrayAssignment(out_name(), "xchainer::MaxPool(" + Join({in_name(), "kernel_shape", "strides", "pads"}) + ")", ce);
     } else if (node.op_type() == "MatMul") {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + node.inputs()[0]->name() + ", " + node.inputs()[1]->name() + ")", ce);

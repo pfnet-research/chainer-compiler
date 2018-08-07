@@ -32,6 +32,19 @@ if [ $# = "0" ]; then
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_conv_with_strides_no_padding )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_conv_with_strides_padding )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_conv_with_strides_and_asymmetric_padding )
+
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_1d_default )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_default )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_pads )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_precomputed_pads )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_precomputed_same_upper )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_precomputed_strides )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_same_lower )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_same_upper )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_2d_strides )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_3d_default )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_with_argmax_2d_precomputed_pads )
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_with_argmax_2d_precomputed_strides )
 else
     onnx_tests+=( $@ )
 fi
