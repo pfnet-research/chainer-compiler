@@ -130,19 +130,24 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), node.inputs()[0]->name() + " + " + node.inputs()[1]->name(), ce);
     } else if (node.op_type() == "Dropout") {
+        CHECK_LE(1UL, node.outputs().size());
+        CHECK_GE(2UL, node.outputs().size());
+        if (node.outputs().size() == 2UL) {
+            WARN_ONCE("The second output of Dropout is not handled yet");
+        }
+        const std::string& out = node.outputs().front()->name();
         // TODO(hamaji): Dropout does nothing for now.
-        EmitSingleArrayAssignment(out_name(), in_name(), ce);
+        EmitSingleArrayAssignment(out, in_name(), ce);
     } else if (node.op_type() == "Conv") {
-        CHECK_EQ(2UL, node.inputs().size());
+        CHECK_LE(2UL, node.inputs().size());
+        CHECK_GE(3UL, node.inputs().size());
         // TODO(xchainer): Support dilation.
         for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
         const std::string& strides_sym = emit_strides();
         const std::string& pads_sym = emit_pads();
-        EmitSingleArrayAssignment(
-                out_name(),
-                "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", strides_sym, pads_sym}) +
-                        ")",
-                ce);
+        const std::string& bias = node.inputs().size() == 3UL ? node.inputs()[2]->name() : "nonstd::nullopt";
+        std::string r = "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), bias, strides_sym, pads_sym}) + ")";
+        EmitSingleArrayAssignment(out_name(), r, ce);
     } else if (node.op_type() == "Gemm") {
         CHECK_EQ(3UL, node.inputs().size());
         std::string a = node.inputs()[0]->name();
