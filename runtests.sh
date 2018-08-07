@@ -77,6 +77,10 @@ if [ $# = "0" ]; then
     # onnx/onnx/backend/test/data/node/test_averagepool_2d_same_lower
     # onnx/onnx/backend/test/data/node/test_averagepool_2d_same_upper
 
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_sum_example )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_sum_one_input )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_sum_two_inputs )
+
 else
     onnx_tests+=( $@ )
 fi

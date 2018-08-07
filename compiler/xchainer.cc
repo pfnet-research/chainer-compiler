@@ -199,6 +199,13 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
                 out_name(),
                 "xchainer::Reshape(" + Join({node.inputs()[0]->name(), "ArrayToShape(" + node.inputs()[1]->name() + ")"}) + ")",
                 ce);
+    } else if (node.op_type() == "Sum") {
+        CHECK_LE(1UL, node.inputs().size());
+        std::string r = node.inputs().front()->name();
+        for (size_t i = 1; i < node.inputs().size(); ++i) {
+            r += " + " + node.inputs()[i]->name();
+        }
+        EmitSingleArrayAssignment(out_name(), r, ce);
     } else if (node.op_type() == "Softmax" || node.op_type() == "LogSoftmax") {
         int axis = node.axis();
         if (axis < 0) axis = 1;
