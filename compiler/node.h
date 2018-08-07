@@ -40,6 +40,8 @@ public:
 
     int axis() const { return axis_; }
 
+    float epsilon() const { return epsilon_; }
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;
@@ -59,6 +61,8 @@ private:
     bool trans_a_, trans_b_;
 
     int axis_ = -1;
+
+    float epsilon_;
 };
 
 }  // namespace oniku

@@ -58,6 +58,10 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
             CHECK(op_type_ == "AveragePool");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
             count_include_pad_ = xattr.i() != 0;
+        } else if (xattr.name() == "epsilon") {
+            CHECK(op_type_ == "BatchNormalization");
+            CHECK_EQ(xattr.type(), onnx::AttributeProto::FLOAT);
+            epsilon_ = xattr.f();
         } else {
             unknown_attributes_.push_back(xattr);
         }
@@ -68,6 +72,10 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
         if (!beta_) beta_ = 1.0;
         if (!trans_a_) trans_a_ = 0;
         if (!trans_b_) trans_b_ = 0;
+    }
+    if (op_type_ == "BatchNormalization") {
+        // TODO(hamaji): Suppport other attributes, with adding test cases.
+        CHECK(unknown_attributes_.empty()) << "BatchNormalization only supports epsilon so far";
     }
 }
 
@@ -118,10 +126,13 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
         add_int_attr("transB", trans_b_);
     }
     if (op_type_ == "Softmax") {
-        add_int_attr("axis", axis_);
+        if (axis_ >= 0) add_int_attr("axis", axis_);
     }
     if (op_type_ == "AveragePool") {
-        add_int_attr("count_include_pad_", count_include_pad_);
+        add_int_attr("count_include_pad", count_include_pad_);
+    }
+    if (op_type_ == "BatchNormalization") {
+        add_float_attr("epsilon", epsilon_);
     }
     for (const onnx::AttributeProto& xattr : unknown_attributes_) {
         *xnode->add_attribute() = xattr;
