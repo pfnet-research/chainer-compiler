@@ -6,6 +6,7 @@
 
 #include <xchainer/array.h>
 #include <xchainer/routines/creation.h>
+#include <xchainer/routines/manipulation.h>
 
 #include <common/log.h>
 // TODO(hamaji): Get rid of the dependency to compiler from runtime.
@@ -21,6 +22,16 @@ xchainer::Array GetOrDie(const InOuts& m, std::string name) {
 }
 
 void SetOrDie(InOuts& m, std::string name, xchainer::Array a) { CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name; }
+
+xchainer::Shape ArrayToShape(const xchainer::Array a) {
+    WARN_ONCE("Shape info was not statically known.");
+    CHECK_EQ(a.ndim(), 1);
+    xchainer::Shape shape;
+    for (int i = 0; i < a.shape()[0]; ++i) {
+        shape.push_back(int64_t(xchainer::AsScalar(a.At({i}))));
+    }
+    return shape;
+}
 
 xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     Tensor tensor(xtensor);

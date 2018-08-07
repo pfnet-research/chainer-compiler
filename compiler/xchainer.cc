@@ -135,10 +135,16 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         EmitSingleArrayAssignment(out_name(), "xchainer::MaxPool(" + Join({in_name(), "kernel_shape", "strides", "pads"}) + ")", ce);
     } else if (node.op_type() == "MatMul") {
         CHECK_EQ(2UL, node.inputs().size());
-        EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + node.inputs()[0]->name() + ", " + node.inputs()[1]->name() + ")", ce);
+        EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name()}) + ")", ce);
     } else if (node.op_type() == "Relu") {
         CHECK_EQ(1UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), "xchainer::Maximum(" + node.inputs()[0]->name() + ", 0)", ce);
+    } else if (node.op_type() == "Reshape") {
+        CHECK_EQ(2UL, node.inputs().size());
+        EmitSingleArrayAssignment(
+                out_name(),
+                "xchainer::Reshape(" + Join({node.inputs()[0]->name(), "ArrayToShape(" + node.inputs()[1]->name() + ")"}) + ")",
+                ce);
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }

@@ -22,6 +22,7 @@ if [ $# = "0" ]; then
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_add_bcast )
 
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_2d )
+    # TODO(xchainer): Support non-2D dot.
     # terminate called after throwing an instance of 'xchainer::NotImplementedError'
     #   what():  dot does not support rhs operand with ndim > 2
     # onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_3d )
@@ -45,6 +46,13 @@ if [ $# = "0" ]; then
     #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_3d_default )
     #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_with_argmax_2d_precomputed_pads )
     #onnx_tests+=( onnx/onnx/backend/test/data/node/test_maxpool_with_argmax_2d_precomputed_strides )
+
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_extended_dims )
+    # TODO(xchainer): Support negative reshape.
+    #onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_negative_dim )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_one_dim )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_reduced_dims )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_reordered_dims )
 else
     onnx_tests+=( $@ )
 fi
