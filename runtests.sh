@@ -53,6 +53,9 @@ if [ $# = "0" ]; then
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_one_dim )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_reduced_dims )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_reshape_reordered_dims )
+
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_gemm_nobroadcast )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_gemm_broadcast )
 else
     onnx_tests+=( $@ )
 fi

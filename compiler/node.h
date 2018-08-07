@@ -32,6 +32,11 @@ public:
     const std::vector<int>& strides() const { return strides_; }
     const std::vector<int>& dilations() const { return dilations_; }
 
+    double alpha() const { return alpha_; }
+    double beta() const { return beta_; }
+    bool trans_a() const { return trans_a_; }
+    bool trans_b() const { return trans_b_; }
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;
@@ -45,6 +50,9 @@ private:
     std::vector<int> pads_;
     std::vector<int> strides_;
     std::vector<int> dilations_;
+
+    float alpha_, beta_;
+    bool trans_a_, trans_b_;
 };
 
 }  // namespace oniku

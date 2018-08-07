@@ -139,6 +139,30 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
                 "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", strides_sym, pads_sym}) +
                         ")",
                 ce);
+    } else if (node.op_type() == "Gemm") {
+        CHECK_EQ(3UL, node.inputs().size());
+        std::string a = node.inputs()[0]->name();
+        std::string b = node.inputs()[1]->name();
+        std::string c = node.inputs()[2]->name();
+        if (node.trans_a()) {
+            a = "xchainer::Transpose(" + a + ")";
+        }
+        if (node.trans_b()) {
+            b = "xchainer::Transpose(" + b + ")";
+        }
+        std::string r = "xchainer::Dot(" + Join({a, b}) + ")";
+        if (node.alpha() != 1.0) {
+            std::ostringstream oss;
+            oss << r << " * " << node.alpha();
+            r = oss.str();
+        }
+        r += " + " + c;
+        if (node.beta() != 1.0) {
+            std::ostringstream oss;
+            oss << r << " * " << node.alpha();
+            r = oss.str();
+        }
+        EmitSingleArrayAssignment(out_name(), r, ce);
     } else if (node.op_type() == "MaxPool") {
         const std::string& strides_sym = emit_strides();
         const std::string& pads_sym = emit_pads();
