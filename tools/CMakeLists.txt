@@ -7,6 +7,7 @@ target_link_libraries(dump_onnx protobuf)
 set_target_properties(dump_onnx PROPERTIES OUTPUT_NAME "dump_onnx")
 
 add_executable(dump_tensor dump_tensor.cc)
+target_link_libraries(dump_tensor oniku_compiler)
 target_link_libraries(dump_tensor onnx_proto)
 target_link_libraries(dump_tensor protobuf)
 set_target_properties(dump_tensor PROPERTIES OUTPUT_NAME "dump_tensor")

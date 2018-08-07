@@ -9,12 +9,16 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/tensor.h>
 
 int main(int argc, const char** argv) {
     if (argc <= 1) {
         QFAIL() << "Usage: " << argv[0] << " <onnx>";
     }
 
-    onnx::TensorProto tensor(LoadLargeProto<onnx::TensorProto>(argv[1]));
-    std::cout << tensor.DebugString();
+    onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(argv[1]));
+    oniku::Tensor tensor(xtensor);
+    onnx::TensorProto xtensor_normalized;
+    tensor.ToONNX(&xtensor_normalized);
+    std::cout << xtensor_normalized.DebugString();
 }
