@@ -26,6 +26,12 @@ public:
     const std::string& domain() const { return domain_; }
     const std::string& doc_string() const { return doc_string_; }
 
+    // TODO(hamaji): Consider implementing inferences for attributes.
+    const std::vector<int>& kernel_shape() const { return kernel_shape_; }
+    const std::vector<int>& pads() const { return pads_; }
+    const std::vector<int>& strides() const { return strides_; }
+    const std::vector<int>& dilations() const { return dilations_; }
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;
@@ -34,6 +40,11 @@ private:
     std::string domain_;
     std::vector<onnx::AttributeProto> unknown_attributes_;
     std::string doc_string_;
+
+    std::vector<int> kernel_shape_;
+    std::vector<int> pads_;
+    std::vector<int> strides_;
+    std::vector<int> dilations_;
 };
 
 }  // namespace oniku

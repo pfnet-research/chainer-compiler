@@ -64,6 +64,30 @@ void EmitInputs(const Graph& graph, CodeEmitter& ce) {
     ce << NL;
 }
 
+template <class List>
+std::string Join(const List& l) {
+    std::ostringstream oss;
+    bool is_first = true;
+    for (auto& v : l) {
+        if (!is_first)
+            oss << ", ";
+        is_first = false;
+        oss << v;
+    }
+    return oss.str();
+}
+
+// TODO(hamaji): Consider using something like StrCat in abseil.
+std::string Join(std::initializer_list<std::string> l) {
+    return Join(std::vector<std::string>(l));
+}
+
+void EmitIntStackVector(const std::string& name,
+                        const std::vector<int>& ints,
+                        CodeEmitter& ce) {
+    ce << "xchainer::StackVector<int64_t, xchainer::kMaxNdim> " << name << "{" << Join(ints) << "};\n";
+}
+
 void EmitNode(const Node& node, CodeEmitter& ce) {
     auto out_name = [&node]() {
         CHECK_EQ(1UL, node.outputs().size());
@@ -73,6 +97,27 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
     if (node.op_type() == "Add") {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), node.inputs()[0]->name() + " + " + node.inputs()[1]->name(), ce);
+    } else if (node.op_type() == "Conv") {
+        CHECK_EQ(2UL, node.inputs().size());
+        std::vector<int> strides = node.strides();
+        std::vector<int> pads = node.pads();
+        // TODO(hamaji): Infer strides/dilations for non-2D convolutions.
+        if (strides.empty()) strides = {1, 1};
+        if (pads.empty()) {
+            pads = {0, 0};
+        } else {
+            // Both Chainer and xChainer expect paddings for beginning
+            // and end are the same.
+            CHECK_EQ(pads.size() % 2, 0);
+            for (size_t i = 0; i < pads.size() / 2; ++i) {
+                CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
+            }
+            pads.resize(pads.size() / 2);
+        }
+
+        EmitIntStackVector("strides", strides, ce);
+        EmitIntStackVector("pads", pads, ce);
+        EmitSingleArrayAssignment(out_name(), "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", "strides", "pads"}) + ")", ce);
     } else if (node.op_type() == "MatMul") {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + node.inputs()[0]->name() + ", " + node.inputs()[1]->name() + ")", ce);

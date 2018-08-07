@@ -35,6 +35,20 @@ void ReorderInitializers(onnx::GraphProto* xgraph) {
     }
 }
 
+// Sorts attributes alphabetically for normalization.
+void SortAttributes(onnx::GraphProto* xgraph) {
+    for (onnx::NodeProto& xnode : *xgraph->mutable_node()) {
+        std::map<std::string, onnx::AttributeProto> attributes;
+        for (const auto& xattr : xnode.attribute()) {
+            CHECK(attributes.emplace(xattr.name(), xattr).second) << xattr.name();
+        }
+        xnode.clear_attribute();
+        for (const auto& p : attributes) {
+            *xnode.add_attribute() = p.second;
+        }
+    }
+}
+
 TEST(ModelTest, LoadSimpleONNX) {
     std::string path = (std::string(kONNXTestDataDir) + "/simple/test_single_relu_model/model.onnx");
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
@@ -69,6 +83,8 @@ TEST(ModelTest, DumpMNIST) {
         node->clear_domain();
         node->clear_doc_string();
     }
+    SortAttributes(xmodel.mutable_graph());
+    SortAttributes(xmodel2.mutable_graph());
     ReorderInitializers(xmodel.mutable_graph());
 
     EXPECT_EQ(xmodel.DebugString(), xmodel2.DebugString());

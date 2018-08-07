@@ -15,16 +15,27 @@ CXX=c++
 
 onnx_tests=()
 
-onnx_tests+=( onnx/onnx/backend/test/data/node/test_relu )
+if [ $# = "0" ]; then
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_relu )
 
-onnx_tests+=( onnx/onnx/backend/test/data/node/test_add )
-onnx_tests+=( onnx/onnx/backend/test/data/node/test_add_bcast )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_add )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_add_bcast )
 
-onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_2d )
-# terminate called after throwing an instance of 'xchainer::NotImplementedError'
-#   what():  dot does not support rhs operand with ndim > 2
-# onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_3d )
-# onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_4d )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_2d )
+    # terminate called after throwing an instance of 'xchainer::NotImplementedError'
+    #   what():  dot does not support rhs operand with ndim > 2
+    # onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_3d )
+    # onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_4d )
+
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_basic_conv_with_padding )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_basic_conv_without_padding )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_conv_with_strides_no_padding )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_conv_with_strides_padding )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_conv_with_strides_and_asymmetric_padding )
+else
+    onnx_tests+=( $@ )
+fi
+
 
 mkdir -p out
 for onnx in "${onnx_tests[@]}"; do
