@@ -93,7 +93,12 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         return node.outputs().front()->name();
     };
 
-    auto emit_pads = [&node, &ce]() {
+    auto gen_sym = [&node](const std::string& name) {
+        CHECK_LE(1UL, node.outputs().size());
+        return node.outputs().front()->name() + "_" + name;
+    };
+
+    auto emit_pads = [gen_sym, &node, &ce]() {
         std::vector<int> pads = node.pads();
         if (pads.empty()) {
             pads = {0, 0};
@@ -106,14 +111,18 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
             }
             pads.resize(pads.size() / 2);
         }
-        EmitIntStackVector("pads", pads, ce);
+        const std::string& pads_sym = gen_sym("pads");
+        EmitIntStackVector(pads_sym, pads, ce);
+        return pads_sym;
     };
 
-    auto emit_strides = [&node, &ce]() {
+    auto emit_strides = [gen_sym, &node, &ce]() {
         std::vector<int> strides = node.strides();
         // TODO(hamaji): Infer strides for non-2D convolutions/pools.
         if (strides.empty()) strides = {1, 1};
-        EmitIntStackVector("strides", strides, ce);
+        const std::string& strides_sym = gen_sym("strides");
+        EmitIntStackVector(strides_sym, strides, ce);
+        return strides_sym;
     };
 
     if (node.op_type() == "Add") {
@@ -121,18 +130,22 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         EmitSingleArrayAssignment(out_name(), node.inputs()[0]->name() + " + " + node.inputs()[1]->name(), ce);
     } else if (node.op_type() == "Conv") {
         CHECK_EQ(2UL, node.inputs().size());
-        emit_strides();
-        emit_pads();
+        // TODO(xchainer): Support dilation.
+        for (int d : node.dilations())
+            CHECK_EQ(d, 1) << "Dilation is not supported yet";
+        const std::string& strides_sym = emit_strides();
+        const std::string& pads_sym = emit_pads();
         EmitSingleArrayAssignment(
                 out_name(),
-                "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", "strides", "pads"}) + ")",
+                "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", strides_sym, pads_sym}) + ")",
                 ce);
     } else if (node.op_type() == "MaxPool") {
-        emit_strides();
-        emit_pads();
+        const std::string& strides_sym = emit_strides();
+        const std::string& pads_sym = emit_pads();
         std::vector<int> kernel_shape = node.kernel_shape();
-        EmitIntStackVector("kernel_shape", kernel_shape, ce);
-        EmitSingleArrayAssignment(out_name(), "xchainer::MaxPool(" + Join({in_name(), "kernel_shape", "strides", "pads"}) + ")", ce);
+        const std::string& kernel_shape_sym = gen_sym("kernel_shape");
+        EmitIntStackVector(kernel_shape_sym, kernel_shape, ce);
+        EmitSingleArrayAssignment(out_name(), "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ")", ce);
     } else if (node.op_type() == "MatMul") {
         CHECK_EQ(2UL, node.inputs().size());
         EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name()}) + ")", ce);
