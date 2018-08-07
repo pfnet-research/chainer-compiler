@@ -39,18 +39,21 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         found->second->ResetInitializer(std::move(tensor));
     }
 
+    auto get_value = [&](const std::string& name) {
+        auto p = values_by_name.emplace(name, nullptr);
+        if (!p.second)
+            return p.first->second;
+        return p.first->second = new Value(name);
+    };
+
     for (const onnx::NodeProto& xnode : xgraph.node()) {
         std::vector<Value*> inputs;
         for (const std::string& name : xnode.input()) {
-            auto found = values_by_name.find(name);
-            CHECK(found != values_by_name.end()) << "Unknown value: " << name;
-            inputs.push_back(found->second);
+            inputs.push_back(get_value(name));
         }
         std::vector<Value*> outputs;
         for (const std::string& name : xnode.output()) {
-            auto found = values_by_name.find(name);
-            CHECK(found != values_by_name.end()) << "Unknown value: " << name;
-            outputs.push_back(found->second);
+            outputs.push_back(get_value(name));
         }
 
         Node* node = new Node(xnode, inputs, outputs);
