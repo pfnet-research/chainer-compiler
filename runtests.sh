@@ -13,10 +13,13 @@ fi
 
 CXX=c++
 
-onnx_tests=onnx/onnx/backend/test/data/node/test_relu
+onnx_tests=()
+onnx_tests+=( onnx/onnx/backend/test/data/node/test_relu )
+onnx_tests+=( onnx/onnx/backend/test/data/node/test_add )
+onnx_tests+=( onnx/onnx/backend/test/data/node/test_add_bcast )
 
 mkdir -p out
-for onnx in "${onnx_tests}"; do
+for onnx in "${onnx_tests[@]}"; do
     onnx_model="${onnx}/model.onnx"
     name=$(echo "${onnx_model}" | sed 's/\//_/g')
     cc="out/${name}.cc"
@@ -37,14 +40,11 @@ for onnx in "${onnx_tests}"; do
         -o "${exe}"
 
     for test_data_set in $(echo "${onnx}/test_data_set_*"); do
-        inputs=$(echo "${test_data_set}/input_*.pb")
-        outputs=$(echo "${test_data_set}/output_*.pb")
-
         args=""
-        for a in "${inputs}"; do
+        for a in $(echo "${test_data_set}/input_*.pb"); do
             args="${args} -in ${a}"
         done
-        for a in "${outputs}"; do
+        for a in $(echo "${test_data_set}/output_*.pb"); do
             args="${args} -out ${a}"
         done
         "./${exe}" ${args}
