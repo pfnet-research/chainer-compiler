@@ -14,9 +14,17 @@ fi
 CXX=c++
 
 onnx_tests=()
+
 onnx_tests+=( onnx/onnx/backend/test/data/node/test_relu )
+
 onnx_tests+=( onnx/onnx/backend/test/data/node/test_add )
 onnx_tests+=( onnx/onnx/backend/test/data/node/test_add_bcast )
+
+onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_2d )
+# terminate called after throwing an instance of 'xchainer::NotImplementedError'
+#   what():  dot does not support rhs operand with ndim > 2
+# onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_3d )
+# onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_4d )
 
 mkdir -p out
 for onnx in "${onnx_tests[@]}"; do
