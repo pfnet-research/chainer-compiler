@@ -57,8 +57,7 @@ void EmitSingleArrayAssignment(const std::string& name, const std::string rhs, C
 
 void EmitInputs(const Graph& graph, CodeEmitter& ce) {
     for (const auto& value : graph.values()) {
-        if (value->kind() != Value::Kind::kInput)
-            continue;
+        if (value->kind() != Value::Kind::kInput) continue;
         ce << "const xchainer::Array& " << value->name() << " = GetOrDie(inputs, \"" << value->name() << "\");\n";
     }
     ce << NL;
@@ -69,8 +68,7 @@ std::string Join(const List& l) {
     std::ostringstream oss;
     bool is_first = true;
     for (auto& v : l) {
-        if (!is_first)
-            oss << ", ";
+        if (!is_first) oss << ", ";
         is_first = false;
         oss << v;
     }
@@ -78,13 +76,9 @@ std::string Join(const List& l) {
 }
 
 // TODO(hamaji): Consider using something like StrCat in abseil.
-std::string Join(std::initializer_list<std::string> l) {
-    return Join(std::vector<std::string>(l));
-}
+std::string Join(std::initializer_list<std::string> l) { return Join(std::vector<std::string>(l)); }
 
-void EmitIntStackVector(const std::string& name,
-                        const std::vector<int>& ints,
-                        CodeEmitter& ce) {
+void EmitIntStackVector(const std::string& name, const std::vector<int>& ints, CodeEmitter& ce) {
     ce << "xchainer::StackVector<int64_t, xchainer::kMaxNdim> " << name << "{" << Join(ints) << "};\n";
 }
 
@@ -129,7 +123,10 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         CHECK_EQ(2UL, node.inputs().size());
         emit_strides();
         emit_pads();
-        EmitSingleArrayAssignment(out_name(), "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", "strides", "pads"}) + ")", ce);
+        EmitSingleArrayAssignment(
+                out_name(),
+                "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", "strides", "pads"}) + ")",
+                ce);
     } else if (node.op_type() == "MaxPool") {
         emit_strides();
         emit_pads();
@@ -151,8 +148,7 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
 void EmitComputation(const Graph& graph, CodeEmitter& ce) {
     std::queue<const Value*> q;
     for (const auto& value : graph.values()) {
-        if (value->kind() == Value::Kind::kOutput)
-            q.push(value.get());
+        if (value->kind() == Value::Kind::kOutput) q.push(value.get());
     }
 
     std::set<const Node*> seen;
@@ -161,8 +157,7 @@ void EmitComputation(const Graph& graph, CodeEmitter& ce) {
         const Value* value = q.front();
         q.pop();
         if (const Node* node = value->producer()) {
-            if (!seen.emplace(node).second)
-                continue;
+            if (!seen.emplace(node).second) continue;
 
             nodes.push_back(node);
             for (const Value* input : node->inputs()) {
@@ -180,8 +175,7 @@ void EmitComputation(const Graph& graph, CodeEmitter& ce) {
 void EmitOutputs(const Graph& graph, CodeEmitter& ce) {
     ce << "InOuts outputs;\n";
     for (const auto& value : graph.values()) {
-        if (value->kind() != Value::Kind::kOutput)
-            continue;
+        if (value->kind() != Value::Kind::kOutput) continue;
         ce << "SetOrDie(outputs, \"" << value->name() << "\", " << value->name() << ");\n";
     }
     ce << "return outputs;\n";

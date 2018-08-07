@@ -15,32 +15,22 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
       doc_string_(xnode.doc_string()) {
     for (const onnx::AttributeProto& xattr : xnode.attribute()) {
         if (xattr.name() == "kernel_shape") {
-            CHECK(op_type_ == "Conv" ||
-                  op_type_ == "ConvTranspose" ||
-                  op_type_ == "LpPool" ||
-                  op_type_ == "MaxPool" ||
+            CHECK(op_type_ == "Conv" || op_type_ == "ConvTranspose" || op_type_ == "LpPool" || op_type_ == "MaxPool" ||
                   op_type_ == "AveragePool");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INTS);
             kernel_shape_.assign(xattr.ints().begin(), xattr.ints().end());
         } else if (xattr.name() == "pads") {
-            CHECK(op_type_ == "Conv" ||
-                  op_type_ == "ConvTranspose" ||
-                  op_type_ == "LpPool" ||
-                  op_type_ == "MaxPool" ||
+            CHECK(op_type_ == "Conv" || op_type_ == "ConvTranspose" || op_type_ == "LpPool" || op_type_ == "MaxPool" ||
                   op_type_ == "AveragePool");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INTS);
             pads_.assign(xattr.ints().begin(), xattr.ints().end());
         } else if (xattr.name() == "strides") {
-            CHECK(op_type_ == "Conv" ||
-                  op_type_ == "ConvTranspose" ||
-                  op_type_ == "LpPool" ||
-                  op_type_ == "MaxPool" ||
+            CHECK(op_type_ == "Conv" || op_type_ == "ConvTranspose" || op_type_ == "LpPool" || op_type_ == "MaxPool" ||
                   op_type_ == "AveragePool");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INTS);
             strides_.assign(xattr.ints().begin(), xattr.ints().end());
         } else if (xattr.name() == "dilations") {
-            CHECK(op_type_ == "Conv" ||
-                  op_type_ == "ConvTranspose");
+            CHECK(op_type_ == "Conv" || op_type_ == "ConvTranspose");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INTS);
             dilations_.assign(xattr.ints().begin(), xattr.ints().end());
         } else {
@@ -64,13 +54,11 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     DUMP_STRING(xnode, domain);
 
     auto add_ints_attr = [&xnode](const std::string& name, const std::vector<int> ints) {
-        if (ints.empty())
-            return;
+        if (ints.empty()) return;
         onnx::AttributeProto* xattr = xnode->add_attribute();
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::INTS);
-        for (int s : ints)
-            xattr->add_ints(s);
+        for (int s : ints) xattr->add_ints(s);
     };
     add_ints_attr("kernel_shape", kernel_shape_);
     add_ints_attr("pads", pads_);
@@ -82,7 +70,5 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
 
     DUMP_STRING(xnode, doc_string);
 }
-
-
 
 }  // namespace oniku
