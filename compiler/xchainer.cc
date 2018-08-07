@@ -35,6 +35,7 @@ void EmitIncludes(CodeEmitter& ce) {
             "google/protobuf/io/zero_copy_stream_impl.h",
             "onnx/onnx.pb.h",
             "xchainer/array.h",
+            "xchainer/axes.h",
             "xchainer/routines/connection.h",
             "xchainer/routines/creation.h",
             "xchainer/routines/linalg.h",
@@ -185,6 +186,16 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
                 out_name(),
                 "xchainer::Reshape(" + Join({node.inputs()[0]->name(), "ArrayToShape(" + node.inputs()[1]->name() + ")"}) + ")",
                 ce);
+    } else if (node.op_type() == "Softmax" || node.op_type() == "LogSoftmax") {
+        int axis = node.axis();
+        if (axis < 0) axis = 1;
+        std::ostringstream oss;
+        oss << "xchainer::LogSoftmax(" << in_name() << ", xchainer::OptionalAxes{" << axis << "})";
+        std::string r = oss.str();
+        if (node.op_type() == "Softmax") {
+            r = "xchainer::Exp(" + r + ")";
+        }
+        EmitSingleArrayAssignment(out_name(), r, ce);
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }

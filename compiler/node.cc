@@ -13,6 +13,7 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
       op_type_(xnode.op_type()),
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
+    // TODO(hamaji): Define an IDL or something for attributes.
     for (const onnx::AttributeProto& xattr : xnode.attribute()) {
         if (xattr.name() == "kernel_shape") {
             CHECK(op_type_ == "Conv" || op_type_ == "ConvTranspose" || op_type_ == "LpPool" || op_type_ == "MaxPool" ||
@@ -49,6 +50,10 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
             CHECK(op_type_ == "Gemm");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
             trans_b_ = xattr.i() != 0;
+        } else if (xattr.name() == "axis") {
+            CHECK(op_type_ == "Softmax" || op_type_ == "LogSoftmax");
+            CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
+            axis_ = xattr.i();
         } else {
             unknown_attributes_.push_back(xattr);
         }
@@ -107,6 +112,9 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
         add_float_attr("beta", beta_);
         add_int_attr("transA", trans_a_);
         add_int_attr("transB", trans_b_);
+    }
+    if (op_type_ == "Softmax") {
+        add_int_attr("axis", axis_);
     }
     for (const onnx::AttributeProto& xattr : unknown_attributes_) {
         *xnode->add_attribute() = xattr;

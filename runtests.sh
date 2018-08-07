@@ -56,6 +56,12 @@ if [ $# = "0" ]; then
 
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_gemm_nobroadcast )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_gemm_broadcast )
+
+    # TODO(hamaji): Investigate 3D softmax ops do not agree (though
+    # xChainer agrees with Chainer).
+    # TODO(hamaji): Relax equality check for "large_number" tests.
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_softmax_example )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_logsoftmax_example_1 )
 else
     onnx_tests+=( $@ )
 fi

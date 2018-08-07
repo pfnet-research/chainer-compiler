@@ -37,6 +37,8 @@ public:
     bool trans_a() const { return trans_a_; }
     bool trans_b() const { return trans_b_; }
 
+    int axis() const { return axis_; }
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;
@@ -53,6 +55,8 @@ private:
 
     float alpha_, beta_;
     bool trans_a_, trans_b_;
+
+    int axis_ = -1;
 };
 
 }  // namespace oniku
