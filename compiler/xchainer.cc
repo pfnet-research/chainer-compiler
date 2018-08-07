@@ -131,13 +131,13 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
     } else if (node.op_type() == "Conv") {
         CHECK_EQ(2UL, node.inputs().size());
         // TODO(xchainer): Support dilation.
-        for (int d : node.dilations())
-            CHECK_EQ(d, 1) << "Dilation is not supported yet";
+        for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
         const std::string& strides_sym = emit_strides();
         const std::string& pads_sym = emit_pads();
         EmitSingleArrayAssignment(
                 out_name(),
-                "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", strides_sym, pads_sym}) + ")",
+                "xchainer::Conv(" + Join({node.inputs()[0]->name(), node.inputs()[1]->name(), "nonstd::nullopt", strides_sym, pads_sym}) +
+                        ")",
                 ce);
     } else if (node.op_type() == "MaxPool") {
         const std::string& strides_sym = emit_strides();
