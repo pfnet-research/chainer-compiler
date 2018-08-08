@@ -181,7 +181,7 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         EmitIntStackVector(kernel_shape_sym, kernel_shape, ce);
         std::string r;
         if (node.op_type() == "MaxPool") {
-            r = "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ")";
+            r = "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ", false)";
         } else {
             const std::string pad_mode = node.count_include_pad() ? "kZero" : "kIgnore";
             r = "xchainer::AveragePool(" +
@@ -301,7 +301,7 @@ void EmitComputation(const Graph& graph, CodeEmitter& ce) {
             }
         }
         ce << " << \")\" << std::endl;\n";
-        ce << "}\n";
+        ce << "}\n\n";
     }
 }
 
