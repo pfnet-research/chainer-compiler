@@ -43,7 +43,7 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
     auto get_value = [&](const std::string& name) {
         auto p = values_by_name.emplace(name, nullptr);
         if (!p.second) return p.first->second;
-        return p.first->second = new Value(name);
+        return p.first->second = AddValue(name);
     };
 
     for (const onnx::NodeProto& xnode : xgraph.node()) {
