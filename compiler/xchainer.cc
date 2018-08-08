@@ -282,8 +282,7 @@ void EmitComputation(const Graph& graph, CodeEmitter& ce) {
         {
             bool is_first = true;
             for (Value* input : node->inputs()) {
-                if (!is_first)
-                    ce << " << \", \"";
+                if (!is_first) ce << " << \", \"";
                 is_first = false;
                 ce << " << " << input->name() << ".shape().ToString()";
             }
@@ -292,12 +291,10 @@ void EmitComputation(const Graph& graph, CodeEmitter& ce) {
         {
             bool is_first = true;
             for (Value* output : node->outputs()) {
-                if (!is_first)
-                    ce << " << \", \"";
+                if (!is_first) ce << " << \", \"";
                 is_first = false;
                 ce << " << " << output->name() << ".shape().ToString()";
-                if (node->op_type() == "Dropout")
-                    break;
+                if (node->op_type() == "Dropout") break;
             }
         }
         ce << " << \")\" << std::endl;\n";
