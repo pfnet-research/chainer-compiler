@@ -141,6 +141,11 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     if (op_type_ == "BatchNormalization") {
         add_float_attr("epsilon", epsilon_);
     }
+
+    if (order_ >= 0) {
+        add_int_attr("onikux_order", order_);
+    }
+
     for (const onnx::AttributeProto& xattr : unknown_attributes_) {
         *xnode->add_attribute() = xattr;
     }

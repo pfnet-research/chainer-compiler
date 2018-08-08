@@ -1,10 +1,25 @@
 #include <gtest/gtest.h>
 
+#include <onnx/onnx.pb.h>
+
+#include <common/log.h>
 #include <compiler/graph.h>
+#include <compiler/node.h>
 #include <compiler/scheduler.h>
 
 namespace oniku {
 namespace {
+
+// TODO(hamaji): Move this to somewhere as a utility function.
+int LookupIntAttribute(const onnx::NodeProto& xnode, const std::string& name, int default_value) {
+    for (const onnx::AttributeProto& xattribute : xnode.attribute()) {
+        if (xattribute.name() == name) {
+            CHECK_EQ(xattribute.type(), onnx::AttributeProto::INT);
+            return xattribute.i();
+        }
+    }
+    return default_value;
+}
 
 TEST(SchedulerTest, Basic) {
     Graph graph("test");
@@ -22,6 +37,14 @@ TEST(SchedulerTest, Basic) {
 
     const std::vector<const Node*> nodes(graph.GetComputationSequence());
     ASSERT_EQ(2UL, nodes.size());
+    EXPECT_EQ(n2, nodes[0]);
+    EXPECT_EQ(n1, nodes[1]);
+    EXPECT_EQ(2, n1->order());
+    EXPECT_EQ(1, n2->order());
+
+    onnx::NodeProto xn;
+    n1->ToONNX(&xn);
+    EXPECT_EQ(2, LookupIntAttribute(xn, "onikux_order", -1));
 }
 
 }  // namespace
