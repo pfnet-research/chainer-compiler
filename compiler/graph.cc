@@ -111,18 +111,15 @@ Node* Graph::AddNode(const std::string& op_type, const std::vector<Value*>& inpu
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
     for (const auto& node : nodes_) {
-        if (node->order() >= 0)
-            nodes.push_back(node.get());
+        if (node->order() >= 0) nodes.push_back(node.get());
     }
-    std::sort(nodes.begin(), nodes.end(),
-              [](const Node* a, const Node* b) { return a->order() < b->order(); });
+    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->order() < b->order(); });
     return nodes;
 }
 
 std::string Graph::GenSym(const std::string& base) {
     std::ostringstream oss;
-    if (!base.empty())
-        oss << base << "_";
+    if (!base.empty()) oss << base << "_";
     oss << "oniku_gensym_" << ++gen_id_;
     return oss.str();
 }

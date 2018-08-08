@@ -1,8 +1,8 @@
 #include "scheduler.h"
 
 #include <iostream>
-#include <queue>
 #include <map>
+#include <queue>
 #include <vector>
 
 #include <compiler/graph.h>
@@ -56,4 +56,4 @@ void ScheduleComputation(const Graph& graph) {
     }
 }
 
-}
+}  // namespace oniku
