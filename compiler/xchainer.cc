@@ -74,8 +74,7 @@ std::string Join(std::initializer_list<std::string> l) { return Join(std::vector
 template <class List, class Fn>
 std::vector<std::string> MapToString(const List& l, Fn fn) {
     std::vector<std::string> r;
-    for (auto& v : l)
-        r.push_back(fn(v));
+    for (auto& v : l) r.push_back(fn(v));
     return r;
 }
 
@@ -85,10 +84,7 @@ void EmitIntStackVector(const std::string& name, const std::vector<int>& ints, C
 
 class XChainerEmitter {
 public:
-    explicit XChainerEmitter(const Graph& graph)
-        : graph_(graph),
-          value_names_(AssignValueNames(graph)) {
-    }
+    explicit XChainerEmitter(const Graph& graph) : graph_(graph), value_names_(AssignValueNames(graph)) {}
 
     void Emit(CodeEmitter& ce) {
         EmitInputs(ce);
@@ -174,7 +170,8 @@ private:
             const std::string& strides_sym = emit_strides();
             const std::string& pads_sym = emit_pads();
             const std::string& bias = node.inputs().size() == 3UL ? GetValueName(node.inputs()[2]) : "nonstd::nullopt";
-            std::string r = "xchainer::Conv(" + Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1]), bias, strides_sym, pads_sym}) + ")";
+            std::string r = "xchainer::Conv(" +
+                            Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1]), bias, strides_sym, pads_sym}) + ")";
             EmitSingleArrayAssignment(out_name(), r, ce);
         } else if (node.op_type() == "Gemm") {
             CHECK_EQ(3UL, node.inputs().size());
@@ -213,16 +210,18 @@ private:
             EmitSingleArrayAssignment(out_name(), r, ce);
         } else if (node.op_type() == "MatMul") {
             CHECK_EQ(2UL, node.inputs().size());
-            EmitSingleArrayAssignment(out_name(), "xchainer::Dot(" + Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1])}) + ")", ce);
+            EmitSingleArrayAssignment(
+                    out_name(), "xchainer::Dot(" + Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1])}) + ")", ce);
         } else if (node.op_type() == "Relu") {
             CHECK_EQ(1UL, node.inputs().size());
             EmitSingleArrayAssignment(out_name(), "xchainer::Maximum(" + GetValueName(node.inputs()[0]) + ", 0)", ce);
         } else if (node.op_type() == "Reshape") {
             CHECK_EQ(2UL, node.inputs().size());
             EmitSingleArrayAssignment(
-                out_name(),
-                "xchainer::Reshape(" + Join({GetValueName(node.inputs()[0]), "ArrayToShape(" + GetValueName(node.inputs()[1]) + ")"}) + ")",
-                ce);
+                    out_name(),
+                    "xchainer::Reshape(" + Join({GetValueName(node.inputs()[0]), "ArrayToShape(" + GetValueName(node.inputs()[1]) + ")"}) +
+                            ")",
+                    ce);
         } else if (node.op_type() == "Sum") {
             CHECK_LE(1UL, node.inputs().size());
             std::string r = GetValueName(node.inputs().front());
@@ -264,9 +263,13 @@ private:
 
             ce << "if (use_trace) {\n";
             ce << "std::cerr << \"" << node->op_type() << "(\" ";
-            ce << " << StrCat(" << Join(MapToString(node->inputs(), [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); })) << ")";
+            ce << " << StrCat("
+               << Join(MapToString(node->inputs(), [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); }))
+               << ")";
             ce << " << \") -> (\" ";
-            ce << " << StrCat(" << Join(MapToString(node->outputs(), [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); })) << ")";
+            ce << " << StrCat("
+               << Join(MapToString(node->outputs(), [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); }))
+               << ")";
             ce << " << \")\" << std::endl;\n";
             ce << "}\n\n";
         }
@@ -316,7 +319,7 @@ void Emit(const Model& model, std::ostream& out) {
     ce << "}\n";
     ce << NL;
 
-    ce.EmitWithoutIndent("}  //namespace runtime\n");
+    ce.EmitWithoutIndent("}  // namespace runtime\n");
     ce.EmitWithoutIndent("}  // namespace oniku\n");
 }
 
