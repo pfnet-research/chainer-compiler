@@ -87,7 +87,7 @@ void RunMain(int argc, const char** argv) {
         auto found = outputs.find(key);
         CHECK(found != outputs.end()) << "Output does not contain " << key;
         xchainer::Array actual = found->second;
-        CHECK(xchainer::AllClose(expected, actual)) << "\nExpected: " << expected << "\nActual: " << actual;
+        CHECK(xchainer::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
     }
 }
 

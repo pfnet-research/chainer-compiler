@@ -23,6 +23,28 @@ xchainer::Array GetOrDie(const InOuts& m, std::string name) {
 
 void SetOrDie(InOuts& m, std::string name, xchainer::Array a) { CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name; }
 
+// TODO(hamaji): Remove this after xchainer::Sqrt is introduced.
+xchainer::Array Sqrt(xchainer::Array x) {
+    xchainer::Array out = xchainer::EmptyLike(x, x.device());
+    x.device().Sqrt(x, out);
+    return out;
+}
+
+xchainer::Array BatchNormONNX(xchainer::Array x, xchainer::Array s, xchainer::Array bias, xchainer::Array mean, xchainer::Array var, float epsilon) {
+    int64_t size = s.GetTotalSize();
+    CHECK_EQ(size, bias.GetTotalSize());
+    CHECK_EQ(size, mean.GetTotalSize());
+    CHECK_EQ(size, var.GetTotalSize());
+    xchainer::Shape shape{size};
+    for (int i = 0; i < x.ndim() - 2; ++i)
+        shape.push_back(1);
+    s = xchainer::Reshape(s, shape);
+    bias = xchainer::Reshape(bias, shape);
+    mean = xchainer::Reshape(mean, shape);
+    var = xchainer::Reshape(var, shape);
+    return s * (x - mean) / Sqrt(var + epsilon) + bias;
+}
+
 xchainer::Shape ArrayToShape(const xchainer::Array a) {
     WARN_ONCE("Shape info was not statically known.");
     CHECK_EQ(a.ndim(), 1);

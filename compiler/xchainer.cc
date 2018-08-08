@@ -210,12 +210,12 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
     } else if (node.op_type() == "BatchNormalization") {
         CHECK_LE(5UL, node.inputs().size());
         const std::string& x = node.inputs()[0]->name();
-        const std::string& gamma = node.inputs()[1]->name();
-        const std::string& beta = node.inputs()[2]->name();
+        const std::string& s = node.inputs()[1]->name();
+        const std::string& bias = node.inputs()[2]->name();
         const std::string& mean = node.inputs()[3]->name();
         const std::string& var = node.inputs()[4]->name();
         std::ostringstream oss;
-        oss << "xchainer::FixedBatchNorm(" << Join({x, gamma, beta, mean, var}) << ", " << node.epsilon() << ")";
+        oss << "BatchNormONNX(" << Join({x, s, bias, mean, var}) << ", " << node.epsilon() << ")";
         EmitSingleArrayAssignment(out_name(), oss.str(), ce);
     } else if (node.op_type() == "Softmax" || node.op_type() == "LogSoftmax") {
         int axis = node.axis();

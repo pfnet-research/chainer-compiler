@@ -81,6 +81,9 @@ if [ $# = "0" ]; then
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_sum_one_input )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_sum_two_inputs )
 
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_batchnorm_example )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_batchnorm_epsilon )
+
 else
     onnx_tests+=( $@ )
 fi
