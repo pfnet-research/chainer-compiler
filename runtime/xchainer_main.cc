@@ -84,7 +84,13 @@ void RunMain(int argc, const char** argv) {
     }
 
     const bool use_trace = getenv("ONIKU_NO_TRACE") == nullptr;
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     InOuts outputs = RunGraph(inputs, use_trace);
+    std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+    double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    if (use_trace) {
+        std::cerr << "elapsed: " << elapsed << " msec" << std::endl;
+    }
 
     for (const auto& p : expectations) {
         const std::string key = p.first;
