@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/code_emitter.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -159,15 +160,11 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         }
         std::string r = "xchainer::Dot(" + Join({a, b}) + ")";
         if (node.alpha() != 1.0) {
-            std::ostringstream oss;
-            oss << r << " * " << node.alpha();
-            r = oss.str();
+            r = StrCat(r, " * ", node.alpha());
         }
         r += " + " + c;
         if (node.beta() != 1.0) {
-            std::ostringstream oss;
-            oss << r << " * " << node.alpha();
-            r = oss.str();
+            r = StrCat(r, " * ", node.beta());
         }
         EmitSingleArrayAssignment(out_name(), r, ce);
     } else if (node.op_type() == "MaxPool" || node.op_type() == "AveragePool") {
@@ -211,15 +208,12 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
         const std::string& bias = node.inputs()[2]->name();
         const std::string& mean = node.inputs()[3]->name();
         const std::string& var = node.inputs()[4]->name();
-        std::ostringstream oss;
-        oss << "BatchNormONNX(" << Join({x, s, bias, mean, var}) << ", " << node.epsilon() << ")";
-        EmitSingleArrayAssignment(out_name(), oss.str(), ce);
+        const std::string r = StrCat("BatchNormONNX(", Join({x, s, bias, mean, var}), ", ", node.epsilon(), ")");
+        EmitSingleArrayAssignment(out_name(), r, ce);
     } else if (node.op_type() == "Softmax" || node.op_type() == "LogSoftmax") {
         int axis = node.axis();
         if (axis < 0) axis = 1;
-        std::ostringstream oss;
-        oss << "xchainer::LogSoftmax(" << in_name() << ", xchainer::OptionalAxes{" << axis << "})";
-        std::string r = oss.str();
+        std::string r = StrCat("xchainer::LogSoftmax(", in_name(), ", xchainer::OptionalAxes{", axis, "})");
         if (node.op_type() == "Softmax") {
             r = "xchainer::Exp(" + r + ")";
         }

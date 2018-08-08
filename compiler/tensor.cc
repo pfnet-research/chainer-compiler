@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/serializer_util.h>
 
 namespace oniku {
@@ -51,11 +52,8 @@ std::string ToString(Tensor::Dtype type) {
             return "FLOAT32";
         case Tensor::Dtype::kFloat64:
             return "FLOAT64";
-        default: {
-            std::ostringstream oss;
-            oss << "???(" << static_cast<int>(type) << ")";
-            return oss.str();
-        }
+        default:
+            return StrCat("???(", static_cast<int>(type), ")");
     }
 }
 

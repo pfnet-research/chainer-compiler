@@ -1,0 +1,13 @@
+include_directories(..)
+include_directories(../googletest/googletest/include)
+link_directories(../googletest/googletest)
+add_executable(common_test
+  strutil_test.cc
+  )
+target_link_libraries(common_test
+  onnx_proto
+  protobuf
+  gtest
+  gtest_main
+  pthread
+  )
