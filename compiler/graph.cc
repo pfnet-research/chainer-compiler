@@ -1,5 +1,6 @@
 #include "graph.h"
 
+#include <algorithm>
 #include <map>
 
 #include <onnx/onnx.pb.h>
@@ -94,6 +95,17 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
         onnx::NodeProto* xnode = xgraph->add_node();
         node->ToONNX(xnode);
     }
+}
+
+std::vector<const Node*> Graph::GetComputationSequence() const {
+    std::vector<const Node*> nodes;
+    for (const auto& node : nodes_) {
+        if (node->order() >= 0)
+            nodes.push_back(node.get());
+    }
+    std::sort(nodes.begin(), nodes.end(),
+              [](const Node* a, const Node* b) { return a->order() < b->order(); });
+    return nodes;
 }
 
 }  // namespace oniku

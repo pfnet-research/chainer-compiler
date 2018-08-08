@@ -27,6 +27,10 @@ public:
     const std::string& name() const { return name_; }
     const std::string& doc_string() const { return doc_string_; }
 
+    // Gets a sequence of scheduled nodes. Node::order() must be set
+    // before calling this function.
+    std::vector<const Node*> GetComputationSequence() const;
+
 private:
     std::vector<std::unique_ptr<Value>> values_;
     std::vector<std::unique_ptr<Node>> nodes_;

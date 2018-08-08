@@ -26,6 +26,9 @@ public:
     const std::string& domain() const { return domain_; }
     const std::string& doc_string() const { return doc_string_; }
 
+    const int order() const { return order_; }
+    void set_order(int order) { order_ = order; }
+
     // TODO(hamaji): Consider implementing inferences for attributes.
     const std::vector<int>& kernel_shape() const { return kernel_shape_; }
     const std::vector<int>& pads() const { return pads_; }
@@ -50,6 +53,8 @@ private:
     std::string domain_;
     std::vector<onnx::AttributeProto> unknown_attributes_;
     std::string doc_string_;
+
+    int order_ = -1;
 
     std::vector<int> kernel_shape_;
     std::vector<int> pads_;
