@@ -8,6 +8,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/graph.h>
 #include <compiler/model.h>
 
 namespace oniku {
@@ -88,6 +89,29 @@ TEST(ModelTest, DumpMNIST) {
     ReorderInitializers(xmodel.mutable_graph());
 
     EXPECT_EQ(xmodel.DebugString(), xmodel2.DebugString());
+}
+
+TEST(ModelTest, LoadResNet50) {
+    std::string path = "../data/resnet50/model.onnx";
+    onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
+    Model model(xmodel);
+
+    EXPECT_EQ(3, model.ir_version());
+    ASSERT_EQ(1, model.opset_import().size());
+    EXPECT_EQ("", model.opset_import()[0].domain());
+    EXPECT_EQ(8, model.opset_import()[0].version());
+    EXPECT_EQ("onnx-caffe2", model.producer_name());
+    EXPECT_EQ("", model.producer_version());
+    EXPECT_EQ("", model.domain());
+    EXPECT_EQ(0, model.model_version());
+    EXPECT_EQ("", model.doc_string());
+    EXPECT_EQ(0UL, model.metadata_props().size());
+
+    const Graph& graph = model.graph();
+    EXPECT_EQ("resnet50", graph.name());
+    EXPECT_EQ("", graph.doc_string());
+    EXPECT_EQ(271UL, graph.values().size());
+    EXPECT_EQ(176UL, graph.nodes().size());
 }
 
 }  // namespace

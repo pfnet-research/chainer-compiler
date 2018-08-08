@@ -24,6 +24,9 @@ public:
     const std::vector<std::unique_ptr<Value>>& values() const { return values_; }
     const std::vector<std::unique_ptr<Node>>& nodes() const { return nodes_; }
 
+    const std::string& name() const { return name_; }
+    const std::string& doc_string() const { return doc_string_; }
+
 private:
     std::vector<std::unique_ptr<Value>> values_;
     std::vector<std::unique_ptr<Node>> nodes_;
