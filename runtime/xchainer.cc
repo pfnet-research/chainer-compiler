@@ -78,7 +78,8 @@ xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
         default:
             CHECK(false) << "Unknown data type: " << static_cast<int>(tensor.dtype());
     }
-    xchainer::Array array(xchainer::FromData(shape, dtype, data));
+    // TODO(hamaji): Should we use an `internal` API?
+    xchainer::Array array(xchainer::internal::FromContiguousHostData(shape, dtype, data));
     return array;
 }
 

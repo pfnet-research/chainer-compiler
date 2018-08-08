@@ -30,6 +30,9 @@ void RunMain(int argc, const char** argv) {
 
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
+    if (const char* device = getenv("ONIKU_DEVICE")) {
+        xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(std::string(device)));
+    }
 
     InOuts inputs;
     InOuts expectations;
