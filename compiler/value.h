@@ -19,9 +19,7 @@ public:
     };
 
     Value(const onnx::ValueInfoProto& xvalue, Kind kind);
-    // Constructs `Value` for values which are not explicitly defined
-    // by `value_info`.
-    explicit Value(const std::string& name);
+    explicit Value(const std::string& name, Kind kind = Kind::kTemp);
     ~Value();
 
     Value(const Value&) = delete;

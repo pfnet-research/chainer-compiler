@@ -79,6 +79,13 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
     }
 }
 
+Node::Node(const std::string& name, const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs)
+    : inputs_(inputs),
+      outputs_(outputs),
+      name_(name),
+      op_type_(op_type) {
+}
+
 Node::~Node() {}
 
 void Node::ToONNX(onnx::NodeProto* xnode) const {

@@ -57,12 +57,11 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         }
 
         Node* node = new Node(xnode, inputs, outputs);
-        nodes_.emplace_back(node);
-
-        for (Value* input : inputs) input->AddUser(node);
-        for (Value* output : outputs) output->SetProducer(node);
+        AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     }
 }
+
+Graph::Graph(const std::string name) : name_(name) {}
 
 Graph::~Graph() {}
 
@@ -97,6 +96,18 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     }
 }
 
+Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
+    Value* value = new Value(name, kind);
+    values_.emplace_back(value);
+    return value;
+}
+
+Node* Graph::AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+    Node* node = new Node(op_type, GenSym(op_type), inputs, outputs);
+    AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
+    return node;
+}
+
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
     for (const auto& node : nodes_) {
@@ -106,6 +117,20 @@ std::vector<const Node*> Graph::GetComputationSequence() const {
     std::sort(nodes.begin(), nodes.end(),
               [](const Node* a, const Node* b) { return a->order() < b->order(); });
     return nodes;
+}
+
+std::string Graph::GenSym(const std::string& base) {
+    std::ostringstream oss;
+    if (!base.empty())
+        oss << base << "_";
+    oss << "oniku_gensym_" << ++gen_id_;
+    return oss.str();
+}
+
+void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+    for (Value* input : inputs) input->AddUser(node.get());
+    for (Value* output : outputs) output->SetProducer(node.get());
+    nodes_.emplace_back(std::move(node));
 }
 
 }  // namespace oniku

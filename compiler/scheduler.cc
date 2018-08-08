@@ -1,5 +1,6 @@
 #include "scheduler.h"
 
+#include <iostream>
 #include <queue>
 #include <map>
 #include <vector>

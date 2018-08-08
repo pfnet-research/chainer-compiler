@@ -12,6 +12,7 @@ class Value;
 class Node {
 public:
     explicit Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    Node(const std::string& name, const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
     ~Node();
 
     Node(const Node&) = delete;

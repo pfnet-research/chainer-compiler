@@ -16,6 +16,7 @@ link_directories(../googletest/googletest)
 add_executable(compiler_test
   code_emitter_test.cc
   model_test.cc
+  scheduler_test.cc
   tensor_test.cc
   )
 target_link_libraries(compiler_test
