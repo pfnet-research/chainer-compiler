@@ -100,8 +100,6 @@ for onnx in "${onnx_tests[@]}"; do
 
     echo "${onnx}..."
     ./compiler/compiler "${onnx_model}" > "${cc}"
-    # TODO(hamaji): Remove this temporary hack for resnet50.
-    sed -i 's/\([^"]\)gpu_0\//\1/g ; s/_f22e83c9-22cd-4a8b-a66d-113af6b832b4_0\([^"]\)/\1/g' "${cc}"
     "${CXX}" \
         -g -I. \
         -Igsl-lite/include \
