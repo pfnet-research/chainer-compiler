@@ -42,6 +42,7 @@ void EmitIncludes(CodeEmitter& ce) {
             "xchainer/routines/normalization.h",
             "xchainer/routines/pooling.h",
             "xchainer/shape.h",
+            "common/strutil.h",
             "runtime/xchainer.h",
     });
 
@@ -77,6 +78,14 @@ std::string Join(const List& l) {
 
 // TODO(hamaji): Consider using something like StrCat in abseil.
 std::string Join(std::initializer_list<std::string> l) { return Join(std::vector<std::string>(l)); }
+
+template <class List, class Fn>
+std::vector<std::string> MapToString(const List& l, Fn fn) {
+    std::vector<std::string> r;
+    for (auto& v : l)
+        r.push_back(fn(v));
+    return r;
+}
 
 void EmitIntStackVector(const std::string& name, const std::vector<int>& ints, CodeEmitter& ce) {
     ce << "xchainer::StackVector<int64_t, xchainer::kMaxNdim> " << name << "{" << Join(ints) << "};\n";
@@ -221,36 +230,23 @@ void EmitNode(const Node& node, CodeEmitter& ce) {
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }
-    ce << NL;
 }
 
 void EmitComputation(const Graph& graph, CodeEmitter& ce) {
     std::vector<const Node*> nodes(graph.GetComputationSequence());
 
-    // TODO(hamaji): Reorganize code for tracing.
     for (const Node* node : nodes) {
+        ce << "// " << node->op_type();
+        ce << "(" << Join(MapToString(node->inputs(), [](const Value* v) { return v->name(); })) << ")";
+        ce << " -> (" << Join(MapToString(node->outputs(), [](const Value* v) { return v->name(); })) << ")\n";
+
         EmitNode(*node, ce);
 
         ce << "if (use_trace) {\n";
         ce << "std::cerr << \"" << node->op_type() << "(\" ";
-        {
-            bool is_first = true;
-            for (Value* input : node->inputs()) {
-                if (!is_first) ce << " << \", \"";
-                is_first = false;
-                ce << " << " << input->name() << ".shape().ToString()";
-            }
-        }
+        ce << " << StrCat(" << Join(MapToString(node->inputs(), [](const Value* v) { return StrCat(v->name(), ".shape().ToString()"); })) << ")";
         ce << " << \") -> (\" ";
-        {
-            bool is_first = true;
-            for (Value* output : node->outputs()) {
-                if (!is_first) ce << " << \", \"";
-                is_first = false;
-                ce << " << " << output->name() << ".shape().ToString()";
-                if (node->op_type() == "Dropout") break;
-            }
-        }
+        ce << " << StrCat(" << Join(MapToString(node->outputs(), [](const Value* v) { return StrCat(v->name(), ".shape().ToString()"); })) << ")";
         ce << " << \")\" << std::endl;\n";
         ce << "}\n\n";
     }
