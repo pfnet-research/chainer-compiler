@@ -26,6 +26,13 @@ if [ ! -e data/mnist/model.onnx ]; then
          tar -xvzf mnist.tar.gz)
 fi
 
+if [ ! -e data/resnet50/model.onnx ]; then
+    rm -rf data/resnet50*
+    (mkdir -p data && cd data && \
+         wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz && \
+         tar -xvzf resnet50.tar.gz)
+fi
+
 if [ ! -e gsl-lite/include/gsl/gsl ]; then
     git clone https://github.com/martinmoene/gsl-lite
 fi

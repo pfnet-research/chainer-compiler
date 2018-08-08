@@ -16,11 +16,14 @@ $ ./runtests.sh
 ### Run ResNet50
 
 ```shell-session
-$ wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz
-$ tar -xvzf resnet50.tar.gz
-$ ONIKU_DEVICE=cuda ./runtests.sh resnet50
+$ ./setup.sh
+$ ONIKU_DEVICE=cuda ./runtests.sh data/resnet50
 ```
 
-VGG19 works, too. Use the following ONNX model:
+VGG19 works, too:
 
-https://s3.amazonaws.com/download.onnx/models/opset_8/vgg19.tar.gz
+```shell-session
+$ wget https://s3.amazonaws.com/download.onnx/models/opset_8/vgg19.tar.gz
+$ tar -xvzf vgg19.tar.gz
+$ ONIKU_DEVICE=cuda ./runtests.sh vgg19
+```
