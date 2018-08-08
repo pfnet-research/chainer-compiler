@@ -16,6 +16,8 @@ CXX=c++
 onnx_tests=()
 
 if [ $# = "0" ]; then
+    export ONIKU_NO_TRACE=1
+
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_relu )
 
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_add )
@@ -98,6 +100,8 @@ for onnx in "${onnx_tests[@]}"; do
 
     echo "${onnx}..."
     ./compiler/compiler "${onnx_model}" > "${cc}"
+    # TODO(hamaji): Remove this temporary hack for resnet50.
+    sed -i 's/\([^"]\)gpu_0\//\1/g ; s/_f22e83c9-22cd-4a8b-a66d-113af6b832b4_0\([^"]\)/\1/g' "${cc}"
     "${CXX}" \
         -g -I. \
         -Igsl-lite/include \

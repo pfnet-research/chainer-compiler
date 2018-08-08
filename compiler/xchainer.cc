@@ -273,8 +273,35 @@ void EmitComputation(const Graph& graph, CodeEmitter& ce) {
         }
     }
 
+    // TODO(hamaji): Reorganize code for tracing.
     for (const Node* node : nodes) {
         EmitNode(*node, ce);
+
+        ce << "if (use_trace) {\n";
+        ce << "std::cerr << \"" << node->op_type() << "(\" ";
+        {
+            bool is_first = true;
+            for (Value* input : node->inputs()) {
+                if (!is_first)
+                    ce << " << \", \"";
+                is_first = false;
+                ce << " << " << input->name() << ".shape().ToString()";
+            }
+        }
+        ce << " << \") -> (\" ";
+        {
+            bool is_first = true;
+            for (Value* output : node->outputs()) {
+                if (!is_first)
+                    ce << " << \", \"";
+                is_first = false;
+                ce << " << " << output->name() << ".shape().ToString()";
+                if (node->op_type() == "Dropout")
+                    break;
+            }
+        }
+        ce << " << \")\" << std::endl;\n";
+        ce << "}\n";
     }
 }
 
@@ -300,7 +327,7 @@ void Emit(const Model& model, std::ostream& out) {
     ce.EmitWithoutIndent("namespace runtime {\n");
     ce << NL;
 
-    ce << "InOuts RunGraph(const InOuts& inputs) {\n";
+    ce << "InOuts RunGraph(const InOuts& inputs, bool use_trace) {\n";
 
     EmitInputs(graph, ce);
 

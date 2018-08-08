@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <map>
 #include <queue>
 #include <set>
@@ -17,7 +18,7 @@
 namespace oniku {
 namespace runtime {
 
-InOuts RunGraph(const InOuts& inputs);
+InOuts RunGraph(const InOuts& inputs, bool use_trace);
 
 namespace {
 
@@ -79,7 +80,8 @@ void RunMain(int argc, const char** argv) {
         }
     }
 
-    InOuts outputs = RunGraph(inputs);
+    const bool use_trace = getenv("ONIKU_NO_TRACE") == nullptr;
+    InOuts outputs = RunGraph(inputs, use_trace);
 
     for (const auto& p : expectations) {
         const std::string key = p.first;
