@@ -42,9 +42,15 @@ TEST(SchedulerTest, Basic) {
     EXPECT_EQ(2, n1->order());
     EXPECT_EQ(1, n2->order());
 
-    onnx::NodeProto xn;
-    n1->ToONNX(&xn);
-    EXPECT_EQ(2, LookupIntAttribute(xn, "onikux_order", -1));
+    onnx::NodeProto xn1;
+    n1->ToONNX(&xn1);
+    EXPECT_EQ(2, LookupIntAttribute(xn1, "onikux_order", -1));
+    onnx::NodeProto xn2;
+    n2->ToONNX(&xn2);
+    EXPECT_EQ(1, LookupIntAttribute(xn2, "onikux_order", -1));
+    onnx::NodeProto xn3;
+    n3->ToONNX(&xn3);
+    EXPECT_EQ(-1, LookupIntAttribute(xn3, "onikux_order", -1));
 }
 
 }  // namespace
