@@ -59,6 +59,10 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             AddAddOp(prog, out(0), in(0), in(1));
+        } else if (node.op_type() == "Relu") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddReluOp(prog, out(0), in(0));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

@@ -34,5 +34,34 @@ void ConvWithBiasOp::Run(XCVMState* st) {
     st->SetVar(y, xchainer::Conv(st->GetVar(x), st->GetVar(w), st->GetVar(b), strides, pads));
 }
 
+void IdentOp::Run(XCVMState* st) {
+    st->SetVar(y, st->GetVar(x));
+}
+
+void ReluOp::Run(XCVMState* st) {
+    st->SetVar(y, xchainer::Maximum(st->GetVar(x), 0));
+}
+
+void ReshapeOp::Run(XCVMState* st) {
+    st->SetVar(reshaped, xchainer::Reshape(st->GetVar(data), ArrayToShape(st->GetVar(shape))));
+}
+
+void SoftmaxOp::Run(XCVMState* st) {
+    st->SetVar(output, xchainer::Exp(xchainer::LogSoftmax(st->GetVar(input), xchainer::OptionalAxes{static_cast<char>(axis)})));
+}
+
+void LogSoftmaxOp::Run(XCVMState* st) {
+    st->SetVar(output, xchainer::LogSoftmax(st->GetVar(input), xchainer::OptionalAxes{static_cast<char>(axis)}));
+}
+
+void MaxPoolOp::Run(XCVMState* st) {
+    st->SetVar(y, xchainer::MaxPool(st->GetVar(x), kernel_shapes, strides, pads, false));
+}
+
+void AveragePoolOp::Run(XCVMState* st) {
+    xchainer::AveragePoolPadMode pad_mode = count_include_pad ? xchainer::AveragePoolPadMode::kZero : xchainer::AveragePoolPadMode::kIgnore;
+    st->SetVar(y, xchainer::AveragePool(st->GetVar(x), kernel_shapes, strides, pads, pad_mode));
+}
+
 }  // namespace runtime
 }  // namespace oniku

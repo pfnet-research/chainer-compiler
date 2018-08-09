@@ -36,12 +36,25 @@ def String(name):
 XC_OPS = [
     ('In', [String('name')], 'v'),
     ('Out', [String('name'), Array('v')], []),
+
     ('Add', [Array('a'), Array('b')], ['c']),
     ('Conv',
      [Array('x'), Array('w'), Ints('strides'), Ints('pads')],
      ['y']),
     ('ConvWithBias',
      [Array('x'), Array('w'), Ints('strides'), Ints('pads'), Array('b')],
+     ['y']),
+    ('Ident', [Array('x')], ['y']),
+    ('Relu', [Array('x')], ['y']),
+    ('Reshape', [Array('data'), Array('shape')], ['reshaped']),
+    ('Softmax', [Array('input'), Int('axis')], ['output']),
+    ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
+    ('MaxPool',
+     [Array('x'), Ints('kernel_shapes'), Ints('strides'), Ints('pads')],
+     ['y']),
+    ('AveragePool',
+     [Array('x'), Ints('kernel_shapes'), Ints('strides'), Ints('pads'),
+      Int('count_include_pad')],
      ['y']),
 ]
 
@@ -266,18 +279,18 @@ def gen_xcvm_proto_util_cc():
 
         for typ, name in inputs:
             lines.append('{')
-            lines.append('XCValueProto* input = inst->add_inputs();')
-            lines.append(f'input->set_type(XCValueProto::{typ});')
+            lines.append('XCValueProto* input_proto = inst->add_inputs();')
+            lines.append(f'input_proto->set_type(XCValueProto::{typ});')
             if typ == ARRAY:
-                lines.append(f'input->set_array({name});')
+                lines.append(f'input_proto->set_array({name});')
             elif typ == INT:
-                lines.append(f'input->set_i({name});')
+                lines.append(f'input_proto->set_i({name});')
             elif typ == FLOAT:
-                lines.append(f'input->set_f({name});')
+                lines.append(f'input_proto->set_f({name});')
             elif typ == STRING:
-                lines.append(f'input->set_s({name});')
+                lines.append(f'input_proto->set_s({name});')
             elif typ == INTS:
-                lines.append(f'for (int v : {name}) input->add_ints(v);')
+                lines.append(f'for (int v : {name}) input_proto->add_ints(v);')
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
             lines.append('}')

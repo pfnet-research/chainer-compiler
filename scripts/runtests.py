@@ -21,6 +21,7 @@ NODE_TEST = 'onnx/onnx/backend/test/data/node'
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_add'),
     TestCase(NODE_TEST, 'test_add_bcast'),
+    TestCase(NODE_TEST, 'test_relu'),
 ]
 
 
