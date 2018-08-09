@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include <xchainer/array.h>
 
 #include <runtime/xchainer.h>
@@ -27,7 +29,7 @@ public:
 
 private:
     int pc_;
-    std::vector<xchainer::Array> variables_;
+    std::vector<nonstd::optional<xchainer::Array>> variables_;
     const InOuts& inputs_;
     InOuts outputs_;
 };

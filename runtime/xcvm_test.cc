@@ -21,10 +21,10 @@ TEST(XCVMTest, Run) {
     xchainer::SetGlobalDefaultContext(&ctx);
 
     XCProgramProto program;
-    *program.add_instructions() = MakeInOp(0, "in1");
-    *program.add_instructions() = MakeInOp(1, "in2");
-    *program.add_instructions() = MakeAddOp(2, 0, 1);
-    *program.add_instructions() = MakeOutOp("out", 2);
+    AddInOp(&program, 0, "in1");
+    AddInOp(&program, 1, "in2");
+    AddAddOp(&program, 2, 0, 1);
+    AddOutOp(&program, "out", 2);
     // std::cerr << program.DebugString() << std::endl;
 
     XCVM xcvm(program);

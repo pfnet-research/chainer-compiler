@@ -7,9 +7,19 @@ namespace runtime {
 
 XCVMState::XCVMState(int num_variables, const InOuts& inputs) : pc_(0), variables_(num_variables), inputs_(inputs) {}
 
-xchainer::Array XCVMState::GetVar(int index) { return variables_[index]; }
+xchainer::Array XCVMState::GetVar(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].has_value());
+    return *variables_[index];
+}
 
-void XCVMState::SetVar(int index, xchainer::Array value) { variables_[index] = value; }
+void XCVMState::SetVar(int index, xchainer::Array value) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(!variables_[index].has_value());
+    variables_[index] = value;
+}
 
 xchainer::Array XCVMState::Input(const std::string& name) {
     auto found = inputs_.find(name);

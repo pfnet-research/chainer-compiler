@@ -200,7 +200,7 @@ namespace runtime {
 
 
 def make_proto_signature(op, inputs, outputs):
-    args = []
+    args = ['XCProgramProto* program']
     for name in outputs:
         args.append(f'int {name}')
     for typ, name in inputs:
@@ -215,7 +215,7 @@ def make_proto_signature(op, inputs, outputs):
         else:
             raise RuntimeError('Unknown type: %s' % typ)
     args = ', '.join(args)
-    return f'XCInstructionProto Make{op}Op({args})'
+    return f'void Add{op}Op({args})'
 
 
 def gen_xcvm_proto_util_h():
@@ -246,12 +246,12 @@ def gen_xcvm_proto_util_cc():
         signature = make_proto_signature(op, inputs, outputs)
         lines.append(signature + ' {')
 
-        lines.append('XCInstructionProto inst;')
-        lines.append(f'inst.set_op(XCInstructionProto::{op});')
+        lines.append('XCInstructionProto* inst = program->add_instructions();')
+        lines.append(f'inst->set_op(XCInstructionProto::{op});')
 
         for typ, name in inputs:
             lines.append('{')
-            lines.append('XCValueProto* input = inst.add_inputs();')
+            lines.append('XCValueProto* input = inst->add_inputs();')
             lines.append(f'input->set_type(XCValueProto::{typ});')
             if typ == ARRAY:
                 lines.append(f'input->set_array({name});')
@@ -268,9 +268,8 @@ def gen_xcvm_proto_util_cc():
             lines.append('}')
 
         for name in outputs:
-            lines.append(f'inst.add_outputs({name});')
+            lines.append(f'inst->add_outputs({name});')
 
-        lines.append('return inst;')
         lines.append('}')
 
     with open('xcvm_proto_util.cc', 'w') as f:
