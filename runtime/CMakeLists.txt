@@ -1,5 +1,4 @@
 add_custom_command(OUTPUT init_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h xcvm_ops.h xcvm_proto_util.cc xcvm_proto_util.h
-
                    COMMAND python3 gen_xcvm.py
                    MAIN_DEPENDENCY gen_xcvm.py)
 

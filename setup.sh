@@ -40,3 +40,8 @@ fi
 if [ ! -e optional-lite/include/nonstd/optional.hpp ]; then
     git clone https://github.com/martinmoene/optional-lite
 fi
+
+# CMake would be confused when there are no generated code yet.
+# TODO(hamaji): Remove this by fixing dependency specified in
+# runtime/CMakeLists.txt.
+(cd runtime && python3 gen_xcvm.py)
