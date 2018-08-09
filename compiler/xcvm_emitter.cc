@@ -21,15 +21,13 @@ public:
           value_ids_(AssignValueIds(graph)) {
     }
 
-    XCProgramProto Emit() {
-        XCProgramProto program;
-        EmitInputs(&program);
+    void Emit(XCProgramProto* program) {
+        EmitInputs(program);
         std::vector<const Node*> nodes(graph_.GetComputationSequence());
         for (const Node* node : nodes) {
-            EmitNode(*node, &program);
+            EmitNode(*node, program);
         }
-        EmitOutputs(&program);
-        return program;
+        EmitOutputs(program);
     }
 
     static std::map<const Value*, int> AssignValueIds(const Graph& graph) {
@@ -88,10 +86,15 @@ private:
 
 }  // namespace
 
-void Emit(const Model& model, std::ostream& out) {
+void Emit(const Model& model, XCProgramProto* program) {
     const Graph& graph = model.graph();
     XCVMEmitter emitter(graph);
-    XCProgramProto program = emitter.Emit();
+    emitter.Emit(program);
+}
+
+void Emit(const Model& model, std::ostream& out) {
+    XCProgramProto program;
+    Emit(model, &program);
     CHECK(program.SerializeToOstream(&out));
 }
 
