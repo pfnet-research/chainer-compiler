@@ -13,6 +13,13 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
       op_type_(xnode.op_type()),
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
+    if (op_type_ == "Gemm") {
+        alpha_ = 1.0;
+        beta_ = 1.0;
+        trans_a_ = 0;
+        trans_b_ = 0;
+    }
+
     // TODO(hamaji): Define an IDL or something for attributes.
     for (const onnx::AttributeProto& xattr : xnode.attribute()) {
         if (xattr.name() == "kernel_shape") {
@@ -67,12 +74,6 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
         }
     }
 
-    if (op_type_ == "Gemm") {
-        if (!alpha_) alpha_ = 1.0;
-        if (!beta_) beta_ = 1.0;
-        if (!trans_a_) trans_a_ = 0;
-        if (!trans_b_) trans_b_ = 0;
-    }
     if (op_type_ == "BatchNormalization") {
         // TODO(hamaji): Suppport other attributes, with adding test cases.
         CHECK(unknown_attributes_.empty()) << "BatchNormalization only supports epsilon so far";
