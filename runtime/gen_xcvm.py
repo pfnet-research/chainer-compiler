@@ -50,10 +50,10 @@ XC_OPS = [
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
     ('MaxPool',
-     [Array('x'), Ints('kernel_shapes'), Ints('strides'), Ints('pads')],
+     [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads')],
      ['y']),
     ('AveragePool',
-     [Array('x'), Ints('kernel_shapes'), Ints('strides'), Ints('pads'),
+     [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('count_include_pad')],
      ['y']),
 ]

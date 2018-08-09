@@ -55,12 +55,12 @@ xchainer::Array LogSoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& inpu
 }
 
 xchainer::Array MaxPoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
-    st->SetVar(y, xchainer::MaxPool(x, kernel_shapes, strides, pads, false));
+    return xchainer::MaxPool(x, kernel_shape, strides, pads, false);
 }
 
 xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     xchainer::AveragePoolPadMode pad_mode = count_include_pad ? xchainer::AveragePoolPadMode::kZero : xchainer::AveragePoolPadMode::kIgnore;
-    st->SetVar(y, xchainer::AveragePool(x, kernel_shapes, strides, pads, pad_mode));
+    return xchainer::AveragePool(x, kernel_shape, strides, pads, pad_mode);
 }
 
 }  // namespace runtime

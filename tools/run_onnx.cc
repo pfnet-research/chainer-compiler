@@ -58,6 +58,23 @@ std::vector<std::string> ListDir(const std::string& dirname) {
     return filenames;
 }
 
+void StripONNXModel(onnx::ModelProto* model) {
+    // Strip unnecessary large data.
+    onnx::GraphProto* graph = model->mutable_graph();
+    for (int i = 0; i < graph->initializer_size(); ++i) {
+        onnx::TensorProto* tensor = graph->mutable_initializer(i);
+#define CLEAR_IF_LARGE(tensor, x)                           \
+        if (tensor->x().size() >= 10) tensor->clear_##x()
+        CLEAR_IF_LARGE(tensor, float_data);
+        CLEAR_IF_LARGE(tensor, int32_data);
+        CLEAR_IF_LARGE(tensor, string_data);
+        CLEAR_IF_LARGE(tensor, int64_data);
+        CLEAR_IF_LARGE(tensor, raw_data);
+        CLEAR_IF_LARGE(tensor, double_data);
+        CLEAR_IF_LARGE(tensor, uint64_data);
+    }
+}
+
 struct TestCase {
     std::string name;
     InOuts inputs;
@@ -106,9 +123,11 @@ void RunMain(int argc, char** argv) {
     cmdline::parser args;
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
-    args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
+    args.add<bool>("dump_onnx", '\0', "Dump ONNX model after optimization", false, false);
+    args.add<bool>("dump_xcvm", '\0', "Dump XCVM program", false, false);
     args.add<bool>("trace", 't', "Tracing mode", false, false);
     args.add<bool>("quiet", 'q', "Quiet mode", false, false);
     args.parse_check(argc, argv);
@@ -165,25 +184,16 @@ void RunMain(int argc, char** argv) {
     Model model(xmodel);
     ScheduleComputation(model.graph());
 
+    if (args.get<bool>("dump_onnx")) {
+        onnx::ModelProto xmodel;
+        model.ToONNX(&xmodel);
+        StripONNXModel(&xmodel);
+        std::cerr << xmodel.DebugString();
+    }
     if (!out_onnx.empty()) {
         onnx::ModelProto xmodel;
         model.ToONNX(&xmodel);
-
-        // Strip unnecessary large data.
-        onnx::GraphProto* graph = xmodel.mutable_graph();
-        for (int i = 0; i < graph->initializer_size(); ++i) {
-            onnx::TensorProto* tensor = graph->mutable_initializer(i);
-#define CLEAR_IF_LARGE(tensor, x) \
-    if (tensor->x().size() >= 10) tensor->clear_##x()
-            CLEAR_IF_LARGE(tensor, float_data);
-            CLEAR_IF_LARGE(tensor, int32_data);
-            CLEAR_IF_LARGE(tensor, string_data);
-            CLEAR_IF_LARGE(tensor, int64_data);
-            CLEAR_IF_LARGE(tensor, raw_data);
-            CLEAR_IF_LARGE(tensor, double_data);
-            CLEAR_IF_LARGE(tensor, uint64_data);
-        }
-
+        StripONNXModel(&xmodel);
         std::ofstream ofs(out_onnx);
         CHECK(ofs) << "Failed to open output ONNX: " << out_onnx;
         CHECK(xmodel.SerializeToOstream(&ofs));
@@ -193,6 +203,9 @@ void RunMain(int argc, char** argv) {
     XCProgramProto xcvm_prog;
     xcvm::Emit(model, &xcvm_prog);
 
+    if (args.get<bool>("dump_xcvm")) {
+        std::cerr << xcvm_prog.DebugString();
+    }
     if (!out_xcvm.empty()) {
         std::ofstream ofs(out_xcvm);
         CHECK(ofs) << "Failed to open output XCVM: " << out_xcvm;

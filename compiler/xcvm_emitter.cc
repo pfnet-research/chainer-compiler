@@ -55,6 +55,29 @@ private:
             return GetValueId(node.outputs()[i]);
         };
 
+        auto pads = [&node]() {
+            std::vector<int> pads = node.pads();
+            if (pads.empty()) {
+                pads = {0, 0};
+            } else {
+                // Both Chainer and xChainer expect paddings for beginning
+                // and end are the same.
+                CHECK_EQ(pads.size() % 2, 0);
+                for (size_t i = 0; i < pads.size() / 2; ++i) {
+                    CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
+                }
+                pads.resize(pads.size() / 2);
+            }
+            return pads;
+        };
+
+        auto strides = [&node]() {
+            std::vector<int> strides = node.strides();
+            // TODO(hamaji): Infer strides for non-2D convolutions/pools.
+            if (strides.empty()) strides = {1, 1};
+            return strides;
+        };
+
         if (node.op_type() == "Add") {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -63,6 +86,49 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             AddReluOp(prog, out(0), in(0));
+        } else if (node.op_type() == "Dropout") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            if (node.outputs().size() >= 2UL) {
+                WARN_ONCE("The second output of Dropout is not handled yet");
+            }
+            // TODO(hamaji): Dropout does nothing for now.
+            AddIdentOp(prog, out(0), in(0));
+        } else if (node.op_type() == "Conv") {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            // TODO(xchainer): Support dilation.
+            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
+            if (node.inputs().size() == 2UL) {
+                AddConvOp(prog, out(0), in(0), in(1), strides(), pads());
+            } else {
+                AddConvWithBiasOp(prog, out(0), in(0), in(1), strides(), pads(), in(2));
+            }
+        } else if (node.op_type() == "Reshape") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddReshapeOp(prog, out(0), in(0), in(1));
+        } else if (node.op_type() == "MaxPool") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddMaxPoolOp(prog, out(0), in(0), node.kernel_shape(), strides(), pads());
+        } else if (node.op_type() == "AveragePool") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddAveragePoolOp(prog, out(0), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+        } else if (node.op_type() == "Softmax") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            int axis = node.axis();
+            if (axis < 0) axis = 1;
+            AddSoftmaxOp(prog, out(0), in(0), axis);
+        } else if (node.op_type() == "LogSoftmax") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            int axis = node.axis();
+            if (axis < 0) axis = 1;
+            AddLogSoftmaxOp(prog, out(0), in(0), axis);
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
