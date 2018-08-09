@@ -43,7 +43,7 @@ xchainer::Array ReluOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
 }
 
 xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
-    return  xchainer::Reshape(data, ArrayToShape(shape));
+    return xchainer::Reshape(data, ArrayToShape(shape));
 }
 
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
