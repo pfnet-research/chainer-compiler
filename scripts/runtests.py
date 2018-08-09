@@ -22,30 +22,48 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_relu'),
     TestCase(NODE_TEST, 'test_add'),
     TestCase(NODE_TEST, 'test_add_bcast'),
+
+    # TODO(xchainer): Support non-2D dot.
+    # terminate called after throwing an instance of 'xchainer::NotImplementedError'
+    #   what():  dot does not support rhs operand with ndim > 2
     TestCase(NODE_TEST, 'test_matmul_2d'),
+
     TestCase(NODE_TEST, 'test_basic_conv_with_padding'),
     TestCase(NODE_TEST, 'test_basic_conv_without_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_no_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_and_asymmetric_padding'),
+
+    # TODO(hamaji): auto_pad is not supported.
+    # TODO(hamaji): Support non-2D pools.
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
-    TestCase(NODE_TEST, 'test_reshape_extended_dims'),
-    TestCase(NODE_TEST, 'test_reshape_one_dim'),
-    TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
-    TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
-    TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
-    TestCase(NODE_TEST, 'test_gemm_broadcast'),
-    TestCase(NODE_TEST, 'test_softmax_example'),
-    TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
     TestCase(NODE_TEST, 'test_averagepool_2d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads_count_include_pad'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_averagepool_2d_strides'),
+    TestCase(NODE_TEST, 'test_averagepool_2d_pads'),
+    TestCase(NODE_TEST, 'test_averagepool_2d_pads_count_include_pad'),
+
+    # TODO(xchainer): Support negative reshape.
+    TestCase(NODE_TEST, 'test_reshape_extended_dims'),
+    TestCase(NODE_TEST, 'test_reshape_one_dim'),
+    TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
+    TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
+
+    TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
+    TestCase(NODE_TEST, 'test_gemm_broadcast'),
+
+    # TODO(hamaji): Investigate 3D softmax ops do not agree (though
+    # xChainer agrees with Chainer).
+    # TODO(hamaji): Relax equality check for "large_number" tests.
+    TestCase(NODE_TEST, 'test_softmax_example'),
+    TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
+
     # TestCase(NODE_TEST, 'test_sum_example'),
     # TestCase(NODE_TEST, 'test_sum_one_input'),
     # TestCase(NODE_TEST, 'test_sum_two_inputs'),

@@ -67,9 +67,8 @@ if [ $# = "0" ]; then
 
     # TODO(hamaji): Support non-2D AveragePool.
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_default )
-    # TODO(hamaji): They seem to be OK. Just adjust thresholds.
-    # onnx/onnx/backend/test/data/node/test_averagepool_2d_pads
-    # onnx/onnx/backend/test/data/node/test_averagepool_2d_pads_count_include_pad
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_pads )
+    onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_pads_count_include_pad )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_pads )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_pads_count_include_pad )
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_averagepool_2d_precomputed_strides )
