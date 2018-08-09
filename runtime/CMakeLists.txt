@@ -1,4 +1,5 @@
-add_custom_command(OUTPUT init_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h xcvm_ops.h
+add_custom_command(OUTPUT init_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h xcvm_ops.h xcvm_proto_util.cc xcvm_proto_util.h
+
                    COMMAND python3 gen_xcvm.py
                    MAIN_DEPENDENCY gen_xcvm.py)
 
@@ -13,6 +14,7 @@ add_library(oniku_xchainer_runtime
   xcvm.pb.cc
   xcvm_ops.cc
   xcvm_state.cc
+  xcvm_proto_util.cc
   )
 
 add_library(oniku_xchainer_runtime_main
