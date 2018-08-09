@@ -74,7 +74,7 @@ TEST_CASES = [
 
 def main():
     if os.path.exists('Makefile'):
-        subprocess.check_call('make -j4')
+        subprocess.check_call(['make', '-j4'])
     elif os.path.exists('build.ninja'):
         subprocess.check_call('ninja')
 
