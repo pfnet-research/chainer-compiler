@@ -7,7 +7,7 @@ include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
-add_library(oniku_xchainer_runtime
+add_library(oniku_runtime
   init_xcvm_ops.cc
   xchainer.cc
   xcvm.cc
@@ -27,7 +27,7 @@ add_executable(runtime_test
   xcvm_test.cc
   )
 target_link_libraries(runtime_test
-  oniku_xchainer_runtime
+  oniku_runtime
   xchainer
   onnx_proto
   protobuf
