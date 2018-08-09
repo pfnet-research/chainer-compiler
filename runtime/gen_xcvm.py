@@ -10,20 +10,28 @@ XC_TYPES = [
     ARRAY, INT, FLOAT, INTS, STRING
 ]
 
+STACK_VECTOR = 'xchainer::StackVector<int64_t, xchainer::kMaxNdim>'
+
+
 def Array(name):
     return (ARRAY, name)
+
 
 def Int(name):
     return (INT, name)
 
+
 def Float(name):
     return (FLOAT, name)
+
 
 def Ints(name):
     return (INTS, name)
 
+
 def String(name):
     return (STRING, name)
+
 
 XC_OPS = [
     ('In', [String('name')], 'v'),
@@ -108,16 +116,18 @@ def gen_xcvm_ops_h():
         lines.append('')
         lines.append('private:')
         for typ, name in inputs:
+            ctype = None
             if typ == ARRAY or typ == INT:
-                lines.append('int %s;' % name)
+                ctype = 'int'
             elif typ == FLOAT:
-                lines.append('float %s;' % name)
+                ctype = 'float'
             elif typ == STRING:
-                lines.append('std::string %s;' % name)
+                ctype = 'std::string'
             elif typ == INTS:
-                lines.append('xchainer::StackVector<int64_t, xchainer::kMaxNdim> %s;' % name)
+                ctype = STACK_VECTOR
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
+            lines.append(f'{ctype} {name};')
 
         for name in outputs:
             lines.append('int %s;' % name)
@@ -153,7 +163,9 @@ def gen_init_xcvm_ops_cc():
     for op, inputs, outputs in XC_OPS:
         lines.append('%sOp::%sOp(const XCInstructionProto& inst) {' % (op, op))
         for i, (typ, name) in enumerate(inputs):
-            lines.append(f'CHECK_EQ(XCValueProto::{typ}, inst.inputs({i}).type()) << "Unexpected type for input#{i} of {op}";')
+            lines.append(f'CHECK_EQ(XCValueProto::{typ}, ' +
+                         f'inst.inputs({i}).type()) ' +
+                         f'<< "Unexpected type for input#{i} of {op}";')
             if typ == ARRAY:
                 lines.append('%s = inst.inputs(%d).array();' % (name, i))
             elif typ == INT:
@@ -163,7 +175,9 @@ def gen_init_xcvm_ops_cc():
             elif typ == STRING:
                 lines.append('%s = inst.inputs(%d).s();' % (name, i))
             elif typ == INTS:
-                lines.append('%s = xchainer::StackVector<int64_t, xchainer::kMaxNdim>(inst.inputs(%d).ints().begin(), inst.inputs(%d).ints().end());' % (name, i, i))
+                lines.append(f'{name} = {STACK_VECTOR}(' +
+                             f'inst.inputs({i}).ints().begin(), ' +
+                             f'inst.inputs({i}).ints().end());')
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
 
@@ -178,7 +192,8 @@ def gen_init_xcvm_ops_cc():
         lines.append(f'case XCInstructionProto::{op}:')
         lines.append(f'return new {op}Op(inst);')
     lines.append('default:')
-    lines.append('CHECK(false) << "Unknown op: " << static_cast<int>(inst.op());')
+    lines.append('CHECK(false) << "Unknown op: " ' +
+                 '<< static_cast<int>(inst.op());')
     lines.append('}')
     lines.append('}')
 
