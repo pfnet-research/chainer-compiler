@@ -1,13 +1,13 @@
-#coding: utf-8
+# coding: utf-8
 
 import ast
 import gast
-import sys
-
-from onnx import helper
-
-from onnx import AttributeProto, TensorProto, GraphProto
+import inspect
 from onnx import checker
+from onnx import helper
+from onnx import TensorProto
+import os
+
 
 from chainer import links as L
 
@@ -15,7 +15,8 @@ from chainer import links as L
 def new_tensor(dims):
     tn = new_tensor.cnt
     new_tensor.cnt += 1
-    return helper.make_tensor_value_info('T' + str(tn), TensorProto.FLOAT, dims)
+    return helper.make_tensor_value_info(
+        'T' + str(tn), TensorProto.FLOAT, dims)
 
 
 new_tensor.cnt = 0
@@ -26,7 +27,7 @@ def get_dims(tensor):
     return list(map(lambda x: x.dim_value, dims))
 
 
-class Link_Linear:
+class Link_Linear(object):
     def __init__(sl, ch):
         sl.name = ch.name
         sl.n_out = ch.b.shape[0]
@@ -36,7 +37,8 @@ class Link_Linear:
             sl.n_in = None
 
         sl.W = helper.make_tensor_value_info(
-            sl.name + '_W', TensorProto.FLOAT, [sl.n_out, ('input_size' if (sl.n_in is None) else sl.n_in)])
+            sl.name + '_W', TensorProto.FLOAT,
+            [sl.n_out, ('input_size' if (sl.n_in is None) else sl.n_in)])
         sl.b = helper.make_tensor_value_info(
             sl.name + '_b', TensorProto.FLOAT, [sl.n_out])
 
@@ -46,7 +48,9 @@ class Link_Linear:
         res = new_tensor([sl.n_out])
         env.nodes.append(
             helper.make_node(
-                "Gemm", inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name], transA=0, transB=1
+                "Gemm",
+                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
+                transA=0, transB=1
             )
         )
         return res
@@ -55,7 +59,7 @@ class Link_Linear:
         return [sl.W, sl.b]
 
 
-class Function_Relu:
+class Function_Relu(object):
     def call(sl, args, env):
         assert(len(args) == 1)
         v = args[0]
@@ -68,9 +72,6 @@ class Function_Relu:
         return res
 
 
-import os
-
-
 def clip_head(s):
     s = s.split('\n')
     # print(s)
@@ -81,12 +82,7 @@ def clip_head(s):
     return '\n'.join(s)
 
 
-import inspect
-
-import code
-
-
-class Env:
+class Env(object):
     def __init__(sl, links):
         sl.links = links
         sl.vars = {}
@@ -117,7 +113,8 @@ def eval_ast(nast, env):
         if nast.value.id == env.self_name:  # .selfのとき
             return env.links[nast.attr]
         # elif
-        elif nast.value.id == 'F':  # これfunction を F とimport してるかどうかって、関数側からわかんないですよね
+        # これfunction を F とimport してるかどうかって、関数側からわかんないですよね
+        elif nast.value.id == 'F':
             if nast.attr == 'relu':
                 return Function_Relu()
             else:
@@ -190,6 +187,3 @@ def chainer2onnx(model, forward):
 
     print(mo)
     return mo
-
-
-

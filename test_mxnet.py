@@ -1,5 +1,5 @@
-#coding: utf-8
-#ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
+# coding: utf-8
+# ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 # からもらっってきました
 
 import collections
@@ -22,14 +22,17 @@ except ImportError:
     MXNET_AVAILABLE = False
 
 
-from onnx import numpy_helper, helper
+from onnx import checker
+from onnx import helper
+from onnx import numpy_helper
 
-def convert_parameter(parameter,name):
+
+def convert_parameter(parameter, name):
     if isinstance(parameter, chainer.Parameter):
         array = parameter.array
     elif isinstance(parameter, chainer.Variable):
         array = parameter.array
-    elif isinstance(parameter, numpy.ndarray):
+    elif isinstance(parameter, np.ndarray):
         array = parameter
     else:
         raise ValueError(
@@ -38,35 +41,36 @@ def convert_parameter(parameter,name):
                 type(parameter)))
     if array.shape == ():
         array = array[None]
-    print('initialize',name,array)
+    print('initialize', name, array)
     return numpy_helper.from_array(array, name)
 
-#入力xから次元を決める
-#モデルにxを流して最初の重みを決める
-def edit_onnx_protobuf(onnxmod,x,chainermod):
-  #chainermod.forward(x)
-  
-  initializers = []
-  for ch in chainermod.children():
-    ln = ch.name
-    for pa in ch.params():
-      wn = pa.name
-      initializers.append(convert_parameter(pa,ln+'_'+wn))
-  
-  dummygraph = helper.make_graph([],"hoge",[],[],initializer = initializers)
-  dummygraph.ClearField("name")
-  #print(dummygraph)
-  onnxmod.graph.MergeFrom(dummygraph)
+# 入力xから次元を決める
+# モデルにxを流して最初の重みを決める
 
-import onnx_chainer
-from onnx import checker
+
+def edit_onnx_protobuf(onnxmod, x, chainermod):
+    # chainermod.forward(x)
+
+    initializers = []
+    for ch in chainermod.children():
+        ln = ch.name
+        for pa in ch.params():
+            wn = pa.name
+            initializers.append(convert_parameter(pa, ln+'_'+wn))
+
+    dummygraph = helper.make_graph(
+        [], "hoge", [], [], initializer=initializers)
+    dummygraph.ClearField("name")
+    # print(dummygraph)
+    onnxmod.graph.MergeFrom(dummygraph)
+
 
 def check_compatibility(model, x, out_key='prob'):
     if not MXNET_AVAILABLE:
         raise ImportError('check_compatibility requires MXNet.')
-    
-     #さらの状態からonnxのmodをつくる
-    onnxmod = chainer2onnx.chainer2onnx(model,model.forward)
+
+    # さらの状態からonnxのmodをつくる
+    onnxmod = chainer2onnx.chainer2onnx(model, model.forward)
     checker.check_model(onnxmod)
 
     chainer.config.train = False
@@ -97,17 +101,15 @@ def check_compatibility(model, x, out_key='prob'):
     else:
         raise ValueError('Unknown output type: {}'.format(type(chainer_out)))
 
+    # 1回の実行をもとにinitialize
+    edit_onnx_protobuf(onnxmod, x, model)
 
-     #1回の実行をもとにinitialize
-    edit_onnx_protobuf(onnxmod,x,model)
-    
     fn = 'o.onnx'
-    with open(fn,'wb') as fp:      
+    with open(fn, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
-      
-    #onnx_chainer.export(model, x, fn)
-    
-    
+
+    # onnx_chainer.export(model, x, fn)
+
     sym, arg, aux = mxnet.contrib.onnx.import_model(fn)
 
     data_names = [graph_input for graph_input in sym.list_inputs()
@@ -116,13 +118,13 @@ def check_compatibility(model, x, out_key='prob'):
         data_shapes = [(n, x_.shape) for n, x_ in zip(data_names, x)]
     else:
         data_shapes = [(data_names[0], x.shape)]
-    
-    #print(aux)
-    #print(data_names)
-    print('data shape',data_shapes)
-    import onnx
-    #print(onnx.load('o.onnx'))
-  
+
+    # print(aux)
+    # print(data_names)
+    print('data shape', data_shapes)
+    # import onnx
+    # print(onnx.load('o.onnx'))
+
     mod = mxnet.mod.Module(
         symbol=sym, data_names=data_names, context=mxnet.cpu(),
         label_names=None)
@@ -145,7 +147,7 @@ def check_compatibility(model, x, out_key='prob'):
     mod.forward(Batch(x))
     mxnet_outs = mod.get_outputs()
     mxnet_out = [y.asnumpy() for y in mxnet_outs]
-     
+
     print(x)
     print(mxnet_out)
     print(chainer_out)
@@ -154,4 +156,3 @@ def check_compatibility(model, x, out_key='prob'):
         np.testing.assert_almost_equal(cy, my, decimal=5)
 
     os.remove(fn)
-
