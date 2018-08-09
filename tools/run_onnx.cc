@@ -203,7 +203,7 @@ void RunMain(int argc, char** argv) {
 
     XCVM xcvm(xcvm_prog);
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
-        std::cerr << "Running for " << test_case->name << std::endl;
+        if (!quiet) std::cerr << "Running for " << test_case->name << std::endl;
         InOuts inputs(params);
         for (const auto& p : test_case->inputs) {
             CHECK(inputs.emplace(p.first, p.second).second) << "Duplicated input parameter: " << p.first;
@@ -228,7 +228,7 @@ void RunMain(int argc, char** argv) {
             CHECK(xchainer::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
         }
     }
-    if (quiet) std::cerr << "OK!" << std::endl;
+    if (!quiet) std::cerr << "OK!" << std::endl;
 }
 
 }  // namespace
