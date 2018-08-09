@@ -14,53 +14,53 @@
 namespace oniku {
 namespace runtime {
 
-void InOp::Run(XCVMState* st) {
-    st->SetVar(v, st->Input(name));
+xchainer::Array InOp::RunImpl(XCVMState* st) {
+    return st->Input(name);
 }
 
-void OutOp::Run(XCVMState* st) {
-    st->Output(name, st->GetVar(v));
+void OutOp::RunImpl(XCVMState* st, const xchainer::Array& v) {
+    st->Output(name, v);
 }
 
-void AddOp::Run(XCVMState* st) {
-    st->SetVar(c, st->GetVar(a) + st->GetVar(b));
+xchainer::Array AddOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return a + b;
 }
 
-void ConvOp::Run(XCVMState* st) {
-    st->SetVar(y, xchainer::Conv(st->GetVar(x), st->GetVar(w), nonstd::nullopt, strides, pads));
+xchainer::Array ConvOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {
+    return xchainer::Conv(x, w, nonstd::nullopt, strides, pads);
 }
 
-void ConvWithBiasOp::Run(XCVMState* st) {
-    st->SetVar(y, xchainer::Conv(st->GetVar(x), st->GetVar(w), st->GetVar(b), strides, pads));
+xchainer::Array ConvWithBiasOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& b) {
+    return xchainer::Conv(x, w, b, strides, pads);
 }
 
-void IdentOp::Run(XCVMState* st) {
-    st->SetVar(y, st->GetVar(x));
+xchainer::Array IdentOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    return x;
 }
 
-void ReluOp::Run(XCVMState* st) {
-    st->SetVar(y, xchainer::Maximum(st->GetVar(x), 0));
+xchainer::Array ReluOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    return xchainer::Maximum(x, 0);
 }
 
-void ReshapeOp::Run(XCVMState* st) {
-    st->SetVar(reshaped, xchainer::Reshape(st->GetVar(data), ArrayToShape(st->GetVar(shape))));
+xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
+    return  xchainer::Reshape(data, ArrayToShape(shape));
 }
 
-void SoftmaxOp::Run(XCVMState* st) {
-    st->SetVar(output, xchainer::Exp(xchainer::LogSoftmax(st->GetVar(input), xchainer::OptionalAxes{static_cast<char>(axis)})));
+xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
+    return xchainer::Exp(xchainer::LogSoftmax(input, xchainer::OptionalAxes{static_cast<char>(axis)}));
 }
 
-void LogSoftmaxOp::Run(XCVMState* st) {
-    st->SetVar(output, xchainer::LogSoftmax(st->GetVar(input), xchainer::OptionalAxes{static_cast<char>(axis)}));
+xchainer::Array LogSoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
+    return xchainer::LogSoftmax(input, xchainer::OptionalAxes{static_cast<char>(axis)});
 }
 
-void MaxPoolOp::Run(XCVMState* st) {
-    st->SetVar(y, xchainer::MaxPool(st->GetVar(x), kernel_shapes, strides, pads, false));
+xchainer::Array MaxPoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    st->SetVar(y, xchainer::MaxPool(x, kernel_shapes, strides, pads, false));
 }
 
-void AveragePoolOp::Run(XCVMState* st) {
+xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     xchainer::AveragePoolPadMode pad_mode = count_include_pad ? xchainer::AveragePoolPadMode::kZero : xchainer::AveragePoolPadMode::kIgnore;
-    st->SetVar(y, xchainer::AveragePool(st->GetVar(x), kernel_shapes, strides, pads, pad_mode));
+    st->SetVar(y, xchainer::AveragePool(x, kernel_shapes, strides, pads, pad_mode));
 }
 
 }  // namespace runtime

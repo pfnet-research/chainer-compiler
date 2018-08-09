@@ -125,8 +125,33 @@ def gen_xcvm_ops_h():
         lines.append('class %sOp : public XCVMOp {' % op)
         lines.append('public:')
         lines.append('explicit %sOp(const XCInstructionProto& inst);' % op)
-        lines.append('virtual void Run(XCVMState* st);')
-        lines.append('')
+
+        args = ['XCVMState* st']
+        for typ, name in inputs:
+            if typ != ARRAY:
+                continue
+            args.append(f'const xchainer::Array& {name}')
+        rettype = 'void'
+        if len(outputs) == 1:
+            rettype = 'xchainer::Array'
+        elif len(outputs) > 1:
+            raise RuntimeError('Multiple outputs is not defined yet')
+        lines.append('%s RunImpl(%s);' % (rettype, ', '.join(args)))
+
+        lines.append('virtual void Run(XCVMState* st) {')
+        args = ['st']
+        for typ, name in inputs:
+            if typ != ARRAY:
+                continue
+            args.append(f'st->GetVar({name})')
+        call = 'RunImpl(%s)' % ', '.join(args)
+        if len(outputs) == 1:
+            lines.append('st->SetVar(%s, %s);' % (outputs[0], call))
+        elif not outputs:
+            lines.append(call + ';')
+
+        lines.append('}')
+
         lines.append('private:')
         for typ, name in inputs:
             ctype = None
@@ -157,6 +182,7 @@ def gen_xcvm_ops_h():
 #include <xchainer/stack_vector.h>
 
 #include <runtime/xcvm_op.h>
+#include <runtime/xcvm_state.h>
 #include <runtime/xcvm.pb.h>
 
 namespace oniku {
