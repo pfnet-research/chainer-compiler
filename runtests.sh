@@ -99,7 +99,7 @@ for onnx in "${onnx_tests[@]}"; do
     exe="out/${name}.exe"
 
     echo "${onnx}..."
-    ./compiler/compiler "${onnx_model}" > "${cc}"
+    ./compiler/onnx_to_xchainer_cc "${onnx_model}" > "${cc}"
     "${CXX}" \
         -g -I. \
         -Igsl-lite/include \

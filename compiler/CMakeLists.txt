@@ -30,7 +30,7 @@ target_link_libraries(compiler_test
 
 add_test(NAME compiler_test COMMAND compiler_test)
 
-add_executable(compiler main.cc)
-target_link_libraries(compiler oniku_compiler)
-target_link_libraries(compiler onnx_proto)
-target_link_libraries(compiler protobuf)
+add_executable(onnx_to_xchainer_cc onnx_to_xchainer_cc.cc)
+target_link_libraries(onnx_to_xchainer_cc oniku_compiler)
+target_link_libraries(onnx_to_xchainer_cc onnx_proto)
+target_link_libraries(onnx_to_xchainer_cc protobuf)
