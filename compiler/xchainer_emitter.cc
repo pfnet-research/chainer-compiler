@@ -277,8 +277,7 @@ private:
                 outputs.resize(1);
             }
             ce << " << StrCat("
-               << Join(MapToString(outputs, [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); }))
-               << ")";
+               << Join(MapToString(outputs, [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); })) << ")";
             ce << " << \")\" << std::endl;\n";
             ce << "}\n\n";
         }
