@@ -63,5 +63,21 @@ xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) 
     return xchainer::AveragePool(x, kernel_shape, strides, pads, pad_mode);
 }
 
+xchainer::Array MatMulOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return xchainer::Dot(a, b);
+}
+
+xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b, const xchainer::Array& c) {
+    xchainer::Array xa = a;
+    xchainer::Array xb = b;
+    if (trans_a) xa = xchainer::Transpose(xa);
+    if (trans_b) xb = xchainer::Transpose(xb);
+    xchainer::Array r = xchainer::Dot(xa, xb);
+    if (alpha != 1.0) r *= alpha;
+    xchainer::Array xc = c;
+    if (beta != 1.0) xc *= beta;
+    return r + xc;
+}
+
 }  // namespace runtime
 }  // namespace oniku

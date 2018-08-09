@@ -109,6 +109,14 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             AddReshapeOp(prog, out(0), in(0), in(1));
+        } else if (node.op_type() == "MatMul") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddMatMulOp(prog, out(0), in(0), in(1));
+        } else if (node.op_type() == "Gemm") {
+            CHECK_EQ(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddGemmOp(prog, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
         } else if (node.op_type() == "MaxPool") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

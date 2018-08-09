@@ -56,6 +56,11 @@ XC_OPS = [
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('count_include_pad')],
      ['y']),
+    ('MatMul', [Array('a'), Array('b')], ['y']),
+    ('Gemm',
+     [Array('a'), Array('b'), Array('c'),
+      Float('alpha'), Float('beta'), Int('trans_a'), Int('trans_b')],
+     ['y']),
 ]
 
 
