@@ -86,6 +86,10 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             AddReluOp(prog, out(0), in(0));
+        } else if (node.op_type() == "Ident") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddIdentOp(prog, out(0), in(0));
         } else if (node.op_type() == "Dropout") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());

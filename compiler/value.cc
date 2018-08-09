@@ -31,7 +31,6 @@ void Value::AddUser(Node* user) {
 }
 
 void Value::SetProducer(Node* producer) {
-    CHECK(!producer_);
     producer_ = producer;
 }
 

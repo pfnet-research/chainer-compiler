@@ -84,6 +84,11 @@ public:
         return epsilon_;
     }
 
+    const bool detached() const {
+        return detached_;
+    }
+    void Detach();
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;
@@ -92,6 +97,8 @@ private:
     std::string domain_;
     std::vector<onnx::AttributeProto> unknown_attributes_;
     std::string doc_string_;
+
+    bool detached_ = false;
 
     int order_ = -1;
 

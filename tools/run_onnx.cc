@@ -182,7 +182,7 @@ void RunMain(int argc, char** argv) {
 
     if (!quiet) std::cerr << "Constructing model..." << std::endl;
     Model model(xmodel);
-    RunDefaultPasses(model.graph());
+    RunDefaultPasses(model.mutable_graph());
 
     if (args.get<bool>("dump_onnx")) {
         onnx::ModelProto xmodel;

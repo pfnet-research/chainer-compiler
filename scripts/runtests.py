@@ -64,9 +64,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_softmax_example'),
     TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
 
-    # TestCase(NODE_TEST, 'test_sum_example'),
-    # TestCase(NODE_TEST, 'test_sum_one_input'),
-    # TestCase(NODE_TEST, 'test_sum_two_inputs'),
+    TestCase(NODE_TEST, 'test_sum_example'),
+    TestCase(NODE_TEST, 'test_sum_one_input'),
+    TestCase(NODE_TEST, 'test_sum_two_inputs'),
+
     # TestCase(NODE_TEST, 'test_batchnorm_example'),
     # TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
 ]

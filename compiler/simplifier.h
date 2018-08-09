@@ -4,6 +4,6 @@ namespace oniku {
 
 class Graph;
 
-void RunDefaultPasses(Graph* graph);
+void Simplify(Graph* graph);
 
 }  // namespace oniku

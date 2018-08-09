@@ -25,6 +25,9 @@ public:
     const Graph& graph() const {
         return *graph_;
     }
+    Graph* mutable_graph() {
+        return graph_.get();
+    }
 
     const int64_t ir_version() const {
         return ir_version_;

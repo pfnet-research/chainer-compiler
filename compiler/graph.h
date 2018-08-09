@@ -30,6 +30,8 @@ public:
         return nodes_;
     }
 
+    std::vector<Node*> GetLiveNodes() const;
+
     const std::string& name() const {
         return name_;
     }
@@ -40,6 +42,8 @@ public:
     Value* AddValue(const std::string& name, Value::Kind kind = Value::Kind::kTemp);
 
     Node* AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+
+    void DetachNode(Node* node);
 
     // Gets a sequence of scheduled nodes. Node::order() must be set
     // before calling this function.

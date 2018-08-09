@@ -152,4 +152,10 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     DUMP_STRING(xnode, doc_string);
 }
 
+void Node::Detach() {
+    inputs_.clear();
+    outputs_.clear();
+    detached_ = true;
+}
+
 }  // namespace oniku

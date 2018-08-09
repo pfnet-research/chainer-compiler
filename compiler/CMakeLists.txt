@@ -7,6 +7,7 @@ add_library(oniku_compiler
   node.cc
   passes.cc
   scheduler.cc
+  simplifier.cc
   tensor.cc
   value.cc
   xchainer_emitter.cc

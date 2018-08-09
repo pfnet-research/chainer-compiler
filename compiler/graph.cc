@@ -98,6 +98,15 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     }
 }
 
+std::vector<Node*> Graph::GetLiveNodes() const {
+    std::vector<Node*> nodes;
+    for (const std::unique_ptr<Node>& node : nodes_) {
+        if (!node->detached())
+            nodes.push_back(node.get());
+    }
+    return nodes;
+}
+
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
     Value* value = new Value(name, kind);
     values_.emplace_back(value);
@@ -105,9 +114,12 @@ Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
 }
 
 Node* Graph::AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
-    Node* node = new Node(op_type, GenSym(op_type), inputs, outputs);
+    Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
+}
+
+void Graph::DetachNode(Node* node) {
 }
 
 std::vector<const Node*> Graph::GetComputationSequence() const {
