@@ -1,4 +1,4 @@
-#include "xchainer.h"
+#include "xchainer_emitter.h"
 
 #include <iostream>
 #include <string>

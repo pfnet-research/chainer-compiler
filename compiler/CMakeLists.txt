@@ -8,7 +8,7 @@ add_library(oniku_compiler
   scheduler.cc
   tensor.cc
   value.cc
-  xchainer.cc
+  xchainer_emitter.cc
   )
 
 include_directories(../googletest/googletest/include)

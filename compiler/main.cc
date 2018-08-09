@@ -6,7 +6,7 @@
 #include <common/protoutil.h>
 #include <compiler/model.h>
 #include <compiler/scheduler.h>
-#include <compiler/xchainer.h>
+#include <compiler/xchainer_emitter.h>
 
 namespace oniku {
 
