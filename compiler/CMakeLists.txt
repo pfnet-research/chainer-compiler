@@ -9,6 +9,7 @@ add_library(oniku_compiler
   tensor.cc
   value.cc
   xchainer_emitter.cc
+  xcvm_emitter.cc
   )
 
 include_directories(../googletest/googletest/include)
@@ -18,9 +19,11 @@ add_executable(compiler_test
   model_test.cc
   scheduler_test.cc
   tensor_test.cc
+  xcvm_emitter_test.cc
   )
 target_link_libraries(compiler_test
   oniku_compiler
+  oniku_runtime
   onnx_proto
   protobuf
   gtest
