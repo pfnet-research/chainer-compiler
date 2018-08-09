@@ -122,6 +122,10 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             AddGemmOp(prog, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
+        } else if (node.op_type() == "BatchNormalization") {
+            CHECK_EQ(5UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            AddBatchNormalizationOp(prog, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon());
         } else if (node.op_type() == "MaxPool") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

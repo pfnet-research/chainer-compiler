@@ -61,6 +61,10 @@ XC_OPS = [
      [Array('a'), Array('b'), Array('c'),
       Float('alpha'), Float('beta'), Int('trans_a'), Int('trans_b')],
      ['y']),
+    ('BatchNormalization',
+     [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),
+      Float('epsilon')],
+     ['y']),
 ]
 
 

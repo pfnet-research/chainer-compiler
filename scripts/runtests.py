@@ -68,8 +68,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_sum_one_input'),
     TestCase(NODE_TEST, 'test_sum_two_inputs'),
 
-    # TestCase(NODE_TEST, 'test_batchnorm_example'),
-    # TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
+    TestCase(NODE_TEST, 'test_batchnorm_example'),
+    TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
 ]
 
 
