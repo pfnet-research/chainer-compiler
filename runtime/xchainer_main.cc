@@ -18,8 +18,6 @@
 namespace oniku {
 namespace runtime {
 
-InOuts RunGraph(const InOuts& inputs, bool use_trace);
-
 namespace {
 
 void RunMain(int argc, const char** argv) {

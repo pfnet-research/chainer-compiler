@@ -12,6 +12,8 @@ namespace runtime {
 
 typedef std::map<std::string, xchainer::Array> InOuts;
 
+InOuts RunGraph(const InOuts& inputs, bool use_trace);
+
 xchainer::Array GetOrDie(const InOuts& m, std::string name);
 void SetOrDie(InOuts& m, std::string name, xchainer::Array a);
 
