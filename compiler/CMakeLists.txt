@@ -5,6 +5,7 @@ add_library(oniku_compiler
   graph.cc
   model.cc
   node.cc
+  passes.cc
   scheduler.cc
   tensor.cc
   value.cc

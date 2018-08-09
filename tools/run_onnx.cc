@@ -19,7 +19,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <compiler/model.h>
-#include <compiler/scheduler.h>
+#include <compiler/passes.h>
 #include <compiler/xcvm_emitter.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
@@ -182,7 +182,7 @@ void RunMain(int argc, char** argv) {
 
     if (!quiet) std::cerr << "Constructing model..." << std::endl;
     Model model(xmodel);
-    ScheduleComputation(model.graph());
+    RunDefaultPasses(model.graph());
 
     if (args.get<bool>("dump_onnx")) {
         onnx::ModelProto xmodel;

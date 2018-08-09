@@ -8,7 +8,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <compiler/model.h>
-#include <compiler/scheduler.h>
+#include <compiler/passes.h>
 #include <compiler/xcvm_emitter.h>
 #include <runtime/xcvm.pb.h>
 
@@ -22,7 +22,7 @@ TEST(XCVMTest, Compile) {
     std::string model_path = test_path + "model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(model_path));
     Model model(xmodel);
-    ScheduleComputation(model.graph());
+    RunDefaultPasses(model.graph());
 
     std::ostringstream oss;
     xcvm::Emit(model, oss);

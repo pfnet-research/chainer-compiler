@@ -5,7 +5,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <compiler/model.h>
-#include <compiler/scheduler.h>
+#include <compiler/passes.h>
 #include <compiler/xchainer_emitter.h>
 
 namespace oniku {
@@ -17,7 +17,7 @@ void RunMain(int argc, const char** argv) {
 
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(argv[1]));
     Model model(xmodel);
-    ScheduleComputation(model.graph());
+    RunDefaultPasses(model.graph());
     xchainer::Emit(model, std::cout);
 }
 
