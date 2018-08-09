@@ -88,7 +88,8 @@ private:
             AddReluOp(prog, out(0), in(0));
         } else if (node.op_type() == "Dropout") {
             CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
+            CHECK_LE(1UL, node.outputs().size());
+            CHECK_GE(2UL, node.outputs().size());
             if (node.outputs().size() >= 2UL) {
                 WARN_ONCE("The second output of Dropout is not handled yet");
             }

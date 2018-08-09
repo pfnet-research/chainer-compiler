@@ -270,8 +270,14 @@ private:
                << Join(MapToString(node->inputs(), [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); }))
                << ")";
             ce << " << \") -> (\" ";
+            // TODO(hamaji): Remove this hack to ignore the second
+            // output of Dropout.
+            std::vector<Value*> outputs(node->outputs());
+            if (node->op_type() == "Dropout") {
+                outputs.resize(1);
+            }
             ce << " << StrCat("
-               << Join(MapToString(node->outputs(), [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); }))
+               << Join(MapToString(outputs, [this](const Value* v) { return StrCat(GetValueName(v), ".shape().ToString()"); }))
                << ")";
             ce << " << \")\" << std::endl;\n";
             ce << "}\n\n";
