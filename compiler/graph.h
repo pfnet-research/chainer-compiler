@@ -23,11 +23,19 @@ public:
 
     void ToONNX(onnx::GraphProto* xgraph) const;
 
-    const std::vector<std::unique_ptr<Value>>& values() const { return values_; }
-    const std::vector<std::unique_ptr<Node>>& nodes() const { return nodes_; }
+    const std::vector<std::unique_ptr<Value>>& values() const {
+        return values_;
+    }
+    const std::vector<std::unique_ptr<Node>>& nodes() const {
+        return nodes_;
+    }
 
-    const std::string& name() const { return name_; }
-    const std::string& doc_string() const { return doc_string_; }
+    const std::string& name() const {
+        return name_;
+    }
+    const std::string& doc_string() const {
+        return doc_string_;
+    }
 
     Value* AddValue(const std::string& name, Value::Kind kind = Value::Kind::kTemp);
 

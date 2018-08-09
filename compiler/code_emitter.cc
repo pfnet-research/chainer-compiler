@@ -4,11 +4,16 @@
 
 namespace oniku {
 
-CodeEmitter::CodeEmitter(std::ostream& out) : out_(out) {}
+CodeEmitter::CodeEmitter(std::ostream& out) : out_(out) {
+}
 
-CodeEmitter::~CodeEmitter() { CHECK_EQ(num_indent_, 0); }
+CodeEmitter::~CodeEmitter() {
+    CHECK_EQ(num_indent_, 0);
+}
 
-void CodeEmitter::EmitWithoutIndent(const std::string& code) { out_ << code; }
+void CodeEmitter::EmitWithoutIndent(const std::string& code) {
+    out_ << code;
+}
 
 void CodeEmitter::Emit(const std::string& code) {
     for (char ch : code) {

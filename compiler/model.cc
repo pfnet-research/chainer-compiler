@@ -22,7 +22,8 @@ Model::Model(const onnx::ModelProto& xmodel)
     }
 }
 
-Model::~Model() {}
+Model::~Model() {
+}
 
 void Model::ToONNX(onnx::ModelProto* xmodel) const {
     DUMP_PRIM(xmodel, ir_version);

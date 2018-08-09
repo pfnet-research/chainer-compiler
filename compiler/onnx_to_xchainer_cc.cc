@@ -23,4 +23,6 @@ void RunMain(int argc, const char** argv) {
 
 }  // namespace oniku
 
-int main(int argc, const char** argv) { oniku::RunMain(argc, argv); }
+int main(int argc, const char** argv) {
+    oniku::RunMain(argc, argv);
+}

@@ -209,7 +209,8 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
     }
 }
 
-Tensor::~Tensor() {}
+Tensor::~Tensor() {
+}
 
 void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
     for (int64_t d : dims_) xtensor->add_dims(d);
@@ -247,7 +248,9 @@ void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
     }
 }
 
-int Tensor::ElementSize() const { return SizeOf(dtype_); }
+int Tensor::ElementSize() const {
+    return SizeOf(dtype_);
+}
 
 int64_t Tensor::NumElements() const {
     int num = 1;

@@ -20,31 +20,69 @@ public:
 
     void ToONNX(onnx::NodeProto* xnode) const;
 
-    const std::vector<Value*>& inputs() const { return inputs_; }
-    const std::vector<Value*>& outputs() const { return outputs_; }
-    const std::string& name() const { return name_; }
-    const std::string& op_type() const { return op_type_; }
-    const std::string& domain() const { return domain_; }
-    const std::string& doc_string() const { return doc_string_; }
+    const std::vector<Value*>& inputs() const {
+        return inputs_;
+    }
+    const std::vector<Value*>& outputs() const {
+        return outputs_;
+    }
+    const std::string& name() const {
+        return name_;
+    }
+    const std::string& op_type() const {
+        return op_type_;
+    }
+    const std::string& domain() const {
+        return domain_;
+    }
+    const std::string& doc_string() const {
+        return doc_string_;
+    }
 
-    const int order() const { return order_; }
-    void set_order(int order) { order_ = order; }
+    const int order() const {
+        return order_;
+    }
+    void set_order(int order) {
+        order_ = order;
+    }
 
     // TODO(hamaji): Consider implementing inferences for attributes.
-    const std::vector<int>& kernel_shape() const { return kernel_shape_; }
-    const std::vector<int>& pads() const { return pads_; }
-    const std::vector<int>& strides() const { return strides_; }
-    const std::vector<int>& dilations() const { return dilations_; }
-    bool count_include_pad() const { return count_include_pad_; }
+    const std::vector<int>& kernel_shape() const {
+        return kernel_shape_;
+    }
+    const std::vector<int>& pads() const {
+        return pads_;
+    }
+    const std::vector<int>& strides() const {
+        return strides_;
+    }
+    const std::vector<int>& dilations() const {
+        return dilations_;
+    }
+    bool count_include_pad() const {
+        return count_include_pad_;
+    }
 
-    double alpha() const { return alpha_; }
-    double beta() const { return beta_; }
-    bool trans_a() const { return trans_a_; }
-    bool trans_b() const { return trans_b_; }
+    double alpha() const {
+        return alpha_;
+    }
+    double beta() const {
+        return beta_;
+    }
+    bool trans_a() const {
+        return trans_a_;
+    }
+    bool trans_b() const {
+        return trans_b_;
+    }
 
-    int axis() const { return axis_; }
+    int axis() const {
+        return axis_;
+    }
 
-    float epsilon() const { return epsilon_; }
+    float epsilon() const {
+        return epsilon_;
+    }
 
 private:
     std::vector<Value*> inputs_;

@@ -104,4 +104,6 @@ void RunMain(int argc, const char** argv) {
 }  // namespace runtime
 }  // namespace oniku
 
-int main(int argc, const char** argv) { oniku::runtime::RunMain(argc, argv); }
+int main(int argc, const char** argv) {
+    oniku::runtime::RunMain(argc, argv);
+}

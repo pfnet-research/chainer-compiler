@@ -27,7 +27,8 @@ XCVM::XCVM(const XCProgramProto& program) {
     }
 }
 
-XCVM::~XCVM() {}
+XCVM::~XCVM() {
+}
 
 InOuts XCVM::Run(const InOuts& program_inputs, bool use_trace) {
     XCVMState state(num_variables_, program_inputs);

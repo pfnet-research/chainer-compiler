@@ -6,7 +6,8 @@
 namespace oniku {
 
 template <class Stream>
-void StrCatToStream(Stream& oss) {}
+void StrCatToStream(Stream& oss) {
+}
 
 template <class Stream, class Arg0, class... Args>
 void StrCatToStream(Stream& oss, Arg0 arg0, Args... args) {

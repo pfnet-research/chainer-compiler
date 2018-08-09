@@ -11,3 +11,6 @@ AlignTrailingComments: false
 BinPackArguments: false
 BinPackParameters: false
 ContinuationIndentWidth: 8
+
+# TODO(hamaji): Inconsistent with xChainer's.
+AllowShortFunctionsOnASingleLine: None

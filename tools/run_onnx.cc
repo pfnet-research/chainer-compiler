@@ -22,8 +22,8 @@
 #include <compiler/scheduler.h>
 #include <compiler/xcvm_emitter.h>
 #include <runtime/xchainer.h>
-#include <runtime/xcvm.pb.h>
 #include <runtime/xcvm.h>
+#include <runtime/xcvm.pb.h>
 #include <tools/cmdline.h>
 
 namespace oniku {
@@ -31,19 +31,18 @@ namespace runtime {
 namespace {
 
 bool HasPrefix(const std::string& str, const std::string& prefix) {
-  ssize_t size_diff = str.size() - prefix.size();
-  return size_diff >= 0 && str.substr(0, prefix.size()) == prefix;
+    ssize_t size_diff = str.size() - prefix.size();
+    return size_diff >= 0 && str.substr(0, prefix.size()) == prefix;
 }
 
 bool HasSuffix(const std::string& str, const std::string& suffix) {
-  ssize_t size_diff = str.size() - suffix.size();
-  return size_diff >= 0 && str.substr(size_diff) == suffix;
+    ssize_t size_diff = str.size() - suffix.size();
+    return size_diff >= 0 && str.substr(size_diff) == suffix;
 }
 
 std::string Basename(const std::string& str) {
     std::size_t found = str.rfind('/');
-    if (found == std::string::npos)
-        return str;
+    if (found == std::string::npos) return str;
     return str.substr(found + 1);
 }
 
@@ -65,17 +64,19 @@ struct TestCase {
     InOuts outputs;
 };
 
-void ReadTestDir(const std::string& test_path, const std::vector<std::string>& input_names, const std::vector<std::string>& output_names, std::vector<std::unique_ptr<TestCase>>* test_cases) {
+void ReadTestDir(
+        const std::string& test_path,
+        const std::vector<std::string>& input_names,
+        const std::vector<std::string>& output_names,
+        std::vector<std::unique_ptr<TestCase>>* test_cases) {
     for (const std::string& data_set_dir : ListDir(test_path)) {
-        if (!HasPrefix(Basename(data_set_dir), "test_data_set_"))
-            continue;
+        if (!HasPrefix(Basename(data_set_dir), "test_data_set_")) continue;
         std::unique_ptr<TestCase> test_case(new TestCase);
         test_case->name = data_set_dir;
         size_t input_index = 0;
         size_t output_index = 0;
         for (const std::string& tensor_pb : ListDir(data_set_dir)) {
-            if (!HasSuffix(tensor_pb, ".pb"))
-                continue;
+            if (!HasSuffix(tensor_pb, ".pb")) continue;
             if (HasPrefix(Basename(tensor_pb), "input_")) {
                 onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
                 xchainer::Array tensor(MakeArrayFromONNX(xtensor));
@@ -105,10 +106,8 @@ void RunMain(int argc, char** argv) {
     cmdline::parser args;
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
-    args.add<std::string>("out_onnx", '\0',
-                          "Output ONNX model after optimization", false);
-    args.add<std::string>("device", 'd',
-                          "xChainer device to be used", false);
+    args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
+    args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
     args.add<bool>("trace", 't', "Tracing mode", false, false);
     args.add<bool>("quiet", 'q', "Quiet mode", false, false);
@@ -120,8 +119,7 @@ void RunMain(int argc, char** argv) {
     const std::string out_xcvm = args.get<std::string>("out_xcvm");
 
     const bool quiet = args.get<bool>("quiet");
-    if ((onnx_path.empty() && test_path.empty()) ||
-        (!onnx_path.empty() && !test_path.empty())) {
+    if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
         QFAIL() << "Either --onnx or --test must be specified.";
     }
 
@@ -175,8 +173,8 @@ void RunMain(int argc, char** argv) {
         onnx::GraphProto* graph = xmodel.mutable_graph();
         for (int i = 0; i < graph->initializer_size(); ++i) {
             onnx::TensorProto* tensor = graph->mutable_initializer(i);
-#define CLEAR_IF_LARGE(tensor, x)                               \
-            if (tensor->x().size() >= 10) tensor->clear_##x()
+#define CLEAR_IF_LARGE(tensor, x) \
+    if (tensor->x().size() >= 10) tensor->clear_##x()
             CLEAR_IF_LARGE(tensor, float_data);
             CLEAR_IF_LARGE(tensor, int32_data);
             CLEAR_IF_LARGE(tensor, string_data);
@@ -215,8 +213,7 @@ void RunMain(int argc, char** argv) {
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         if (!quiet) std::cerr << "Elapsed: " << elapsed << " msec" << std::endl;
 
-        if (test_case->outputs.empty())
-            continue;
+        if (test_case->outputs.empty()) continue;
 
         if (!quiet) std::cerr << "Verifying the result..." << std::endl;
         for (const auto& p : test_case->outputs) {
@@ -235,4 +232,6 @@ void RunMain(int argc, char** argv) {
 }  // namespace runtime
 }  // namespace oniku
 
-int main(int argc, char** argv) { oniku::runtime::RunMain(argc, argv); }
+int main(int argc, char** argv) {
+    oniku::runtime::RunMain(argc, argv);
+}

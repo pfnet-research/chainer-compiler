@@ -16,9 +16,7 @@ using oniku::runtime::XCProgramProto;
 
 class XCVMEmitter {
 public:
-    explicit XCVMEmitter(const Graph& graph)
-        : graph_(graph),
-          value_ids_(AssignValueIds(graph)) {
+    explicit XCVMEmitter(const Graph& graph) : graph_(graph), value_ids_(AssignValueIds(graph)) {
     }
 
     void Emit(XCProgramProto* program) {
@@ -98,5 +96,5 @@ void Emit(const Model& model, std::ostream& out) {
     CHECK(program.SerializeToOstream(&out));
 }
 
-}  // namespace xchainer
+}  // namespace xcvm
 }  // namespace oniku

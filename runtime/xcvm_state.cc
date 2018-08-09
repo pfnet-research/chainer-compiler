@@ -5,7 +5,8 @@
 namespace oniku {
 namespace runtime {
 
-XCVMState::XCVMState(int num_variables, const InOuts& inputs) : pc_(0), variables_(num_variables), inputs_(inputs) {}
+XCVMState::XCVMState(int num_variables, const InOuts& inputs) : pc_(0), variables_(num_variables), inputs_(inputs) {
+}
 
 xchainer::Array XCVMState::GetVar(int index) {
     CHECK_LE(0, index) << index;

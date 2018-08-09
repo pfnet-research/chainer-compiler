@@ -61,9 +61,11 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
     }
 }
 
-Graph::Graph(const std::string name) : name_(name) {}
+Graph::Graph(const std::string name) : name_(name) {
+}
 
-Graph::~Graph() {}
+Graph::~Graph() {
+}
 
 void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     DUMP_STRING(xgraph, name);

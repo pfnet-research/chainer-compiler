@@ -21,7 +21,9 @@ xchainer::Array GetOrDie(const InOuts& m, std::string name) {
     return found->second;
 }
 
-void SetOrDie(InOuts& m, std::string name, xchainer::Array a) { CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name; }
+void SetOrDie(InOuts& m, std::string name, xchainer::Array a) {
+    CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name;
+}
 
 // TODO(hamaji): Remove this after xchainer::Sqrt is introduced.
 xchainer::Array Sqrt(xchainer::Array x) {

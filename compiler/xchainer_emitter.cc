@@ -69,7 +69,9 @@ std::string Join(const List& l) {
 }
 
 // TODO(hamaji): Consider using something like StrCat in abseil.
-std::string Join(std::initializer_list<std::string> l) { return Join(std::vector<std::string>(l)); }
+std::string Join(std::initializer_list<std::string> l) {
+    return Join(std::vector<std::string>(l));
+}
 
 template <class List, class Fn>
 std::vector<std::string> MapToString(const List& l, Fn fn) {
@@ -84,7 +86,8 @@ void EmitIntStackVector(const std::string& name, const std::vector<int>& ints, C
 
 class XChainerEmitter {
 public:
-    explicit XChainerEmitter(const Graph& graph) : graph_(graph), value_names_(AssignValueNames(graph)) {}
+    explicit XChainerEmitter(const Graph& graph) : graph_(graph), value_names_(AssignValueNames(graph)) {
+    }
 
     void Emit(CodeEmitter& ce) {
         EmitInputs(ce);

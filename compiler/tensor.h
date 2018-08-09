@@ -33,10 +33,18 @@ public:
 
     void ToONNX(onnx::TensorProto* xtensor) const;
 
-    const std::vector<int64_t> dims() const { return dims_; }
-    Dtype dtype() const { return dtype_; }
-    const std::string& name() const { return name_; }
-    const std::string& doc_string() const { return doc_string_; }
+    const std::vector<int64_t> dims() const {
+        return dims_;
+    }
+    Dtype dtype() const {
+        return dtype_;
+    }
+    const std::string& name() const {
+        return name_;
+    }
+    const std::string& doc_string() const {
+        return doc_string_;
+    }
 
     int ElementSize() const;
     int64_t NumElements() const;
@@ -46,7 +54,9 @@ public:
         return static_cast<T*>(data_.get())[index];
     }
 
-    const void* GetRawData() const { return data_.get(); }
+    const void* GetRawData() const {
+        return data_.get();
+    }
 
 private:
     std::vector<int64_t> dims_;
