@@ -1,6 +1,5 @@
 include_directories(..)
 include_directories(../googletest/googletest/include)
-link_directories(../googletest/googletest)
 add_executable(common_test
   strutil_test.cc
   )
