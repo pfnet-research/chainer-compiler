@@ -11,7 +11,7 @@ $ ./setup.sh
 $ cmake .
 $ make
 $ ./scripts/runtests.py
-$ ./runtests.sh
+$ ./scripts/runtests_xchainer_cc.sh  # being deprecated.
 ```
 
 ### Run ResNet50 with XCVM backend
