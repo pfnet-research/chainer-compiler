@@ -1,4 +1,4 @@
-add_custom_command(OUTPUT init_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h xcvm_ops.h xcvm_proto_util.cc xcvm_proto_util.h
+add_custom_command(OUTPUT gen_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h gen_xcvm_ops.h xcvm_proto_util.cc xcvm_proto_util.h
                    COMMAND python3 gen_xcvm.py
                    MAIN_DEPENDENCY gen_xcvm.py)
 
@@ -7,7 +7,7 @@ include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
 add_library(oniku_runtime
-  init_xcvm_ops.cc
+  gen_xcvm_ops.cc
   xchainer.cc
   xcvm.cc
   xcvm.pb.cc
