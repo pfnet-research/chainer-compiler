@@ -141,6 +141,8 @@ private:
             const std::string& out = GetValueName(node.outputs().front());
             // TODO(hamaji): Dropout does nothing for now.
             EmitSingleArrayAssignment(out, in_name(), ce);
+        } else if (node.op_type() == "Ident") {
+            EmitSingleArrayAssignment(out_name(), in_name(), ce);
         } else if (node.op_type() == "Conv") {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
