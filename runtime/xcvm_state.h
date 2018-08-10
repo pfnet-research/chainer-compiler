@@ -33,11 +33,19 @@ public:
         return outputs_;
     }
 
+    bool use_trace() const {
+        return use_trace_;
+    }
+    void set_use_trace(bool use_trace) {
+        use_trace_ = use_trace;
+    }
+
 private:
     int pc_;
     std::vector<nonstd::optional<xchainer::Array>> variables_;
     const InOuts& inputs_;
     InOuts outputs_;
+    bool use_trace_;
 };
 
 }  // namespace runtime

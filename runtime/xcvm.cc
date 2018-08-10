@@ -32,6 +32,7 @@ XCVM::~XCVM() {
 
 InOuts XCVM::Run(const InOuts& program_inputs, bool use_trace) {
     XCVMState state(num_variables_, program_inputs);
+    state.set_use_trace(use_trace);
 
     while (true) {
         int pc = state.pc();
