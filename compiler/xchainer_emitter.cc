@@ -56,30 +56,6 @@ void EmitSingleArrayAssignment(const std::string& name, const std::string rhs, C
     ce << "const xchainer::Array& " << name << " = " << rhs << ";\n";
 }
 
-template <class List>
-std::string Join(const List& l) {
-    std::ostringstream oss;
-    bool is_first = true;
-    for (auto& v : l) {
-        if (!is_first) oss << ", ";
-        is_first = false;
-        oss << v;
-    }
-    return oss.str();
-}
-
-// TODO(hamaji): Consider using something like StrCat in abseil.
-std::string Join(std::initializer_list<std::string> l) {
-    return Join(std::vector<std::string>(l));
-}
-
-template <class List, class Fn>
-std::vector<std::string> MapToString(const List& l, Fn fn) {
-    std::vector<std::string> r;
-    for (auto& v : l) r.push_back(fn(v));
-    return r;
-}
-
 void EmitIntStackVector(const std::string& name, const std::vector<int>& ints, CodeEmitter& ce) {
     ce << "xchainer::StackVector<int64_t, xchainer::kMaxNdim> " << name << "{" << Join(ints) << "};\n";
 }
@@ -258,9 +234,7 @@ private:
         std::vector<const Node*> nodes(graph_.GetComputationSequence());
 
         for (const Node* node : nodes) {
-            ce << "// " << node->op_type();
-            ce << "(" << Join(MapToString(node->inputs(), [](const Value* v) { return v->name(); })) << ")";
-            ce << " -> (" << Join(MapToString(node->outputs(), [](const Value* v) { return v->name(); })) << ")\n";
+            ce << "// " << node->DebugString();
 
             EmitNode(*node, ce);
 

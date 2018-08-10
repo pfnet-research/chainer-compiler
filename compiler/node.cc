@@ -1,6 +1,7 @@
 #include "node.h"
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/serializer_util.h>
 #include <compiler/value.h>
 
@@ -156,6 +157,14 @@ void Node::Detach() {
     inputs_.clear();
     outputs_.clear();
     detached_ = true;
+}
+
+std::string Node::DebugString() const {
+    std::ostringstream oss;
+    oss << op_type();
+    oss << "(" << Join(MapToString(inputs(), [](const Value* v) { return v->name(); })) << ")";
+    oss << " -> (" << Join(MapToString(outputs(), [](const Value* v) { return v->name(); })) << ")";
+    return oss.str();
 }
 
 }  // namespace oniku

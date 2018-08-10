@@ -78,18 +78,25 @@ private:
             return strides;
         };
 
+        const std::string& debug_info = node.DebugString();
+
+#define EMIT(op, ...) do {                      \
+            Add ## op ## Op(prog, __VA_ARGS__);                         \
+            prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(debug_info); \
+                } while (0);
+
         if (node.op_type() == "Add") {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddAddOp(prog, out(0), in(0), in(1));
+            EMIT(Add, out(0), in(0), in(1));
         } else if (node.op_type() == "Relu") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddReluOp(prog, out(0), in(0));
+            EMIT(Relu, out(0), in(0));
         } else if (node.op_type() == "Ident") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddIdentOp(prog, out(0), in(0));
+            EMIT(Ident, out(0), in(0));
         } else if (node.op_type() == "Dropout") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
@@ -98,7 +105,7 @@ private:
                 WARN_ONCE("The second output of Dropout is not handled yet");
             }
             // TODO(hamaji): Dropout does nothing for now.
-            AddIdentOp(prog, out(0), in(0));
+            EMIT(Ident, out(0), in(0));
         } else if (node.op_type() == "Conv") {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
@@ -106,46 +113,46 @@ private:
             // TODO(xchainer): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             if (node.inputs().size() == 2UL) {
-                AddConvOp(prog, out(0), in(0), in(1), strides(), pads());
+                EMIT(Conv, out(0), in(0), in(1), strides(), pads());
             } else {
-                AddConvWithBiasOp(prog, out(0), in(0), in(1), strides(), pads(), in(2));
+                EMIT(ConvWithBias, out(0), in(0), in(1), strides(), pads(), in(2));
             }
         } else if (node.op_type() == "Reshape") {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddReshapeOp(prog, out(0), in(0), in(1));
+            EMIT(Reshape, out(0), in(0), in(1));
         } else if (node.op_type() == "MatMul") {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddMatMulOp(prog, out(0), in(0), in(1));
+            EMIT(MatMul, out(0), in(0), in(1));
         } else if (node.op_type() == "Gemm") {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddGemmOp(prog, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
+            EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
         } else if (node.op_type() == "BatchNormalization") {
             CHECK_EQ(5UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddBatchNormalizationOp(prog, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon());
+            EMIT(BatchNormalization, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon());
         } else if (node.op_type() == "MaxPool") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddMaxPoolOp(prog, out(0), in(0), node.kernel_shape(), strides(), pads());
+            EMIT(MaxPool, out(0), in(0), node.kernel_shape(), strides(), pads());
         } else if (node.op_type() == "AveragePool") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            AddAveragePoolOp(prog, out(0), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+            EMIT(AveragePool, out(0), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
         } else if (node.op_type() == "Softmax") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             int axis = node.axis();
             if (axis < 0) axis = 1;
-            AddSoftmaxOp(prog, out(0), in(0), axis);
+            EMIT(Softmax, out(0), in(0), axis);
         } else if (node.op_type() == "LogSoftmax") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             int axis = node.axis();
             if (axis < 0) axis = 1;
-            AddLogSoftmaxOp(prog, out(0), in(0), axis);
+            EMIT(LogSoftmax, out(0), in(0), axis);
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
@@ -155,6 +162,7 @@ private:
         for (const auto& value : graph_.values()) {
             if (value->kind() != Value::Kind::kInput) continue;
             AddInOp(prog, GetValueId(value.get()), value->name());
+            prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
         }
     }
 
@@ -162,6 +170,7 @@ private:
         for (const auto& value : graph_.values()) {
             if (value->kind() != Value::Kind::kOutput) continue;
             AddOutOp(prog, value->name(), GetValueId(value.get()));
+            prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
         }
     }
 

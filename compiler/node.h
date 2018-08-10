@@ -89,6 +89,8 @@ public:
     }
     void Detach();
 
+    std::string DebugString() const;
+
 private:
     std::vector<Value*> inputs_;
     std::vector<Value*> outputs_;

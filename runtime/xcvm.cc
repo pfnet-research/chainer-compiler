@@ -23,7 +23,9 @@ XCVM::XCVM(const XCProgramProto& program) {
     }
 
     for (const XCInstructionProto& inst : program.instructions()) {
-        program_.emplace_back(MakeXCVMOp(inst));
+        XCVMOp* op = MakeXCVMOp(inst);
+        op->set_debug_info(inst.debug_info());
+        program_.emplace_back(op);
     }
 }
 

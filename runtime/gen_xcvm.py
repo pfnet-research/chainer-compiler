@@ -108,6 +108,7 @@ def gen_xcvm_proto():
     lines.append('required Op op = 1;')
     lines.append('repeated XCValueProto inputs = 2;')
     lines.append('repeated int32 outputs = 3;')
+    lines.append('optional string debug_info = 4;')
     lines.append('}')
 
     lines.append('message XCProgramProto {')
@@ -224,6 +225,9 @@ def gen_gen_xcvm_ops_cc():
 
         # Emit Run.
         lines.append('void %sOp::Run(XCVMState* st) {' % op)
+
+        lines.append('if (st->use_trace() && !debug_info_.empty()) '
+                     'std::cerr << "# " << debug_info_ << std::endl;')
 
         line = 'if (st->use_trace()) std::cerr'
         if outputs:
