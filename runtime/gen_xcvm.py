@@ -146,20 +146,7 @@ def gen_gen_xcvm_ops_h():
         elif len(outputs) > 1:
             raise RuntimeError('Multiple outputs is not defined yet')
         lines.append('%s RunImpl(%s);' % (rettype, ', '.join(args)))
-
-        lines.append('virtual void Run(XCVMState* st) {')
-        args = ['st']
-        for typ, name in inputs:
-            if typ != ARRAY:
-                continue
-            args.append(f'st->GetVar({name})')
-        call = 'RunImpl(%s)' % ', '.join(args)
-        if len(outputs) == 1:
-            lines.append('st->SetVar(%s, %s);' % (outputs[0], call))
-        elif not outputs:
-            lines.append(call + ';')
-
-        lines.append('}')
+        lines.append('virtual void Run(XCVMState* st);')
 
         lines.append('private:')
         for typ, name in inputs:
@@ -232,7 +219,20 @@ def gen_gen_xcvm_ops_cc():
         for i, name in enumerate(outputs):
             lines.append('%s = inst.outputs(%d);' % (name, i))
 
-        lines.append('};')
+        lines.append('}')
+
+        lines.append('void %sOp::Run(XCVMState* st) {' % op)
+        args = ['st']
+        for typ, name in inputs:
+            if typ != ARRAY:
+                continue
+            args.append(f'st->GetVar({name})')
+        call = 'RunImpl(%s)' % ', '.join(args)
+        if len(outputs) == 1:
+            lines.append('st->SetVar(%s, %s);' % (outputs[0], call))
+        elif not outputs:
+            lines.append(call + ';')
+        lines.append('}')
 
     lines.append('XCVMOp* MakeXCVMOp(const XCInstructionProto& inst) {')
     lines.append('switch (inst.op()) {')
