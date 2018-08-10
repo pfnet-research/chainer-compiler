@@ -234,7 +234,7 @@ private:
         std::vector<const Node*> nodes(graph_.GetComputationSequence());
 
         for (const Node* node : nodes) {
-            ce << "// " << node->DebugString();
+            ce << "// " << node->DebugString() << NL;
 
             EmitNode(*node, ce);
 
