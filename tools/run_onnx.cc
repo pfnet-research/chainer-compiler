@@ -30,6 +30,10 @@ namespace oniku {
 namespace runtime {
 namespace {
 
+bool g_quiet;
+
+#define LOG() if (!g_quiet) std::cerr
+
 bool HasPrefix(const std::string& str, const std::string& prefix) {
     ssize_t size_diff = str.size() - prefix.size();
     return size_diff >= 0 && str.substr(0, prefix.size()) == prefix;
@@ -119,6 +123,56 @@ void ReadTestDir(
     CHECK(!test_cases->empty()) << "No test found in " << test_path;
 }
 
+xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
+    switch (xtype) {
+        case onnx::TensorProto::BOOL:
+            return xchainer::Dtype::kBool;
+        case onnx::TensorProto::INT8:
+            return xchainer::Dtype::kInt8;
+        case onnx::TensorProto::INT16:
+            return xchainer::Dtype::kInt16;
+        case onnx::TensorProto::INT32:
+            return xchainer::Dtype::kInt32;
+        case onnx::TensorProto::INT64:
+            return xchainer::Dtype::kInt64;
+        case onnx::TensorProto::UINT8:
+            return xchainer::Dtype::kUInt8;
+        case onnx::TensorProto::FLOAT:
+            return xchainer::Dtype::kFloat32;
+        case onnx::TensorProto::DOUBLE:
+            return xchainer::Dtype::kFloat64;
+        default:
+            CHECK(false) << "Unsupported ONNX data type: " << xtype;
+    }
+}
+
+xchainer::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
+    xchainer::Shape shape;
+    for (const auto& dim : xshape.dim()) {
+        if (dim.has_dim_value()) {
+            shape.push_back(dim.dim_value());
+        } else {
+            LOG() << "Dimension " << dim.dim_param() << " was replaced by 1" << std::endl;
+            shape.push_back(1);
+        }
+    }
+}
+
+void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, InOuts* inputs) {
+    for (const onnx::ValueInfoProto& input : xmodel.graph().input()) {
+        if (params.count(input.name()))
+            continue;
+        CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
+        const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
+        xchainer::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
+        xchainer::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
+        xchainer::Array array = xchainer::Ones(shape, dtype);
+        CHECK(inputs->emplace(input.name(), array).second) << "Duplicated input: " << input.name();
+        LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
+    }
+
+}
+
 void RunMain(int argc, char** argv) {
     cmdline::parser args;
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
@@ -137,12 +191,12 @@ void RunMain(int argc, char** argv) {
     const std::string out_onnx = args.get<std::string>("out_onnx");
     const std::string out_xcvm = args.get<std::string>("out_xcvm");
 
-    const bool quiet = args.get<bool>("quiet");
+    g_quiet = args.get<bool>("quiet");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
         QFAIL() << "Either --onnx or --test must be specified.";
     }
 
-    if (!quiet) std::cerr << "Initializing xChainer..." << std::endl;
+    LOG() << "Initializing xChainer..." << std::endl;
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     const std::string device = args.get<std::string>("device");
@@ -154,7 +208,7 @@ void RunMain(int argc, char** argv) {
         onnx_path = test_path + "/model.onnx";
     }
 
-    if (!quiet) std::cerr << "Loading data..." << std::endl;
+    LOG() << "Loading data..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     InOuts params;
     std::vector<std::string> input_names;
@@ -174,13 +228,16 @@ void RunMain(int argc, char** argv) {
 
     std::vector<std::unique_ptr<TestCase>> test_cases;
     if (test_path.empty()) {
-        QFAIL() << "TODO: generate random data";
+        std::unique_ptr<TestCase> test_case(new TestCase());
+        test_case->name = "generated data by xchainer::Ones";
+        GenerateFixedInput(xmodel, params, &test_case->inputs);
+        test_cases.emplace_back(std::move(test_case));
     } else {
         ReadTestDir(test_path, input_names, output_names, &test_cases);
-        if (!quiet) std::cerr << "Found " << test_cases.size() << " test cases" << std::endl;
+        LOG() << "Found " << test_cases.size() << " test cases" << std::endl;
     }
 
-    if (!quiet) std::cerr << "Constructing model..." << std::endl;
+    LOG() << "Constructing model..." << std::endl;
     Model model(xmodel);
     RunDefaultPasses(model.mutable_graph());
 
@@ -199,7 +256,7 @@ void RunMain(int argc, char** argv) {
         CHECK(xmodel.SerializeToOstream(&ofs));
     }
 
-    if (!quiet) std::cerr << "Generate code..." << std::endl;
+    LOG() << "Generate code..." << std::endl;
     XCProgramProto xcvm_prog;
     xcvm::Emit(model, &xcvm_prog);
 
@@ -213,8 +270,9 @@ void RunMain(int argc, char** argv) {
     }
 
     XCVM xcvm(xcvm_prog);
+    int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
-        if (!quiet) std::cerr << "Running for " << test_case->name << std::endl;
+        LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(params);
         for (const auto& p : test_case->inputs) {
             CHECK(inputs.emplace(p.first, p.second).second) << "Duplicated input parameter: " << p.first;
@@ -224,12 +282,18 @@ void RunMain(int argc, char** argv) {
         InOuts outputs(xcvm.Run(inputs, args.get<bool>("trace")));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        if (!quiet) std::cerr << "Elapsed: " << elapsed << " msec" << std::endl;
+        LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
 
-        if (test_case->outputs.empty()) continue;
+        if (test_case->outputs.empty()) {
+            LOG() << "Outputs:" << std::endl;
+            for (const auto& p : outputs) {
+                LOG() << p.first << ": " << p.second.ToString() << std::endl;
+            }
+        }
 
-        if (!quiet) std::cerr << "Verifying the result..." << std::endl;
+        LOG() << "Verifying the result..." << std::endl;
         for (const auto& p : test_case->outputs) {
+            test_cnt++;
             const std::string key = p.first;
             xchainer::Array expected = p.second;
             auto found = outputs.find(key);
@@ -238,7 +302,8 @@ void RunMain(int argc, char** argv) {
             CHECK(xchainer::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
         }
     }
-    if (!quiet) std::cerr << "OK!" << std::endl;
+    if (test_cnt)
+        LOG() << "OK!" << std::endl;
 }
 
 }  // namespace
