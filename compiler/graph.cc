@@ -101,8 +101,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
 std::vector<Node*> Graph::GetLiveNodes() const {
     std::vector<Node*> nodes;
     for (const std::unique_ptr<Node>& node : nodes_) {
-        if (!node->detached())
-            nodes.push_back(node.get());
+        if (!node->detached()) nodes.push_back(node.get());
     }
     return nodes;
 }

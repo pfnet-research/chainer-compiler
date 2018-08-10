@@ -79,7 +79,13 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     return r + xc;
 }
 
-xchainer::Array BatchNormalizationOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& s, const xchainer::Array& bias, const xchainer::Array& mean, const xchainer::Array& var) {
+xchainer::Array BatchNormalizationOp::RunImpl(
+        XCVMState* st,
+        const xchainer::Array& x,
+        const xchainer::Array& s,
+        const xchainer::Array& bias,
+        const xchainer::Array& mean,
+        const xchainer::Array& var) {
     return BatchNormONNX(x, s, bias, mean, var, epsilon);
 }
 

@@ -32,7 +32,8 @@ namespace {
 
 bool g_quiet;
 
-#define LOG() if (!g_quiet) std::cerr
+#define LOG() \
+    if (!g_quiet) std::cerr
 
 bool HasPrefix(const std::string& str, const std::string& prefix) {
     ssize_t size_diff = str.size() - prefix.size();
@@ -160,8 +161,7 @@ xchainer::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
 
 void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, InOuts* inputs) {
     for (const onnx::ValueInfoProto& input : xmodel.graph().input()) {
-        if (params.count(input.name()))
-            continue;
+        if (params.count(input.name())) continue;
         CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
         const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
         xchainer::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
@@ -170,7 +170,6 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
         CHECK(inputs->emplace(input.name(), array).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
-
 }
 
 void RunMain(int argc, char** argv) {
@@ -302,8 +301,7 @@ void RunMain(int argc, char** argv) {
             CHECK(xchainer::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
         }
     }
-    if (test_cnt)
-        LOG() << "OK!" << std::endl;
+    if (test_cnt) LOG() << "OK!" << std::endl;
 }
 
 }  // namespace
