@@ -157,6 +157,7 @@ xchainer::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
             shape.push_back(1);
         }
     }
+    return shape;
 }
 
 void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, InOuts* inputs) {
