@@ -29,7 +29,7 @@ public:
         return graph_.get();
     }
 
-    const int64_t ir_version() const {
+    int64_t ir_version() const {
         return ir_version_;
     }
     const std::vector<onnx::OperatorSetIdProto>& opset_import() const {

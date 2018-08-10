@@ -39,7 +39,7 @@ public:
         return doc_string_;
     }
 
-    const int order() const {
+    int order() const {
         return order_;
     }
     void set_order(int order) {
@@ -84,7 +84,7 @@ public:
         return epsilon_;
     }
 
-    const bool detached() const {
+    bool detached() const {
         return detached_;
     }
     void Detach();

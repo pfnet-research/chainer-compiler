@@ -125,7 +125,7 @@ Tensor::UniqueData LoadDataFromRawData(const std::string& data, int64_t num_elem
 
 template <typename To>
 void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* a) {
-    CHECK_LE(t.ElementSize(), sizeof(To));
+    CHECK_LE(static_cast<size_t>(t.ElementSize()), sizeof(To));
     for (int64_t i = 0; i < t.NumElements(); ++i) {
         a->Add(t.Get<To>(i));
     }
