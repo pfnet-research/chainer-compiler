@@ -1,3 +1,5 @@
 __pycache__
 check_dimension.py
 onnx_chainer_sample.py
+*.swp
+*.onnx

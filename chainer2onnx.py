@@ -7,9 +7,12 @@ from onnx import checker
 from onnx import helper
 from onnx import TensorProto
 import os
+import sys
 
-
+import chainer
 from chainer import links as L
+
+import code
 
 
 def new_tensor(dims):
@@ -42,7 +45,7 @@ class Link_Linear(object):
         sl.b = helper.make_tensor_value_info(
             sl.name + '_b', TensorProto.FLOAT, [sl.n_out])
 
-    def call(sl, args, env):
+    def call(sl, args, _, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor([sl.n_out])
@@ -59,14 +62,185 @@ class Link_Linear(object):
         return [sl.W, sl.b]
 
 
+def size2d(v):
+    if isinstance(v, tuple):
+        return list(v)
+    elif isinstance(v, int):
+        return [v, v]
+    else:
+        raise Exception('size should be tuple or int')
+
+
+class Link_Convolution2D(object):
+    def __init__(sl, ch):
+        sl.name = ch.name
+        # code.InteractiveConsole({'ch': ch}).interact()
+
+        sl.ksize = size2d(ch.ksize)
+        sl.stride = size2d(ch.stride)
+        ps = size2d(ch.pad)
+        sl.pads = ps + ps
+
+        sl.M = ch.b.shape[0]
+        sl.W = helper.make_tensor_value_info(
+            sl.name + '_W', TensorProto.FLOAT,
+            [sl.M, 'channel_size'] + sl.ksize)
+        sl.b = helper.make_tensor_value_info(
+            sl.name + '_b', TensorProto.FLOAT, [sl.M])
+
+    def call(sl, args, _, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Conv",
+                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
+                kernel_shape=sl.ksize,
+                pads=sl.pads,
+                strides=sl.stride
+            )
+        )
+        return res
+
+    def init_tensors(sl):
+        return [sl.W, sl.b]
+
+
+class Link_BatchNormalization(object):
+    def __init__(sl, ch):
+        sl.name = ch.name
+        code.InteractiveConsole({'ch': ch}).interact()
+
+        sl.size = size2d(ch.ksize)
+        sl.stride = size2d(ch.stride)
+        ps = size2d(ch.pad)
+        sl.pads = ps + ps
+
+        sl.M = ch.b.shape[0]
+        sl.W = helper.make_tensor_value_info(
+            sl.name + '_W', TensorProto.FLOAT,
+            [sl.M, 'channel_size'] + sl.ksize)
+        sl.b = helper.make_tensor_value_info(
+            sl.name + '_b', TensorProto.FLOAT, [sl.M])
+
+    def call(sl, args, _, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Conv",
+                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
+                kernel_shape=sl.ksize,
+                pads=sl.pads,
+                strides=sl.stride
+            )
+        )
+        return res
+
+    def init_tensors(sl):
+        return [sl.W, sl.b]
+
+
+class User_Defined_Link(object):
+    def __init__(sl, ch):
+        sl.name = ch.name
+        code.InteractiveConsole({'ch': ch}).interact()
+
+        src = clip_head(inspect.getsource(ch.forward))
+        print(src)
+        sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
+        assert(isinstance(sl.ast, gast.gast.FunctionDef))
+
+
+"""
+    def call(sl, args, _, env):
+        # 自身のforwardが呼ばれる
+        raise Exception('mada')
+        try:
+            eval_ast(sl.ast.body, env)
+            raise Exception('return not found')
+        except ValueReturn as v:
+            output_tensors = [v.value]  # とりあえず1tensor
+
+        env.module = sys.modules[model.__module__]
+
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Conv",
+                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
+                kernel_shape=sl.ksize,
+                pads=sl.pads,
+                strides=sl.stride
+            )
+        )
+        return res
+
+    def init_tensors(sl):
+        return [sl.W, sl.b]
+"""
+
+
 class Function_Relu(object):
-    def call(sl, args, env):
+    def call(sl, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(get_dims(v))
         env.nodes.append(
             helper.make_node(
                 "Relu", inputs=[v.name], outputs=[res.name]
+            )
+        )
+        return res
+
+
+class Function_MaxPool2d(object):
+    def call(sl, args, keywords, env):
+        assert(len(args) == 2)
+        v = args[0]
+        res = new_tensor(['TODO'])
+        ksize = args[1]
+        env.nodes.append(
+            helper.make_node(
+                "MaxPool", inputs=[v.name], outputs=[res.name],
+                kernel_shape=size2d(ksize),
+                strides=size2d(keywords.get('stride', ksize))
+            )
+        )
+        return res
+
+
+class Function_LocalRespNorm(object):
+    def call(sl, args, keywords, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['TODO'])
+        env.nodes.append(
+            helper.make_node(
+                "LRN", inputs=[v.name], outputs=[res.name],
+                size=keywords.get('n', 5),
+                bias=keywords.get('k', 2.0),
+                alpha=keywords.get('alpha', 1e-4),
+                beta=keywords.get('beta', 0.75)
+            )
+        )
+        return res
+
+
+class Function_Dropout(object):
+    def call(sl, args, keywords, env):  # たぶん実際には実装できない
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['TODO'])
+        env.nodes.append(
+            helper.make_node(
+                "Dropout", inputs=[v.name], outputs=[res.name],
+                ratio=keywords.get('ratio', 0.5),
+                is_test=1  # onnxの仕様ではないが、mxnetの仕様でいるみたい
             )
         )
         return res
@@ -83,8 +257,7 @@ def clip_head(s):
 
 
 class Env(object):
-    def __init__(sl, links):
-        sl.links = links
+    def __init__(sl):
         sl.vars = {}
         sl.nodes = []
 
@@ -108,36 +281,65 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.Call):
         fn = eval_ast(nast.func, env)
         args = list(map(lambda x: eval_ast(x, env), nast.args))
-        return fn.call(args, env)
+        keywords = dict(
+            map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
+        return fn.call(args, keywords, env)
     elif isinstance(nast, gast.Attribute):
-        if nast.value.id == env.self_name:  # .selfのとき
+        na = nast.value.id
+        if na == env.self_name:  # .selfのとき
             return env.links[nast.attr]
-        # elif
-        # これfunction を F とimport してるかどうかって、関数側からわかんないですよね
-        elif nast.value.id == 'F':
-            if nast.attr == 'relu':
-                return Function_Relu()
+        elif na in dir(env.module):
+            if getattr(env.module, na) == chainer.functions:
+                if nast.attr == 'relu':
+                    return Function_Relu()
+                elif nast.attr == 'max_pooling_2d':
+                    return Function_MaxPool2d()
+                elif nast.attr == 'local_response_normalization':
+                    return Function_LocalRespNorm()
+                elif nast.attr == 'dropout':
+                    return Function_Dropout()
+                else:
+                    raise Exception('unknown function', nast.attr)
             else:
-                raise Exception('unknown function', nast.attr)
+                raise Exception('unknown module', na)
         else:
             raise Exception('unknown attribute', nast.value.id, '.', nast.attr)
 
     elif isinstance(nast, gast.Name):
         return env.vars[nast.id]
+    elif isinstance(nast, gast.Num):
+        return nast.n
+    elif isinstance(nast, gast.Expr):
+        return eval_ast(nast.value, env)
     elif isinstance(nast, gast.Return):
         raise ValueReturn(eval_ast(nast.value, env))
     else:
+        print('unknown ast')
+        code.InteractiveConsole({'nast': nast}).interact()
         raise Exception('unknown ast', nast)
 
 
 def chainer2onnx(model, forward):
+    # return helper.make_graph([],'dummy',[],[])
+
     links = {}
     for ch in model.children():
-        if isinstance(ch, L.Linear):
-            # print(ch)
-            links[ch.name] = Link_Linear(ch)
+        if ch.__class__.__module__[:13] == 'chainer.links':
+            if isinstance(ch, L.Linear):
+                links[ch.name] = Link_Linear(ch)
+            elif isinstance(ch, L.Convolution2D):
+                links[ch.name] = Link_Convolution2D(ch)
+            elif isinstance(ch, L.BatchNormalization):
+                links[ch.name] = Link_BatchNormalization(ch)
+            else:
+                print('unknown chainer link')
+                code.InteractiveConsole({'lk': ch}).interact()
+                raise Exception('unknown link', ch)
         else:
-            raise Exception('unknown link', ch)
+            # User Defined link
+            links[ch.name] = User_Defined_Link(ch)
+
+    # ここまでinit,以下forward
 
     src = clip_head(inspect.getsource(forward))
     print(src)
@@ -146,7 +348,10 @@ def chainer2onnx(model, forward):
     tast = tast.body[0]
     assert(isinstance(tast, gast.gast.FunctionDef))
 
-    env = Env(links)
+    env = Env()
+    env.links = links
+    env.module = sys.modules[model.__module__]
+
     args = list(map(lambda x: x.id, tast.args.args))
     env.self_name = args[0]
 
@@ -157,7 +362,6 @@ def chainer2onnx(model, forward):
     for v in args:
         env.vars[v] = new_tensor(['batch_size', 'input_size'])
         input_tensors.append(env.vars[v])
-
     try:
         eval_ast(tast.body, env)
         raise Exception('return not found')

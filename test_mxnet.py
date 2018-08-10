@@ -73,6 +73,9 @@ def check_compatibility(model, x, out_key='prob'):
     onnxmod = chainer2onnx.chainer2onnx(model, model.forward)
     checker.check_model(onnxmod)
 
+    with open('raw_MLP.onnx', 'wb') as fp:
+        fp.write(onnxmod.SerializeToString())
+
     chainer.config.train = False
 
     # Forward computation
@@ -108,6 +111,8 @@ def check_compatibility(model, x, out_key='prob'):
     with open(fn, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
 
+    with open('initialized_MLP.onnx', 'wb') as fp:
+        fp.write(onnxmod.SerializeToString())
     # onnx_chainer.export(model, x, fn)
 
     sym, arg, aux = mxnet.contrib.onnx.import_model(fn)
