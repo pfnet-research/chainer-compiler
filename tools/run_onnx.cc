@@ -192,7 +192,8 @@ void RunMain(int argc, char** argv) {
 
     g_quiet = args.get<bool>("quiet");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
-        QFAIL() << "Either --onnx or --test must be specified.";
+        std::cerr << args.usage() << std::endl;
+        QFAIL() << "Either --onnx or --test must be specified!";
     }
 
     LOG() << "Initializing xChainer..." << std::endl;
@@ -288,6 +289,7 @@ void RunMain(int argc, char** argv) {
             for (const auto& p : outputs) {
                 LOG() << p.first << ": " << p.second.ToString() << std::endl;
             }
+            continue;
         }
 
         LOG() << "Verifying the result..." << std::endl;
