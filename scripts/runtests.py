@@ -125,7 +125,7 @@ def main():
     if fail_cnt:
         print('%d/%d tests failed!' % (fail_cnt, test_cnt))
     else:
-        print('ALL OK!')
+        print('ALL %d tests OK!' % test_cnt)
 
 
 main()
