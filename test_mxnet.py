@@ -41,7 +41,7 @@ def convert_parameter(parameter, name):
                 type(parameter)))
     if array.shape == ():
         array = array[None]
-    print('initialize', name, array)
+    # print('initialize', name, array)
     return numpy_helper.from_array(array, name)
 
 # 入力xから次元を決める
@@ -49,14 +49,13 @@ def convert_parameter(parameter, name):
 
 
 def edit_onnx_protobuf(onnxmod, x, chainermod):
-    # chainermod.forward(x)
+    # code.InteractiveConsole({'ch': chainermod}).interact()
 
     initializers = []
-    for ch in chainermod.children():
-        ln = ch.name
-        for pa in ch.params():
-            wn = pa.name
-            initializers.append(convert_parameter(pa, ln+'_'+wn))
+    for na, pa in chainermod.namedparams():
+        if isinstance(pa.data, type(None)):
+            continue
+        initializers.append(convert_parameter(pa, na.replace('/', '_')))
 
     dummygraph = helper.make_graph(
         [], "hoge", [], [], initializer=initializers)
@@ -153,9 +152,10 @@ def check_compatibility(model, x, out_key='prob'):
     mxnet_outs = mod.get_outputs()
     mxnet_out = [y.asnumpy() for y in mxnet_outs]
 
-    print(x)
-    print(mxnet_out)
-    print(chainer_out)
+    print(len(chainer_out), len(mxnet_out))
+    print(x[0].shape)
+    print(chainer_out[0].shape)
+    print(mxnet_out[0].shape)
 
     for cy, my in zip(chainer_out, mxnet_out):
         np.testing.assert_almost_equal(cy, my, decimal=5)

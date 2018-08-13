@@ -3,3 +3,8 @@ check_dimension.py
 onnx_chainer_sample.py
 *.swp
 *.onnx
+*.txt
+*.dot
+*.svg
+tes.py
+net_drawer.py

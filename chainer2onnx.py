@@ -9,7 +9,7 @@ from onnx import TensorProto
 import os
 import sys
 
-import chainer
+from chainer import functions as F
 from chainer import links as L
 
 import code
@@ -31,8 +31,8 @@ def get_dims(tensor):
 
 
 class Link_Linear(object):
-    def __init__(sl, ch):
-        sl.name = ch.name
+    def __init__(sl, ch, parentname):
+        sl.name = parentname + '_' + ch.name
         sl.n_out = ch.b.shape[0]
         if not(ch.W.data is None):
             sl.n_in = ch.W.shape[1]
@@ -68,12 +68,12 @@ def size2d(v):
     elif isinstance(v, int):
         return [v, v]
     else:
-        raise Exception('size should be tuple or int')
+        raise Exception('size should be tuple or int, but got ', v)
 
 
 class Link_Convolution2D(object):
-    def __init__(sl, ch):
-        sl.name = ch.name
+    def __init__(sl, ch, parentname):
+        sl.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
         sl.ksize = size2d(ch.ksize)
@@ -109,80 +109,49 @@ class Link_Convolution2D(object):
 
 class Link_BatchNormalization(object):
     def __init__(sl, ch):
-        sl.name = ch.name
-        code.InteractiveConsole({'ch': ch}).interact()
-
-        sl.size = size2d(ch.ksize)
-        sl.stride = size2d(ch.stride)
-        ps = size2d(ch.pad)
-        sl.pads = ps + ps
-
-        sl.M = ch.b.shape[0]
-        sl.W = helper.make_tensor_value_info(
-            sl.name + '_W', TensorProto.FLOAT,
-            [sl.M, 'channel_size'] + sl.ksize)
-        sl.b = helper.make_tensor_value_info(
-            sl.name + '_b', TensorProto.FLOAT, [sl.M])
-
-    def call(sl, args, _, env):
-        assert(len(args) == 1)
-        v = args[0]
-        res = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Conv",
-                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
-                kernel_shape=sl.ksize,
-                pads=sl.pads,
-                strides=sl.stride
-            )
-        )
-        return res
-
-    def init_tensors(sl):
-        return [sl.W, sl.b]
+        pass
 
 
 class User_Defined_Link(object):
-    def __init__(sl, ch):
-        sl.name = ch.name
-        code.InteractiveConsole({'ch': ch}).interact()
+    def __init__(sl, ch, parentname):
+        sl.name = parentname + '_' + ch.name
+        # code.InteractiveConsole({'ch': ch}).interact()
 
         src = clip_head(inspect.getsource(ch.forward))
         print(src)
         sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
         assert(isinstance(sl.ast, gast.gast.FunctionDef))
 
+        sl.links = initLinks(ch, sl.name)
+        sl.module = sys.modules[ch.__module__]
 
-"""
     def call(sl, args, _, env):
-        # 自身のforwardが呼ばれる
-        raise Exception('mada')
+        # 自身のforwardを呼ぶ
+        # print('calling',sl.name,'with',args)
+        # code.InteractiveConsole({'nast':sl.ast}).interact()
+
+        loenv = env.localenv()
+
+        fnargs = list(map(lambda x: x.id, sl.ast.args.args))
+        loenv.self_name = fnargs[0]
+        assert(len(fnargs) == len(args)+1)
+        loenv.vars = dict(zip(fnargs[1:], args))
+
+        loenv.links = sl.links
+        loenv.module = sl.module
+        print('name', sl.name, 'modules', sl.module)
         try:
-            eval_ast(sl.ast.body, env)
+            eval_ast(sl.ast.body, loenv)
             raise Exception('return not found')
         except ValueReturn as v:
-            output_tensors = [v.value]  # とりあえず1tensor
-
-        env.module = sys.modules[model.__module__]
-
-        assert(len(args) == 1)
-        v = args[0]
-        res = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Conv",
-                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
-                kernel_shape=sl.ksize,
-                pads=sl.pads,
-                strides=sl.stride
-            )
-        )
+            res = v.value
         return res
 
     def init_tensors(sl):
-        return [sl.W, sl.b]
-"""
+        res = []
+        for l in sl.links.values():
+            res += l.init_tensors()
+        return res
 
 
 class Function_Relu(object):
@@ -198,20 +167,52 @@ class Function_Relu(object):
         return res
 
 
-class Function_MaxPool2d(object):
+class Function_Pool2d_Util(object):
+    def __init__(sl, pooltype):
+        sl.pooltype = pooltype
+
     def call(sl, args, keywords, env):
         assert(len(args) == 2)
         v = args[0]
         res = new_tensor(['TODO'])
         ksize = args[1]
+        strides = size2d(keywords.get('stride', ksize))
+        # chainer のsize参考
+        # https://github.com/chainer/chainer/blob/v4.3.1/chainer/utils/conv.py#L7
+
+        # paddingについて、Chainerの cover_all=Falseと
+        # onnx の pads=0 が一致する
+        # ので、 cover_all=True(デフォルト)なら
+        # padsを入れる必要あり
+        pads = [0, 0, 0, 0]
+        if keywords.get('cover_all', True):
+            dx, dy = 0, 0
+            if 'pad' in keywords.keys():
+                dy, dx = size2d(keywords['pad'])
+            pads = [dx, dy, strides[0]+dx-1, strides[1]+dy-1]
+            # 多めに足しておくとうまいこといくはず (この時点で入力大きさが不明なので)
+        else:
+            raise Exception("unimplemented cover_all=False in maxpool2d")
+
         env.nodes.append(
             helper.make_node(
-                "MaxPool", inputs=[v.name], outputs=[res.name],
+                sl.pooltype, inputs=[v.name], outputs=[res.name],
                 kernel_shape=size2d(ksize),
-                strides=size2d(keywords.get('stride', ksize))
+                strides=strides,
+                pads=pads
             )
         )
         return res
+
+
+class Function_MaxPool2d(object):
+    def __init__(sl):
+        sl.call = Function_Pool2d_Util('MaxPool').call
+
+
+class Function_AveragePool2d(object):
+    def __init__(sl):
+        sl.call = Function_Pool2d_Util('AveragePool').call
 
 
 class Function_LocalRespNorm(object):
@@ -219,12 +220,14 @@ class Function_LocalRespNorm(object):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(['TODO'])
+        n = keywords.get('n', 5)
+        alpha = keywords.get('alpha', 0.0001)
         env.nodes.append(
             helper.make_node(
                 "LRN", inputs=[v.name], outputs=[res.name],
-                size=keywords.get('n', 5),
+                size=n,
                 bias=keywords.get('k', 2.0),
-                alpha=keywords.get('alpha', 1e-4),
+                alpha=alpha * n,  # chainerとonnx(mxnet)で一致しない
                 beta=keywords.get('beta', 0.75)
             )
         )
@@ -233,7 +236,13 @@ class Function_LocalRespNorm(object):
 
 class Function_Dropout(object):
     def call(sl, args, keywords, env):  # たぶん実際には実装できない
-        assert(len(args) == 1)
+        if len(args) == 1:
+            pass
+        elif len(args) == 2:
+            keywords['ratio'] = args[1]
+        else:
+            raise Exception("invalid length")
+
         v = args[0]
         res = new_tensor(['TODO'])
         env.nodes.append(
@@ -241,6 +250,22 @@ class Function_Dropout(object):
                 "Dropout", inputs=[v.name], outputs=[res.name],
                 ratio=keywords.get('ratio', 0.5),
                 is_test=1  # onnxの仕様ではないが、mxnetの仕様でいるみたい
+            )
+        )
+        return res
+
+
+class Function_Concat(object):
+    def call(sl, args, keywords, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['TODO'])
+        # print(list(v))
+        env.nodes.append(
+            helper.make_node(
+                "Concat",
+                inputs=list(map(lambda x: x.name, v)), outputs=[res.name],
+                axis=keywords.get('axis', 1),
             )
         )
         return res
@@ -261,10 +286,25 @@ class Env(object):
         sl.vars = {}
         sl.nodes = []
 
+    def localenv(sl):
+        res = Env()
+        res.nodes = sl.nodes  # こっちはglobalに共通でないといけない
+        return res
+
 
 class ValueReturn(Exception):
     def __init__(sl, value):
         sl.value = value
+
+
+Func2NodeClass = [
+    (F.relu, Function_Relu),
+    (F.max_pooling_2d, Function_MaxPool2d),
+    (F.local_response_normalization, Function_LocalRespNorm),
+    (F.dropout, Function_Dropout),
+    (F.concat, Function_Concat),
+    (F.average_pooling_2d, Function_AveragePool2d)
+]
 
 
 def eval_ast(nast, env):
@@ -289,28 +329,34 @@ def eval_ast(nast, env):
         if na == env.self_name:  # .selfのとき
             return env.links[nast.attr]
         elif na in dir(env.module):
-            if getattr(env.module, na) == chainer.functions:
-                if nast.attr == 'relu':
-                    return Function_Relu()
-                elif nast.attr == 'max_pooling_2d':
-                    return Function_MaxPool2d()
-                elif nast.attr == 'local_response_normalization':
-                    return Function_LocalRespNorm()
-                elif nast.attr == 'dropout':
-                    return Function_Dropout()
-                else:
-                    raise Exception('unknown function', nast.attr)
-            else:
-                raise Exception('unknown module', na)
+            v = getattr(getattr(env.module, na), nast.attr)
+            for f, c in Func2NodeClass:
+                if v == f:
+                    return c()
+
+            raise Exception('unknown function', nast.attr)
         else:
             raise Exception('unknown attribute', nast.value.id, '.', nast.attr)
 
     elif isinstance(nast, gast.Name):
-        return env.vars[nast.id]
+        if nast.id == 'print':  # とりあえずの実装なのであとでもっとうまくやる
+            class P(object):
+                pass
+            res = P()
+            res.call = lambda _, __, ___: None
+            return res
+        else:
+            return env.vars[nast.id]
     elif isinstance(nast, gast.Num):
         return nast.n
+    elif isinstance(nast, gast.NameConstant):
+        return nast.value
     elif isinstance(nast, gast.Expr):
         return eval_ast(nast.value, env)
+    elif isinstance(nast, gast.Str):
+        return nast.s
+    elif isinstance(nast, gast.Tuple):
+        return tuple(map(lambda x: eval_ast(x, env), nast.elts))
     elif isinstance(nast, gast.Return):
         raise ValueReturn(eval_ast(nast.value, env))
     else:
@@ -319,26 +365,31 @@ def eval_ast(nast, env):
         raise Exception('unknown ast', nast)
 
 
-def chainer2onnx(model, forward):
-    # return helper.make_graph([],'dummy',[],[])
-
+def initLinks(model, parentname):
     links = {}
     for ch in model.children():
         if ch.__class__.__module__[:13] == 'chainer.links':
             if isinstance(ch, L.Linear):
-                links[ch.name] = Link_Linear(ch)
+                links[ch.name] = Link_Linear(ch, parentname)
             elif isinstance(ch, L.Convolution2D):
-                links[ch.name] = Link_Convolution2D(ch)
+                links[ch.name] = Link_Convolution2D(ch, parentname)
             elif isinstance(ch, L.BatchNormalization):
-                links[ch.name] = Link_BatchNormalization(ch)
+                links[ch.name] = Link_BatchNormalization(ch, parentname)
             else:
                 print('unknown chainer link')
                 code.InteractiveConsole({'lk': ch}).interact()
                 raise Exception('unknown link', ch)
         else:
             # User Defined link
-            links[ch.name] = User_Defined_Link(ch)
+            links[ch.name] = User_Defined_Link(ch, parentname)
 
+    return links
+
+
+def chainer2onnx(model, forward):
+    # return helper.make_graph([],'dummy',[],[])
+
+    links = initLinks(model, '')
     # ここまでinit,以下forward
 
     src = clip_head(inspect.getsource(forward))
@@ -366,7 +417,10 @@ def chainer2onnx(model, forward):
         eval_ast(tast.body, env)
         raise Exception('return not found')
     except ValueReturn as v:
-        output_tensors = [v.value]  # とりあえず1tensor
+        if isinstance(v.value, tuple):
+            output_tensors = list(v.value)  # ばらしてみる
+        else:
+            output_tensors = [v.value]  # とりあえず1tensor
 
     for lk in links.values():
         # print(lk,a)
@@ -386,8 +440,10 @@ def chainer2onnx(model, forward):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
+    print(graph)
+    # exit(0)
     checker.check_graph(graph)
     mo = helper.make_model(graph)
 
-    print(mo)
+    # print(mo)
     return mo
