@@ -79,9 +79,8 @@ private:
     }
 
     void EmitInputs(CodeEmitter& ce) {
-        for (const auto& value : graph_.values()) {
-            if (value->kind() != Value::Kind::kInput) continue;
-            ce << "const xchainer::Array& " << GetValueName(value.get()) << " = GetOrDie(inputs, \"" << value->name() << "\");\n";
+        for (const Value* value : graph_.input_values()) {
+            ce << "const xchainer::Array& " << GetValueName(value) << " = GetOrDie(inputs, \"" << value->name() << "\");\n";
         }
         ce << NL;
     }
@@ -261,20 +260,24 @@ private:
 
     void EmitOutputs(CodeEmitter& ce) {
         ce << "InOuts outputs;\n";
-        for (const auto& value : graph_.values()) {
-            if (value->kind() != Value::Kind::kOutput) continue;
-            ce << "SetOrDie(outputs, \"" << value->name() << "\", " << GetValueName(value.get()) << ");\n";
+        for (const Value* value : graph_.output_values()) {
+            ce << "SetOrDie(outputs, \"" << value->name() << "\", " << GetValueName(value) << ");\n";
         }
         ce << "return outputs;\n";
         ce << NL;
     }
 
     static std::map<const Value*, std::string> AssignValueNames(const Graph& graph) {
+        int id = 1;
         std::map<const Value*, std::string> value_names;
-        for (size_t i = 0; i < graph.values().size(); ++i) {
-            const Value* v = graph.values()[i].get();
-            const std::string name = StrCat(v->kind() == Value::Kind::kInput ? 'i' : v->kind() == Value::Kind::kOutput ? 'o' : 't', i);
-            CHECK(value_names.emplace(v, name).second);
+        for (const Value* v : graph.input_values()) {
+            CHECK(value_names.emplace(v, StrCat('i', id++)).second);
+        }
+        for (const Value* v : graph.temp_values()) {
+            CHECK(value_names.emplace(v, StrCat('t', id++)).second);
+        }
+        for (const Value* v : graph.output_values()) {
+            CHECK(value_names.emplace(v, StrCat('o', id++)).second);
         }
         return value_names;
     }

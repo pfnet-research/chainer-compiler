@@ -29,10 +29,16 @@ public:
     }
 
     static std::map<const Value*, int> AssignValueIds(const Graph& graph) {
+        int id = 1;
         std::map<const Value*, int> value_ids;
-        for (size_t i = 0; i < graph.values().size(); ++i) {
-            const Value* v = graph.values()[i].get();
-            CHECK(value_ids.emplace(v, i).second);
+        for (const Value* v : graph.input_values()) {
+            CHECK(value_ids.emplace(v, id++).second);
+        }
+        for (const Value* v : graph.temp_values()) {
+            CHECK(value_ids.emplace(v, id++).second);
+        }
+        for (const Value* v : graph.output_values()) {
+            CHECK(value_ids.emplace(v, id++).second);
         }
         return value_ids;
     }
@@ -191,17 +197,15 @@ private:
     }
 
     void EmitInputs(XCProgramProto* prog) {
-        for (const auto& value : graph_.values()) {
-            if (value->kind() != Value::Kind::kInput) continue;
-            AddInOp(prog, GetValueId(value.get()), value->name());
+        for (const Value* value : graph_.input_values()) {
+            AddInOp(prog, GetValueId(value), value->name());
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
         }
     }
 
     void EmitOutputs(XCProgramProto* prog) {
-        for (const auto& value : graph_.values()) {
-            if (value->kind() != Value::Kind::kOutput) continue;
-            AddOutOp(prog, value->name(), GetValueId(value.get()));
+        for (const Value* value : graph_.output_values()) {
+            AddOutOp(prog, value->name(), GetValueId(value));
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
         }
     }

@@ -110,7 +110,9 @@ TEST(ModelTest, LoadResNet50) {
     const Graph& graph = model.graph();
     EXPECT_EQ("resnet50", graph.name());
     EXPECT_EQ("", graph.doc_string());
-    EXPECT_EQ(446UL, graph.values().size());
+    EXPECT_EQ(270UL, graph.input_values().size());
+    EXPECT_EQ(1UL, graph.output_values().size());
+    EXPECT_EQ(175UL, graph.temp_values().size());
     EXPECT_EQ(176UL, graph.nodes().size());
 }
 

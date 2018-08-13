@@ -23,8 +23,14 @@ public:
 
     void ToONNX(onnx::GraphProto* xgraph) const;
 
-    const std::vector<std::unique_ptr<Value>>& values() const {
-        return values_;
+    const std::vector<Value*>& input_values() const {
+        return input_values_;
+    }
+    const std::vector<Value*>& output_values() const {
+        return output_values_;
+    }
+    const std::vector<Value*>& temp_values() const {
+        return temp_values_;
     }
     const std::vector<std::unique_ptr<Node>>& nodes() const {
         return nodes_;
@@ -54,7 +60,10 @@ private:
 
     void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
-    std::vector<std::unique_ptr<Value>> values_;
+    std::vector<Value*> output_values_;
+    std::vector<Value*> input_values_;
+    std::vector<Value*> temp_values_;
+    std::vector<std::unique_ptr<Value>> all_values_;
     std::vector<std::unique_ptr<Node>> nodes_;
     std::string name_;
     std::string doc_string_;

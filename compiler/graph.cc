@@ -17,17 +17,20 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
     std::map<std::string, Value*> values_by_name;
     for (const onnx::ValueInfoProto& input : xgraph.input()) {
         Value* value = new Value(input, Value::Kind::kInput);
-        values_.emplace_back(value);
+        all_values_.emplace_back(value);
+        input_values_.push_back(value);
         CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& output : xgraph.output()) {
         Value* value = new Value(output, Value::Kind::kOutput);
-        values_.emplace_back(value);
+        all_values_.emplace_back(value);
+        output_values_.push_back(value);
         CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& temp : xgraph.value_info()) {
         Value* value = new Value(temp, Value::Kind::kTemp);
-        values_.emplace_back(value);
+        all_values_.emplace_back(value);
+        temp_values_.push_back(value);
         CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
 
@@ -71,7 +74,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     DUMP_STRING(xgraph, name);
     DUMP_STRING(xgraph, doc_string);
 
-    for (const auto& value : values_) {
+    for (const auto& value : all_values_) {
         onnx::ValueInfoProto* xvalue = nullptr;
         switch (value->kind()) {
             case Value::Kind::kInput:
@@ -108,7 +111,11 @@ std::vector<Node*> Graph::GetLiveNodes() const {
 
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
     Value* value = new Value(name, kind);
-    values_.emplace_back(value);
+    all_values_.emplace_back(value);
+    if (kind == Value::Kind::kInput) input_values_.push_back(value);
+    else if (kind == Value::Kind::kOutput) output_values_.push_back(value);
+    else if (kind == Value::Kind::kTemp) temp_values_.push_back(value);
+    else CHECK(false) << static_cast<int>(kind);
     return value;
 }
 

@@ -14,8 +14,8 @@ namespace oniku {
 void ScheduleComputation(const Graph& graph) {
     // Find necessary nodes.
     std::queue<const Value*> q;
-    for (const auto& value : graph.values()) {
-        if (value->kind() == Value::Kind::kOutput) q.push(value.get());
+    for (const Value* value : graph.output_values()) {
+        q.push(value);
     }
 
     std::map<const Node*, int> input_counts;
@@ -31,8 +31,8 @@ void ScheduleComputation(const Graph& graph) {
     }
 
     // Then, sort them topologically.
-    for (const auto& value : graph.values()) {
-        if (value->kind() == Value::Kind::kInput) q.push(value.get());
+    for (const Value* value : graph.input_values()) {
+        q.push(value);
     }
 
     std::vector<Node*> nodes;
