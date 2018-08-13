@@ -101,6 +101,10 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Div, out(0), in(0), in(1));
+        } else if (node.op_type() == "Neg") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Neg, out(0), in(0));
         } else if (node.op_type() == "Relu") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

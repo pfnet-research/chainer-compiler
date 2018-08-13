@@ -36,6 +36,10 @@ xchainer::Array DivOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xc
     return a / b;
 }
 
+xchainer::Array NegOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    return -a;
+}
+
 xchainer::Array ConvOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {
     return xchainer::Conv(x, w, nonstd::nullopt, strides, pads);
 }

@@ -41,6 +41,7 @@ XC_OPS = [
     ('Sub', [Array('a'), Array('b')], ['c']),
     ('Mul', [Array('a'), Array('b')], ['c']),
     ('Div', [Array('a'), Array('b')], ['c']),
+    ('Neg', [Array('x')], ['y']),
     ('Conv',
      [Array('x'), Array('w'), Ints('strides'), Ints('pads')],
      ['y']),
