@@ -1,3 +1,4 @@
+#include <xchainer/axes.h>
 #include <xchainer/routines/connection.h>
 #include <xchainer/routines/creation.h>
 #include <xchainer/routines/linalg.h>
@@ -11,6 +12,18 @@
 
 namespace oniku {
 namespace runtime {
+
+namespace {
+
+xchainer::OptionalAxes GetXchainerAxes(
+    xchainer::StackVector<int64_t, xchainer::kMaxNdim> axes) {
+    if (axes.empty()) return nonstd::nullopt;
+    xchainer::Axes xc_axes;
+    for (int64_t axis : axes) xc_axes.push_back(axis);
+    return xc_axes;
+}
+
+}  // namespace
 
 xchainer::Array InOp::RunImpl(XCVMState* st) {
     return st->Input(name);
@@ -38,6 +51,11 @@ xchainer::Array DivOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xc
 
 xchainer::Array NegOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return -a;
+}
+
+xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+
+    return xchainer::Sum(a, GetXchainerAxes(axes), keepdims != 0);
 }
 
 xchainer::Array ConvOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {

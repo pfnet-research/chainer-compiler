@@ -105,6 +105,10 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Neg, out(0), in(0));
+        } else if (node.op_type() == "Sum") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Neg, out(0), in(0));
         } else if (node.op_type() == "Relu") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -169,6 +173,10 @@ private:
             int axis = node.axis();
             if (axis < 0) axis = 1;
             EMIT(LogSoftmax, out(0), in(0), axis);
+        } else if (node.op_type() == "ReduceSum") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

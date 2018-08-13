@@ -84,6 +84,13 @@ public:
         return epsilon_;
     }
 
+    const std::vector<int>& axes() const {
+        return axes_;
+    }
+    bool keepdims() const {
+        return keepdims_;
+    }
+
     bool detached() const {
         return detached_;
     }
@@ -116,6 +123,9 @@ private:
     int axis_ = -1;
 
     float epsilon_;
+
+    std::vector<int> axes_;
+    bool keepdims_ = true;
 };
 
 }  // namespace oniku

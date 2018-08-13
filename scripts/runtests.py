@@ -80,6 +80,13 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_sum_one_input'),
     TestCase(NODE_TEST, 'test_sum_two_inputs'),
 
+    TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_sum_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_sum_keepdims_random'),
+
     TestCase(NODE_TEST, 'test_batchnorm_example'),
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
 ]
