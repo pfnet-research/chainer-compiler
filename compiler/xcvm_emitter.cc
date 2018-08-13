@@ -89,6 +89,18 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Add, out(0), in(0), in(1));
+        } else if (node.op_type() == "Sub") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Sub, out(0), in(0), in(1));
+        } else if (node.op_type() == "Mul") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Mul, out(0), in(0), in(1));
+        } else if (node.op_type() == "Div") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Div, out(0), in(0), in(1));
         } else if (node.op_type() == "Relu") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

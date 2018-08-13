@@ -24,6 +24,18 @@ xchainer::Array AddOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xc
     return a + b;
 }
 
+xchainer::Array SubOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return a - b;
+}
+
+xchainer::Array MulOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return a * b;
+}
+
+xchainer::Array DivOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return a / b;
+}
+
 xchainer::Array ConvOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {
     return xchainer::Conv(x, w, nonstd::nullopt, strides, pads);
 }

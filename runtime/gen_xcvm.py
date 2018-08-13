@@ -38,6 +38,9 @@ XC_OPS = [
     ('Out', [String('name'), Array('v')], []),
 
     ('Add', [Array('a'), Array('b')], ['c']),
+    ('Sub', [Array('a'), Array('b')], ['c']),
+    ('Mul', [Array('a'), Array('b')], ['c']),
+    ('Div', [Array('a'), Array('b')], ['c']),
     ('Conv',
      [Array('x'), Array('w'), Ints('strides'), Ints('pads')],
      ['y']),

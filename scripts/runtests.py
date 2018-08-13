@@ -20,8 +20,18 @@ NODE_TEST = 'onnx/onnx/backend/test/data/node'
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_relu'),
+
     TestCase(NODE_TEST, 'test_add'),
     TestCase(NODE_TEST, 'test_add_bcast'),
+    TestCase(NODE_TEST, 'test_sub'),
+    TestCase(NODE_TEST, 'test_sub_bcast'),
+    TestCase(NODE_TEST, 'test_sub_example'),
+    TestCase(NODE_TEST, 'test_mul'),
+    TestCase(NODE_TEST, 'test_mul_bcast'),
+    TestCase(NODE_TEST, 'test_mul_example'),
+    TestCase(NODE_TEST, 'test_div'),
+    TestCase(NODE_TEST, 'test_div_bcast'),
+    TestCase(NODE_TEST, 'test_div_example'),
 
     # TODO(xchainer): Support non-2D dot.
     # terminate called after throwing an instance of 'xchainer::NotImplementedError'
