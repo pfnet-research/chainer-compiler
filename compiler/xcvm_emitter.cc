@@ -177,6 +177,14 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == "ReduceSumSquare") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ReduceSumSquare, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == "ReduceMean") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

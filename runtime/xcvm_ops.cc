@@ -5,6 +5,7 @@
 #include <xchainer/routines/manipulation.h>
 #include <xchainer/routines/math.h>
 #include <xchainer/routines/pooling.h>
+#include <xchainer/routines/statistics.h>
 #include <xchainer/shape.h>
 
 #include <runtime/gen_xcvm_ops.h>
@@ -56,6 +57,16 @@ xchainer::Array NegOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 
     return xchainer::Sum(a, GetXchainerAxes(axes), keepdims != 0);
+}
+
+xchainer::Array ReduceSumSquareOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+
+    return xchainer::Sum(a * a, GetXchainerAxes(axes), keepdims != 0);
+}
+
+xchainer::Array ReduceMeanOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+
+    return xchainer::Mean(a, GetXchainerAxes(axes), keepdims != 0);
 }
 
 xchainer::Array ConvOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {

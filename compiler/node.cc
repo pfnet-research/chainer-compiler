@@ -71,11 +71,11 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
             CHECK_EQ(xattr.type(), onnx::AttributeProto::FLOAT);
             epsilon_ = xattr.f();
         } else if (xattr.name() == "axes") {
-            CHECK(op_type_ == "ReduceSum" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceMean");
+            CHECK(op_type_ == "ReduceSum" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceMean");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INTS);
             axes_.assign(xattr.ints().begin(), xattr.ints().end());
         } else if (xattr.name() == "keepdims") {
-            CHECK(op_type_ == "ReduceSum" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceMean");
+            CHECK(op_type_ == "ReduceSum" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceMean");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
             keepdims_ = xattr.i() != 0;
         } else {
