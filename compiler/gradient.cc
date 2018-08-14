@@ -10,6 +10,7 @@
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
+#include <compiler/type.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -22,22 +23,21 @@ public:
         : graph_(graph) {
         CHECK_EQ(1UL, graph->output_values().size());
         for (Value* value : graph->output_values()) {
-            // TODO(hamaji): Refactor code to support values other
-            // than float32 loss.
-#if 0
-            CHECK(value->type().has_tensor_type()) << value->type().DebugString();
-            CHECK(onnx::TensorProto::FLOAT == value->type().tensor_type().elem_type()) << value->type().DebugString();
-            CHECK_EQ(1, value->type().tensor_type().shape().dim_size()) << value->type().DebugString();
-#endif
-            Value* grad = graph_->AddValue("grad@" + value->name(), Value::Kind::kInput);
+            // TODO(hamaji): Refactor code to support non-float values.
+            CHECK_EQ(Dtype::kFloat32, value->type().dtype());
+            Value* grad = graph_->AddInputValue("grad@" + value->name(), value->type());
             SetGrad(value, grad);
             init_grads_.emplace(grad);
+            // TODO(hamaji): Construct Tensors without using ONNX.
             onnx::TensorProto xtensor;
             xtensor.set_name(grad->name());
-            // xtensor.set_data_type(value->type().tensor_type().elem_type());
-            xtensor.set_data_type(onnx::TensorProto::FLOAT);
-            xtensor.add_float_data(1.0);
-            xtensor.add_dims(1);
+            xtensor.set_data_type(value->type().dtype().ToONNX());
+            for (int d : value->type().dims()) {
+                CHECK_LT(0, d);
+                xtensor.add_dims(d);
+                for (int i = 0; i < d; ++i)
+                    xtensor.add_float_data(1.0);
+            }
             grad->ResetInitializer(std::make_unique<Tensor>(xtensor));
             op_queue_.push(value->producer());
         }
@@ -70,7 +70,7 @@ public:
                 continue;
             auto found = grad_values_.find(input);
             CHECK(found != grad_values_.end());
-            Value* out_grad = graph_->AddValue("grad_out@" + input->name(), Value::Kind::kOutput);
+            Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode("Ident", {found->second}, {out_grad});
         }
     }

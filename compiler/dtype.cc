@@ -109,4 +109,9 @@ int Dtype::SizeOf() const {
     }
 }
 
+std::ostream& operator<<(std::ostream& os, const Dtype& dtype) {
+    os << dtype.ToString();
+    return os;
+}
+
 }  // namespace oniku

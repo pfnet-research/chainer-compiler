@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iosfwd>
+
 #include <onnx/onnx.pb.h>
 
 namespace oniku {
@@ -35,5 +37,7 @@ public:
 private:
     DataType type_ = kUnspecified;
 };
+
+std::ostream& operator<<(std::ostream& os, const Dtype& dtype);
 
 }  // namespace oniku

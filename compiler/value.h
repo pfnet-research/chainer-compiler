@@ -35,8 +35,8 @@ public:
     const std::string& name() const {
         return name_;
     }
-    const Type* type() const {
-        return type_.get();
+    const Type& type() const {
+        return *type_;
     }
     const std::string& doc_string() const {
         return doc_string_;

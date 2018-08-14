@@ -16,6 +16,14 @@ public:
 
     void ToONNX(onnx::TypeProto* xtype) const;
 
+    Dtype dtype() const {
+        return dtype_;
+    }
+
+    const std::vector<int>& dims() const {
+        return dims_;
+    }
+
 private:
     Dtype dtype_;
     std::vector<int> dims_;
