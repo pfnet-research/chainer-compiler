@@ -7,6 +7,14 @@ from onnx import onnx_pb
 import onnx_chainer
 
 
+orig_id = id
+def my_id(x):
+    if isinstance(x, chainer.Parameter):
+        return x.name
+    return orig_id(x)
+__builtins__.id = my_id
+
+
 def makedirs(d):
     if not os.path.exists(d):
         os.makedirs(d)
@@ -17,11 +25,12 @@ class AnyModel(chainer.Chain):
         super(AnyModel, self).__init__()
         with self.init_scope():
             for name, value in params.items():
-                setattr(self, name, chainer.Parameter(value))
+                setattr(self, name, chainer.Parameter(value, name=name))
         self.fn = fn
 
     def __call__(self, *args):
-        return self.fn(self, *args)
+        result = self.fn(self, *args)
+        return result
 
 
 def create_backprop_test(test_name, fn, **kwargs):
@@ -35,7 +44,9 @@ def create_backprop_test(test_name, fn, **kwargs):
         params[name] = np.array(value, np.float32)
     model = AnyModel(fn, params)
 
-    onnx_chainer.export(model, (), filename=test_model_path)
+    onnx_chainer.export(model, (),
+                        filename=test_model_path,
+                        graph_name='backprop_test_' + test_name)
 
     model.cleargrads()
     result = model()
@@ -54,12 +65,12 @@ def create_backprop_test(test_name, fn, **kwargs):
             output_names.append(output.name)
 
     assert len(output_names) == 1
-    assert len(param_names) == len(params)
+    assert sorted(param_names) == sorted(params)
 
     outputs = [(output_names[0], result)]
-    for xname, name in zip(param_names, sorted(params)):
+    for name in sorted(params):
         value = getattr(model, name).grad
-        outputs.append(('grad_out@' + xname, value))
+        outputs.append(('grad_out@' + name, value))
 
     for i, (xname, value) in enumerate(outputs):
         tensor = onnx_pb.TensorProto(name=xname,
