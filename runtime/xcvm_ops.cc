@@ -16,8 +16,7 @@ namespace runtime {
 
 namespace {
 
-xchainer::OptionalAxes GetXchainerAxes(
-    xchainer::StackVector<int64_t, xchainer::kMaxNdim> axes) {
+xchainer::OptionalAxes GetXchainerAxes(xchainer::StackVector<int64_t, xchainer::kMaxNdim> axes) {
     if (axes.empty()) return nonstd::nullopt;
     xchainer::Axes xc_axes;
     for (int64_t axis : axes) xc_axes.push_back(axis);
@@ -55,17 +54,14 @@ xchainer::Array NegOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 }
 
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
-
     return xchainer::Sum(a, GetXchainerAxes(axes), keepdims != 0);
 }
 
 xchainer::Array ReduceSumSquareOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
-
     return xchainer::Sum(a * a, GetXchainerAxes(axes), keepdims != 0);
 }
 
 xchainer::Array ReduceMeanOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
-
     return xchainer::Mean(a, GetXchainerAxes(axes), keepdims != 0);
 }
 

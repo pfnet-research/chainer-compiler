@@ -32,12 +32,10 @@ Dtype::DataType FromONNX(onnx::TensorProto::DataType xtype) {
 
 }  // namespace
 
-Dtype::Dtype(const onnx::TensorProto::DataType& xtype)
-    : type_(FromONNX(xtype)) {
+Dtype::Dtype(const onnx::TensorProto::DataType& xtype) : type_(FromONNX(xtype)) {
 }
 
-Dtype::Dtype(DataType type)
-    : type_(type) {
+Dtype::Dtype(DataType type) : type_(type) {
 }
 
 std::string Dtype::ToString() const {

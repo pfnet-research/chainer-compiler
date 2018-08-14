@@ -99,10 +99,8 @@ void AddGradientForNode(Graph* graph, const Node* node) {
     auto found = s_gradient_funcs->find(node->op_type());
     CHECK(found != s_gradient_funcs->end()) << "Gradient not supported: " << node->op_type();
     const GradientFunc& func = found->second;
-    if (func.num_inputs >= 0)
-        CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
-    if (func.num_outputs >= 0)
-        CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
+    if (func.num_inputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
+    if (func.num_outputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
     func.fn(graph, node->inputs(), node->outputs());
 }
 

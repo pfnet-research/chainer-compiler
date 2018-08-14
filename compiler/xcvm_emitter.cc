@@ -86,10 +86,11 @@ private:
 
         const std::string& debug_info = node.DebugString();
 
-#define EMIT(op, ...) do {                      \
-            Add ## op ## Op(prog, __VA_ARGS__);                         \
-            prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(debug_info); \
-                } while (0);
+#define EMIT(op, ...)                                                                          \
+    do {                                                                                       \
+        Add##op##Op(prog, __VA_ARGS__);                                                        \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(debug_info); \
+    } while (0);
 
         if (node.op_type() == "Add") {
             CHECK_EQ(2UL, node.inputs().size());

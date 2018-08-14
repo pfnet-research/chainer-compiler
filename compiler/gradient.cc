@@ -1,7 +1,7 @@
 #include "gradient.h"
 
-#include <queue>
 #include <map>
+#include <queue>
 #include <set>
 
 #include <onnx/onnx.pb.h>
@@ -20,8 +20,7 @@ namespace {
 
 class GradientGenerator {
 public:
-    explicit GradientGenerator(Graph* graph)
-        : graph_(graph) {
+    explicit GradientGenerator(Graph* graph) : graph_(graph) {
         CHECK_EQ(1UL, graph->output_values().size());
         for (Value* value : graph->output_values()) {
             // TODO(hamaji): Refactor code to support non-float values.
@@ -36,8 +35,7 @@ public:
             for (int d : value->type().dims()) {
                 CHECK_LT(0, d);
                 xtensor.add_dims(d);
-                for (int i = 0; i < d; ++i)
-                    xtensor.add_float_data(1.0);
+                for (int i = 0; i < d; ++i) xtensor.add_float_data(1.0);
             }
             grad->ResetInitializer(std::make_unique<Tensor>(xtensor));
             op_queue_.push(value->producer());
@@ -53,22 +51,18 @@ public:
                 op_queue_.push(node);
                 continue;
             }
-            if (!seen_nodes_.emplace(node).second)
-                continue;
+            if (!seen_nodes_.emplace(node).second) continue;
 
             AddGradientForNode(graph_, node);
 
             for (Value* input : node->inputs()) {
-                if (input->producer())
-                    op_queue_.push(input->producer());
+                if (input->producer()) op_queue_.push(input->producer());
             }
         }
 
         for (Value* input : graph_->input_values()) {
-            if (!input->initializer())
-                continue;
-            if (init_grads_.count(input))
-                continue;
+            if (!input->initializer()) continue;
+            if (init_grads_.count(input)) continue;
             CHECK(input->grad());
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode("Ident", {input->grad()}, {out_grad});
@@ -89,8 +83,7 @@ private:
 
     bool IsReady(const Node* node) const {
         for (Value* value : node->outputs()) {
-            if (!value->grad())
-                return false;
+            if (!value->grad()) return false;
         }
         return true;
     }

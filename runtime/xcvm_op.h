@@ -14,8 +14,12 @@ class XCVMOp {
 public:
     virtual void Run(XCVMState* state) = 0;
 
-    const std::string& debug_info() const { return debug_info_; }
-    void set_debug_info(const std::string& debug_info) { debug_info_ = debug_info; }
+    const std::string& debug_info() const {
+        return debug_info_;
+    }
+    void set_debug_info(const std::string& debug_info) {
+        debug_info_ = debug_info;
+    }
 
 protected:
     std::string debug_info_;

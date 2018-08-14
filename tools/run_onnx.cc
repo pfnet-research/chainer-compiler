@@ -249,7 +249,6 @@ void RunMain(int argc, char** argv) {
         LOG() << "Found " << test_cases.size() << " test cases" << std::endl;
     }
 
-
     if (args.exist("dump_onnx")) {
         onnx::ModelProto xmodel;
         model.ToONNX(&xmodel);

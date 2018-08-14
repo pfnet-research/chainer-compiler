@@ -118,10 +118,14 @@ std::vector<Node*> Graph::GetLiveNodes() const {
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
     Value* value = new Value(name, kind);
     all_values_.emplace_back(value);
-    if (kind == Value::Kind::kInput) input_values_.push_back(value);
-    else if (kind == Value::Kind::kOutput) output_values_.push_back(value);
-    else if (kind == Value::Kind::kTemp) temp_values_.push_back(value);
-    else CHECK(false) << static_cast<int>(kind);
+    if (kind == Value::Kind::kInput)
+        input_values_.push_back(value);
+    else if (kind == Value::Kind::kOutput)
+        output_values_.push_back(value);
+    else if (kind == Value::Kind::kTemp)
+        temp_values_.push_back(value);
+    else
+        CHECK(false) << static_cast<int>(kind);
     return value;
 }
 
