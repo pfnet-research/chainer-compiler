@@ -9,12 +9,13 @@ from onnx import onnx_pb
 import onnx_chainer
 
 
-orig_id = id
-def my_id(x):
-    if isinstance(x, chainer.Parameter):
-        return x.name
-    return orig_id(x)
-__builtins__.id = my_id
+def replace_id(builtins=__builtins__):
+    orig_id = id
+    def my_id(x):
+        if isinstance(x, chainer.Parameter):
+            return x.name
+        return orig_id(x)
+    builtins.id = my_id
 
 
 def makedirs(d):
@@ -84,13 +85,35 @@ def create_backprop_test(test_name, fn, **kwargs):
             f.write(tensor.SerializeToString())
 
 
+class BackpropTest(object):
+    def __init__(self, name, fn, **kwargs):
+        self.name = name
+        self.fn = fn
+        self.kwargs = kwargs
+
+    def generate(self):
+        create_backprop_test(self.name, self.fn, **self.kwargs)
+
+
+def get_backprop_tests():
+    tests = []
+    def test(name, fn, **kwargs):
+        tests.append(BackpropTest(name, fn, **kwargs))
+
+    test('add1', lambda m: m.a + m.b, a=[3], b=[7])
+    test('mul1', lambda m: m.a * m.b, a=[3], b=[7])
+    test('add', lambda m: m.a + m.b, a=[3, 5], b=[7, 2])
+    test('sub', lambda m: m.a - m.b, a=[3, 5], b=[7, 2])
+    test('mul', lambda m: m.a * m.b, a=[3, 5], b=[7, 2])
+    test('neg', lambda m: -m.a, a=[3, 5])
+
+    return tests
+
+
 def main():
-    create_backprop_test('add1', lambda m: m.a + m.b, a=[3], b=[7])
-    create_backprop_test('mul1', lambda m: m.a * m.b, a=[3], b=[7])
-    create_backprop_test('add', lambda m: m.a + m.b, a=[3, 5], b=[7, 2])
-    create_backprop_test('sub', lambda m: m.a - m.b, a=[3, 5], b=[7, 2])
-    create_backprop_test('mul', lambda m: m.a * m.b, a=[3, 5], b=[7, 2])
-    create_backprop_test('neg', lambda m: -m.a, a=[3, 5])
+    replace_id()
+    for test in get_backprop_tests():
+        test.generate()
 
 
 if __name__ == '__main__':

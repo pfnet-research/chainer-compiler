@@ -4,6 +4,8 @@ import os
 import sys
 import subprocess
 
+import gen_backprop_tests
+
 
 class TestCase(object):
 
@@ -16,7 +18,6 @@ class TestCase(object):
 
 
 NODE_TEST = 'onnx/onnx/backend/test/data/node'
-
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_relu'),
@@ -103,6 +104,15 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
 ]
 
+gen_backprop_tests.replace_id(__builtins__)
+for backprop_test in gen_backprop_tests.get_backprop_tests():
+    dirname = 'out'
+    name = 'backprop_test_' + backprop_test.name
+    if not os.path.exists(os.path.join(dirname, name)):
+        backprop_test.generate()
+    assert os.path.exists(os.path.join(dirname, name))
+    TEST_CASES.append(TestCase(dirname, name))
+
 
 def main():
     if os.path.exists('Makefile'):
@@ -115,6 +125,8 @@ def main():
     for test_case in TEST_CASES:
         sys.stdout.write('%s... ' % test_case.name)
         args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet', '1']
+        if test_case.name.startswith('backprop_'):
+            args.extend(['--backprop', '1'])
         try:
             test_cnt += 1
             subprocess.check_call(args)
