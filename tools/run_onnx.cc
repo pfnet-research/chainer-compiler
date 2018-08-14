@@ -18,8 +18,11 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
+#include <compiler/tensor.h>
+#include <compiler/value.h>
 #include <compiler/xcvm_emitter.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
@@ -182,6 +185,7 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
     args.add<bool>("dump_onnx", '\0', "Dump ONNX model after optimization", false, false);
     args.add<bool>("dump_xcvm", '\0', "Dump XCVM program", false, false);
+    args.add<bool>("backprop", 'b', "Add backprop outputs", false, false);
     args.add<bool>("trace", 't', "Tracing mode", false, false);
     args.add<bool>("quiet", 'q', "Quiet mode", false, false);
     args.parse_check(argc, argv);
@@ -209,22 +213,29 @@ void RunMain(int argc, char** argv) {
         onnx_path = test_path + "/model.onnx";
     }
 
-    LOG() << "Loading data..." << std::endl;
+    LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
+    Model model(xmodel);
+    RunDefaultPasses(model.mutable_graph(), args.get<bool>("backprop"));
+
+    LOG() << "Loading data..." << std::endl;
+
     InOuts params;
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
-    for (const auto& initializer : xmodel.graph().initializer()) {
-        xchainer::Array tensor(MakeArrayFromONNX(initializer));
-        CHECK(params.emplace(initializer.name(), tensor).second) << "Duplicate input tensor: " << initializer.name();
-    }
-    for (const auto& input : xmodel.graph().input()) {
-        if (!params.count(input.name())) {
-            input_names.push_back(input.name());
+    for (const Value* input : model.graph().input_values()) {
+        if (const Tensor* initializer = input->initializer()) {
+            // TODO(hamaji): Create xchainer::Array directly from `Tensor`.
+            onnx::TensorProto xinit;
+            initializer->ToONNX(&xinit);
+            xchainer::Array tensor(MakeArrayFromONNX(xinit));
+            CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
+        } else {
+            input_names.push_back(input->name());
         }
     }
-    for (const auto& output : xmodel.graph().output()) {
-        output_names.push_back(output.name());
+    for (const Value* output : model.graph().output_values()) {
+        output_names.push_back(output->name());
     }
 
     std::vector<std::unique_ptr<TestCase>> test_cases;
@@ -238,9 +249,6 @@ void RunMain(int argc, char** argv) {
         LOG() << "Found " << test_cases.size() << " test cases" << std::endl;
     }
 
-    LOG() << "Constructing model..." << std::endl;
-    Model model(xmodel);
-    RunDefaultPasses(model.mutable_graph());
 
     if (args.get<bool>("dump_onnx")) {
         onnx::ModelProto xmodel;
@@ -294,6 +302,7 @@ void RunMain(int argc, char** argv) {
         }
 
         LOG() << "Verifying the result..." << std::endl;
+        bool ok = true;
         for (const auto& p : test_case->outputs) {
             test_cnt++;
             const std::string key = p.first;
@@ -301,8 +310,12 @@ void RunMain(int argc, char** argv) {
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
             xchainer::Array actual = found->second;
-            CHECK(xchainer::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
+            if (!xchainer::AllClose(expected, actual, 1e-4)) {
+                LOG() << "FAIL: " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                ok = false;
+            }
         }
+        CHECK(ok);
     }
     if (test_cnt) LOG() << "OK!" << std::endl;
 }
