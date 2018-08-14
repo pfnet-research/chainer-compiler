@@ -4,6 +4,7 @@
 #include <string>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
 
@@ -15,9 +16,26 @@ void SetGrad(Value* y, Value* gy) {
     y->set_grad(gy);
 }
 
+Value* AddTempValue(Graph* graph, Value* v, int i) {
+    Value* tv = graph->AddValue(StrCat("grad_tmp_", i, '@', v->name()));
+    return tv;
+}
+
 Value* AddGradValue(Graph* graph, Value* v) {
     Value* gv = graph->AddValue("grad@" + v->name());
     SetGrad(v, gv);
+    return gv;
+}
+
+Value* AddTempOp(Graph* graph, const std::string& op_type, const std::vector<Value*>& inputs, Value* v, int i) {
+    Value* tv = AddTempValue(graph, v, i);
+    graph->AddNode(op_type, inputs, {tv});
+    return tv;
+}
+
+Value* AddGradOp(Graph* graph, const std::string& op_type, const std::vector<Value*>& inputs, Value* v) {
+    Value* gv = AddGradValue(graph, v);
+    graph->AddNode(op_type, inputs, {gv});
     return gv;
 }
 
@@ -28,20 +46,25 @@ void AddGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Val
 
 void SubGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(x[0], y[0]->grad());
-    Value* gx1 = AddGradValue(graph, x[1]);
-    graph->AddNode("Neg", {y[0]->grad()}, {gx1});
+    AddGradOp(graph, "Neg", {y[0]->grad()}, x[1]);
 }
 
 void MulGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* gx0 = AddGradValue(graph, x[0]);
-    Value* gx1 = AddGradValue(graph, x[1]);
-    graph->AddNode("Mul", {x[1], y[0]->grad()}, {gx0});
-    graph->AddNode("Mul", {x[0], y[0]->grad()}, {gx1});
+    AddGradOp(graph, "Mul", {x[1], y[0]->grad()}, x[0]);
+    AddGradOp(graph, "Mul", {x[0], y[0]->grad()}, x[1]);
+}
+
+void DivGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* gy = y[0]->grad();
+    Value* gx0 = AddGradOp(graph, "Div", {gy, x[1]}, x[0]);
+
+    Value* t0 = AddTempOp(graph, "Neg", {gx0}, x[1], 0);
+    Value* t1 = AddTempOp(graph, "Mul", {t0, x[0]}, x[1], 1);
+    AddGradOp(graph, "Div", {t1, x[1]}, x[1]);
 }
 
 void NegGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* gx0 = AddGradValue(graph, x[0]);
-    graph->AddNode("Neg", {y[0]->grad()}, {gx0});
+    AddGradOp(graph, "Neg", {y[0]->grad()}, x[0]);
 }
 
 typedef void (*GradFn)(Graph*, const std::vector<Value*>&, const std::vector<Value*>&);
@@ -69,6 +92,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Add", 2, 1, &AddGradFn);
         register_grad_fn("Sub", 2, 1, &SubGradFn);
         register_grad_fn("Mul", 2, 1, &MulGradFn);
+        register_grad_fn("Div", 2, 1, &DivGradFn);
         register_grad_fn("Neg", 1, 1, &NegGradFn);
     }
 

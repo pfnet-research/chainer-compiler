@@ -105,6 +105,7 @@ def get_backprop_tests():
     test('add', lambda m: m.a + m.b, a=[3, 5], b=[7, 2])
     test('sub', lambda m: m.a - m.b, a=[3, 5], b=[7, 2])
     test('mul', lambda m: m.a * m.b, a=[3, 5], b=[7, 2])
+    test('div', lambda m: m.a / m.b, a=[3, 5], b=[7, 2])
     test('neg', lambda m: -m.a, a=[3, 5])
 
     return tests
