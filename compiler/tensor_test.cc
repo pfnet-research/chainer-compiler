@@ -4,6 +4,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/dtype.h>
 #include <compiler/tensor.h>
 
 namespace oniku {
@@ -16,7 +17,7 @@ TEST(TensorTest, LoadMNISTOutput) {
     ASSERT_EQ(2, tensor.dims().size());
     EXPECT_EQ(1, tensor.dims()[0]);
     EXPECT_EQ(10, tensor.dims()[1]);
-    EXPECT_EQ(Tensor::Dtype::kFloat32, tensor.dtype());
+    EXPECT_EQ(Dtype::kFloat32, tensor.dtype());
 }
 
 }  // namespace

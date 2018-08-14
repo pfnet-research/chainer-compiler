@@ -6,6 +6,8 @@
 
 #include <onnx/onnx.pb.h>
 
+#include <compiler/dtype.h>
+
 namespace oniku {
 
 class Node;
@@ -13,17 +15,6 @@ class Node;
 class Tensor {
 public:
     typedef std::unique_ptr<void, decltype(&std::free)> UniqueData;
-
-    enum class Dtype {
-        kBool = 1,
-        kInt8,
-        kInt16,
-        kInt32,
-        kInt64,
-        kUInt8,
-        kFloat32,
-        kFloat64,
-    };
 
     explicit Tensor(const onnx::TensorProto& xtensor);
     ~Tensor();

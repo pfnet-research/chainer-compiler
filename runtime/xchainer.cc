@@ -66,7 +66,7 @@ xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     xchainer::Dtype dtype;
     switch (tensor.dtype()) {
 #define ASSIGN_DTYPE(n)             \
-    case Tensor::Dtype::n:          \
+    case Dtype::n:                  \
         dtype = xchainer::Dtype::n; \
         break
         ASSIGN_DTYPE(kBool);

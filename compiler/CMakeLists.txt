@@ -1,7 +1,10 @@
+include_directories(../gsl-lite/include)
+include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
 add_library(oniku_compiler
   code_emitter.cc
+  dtype.cc
   gradient.cc
   graph.cc
   model.cc
