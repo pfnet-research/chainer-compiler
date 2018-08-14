@@ -20,6 +20,7 @@ Value::Value(const std::string& name, const Type& type, Kind kind)
 }
 
 Value::~Value() {
+    CHECK(grad_ == nullptr);
 }
 
 void Value::ToONNX(onnx::ValueInfoProto* xvalue) const {

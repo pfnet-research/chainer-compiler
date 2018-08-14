@@ -68,10 +68,14 @@ public:
                 continue;
             if (init_grads_.count(input))
                 continue;
-            auto found = grad_values_.find(input);
-            CHECK(found != grad_values_.end());
+            CHECK(input->grad());
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
-            graph_->AddNode("Ident", {found->second}, {out_grad});
+            graph_->AddNode("Ident", {input->grad()}, {out_grad});
+        }
+
+        // Reset gradients.
+        for (const auto& v : graph_->all_values()) {
+            v->set_grad(nullptr);
         }
     }
 
@@ -84,7 +88,7 @@ private:
 
     bool IsReady(const Node* node) const {
         for (Value* value : node->outputs()) {
-            if (!grad_values_.count(value))
+            if (!value->grad())
                 return false;
         }
         return true;
@@ -95,11 +99,10 @@ private:
             CHECK_EQ(1UL, node->outputs().size());
             return node->outputs()[0];
         };
-        auto the_grad = [this, &node, &the_output]() {
+        auto the_grad = [&node, &the_output]() {
             Value* value = the_output();
-            auto found = grad_values_.find(value);
-            CHECK(found != grad_values_.end());
-            return found->second;
+            CHECK(value->grad());
+            return value->grad();
         };
 
         if (node->op_type() == "Add") {
@@ -121,12 +124,12 @@ private:
     }
 
     void SetGrad(Value* y, Value* gy) {
-        CHECK(grad_values_.emplace(y, gy).second);
+        CHECK(y->grad() == nullptr);
+        y->set_grad(gy);
     }
 
     Graph* graph_;
     std::queue<const Node*> op_queue_;
-    std::map<Value*, Value*> grad_values_;
     std::set<const Node*> seen_nodes_;
     std::set<Value*> init_grads_;
 };

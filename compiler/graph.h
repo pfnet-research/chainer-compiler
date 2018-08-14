@@ -34,6 +34,9 @@ public:
     const std::vector<Value*>& temp_values() const {
         return temp_values_;
     }
+    const std::vector<std::unique_ptr<Value>>& all_values() const {
+        return all_values_;
+    }
     const std::vector<std::unique_ptr<Node>>& nodes() const {
         return nodes_;
     }

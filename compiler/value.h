@@ -57,6 +57,13 @@ public:
     }
     void SetProducer(Node* producer);
 
+    Value* grad() const {
+        return grad_;
+    }
+    void set_grad(Value* grad) {
+        grad_ = grad;
+    }
+
 private:
     Kind kind_;
     std::string name_;
@@ -66,6 +73,8 @@ private:
 
     std::vector<Node*> users_;
     Node* producer_ = nullptr;
+    // This should be used only during gradient calculation.
+    Value* grad_ = nullptr;
 };
 
 }  // namespace oniku
