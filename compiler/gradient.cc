@@ -29,11 +29,15 @@ public:
             CHECK(onnx::TensorProto::FLOAT == value->type().tensor_type().elem_type()) << value->type().DebugString();
             CHECK_EQ(1, value->type().tensor_type().shape().dim_size()) << value->type().DebugString();
 #endif
-            Value* grad = AddGradValue(value);
+            Value* grad = graph_->AddValue("grad@" + value->name(), Value::Kind::kInput);
+            SetGrad(value, grad);
+            init_grads_.emplace(grad);
             onnx::TensorProto xtensor;
+            xtensor.set_name(grad->name());
             // xtensor.set_data_type(value->type().tensor_type().elem_type());
             xtensor.set_data_type(onnx::TensorProto::FLOAT);
             xtensor.add_float_data(1.0);
+            xtensor.add_dims(1);
             grad->ResetInitializer(std::make_unique<Tensor>(xtensor));
             op_queue_.push(value->producer());
         }
@@ -61,6 +65,8 @@ public:
 
         for (Value* input : graph_->input_values()) {
             if (!input->initializer())
+                continue;
+            if (init_grads_.count(input))
                 continue;
             auto found = grad_values_.find(input);
             CHECK(found != grad_values_.end());
@@ -122,6 +128,7 @@ private:
     std::queue<const Node*> op_queue_;
     std::map<Value*, Value*> grad_values_;
     std::set<const Node*> seen_nodes_;
+    std::set<Value*> init_grads_;
 };
 
 }  // namespace
