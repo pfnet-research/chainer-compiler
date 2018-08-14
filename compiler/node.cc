@@ -149,6 +149,10 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     if (op_type_ == "BatchNormalization") {
         add_float_attr("epsilon", epsilon_);
     }
+    add_ints_attr("axes", axes_);
+    if (op_type_ == "ReduceSum" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceMean") {
+        add_int_attr("keepdims", keepdims_);
+    }
 
     if (order_ >= 0) {
         add_int_attr("onikux_order", order_);
