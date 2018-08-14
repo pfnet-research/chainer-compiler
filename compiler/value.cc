@@ -3,11 +3,12 @@
 #include <common/log.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
+#include <compiler/type.h>
 
 namespace oniku {
 
 Value::Value(const onnx::ValueInfoProto& xvalue, Kind kind)
-    : kind_(kind), name_(xvalue.name()), type_(xvalue.type()), doc_string_(xvalue.doc_string()) {
+    : kind_(kind), name_(xvalue.name()), type_(new Type(xvalue.type())), doc_string_(xvalue.doc_string()) {
 }
 
 Value::Value(const std::string& name, Kind kind) : kind_(kind), name_(name) {
@@ -18,7 +19,7 @@ Value::~Value() {
 
 void Value::ToONNX(onnx::ValueInfoProto* xvalue) const {
     DUMP_STRING(xvalue, name);
-    *xvalue->mutable_type() = type_;
+    type_->ToONNX(xvalue->mutable_type());
     DUMP_STRING(xvalue, doc_string);
 }
 

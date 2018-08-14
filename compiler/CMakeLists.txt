@@ -13,6 +13,7 @@ add_library(oniku_compiler
   scheduler.cc
   simplifier.cc
   tensor.cc
+  type.cc
   value.cc
   xchainer_emitter.cc
   xcvm_emitter.cc

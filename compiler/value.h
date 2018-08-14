@@ -9,6 +9,7 @@ namespace oniku {
 
 class Node;
 class Tensor;
+class Type;
 
 class Value {
 public:
@@ -33,8 +34,8 @@ public:
     const std::string& name() const {
         return name_;
     }
-    const onnx::TypeProto& type() const {
-        return type_;
+    const Type* type() const {
+        return type_.get();
     }
     const std::string& doc_string() const {
         return doc_string_;
@@ -58,8 +59,7 @@ public:
 private:
     Kind kind_;
     std::string name_;
-    // TODO(hamaji): Consider introducing oniku::Type.
-    onnx::TypeProto type_;
+    std::unique_ptr<Type> type_;
     std::string doc_string_;
     std::unique_ptr<Tensor> initializer_;
 

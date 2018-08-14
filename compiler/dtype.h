@@ -7,6 +7,7 @@ namespace oniku {
 class Dtype {
 public:
     enum DataType {
+        kUnspecified = 0,
         kBool = 1,
         kInt8,
         kInt16,
@@ -17,6 +18,7 @@ public:
         kFloat64,
     };
 
+    Dtype() = default;
     explicit Dtype(const onnx::TensorProto::DataType& xtype);
     explicit Dtype(DataType type);
 
@@ -30,7 +32,7 @@ public:
     int SizeOf() const;
 
 private:
-    DataType type_;
+    DataType type_ = kUnspecified;
 };
 
 }  // namespace oniku
