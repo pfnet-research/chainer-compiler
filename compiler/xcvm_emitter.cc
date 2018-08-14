@@ -147,6 +147,10 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Reshape, out(0), in(0), in(1));
+        } else if (node.op_type() == "Expand") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Expand, out(0), in(0), in(1));
         } else if (node.op_type() == "MatMul") {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

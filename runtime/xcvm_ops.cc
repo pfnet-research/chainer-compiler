@@ -89,6 +89,10 @@ xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, c
     return xchainer::Reshape(data, ArrayToShape(shape));
 }
 
+xchainer::Array ExpandOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
+    return xchainer::BroadcastTo(data, ArrayToShape(shape));
+}
+
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
     return xchainer::Exp(xchainer::LogSoftmax(input, xchainer::OptionalAxes{static_cast<char>(axis)}));
 }
