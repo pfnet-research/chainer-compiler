@@ -26,11 +26,22 @@ void AddGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Val
     SetGrad(x[1], y[0]->grad());
 }
 
+void SubGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    SetGrad(x[0], y[0]->grad());
+    Value* gx1 = AddGradValue(graph, x[1]);
+    graph->AddNode("Neg", {y[0]->grad()}, {gx1});
+}
+
 void MulGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gx0 = AddGradValue(graph, x[0]);
     Value* gx1 = AddGradValue(graph, x[1]);
     graph->AddNode("Mul", {x[1], y[0]->grad()}, {gx0});
     graph->AddNode("Mul", {x[0], y[0]->grad()}, {gx1});
+}
+
+void NegGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* gx0 = AddGradValue(graph, x[0]);
+    graph->AddNode("Neg", {y[0]->grad()}, {gx0});
 }
 
 typedef void (*GradFn)(Graph*, const std::vector<Value*>&, const std::vector<Value*>&);
@@ -56,7 +67,9 @@ void AddGradientForNode(Graph* graph, const Node* node) {
             CHECK(s_gradient_funcs->emplace(op_type, func).second);
         };
         register_grad_fn("Add", 2, 1, &AddGradFn);
+        register_grad_fn("Sub", 2, 1, &SubGradFn);
         register_grad_fn("Mul", 2, 1, &MulGradFn);
+        register_grad_fn("Neg", 1, 1, &NegGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

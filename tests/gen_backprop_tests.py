@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import sys
 
@@ -83,10 +85,12 @@ def create_backprop_test(test_name, fn, **kwargs):
 
 
 def main():
-    create_backprop_test('add', lambda m: m.a + m.b, a=[3], b=[7])
-    create_backprop_test('mul', lambda m: m.a * m.b, a=[3], b=[7])
-    create_backprop_test('add2', lambda m: m.a + m.b, a=[3, 5], b=[7, 2])
-    create_backprop_test('mul2', lambda m: m.a * m.b, a=[3, 5], b=[7, 2])
+    create_backprop_test('add1', lambda m: m.a + m.b, a=[3], b=[7])
+    create_backprop_test('mul1', lambda m: m.a * m.b, a=[3], b=[7])
+    create_backprop_test('add', lambda m: m.a + m.b, a=[3, 5], b=[7, 2])
+    create_backprop_test('sub', lambda m: m.a - m.b, a=[3, 5], b=[7, 2])
+    create_backprop_test('mul', lambda m: m.a * m.b, a=[3, 5], b=[7, 2])
+    create_backprop_test('neg', lambda m: -m.a, a=[3, 5])
 
 
 if __name__ == '__main__':
