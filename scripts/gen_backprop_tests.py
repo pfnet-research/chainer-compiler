@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import os
-import sys
 
 import chainer
 import numpy as np
@@ -11,6 +10,7 @@ import onnx_chainer
 
 def replace_id(builtins=__builtins__):
     orig_id = id
+
     def my_id(x):
         if isinstance(x, chainer.Parameter):
             return x.name
@@ -97,6 +97,7 @@ class BackpropTest(object):
 
 def get_backprop_tests():
     tests = []
+
     def test(name, fn, **kwargs):
         tests.append(BackpropTest(name, fn, **kwargs))
 

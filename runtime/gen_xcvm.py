@@ -258,7 +258,7 @@ def gen_gen_xcvm_ops_cc():
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
         line += ' << ")"'
-        line +=  ' << std::endl;'
+        line += ' << std::endl;'
         lines.append(line)
 
         line = 'if (st->use_trace()) std::cerr'
