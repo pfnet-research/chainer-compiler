@@ -101,6 +101,12 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     }
 }
 
+std::string Graph::ToString() const {
+    onnx::GraphProto xgraph;
+    ToONNX(&xgraph);
+    return xgraph.DebugString();
+}
+
 std::vector<Node*> Graph::GetLiveNodes() const {
     std::vector<Node*> nodes;
     for (const std::unique_ptr<Node>& node : nodes_) {

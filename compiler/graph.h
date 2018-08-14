@@ -22,6 +22,7 @@ public:
     Graph& operator=(const Graph&) = delete;
 
     void ToONNX(onnx::GraphProto* xgraph) const;
+    std::string ToString() const;
 
     const std::vector<Value*>& input_values() const {
         return input_values_;
