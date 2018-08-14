@@ -7,6 +7,7 @@
 #include <onnx/onnx.pb.h>
 
 #include <common/log.h>
+#include <compiler/gradient_ops.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
@@ -55,7 +56,7 @@ public:
             if (!seen_nodes_.emplace(node).second)
                 continue;
 
-            AddGradient(node);
+            AddGradientForNode(graph_, node);
 
             for (Value* input : node->inputs()) {
                 if (input->producer())
@@ -92,35 +93,6 @@ private:
                 return false;
         }
         return true;
-    }
-
-    void AddGradient(const Node* node) {
-        auto the_output = [&node]() {
-            CHECK_EQ(1UL, node->outputs().size());
-            return node->outputs()[0];
-        };
-        auto the_grad = [&node, &the_output]() {
-            Value* value = the_output();
-            CHECK(value->grad());
-            return value->grad();
-        };
-
-        if (node->op_type() == "Add") {
-            Value* gy = the_grad();
-            for (Value* input : node->inputs())
-                SetGrad(input, gy);
-        } else if (node->op_type() == "Mul") {
-            CHECK_EQ(2UL, node->inputs().size());
-            Value* gy = the_grad();
-            Value* x0 = node->inputs()[0];
-            Value* x1 = node->inputs()[1];
-            Value* gx0 = AddGradValue(x0);
-            Value* gx1 = AddGradValue(x1);
-            graph_->AddNode("Mul", {x1, gy}, {gx0});
-            graph_->AddNode("Mul", {x0, gy}, {gx1});
-        } else {
-            CHECK(false) << "Gradient not supported: " << node->op_type();
-        }
     }
 
     void SetGrad(Value* y, Value* gy) {
