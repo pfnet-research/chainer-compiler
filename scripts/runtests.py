@@ -128,9 +128,9 @@ def main():
     fail_cnt = 0
     for test_case in TEST_CASES:
         sys.stdout.write('%s... ' % test_case.name)
-        args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet', '1']
+        args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet']
         if test_case.name.startswith('backprop_'):
-            args.extend(['--backprop', '1'])
+            args.append('--backprop')
         try:
             test_cnt += 1
             subprocess.check_call(args)

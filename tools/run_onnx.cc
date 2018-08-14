@@ -183,11 +183,11 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
-    args.add<bool>("dump_onnx", '\0', "Dump ONNX model after optimization", false, false);
-    args.add<bool>("dump_xcvm", '\0', "Dump XCVM program", false, false);
-    args.add<bool>("backprop", 'b', "Add backprop outputs", false, false);
-    args.add<bool>("trace", 't', "Tracing mode", false, false);
-    args.add<bool>("quiet", 'q', "Quiet mode", false, false);
+    args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
+    args.add("dump_xcvm", '\0', "Dump XCVM program");
+    args.add("backprop", 'b', "Add backprop outputs");
+    args.add("trace", 't', "Tracing mode");
+    args.add("quiet", 'q', "Quiet mode");
     args.parse_check(argc, argv);
 
     std::string onnx_path = args.get<std::string>("onnx");
@@ -195,7 +195,7 @@ void RunMain(int argc, char** argv) {
     const std::string out_onnx = args.get<std::string>("out_onnx");
     const std::string out_xcvm = args.get<std::string>("out_xcvm");
 
-    g_quiet = args.get<bool>("quiet");
+    g_quiet = args.exist("quiet");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
         std::cerr << args.usage() << std::endl;
         QFAIL() << "Either --onnx or --test must be specified!";
@@ -216,7 +216,7 @@ void RunMain(int argc, char** argv) {
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     Model model(xmodel);
-    RunDefaultPasses(model.mutable_graph(), args.get<bool>("backprop"));
+    RunDefaultPasses(model.mutable_graph(), args.exist("backprop"));
 
     LOG() << "Loading data..." << std::endl;
 
@@ -250,7 +250,7 @@ void RunMain(int argc, char** argv) {
     }
 
 
-    if (args.get<bool>("dump_onnx")) {
+    if (args.exist("dump_onnx")) {
         onnx::ModelProto xmodel;
         model.ToONNX(&xmodel);
         StripONNXModel(&xmodel);
@@ -269,7 +269,7 @@ void RunMain(int argc, char** argv) {
     XCProgramProto xcvm_prog;
     xcvm::Emit(model, &xcvm_prog);
 
-    if (args.get<bool>("dump_xcvm")) {
+    if (args.exist("dump_xcvm")) {
         std::cerr << xcvm_prog.DebugString();
     }
     if (!out_xcvm.empty()) {
@@ -288,7 +288,7 @@ void RunMain(int argc, char** argv) {
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        InOuts outputs(xcvm.Run(inputs, args.get<bool>("trace")));
+        InOuts outputs(xcvm.Run(inputs, args.exist("trace")));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
