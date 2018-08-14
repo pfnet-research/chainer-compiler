@@ -11,6 +11,7 @@
 namespace oniku {
 
 class Node;
+class Type;
 
 class Graph {
 public:
@@ -47,6 +48,8 @@ public:
     }
 
     Value* AddValue(const std::string& name, Value::Kind kind = Value::Kind::kTemp);
+    Value* AddInputValue(const std::string& name, const Type& type);
+    Value* AddOutputValue(const std::string& name, const Type& type);
 
     Node* AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 

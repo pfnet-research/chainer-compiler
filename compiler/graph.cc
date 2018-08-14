@@ -125,6 +125,20 @@ Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
     return value;
 }
 
+Value* Graph::AddInputValue(const std::string& name, const Type& type) {
+    Value* value = new Value(name, type, Value::Kind::kInput);
+    all_values_.emplace_back(value);
+    input_values_.push_back(value);
+    return value;
+}
+
+Value* Graph::AddOutputValue(const std::string& name, const Type& type) {
+    Value* value = new Value(name, type, Value::Kind::kOutput);
+    all_values_.emplace_back(value);
+    output_values_.push_back(value);
+    return value;
+}
+
 Node* Graph::AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
     Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);

@@ -21,6 +21,7 @@ public:
 
     Value(const onnx::ValueInfoProto& xvalue, Kind kind);
     explicit Value(const std::string& name, Kind kind = Kind::kTemp);
+    Value(const std::string& name, const Type& type, Kind kind = Kind::kTemp);
     ~Value();
 
     Value(const Value&) = delete;

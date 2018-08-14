@@ -20,7 +20,8 @@ public:
 
     Dtype() = default;
     explicit Dtype(const onnx::TensorProto::DataType& xtype);
-    explicit Dtype(DataType type);
+    // Note this is an implicit constructor.
+    Dtype(DataType type);
 
     operator DataType() const {
         return type_;

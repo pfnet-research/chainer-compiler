@@ -7,6 +7,7 @@
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
+#include <compiler/type.h>
 
 namespace oniku {
 namespace {
@@ -17,12 +18,12 @@ TEST(GradientTest, Basic) {
     dummy_input.add_float_data(1.0);
 
     Graph graph("test");
-    Value* out = graph.AddValue("out", Value::Kind::kOutput);
-    Value* in0 = graph.AddValue("in0", Value::Kind::kInput);
+    Value* out = graph.AddOutputValue("out", Type(Dtype::kFloat32, {1}));
+    Value* in0 = graph.AddInputValue("in0", Type(Dtype::kFloat32, {1}));
     in0->ResetInitializer(std::make_unique<Tensor>(dummy_input));
-    Value* in1 = graph.AddValue("in1", Value::Kind::kInput);
+    Value* in1 = graph.AddInputValue("in1", Type(Dtype::kFloat32, {1}));
     in1->ResetInitializer(std::make_unique<Tensor>(dummy_input));
-    Value* in2 = graph.AddValue("in2", Value::Kind::kInput);
+    Value* in2 = graph.AddInputValue("in2", Type(Dtype::kFloat32, {1}));
     in2->ResetInitializer(std::make_unique<Tensor>(dummy_input));
 
     // out = (in0 + in1) * in2
