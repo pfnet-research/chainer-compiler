@@ -55,17 +55,22 @@ class MyIterator(chainer.iterators.SerialIterator):
 # Network definition
 class MLP(chainer.Chain):
 
-    def __init__(self, n_units, n_out):
+    def __init__(self, n_units, n_out, use_sigmoid=False):
         super(MLP, self).__init__()
+        self.activation_fn = self.sigmoid if use_sigmoid else F.relu
         with self.init_scope():
             # the size of the inputs to each layer will be inferred
             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
 
+    def sigmoid(self, x):
+        a = chainer.Variable(np.ones(x.shape, np.float32))
+        return a / (a + F.exp(-x))
+
     def __call__(self, x):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
+        h1 = self.activation_fn(self.l1(x))
+        h2 = self.activation_fn(self.l2(h1))
         return self.l3(h2)
 
 
@@ -104,7 +109,7 @@ def main_impl(args):
     # Set up a neural network to train
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    model = MLP(args.unit, 10)
+    model = MLP(args.unit, 10, use_sigmoid=True)
     # classifier = L.Classifier(model)
     classifier = MyClassifier(model)
 
