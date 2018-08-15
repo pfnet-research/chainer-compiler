@@ -75,27 +75,40 @@ void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& 
 }
 
 void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    // TODO(hamaji): I'm not sure they are right.
-    CHECK(!node->trans_a());
-    CHECK(!node->trans_b());
+    // TODO(hamaji): I'm not sure this function is right. I mean I'm
+    // pretty sure something is wrong.
     Value* gy = y[0]->grad();
 
     // Note bias will be ignored thanks to beta=0.
-    {
+    if (node->trans_a()) {
+        Value* o = AddGradOp(graph, "Gemm", {x[1], gy, x[0]}, x[0]);
+        Node* gemm = o->producer();
+        gemm->set_alpha(node->alpha());
+        gemm->set_beta(0);
+        gemm->set_trans_a(node->trans_b());
+        gemm->set_trans_b(true);
+    } else {
         Value* o = AddGradOp(graph, "Gemm", {gy, x[1], x[0]}, x[0]);
         Node* gemm = o->producer();
         gemm->set_alpha(node->alpha());
         gemm->set_beta(0);
         gemm->set_trans_a(false);
-        gemm->set_trans_b(true);
+        gemm->set_trans_b(!node->trans_b());
     }
 
-    {
-        Value* o = AddGradOp(graph, "Gemm", {x[0], gy, x[1]}, x[1]);
+    if (node->trans_b()) {
+        Value* o = AddGradOp(graph, "Gemm", {gy, x[0], x[1]}, x[1]);
         Node* gemm = o->producer();
         gemm->set_alpha(node->alpha());
         gemm->set_beta(0);
         gemm->set_trans_a(true);
+        gemm->set_trans_b(node->trans_a());
+    } else {
+        Value* o = AddGradOp(graph, "Gemm", {x[0], gy, x[1]}, x[1]);
+        Node* gemm = o->producer();
+        gemm->set_alpha(node->alpha());
+        gemm->set_beta(0);
+        gemm->set_trans_a(!node->trans_a());
         gemm->set_trans_b(false);
     }
 
