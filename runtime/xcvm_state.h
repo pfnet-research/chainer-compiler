@@ -25,6 +25,7 @@ public:
     }
     xchainer::Array GetVar(int index);
     void SetVar(int index, xchainer::Array value);
+    std::string GetVarString(int index);
 
     xchainer::Array Input(const std::string& name);
     void Output(const std::string& name, xchainer::Array value);
@@ -33,11 +34,11 @@ public:
         return outputs_;
     }
 
-    bool use_trace() const {
-        return use_trace_;
+    int trace_level() const {
+        return trace_level_;
     }
-    void set_use_trace(bool use_trace) {
-        use_trace_ = use_trace;
+    void set_trace_level(int trace_level) {
+        trace_level_ = trace_level;
     }
 
 private:
@@ -45,7 +46,7 @@ private:
     std::vector<nonstd::optional<xchainer::Array>> variables_;
     const InOuts& inputs_;
     InOuts outputs_;
-    bool use_trace_;
+    int trace_level_;
 };
 
 }  // namespace runtime

@@ -236,10 +236,10 @@ def gen_gen_xcvm_ops_cc():
         # Emit Run.
         lines.append('void %sOp::Run(XCVMState* st) {' % op)
 
-        lines.append('if (st->use_trace() && !debug_info_.empty()) '
+        lines.append('if (st->trace_level() && !debug_info_.empty()) '
                      'std::cerr << "# " << debug_info_ << std::endl;')
 
-        line = 'if (st->use_trace()) std::cerr'
+        line = 'if (st->trace_level()) std::cerr'
         if outputs:
             for name in outputs:
                 line += f' << "%" << {name}'
@@ -262,12 +262,12 @@ def gen_gen_xcvm_ops_cc():
         line += ' << std::endl;'
         lines.append(line)
 
-        line = 'if (st->use_trace()) std::cerr'
+        line = 'if (st->trace_level()) std::cerr'
         for typ, name in inputs:
             if typ != ARRAY:
                 continue
             line += f' << " %" << {name} << "="'
-            line += f' << st->GetVar({name}).shape().ToString()'
+            line += f' << st->GetVarString({name})'
         if outputs:
             line += ' << " ->"'
         line += ';'
@@ -284,10 +284,10 @@ def gen_gen_xcvm_ops_cc():
         elif not outputs:
             lines.append(call + ';')
 
-        line = 'if (st->use_trace()) std::cerr'
+        line = 'if (st->trace_level()) std::cerr'
         for name in outputs:
             line += f' << " %" << {name} << "="'
-            line += f' << st->GetVar({name}).shape().ToString()'
+            line += f' << st->GetVarString({name})'
         line += ' << std::endl;'
         lines.append(line)
 

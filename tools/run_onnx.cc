@@ -187,6 +187,7 @@ void RunMain(int argc, char** argv) {
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("trace", 't', "Tracing mode");
+    args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
     args.parse_check(argc, argv);
 
@@ -287,7 +288,8 @@ void RunMain(int argc, char** argv) {
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        InOuts outputs(xcvm.Run(inputs, args.exist("trace")));
+        int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 :  0;
+        InOuts outputs(xcvm.Run(inputs, trace_level));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;

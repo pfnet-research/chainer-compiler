@@ -15,7 +15,10 @@ public:
     explicit XCVM(const XCProgramProto& program);
     ~XCVM();
 
-    InOuts Run(const InOuts& program_inputs, bool use_trace);
+    // trace_level=0: No trace
+    // trace_level=1: Dump shapes
+    // trace_level=2: Dump values
+    InOuts Run(const InOuts& program_inputs, int trace_level);
 
 private:
     std::vector<std::unique_ptr<XCVMOp>> program_;

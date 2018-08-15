@@ -15,6 +15,14 @@ xchainer::Array XCVMState::GetVar(int index) {
     return *variables_[index];
 }
 
+std::string XCVMState::GetVarString(int index) {
+    xchainer::Array var(GetVar(index));
+    if (trace_level_ > 1)
+        return var.ToString();
+    else
+        return var.shape().ToString();
+}
+
 void XCVMState::SetVar(int index, xchainer::Array value) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
