@@ -74,6 +74,36 @@ void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& 
     AddGradOp(graph, "Expand", {gy, shape}, x[0]);
 }
 
+void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    // TODO(hamaji): I'm not sure they are right.
+    CHECK(!node->trans_a());
+    CHECK(!node->trans_b());
+    Value* gy = y[0]->grad();
+
+    // TODO(hamaji): The third argument for gemm, which is bias, is
+    // wrong but this expects the operation will be skipped by
+    // backends thanks to beta=0.
+    {
+        Value* o = AddGradOp(graph, "Gemm", {gy, x[1], x[2]}, x[0]);
+        Node* gemm = o->producer();
+        gemm->set_alpha(node->alpha());
+        gemm->set_beta(0);
+        gemm->set_trans_a(false);
+        gemm->set_trans_b(true);
+    }
+
+    {
+        Value* o = AddGradOp(graph, "Gemm", {x[0], gy, x[2]}, x[1]);
+        Node* gemm = o->producer();
+        gemm->set_alpha(node->alpha());
+        gemm->set_beta(0);
+        gemm->set_trans_a(true);
+        gemm->set_trans_b(false);
+    }
+
+    SetGrad(x[2], gy);
+}
+
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
@@ -103,6 +133,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Div", 2, 1, &DivGradFn);
         register_grad_fn("Neg", 1, 1, &NegGradFn);
         register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
+        register_grad_fn("Gemm", 3, 1, &GemmGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

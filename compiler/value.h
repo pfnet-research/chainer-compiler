@@ -52,7 +52,7 @@ public:
     }
     void AddUser(Node* user);
 
-    const Node* producer() const {
+    Node* producer() const {
         return producer_;
     }
     void SetProducer(Node* producer);

@@ -75,6 +75,18 @@ public:
     bool trans_b() const {
         return trans_b_;
     }
+    void set_alpha(double alpha) {
+        alpha_ = alpha;
+    }
+    void set_beta(double beta) {
+        beta_ = beta;
+    }
+    void set_trans_a(bool trans_a) {
+        trans_a_ = trans_a;
+    }
+    void set_trans_b(bool trans_b) {
+        trans_b_ = trans_b;
+    }
 
     int axis() const {
         return axis_;

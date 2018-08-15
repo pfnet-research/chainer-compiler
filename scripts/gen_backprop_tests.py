@@ -36,7 +36,7 @@ class AnyModel(chainer.Chain):
         return result
 
 
-def create_backprop_test(test_name, fn, **kwargs):
+def create_backprop_test(test_name, fn, expected_extra_params=None, **kwargs):
     test_dir = 'out/backprop_test_%s' % test_name
     test_model_path = os.path.join(test_dir, 'model.onnx')
     test_data_dir = os.path.join(test_dir, 'test_data_set_0')
@@ -69,7 +69,10 @@ def create_backprop_test(test_name, fn, **kwargs):
             output_names.append(output.name)
 
     assert len(output_names) == 1
-    assert sorted(param_names) == sorted(params)
+    expected_param_names = list(params.keys())
+    if expected_extra_params is not None:
+        expected_param_names += expected_extra_params
+    assert sorted(param_names) == sorted(expected_param_names)
 
     outputs = [(output_names[0], result)]
     for name in sorted(params):
@@ -110,6 +113,11 @@ def get_backprop_tests():
     test('div', lambda m: m.a / m.b, a=[3, 5], b=[7, 2])
     test('neg', lambda m: -m.a, a=[3, 5])
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
+    # ONNX chainer creates an extra parameter named 'None' for bias of
+    # Gemm.
+    test('matmul', lambda m: F.matmul(m.a, m.b),
+         expected_extra_params=['None'],
+         a=[[3, 5], [7, 4], [2, 6]], b=[[2, 4, 8, 9], [4, 2, 12, 6]])
 
     return tests
 
