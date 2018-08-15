@@ -70,6 +70,11 @@ void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
 
 void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     AddGradOp(graph, "Neg", {y[0]->grad()}, x[0]);
+
+}
+
+void ExpGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    AddGradOp(graph, "Mul", {y[0], y[0]->grad()}, x[0]);
 }
 
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -162,6 +167,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Mul", 2, 1, &MulGradFn);
         register_grad_fn("Div", 2, 1, &DivGradFn);
         register_grad_fn("Neg", 1, 1, &NegGradFn);
+        register_grad_fn("Exp", 1, 1, &ExpGradFn);
         register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
         register_grad_fn("Gemm", 3, 1, &GemmGradFn);
         register_grad_fn("LogSoftmax", 1, 1, &LogSoftmaxGradFn);
