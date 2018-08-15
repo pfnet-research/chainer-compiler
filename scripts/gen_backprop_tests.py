@@ -96,6 +96,7 @@ class BackpropTest(object):
 
 
 def get_backprop_tests():
+    F = chainer.functions
     tests = []
 
     def test(name, fn, **kwargs):
@@ -108,6 +109,7 @@ def get_backprop_tests():
     test('mul', lambda m: m.a * m.b, a=[3, 5], b=[7, 2])
     test('div', lambda m: m.a / m.b, a=[3, 5], b=[7, 2])
     test('neg', lambda m: -m.a, a=[3, 5])
+    test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
 
     return tests
 

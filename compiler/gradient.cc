@@ -25,11 +25,12 @@ public:
         for (Value* value : graph->output_values()) {
             // TODO(hamaji): Refactor code to support non-float values.
             CHECK_EQ(Dtype::kFloat32, value->type().dtype());
-            Value* grad = graph_->AddInputValue("grad@" + value->name(), value->type());
+            Value* grad = graph_->AddInputValue("grad_in@" + value->name(), value->type());
             SetGrad(value, grad);
             init_grads_.emplace(grad);
 
             std::vector<float> data;
+            if (value->type().dims().empty()) data.push_back(1.0);
             for (int d : value->type().dims()) {
                 CHECK_LT(0, d);
                 for (int i = 0; i < d; ++i) data.push_back(1.0);

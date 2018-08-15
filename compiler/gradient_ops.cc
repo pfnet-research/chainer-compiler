@@ -67,12 +67,20 @@ void NegGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Val
     AddGradOp(graph, "Neg", {y[0]->grad()}, x[0]);
 }
 
+void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* gy = y[0]->grad();
+    Value* shape = AddTempOp(graph, "Shape", {x[0]}, x[0], 0);
+    AddGradOp(graph, "Expand", {gy, shape}, x[0]);
+}
+
 typedef void (*GradFn)(Graph*, const std::vector<Value*>&, const std::vector<Value*>&);
+typedef void (*GradNFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
     int num_inputs;
     int num_outputs;
     GradFn fn;
+    GradNFn nfn;
 };
 
 }  // namespace
@@ -87,21 +95,39 @@ void AddGradientForNode(Graph* graph, const Node* node) {
             func.num_inputs = num_inputs;
             func.num_outputs = num_outputs;
             func.fn = fn;
+            func.nfn = nullptr;
             CHECK(s_gradient_funcs->emplace(op_type, func).second);
         };
+        auto register_grad_n_fn = [](const char* op_type, int num_inputs, int num_outputs, GradNFn fn) {
+            GradientFunc func;
+            func.num_inputs = num_inputs;
+            func.num_outputs = num_outputs;
+            func.fn = nullptr;
+            func.nfn = fn;
+            CHECK(s_gradient_funcs->emplace(op_type, func).second);
+        };
+
         register_grad_fn("Add", 2, 1, &AddGradFn);
         register_grad_fn("Sub", 2, 1, &SubGradFn);
         register_grad_fn("Mul", 2, 1, &MulGradFn);
         register_grad_fn("Div", 2, 1, &DivGradFn);
         register_grad_fn("Neg", 1, 1, &NegGradFn);
+
+        register_grad_n_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
     CHECK(found != s_gradient_funcs->end()) << "Gradient not supported: " << node->op_type();
     const GradientFunc& func = found->second;
-    if (func.num_inputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
-    if (func.num_outputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
-    func.fn(graph, node->inputs(), node->outputs());
+    if (func.num_inputs >= 0)
+        CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
+    if (func.num_outputs >= 0)
+        CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
+    if (func.fn) {
+        func.fn(graph, node->inputs(), node->outputs());
+    } else {
+        func.nfn(graph, node, node->inputs(), node->outputs());
+    }
 }
 
 }  // namespace oniku
