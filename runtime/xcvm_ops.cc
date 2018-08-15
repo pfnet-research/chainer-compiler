@@ -8,6 +8,7 @@
 #include <xchainer/routines/statistics.h>
 #include <xchainer/shape.h>
 
+#include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/xcvm_state.h>
 
@@ -63,6 +64,14 @@ xchainer::Array LogOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 
 xchainer::Array SqrtOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return xchainer::Sqrt(a);
+}
+
+xchainer::Array SigmoidOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    // TODO(hamaji): Revisit implementation of this function.
+    CHECK(a.dtype() == xchainer::Dtype::kFloat32);
+    float f = 1.0f;
+    xchainer::Array one = MakeArray(a.dtype(), {}, &f);
+    return one / (one + xchainer::Exp(-a));
 }
 
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {

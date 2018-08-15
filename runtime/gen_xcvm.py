@@ -45,6 +45,7 @@ XC_OPS = [
     ('Exp', [Array('x')], ['y']),
     ('Log', [Array('x')], ['y']),
     ('Sqrt', [Array('x')], ['y']),
+    ('Sigmoid', [Array('x')], ['y']),
     ('ReduceSum', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('ReduceSumSquare', [Array('data'), Ints('axes'), Int('keepdims')],
      ['reduced']),

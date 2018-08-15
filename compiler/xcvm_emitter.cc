@@ -115,6 +115,7 @@ private:
         EMIT_SIMPLE_UNARY_OP("Log", Log);
         EMIT_SIMPLE_UNARY_OP("Sqrt", Sqrt);
         EMIT_SIMPLE_UNARY_OP("Relu", Relu);
+        EMIT_SIMPLE_UNARY_OP("Sigmoid", Sigmoid);
         EMIT_SIMPLE_UNARY_OP("Ident", Ident);
 
         EMIT_SIMPLE_BINARY_OP("Add", Add);
