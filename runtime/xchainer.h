@@ -25,5 +25,7 @@ xchainer::Shape ArrayToShape(const xchainer::Array a);
 
 xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor);
 
+xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src);
+
 }  // namespace runtime
 }  // namespace oniku

@@ -85,5 +85,13 @@ xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     return array;
 }
 
+xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
+    int64_t size = xchainer::GetItemSize(dtype) * shape.GetTotalSize();
+    std::shared_ptr<void> data(new char[size], std::default_delete<char[]>());
+    std::memcpy(data.get(), src, size);
+    xchainer::Array array(xchainer::internal::FromContiguousHostData(shape, dtype, data));
+    return array;
+}
+
 }  // namespace runtime
 }  // namespace oniku
