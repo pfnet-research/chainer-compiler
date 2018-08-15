@@ -117,6 +117,8 @@ for backprop_test in gen_backprop_tests.get_backprop_tests():
     assert os.path.exists(os.path.join(dirname, name))
     TEST_CASES.append(TestCase(dirname, name))
 
+TEST_CASES.append(TestCase('data', 'resnet50'))
+
 
 def main():
     if os.path.exists('Makefile'):
@@ -131,6 +133,8 @@ def main():
         args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet']
         if test_case.name.startswith('backprop_'):
             args.append('--backprop')
+        if test_case.name == 'resnet50':
+            args.extend(['-d', 'cuda'])
         try:
             test_cnt += 1
             subprocess.check_call(args)
