@@ -41,4 +41,13 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
     }
 }
 
+int64_t Type::NumElements() const {
+    int num = 1;
+    for (int d : dims_) {
+        if (d < 0) return -1;
+        num *= d;
+    }
+    return num;
+}
+
 }  // namespace oniku

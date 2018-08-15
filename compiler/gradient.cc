@@ -29,12 +29,7 @@ public:
             SetGrad(value, grad);
             init_grads_.emplace(grad);
 
-            std::vector<float> data;
-            if (value->type().dims().empty()) data.push_back(1.0);
-            for (int d : value->type().dims()) {
-                CHECK_LT(0, d);
-                for (int i = 0; i < d; ++i) data.push_back(1.0);
-            }
+            std::vector<float> data(value->type().NumElements(), 1.0);
             grad->ResetInitializer(std::make_unique<Tensor>(grad->name(), value->type().dtype(), value->type().dims(), data));
             op_queue_.push(value->producer());
         }

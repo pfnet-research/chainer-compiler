@@ -24,6 +24,8 @@ public:
         return dims_;
     }
 
+    int64_t NumElements() const;
+
 private:
     Dtype dtype_;
     std::vector<int> dims_;
