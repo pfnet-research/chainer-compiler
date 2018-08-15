@@ -124,7 +124,7 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     if (beta == 0.0)
         return r;
     xchainer::Array xc = c;
-    if (beta != 1.0) xc *= beta;
+    if (beta != 1.0) xc = xc * beta;
     return r + xc;
 }
 
