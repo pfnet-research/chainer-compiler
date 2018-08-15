@@ -39,22 +39,22 @@ Value* AddGradOp(Graph* graph, const std::string& op_type, const std::vector<Val
     return gv;
 }
 
-void AddGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void AddGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(x[0], y[0]->grad());
     SetGrad(x[1], y[0]->grad());
 }
 
-void SubGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void SubGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(x[0], y[0]->grad());
     AddGradOp(graph, "Neg", {y[0]->grad()}, x[1]);
 }
 
-void MulGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void MulGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     AddGradOp(graph, "Mul", {x[1], y[0]->grad()}, x[0]);
     AddGradOp(graph, "Mul", {x[0], y[0]->grad()}, x[1]);
 }
 
-void DivGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gy = y[0]->grad();
     Value* gx0 = AddGradOp(graph, "Div", {gy, x[1]}, x[0]);
 
@@ -63,24 +63,23 @@ void DivGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Val
     AddGradOp(graph, "Div", {t1, x[1]}, x[1]);
 }
 
-void NegGradFn(Graph* graph, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     AddGradOp(graph, "Neg", {y[0]->grad()}, x[0]);
 }
 
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
     Value* shape = AddTempOp(graph, "Shape", {x[0]}, x[0], 0);
     AddGradOp(graph, "Expand", {gy, shape}, x[0]);
 }
 
-typedef void (*GradFn)(Graph*, const std::vector<Value*>&, const std::vector<Value*>&);
-typedef void (*GradNFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
+typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
     int num_inputs;
     int num_outputs;
     GradFn fn;
-    GradNFn nfn;
 };
 
 }  // namespace
@@ -95,15 +94,6 @@ void AddGradientForNode(Graph* graph, const Node* node) {
             func.num_inputs = num_inputs;
             func.num_outputs = num_outputs;
             func.fn = fn;
-            func.nfn = nullptr;
-            CHECK(s_gradient_funcs->emplace(op_type, func).second);
-        };
-        auto register_grad_n_fn = [](const char* op_type, int num_inputs, int num_outputs, GradNFn fn) {
-            GradientFunc func;
-            func.num_inputs = num_inputs;
-            func.num_outputs = num_outputs;
-            func.fn = nullptr;
-            func.nfn = fn;
             CHECK(s_gradient_funcs->emplace(op_type, func).second);
         };
 
@@ -112,8 +102,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Mul", 2, 1, &MulGradFn);
         register_grad_fn("Div", 2, 1, &DivGradFn);
         register_grad_fn("Neg", 1, 1, &NegGradFn);
-
-        register_grad_n_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
+        register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
@@ -123,11 +112,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
     if (func.num_outputs >= 0)
         CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
-    if (func.fn) {
-        func.fn(graph, node->inputs(), node->outputs());
-    } else {
-        func.nfn(graph, node, node->inputs(), node->outputs());
-    }
+    func.fn(graph, node, node->inputs(), node->outputs());
 }
 
 }  // namespace oniku
