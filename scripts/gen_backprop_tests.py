@@ -118,6 +118,8 @@ def get_backprop_tests():
     test('matmul', lambda m: F.matmul(m.a, m.b),
          expected_extra_params=['None'],
          a=[[3, 5], [7, 4], [2, 6]], b=[[2, 4, 8, 9], [4, 2, 12, 6]])
+    test('log_softmax', lambda m: F.log_softmax(m.a),
+         a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
 
     return tests
 

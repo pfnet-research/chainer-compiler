@@ -102,6 +102,12 @@ public:
     bool keepdims() const {
         return keepdims_;
     }
+    void set_axes(const std::vector<int>& axes) {
+        axes_ = axes;
+    }
+    void set_keepdims(bool keepdims) {
+        keepdims_ = keepdims;
+    }
 
     bool detached() const {
         return detached_;

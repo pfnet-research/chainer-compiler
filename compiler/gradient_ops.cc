@@ -102,6 +102,20 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     SetGrad(x[2], gy);
 }
 
+void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    // TODO(hamaji): This probably works as is. Test it.
+    CHECK_EQ(1, node->axis());
+
+    Value* gy = y[0]->grad();
+    Value* sum_val = AddTempOp(graph, "ReduceSum", {gy}, x[0], 0);
+    Node* sum_op = sum_val->producer();
+    sum_op->set_axes({node->axis()});
+    sum_op->set_keepdims(true);
+    Value* exp_val = AddTempOp(graph, "Exp", {y[0]}, x[0], 1);
+    Value* mul_val = AddTempOp(graph, "Mul", {exp_val, sum_val}, x[0], 2);
+    AddGradOp(graph, "Sub", {gy, mul_val}, x[0]);
+}
+
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
@@ -132,6 +146,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Neg", 1, 1, &NegGradFn);
         register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
         register_grad_fn("Gemm", 3, 1, &GemmGradFn);
+        register_grad_fn("LogSoftmax", 1, 1, &LogSoftmaxGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
