@@ -16,8 +16,8 @@ void SetGrad(Value* y, Value* gy) {
     y->set_grad(gy);
 }
 
-Value* AddTempValue(Graph* graph, Value* v, int i) {
-    Value* tv = graph->AddValue(StrCat("grad_tmp_", i, '@', v->name()));
+Value* AddTempValue(Graph* graph, Value* v) {
+    Value* tv = graph->AddValue(StrCat("grad_tmp_", v->Counter(), '@', v->name()));
     return tv;
 }
 
@@ -27,8 +27,8 @@ Value* AddGradValue(Graph* graph, Value* v) {
     return gv;
 }
 
-Value* AddTempOp(Graph* graph, const std::string& op_type, const std::vector<Value*>& inputs, Value* v, int i) {
-    Value* tv = AddTempValue(graph, v, i);
+Value* AddTempOp(Graph* graph, const std::string& op_type, const std::vector<Value*>& inputs, Value* v) {
+    Value* tv = AddTempValue(graph, v);
     graph->AddNode(op_type, inputs, {tv});
     return tv;
 }
@@ -58,8 +58,8 @@ void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
     Value* gy = y[0]->grad();
     Value* gx0 = AddGradOp(graph, "Div", {gy, x[1]}, x[0]);
 
-    Value* t0 = AddTempOp(graph, "Neg", {gx0}, x[1], 0);
-    Value* t1 = AddTempOp(graph, "Mul", {t0, x[0]}, x[1], 1);
+    Value* t0 = AddTempOp(graph, "Neg", {gx0}, x[1]);
+    Value* t1 = AddTempOp(graph, "Mul", {t0, x[0]}, x[1]);
     AddGradOp(graph, "Div", {t1, x[1]}, x[1]);
 }
 
@@ -70,7 +70,7 @@ void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
-    Value* shape = AddTempOp(graph, "Shape", {x[0]}, x[0], 0);
+    Value* shape = AddTempOp(graph, "Shape", {x[0]}, x[0]);
     AddGradOp(graph, "Expand", {gy, shape}, x[0]);
 }
 
@@ -120,12 +120,12 @@ void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     CHECK_EQ(1, node->axis());
 
     Value* gy = y[0]->grad();
-    Value* sum_val = AddTempOp(graph, "ReduceSum", {gy}, x[0], 0);
+    Value* sum_val = AddTempOp(graph, "ReduceSum", {gy}, x[0]);
     Node* sum_op = sum_val->producer();
     sum_op->set_axes({node->axis()});
     sum_op->set_keepdims(true);
-    Value* exp_val = AddTempOp(graph, "Exp", {y[0]}, x[0], 1);
-    Value* mul_val = AddTempOp(graph, "Mul", {exp_val, sum_val}, x[0], 2);
+    Value* exp_val = AddTempOp(graph, "Exp", {y[0]}, x[0]);
+    Value* mul_val = AddTempOp(graph, "Mul", {exp_val, sum_val}, x[0]);
     AddGradOp(graph, "Sub", {gy, mul_val}, x[0]);
 }
 

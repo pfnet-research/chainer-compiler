@@ -64,6 +64,11 @@ public:
         grad_ = grad;
     }
 
+    // Generate a unique ID for other values associated with this object.
+    int Counter() {
+        return counter_++;
+    }
+
 private:
     Kind kind_;
     std::string name_;
@@ -75,6 +80,7 @@ private:
     Node* producer_ = nullptr;
     // This should be used only during gradient calculation.
     Value* grad_ = nullptr;
+    int counter_ = 0;
 };
 
 }  // namespace oniku
