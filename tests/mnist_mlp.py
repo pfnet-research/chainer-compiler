@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """An MNIST trainer which is exportable by ONNX-chainer."""
 
@@ -19,6 +19,39 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from oniku.tools import npz_to_onnx
 
 
+def replace_id(model, builtins=__builtins__):
+    orig_id = id
+    name_map = {}
+    param_to_names = {}
+    for name, param in model.namedparams():
+        param_to_names[id(param)] = name
+
+    def resolve_name(x):
+        if orig_id(x) in param_to_names:
+            return param_to_names[orig_id(x)]
+
+        param_id = name_map.get(x.name, 0)
+        name_map[x.name] = param_id + 1
+        name = '%s_%d' % (x.name, param_id) if param_id else x.name
+        return name
+
+    def my_id(x):
+        if (isinstance(x, chainer.Parameter) or
+            isinstance(x, chainer.Variable) and x.name):
+            if hasattr(x, 'onnx_name'):
+                return x.onnx_name
+            name = resolve_name(x)
+            setattr(x, 'onnx_name', name)
+            return name
+        return orig_id(x)
+    builtins.id = my_id
+
+
+def makedirs(d):
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+
 class MyClassifier(chainer.link.Chain):
     """A Classifier which only supports 2D input."""
 
@@ -33,9 +66,17 @@ class MyClassifier(chainer.link.Chain):
         # SelectItem is not supported by onnx-chainer.
         # TODO(hamaji): Support it?
         # log_prob = F.select_item(log_softmax, t)
-        log_prob = F.sum(log_softmax * t, axis=1)
-        batch_size = chainer.Variable(np.array(t.size, np.float32))
-        return -F.sum(log_prob, axis=0) / batch_size
+
+        # TODO(hamaji): Currently, F.sum with axis=1 cannot be
+        # backpropped properly.
+        # log_prob = F.sum(log_softmax * t, axis=1)
+        # self.batch_size = chainer.Variable(np.array(t.size, np.float32),
+        #                                    name='batch_size')
+        # return -F.sum(log_prob, axis=0) / self.batch_size
+        log_prob = F.sum(log_softmax * t, axis=(0, 1))
+        self.batch_size = chainer.Variable(np.array(t.size, np.float32),
+                                           name='batch_size')
+        return -log_prob / self.batch_size
 
 
 class MyIterator(chainer.iterators.SerialIterator):
@@ -57,16 +98,12 @@ class MLP(chainer.Chain):
 
     def __init__(self, n_units, n_out, use_sigmoid=False):
         super(MLP, self).__init__()
-        self.activation_fn = self.sigmoid if use_sigmoid else F.relu
+        self.activation_fn = F.sigmoid if use_sigmoid else F.relu
         with self.init_scope():
             # the size of the inputs to each layer will be inferred
             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
-
-    def sigmoid(self, x):
-        a = chainer.Variable(np.ones(x.shape, np.float32))
-        return a / (a + F.exp(-x))
 
     def __call__(self, x):
         h1 = self.activation_fn(self.l1(x))
@@ -115,6 +152,8 @@ def main_impl(args):
 
     model = classifier
 
+    replace_id(model)
+
     if args.gpu >= 0:
         # Make a specified GPU current
         chainer.backends.cuda.get_device_from_id(args.gpu).use()
@@ -136,22 +175,40 @@ def main_impl(args):
         train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-    out_dir = 'out/mnist_mlp'
-    if not os.path.exists(out_dir): os.makedirs(out_dir)
+    out_dir = 'out/backprop_test_mnist_mlp'
+    makedirs(out_dir)
 
     for step in range(2):
         trainer.updater.update()
         npz_filename = '%s/params_%d.npz' % (out_dir, step)
         params_dir = '%s/params_%d' % (out_dir, step)
         chainer.serializers.save_npz(npz_filename, model)
-        if not os.path.exists(params_dir): os.makedirs(params_dir)
+        makedirs(params_dir)
         npz_to_onnx.npz_to_onnx(npz_filename, os.path.join(params_dir, 'param'))
 
     chainer.config.train = False
-    x = np.zeros((args.batchsize, 784), dtype=np.float32)
-    # y = np.zeros((1), dtype=np.int32)
-    y = np.zeros((args.batchsize, 10), dtype=np.float32)
-    onnx_chainer.export(model, (x, y), filename='%s/model.onnx' % out_dir)
+    x = np.random.random((args.batchsize, 784)).astype(np.float32)
+    y = (np.random.random(args.batchsize) * 10).astype(np.int32)
+    onehot = np.eye(10, dtype=x.dtype)[y]
+    x = chainer.Variable(x, name='input')
+    onehot = chainer.Variable(onehot, name='onehot')
+    onnx_chainer.export(model, (x, onehot),
+                        filename='%s/model.onnx' % out_dir)
+
+    test_data_dir = '%s/test_data_set_0' % out_dir
+    makedirs(test_data_dir)
+    for i, var in enumerate([x, onehot, model.batch_size]):
+        with open(os.path.join(test_data_dir, 'input_%d.pb' % i), 'wb') as f:
+            t = npz_to_onnx.np_array_to_onnx(var.name, var.data)
+            f.write(t.SerializeToString())
+
+    model.cleargrads()
+    result = model(x, onehot)
+    result.backward()
+    for i, (name, param) in enumerate(model.namedparams()):
+        with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
+            t = npz_to_onnx.np_array_to_onnx('grad_out@' + name, param.grad)
+            f.write(t.SerializeToString())
 
 
 if __name__ == '__main__':

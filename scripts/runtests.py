@@ -129,6 +129,12 @@ for backprop_test in gen_backprop_tests.get_backprop_tests():
     assert os.path.exists(os.path.join(dirname, name))
     TEST_CASES.append(TestCase(dirname, name))
 
+# TODO(hamaji): Re-organize how tests are generated.
+if not os.path.exists(os.path.join('out', 'backprop_test_mnist_mlp')):
+    import subprocess
+    subprocess.check_call('tests/mnist_mlp.py')
+TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
+
 TEST_CASES.append(TestCase('data', 'resnet50'))
 
 
