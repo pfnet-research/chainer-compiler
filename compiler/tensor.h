@@ -19,6 +19,10 @@ public:
     explicit Tensor(const onnx::TensorProto& xtensor);
     ~Tensor();
 
+    // Undefined reference indicates the type is not supported yet.
+    template <class T>
+    Tensor(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<T>& data);
+
     Tensor(const Tensor&) = delete;
     Tensor& operator=(const Tensor&) = delete;
 

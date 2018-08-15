@@ -21,13 +21,18 @@ Tensor::UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<
 }
 
 template <typename To>
-Tensor::UniqueData LoadDataFromRawData(const std::string& data, int64_t num_elements) {
-    CHECK_EQ(num_elements * sizeof(To), data.size());
-    Tensor::UniqueData p(std::malloc(data.size()), &std::free);
+Tensor::UniqueData LoadDataFromRawData(const void* data, int64_t num_elements) {
+    Tensor::UniqueData p(std::malloc(num_elements * sizeof(To)), &std::free);
     for (int i = 0; i < num_elements; ++i) {
-        static_cast<To*>(p.get())[i] = reinterpret_cast<const To*>(&data[0])[i];
+        static_cast<To*>(p.get())[i] = reinterpret_cast<const To*>(data)[i];
     }
     return p;
+}
+
+template <typename To>
+Tensor::UniqueData LoadDataFromRawData(const std::string& data, int64_t num_elements) {
+    CHECK_EQ(num_elements * sizeof(To), data.size());
+    return LoadDataFromRawData<To>(data.data(), num_elements);
 }
 
 template <typename To>
@@ -166,6 +171,14 @@ int64_t Tensor::NumElements() const {
         num *= d;
     }
     return num;
+}
+
+template <>
+Tensor::Tensor<float>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<float>& data)
+    : dims_(dims.begin(), dims.end()),
+      dtype_(dtype),
+      data_(LoadDataFromRawData<float>(data.data(), data.size())),
+      name_(name) {
 }
 
 }  // namespace oniku

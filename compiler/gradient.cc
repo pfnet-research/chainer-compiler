@@ -28,16 +28,13 @@ public:
             Value* grad = graph_->AddInputValue("grad@" + value->name(), value->type());
             SetGrad(value, grad);
             init_grads_.emplace(grad);
-            // TODO(hamaji): Construct Tensors without using ONNX.
-            onnx::TensorProto xtensor;
-            xtensor.set_name(grad->name());
-            xtensor.set_data_type(value->type().dtype().ToONNX());
+
+            std::vector<float> data;
             for (int d : value->type().dims()) {
                 CHECK_LT(0, d);
-                xtensor.add_dims(d);
-                for (int i = 0; i < d; ++i) xtensor.add_float_data(1.0);
+                for (int i = 0; i < d; ++i) data.push_back(1.0);
             }
-            grad->ResetInitializer(std::make_unique<Tensor>(xtensor));
+            grad->ResetInitializer(std::make_unique<Tensor>(grad->name(), value->type().dtype(), value->type().dims(), data));
             op_queue_.push(value->producer());
         }
     }
