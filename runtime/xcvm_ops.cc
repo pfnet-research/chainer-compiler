@@ -53,6 +53,18 @@ xchainer::Array NegOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return -a;
 }
 
+xchainer::Array ExpOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    return xchainer::Exp(a);
+}
+
+xchainer::Array LogOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    return xchainer::Log(a);
+}
+
+xchainer::Array SqrtOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    return xchainer::Sqrt(a);
+}
+
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return xchainer::Sum(a, GetXchainerAxes(axes), keepdims != 0);
 }

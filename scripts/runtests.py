@@ -33,8 +33,15 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_div'),
     TestCase(NODE_TEST, 'test_div_bcast'),
     TestCase(NODE_TEST, 'test_div_example'),
+
     TestCase(NODE_TEST, 'test_neg'),
     TestCase(NODE_TEST, 'test_neg_example'),
+    TestCase(NODE_TEST, 'test_exp'),
+    TestCase(NODE_TEST, 'test_exp_example'),
+    TestCase(NODE_TEST, 'test_log'),
+    TestCase(NODE_TEST, 'test_log_example'),
+    TestCase(NODE_TEST, 'test_sqrt'),
+    TestCase(NODE_TEST, 'test_sqrt_example'),
 
     # TODO(xchainer): Support non-2D dot.
     # terminate called after throwing an instance of 'xchainer::NotImplementedError'

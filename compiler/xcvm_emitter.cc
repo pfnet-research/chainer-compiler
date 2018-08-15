@@ -92,35 +92,37 @@ private:
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(debug_info); \
     } while (0);
 
-        if (node.op_type() == "Add") {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Add, out(0), in(0), in(1));
-        } else if (node.op_type() == "Sub") {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Sub, out(0), in(0), in(1));
-        } else if (node.op_type() == "Mul") {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Mul, out(0), in(0), in(1));
-        } else if (node.op_type() == "Div") {
-            CHECK_EQ(2UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Div, out(0), in(0), in(1));
-        } else if (node.op_type() == "Neg") {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Neg, out(0), in(0));
-        } else if (node.op_type() == "Relu") {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Relu, out(0), in(0));
-        } else if (node.op_type() == "Ident") {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Ident, out(0), in(0));
-        } else if (node.op_type() == "Dropout") {
+#define EMIT_SIMPLE_UNARY_OP(name, sym) do {            \
+            if (node.op_type() == name) {               \
+                CHECK_EQ(1UL, node.inputs().size());    \
+                CHECK_EQ(1UL, node.outputs().size());   \
+                EMIT(sym, out(0), in(0));               \
+                return;                                 \
+            }                                           \
+    } while (0)
+
+#define EMIT_SIMPLE_BINARY_OP(name, sym) do {           \
+            if (node.op_type() == name) {               \
+                CHECK_EQ(2UL, node.inputs().size());    \
+                CHECK_EQ(1UL, node.outputs().size());   \
+                EMIT(sym, out(0), in(0), in(1));        \
+                return;                                 \
+            }                                           \
+    } while (0)
+
+        EMIT_SIMPLE_UNARY_OP("Neg", Neg);
+        EMIT_SIMPLE_UNARY_OP("Exp", Exp);
+        EMIT_SIMPLE_UNARY_OP("Log", Log);
+        EMIT_SIMPLE_UNARY_OP("Sqrt", Sqrt);
+        EMIT_SIMPLE_UNARY_OP("Relu", Relu);
+        EMIT_SIMPLE_UNARY_OP("Ident", Ident);
+
+        EMIT_SIMPLE_BINARY_OP("Add", Add);
+        EMIT_SIMPLE_BINARY_OP("Sub", Sub);
+        EMIT_SIMPLE_BINARY_OP("Mul", Mul);
+        EMIT_SIMPLE_BINARY_OP("Div", Div);
+
+        if (node.op_type() == "Dropout") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
             CHECK_GE(2UL, node.outputs().size());
