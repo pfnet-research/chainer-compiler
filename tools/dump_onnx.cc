@@ -20,7 +20,7 @@ int main(int argc, const char** argv) {
     for (int i = 0; i < graph->initializer_size(); ++i) {
         onnx::TensorProto* tensor = graph->mutable_initializer(i);
 #define CLEAR_IF_LARGE(tensor, x) \
-    if (tensor->x().size() >= 10) tensor->clear_##x()
+    if (tensor->x().size() >= 20) tensor->clear_##x()
         CLEAR_IF_LARGE(tensor, float_data);
         CLEAR_IF_LARGE(tensor, int32_data);
         CLEAR_IF_LARGE(tensor, string_data);
