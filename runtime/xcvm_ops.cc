@@ -81,6 +81,10 @@ xchainer::Array ReluOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return xchainer::Maximum(x, 0);
 }
 
+xchainer::Array ShapeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
+    return ShapeToArray(data.shape());
+}
+
 xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
     return xchainer::Reshape(data, ArrayToShape(shape));
 }

@@ -62,6 +62,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_averagepool_2d_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads_count_include_pad'),
 
+    TestCase(NODE_TEST, 'test_shape'),
+    TestCase(NODE_TEST, 'test_shape_example'),
+
     # TODO(xchainer): Support negative reshape.
     TestCase(NODE_TEST, 'test_reshape_extended_dims'),
     TestCase(NODE_TEST, 'test_reshape_one_dim'),

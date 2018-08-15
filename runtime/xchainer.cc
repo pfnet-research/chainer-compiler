@@ -21,7 +21,7 @@ xchainer::Array GetOrDie(const InOuts& m, std::string name) {
     return found->second;
 }
 
-void SetOrDie(InOuts& m, std::string name, xchainer::Array a) {
+void SetOrDie(InOuts& m, std::string name, xchainer::Array& a) {
     CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name;
 }
 
@@ -47,7 +47,12 @@ xchainer::Array BatchNormONNX(
     return s * (x - mean) / Sqrt(var + epsilon) + bias;
 }
 
-xchainer::Shape ArrayToShape(const xchainer::Array a) {
+xchainer::Array ShapeToArray(const xchainer::Shape& s) {
+    xchainer::Shape shape{s.ndim()};
+    return MakeArray(xchainer::Dtype::kInt64, shape, s.data());
+}
+
+xchainer::Shape ArrayToShape(const xchainer::Array& a) {
     WARN_ONCE("Shape info was not statically known.");
     CHECK_EQ(a.ndim(), 1);
     xchainer::Shape shape;

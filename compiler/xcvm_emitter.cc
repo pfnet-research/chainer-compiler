@@ -140,6 +140,10 @@ private:
             } else {
                 EMIT(ConvWithBias, out(0), in(0), in(1), strides(), pads(), in(2));
             }
+        } else if (node.op_type() == "Shape") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Shape, out(0), in(0));
         } else if (node.op_type() == "Reshape") {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
