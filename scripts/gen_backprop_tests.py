@@ -113,6 +113,9 @@ def get_backprop_tests():
     test('div', lambda m: m.a / m.b, a=[3, 5], b=[7, 2])
     test('neg', lambda m: -m.a, a=[3, 5])
     test('reduce_sum', lambda m: F.sum(m.a, axis=0), a=[3, 5, 7])
+
+    test('mul_same', lambda m: m.a * m.a, a=[3, 5])
+
     # ONNX chainer creates an extra parameter named 'None' for bias of
     # Gemm.
     test('matmul', lambda m: F.matmul(m.a, m.b),

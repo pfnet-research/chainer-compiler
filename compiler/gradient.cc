@@ -68,12 +68,6 @@ public:
     }
 
 private:
-    Value* AddGradValue(Value* v) {
-        Value* gv = graph_->AddValue("grad@" + v->name());
-        SetGrad(v, gv);
-        return gv;
-    }
-
     bool IsReady(const Node* node) const {
         for (Value* value : node->outputs()) {
             if (!value->grad()) return false;

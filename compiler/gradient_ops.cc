@@ -11,26 +11,31 @@
 namespace oniku {
 namespace {
 
-void SetGrad(Value* y, Value* gy) {
-    CHECK(y->grad() == nullptr);
-    y->set_grad(gy);
-}
-
 Value* AddTempValue(Graph* graph, Value* v) {
     Value* tv = graph->AddValue(StrCat("grad_tmp_", v->Counter(), '@', v->name()));
     return tv;
-}
-
-Value* AddGradValue(Graph* graph, Value* v) {
-    Value* gv = graph->AddValue("grad@" + v->name());
-    SetGrad(v, gv);
-    return gv;
 }
 
 Value* AddTempOp(Graph* graph, const std::string& op_type, const std::vector<Value*>& inputs, Value* v) {
     Value* tv = AddTempValue(graph, v);
     graph->AddNode(op_type, inputs, {tv});
     return tv;
+}
+
+void SetGrad(Graph* graph, Value* y, Value* gy) {
+    if (y->grad()) {
+        // Accumulate gradients.
+        Value* v = AddTempOp(graph, "Add", {y->grad(), gy}, y);
+        y->set_grad(v);
+    } else {
+        y->set_grad(gy);
+    }
+}
+
+Value* AddGradValue(Graph* graph, Value* v) {
+    Value* gv = graph->AddValue("grad@" + v->name());
+    SetGrad(graph, v, gv);
+    return gv;
 }
 
 Value* AddGradOp(Graph* graph, const std::string& op_type, const std::vector<Value*>& inputs, Value* v) {
@@ -40,12 +45,12 @@ Value* AddGradOp(Graph* graph, const std::string& op_type, const std::vector<Val
 }
 
 void AddGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    SetGrad(x[0], y[0]->grad());
-    SetGrad(x[1], y[0]->grad());
+    SetGrad(graph, x[0], y[0]->grad());
+    SetGrad(graph, x[1], y[0]->grad());
 }
 
 void SubGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    SetGrad(x[0], y[0]->grad());
+    SetGrad(graph, x[0], y[0]->grad());
     AddGradOp(graph, "Neg", {y[0]->grad()}, x[1]);
 }
 
@@ -112,7 +117,7 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
         gemm->set_trans_b(false);
     }
 
-    SetGrad(x[2], gy);
+    SetGrad(graph, x[2], gy);
 }
 
 void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
