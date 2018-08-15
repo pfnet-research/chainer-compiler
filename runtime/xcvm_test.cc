@@ -4,9 +4,9 @@
 
 #include <xchainer/array.h>
 #include <xchainer/context.h>
+#include <xchainer/numeric.h>
 #include <xchainer/routines/creation.h>
 #include <xchainer/testing/array.h>
-#include <xchainer/testing/array_check.h>
 
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
@@ -34,7 +34,8 @@ TEST(XCVMTest, Run) {
     InOuts outputs = xcvm.Run(inputs, false);
     ASSERT_EQ(1, outputs.count("out"));
     xchainer::Array e = xchainer::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
-    xchainer::testing::ExpectEqual(e, outputs["out"]);
+    // TODO(hamaji): Use EXPECT_ARRAY_EQ after fixing namespace?
+    EXPECT_TRUE(xchainer::AllClose(e, outputs["out"], 0, 0));
 }
 
 }  // namespace
