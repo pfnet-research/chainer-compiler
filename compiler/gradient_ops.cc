@@ -1,12 +1,15 @@
 #include "gradient_ops.h"
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
+#include <compiler/tensor.h>
+#include <compiler/type.h>
 
 namespace oniku {
 namespace {
@@ -75,6 +78,18 @@ void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
 
 void ExpGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     AddGradOp(graph, "Mul", {y[0], y[0]->grad()}, x[0]);
+}
+
+void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    // Support non-float values.
+    CHECK_EQ(Dtype::kFloat32, x[0]->type().dtype());
+    Value* gy = y[0]->grad();
+    Value* one = graph->AddInputValue("grad_tmp_one@" + x[0]->name(), x[0]->type());
+    Tensor* t = new Tensor(one->name(), x[0]->type().dtype(), {1}, std::vector<float>({1.0f}));
+    one->ResetInitializer(std::unique_ptr<Tensor>(t));
+    Value* t0 = AddTempOp(graph, "Mul", {gy, y[0]}, x[0]);
+    Value* t1 = AddTempOp(graph, "Sub", {one, y[0]}, x[0]);
+    AddGradOp(graph, "Mul", {t0, t1}, x[0]);
 }
 
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -168,6 +183,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Div", 2, 1, &DivGradFn);
         register_grad_fn("Neg", 1, 1, &NegGradFn);
         register_grad_fn("Exp", 1, 1, &ExpGradFn);
+        register_grad_fn("Sigmoid", 1, 1, &SigmoidGradFn);
         register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
         register_grad_fn("Gemm", 3, 1, &GemmGradFn);
         register_grad_fn("LogSoftmax", 1, 1, &LogSoftmaxGradFn);

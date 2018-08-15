@@ -22,20 +22,26 @@ class GradientGenerator {
 public:
     explicit GradientGenerator(Graph* graph) : graph_(graph) {
         CHECK_EQ(1UL, graph->output_values().size());
-        for (Value* value : graph->output_values()) {
+    }
+
+    void Run() {
+        std::set<Value*> original_input_values;
+        for (Value* input : graph_->input_values()) {
+            if (!input->initializer()) continue;
+            CHECK(original_input_values.emplace(input).second);
+        }
+
+        for (Value* value : graph_->output_values()) {
             // TODO(hamaji): Refactor code to support non-float values.
             CHECK_EQ(Dtype::kFloat32, value->type().dtype());
             Value* grad = graph_->AddInputValue("grad_in@" + value->name(), value->type());
             SetGrad(value, grad);
-            init_grads_.emplace(grad);
 
             std::vector<float> data(value->type().NumElements(), 1.0);
             grad->ResetInitializer(std::make_unique<Tensor>(grad->name(), value->type().dtype(), value->type().dims(), data));
             op_queue_.push(value->producer());
         }
-    }
 
-    void Run() {
         while (!op_queue_.empty()) {
             const Node* node = op_queue_.front();
             CHECK(node);
@@ -54,8 +60,7 @@ public:
         }
 
         for (Value* input : graph_->input_values()) {
-            if (!input->initializer()) continue;
-            if (init_grads_.count(input)) continue;
+            if (!original_input_values.count(input)) continue;
             CHECK(input->grad());
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode("Ident", {input->grad()}, {out_grad});
@@ -83,7 +88,6 @@ private:
     Graph* graph_;
     std::queue<const Node*> op_queue_;
     std::set<const Node*> seen_nodes_;
-    std::set<Value*> init_grads_;
 };
 
 }  // namespace
