@@ -112,6 +112,9 @@ public:
     int to() const {
         return to_;
     }
+    void set_to(int to) {
+        to_ = to;
+    }
 
     bool detached() const {
         return detached_;

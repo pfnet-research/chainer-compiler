@@ -73,7 +73,6 @@ void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
 
 void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     AddGradOp(graph, "Neg", {y[0]->grad()}, x[0]);
-
 }
 
 void ExpGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -90,6 +89,16 @@ void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
     Value* t0 = AddTempOp(graph, "Mul", {gy, y[0]}, x[0]);
     Value* t1 = AddTempOp(graph, "Sub", {one, y[0]}, x[0]);
     AddGradOp(graph, "Mul", {t0, t1}, x[0]);
+}
+
+void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* zero = graph->AddInputValue("grad_tmp_zero@" + x[0]->name(), x[0]->type());
+    Tensor* t = new Tensor(zero->name(), x[0]->type().dtype(), {1}, std::vector<float>({0.0f}));
+    zero->ResetInitializer(std::unique_ptr<Tensor>(t));
+    Value* t0 = AddTempOp(graph, "Greater", {y[0], zero}, x[0]);
+    Value* t1 = AddTempOp(graph, "Cast", {t0}, x[0]);
+    t1->producer()->set_to(static_cast<int>(x[0]->type().dtype()));
+    AddGradOp(graph, "Mul", {t1, y[0]->grad()}, x[0]);
 }
 
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -185,6 +194,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("Neg", 1, 1, &NegGradFn);
         register_grad_fn("Exp", 1, 1, &ExpGradFn);
         register_grad_fn("Sigmoid", 1, 1, &SigmoidGradFn);
+        register_grad_fn("Relu", 1, 1, &ReluGradFn);
         register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
         register_grad_fn("Gemm", 3, 1, &GemmGradFn);
         register_grad_fn("LogSoftmax", 1, 1, &LogSoftmaxGradFn);
