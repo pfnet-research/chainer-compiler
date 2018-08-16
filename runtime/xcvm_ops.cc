@@ -2,6 +2,7 @@
 #include <xchainer/routines/connection.h>
 #include <xchainer/routines/creation.h>
 #include <xchainer/routines/linalg.h>
+#include <xchainer/routines/logic.h>
 #include <xchainer/routines/manipulation.h>
 #include <xchainer/routines/math.h>
 #include <xchainer/routines/pooling.h>
@@ -174,6 +175,23 @@ xchainer::Array BatchNormalizationOp::RunImpl(
         const xchainer::Array& mean,
         const xchainer::Array& var) {
     return BatchNormONNX(x, s, bias, mean, var, epsilon);
+}
+
+xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return xchainer::Equal(a, b);
+}
+
+xchainer::Array GreaterOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return xchainer::Greater(a, b);
+}
+
+xchainer::Array GreaterEqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    // TODO(hamaji): This is an incorrect implementation for NaN.
+    return xchainer::Not(xchainer::Greater(b, a));
+}
+
+xchainer::Array NotOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    return xchainer::Not(x);
 }
 
 }  // namespace runtime

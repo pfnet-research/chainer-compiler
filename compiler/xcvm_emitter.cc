@@ -116,12 +116,15 @@ private:
         EMIT_SIMPLE_UNARY_OP("Sqrt", Sqrt);
         EMIT_SIMPLE_UNARY_OP("Relu", Relu);
         EMIT_SIMPLE_UNARY_OP("Sigmoid", Sigmoid);
+        EMIT_SIMPLE_UNARY_OP("Not", Not);
         EMIT_SIMPLE_UNARY_OP("Ident", Ident);
 
         EMIT_SIMPLE_BINARY_OP("Add", Add);
         EMIT_SIMPLE_BINARY_OP("Sub", Sub);
         EMIT_SIMPLE_BINARY_OP("Mul", Mul);
         EMIT_SIMPLE_BINARY_OP("Div", Div);
+        EMIT_SIMPLE_BINARY_OP("Equal", Equal);
+        EMIT_SIMPLE_BINARY_OP("Greater", Greater);
 
         if (node.op_type() == "Dropout") {
             CHECK_EQ(1UL, node.inputs().size());

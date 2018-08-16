@@ -80,6 +80,10 @@ XC_OPS = [
      [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),
       Float('epsilon')],
      ['y']),
+    ('Equal', [Array('a'), Array('b')], ['c']),
+    ('Greater', [Array('a'), Array('b')], ['c']),
+    ('GreaterEqual', [Array('a'), Array('b')], ['c']),
+    ('Not', [Array('x')], ['y']),
 ]
 
 

@@ -45,6 +45,14 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_sigmoid'),
     TestCase(NODE_TEST, 'test_sigmoid_example'),
 
+    TestCase(NODE_TEST, 'test_not_2d'),
+    TestCase(NODE_TEST, 'test_not_3d'),
+    TestCase(NODE_TEST, 'test_not_4d'),
+    TestCase(NODE_TEST, 'test_equal'),
+    TestCase(NODE_TEST, 'test_equal_bcast'),
+    TestCase(NODE_TEST, 'test_greater'),
+    TestCase(NODE_TEST, 'test_greater_bcast'),
+
     # TODO(xchainer): Support non-2D dot.
     # terminate called after throwing an instance of 'xchainer::NotImplementedError'
     #   what():  dot does not support rhs operand with ndim > 2
