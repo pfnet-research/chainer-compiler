@@ -57,7 +57,7 @@ XC_OPS = [
     ('ConvWithBias',
      [Array('x'), Array('w'), Ints('strides'), Ints('pads'), Array('b')],
      ['y']),
-    ('Ident', [Array('x')], ['y']),
+    ('Identity', [Array('x')], ['y']),
     ('Relu', [Array('x')], ['y']),
     ('Shape', [Array('data')], ['shape']),
     ('Reshape', [Array('data'), Array('shape')], ['reshaped']),

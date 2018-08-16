@@ -108,7 +108,7 @@ xchainer::Array ConvWithBiasOp::RunImpl(XCVMState* st, const xchainer::Array& x,
     return xchainer::Conv(x, w, b, strides, pads);
 }
 
-xchainer::Array IdentOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+xchainer::Array IdentityOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return x;
 }
 

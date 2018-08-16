@@ -119,7 +119,7 @@ private:
         EMIT_SIMPLE_UNARY_OP("Relu", Relu);
         EMIT_SIMPLE_UNARY_OP("Sigmoid", Sigmoid);
         EMIT_SIMPLE_UNARY_OP("Not", Not);
-        EMIT_SIMPLE_UNARY_OP("Ident", Ident);
+        EMIT_SIMPLE_UNARY_OP("Identity", Identity);
 
         EMIT_SIMPLE_BINARY_OP("Add", Add);
         EMIT_SIMPLE_BINARY_OP("Sub", Sub);
@@ -136,7 +136,7 @@ private:
                 WARN_ONCE("The second output of Dropout is not handled yet");
             }
             // TODO(hamaji): Dropout does nothing for now.
-            EMIT(Ident, out(0), in(0));
+            EMIT(Identity, out(0), in(0));
         } else if (node.op_type() == "Conv") {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());

@@ -27,7 +27,7 @@ class TestCase(object):
 NODE_TEST = 'onnx/onnx/backend/test/data/node'
 
 TEST_CASES = [
-    TestCase(NODE_TEST, 'test_relu'),
+    TestCase(NODE_TEST, 'test_identity'),
 
     TestCase(NODE_TEST, 'test_add'),
     TestCase(NODE_TEST, 'test_add_bcast'),
@@ -49,6 +49,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_log_example'),
     TestCase(NODE_TEST, 'test_sqrt'),
     TestCase(NODE_TEST, 'test_sqrt_example'),
+    TestCase(NODE_TEST, 'test_relu'),
     TestCase(NODE_TEST, 'test_sigmoid'),
     TestCase(NODE_TEST, 'test_sigmoid_example'),
 

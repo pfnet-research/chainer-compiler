@@ -19,7 +19,7 @@ void RemoveSum(Graph* graph) {
             graph->AddNode("Add", {v, node->inputs()[i]}, {o});
             v = o;
         }
-        graph->AddNode("Ident", {v}, node->outputs());
+        graph->AddNode("Identity", {v}, node->outputs());
         graph->DetachNode(node);
     }
 }
