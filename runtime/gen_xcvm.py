@@ -1,4 +1,10 @@
+import os
 import subprocess
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from oniku.common.codegen_util import format_code
+
 
 ARRAY = 'ARRAY'
 INT = 'INT'
@@ -86,23 +92,6 @@ XC_OPS = [
     ('Not', [Array('x')], ['y']),
     ('Cast', [Array('input'), Int('to')], ['output']),
 ]
-
-
-def format_code(lines):
-    formatted = []
-    num_indents = 0
-    for line in lines:
-        num_indents -= line.count('}') * 4
-        if line:
-            ni = num_indents
-            if line.endswith(':'):
-                ni -= 4
-            line = ' ' * ni + line
-        formatted.append(line + '\n')
-        if '}' in line:
-            formatted.append('\n')
-        num_indents += line.count('{') * 4
-    return formatted
 
 
 def gen_xcvm_proto():
