@@ -288,7 +288,7 @@ void RunMain(int argc, char** argv) {
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 :  0;
+        int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
         InOuts outputs(xcvm.Run(inputs, trace_level));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

@@ -175,10 +175,7 @@ int64_t Tensor::NumElements() const {
 
 template <>
 Tensor::Tensor<float>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<float>& data)
-    : dims_(dims.begin(), dims.end()),
-      dtype_(dtype),
-      data_(LoadDataFromRawData<float>(data.data(), data.size())),
-      name_(name) {
+    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromRawData<float>(data.data(), data.size())), name_(name) {
 }
 
 }  // namespace oniku

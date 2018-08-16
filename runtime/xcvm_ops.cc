@@ -86,17 +86,13 @@ xchainer::Array ReduceSumSquareOp::RunImpl(XCVMState* st, const xchainer::Array&
 xchainer::Array ReduceSumToOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
     const xchainer::Shape& from = data.shape();
     const xchainer::Shape& to = ArrayToShape(shape);
-    CHECK_GE(from.size(), to.size())
-        << "Reduce requested but shape actually expands: " << from << " to=" << to;
+    CHECK_GE(from.size(), to.size()) << "Reduce requested but shape actually expands: " << from << " to=" << to;
     for (int i = 0; i < to.size(); ++i) {
-        CHECK_EQ(from[from.size() - i - 1], to[to.size() - i - 1])
-            << "ReduceTo shape mismatches: from=" << from << " to=" << to;
+        CHECK_EQ(from[from.size() - i - 1], to[to.size() - i - 1]) << "ReduceTo shape mismatches: from=" << from << " to=" << to;
     }
-    if (from.size() == to.size())
-        return data;
+    if (from.size() == to.size()) return data;
     xchainer::Axes axes;
-    for (int i = 0; i < from.size() - to.size(); ++i)
-        axes.push_back(i);
+    for (int i = 0; i < from.size() - to.size(); ++i) axes.push_back(i);
     return xchainer::Sum(data, axes, false /* keepdims */);
 }
 
@@ -160,8 +156,7 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     if (trans_b) xb = xchainer::Transpose(xb);
     xchainer::Array r = xchainer::Dot(xa, xb);
     if (alpha != 1.0) r *= alpha;
-    if (beta == 0.0)
-        return r;
+    if (beta == 0.0) return r;
     xchainer::Array xc = c;
     if (beta != 1.0) xc = xc * beta;
     return r + xc;

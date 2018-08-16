@@ -92,22 +92,24 @@ private:
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(debug_info); \
     } while (0);
 
-#define EMIT_SIMPLE_UNARY_OP(name, sym) do {            \
-            if (node.op_type() == name) {               \
-                CHECK_EQ(1UL, node.inputs().size());    \
-                CHECK_EQ(1UL, node.outputs().size());   \
-                EMIT(sym, out(0), in(0));               \
-                return;                                 \
-            }                                           \
+#define EMIT_SIMPLE_UNARY_OP(name, sym)           \
+    do {                                          \
+        if (node.op_type() == name) {             \
+            CHECK_EQ(1UL, node.inputs().size());  \
+            CHECK_EQ(1UL, node.outputs().size()); \
+            EMIT(sym, out(0), in(0));             \
+            return;                               \
+        }                                         \
     } while (0)
 
-#define EMIT_SIMPLE_BINARY_OP(name, sym) do {           \
-            if (node.op_type() == name) {               \
-                CHECK_EQ(2UL, node.inputs().size());    \
-                CHECK_EQ(1UL, node.outputs().size());   \
-                EMIT(sym, out(0), in(0), in(1));        \
-                return;                                 \
-            }                                           \
+#define EMIT_SIMPLE_BINARY_OP(name, sym)          \
+    do {                                          \
+        if (node.op_type() == name) {             \
+            CHECK_EQ(2UL, node.inputs().size());  \
+            CHECK_EQ(1UL, node.outputs().size()); \
+            EMIT(sym, out(0), in(0), in(1));      \
+            return;                               \
+        }                                         \
     } while (0)
 
         EMIT_SIMPLE_UNARY_OP("Neg", Neg);
