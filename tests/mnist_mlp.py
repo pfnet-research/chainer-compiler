@@ -11,7 +11,9 @@ import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer import reporter
 from chainer import training
+from chainer.functions.evaluation import accuracy
 from chainer.training import extensions
 import onnx_chainer
 
@@ -55,8 +57,9 @@ def makedirs(d):
 class MyClassifier(chainer.link.Chain):
     """A Classifier which only supports 2D input."""
 
-    def __init__(self, predictor):
+    def __init__(self, predictor, compute_accuracy):
         super(MyClassifier, self).__init__()
+        self.compute_accuracy = compute_accuracy
         with self.init_scope():
             self.predictor = predictor
 
@@ -76,7 +79,12 @@ class MyClassifier(chainer.link.Chain):
         log_prob = F.sum(log_softmax * t, axis=(0, 1))
         self.batch_size = chainer.Variable(np.array(t.size, np.float32),
                                            name='batch_size')
-        return -log_prob / self.batch_size
+        loss = -log_prob / self.batch_size
+        reporter.report({'loss': loss}, self)
+        if self.compute_accuracy:
+            acc = accuracy.accuracy(y, np.argmax(t, axis=1))
+            reporter.report({'accuracy': acc}, self)
+        return loss
 
 
 class MyIterator(chainer.iterators.SerialIterator):
@@ -137,6 +145,8 @@ def main():
                         help='Enable timeout')
     parser.add_argument('--trace', default='',
                         help='Enable tracing')
+    parser.add_argument('--train', action='store_true',
+                        help='Run training')
     args = parser.parse_args()
 
     main_impl(args)
@@ -148,7 +158,7 @@ def main_impl(args):
     # iteration, which will be used by the PrintReport extension below.
     model = MLP(args.unit, 10, use_sigmoid=True)
     # classifier = L.Classifier(model)
-    classifier = MyClassifier(model)
+    classifier = MyClassifier(model, compute_accuracy=args.train)
 
     model = classifier
 
@@ -174,6 +184,12 @@ def main_impl(args):
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+
+    if args.train:
+        # Evaluate the model with the test dataset for each epoch
+        trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+        run_training(args, trainer)
+        return
 
     out_dir = 'out/backprop_test_mnist_mlp'
     makedirs(out_dir)
@@ -209,6 +225,48 @@ def main_impl(args):
         with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
             t = npz_to_onnx.np_array_to_onnx('grad_out@' + name, param.grad)
             f.write(t.SerializeToString())
+
+
+def run_training(args, trainer):
+    # Dump a computational graph from 'loss' variable at the first iteration
+    # The "main" refers to the target link of the "main" optimizer.
+    trainer.extend(extensions.dump_graph('main/loss'))
+
+    # Take a snapshot for each specified epoch
+    frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
+    trainer.extend(extensions.snapshot(), trigger=(frequency, 'epoch'))
+
+    # Write a log of evaluation statistics for each epoch
+    trainer.extend(extensions.LogReport())
+
+    # Save two plot images to the result dir
+    if args.plot and extensions.PlotReport.available():
+        trainer.extend(
+            extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                                  'epoch', file_name='loss.png'))
+        trainer.extend(
+            extensions.PlotReport(
+                ['main/accuracy', 'validation/main/accuracy'],
+                'epoch', file_name='accuracy.png'))
+
+    # Print selected entries of the log to stdout
+    # Here "main" refers to the target link of the "main" optimizer again, and
+    # "validation" refers to the default name of the Evaluator extension.
+    # Entries other than 'epoch' are reported by the Classifier link, called by
+    # either the updater or the evaluator.
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'main/loss', 'validation/main/loss',
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+
+    # Print a progress bar to stdout
+    trainer.extend(extensions.ProgressBar())
+
+    if args.resume:
+        # Resume from a snapshot
+        chainer.serializers.load_npz(args.resume, trainer)
+
+    # Run the training
+    trainer.run()
 
 
 if __name__ == '__main__':
