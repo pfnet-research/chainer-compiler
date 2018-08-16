@@ -164,6 +164,17 @@ void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     AddGradOp(graph, "Sub", {gy, mul_val}, x[0]);
 }
 
+void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* gy = y[0]->grad();
+    Value* gx = AddTempOp(graph, "Mul", {y[0], gy}, x[0]);
+    Value* sum_val = AddTempOp(graph, "ReduceSum", {gx}, x[0]);
+    Node* sum_op = sum_val->producer();
+    sum_op->set_axes({node->axis()});
+    sum_op->set_keepdims(true);
+    Value* mul_val = AddTempOp(graph, "Mul", {y[0], sum_val}, x[0]);
+    AddGradOp(graph, "Sub", {gx, mul_val}, x[0]);
+}
+
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
@@ -198,6 +209,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn("ReduceSum", 1, 1, &ReduceSumGradFn);
         register_grad_fn("Gemm", 3, 1, &GemmGradFn);
         register_grad_fn("LogSoftmax", 1, 1, &LogSoftmaxGradFn);
+        register_grad_fn("Softmax", 1, 1, &SoftmaxGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

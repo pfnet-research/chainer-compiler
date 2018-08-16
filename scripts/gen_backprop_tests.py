@@ -142,6 +142,13 @@ def get_backprop_tests():
          c=[4, 5, 6, 7])
     test('log_softmax', lambda m: F.log_softmax(m.a),
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
+    # Multiply `b` to avoid nearly zero gradients.
+    test('softmax_axis0', lambda m: F.softmax(m.a, axis=0) * m.b,
+         a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]],
+         b=[[0, 1, 0], [1, 0, 0], [0, 0, 1]])
+    test('softmax_axis1', lambda m: F.softmax(m.a, axis=1) * m.b,
+         a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]],
+         b=[[0, 1, 0], [1, 0, 0], [0, 0, 1]])
 
     return tests
 
