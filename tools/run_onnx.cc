@@ -311,8 +311,16 @@ void RunMain(int argc, char** argv) {
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
             xchainer::Array actual = found->second;
+            if (expected.dtype() != actual.dtype()) {
+                LOG() << "FAIL(dtype): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                ok = false;
+            }
+            if (expected.shape() != actual.shape()) {
+                LOG() << "FAIL(shape): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                ok = false;
+            }
             if (!xchainer::AllClose(expected, actual, 1e-4)) {
-                LOG() << "FAIL: " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                LOG() << "FAIL(value): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
                 ok = false;
             }
         }
