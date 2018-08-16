@@ -2,6 +2,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/dtype.h>
 #include <compiler/serializer_util.h>
 #include <compiler/value.h>
 
@@ -78,6 +79,10 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
             CHECK(op_type_ == "ReduceSum" || op_type_ == "ReduceSumSquare" || op_type_ == "ReduceMean");
             CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
             keepdims_ = xattr.i() != 0;
+        } else if (xattr.name() == "to") {
+            CHECK(op_type_ == "Cast");
+            CHECK_EQ(xattr.type(), onnx::AttributeProto::INT);
+            to_ = static_cast<int>(Dtype(static_cast<onnx::TensorProto::DataType>(xattr.i())));
         } else {
             unknown_attributes_.push_back(xattr);
         }

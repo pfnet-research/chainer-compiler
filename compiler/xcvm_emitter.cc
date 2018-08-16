@@ -206,6 +206,10 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == "Cast") {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Cast, out(0), in(0), node.to());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

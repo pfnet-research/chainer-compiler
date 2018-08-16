@@ -84,6 +84,7 @@ XC_OPS = [
     ('Greater', [Array('a'), Array('b')], ['c']),
     ('GreaterEqual', [Array('a'), Array('b')], ['c']),
     ('Not', [Array('x')], ['y']),
+    ('Cast', [Array('input'), Int('to')], ['output']),
 ]
 
 

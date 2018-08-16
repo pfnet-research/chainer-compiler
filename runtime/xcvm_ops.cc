@@ -194,5 +194,9 @@ xchainer::Array NotOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return xchainer::Not(x);
 }
 
+xchainer::Array CastOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
+    return input.AsType(static_cast<xchainer::Dtype>(to));
+}
+
 }  // namespace runtime
 }  // namespace oniku

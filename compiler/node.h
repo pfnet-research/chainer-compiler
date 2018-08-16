@@ -109,6 +109,10 @@ public:
         keepdims_ = keepdims;
     }
 
+    int to() const {
+        return to_;
+    }
+
     bool detached() const {
         return detached_;
     }
@@ -144,6 +148,8 @@ private:
 
     std::vector<int> axes_;
     bool keepdims_ = true;
+
+    int to_ = 0;
 };
 
 }  // namespace oniku

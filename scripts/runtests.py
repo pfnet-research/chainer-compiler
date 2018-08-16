@@ -62,6 +62,14 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_less'),
     TestCase(NODE_TEST, 'test_less_bcast'),
 
+    # TODO(xchainer): Support float16?
+    TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),
+    # TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
+    # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_DOUBLE'),
+    # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_FLOAT'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT_to_DOUBLE'),
+    # TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
+
     # TODO(xchainer): Support non-2D dot.
     # terminate called after throwing an instance of 'xchainer::NotImplementedError'
     #   what():  dot does not support rhs operand with ndim > 2

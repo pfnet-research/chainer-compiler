@@ -8,6 +8,7 @@ namespace oniku {
 
 class Dtype {
 public:
+    // These values must be synchronized with xChainer's.
     enum DataType {
         kUnspecified = 0,
         kBool = 1,
