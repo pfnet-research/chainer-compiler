@@ -24,10 +24,23 @@ void RemoveSum(Graph* graph) {
     }
 }
 
+void RemoveLess(Graph* graph) {
+    for (Node* node : graph->GetLiveNodes()) {
+        if (node->op_type() != "Less") continue;
+        CHECK_EQ(2UL, node->inputs().size());
+        CHECK_EQ(1UL, node->outputs().size());
+        graph->AddNode("Greater",
+                       {node->inputs()[1], node->inputs()[0]},
+                       {node->outputs()[0]});
+        graph->DetachNode(node);
+    }
+}
+
 }  // namespace
 
 void Simplify(Graph* graph) {
     RemoveSum(graph);
+    RemoveLess(graph);
 }
 
 }  // namespace oniku
