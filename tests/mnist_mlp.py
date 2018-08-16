@@ -156,7 +156,7 @@ def main_impl(args):
     # Set up a neural network to train
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    model = MLP(args.unit, 10, use_sigmoid=True)
+    model = MLP(args.unit, 10)
     # classifier = L.Classifier(model)
     classifier = MyClassifier(model, compute_accuracy=args.train)
 
