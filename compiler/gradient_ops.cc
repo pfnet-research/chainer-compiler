@@ -137,7 +137,8 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
         gemm->set_trans_b(false);
     }
 
-    SetGrad(graph, x[2], gy);
+    Value* s = AddTempOp(graph, "Shape", {x[2]}, x[2]);
+    AddGradOp(graph, "ReduceSumTo", {gy, s}, x[2]);
 }
 
 void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {

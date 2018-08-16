@@ -135,6 +135,10 @@ def get_backprop_tests():
          expected_extra_params=['None'],
          a=np.transpose([[3, 5], [7, 4], [2, 6]]),
          b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]))
+    test('gemm', lambda m: F.linear(m.a, m.b, b=m.c),
+         a=[[3, 5], [7, 4], [2, 6]],
+         b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]),
+         c=[4, 5, 6, 7])
     test('log_softmax', lambda m: F.log_softmax(m.a),
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
 

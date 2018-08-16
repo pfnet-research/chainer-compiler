@@ -195,6 +195,10 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumSquare, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == "ReduceSumTo") {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ReduceSumTo, out(0), in(0), in(1));
         } else if (node.op_type() == "ReduceMean") {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

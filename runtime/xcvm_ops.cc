@@ -82,6 +82,23 @@ xchainer::Array ReduceSumSquareOp::RunImpl(XCVMState* st, const xchainer::Array&
     return xchainer::Sum(a * a, GetXchainerAxes(axes), keepdims != 0);
 }
 
+xchainer::Array ReduceSumToOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
+    const xchainer::Shape& from = data.shape();
+    const xchainer::Shape& to = ArrayToShape(shape);
+    CHECK_GE(from.size(), to.size())
+        << "Reduce requested but shape actually expands: " << from << " to=" << to;
+    for (int i = 0; i < to.size(); ++i) {
+        CHECK_EQ(from[from.size() - i - 1], to[to.size() - i - 1])
+            << "ReduceTo shape mismatches: from=" << from << " to=" << to;
+    }
+    if (from.size() == to.size())
+        return data;
+    xchainer::Axes axes;
+    for (int i = 0; i < from.size() - to.size(); ++i)
+        axes.push_back(i);
+    return xchainer::Sum(data, axes, false /* keepdims */);
+}
+
 xchainer::Array ReduceMeanOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return xchainer::Mean(a, GetXchainerAxes(axes), keepdims != 0);
 }

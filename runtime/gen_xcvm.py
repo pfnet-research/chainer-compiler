@@ -49,6 +49,7 @@ XC_OPS = [
     ('ReduceSum', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('ReduceSumSquare', [Array('data'), Ints('axes'), Int('keepdims')],
      ['reduced']),
+    ('ReduceSumTo', [Array('data'), Array('shape')], ['reduced']),
     ('ReduceMean', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('Conv',
      [Array('x'), Array('w'), Ints('strides'), Ints('pads')],
