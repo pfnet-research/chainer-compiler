@@ -1,10 +1,17 @@
 #!/usr/bin/python3
 
+import argparse
 import os
 import sys
 import subprocess
 
 import gen_backprop_tests
+
+
+parser = argparse.ArgumentParser(description='Run tests for oniku')
+parser.add_argument('--use_gpu', '-g', action='store_true',
+                    help='Run heavy tests with GPU')
+cmdline = parser.parse_args()
 
 
 class TestCase(object):
@@ -157,12 +164,15 @@ def main():
     test_cnt = 0
     fail_cnt = 0
     for test_case in TEST_CASES:
-        sys.stdout.write('%s... ' % test_case.name)
         args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet']
         if test_case.name.startswith('backprop_'):
             args.append('--backprop')
         if test_case.name == 'resnet50':
+            if not cmdline.use_gpu:
+                continue
             args.extend(['-d', 'cuda'])
+
+        sys.stdout.write('%s... ' % test_case.name)
         try:
             test_cnt += 1
             subprocess.check_call(args)
