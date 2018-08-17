@@ -158,8 +158,14 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     AddGradOp(graph, Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()
         ->set_strides(node->strides()).set_pads(node->pads());
     if (x.size() == 3) {
-        // TODO(hamaji): Implement gradients for bias.
-        CHECK(false);
+        std::vector<int> axes{{0}};
+        CHECK(!node->kernel_shape().empty())
+                << "ConvGrad with no kernel_shape is not supported yet.";
+        for (size_t i = 0; i < node->kernel_shape().size(); ++i) {
+            axes.push_back(2 + i);
+        }
+        AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()
+                ->set_axes(axes).set_keepdims(false);
     }
 }
 

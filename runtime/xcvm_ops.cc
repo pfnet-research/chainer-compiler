@@ -90,7 +90,7 @@ xchainer::Array ReduceSumToOp::RunImpl(XCVMState* st, const xchainer::Array& dat
     const xchainer::Shape& to = ArrayToShape(shape);
     CHECK_GE(from.size(), to.size()) << "Reduce requested but shape actually expands: " << from << " to=" << to;
     for (int i = 0; i < to.size(); ++i) {
-        CHECK_EQ(from[from.size() - i - 1], to[to.size() - i - 1]) << "ReduceTo shape mismatches: from=" << from << " to=" << to;
+        CHECK_EQ(from[from.size() - i - 1], to[to.size() - i - 1]) << "ReduceSumTo shape mismatches: from=" << from << " to=" << to;
     }
     if (from.size() == to.size()) return data;
     xchainer::Axes axes;

@@ -108,6 +108,12 @@ def get_backprop_tests():
     def test(name, fn, **kwargs):
         tests.append(BackpropTest(name, fn, **kwargs))
 
+    def aranges(shape):
+        r = 1
+        for d in shape:
+            r *= d
+        return np.arange(r).reshape(shape)
+
     test('add1', lambda m: m.a + m.b, a=[3], b=[7])
     test('mul1', lambda m: m.a * m.b, a=[3], b=[7])
     test('add', lambda m: m.a + m.b, a=[3, 5], b=[7, 2])
@@ -145,8 +151,14 @@ def get_backprop_tests():
          c=[4, 5, 6, 7])
 
     test('conv', lambda m: F.convolution_2d(m.a, m.b),
-         a=np.arange(25).reshape((1, 1, 5, 5)),
-         b=np.arange(9).reshape((1, 1, 3, 3)))
+         a=aranges((1, 1, 5, 5)),
+         b=aranges((1, 1, 3, 3)))
+    # The 4th parameter is calculating gradients of bias more complex.
+    test('conv_bias', lambda m: F.convolution_2d(m.a, m.b, b=m.c) * m.d,
+         a=aranges((1, 2, 5, 5)),
+         b=aranges((4, 2, 3, 3)),
+         c=aranges((4,)),
+         d=aranges((1, 4, 3, 3)))
 
     test('log_softmax', lambda m: F.log_softmax(m.a),
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
