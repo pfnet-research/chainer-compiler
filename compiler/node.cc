@@ -19,6 +19,8 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
 
 Node::Node(const std::string& name, OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs)
     : NodeBase(op_type), inputs_(inputs), outputs_(outputs), name_(name) {
+    ValidateNumInputsOutputs(inputs, outputs);
+    SetDefaultAttributeValues();
 }
 
 Node::~Node() {
