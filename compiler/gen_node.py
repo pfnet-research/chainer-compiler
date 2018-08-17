@@ -350,6 +350,11 @@ def gen_gen_node_base_cc():
         lines.append('break;')
         lines.append('}')
     lines.append('}')
+
+    lines.append('for (const onnx::AttributeProto& xattr : unknown_attributes_) {')
+    lines.append('*xnode->add_attribute() = xattr;')
+    lines.append('}')
+
     lines.append('}')
 
     lines.append('void NodeBase::SetDefaultAttributeValues() {')

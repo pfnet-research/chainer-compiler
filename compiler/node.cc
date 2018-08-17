@@ -117,10 +117,6 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     DUMP_STRING(xnode, doc_string);
 
     FillONNXAttributes(xnode);
-
-    for (const onnx::AttributeProto& xattr : unknown_attributes_) {
-        *xnode->add_attribute() = xattr;
-    }
 }
 
 void Node::Detach() {
