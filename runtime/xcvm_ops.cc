@@ -111,7 +111,13 @@ xchainer::Array ConvWithBiasOp::RunImpl(XCVMState* st, const xchainer::Array& x,
 xchainer::Array ConvTransposeOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {
     nonstd::optional<xchainer::StackVector<int64_t, xchainer::kMaxNdim>> out_size = nonstd::nullopt;
     if (!output_shape.empty()) {
-        out_size = output_shape;
+        // TODO(hamaji): Revisit after getting answer to https://github.com/onnx/onnx/pull/1158
+        if (x.ndim() == output_shape.size()) {
+            CHECK_LE(2UL, output_shape.size());
+            out_size = xchainer::StackVector<int64_t, xchainer::kMaxNdim>(output_shape.begin() + 2, output_shape.end());
+        } else {
+            out_size = output_shape;
+        }
     }
     return xchainer::ConvTranspose(x, w, nonstd::nullopt, strides, pads, out_size);
 }
@@ -119,7 +125,12 @@ xchainer::Array ConvTransposeOp::RunImpl(XCVMState* st, const xchainer::Array& x
 xchainer::Array ConvTransposeWithBiasOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& b) {
     nonstd::optional<xchainer::StackVector<int64_t, xchainer::kMaxNdim>> out_size = nonstd::nullopt;
     if (!output_shape.empty()) {
-        out_size = output_shape;
+        if (x.ndim() == output_shape.size()) {
+            CHECK_LE(2UL, output_shape.size());
+            out_size = xchainer::StackVector<int64_t, xchainer::kMaxNdim>(output_shape.begin() + 2, output_shape.end());
+        } else {
+            out_size = output_shape;
+        }
     }
     return xchainer::ConvTranspose(x, w, b, strides, pads, out_size);
 }

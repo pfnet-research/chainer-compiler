@@ -86,7 +86,8 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_convtranspose_1d'),
     # TestCase(NODE_TEST, 'test_convtranspose_3d'),
     TestCase(NODE_TEST, 'test_convtranspose_kernel_shape'),
-    # TestCase(NODE_TEST, 'test_convtranspose_output_shape'),
+    TestCase(NODE_TEST, 'test_convtranspose_output_shape'),
+    # TODO(hamaji): output_pads is not handled yet.
     # TestCase(NODE_TEST, 'test_convtranspose_pad'),
     TestCase(NODE_TEST, 'test_convtranspose_pads'),
     TestCase(NODE_TEST, 'test_convtranspose_with_kernel'),
