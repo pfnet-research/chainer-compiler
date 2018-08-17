@@ -81,6 +81,15 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_conv_with_strides_no_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_and_asymmetric_padding'),
+    # TODO(hamaji): Revisit parameters of ConvTranspose.
+    TestCase(NODE_TEST, 'test_convtranspose'),
+    # TestCase(NODE_TEST, 'test_convtranspose_1d'),
+    # TestCase(NODE_TEST, 'test_convtranspose_3d'),
+    TestCase(NODE_TEST, 'test_convtranspose_kernel_shape'),
+    # TestCase(NODE_TEST, 'test_convtranspose_output_shape'),
+    # TestCase(NODE_TEST, 'test_convtranspose_pad'),
+    TestCase(NODE_TEST, 'test_convtranspose_pads'),
+    TestCase(NODE_TEST, 'test_convtranspose_with_kernel'),
 
     # TODO(hamaji): auto_pad is not supported.
     # TODO(hamaji): Support non-2D pools.

@@ -108,6 +108,22 @@ xchainer::Array ConvWithBiasOp::RunImpl(XCVMState* st, const xchainer::Array& x,
     return xchainer::Conv(x, w, b, strides, pads);
 }
 
+xchainer::Array ConvTransposeOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w) {
+    nonstd::optional<xchainer::StackVector<int64_t, xchainer::kMaxNdim>> out_size = nonstd::nullopt;
+    if (!output_shape.empty()) {
+        out_size = output_shape;
+    }
+    return xchainer::ConvTranspose(x, w, nonstd::nullopt, strides, pads, out_size);
+}
+
+xchainer::Array ConvTransposeWithBiasOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& b) {
+    nonstd::optional<xchainer::StackVector<int64_t, xchainer::kMaxNdim>> out_size = nonstd::nullopt;
+    if (!output_shape.empty()) {
+        out_size = output_shape;
+    }
+    return xchainer::ConvTranspose(x, w, b, strides, pads, out_size);
+}
+
 xchainer::Array IdentityOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return x;
 }

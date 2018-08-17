@@ -148,6 +148,19 @@ private:
             } else {
                 EMIT(ConvWithBias, out(0), in(0), in(1), strides(), pads(), in(2));
             }
+        } else if (node.op_type() == Node::kConvTranspose) {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            // TODO(xchainer): Support dilation.
+            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
+            // TODO(hamaji): Handle output_padding and output_shape.
+            std::vector<int> output_shape = node.output_shape();
+            if (node.inputs().size() == 2UL) {
+                EMIT(ConvTranspose, out(0), in(0), in(1), strides(), pads(), output_shape);
+            } else {
+                EMIT(ConvTransposeWithBias, out(0), in(0), in(1), strides(), pads(), output_shape, in(2));
+            }
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
