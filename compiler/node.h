@@ -5,13 +5,15 @@
 
 #include <onnx/onnx.pb.h>
 
+#include <compiler/gen_node_base.h>
+
 namespace oniku {
 
 class Value;
 
 class Node {
 public:
-    explicit Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
     Node(const std::string& name, const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
     ~Node();
 

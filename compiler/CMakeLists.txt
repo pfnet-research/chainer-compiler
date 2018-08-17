@@ -1,3 +1,8 @@
+add_custom_command(OUTPUT gen_node_base.h gen_node_base.cc
+                   COMMAND python3 gen_node.py
+                   MAIN_DEPENDENCY gen_node.py
+                   DEPENDS ../common/codegen_util.py)
+
 include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
@@ -5,6 +10,7 @@ include_directories(..)
 add_library(oniku_compiler
   code_emitter.cc
   dtype.cc
+  gen_node_base.cc
   gradient.cc
   gradient_ops.cc
   graph.cc

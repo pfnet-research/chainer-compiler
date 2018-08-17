@@ -1,7 +1,6 @@
-def format_code(lines):
+def format_code(lines, num_indents=0):
     formatted = []
-    num_indents = 0
-    for line in lines:
+    for i, line in enumerate(lines):
         num_indents -= line.count('}') * 4
         if line:
             ni = num_indents
@@ -9,7 +8,22 @@ def format_code(lines):
                 ni -= 4
             line = ' ' * ni + line
         formatted.append(line + '\n')
-        if '}' in line:
+        if ('}' in line and '{' not in line and
+            (i + 1 < len(lines) and '}' not in lines[i + 1])):
             formatted.append('\n')
         num_indents += line.count('{') * 4
     return formatted
+
+
+def cond(conds, bodies):
+    assert len(conds) + 1 == len(bodies)
+    lines = []
+    for i, c in enumerate(conds):
+        line = f'if ({c}) ' + '{'
+        if i:
+            line = '} else ' + line
+        lines.append(line)
+        lines += bodies[i]
+    lines.append('} else {')
+    lines.append(bodies[len(conds)])
+    return lines
