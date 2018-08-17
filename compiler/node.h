@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 
@@ -54,5 +55,7 @@ private:
 
     bool detached_ = false;
 };
+
+std::ostream& operator<<(std::ostream& os, Node::OpType op_type);
 
 }  // namespace oniku
