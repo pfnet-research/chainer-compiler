@@ -23,6 +23,10 @@ class Required(object):
         self.v = v
 
 
+class Dtype(object):
+    pass
+
+
 ONIKUX_GLOBAL_ATTRS = attr_sets(onikux_order=-1)
 
 NODES = []
@@ -57,7 +61,7 @@ NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
 NodeDef('Less', 2, 1)
 
-NodeDef('Cast', 1, 1, to=int)
+NodeDef('Cast', 1, 1, to=Dtype)
 NodeDef('Shape', 1, 1)
 NodeDef('Reshape', 2, 1)
 NodeDef('Expand', 2, 1)
@@ -111,7 +115,7 @@ class AttrDef(object):
         else:
             self.type = type(value)
             self.value = value
-            assert self.type in (bool, int, str, float)
+            assert self.type in (bool, int, str, float, Dtype)
 
     def c_type(self):
         if self.type == [int]:
@@ -121,17 +125,14 @@ class AttrDef(object):
             int: 'int',
             float: 'float',
             str: 'std::string',
+            Dtype: 'Dtype',
         }[self.type]
 
     def c_arg_type(self):
-        if self.type == [int]:
-            return 'const std::vector<int>&'
-        return {
-            bool: 'bool',
-            int: 'int',
-            float: 'float',
-            str: 'const std::string&',
-        }[self.type]
+        typ = self.c_type()
+        if self.type == [int] or self.type == str:
+            return f'const {typ}&'
+        return typ
 
     def onnx_type(self):
         if self.type == [int]:
@@ -141,6 +142,7 @@ class AttrDef(object):
             int: 'onnx::AttributeProto::INT',
             float: 'onnx::AttributeProto::FLOAT',
             str: 'onnx::AttributeProto::STRING',
+            Dtype: 'onnx::AttributeProto::INT',
         }[self.type]
 
     def add_func(self):
@@ -151,6 +153,7 @@ class AttrDef(object):
             int: 'add_int_attr',
             float: 'add_float_attr',
             str: 'add_str_attr',
+            Dtype: 'add_dtype_attr',
         }[self.type]
 
 
@@ -209,7 +212,7 @@ def gen_gen_node_base_h():
 
 #include <onnx/onnx.pb.h>
 
-#include <common/log.h>
+#include <compiler/dtype.h>
 
 namespace oniku {
 
@@ -282,6 +285,8 @@ def gen_gen_node_base_cc():
                 blines.append(f'{attr.c_name}_.assign(xattr.ints().begin(), '
                               'xattr.ints().end());')
                 blines.append(f'was_{attr.c_name}_set_ = true;')
+            elif attr.type == Dtype:
+                blines.append(f'set_{attr.c_name}(Dtype(onnx::TensorProto::DataType(xattr.i())));')
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
             bodies.append(blines)
@@ -337,6 +342,10 @@ def gen_gen_node_base_cc():
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::INTS);
         for (int s : ints) xattr->add_ints(s);
+    };
+
+    auto add_dtype_attr = [&xnode, add_int_attr](const std::string& name, Dtype v) {
+        add_int_attr(name, static_cast<int>(v.ToONNX()));
     };
 ''')
 
@@ -409,6 +418,8 @@ def gen_gen_node_base_cc():
 #include <vector>
 
 #include <onnx/onnx.pb.h>
+
+#include <common/log.h>
 
 namespace oniku {
 

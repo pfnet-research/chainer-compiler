@@ -97,7 +97,7 @@ void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const s
     zero->ResetInitializer(std::unique_ptr<Tensor>(t));
     Value* t0 = AddTempOp(graph, Node::kGreater, {y[0], zero}, x[0]);
     Value* t1 = AddTempOp(graph, Node::kCast, {t0}, x[0]);
-    t1->producer()->set_to(static_cast<int>(x[0]->type().dtype()));
+    t1->producer()->set_to(x[0]->type().dtype());
     AddGradOp(graph, Node::kMul, {t1, y[0]->grad()}, x[0]);
 }
 
