@@ -314,14 +314,17 @@ void RunMain(int argc, char** argv) {
             if (expected.dtype() != actual.dtype()) {
                 LOG() << "FAIL(dtype): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
                 ok = false;
+                continue;
             }
             if (expected.shape() != actual.shape()) {
                 LOG() << "FAIL(shape): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
                 ok = false;
+                continue;
             }
             if (!xchainer::AllClose(expected, actual, 1e-4)) {
                 LOG() << "FAIL(value): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
                 ok = false;
+                continue;
             }
         }
         CHECK(ok);

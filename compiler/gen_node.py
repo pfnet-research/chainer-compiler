@@ -86,6 +86,7 @@ conv_attrs = attr_sets(auto_pad='NOTSET',
 NodeDef('Conv', (2, 3), 1, **conv_attrs)
 NodeDef('ConvTranspose', (2, 3), 1,
         output_padding=[int], output_shape=[int], **conv_attrs)
+NodeDef('ConvGradWeight', 3, 1, **conv_attrs)
 
 NodeDef('BatchNormalization', 5, 1, epsilon=1e-5, momentum=0.9, spatial=1)
 

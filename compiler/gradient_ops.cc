@@ -150,6 +150,19 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     AddGradOp(graph, Node::kOnikuxReduceSumTo, {gy, s}, x[2]);
 }
 
+void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* gy = y[0]->grad();
+    Value* w = x[1];
+    AddGradOp(graph, Node::kConvTranspose, {gy, w}, x[0])->producer()
+        ->set_strides(node->strides()).set_pads(node->pads());
+    AddGradOp(graph, Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()
+        ->set_strides(node->strides()).set_pads(node->pads());
+    if (x.size() == 3) {
+        // TODO(hamaji): Implement gradients for bias.
+        CHECK(false);
+    }
+}
+
 void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): This probably works as is. Test it.
     CHECK_EQ(1, node->axis());
@@ -208,6 +221,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kRelu, 1, 1, &ReluGradFn);
         register_grad_fn(Node::kReduceSum, 1, 1, &ReduceSumGradFn);
         register_grad_fn(Node::kGemm, 3, 1, &GemmGradFn);
+        register_grad_fn(Node::kConv, -1, 1, &ConvGradFn);
         register_grad_fn(Node::kLogSoftmax, 1, 1, &LogSoftmaxGradFn);
         register_grad_fn(Node::kSoftmax, 1, 1, &SoftmaxGradFn);
     }

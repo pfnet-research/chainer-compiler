@@ -161,6 +161,12 @@ private:
             } else {
                 EMIT(ConvTransposeWithBias, out(0), in(0), in(1), strides(), pads(), output_shape, in(2));
             }
+        } else if (node.op_type() == Node::kConvGradWeight) {
+            CHECK_EQ(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            // TODO(xchainer): Support dilation.
+            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
+            EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

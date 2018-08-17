@@ -135,6 +135,10 @@ xchainer::Array ConvTransposeWithBiasOp::RunImpl(XCVMState* st, const xchainer::
     return xchainer::ConvTranspose(x, w, b, strides, pads, out_size);
 }
 
+xchainer::Array ConvGradWeightOp::RunImpl(XCVMState* st, const xchainer::Array& w, const xchainer::Array& x, const xchainer::Array& gy) {
+    return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, strides, pads, false  /* cover_all */);
+}
+
 xchainer::Array IdentityOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return x;
 }

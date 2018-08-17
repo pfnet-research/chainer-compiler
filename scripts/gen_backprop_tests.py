@@ -143,6 +143,11 @@ def get_backprop_tests():
          a=[[3, 5], [7, 4], [2, 6]],
          b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]),
          c=[4, 5, 6, 7])
+
+    test('conv', lambda m: F.convolution_2d(m.a, m.b),
+         a=np.arange(25).reshape((1, 1, 5, 5)),
+         b=np.arange(9).reshape((1, 1, 3, 3)))
+
     test('log_softmax', lambda m: F.log_softmax(m.a),
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
     # Multiply `b` to avoid nearly zero gradients.
