@@ -72,7 +72,10 @@ def create_backprop_test(test_name, fn, expected_extra_params=None, **kwargs):
     expected_param_names = list(params.keys())
     if expected_extra_params is not None:
         expected_param_names += expected_extra_params
-    assert sorted(param_names) == sorted(expected_param_names)
+    if sorted(expected_param_names) != sorted(param_names):
+        print('expected=%s actual=%s' %
+              (list(sorted(expected_param_names)), list(sorted(param_names))))
+        assert False
 
     outputs = [(output_names[0], result)]
     for name in sorted(params):
