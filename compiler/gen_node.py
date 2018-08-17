@@ -55,6 +55,7 @@ NodeDef('Mul', 2, 1)
 NodeDef('Div', 2, 1)
 NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
+NodeDef('Less', 2, 1)
 
 NodeDef('Cast', 1, 1, to=int)
 NodeDef('Shape', 1, 1)
@@ -78,7 +79,7 @@ conv_attrs = attr_sets(auto_pad='NOTSET',
                        kernel_shape=[int],
                        pads=[int],
                        strides=[int])
-NodeDef('Conv', 1, (2, 3), **conv_attrs)
+NodeDef('Conv', (2, 3), 1, **conv_attrs)
 
 NodeDef('BatchNormalization', 5, 1, epsilon=1e-5, momentum=0.9, spatial=1)
 
@@ -216,9 +217,6 @@ class Value;
 
 class NodeBase {
 public:
-    NodeBase();
-    NodeBase(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
-
     void FillONNXAttributes(onnx::NodeProto* xnode) const;
 
     void SetDefaultAttributeValues();
@@ -230,6 +228,9 @@ public:
         f.write(r'''
     OpType op_type_;
     std::vector<onnx::AttributeProto> unknown_attributes_;
+
+    explicit NodeBase(OpType op_type);
+    NodeBase(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 };
 
 }  // namespace oniku
@@ -238,7 +239,7 @@ public:
 
 def gen_gen_node_base_cc():
     lines = []
-    lines.append('NodeBase::NodeBase() {}')
+    lines.append('NodeBase::NodeBase(OpType op_type) : op_type_(op_type) {}')
     lines.append('NodeBase::NodeBase(const onnx::NodeProto& xnode, '
                  'const std::vector<Value*>& inputs, '
                  'const std::vector<Value*>& outputs) {')
