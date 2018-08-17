@@ -112,23 +112,23 @@ private:
         }                                         \
     } while (0)
 
-        EMIT_SIMPLE_UNARY_OP("Neg", Neg);
-        EMIT_SIMPLE_UNARY_OP("Exp", Exp);
-        EMIT_SIMPLE_UNARY_OP("Log", Log);
-        EMIT_SIMPLE_UNARY_OP("Sqrt", Sqrt);
-        EMIT_SIMPLE_UNARY_OP("Relu", Relu);
-        EMIT_SIMPLE_UNARY_OP("Sigmoid", Sigmoid);
-        EMIT_SIMPLE_UNARY_OP("Not", Not);
-        EMIT_SIMPLE_UNARY_OP("Identity", Identity);
+        EMIT_SIMPLE_UNARY_OP(Node::kNeg, Neg);
+        EMIT_SIMPLE_UNARY_OP(Node::kExp, Exp);
+        EMIT_SIMPLE_UNARY_OP(Node::kLog, Log);
+        EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);
+        EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
+        EMIT_SIMPLE_UNARY_OP(Node::kSigmoid, Sigmoid);
+        EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
+        EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
 
-        EMIT_SIMPLE_BINARY_OP("Add", Add);
-        EMIT_SIMPLE_BINARY_OP("Sub", Sub);
-        EMIT_SIMPLE_BINARY_OP("Mul", Mul);
-        EMIT_SIMPLE_BINARY_OP("Div", Div);
-        EMIT_SIMPLE_BINARY_OP("Equal", Equal);
-        EMIT_SIMPLE_BINARY_OP("Greater", Greater);
+        EMIT_SIMPLE_BINARY_OP(Node::kAdd, Add);
+        EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);
+        EMIT_SIMPLE_BINARY_OP(Node::kMul, Mul);
+        EMIT_SIMPLE_BINARY_OP(Node::kDiv, Div);
+        EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
+        EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
 
-        if (node.op_type() == "Dropout") {
+        if (node.op_type() == Node::kDropout) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
             CHECK_GE(2UL, node.outputs().size());
@@ -137,7 +137,7 @@ private:
             }
             // TODO(hamaji): Dropout does nothing for now.
             EMIT(Identity, out(0), in(0));
-        } else if (node.op_type() == "Conv") {
+        } else if (node.op_type() == Node::kConv) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -148,67 +148,67 @@ private:
             } else {
                 EMIT(ConvWithBias, out(0), in(0), in(1), strides(), pads(), in(2));
             }
-        } else if (node.op_type() == "Shape") {
+        } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Shape, out(0), in(0));
-        } else if (node.op_type() == "Reshape") {
+        } else if (node.op_type() == Node::kReshape) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Reshape, out(0), in(0), in(1));
-        } else if (node.op_type() == "Expand") {
+        } else if (node.op_type() == Node::kExpand) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Expand, out(0), in(0), in(1));
-        } else if (node.op_type() == "MatMul") {
+        } else if (node.op_type() == Node::kMatMul) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(MatMul, out(0), in(0), in(1));
-        } else if (node.op_type() == "Gemm") {
+        } else if (node.op_type() == Node::kGemm) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
-        } else if (node.op_type() == "BatchNormalization") {
+        } else if (node.op_type() == Node::kBatchNormalization) {
             CHECK_EQ(5UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(BatchNormalization, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon());
-        } else if (node.op_type() == "MaxPool") {
+        } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(MaxPool, out(0), in(0), node.kernel_shape(), strides(), pads());
-        } else if (node.op_type() == "AveragePool") {
+        } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(AveragePool, out(0), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
-        } else if (node.op_type() == "Softmax") {
+        } else if (node.op_type() == Node::kSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             int axis = node.axis();
             if (axis < 0) axis = 1;
             EMIT(Softmax, out(0), in(0), axis);
-        } else if (node.op_type() == "LogSoftmax") {
+        } else if (node.op_type() == Node::kLogSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             int axis = node.axis();
             if (axis < 0) axis = 1;
             EMIT(LogSoftmax, out(0), in(0), axis);
-        } else if (node.op_type() == "ReduceSum") {
+        } else if (node.op_type() == Node::kReduceSum) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == "ReduceSumSquare") {
+        } else if (node.op_type() == Node::kReduceSumSquare) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumSquare, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == "ReduceSumTo") {
+        } else if (node.op_type() == Node::kOnikuxReduceSumTo) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumTo, out(0), in(0), in(1));
-        } else if (node.op_type() == "ReduceMean") {
+        } else if (node.op_type() == Node::kReduceMean) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
-        } else if (node.op_type() == "Cast") {
+        } else if (node.op_type() == Node::kCast) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Cast, out(0), in(0), node.to());

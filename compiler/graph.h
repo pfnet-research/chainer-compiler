@@ -6,11 +6,11 @@
 
 #include <onnx/onnx.pb.h>
 
+#include <compiler/node.h>
 #include <compiler/value.h>
 
 namespace oniku {
 
-class Node;
 class Type;
 
 class Graph {
@@ -54,7 +54,7 @@ public:
     Value* AddInputValue(const std::string& name, const Type& type);
     Value* AddOutputValue(const std::string& name, const Type& type);
 
-    Node* AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    Node* AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
     void DetachNode(Node* node);
 

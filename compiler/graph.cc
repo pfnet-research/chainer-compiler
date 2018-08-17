@@ -143,8 +143,9 @@ Value* Graph::AddOutputValue(const std::string& name, const Type& type) {
     return value;
 }
 
-Node* Graph::AddNode(const std::string& op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
-    Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
+Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+    Node* node = new Node(GenSym("TODO"), op_type, inputs, outputs);
+    //Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
@@ -155,9 +156,9 @@ void Graph::DetachNode(Node* node) {
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
     for (const auto& node : nodes_) {
-        if (node->order() >= 0) nodes.push_back(node.get());
+        if (node->onikux_order() >= 0) nodes.push_back(node.get());
     }
-    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->order() < b->order(); });
+    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->onikux_order() < b->onikux_order(); });
     return nodes;
 }
 

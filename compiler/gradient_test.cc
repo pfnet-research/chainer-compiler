@@ -28,8 +28,8 @@ TEST(GradientTest, Basic) {
 
     // out = (in0 + in1) * in2
     Value* t0 = graph.AddValue("t0");
-    graph.AddNode("Add", {in0, in1}, {t0});
-    graph.AddNode("Mul", {t0, in2}, {out});
+    graph.AddNode(Node::kAdd, {in0, in1}, {t0});
+    graph.AddNode(Node::kMul, {t0, in2}, {out});
 
     AddGradientNodes(&graph);
 

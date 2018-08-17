@@ -52,7 +52,7 @@ void ScheduleComputation(const Graph& graph) {
     }
 
     for (size_t i = 0; i < nodes.size(); ++i) {
-        nodes[i]->set_order(i + 1);
+        nodes[i]->set_onikux_order(i + 1);
     }
 }
 

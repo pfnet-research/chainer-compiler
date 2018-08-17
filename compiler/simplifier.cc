@@ -11,25 +11,25 @@ namespace {
 
 void RemoveSum(Graph* graph) {
     for (Node* node : graph->GetLiveNodes()) {
-        if (node->op_type() != "Sum") continue;
+        if (node->op_type() != Node::kSum) continue;
         CHECK_EQ(1UL, node->outputs().size());
         Value* v = node->inputs()[0];
         for (size_t i = 1; i < node->inputs().size(); ++i) {
             Value* o = graph->AddValue(StrCat(node->name(), "_simplify_", i));
-            graph->AddNode("Add", {v, node->inputs()[i]}, {o});
+            graph->AddNode(Node::kAdd, {v, node->inputs()[i]}, {o});
             v = o;
         }
-        graph->AddNode("Identity", {v}, node->outputs());
+        graph->AddNode(Node::kIdentity, {v}, node->outputs());
         graph->DetachNode(node);
     }
 }
 
 void RemoveLess(Graph* graph) {
     for (Node* node : graph->GetLiveNodes()) {
-        if (node->op_type() != "Less") continue;
+        if (node->op_type() != Node::kLess) continue;
         CHECK_EQ(2UL, node->inputs().size());
         CHECK_EQ(1UL, node->outputs().size());
-        graph->AddNode("Greater", {node->inputs()[1], node->inputs()[0]}, {node->outputs()[0]});
+        graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, {node->outputs()[0]});
         graph->DetachNode(node);
     }
 }

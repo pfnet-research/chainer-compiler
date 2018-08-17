@@ -128,10 +128,10 @@ private:
             return strides_sym;
         };
 
-        if (node.op_type() == "Add") {
+        if (node.op_type() == Node::kAdd) {
             CHECK_EQ(2UL, node.inputs().size());
             EmitSingleArrayAssignment(out_name(), GetValueName(node.inputs()[0]) + " + " + GetValueName(node.inputs()[1]), ce);
-        } else if (node.op_type() == "Dropout") {
+        } else if (node.op_type() == Node::kDropout) {
             CHECK_LE(1UL, node.outputs().size());
             CHECK_GE(2UL, node.outputs().size());
             if (node.outputs().size() == 2UL) {
@@ -140,9 +140,9 @@ private:
             const std::string& out = GetValueName(node.outputs().front());
             // TODO(hamaji): Dropout does nothing for now.
             EmitSingleArrayAssignment(out, in_name(), ce);
-        } else if (node.op_type() == "Identity") {
+        } else if (node.op_type() == Node::kIdentity) {
             EmitSingleArrayAssignment(out_name(), in_name(), ce);
-        } else if (node.op_type() == "Conv") {
+        } else if (node.op_type() == Node::kConv) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             // TODO(xchainer): Support dilation.
@@ -153,7 +153,7 @@ private:
             std::string r = "xchainer::Conv(" +
                             Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1]), bias, strides_sym, pads_sym}) + ")";
             EmitSingleArrayAssignment(out_name(), r, ce);
-        } else if (node.op_type() == "Gemm") {
+        } else if (node.op_type() == Node::kGemm) {
             CHECK_EQ(3UL, node.inputs().size());
             std::string a = GetValueName(node.inputs()[0]);
             std::string b = GetValueName(node.inputs()[1]);
@@ -173,14 +173,14 @@ private:
                 r = StrCat(r, " * ", node.beta());
             }
             EmitSingleArrayAssignment(out_name(), r, ce);
-        } else if (node.op_type() == "MaxPool" || node.op_type() == "AveragePool") {
+        } else if (node.op_type() == Node::kMaxPool || node.op_type() == Node::kAveragePool) {
             const std::string& strides_sym = emit_strides();
             const std::string& pads_sym = emit_pads();
             std::vector<int> kernel_shape = node.kernel_shape();
             const std::string& kernel_shape_sym = gen_sym("kernel_shape");
             EmitIntStackVector(kernel_shape_sym, kernel_shape, ce);
             std::string r;
-            if (node.op_type() == "MaxPool") {
+            if (node.op_type() == Node::kMaxPool) {
                 r = "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ", false)";
             } else {
                 const std::string pad_mode = node.count_include_pad() ? "kZero" : "kIgnore";
@@ -188,28 +188,28 @@ private:
                     Join({in_name(), kernel_shape_sym, strides_sym, pads_sym, "xchainer::AveragePoolPadMode::" + pad_mode}) + ")";
             }
             EmitSingleArrayAssignment(out_name(), r, ce);
-        } else if (node.op_type() == "MatMul") {
+        } else if (node.op_type() == Node::kMatMul) {
             CHECK_EQ(2UL, node.inputs().size());
             EmitSingleArrayAssignment(
                     out_name(), "xchainer::Dot(" + Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1])}) + ")", ce);
-        } else if (node.op_type() == "Relu") {
+        } else if (node.op_type() == Node::kRelu) {
             CHECK_EQ(1UL, node.inputs().size());
             EmitSingleArrayAssignment(out_name(), "xchainer::Maximum(" + GetValueName(node.inputs()[0]) + ", 0)", ce);
-        } else if (node.op_type() == "Reshape") {
+        } else if (node.op_type() == Node::kReshape) {
             CHECK_EQ(2UL, node.inputs().size());
             EmitSingleArrayAssignment(
                     out_name(),
                     "xchainer::Reshape(" + Join({GetValueName(node.inputs()[0]), "ArrayToShape(" + GetValueName(node.inputs()[1]) + ")"}) +
                             ")",
                     ce);
-        } else if (node.op_type() == "Sum") {
+        } else if (node.op_type() == Node::kSum) {
             CHECK_LE(1UL, node.inputs().size());
             std::string r = GetValueName(node.inputs().front());
             for (size_t i = 1; i < node.inputs().size(); ++i) {
                 r += " + " + GetValueName(node.inputs()[i]);
             }
             EmitSingleArrayAssignment(out_name(), r, ce);
-        } else if (node.op_type() == "BatchNormalization") {
+        } else if (node.op_type() == Node::kBatchNormalization) {
             CHECK_LE(5UL, node.inputs().size());
             const std::string& x = GetValueName(node.inputs()[0]);
             const std::string& s = GetValueName(node.inputs()[1]);
@@ -218,11 +218,11 @@ private:
             const std::string& var = GetValueName(node.inputs()[4]);
             const std::string r = StrCat("BatchNormONNX(", Join({x, s, bias, mean, var}), ", ", node.epsilon(), ")");
             EmitSingleArrayAssignment(out_name(), r, ce);
-        } else if (node.op_type() == "Softmax" || node.op_type() == "LogSoftmax") {
+        } else if (node.op_type() == Node::kSoftmax || node.op_type() == Node::kLogSoftmax) {
             int axis = node.axis();
             if (axis < 0) axis = 1;
             std::string r = StrCat("xchainer::LogSoftmax(", in_name(), ", xchainer::OptionalAxes{", axis, "})");
-            if (node.op_type() == "Softmax") {
+            if (node.op_type() == Node::kSoftmax) {
                 r = "xchainer::Exp(" + r + ")";
             }
             EmitSingleArrayAssignment(out_name(), r, ce);
@@ -248,7 +248,7 @@ private:
             // TODO(hamaji): Remove this hack to ignore the second
             // output of Dropout.
             std::vector<Value*> outputs(node->outputs());
-            if (node->op_type() == "Dropout") {
+            if (node->op_type() == Node::kDropout) {
                 outputs.resize(1);
             }
             ce << " << StrCat("

@@ -63,7 +63,7 @@ public:
             if (!original_input_values.count(input)) continue;
             CHECK(input->grad());
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
-            graph_->AddNode("Identity", {input->grad()}, {out_grad});
+            graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
         }
 
         // Reset gradients.

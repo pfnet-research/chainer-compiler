@@ -29,9 +29,9 @@ TEST(SchedulerTest, Basic) {
     Value* unused2 = graph.AddValue("unused2");
     Value* in = graph.AddValue("in", Value::Kind::kInput);
 
-    Node* n1 = graph.AddNode("n1", {t1}, {out});
-    Node* n2 = graph.AddNode("n2", {in}, {t1});
-    Node* n3 = graph.AddNode("n3", {unused1}, {unused2});
+    Node* n1 = graph.AddNode(Node::kIdentity, {t1}, {out});
+    Node* n2 = graph.AddNode(Node::kIdentity, {in}, {t1});
+    Node* n3 = graph.AddNode(Node::kIdentity, {unused1}, {unused2});
 
     ScheduleComputation(graph);
 
@@ -39,8 +39,8 @@ TEST(SchedulerTest, Basic) {
     ASSERT_EQ(2UL, nodes.size());
     EXPECT_EQ(n2, nodes[0]);
     EXPECT_EQ(n1, nodes[1]);
-    EXPECT_EQ(2, n1->order());
-    EXPECT_EQ(1, n2->order());
+    EXPECT_EQ(2, n1->onikux_order());
+    EXPECT_EQ(1, n2->onikux_order());
 
     onnx::NodeProto xn1;
     n1->ToONNX(&xn1);
