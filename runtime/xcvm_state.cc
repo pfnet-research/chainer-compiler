@@ -5,7 +5,8 @@
 namespace oniku {
 namespace runtime {
 
-XCVMState::XCVMState(int num_variables, const InOuts& inputs) : pc_(0), variables_(num_variables), inputs_(inputs) {
+XCVMState::XCVMState(int num_variables, const InOuts& inputs)
+    : pc_(0), variables_(num_variables), auxiliaries_(num_variables), inputs_(inputs) {
 }
 
 xchainer::Array XCVMState::GetVar(int index) {
@@ -21,6 +22,14 @@ std::string XCVMState::GetVarString(int index) {
         return var.ToString();
     else
         return var.shape().ToString();
+}
+
+XCVMState::Auxiliary* XCVMState::GetAux(int index) {
+    return auxiliaries_[index].get();
+}
+
+void XCVMState::SetAux(int index, std::unique_ptr<Auxiliary>&& aux) {
+    auxiliaries_[index] = std::move(aux);
 }
 
 void XCVMState::SetVar(int index, xchainer::Array value) {

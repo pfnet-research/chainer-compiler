@@ -89,6 +89,8 @@ XC_OPS = [
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('count_include_pad')],
      ['y']),
+    ('MaxPoolGrad', [Array('y'), Array('gy')], ['gx']),
+    ('AveragePoolGrad', [Array('y'), Array('gy')], ['gx']),
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
      [Array('a'), Array('b'), Array('c'),

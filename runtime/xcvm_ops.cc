@@ -27,6 +27,22 @@ xchainer::OptionalAxes GetXchainerAxes(xchainer::StackVector<int64_t, xchainer::
     return xc_axes;
 }
 
+template <class T>
+class PoolContext : public XCVMState::Auxiliary {
+public:
+    explicit PoolContext(std::unique_ptr<T>&& fb)
+        : fb_(std::move(fb)) {
+    }
+    virtual ~PoolContext() = default;
+
+    T* fb() {
+        return fb_.get();
+    }
+
+private:
+    std::unique_ptr<T> fb_;
+};
+
 }  // namespace
 
 xchainer::Array InOp::RunImpl(XCVMState* st) {
@@ -185,12 +201,34 @@ xchainer::Array LogSoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& inpu
 }
 
 xchainer::Array MaxPoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
-    return xchainer::MaxPool(x, kernel_shape, strides, pads, false);
+    // TODO(hamaji): Revive CheckPoolInputs.
+    std::unique_ptr<xchainer::MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_shape, strides, pads, false);
+    xchainer::Array out = fb->Forward(x.AsGradStopped());
+    std::unique_ptr<XCVMState::Auxiliary> pfb(new PoolContext<xchainer::MaxPoolForwardBackward>(std::move(fb)));
+    st->SetAux(this->y, std::move(pfb));
+    return out;
 }
 
 xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    // TODO(hamaji): Revive CheckPoolInputs.
     xchainer::AveragePoolPadMode pad_mode = count_include_pad ? xchainer::AveragePoolPadMode::kZero : xchainer::AveragePoolPadMode::kIgnore;
-    return xchainer::AveragePool(x, kernel_shape, strides, pads, pad_mode);
+    std::unique_ptr<xchainer::AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_shape, strides, pads, pad_mode);
+    xchainer::Array out = fb->Forward(x.AsGradStopped());
+    std::unique_ptr<XCVMState::Auxiliary> pfb(new PoolContext<xchainer::AveragePoolForwardBackward>(std::move(fb)));
+    st->SetAux(this->y, std::move(pfb));
+    return out;
+}
+
+xchainer::Array MaxPoolGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
+    auto fb = static_cast<PoolContext<xchainer::MaxPoolForwardBackward>*>(st->GetAux(this->y));
+    CHECK(fb);
+    return fb->fb()->Backward(gy);
+}
+
+xchainer::Array AveragePoolGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
+    auto fb = static_cast<PoolContext<xchainer::AveragePoolForwardBackward>*>(st->GetAux(this->y));
+    CHECK(fb);
+    return fb->fb()->Backward(gy);
 }
 
 xchainer::Array MatMulOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {

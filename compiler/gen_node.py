@@ -98,12 +98,14 @@ pool_attrs = attr_sets(auto_pad='NOTSET',
                        storage_order=0,
                        strides=[int])
 NodeDef('MaxPool', 1, (1, 2), **pool_attrs)
-NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
+NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
 
 NodeDef('OnikuxReduceSumTo', 2, 1)
+NodeDef('OnikuxMaxPoolGrad', 2, 1)
+NodeDef('OnikuxAveragePoolGrad', 2, 1)
 
 
 class AttrDef(object):

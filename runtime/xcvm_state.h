@@ -15,6 +15,13 @@ namespace runtime {
 
 class XCVMState {
 public:
+    class Auxiliary {
+    public:
+        virtual ~Auxiliary() = default;
+    protected:
+        Auxiliary() = default;
+    };
+
     XCVMState(int num_variables, const InOuts& inputs);
 
     int pc() const {
@@ -26,6 +33,9 @@ public:
     xchainer::Array GetVar(int index);
     void SetVar(int index, xchainer::Array value);
     std::string GetVarString(int index);
+
+    Auxiliary* GetAux(int index);
+    void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
 
     xchainer::Array Input(const std::string& name);
     void Output(const std::string& name, xchainer::Array value);
@@ -44,6 +54,7 @@ public:
 private:
     int pc_;
     std::vector<nonstd::optional<xchainer::Array>> variables_;
+    std::vector<std::unique_ptr<Auxiliary>> auxiliaries_;
     const InOuts& inputs_;
     InOuts outputs_;
     int trace_level_;

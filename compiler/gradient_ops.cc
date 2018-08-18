@@ -157,6 +157,14 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     }
 }
 
+void MaxPoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    AddGradOp(graph, Node::kOnikuxMaxPoolGrad, {y[0], y[0]->grad()}, x[0]);
+}
+
+void AveragePoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    AddGradOp(graph, Node::kOnikuxAveragePoolGrad, {y[0], y[0]->grad()}, x[0]);
+}
+
 void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): This probably works as is. Test it.
     CHECK_EQ(1, node->axis());
@@ -212,6 +220,8 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kReduceSum, 1, 1, &ReduceSumGradFn);
         register_grad_fn(Node::kGemm, 3, 1, &GemmGradFn);
         register_grad_fn(Node::kConv, -1, 1, &ConvGradFn);
+        register_grad_fn(Node::kMaxPool, 1, 1, &MaxPoolGradFn);
+        register_grad_fn(Node::kAveragePool, 1, 1, &AveragePoolGradFn);
         register_grad_fn(Node::kLogSoftmax, 1, 1, &LogSoftmaxGradFn);
         register_grad_fn(Node::kSoftmax, 1, 1, &SoftmaxGradFn);
     }

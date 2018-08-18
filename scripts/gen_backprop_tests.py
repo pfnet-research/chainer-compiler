@@ -159,6 +159,14 @@ def get_backprop_tests():
          b=aranges((4, 2, 3, 3)),
          c=aranges((4,)),
          d=aranges((1, 4, 3, 3)))
+    test('max_pool', lambda m: F.max_pooling_2d(m.a, 3, stride=1,
+                                                cover_all=False) * m.b,
+         a=aranges((2, 3, 5, 5)) % 9,
+         b=aranges((2, 3, 3, 3)))
+    test('average_pool', lambda m: F.average_pooling_2d(m.a, 3,
+                                                        stride=1) * m.b,
+         a=aranges((2, 3, 5, 5)) % 9,
+         b=aranges((2, 3, 3, 3)))
 
     test('log_softmax', lambda m: F.log_softmax(m.a),
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
