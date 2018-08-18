@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <xchainer/axes.h>
 #include <xchainer/routines/connection.h>
 #include <xchainer/routines/creation.h>
@@ -157,6 +159,17 @@ xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, c
 
 xchainer::Array ExpandOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
     return xchainer::BroadcastTo(data, ArrayToShape(shape));
+}
+
+xchainer::Array SliceOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
+    std::vector<xchainer::ArrayIndex> indices(data.ndim(), xchainer::Slice());
+    for (size_t i = 0; i < axes.size(); ++i) {
+        int axis = axes[i];
+        int start = starts[i];
+        int end = ends[i];
+        indices[axis] = xchainer::Slice(start, end, 1);
+    }
+    return data.At(indices);
 }
 
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {

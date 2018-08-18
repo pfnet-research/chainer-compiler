@@ -77,6 +77,8 @@ XC_OPS = [
     ('Shape', [Array('data')], ['shape']),
     ('Reshape', [Array('data'), Array('shape')], ['reshaped']),
     ('Expand', [Array('input'), Array('shape')], ['output']),
+    ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
+     ['output']),
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
     ('MaxPool',

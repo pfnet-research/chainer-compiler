@@ -231,6 +231,20 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Cast, out(0), in(0), node.to());
+        } else if (node.op_type() == Node::kSlice) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            CHECK_NE(0UL, node.starts().size());
+            CHECK_NE(0UL, node.ends().size());
+            CHECK_EQ(node.starts().size(), node.ends().size());
+            std::vector<int> axes{node.axes()};
+            if (axes.empty()) {
+                for (size_t i = 0; i < node.starts().size(); ++i)
+                    axes.push_back(i);
+            } else {
+                CHECK_EQ(node.starts().size(), axes.size());
+            }
+            EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

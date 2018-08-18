@@ -119,6 +119,11 @@ TEST_CASES = [
     # TODO(xchainer): Do we really want to support this?
     # TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
+    TestCase(NODE_TEST, 'test_slice'),
+    TestCase(NODE_TEST, 'test_slice_default_axes'),
+    TestCase(NODE_TEST, 'test_slice_end_out_of_bounds'),
+    TestCase(NODE_TEST, 'test_slice_neg'),
+    TestCase(NODE_TEST, 'test_slice_start_out_of_bounds'),
 
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
     TestCase(NODE_TEST, 'test_gemm_broadcast'),
