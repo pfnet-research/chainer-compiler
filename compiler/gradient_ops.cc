@@ -115,39 +115,27 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
 
     // Note bias will be ignored thanks to beta=0.
     if (node->trans_a()) {
-        Value* o = AddGradOp(graph, Node::kGemm, {x[1], gy, x[0]}, x[0]);
-        Node* gemm = o->producer();
-        gemm->set_alpha(node->alpha());
-        gemm->set_beta(0);
-        gemm->set_trans_a(node->trans_b());
-        gemm->set_trans_b(true);
+        AddGradOp(graph, Node::kGemm, {x[1], gy, x[0]}, x[0])->producer()
+                ->set_alpha(node->alpha()).set_beta(0)
+                .set_trans_a(node->trans_b()).set_trans_b(true);
     } else {
-        Value* o = AddGradOp(graph, Node::kGemm, {gy, x[1], x[0]}, x[0]);
-        Node* gemm = o->producer();
-        gemm->set_alpha(node->alpha());
-        gemm->set_beta(0);
-        gemm->set_trans_a(false);
-        gemm->set_trans_b(!node->trans_b());
+        AddGradOp(graph, Node::kGemm, {gy, x[1], x[0]}, x[0])->producer()
+                ->set_alpha(node->alpha()).set_beta(0)
+                .set_trans_a(false).set_trans_b(!node->trans_b());
     }
 
     if (node->trans_b()) {
-        Value* o = AddGradOp(graph, Node::kGemm, {gy, x[0], x[1]}, x[1]);
-        Node* gemm = o->producer();
-        gemm->set_alpha(node->alpha());
-        gemm->set_beta(0);
-        gemm->set_trans_a(true);
-        gemm->set_trans_b(node->trans_a());
+        AddGradOp(graph, Node::kGemm, {gy, x[0], x[1]}, x[1])->producer()
+                ->set_alpha(node->alpha()).set_beta(0)
+                .set_trans_a(true).set_trans_b(node->trans_a());
     } else {
-        Value* o = AddGradOp(graph, Node::kGemm, {x[0], gy, x[1]}, x[1]);
-        Node* gemm = o->producer();
-        gemm->set_alpha(node->alpha());
-        gemm->set_beta(0);
-        gemm->set_trans_a(!node->trans_a());
-        gemm->set_trans_b(false);
+        AddGradOp(graph, Node::kGemm, {x[0], gy, x[1]}, x[1])->producer()
+                ->set_alpha(node->alpha()).set_beta(0)
+                .set_trans_a(!node->trans_a()).set_trans_b(false);
     }
 
-    Value* s = AddTempOp(graph, Node::kShape, {x[2]}, x[2]);
-    AddGradOp(graph, Node::kOnikuxReduceSumTo, {gy, s}, x[2]);
+    AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()
+            ->set_axes({0}).set_keepdims(false);
 }
 
 void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -175,9 +163,7 @@ void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
 
     Value* gy = y[0]->grad();
     Value* sum_val = AddTempOp(graph, Node::kReduceSum, {gy}, x[0]);
-    Node* sum_op = sum_val->producer();
-    sum_op->set_axes({node->axis()});
-    sum_op->set_keepdims(true);
+    sum_val->producer()->set_axes({node->axis()}).set_keepdims(true);
     Value* exp_val = AddTempOp(graph, Node::kExp, {y[0]}, x[0]);
     Value* mul_val = AddTempOp(graph, Node::kMul, {exp_val, sum_val}, x[0]);
     AddGradOp(graph, Node::kSub, {gy, mul_val}, x[0]);
@@ -187,9 +173,7 @@ void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x,
     Value* gy = y[0]->grad();
     Value* gx = AddTempOp(graph, Node::kMul, {y[0], gy}, x[0]);
     Value* sum_val = AddTempOp(graph, Node::kReduceSum, {gx}, x[0]);
-    Node* sum_op = sum_val->producer();
-    sum_op->set_axes({node->axis()});
-    sum_op->set_keepdims(true);
+    sum_val->producer()->set_axes({node->axis()}).set_keepdims(true);
     Value* mul_val = AddTempOp(graph, Node::kMul, {y[0], sum_val}, x[0]);
     AddGradOp(graph, Node::kSub, {gx, mul_val}, x[0]);
 }
