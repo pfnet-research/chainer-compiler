@@ -245,6 +245,10 @@ private:
                 CHECK_EQ(node.starts().size(), axes.size());
             }
             EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
+        } else if (node.op_type() == Node::kGather) {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Gather, out(0), in(0), in(1), node.axis());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

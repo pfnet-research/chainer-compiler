@@ -172,6 +172,10 @@ xchainer::Array SliceOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
     return data.At(indices);
 }
 
+xchainer::Array GatherOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& indices) {
+    return data.Take(indices, axis);
+}
+
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
     return xchainer::Exp(xchainer::LogSoftmax(input, xchainer::OptionalAxes{static_cast<char>(axis)}));
 }

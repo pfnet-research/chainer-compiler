@@ -66,6 +66,7 @@ NodeDef('Shape', 1, 1)
 NodeDef('Reshape', 2, 1)
 NodeDef('Expand', 2, 1)
 NodeDef('Slice', 1, 1, axes=[int], starts=[int], ends=[int])
+NodeDef('Gather', 2, 1, axis=0)
 
 NodeDef('Sum', None, 1)
 
