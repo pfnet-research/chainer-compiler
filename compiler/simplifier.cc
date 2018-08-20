@@ -36,11 +36,16 @@ bool ReplaceBatchNormalization(Graph* graph, Node* node) {
     Value* bias = node->inputs()[2];
     Value* mean = node->inputs()[3];
     Value* var = node->inputs()[4];
+    // TODO(hamaji): Revisit how we handle dynamic shapes.
     int x_ndim = x->type().dims().size();
     int64_t size = s->type().NumElements();
-    if (x_ndim < 2 || size < 0) {
+    if (size < 0) {
         WARN_ONCE("BatchNormalization without static shape cannot be backpropped for now");
         return false;
+    }
+    if (x_ndim < 2) {
+        WARN_ONCE("Input of BatchNormalization is not known. Assuming this is after 2D convolution...");
+        x_ndim = 4;
     }
 
     std::vector<int64_t> dims = {size};
