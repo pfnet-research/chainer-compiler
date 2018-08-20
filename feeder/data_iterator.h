@@ -30,4 +30,5 @@ private:
     std::queue<std::vector<xchainer::Array>> buf_;
     const int buf_size_;
     bool should_finish_ = false;
+    bool is_iteration_finished_ = false;
 };

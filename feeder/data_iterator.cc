@@ -12,6 +12,8 @@ DataIterator::~DataIterator() {
 std::vector<xchainer::Array> DataIterator::GetNext() {
     std::unique_lock<std::mutex> lock{mu_};
     while (buf_.empty()) {
+        if (is_iteration_finished_)
+            return {};
         cond_.wait(lock);
     }
     auto ret = buf_.front();
@@ -35,6 +37,15 @@ void DataIterator::Loop() {
         auto next = GetNextImpl();
 
         std::unique_lock<std::mutex> lock{mu_};
+        if (next.empty()) {
+            is_iteration_finished_ = true;
+            cond_.notify_all();
+            while (!should_finish_) {
+                cond_.wait(lock);
+                cond_.notify_all();
+            }
+            return;
+        }
         if (should_finish_) {
             cond_.notify_all();
             return;
