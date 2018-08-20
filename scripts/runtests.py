@@ -109,6 +109,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_shape'),
     TestCase(NODE_TEST, 'test_shape_example'),
+    TestCase(NODE_TEST, 'test_size'),
+    TestCase(NODE_TEST, 'test_size_example'),
 
     # TODO(xchainer): Support negative reshape.
     TestCase(NODE_TEST, 'test_reshape_extended_dims'),

@@ -174,6 +174,10 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Shape, out(0), in(0));
+        } else if (node.op_type() == Node::kSize) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Size, out(0), in(0));
         } else if (node.op_type() == Node::kReshape) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

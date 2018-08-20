@@ -169,6 +169,11 @@ xchainer::Array ShapeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
     return ShapeToArray(data.shape());
 }
 
+xchainer::Array SizeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
+    int64_t size = data.GetTotalSize();
+    return MakeArray(xchainer::Dtype::kInt64, {}, &size);
+}
+
 xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
     return xchainer::Reshape(data, ArrayToShape(shape));
 }
