@@ -59,6 +59,7 @@ public:
 
         for (Value* input : graph_->input_values()) {
             if (!original_input_values.count(input)) continue;
+            if (!input->type().dtype().IsFloat()) continue;
             CHECK(input->grad());
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});

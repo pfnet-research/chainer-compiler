@@ -35,6 +35,10 @@ public:
 
     int SizeOf() const;
 
+    bool IsFloat() const {
+        return type_ == kFloat32 || type_ == kFloat64;
+    }
+
 private:
     DataType type_ = kUnspecified;
 };
