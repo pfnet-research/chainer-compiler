@@ -20,5 +20,28 @@ TEST(TensorTest, LoadMNISTOutput) {
     EXPECT_EQ(Dtype::kFloat32, tensor.dtype());
 }
 
+TEST(TensorTest, Constructor) {
+    {
+        Tensor tensor("foo", Dtype::kFloat32, {2}, {2.0f, 3.0f});
+        EXPECT_EQ(2.0, tensor.Get<float>(0));
+        EXPECT_EQ(3.0, tensor.Get<float>(1));
+    }
+    {
+        Tensor tensor("foo", Dtype::kFloat32, {2}, {2, 3});
+        EXPECT_EQ(2.0, tensor.Get<float>(0));
+        EXPECT_EQ(3.0, tensor.Get<float>(1));
+    }
+    {
+        Tensor tensor("foo", Dtype::kBool, {2}, {2.0, 0.0});
+        EXPECT_EQ(true, tensor.Get<bool>(0));
+        EXPECT_EQ(false, tensor.Get<bool>(1));
+    }
+    {
+        Tensor tensor("foo", Dtype::kFloat64, {2}, {2, 3});
+        EXPECT_EQ(2.0, tensor.Get<double>(0));
+        EXPECT_EQ(3.0, tensor.Get<double>(1));
+    }
+}
+
 }  // namespace
 }  // namespace oniku
