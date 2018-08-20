@@ -151,6 +151,7 @@ Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, co
 }
 
 void Graph::DetachNode(Node* node) {
+    node->Detach();
 }
 
 std::vector<const Node*> Graph::GetComputationSequence() const {
