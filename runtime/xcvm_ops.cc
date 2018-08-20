@@ -182,6 +182,27 @@ xchainer::Array ExpandOp::RunImpl(XCVMState* st, const xchainer::Array& data, co
     return xchainer::BroadcastTo(data, ArrayToShape(shape));
 }
 
+xchainer::Array SqueezeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
+    xchainer::Shape shape;
+    for (size_t i = 0; i < data.shape().size(); ++i) {
+        if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
+            shape.push_back(data.shape()[i]);
+        } else {
+            CHECK_EQ(1, data.shape()[i]) << "Cannot squeeze a dimension whose size is not 1: " << data.shape();
+        }
+    }
+    return xchainer::Reshape(data, shape);
+}
+
+xchainer::Array UnsqueezeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
+    xchainer::Shape shape = data.shape();
+    for (int d : axes) {
+        CHECK_LE(d, shape.size()) << "Unsqueezing axis out of bound: " << d;
+        shape.insert(shape.begin() + d, 1);
+    }
+    return xchainer::Reshape(data, shape);
+}
+
 xchainer::Array SliceOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
     std::vector<xchainer::ArrayIndex> indices(data.ndim(), xchainer::Slice());
     for (size_t i = 0; i < axes.size(); ++i) {

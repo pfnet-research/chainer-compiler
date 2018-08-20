@@ -78,6 +78,8 @@ XC_OPS = [
     ('Size', [Array('data')], ['size']),
     ('Reshape', [Array('data'), Array('shape')], ['reshaped']),
     ('Expand', [Array('input'), Array('shape')], ['output']),
+    ('Squeeze', [Array('data'), Ints('axes')], ['squeezed']),
+    ('Unsqueeze', [Array('data'), Ints('axes')], ['expanded']),
     ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
      ['output']),
     ('Gather', [Array('data'), Array('indices'), Int('axis')], ['output']),

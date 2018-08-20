@@ -66,6 +66,8 @@ NodeDef('Shape', 1, 1)
 NodeDef('Size', 1, 1)
 NodeDef('Reshape', 2, 1)
 NodeDef('Expand', 2, 1)
+NodeDef('Squeeze', 1, 1, axes=[int])
+NodeDef('Unsqueeze', 1, 1, axes=Required([int]))
 NodeDef('Slice', 1, 1, axes=[int], starts=[int], ends=[int])
 NodeDef('Gather', 2, 1, axis=0)
 

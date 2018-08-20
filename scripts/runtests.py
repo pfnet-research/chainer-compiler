@@ -121,6 +121,9 @@ TEST_CASES = [
     # TODO(xchainer): Do we really want to support this?
     # TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
+    TestCase(NODE_TEST, 'test_squeeze'),
+    TestCase(NODE_TEST, 'test_unsqueeze'),
+
     TestCase(NODE_TEST, 'test_slice'),
     TestCase(NODE_TEST, 'test_slice_default_axes'),
     TestCase(NODE_TEST, 'test_slice_end_out_of_bounds'),

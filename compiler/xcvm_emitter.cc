@@ -186,6 +186,14 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Expand, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kSqueeze) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Squeeze, out(0), in(0), node.axes());
+        } else if (node.op_type() == Node::kUnsqueeze) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Unsqueeze, out(0), in(0), node.axes());
         } else if (node.op_type() == Node::kMatMul) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
