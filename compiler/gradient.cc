@@ -34,11 +34,9 @@ public:
         for (Value* value : graph_->output_values()) {
             // TODO(hamaji): Refactor code to support non-float values.
             CHECK_EQ(Dtype::kFloat32, value->type().dtype());
-            Value* grad = graph_->AddInputValue("grad_in@" + value->name(), value->type());
-            SetGrad(value, grad);
-
             std::vector<float> data(value->type().NumElements(), 1.0);
-            grad->ResetInitializer(std::make_unique<Tensor>(grad->name(), value->type().dtype(), value->type().dims(), data));
+            Value* grad = graph_->AddConstValue("grad_in@" + value->name(), value->type(), value->type().dims(), data);
+            SetGrad(value, grad);
             op_queue_.push(value->producer());
         }
 
