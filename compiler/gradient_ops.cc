@@ -83,18 +83,23 @@ void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
     // Support non-float values.
     CHECK_EQ(Dtype::kFloat32, x[0]->type().dtype());
     Value* gy = y[0]->grad();
-    Value* one = graph->AddConstValue("grad_tmp_one@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {1.0f});
+    Value* one = graph->AddConstValue("grad_tmp_one@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {1.0});
     Value* t0 = AddTempOp(graph, Node::kMul, {gy, y[0]}, x[0]);
     Value* t1 = AddTempOp(graph, Node::kSub, {one, y[0]}, x[0]);
     AddGradOp(graph, Node::kMul, {t0, t1}, x[0]);
 }
 
 void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {0.0f});
+    Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {0.0});
     Value* t0 = AddTempOp(graph, Node::kGreater, {y[0], zero}, x[0]);
     Value* t1 = AddTempOp(graph, Node::kCast, {t0}, x[0]);
     t1->producer()->set_to(x[0]->type().dtype());
     AddGradOp(graph, Node::kMul, {t1, y[0]->grad()}, x[0]);
+}
+
+void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* t0 = AddTempOp(graph, Node::kAdd, {y[0], y[0]}, x[0]);
+    AddGradOp(graph, Node::kDiv, {y[0]->grad(), t0}, x[0]);
 }
 
 void IdentityGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -222,6 +227,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kExp, 1, 1, &ExpGradFn);
         register_grad_fn(Node::kSigmoid, 1, 1, &SigmoidGradFn);
         register_grad_fn(Node::kRelu, 1, 1, &ReluGradFn);
+        register_grad_fn(Node::kSqrt, 1, 1, &SqrtGradFn);
 
         register_grad_fn(Node::kIdentity, 1, 1, &IdentityGradFn);
         register_grad_fn(Node::kReshape, 2, 1, &ReshapeGradFn);

@@ -134,6 +134,8 @@ def get_backprop_tests():
     # test('reshape', lambda m: F.reshape(m.a, (1, 2, 1)),
     #      expected_extra_params=['None'], a=[3, 5])
 
+    test('sqrt', lambda m: F.sqrt(m.a), a=[3, 5])
+
     # ONNX chainer creates an extra parameter named 'None' for bias of
     # Gemm.
     test('matmul', lambda m: F.matmul(m.a, m.b),
