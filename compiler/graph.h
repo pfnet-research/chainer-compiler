@@ -45,6 +45,9 @@ public:
 
     std::vector<Node*> GetLiveNodes() const;
 
+    // `input_values_` which is required by `output_values_`.
+    std::vector<Value*> GetNecessaryInputs() const;
+
     const std::string& name() const {
         return name_;
     }

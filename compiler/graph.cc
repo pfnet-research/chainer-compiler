@@ -1,6 +1,8 @@
 #include "graph.h"
 
 #include <algorithm>
+#include <queue>
+#include <set>
 #include <map>
 
 #include <onnx/onnx.pb.h>
@@ -113,6 +115,31 @@ std::vector<Node*> Graph::GetLiveNodes() const {
         if (!node->detached()) nodes.push_back(node.get());
     }
     return nodes;
+}
+
+std::vector<Value*> Graph::GetNecessaryInputs() const {
+    std::queue<Value*> q;
+    for (Value* value : output_values()) {
+        q.push(value);
+    }
+
+    std::set<Value*> seen_values;
+    std::vector<Value*> input_values;
+    while (!q.empty()) {
+        Value* value = q.front();
+        if (value->kind() == Value::Kind::kInput)
+            input_values.push_back(value);
+        q.pop();
+        if (Node* node = value->producer()) {
+            for (Value* input : node->inputs()) {
+                if (!seen_values.emplace(input).second) continue;
+                q.push(input);
+            }
+        }
+    }
+    std::sort(input_values.begin(), input_values.end());
+    input_values.erase(std::unique(input_values.begin(), input_values.end()), input_values.end());
+    return input_values;
 }
 
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {

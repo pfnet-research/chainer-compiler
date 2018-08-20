@@ -26,7 +26,7 @@ public:
 
     void Run() {
         std::set<Value*> original_input_values;
-        for (Value* input : graph_->input_values()) {
+        for (Value* input : graph_->GetNecessaryInputs()) {
             if (!input->initializer()) continue;
             CHECK(original_input_values.emplace(input).second);
         }
@@ -60,7 +60,7 @@ public:
         for (Value* input : graph_->input_values()) {
             if (!original_input_values.count(input)) continue;
             if (!input->type().dtype().IsFloat()) continue;
-            CHECK(input->grad());
+            CHECK(input->grad()) << input->name();
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
         }
