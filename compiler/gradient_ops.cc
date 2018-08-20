@@ -97,6 +97,10 @@ void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const s
     AddGradOp(graph, Node::kMul, {t1, y[0]->grad()}, x[0]);
 }
 
+void IdentityGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    AddGradOp(graph, Node::kIdentity, {y[0]->grad()}, x[0]);
+}
+
 void ReshapeGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* t0 = AddTempOp(graph, Node::kShape, {x[0]}, x[0]);
     AddGradOp(graph, Node::kReshape, {y[0]->grad(), t0}, x[0]);
@@ -219,6 +223,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kSigmoid, 1, 1, &SigmoidGradFn);
         register_grad_fn(Node::kRelu, 1, 1, &ReluGradFn);
 
+        register_grad_fn(Node::kIdentity, 1, 1, &IdentityGradFn);
         register_grad_fn(Node::kReshape, 2, 1, &ReshapeGradFn);
 
         register_grad_fn(Node::kReduceSum, 1, 1, &ReduceSumGradFn);
