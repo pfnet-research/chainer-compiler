@@ -9,9 +9,9 @@
 namespace oniku {
 namespace {
 
-typedef void (*SimplifierFn)(Graph*, Node*);
+typedef bool (*SimplifierFn)(Graph*, Node*);
 
-void ReplaceSum(Graph* graph, Node* node) {
+bool ReplaceSum(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
     Value* v = node->inputs()[0];
     for (size_t i = 1; i < node->inputs().size(); ++i) {
@@ -20,12 +20,14 @@ void ReplaceSum(Graph* graph, Node* node) {
         v = o;
     }
     graph->AddNode(Node::kIdentity, {v}, node->outputs());
+    return true;
 }
 
-void ReplaceLess(Graph* graph, Node* node) {
+bool ReplaceLess(Graph* graph, Node* node) {
     CHECK_EQ(2UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
     graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, {node->outputs()[0]});
+    return true;
 }
 
 }  // namespace
@@ -42,9 +44,10 @@ void Simplify(Graph* graph) {
             auto found = simplifiers.find(node->op_type());
             if (found == simplifiers.end())
                 continue;
-            found->second(graph, node);
-            graph->DetachNode(node);
-            replaced = true;
+            if (found->second(graph, node)) {
+                graph->DetachNode(node);
+                replaced = true;
+            }
         }
     }
 }
