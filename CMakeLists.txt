@@ -14,5 +14,6 @@ link_directories(googletest/googletest)
 
 add_subdirectory(compiler)
 add_subdirectory(common)
+add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(tools)
