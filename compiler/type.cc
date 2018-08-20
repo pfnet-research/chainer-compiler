@@ -22,7 +22,7 @@ Type::Type(const onnx::TypeProto& xtype) {
     }
 }
 
-Type::Type(Dtype dtype, const std::vector<int>& dims) : dtype_(dtype), dims_(dims) {
+Type::Type(Dtype dtype, const std::vector<int>& dims) : dtype_(dtype), dims_(dims.begin(), dims.end()) {
 }
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {
@@ -42,7 +42,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
 }
 
 int64_t Type::NumElements() const {
-    int num = 1;
+    int64_t num = 1;
     for (int d : dims_) {
         if (d < 0) return -1;
         num *= d;
