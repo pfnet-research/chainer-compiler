@@ -35,7 +35,7 @@ public:
             // TODO(hamaji): Refactor code to support non-float values.
             CHECK_EQ(Dtype::kFloat32, value->type().dtype());
             std::vector<float> data(value->type().NumElements(), 1.0);
-            Value* grad = graph_->AddConstValue("grad_in@" + value->name(), value->type(), value->type().dims(), data);
+            Value* grad = graph_->AddConstValue("grad_in@" + value->name(), value->type(), data);
             SetGrad(value, grad);
             op_queue_.push(value->producer());
         }

@@ -57,15 +57,15 @@ public:
     Value* AddOutputValue(const std::string& name, const Type& type);
 
     template <class T>
-    Value* AddConstValue(const std::string& name, const Type& type, const std::vector<int>& dims, const std::vector<T>& data) {
+    Value* AddConstValue(const std::string& name, const Type& type, const std::vector<T>& data) {
         Value* value = AddInputValue(name, type);
-        Tensor* t = new Tensor(value->name(), type.dtype(), dims, data);
+        Tensor* t = new Tensor(value->name(), type.dtype(), type.dims(), data);
         value->ResetInitializer(std::unique_ptr<Tensor>(t));
         return value;
     }
     template <class T>
-    Value* AddConstValue(const std::string& name, const Type& type, const std::vector<int>& dims, const std::initializer_list<T>& data) {
-        return AddConstValue(name, type, dims, std::vector<T>{data});
+    Value* AddConstValue(const std::string& name, const Type& type, const std::initializer_list<T>& data) {
+        return AddConstValue(name, type, std::vector<T>{data});
     }
 
     Node* AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
