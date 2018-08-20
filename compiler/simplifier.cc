@@ -9,36 +9,44 @@
 namespace oniku {
 namespace {
 
-void RemoveSum(Graph* graph) {
-    for (Node* node : graph->GetLiveNodes()) {
-        if (node->op_type() != Node::kSum) continue;
-        CHECK_EQ(1UL, node->outputs().size());
-        Value* v = node->inputs()[0];
-        for (size_t i = 1; i < node->inputs().size(); ++i) {
-            Value* o = graph->AddValue(StrCat(node->name(), "_simplify_", i));
-            graph->AddNode(Node::kAdd, {v, node->inputs()[i]}, {o});
-            v = o;
-        }
-        graph->AddNode(Node::kIdentity, {v}, node->outputs());
-        graph->DetachNode(node);
+typedef void (*SimplifierFn)(Graph*, Node*);
+
+void ReplaceSum(Graph* graph, Node* node) {
+    CHECK_EQ(1UL, node->outputs().size());
+    Value* v = node->inputs()[0];
+    for (size_t i = 1; i < node->inputs().size(); ++i) {
+        Value* o = graph->AddValue(StrCat(node->name(), "_simplify_", i));
+        graph->AddNode(Node::kAdd, {v, node->inputs()[i]}, {o});
+        v = o;
     }
+    graph->AddNode(Node::kIdentity, {v}, node->outputs());
 }
 
-void RemoveLess(Graph* graph) {
-    for (Node* node : graph->GetLiveNodes()) {
-        if (node->op_type() != Node::kLess) continue;
-        CHECK_EQ(2UL, node->inputs().size());
-        CHECK_EQ(1UL, node->outputs().size());
-        graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, {node->outputs()[0]});
-        graph->DetachNode(node);
-    }
+void ReplaceLess(Graph* graph, Node* node) {
+    CHECK_EQ(2UL, node->inputs().size());
+    CHECK_EQ(1UL, node->outputs().size());
+    graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, {node->outputs()[0]});
 }
 
 }  // namespace
 
 void Simplify(Graph* graph) {
-    RemoveSum(graph);
-    RemoveLess(graph);
+    std::map<Node::OpType, SimplifierFn> simplifiers;
+    CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
+    CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
+
+    bool replaced = true;
+    while (replaced) {
+        replaced = false;
+        for (Node* node : graph->GetLiveNodes()) {
+            auto found = simplifiers.find(node->op_type());
+            if (found == simplifiers.end())
+                continue;
+            found->second(graph, node);
+            graph->DetachNode(node);
+            replaced = true;
+        }
+    }
 }
 
 }  // namespace oniku
