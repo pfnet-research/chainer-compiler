@@ -16,6 +16,7 @@ public:
 
     virtual std::vector<xchainer::Array> GetNextImpl() = 0;
 
+    void Start();
     void Terminate();
 
 protected:

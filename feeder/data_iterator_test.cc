@@ -37,6 +37,7 @@ TEST(TestDataIterator, Basic) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     MyDataIterator iter;
+    iter.Start();
     EXPECT_EQ(42, int64_t(xchainer::AsScalar(iter.GetNext()[0])));
     EXPECT_EQ(43, int64_t(xchainer::AsScalar(iter.GetNext()[0])));
     EXPECT_EQ(44, int64_t(xchainer::AsScalar(iter.GetNext()[0])));
@@ -49,6 +50,7 @@ TEST(TestDataIterator, Finish) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     MyDataIterator iter(45);
+    iter.Start();
     EXPECT_EQ(42, int64_t(xchainer::AsScalar(iter.GetNext()[0])));
     EXPECT_EQ(43, int64_t(xchainer::AsScalar(iter.GetNext()[0])));
     EXPECT_EQ(44, int64_t(xchainer::AsScalar(iter.GetNext()[0])));
