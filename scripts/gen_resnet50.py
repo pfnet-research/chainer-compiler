@@ -154,6 +154,8 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
+    parser.add_argument('--frequency', '-f', type=int, default=-1,
+                        help='Frequency of taking a snapshot')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU')
     parser.add_argument('--initmodel',
@@ -162,6 +164,8 @@ def main():
                         help='Number of parallel data loading processes')
     parser.add_argument('--mean', '-m', default='mean.npy',
                         help='Mean file (computed by compute_mean.py)')
+    parser.add_argument('--noplot', dest='plot', action='store_false',
+                        help='Disable PlotReport extension')
     parser.add_argument('--resume', '-r', default='',
                         help='Initialize the trainer from given file')
     parser.add_argument('--out', '-o', default='result',
