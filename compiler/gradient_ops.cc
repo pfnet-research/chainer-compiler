@@ -196,6 +196,18 @@ void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x,
     AddGradOp(graph, Node::kSub, {gx, mul_val}, x[0]);
 }
 
+void BatchNormalizationGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* gx0 = AddGradValue(graph, x[0]);
+    Value* gx1 = AddGradValue(graph, x[1]);
+    Value* gx2 = AddGradValue(graph, x[2]);
+    graph->AddNode(Node::kOnikuxBatchNormalizationGrad, {y[0], y[0]->grad()}, {gx0, gx1, gx2});
+    AddGradOp(graph, Node::kOnikuxAveragePoolGrad, {y[0], y[0]->grad()}, x[0]);
+    Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {0.0});
+    // No gradients since update should have been done for running mean/variance.
+    SetGrad(graph, x[3], zero);
+    SetGrad(graph, x[4], zero);
+}
+
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
@@ -239,6 +251,8 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kAveragePool, 1, 1, &AveragePoolGradFn);
         register_grad_fn(Node::kLogSoftmax, 1, 1, &LogSoftmaxGradFn);
         register_grad_fn(Node::kSoftmax, 1, 1, &SoftmaxGradFn);
+
+        register_grad_fn(Node::kBatchNormalization, 5, 1, &BatchNormalizationGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

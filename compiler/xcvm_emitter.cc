@@ -264,6 +264,10 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Gather, out(0), in(0), in(1), node.axis());
+        } else if (node.op_type() == Node::kOnikuxBatchNormalizationGrad) {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(3UL, node.outputs().size());
+            EMIT(BatchNormalizationGrad, out(0), out(1), out(2), in(0), in(1));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

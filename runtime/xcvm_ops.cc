@@ -29,12 +29,12 @@ xchainer::OptionalAxes GetXchainerAxes(xchainer::StackVector<int64_t, xchainer::
 }
 
 template <class T>
-class PoolContext : public XCVMState::Auxiliary {
+class BackwardContext : public XCVMState::Auxiliary {
 public:
-    explicit PoolContext(std::unique_ptr<T>&& fb)
+    explicit BackwardContext(std::unique_ptr<T>&& fb)
         : fb_(std::move(fb)) {
     }
-    virtual ~PoolContext() = default;
+    virtual ~BackwardContext() = default;
 
     T* fb() {
         return fb_.get();
@@ -250,7 +250,7 @@ xchainer::Array MaxPoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     std::unique_ptr<xchainer::MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_shape, strides, pads, false);
     xchainer::Array out = fb->Forward(x.AsGradStopped());
-    std::unique_ptr<XCVMState::Auxiliary> pfb(new PoolContext<xchainer::MaxPoolForwardBackward>(std::move(fb)));
+    std::unique_ptr<XCVMState::Auxiliary> pfb(new BackwardContext<xchainer::MaxPoolForwardBackward>(std::move(fb)));
     st->SetAux(this->y, std::move(pfb));
     return out;
 }
@@ -260,19 +260,19 @@ xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) 
     xchainer::AveragePoolPadMode pad_mode = count_include_pad ? xchainer::AveragePoolPadMode::kZero : xchainer::AveragePoolPadMode::kIgnore;
     std::unique_ptr<xchainer::AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_shape, strides, pads, pad_mode);
     xchainer::Array out = fb->Forward(x.AsGradStopped());
-    std::unique_ptr<XCVMState::Auxiliary> pfb(new PoolContext<xchainer::AveragePoolForwardBackward>(std::move(fb)));
+    std::unique_ptr<XCVMState::Auxiliary> pfb(new BackwardContext<xchainer::AveragePoolForwardBackward>(std::move(fb)));
     st->SetAux(this->y, std::move(pfb));
     return out;
 }
 
 xchainer::Array MaxPoolGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
-    auto fb = static_cast<PoolContext<xchainer::MaxPoolForwardBackward>*>(st->GetAux(this->y));
+    auto fb = static_cast<BackwardContext<xchainer::MaxPoolForwardBackward>*>(st->GetAux(this->y));
     CHECK(fb);
     return fb->fb()->Backward(gy);
 }
 
 xchainer::Array AveragePoolGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
-    auto fb = static_cast<PoolContext<xchainer::AveragePoolForwardBackward>*>(st->GetAux(this->y));
+    auto fb = static_cast<BackwardContext<xchainer::AveragePoolForwardBackward>*>(st->GetAux(this->y));
     CHECK(fb);
     return fb->fb()->Backward(gy);
 }
@@ -294,6 +294,79 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     return r + xc;
 }
 
+// TODO(hamaji): Copied from xChainer's code.
+namespace {
+
+using Array = xchainer::Array;
+using Axes = xchainer::Axes;
+using Dtype = xchainer::Dtype;
+using OptionalAxes = xchainer::OptionalAxes;
+using Shape = xchainer::Shape;
+
+struct PreprocessBatchNormResult {
+    // Arrays are reshaped if necessary
+    Array gamma;
+    Array beta;
+    Array mean;
+    Array var;
+    Axes sorted_axis;
+};
+
+// Reshapes the array. If the shape is unchanged, an array with identical array body is returned. Note that xchainer::Reshape() returns
+// a view with different array body if the shape is unchanged.
+Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
+    if (a.shape() == shape) {
+        return a;
+    }
+    return a.Reshape(shape);
+}
+
+// Reshapes the input arrays (except x) as needed.
+// Sorted axes is also returned.
+PreprocessBatchNormResult PreprocessBatchNorm(
+        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, const OptionalAxes& axis) {
+    Dtype dtype = x.dtype();
+    CheckEqual(dtype, gamma.dtype());
+    CheckEqual(dtype, beta.dtype());
+    CheckEqual(dtype, mean.dtype());
+    CheckEqual(dtype, var.dtype());
+
+    Axes sorted_axis = axis.has_value() ? *axis : Axes{0};
+
+    Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), sorted_axis, true);
+    int64_t reduced_size = reduced_shape.GetTotalSize();
+
+    if (gamma.GetTotalSize() != reduced_size) {
+        throw xchainer::DimensionError{
+                "Gamma must have the same size as the reduced input. Actual: ", gamma.GetTotalSize(), ". Expected: ", reduced_size, "."};
+    }
+    if (beta.GetTotalSize() != reduced_size) {
+        throw xchainer::DimensionError{
+                "Beta must have the same size as the reduced input. Actual: ", beta.GetTotalSize(), ". Expected: ", reduced_size, "."};
+    }
+    if (mean.GetTotalSize() != reduced_size) {
+        throw xchainer::DimensionError{
+                "Mean must have the same size as the reduced input. Actual: ", mean.GetTotalSize(), ". Expected: ", reduced_size, "."};
+    }
+    if (var.GetTotalSize() != reduced_size) {
+        throw xchainer::DimensionError{
+                "Variance must have the same size as the reduced input. Actual: ", var.GetTotalSize(), ". Expected: ", reduced_size, "."};
+    }
+
+    Array gamma_reshaped = ReshapeOrIdentity(gamma, reduced_shape);
+    Array beta_reshaped = ReshapeOrIdentity(beta, reduced_shape);
+    Array mean_reshaped = ReshapeOrIdentity(mean, reduced_shape);
+    Array var_reshaped = ReshapeOrIdentity(var, reduced_shape);
+    assert(gamma_reshaped.data() == gamma.data());  // No data copy should occur
+    assert(beta_reshaped.data() == beta.data());
+    assert(mean_reshaped.data() == mean.data());
+    assert(var_reshaped.data() == var.data());
+
+    return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
+}
+
+}  // namespace
+
 xchainer::Array BatchNormalizationOp::RunImpl(
         XCVMState* st,
         const xchainer::Array& x,
@@ -308,10 +381,24 @@ xchainer::Array BatchNormalizationOp::RunImpl(
     }
     // TODO(hamaji): Test the training mode.
     if (st->is_training()) {
-        return xchainer::BatchNorm(x, s, bias, mean, var, epsilon, decay, axes);
+        PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
+        std::unique_ptr<xchainer::BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
+        const Array& gamma_reshaped = result.gamma;
+        const Array& beta_reshaped = result.beta;
+        xchainer::Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
+        std::unique_ptr<XCVMState::Auxiliary> pfb(new BackwardContext<xchainer::BatchNormForwardBackward>(std::move(fb)));
+        st->SetAux(this->y, std::move(pfb));
+        return out;
     } else {
         return xchainer::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
     }
+}
+
+std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalizationGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
+    auto fb = static_cast<BackwardContext<xchainer::BatchNormForwardBackward>*>(st->GetAux(this->y));
+    CHECK(fb);
+    std::array<xchainer::Array, 3> gxs = fb->fb()->Backward(gy.AsGradStopped());
+    return {gxs[0], gxs[1], gxs[2]};
 }
 
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {

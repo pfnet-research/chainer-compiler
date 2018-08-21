@@ -103,6 +103,7 @@ XC_OPS = [
      [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),
       Float('epsilon'), Float('decay'), Int('spatial')],
      ['y']),
+    ('BatchNormalizationGrad', [Array('y'), Array('gy')], ['gx0', 'gx1', 'gx2']),
     ('Equal', [Array('a'), Array('b')], ['c']),
     ('Greater', [Array('a'), Array('b')], ['c']),
     ('GreaterEqual', [Array('a'), Array('b')], ['c']),
@@ -171,7 +172,8 @@ def gen_gen_xcvm_ops_h():
         if len(outputs) == 1:
             rettype = 'xchainer::Array'
         elif len(outputs) > 1:
-            raise RuntimeError('Multiple outputs is not defined yet')
+            rettype = ('std::tuple<' +
+                       ', '.join(['xchainer::Array'] * len(outputs)) + '>')
         lines.append('%s RunImpl(%s);' % (rettype, ', '.join(args)))
         lines.append('virtual void Run(XCVMState* st);')
 
@@ -297,7 +299,11 @@ def gen_gen_xcvm_ops_cc():
         call = 'RunImpl(%s)' % ', '.join(args)
         if len(outputs) == 1:
             lines.append('st->SetVar(%s, %s);' % (outputs[0], call))
-        elif not outputs:
+        elif outputs:
+            lines.append('auto r_ = ' + call + ';')
+            for i, output in enumerate(outputs):
+                lines.append(f'st->SetVar({output}, std::get<{i}>(r_));')
+        else:
             lines.append(call + ';')
 
         line = 'if (st->trace_level()) std::cerr'

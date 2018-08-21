@@ -109,6 +109,7 @@ NodeDef('LogSoftmax', 1, 1, axis=1)
 NodeDef('OnikuxReduceSumTo', 2, 1)
 NodeDef('OnikuxMaxPoolGrad', 2, 1)
 NodeDef('OnikuxAveragePoolGrad', 2, 1)
+NodeDef('OnikuxBatchNormalizationGrad', 2, 3)
 
 
 class AttrDef(object):
