@@ -137,7 +137,7 @@ class MyIterator(chainer.iterators.MultiprocessIterator):
     def __next__(self):
         batch = []
         for input, label in super(MyIterator, self).__next__():
-            onehot = np.eye(10, dtype=input.dtype)[label]
+            onehot = np.eye(1000, dtype=input.dtype)[label]
             batch.append((input, onehot))
         return batch
 
@@ -224,13 +224,13 @@ def main_impl(args):
     out_dir = 'out/backprop_test_resnet50'
     makedirs(out_dir)
 
-    # for step in range(2):
-    #     trainer.updater.update()
-    #     npz_filename = '%s/params_%d.npz' % (out_dir, step)
-    #     params_dir = '%s/params_%d' % (out_dir, step)
-    #     chainer.serializers.save_npz(npz_filename, model)
-    #     makedirs(params_dir)
-    #     npz_to_onnx.npz_to_onnx(npz_filename, os.path.join(params_dir, 'param'))
+    for step in range(1):
+        trainer.updater.update()
+        npz_filename = '%s/params_%d.npz' % (out_dir, step)
+        params_dir = '%s/params_%d' % (out_dir, step)
+        chainer.serializers.save_npz(npz_filename, model)
+        makedirs(params_dir)
+        npz_to_onnx.npz_to_onnx(npz_filename, os.path.join(params_dir, 'param'))
 
     chainer.config.train = False
     x = np.random.random((args.batchsize, 3, insize, insize)).astype(np.float32)
