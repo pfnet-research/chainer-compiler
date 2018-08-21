@@ -209,10 +209,9 @@ void RunMain(int argc, char** argv) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     const std::string device = args.get<std::string>("device");
-    size_t initial_free_bytes;
+    size_t initial_free_bytes, param_bytes = static_cast<size_t>(-1);
     if (!device.empty()) {
-        size_t total_bytes;
-        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&initial_free_bytes, &total_bytes));
+        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&initial_free_bytes, nullptr));
         xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(std::string(device)));
     }
 
@@ -293,6 +292,12 @@ void RunMain(int argc, char** argv) {
             CHECK(inputs.emplace(p.first, p.second).second) << "Duplicated input parameter: " << p.first;
         }
 
+        if (!device.empty() && param_bytes == static_cast<size_t>(-1)) {
+            CHECK_EQ(cudaSuccess, cudaMemGetInfo(&param_bytes, nullptr));
+            param_bytes = initial_free_bytes - param_bytes;
+        }
+
+
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
         InOuts outputs(xcvm.Run(inputs, trace_level, args.exist("backprop")));
@@ -303,9 +308,10 @@ void RunMain(int argc, char** argv) {
           size_t free_bytes, total_bytes;
           CHECK_EQ(cudaSuccess, cudaMemGetInfo(&free_bytes, &total_bytes));
           size_t used_bytes = initial_free_bytes - free_bytes;
+          size_t param_mbs = param_bytes / 1000 / 1000;
           size_t used_mbs = used_bytes / 1000 / 1000;
           size_t total_mbs = total_bytes / 1000 / 1000;
-          LOG() << "GPU memory: " << used_mbs << " / " << total_mbs << std::endl;
+          LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB total=" << total_mbs << "MB" << std::endl;
         }
 
         if (test_case->outputs.empty()) {
