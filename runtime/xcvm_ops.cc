@@ -306,10 +306,12 @@ xchainer::Array BatchNormalizationOp::RunImpl(
         if (i != spatial)
             axes.push_back(i);
     }
-    // TODO(hamaji): Add a training mode, where we modify `mean` and
-    // `var`.
-    // return xchainer::BatchNorm(x, s, bias, mean, var, epsilon, decay, axes);
-    return xchainer::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+    // TODO(hamaji): Test the training mode.
+    if (st->is_training()) {
+        return xchainer::BatchNorm(x, s, bias, mean, var, epsilon, decay, axes);
+    } else {
+        return xchainer::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+    }
 }
 
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {

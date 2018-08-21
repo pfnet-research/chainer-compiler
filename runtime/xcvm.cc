@@ -32,7 +32,7 @@ XCVM::XCVM(const XCProgramProto& program) {
 XCVM::~XCVM() {
 }
 
-InOuts XCVM::Run(const InOuts& program_inputs, int trace_level) {
+InOuts XCVM::Run(const InOuts& program_inputs, int trace_level, bool is_training) {
     XCVMState state(num_variables_, program_inputs);
     state.set_trace_level(trace_level);
 

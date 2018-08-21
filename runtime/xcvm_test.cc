@@ -31,7 +31,7 @@ TEST(XCVMTest, Run) {
     InOuts inputs;
     inputs["in1"] = xchainer::Eye(2, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32);
     inputs["in2"] = xchainer::OnesLike(inputs["in1"]);
-    InOuts outputs = xcvm.Run(inputs, false);
+    InOuts outputs = xcvm.Run(inputs, false, false);
     ASSERT_EQ(1, outputs.count("out"));
     xchainer::Array e = xchainer::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
     // TODO(hamaji): Use EXPECT_ARRAY_EQ after fixing namespace?

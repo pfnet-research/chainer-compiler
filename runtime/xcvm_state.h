@@ -51,13 +51,17 @@ public:
         trace_level_ = trace_level;
     }
 
+    bool is_training() const { return is_training_; }
+    void set_is_training(bool is_training) { is_training_ = is_training; }
+
 private:
     int pc_;
     std::vector<nonstd::optional<xchainer::Array>> variables_;
     std::vector<std::unique_ptr<Auxiliary>> auxiliaries_;
     const InOuts& inputs_;
     InOuts outputs_;
-    int trace_level_;
+    int trace_level_ = 0;
+    bool is_training_ = false;
 };
 
 }  // namespace runtime
