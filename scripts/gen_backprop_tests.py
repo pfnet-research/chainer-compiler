@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import sys
 
 import chainer
 import numpy as np
@@ -8,14 +9,8 @@ from onnx import onnx_pb
 import onnx_chainer
 
 
-def replace_id(builtins=__builtins__):
-    orig_id = id
-
-    def my_id(x):
-        if isinstance(x, chainer.Parameter):
-            return x.name
-        return orig_id(x)
-    builtins.id = my_id
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from oniku.scripts import onnx_chainer_util
 
 
 def makedirs(d):
@@ -47,9 +42,10 @@ def create_backprop_test(test_name, fn, expected_extra_params=None, **kwargs):
         params[name] = np.array(value, np.float32)
     model = AnyModel(fn, params)
 
-    onnx_chainer.export(model, (),
-                        filename=test_model_path,
-                        graph_name='backprop_test_' + test_name)
+    with onnx_chainer_util.replace_id(model, __builtins__):
+        onnx_chainer.export(model, (),
+                            filename=test_model_path,
+                            graph_name='backprop_test_' + test_name)
 
     model.cleargrads()
     result = model()
@@ -69,7 +65,7 @@ def create_backprop_test(test_name, fn, expected_extra_params=None, **kwargs):
             output_names.append(output.name)
 
     assert len(output_names) == 1
-    expected_param_names = list(params.keys())
+    expected_param_names = ['/' + name for name in params.keys()]
     if expected_extra_params is not None:
         expected_param_names += expected_extra_params
     if sorted(expected_param_names) != sorted(param_names):
@@ -80,7 +76,7 @@ def create_backprop_test(test_name, fn, expected_extra_params=None, **kwargs):
     outputs = [(output_names[0], result)]
     for name in sorted(params):
         value = getattr(model, name).grad
-        outputs.append(('grad_out@' + name, value))
+        outputs.append(('grad_out@/' + name, value))
 
     for i, (xname, value) in enumerate(outputs):
         tensor = onnx_pb.TensorProto(name=xname,
@@ -190,7 +186,6 @@ def get_backprop_tests():
 
 
 def main():
-    replace_id()
     for test in get_backprop_tests():
         test.generate()
     # TODO(hamaji): Stop writing a file to scripts.

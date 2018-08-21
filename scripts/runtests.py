@@ -168,12 +168,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
 ]
 
-gen_backprop_tests.replace_id(__builtins__)
 for backprop_test in gen_backprop_tests.get_backprop_tests():
     dirname = 'out'
     name = 'backprop_test_' + backprop_test.name
-    if not os.path.exists(os.path.join(dirname, name)):
-        backprop_test.generate()
     assert os.path.exists(os.path.join(dirname, name))
     TEST_CASES.append(TestCase(dirname, name))
 
