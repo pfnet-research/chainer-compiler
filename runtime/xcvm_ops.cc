@@ -175,7 +175,26 @@ xchainer::Array SizeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
 }
 
 xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
-    return xchainer::Reshape(data, ArrayToShape(shape));
+    xchainer::Shape s{ArrayToShape(shape)};
+    int from_total_size = data.GetTotalSize();
+    int to_total_size = 1;
+    int to_minus_one_index = -1;
+    for (int i = 0; i < s.size(); ++i) {
+        int d = s[i];
+        CHECK_NE(0, d) << s;
+        if (d < 0) {
+            to_minus_one_index = i;
+        } else {
+            to_total_size *= d;
+        }
+    }
+    if (from_total_size != to_total_size) {
+        CHECK_GT(from_total_size, to_total_size) << s;
+        CHECK_EQ(0, from_total_size % to_total_size) << s;
+        CHECK_NE(-1, to_minus_one_index) << s;
+        s[to_minus_one_index] = from_total_size / to_total_size;
+    }
+    return xchainer::Reshape(data, s);
 }
 
 xchainer::Array ExpandOp::RunImpl(XCVMState* st, const xchainer::Array& data, const xchainer::Array& shape) {
