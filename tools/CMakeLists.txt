@@ -25,5 +25,6 @@ target_link_libraries(run_onnx
   xchainer
   onnx_proto
   protobuf
+  cudart
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")

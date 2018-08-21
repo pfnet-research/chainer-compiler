@@ -9,6 +9,9 @@
 #include <set>
 #include <string>
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include <onnx/onnx.pb.h>
 
 #include <xchainer/array.h>
@@ -206,7 +209,10 @@ void RunMain(int argc, char** argv) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     const std::string device = args.get<std::string>("device");
+    size_t initial_free_bytes;
     if (!device.empty()) {
+        size_t total_bytes;
+        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&initial_free_bytes, &total_bytes));
         xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(std::string(device)));
     }
 
@@ -293,6 +299,14 @@ void RunMain(int argc, char** argv) {
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
+        if (!device.empty()) {
+          size_t free_bytes, total_bytes;
+          CHECK_EQ(cudaSuccess, cudaMemGetInfo(&free_bytes, &total_bytes));
+          size_t used_bytes = initial_free_bytes - free_bytes;
+          size_t used_mbs = used_bytes / 1000 / 1000;
+          size_t total_mbs = total_bytes / 1000 / 1000;
+          LOG() << "GPU memory: " << used_mbs << " / " << total_mbs << std::endl;
+        }
 
         if (test_case->outputs.empty()) {
             LOG() << "Outputs:" << std::endl;
