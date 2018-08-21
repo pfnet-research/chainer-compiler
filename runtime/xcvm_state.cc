@@ -39,6 +39,14 @@ void XCVMState::SetVar(int index, xchainer::Array value) {
     variables_[index] = value;
 }
 
+void XCVMState::FreeVar(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].has_value());
+    variables_[index] = nonstd::nullopt;
+    auxiliaries_[index] = nullptr;
+}
+
 xchainer::Array XCVMState::Input(const std::string& name) {
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;

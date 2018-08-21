@@ -54,6 +54,10 @@ void OutOp::RunImpl(XCVMState* st, const xchainer::Array& v) {
     st->Output(name, v);
 }
 
+void FreeOp::RunImpl(XCVMState* st, const xchainer::Array& v) {
+    st->FreeVar(this->v);
+}
+
 xchainer::Array AddOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
     return a + b;
 }

@@ -42,6 +42,7 @@ def String(name):
 XC_OPS = [
     ('In', [String('name')], 'v'),
     ('Out', [String('name'), Array('v')], []),
+    ('Free', [Array('v')], []),
 
     ('Add', [Array('a'), Array('b')], ['c']),
     ('Sub', [Array('a'), Array('b')], ['c']),

@@ -1,5 +1,7 @@
 #include "xcvm_emitter.h"
 
+#include <map>
+
 #include <common/log.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -21,10 +23,26 @@ public:
 
     void Emit(XCProgramProto* program) {
         EmitInputs(program);
+
+        std::map<const Value*, int> num_users;
+        for (const Value* value : graph_.temp_values()) {
+            num_users.emplace(value, value->users().size());
+        }
+
         std::vector<const Node*> nodes(graph_.GetComputationSequence());
         for (const Node* node : nodes) {
             EmitNode(*node, program);
+
+            for (const Value* input : node->inputs()) {
+                auto found = num_users.find(input);
+                if (found == num_users.end())
+                    continue;
+                if (--found->second == 0) {
+                    AddFreeOp(program, GetValueId(input));
+                }
+            }
         }
+
         EmitOutputs(program);
     }
 

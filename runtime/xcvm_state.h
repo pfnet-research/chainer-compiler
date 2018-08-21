@@ -33,6 +33,7 @@ public:
     xchainer::Array GetVar(int index);
     void SetVar(int index, xchainer::Array value);
     std::string GetVarString(int index);
+    void FreeVar(int index);
 
     Auxiliary* GetAux(int index);
     void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
