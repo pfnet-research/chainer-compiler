@@ -270,7 +270,7 @@ private:
     }
 
     void EmitInputs(XCProgramProto* prog) {
-        for (const Value* value : graph_.input_values()) {
+        for (const Value* value : graph_.GetNecessaryInputs()) {
             AddInOp(prog, GetValueId(value), value->name());
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
         }

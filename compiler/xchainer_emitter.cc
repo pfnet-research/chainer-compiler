@@ -79,7 +79,7 @@ private:
     }
 
     void EmitInputs(CodeEmitter& ce) {
-        for (const Value* value : graph_.input_values()) {
+        for (const Value* value : graph_.GetNecessaryInputs()) {
             ce << "const xchainer::Array& " << GetValueName(value) << " = GetOrDie(inputs, \"" << value->name() << "\");\n";
         }
         ce << NL;
