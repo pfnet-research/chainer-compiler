@@ -101,7 +101,7 @@ XC_OPS = [
      ['y']),
     ('BatchNormalization',
      [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),
-      Float('epsilon')],
+      Float('epsilon'), Float('decay'), Int('spatial')],
      ['y']),
     ('Equal', [Array('a'), Array('b')], ['c']),
     ('Greater', [Array('a'), Array('b')], ['c']),

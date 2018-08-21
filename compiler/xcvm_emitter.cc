@@ -205,7 +205,7 @@ private:
         } else if (node.op_type() == Node::kBatchNormalization) {
             CHECK_EQ(5UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(BatchNormalization, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon());
+            EMIT(BatchNormalization, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

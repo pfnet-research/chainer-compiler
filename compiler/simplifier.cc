@@ -30,6 +30,8 @@ bool ReplaceLess(Graph* graph, Node* node) {
     return true;
 }
 
+#if 0
+
 bool ReplaceBatchNormalization(Graph* graph, Node* node) {
     Value* x = node->inputs()[0];
     Value* s = node->inputs()[1];
@@ -75,13 +77,17 @@ bool ReplaceBatchNormalization(Graph* graph, Node* node) {
     return true;
 }
 
+#endif
+
 }  // namespace
 
 void Simplify(Graph* graph) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
+#if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
+#endif
 
     bool replaced = true;
     while (replaced) {

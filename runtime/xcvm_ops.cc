@@ -7,6 +7,7 @@
 #include <xchainer/routines/logic.h>
 #include <xchainer/routines/manipulation.h>
 #include <xchainer/routines/math.h>
+#include <xchainer/routines/normalization.h>
 #include <xchainer/routines/pooling.h>
 #include <xchainer/routines/statistics.h>
 #include <xchainer/shape.h>
@@ -300,7 +301,15 @@ xchainer::Array BatchNormalizationOp::RunImpl(
         const xchainer::Array& bias,
         const xchainer::Array& mean,
         const xchainer::Array& var) {
-    return BatchNormONNX(x, s, bias, mean, var, epsilon);
+    xchainer::Axes axes;
+    for (int i = 0; i < x.shape().size(); ++i) {
+        if (i != spatial)
+            axes.push_back(i);
+    }
+    // TODO(hamaji): Add a training mode, where we modify `mean` and
+    // `var`.
+    // return xchainer::BatchNorm(x, s, bias, mean, var, epsilon, decay, axes);
+    return xchainer::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
 }
 
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
