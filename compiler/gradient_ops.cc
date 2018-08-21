@@ -151,8 +151,15 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
 void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gy = y[0]->grad();
     Value* w = x[1];
+    // TODO(hamaji): Revisit how we handle shapes.
+#if 0
     AddGradOp(graph, Node::kConvTranspose, {gy, w}, x[0])->producer()
         ->set_strides(node->strides()).set_pads(node->pads());
+#else
+    Value* x_shape = AddTempOp(graph, Node::kShape, {x[0]}, x[0]);
+    AddGradOp(graph, Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])->producer()
+        ->set_strides(node->strides()).set_pads(node->pads());
+#endif
     AddGradOp(graph, Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()
         ->set_strides(node->strides()).set_pads(node->pads());
     if (x.size() == 3) {

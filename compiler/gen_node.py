@@ -110,6 +110,7 @@ NodeDef('OnikuxReduceSumTo', 2, 1)
 NodeDef('OnikuxMaxPoolGrad', 2, 1)
 NodeDef('OnikuxAveragePoolGrad', 2, 1)
 NodeDef('OnikuxBatchNormalizationGrad', 2, 3)
+NodeDef('OnikuxConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 
 
 class AttrDef(object):

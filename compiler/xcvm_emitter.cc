@@ -164,6 +164,10 @@ private:
             } else {
                 EMIT(ConvTransposeWithBias, out(0), in(0), in(1), strides(), pads(), output_shape, in(2));
             }
+        } else if (node.op_type() == Node::kOnikuxConvTransposeWithDynamicOutputShape) {
+            CHECK_EQ(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
