@@ -189,9 +189,9 @@ xchainer::Array ReshapeOp::RunImpl(XCVMState* st, const xchainer::Array& data, c
         }
     }
     if (from_total_size != to_total_size) {
-        CHECK_GT(from_total_size, to_total_size) << s;
-        CHECK_EQ(0, from_total_size % to_total_size) << s;
-        CHECK_NE(-1, to_minus_one_index) << s;
+        CHECK_GT(from_total_size, to_total_size) << "Reshape from " << data.shape() << " to " << s;
+        CHECK_EQ(0, from_total_size % to_total_size) << "Reshape from " << data.shape() << " to " << s;
+        CHECK_LE(0, to_minus_one_index) << "Reshape from " << data.shape() << " to " << s;
         s[to_minus_one_index] = from_total_size / to_total_size;
     }
     return xchainer::Reshape(data, s);
