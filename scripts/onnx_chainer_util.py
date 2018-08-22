@@ -3,6 +3,8 @@ import contextlib
 import os
 import sys
 
+import numpy as np
+
 import onnx_chainer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -67,6 +69,7 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
 
     model.cleargrads()
     result = model(*inputs)
+    result.grad = np.ones(result.shape, result.dtype)
     result.backward()
 
     outputs = [(result.name, result.array)]

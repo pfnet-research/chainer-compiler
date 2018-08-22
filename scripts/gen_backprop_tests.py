@@ -13,11 +13,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from oniku.scripts import onnx_chainer_util
 
 
-def makedirs(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
-
-
 class AnyModel(chainer.Chain):
     def __init__(self, fn, params):
         super(AnyModel, self).__init__()
@@ -32,60 +27,19 @@ class AnyModel(chainer.Chain):
         return result
 
 
-def create_backprop_test(test_name, fn, expected_extra_params=None, **kwargs):
+def create_backprop_test(test_name, fn, **kwargs):
     test_dir = 'out/backprop_test_%s' % test_name
-    test_model_path = os.path.join(test_dir, 'model.onnx')
-    test_data_dir = os.path.join(test_dir, 'test_data_set_0')
-    makedirs(test_data_dir)
 
     params = {}
     for name, value in kwargs.items():
         params[name] = np.array(value, np.float32)
     model = AnyModel(fn, params)
 
-    with onnx_chainer_util.replace_id(model, __builtins__):
-        onnx_chainer.export(model, (),
-                            filename=test_model_path,
-                            graph_name='backprop_test_' + test_name)
-
-    model.cleargrads()
-    result = model()
-    result.grad = np.ones(result.shape, result.dtype)
-    result.backward()
-
-    param_names = []
-    output_names = []
-    xmodel = onnx_pb.ModelProto()
-    with open(test_model_path, 'rb') as f:
-        xmodel.ParseFromString(f.read())
-        for param in xmodel.graph.initializer:
-            assert param.name
-            param_names.append(param.name)
-        for output in xmodel.graph.output:
-            assert output.name
-            output_names.append(output.name)
-
-    assert len(output_names) == 1
-    expected_param_names = ['/' + name for name in params.keys()]
-    if expected_extra_params is not None:
-        expected_param_names += expected_extra_params
-    if sorted(expected_param_names) != sorted(param_names):
-        print('expected=%s actual=%s' %
-              (list(sorted(expected_param_names)), list(sorted(param_names))))
-        assert False
-
-    outputs = [(output_names[0], result)]
-    for name in sorted(params):
-        value = getattr(model, name).grad
-        outputs.append(('grad_out@/' + name, value))
-
-    for i, (xname, value) in enumerate(outputs):
-        tensor = onnx_pb.TensorProto(name=xname,
-                                     dims=value.shape,
-                                     data_type=onnx_pb.TensorProto.FLOAT)
-        tensor.float_data.extend(np.array(value.data).flat)
-        with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
-            f.write(tensor.SerializeToString())
+    onnx_chainer_util.create_onnx_test('backprop_test_' + test_name,
+                                       model,
+                                       (),
+                                       __builtins__,
+                                       test_dir)
 
 
 class BackpropTest(object):
@@ -129,25 +83,21 @@ def get_backprop_tests():
     # onnx-chainer should be fixed:
     # https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/functions/array.py#L79
     # test('reshape', lambda m: F.reshape(m.a, (1, 2, 1)),
-    #      expected_extra_params=['None'], a=[3, 5])
+    #      a=[3, 5])
 
     test('sqrt', lambda m: F.sqrt(m.a), a=[3, 5])
 
     # ONNX chainer creates an extra parameter named 'None' for bias of
     # Gemm.
     test('matmul', lambda m: F.matmul(m.a, m.b),
-         expected_extra_params=['None'],
          a=[[3, 5], [7, 4], [2, 6]], b=[[2, 4, 8, 9], [4, 2, 12, 6]])
     test('matmul_ta', lambda m: F.matmul(m.a, m.b, transa=True),
-         expected_extra_params=['None'],
          a=np.transpose([[3, 5], [7, 4], [2, 6]]),
          b=[[2, 4, 8, 9], [4, 2, 12, 6]])
     test('matmul_tb', lambda m: F.matmul(m.a, m.b, transb=True),
-         expected_extra_params=['None'],
          a=[[3, 5], [7, 4], [2, 6]],
          b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]))
     test('matmul_ta_tb', lambda m: F.matmul(m.a, m.b, transa=True, transb=True),
-         expected_extra_params=['None'],
          a=np.transpose([[3, 5], [7, 4], [2, 6]]),
          b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]))
     test('gemm', lambda m: F.linear(m.a, m.b, b=m.c),
@@ -185,7 +135,6 @@ def get_backprop_tests():
 
     test('batch_normalization',
          lambda m: F.batch_normalization(m.x, m.g, m.b) * m.r,
-         expected_extra_params=['None', 'None_1'],
          x=aranges(2, 5, 3, 3),
          g=aranges(5),
          b=aranges(5),
