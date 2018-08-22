@@ -68,7 +68,11 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     model.cleargrads()
     result = model(*inputs)
     result.backward()
-    for i, (name, param) in enumerate(model.namedparams()):
+
+    outputs = [(result.name, result.array)]
+    for name, param in model.namedparams():
+        outputs.append(('grad_out@' + name, param.grad))
+    for i, (name, value) in enumerate(outputs):
         with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx('grad_out@' + name, param.grad)
+            t = npz_to_onnx.np_array_to_onnx(name, value)
             f.write(t.SerializeToString())

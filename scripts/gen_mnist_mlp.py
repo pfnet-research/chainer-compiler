@@ -53,6 +53,7 @@ class MyClassifier(chainer.link.Chain):
         if self.compute_accuracy:
             acc = accuracy.accuracy(y, xp.argmax(t, axis=1))
             reporter.report({'accuracy': acc}, self)
+        loss.name = 'loss'
         return loss
 
 
