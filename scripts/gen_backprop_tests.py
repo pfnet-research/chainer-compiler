@@ -104,7 +104,7 @@ def get_backprop_tests():
     def test(name, fn, **kwargs):
         tests.append(BackpropTest(name, fn, **kwargs))
 
-    def aranges(shape):
+    def aranges(*shape):
         r = 1
         for d in shape:
             r *= d
@@ -155,22 +155,22 @@ def get_backprop_tests():
          c=[4, 5, 6, 7])
 
     test('conv', lambda m: F.convolution_2d(m.a, m.b),
-         a=aranges((1, 1, 5, 5)),
-         b=aranges((1, 1, 3, 3)))
+         a=aranges(1, 1, 5, 5),
+         b=aranges(1, 1, 3, 3))
     # The 4th parameter is calculating gradients of bias more complex.
     test('conv_bias', lambda m: F.convolution_2d(m.a, m.b, b=m.c) * m.d,
-         a=aranges((1, 2, 5, 5)),
-         b=aranges((4, 2, 3, 3)),
-         c=aranges((4,)),
-         d=aranges((1, 4, 3, 3)))
+         a=aranges(1, 2, 5, 5),
+         b=aranges(4, 2, 3, 3),
+         c=aranges(4),
+         d=aranges(1, 4, 3, 3))
     test('max_pool', lambda m: F.max_pooling_2d(m.a, 3, stride=1,
                                                 cover_all=False) * m.b,
-         a=aranges((2, 3, 5, 5)) % 9,
-         b=aranges((2, 3, 3, 3)))
+         a=aranges(2, 3, 5, 5) % 9,
+         b=aranges(2, 3, 3, 3))
     test('average_pool', lambda m: F.average_pooling_2d(m.a, 3,
                                                         stride=1) * m.b,
-         a=aranges((2, 3, 5, 5)) % 9,
-         b=aranges((2, 3, 3, 3)))
+         a=aranges(2, 3, 5, 5) % 9,
+         b=aranges(2, 3, 3, 3))
 
     test('log_softmax', lambda m: F.log_softmax(m.a),
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]])
