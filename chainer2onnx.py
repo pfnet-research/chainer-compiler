@@ -74,13 +74,13 @@ def size2d(v):
 class Link_Convolution2D(object):
     def __init__(sl, ch, parentname):
         sl.name = parentname + '_' + ch.name
-        #code.InteractiveConsole({'ch': ch}).interact()
+        # code.InteractiveConsole({'ch': ch}).interact()
 
         sl.ksize = size2d(ch.ksize)
         sl.stride = size2d(ch.stride)
         ps = size2d(ch.pad)
         sl.pads = ps + ps
-        
+
         if not (ch.b is None):
             # nobias = True の場合
             sl.M = ch.b.shape[0]
@@ -94,7 +94,6 @@ class Link_Convolution2D(object):
             sl.name + '_W', TensorProto.FLOAT,
             [sl.M, 'channel_size'] + sl.ksize)
 
-
     def call(sl, args, _, env):
         assert(len(args) == 1)
         v = args[0]
@@ -102,7 +101,9 @@ class Link_Convolution2D(object):
         env.nodes.append(
             helper.make_node(
                 "Conv",
-                inputs=[v.name, sl.W.name] + ([] if sl.b is None else [sl.b.name]), outputs=[res.name],
+                inputs=[v.name, sl.W.name] +
+                ([] if sl.b is None else [sl.b.name]),
+                outputs=[res.name],
                 kernel_shape=sl.ksize,
                 pads=sl.pads,
                 strides=sl.stride
@@ -117,8 +118,8 @@ class Link_Convolution2D(object):
 class Link_BatchNormalization(object):
     def __init__(sl, ch, parentname):
         sl.name = parentname + '_' + ch.name
-        #code.InteractiveConsole({'ch': ch}).interact()
-        
+        # code.InteractiveConsole({'ch': ch}).interact()
+
         sl.n_out = ch.beta.shape[0]
 
         sl.scale = helper.make_tensor_value_info(
@@ -131,8 +132,8 @@ class Link_BatchNormalization(object):
             sl.name + '_avg_var', TensorProto.FLOAT, [sl.n_out])
 
         sl.eps = ch.eps
-        sl.momentum = ch.decay 
-        
+        sl.momentum = ch.decay
+
     def call(sl, args, _, env):
         assert(len(args) == 1)
         v = args[0]
@@ -140,7 +141,8 @@ class Link_BatchNormalization(object):
         env.nodes.append(
             helper.make_node(
                 "BatchNormalization",
-                inputs=[v.name, sl.scale.name, sl.B.name, sl.mean.name, sl.var.name], outputs=[res.name],
+                inputs=[v.name, sl.scale.name, sl.B.name,
+                        sl.mean.name, sl.var.name], outputs=[res.name],
                 epsilon=sl.eps,
                 momentum=sl.momentum,
                 # とりあえずspatialは1で(0でも値が変わらなかったのでよくわからん)
@@ -154,7 +156,7 @@ class Link_BatchNormalization(object):
 
 class User_Defined_Link(object):
     def __init__(sl, ch, parentname):
-        sl.name = parentname + '_' + ch.name
+        sl.name = parentname + ('' if ch.name is None else '_' + ch.name)
         # code.InteractiveConsole({'ch': ch}).interact()
 
         src = clip_head(inspect.getsource(ch.forward))
@@ -164,6 +166,9 @@ class User_Defined_Link(object):
 
         sl.links = initLinks(ch, sl.name)
         sl.module = sys.modules[ch.__module__]
+        args = list(map(lambda x: x.id, sl.ast.args.args))
+        sl.self_name = args[0]
+        sl.arg_name = args[1:]
 
     def call(sl, args, _, env):
         # 自身のforwardを呼ぶ
@@ -172,14 +177,13 @@ class User_Defined_Link(object):
 
         loenv = env.localenv()
 
-        fnargs = list(map(lambda x: x.id, sl.ast.args.args))
-        loenv.self_name = fnargs[0]
-        assert(len(fnargs) == len(args)+1)
-        loenv.vars = dict(zip(fnargs[1:], args))
+        loenv.self_name = sl.self_name
+        assert(len(sl.arg_name) == len(args))
+        loenv.vars = dict(zip(sl.arg_name, args))
 
         loenv.links = sl.links
         loenv.module = sl.module
-        print('name', sl.name, 'modules', sl.module)
+        # print('name', sl.name, 'modules', sl.module)
         try:
             eval_ast(sl.ast.body, loenv)
             raise Exception('return not found')
@@ -311,8 +315,9 @@ class Function_Concat(object):
 
 
 class Func(object):
-    def __init__(sl,f):
+    def __init__(sl, f):
         sl.call = f
+
 
 def clip_head(s):
     s = s.split('\n')
@@ -339,6 +344,7 @@ class ValueReturn(Exception):
     def __init__(sl, value):
         sl.value = value
 
+
 Func2NodeClass = [
     (F.relu, Function_Relu),
     (F.max_pooling_2d, Function_MaxPool2d),
@@ -354,12 +360,12 @@ def eval_ast(nast, env):
         # 逐次実行
         for s in nast:
             eval_ast(s, env)
-    elif isinstance(nast,gast.For):
+    elif isinstance(nast, gast.For):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
-        for v in eval_ast(nast.iter,env):
+        for v in eval_ast(nast.iter, env):
             env.vars[tg] = v
-            eval_ast(nast.body,env)
+            eval_ast(nast.body, env)
         env.vars.pop(tg)
 
     elif isinstance(nast, gast.Assign):
@@ -378,15 +384,15 @@ def eval_ast(nast, env):
         lv = eval_ast(nast.left, env)
         rv = eval_ast(nast.right, env)
         res = new_tensor(['TODO'])
-        if isinstance(nast.op, gast.Add):    
+        if isinstance(nast.op, gast.Add):
             optype = "Add"
         else:
-            raise Exception('unknown operator',nast.op)
-        
+            raise Exception('unknown operator', nast.op)
+
         env.nodes.append(
             helper.make_node(
                 optype,
-                inputs=[lv.name,rv.name], outputs=[res.name],
+                inputs=[lv.name, rv.name], outputs=[res.name],
             )
         )
         return res
@@ -394,8 +400,9 @@ def eval_ast(nast, env):
         na = nast.value.id
         if na == env.self_name:  # .selfのとき
             if nast.attr == 'children':
-                #code.InteractiveConsole({'nast': nast, 'env': env}).interact()
-                return Func(lambda _,__,___: env.links.values()) #これでよさそう?(順番があってるのかあやしい)
+                # code.InteractiveConsole({'nast':nast,'env': env}).interact()
+                # これでよさそう?(順番があってるのかあやしい)
+                return Func(lambda _, __, ___: env.links.values())
             else:
                 return env.links[nast.attr]
         elif na in dir(env.module):
@@ -455,42 +462,24 @@ def initLinks(model, parentname):
 def chainer2onnx(model, forward):
     # return helper.make_graph([],'dummy',[],[])
 
-    links = initLinks(model, '')
-    # ここまでinit,以下forward
+    # code.InteractiveConsole({'mo': model}).interact()
+    molk = User_Defined_Link(model, '')
 
-    src = clip_head(inspect.getsource(forward))
-    print(src)
-    tast = gast.ast_to_gast(ast.parse(src))
-
-    tast = tast.body[0]
-    assert(isinstance(tast, gast.gast.FunctionDef))
+    input_tensors = []
+    for _ in molk.arg_name:
+        x = new_tensor(['batch_size', 'input_size'])
+        input_tensors.append(x)
 
     env = Env()
-    env.links = links
-    env.module = sys.modules[model.__module__]
+    v = molk.call(input_tensors, [], env)  # keywordsはとりあえず空
 
-    args = list(map(lambda x: x.id, tast.args.args))
-    env.self_name = args[0]
+    print(v)
+    if isinstance(v, tuple):
+        output_tensors = list(v)  # ばらしてみる
+    else:
+        output_tensors = [v]  # とりあえず1tensor
 
-    args = args[1:]
-    # code.InteractiveConsole({'tast':tast}).interact()
-    assert(len(args) == 1)  # とりあえず1入力
-    input_tensors = []
-    for v in args:
-        env.vars[v] = new_tensor(['batch_size', 'input_size'])
-        input_tensors.append(env.vars[v])
-    try:
-        eval_ast(tast.body, env)
-        raise Exception('return not found')
-    except ValueReturn as v:
-        if isinstance(v.value, tuple):
-            output_tensors = list(v.value)  # ばらしてみる
-        else:
-            output_tensors = [v.value]  # とりあえず1tensor
-
-    for lk in links.values():
-        # print(lk,a)
-        input_tensors += lk.init_tensors()
+    input_tensors += molk.init_tensors()
 
     # print(env.nodes)
     # print(input_tensors)
