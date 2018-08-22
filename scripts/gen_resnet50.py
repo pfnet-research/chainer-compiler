@@ -21,7 +21,7 @@ import onnx_chainer
 import resnet50
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.tools import npz_to_onnx
+from oniku.scripts import onnx_chainer_util
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -98,39 +98,6 @@ def makedirs(d):
         os.makedirs(d)
 
 
-class MyClassifier(chainer.link.Chain):
-    """A Classifier which only supports 2D input."""
-
-    def __init__(self, predictor, compute_accuracy):
-        super(MyClassifier, self).__init__()
-        self.compute_accuracy = compute_accuracy
-        with self.init_scope():
-            self.predictor = predictor
-
-    def forward(self, x, t):
-        y = self.predictor(x)
-        log_softmax = F.log_softmax(y)
-        # SelectItem is not supported by onnx-chainer.
-        # TODO(hamaji): Support it?
-        # log_prob = F.select_item(log_softmax, t)
-
-        # TODO(hamaji): Currently, F.sum with axis=1 cannot be
-        # backpropped properly.
-        # log_prob = F.sum(log_softmax * t, axis=1)
-        # self.batch_size = chainer.Variable(np.array(t.size, np.float32),
-        #                                    name='batch_size')
-        # return -F.sum(log_prob, axis=0) / self.batch_size
-        log_prob = F.sum(log_softmax * t, axis=(0, 1))
-        self.batch_size = chainer.Variable(np.array(t.size, np.float32),
-                                           name='batch_size')
-        loss = -log_prob / self.batch_size
-        reporter.report({'loss': loss}, self)
-        if self.compute_accuracy:
-            acc = accuracy.accuracy(y, np.argmax(t, axis=1))
-            reporter.report({'accuracy': acc}, self)
-        return loss
-
-
 class MyIterator(chainer.iterators.MultiprocessIterator):
     """Preprocesses labels to onehot vectors."""
 
@@ -148,8 +115,10 @@ class MyIterator(chainer.iterators.MultiprocessIterator):
 def main():
     parser = argparse.ArgumentParser(
         description='Learning convnet from ILSVRC2012 dataset')
-    parser.add_argument('train', help='Path to training image-label list file')
-    parser.add_argument('val', help='Path to validation image-label list file')
+    parser.add_argument('--train', default='',
+                        help='Path to training image-label list file')
+    parser.add_argument('--val', default='',
+                        help='Path to validation image-label list file')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
@@ -175,7 +144,8 @@ def main():
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--run', action='store_true')
+    parser.add_argument('--run_training', action='store_true',
+                        help='Run training')
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
@@ -185,24 +155,14 @@ def main():
     with open('scripts/resnet50_stamp', 'w'): pass
 
 
-def main_impl(args):
-    model = resnet50.ResNet50(compute_accuracy=args.run)
-    insize = model.insize
-
-    replace_id(model)
-
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()  # Copy the model to the GPU
-
-    # Load the datasets and mean file
-    mean = np.load(args.mean)
-
+def create_trainer(args, model):
     # Setup an optimizer
     #optimizer = chainer.optimizers.Adam()
     optimizer = chainer.optimizers.SGD()
     optimizer.setup(model)
+
+    # Load the datasets and mean file
+    mean = np.load(args.mean)
 
     train = PreprocessedDataset(args.train, args.root, mean, insize)
     val = PreprocessedDataset(args.val, args.root, mean, insize, False)
@@ -219,50 +179,44 @@ def main_impl(args):
         train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-    if args.run:
-        # Evaluate the model with the test dataset for each epoch
-        trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu))
-        run_training(args, trainer)
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu))
+    return trainer
+
+def main_impl(args):
+    model = resnet50.ResNet50(compute_accuracy=args.run_training)
+    insize = model.insize
+
+    replace_id(model)
+
+    if args.gpu >= 0:
+        # Make a specified GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
+        model.to_gpu()  # Copy the model to the GPU
+
+    if args.run_training:
+        run_training(args, model)
         return
 
     out_dir = 'out/backprop_test_resnet50'
-    makedirs(out_dir)
 
-    for step in range(1):
-        trainer.updater.update()
-        npz_filename = '%s/params_%d.npz' % (out_dir, step)
-        params_dir = '%s/params_%d' % (out_dir, step)
-        chainer.serializers.save_npz(npz_filename, model)
-        makedirs(params_dir)
-        npz_to_onnx.npz_to_onnx(npz_filename, os.path.join(params_dir, 'param'))
-
-    chainer.config.train = False
     x = np.random.random((args.batchsize, 3, insize, insize)).astype(np.float32)
     y = (np.random.random(args.batchsize) * 1000).astype(np.int32)
     onehot = np.eye(1000, dtype=x.dtype)[y]
     x = chainer.Variable(x, name='input')
     y = chainer.Variable(y, name='y')
     onehot = chainer.Variable(onehot, name='onehot')
-    onnx_chainer.export(model, (x, onehot),
-                        filename='%s/model.onnx' % out_dir)
 
-    test_data_dir = '%s/test_data_set_0' % out_dir
-    makedirs(test_data_dir)
-    for i, var in enumerate([x, onehot, model.batch_size]):
-        with open(os.path.join(test_data_dir, 'input_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx(var.name, var.data)
-            f.write(t.SerializeToString())
-
-    model.cleargrads()
-    result = model(x, onehot)
-    result.backward()
-    for i, (name, param) in enumerate(model.namedparams()):
-        with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx('grad_out@' + name, param.grad)
-            f.write(t.SerializeToString())
+    onnx_chainer_util.create_onnx_test('resnet50',
+                                       model,
+                                       (x, onehot),
+                                       __builtins__,
+                                       out_dir)
 
 
-def run_training(args, trainer):
+def run_training(args, model):
+    trainer = create_trainer(args, model)
+
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
     trainer.extend(extensions.dump_graph('main/loss'))

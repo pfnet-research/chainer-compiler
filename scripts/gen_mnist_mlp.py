@@ -20,7 +20,6 @@ import onnx_chainer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from oniku.scripts import onnx_chainer_util
-from oniku.tools import npz_to_onnx
 
 
 class MyClassifier(chainer.link.Chain):

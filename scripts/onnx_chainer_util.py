@@ -50,6 +50,8 @@ def makedirs(d):
 
 
 def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
+    # TODO(hamaji): Investigate why we need to set train=False for ResNet50.
+    chainer.config.train = False
     makedirs(out_dir)
     with replace_id(model, builtins):
         onnx_chainer.export(model, inputs,
@@ -67,6 +69,7 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
             t = npz_to_onnx.np_array_to_onnx(var.name, var.data)
             f.write(t.SerializeToString())
 
+    chainer.config.train = True
     model.cleargrads()
     result = model(*inputs)
     result.grad = np.ones(result.shape, result.dtype)
