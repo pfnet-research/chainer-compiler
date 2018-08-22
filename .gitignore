@@ -7,4 +7,5 @@ onnx_chainer_sample.py
 *.dot
 *.svg
 tes.py
+tes2.py
 net_drawer.py

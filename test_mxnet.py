@@ -47,15 +47,51 @@ def convert_parameter(parameter, name):
 # 入力xから次元を決める
 # モデルにxを流して最初の重みを決める
 
-
+import code
 def edit_onnx_protobuf(onnxmod, x, chainermod):
     # code.InteractiveConsole({'ch': chainermod}).interact()
 
     initializers = []
+    
+    
+    avg_pass = []
     for na, pa in chainermod.namedparams():
         if isinstance(pa.data, type(None)):
             continue
+        # print(na)
         initializers.append(convert_parameter(pa, na.replace('/', '_')))
+        # これだとbatchnormの avg_mean と avg_var が入らない
+        if na[-5:]=='/beta':
+            avg_pass.append(na[:-5])
+    
+    # めちゃアドホックなのでどうにかしたい
+    def rec(v,p):
+        if len(p)==0:
+            return v
+        else:
+            if p[0].isdigit():
+                return rec(v[int(p[0])],p[1:])
+            else:
+                return rec(getattr(v,p[0]),p[1:])
+
+    for p in avg_pass:
+        # print(p)
+        # code.InteractiveConsole({'ch': chainermod}).interact()
+        na = p + '/avg_mean'
+        v = rec(chainermod,na.split('/')[1:])
+        #print(na,v)
+        initializers.append(convert_parameter(v,na.replace('/', '_')))
+        na = p + '/avg_var'
+        v = rec(chainermod,na.split('/')[1:])
+        
+        #これvを適当に初期化したほうがいいですね(値が爆発しないように)
+        v.data = np.ones(v.shape).astype(np.float32) * 4.0
+        
+        #print(na,v)
+        initializers.append(convert_parameter(v,na.replace('/', '_')))
+     
+
+
 
     dummygraph = helper.make_graph(
         [], "hoge", [], [], initializer=initializers)
@@ -64,19 +100,7 @@ def edit_onnx_protobuf(onnxmod, x, chainermod):
     onnxmod.graph.MergeFrom(dummygraph)
 
 
-def check_compatibility(model, x, out_key='prob'):
-    if not MXNET_AVAILABLE:
-        raise ImportError('check_compatibility requires MXNet.')
-
-    # さらの状態からonnxのmodをつくる
-    onnxmod = chainer2onnx.chainer2onnx(model, model.forward)
-    checker.check_model(onnxmod)
-
-    with open('raw_MLP.onnx', 'wb') as fp:
-        fp.write(onnxmod.SerializeToString())
-
-    chainer.config.train = False
-
+def run_chainer_model(model,x):
     # Forward computation
     if isinstance(x, (list, tuple)):
         for i in x:
@@ -91,7 +115,7 @@ def check_compatibility(model, x, out_key='prob'):
             'The \'x\' argument should be a list or tuple of numpy.ndarray or '
             'chainer.Variable, or simply numpy.ndarray or chainer.Variable '
             'itself. But a {} object was given.'.format(type(x)))
-
+    
     if isinstance(chainer_out, (list, tuple)):
         chainer_out = [y.array for y in chainer_out]
     elif isinstance(chainer_out, dict):
@@ -103,8 +127,27 @@ def check_compatibility(model, x, out_key='prob'):
     else:
         raise ValueError('Unknown output type: {}'.format(type(chainer_out)))
 
+    return chainer_out 
+
+def check_compatibility(model, x, out_key='prob'):
+    if not MXNET_AVAILABLE:
+        raise ImportError('check_compatibility requires MXNet.')
+    
+    
+    # さらの状態からonnxのmodをつくる
+    onnxmod = chainer2onnx.chainer2onnx(model, model.forward)
+    checker.check_model(onnxmod)
+
+    with open('raw_MLP.onnx', 'wb') as fp:
+        fp.write(onnxmod.SerializeToString())
+
+    chainer.config.train = False
+    run_chainer_model(model,x)
+
+    print("parameter initialized") #これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, x, model)
+    chainer_out = run_chainer_model(model,x)
 
     fn = 'o.onnx'
     with open(fn, 'wb') as fp:
@@ -154,8 +197,11 @@ def check_compatibility(model, x, out_key='prob'):
 
     print(len(chainer_out), len(mxnet_out))
     print(x[0].shape)
-    print(chainer_out[0].shape)
-    print(mxnet_out[0].shape)
+    print('chainershape',chainer_out[0].shape)
+    print('mxshape     ',mxnet_out[0].shape)
+    #print(x)
+    print(chainer_out)
+    #print(mxnet_out)
 
     for cy, my in zip(chainer_out, mxnet_out):
         np.testing.assert_almost_equal(cy, my, decimal=5)

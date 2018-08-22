@@ -74,19 +74,26 @@ def size2d(v):
 class Link_Convolution2D(object):
     def __init__(sl, ch, parentname):
         sl.name = parentname + '_' + ch.name
-        # code.InteractiveConsole({'ch': ch}).interact()
+        #code.InteractiveConsole({'ch': ch}).interact()
 
         sl.ksize = size2d(ch.ksize)
         sl.stride = size2d(ch.stride)
         ps = size2d(ch.pad)
         sl.pads = ps + ps
+        
+        if not (ch.b is None):
+            # nobias = True の場合
+            sl.M = ch.b.shape[0]
+            sl.b = helper.make_tensor_value_info(
+                sl.name + '_b', TensorProto.FLOAT, [sl.M])
+        else:
+            sl.M = "TODO"
+            sl.b = None
 
-        sl.M = ch.b.shape[0]
         sl.W = helper.make_tensor_value_info(
             sl.name + '_W', TensorProto.FLOAT,
             [sl.M, 'channel_size'] + sl.ksize)
-        sl.b = helper.make_tensor_value_info(
-            sl.name + '_b', TensorProto.FLOAT, [sl.M])
+
 
     def call(sl, args, _, env):
         assert(len(args) == 1)
@@ -95,7 +102,7 @@ class Link_Convolution2D(object):
         env.nodes.append(
             helper.make_node(
                 "Conv",
-                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
+                inputs=[v.name, sl.W.name] + ([] if sl.b is None else [sl.b.name]), outputs=[res.name],
                 kernel_shape=sl.ksize,
                 pads=sl.pads,
                 strides=sl.stride
@@ -104,12 +111,45 @@ class Link_Convolution2D(object):
         return res
 
     def init_tensors(sl):
-        return [sl.W, sl.b]
+        return [sl.W] + ([] if sl.b is None else [sl.b])
 
 
 class Link_BatchNormalization(object):
-    def __init__(sl, ch):
-        pass
+    def __init__(sl, ch, parentname):
+        sl.name = parentname + '_' + ch.name
+        #code.InteractiveConsole({'ch': ch}).interact()
+        
+        sl.n_out = ch.beta.shape[0]
+
+        sl.scale = helper.make_tensor_value_info(
+            sl.name + '_gamma', TensorProto.FLOAT, [sl.n_out])
+        sl.B = helper.make_tensor_value_info(
+            sl.name + '_beta', TensorProto.FLOAT, [sl.n_out])
+        sl.mean = helper.make_tensor_value_info(
+            sl.name + '_avg_mean', TensorProto.FLOAT, [sl.n_out])
+        sl.var = helper.make_tensor_value_info(
+            sl.name + '_avg_var', TensorProto.FLOAT, [sl.n_out])
+
+        sl.eps = ch.eps
+        sl.momentum = ch.decay 
+        
+    def call(sl, args, _, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "BatchNormalization",
+                inputs=[v.name, sl.scale.name, sl.B.name, sl.mean.name, sl.var.name], outputs=[res.name],
+                epsilon=sl.eps,
+                momentum=sl.momentum,
+                # とりあえずspatialは1で(0でも値が変わらなかったのでよくわからん)
+            )
+        )
+        return res
+
+    def init_tensors(sl):
+        return [sl.scale, sl.B, sl.mean, sl.var]
 
 
 class User_Defined_Link(object):
@@ -249,7 +289,6 @@ class Function_Dropout(object):
             helper.make_node(
                 "Dropout", inputs=[v.name], outputs=[res.name],
                 ratio=keywords.get('ratio', 0.5),
-                is_test=1  # onnxの仕様ではないが、mxnetの仕様でいるみたい
             )
         )
         return res
@@ -270,6 +309,10 @@ class Function_Concat(object):
         )
         return res
 
+
+class Func(object):
+    def __init__(sl,f):
+        sl.call = f
 
 def clip_head(s):
     s = s.split('\n')
@@ -296,7 +339,6 @@ class ValueReturn(Exception):
     def __init__(sl, value):
         sl.value = value
 
-
 Func2NodeClass = [
     (F.relu, Function_Relu),
     (F.max_pooling_2d, Function_MaxPool2d),
@@ -312,6 +354,14 @@ def eval_ast(nast, env):
         # 逐次実行
         for s in nast:
             eval_ast(s, env)
+    elif isinstance(nast,gast.For):
+        # とりあえず実際にfor文を回す
+        tg = nast.target.id
+        for v in eval_ast(nast.iter,env):
+            env.vars[tg] = v
+            eval_ast(nast.body,env)
+        env.vars.pop(tg)
+
     elif isinstance(nast, gast.Assign):
         value = eval_ast(nast.value, env)
         targs = nast.targets
@@ -324,10 +374,30 @@ def eval_ast(nast, env):
         keywords = dict(
             map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
         return fn.call(args, keywords, env)
+    elif isinstance(nast, gast.BinOp):
+        lv = eval_ast(nast.left, env)
+        rv = eval_ast(nast.right, env)
+        res = new_tensor(['TODO'])
+        if isinstance(nast.op, gast.Add):    
+            optype = "Add"
+        else:
+            raise Exception('unknown operator',nast.op)
+        
+        env.nodes.append(
+            helper.make_node(
+                optype,
+                inputs=[lv.name,rv.name], outputs=[res.name],
+            )
+        )
+        return res
     elif isinstance(nast, gast.Attribute):
         na = nast.value.id
         if na == env.self_name:  # .selfのとき
-            return env.links[nast.attr]
+            if nast.attr == 'children':
+                #code.InteractiveConsole({'nast': nast, 'env': env}).interact()
+                return Func(lambda _,__,___: env.links.values()) #これでよさそう?(順番があってるのかあやしい)
+            else:
+                return env.links[nast.attr]
         elif na in dir(env.module):
             v = getattr(getattr(env.module, na), nast.attr)
             for f, c in Func2NodeClass:
@@ -340,11 +410,7 @@ def eval_ast(nast, env):
 
     elif isinstance(nast, gast.Name):
         if nast.id == 'print':  # とりあえずの実装なのであとでもっとうまくやる
-            class P(object):
-                pass
-            res = P()
-            res.call = lambda _, __, ___: None
-            return res
+            return Func(lambda _, __, ___: None)
         else:
             return env.vars[nast.id]
     elif isinstance(nast, gast.Num):
@@ -361,7 +427,7 @@ def eval_ast(nast, env):
         raise ValueReturn(eval_ast(nast.value, env))
     else:
         print('unknown ast')
-        code.InteractiveConsole({'nast': nast}).interact()
+        code.InteractiveConsole({'nast': nast, 'env': env}).interact()
         raise Exception('unknown ast', nast)
 
 
