@@ -118,7 +118,7 @@ def main():
                         help='Enable timeout')
     parser.add_argument('--trace', default='',
                         help='Enable tracing')
-    parser.add_argument('--train', action='store_true',
+    parser.add_argument('--run_training', action='store_true',
                         help='Run training')
     args = parser.parse_args()
 
@@ -128,20 +128,7 @@ def main():
     with open('scripts/mnist_mlp_stamp', 'w'): pass
 
 
-def main_impl(args):
-    # Set up a neural network to train
-    # Classifier reports softmax cross entropy loss and accuracy at every
-    # iteration, which will be used by the PrintReport extension below.
-    model = MLP(args.unit, 10)
-    # classifier = L.Classifier(model)
-    classifier = MyClassifier(model, compute_accuracy=args.train)
-    model = classifier
-
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()  # Copy the model to the GPU
-
+def create_trainer(args, model):
     # Setup an optimizer
     #optimizer = chainer.optimizers.Adam()
     optimizer = chainer.optimizers.SGD()
@@ -158,22 +145,31 @@ def main_impl(args):
         train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-    if args.train:
-        # Evaluate the model with the test dataset for each epoch
-        trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
-        run_training(args, trainer)
+    # Evaluate the model with the test dataset for each epoch
+    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+    return trainer
+
+
+def main_impl(args):
+    # Set up a neural network to train
+    # Classifier reports softmax cross entropy loss and accuracy at every
+    # iteration, which will be used by the PrintReport extension below.
+    model = MLP(args.unit, 10)
+    # classifier = L.Classifier(model)
+    classifier = MyClassifier(model, compute_accuracy=args.run_training)
+    model = classifier
+
+    if args.gpu >= 0:
+        # Make a specified GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
+        model.to_gpu()  # Copy the model to the GPU
+
+    if args.run_training:
+        run_training(args, model)
         return
 
     out_dir = 'out/backprop_test_mnist_mlp'
     makedirs(out_dir)
-
-    for step in range(2):
-        trainer.updater.update()
-        npz_filename = '%s/params_%d.npz' % (out_dir, step)
-        params_dir = '%s/params_%d' % (out_dir, step)
-        chainer.serializers.save_npz(npz_filename, model)
-        makedirs(params_dir)
-        npz_to_onnx.npz_to_onnx(npz_filename, os.path.join(params_dir, 'param'))
 
     chainer.config.train = False
     x = np.random.random((args.batchsize, 784)).astype(np.float32)
@@ -200,8 +196,21 @@ def main_impl(args):
             t = npz_to_onnx.np_array_to_onnx('grad_out@' + name, param.grad)
             f.write(t.SerializeToString())
 
+    # Revive this code if we need to test parameter update.
+    #
+    # trainer = create_trainer(args, model)
+    # for step in range(2):
+    #     trainer.updater.update()
+    #     npz_filename = '%s/params_%d.npz' % (out_dir, step)
+    #     params_dir = '%s/params_%d' % (out_dir, step)
+    #     chainer.serializers.save_npz(npz_filename, model)
+    #     makedirs(params_dir)
+    #     npz_to_onnx.npz_to_onnx(npz_filename, os.path.join(params_dir, 'param'))
 
-def run_training(args, trainer):
+
+def run_training(args, model):
+    trainer = create_trainer(args, model)
+
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
     trainer.extend(extensions.dump_graph('main/loss'))
