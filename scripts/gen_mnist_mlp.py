@@ -23,11 +23,6 @@ from oniku.scripts import onnx_chainer_util
 from oniku.tools import npz_to_onnx
 
 
-def makedirs(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
-
-
 class MyClassifier(chainer.link.Chain):
     """A Classifier which only supports 2D input."""
 
@@ -45,16 +40,15 @@ class MyClassifier(chainer.link.Chain):
         # TODO(hamaji): Support it?
         # log_prob = F.select_item(log_softmax, t)
 
+        batch_size = chainer.Variable(xp.array(t.size, xp.float32),
+                                      name='batch_size')
+        self.extra_inputs = [batch_size]
         # TODO(hamaji): Currently, F.sum with axis=1 cannot be
         # backpropped properly.
         # log_prob = F.sum(log_softmax * t, axis=1)
-        # self.batch_size = chainer.Variable(xp.array(t.size, xp.float32),
-        #                                    name='batch_size')
         # return -F.sum(log_prob, axis=0) / self.batch_size
         log_prob = F.sum(log_softmax * t, axis=(0, 1))
-        self.batch_size = chainer.Variable(xp.array(t.size, xp.float32),
-                                           name='batch_size')
-        loss = -log_prob / self.batch_size
+        loss = -log_prob / batch_size
         reporter.report({'loss': loss}, self)
         if self.compute_accuracy:
             acc = accuracy.accuracy(y, xp.argmax(t, axis=1))
@@ -171,32 +165,18 @@ def main_impl(args):
         return
 
     out_dir = 'out/backprop_test_mnist_mlp'
-    makedirs(out_dir)
 
-    chainer.config.train = False
     x = np.random.random((args.batchsize, 784)).astype(np.float32)
     y = (np.random.random(args.batchsize) * 10).astype(np.int32)
     onehot = np.eye(10, dtype=x.dtype)[y]
     x = chainer.Variable(x, name='input')
     onehot = chainer.Variable(onehot, name='onehot')
-    with onnx_chainer_util.replace_id(model, __builtins__):
-        onnx_chainer.export(model, (x, onehot),
-                            filename='%s/model.onnx' % out_dir)
 
-    test_data_dir = '%s/test_data_set_0' % out_dir
-    makedirs(test_data_dir)
-    for i, var in enumerate([x, onehot, model.batch_size]):
-        with open(os.path.join(test_data_dir, 'input_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx(var.name, var.data)
-            f.write(t.SerializeToString())
-
-    model.cleargrads()
-    result = model(x, onehot)
-    result.backward()
-    for i, (name, param) in enumerate(model.namedparams()):
-        with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx('grad_out@' + name, param.grad)
-            f.write(t.SerializeToString())
+    onnx_chainer_util.create_onnx_test('mnist_mlp',
+                                       model,
+                                       (x, onehot),
+                                       __builtins__,
+                                       out_dir)
 
     # Revive this code if we need to test parameter update.
     #
