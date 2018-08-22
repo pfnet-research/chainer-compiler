@@ -10,6 +10,7 @@ import numpy as np
 
 import chainer
 import chainer2onnx
+import test_args
 
 try:
     import mxnet
@@ -129,15 +130,30 @@ def run_chainer_model(model, x, out_key):
     return chainer_out
 
 
+def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
+    if not os.path.exists(test_data_dir):
+        os.makedirs(test_data_dir)
+
+    for typ, values in [('input', inputs), ('output', outputs)]:
+        for i, (name, value) in enumerate(values):
+            tensor = numpy_helper.from_array(value, name)
+            filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
+            with open(filename, 'wb') as f:
+                f.write(tensor.SerializeToString())
+
+
 def check_compatibility(model, x, out_key='prob'):
+    args = test_args.get_test_args()
+
     if not MXNET_AVAILABLE:
         raise ImportError('check_compatibility requires MXNet.')
 
     # さらの状態からonnxのmodをつくる
-    onnxmod = chainer2onnx.chainer2onnx(model, model.forward)
+    onnxmod, input_tensors, output_tensors = chainer2onnx.chainer2onnx(
+        model, model.forward)
     checker.check_model(onnxmod)
 
-    with open('raw_MLP.onnx', 'wb') as fp:
+    with open(args.raw_output, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
 
     chainer.config.train = False
@@ -148,12 +164,38 @@ def check_compatibility(model, x, out_key='prob'):
     edit_onnx_protobuf(onnxmod, x, model)
     chainer_out = run_chainer_model(model, x, out_key)
 
+    with open(args.output, 'wb') as fp:
+        fp.write(onnxmod.SerializeToString())
+
+    if args.test_data_dir:
+        initializer_names = set()
+        for initializer in onnxmod.graph.initializer:
+            initializer_names.add(initializer.name)
+        input_names = []
+        for input_tensor in input_tensors:
+            if input_tensor.name not in initializer_names:
+                input_names.append(input_tensor.name)
+
+        # We assume the number of inputs is 1 for now.
+        assert len(input_names) == 1
+
+        assert len(output_tensors) == len(chainer_out)
+        outputs = []
+        for tensor, value in zip(output_tensors, chainer_out):
+            outputs.append((tensor.name, value))
+
+        dump_test_inputs_outputs(
+            [(input_names[0], x)],
+            outputs,
+            args.test_data_dir)
+
+    if not args.check:
+        return
+
     fn = 'o.onnx'
     with open(fn, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
 
-    with open('initialized_MLP.onnx', 'wb') as fp:
-        fp.write(onnxmod.SerializeToString())
     # onnx_chainer.export(model, x, fn)
 
     sym, arg, aux = mxnet.contrib.onnx.import_model(fn)

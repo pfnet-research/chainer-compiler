@@ -501,4 +501,4 @@ def chainer2onnx(model, forward):
     mo = helper.make_model(graph)
 
     # print(mo)
-    return mo
+    return mo, input_tensors, output_tensors
