@@ -384,9 +384,11 @@ xchainer::Array BatchNormalizationOp::RunImpl(
         const xchainer::Array& bias,
         const xchainer::Array& mean,
         const xchainer::Array& var) {
+    // TODO(hamaji): Support spatial=false.
+    CHECK(spatial) << "BatchNormalization with spatial=false is not supported yet";
     xchainer::Axes axes;
     for (int i = 0; i < x.shape().size(); ++i) {
-        if (i != spatial)
+        if (i != 1)
             axes.push_back(i);
     }
     // TODO(hamaji): Test the training mode.
