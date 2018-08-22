@@ -21,7 +21,8 @@ def replace_id(model, builtins):
 
     def my_id(x):
         if (isinstance(x, chainer.Parameter) or
-            isinstance(x, chainer.Variable) and x.name):
+            (isinstance(x, chainer.Variable) and x.name) or
+            (isinstance(x, chainer.variable.VariableNode) and x.name)):
             if hasattr(x, 'onnx_name'):
                 return x.onnx_name
             name = resolve_name(x)

@@ -28,6 +28,7 @@ class AnyModel(chainer.Chain):
 
     def __call__(self, *args):
         result = self.fn(self, *args)
+        result.name = 'output'
         return result
 
 
