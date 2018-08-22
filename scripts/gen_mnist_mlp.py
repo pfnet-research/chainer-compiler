@@ -11,6 +11,7 @@ import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
+from chainer import cuda
 from chainer import reporter
 from chainer import training
 from chainer.functions.evaluation import accuracy
@@ -37,6 +38,7 @@ class MyClassifier(chainer.link.Chain):
             self.predictor = predictor
 
     def forward(self, x, t):
+        xp = cuda.get_array_module(x)
         y = self.predictor(x)
         log_softmax = F.log_softmax(y)
         # SelectItem is not supported by onnx-chainer.
@@ -46,16 +48,16 @@ class MyClassifier(chainer.link.Chain):
         # TODO(hamaji): Currently, F.sum with axis=1 cannot be
         # backpropped properly.
         # log_prob = F.sum(log_softmax * t, axis=1)
-        # self.batch_size = chainer.Variable(np.array(t.size, np.float32),
+        # self.batch_size = chainer.Variable(xp.array(t.size, xp.float32),
         #                                    name='batch_size')
         # return -F.sum(log_prob, axis=0) / self.batch_size
         log_prob = F.sum(log_softmax * t, axis=(0, 1))
-        self.batch_size = chainer.Variable(np.array(t.size, np.float32),
+        self.batch_size = chainer.Variable(xp.array(t.size, xp.float32),
                                            name='batch_size')
         loss = -log_prob / self.batch_size
         reporter.report({'loss': loss}, self)
         if self.compute_accuracy:
-            acc = accuracy.accuracy(y, np.argmax(t, axis=1))
+            acc = accuracy.accuracy(y, xp.argmax(t, axis=1))
             reporter.report({'accuracy': acc}, self)
         return loss
 
