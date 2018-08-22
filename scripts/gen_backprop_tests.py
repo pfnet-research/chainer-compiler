@@ -108,7 +108,7 @@ def get_backprop_tests():
         r = 1
         for d in shape:
             r *= d
-        return np.arange(r).reshape(shape)
+        return np.arange(r).reshape(shape).astype(np.float32)
 
     test('add1', lambda m: m.a + m.b, a=[3], b=[7])
     test('mul1', lambda m: m.a * m.b, a=[3], b=[7])
@@ -181,6 +181,14 @@ def get_backprop_tests():
     test('softmax_axis1', lambda m: F.softmax(m.a, axis=1) * m.b,
          a=[[2, 4, 8], [3, 1, 9], [4, 12, 6]],
          b=[[0, 1, 0], [1, 0, 0], [0, 0, 1]])
+
+    test('batch_normalization',
+         lambda m: F.batch_normalization(m.x, m.g, m.b) * m.r,
+         expected_extra_params=['None', 'None_1'],
+         x=aranges(2, 5, 3, 3),
+         g=aranges(5),
+         b=aranges(5),
+         r=aranges(2, 5, 3, 3) % 7)
 
     return tests
 

@@ -73,6 +73,11 @@ public:
 
 private:
     bool IsReady(const Node* node) const {
+        // TODO(hamaji): Figure out a better way to select outputs
+        // required to compute gradients.
+        if (node->op_type() == Node::kBatchNormalization) {
+            return node->outputs()[0]->grad();
+        }
         for (Value* value : node->outputs()) {
             if (!value->grad()) return false;
         }

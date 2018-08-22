@@ -44,6 +44,31 @@ private:
     std::unique_ptr<T> fb_;
 };
 
+class BatchNormBackwardContext : public XCVMState::Auxiliary {
+public:
+    BatchNormBackwardContext(std::unique_ptr<xchainer::BatchNormForwardBackward>&& fb, xchainer::Shape x1_shape, xchainer::Shape x2_shape)
+        : fb_(std::move(fb)), x1_shape_(x1_shape), x2_shape_(x2_shape) {
+    }
+    virtual ~BatchNormBackwardContext() = default;
+
+    xchainer::BatchNormForwardBackward* fb() {
+        return fb_.get();
+    }
+
+    const xchainer::Shape& x1_shape() const {
+        return x1_shape_;
+    }
+
+    const xchainer::Shape& x2_shape() const {
+        return x2_shape_;
+    }
+
+private:
+    std::unique_ptr<xchainer::BatchNormForwardBackward> fb_;
+    xchainer::Shape x1_shape_;
+    xchainer::Shape x2_shape_;
+};
+
 }  // namespace
 
 xchainer::Array InOp::RunImpl(XCVMState* st) {
@@ -276,15 +301,15 @@ xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) 
 }
 
 xchainer::Array MaxPoolGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
-    auto fb = static_cast<BackwardContext<xchainer::MaxPoolForwardBackward>*>(st->GetAux(this->y));
-    CHECK(fb);
-    return fb->fb()->Backward(gy);
+    auto ctx = dynamic_cast<BackwardContext<xchainer::MaxPoolForwardBackward>*>(st->GetAux(this->y));
+    CHECK(ctx);
+    return ctx->fb()->Backward(gy);
 }
 
 xchainer::Array AveragePoolGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
-    auto fb = static_cast<BackwardContext<xchainer::AveragePoolForwardBackward>*>(st->GetAux(this->y));
-    CHECK(fb);
-    return fb->fb()->Backward(gy);
+    auto ctx = dynamic_cast<BackwardContext<xchainer::AveragePoolForwardBackward>*>(st->GetAux(this->y));
+    CHECK(ctx);
+    return ctx->fb()->Backward(gy);
 }
 
 xchainer::Array MatMulOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
@@ -398,7 +423,7 @@ xchainer::Array BatchNormalizationOp::RunImpl(
         const Array& gamma_reshaped = result.gamma;
         const Array& beta_reshaped = result.beta;
         xchainer::Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
-        std::unique_ptr<XCVMState::Auxiliary> pfb(new BackwardContext<xchainer::BatchNormForwardBackward>(std::move(fb)));
+        std::unique_ptr<XCVMState::Auxiliary> pfb(new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape()));
         st->SetAux(this->y, std::move(pfb));
         return out;
     } else {
@@ -407,10 +432,12 @@ xchainer::Array BatchNormalizationOp::RunImpl(
 }
 
 std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalizationGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
-    auto fb = static_cast<BackwardContext<xchainer::BatchNormForwardBackward>*>(st->GetAux(this->y));
-    CHECK(fb);
-    std::array<xchainer::Array, 3> gxs = fb->fb()->Backward(gy.AsGradStopped());
-    return {gxs[0], gxs[1], gxs[2]};
+    auto ctx = dynamic_cast<BatchNormBackwardContext*>(st->GetAux(this->y));
+    CHECK(ctx);
+    std::array<xchainer::Array, 3> gxs = ctx->fb()->Backward(gy.AsGradStopped());
+    xchainer::Array gx1 = xchainer::Reshape(gxs[1], ctx->x1_shape());
+    xchainer::Array gx2 = xchainer::Reshape(gxs[2], ctx->x2_shape());
+    return {gxs[0], gx1, gx2};
 }
 
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
