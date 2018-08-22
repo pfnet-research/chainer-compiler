@@ -89,7 +89,7 @@ void StripONNXModel(onnx::ModelProto* model) {
 struct TestCase {
     std::string name;
     InOuts inputs;
-    InOuts outputs;
+    std::vector<std::pair<std::string, xchainer::Array>> outputs;
 };
 
 void ReadTestDir(
@@ -122,7 +122,7 @@ void ReadTestDir(
                     CHECK_LT(output_index, output_names.size());
                     name = output_names[output_index++];
                 }
-                CHECK(test_case->outputs.emplace(name, tensor).second) << "Duplicate output tensor: " << name;
+                test_case->outputs.emplace_back(name, tensor);
             }
         }
         test_cases->emplace_back(std::move(test_case));
@@ -323,7 +323,7 @@ void RunMain(int argc, char** argv) {
         }
 
         LOG() << "Verifying the result..." << std::endl;
-        bool ok = true;
+        size_t ok_cnt = 0;
         for (const auto& p : test_case->outputs) {
             test_cnt++;
             const std::string key = p.first;
@@ -333,21 +333,20 @@ void RunMain(int argc, char** argv) {
             xchainer::Array actual = found->second;
             if (expected.dtype() != actual.dtype()) {
                 LOG() << "FAIL(dtype): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
-                ok = false;
                 continue;
             }
             if (expected.shape() != actual.shape()) {
                 LOG() << "FAIL(shape): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
-                ok = false;
                 continue;
             }
             if (!xchainer::AllClose(expected, actual, 1e-4)) {
                 LOG() << "FAIL(value): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
-                ok = false;
                 continue;
             }
+            LOG() << "OK: " << key << std::endl;
+            ++ok_cnt;
         }
-        CHECK(ok);
+        CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
     if (test_cnt) LOG() << "OK!" << std::endl;
 }
