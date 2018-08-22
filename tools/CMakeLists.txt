@@ -3,6 +3,10 @@ include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
 
+# TODO(hamaji): Find CUDA instead of using these fixed paths.
+include_directories(/usr/local/cuda/include)
+link_directories(/usr/local/cuda/lib64)
+
 add_executable(dump_onnx dump_onnx.cc)
 target_link_libraries(dump_onnx
   onnx_proto
