@@ -81,6 +81,10 @@ NodeDef('Dropout', 1, (1, 2), ratio=0.5)
 
 NodeDef('MatMul', 2, 1)
 NodeDef('Gemm', 3, 1, alpha=1.0, beta=1.0, transA=False, transB=False)
+NodeDef('LSTM', (3, 4, 5, 6, 7, 8), (0, 1, 2, 3),
+        activation_alpha=[float], activation_beta=[float],
+        activations=[str], clip=float, direction='forward',
+        hidden_size=int, input_forget=0)
 
 conv_attrs = attr_sets(auto_pad='NOTSET',
                        dilations=[int],
@@ -130,44 +134,53 @@ class AttrDef(object):
             self.value = value
             assert self.type in (bool, int, str, float, Dtype)
 
-    def c_type(self):
-        if self.type == [int]:
-            return 'std::vector<int>'
+    def c_type(self, typ=None):
+        typ = self.type if typ is None else typ
+        if isinstance(typ, list):
+            assert len(typ) == 1
+            return 'std::vector<%s>' % self.c_type(typ[0])
         return {
             bool: 'bool',
             int: 'int',
             float: 'float',
             str: 'std::string',
             Dtype: 'Dtype',
-        }[self.type]
+        }[typ]
 
     def c_arg_type(self):
         typ = self.c_type()
-        if self.type == [int] or self.type == str:
+        if 'std::' in typ:
             return f'const {typ}&'
         return typ
 
-    def onnx_type(self):
-        if self.type == [int]:
-            return 'onnx::AttributeProto::INTS'
+    def onnx_type(self, typ=None):
+        typ = self.type if typ is None else typ
+        if isinstance(typ, list):
+            assert len(typ) == 1
+            return '%sS' % self.onnx_type(typ[0])
         return {
             bool: 'onnx::AttributeProto::INT',
             int: 'onnx::AttributeProto::INT',
             float: 'onnx::AttributeProto::FLOAT',
             str: 'onnx::AttributeProto::STRING',
             Dtype: 'onnx::AttributeProto::INT',
-        }[self.type]
+        }[typ]
 
-    def add_func(self):
-        if self.type == [int]:
-            return 'add_ints_attr'
+    def onnx_field(self, typ=None):
+        typ = self.type if typ is None else typ
+        if isinstance(typ, list):
+            assert len(typ) == 1
+            return self.onnx_field(typ[0]) + 's'
         return {
-            bool: 'add_int_attr',
-            int: 'add_int_attr',
-            float: 'add_float_attr',
-            str: 'add_str_attr',
-            Dtype: 'add_dtype_attr',
-        }[self.type]
+            bool: 'int',
+            int: 'int',
+            float: 'float',
+            str: 'string',
+            Dtype: 'dtype',
+        }[typ]
+
+    def add_func(self, typ=None):
+        return 'add_%s_attr' % self.onnx_field()
 
 
 ATTRS = {}
@@ -294,14 +307,15 @@ def gen_gen_node_base_cc():
                 blines.append(f'set_{attr.c_name}(xattr.f());')
             elif attr.type == str:
                 blines.append(f'set_{attr.c_name}(xattr.s());')
-            elif attr.type == [int]:
-                blines.append(f'{attr.c_name}_.assign(xattr.ints().begin(), '
-                              'xattr.ints().end());')
-                blines.append(f'was_{attr.c_name}_set_ = true;')
+            elif isinstance(attr.type, list):
+                fs = attr.onnx_field()
+                blines.append(f'{attr.c_name}_.assign(xattr.{fs}().begin(), '
+                              f'xattr.{fs}().end());')
             elif attr.type == Dtype:
                 blines.append(f'set_{attr.c_name}(Dtype(onnx::TensorProto::DataType(xattr.i())));')
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
+            blines.append(f'was_{attr.c_name}_set_ = true;')
             bodies.append(blines)
         bodies.append('unknown_attributes_.push_back(xattr);')
         lines += codegen_util.cond(conds, bodies)
@@ -342,19 +356,35 @@ def gen_gen_node_base_cc():
         xattr->set_f(v);
     };
 
-    auto add_str_attr = [&xnode](const std::string& name, const std::string& v) {
+    auto add_string_attr = [&xnode](const std::string& name, const std::string& v) {
         onnx::AttributeProto* xattr = xnode->add_attribute();
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::STRING);
         xattr->set_s(v);
     };
 
-    auto add_ints_attr = [&xnode](const std::string& name, const std::vector<int> ints) {
+    auto add_ints_attr = [&xnode](const std::string& name, const std::vector<int>& ints) {
         if (ints.empty()) return;
         onnx::AttributeProto* xattr = xnode->add_attribute();
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::INTS);
         for (int s : ints) xattr->add_ints(s);
+    };
+
+    auto add_floats_attr = [&xnode](const std::string& name, const std::vector<float>& floats) {
+        if (floats.empty()) return;
+        onnx::AttributeProto* xattr = xnode->add_attribute();
+        xattr->set_name(name);
+        xattr->set_type(onnx::AttributeProto::FLOATS);
+        for (float s : floats) xattr->add_floats(s);
+    };
+
+    auto add_strings_attr = [&xnode](const std::string& name, const std::vector<std::string>& strings) {
+        if (strings.empty()) return;
+        onnx::AttributeProto* xattr = xnode->add_attribute();
+        xattr->set_name(name);
+        xattr->set_type(onnx::AttributeProto::STRINGS);
+        for (const std::string& s : strings) xattr->add_strings(s);
     };
 
     auto add_dtype_attr = [&xnode, add_int_attr](const std::string& name, Dtype v) {
