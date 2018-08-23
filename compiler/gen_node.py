@@ -78,6 +78,12 @@ NodeDef('Sum', None, 1)
 NodeDef('ReduceSum', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceSumSquare', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceMean', 1, 1, axes=[int], keepdims=True)
+NodeDef('ReduceMax', 1, 1, axes=[int], keepdims=True)
+NodeDef('ReduceMin', 1, 1, axes=[int], keepdims=True)
+
+NodeDef('ArgMax', 1, 1, axis=0, keepdims=True)
+NodeDef('ArgMin', 1, 1, axis=0, keepdims=True)
+NodeDef('Hardmax', 1, 1, axis=1)
 
 NodeDef('Dropout', 1, (1, 2), ratio=0.5)
 

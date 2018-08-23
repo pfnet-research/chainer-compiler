@@ -61,6 +61,8 @@ XC_OPS = [
     ('Tanh', [Array('x')], ['y']),
     ('Sigmoid', [Array('x')], ['y']),
 
+    ('ArgMax', [Array('x'), Int('axis'), Int('keepdims')], ['y']),
+
     ('ReduceSum', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('ReduceSumSquare', [Array('data'), Ints('axes'), Int('keepdims')],
      ['reduced']),

@@ -7,6 +7,7 @@
 #include <xchainer/routines/logic.h>
 #include <xchainer/routines/manipulation.h>
 #include <xchainer/routines/math.h>
+#include <xchainer/routines/sorting.h>
 #include <xchainer/routines/statistics.h>
 #include <xchainer/shape.h>
 
@@ -100,6 +101,16 @@ xchainer::Array TanhOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 
 xchainer::Array SigmoidOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return Sigmoid(a);
+}
+
+xchainer::Array ArgMaxOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    xchainer::Array r = xchainer::ArgMax(x, axis);
+    if (keepdims) {
+        xchainer::Shape shape = x.shape();
+        shape[axis] = 1;
+        r = xchainer::Reshape(r, shape);
+    }
+    return r;
 }
 
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {

@@ -257,6 +257,10 @@ private:
             int axis = node.axis();
             if (axis < 0) axis = 1;
             EMIT(LogSoftmax, out(0), in(0), axis);
+        } else if (node.op_type() == Node::kArgMax) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ArgMax, out(0), in(0), node.axis(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSum) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
