@@ -124,6 +124,10 @@ xchainer::Array HardmaxOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return xchainer::Reshape(xchainer::Take(e, r, 0), x.shape());
 }
 
+xchainer::Array ReduceMaxOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    return xchainer::AMax(a, GetXchainerAxes(axes), keepdims != 0);
+}
+
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return xchainer::Sum(a, GetXchainerAxes(axes), keepdims != 0);
 }
