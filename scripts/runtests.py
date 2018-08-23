@@ -137,8 +137,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_gemm_broadcast'),
 
     TestCase(NODE_TEST, 'test_lstm_defaults'),
-    # TestCase(NODE_TEST, 'test_lstm_with_initial_bias'),
-    # TestCase(NODE_TEST, 'test_lstm_with_peepholes'),
+    TestCase(NODE_TEST, 'test_lstm_with_initial_bias'),
+    TestCase(NODE_TEST, 'test_lstm_with_peepholes', rtol=5e-2),
 
     # TODO(hamaji): Investigate 3D softmax ops do not agree (though
     # xChainer agrees with Chainer).

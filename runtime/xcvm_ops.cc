@@ -266,10 +266,11 @@ std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, cons
     // W: [num_directions, 4 * hidden_size, input_size]
     // R: [num_directions, 4 * hidden_size, hidden_size]
     // B: [num_directions, 8 * hidden_size]
-    CHECK(!sequence_lens.has_value()) << "Not implemented yet";
-    CHECK(!initial_c.has_value()) << "Not implemented yet";
-    CHECK(!p.has_value()) << "Not implemented yet";
-    CHECK_EQ(1, w.shape()[0]) << "Not implemented yet";
+    // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
+    CHECK_EQ(1, w.shape()[0]) << "Multi-directional LSTM is not implemented yet";
+    if (sequence_lens.has_value()) {
+        WARN_ONCE("LSTM with sequence_lens is not supported yet");
+    }
 
     int64_t seq_length = x.shape()[0];
     int64_t batch_size = x.shape()[1];
@@ -281,15 +282,30 @@ std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, cons
 
     xchainer::Array wt = xchainer::Transpose(xchainer::Squeeze(w, {0}));
     xchainer::Array rt = xchainer::Transpose(xchainer::Squeeze(r, {0}));
-    xchainer::Array h = initial_h.has_value() ? initial_h.value() : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
-    xchainer::Array c = initial_c.has_value() ? initial_c.value() : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
+    xchainer::Array h = initial_h.has_value() ? xchainer::Squeeze(initial_h.value(), {0}) : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
+    xchainer::Array c = initial_c.has_value() ? xchainer::Squeeze(initial_c.value(), {0}) : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
     std::vector<xchainer::ArrayIndex> indices(2, xchainer::Slice());
+    xchainer::Array bm;
+    if (b.has_value()) {
+        xchainer::Array bs = xchainer::Squeeze(b.value(), {0});
+        xchainer::Array b1 = bs.At({xchainer::Slice(0, 4 * hidden_size)});
+        xchainer::Array b2 = bs.At({xchainer::Slice(4 * hidden_size, 8 * hidden_size)});
+        bm = b1 + b2;
+    }
+    xchainer::Array pi, po, pf;
+    if (p.has_value()) {
+        xchainer::Array ps = xchainer::Squeeze(p.value(), {0});
+        pi = ps.At({xchainer::Slice(0, hidden_size)});
+        po = ps.At({xchainer::Slice(hidden_size, 2 * hidden_size)});
+        pf = ps.At({xchainer::Slice(2 * hidden_size, 3 * hidden_size)});
+    }
+
     xchainer::Array output = xchainer::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         xchainer::Array cur_x = x.At({time});
         xchainer::Array gates = xchainer::Dot(cur_x, wt) + xchainer::Dot(h, rt);
         if (b.has_value()) {
-            CHECK(false) << "TODO";
+            gates += bm;
         }
         indices[1] = xchainer::Slice({0, hidden_size});
         xchainer::Array i = gates.At(indices);
@@ -300,7 +316,11 @@ std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, cons
         indices[1] = xchainer::Slice({hidden_size * 3, hidden_size * 4});
         xchainer::Array nc = gates.At(indices);
 
-        // TODO(hamaji): Handle `p`.
+        if (p.has_value()) {
+            i += pi * c;
+            f += pf * c;
+            o += po * c;
+        }
         i = Sigmoid(i);
         f = Sigmoid(f);
         nc = Tanh(nc);
