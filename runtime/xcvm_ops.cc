@@ -3,6 +3,7 @@
 #include <xchainer/axes.h>
 #include <xchainer/routines/connection.h>
 #include <xchainer/routines/creation.h>
+#include <xchainer/routines/indexing.h>
 #include <xchainer/routines/linalg.h>
 #include <xchainer/routines/logic.h>
 #include <xchainer/routines/manipulation.h>
@@ -111,6 +112,16 @@ xchainer::Array ArgMaxOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
         r = xchainer::Reshape(r, shape);
     }
     return r;
+}
+
+xchainer::Array HardmaxOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    xchainer::Shape shape = {1, 1};
+    for (size_t i = 0; i < x.shape().size(); ++i) {
+        shape[i >= axis] *= x.shape()[i];
+    }
+    xchainer::Array r = xchainer::ArgMax(xchainer::Reshape(x, shape), 1);
+    xchainer::Array e = xchainer::Eye(shape[1], nonstd::nullopt, nonstd::nullopt, x.dtype());
+    return xchainer::Reshape(xchainer::Take(e, r, 0), x.shape());
 }
 
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
