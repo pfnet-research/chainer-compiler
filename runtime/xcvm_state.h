@@ -31,6 +31,7 @@ public:
         pc_ = pc;
     }
     xchainer::Array GetVar(int index);
+    nonstd::optional<xchainer::Array> GetVarOptional(int index);
     void SetVar(int index, xchainer::Array value);
     std::string GetVarString(int index);
     void FreeVar(int index);

@@ -7,6 +7,7 @@ from oniku.common.codegen_util import format_code
 
 
 ARRAY = 'ARRAY'
+OPTIONAL_ARRAY = 'OPTIONAL_ARRAY'
 INT = 'INT'
 FLOAT = 'FLOAT'
 INTS = 'INTS'
@@ -21,6 +22,10 @@ STACK_VECTOR = 'xchainer::StackVector<int64_t, xchainer::kMaxNdim>'
 
 def Array(name):
     return (ARRAY, name)
+
+
+def OptionalArray(name):
+    return (OPTIONAL_ARRAY, name)
 
 
 def Int(name):
@@ -59,17 +64,11 @@ XC_OPS = [
     ('ReduceSumTo', [Array('data'), Array('shape')], ['reduced']),
     ('ReduceMean', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('Conv',
-     [Array('x'), Array('w'), Ints('strides'), Ints('pads')],
-     ['y']),
-    ('ConvWithBias',
-     [Array('x'), Array('w'), Ints('strides'), Ints('pads'), Array('b')],
-     ['y']),
+     [Array('x'), Array('w'), OptionalArray('b'),
+      Ints('strides'), Ints('pads')], ['y']),
     ('ConvTranspose',
-     [Array('x'), Array('w'), Ints('strides'), Ints('pads'),
-      Ints('output_shape')], ['y']),
-    ('ConvTransposeWithBias',
-     [Array('x'), Array('w'), Ints('strides'), Ints('pads'),
-      Ints('output_shape'), Array('b')], ['y']),
+     [Array('x'), Array('w'), OptionalArray('b'),
+      Ints('strides'), Ints('pads'), Ints('output_shape')], ['y']),
     ('ConvTransposeWithDynamicShape',
      [Array('x'), Array('w'), Array('output_shape'),
       Ints('strides'), Ints('pads')], ['y']),
@@ -172,9 +171,10 @@ def gen_gen_xcvm_ops_h():
 
         args = ['XCVMState* st']
         for typ, name in inputs:
-            if typ != ARRAY:
-                continue
-            args.append(f'const xchainer::Array& {name}')
+            if typ == ARRAY:
+                args.append(f'const xchainer::Array& {name}')
+            elif typ == OPTIONAL_ARRAY:
+                args.append(f'const nonstd::optional<xchainer::Array>& {name}')
         rettype = 'void'
         if len(outputs) == 1:
             rettype = 'xchainer::Array'
@@ -187,7 +187,7 @@ def gen_gen_xcvm_ops_h():
         lines.append('private:')
         for typ, name in inputs:
             ctype = None
-            if typ == ARRAY or typ == INT:
+            if typ == ARRAY or typ == OPTIONAL_ARRAY or typ == INT:
                 ctype = 'int'
             elif typ == FLOAT:
                 ctype = 'float'
@@ -235,10 +235,11 @@ def gen_gen_xcvm_ops_cc():
         # Emit constructor.
         lines.append('%sOp::%sOp(const XCInstructionProto& inst) {' % (op, op))
         for i, (typ, name) in enumerate(inputs):
-            lines.append(f'CHECK_EQ(XCValueProto::{typ}, ' +
+            enum = typ.replace('OPTIONAL_', '')
+            lines.append(f'CHECK_EQ(XCValueProto::{enum}, ' +
                          f'inst.inputs({i}).type()) ' +
                          f'<< "Unexpected type for input#{i} of {op}";')
-            if typ == ARRAY:
+            if typ == ARRAY or typ == OPTIONAL_ARRAY:
                 lines.append('%s = inst.inputs(%d).array();' % (name, i))
             elif typ == INT:
                 lines.append('%s = inst.inputs(%d).i();' % (name, i))
@@ -273,7 +274,7 @@ def gen_gen_xcvm_ops_cc():
         for i, (typ, name) in enumerate(inputs):
             if i:
                 line += ' << ", "'
-            if typ == ARRAY:
+            if typ == ARRAY or typ == OPTIONAL_ARRAY:
                 line += f' << "%" << {name}'
             elif typ in (INT, FLOAT):
                 line += f' << {name}'
@@ -289,10 +290,9 @@ def gen_gen_xcvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in inputs:
-            if typ != ARRAY:
-                continue
-            line += f' << " %" << {name} << "="'
-            line += f' << st->GetVarString({name})'
+            if typ == ARRAY or typ == OPTIONAL_ARRAY:
+                line += f' << " %" << {name} << "="'
+                line += f' << st->GetVarString({name})'
         if outputs:
             line += ' << " ->"'
         line += ';'
@@ -300,9 +300,10 @@ def gen_gen_xcvm_ops_cc():
 
         args = ['st']
         for typ, name in inputs:
-            if typ != ARRAY:
-                continue
-            args.append(f'st->GetVar({name})')
+            if typ == ARRAY:
+                args.append(f'st->GetVar({name})')
+            elif typ == OPTIONAL_ARRAY:
+                args.append(f'st->GetVarOptional({name})')
         call = 'RunImpl(%s)' % ', '.join(args)
         if len(outputs) == 1:
             lines.append('st->SetVar(%s, %s);' % (outputs[0], call))
@@ -368,7 +369,7 @@ def make_proto_signature(op, inputs, outputs):
     for name in outputs:
         args.append(f'int {name}')
     for typ, name in inputs:
-        if typ == ARRAY or typ == INT:
+        if typ == ARRAY or typ == OPTIONAL_ARRAY or typ == INT:
             args.append(f'int {name}')
         elif typ == FLOAT:
             args.append(f'float {name}')
@@ -416,8 +417,9 @@ def gen_xcvm_proto_util_cc():
         for typ, name in inputs:
             lines.append('{')
             lines.append('XCValueProto* input_proto = inst->add_inputs();')
-            lines.append(f'input_proto->set_type(XCValueProto::{typ});')
-            if typ == ARRAY:
+            enum = typ.replace('OPTIONAL_', '')
+            lines.append(f'input_proto->set_type(XCValueProto::{enum});')
+            if typ == ARRAY or typ == OPTIONAL_ARRAY:
                 lines.append(f'input_proto->set_array({name});')
             elif typ == INT:
                 lines.append(f'input_proto->set_i({name});')

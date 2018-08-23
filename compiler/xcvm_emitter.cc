@@ -165,9 +165,9 @@ private:
             // TODO(xchainer): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             if (node.inputs().size() == 2UL) {
-                EMIT(Conv, out(0), in(0), in(1), strides(), pads());
+                EMIT(Conv, out(0), in(0), in(1), -1, strides(), pads());
             } else {
-                EMIT(ConvWithBias, out(0), in(0), in(1), strides(), pads(), in(2));
+                EMIT(Conv, out(0), in(0), in(1), in(2), strides(), pads());
             }
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
@@ -178,9 +178,9 @@ private:
             // TODO(hamaji): Handle output_padding and output_shape.
             std::vector<int> output_shape = node.output_shape();
             if (node.inputs().size() == 2UL) {
-                EMIT(ConvTranspose, out(0), in(0), in(1), strides(), pads(), output_shape);
+                EMIT(ConvTranspose, out(0), in(0), in(1), -1, strides(), pads(), output_shape);
             } else {
-                EMIT(ConvTransposeWithBias, out(0), in(0), in(1), strides(), pads(), output_shape, in(2));
+                EMIT(ConvTranspose, out(0), in(0), in(1), in(2), strides(), pads(), output_shape);
             }
         } else if (node.op_type() == Node::kOnikuxConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());

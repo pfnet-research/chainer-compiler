@@ -16,7 +16,17 @@ xchainer::Array XCVMState::GetVar(int index) {
     return *variables_[index];
 }
 
+nonstd::optional<xchainer::Array> XCVMState::GetVarOptional(int index) {
+    if (index < 0)
+        return nonstd::nullopt;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].has_value());
+    return *variables_[index];
+}
+
 std::string XCVMState::GetVarString(int index) {
+    if (index < 0)
+        return "null";
     xchainer::Array var(GetVar(index));
     if (trace_level_ > 1)
         return var.ToString();
