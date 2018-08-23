@@ -40,6 +40,18 @@ bool ReplaceArgMin(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceReduceMin(Graph* graph, Node* node) {
+    CHECK_EQ(1UL, node->inputs().size());
+    CHECK_EQ(1UL, node->outputs().size());
+    Value* t0 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_reducemin_0"));
+    Value* t1 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_reducemin_1"));
+    graph->AddNode(Node::kNeg, node->inputs(), {t0});
+    graph->AddNode(Node::kReduceMax, {t0}, {t1})
+        ->set_axes(node->axes()).set_keepdims(node->keepdims());
+    graph->AddNode(Node::kNeg, {t1}, node->outputs());
+    return true;
+}
+
 #if 0
 
 bool ReplaceBatchNormalization(Graph* graph, Node* node) {
@@ -96,6 +108,7 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
+    CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif
