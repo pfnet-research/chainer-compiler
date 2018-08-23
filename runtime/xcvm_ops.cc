@@ -325,6 +325,10 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     return r + xc;
 }
 
+std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& r, const nonstd::optional<xchainer::Array>& b, const nonstd::optional<xchainer::Array>& sequence_lens, const nonstd::optional<xchainer::Array>& initial_h, const nonstd::optional<xchainer::Array>& initial_p, const nonstd::optional<xchainer::Array>& p) {
+    CHECK(false) << "LSTM not implemented yet";
+}
+
 // TODO(hamaji): Copied from xChainer's code.
 namespace {
 

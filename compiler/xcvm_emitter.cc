@@ -74,6 +74,13 @@ private:
             return GetValueId(node.inputs()[i]);
         };
 
+        // Optional input.
+        auto oin = [this, in, &node](int i) {
+            if (i >= static_cast<int>(node.inputs().size()))
+                return -1;
+            return in(i);
+        };
+
         auto out = [this, &node](int i) {
             CHECK_LT(i, node.outputs().size());
             return GetValueId(node.outputs()[i]);
@@ -164,11 +171,7 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(xchainer): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            if (node.inputs().size() == 2UL) {
-                EMIT(Conv, out(0), in(0), in(1), -1, strides(), pads());
-            } else {
-                EMIT(Conv, out(0), in(0), in(1), in(2), strides(), pads());
-            }
+            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads());
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
@@ -177,11 +180,7 @@ private:
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
             std::vector<int> output_shape = node.output_shape();
-            if (node.inputs().size() == 2UL) {
-                EMIT(ConvTranspose, out(0), in(0), in(1), -1, strides(), pads(), output_shape);
-            } else {
-                EMIT(ConvTranspose, out(0), in(0), in(1), in(2), strides(), pads(), output_shape);
-            }
+            EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), output_shape);
         } else if (node.op_type() == Node::kOnikuxConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -192,6 +191,10 @@ private:
             // TODO(xchainer): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
+        } else if (node.op_type() == Node::kLSTM) {
+            CHECK_LE(3, node.inputs().size());
+            CHECK_EQ(2, node.outputs().size()) << "The third output of LSTM is not supported yet";
+            EMIT(LSTM, out(0), out(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size());
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
