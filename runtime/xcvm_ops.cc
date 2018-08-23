@@ -324,13 +324,14 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
 
     // TODO(hamaji): I don't understand the semantics of
     // "undirectional broadcasting". This implementation handles what
-    // chainer does (e.g., (3, 4, 1, 1) @ (4, 2) => (3, 2)).
+    // chainer does (e.g., (3, 4, 2, 2) @ (16, 2) => (3, 2)).
     // https://github.com/onnx/onnx/blob/master/docs/Broadcasting.md
     if (xa.shape().size() > 2) {
-        for (size_t i = 2; i < xa.shape().size(); ++i) {
-            CHECK_EQ(xa.shape()[i], 1) << "Cannot squeeze the dimension " << i << " xa.shape=" << xa.shape() << " xb.shape=" << xb.shape();
+        int last_dim = 1;
+        for (size_t i = 1; i < xa.shape().size(); ++i) {
+            last_dim *= xa.shape()[i];
         }
-        xa = xchainer::Reshape(xa, xchainer::Shape{xa.shape().begin(), xa.shape().begin() + 2});
+        xa = xchainer::Reshape(xa, xchainer::Shape{xa.shape()[0], last_dim});
     }
 
     xchainer::Array r = xchainer::Dot(xa, xb);
