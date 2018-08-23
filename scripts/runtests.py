@@ -175,6 +175,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_lrn_default', rtol=5e-3),
 ]
 
+num_official_onnx_tests = len(TEST_CASES)
+
 for backprop_test in gen_backprop_tests.get_backprop_tests():
     dirname = 'out'
     name = 'backprop_test_' + backprop_test.name
@@ -215,7 +217,8 @@ def main():
     if fail_cnt:
         print('%d/%d tests failed!' % (fail_cnt, test_cnt))
     else:
-        print('ALL %d tests OK!' % test_cnt)
+        print('ALL %d tests OK! (%d from ONNX)' %
+              (test_cnt, num_official_onnx_tests))
 
 
 main()
