@@ -26,6 +26,20 @@ xchainer::OptionalAxes GetXchainerAxes(xchainer::StackVector<int64_t, xchainer::
     return xc_axes;
 }
 
+xchainer::Array Sigmoid(xchainer::Array a) {
+    // TODO(hamaji): Revisit implementation of this function.
+    CHECK(a.dtype() == xchainer::Dtype::kFloat32);
+    float f = 1.0f;
+    xchainer::Array one = MakeArray(a.dtype(), {}, &f);
+    return one / (one + xchainer::Exp(-a));
+}
+
+xchainer::Array Tanh(xchainer::Array a) {
+    xchainer::Array p = xchainer::Exp(a);
+    xchainer::Array m = xchainer::Exp(-a);
+    return (p - m) / (p + m);
+}
+
 }  // namespace
 
 xchainer::Array InOp::RunImpl(XCVMState* st) {
@@ -73,11 +87,7 @@ xchainer::Array SqrtOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 }
 
 xchainer::Array SigmoidOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
-    // TODO(hamaji): Revisit implementation of this function.
-    CHECK(a.dtype() == xchainer::Dtype::kFloat32);
-    float f = 1.0f;
-    xchainer::Array one = MakeArray(a.dtype(), {}, &f);
-    return one / (one + xchainer::Exp(-a));
+    return Sigmoid(a);
 }
 
 xchainer::Array ReduceSumOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
@@ -251,8 +261,57 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     return r + xc;
 }
 
-std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& r, const nonstd::optional<xchainer::Array>& b, const nonstd::optional<xchainer::Array>& sequence_lens, const nonstd::optional<xchainer::Array>& initial_h, const nonstd::optional<xchainer::Array>& initial_p, const nonstd::optional<xchainer::Array>& p) {
-    CHECK(false) << "LSTM not implemented yet";
+std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& r, const nonstd::optional<xchainer::Array>& b, const nonstd::optional<xchainer::Array>& sequence_lens, const nonstd::optional<xchainer::Array>& initial_h, const nonstd::optional<xchainer::Array>& initial_c, const nonstd::optional<xchainer::Array>& p) {
+    // X: [seq_length, batch_size, input_size]
+    // W: [num_directions, 4 * hidden_size, input_size]
+    // R: [num_directions, 4 * hidden_size, hidden_size]
+    // B: [num_directions, 8 * hidden_size]
+    CHECK(!sequence_lens.has_value()) << "Not implemented yet";
+    CHECK(!initial_c.has_value()) << "Not implemented yet";
+    CHECK(!p.has_value()) << "Not implemented yet";
+    CHECK_EQ(1, w.shape()[0]) << "Not implemented yet";
+
+    int64_t seq_length = x.shape()[0];
+    int64_t batch_size = x.shape()[1];
+    CHECK_EQ(0, w.shape()[1] % 4);
+    int64_t hidden_size = w.shape()[1] / 4;
+    CHECK_EQ(4 * hidden_size, r.shape()[1]);
+    if (b.has_value())
+        CHECK_EQ(8 * hidden_size, b.value().shape()[1]);
+
+    xchainer::Array wt = xchainer::Transpose(xchainer::Squeeze(w, {0}));
+    xchainer::Array rt = xchainer::Transpose(xchainer::Squeeze(r, {0}));
+    xchainer::Array h = initial_h.has_value() ? initial_h.value() : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
+    xchainer::Array c = initial_c.has_value() ? initial_c.value() : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
+    std::vector<xchainer::ArrayIndex> indices(2, xchainer::Slice());
+    xchainer::Array output = xchainer::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+    for (int64_t time = 0; time < x.shape()[0]; ++time) {
+        xchainer::Array cur_x = x.At({time});
+        xchainer::Array gates = xchainer::Dot(cur_x, wt) + xchainer::Dot(h, rt);
+        if (b.has_value()) {
+            CHECK(false) << "TODO";
+        }
+        indices[1] = xchainer::Slice({0, hidden_size});
+        xchainer::Array i = gates.At(indices);
+        indices[1] = xchainer::Slice({hidden_size, hidden_size * 2});
+        xchainer::Array o = gates.At(indices);
+        indices[1] = xchainer::Slice({hidden_size * 2, hidden_size * 3});
+        xchainer::Array f = gates.At(indices);
+        indices[1] = xchainer::Slice({hidden_size * 3, hidden_size * 4});
+        xchainer::Array nc = gates.At(indices);
+
+        // TODO(hamaji): Handle `p`.
+        i = Sigmoid(i);
+        f = Sigmoid(f);
+        nc = Tanh(nc);
+        c = f * c + i * nc;
+        o = Sigmoid(o);
+        h = o * Tanh(c);
+
+        output.At({time}) += o;
+    }
+    h = xchainer::Reshape(h, {1, h.shape()[0], h.shape()[1]});
+    return std::make_tuple(output, h);
 }
 
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {

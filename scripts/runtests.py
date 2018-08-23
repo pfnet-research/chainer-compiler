@@ -136,6 +136,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
     TestCase(NODE_TEST, 'test_gemm_broadcast'),
 
+    TestCase(NODE_TEST, 'test_lstm_defaults'),
+    # TestCase(NODE_TEST, 'test_lstm_with_initial_bias'),
+    # TestCase(NODE_TEST, 'test_lstm_with_peepholes'),
+
     # TODO(hamaji): Investigate 3D softmax ops do not agree (though
     # xChainer agrees with Chainer).
     # TODO(hamaji): Relax equality check for "large_number" tests.

@@ -106,7 +106,7 @@ XC_OPS = [
     ('LSTM',
      [Array('x'), Array('w'), Array('r'),
       OptionalArray('b'), OptionalArray('sequence_lens'),
-      OptionalArray('initial_h'), OptionalArray('initial_p'),
+      OptionalArray('initial_h'), OptionalArray('initial_c'),
       OptionalArray('p'),
       Int('hidden_size'),
      ],
