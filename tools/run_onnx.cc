@@ -186,7 +186,7 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
-    args.add<double>("rtol", '\0', "rtol of AllClose", 1e-4);
+    args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
