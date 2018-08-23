@@ -26,7 +26,17 @@ bool ReplaceSum(Graph* graph, Node* node) {
 bool ReplaceLess(Graph* graph, Node* node) {
     CHECK_EQ(2UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
-    graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, {node->outputs()[0]});
+    graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, node->outputs());
+    return true;
+}
+
+bool ReplaceArgMin(Graph* graph, Node* node) {
+    CHECK_EQ(1UL, node->inputs().size());
+    CHECK_EQ(1UL, node->outputs().size());
+    Value* t = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_argmin"));
+    graph->AddNode(Node::kNeg, node->inputs(), {t});
+    graph->AddNode(Node::kArgMax, {t}, node->outputs())
+        ->set_axis(node->axis()).set_keepdims(node->keepdims());
     return true;
 }
 
@@ -85,6 +95,7 @@ void Simplify(Graph* graph) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
+    CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif

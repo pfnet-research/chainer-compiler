@@ -162,6 +162,12 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_argmax_keepdims_random'),
     TestCase(NODE_TEST, 'test_argmax_no_keepdims_example'),
     TestCase(NODE_TEST, 'test_argmax_no_keepdims_random'),
+    TestCase(NODE_TEST, 'test_argmin_default_axis_example'),
+    TestCase(NODE_TEST, 'test_argmin_default_axis_random'),
+    TestCase(NODE_TEST, 'test_argmin_keepdims_example'),
+    TestCase(NODE_TEST, 'test_argmin_keepdims_random'),
+    TestCase(NODE_TEST, 'test_argmin_no_keepdims_example'),
+    TestCase(NODE_TEST, 'test_argmin_no_keepdims_random'),
 
     TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_random'),
