@@ -16,9 +16,10 @@ cmdline = parser.parse_args()
 
 class TestCase(object):
 
-    def __init__(self, dirname, name):
+    def __init__(self, dirname, name, rtol=1e-4):
         self.dirname = dirname
         self.name = name
+        self.rtol = rtol
 
     def test_dir(self):
         return os.path.join(self.dirname, self.name)
@@ -166,6 +167,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_batchnorm_example'),
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
+    TestCase(NODE_TEST, 'test_lrn', rtol=5e-3),
+    TestCase(NODE_TEST, 'test_lrn_default', rtol=5e-3),
 ]
 
 for backprop_test in gen_backprop_tests.get_backprop_tests():
@@ -189,6 +192,7 @@ def main():
     fail_cnt = 0
     for test_case in TEST_CASES:
         args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet']
+        args += ['--rtol', str(test_case.rtol)]
         if test_case.name.startswith('backprop_'):
             args.append('--backprop')
         if test_case.name == 'resnet50':

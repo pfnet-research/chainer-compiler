@@ -452,6 +452,23 @@ std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalization
     return {gxs[0], gx1, gx2};
 }
 
+xchainer::Array LRNOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+    int half_n = size / 2;
+    xchainer::Array x2 = x * x;
+    xchainer::Array sum_part = x2.Copy();
+    std::vector<xchainer::ArrayIndex> indices1(x2.shape().size(), xchainer::Slice());
+    std::vector<xchainer::ArrayIndex> indices2(x2.shape().size(), xchainer::Slice());
+    for (int i = 1; i <= half_n; ++i) {
+        indices1[1] = xchainer::Slice(i, x2.shape()[1]);
+        indices2[1] = xchainer::Slice(x2.shape()[1] - i);
+        sum_part.At(indices1) += x2.At(indices2);
+        sum_part.At(indices2) += x2.At(indices1);
+    }
+    xchainer::Array unit_scale = bias + alpha * sum_part;
+    xchainer::Array scale = xchainer::Exp(xchainer::Log(unit_scale) * -beta);
+    return x * scale;
+}
+
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
     return xchainer::Equal(a, b);
 }

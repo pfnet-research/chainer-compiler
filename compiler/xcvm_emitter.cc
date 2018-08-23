@@ -228,6 +228,10 @@ private:
             // TODO(hamaji): Handle running mean and variance for training mode.
             CHECK_EQ(5UL, node.inputs().size());
             EMIT(BatchNormalization, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+        } else if (node.op_type() == Node::kLRN) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(LRN, out(0), in(0), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
