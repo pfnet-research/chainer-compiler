@@ -9,6 +9,8 @@ include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
 add_library(oniku_runtime
   gen_xcvm_ops.cc
+  ops/normalization.cc
+  ops/pooling.cc
   xchainer.cc
   xcvm.cc
   xcvm.pb.cc
