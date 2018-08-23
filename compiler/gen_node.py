@@ -44,19 +44,21 @@ class NodeDef(object):
         NODES.append(self)
 
 
+NodeDef('Identity', 1, 1)
 NodeDef('Neg', 1, 1)
 NodeDef('Exp', 1, 1)
 NodeDef('Log', 1, 1)
 NodeDef('Sqrt', 1, 1)
+NodeDef('Tanh', 1, 1)
 NodeDef('Relu', 1, 1)
 NodeDef('Sigmoid', 1, 1)
 NodeDef('Not', 1, 1)
-NodeDef('Identity', 1, 1)
 
 NodeDef('Add', 2, 1)
 NodeDef('Sub', 2, 1)
 NodeDef('Mul', 2, 1)
 NodeDef('Div', 2, 1)
+NodeDef('Pow', 2, 1)
 NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
 NodeDef('Less', 2, 1)

@@ -40,6 +40,10 @@ xchainer::Array Tanh(xchainer::Array a) {
     return (p - m) / (p + m);
 }
 
+xchainer::Array Pow(xchainer::Array a, xchainer::Array b) {
+    return xchainer::Exp(xchainer::Log(a) * b);
+}
+
 }  // namespace
 
 xchainer::Array InOp::RunImpl(XCVMState* st) {
@@ -70,6 +74,10 @@ xchainer::Array DivOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xc
     return a / b;
 }
 
+xchainer::Array PowOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
+    return Pow(a, b);
+}
+
 xchainer::Array NegOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return -a;
 }
@@ -84,6 +92,10 @@ xchainer::Array LogOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
 
 xchainer::Array SqrtOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return xchainer::Sqrt(a);
+}
+
+xchainer::Array TanhOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
+    return Tanh(a);
 }
 
 xchainer::Array SigmoidOp::RunImpl(XCVMState* st, const xchainer::Array& a) {

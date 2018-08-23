@@ -141,6 +141,7 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kExp, Exp);
         EMIT_SIMPLE_UNARY_OP(Node::kLog, Log);
         EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);
+        EMIT_SIMPLE_UNARY_OP(Node::kTanh, Tanh);
         EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
         EMIT_SIMPLE_UNARY_OP(Node::kSigmoid, Sigmoid);
         EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
@@ -150,6 +151,7 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);
         EMIT_SIMPLE_BINARY_OP(Node::kMul, Mul);
         EMIT_SIMPLE_BINARY_OP(Node::kDiv, Div);
+        EMIT_SIMPLE_BINARY_OP(Node::kPow, Pow);
         EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
         EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
 
