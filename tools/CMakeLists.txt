@@ -7,9 +7,15 @@ include_directories(..)
 include_directories(/usr/local/cuda/include)
 link_directories(/usr/local/cuda/lib64)
 
+add_library(oniku_tools
+  util.cc
+  )
+
 add_executable(dump_onnx dump_onnx.cc)
 target_link_libraries(dump_onnx
   onnx_proto
+  oniku_tools
+  oniku_compiler
   protobuf
   )
 set_target_properties(dump_onnx PROPERTIES OUTPUT_NAME "dump_onnx")
@@ -24,6 +30,7 @@ set_target_properties(dump_tensor PROPERTIES OUTPUT_NAME "dump_tensor")
 
 add_executable(run_onnx run_onnx.cc)
 target_link_libraries(run_onnx
+  oniku_tools
   oniku_compiler
   oniku_runtime
   xchainer

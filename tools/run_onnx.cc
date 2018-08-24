@@ -32,6 +32,7 @@
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <tools/cmdline.h>
+#include <tools/util.h>
 
 namespace oniku {
 namespace runtime {
@@ -75,15 +76,8 @@ void StripONNXModel(onnx::ModelProto* model) {
     onnx::GraphProto* graph = model->mutable_graph();
     for (int i = 0; i < graph->initializer_size(); ++i) {
         onnx::TensorProto* tensor = graph->mutable_initializer(i);
-#define CLEAR_IF_LARGE(tensor, x) \
-    if (tensor->x().size() >= 20) tensor->clear_##x()
-        CLEAR_IF_LARGE(tensor, float_data);
-        CLEAR_IF_LARGE(tensor, int32_data);
-        CLEAR_IF_LARGE(tensor, string_data);
-        CLEAR_IF_LARGE(tensor, int64_data);
-        CLEAR_IF_LARGE(tensor, raw_data);
-        CLEAR_IF_LARGE(tensor, double_data);
-        CLEAR_IF_LARGE(tensor, uint64_data);
+        StripLargeValue(tensor, 20);
+        MakeHumanReadableValue(tensor);
     }
 }
 
