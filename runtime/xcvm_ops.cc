@@ -395,11 +395,11 @@ xchainer::Array GreaterOp::RunImpl(XCVMState* st, const xchainer::Array& a, cons
 
 xchainer::Array GreaterEqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
     // TODO(hamaji): This is an incorrect implementation for NaN.
-    return xchainer::Not(xchainer::Greater(b, a));
+    return xchainer::LogicalNot(xchainer::Greater(b, a));
 }
 
 xchainer::Array NotOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
-    return xchainer::Not(x);
+    return xchainer::LogicalNot(x);
 }
 
 xchainer::Array CastOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
