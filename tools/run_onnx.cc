@@ -332,16 +332,26 @@ void RunMain(int argc, char** argv) {
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
             xchainer::Array actual = found->second;
+
+            auto array_str = [&args](xchainer::Array a) {
+                int size = a.GetTotalSize();
+                if (size < 100 || args.exist("verbose"))
+                    return a.ToString();
+                return a.shape().ToString() + " [0,20]=" + a.Reshape({size}).At({xchainer::Slice{20}}).ToString();
+            };
+            auto fail = [&](const std::string& type) {
+                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << array_str(expected) << "\nActual: " << array_str(actual) << std::endl;
+            };
             if (expected.dtype() != actual.dtype()) {
-                LOG() << "FAIL(dtype): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                fail("dtype");
                 continue;
             }
             if (expected.shape() != actual.shape()) {
-                LOG() << "FAIL(shape): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                fail("shape");
                 continue;
             }
             if (!xchainer::AllClose(expected, actual, args.get<double>("rtol"))) {
-                LOG() << "FAIL(value): " << key << "\nExpected: " << expected << "\nActual: " << actual << std::endl;
+                fail("value");
                 continue;
             }
             LOG() << "OK: " << key << std::endl;
