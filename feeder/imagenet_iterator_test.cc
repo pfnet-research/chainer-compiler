@@ -23,8 +23,7 @@ TEST(TestImageNetIterator, Basic) {
     // m = np.load('data/imagenet/mean.npy')
     //   with open('data/imagenet/mean.bin', 'wb') as f:
     //   f.write(struct.pack('%df' % m.size, *tuple(m.flat)))
-    if (!file_exists("data/imagenet/test.txt") ||
-        !file_exists("data/imagenet/mean.bin")) {
+    if (!file_exists("data/imagenet/test.txt") || !file_exists("data/imagenet/mean.bin")) {
         WARN_ONCE("Test skipped");
         return;
     }

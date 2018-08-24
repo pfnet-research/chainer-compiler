@@ -35,8 +35,7 @@ bool ReplaceArgMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
     Value* t = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_argmin"));
     graph->AddNode(Node::kNeg, node->inputs(), {t});
-    graph->AddNode(Node::kArgMax, {t}, node->outputs())
-        ->set_axis(node->axis()).set_keepdims(node->keepdims());
+    graph->AddNode(Node::kArgMax, {t}, node->outputs())->set_axis(node->axis()).set_keepdims(node->keepdims());
     return true;
 }
 
@@ -46,8 +45,7 @@ bool ReplaceReduceMin(Graph* graph, Node* node) {
     Value* t0 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_reducemin_0"));
     Value* t1 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_reducemin_1"));
     graph->AddNode(Node::kNeg, node->inputs(), {t0});
-    graph->AddNode(Node::kReduceMax, {t0}, {t1})
-        ->set_axes(node->axes()).set_keepdims(node->keepdims());
+    graph->AddNode(Node::kReduceMax, {t0}, {t1})->set_axes(node->axes()).set_keepdims(node->keepdims());
     graph->AddNode(Node::kNeg, {t1}, node->outputs());
     return true;
 }
@@ -118,8 +116,7 @@ void Simplify(Graph* graph) {
         replaced = false;
         for (Node* node : graph->GetLiveNodes()) {
             auto found = simplifiers.find(node->op_type());
-            if (found == simplifiers.end())
-                continue;
+            if (found == simplifiers.end()) continue;
             if (found->second(graph, node)) {
                 // std::cerr << node->op_type() << " removed" << std::endl;
                 graph->DetachNode(node);

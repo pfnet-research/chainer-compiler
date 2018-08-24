@@ -12,8 +12,7 @@ namespace {
 template <class T>
 class BackwardContext : public XCVMState::Auxiliary {
 public:
-    explicit BackwardContext(std::unique_ptr<T>&& fb)
-        : fb_(std::move(fb)) {
+    explicit BackwardContext(std::unique_ptr<T>&& fb) : fb_(std::move(fb)) {
     }
     virtual ~BackwardContext() = default;
 
@@ -39,7 +38,8 @@ xchainer::Array MaxPoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
 xchainer::Array AveragePoolOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     xchainer::AveragePoolPadMode pad_mode = count_include_pad ? xchainer::AveragePoolPadMode::kZero : xchainer::AveragePoolPadMode::kIgnore;
-    std::unique_ptr<xchainer::AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_shape, strides, pads, pad_mode);
+    std::unique_ptr<xchainer::AveragePoolForwardBackward> fb =
+            x.device().GetAveragePoolForwardBackward(kernel_shape, strides, pads, pad_mode);
     xchainer::Array out = fb->Forward(x.AsGradStopped());
     std::unique_ptr<XCVMState::Auxiliary> pfb(new BackwardContext<xchainer::AveragePoolForwardBackward>(std::move(fb)));
     st->SetAux(this->y, std::move(pfb));

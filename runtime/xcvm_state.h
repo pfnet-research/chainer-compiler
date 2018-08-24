@@ -18,6 +18,7 @@ public:
     class Auxiliary {
     public:
         virtual ~Auxiliary() = default;
+
     protected:
         Auxiliary() = default;
     };
@@ -53,8 +54,12 @@ public:
         trace_level_ = trace_level;
     }
 
-    bool is_training() const { return is_training_; }
-    void set_is_training(bool is_training) { is_training_ = is_training; }
+    bool is_training() const {
+        return is_training_;
+    }
+    void set_is_training(bool is_training) {
+        is_training_ = is_training;
+    }
 
 private:
     int pc_;

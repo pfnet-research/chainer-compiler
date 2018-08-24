@@ -2,8 +2,6 @@
 
 set -eu
 
-clang-format -i \
-             common/*.{h,cc} \
-             compiler/*.{h,cc} \
-             runtime/*.{h,cc} \
-             tools/*.cc
+for i in $(git ls-files | grep -e '\.cc$\|\.h$'); do
+    clang-format -i $i
+done

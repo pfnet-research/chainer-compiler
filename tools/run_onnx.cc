@@ -301,7 +301,6 @@ void RunMain(int argc, char** argv) {
             param_bytes = initial_free_bytes - param_bytes;
         }
 
-
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
         InOuts outputs(xcvm.Run(inputs, trace_level, args.exist("backprop")));
@@ -309,13 +308,13 @@ void RunMain(int argc, char** argv) {
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
         if (!device.empty()) {
-          size_t free_bytes, total_bytes;
-          CHECK_EQ(cudaSuccess, cudaMemGetInfo(&free_bytes, &total_bytes));
-          size_t used_bytes = initial_free_bytes - free_bytes;
-          size_t param_mbs = param_bytes / 1000 / 1000;
-          size_t used_mbs = used_bytes / 1000 / 1000;
-          size_t total_mbs = total_bytes / 1000 / 1000;
-          LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB total=" << total_mbs << "MB" << std::endl;
+            size_t free_bytes, total_bytes;
+            CHECK_EQ(cudaSuccess, cudaMemGetInfo(&free_bytes, &total_bytes));
+            size_t used_bytes = initial_free_bytes - free_bytes;
+            size_t param_mbs = param_bytes / 1000 / 1000;
+            size_t used_mbs = used_bytes / 1000 / 1000;
+            size_t total_mbs = total_bytes / 1000 / 1000;
+            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB total=" << total_mbs << "MB" << std::endl;
         }
 
         if (test_case->outputs.empty()) {
@@ -338,12 +337,12 @@ void RunMain(int argc, char** argv) {
 
             auto array_str = [&args](xchainer::Array a) {
                 int size = a.GetTotalSize();
-                if (size < 100 || args.exist("verbose"))
-                    return a.ToString();
+                if (size < 100 || args.exist("verbose")) return a.ToString();
                 return a.shape().ToString() + " [0,20]=" + a.Reshape({size}).At({xchainer::Slice{20}}).ToString();
             };
             auto fail = [&](const std::string& type) {
-                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << array_str(expected) << "\nActual: " << array_str(actual) << std::endl;
+                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << array_str(expected) << "\nActual: " << array_str(actual)
+                      << std::endl;
             };
             if (expected.dtype() != actual.dtype()) {
                 fail("dtype");

@@ -14,13 +14,11 @@ namespace {
 
 class MyDataIterator : public DataIterator {
 public:
-    explicit MyDataIterator(int end=999)
-        : DataIterator(3), end_(end) {
+    explicit MyDataIterator(int end = 999) : DataIterator(3), end_(end) {
     }
 
     std::vector<xchainer::Array> GetNextImpl() override {
-        if (counter_ == end_)
-            return {};
+        if (counter_ == end_) return {};
         std::shared_ptr<void> data(new char[sizeof(counter_)], std::default_delete<char[]>());
         std::memcpy(data.get(), &counter_, sizeof(counter_));
         xchainer::Array array = xchainer::FromContiguousHostData({}, xchainer::Dtype::kInt32, data);

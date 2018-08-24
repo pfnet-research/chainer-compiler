@@ -21,14 +21,14 @@ int main(int argc, char** argv) {
     }
 
     for (const std::string& filename : args.rest()) {
- std::cout << "=== " << filename << " ===\n";
+        std::cout << "=== " << filename << " ===\n";
         onnx::ModelProto model(LoadLargeProto<onnx::ModelProto>(filename));
         onnx::GraphProto* graph = model.mutable_graph();
         if (!args.exist("full")) {
             for (int i = 0; i < graph->initializer_size(); ++i) {
                 onnx::TensorProto* tensor = graph->mutable_initializer(i);
-#define CLEAR_IF_LARGE(tensor, x)                                   \
-                if (tensor->x().size() >= 20) tensor->clear_##x()
+#define CLEAR_IF_LARGE(tensor, x) \
+    if (tensor->x().size() >= 20) tensor->clear_##x()
                 CLEAR_IF_LARGE(tensor, float_data);
                 CLEAR_IF_LARGE(tensor, int32_data);
                 CLEAR_IF_LARGE(tensor, string_data);

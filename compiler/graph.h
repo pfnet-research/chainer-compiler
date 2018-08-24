@@ -7,9 +7,9 @@
 #include <onnx/onnx.pb.h>
 
 #include <compiler/node.h>
-#include <compiler/value.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
+#include <compiler/value.h>
 
 namespace oniku {
 

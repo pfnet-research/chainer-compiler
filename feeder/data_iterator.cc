@@ -2,8 +2,7 @@
 
 #include <common/log.h>
 
-DataIterator::DataIterator(int buf_size)
-    : buf_size_(buf_size) {
+DataIterator::DataIterator(int buf_size) : buf_size_(buf_size) {
 }
 
 DataIterator::~DataIterator() {
@@ -14,8 +13,7 @@ std::vector<xchainer::Array> DataIterator::GetNext() {
     std::unique_lock<std::mutex> lock{mu_};
     CHECK(thread_.get());
     while (buf_.empty()) {
-        if (is_iteration_finished_)
-            return {};
+        if (is_iteration_finished_) return {};
         cond_.wait(lock);
     }
     auto ret = buf_.front();
@@ -32,8 +30,7 @@ void DataIterator::Start() {
 void DataIterator::Terminate() {
     std::unique_lock<std::mutex> lock{mu_};
     CHECK(thread_.get());
-    if (should_finish_)
-        return;
+    if (should_finish_) return;
     should_finish_ = true;
     cond_.notify_all();
     cond_.wait(lock);

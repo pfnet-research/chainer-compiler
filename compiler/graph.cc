@@ -1,9 +1,9 @@
 #include "graph.h"
 
 #include <algorithm>
+#include <map>
 #include <queue>
 #include <set>
-#include <map>
 
 #include <onnx/onnx.pb.h>
 
@@ -127,8 +127,7 @@ std::vector<Value*> Graph::GetNecessaryInputs() const {
     std::vector<Value*> input_values;
     while (!q.empty()) {
         Value* value = q.front();
-        if (value->kind() == Value::Kind::kInput)
-            input_values.push_back(value);
+        if (value->kind() == Value::Kind::kInput) input_values.push_back(value);
         q.pop();
         if (Node* node = value->producer()) {
             for (Value* input : node->inputs()) {
@@ -172,7 +171,7 @@ Value* Graph::AddOutputValue(const std::string& name, const Type& type) {
 
 Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
     Node* node = new Node(GenSym(Node::OpTypeToString(op_type)), op_type, inputs, outputs);
-    //Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
+    // Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }

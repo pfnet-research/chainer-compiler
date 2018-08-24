@@ -118,13 +118,13 @@ xchainer::Array BatchNormalizationOp::RunImpl(
     CHECK(spatial) << "BatchNormalization with spatial=false is not supported yet";
     xchainer::Axes axes;
     for (int i = 0; i < x.shape().size(); ++i) {
-        if (i != 1)
-            axes.push_back(i);
+        if (i != 1) axes.push_back(i);
     }
     // TODO(hamaji): Test the training mode.
     if (st->is_training()) {
         PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
-        std::unique_ptr<xchainer::BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
+        std::unique_ptr<xchainer::BatchNormForwardBackward> fb =
+                x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
         const Array& gamma_reshaped = result.gamma;
         const Array& beta_reshaped = result.beta;
         xchainer::Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
@@ -136,7 +136,8 @@ xchainer::Array BatchNormalizationOp::RunImpl(
     }
 }
 
-std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalizationGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
+std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalizationGradOp::RunImpl(
+        XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
     auto ctx = dynamic_cast<BatchNormBackwardContext*>(st->GetAux(this->y));
     CHECK(ctx);
     std::array<xchainer::Array, 3> gxs = ctx->fb()->Backward(gy.AsGradStopped());

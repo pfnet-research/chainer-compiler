@@ -125,27 +125,38 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
 
     // Note bias will be ignored thanks to beta=0.
     if (node->trans_a()) {
-        AddGradOp(graph, Node::kGemm, {x[1], gy, x[0]}, x[0])->producer()
-                ->set_alpha(node->alpha()).set_beta(0)
-                .set_trans_a(node->trans_b()).set_trans_b(true);
+        AddGradOp(graph, Node::kGemm, {x[1], gy, x[0]}, x[0])
+                ->producer()
+                ->set_alpha(node->alpha())
+                .set_beta(0)
+                .set_trans_a(node->trans_b())
+                .set_trans_b(true);
     } else {
-        AddGradOp(graph, Node::kGemm, {gy, x[1], x[0]}, x[0])->producer()
-                ->set_alpha(node->alpha()).set_beta(0)
-                .set_trans_a(false).set_trans_b(!node->trans_b());
+        AddGradOp(graph, Node::kGemm, {gy, x[1], x[0]}, x[0])
+                ->producer()
+                ->set_alpha(node->alpha())
+                .set_beta(0)
+                .set_trans_a(false)
+                .set_trans_b(!node->trans_b());
     }
 
     if (node->trans_b()) {
-        AddGradOp(graph, Node::kGemm, {gy, x[0], x[1]}, x[1])->producer()
-                ->set_alpha(node->alpha()).set_beta(0)
-                .set_trans_a(true).set_trans_b(node->trans_a());
+        AddGradOp(graph, Node::kGemm, {gy, x[0], x[1]}, x[1])
+                ->producer()
+                ->set_alpha(node->alpha())
+                .set_beta(0)
+                .set_trans_a(true)
+                .set_trans_b(node->trans_a());
     } else {
-        AddGradOp(graph, Node::kGemm, {x[0], gy, x[1]}, x[1])->producer()
-                ->set_alpha(node->alpha()).set_beta(0)
-                .set_trans_a(!node->trans_a()).set_trans_b(false);
+        AddGradOp(graph, Node::kGemm, {x[0], gy, x[1]}, x[1])
+                ->producer()
+                ->set_alpha(node->alpha())
+                .set_beta(0)
+                .set_trans_a(!node->trans_a())
+                .set_trans_b(false);
     }
 
-    AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()
-            ->set_axes({0}).set_keepdims(false);
+    AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0}).set_keepdims(false);
 }
 
 void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -157,20 +168,19 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
         ->set_strides(node->strides()).set_pads(node->pads());
 #else
     Value* x_shape = AddTempOp(graph, Node::kShape, {x[0]}, x[0]);
-    AddGradOp(graph, Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])->producer()
-        ->set_strides(node->strides()).set_pads(node->pads());
+    AddGradOp(graph, Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
+            ->producer()
+            ->set_strides(node->strides())
+            .set_pads(node->pads());
 #endif
-    AddGradOp(graph, Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()
-        ->set_strides(node->strides()).set_pads(node->pads());
+    AddGradOp(graph, Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides()).set_pads(node->pads());
     if (x.size() == 3) {
         std::vector<int> axes{{0}};
-        CHECK(!node->kernel_shape().empty())
-                << "ConvGrad with no kernel_shape is not supported yet.";
+        CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
         for (size_t i = 0; i < node->kernel_shape().size(); ++i) {
             axes.push_back(2 + i);
         }
-        AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()
-                ->set_axes(axes).set_keepdims(false);
+        AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()->set_axes(axes).set_keepdims(false);
     }
 }
 

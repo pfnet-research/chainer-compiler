@@ -57,8 +57,8 @@ std::string Node::DebugString() const {
 }
 
 std::ostream& operator<<(std::ostream& os, Node::OpType op_type) {
-  os << Node::OpTypeToString(op_type);
-  return os;
+    os << Node::OpTypeToString(op_type);
+    return os;
 }
 
 }  // namespace oniku

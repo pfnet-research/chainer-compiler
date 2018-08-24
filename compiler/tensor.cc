@@ -48,15 +48,24 @@ Tensor::UniqueData LoadDataFromTypedData(const void* data, int64_t num_elements)
 template <typename From>
 Tensor::UniqueData LoadDataFromTypedData(Dtype dtype, const void* data, int64_t num_elements) {
     switch (dtype) {
-    case Dtype::kBool: return LoadDataFromTypedData<From, bool>(data, num_elements);
-    case Dtype::kInt8: return LoadDataFromTypedData<From, int8_t>(data, num_elements);
-    case Dtype::kInt16: return LoadDataFromTypedData<From, int16_t>(data, num_elements);
-    case Dtype::kInt32: return LoadDataFromTypedData<From, int32_t>(data, num_elements);
-    case Dtype::kInt64: return LoadDataFromTypedData<From, int64_t>(data, num_elements);
-    case Dtype::kUInt8: return LoadDataFromTypedData<From, uint8_t>(data, num_elements);
-    case Dtype::kFloat32: return LoadDataFromTypedData<From, float>(data, num_elements);
-    case Dtype::kFloat64: return LoadDataFromTypedData<From, double>(data, num_elements);
-    default: CHECK(false) << "Unknown dtype: " << dtype;
+        case Dtype::kBool:
+            return LoadDataFromTypedData<From, bool>(data, num_elements);
+        case Dtype::kInt8:
+            return LoadDataFromTypedData<From, int8_t>(data, num_elements);
+        case Dtype::kInt16:
+            return LoadDataFromTypedData<From, int16_t>(data, num_elements);
+        case Dtype::kInt32:
+            return LoadDataFromTypedData<From, int32_t>(data, num_elements);
+        case Dtype::kInt64:
+            return LoadDataFromTypedData<From, int64_t>(data, num_elements);
+        case Dtype::kUInt8:
+            return LoadDataFromTypedData<From, uint8_t>(data, num_elements);
+        case Dtype::kFloat32:
+            return LoadDataFromTypedData<From, float>(data, num_elements);
+        case Dtype::kFloat64:
+            return LoadDataFromTypedData<From, double>(data, num_elements);
+        default:
+            CHECK(false) << "Unknown dtype: " << dtype;
     }
 }
 
@@ -200,34 +209,22 @@ int64_t Tensor::NumElements() const {
 
 template <>
 Tensor::Tensor<double>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<double>& data)
-    : dims_(dims.begin(), dims.end()),
-      dtype_(dtype),
-      data_(LoadDataFromTypedData<double>(dtype, data.data(), data.size())),
-      name_(name) {
+    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<double>(dtype, data.data(), data.size())), name_(name) {
 }
 
 template <>
 Tensor::Tensor<float>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<float>& data)
-    : dims_(dims.begin(), dims.end()),
-      dtype_(dtype),
-      data_(LoadDataFromTypedData<float>(dtype, data.data(), data.size())),
-      name_(name) {
+    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<float>(dtype, data.data(), data.size())), name_(name) {
 }
 
 template <>
 Tensor::Tensor<int>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<int>& data)
-    : dims_(dims.begin(), dims.end()),
-      dtype_(dtype),
-      data_(LoadDataFromTypedData<int>(dtype, data.data(), data.size())),
-      name_(name) {
+    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<int>(dtype, data.data(), data.size())), name_(name) {
 }
 
 template <>
 Tensor::Tensor<long>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<long>& data)
-    : dims_(dims.begin(), dims.end()),
-      dtype_(dtype),
-      data_(LoadDataFromTypedData<long>(dtype, data.data(), data.size())),
-      name_(name) {
+    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<long>(dtype, data.data(), data.size())), name_(name) {
 }
 
 }  // namespace oniku

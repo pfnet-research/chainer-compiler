@@ -22,12 +22,9 @@ xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const vo
 
 }  // namespace
 
-ImageNetIterator::ImageNetIterator(const std::string& labeled_image_dataset, int buf_size, int batch_size, const std::vector<float>& mean, int height, int width)
-    : DataIterator(buf_size),
-      batch_size_(batch_size),
-      mean_(mean),
-      height_(height),
-      width_(width) {
+ImageNetIterator::ImageNetIterator(
+        const std::string& labeled_image_dataset, int buf_size, int batch_size, const std::vector<float>& mean, int height, int width)
+    : DataIterator(buf_size), batch_size_(batch_size), mean_(mean), height_(height), width_(width) {
     CHECK_EQ(3 * height * width, mean_.size());
     std::ifstream ifs(labeled_image_dataset);
     while (ifs) {
@@ -48,8 +45,7 @@ std::vector<xchainer::Array> ImageNetIterator::GetNextImpl() {
         }
         batch.push_back(dataset_[iter_++]);
     }
-    if (batch.empty())
-        return {};
+    if (batch.empty()) return {};
 
     std::vector<float> image_data(batch.size() * 3 * height_ * width_);
     std::vector<int> label_data(batch.size());

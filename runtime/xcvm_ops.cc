@@ -153,11 +153,13 @@ xchainer::Array ReduceMeanOp::RunImpl(XCVMState* st, const xchainer::Array& a) {
     return xchainer::Mean(a, GetXchainerAxes(axes), keepdims != 0);
 }
 
-xchainer::Array ConvOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const nonstd::optional<xchainer::Array>& b) {
+xchainer::Array ConvOp::RunImpl(
+        XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const nonstd::optional<xchainer::Array>& b) {
     return xchainer::Conv(x, w, b, strides, pads);
 }
 
-xchainer::Array ConvTransposeOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const nonstd::optional<xchainer::Array>& b) {
+xchainer::Array ConvTransposeOp::RunImpl(
+        XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const nonstd::optional<xchainer::Array>& b) {
     nonstd::optional<xchainer::StackVector<int64_t, xchainer::kMaxNdim>> out_size = nonstd::nullopt;
     if (!output_shape.empty()) {
         // TODO(hamaji): Revisit after getting answer to https://github.com/onnx/onnx/pull/1158
@@ -171,14 +173,15 @@ xchainer::Array ConvTransposeOp::RunImpl(XCVMState* st, const xchainer::Array& x
     return xchainer::ConvTranspose(x, w, b, strides, pads, out_size);
 }
 
-xchainer::Array ConvTransposeWithDynamicShapeOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& output_shape) {
+xchainer::Array ConvTransposeWithDynamicShapeOp::RunImpl(
+        XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& output_shape) {
     xchainer::Shape shape = ArrayToShape(output_shape);
     xchainer::StackVector<int64_t, xchainer::kMaxNdim> out_size(shape.begin() + 2, shape.end());
     return xchainer::ConvTranspose(x, w, nonstd::nullopt, strides, pads, out_size);
 }
 
 xchainer::Array ConvGradWeightOp::RunImpl(XCVMState* st, const xchainer::Array& w, const xchainer::Array& x, const xchainer::Array& gy) {
-    return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, strides, pads, false  /* cover_all */);
+    return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, strides, pads, false /* cover_all */);
 }
 
 xchainer::Array IdentityOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
@@ -299,7 +302,16 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     return r + xc;
 }
 
-std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& w, const xchainer::Array& r, const nonstd::optional<xchainer::Array>& b, const nonstd::optional<xchainer::Array>& sequence_lens, const nonstd::optional<xchainer::Array>& initial_h, const nonstd::optional<xchainer::Array>& initial_c, const nonstd::optional<xchainer::Array>& p) {
+std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(
+        XCVMState* st,
+        const xchainer::Array& x,
+        const xchainer::Array& w,
+        const xchainer::Array& r,
+        const nonstd::optional<xchainer::Array>& b,
+        const nonstd::optional<xchainer::Array>& sequence_lens,
+        const nonstd::optional<xchainer::Array>& initial_h,
+        const nonstd::optional<xchainer::Array>& initial_c,
+        const nonstd::optional<xchainer::Array>& p) {
     // X: [seq_length, batch_size, input_size]
     // W: [num_directions, 4 * hidden_size, input_size]
     // R: [num_directions, 4 * hidden_size, hidden_size]
@@ -315,13 +327,14 @@ std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(XCVMState* st, cons
     CHECK_EQ(0, w.shape()[1] % 4);
     int64_t hidden_size = w.shape()[1] / 4;
     CHECK_EQ(4 * hidden_size, r.shape()[1]);
-    if (b.has_value())
-        CHECK_EQ(8 * hidden_size, b.value().shape()[1]);
+    if (b.has_value()) CHECK_EQ(8 * hidden_size, b.value().shape()[1]);
 
     xchainer::Array wt = xchainer::Transpose(xchainer::Squeeze(w, {0}));
     xchainer::Array rt = xchainer::Transpose(xchainer::Squeeze(r, {0}));
-    xchainer::Array h = initial_h.has_value() ? xchainer::Squeeze(initial_h.value(), {0}) : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
-    xchainer::Array c = initial_c.has_value() ? xchainer::Squeeze(initial_c.value(), {0}) : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
+    xchainer::Array h =
+            initial_h.has_value() ? xchainer::Squeeze(initial_h.value(), {0}) : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
+    xchainer::Array c =
+            initial_c.has_value() ? xchainer::Squeeze(initial_c.value(), {0}) : xchainer::Zeros({batch_size, hidden_size}, x.dtype());
     std::vector<xchainer::ArrayIndex> indices(2, xchainer::Slice());
     xchainer::Array bm;
     if (b.has_value()) {

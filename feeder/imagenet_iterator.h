@@ -10,7 +10,8 @@
 
 class ImageNetIterator : public DataIterator {
 public:
-    explicit ImageNetIterator(const std::string& labeled_image_dataset, int buf_size, int batch_size, const std::vector<float>& mean, int height, int width);
+    explicit ImageNetIterator(
+            const std::string& labeled_image_dataset, int buf_size, int batch_size, const std::vector<float>& mean, int height, int width);
 
     std::vector<xchainer::Array> GetNextImpl() override;
 

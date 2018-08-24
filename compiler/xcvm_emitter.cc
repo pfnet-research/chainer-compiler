@@ -35,8 +35,7 @@ public:
 
             for (const Value* input : node->inputs()) {
                 auto found = num_users.find(input);
-                if (found == num_users.end())
-                    continue;
+                if (found == num_users.end()) continue;
                 if (--found->second == 0) {
                     AddFreeOp(program, GetValueId(input));
                 }
@@ -76,8 +75,7 @@ private:
 
         // Optional input.
         auto oin = [this, in, &node](int i) {
-            if (i >= static_cast<int>(node.inputs().size()))
-                return -1;
+            if (i >= static_cast<int>(node.inputs().size())) return -1;
             return in(i);
         };
 
@@ -297,8 +295,7 @@ private:
             CHECK_EQ(node.starts().size(), node.ends().size());
             std::vector<int> axes{node.axes()};
             if (axes.empty()) {
-                for (size_t i = 0; i < node.starts().size(); ++i)
-                    axes.push_back(i);
+                for (size_t i = 0; i < node.starts().size(); ++i) axes.push_back(i);
             } else {
                 CHECK_EQ(node.starts().size(), axes.size());
             }
