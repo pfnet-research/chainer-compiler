@@ -10,6 +10,7 @@ include_directories(..)
 add_library(oniku_compiler
   code_emitter.cc
   dtype.cc
+  flags.cc
   gen_node_base.cc
   gradient.cc
   gradient_ops.cc

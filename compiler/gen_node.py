@@ -306,7 +306,8 @@ def gen_gen_node_base_cc():
         for _, attr in sorted(node.attr_defs.items()):
             conds.append(f'xattr.name() == "{attr.name}"')
             blines = []
-            blines.append(f'CHECK_EQ(xattr.type(), {attr.onnx_type()});')
+            blines.append('if (!g_permissive) '
+                          f'CHECK_EQ(xattr.type(), {attr.onnx_type()});')
             if attr.type == int:
                 blines.append(f'set_{attr.c_name}(xattr.i());')
             elif attr.type == bool:
@@ -471,6 +472,7 @@ def gen_gen_node_base_cc():
 #include <onnx/onnx.pb.h>
 
 #include <common/log.h>
+#include <compiler/flags.h>
 
 namespace oniku {
 

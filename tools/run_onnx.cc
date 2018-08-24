@@ -21,6 +21,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
@@ -191,6 +192,7 @@ void RunMain(int argc, char** argv) {
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("trace", 't', "Tracing mode");
+    args.add("permissive", '\0', "Relax checks to accept more kinds of ONNX");
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
     args.parse_check(argc, argv);
@@ -201,6 +203,7 @@ void RunMain(int argc, char** argv) {
     const std::string out_xcvm = args.get<std::string>("out_xcvm");
 
     g_quiet = args.exist("quiet");
+    g_permissive = args.exist("permissive");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
         std::cerr << args.usage() << std::endl;
         QFAIL() << "Either --onnx or --test must be specified!";
