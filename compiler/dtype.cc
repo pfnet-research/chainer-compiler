@@ -56,8 +56,10 @@ std::string Dtype::ToString() const {
             return "FLOAT32";
         case kFloat64:
             return "FLOAT64";
+        case kUnknown:
+            return "UNKNOWN";
         default:
-            return StrCat("???(", static_cast<int>(type_), ")");
+            return StrCat("?(", static_cast<int>(type_), ")");
     }
 }
 

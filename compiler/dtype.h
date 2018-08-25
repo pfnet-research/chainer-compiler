@@ -10,7 +10,7 @@ class Dtype {
 public:
     // These values must be synchronized with xChainer's.
     enum DataType {
-        kUnspecified = 0,
+        kUnknown = 0,
         kBool = 1,
         kInt8,
         kInt16,
@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    DataType type_ = kUnspecified;
+    DataType type_ = kUnknown;
 };
 
 std::ostream& operator<<(std::ostream& os, const Dtype& dtype);
