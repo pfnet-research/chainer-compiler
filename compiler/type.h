@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -12,7 +13,7 @@ namespace oniku {
 class Type {
 public:
     explicit Type(const onnx::TypeProto& xtype);
-    Type(Dtype dtype, const std::vector<int>& dims);
+    Type(Dtype dtype, const std::vector<int64_t>& dims);
 
     void ToONNX(onnx::TypeProto* xtype) const;
 
@@ -20,7 +21,7 @@ public:
         return dtype_;
     }
 
-    const std::vector<int>& dims() const {
+    const std::vector<int64_t>& dims() const {
         return dims_;
     }
 
@@ -28,7 +29,7 @@ public:
 
 private:
     Dtype dtype_;
-    std::vector<int> dims_;
+    std::vector<int64_t> dims_;
     std::vector<std::string> dim_params_;
     std::vector<std::string> denotations_;
 };

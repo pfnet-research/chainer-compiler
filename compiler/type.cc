@@ -22,7 +22,7 @@ Type::Type(const onnx::TypeProto& xtype) {
     }
 }
 
-Type::Type(Dtype dtype, const std::vector<int>& dims) : dtype_(dtype), dims_(dims.begin(), dims.end()) {
+Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_(dims) {
 }
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {

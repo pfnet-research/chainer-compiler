@@ -199,8 +199,8 @@ int Tensor::ElementSize() const {
 }
 
 int64_t Tensor::NumElements() const {
-    int num = 1;
-    for (int d : dims_) {
+    int64_t num = 1;
+    for (int64_t d : dims_) {
         if (d < 0) return -1;
         num *= d;
     }
@@ -208,23 +208,23 @@ int64_t Tensor::NumElements() const {
 }
 
 template <>
-Tensor::Tensor<double>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<double>& data)
-    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<double>(dtype, data.data(), data.size())), name_(name) {
+Tensor::Tensor<double>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<double>& data)
+    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<double>(dtype, data.data(), data.size())), name_(name) {
 }
 
 template <>
-Tensor::Tensor<float>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<float>& data)
-    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<float>(dtype, data.data(), data.size())), name_(name) {
+Tensor::Tensor<float>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<float>& data)
+    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<float>(dtype, data.data(), data.size())), name_(name) {
 }
 
 template <>
-Tensor::Tensor<int>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<int>& data)
-    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<int>(dtype, data.data(), data.size())), name_(name) {
+Tensor::Tensor<int>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int>& data)
+    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<int>(dtype, data.data(), data.size())), name_(name) {
 }
 
 template <>
-Tensor::Tensor<long>(const std::string& name, Dtype dtype, const std::vector<int> dims, const std::vector<long>& data)
-    : dims_(dims.begin(), dims.end()), dtype_(dtype), data_(LoadDataFromTypedData<long>(dtype, data.data(), data.size())), name_(name) {
+Tensor::Tensor<long>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data)
+    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<long>(dtype, data.data(), data.size())), name_(name) {
 }
 
 }  // namespace oniku
