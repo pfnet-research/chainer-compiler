@@ -21,6 +21,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <common/strutil.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -42,22 +43,6 @@ bool g_quiet;
 
 #define LOG() \
     if (!g_quiet) std::cerr
-
-bool HasPrefix(const std::string& str, const std::string& prefix) {
-    ssize_t size_diff = str.size() - prefix.size();
-    return size_diff >= 0 && str.substr(0, prefix.size()) == prefix;
-}
-
-bool HasSuffix(const std::string& str, const std::string& suffix) {
-    ssize_t size_diff = str.size() - suffix.size();
-    return size_diff >= 0 && str.substr(size_diff) == suffix;
-}
-
-std::string Basename(const std::string& str) {
-    std::size_t found = str.rfind('/');
-    if (found == std::string::npos) return str;
-    return str.substr(found + 1);
-}
 
 std::vector<std::string> ListDir(const std::string& dirname) {
     DIR* dir = opendir(dirname.c_str());

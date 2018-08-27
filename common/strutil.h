@@ -46,4 +46,10 @@ inline std::vector<std::string> MapToString(const List& l, Fn fn) {
     return r;
 }
 
+bool HasPrefix(const std::string& str, const std::string& prefix);
+
+bool HasSuffix(const std::string& str, const std::string& suffix);
+
+std::string Basename(const std::string& str);
+
 }  // namespace oniku

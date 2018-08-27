@@ -33,6 +33,7 @@ target_link_libraries(run_onnx
   oniku_tools
   oniku_compiler
   oniku_runtime
+  oniku_common
   xchainer
   onnx_proto
   protobuf
@@ -45,6 +46,7 @@ target_link_libraries(train_imagenet
   oniku_tools
   oniku_compiler
   oniku_runtime
+  oniku_common
   feeder
   xchainer
   onnx_proto
