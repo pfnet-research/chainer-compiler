@@ -39,3 +39,15 @@ target_link_libraries(run_onnx
   cudart
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
+
+add_executable(train_imagenet train_imagenet.cc)
+target_link_libraries(train_imagenet
+  oniku_tools
+  oniku_compiler
+  oniku_runtime
+  xchainer
+  onnx_proto
+  protobuf
+  cudart
+  )
+set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
