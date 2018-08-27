@@ -92,6 +92,10 @@ xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const vo
     return array;
 }
 
+xchainer::Array MakeScalarArray(float f) {
+    return MakeArray(xchainer::Dtype::kFloat32, {}, &f);
+}
+
 bool HasNan(const xchainer::Array& a) {
     // TODO(hamaji): Implement this function.
     CHECK(false) << "NaN check is not implemented yet!";
@@ -99,18 +103,12 @@ bool HasNan(const xchainer::Array& a) {
 }
 
 bool HasInf(const xchainer::Array& a) {
-    for (double inf : {std::numeric_limits<double>::infinity(),
-                       -std::numeric_limits<double>::infinity()}) {
-        float finf = inf;
-        void* inf_ptr = nullptr;
-        if (a.dtype() == xchainer::Dtype::kFloat32)
-            inf_ptr = &finf;
-        else if (a.dtype() == xchainer::Dtype::kFloat64)
-            inf_ptr = &inf;
-        else
-            return false;
-
-        xchainer::Array inf_array = MakeArray(a.dtype(), {}, inf_ptr);
+    if (a.dtype() != xchainer::Dtype::kFloat32 &&
+        a.dtype() != xchainer::Dtype::kFloat64)
+        return false;
+    for (float inf : {std::numeric_limits<float>::infinity(),
+                      -std::numeric_limits<float>::infinity()}) {
+        xchainer::Array inf_array = MakeScalarArray(inf).AsType(a.dtype());
         xchainer::Array cmp_result = (a == inf_array);
         int result = static_cast<int>(xchainer::AsScalar(xchainer::Sum(cmp_result)));
         if (result)
