@@ -104,6 +104,11 @@ void RunMain(int argc, char** argv) {
         }
     }
 
+    if (!device.empty()) {
+        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&param_bytes, nullptr));
+        param_bytes = initial_free_bytes - param_bytes;
+    }
+
     xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
     // TODO(hamaji): This is not actually a batch size. Rename it.
     batch_size_array *= 1000;
