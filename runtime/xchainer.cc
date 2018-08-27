@@ -7,6 +7,7 @@
 #include <xchainer/array.h>
 #include <xchainer/routines/creation.h>
 #include <xchainer/routines/manipulation.h>
+#include <xchainer/routines/math.h>
 
 #include <common/log.h>
 // TODO(hamaji): Get rid of the dependency to compiler from runtime.
@@ -25,13 +26,6 @@ void SetOrDie(InOuts& m, std::string name, xchainer::Array& a) {
     CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name;
 }
 
-// TODO(hamaji): Remove this after xchainer::Sqrt is introduced.
-xchainer::Array Sqrt(xchainer::Array x) {
-    xchainer::Array out = xchainer::EmptyLike(x, x.device());
-    x.device().Sqrt(x, out);
-    return out;
-}
-
 xchainer::Array BatchNormONNX(
         xchainer::Array x, xchainer::Array s, xchainer::Array bias, xchainer::Array mean, xchainer::Array var, float epsilon) {
     int64_t size = s.GetTotalSize();
@@ -44,7 +38,7 @@ xchainer::Array BatchNormONNX(
     bias = xchainer::Reshape(bias, shape);
     mean = xchainer::Reshape(mean, shape);
     var = xchainer::Reshape(var, shape);
-    return s * (x - mean) / Sqrt(var + epsilon) + bias;
+    return s * (x - mean) / xchainer::Sqrt(var + epsilon) + bias;
 }
 
 xchainer::Array ShapeToArray(const xchainer::Shape& s) {
