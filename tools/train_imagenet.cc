@@ -103,7 +103,8 @@ void RunMain(int argc, char** argv) {
             input_names.push_back(input->name());
         }
     }
-    xchainer::Array batch_size_array = MakeArray(xchainer::Dtype::kFloat32, {}, &batch_size).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
+
+    xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
     // TODO(hamaji): This is not actually a batch size. Rename it.
     batch_size_array *= 1000;
 
