@@ -18,6 +18,7 @@ from chainer.functions.evaluation import accuracy
 from chainer.training import extensions
 import onnx_chainer
 
+import alex
 import resnet50
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -113,8 +114,15 @@ class MyIterator(chainer.iterators.MultiprocessIterator):
 
 
 def main():
+    archs = {
+        'alex': alex.Alex,
+        'resnet50': resnet50.ResNet50,
+    }
     parser = argparse.ArgumentParser(
         description='Learning convnet from ILSVRC2012 dataset')
+    parser.add_argument('--arch', '-a', choices=archs.keys(),
+                        default='resnet50',
+                        help='Convnet architecture')
     parser.add_argument('--train', default='',
                         help='Path to training image-label list file')
     parser.add_argument('--val', default='',
@@ -149,10 +157,11 @@ def main():
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
-    main_impl(args)
+    model_cls = archs[args.arch]
+    main_impl(args, model_cls)
 
     # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/resnet50_stamp', 'w'): pass
+    with open('scripts/%s_stamp' % args.arch, 'w'): pass
 
 
 def create_trainer(args, model):
@@ -183,8 +192,8 @@ def create_trainer(args, model):
     trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpu))
     return trainer
 
-def main_impl(args):
-    model = resnet50.ResNet50(compute_accuracy=args.run_training)
+def main_impl(args, model_cls):
+    model = model_cls(compute_accuracy=args.run_training)
     insize = model.insize
 
     replace_id(model)
@@ -198,7 +207,7 @@ def main_impl(args):
         run_training(args, model)
         return
 
-    out_dir = 'out/backprop_test_resnet50'
+    out_dir = 'out/backprop_test_%s' % args.arch
 
     x = np.random.random((args.batchsize, 3, insize, insize)).astype(np.float32)
     y = (np.random.random(args.batchsize) * 1000).astype(np.int32)
@@ -207,7 +216,7 @@ def main_impl(args):
     y = chainer.Variable(y, name='y')
     onehot = chainer.Variable(onehot, name='onehot')
 
-    onnx_chainer_util.create_onnx_test('resnet50',
+    onnx_chainer_util.create_onnx_test(args.arch,
                                        model,
                                        (x, onehot),
                                        __builtins__,
