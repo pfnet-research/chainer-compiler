@@ -10,6 +10,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <common/strutil.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -57,6 +58,7 @@ xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
 void RunMain(int argc, char** argv) {
     cmdline::parser args;
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
+    args.add<float>("learning_rate", '\0', "Learning rate", false, 0.01);
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
@@ -146,6 +148,15 @@ void RunMain(int argc, char** argv) {
         InOuts outputs(xcvm.Run(inputs, xcvm_opts));
 
         double loss = static_cast<double>(xchainer::AsScalar(outputs["loss"]));
+
+        for (auto&& p : outputs) {
+            if (!HasPrefix(p.first, "grad_out@"))
+                continue;
+            const std::string& param_name = p.first.substr(9);
+            auto found = inputs.find(param_name);
+            CHECK(found != inputs.end());
+            found->second -= p.second * args.get<float>("learning_rate") * 1000;
+        }
 
         std::cout << train_iter.GetStatus() << " loss=" << loss << std::endl;
     }
