@@ -1,6 +1,7 @@
 include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
 include_directories(..)
+include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_library(feeder
   data_iterator.cc
@@ -18,9 +19,7 @@ target_link_libraries(feeder_test
   gtest
   gtest_main
   pthread
-  # TODO(hamaji): Use FIND_PACKAGE.
-  opencv_imgcodecs
-  opencv_core
+  ${OpenCV_LIBS}
   )
 
 add_test(NAME feeder_test COMMAND feeder_test)
