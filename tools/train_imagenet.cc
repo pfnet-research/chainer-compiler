@@ -58,6 +58,8 @@ void RunMain(int argc, char** argv) {
     cmdline::parser args;
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add("check_nans", '\0', "Check for NaNs after each operation");
+    args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
@@ -112,6 +114,8 @@ void RunMain(int argc, char** argv) {
     XCVMOptions xcvm_opts;
     xcvm_opts.trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
     xcvm_opts.is_training = true;
+    xcvm_opts.check_nans = args.exist("check_nans");
+    xcvm_opts.check_infs = args.exist("check_infs");
 
     // TODO(hamaji): Stop using the fixed width/height.
     const int kHeight = 227;

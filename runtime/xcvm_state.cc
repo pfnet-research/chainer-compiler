@@ -12,7 +12,9 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
       auxiliaries_(num_variables),
       inputs_(inputs),
       trace_level_(options.trace_level),
-      is_training_(options.is_training) {
+      is_training_(options.is_training),
+      check_nans_(options.check_nans),
+      check_infs_(options.check_infs) {
 }
 
 xchainer::Array XCVMState::GetVar(int index) {
@@ -69,6 +71,30 @@ xchainer::Array XCVMState::Input(const std::string& name) {
 
 void XCVMState::Output(const std::string& name, xchainer::Array value) {
     CHECK(outputs_.emplace(name, value).second) << "Duplicated output name: " << name;
+}
+
+void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
+    // TODO(hamaji): Implement this function.
+    CHECK(false) << "NaN check is not implemented yet!";
+}
+
+void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
+    for (int output : outputs) {
+        if (!HasInf(GetVar(output)))
+            continue;
+
+        std::cerr << "Inf detected!\n";
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            if (inputs[i] < 0)
+                std::cerr << "input #" << i << ": null\n";
+            else
+                std::cerr << "input #" << i << ": " << GetVar(inputs[i]) << std::endl;
+        }
+        for (size_t i = 0; i < outputs.size(); ++i) {
+            std::cerr << "output #" << i << ": " << GetVar(outputs[i]) << std::endl;
+        }
+        CHECK(false);
+    }
 }
 
 }  // namespace runtime

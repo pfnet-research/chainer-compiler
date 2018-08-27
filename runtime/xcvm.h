@@ -18,6 +18,10 @@ public:
     int trace_level{0};
 
     bool is_training{false};
+
+    bool check_nans{false};
+
+    bool check_infs{false};
 };
 
 class XCVM {

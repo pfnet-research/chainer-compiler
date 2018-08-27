@@ -182,7 +182,8 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
-    args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
+    args.add("check_nans", '\0', "Check for NaNs after each operation");
+    args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("trace", 't', "Tracing mode");
@@ -285,6 +286,8 @@ void RunMain(int argc, char** argv) {
     XCVMOptions xcvm_opts;
     xcvm_opts.trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
     xcvm_opts.is_training = args.exist("backprop");
+    xcvm_opts.check_nans = args.exist("check_nans");
+    xcvm_opts.check_infs = args.exist("check_infs");
 
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {

@@ -342,6 +342,13 @@ def gen_gen_xcvm_ops_cc():
         line += ' << std::endl;'
         lines.append(line)
 
+        if outputs:
+            inputs_str = ', '.join([name for typ, name in inputs
+                                    if typ == ARRAY or typ == OPTIONAL_ARRAY])
+            outputs_str = ', '.join(outputs)
+            lines.append('if (st->check_infs()) st->CheckInfs({%s}, {%s});' %
+                         (inputs_str, outputs_str))
+
         lines.append('}')
 
     lines.append('XCVMOp* MakeXCVMOp(const XCInstructionProto& inst) {')

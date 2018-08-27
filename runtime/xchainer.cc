@@ -1,6 +1,7 @@
 #include "xchainer.h"
 
 #include <cstring>
+#include <limits>
 
 #include <onnx/onnx.pb.h>
 
@@ -89,6 +90,33 @@ xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const vo
     std::memcpy(data.get(), src, size);
     xchainer::Array array(xchainer::FromContiguousHostData(shape, dtype, data));
     return array;
+}
+
+bool HasNan(const xchainer::Array& a) {
+    // TODO(hamaji): Implement this function.
+    CHECK(false) << "NaN check is not implemented yet!";
+    return false;
+}
+
+bool HasInf(const xchainer::Array& a) {
+    for (double inf : {std::numeric_limits<double>::infinity(),
+                       -std::numeric_limits<double>::infinity()}) {
+        float finf = inf;
+        void* inf_ptr = nullptr;
+        if (a.dtype() == xchainer::Dtype::kFloat32)
+            inf_ptr = &finf;
+        else if (a.dtype() == xchainer::Dtype::kFloat64)
+            inf_ptr = &inf;
+        else
+            return false;
+
+        xchainer::Array inf_array = MakeArray(a.dtype(), {}, inf_ptr);
+        xchainer::Array cmp_result = (a == inf_array);
+        int result = static_cast<int>(xchainer::AsScalar(xchainer::Sum(cmp_result)));
+        if (result)
+            return true;
+    }
+    return false;
 }
 
 }  // namespace runtime

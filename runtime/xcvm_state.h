@@ -49,11 +49,20 @@ public:
         return outputs_;
     }
 
+    void CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs);
+    void CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs);
+
     int trace_level() const {
         return trace_level_;
     }
     bool is_training() const {
         return is_training_;
+    }
+    bool check_nans() const {
+        return check_nans_;
+    }
+    bool check_infs() const {
+        return check_infs_;
     }
 
 private:
@@ -64,6 +73,8 @@ private:
     InOuts outputs_;
     int trace_level_ = 0;
     bool is_training_ = false;
+    bool check_nans_ = false;
+    bool check_infs_ = false;
 };
 
 }  // namespace runtime
