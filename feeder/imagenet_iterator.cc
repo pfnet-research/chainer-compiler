@@ -3,7 +3,7 @@
 #include <cstring>
 #include <fstream>
 
-#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <xchainer/routines/creation.h>
 
