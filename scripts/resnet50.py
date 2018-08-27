@@ -129,7 +129,7 @@ class ResNet50(chainer.Chain):
         #                                    name='batch_size')
         # return -F.sum(log_prob, axis=0) / self.batch_size
         log_prob = F.sum(log_softmax * t, axis=(0, 1))
-        batch_size = chainer.Variable(np.array(t.size, np.float32),
+        batch_size = chainer.Variable(np.array(t.shape[0], np.float32),
                                       name='batch_size')
         self.extra_inputs = [batch_size]
         loss = -log_prob / batch_size

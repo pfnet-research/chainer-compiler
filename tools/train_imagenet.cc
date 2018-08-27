@@ -112,8 +112,6 @@ void RunMain(int argc, char** argv) {
     }
 
     xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
-    // TODO(hamaji): This is not actually a batch size. Rename it.
-    batch_size_array *= 1000;
 
     LOG() << "Generate code..." << std::endl;
     XCProgramProto xcvm_prog;
@@ -155,7 +153,7 @@ void RunMain(int argc, char** argv) {
             const std::string& param_name = p.first.substr(9);
             auto found = inputs.find(param_name);
             CHECK(found != inputs.end());
-            found->second -= p.second * args.get<float>("learning_rate") * 1000;
+            found->second -= p.second * args.get<float>("learning_rate");
         }
 
         std::cout << train_iter.GetStatus() << " loss=" << loss << std::endl;
