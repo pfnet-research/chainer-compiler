@@ -19,6 +19,7 @@ from chainer.training import extensions
 import onnx_chainer
 
 import alex
+import nin
 import resnet50
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -116,6 +117,7 @@ class MyIterator(chainer.iterators.MultiprocessIterator):
 def main():
     archs = {
         'alex': alex.Alex,
+        'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
     }
     parser = argparse.ArgumentParser(
