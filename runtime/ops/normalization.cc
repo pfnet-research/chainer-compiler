@@ -143,7 +143,7 @@ std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalization
     std::array<xchainer::Array, 3> gxs = ctx->fb()->Backward(gy.AsGradStopped());
     xchainer::Array gx1 = xchainer::Reshape(gxs[1], ctx->x1_shape());
     xchainer::Array gx2 = xchainer::Reshape(gxs[2], ctx->x2_shape());
-    return {gxs[0], gx1, gx2};
+    return std::forward_as_tuple(gxs[0], gx1, gx2);
 }
 
 xchainer::Array LRNOp::RunImpl(XCVMState* st, const xchainer::Array& x) {

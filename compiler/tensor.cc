@@ -13,7 +13,7 @@ namespace {
 
 template <typename From, typename To>
 Tensor::UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<From>& a) {
-    static_assert(sizeof(From) >= sizeof(To));
+    static_assert(sizeof(From) >= sizeof(To), "invalid load");
     Tensor::UniqueData p(std::malloc(sizeof(To) * a.size()), &std::free);
     for (int i = 0; i < a.size(); ++i) {
         static_cast<To*>(p.get())[i] = a.Get(i);
