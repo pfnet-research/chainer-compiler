@@ -45,9 +45,12 @@ target_link_libraries(train_imagenet
   oniku_tools
   oniku_compiler
   oniku_runtime
+  feeder
   xchainer
   onnx_proto
   protobuf
   cudart
+  pthread
+  ${OpenCV_LIBS}
   )
 set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")

@@ -210,7 +210,7 @@ void RunMain(int argc, char** argv) {
     size_t initial_free_bytes, param_bytes = static_cast<size_t>(-1);
     if (!device.empty()) {
         CHECK_EQ(cudaSuccess, cudaMemGetInfo(&initial_free_bytes, nullptr));
-        xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(std::string(device)));
+        xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
     }
 
     if (onnx_path.empty()) {
