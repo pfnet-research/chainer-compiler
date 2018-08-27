@@ -13,6 +13,8 @@
 namespace oniku {
 namespace runtime {
 
+class XCVMOptions;
+
 class XCVMState {
 public:
     class Auxiliary {
@@ -23,7 +25,7 @@ public:
         Auxiliary() = default;
     };
 
-    XCVMState(int num_variables, const InOuts& inputs);
+    XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs);
 
     int pc() const {
         return pc_;
@@ -50,15 +52,8 @@ public:
     int trace_level() const {
         return trace_level_;
     }
-    void set_trace_level(int trace_level) {
-        trace_level_ = trace_level;
-    }
-
     bool is_training() const {
         return is_training_;
-    }
-    void set_is_training(bool is_training) {
-        is_training_ = is_training;
     }
 
 private:

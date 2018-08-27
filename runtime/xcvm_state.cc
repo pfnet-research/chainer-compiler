@@ -1,12 +1,18 @@
 #include "xcvm_state.h"
 
 #include <common/log.h>
+#include <runtime/xcvm.h>
 
 namespace oniku {
 namespace runtime {
 
-XCVMState::XCVMState(int num_variables, const InOuts& inputs)
-    : pc_(0), variables_(num_variables), auxiliaries_(num_variables), inputs_(inputs) {
+XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs)
+    : pc_(0),
+      variables_(num_variables),
+      auxiliaries_(num_variables),
+      inputs_(inputs),
+      trace_level_(options.trace_level),
+      is_training_(options.is_training) {
 }
 
 xchainer::Array XCVMState::GetVar(int index) {

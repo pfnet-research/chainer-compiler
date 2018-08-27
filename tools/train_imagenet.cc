@@ -109,6 +109,9 @@ void RunMain(int argc, char** argv) {
     XCProgramProto xcvm_prog;
     xcvm::Emit(model, &xcvm_prog);
     XCVM xcvm(xcvm_prog);
+    XCVMOptions xcvm_opts;
+    xcvm_opts.trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+    xcvm_opts.is_training = true;
 
     // TODO(hamaji): Stop using the fixed width/height.
     const int kHeight = 227;
@@ -130,8 +133,7 @@ void RunMain(int argc, char** argv) {
         xchainer::Array onehot = xchainer::Eye(1000, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32).Take(labels, 0);
         inputs["onehot"] = onehot;
         inputs["batch_size"] = batch_size_array;
-        int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
-        InOuts outputs(xcvm.Run(inputs, trace_level, true));
+        InOuts outputs(xcvm.Run(inputs, xcvm_opts));
 
         double loss = static_cast<double>(xchainer::AsScalar(outputs["loss"]));
 

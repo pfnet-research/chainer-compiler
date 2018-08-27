@@ -282,6 +282,10 @@ void RunMain(int argc, char** argv) {
     }
 
     XCVM xcvm(xcvm_prog);
+    XCVMOptions xcvm_opts;
+    xcvm_opts.trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+    xcvm_opts.is_training = args.exist("backprop");
+
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
@@ -296,8 +300,7 @@ void RunMain(int argc, char** argv) {
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
-        InOuts outputs(xcvm.Run(inputs, trace_level, args.exist("backprop")));
+        InOuts outputs(xcvm.Run(inputs, xcvm_opts));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
