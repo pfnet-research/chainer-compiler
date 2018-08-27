@@ -1,7 +1,9 @@
 #include "imagenet_iterator.h"
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <random>
 
 #include <opencv2/highgui/highgui.hpp>
 
@@ -33,6 +35,8 @@ ImageNetIterator::ImageNetIterator(
         ifs >> filename >> label;
         dataset_.emplace_back(filename, label);
     }
+    std::mt19937 mt;
+    std::shuffle(dataset_.begin(), dataset_.end(), mt);
     // std::cerr << dataset_.size() << " examples" << std::endl;
 }
 
