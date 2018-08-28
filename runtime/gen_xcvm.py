@@ -84,6 +84,7 @@ XC_OPS = [
      ['y']),
     ('Identity', [Array('x')], ['y']),
     ('Relu', [Array('x')], ['y']),
+    ('ReluGrad', [Array('y'), Array('gy')], ['gx']),
     ('Shape', [Array('data')], ['shape']),
     ('Size', [Array('data')], ['size']),
     ('Reshape', [Array('data'), Array('shape')], ['reshaped']),

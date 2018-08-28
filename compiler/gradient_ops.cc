@@ -93,11 +93,7 @@ void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
 }
 
 void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {0.0});
-    Value* t0 = TEMP_OP(Node::kGreater, {y[0], zero}, x[0]);
-    Value* t1 = TEMP_OP(Node::kCast, {t0}, x[0]);
-    t1->producer()->set_to(x[0]->type().dtype());
-    GRAD_OP(Node::kMul, {t1, y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kOnikuxReluGrad, {y[0], y[0]->grad()}, x[0]);
 }
 
 void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {

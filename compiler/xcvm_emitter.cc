@@ -153,6 +153,7 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
         EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
 
+        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxReluGrad, ReluGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxMaxPoolGrad, MaxPoolGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxAveragePoolGrad, AveragePoolGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxSoftmaxCrossEntropy, SoftmaxCrossEntropy);

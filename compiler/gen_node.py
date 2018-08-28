@@ -119,6 +119,7 @@ NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
 
+NodeDef('OnikuxReluGrad', 2, 1)
 NodeDef('OnikuxReduceSumTo', 2, 1)
 NodeDef('OnikuxMaxPoolGrad', 2, 1)
 NodeDef('OnikuxAveragePoolGrad', 2, 1)
