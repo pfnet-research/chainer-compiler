@@ -1,5 +1,7 @@
 #include "util.h"
 
+#include <algorithm>
+
 #include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -60,11 +62,20 @@ xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
 InOuts LoadParams(const Model& model) {
     InOuts params;
     for (const Value* input : model.graph().input_values()) {
+        if (input->users().empty())
+            continue;
         if (const Tensor* initializer = input->initializer()) {
             xchainer::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
             xchainer::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();
-            xchainer::Array tensor(MakeArray(dtype, shape, data));
+            xchainer::Array tensor;
+            if (std::find_if(input->users().begin(), input->users().end(),
+                             [](const Node* node) { return node->op_type() != Node::kReshape; }) != input->users().end()) {
+                tensor = MakeArray(dtype, shape, data);
+            } else {
+                // If the input is used only by Reshape, place it on host memory.
+                tensor = MakeHostArray(dtype, shape, data);
+            }
             CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
         }
     }
