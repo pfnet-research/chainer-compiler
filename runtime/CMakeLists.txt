@@ -38,6 +38,7 @@ target_link_libraries(runtime_test
   gtest
   gtest_main
   pthread
+  ${CUDA_CUDART_LIBRARY}
   )
 
 add_test(NAME runtime_test COMMAND runtime_test)

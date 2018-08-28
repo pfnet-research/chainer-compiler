@@ -4,6 +4,7 @@
 
 #include <xchainer/array.h>
 
+#include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_op.h>
@@ -34,6 +35,7 @@ XCVM::~XCVM() {
 
 InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
     XCVMState state(options, num_variables_, program_inputs);
+    int64_t peak_usage = 0;
 
     while (true) {
         int pc = state.pc();
@@ -43,6 +45,17 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
         op->Run(&state);
 
         state.set_pc(pc + 1);
+
+        if (options.dump_memory_usage && options.base_memory_usage >= 0) {
+            int64_t bytes = options.base_memory_usage - GetMemoryUsageInBytes();
+            int64_t mbs = bytes / 1000 / 1000;
+            peak_usage = std::max(mbs, peak_usage);
+            std::cerr << " Memory usage: " << mbs << "MB" << std::endl;
+        }
+    }
+
+    if (options.dump_memory_usage) {
+        std::cerr << "Peak memory usage: " << peak_usage << "MB" << std::endl;
     }
 
     return state.GetOutputs();

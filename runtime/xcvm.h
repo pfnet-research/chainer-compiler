@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include "runtime/xchainer.h"
@@ -22,6 +23,9 @@ public:
     bool check_nans{false};
 
     bool check_infs{false};
+
+    bool dump_memory_usage{false};
+    int64_t base_memory_usage{0};
 };
 
 class XCVM {

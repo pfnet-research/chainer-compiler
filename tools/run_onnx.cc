@@ -251,6 +251,8 @@ void RunMain(int argc, char** argv) {
     xcvm_opts.is_training = args.exist("backprop");
     xcvm_opts.check_nans = args.exist("check_nans");
     xcvm_opts.check_infs = args.exist("check_infs");
+    xcvm_opts.dump_memory_usage = args.exist("trace");
+    xcvm_opts.base_memory_usage = initial_free_bytes;
 
     int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
     int test_cnt = 0;
