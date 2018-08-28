@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -19,6 +21,7 @@
 #include <compiler/value.h>
 #include <compiler/xcvm_emitter.h>
 #include <feeder/imagenet_iterator.h>
+#include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
@@ -39,6 +42,8 @@ void RunMain(int argc, char** argv) {
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
     args.add<float>("learning_rate", '\0', "Learning rate", false, 0.01);
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
+    args.add<int>("chrome_tracing_frequency", '\0', "Output chrome tracing every this itearation", false, 100);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("trace", 't', "Tracing mode");
@@ -107,27 +112,46 @@ void RunMain(int argc, char** argv) {
     LOG() << "Start training!" << std::endl;
     int iter_count = 0;
     for (;; ++iter_count) {
-        std::vector<xchainer::Array> data = train_iter.GetNext();
-        if (data.empty())
-            break;
+        if (!args.get<std::string>("chrome_tracing").empty() &&
+            iter_count % args.get<int>("chrome_tracing_frequency") == 1) {
+            xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
+        }
 
-        InOuts inputs(params);
-        inputs["input"] = data[0].ToDevice(xchainer::GetDefaultContext().GetDevice(device));
-        xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultContext().GetDevice(device)).AsType(xchainer::Dtype::kInt64);
-        xchainer::Array onehot = xchainer::Eye(1000, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32).Take(labels, 0);
-        inputs["onehot"] = onehot;
-        inputs["batch_size"] = batch_size_array;
-        InOuts outputs(xcvm.Run(inputs, xcvm_opts));
+        InOuts inputs;
+        {
+            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Prepare");
+
+            std::vector<xchainer::Array> data = train_iter.GetNext();
+            if (data.empty())
+                break;
+
+            inputs = params;
+            inputs["input"] = data[0].ToDevice(xchainer::GetDefaultContext().GetDevice(device));
+            xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultContext().GetDevice(device)).AsType(xchainer::Dtype::kInt64);
+            xchainer::Array onehot = xchainer::Eye(1000, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32).Take(labels, 0);
+            inputs["onehot"] = onehot;
+            inputs["batch_size"] = batch_size_array;
+        }
+
+        InOuts outputs;
+
+        {
+            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Run");
+            outputs = xcvm.Run(inputs, xcvm_opts);
+        }
 
         double loss = static_cast<double>(xchainer::AsScalar(outputs["loss"]));
 
-        for (auto&& p : outputs) {
-            if (!HasPrefix(p.first, "grad_out@"))
-                continue;
-            const std::string& param_name = p.first.substr(9);
-            auto found = inputs.find(param_name);
-            CHECK(found != inputs.end());
-            found->second -= p.second * args.get<float>("learning_rate");
+        {
+            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Update");
+            for (auto&& p : outputs) {
+                if (!HasPrefix(p.first, "grad_out@"))
+                    continue;
+                const std::string& param_name = p.first.substr(9);
+                auto found = inputs.find(param_name);
+                CHECK(found != inputs.end());
+                found->second -= p.second * args.get<float>("learning_rate");
+            }
         }
 
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
@@ -141,6 +165,12 @@ void RunMain(int argc, char** argv) {
             std::cout << " param=" << param_mbs << "MB used=" << used_mbs << "MB";
         }
         std::cout << std::endl;
+
+        if (xcvm_opts.chrome_tracing) {
+            xcvm_opts.chrome_tracing->Emit(args.get<std::string>("chrome_tracing"));
+            delete xcvm_opts.chrome_tracing;
+            xcvm_opts.chrome_tracing = nullptr;
+        }
     }
 
     train_iter.Terminate();

@@ -4,6 +4,7 @@
 
 #include <xchainer/array.h>
 
+#include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.pb.h>
@@ -25,6 +26,7 @@ XCVM::XCVM(const XCProgramProto& program) {
 
     for (const XCInstructionProto& inst : program.instructions()) {
         XCVMOp* op = MakeXCVMOp(inst);
+        op->set_name(XCInstructionProto_Op_Name(inst.op()));
         op->set_debug_info(inst.debug_info());
         program_.emplace_back(op);
     }
@@ -42,7 +44,12 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
         if (pc >= program_.size()) break;
 
         XCVMOp* op = program_[pc].get();
-        op->Run(&state);
+
+
+        {
+            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name());
+            op->Run(&state);
+        }
 
         state.set_pc(pc + 1);
 

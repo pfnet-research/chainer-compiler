@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "runtime/xchainer.h"
@@ -9,6 +10,7 @@
 namespace oniku {
 namespace runtime {
 
+class ChromeTracingEmitter;
 class XCVMOp;
 
 struct XCVMOptions {
@@ -26,6 +28,8 @@ public:
 
     bool dump_memory_usage{false};
     int64_t base_memory_usage{0};
+
+    ChromeTracingEmitter* chrome_tracing{nullptr};
 };
 
 class XCVM {

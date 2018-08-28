@@ -9,6 +9,7 @@ include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
 include_directories(${CUDA_INCLUDE_DIRS})
 add_library(oniku_runtime
+  chrome_tracing.cc
   gen_xcvm_ops.cc
   meminfo.cc
   ops/normalization.cc

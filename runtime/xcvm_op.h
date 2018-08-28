@@ -14,6 +14,13 @@ class XCVMOp {
 public:
     virtual void Run(XCVMState* state) = 0;
 
+    const std::string& name() const {
+        return name_;
+    }
+    void set_name(const std::string& name) {
+        name_ = name;
+    }
+
     const std::string& debug_info() const {
         return debug_info_;
     }
@@ -22,6 +29,7 @@ public:
     }
 
 protected:
+    std::string name_;
     std::string debug_info_;
 };
 
