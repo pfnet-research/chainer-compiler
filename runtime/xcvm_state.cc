@@ -31,6 +31,13 @@ nonstd::optional<xchainer::Array> XCVMState::GetVarOptional(int index) {
     return *variables_[index];
 }
 
+std::vector<xchainer::Array> XCVMState::GetVarList(const std::vector<int>& index) {
+    std::vector<xchainer::Array> vars;
+    for (int i : index)
+        vars.push_back(GetVar(i));
+    return vars;
+}
+
 std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
     xchainer::Array var(GetVar(index));

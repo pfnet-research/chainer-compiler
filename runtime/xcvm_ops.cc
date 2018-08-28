@@ -270,6 +270,12 @@ xchainer::Array GatherOp::RunImpl(XCVMState* st, const xchainer::Array& data, co
     return data.Take(indices, axis);
 }
 
+xchainer::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<xchainer::Array>& inputs) {
+    CHECK(false);
+    // TODO(hamaji): Implement this.
+    return inputs[0];
+}
+
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
     return xchainer::Exp(xchainer::LogSoftmax(input, xchainer::OptionalAxes{static_cast<char>(axis)}));
 }

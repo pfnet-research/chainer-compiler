@@ -8,13 +8,14 @@ from oniku.common.codegen_util import format_code
 
 ARRAY = 'ARRAY'
 OPTIONAL_ARRAY = 'OPTIONAL_ARRAY'
+ARRAY_LIST = 'ARRAY_LIST'
 INT = 'INT'
 FLOAT = 'FLOAT'
 INTS = 'INTS'
 STRING = 'STRING'
 
 XC_TYPES = [
-    ARRAY, INT, FLOAT, INTS, STRING
+    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, INT, FLOAT, INTS, STRING
 ]
 
 STACK_VECTOR = 'xchainer::StackVector<int64_t, xchainer::kMaxNdim>'
@@ -26,6 +27,10 @@ def Array(name):
 
 def OptionalArray(name):
     return (OPTIONAL_ARRAY, name)
+
+
+def ArrayList(name):
+    return (ARRAY_LIST, name)
 
 
 def Int(name):
@@ -94,6 +99,7 @@ XC_OPS = [
     ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
      ['output']),
     ('Gather', [Array('data'), Array('indices'), Int('axis')], ['output']),
+    ('Concat', [ArrayList('inputs')], ['concat_result']),
 
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
@@ -156,6 +162,7 @@ def gen_xcvm_proto():
     lines.append('optional float f = 4;')
     lines.append('repeated int32 ints = 5;')
     lines.append('optional string s = 6;')
+    lines.append('repeated int32 array_list = 7;')
     lines.append('}')
 
     lines.append('message XCInstructionProto {')
@@ -200,6 +207,8 @@ def gen_gen_xcvm_ops_h():
                 args.append(f'const xchainer::Array& {name}')
             elif typ == OPTIONAL_ARRAY:
                 args.append(f'const nonstd::optional<xchainer::Array>& {name}')
+            elif typ == ARRAY_LIST:
+                args.append(f'const std::vector<xchainer::Array>& {name}')
         rettype = 'void'
         if len(outputs) == 1:
             rettype = 'xchainer::Array'
@@ -220,6 +229,8 @@ def gen_gen_xcvm_ops_h():
                 ctype = 'std::string'
             elif typ == INTS:
                 ctype = STACK_VECTOR
+            elif typ == ARRAY_LIST:
+                ctype = 'std::vector<int>'
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
             lines.append(f'{ctype} {name};')
@@ -276,6 +287,10 @@ def gen_gen_xcvm_ops_cc():
                 lines.append(f'{name} = {STACK_VECTOR}(' +
                              f'inst.inputs({i}).ints().begin(), ' +
                              f'inst.inputs({i}).ints().end());')
+            elif typ == ARRAY_LIST:
+                lines.append('%s.assign(inst.inputs(%d).array_list().begin(),'
+                             'inst.inputs(%d).array_list().end());' %
+                             (name, i, i))
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
 
@@ -307,6 +322,8 @@ def gen_gen_xcvm_ops_cc():
                 line += f' << "{name}"'
             elif typ == INTS:
                 line += f' << StackVectorToString({name})'
+            elif typ == ARRAY_LIST:
+                line += f' << ArrayListToString({name})'
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
         line += ' << ")"'
@@ -329,6 +346,8 @@ def gen_gen_xcvm_ops_cc():
                 args.append(f'st->GetVar({name})')
             elif typ == OPTIONAL_ARRAY:
                 args.append(f'st->GetVarOptional({name})')
+            elif typ == ARRAY_LIST:
+                args.append(f'st->GetVarList({name})')
         call = 'RunImpl(%s)' % ', '.join(args)
         if len(outputs) == 1:
             lines.append('st->SetVar(%s, %s);' % (outputs[0], call))
@@ -388,6 +407,16 @@ std::string StackVectorToString(const xchainer::StackVector<int64_t, xchainer::k
     return oss.str();
 }
 
+std::string ArrayListToString(const std::vector<int>& s) {
+    std::ostringstream oss;
+    for (int v : s) {
+        oss << (oss.str().empty() ? '(' : ',');
+        oss << '%' << v;
+    }
+    oss << ')';
+    return oss.str();
+}
+
 ''')
         f.writelines(format_code(lines))
         f.write(r'''
@@ -407,7 +436,7 @@ def make_proto_signature(op, inputs, outputs):
             args.append(f'float {name}')
         elif typ == STRING:
             args.append(f'const std::string& {name}')
-        elif typ == INTS:
+        elif typ == INTS or typ == ARRAY_LIST:
             args.append(f'const std::vector<int>& {name}')
         else:
             raise RuntimeError('Unknown type: %s' % typ)
@@ -461,6 +490,9 @@ def gen_xcvm_proto_util_cc():
                 lines.append(f'input_proto->set_s({name});')
             elif typ == INTS:
                 lines.append(f'for (int v : {name}) input_proto->add_ints(v);')
+            elif typ == ARRAY_LIST:
+                lines.append(f'for (int v : {name}) '
+                             'input_proto->add_array_list(v);')
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
             lines.append('}')
