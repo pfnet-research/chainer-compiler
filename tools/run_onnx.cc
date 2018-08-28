@@ -175,6 +175,7 @@ void RunMain(int argc, char** argv) {
     const std::string device = args.get<std::string>("device");
     if (!device.empty()) {
         xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
+        g_meminfo_enabled = true;
     }
     int64_t initial_free_bytes = GetMemoryUsageInBytes();
 
