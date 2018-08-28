@@ -127,10 +127,7 @@ XC_OPS = [
       OptionalArray('p'),
       Int('hidden_size'),
      ],
-     ['y', 'y_h',
-      # TODO(hamaji): Support y_c.
-      # 'y_c'
-     ]),
+     ['y', 'y_h', 'y_c']),
 
     ('BatchNormalization',
      [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),
@@ -354,7 +351,8 @@ def gen_gen_xcvm_ops_cc():
         elif outputs:
             lines.append('auto r_ = ' + call + ';')
             for i, output in enumerate(outputs):
-                lines.append(f'st->SetVar({output}, std::get<{i}>(r_));')
+                # TODO(hamaji): Revisit optional outputs.
+                lines.append(f'if ({output} >= 0) st->SetVar({output}, std::get<{i}>(r_));')
         else:
             lines.append(call + ';')
 

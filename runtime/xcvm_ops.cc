@@ -349,7 +349,7 @@ xchainer::Array GemmOp::RunImpl(XCVMState* st, const xchainer::Array& a, const x
     return r + xc;
 }
 
-std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(
+std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> LSTMOp::RunImpl(
         XCVMState* st,
         const xchainer::Array& x,
         const xchainer::Array& w,
@@ -429,7 +429,8 @@ std::tuple<xchainer::Array, xchainer::Array> LSTMOp::RunImpl(
         output.At({time}) += o;
     }
     h = xchainer::Reshape(h, {1, h.shape()[0], h.shape()[1]});
-    return std::make_tuple(output, h);
+    c = xchainer::Reshape(h, {1, c.shape()[0], c.shape()[1]});
+    return std::make_tuple(output, h, c);
 }
 
 xchainer::Array EqualOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {

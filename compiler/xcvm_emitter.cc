@@ -84,6 +84,12 @@ private:
             return GetValueId(node.outputs()[i]);
         };
 
+        // Optional output.
+        auto oout = [this, out, &node](int i) {
+            if (i >= static_cast<int>(node.outputs().size())) return -1;
+            return out(i);
+        };
+
         auto pads = [&node]() {
             std::vector<int> pads = node.pads();
             if (pads.empty()) {
@@ -195,8 +201,8 @@ private:
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kLSTM) {
             CHECK_LE(3, node.inputs().size());
-            CHECK_EQ(2, node.outputs().size()) << "The third output of LSTM is not supported yet";
-            EMIT(LSTM, out(0), out(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size());
+            CHECK_GE(3, node.outputs().size());
+            EMIT(LSTM, oout(0), oout(1), oout(2), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size());
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
