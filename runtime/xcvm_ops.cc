@@ -272,6 +272,11 @@ xchainer::Array LogSoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& inpu
     return xchainer::LogSoftmax(input, xchainer::OptionalAxes{static_cast<char>(axis)});
 }
 
+xchainer::Array SoftmaxCrossEntropyOp::RunImpl(XCVMState* st, const xchainer::Array& input, const xchainer::Array& label) {
+    xchainer::Array log_prob = xchainer::Take(xchainer::LogSoftmax(input), label, 0);
+    return -xchainer::Sum(log_prob) / input.shape()[0];
+}
+
 xchainer::Array MatMulOp::RunImpl(XCVMState* st, const xchainer::Array& a, const xchainer::Array& b) {
     return xchainer::Dot(a, b);
 }
