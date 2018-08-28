@@ -44,6 +44,7 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<int>("chrome_tracing_frequency", '\0', "Output chrome tracing every this itearation", false, 100);
+    args.add<int>("iteration", 'I', "Number of iterations to train", false, 100);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("trace", 't', "Tracing mode");
@@ -103,7 +104,8 @@ void RunMain(int argc, char** argv) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     LOG() << "Start training!" << std::endl;
     int iter_count = 0;
-    for (;; ++iter_count) {
+    int max_iterations = args.get<int>("iteration");
+    for (; !max_iterations || iter_count < max_iterations; ++iter_count) {
         if (!args.get<std::string>("chrome_tracing").empty() &&
             iter_count % args.get<int>("chrome_tracing_frequency") == 1) {
             xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
