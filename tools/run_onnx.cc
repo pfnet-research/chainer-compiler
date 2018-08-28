@@ -16,6 +16,7 @@
 #include <onnx/onnx.pb.h>
 
 #include <xchainer/array.h>
+#include <xchainer/backprop_mode.h>
 #include <xchainer/context.h>
 #include <xchainer/numeric.h>
 #include <xchainer/routines/creation.h>
@@ -172,6 +173,7 @@ void RunMain(int argc, char** argv) {
     LOG() << "Initializing xChainer..." << std::endl;
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
+    xchainer::NoBackpropModeScope no_backprop;
     const std::string device = args.get<std::string>("device");
     if (!device.empty()) {
         xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
