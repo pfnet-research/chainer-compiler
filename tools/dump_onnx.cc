@@ -13,6 +13,7 @@
 #include <tools/util.h>
 
 namespace oniku {
+namespace runtime {
 namespace {
 
 void RunMain(int argc, char** argv) {
@@ -40,9 +41,9 @@ void RunMain(int argc, char** argv) {
 }
 
 }  // namespace
+}  // namespace runtime
 }  // namespace oniku
 
-
 int main(int argc, char** argv) {
-    oniku::RunMain(argc, argv);
+    oniku::runtime::RunMain(argc, argv);
 }

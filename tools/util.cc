@@ -1,9 +1,14 @@
 #include "util.h"
 
 #include <common/strutil.h>
+#include <compiler/graph.h>
+#include <compiler/model.h>
 #include <compiler/tensor.h>
+#include <compiler/value.h>
+#include <runtime/xchainer.h>
 
 namespace oniku {
+namespace runtime {
 
 void MakeHumanReadableValue(onnx::TensorProto* tensor) {
     if (tensor->raw_data().empty())
@@ -52,4 +57,19 @@ xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
     }
 }
 
+InOuts LoadParams(const Model& model) {
+    InOuts params;
+    for (const Value* input : model.graph().input_values()) {
+        if (const Tensor* initializer = input->initializer()) {
+            xchainer::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
+            xchainer::Shape shape(initializer->dims());
+            const void* data = initializer->GetRawData();
+            xchainer::Array tensor(MakeArray(dtype, shape, data));
+            CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
+        }
+    }
+    return params;
+}
+
+}  // namespace runtime
 }  // namespace oniku

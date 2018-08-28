@@ -74,16 +74,7 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Loading data..." << std::endl;
 
-    InOuts params;
-    for (const Value* input : model.graph().input_values()) {
-        if (const Tensor* initializer = input->initializer()) {
-            xchainer::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
-            xchainer::Shape shape(initializer->dims());
-            const void* data = initializer->GetRawData();
-            xchainer::Array tensor(MakeArray(dtype, shape, data));
-            CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
-        }
-    }
+    InOuts params(LoadParams(model));
 
     xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
 

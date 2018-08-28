@@ -14,6 +14,8 @@ target_link_libraries(dump_onnx
   onnx_proto
   oniku_tools
   oniku_compiler
+  oniku_runtime
+  xchainer
   protobuf
   )
 set_target_properties(dump_onnx PROPERTIES OUTPUT_NAME "dump_onnx")
