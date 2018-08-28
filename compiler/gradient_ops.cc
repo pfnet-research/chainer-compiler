@@ -19,16 +19,16 @@ Value* AddTempValue(Graph* graph, Value* v) {
     return tv;
 }
 
-Value* AddTempOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& inputs, Value* v) {
+Value* AddTempOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& inputs, Value* v, const std::string& base) {
     Value* tv = AddTempValue(graph, v);
-    graph->AddNode(op_type, inputs, {tv});
+    graph->AddNode(op_type, inputs, {tv}, base);
     return tv;
 }
 
 void SetGrad(Graph* graph, Value* y, Value* gy) {
     if (y->grad()) {
         // Accumulate gradients.
-        Value* v = AddTempOp(graph, Node::kAdd, {y->grad(), gy}, y);
+        Value* v = AddTempOp(graph, Node::kAdd, {y->grad(), gy}, y, __func__);
         y->set_grad(v);
     } else {
         y->set_grad(gy);
@@ -41,11 +41,14 @@ Value* AddGradValue(Graph* graph, Value* v) {
     return gv;
 }
 
-Value* AddGradOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& inputs, Value* v) {
+Value* AddGradOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& inputs, Value* v, const std::string& base) {
     Value* gv = AddGradValue(graph, v);
-    graph->AddNode(op_type, inputs, {gv});
+    graph->AddNode(op_type, inputs, {gv}, base);
     return gv;
 }
+
+#define TEMP_OP(...) AddTempOp(graph, __VA_ARGS__, __func__)
+#define GRAD_OP(...) AddGradOp(graph, __VA_ARGS__, __func__)
 
 void AddGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(graph, x[0], y[0]->grad());
@@ -54,29 +57,29 @@ void AddGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
 
 void SubGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(graph, x[0], y[0]->grad());
-    AddGradOp(graph, Node::kNeg, {y[0]->grad()}, x[1]);
+    GRAD_OP(Node::kNeg, {y[0]->grad()}, x[1]);
 }
 
 void MulGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    AddGradOp(graph, Node::kMul, {x[1], y[0]->grad()}, x[0]);
-    AddGradOp(graph, Node::kMul, {x[0], y[0]->grad()}, x[1]);
+    GRAD_OP(Node::kMul, {x[1], y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kMul, {x[0], y[0]->grad()}, x[1]);
 }
 
 void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gy = y[0]->grad();
-    Value* gx0 = AddGradOp(graph, Node::kDiv, {gy, x[1]}, x[0]);
+    Value* gx0 = GRAD_OP(Node::kDiv, {gy, x[1]}, x[0]);
 
-    Value* t0 = AddTempOp(graph, Node::kNeg, {gx0}, x[1]);
-    Value* t1 = AddTempOp(graph, Node::kMul, {t0, x[0]}, x[1]);
-    AddGradOp(graph, Node::kDiv, {t1, x[1]}, x[1]);
+    Value* t0 = TEMP_OP(Node::kNeg, {gx0}, x[1]);
+    Value* t1 = TEMP_OP(Node::kMul, {t0, x[0]}, x[1]);
+    GRAD_OP(Node::kDiv, {t1, x[1]}, x[1]);
 }
 
 void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    AddGradOp(graph, Node::kNeg, {y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kNeg, {y[0]->grad()}, x[0]);
 }
 
 void ExpGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    AddGradOp(graph, Node::kMul, {y[0], y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kMul, {y[0], y[0]->grad()}, x[0]);
 }
 
 void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -84,38 +87,38 @@ void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
     CHECK_EQ(Dtype::kFloat32, x[0]->type().dtype());
     Value* gy = y[0]->grad();
     Value* one = graph->AddConstValue("grad_tmp_one@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {1.0});
-    Value* t0 = AddTempOp(graph, Node::kMul, {gy, y[0]}, x[0]);
-    Value* t1 = AddTempOp(graph, Node::kSub, {one, y[0]}, x[0]);
-    AddGradOp(graph, Node::kMul, {t0, t1}, x[0]);
+    Value* t0 = TEMP_OP(Node::kMul, {gy, y[0]}, x[0]);
+    Value* t1 = TEMP_OP(Node::kSub, {one, y[0]}, x[0]);
+    GRAD_OP(Node::kMul, {t0, t1}, x[0]);
 }
 
 void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {0.0});
-    Value* t0 = AddTempOp(graph, Node::kGreater, {y[0], zero}, x[0]);
-    Value* t1 = AddTempOp(graph, Node::kCast, {t0}, x[0]);
+    Value* t0 = TEMP_OP(Node::kGreater, {y[0], zero}, x[0]);
+    Value* t1 = TEMP_OP(Node::kCast, {t0}, x[0]);
     t1->producer()->set_to(x[0]->type().dtype());
-    AddGradOp(graph, Node::kMul, {t1, y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kMul, {t1, y[0]->grad()}, x[0]);
 }
 
 void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* t0 = AddTempOp(graph, Node::kAdd, {y[0], y[0]}, x[0]);
-    AddGradOp(graph, Node::kDiv, {y[0]->grad(), t0}, x[0]);
+    Value* t0 = TEMP_OP(Node::kAdd, {y[0], y[0]}, x[0]);
+    GRAD_OP(Node::kDiv, {y[0]->grad(), t0}, x[0]);
 }
 
 void IdentityGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    AddGradOp(graph, Node::kIdentity, {y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kIdentity, {y[0]->grad()}, x[0]);
 }
 
 void ReshapeGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* t0 = AddTempOp(graph, Node::kShape, {x[0]}, x[0]);
-    AddGradOp(graph, Node::kReshape, {y[0]->grad(), t0}, x[0]);
+    Value* t0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GRAD_OP(Node::kReshape, {y[0]->grad(), t0}, x[0]);
 }
 
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
-    Value* shape = AddTempOp(graph, Node::kShape, {x[0]}, x[0]);
-    AddGradOp(graph, Node::kExpand, {gy, shape}, x[0]);
+    Value* shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GRAD_OP(Node::kExpand, {gy, shape}, x[0]);
 }
 
 void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -125,14 +128,14 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
 
     // Note bias will be ignored thanks to beta=0.
     if (node->trans_a()) {
-        AddGradOp(graph, Node::kGemm, {x[1], gy, x[0]}, x[0])
+        GRAD_OP(Node::kGemm, {x[1], gy, x[0]}, x[0])
                 ->producer()
                 ->set_alpha(node->alpha())
                 .set_beta(0)
                 .set_trans_a(node->trans_b())
                 .set_trans_b(true);
     } else {
-        AddGradOp(graph, Node::kGemm, {gy, x[1], x[0]}, x[0])
+        GRAD_OP(Node::kGemm, {gy, x[1], x[0]}, x[0])
                 ->producer()
                 ->set_alpha(node->alpha())
                 .set_beta(0)
@@ -141,14 +144,14 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     }
 
     if (node->trans_b()) {
-        AddGradOp(graph, Node::kGemm, {gy, x[0], x[1]}, x[1])
+        GRAD_OP(Node::kGemm, {gy, x[0], x[1]}, x[1])
                 ->producer()
                 ->set_alpha(node->alpha())
                 .set_beta(0)
                 .set_trans_a(true)
                 .set_trans_b(node->trans_a());
     } else {
-        AddGradOp(graph, Node::kGemm, {x[0], gy, x[1]}, x[1])
+        GRAD_OP(Node::kGemm, {x[0], gy, x[1]}, x[1])
                 ->producer()
                 ->set_alpha(node->alpha())
                 .set_beta(0)
@@ -156,7 +159,7 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
                 .set_trans_b(false);
     }
 
-    AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0}).set_keepdims(false);
+    GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0}).set_keepdims(false);
 }
 
 void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -164,32 +167,32 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     Value* w = x[1];
     // TODO(hamaji): Revisit how we handle shapes.
 #if 0
-    AddGradOp(graph, Node::kConvTranspose, {gy, w}, x[0])->producer()
+    GRAD_OP(Node::kConvTranspose, {gy, w}, x[0])->producer()
         ->set_strides(node->strides()).set_pads(node->pads());
 #else
-    Value* x_shape = AddTempOp(graph, Node::kShape, {x[0]}, x[0]);
-    AddGradOp(graph, Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
+    Value* x_shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GRAD_OP(Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
             ->producer()
             ->set_strides(node->strides())
             .set_pads(node->pads());
 #endif
-    AddGradOp(graph, Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides()).set_pads(node->pads());
+    GRAD_OP(Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides()).set_pads(node->pads());
     if (x.size() == 3) {
         std::vector<int> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
         for (size_t i = 0; i < node->kernel_shape().size(); ++i) {
             axes.push_back(2 + i);
         }
-        AddGradOp(graph, Node::kReduceSum, {gy}, x[2])->producer()->set_axes(axes).set_keepdims(false);
+        GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes(axes).set_keepdims(false);
     }
 }
 
 void MaxPoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    AddGradOp(graph, Node::kOnikuxMaxPoolGrad, {y[0], y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kOnikuxMaxPoolGrad, {y[0], y[0]->grad()}, x[0]);
 }
 
 void AveragePoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    AddGradOp(graph, Node::kOnikuxAveragePoolGrad, {y[0], y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kOnikuxAveragePoolGrad, {y[0], y[0]->grad()}, x[0]);
 }
 
 void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -197,27 +200,27 @@ void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     CHECK_EQ(1, node->axis());
 
     Value* gy = y[0]->grad();
-    Value* sum_val = AddTempOp(graph, Node::kReduceSum, {gy}, x[0]);
+    Value* sum_val = TEMP_OP(Node::kReduceSum, {gy}, x[0]);
     sum_val->producer()->set_axes({node->axis()}).set_keepdims(true);
-    Value* exp_val = AddTempOp(graph, Node::kExp, {y[0]}, x[0]);
-    Value* mul_val = AddTempOp(graph, Node::kMul, {exp_val, sum_val}, x[0]);
-    AddGradOp(graph, Node::kSub, {gy, mul_val}, x[0]);
+    Value* exp_val = TEMP_OP(Node::kExp, {y[0]}, x[0]);
+    Value* mul_val = TEMP_OP(Node::kMul, {exp_val, sum_val}, x[0]);
+    GRAD_OP(Node::kSub, {gy, mul_val}, x[0]);
 }
 
 void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gy = y[0]->grad();
-    Value* gx = AddTempOp(graph, Node::kMul, {y[0], gy}, x[0]);
-    Value* sum_val = AddTempOp(graph, Node::kReduceSum, {gx}, x[0]);
+    Value* gx = TEMP_OP(Node::kMul, {y[0], gy}, x[0]);
+    Value* sum_val = TEMP_OP(Node::kReduceSum, {gx}, x[0]);
     sum_val->producer()->set_axes({node->axis()}).set_keepdims(true);
-    Value* mul_val = AddTempOp(graph, Node::kMul, {y[0], sum_val}, x[0]);
-    AddGradOp(graph, Node::kSub, {gx, mul_val}, x[0]);
+    Value* mul_val = TEMP_OP(Node::kMul, {y[0], sum_val}, x[0]);
+    GRAD_OP(Node::kSub, {gx, mul_val}, x[0]);
 }
 
 void BatchNormalizationGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gx0 = AddGradValue(graph, x[0]);
     Value* gx1 = AddGradValue(graph, x[1]);
     Value* gx2 = AddGradValue(graph, x[2]);
-    graph->AddNode(Node::kOnikuxBatchNormalizationGrad, {y[0], y[0]->grad()}, {gx0, gx1, gx2});
+    graph->AddNode(Node::kOnikuxBatchNormalizationGrad, {y[0], y[0]->grad()}, {gx0, gx1, gx2}, __func__);
     Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {0.0});
     // No gradients since update should have been done for running mean/variance.
     SetGrad(graph, x[3], zero);
