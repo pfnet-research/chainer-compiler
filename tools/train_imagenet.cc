@@ -132,8 +132,6 @@ void RunMain(int argc, char** argv) {
             outputs = xcvm.Run(inputs, xcvm_opts);
         }
 
-        double loss = static_cast<double>(xchainer::AsScalar(outputs["loss"]));
-
         {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Update");
             for (auto&& p : outputs) {
@@ -144,6 +142,12 @@ void RunMain(int argc, char** argv) {
                 CHECK(found != inputs.end());
                 found->second -= p.second * args.get<float>("learning_rate");
             }
+        }
+
+        double loss;
+        {
+            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Sync");
+            loss = static_cast<double>(xchainer::AsScalar(outputs["loss"]));
         }
 
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
