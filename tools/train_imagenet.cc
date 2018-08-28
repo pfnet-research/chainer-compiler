@@ -70,8 +70,6 @@ void RunMain(int argc, char** argv) {
     LOG() << "Loading data..." << std::endl;
 
     InOuts params;
-    std::vector<std::string> input_names;
-    std::vector<std::string> output_names;
     for (const Value* input : model.graph().input_values()) {
         if (const Tensor* initializer = input->initializer()) {
             xchainer::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
@@ -79,8 +77,6 @@ void RunMain(int argc, char** argv) {
             const void* data = initializer->GetRawData();
             xchainer::Array tensor(MakeArray(dtype, shape, data));
             CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
-        } else {
-            input_names.push_back(input->name());
         }
     }
 
