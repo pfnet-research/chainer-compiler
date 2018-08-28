@@ -27,7 +27,77 @@ from onnx import checker
 from onnx import helper
 from onnx import numpy_helper
 
+
+def convert_parameter(parameter, name):
+    if isinstance(parameter, chainer.Parameter):
+        array = parameter.array
+    elif isinstance(parameter, chainer.Variable):
+        array = parameter.array
+    elif isinstance(parameter, np.ndarray):
+        array = parameter
+    else:
+        raise ValueError(
+            'The type of parameter is unknown. It should be either Parameter '
+            'or Variable or ndarray, but the type was {}.'.format(
+                type(parameter)))
+    if array.shape == ():
+        array = array[None]
+    # print('initialize', name, array)
+    return numpy_helper.from_array(array, name)
+
+# 入力xから次元を決める
+# モデルにxを流して最初の重みを決める
+
+
 import code
+
+
+def edit_onnx_protobuf(onnxmod, x, chainermod):
+    # code.InteractiveConsole({'ch': chainermod}).interact()
+
+    initializers = []
+
+    avg_pass = []
+    for na, pa in chainermod.namedparams():
+        if isinstance(pa.data, type(None)):
+            continue
+        print(na)
+        initializers.append(convert_parameter(pa, na.replace('/', '_')))
+        # これだとbatchnormの avg_mean と avg_var が入らない
+        if na[-5:] == '/beta':
+            avg_pass.append(na[:-5])
+
+    # めちゃアドホックなのでどうにかしたい
+    def rec(v, p):
+        if len(p) == 0:
+            return v
+        else:
+            if p[0].isdigit():
+                return rec(v[int(p[0])], p[1:])
+            else:
+                return rec(getattr(v, p[0]), p[1:])
+
+    for p in avg_pass:
+        # print(p)
+        # code.InteractiveConsole({'ch': chainermod}).interact()
+        na = p + '/avg_mean'
+        v = rec(chainermod, na.split('/')[1:])
+        # print(na,v)
+        initializers.append(convert_parameter(v, na.replace('/', '_')))
+        na = p + '/avg_var'
+        v = rec(chainermod, na.split('/')[1:])
+
+        # これvを適当に初期化したほうがいいですね(値が爆発しないように)
+        v.data = np.ones(v.shape).astype(np.float32) * 4.0
+
+        # print(na,v)
+        initializers.append(convert_parameter(v, na.replace('/', '_')))
+
+    dummygraph = helper.make_graph(
+        [], "hoge", [], [], initializer=initializers)
+    dummygraph.ClearField("name")
+    # print(dummygraph)
+    onnxmod.graph.MergeFrom(dummygraph)
 
 
 def run_chainer_model(model, x, out_key):
@@ -77,8 +147,6 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                 f.write(tensor.SerializeToString())
 
 
-from test_initializer import edit_onnx_protobuf
-
 def check_compatibility(model, x, out_key='prob'):
     args = test_args.get_test_args()
 
@@ -98,7 +166,7 @@ def check_compatibility(model, x, out_key='prob'):
 
     print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
-    edit_onnx_protobuf(onnxmod, model)
+    edit_onnx_protobuf(onnxmod, x, model)
     chainer_out = run_chainer_model(model, x, out_key)
 
     with open(args.output, 'wb') as fp:

@@ -9,3 +9,11 @@ onnx_chainer_sample.py
 tes.py
 tes2.py
 net_drawer.py
+oniku/
+.pytest_cache/
+tmp/
+hoge/
+test/
+piyo/
+seq2seq/
+*.png

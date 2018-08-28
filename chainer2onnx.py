@@ -154,6 +154,93 @@ class Link_BatchNormalization(object):
         return [sl.scale, sl.B, sl.mean, sl.var]
 
 
+class Link_NstepLSTM(object):
+    def __init__(sl, ch, parentname):
+        sl.name = parentname + '_' + ch.name
+        #code.InteractiveConsole({'ch': ch}).interact()
+        
+        cs = list(ch.children())
+        sl.n_layers = ch.n_layers
+        if not(cs[0].w0 is None):
+            sl.n_in = cs[0].w0.shape[1]
+        else:
+            sl.n_in = None
+
+        sl.out_size = ch.out_size
+        sl.dropout = ch.dropout
+        
+        class step(object):
+            def __init__(sl):
+                pass
+
+        sl.ws = [step() for _ in range(sl.n_layers)]
+        for i in range(sl.n_layers):
+            sl.ws[i].W = helper.make_tensor_value_info(
+                sl.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
+            # これ多分うまいこと変換しないといけない
+            # chainer : at  ct
+            #   onnx  : ct  Ct
+            # (chainerのws[0],ws[2],ws[1],ws[3]から連結させたりする)
+            sl.ws[i].R = helper.make_tensor_value_info(
+                sl.name + ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
+            # (chainerのws[4],ws[6],ws[5],ws[7]から連結させたりする)
+            sl.ws[i].B = helper.make_tensor_value_info(
+                sl.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
+            # (chainerのbs[0,2,1,3,4,6,5,7]から連結させたりする)
+
+
+    def call(sl, args, _, env):
+        # とりあえずnstep を 1step ずつに分解する
+        #print(sl.name,args)
+        #assert(len(args) == 1)
+        assert(args[0] is None and args[1] is None)
+        v = args[2]
+        
+        hs = []
+        cs = []
+        
+        for i in range(sl.n_layers):
+            
+            h = new_tensor(['unknown', 'unknown', 'unknown'])
+            c = new_tensor(['unknown', 'unknown', 'unknown'])
+            ys = new_tensor(['unknown', 'unknown', 'unknown'])
+            
+            env.nodes.append(
+                helper.make_node(
+                    "LSTM",
+                    inputs=[v.name, sl.ws[i].W.name, sl.ws[i].R.name, sl.ws[i].B.name],
+                    outputs=[h.name, c.name, ys.name], 
+                    hidden_size=sl.out_size
+                )
+            )
+
+            hs.append(h.name)
+            cs.append(c.name)
+            v = ys
+
+        ths = new_tensor(['unknown', 'unknown', 'unknown'])
+        tcs = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Concat",
+                inputs=hs, outputs=[ths.name],
+                axis=-1,
+            )
+        )
+        env.nodes.append(
+            helper.make_node(
+                "Concat",
+                inputs=cs, outputs=[tcs.name],
+                axis=-1,
+            )
+        )
+
+        return ths,tcs,v
+
+    def init_tensors(sl):
+        return sum([[sl.ws[i].W, sl.ws[i].B, sl.ws[i].R] for i in range(sl.n_layers)],[])
+
+
 class User_Defined_Link(object):
     def __init__(sl, ch, parentname):
         sl.name = parentname + ('' if ch.name is None else '_' + ch.name)
@@ -314,6 +401,19 @@ class Function_Concat(object):
         return res
 
 
+class Function_SoftmaxClossEntropy(object):
+    def call(sl, args, keywords, env):
+        assert(len(args) == 2)
+        v,w = args[0],args[1]
+        res = new_tensor(get_dims(v))
+        env.nodes.append(
+            helper.make_node(
+                "OnikuxSoftmaxCrossEntropy", inputs=[v.name,w.name], outputs=[res.name]
+            )
+        )
+        return res
+
+
 class Func(object):
     def __init__(sl, f):
         sl.call = f
@@ -351,7 +451,15 @@ Func2NodeClass = [
     (F.local_response_normalization, Function_LocalRespNorm),
     (F.dropout, Function_Dropout),
     (F.concat, Function_Concat),
-    (F.average_pooling_2d, Function_AveragePool2d)
+    (F.average_pooling_2d, Function_AveragePool2d),
+    (F.softmax_cross_entropy, Function_SoftmaxClossEntropy)
+]
+
+Link2NodeClass = [
+    (L.Linear, Link_Linear),
+    (L.Convolution2D,Link_Convolution2D),
+    (L.BatchNormalization,Link_BatchNormalization),
+    (L.NStepLSTM, Link_NstepLSTM)
 ]
 
 
@@ -371,9 +479,21 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.Assign):
         value = eval_ast(nast.value, env)
         targs = nast.targets
-        # とりあえずタプル代入はなし
         assert(len(targs) == 1)
-        env.vars[targs[0].id] = value
+        
+        tg = targs[0]
+        if isinstance(tg,gast.Name):
+            env.vars[tg.id] = value
+        elif isinstance(tg,gast.Tuple):
+            # code.InteractiveConsole({'tg': tg,'v': value}).interact()
+            assert(isinstance(value,tuple))
+            assert(len(tg.elts) == len(value))
+
+            for i,v in enumerate(value):
+                env.vars[tg.elts[i].id] = v #これこのあと更に再帰的に書く必要あるかも
+        else:
+            raise Exception('invalid assing lvalue',targs[0])
+
     elif isinstance(nast, gast.Call):
         fn = eval_ast(nast.func, env)
         args = list(map(lambda x: eval_ast(x, env), nast.args))
@@ -410,8 +530,8 @@ def eval_ast(nast, env):
             for f, c in Func2NodeClass:
                 if v == f:
                     return c()
-
-            raise Exception('unknown function', nast.attr)
+            else:
+                raise Exception('unknown function', nast.attr)
         else:
             raise Exception('unknown attribute', nast.value.id, '.', nast.attr)
 
@@ -442,12 +562,10 @@ def initLinks(model, parentname):
     links = {}
     for ch in model.children():
         if ch.__class__.__module__[:13] == 'chainer.links':
-            if isinstance(ch, L.Linear):
-                links[ch.name] = Link_Linear(ch, parentname)
-            elif isinstance(ch, L.Convolution2D):
-                links[ch.name] = Link_Convolution2D(ch, parentname)
-            elif isinstance(ch, L.BatchNormalization):
-                links[ch.name] = Link_BatchNormalization(ch, parentname)
+            for lk,cl in Link2NodeClass:
+                if isinstance(ch, lk):
+                    links[ch.name] = cl(ch, parentname)
+                    break
             else:
                 print('unknown chainer link')
                 code.InteractiveConsole({'lk': ch}).interact()
@@ -497,7 +615,8 @@ def chainer2onnx(model, forward):
 
     print(graph)
     # exit(0)
-    checker.check_graph(graph)
+    # checker.check_graph(graph)
+    # oniku独自のノードを使うとcheckできなくなる...
     mo = helper.make_model(graph)
 
     # print(mo)
