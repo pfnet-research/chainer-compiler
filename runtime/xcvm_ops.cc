@@ -271,9 +271,33 @@ xchainer::Array GatherOp::RunImpl(XCVMState* st, const xchainer::Array& data, co
 }
 
 xchainer::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<xchainer::Array>& inputs) {
-    CHECK(false);
-    // TODO(hamaji): Implement this.
-    return inputs[0];
+    // TODO(hamaji): Move this logic to xChainer.
+    CHECK_LT(0, inputs.size());
+    int64_t axis_dim = 0;
+    for (const xchainer::Array& input : inputs) {
+        CHECK_LT(axis, input.shape().size());
+        CHECK_EQ(input.dtype(), inputs[0].dtype());
+        CHECK_EQ(input.shape().size(), inputs[0].shape().size());
+        for (int i = 0; i < input.shape().size(); ++i) {
+            if (i != axis)
+                CHECK_EQ(input.shape()[i], inputs[0].shape()[i]);
+        }
+        axis_dim += input.shape()[axis];
+    }
+
+    xchainer::Shape shape = inputs[0].shape();
+    shape[axis] = axis_dim;
+    // TODO(hamaji): Check why we cannot use `Empty` here.
+    xchainer::Array result = xchainer::Zeros(shape, inputs[0].dtype(), inputs[0].device());
+    std::vector<xchainer::ArrayIndex> indices(inputs[0].shape().size(), xchainer::Slice());
+    axis_dim = 0;
+    for (const xchainer::Array& input : inputs) {
+        int64_t cur_dim = input.shape()[axis];
+        indices[axis] = xchainer::Slice(axis_dim, axis_dim + cur_dim);
+        result.At(indices) += input;
+        axis_dim += cur_dim;
+    }
+    return result;
 }
 
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {

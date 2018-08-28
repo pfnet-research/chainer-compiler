@@ -99,7 +99,7 @@ XC_OPS = [
     ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
      ['output']),
     ('Gather', [Array('data'), Array('indices'), Int('axis')], ['output']),
-    ('Concat', [ArrayList('inputs')], ['concat_result']),
+    ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
 
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
