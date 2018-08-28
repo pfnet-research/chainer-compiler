@@ -192,9 +192,9 @@ xchainer::Array ReluOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     return xchainer::Maximum(x, 0);
 }
 
-xchainer::Array ReluGradOp::RunImpl(XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
-    xchainer::Array out = xchainer::EmptyLike(y, y.device());
-    y.device().IfLessElseASSA(y, 0, xchainer::Scalar{0, gy.dtype()}, gy, out);
+xchainer::Array ReluGradOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& gy) {
+    xchainer::Array out = xchainer::EmptyLike(x, x.device());
+    x.device().IfLessElseASSA(x, 0, xchainer::Scalar{0, gy.dtype()}, gy, out);
     return out;
 }
 

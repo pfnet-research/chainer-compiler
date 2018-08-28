@@ -93,7 +93,7 @@ void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
 }
 
 void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    GRAD_OP(Node::kOnikuxReluGrad, {y[0], y[0]->grad()}, x[0]);
+    GRAD_OP(Node::kOnikuxReluGrad, {x[0], y[0]->grad()}, x[0]);
 }
 
 void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
