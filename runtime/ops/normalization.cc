@@ -127,7 +127,7 @@ xchainer::Array BatchNormalizationOp::RunImpl(
                 x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
         const Array& gamma_reshaped = result.gamma;
         const Array& beta_reshaped = result.beta;
-        xchainer::Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
+        xchainer::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
         std::unique_ptr<XCVMState::Auxiliary> pfb(new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape()));
         st->SetAux(this->y, std::move(pfb));
         return out;
@@ -140,7 +140,7 @@ std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalization
         XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
     auto ctx = dynamic_cast<BatchNormBackwardContext*>(st->GetAux(this->y));
     CHECK(ctx);
-    std::array<xchainer::Array, 3> gxs = ctx->fb()->Backward(gy.AsGradStopped());
+    std::array<xchainer::Array, 3> gxs = ctx->fb()->Backward(gy);
     xchainer::Array gx1 = xchainer::Reshape(gxs[1], ctx->x1_shape());
     xchainer::Array gx2 = xchainer::Reshape(gxs[2], ctx->x2_shape());
     return std::forward_as_tuple(gxs[0], gx1, gx2);
