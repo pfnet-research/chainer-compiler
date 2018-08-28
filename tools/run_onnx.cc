@@ -29,6 +29,7 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 #include <compiler/xcvm_emitter.h>
+#include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
@@ -194,11 +195,10 @@ void RunMain(int argc, char** argv) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     const std::string device = args.get<std::string>("device");
-    size_t initial_free_bytes, param_bytes = static_cast<size_t>(-1);
     if (!device.empty()) {
-        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&initial_free_bytes, nullptr));
         xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
     }
+    int64_t initial_free_bytes = GetMemoryUsageInBytes();
 
     if (onnx_path.empty()) {
         onnx_path = test_path + "/model.onnx";
@@ -275,6 +275,7 @@ void RunMain(int argc, char** argv) {
     xcvm_opts.check_nans = args.exist("check_nans");
     xcvm_opts.check_infs = args.exist("check_infs");
 
+    int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
@@ -283,24 +284,17 @@ void RunMain(int argc, char** argv) {
             CHECK(inputs.emplace(p.first, p.second).second) << "Duplicated input parameter: " << p.first;
         }
 
-        if (!device.empty() && param_bytes == static_cast<size_t>(-1)) {
-            CHECK_EQ(cudaSuccess, cudaMemGetInfo(&param_bytes, nullptr));
-            param_bytes = initial_free_bytes - param_bytes;
-        }
-
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         InOuts outputs(xcvm.Run(inputs, xcvm_opts));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
-        if (!device.empty()) {
-            size_t free_bytes, total_bytes;
-            CHECK_EQ(cudaSuccess, cudaMemGetInfo(&free_bytes, &total_bytes));
+        if (initial_free_bytes >= 0) {
+            int64_t free_bytes = GetMemoryUsageInBytes();
             size_t used_bytes = initial_free_bytes - free_bytes;
             size_t param_mbs = param_bytes / 1000 / 1000;
             size_t used_mbs = used_bytes / 1000 / 1000;
-            size_t total_mbs = total_bytes / 1000 / 1000;
-            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB total=" << total_mbs << "MB" << std::endl;
+            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
         }
 
         if (test_case->outputs.empty()) {

@@ -7,8 +7,10 @@ include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
+include_directories(${CUDA_INCLUDE_DIRS})
 add_library(oniku_runtime
   gen_xcvm_ops.cc
+  meminfo.cc
   ops/normalization.cc
   ops/pooling.cc
   xchainer.cc

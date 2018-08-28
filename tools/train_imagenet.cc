@@ -19,6 +19,7 @@
 #include <compiler/value.h>
 #include <compiler/xcvm_emitter.h>
 #include <feeder/imagenet_iterator.h>
+#include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <tools/cmdline.h>
@@ -78,11 +79,10 @@ void RunMain(int argc, char** argv) {
     xchainer::Context ctx;
     xchainer::SetGlobalDefaultContext(&ctx);
     const std::string device = args.get<std::string>("device");
-    size_t initial_free_bytes, param_bytes = static_cast<size_t>(-1);
     if (!device.empty()) {
-        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&initial_free_bytes, nullptr));
         xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
     }
+    int64_t initial_free_bytes = GetMemoryUsageInBytes();
 
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
@@ -106,11 +106,6 @@ void RunMain(int argc, char** argv) {
         }
     }
 
-    if (!device.empty()) {
-        CHECK_EQ(cudaSuccess, cudaMemGetInfo(&param_bytes, nullptr));
-        param_bytes = initial_free_bytes - param_bytes;
-    }
-
     xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
 
     LOG() << "Generate code..." << std::endl;
@@ -122,6 +117,8 @@ void RunMain(int argc, char** argv) {
     xcvm_opts.is_training = true;
     xcvm_opts.check_nans = args.exist("check_nans");
     xcvm_opts.check_infs = args.exist("check_infs");
+
+    int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
 
     // TODO(hamaji): Stop using the fixed width/height.
     const int kHeight = 227;
@@ -157,6 +154,13 @@ void RunMain(int argc, char** argv) {
         }
 
         std::cout << train_iter.GetStatus() << " loss=" << loss << std::endl;
+        if (initial_free_bytes >= 0) {
+            int64_t free_bytes = GetMemoryUsageInBytes();
+            size_t used_bytes = initial_free_bytes - free_bytes;
+            size_t param_mbs = param_bytes / 1000 / 1000;
+            size_t used_mbs = used_bytes / 1000 / 1000;
+            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
+        }
     }
 
     train_iter.Terminate();
