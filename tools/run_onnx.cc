@@ -169,6 +169,7 @@ void RunMain(int argc, char** argv) {
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
+    args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("trace", 't', "Tracing mode");
