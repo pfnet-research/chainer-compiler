@@ -103,6 +103,7 @@ void RunMain(int argc, char** argv) {
     ImageNetIterator train_iter(args.rest()[1], 3, batch_size, mean, kHeight, kWidth);
     train_iter.Start();
 
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     LOG() << "Start training!" << std::endl;
     int iter_count = 0;
     for (;; ++iter_count) {
@@ -129,14 +130,17 @@ void RunMain(int argc, char** argv) {
             found->second -= p.second * args.get<float>("learning_rate");
         }
 
-        std::cout << train_iter.GetStatus() << " loss=" << loss << std::endl;
+        std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
+        double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << train_iter.GetStatus() << " loss=" << loss << " elapsed=" << elapsed << "ms";
         if (initial_free_bytes >= 0) {
             int64_t free_bytes = GetMemoryUsageInBytes();
             size_t used_bytes = initial_free_bytes - free_bytes;
             size_t param_mbs = param_bytes / 1000 / 1000;
             size_t used_mbs = used_bytes / 1000 / 1000;
-            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
+            std::cout << " param=" << param_mbs << "MB used=" << used_mbs << "MB";
         }
+        std::cout << std::endl;
     }
 
     train_iter.Terminate();
