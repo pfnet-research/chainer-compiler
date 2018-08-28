@@ -29,4 +29,27 @@ void StripLargeValue(onnx::TensorProto* tensor, int num_elements) {
     CLEAR_IF_LARGE(tensor, uint64_data, num_elements);
 }
 
+xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
+    switch (xtype) {
+        case onnx::TensorProto::BOOL:
+            return xchainer::Dtype::kBool;
+        case onnx::TensorProto::INT8:
+            return xchainer::Dtype::kInt8;
+        case onnx::TensorProto::INT16:
+            return xchainer::Dtype::kInt16;
+        case onnx::TensorProto::INT32:
+            return xchainer::Dtype::kInt32;
+        case onnx::TensorProto::INT64:
+            return xchainer::Dtype::kInt64;
+        case onnx::TensorProto::UINT8:
+            return xchainer::Dtype::kUInt8;
+        case onnx::TensorProto::FLOAT:
+            return xchainer::Dtype::kFloat32;
+        case onnx::TensorProto::DOUBLE:
+            return xchainer::Dtype::kFloat64;
+        default:
+            CHECK(false) << "Unsupported ONNX data type: " << xtype;
+    }
+}
+
 }  // namespace oniku
