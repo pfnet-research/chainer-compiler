@@ -31,6 +31,8 @@ xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const vo
 
 xchainer::Array MakeScalarArray(float f);
 
+xchainer::Array MakeHostArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src);
+
 bool HasNan(const xchainer::Array& a);
 
 bool HasInf(const xchainer::Array& a);

@@ -6,6 +6,8 @@
 #include <onnx/onnx.pb.h>
 
 #include <xchainer/array.h>
+#include <xchainer/context.h>
+#include <xchainer/native/native_backend.h>
 #include <xchainer/routines/creation.h>
 #include <xchainer/routines/manipulation.h>
 #include <xchainer/routines/math.h>
@@ -44,7 +46,7 @@ xchainer::Array BatchNormONNX(
 
 xchainer::Array ShapeToArray(const xchainer::Shape& s) {
     xchainer::Shape shape{s.ndim()};
-    return MakeArray(xchainer::Dtype::kInt64, shape, s.data());
+    return MakeHostArray(xchainer::Dtype::kInt64, shape, s.data());
 }
 
 xchainer::Shape ArrayToShape(const xchainer::Array& a) {
@@ -84,16 +86,31 @@ xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     return array;
 }
 
-xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
+namespace {
+
+std::shared_ptr<void> MakeSharedPtrData(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
     int64_t size = xchainer::GetItemSize(dtype) * shape.GetTotalSize();
     std::shared_ptr<void> data(new char[size], std::default_delete<char[]>());
     std::memcpy(data.get(), src, size);
+    return data;
+}
+
+}  // namespace
+
+xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
+    std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
     xchainer::Array array(xchainer::FromContiguousHostData(shape, dtype, data));
     return array;
 }
 
 xchainer::Array MakeScalarArray(float f) {
     return MakeArray(xchainer::Dtype::kFloat32, {}, &f);
+}
+
+xchainer::Array MakeHostArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
+    std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
+    xchainer::Array array(xchainer::FromData(shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, xchainer::GetNativeBackend().GetDevice(0)));
+    return array;
 }
 
 bool HasNan(const xchainer::Array& a) {
