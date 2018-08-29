@@ -34,8 +34,12 @@ public:
         for (Value* value : graph_->output_values()) {
             // TODO(hamaji): Refactor code to support non-float values.
             CHECK_EQ(Dtype::kFloat32, value->type().dtype());
-            std::vector<float> data(value->type().NumElements(), 1.0);
-            Value* grad = graph_->AddConstValue("grad_in@" + value->name(), value->type(), data);
+            std::vector<float> data(1, 1.0);
+            Value* one = graph_->AddConstValue("grad_in_one@" + value->name(), Type(value->type().dtype(), {}), data);
+            Value* shape = graph_->AddValue("grad_in_shape@" + value->name());
+            Value* grad = graph_->AddValue("grad_in@" + value->name());
+            graph_->AddNode(Node::kShape, {value}, {shape});
+            graph_->AddNode(Node::kExpand, {one, shape}, {grad});
             SetGrad(value, grad);
             op_queue_.push(value->producer());
         }

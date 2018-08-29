@@ -6,6 +6,7 @@ import sys
 import subprocess
 
 import gen_backprop_tests_oc
+import gen_backprop_tests_pc
 
 
 parser = argparse.ArgumentParser(description='Run tests for oniku')
@@ -222,7 +223,13 @@ num_official_onnx_tests = len(TEST_CASES)
 
 for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
     dirname = 'out'
-    name = 'backprop_test_' + backprop_test.name
+    name = 'backprop_test_oc_' + backprop_test.name
+    assert os.path.exists(os.path.join(dirname, name))
+    TEST_CASES.append(TestCase(dirname, name))
+
+for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
+    dirname = 'out'
+    name = 'backprop_test_pc_' + backprop_test.name
     assert os.path.exists(os.path.join(dirname, name))
     TEST_CASES.append(TestCase(dirname, name))
 
