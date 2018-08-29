@@ -296,6 +296,9 @@ void AddGradientForNode(Graph* graph, const Node* node) {
 
         register_grad_fn(Node::kBatchNormalization, 5, -1, &BatchNormalizationGradFn);
         register_grad_fn(Node::kLRN, 1, 1, &LRNGradFn);
+
+        // TODO(hamaji): Implement dropout.
+        register_grad_fn(Node::kDropout, 1, 1, &IdentityGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
