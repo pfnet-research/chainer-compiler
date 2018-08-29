@@ -66,10 +66,11 @@ def create_backprop_test(test_name, model, input_values):
 
 
 class BackpropTest(object):
-    def __init__(self, name, model, inputs):
+    def __init__(self, name, model, inputs, rtol=1e-4):
         self.name = name
         self.model = model
         self.inputs = inputs
+        self.rtol = rtol
 
     def generate(self):
         create_backprop_test(self.name, self.model, self.inputs)
@@ -79,8 +80,8 @@ def get_backprop_tests():
     F = chainer.functions
     tests = []
 
-    def test(name, model, *inputs):
-        tests.append(BackpropTest(name, model, inputs))
+    def test(name, model, *inputs, rtol=1e-4):
+        tests.append(BackpropTest(name, model, inputs, rtol))
 
     def aranges(*shape):
         r = 1
@@ -116,6 +117,17 @@ def get_backprop_tests():
 
     test('softmax_cross_entropy', SoftmaxCrossEntropy(),
          aranges(2, 3), np.array([1, 0]))
+
+    class LRN(chainer.Chain):
+        def __init__(self):
+            super(LRN, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 10)
+
+        def forward(self, x):
+            return F.local_response_normalization(self.l1(x))
+
+    test('lrn', LRN(), aranges(2, 3), rtol=1e-1)
 
     return tests
 

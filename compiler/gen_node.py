@@ -129,6 +129,8 @@ NodeDef('OnikuxConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 NodeDef('OnikuxSoftmaxCrossEntropy', 2, 1)
 NodeDef('OnikuxSelectItem', 2, 1)
 NodeDef('OnikuxSelectItemGrad', 3, 1)
+NodeDef('OnikuxLRNGrad', 3, 1,
+        alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 
 
 class AttrDef(object):

@@ -240,6 +240,14 @@ void BatchNormalizationGradFn(Graph* graph, const Node* node, const std::vector<
     SetGrad(graph, x[4], zero);
 }
 
+void LRNGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    GRAD_OP(Node::kOnikuxLRNGrad, {x[0], y[0], y[0]->grad()}, x[0])->producer()
+        ->set_alpha(node->alpha())
+        .set_beta(node->beta())
+        .set_bias(node->bias())
+        .set_size(node->size());
+}
+
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
@@ -287,6 +295,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kSoftmax, 1, 1, &SoftmaxGradFn);
 
         register_grad_fn(Node::kBatchNormalization, 5, -1, &BatchNormalizationGradFn);
+        register_grad_fn(Node::kLRN, 1, 1, &LRNGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

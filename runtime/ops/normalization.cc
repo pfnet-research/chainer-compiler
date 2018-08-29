@@ -146,6 +146,25 @@ std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalization
     return std::forward_as_tuple(gxs[0], gx1, gx2);
 }
 
+namespace {
+
+class LRNBackwardContext : public XCVMState::Auxiliary {
+public:
+    explicit LRNBackwardContext(const xchainer::Array& unit_scale)
+        : unit_scale_(unit_scale) {
+    }
+    virtual ~LRNBackwardContext() = default;
+
+    const xchainer::Array& unit_scale() const {
+        return unit_scale_;
+    }
+
+private:
+    xchainer::Array unit_scale_;
+};
+
+}  // namespace
+
 xchainer::Array LRNOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
     int half_n = size / 2;
     xchainer::Array x2 = x * x;
@@ -159,8 +178,31 @@ xchainer::Array LRNOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
         sum_part.At(indices2) += x2.At(indices1);
     }
     xchainer::Array unit_scale = bias + alpha * sum_part;
+    // TODO(hamaji): Add `Pow` and use it.
     xchainer::Array scale = xchainer::Exp(xchainer::Log(unit_scale) * -beta);
+    st->SetAux(this->y, std::move(std::unique_ptr<XCVMState::Auxiliary>(new LRNBackwardContext(unit_scale))));
     return x * scale;
+}
+
+xchainer::Array LRNGradOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& y, const xchainer::Array& gy) {
+    auto ctx = dynamic_cast<LRNBackwardContext*>(st->GetAux(this->y));
+    CHECK(ctx);
+    int half_n = size / 2;
+    xchainer::Array unit_scale = ctx->unit_scale();
+    xchainer::Array summand = y * gy / unit_scale;
+    xchainer::Array sum_part = summand.Copy();
+    std::vector<xchainer::ArrayIndex> indices1(summand.shape().size(), xchainer::Slice());
+    std::vector<xchainer::ArrayIndex> indices2(summand.shape().size(), xchainer::Slice());
+    for (int i = 1; i <= half_n; ++i) {
+        indices1[1] = xchainer::Slice(i, summand.shape()[1]);
+        indices2[1] = xchainer::Slice(summand.shape()[1] - i);
+        sum_part.At(indices1) += summand.At(indices2);
+        sum_part.At(indices2) += summand.At(indices1);
+    }
+    // TODO(hamaji): Add `Pow` and use it.
+    // TODO(hamaji): Decide whether we want to keep this value or recompute.
+    xchainer::Array scale = xchainer::Exp(xchainer::Log(unit_scale) * -beta);
+    return gy * scale - 2 * alpha * beta * x * sum_part;
 }
 
 }  // namespace runtime
