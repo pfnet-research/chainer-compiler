@@ -83,7 +83,8 @@ def generate_testcase(model, xs, out_key='prob'):
     chainer.config.train = False
     run_chainer_model(model, xs, out_key)
 
-    print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
+    if not args.quiet:
+        print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
     chainer_out = run_chainer_model(model, xs, out_key)

@@ -14,6 +14,7 @@ from chainer import functions as F
 from chainer import links as L
 
 import code
+import test_args
 
 
 def new_tensor(dims):
@@ -249,7 +250,8 @@ class User_Defined_Link(object):
         # code.InteractiveConsole({'ch': ch}).interact()
 
         src = clip_head(inspect.getsource(ch.forward))
-        print(src)
+        if not test_args.get_test_args().quiet:
+            print(src)
         sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
         assert(isinstance(sl.ast, gast.gast.FunctionDef))
 
@@ -633,7 +635,8 @@ def chainer2onnx(model, forward):
     env = Env()
     v = molk.call(input_tensors, [], env)  # keywordsはとりあえず空
 
-    print(v)
+    if not test_args.get_test_args().quiet:
+        print(v)
     if isinstance(v, tuple):
         output_tensors = list(v)  # ばらしてみる
     else:
@@ -655,7 +658,8 @@ def chainer2onnx(model, forward):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
-    print(graph)
+    if not test_args.get_test_args().quiet:
+        print(graph)
     # exit(0)
     # checker.check_graph(graph)
     # oniku独自のノードを使うとcheckできなくなる...
