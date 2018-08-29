@@ -50,7 +50,8 @@ xchainer::Array ShapeToArray(const xchainer::Shape& s) {
 }
 
 xchainer::Shape ArrayToShape(const xchainer::Array& a) {
-    WARN_ONCE("Shape info was not statically known.");
+    // TODO(hamaji): Think again if we revive this.
+    // WARN_ONCE("Shape info was not statically known.");
     CHECK_EQ(a.ndim(), 1);
     xchainer::Shape shape;
     for (int i = 0; i < a.shape()[0]; ++i) {
