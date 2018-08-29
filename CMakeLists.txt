@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
 
+execute_process(COMMAND git submodule update --init)
+
 enable_testing()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
