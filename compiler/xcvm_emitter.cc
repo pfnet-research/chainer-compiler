@@ -322,6 +322,10 @@ private:
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(3UL, node.outputs().size());
             EMIT(BatchNormalizationGrad, out(0), out(1), out(2), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxSelectItemGrad) {
+            CHECK_EQ(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

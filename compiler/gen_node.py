@@ -128,6 +128,7 @@ NodeDef('OnikuxBatchNormalizationGrad', 2, 3)
 NodeDef('OnikuxConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 NodeDef('OnikuxSoftmaxCrossEntropy', 2, 1)
 NodeDef('OnikuxSelectItem', 2, 1)
+NodeDef('OnikuxSelectItemGrad', 3, 1)
 
 
 class AttrDef(object):

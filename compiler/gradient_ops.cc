@@ -110,11 +110,28 @@ void ReshapeGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
     GRAD_OP(Node::kReshape, {y[0]->grad(), t0}, x[0]);
 }
 
+void SelectItemGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    Value* t0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GRAD_OP(Node::kOnikuxSelectItemGrad, {y[0]->grad(), x[1], t0}, x[0]);
+}
+
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
     Value* shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
     GRAD_OP(Node::kExpand, {gy, shape}, x[0]);
+}
+
+void ReduceMeanGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    // TODO(hamaji): Need some check for `axes` and `keepdims`.
+    Value* gy = y[0]->grad();
+    Value* shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(Dtype::kInt64, {}), {0});
+    Value* batch_size_int = TEMP_OP(Node::kGather, {shape, zero}, x[0]);
+    Value* batch_size = TEMP_OP(Node::kCast, {batch_size_int}, x[0]);
+    batch_size->producer()->set_to(Dtype::kFloat32);
+    Value* divided = TEMP_OP(Node::kDiv, {gy, batch_size}, x[0]);
+    GRAD_OP(Node::kExpand, {divided, shape}, x[0]);
 }
 
 void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -258,8 +275,10 @@ void AddGradientForNode(Graph* graph, const Node* node) {
 
         register_grad_fn(Node::kIdentity, 1, 1, &IdentityGradFn);
         register_grad_fn(Node::kReshape, 2, 1, &ReshapeGradFn);
+        register_grad_fn(Node::kOnikuxSelectItem, 2, 1, &SelectItemGradFn);
 
         register_grad_fn(Node::kReduceSum, 1, 1, &ReduceSumGradFn);
+        register_grad_fn(Node::kReduceMean, 1, 1, &ReduceMeanGradFn);
         register_grad_fn(Node::kGemm, 3, 1, &GemmGradFn);
         register_grad_fn(Node::kConv, -1, 1, &ConvGradFn);
         register_grad_fn(Node::kMaxPool, 1, 1, &MaxPoolGradFn);

@@ -105,6 +105,18 @@ def get_backprop_tests():
 
     test('linear', Linear(), aranges(2, 3))
 
+    class SoftmaxCrossEntropy(chainer.Chain):
+        def __init__(self):
+            super(SoftmaxCrossEntropy, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 10)
+
+        def forward(self, x, t):
+            return F.softmax_cross_entropy(self.l1(x), t)
+
+    test('softmax_cross_entropy', SoftmaxCrossEntropy(),
+         aranges(2, 3), np.array([1, 0]))
+
     return tests
 
 

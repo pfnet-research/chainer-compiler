@@ -279,6 +279,18 @@ xchainer::Array SelectItemOp::RunImpl(XCVMState* st, const xchainer::Array& data
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 
+xchainer::Array SelectItemGradOp::RunImpl(XCVMState* st, const xchainer::Array& gy, const xchainer::Array& indices, const xchainer::Array& shape_array) {
+    xchainer::Shape shape{ArrayToShape(shape_array)};
+    CHECK_EQ(2, shape.size()) << "TODO(hamaji): Support SelectItem for non-2D array";
+    int64_t batch_size = shape[0];
+    int64_t num_classes = shape[1];
+    int64_t total_size = batch_size * num_classes;
+    xchainer::Array out = xchainer::Zeros({total_size}, gy.dtype());
+    xchainer::Array take_indices = indices + xchainer::Arange(0, total_size, num_classes);
+    out.device().AddAt(out, take_indices, 0, gy, out);
+    return out.Reshape(shape);
+}
+
 xchainer::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<xchainer::Array>& inputs) {
     // TODO(hamaji): Move this logic to xChainer.
     CHECK_LT(0, inputs.size());
