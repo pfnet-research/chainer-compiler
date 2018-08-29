@@ -20,6 +20,25 @@ from onnx import numpy_helper
 import code
 
 
+def hoge2tensor(chainer_out,d): 
+    if isinstance(chainer_out, (list, tuple)):
+        chainer_out = [hoge2tensor(y,d=1) for y in chainer_out]
+    elif isinstance(chainer_out, dict):
+        chainer_out = chainer_out[out_key]
+        if isinstance(chainer_out, chainer.Variable):
+            chainer_out = (chainer_out.array,)
+    elif isinstance(chainer_out, chainer.Variable):
+        chainer_out = (chainer_out.array,)
+    elif isinstance(chainer_out,np.ndarray):
+        return chainer_out
+    else:
+        raise ValueError('Unknown type: {}'.format(type(chainer_out)))
+    
+    if d > 0:
+        chainer_out = np.array(chainer_out)
+    
+    return chainer_out
+
 def run_chainer_model(model, x, out_key):
     # Forward computation
     if isinstance(x, (list, tuple)):
@@ -40,18 +59,10 @@ def run_chainer_model(model, x, out_key):
    
     # print(chainer_out)
     # code.InteractiveConsole({'co': chainer_out}).interact()
-
-    if isinstance(chainer_out, (list, tuple)):
-        chainer_out = [(y.array if isinstance(y,chainer.Variable) else np.array(y)) for y in chainer_out]
-    elif isinstance(chainer_out, dict):
-        chainer_out = chainer_out[out_key]
-        if isinstance(chainer_out, chainer.Variable):
-            chainer_out = (chainer_out.array,)
-    elif isinstance(chainer_out, chainer.Variable):
-        chainer_out = (chainer_out.array,)
-    else:
-        raise ValueError('Unknown output type: {}'.format(type(chainer_out)))
-
+    
+    chainer_out = hoge2tensor(chainer_out,d=0)
+    #for d in chainer_out:
+    #    print(d.__class__)
     return chainer_out
 
 
@@ -61,6 +72,9 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (name, value) in enumerate(values):
+            # とりあえずarrayにする
+            value = hoge2tensor(value,1)
+            print(typ,i,name,value.shape)
             tensor = numpy_helper.from_array(value, name)
             filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
             with open(filename, 'wb') as f:

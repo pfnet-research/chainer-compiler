@@ -3,6 +3,7 @@
 import ast
 import gast
 import inspect
+import onnx
 from onnx import checker
 from onnx import helper
 from onnx import TensorProto
@@ -320,8 +321,15 @@ class Function_Pool2d_Util(object):
             dx, dy = 0, 0
             if 'pad' in keywords.keys():
                 dy, dx = size2d(keywords['pad'])
-            pads = [dx, dy, strides[0]+dx-1, strides[1]+dy-1]
+            # pads = [dx, dy, strides[0]+dx-1, strides[1]+dy-1]
             # 多めに足しておくとうまいこといくはず (この時点で入力大きさが不明なので)
+            # mxnetだと足しておくとよかったが、
+            # Onikuだとそうではないっぽい？
+            
+            # (size + pad) % stride = ksize % stride
+            # を仮定してよい？ 
+            
+            pads = [dx,dy,dx,dy]
         else:
             raise Exception("unimplemented cover_all=False in maxpool2d")
 
@@ -506,8 +514,39 @@ def eval_ast(nast, env):
         res = new_tensor(['TODO'])
         if isinstance(nast.op, gast.Add):
             optype = "Add"
+        elif isinstance(nast.op,gast.Mult):
+            optype = "Mul"
         else:
             raise Exception('unknown operator', nast.op)
+        
+        # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
+        def istensor(x):
+            return isinstance(x,onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
+        
+        if not istensor(lv) and not istensor(rv):
+            return lv * rv
+        
+        def totensor(x):
+            if istensor(x):
+                return x
+            res = new_tensor(['TODO'])
+             
+            env.nodes.append(
+                helper.make_node(
+                    'Constant',
+                    inputs=[], outputs=[res.name],
+                    value=onnx.helper.make_tensor(
+                        name="hoge",
+                        data_type=onnx.TensorProto.FLOAT,
+                        dims=[],
+                        vals=[x],
+                    )
+                )
+            )
+            return res
+
+        lv = totensor(lv)
+        rv = totensor(rv)
 
         env.nodes.append(
             helper.make_node(
@@ -550,6 +589,8 @@ def eval_ast(nast, env):
         return nast.s
     elif isinstance(nast, gast.Tuple):
         return tuple(map(lambda x: eval_ast(x, env), nast.elts))
+    elif isinstance(nast, gast.List):
+        return list(map(lambda x: eval_ast(x, env), nast.elts))
     elif isinstance(nast, gast.Return):
         raise ValueReturn(eval_ast(nast.value, env))
     else:
@@ -584,8 +625,8 @@ def chainer2onnx(model, forward):
     molk = User_Defined_Link(model, '')
 
     input_tensors = []
-    for _ in molk.arg_name:
-        x = new_tensor(['batch_size', 'input_size'])
+    for i,_ in enumerate(molk.arg_name):
+        x = new_tensor(['batch_size%d' % i, 'input_size%d' % i])
         input_tensors.append(x)
 
     env = Env()

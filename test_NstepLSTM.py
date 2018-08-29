@@ -31,7 +31,7 @@ if __name__ == '__main__':
     #とりあえずというかんじ 
     # これはなにかのtestになっているのだろうか
     
-    layn = 7
+    layn = 1
     model = A(layn,3,5)
     
     x = [np.random.rand(4, 3).astype(np.float32) for _ in range(2)]
