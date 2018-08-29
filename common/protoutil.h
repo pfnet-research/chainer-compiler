@@ -1,3 +1,9 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <cerrno>
+#include <cstring>
 #include <fstream>
 #include <limits>
 
@@ -7,7 +13,11 @@
 #include <common/log.h>
 
 template <class Proto>
-Proto LoadLargeProto(std::string const& filename) {
+Proto LoadLargeProto(const std::string& filename) {
+    struct stat st;
+    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+    CHECK_NE(S_IFDIR, st.st_mode & S_IFMT) << "is a directory: " << filename;
+
     std::ifstream ifs(filename, std::ios::binary);
     CHECK(ifs) << "failed to open " << filename;
     Proto proto;
