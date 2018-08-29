@@ -15,6 +15,7 @@ from oniku.pc import test_args
 from oniku.pc import testcasegen
 from oniku.scripts import onnx_chainer_util
 
+F = chainer.functions
 L = chainer.links
 
 
@@ -26,11 +27,16 @@ def create_backprop_test(test_name, model, input_values):
     xmodel, input_tensors, output_tensors = chainer2onnx.chainer2onnx(
         model, model.forward)
 
-    chainer.config.train = False
-    output_values = testcasegen.run_chainer_model(
-        model, tuple(map(chainer.variable.Variable, input_values)), 'loss')
-    assert len(input_tensors) == len(input_values)
-    assert len(output_tensors) == len(output_values)
+    chainer.config.train = True
+    model.cleargrads()
+    output_values = model(*map(chainer.variable.Variable, input_values))
+    if not isinstance(output_values, (list, tuple)):
+        output_values = (output_values,)
+    for output_value in output_values:
+        output_value.grad = np.ones(output_value.shape, output_value.dtype)
+        output_value.backward()
+
+    testcasegen.edit_onnx_protobuf(xmodel, model)
 
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as fp:
         fp.write(xmodel.SerializeToString())
@@ -43,9 +49,15 @@ def create_backprop_test(test_name, model, input_values):
         if input_tensor.name not in initializer_names:
             input_names.append(input_tensor.name)
 
+    assert len(input_names) == len(input_values)
+    assert len(output_tensors) == len(output_values)
+
     outputs = []
     for tensor, value in zip(output_tensors, output_values):
-        outputs.append((tensor.name, value))
+        outputs.append((tensor.name, value.array))
+    for name, param in sorted(model.namedparams()):
+        bp_name = 'grad_out@' + name.replace('/', '_')
+        outputs.append((bp_name, param.grad))
 
     testcasegen.dump_test_inputs_outputs(
         list(zip(input_names, input_values)),
@@ -81,6 +93,17 @@ def get_backprop_tests():
             return x + x
 
     test('add_self', AddSelf(), aranges(2, 3))
+
+    class Linear(chainer.Chain):
+        def __init__(self):
+            super(Linear, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 10)
+
+        def forward(self, x):
+            return F.relu(self.l1(x))
+
+    test('linear', Linear(), aranges(2, 3))
 
     return tests
 
