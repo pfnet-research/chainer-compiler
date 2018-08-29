@@ -81,7 +81,7 @@ void RunMain(int argc, char** argv) {
 
     InOuts params(LoadParams(model));
 
-    xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultContext().GetDevice(device));
+    xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultDevice());
 
     LOG() << "Generate code..." << std::endl;
     XCProgramProto xcvm_prog;
@@ -124,14 +124,14 @@ void RunMain(int argc, char** argv) {
 
             inputs = params;
             if (args.exist("for_onnx_chainer")) {
-                inputs["input"] = data[0].ToDevice(xchainer::GetDefaultContext().GetDevice(device));
-                xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultContext().GetDevice(device)).AsType(xchainer::Dtype::kInt64);
+                inputs["input"] = data[0].ToDevice(xchainer::GetDefaultDevice());
+                xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultDevice()).AsType(xchainer::Dtype::kInt64);
                 xchainer::Array onehot = xchainer::Eye(1000, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32).Take(labels, 0);
                 inputs["onehot"] = onehot;
                 inputs["batch_size"] = batch_size_array;
             } else {
-                inputs["T0"] = data[0].ToDevice(xchainer::GetDefaultContext().GetDevice(device));
-                xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultContext().GetDevice(device)).AsType(xchainer::Dtype::kInt64);
+                inputs["T0"] = data[0].ToDevice(xchainer::GetDefaultDevice());
+                xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultDevice()).AsType(xchainer::Dtype::kInt64);
                 inputs["T1"] = labels;
             }
         }
