@@ -99,11 +99,11 @@ XC_OPS = [
     ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
      ['output']),
     ('Gather', [Array('data'), Array('indices'), Int('axis')], ['output']),
+    ('SelectItem', [Array('data'), Array('indices')], ['output']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
 
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
-    ('SoftmaxCrossEntropy', [Array('input'), Array('label')], ['output']),
 
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads')],

@@ -162,7 +162,7 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxReluGrad, ReluGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxMaxPoolGrad, MaxPoolGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxAveragePoolGrad, AveragePoolGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxSoftmaxCrossEntropy, SoftmaxCrossEntropy);
+        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxSelectItem, SelectItem);
 
         if (node.op_type() == Node::kDropout) {
             CHECK_EQ(1UL, node.inputs().size());

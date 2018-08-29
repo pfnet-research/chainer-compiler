@@ -50,6 +50,19 @@ bool ReplaceReduceMin(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
+    Value* t0 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_0"));
+    Value* t1 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_1"));
+    Value* t2 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_2"));
+    Value* t3 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_3"));
+    graph->AddNode(Node::kLogSoftmax, {node->inputs()[0]}, {t0});
+    graph->AddNode(Node::kOnikuxSelectItem, {t0, node->inputs()[1]}, {t1});
+    graph->AddNode(Node::kReduceMean, {t1}, {t2})->set_axes({0}).set_keepdims(false);
+    graph->AddNode(Node::kReduceSum, {t2}, {t3})->set_keepdims(false);
+    graph->AddNode(Node::kNeg, {t3}, {node->outputs()[0]});
+    return true;
+}
+
 #if 0
 
 bool ReplaceBatchNormalization(Graph* graph, Node* node) {
@@ -107,6 +120,7 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
+    CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif
