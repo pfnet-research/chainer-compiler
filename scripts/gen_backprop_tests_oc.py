@@ -28,14 +28,14 @@ class AnyModel(chainer.Chain):
 
 
 def create_backprop_test(test_name, fn, **kwargs):
-    test_dir = 'out/backprop_test_%s' % test_name
+    test_dir = 'out/backprop_test_oc_%s' % test_name
 
     params = {}
     for name, value in kwargs.items():
         params[name] = np.array(value, np.float32)
     model = AnyModel(fn, params)
 
-    onnx_chainer_util.create_onnx_test('backprop_test_' + test_name,
+    onnx_chainer_util.create_onnx_test('backprop_test_oc_' + test_name,
                                        model,
                                        (),
                                        __builtins__,
@@ -147,7 +147,7 @@ def main():
     for test in get_backprop_tests():
         test.generate()
     # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/backprop_test_stamp', 'w'): pass
+    with open('scripts/backprop_test_oc_stamp', 'w'): pass
 
 
 if __name__ == '__main__':
