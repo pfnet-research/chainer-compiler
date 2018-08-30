@@ -23,6 +23,10 @@ class Required(object):
         self.v = v
 
 
+class Tensor():
+    pass
+
+
 class Dtype(object):
     pass
 
@@ -63,7 +67,8 @@ NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
 NodeDef('Less', 2, 1)
 
-NodeDef('Cast', 1, 1, to=Dtype)
+NodeDef('Constant', 0, 1, value=Required(Tensor))
+NodeDef('Cast', 1, 1, to=Required(Dtype))
 NodeDef('Shape', 1, 1)
 NodeDef('Size', 1, 1)
 NodeDef('Reshape', 2, 1)
@@ -147,7 +152,7 @@ class AttrDef(object):
         else:
             self.type = type(value)
             self.value = value
-            assert self.type in (bool, int, str, float, Dtype)
+            assert self.type in (bool, int, str, float, Dtype, Tensor)
 
     def c_type(self, typ=None):
         typ = self.type if typ is None else typ
@@ -160,11 +165,12 @@ class AttrDef(object):
             float: 'float',
             str: 'std::string',
             Dtype: 'Dtype',
+            Tensor: 'std::unique_ptr<Tensor>',
         }[typ]
 
     def c_arg_type(self):
         typ = self.c_type()
-        if 'std::' in typ:
+        if 'std::' in typ or self.type == Tensor:
             return f'const {typ}&'
         return typ
 
@@ -179,6 +185,7 @@ class AttrDef(object):
             float: 'onnx::AttributeProto::FLOAT',
             str: 'onnx::AttributeProto::STRING',
             Dtype: 'onnx::AttributeProto::INT',
+            Tensor: 'onnx::AttributeProto::TENSOR',
         }[typ]
 
     def onnx_field(self, typ=None):
@@ -192,6 +199,7 @@ class AttrDef(object):
             float: 'float',
             str: 'string',
             Dtype: 'dtype',
+            Tensor: 'tensor',
         }[typ]
 
     def add_func(self, typ=None):
@@ -233,9 +241,15 @@ def gen_gen_node_base_h():
         public_lines.append(f'{arg} {name}() const ' + '{')
         public_lines.append(f'return {name}_;')
         public_lines.append('}')
-        public_lines.append(f'NodeBase& set_{name}({arg} {name}) ' + '{')
+
+        if attr.type == Tensor:
+            public_lines.append(
+                f'NodeBase& set_{name}(const onnx::TensorProto& {name}) ' + '{')
+            public_lines.append(f'{name}_.reset(new Tensor({name}));')
+        else:
+            public_lines.append(f'NodeBase& set_{name}({arg} {name}) ' + '{')
+            public_lines.append(f'{name}_ = {name};')
         public_lines.append(f'was_{name}_set_ = true;')
-        public_lines.append(f'{name}_ = {name};')
         public_lines.append('return *this;')
         public_lines.append('}')
         private_lines.append(f'{typ} {name}_;')
@@ -254,6 +268,7 @@ def gen_gen_node_base_h():
 #include <onnx/onnx.pb.h>
 
 #include <compiler/dtype.h>
+#include <compiler/tensor.h>
 
 namespace oniku {
 
@@ -329,6 +344,8 @@ def gen_gen_node_base_cc():
                               f'xattr.{fs}().end());')
             elif attr.type == Dtype:
                 blines.append(f'set_{attr.c_name}(Dtype(onnx::TensorProto::DataType(xattr.i())));')
+            elif attr.type == Tensor:
+                blines.append(f'set_{attr.c_name}(xattr.t());')
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
             blines.append(f'was_{attr.c_name}_set_ = true;')
@@ -377,6 +394,13 @@ def gen_gen_node_base_cc():
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::STRING);
         xattr->set_s(v);
+    };
+
+    auto add_tensor_attr = [&xnode](const std::string& name, const std::unique_ptr<Tensor>& v) {
+        onnx::AttributeProto* xattr = xnode->add_attribute();
+        xattr->set_name(name);
+        xattr->set_type(onnx::AttributeProto::TENSOR);
+        v->ToONNX(xattr->mutable_t());
     };
 
     auto add_ints_attr = [&xnode](const std::string& name, const std::vector<int>& ints) {
