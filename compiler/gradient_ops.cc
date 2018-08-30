@@ -126,7 +126,7 @@ void ReduceMeanGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
     Value* shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
-    Value* zero = graph->AddConstValue("grad_tmp_zero@" + x[0]->name(), Type(Dtype::kInt64, {}), {0});
+    Value* zero = graph->AddConstValue("NATIVE_grad_tmp_zero@" + x[0]->name(), Type(Dtype::kInt64, {}), {0});
     Value* batch_size_int = TEMP_OP(Node::kGather, {shape, zero}, x[0]);
     Value* batch_size = TEMP_OP(Node::kCast, {batch_size_int}, x[0]);
     batch_size->producer()->set_to(Dtype::kFloat32);

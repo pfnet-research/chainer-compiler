@@ -15,6 +15,7 @@ target_link_libraries(dump_onnx
   oniku_tools
   oniku_compiler
   oniku_runtime
+  oniku_common
   xchainer
   protobuf
   )

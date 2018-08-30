@@ -68,13 +68,17 @@ InOuts LoadParams(const Model& model) {
             xchainer::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();
             xchainer::Array tensor;
-            if (std::find_if(input->users().begin(), input->users().end(), [](const Node* node) {
+            // If the input is used only by Reshape or has "NATIVE"
+            // prefix, place it on host memory.
+            // TODO(hamaji): Introduce more sophisticated approach to
+            // decide the device to be used.
+            if (HasPrefix(input->name(), "NATIVE") ||
+                std::find_if(input->users().begin(), input->users().end(), [](const Node* node) {
                     return node->op_type() != Node::kReshape;
-                }) != input->users().end()) {
-                tensor = MakeArray(dtype, shape, data);
-            } else {
-                // If the input is used only by Reshape, place it on host memory.
+                }) == input->users().end()) {
                 tensor = MakeHostArray(dtype, shape, data);
+            } else {
+                tensor = MakeArray(dtype, shape, data);
             }
             CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
         }
