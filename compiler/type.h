@@ -20,6 +20,9 @@ public:
     Dtype dtype() const {
         return dtype_;
     }
+    void set_dtype(Dtype dtype) {
+        dtype_ = dtype;
+    }
 
     const std::vector<int64_t>& dims() const {
         return dims_;
@@ -32,7 +35,7 @@ public:
     }
 
 private:
-    Dtype dtype_;
+    Dtype dtype_{Dtype::kUnknown};
     std::vector<int64_t> dims_;
     std::vector<std::string> dim_params_;
     std::vector<std::string> denotations_;

@@ -1,6 +1,8 @@
 #include "dtype_inference.h"
 
 #include <common/log.h>
+#include <compiler/node.h>
+#include <compiler/value.h>
 
 namespace oniku {
 
@@ -24,6 +26,192 @@ Dtype CoerceDtype(Dtype dtype0, Dtype dtype1) {
     if (dtype0 == Dtype::kUInt8 || dtype1 == Dtype::kUInt8)
         return Dtype::kInt16;
     CHECK(false) << "Unknown type coerce: " << dtype0.ToString() << " vs " << dtype1.ToString();
+}
+
+void InferDtype(Node* node) {
+    Dtype default_float = Dtype(Dtype::kFloat32);
+
+    auto coerce = [node]() {
+        const std::vector<Value*>& ins = node->inputs();
+        Dtype dtype = ins[0]->type().dtype();
+        for (size_t i = 1; i < ins.size(); ++i) {
+            dtype = CoerceDtype(dtype, ins[i]->type().dtype());
+        }
+        return dtype;
+    };
+
+    auto set = [node](int i, Dtype dtype) {
+        CHECK_LT(i, node->outputs().size());
+        Dtype odtype = node->outputs()[i]->type().dtype();
+        if (odtype == Dtype::kUnknown) {
+            node->outputs()[i]->mutable_type()->set_dtype(dtype);
+        } else if (dtype != odtype) {
+            CHECK(false) << "dtype mismatch for output #" << i << " of " << node->DebugString();
+        }
+    };
+
+    auto oset = [node, set](int i, Dtype dtype) {
+        if (i < node->outputs().size())
+            set(i, dtype);
+    };
+
+    Dtype in0 = node->inputs()[0]->type().dtype();
+    Dtype in1 = Dtype::kUnknown;
+    if (node->inputs().size() >= 2)
+        in1 = node->inputs()[1]->type().dtype();
+    Dtype in2 = Dtype::kUnknown;
+    if (node->inputs().size() >= 3)
+        in2 = node->inputs()[2]->type().dtype();
+
+    switch (node->op_type()) {
+        case Node::kIdentity:
+        case Node::kNeg:
+        case Node::kRelu:
+        case Node::kSqueeze:
+        case Node::kUnsqueeze:
+        case Node::kSlice:
+        case Node::kReduceSum:
+        case Node::kReduceSumSquare:
+        case Node::kReduceMax:
+        case Node::kReduceMin:
+        case Node::kArgMax:
+        case Node::kArgMin:
+        case Node::kMaxPool: {
+            set(0, in0);
+            break;
+        }
+
+        case Node::kExp:
+        case Node::kTanh:
+        case Node::kLog:
+        case Node::kSqrt:
+        case Node::kSigmoid:
+        case Node::kReduceMean:
+        case Node::kHardmax:
+        case Node::kDropout:
+        case Node::kLRN:
+        case Node::kSoftmax:
+        case Node::kLogSoftmax:
+        case Node::kAveragePool: {
+            set(0, in0.IsFloat() ? in0 : default_float);
+            break;
+        }
+
+        case Node::kCast: {
+            set(0, node->to());
+            break;
+        }
+
+        case Node::kAdd:
+        case Node::kSub:
+        case Node::kMul:
+        case Node::kDiv:
+        case Node::kPow:
+        case Node::kSum:
+        case Node::kConcat:
+        case Node::kMatMul:
+        case Node::kGemm: {
+            set(0, coerce());
+            break;
+        }
+
+        case Node::kNot:
+        case Node::kEqual:
+        case Node::kGreater:
+        case Node::kLess: {
+            set(0, Dtype::kBool);
+            break;
+        }
+
+        case Node::kSize:
+        case Node::kShape: {
+            set(0, Dtype::kInt64);
+            break;
+        }
+
+        case Node::kConstant: {
+            set(0, node->value()->dtype());
+            break;
+        }
+
+        case Node::kReshape:
+        case Node::kExpand:
+        case Node::kOnikuxReduceSumTo: {
+            CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            set(0, in0);
+            break;
+        }
+
+        case Node::kGather:
+        case Node::kOnikuxSelectItem: {
+            CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            set(0, in0);
+            break;
+        }
+
+        case Node::kLSTM: {
+            Dtype dtype = CoerceDtype(in0, in1);
+            if (node->inputs().size() >= 3)
+                dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
+            oset(0, dtype);
+            oset(1, dtype);
+            oset(2, dtype);
+            break;
+        }
+
+        case Node::kConv:
+        case Node::kConvTranspose:
+        case Node::kOnikuxConvGradWeight: {
+            Dtype dtype = CoerceDtype(in0, in1);
+            if (node->inputs().size() >= 3)
+                dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
+            oset(0, dtype);
+            break;
+        }
+
+        case Node::kBatchNormalization: {
+            Dtype dtype = coerce();
+            set(0, dtype);
+            for (int i = 1; i < 5; ++i)
+                oset(i, dtype);
+            break;
+        }
+
+        case Node::kOnikuxSoftmaxCrossEntropy: {
+            CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            set(0, in0);
+            break;
+        }
+
+        case Node::kOnikuxMaxPoolGrad:
+        case Node::kOnikuxAveragePoolGrad:
+        case Node::kOnikuxReluGrad:
+        case Node::kOnikuxLRNGrad: {
+            set(0, coerce());
+            break;
+        }
+
+        case Node::kOnikuxBatchNormalizationGrad: {
+            Dtype dtype = coerce();
+            set(0, dtype);
+            set(1, dtype);
+            set(2, dtype);
+            break;
+        }
+
+        case Node::kOnikuxConvTransposeWithDynamicOutputShape: {
+            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << node->DebugString();
+            set(0, CoerceDtype(in0, in1));
+            break;
+        }
+
+        case Node::kOnikuxSelectItemGrad: {
+            CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << node->DebugString();
+            set(0, in0);
+            break;
+        }
+    }
 }
 
 }  // namespace oniku

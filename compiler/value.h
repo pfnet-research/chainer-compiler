@@ -45,6 +45,9 @@ public:
     void set_type(const Type& type) {
         type_ = type;
     }
+    Type* mutable_type() {
+        return &type_;
+    }
 
     const std::string& doc_string() const {
         return doc_string_;
