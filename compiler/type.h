@@ -27,11 +27,16 @@ public:
 
     int64_t NumElements() const;
 
+    bool is_known() const {
+        return is_known_;
+    }
+
 private:
     Dtype dtype_;
     std::vector<int64_t> dims_;
     std::vector<std::string> dim_params_;
     std::vector<std::string> denotations_;
+    bool is_known_{true};
 };
 
 }  // namespace oniku

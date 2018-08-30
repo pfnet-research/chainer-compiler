@@ -7,6 +7,7 @@ namespace oniku {
 Type::Type(const onnx::TypeProto& xtype) {
     CHECK(xtype.has_tensor_type()) << xtype.DebugString();
     dtype_ = Dtype(xtype.tensor_type().elem_type());
+    is_known_ = xtype.tensor_type().has_elem_type();
     for (const auto& dim : xtype.tensor_type().shape().dim()) {
         if (dim.has_denotation()) {
             denotations_.resize(dims_.size());
@@ -27,6 +28,8 @@ Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {
     xtype->mutable_tensor_type()->set_elem_type(dtype_.ToONNX());
+    if (!is_known_)
+        return;
     onnx::TensorShapeProto* xshape = xtype->mutable_tensor_type()->mutable_shape();
     for (size_t i = 0; i < dims_.size(); ++i) {
         auto* dim = xshape->add_dim();
@@ -42,6 +45,8 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
 }
 
 int64_t Type::NumElements() const {
+    if (!is_known_)
+        return -1;
     int64_t num = 1;
     for (int d : dims_) {
         if (d < 0) return -1;
