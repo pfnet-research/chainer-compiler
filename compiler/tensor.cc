@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <sstream>
 
 #include <common/log.h>
@@ -225,6 +226,15 @@ Tensor::Tensor<int>(const std::string& name, Dtype dtype, const std::vector<int6
 template <>
 Tensor::Tensor<long>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data)
     : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<long>(dtype, data.data(), data.size())), name_(name) {
+}
+
+Tensor::Tensor(const std::string& name, const Tensor& t)
+    : dims_(t.dims_),
+      dtype_(t.dtype_),
+      data_(Tensor::UniqueData(std::malloc(t.ElementSize() * t.NumElements()), &std::free)),
+      name_(name),
+      doc_string_(t.doc_string_) {
+    std::memcpy(data_.get(), t.data_.get(), t.ElementSize() * t.NumElements());
 }
 
 }  // namespace oniku

@@ -32,6 +32,8 @@ public:
     Tensor(const Tensor&) = delete;
     Tensor& operator=(const Tensor&) = delete;
 
+    Tensor(const std::string& name, const Tensor& t);
+
     void ToONNX(onnx::TensorProto* xtensor) const;
 
     const std::vector<int64_t> dims() const {

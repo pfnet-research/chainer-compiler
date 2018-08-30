@@ -63,6 +63,14 @@ bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceConstant(Graph* graph, Node* node) {
+    const std::string& name = StrCat(node->outputs()[0]->name(), "_simplify_constant");
+    Value* v = graph->AddInputValue(name, Type(node->value()->dtype(), node->value()->dims()));
+    v->ResetInitializer(std::make_unique<Tensor>(name, *node->value()));
+    graph->AddNode(Node::kIdentity, {v}, {node->outputs()[0]});
+    return true;
+}
+
 #if 0
 
 bool ReplaceBatchNormalization(Graph* graph, Node* node) {
@@ -121,6 +129,7 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
+    CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif

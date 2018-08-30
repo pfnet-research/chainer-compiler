@@ -74,6 +74,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_less'),
     TestCase(NODE_TEST, 'test_less_bcast'),
 
+    TestCase(NODE_TEST, 'test_constant'),
     # TODO(xchainer): Support float16?
     TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),
     # TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
