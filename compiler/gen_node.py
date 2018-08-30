@@ -109,7 +109,6 @@ conv_attrs = attr_sets(auto_pad='NOTSET',
 NodeDef('Conv', (2, 3), 1, **conv_attrs)
 NodeDef('ConvTranspose', (2, 3), 1,
         output_padding=[int], output_shape=[int], **conv_attrs)
-NodeDef('ConvGradWeight', 3, 1, **conv_attrs)
 
 NodeDef('BatchNormalization', 5, (1, 5), epsilon=1e-5, momentum=0.9, spatial=1)
 NodeDef('LRN', 1, 1, alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
@@ -136,6 +135,7 @@ NodeDef('OnikuxSelectItem', 2, 1)
 NodeDef('OnikuxSelectItemGrad', 3, 1)
 NodeDef('OnikuxLRNGrad', 3, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
+NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 
 
 class AttrDef(object):

@@ -193,7 +193,7 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads());
-        } else if (node.op_type() == Node::kConvGradWeight) {
+        } else if (node.op_type() == Node::kOnikuxConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(xchainer): Support dilation.

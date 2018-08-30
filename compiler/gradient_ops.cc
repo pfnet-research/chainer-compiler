@@ -189,7 +189,7 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
             ->set_strides(node->strides())
             .set_pads(node->pads());
 #endif
-    GRAD_OP(Node::kConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides()).set_pads(node->pads());
+    GRAD_OP(Node::kOnikuxConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides()).set_pads(node->pads());
     if (x.size() == 3) {
         std::vector<int> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
