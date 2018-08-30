@@ -24,6 +24,7 @@ add_library(oniku_compiler
   simplifier.cc
   tensor.cc
   type.cc
+  type_inference.cc
   value.cc
   xchainer_emitter.cc
   xcvm_emitter.cc

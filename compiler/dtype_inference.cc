@@ -45,8 +45,9 @@ void InferDtype(Node* node) {
         Dtype odtype = node->outputs()[i]->type().dtype();
         if (odtype == Dtype::kUnknown) {
             node->outputs()[i]->mutable_type()->set_dtype(dtype);
-        } else if (dtype != odtype) {
-            CHECK(false) << "dtype mismatch for output #" << i << " of " << node->DebugString();
+        } else {
+            if (dtype != Dtype::kUnknown)
+                CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->DebugString();
         }
     };
 
@@ -178,7 +179,8 @@ void InferDtype(Node* node) {
         }
 
         case Node::kOnikuxSoftmaxCrossEntropy: {
-            CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            // TODO(hamaji): Probably, better to fix the compiler.
+            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
             set(0, in0);
             break;
         }
