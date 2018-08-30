@@ -174,8 +174,7 @@ Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, co
     Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs);
     // Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
-    // TODO(hamaji): Enable this.
-    // InferDtypeAndShape(node);
+    InferDtypeAndShape(node);
     return node;
 }
 

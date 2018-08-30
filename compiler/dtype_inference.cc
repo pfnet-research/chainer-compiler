@@ -138,14 +138,15 @@ void InferDtype(Node* node) {
         case Node::kReshape:
         case Node::kExpand:
         case Node::kOnikuxReduceSumTo: {
-            CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
             set(0, in0);
             break;
         }
 
         case Node::kGather:
         case Node::kOnikuxSelectItem: {
-            CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
+            // TODO(hamaji): Need an update for the Python compiler.
+            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
             set(0, in0);
             break;
         }
@@ -202,14 +203,15 @@ void InferDtype(Node* node) {
         }
 
         case Node::kOnikuxConvTransposeWithDynamicOutputShape: {
-            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << node->DebugString();
+            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
             set(0, CoerceDtype(in0, in1));
             break;
         }
 
         case Node::kOnikuxSelectItemGrad: {
-            CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << node->DebugString();
-            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << node->DebugString();
+            // TODO(hamaji): Probably, better to fix the compiler.
+            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
+            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in2.ToString() << " in " << node->DebugString();
             set(0, in0);
             break;
         }
