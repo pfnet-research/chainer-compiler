@@ -436,7 +436,7 @@ std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> LSTMOp::RunImpl(
         o = Sigmoid(o);
         h = o * Tanh(c);
 
-        output.At({time}) += o;
+        output.At({time}) += h;
     }
     h = xchainer::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     c = xchainer::Reshape(h, {1, c.shape()[0], c.shape()[1]});
