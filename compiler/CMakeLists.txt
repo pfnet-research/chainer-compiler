@@ -10,6 +10,7 @@ include_directories(..)
 add_library(oniku_compiler
   code_emitter.cc
   dtype.cc
+  dtype_inference.cc
   flags.cc
   gen_node_base.cc
   gradient.cc
@@ -31,6 +32,7 @@ add_library(oniku_compiler
 include_directories(../googletest/googletest/include)
 add_executable(compiler_test
   code_emitter_test.cc
+  dtype_inference_test.cc
   gradient_test.cc
   model_test.cc
   scheduler_test.cc
