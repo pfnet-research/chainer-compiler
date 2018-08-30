@@ -15,6 +15,7 @@ add_library(oniku_compiler
   gradient.cc
   gradient_ops.cc
   graph.cc
+  graph_builder.cc
   model.cc
   node.cc
   passes.cc

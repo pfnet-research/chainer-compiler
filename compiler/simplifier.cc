@@ -3,6 +3,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/graph.h>
+#include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
 
@@ -13,58 +14,61 @@ typedef bool (*SimplifierFn)(Graph*, Node*);
 
 bool ReplaceSum(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
+    GraphBuilder gb(graph, "SimplifySum", node->outputs()[0]);
     Value* v = node->inputs()[0];
     for (size_t i = 1; i < node->inputs().size(); ++i) {
-        Value* o = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_", i));
-        graph->AddNode(Node::kAdd, {v, node->inputs()[i]}, {o});
-        v = o;
+        v = gb.Op(Node::kAdd, {v, node->inputs()[i]});
     }
-    graph->AddNode(Node::kIdentity, {v}, node->outputs());
+    gb.Op(Node::kIdentity, {v}, node->outputs()[0]);
     return true;
 }
 
 bool ReplaceLess(Graph* graph, Node* node) {
     CHECK_EQ(2UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
-    graph->AddNode(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, node->outputs());
+    GraphBuilder gb(graph, "SimplifyLess", node->outputs()[0]);
+    gb.Op(Node::kGreater, {node->inputs()[1], node->inputs()[0]}, node->outputs()[0]);
     return true;
 }
 
 bool ReplaceArgMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
-    Value* t = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_argmin"));
-    graph->AddNode(Node::kNeg, node->inputs(), {t});
-    graph->AddNode(Node::kArgMax, {t}, node->outputs())->set_axis(node->axis()).set_keepdims(node->keepdims());
+    GraphBuilder gb(graph, "SimplifyArgMin", node->outputs()[0]);
+    Value* t = gb.Op(Node::kNeg, node->inputs());
+    gb.Op(Node::kArgMax, {t}, node->outputs()[0])
+        ->producer()->set_axis(node->axis()).set_keepdims(node->keepdims());
     return true;
 }
 
 bool ReplaceReduceMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
-    Value* t0 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_reducemin_0"));
-    Value* t1 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_reducemin_1"));
-    graph->AddNode(Node::kNeg, node->inputs(), {t0});
-    graph->AddNode(Node::kReduceMax, {t0}, {t1})->set_axes(node->axes()).set_keepdims(node->keepdims());
-    graph->AddNode(Node::kNeg, {t1}, node->outputs());
+    GraphBuilder gb(graph, "SimplifyReduceMin", node->outputs()[0]);
+    Value* t0 = gb.Op(Node::kNeg, node->inputs());
+    Value* t1 = gb.Op(Node::kReduceMax, {t0});
+    t1->producer()->set_axes(node->axes()).set_keepdims(node->keepdims());
+    gb.Op(Node::kNeg, {t1}, node->outputs()[0]);
     return true;
 }
 
 bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
-    Value* t0 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_0"));
-    Value* t1 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_1"));
-    Value* t2 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_2"));
-    Value* t3 = graph->AddValue(StrCat(node->outputs()[0]->name(), "_simplify_softmaxxent_3"));
-    graph->AddNode(Node::kLogSoftmax, {node->inputs()[0]}, {t0});
-    graph->AddNode(Node::kOnikuxSelectItem, {t0, node->inputs()[1]}, {t1});
-    graph->AddNode(Node::kReduceMean, {t1}, {t2})->set_axes({0}).set_keepdims(false);
-    graph->AddNode(Node::kReduceSum, {t2}, {t3})->set_keepdims(false);
-    graph->AddNode(Node::kNeg, {t3}, {node->outputs()[0]});
+    GraphBuilder gb(graph, "SimplifySoftmaxCrossEntropy", node->outputs()[0]);
+    Value* log_softmax = gb.Op(Node::kLogSoftmax, {node->inputs()[0]});
+    Value* log_prob = gb.Op(Node::kOnikuxSelectItem, {log_softmax, node->inputs()[1]});
+    // TODO(hamaji): Just use ReduceSum for all axes and then divide
+    // the result by the batch_size.
+    Value* t0 = gb.Op(Node::kReduceMean, {log_prob});
+    t0->producer()->set_axes({0}).set_keepdims(false);
+    Value* t1 = gb.Op(Node::kReduceSum, {t0});
+    t1->producer()->set_keepdims(false);
+    gb.Op(Node::kNeg, {t1}, node->outputs()[0]);
     return true;
 }
 
 bool ReplaceConstant(Graph* graph, Node* node) {
-    const std::string& name = StrCat(node->outputs()[0]->name(), "_simplify_constant");
+    // TODO(hamaji): Use GraphBuilder.
+    const std::string& name = StrCat("SimplifyConstant_", node->outputs()[0]->name());
     Value* v = graph->AddInputValue(name, Type(node->value()->dtype(), node->value()->dims()));
     v->ResetInitializer(std::make_unique<Tensor>(name, *node->value()));
     graph->AddNode(Node::kIdentity, {v}, {node->outputs()[0]});
