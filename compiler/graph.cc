@@ -180,6 +180,35 @@ void Graph::DetachNode(Node* node) {
     node->Detach();
 }
 
+std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
+    // TODO(hamaji): Add a test for this function.
+    std::queue<Value*> q;
+    for (Value* value : input_values()) {
+        q.push(value);
+    }
+    std::map<Node*, int> input_counts;
+    for (Node* node : GetLiveNodes()) {
+        input_counts[node] = node->inputs().size();
+    }
+
+    std::vector<Node*> sorted_nodes;
+    while (!q.empty()) {
+        Value* v = q.front();
+        q.pop();
+        for (Node* node : v->users()) {
+            auto found = input_counts.find(node);
+            CHECK(found != input_counts.end());
+            if (--found->second) {
+                sorted_nodes.push_back(node);
+                for (Value* n : node->outputs()) {
+                    q.push(n);
+                }
+            }
+        }
+    }
+    return sorted_nodes;
+}
+
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
     for (const auto& node : nodes_) {

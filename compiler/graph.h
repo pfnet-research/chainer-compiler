@@ -76,6 +76,8 @@ public:
 
     void DetachNode(Node* node);
 
+    std::vector<Node*> GetTopologicallySortedNodes() const;
+
     // Gets a sequence of scheduled nodes. Node::order() must be set
     // before calling this function.
     std::vector<const Node*> GetComputationSequence() const;
