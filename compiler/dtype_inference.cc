@@ -75,8 +75,6 @@ void InferDtype(Node* node) {
         case Node::kReduceSumSquare:
         case Node::kReduceMax:
         case Node::kReduceMin:
-        case Node::kArgMax:
-        case Node::kArgMin:
         case Node::kMaxPool: {
             set(0, in0);
             break;
@@ -124,6 +122,8 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kArgMax:
+        case Node::kArgMin:
         case Node::kSize:
         case Node::kShape: {
             set(0, Dtype::kInt64);
