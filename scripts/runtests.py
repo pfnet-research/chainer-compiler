@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import re
 import sys
 import subprocess
 
@@ -10,6 +11,8 @@ import gen_backprop_tests_pc
 
 
 parser = argparse.ArgumentParser(description='Run tests for oniku')
+parser.add_argument('test_filter', default=None, nargs='?',
+                    help='A regular expression to filter tests')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 cmdline = parser.parse_args()
@@ -236,6 +239,10 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50'))
+
+if cmdline.test_filter is not None:
+    reg = re.compile(cmdline.test_filter)
+    TEST_CASES = [case for case in TEST_CASES if reg.search(case.name)]
 
 
 def main():
