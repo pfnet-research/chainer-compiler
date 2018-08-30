@@ -150,8 +150,7 @@ namespace {
 
 class LRNBackwardContext : public XCVMState::Auxiliary {
 public:
-    explicit LRNBackwardContext(const xchainer::Array& unit_scale)
-        : unit_scale_(unit_scale) {
+    explicit LRNBackwardContext(const xchainer::Array& unit_scale) : unit_scale_(unit_scale) {
     }
     virtual ~LRNBackwardContext() = default;
 

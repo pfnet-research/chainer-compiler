@@ -36,8 +36,7 @@ bool ReplaceArgMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
     GraphBuilder gb(graph, "SimplifyArgMin", node->outputs()[0]);
     Value* t = gb.Op(Node::kNeg, node->inputs());
-    gb.Op(Node::kArgMax, {t}, node->outputs()[0])
-        ->producer()->set_axis(node->axis()).set_keepdims(node->keepdims());
+    gb.Op(Node::kArgMax, {t}, node->outputs()[0])->producer()->set_axis(node->axis()).set_keepdims(node->keepdims());
     return true;
 }
 

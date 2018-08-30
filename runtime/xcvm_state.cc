@@ -33,8 +33,7 @@ nonstd::optional<xchainer::Array> XCVMState::GetVarOptional(int index) {
 
 std::vector<xchainer::Array> XCVMState::GetVarList(const std::vector<int>& index) {
     std::vector<xchainer::Array> vars;
-    for (int i : index)
-        vars.push_back(GetVar(i));
+    for (int i : index) vars.push_back(GetVar(i));
     return vars;
 }
 
@@ -87,8 +86,7 @@ void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>
 
 void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
-        if (!HasInf(GetVar(output)))
-            continue;
+        if (!HasInf(GetVar(output))) continue;
 
         std::cerr << "Inf detected!\n";
         for (size_t i = 0; i < inputs.size(); ++i) {

@@ -23,6 +23,7 @@ public:
     public:
         explicit ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name);
         ~ScopedEvent();
+
     private:
         Event* event_;
     };

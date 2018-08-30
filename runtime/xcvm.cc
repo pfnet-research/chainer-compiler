@@ -45,7 +45,6 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
 
         XCVMOp* op = program_[pc].get();
 
-
         {
             ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name());
             op->Run(&state);

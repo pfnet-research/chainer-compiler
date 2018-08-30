@@ -6,8 +6,7 @@
 namespace oniku {
 namespace runtime {
 
-ChromeTracingEmitter::ChromeTracingEmitter()
-    : base_time_(std::chrono::system_clock::now()) {
+ChromeTracingEmitter::ChromeTracingEmitter() : base_time_(std::chrono::system_clock::now()) {
 }
 
 void ChromeTracingEmitter::AddEvent(Event* event) {
@@ -22,7 +21,8 @@ void ChromeTracingEmitter::Event::Finish() {
     end_time = std::chrono::system_clock::now();
 }
 
-ChromeTracingEmitter::ScopedEvent::ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name) : event_(nullptr) {
+ChromeTracingEmitter::ScopedEvent::ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name)
+    : event_(nullptr) {
     if (chrome_tracing) {
         event_ = new ChromeTracingEmitter::Event(category, name);
         chrome_tracing->AddEvent(event_);

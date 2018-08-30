@@ -1,16 +1,14 @@
 #include "graph_builder.h"
 
 #include <common/strutil.h>
-#include <compiler/node.h>
 #include <compiler/graph.h>
+#include <compiler/node.h>
 #include <compiler/value.h>
 
 namespace oniku {
 
 GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target)
-    : graph_(graph),
-      category_(category),
-      target_(target->name()) {
+    : graph_(graph), category_(category), target_(target->name()) {
 }
 
 Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output) {

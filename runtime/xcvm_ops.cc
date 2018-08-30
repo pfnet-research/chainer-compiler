@@ -279,7 +279,8 @@ xchainer::Array SelectItemOp::RunImpl(XCVMState* st, const xchainer::Array& data
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 
-xchainer::Array SelectItemGradOp::RunImpl(XCVMState* st, const xchainer::Array& gy, const xchainer::Array& indices, const xchainer::Array& shape_array) {
+xchainer::Array SelectItemGradOp::RunImpl(
+        XCVMState* st, const xchainer::Array& gy, const xchainer::Array& indices, const xchainer::Array& shape_array) {
     xchainer::Shape shape{ArrayToShape(shape_array)};
     CHECK_EQ(2, shape.size()) << "TODO(hamaji): Support SelectItem for non-2D array";
     int64_t batch_size = shape[0];
@@ -300,8 +301,7 @@ xchainer::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<xchainer::Arr
         CHECK_EQ(input.dtype(), inputs[0].dtype());
         CHECK_EQ(input.shape().size(), inputs[0].shape().size());
         for (int i = 0; i < input.shape().size(); ++i) {
-            if (i != axis)
-                CHECK_EQ(input.shape()[i], inputs[0].shape()[i]);
+            if (i != axis) CHECK_EQ(input.shape()[i], inputs[0].shape()[i]);
         }
         axis_dim += input.shape()[axis];
     }

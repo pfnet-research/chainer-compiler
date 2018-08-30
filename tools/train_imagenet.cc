@@ -35,7 +35,7 @@ namespace {
 
 bool g_quiet;
 
-#define LOG()                                   \
+#define LOG() \
     if (!g_quiet) std::cerr
 
 void RunMain(int argc, char** argv) {
@@ -75,7 +75,7 @@ void RunMain(int argc, char** argv) {
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
     Model model(xmodel);
-    RunDefaultPasses(model.mutable_graph(), true  /* gen_backprop */);
+    RunDefaultPasses(model.mutable_graph(), true /* gen_backprop */);
 
     LOG() << "Loading data..." << std::endl;
 
@@ -109,8 +109,7 @@ void RunMain(int argc, char** argv) {
     int iter_count = 0;
     int max_iterations = args.get<int>("iteration");
     for (; !max_iterations || iter_count < max_iterations; ++iter_count) {
-        if (!args.get<std::string>("chrome_tracing").empty() &&
-            iter_count % args.get<int>("chrome_tracing_frequency") == 1) {
+        if (!args.get<std::string>("chrome_tracing").empty() && iter_count % args.get<int>("chrome_tracing_frequency") == 1) {
             xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
         }
 
@@ -119,8 +118,7 @@ void RunMain(int argc, char** argv) {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Prepare");
 
             std::vector<xchainer::Array> data = train_iter.GetNext();
-            if (data.empty())
-                break;
+            if (data.empty()) break;
 
             inputs = params;
             if (args.exist("for_onnx_chainer")) {
@@ -146,8 +144,7 @@ void RunMain(int argc, char** argv) {
         {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Update");
             for (auto&& p : outputs) {
-                if (!HasPrefix(p.first, "grad_out@"))
-                    continue;
+                if (!HasPrefix(p.first, "grad_out@")) continue;
                 const std::string& param_name = p.first.substr(9);
                 auto found = inputs.find(param_name);
                 CHECK(found != inputs.end());

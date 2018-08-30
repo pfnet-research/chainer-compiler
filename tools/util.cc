@@ -13,21 +13,21 @@ namespace oniku {
 namespace runtime {
 
 void MakeHumanReadableValue(onnx::TensorProto* tensor) {
-    if (tensor->raw_data().empty())
-        return;
+    if (tensor->raw_data().empty()) return;
     Tensor t(*tensor);
     tensor->Clear();
     t.ToONNX(tensor);
 }
 
 void StripLargeValue(onnx::TensorProto* tensor, int num_elements) {
-#define CLEAR_IF_LARGE(tensor, x, n) do {                               \
-        if (tensor->x().size() >= n) {                                  \
+#define CLEAR_IF_LARGE(tensor, x, n)                                            \
+    do {                                                                        \
+        if (tensor->x().size() >= n) {                                          \
             auto msg = StrCat("* ", tensor->x().size(), " elements cleared *"); \
-            tensor->add_string_data(msg);                               \
-            tensor->clear_##x();                                        \
-        }                                                               \
-    } while(0)
+            tensor->add_string_data(msg);                                       \
+            tensor->clear_##x();                                                \
+        }                                                                       \
+    } while (0)
     CLEAR_IF_LARGE(tensor, float_data, num_elements);
     CLEAR_IF_LARGE(tensor, int32_data, num_elements);
     CLEAR_IF_LARGE(tensor, int64_data, num_elements);
@@ -62,15 +62,15 @@ xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
 InOuts LoadParams(const Model& model) {
     InOuts params;
     for (const Value* input : model.graph().input_values()) {
-        if (input->users().empty())
-            continue;
+        if (input->users().empty()) continue;
         if (const Tensor* initializer = input->initializer()) {
             xchainer::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
             xchainer::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();
             xchainer::Array tensor;
-            if (std::find_if(input->users().begin(), input->users().end(),
-                             [](const Node* node) { return node->op_type() != Node::kReshape; }) != input->users().end()) {
+            if (std::find_if(input->users().begin(), input->users().end(), [](const Node* node) {
+                    return node->op_type() != Node::kReshape;
+                }) != input->users().end()) {
                 tensor = MakeArray(dtype, shape, data);
             } else {
                 // If the input is used only by Reshape, place it on host memory.

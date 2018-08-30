@@ -71,7 +71,8 @@ public:
         return AddConstValue(name, type, std::vector<T>{data});
     }
 
-    Node* AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base = "");
+    Node* AddNode(
+            Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base = "");
 
     void DetachNode(Node* node);
 

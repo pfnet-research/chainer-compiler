@@ -241,11 +241,12 @@ void BatchNormalizationGradFn(Graph* graph, const Node* node, const std::vector<
 }
 
 void LRNGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    GRAD_OP(Node::kOnikuxLRNGrad, {x[0], y[0], y[0]->grad()}, x[0])->producer()
-        ->set_alpha(node->alpha())
-        .set_beta(node->beta())
-        .set_bias(node->bias())
-        .set_size(node->size());
+    GRAD_OP(Node::kOnikuxLRNGrad, {x[0], y[0], y[0]->grad()}, x[0])
+            ->producer()
+            ->set_alpha(node->alpha())
+            .set_beta(node->beta())
+            .set_bias(node->bias())
+            .set_size(node->size());
 }
 
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);

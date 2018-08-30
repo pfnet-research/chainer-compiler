@@ -110,7 +110,8 @@ xchainer::Array MakeScalarArray(float f) {
 
 xchainer::Array MakeHostArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
     std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
-    xchainer::Array array(xchainer::FromData(shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, xchainer::GetNativeBackend().GetDevice(0)));
+    xchainer::Array array(xchainer::FromData(
+            shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, xchainer::GetNativeBackend().GetDevice(0)));
     return array;
 }
 
@@ -121,16 +122,12 @@ bool HasNan(const xchainer::Array& a) {
 }
 
 bool HasInf(const xchainer::Array& a) {
-    if (a.dtype() != xchainer::Dtype::kFloat32 &&
-        a.dtype() != xchainer::Dtype::kFloat64)
-        return false;
-    for (float inf : {std::numeric_limits<float>::infinity(),
-                      -std::numeric_limits<float>::infinity()}) {
+    if (a.dtype() != xchainer::Dtype::kFloat32 && a.dtype() != xchainer::Dtype::kFloat64) return false;
+    for (float inf : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()}) {
         xchainer::Array inf_array = MakeScalarArray(inf).AsType(a.dtype());
         xchainer::Array cmp_result = (a == inf_array);
         int result = static_cast<int>(xchainer::AsScalar(xchainer::Sum(cmp_result)));
-        if (result)
-            return true;
+        if (result) return true;
     }
     return false;
 }
