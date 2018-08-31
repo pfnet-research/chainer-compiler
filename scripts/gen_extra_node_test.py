@@ -37,11 +37,14 @@ def _extract_value_info(arr, name):
 
 
 def expect(node, inputs, outputs, name):
+    inputs = [v.array if hasattr(v, 'array') else v for v in inputs]
+    outputs = [v.array if hasattr(v, 'array') else v for v in outputs]
+
     assert len(node.input) == len(inputs)
     assert len(node.output) == len(outputs)
-    inputs_vi = [_extract_value_info(a.array, n)
+    inputs_vi = [_extract_value_info(a, n)
                  for a, n in zip(inputs, node.input)]
-    outputs_vi = [_extract_value_info(a.array, n)
+    outputs_vi = [_extract_value_info(a, n)
                   for a, n in zip(outputs, node.output)]
 
     graph = onnx.helper.make_graph(
@@ -60,7 +63,7 @@ def expect(node, inputs, outputs, name):
                         ('output', zip(outputs, node.output))]:
         for i, (value, name) in enumerate(values):
             filename = os.path.join(test_data_set_dir, '%s_%d.pb' % (typ, i))
-            tensor = numpy_helper.from_array(value.array, name)
+            tensor = numpy_helper.from_array(value, name)
             with open(filename, 'wb') as f:
                 f.write(tensor.SerializeToString())
 
