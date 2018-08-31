@@ -3,6 +3,7 @@ nodes=(
     SoftmaxClossEntropy.py
     AddMul.py
     NstepLSTM.py
+    EmbedID.py
 )
 
 

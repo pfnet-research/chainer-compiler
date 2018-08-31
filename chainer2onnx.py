@@ -263,6 +263,33 @@ class Link_NstepLSTM(object):
     def init_tensors(sl):
         return sum([[sl.ws[i].W, sl.ws[i].B, sl.ws[i].R] for i in range(sl.n_layers)], [])
 
+class Link_EmbedID(object):
+    def __init__(sl, ch, parentname):
+        sl.name = parentname + '_' + ch.name
+        # code.InteractiveConsole({'ch': ch}).interact()
+
+        sl.n_vocab = ch.W.shape[0]
+        sl.n_out = ch.W.shape[1]
+
+        sl.W = helper.make_tensor_value_info(
+            sl.name + '_W', TensorProto.FLOAT, list(ch.W.shape))
+
+    def call(sl, args, _, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Gather",
+                inputs=[sl.W.name, v.name], outputs=[res.name],
+            )
+        )
+        return res
+
+    def init_tensors(sl):
+        return [sl.W]
+
+
 
 class User_Defined_Link(object):
     def __init__(sl, ch, parentname):
@@ -495,7 +522,8 @@ Link2NodeClass = [
     (L.Linear, Link_Linear),
     (L.Convolution2D, Link_Convolution2D),
     (L.BatchNormalization, Link_BatchNormalization),
-    (L.NStepLSTM, Link_NstepLSTM)
+    (L.NStepLSTM, Link_NstepLSTM),
+    (L.EmbedID, Link_EmbedID)
 ]
 
 
