@@ -195,7 +195,18 @@ class Link_NstepLSTM(object):
         # print(sl.name,args)
         #assert(len(args) == 1)
         assert(args[0] is None and args[1] is None)
-        v = args[2]
+        
+        
+        # v = args[2]
+        v = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Transpose",
+                perm=(1,0,2),
+                inputs=[args[2].name],
+                outputs=[v.name],
+            )
+        )
 
         hs = []
         cs = []
@@ -211,7 +222,7 @@ class Link_NstepLSTM(object):
                     "LSTM",
 
                     inputs=[v.name, sl.ws[i].W.name, sl.ws[i].R.name, sl.ws[i].B.name],
-                    outputs=[h.name, c.name, ys.name],
+                    outputs=[ys.name, h.name, c.name],
                     hidden_size=sl.out_size
                 )
             )
@@ -219,8 +230,8 @@ class Link_NstepLSTM(object):
             hs.append(h.name)
             cs.append(c.name)
             v = ys
-        print(hs)
-        print(cs)
+        # print(hs)
+        # print(cs)
         ths = new_tensor(['unknown', 'unknown', 'unknown'])
         tcs = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
@@ -237,7 +248,16 @@ class Link_NstepLSTM(object):
                 axis=0,
             )
         )
-        tys = v
+        
+        tys = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.nodes.append(
+            helper.make_node(
+                "Transpose",
+                perm=(1,0,2),
+                inputs=[v.name],
+                outputs=[tys.name],
+            )
+        )
         return ths, tcs, tys
 
     def init_tensors(sl):

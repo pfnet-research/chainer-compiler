@@ -68,54 +68,20 @@ class Seq2seq(chainer.Chain):
         chainer.report({'perp': perp}, self)
         return loss
 
-    def translate(self, xs, max_length=100):
-        batch = len(xs)
-        with chainer.no_backprop_mode(), chainer.using_config('train', False):
-            xs = [x[::-1] for x in xs]
-            exs = sequence_embed(self.embed_x, xs)
-            h, c, _ = self.encoder(None, None, exs)
-            ys = self.xp.full(batch, EOS, numpy.int32)
-            result = []
-            for i in range(max_length):
-                eys = self.embed_y(ys)
-                eys = F.split_axis(eys, batch, 0)
-                h, c, ys = self.decoder(h, c, eys)
-                cys = F.concat(ys, axis=0)
-                wy = self.W(cys)
-                ys = self.xp.argmax(wy.data, axis=1).astype(numpy.int32)
-                result.append(ys)
-
-        # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
-        # support NumPy 1.9.
-        result = cuda.to_cpu(
-            self.xp.concatenate([self.xp.expand_dims(x, 0) for x in result]).T)
-
-        # Remove EOS taggs
-        outs = []
-        for y in result:
-            inds = numpy.argwhere(y == EOS)
-            if len(inds) > 0:
-                y = y[:inds[0, 0]]
-            outs.append(y)
-        return outs
-
 
 # from https://github.com/chainer/chainer/blob/master/examples/seq2seq/seq2seq.py
 
+import testcasegen
 
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    import test_mxnet
-
     svn = 8
     tvn = 6
     model = Seq2seq(5, svn, tvn, 4)
+    
+    v = np.random.rand(7, 4, 2).astype(np.float32)
+    w = np.random.rand(7, 4, 2).astype(np.float32)
 
-    # batch * channel * H * W
-    # 195 ~ 226 までがOKっぽい
-    v = np.random.rand(5, 3, 210, 210).astype(np.float32)
-    ln =
-
-    test_mxnet.check_compatibility(model, v)
+    testcasegen.generate_testcase(model, [v,w])

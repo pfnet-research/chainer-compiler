@@ -2,6 +2,7 @@ nodes=(
     Concat.py
     SoftmaxClossEntropy.py
     AddMul.py
+    NstepLSTM.py
 )
 
 

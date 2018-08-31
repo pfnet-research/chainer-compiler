@@ -15,7 +15,6 @@ class A(chainer.Chain):
 
     def forward(self, x):
         hy, cs, ys = self.l1(None, None, x)
-        print(hy, cs, ys)
         return hy, cs, ys
         # return hy,cs
 
@@ -29,13 +28,13 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    # とりあえずというかんじ
-    # これはなにかのtestになっているのだろうか
+    n_batch = 7
+    n_layer = 3
+    n_in = 8
+    n_hidden = 5
+    n_time_length = 4
+    model = A(n_layer, n_in, n_hidden)
 
-    layn = 1
-    n_in = 3
-    model = A(layn, n_in, 5)
-
-    x = [np.random.rand(4, n_in).astype(np.float32) for _ in range(1)]
+    x = [np.random.rand(n_time_length, n_in).astype(np.float32) for _ in range(n_batch)]
     x = [x]
     testcasegen.generate_testcase(model, x)
