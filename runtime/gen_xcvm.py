@@ -102,6 +102,7 @@ XC_OPS = [
     ('SelectItem', [Array('data'), Array('indices')], ['output']),
     ('SelectItemGrad', [Array('gy'), Array('indices'), Array('shape')], ['gx']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
+    ('Transpose', [Array('data'), Ints('perm')], ['transposed']),
 
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),

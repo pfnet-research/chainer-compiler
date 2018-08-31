@@ -23,8 +23,7 @@ namespace {
 
 xchainer::OptionalAxes GetXchainerAxes(xchainer::StackVector<int64_t, xchainer::kMaxNdim> axes) {
     if (axes.empty()) return nonstd::nullopt;
-    xchainer::Axes xc_axes;
-    for (int64_t axis : axes) xc_axes.push_back(axis);
+    xchainer::Axes xc_axes{axes.begin(), axes.end()};
     return xc_axes;
 }
 
@@ -319,6 +318,10 @@ xchainer::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<xchainer::Arr
         axis_dim += cur_dim;
     }
     return result;
+}
+
+xchainer::Array TransposeOp::RunImpl(XCVMState* st, const xchainer::Array& data) {
+    return xchainer::Transpose(data, GetXchainerAxes(perm));
 }
 
 xchainer::Array SoftmaxOp::RunImpl(XCVMState* st, const xchainer::Array& input) {

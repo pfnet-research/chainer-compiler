@@ -321,6 +321,10 @@ private:
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Concat, out(0), ins, node.axis());
+        } else if (node.op_type() == Node::kTranspose) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Transpose, out(0), in(0), node.perm());
         } else if (node.op_type() == Node::kOnikuxBatchNormalizationGrad) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(3UL, node.outputs().size());

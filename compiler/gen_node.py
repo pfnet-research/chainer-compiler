@@ -78,6 +78,7 @@ NodeDef('Unsqueeze', 1, 1, axes=Required([int]))
 NodeDef('Slice', 1, 1, axes=[int], starts=[int], ends=[int])
 NodeDef('Gather', 2, 1, axis=0)
 NodeDef('Concat', None, 1, axis=Required(int))
+NodeDef('Transpose', 1, 1, perm=[int])
 
 NodeDef('Sum', None, 1)
 

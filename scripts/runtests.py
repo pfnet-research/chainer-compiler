@@ -149,6 +149,13 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_concat_3d_axis_0'),
     TestCase(NODE_TEST, 'test_concat_3d_axis_1'),
     TestCase(NODE_TEST, 'test_concat_3d_axis_2'),
+    TestCase(NODE_TEST, 'test_transpose_all_permutations_0'),
+    TestCase(NODE_TEST, 'test_transpose_all_permutations_1'),
+    TestCase(NODE_TEST, 'test_transpose_all_permutations_2'),
+    TestCase(NODE_TEST, 'test_transpose_all_permutations_3'),
+    TestCase(NODE_TEST, 'test_transpose_all_permutations_4'),
+    TestCase(NODE_TEST, 'test_transpose_all_permutations_5'),
+    TestCase(NODE_TEST, 'test_transpose_default'),
 
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
     TestCase(NODE_TEST, 'test_gemm_broadcast'),
