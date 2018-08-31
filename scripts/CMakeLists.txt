@@ -13,6 +13,11 @@ add_custom_command(OUTPUT backprop_test_pc_stamp
                    ../pc/testcasegen.py
                    WORKING_DIRECTORY ..)
 
+add_custom_command(OUTPUT extra_test_stamp
+                   COMMAND python3 scripts/gen_extra_node_test.py > /dev/null
+                   MAIN_DEPENDENCY gen_extra_node_test.py
+                   WORKING_DIRECTORY ..)
+
 add_custom_command(OUTPUT mnist_mlp_stamp
                    COMMAND python3 scripts/gen_mnist_mlp.py
                    MAIN_DEPENDENCY gen_mnist_mlp.py
@@ -23,4 +28,5 @@ add_custom_target(gen_test_onnx ALL
                   DEPENDS
                   backprop_test_oc_stamp
                   backprop_test_pc_stamp
+                  extra_test_stamp
                   mnist_mlp_stamp)
