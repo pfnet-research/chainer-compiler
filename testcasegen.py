@@ -59,8 +59,9 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
         for i, (name, value) in enumerate(values):
             # とりあえずarrayにする
             # value = unvariable(value)
-            print(typ, i, name, value.shape)
-            # print(value)
+            if not test_args.get_test_args().quiet:
+                print(typ, i, name, value.shape)
+                # print(value)
             tensor = numpy_helper.from_array(value, name)
             filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
             with open(filename, 'wb') as f:
