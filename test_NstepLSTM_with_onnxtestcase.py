@@ -8,18 +8,17 @@ import chainer.links as L
 
 class A(chainer.Chain):
 
-    def __init__(self,n_layer,n_in,n_out):
+    def __init__(self, n_layer, n_in, n_out):
         super(A, self).__init__()
         with self.init_scope():
-            self.l1 = L.NStepLSTM(n_layer,n_in,n_out,0.1)
+            self.l1 = L.NStepLSTM(n_layer, n_in, n_out, 0.1)
 
     def forward(self, x):
-        hy,cs,ys = self.l1(None,None,x)
-        return hy,cs,ys
+        hy, cs, ys = self.l1(None, None, x)
+        return hy, cs, ys
 
 
 # ======================================
-
 
 
 class LSTM_Helper():
@@ -38,9 +37,9 @@ class LSTM_Helper():
         required_inputs = [X, W, R]
         for i in required_inputs:
             assert i in params, "Missing Required Input: {0}".format(i)
-       
-        #print(params[X].shape)
-        #print(params[W].shape)
+
+        # print(params[X].shape)
+        # print(params[W].shape)
         self.num_directions = params[W].shape[0]
 
         if self.num_directions == 1:
@@ -51,10 +50,14 @@ class LSTM_Helper():
             hidden_size = params[R].shape[-1]
             batch_size = params[X].shape[1]
 
-            b = params[B] if B in params else np.zeros(2 * number_of_gates * hidden_size, dtype=np.float32)
-            p = params[P] if P in params else np.zeros(number_of_peepholes * hidden_size, dtype=np.float32)
-            h_0 = params[H_0] if H_0 in params else np.zeros((batch_size, hidden_size), dtype=np.float32)
-            c_0 = params[C_0] if C_0 in params else np.zeros((batch_size, hidden_size), dtype=np.float32)
+            b = params[B] if B in params else np.zeros(
+                2 * number_of_gates * hidden_size, dtype=np.float32)
+            p = params[P] if P in params else np.zeros(
+                number_of_peepholes * hidden_size, dtype=np.float32)
+            h_0 = params[H_0] if H_0 in params else np.zeros(
+                (batch_size, hidden_size), dtype=np.float32)
+            c_0 = params[C_0] if C_0 in params else np.zeros(
+                (batch_size, hidden_size), dtype=np.float32)
 
             self.X = params[X]
             self.W = params[W]
@@ -84,7 +87,7 @@ class LSTM_Helper():
             gates = np.dot(x, np.transpose(self.W)) + np.dot(H_t, np.transpose(self.R)) + np.add(
                 *np.split(self.B, 2))
             i, o, f, c = np.split(gates, 4, -1)
-            #print('iofc',i,o,f,c)
+            # print('iofc',i,o,f,c)
             i = self.f(i + p_i * C_t)
             f = self.f(f + p_f * C_t)
             c = self.g(c)
@@ -97,9 +100,10 @@ class LSTM_Helper():
         concatenated = np.concatenate(h_list)
         if self.num_directions == 1:
             output = np.expand_dims(concatenated, 1)
-        return output, h_list[-1],C_t #chainerには C_t もいる
+        return output, h_list[-1], C_t  # chainerには C_t もいる
 
 # ====================================================================
+
 
 """
 ws :: n_layer * 8 (nanikore) * outsize * insize ()
@@ -107,96 +111,99 @@ n_layer が次のやつは、 4 * 7 から 4 * 4 になる
 """
 
 
-def model_x_to_init_outs(model,x):
+def model_x_to_init_outs(model, x):
     onnxmod, input_tensors, output_tensors = chainer2onnx.chainer2onnx(
         model, model.forward)
     checker.check_model(onnxmod)
 
     chainer.config.train = False
-    run_chainer_model(model, x,None)
-    inits = edit_onnx_protobuf(onnxmod,x,model) 
-    chainer_out = run_chainer_model(model,x,None) 
-    
-    return inits,chainer_out
-    
+    run_chainer_model(model, x, None)
+    inits = edit_onnx_protobuf(onnxmod, model)
+    chainer_out = run_chainer_model(model, x, None)
+
+    return inits, chainer_out
+
+
 import code
 import chainer2onnx
-from test_initializer import edit_onnx_protobuf,run_chainer_model
+from test_initializer import edit_onnx_protobuf
+from testcasegen import run_chainer_model
 from onnx import checker
 
 import chainer.functions as F
 
 
-
-def check_vals(chainer_out,converted):
+def check_vals(chainer_out, converted):
     if isinstance(chainer_out, chainer.Variable):
         chainer_out = chainer_out.array
 
-    if isinstance(chainer_out,tuple) or isinstance(chainer_out,list):
-        #print(len(chainer_out),len(converted))
+    if isinstance(chainer_out, tuple) or isinstance(chainer_out, list):
+        # print(len(chainer_out),len(converted))
         if not(len(chainer_out) == len(converted)):
-            print(chainer_out,converted)
+            print(chainer_out, converted)
             assert False
-        for p,q in zip(chainer_out,converted):
-            check_vals(p,q)
+        for p, q in zip(chainer_out, converted):
+            check_vals(p, q)
     else:
-        print('shapes',chainer_out.shape, converted.shape)
+        print('shapes', chainer_out.shape, converted.shape)
         np.testing.assert_almost_equal(chainer_out, converted, decimal=5)
+
 
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
     # mxnetではLSTMの挙動をtestできないっぽい
-    #test_at_onnx.check_compatibility(model,[v])
-    
-    #とりあえずというかんじ 
+    # test_at_onnx.check_compatibility(model,[v])
+
+    # とりあえずというかんじ
     # これはなにかのtestになっているのだろうか
-    
+
     layn = 7
-    model = A(layn,3,5)
-    
+    model = A(layn, 3, 5)
+
     x = [np.random.rand(4, 3).astype(np.float32) for _ in range(2)]
     x = [x]
-    
-    inits,chainer_out = model_x_to_init_outs(model,x)
+
+    inits, chainer_out = model_x_to_init_outs(model, x)
     inits = dict(inits)
-    #print(inits)
-    
-    #chainer .. last_h, last_c, y_series
+    # print(inits)
+
+    # chainer .. last_h, last_c, y_series
 
     x = np.array(x[0])
-    #print(x.shape)
-    x = np.transpose(x,(1,0,2))
-    #print(x.shape)
-    
+    # print(x.shape)
+    x = np.transpose(x, (1, 0, 2))
+    # print(x.shape)
+
     hs = None
     cs = None
     for i in range(layn):
         w = inits['_l1_%d_ws0' % i]
-        print(i,x.shape,w.shape)
-        ret = LSTM_Helper(X=x, W=w, R=inits['_l1_%d_ws1' % i], B=inits['_l1_%d_bss' % i]).step()
-        
+        print(i, x.shape, w.shape)
+        ret = LSTM_Helper(
+            X=x, W=w, R=inits['_l1_%d_ws1' % i], B=inits['_l1_%d_bss' % i]).step()
+
         h = ret[1]
         c = ret[2]
-        y = np.transpose(ret[0],(1,0,2,3))[0]
+        y = np.transpose(ret[0], (1, 0, 2, 3))[0]
         x = y
         if hs is None:
             hs = h
             cs = c
         else:
-            hs = np.concatenate([hs,h])
-            cs = np.concatenate([cs,c])
+            hs = np.concatenate([hs, h])
+            cs = np.concatenate([cs, c])
     """
     onnx :: y_series, last_h, last_C 
     """
-    
+
     hs = np.array(hs)
     cs = np.array(cs)
     #cs = hs[0].step()
-    
-    y = np.transpose(y,(1,0,2))
-    cs = (hs,cs,y)
+
+    y = np.transpose(y, (1, 0, 2))
+    cs = (hs, cs, y)
     """
     print(x,x[0])
     ds = F.n_step_lstm(1,1.0,
@@ -210,7 +217,7 @@ if __name__ == '__main__':
     """
 
     #code.InteractiveConsole({'co': chainer_out,'ono': cs}).interact()
-    
-    #print(cs)
-    #print(chainer_out)
-    check_vals(chainer_out,cs)
+
+    # print(cs)
+    # print(chainer_out)
+    check_vals(chainer_out, cs)

@@ -20,50 +20,35 @@ from onnx import numpy_helper
 import code
 
 
-def hoge2tensor(chainer_out,d): 
-    if isinstance(chainer_out, (list, tuple)):
-        chainer_out = [hoge2tensor(y,d=1) for y in chainer_out]
-    elif isinstance(chainer_out, dict):
-        chainer_out = chainer_out[out_key]
-        if isinstance(chainer_out, chainer.Variable):
-            chainer_out = (chainer_out.array,)
-    elif isinstance(chainer_out, chainer.Variable):
-        chainer_out = (chainer_out.array,)
-    elif isinstance(chainer_out,np.ndarray):
-        return chainer_out
+# variableを消す
+def unvariable(xs):
+    # print(xs)
+    if isinstance(xs, chainer.Variable):
+        xs = xs.array
+    elif isinstance(xs, np.ndarray):
+        pass
+    elif isinstance(xs, list):
+        xs = np.array([unvariable(x) for x in xs])
     else:
-        raise ValueError('Unknown type: {}'.format(type(chainer_out)))
-    
-    if d > 0:
-        chainer_out = np.array(chainer_out)
-    
-    return chainer_out
+        raise ValueError('Unknown type: {}'.format(type(xs)))
 
-def run_chainer_model(model, x, out_key):
-    # Forward computation
-    if isinstance(x, (list, tuple)):
-        #for i in x:
-        #    assert isinstance(i, (np.ndarray, chainer.Variable))
-        
-        #LSTMとかの場合、これはfailするので無視する
-        chainer_out = model(*x)
-    elif isinstance(x, np.ndarray):
-        chainer_out = model(chainer.Variable(x))
-    elif isinstance(x, chainer.Variable):
-        chainer_out = model(x)
+    return xs
+
+
+def run_chainer_model(model, xs, out_key):
+    # forward 個分のlistとする
+    ys = model(*xs)
+
+    # タプルでなければ 1出力と思う
+    if isinstance(ys, tuple):
+        ys = list(ys)  # ばらしてみる
     else:
-        raise ValueError(
-            'The \'x\' argument should be a list or tuple of numpy.ndarray or '
-            'chainer.Variable, or simply numpy.ndarray or chainer.Variable '
-            'itself. But a {} object was given.'.format(type(x)))
-   
-    # print(chainer_out)
-    # code.InteractiveConsole({'co': chainer_out}).interact()
-    
-    chainer_out = hoge2tensor(chainer_out,d=0)
-    #for d in chainer_out:
-    #    print(d.__class__)
-    return chainer_out
+        ys = [ys]
+
+    # print('befys',ys)
+    ys = list(map(lambda y: np.array(unvariable(y)), ys))
+    # print('afterys',ys)
+    return ys
 
 
 def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
@@ -73,8 +58,10 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (name, value) in enumerate(values):
             # とりあえずarrayにする
-            value = hoge2tensor(value,1)
-            print(typ,i,name,value.shape)
+            # value = unvariable(value)
+            if not test_args.get_test_args().quiet:
+                print(typ, i, name, value.shape)
+                # print(value)
             tensor = numpy_helper.from_array(value, name)
             filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
             with open(filename, 'wb') as f:
@@ -83,26 +70,25 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 
 from test_initializer import edit_onnx_protobuf
 
-def generate_testcase(model, x, out_key='prob'):
+
+def generate_testcase(model, xs, out_key='prob'):
     args = test_args.get_test_args()
 
     # さらの状態からonnxのmodをつくる
     onnxmod, input_tensors, output_tensors = chainer2onnx.chainer2onnx(
         model, model.forward)
-    
-    # 生成時にやってる
-    # checker.check_model(onnxmod)
 
     with open(args.raw_output, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
 
     chainer.config.train = False
-    run_chainer_model(model, x, out_key)
+    run_chainer_model(model, xs, out_key)
 
-    print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
+    if not args.quiet:
+        print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
-    chainer_out = run_chainer_model(model, x, out_key)
+    chainer_out = run_chainer_model(model, xs, out_key)
 
     with open(args.output, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
@@ -116,17 +102,15 @@ def generate_testcase(model, x, out_key='prob'):
             if input_tensor.name not in initializer_names:
                 input_names.append(input_tensor.name)
 
-        # We assume the number of inputs is 1 for now.
-        # assert len(input_names) == 1
-        # そんなassertはなかった、いいね。
-
         assert len(output_tensors) == len(chainer_out)
         outputs = []
         for tensor, value in zip(output_tensors, chainer_out):
             outputs.append((tensor.name, value))
 
+        # TODO LSTMのためだがしぶいのでどうにかしたい
+        xs = list(map(lambda x: np.array(unvariable(x)), xs))
+
         dump_test_inputs_outputs(
-            list(zip(input_names, x)),
+            list(zip(input_names, xs)),
             outputs,
             args.test_data_dir)
-

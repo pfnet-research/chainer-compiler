@@ -111,6 +111,7 @@ class GoogLeNet(chainer.Chain):
 
     def forward(self, x, t):
         h = F.relu(self.conv1(x))
+        return h
         h = F.local_response_normalization(
             F.max_pooling_2d(h, 3, stride=2), n=5)
         h = F.relu(self.conv2_reduce(h))
@@ -128,7 +129,7 @@ class GoogLeNet(chainer.Chain):
         l = F.relu(self.loss1_fc1(l))
         l = self.loss1_fc2(l)
         loss1 = F.softmax_cross_entropy(l, t)
-
+        return loss1
         h = self.inc4b(h)
         h = self.inc4c(h)
         h = self.inc4d(h)
@@ -150,7 +151,7 @@ class GoogLeNet(chainer.Chain):
 
         loss = 0.3 * (loss1 + loss2) + loss3
         # accuracy = F.accuracy(h, t)
-        
+
         """
         chainer.report({
             'loss': loss,
@@ -170,8 +171,8 @@ if __name__ == '__main__':
     np.random.seed(314)
 
     model = GoogLeNet()  # 224
-    v = np.random.rand(5, 3, 224, 224).astype(np.float32)
-    t = np.random.randint(1000,size=5) 
+    v = np.random.rand(2, 3, 227, 227).astype(np.float32)
+    t = np.random.randint(1000, size=2)
 
     import testcasegen
-    testcasegen.generate_testcase(model, [v,t])
+    testcasegen.generate_testcase(model, [v, t])

@@ -14,6 +14,7 @@ from chainer import functions as F
 from chainer import links as L
 
 import code
+import test_args
 
 
 def new_tensor(dims):
@@ -189,10 +190,9 @@ class Link_NstepLSTM(object):
                 sl.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
             # (chainerのbs[0,2,1,3,4,6,5,7]から連結させたりする)
 
-
     def call(sl, args, _, env):
         # とりあえずnstep を 1step ずつに分解する
-        #print(sl.name,args)
+        # print(sl.name,args)
         #assert(len(args) == 1)
         assert(args[0] is None and args[1] is None)
         v = args[2]
@@ -209,6 +209,7 @@ class Link_NstepLSTM(object):
             env.nodes.append(
                 helper.make_node(
                     "LSTM",
+
                     inputs=[v.name, sl.ws[i].W.name, sl.ws[i].R.name, sl.ws[i].B.name],
                     outputs=[h.name, c.name, ys.name],
                     hidden_size=sl.out_size
@@ -218,28 +219,29 @@ class Link_NstepLSTM(object):
             hs.append(h.name)
             cs.append(c.name)
             v = ys
-
+        print(hs)
+        print(cs)
         ths = new_tensor(['unknown', 'unknown', 'unknown'])
         tcs = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
             helper.make_node(
                 "Concat",
                 inputs=hs, outputs=[ths.name],
-                axis=-1,
+                axis=0,
             )
         )
         env.nodes.append(
             helper.make_node(
                 "Concat",
                 inputs=cs, outputs=[tcs.name],
-                axis=-1,
+                axis=0,
             )
         )
-
-        return ths,tcs,v
+        tys = v
+        return ths, tcs, tys
 
     def init_tensors(sl):
-        return sum([[sl.ws[i].W, sl.ws[i].B, sl.ws[i].R] for i in range(sl.n_layers)],[])
+        return sum([[sl.ws[i].W, sl.ws[i].B, sl.ws[i].R] for i in range(sl.n_layers)], [])
 
 
 class User_Defined_Link(object):
@@ -248,7 +250,8 @@ class User_Defined_Link(object):
         # code.InteractiveConsole({'ch': ch}).interact()
 
         src = clip_head(inspect.getsource(ch.forward))
-        print(src)
+        if not test_args.get_test_args().quiet:
+            print(src)
         sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
         assert(isinstance(sl.ast, gast.gast.FunctionDef))
 
@@ -412,14 +415,16 @@ class Function_Concat(object):
 class Function_SoftmaxCrossEntropy(object):
     def call(sl, args, keywords, env):
         assert(len(args) == 2)
+
         v,w = args[0],args[1]
         # TODO(hamaji): Better to get the dtype of the Tensor from its
         # actual value.
         w.type.tensor_type.elem_type = TensorProto.INT64
+
         res = new_tensor(get_dims(v))
         env.nodes.append(
             helper.make_node(
-                "OnikuxSoftmaxCrossEntropy", inputs=[v.name,w.name], outputs=[res.name]
+                "OnikuxSoftmaxCrossEntropy", inputs=[v.name, w.name], outputs=[res.name]
             )
         )
         return res
@@ -468,8 +473,8 @@ Func2NodeClass = [
 
 Link2NodeClass = [
     (L.Linear, Link_Linear),
-    (L.Convolution2D,Link_Convolution2D),
-    (L.BatchNormalization,Link_BatchNormalization),
+    (L.Convolution2D, Link_Convolution2D),
+    (L.BatchNormalization, Link_BatchNormalization),
     (L.NStepLSTM, Link_NstepLSTM)
 ]
 
@@ -493,17 +498,17 @@ def eval_ast(nast, env):
         assert(len(targs) == 1)
 
         tg = targs[0]
-        if isinstance(tg,gast.Name):
+        if isinstance(tg, gast.Name):
             env.vars[tg.id] = value
-        elif isinstance(tg,gast.Tuple):
+        elif isinstance(tg, gast.Tuple):
             # code.InteractiveConsole({'tg': tg,'v': value}).interact()
-            assert(isinstance(value,tuple))
+            assert(isinstance(value, tuple))
             assert(len(tg.elts) == len(value))
 
-            for i,v in enumerate(value):
-                env.vars[tg.elts[i].id] = v #これこのあと更に再帰的に書く必要あるかも
+            for i, v in enumerate(value):
+                env.vars[tg.elts[i].id] = v  # これこのあと更に再帰的に書く必要あるかも
         else:
-            raise Exception('invalid assing lvalue',targs[0])
+            raise Exception('invalid assing lvalue', targs[0])
 
     elif isinstance(nast, gast.Call):
         fn = eval_ast(nast.func, env)
@@ -517,13 +522,14 @@ def eval_ast(nast, env):
         res = new_tensor(['TODO'])
         if isinstance(nast.op, gast.Add):
             optype = "Add"
-        elif isinstance(nast.op,gast.Mult):
+        elif isinstance(nast.op, gast.Mult):
             optype = "Mul"
         else:
             raise Exception('unknown operator', nast.op)
 
         # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
         def istensor(x):
+
             return isinstance(x,onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
 
         if not istensor(lv) and not istensor(rv):
@@ -606,7 +612,7 @@ def initLinks(model, parentname):
     links = {}
     for ch in model.children():
         if ch.__class__.__module__[:13] == 'chainer.links':
-            for lk,cl in Link2NodeClass:
+            for lk, cl in Link2NodeClass:
                 if isinstance(ch, lk):
                     links[ch.name] = cl(ch, parentname)
                     break
@@ -628,14 +634,15 @@ def chainer2onnx(model, forward):
     molk = User_Defined_Link(model, '')
 
     input_tensors = []
-    for i,_ in enumerate(molk.arg_name):
+    for i, _ in enumerate(molk.arg_name):
         x = new_tensor(['batch_size%d' % i, 'input_size%d' % i])
         input_tensors.append(x)
 
     env = Env()
     v = molk.call(input_tensors, [], env)  # keywordsはとりあえず空
 
-    print(v)
+    if not test_args.get_test_args().quiet:
+        print(v)
     if isinstance(v, tuple):
         output_tensors = list(v)  # ばらしてみる
     else:
@@ -657,7 +664,8 @@ def chainer2onnx(model, forward):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
-    print(graph)
+    if not test_args.get_test_args().quiet:
+        print(graph)
     # exit(0)
     # checker.check_graph(graph)
     # oniku独自のノードを使うとcheckできなくなる...

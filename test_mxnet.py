@@ -33,10 +33,10 @@ import code
 def run_chainer_model(model, x, out_key):
     # Forward computation
     if isinstance(x, (list, tuple)):
-        #for i in x:
+        # for i in x:
         #    assert isinstance(i, (np.ndarray, chainer.Variable))
-        
-        #LSTMとかの場合、これはfailするので無視する
+
+        # LSTMとかの場合、これはfailするので無視する
         chainer_out = model(*x)
     elif isinstance(x, np.ndarray):
         chainer_out = model(chainer.Variable(x))
@@ -47,7 +47,7 @@ def run_chainer_model(model, x, out_key):
             'The \'x\' argument should be a list or tuple of numpy.ndarray or '
             'chainer.Variable, or simply numpy.ndarray or chainer.Variable '
             'itself. But a {} object was given.'.format(type(x)))
-   
+
     # print(chainer_out)
     # code.InteractiveConsole({'co': chainer_out}).interact()
 
@@ -79,6 +79,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 
 from test_initializer import edit_onnx_protobuf
 
+
 def check_compatibility(model, x, out_key='prob'):
     args = test_args.get_test_args()
 
@@ -96,7 +97,8 @@ def check_compatibility(model, x, out_key='prob'):
     chainer.config.train = False
     run_chainer_model(model, x, out_key)
 
-    print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
+    if not args.quiet:
+        print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
     chainer_out = run_chainer_model(model, x, out_key)
@@ -144,11 +146,12 @@ def check_compatibility(model, x, out_key='prob'):
     else:
         data_shapes = [(data_names[0], x.shape)]
 
-    # print(aux)
-    # print(data_names)
-    print('data shape', data_shapes)
-    # import onnx
-    # print(onnx.load('o.onnx'))
+    if not args.quiet:
+        # print(aux)
+        # print(data_names)
+        print('data shape', data_shapes)
+        # import onnx
+        # print(onnx.load('o.onnx'))
 
     mod = mxnet.mod.Module(
         symbol=sym, data_names=data_names, context=mxnet.cpu(),
@@ -173,13 +176,14 @@ def check_compatibility(model, x, out_key='prob'):
     mxnet_outs = mod.get_outputs()
     mxnet_out = [y.asnumpy() for y in mxnet_outs]
 
-    print(len(chainer_out), len(mxnet_out))
-    print(x[0].shape)
-    print('chainershape', chainer_out[0].shape)
-    print('mxshape     ', mxnet_out[0].shape)
-    # print(x)
-    print(chainer_out)
-    # print(mxnet_out)
+    if not args.quiet:
+        print(len(chainer_out), len(mxnet_out))
+        print(x[0].shape)
+        print('chainershape', chainer_out[0].shape)
+        print('mxshape     ', mxnet_out[0].shape)
+        # print(x)
+        print(chainer_out)
+        # print(mxnet_out)
 
     for cy, my in zip(chainer_out, mxnet_out):
         np.testing.assert_almost_equal(cy, my, decimal=5)

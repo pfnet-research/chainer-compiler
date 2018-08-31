@@ -24,7 +24,7 @@ class Alex(chainer.Chain):
             self.fc8 = L.Linear(None, 1000)
 
     def forward(self, x, t):
-    # def forward(self, x):
+        # def forward(self, x):
         h = F.max_pooling_2d(F.local_response_normalization(
             F.relu(self.conv1(x))), 3, stride=2)
         h = F.max_pooling_2d(F.local_response_normalization(
@@ -52,8 +52,8 @@ if __name__ == '__main__':
 
     # batch * channel * H * W
     v = np.random.rand(5, 3, 227, 227).astype(np.float32)
-    w = np.random.randint(1000,size=5) 
+    w = np.random.randint(1000, size=5)
     # test_mxnet.check_compatibility(model, v)
 
     import testcasegen
-    testcasegen.generate_testcase(model, [v,w])
+    testcasegen.generate_testcase(model, [v, w])
