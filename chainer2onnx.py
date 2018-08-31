@@ -159,7 +159,7 @@ class Link_NstepLSTM(object):
     def __init__(sl, ch, parentname):
         sl.name = parentname + '_' + ch.name
         #code.InteractiveConsole({'ch': ch}).interact()
-        
+
         cs = list(ch.children())
         sl.n_layers = ch.n_layers
         if not(cs[0].w0 is None):
@@ -169,7 +169,7 @@ class Link_NstepLSTM(object):
 
         sl.out_size = ch.out_size
         sl.dropout = ch.dropout
-        
+
         class step(object):
             def __init__(sl):
                 pass
@@ -196,21 +196,21 @@ class Link_NstepLSTM(object):
         #assert(len(args) == 1)
         assert(args[0] is None and args[1] is None)
         v = args[2]
-        
+
         hs = []
         cs = []
-        
+
         for i in range(sl.n_layers):
-            
+
             h = new_tensor(['unknown', 'unknown', 'unknown'])
             c = new_tensor(['unknown', 'unknown', 'unknown'])
             ys = new_tensor(['unknown', 'unknown', 'unknown'])
-            
+
             env.nodes.append(
                 helper.make_node(
                     "LSTM",
                     inputs=[v.name, sl.ws[i].W.name, sl.ws[i].R.name, sl.ws[i].B.name],
-                    outputs=[h.name, c.name, ys.name], 
+                    outputs=[h.name, c.name, ys.name],
                     hidden_size=sl.out_size
                 )
             )
@@ -325,10 +325,10 @@ class Function_Pool2d_Util(object):
             # 多めに足しておくとうまいこといくはず (この時点で入力大きさが不明なので)
             # mxnetだと足しておくとよかったが、
             # Onikuだとそうではないっぽい？
-            
+
             # (size + pad) % stride = ksize % stride
-            # を仮定してよい？ 
-            
+            # を仮定してよい？
+
             pads = [dx,dy,dx,dy]
         else:
             raise Exception("unimplemented cover_all=False in maxpool2d")
@@ -409,10 +409,13 @@ class Function_Concat(object):
         return res
 
 
-class Function_SoftmaxClossEntropy(object):
+class Function_SoftmaxCrossEntropy(object):
     def call(sl, args, keywords, env):
         assert(len(args) == 2)
         v,w = args[0],args[1]
+        # TODO(hamaji): Better to get the dtype of the Tensor from its
+        # actual value.
+        w.type.tensor_type.elem_type = TensorProto.INT64
         res = new_tensor(get_dims(v))
         env.nodes.append(
             helper.make_node(
@@ -460,7 +463,7 @@ Func2NodeClass = [
     (F.dropout, Function_Dropout),
     (F.concat, Function_Concat),
     (F.average_pooling_2d, Function_AveragePool2d),
-    (F.softmax_cross_entropy, Function_SoftmaxClossEntropy)
+    (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy)
 ]
 
 Link2NodeClass = [
@@ -488,7 +491,7 @@ def eval_ast(nast, env):
         value = eval_ast(nast.value, env)
         targs = nast.targets
         assert(len(targs) == 1)
-        
+
         tg = targs[0]
         if isinstance(tg,gast.Name):
             env.vars[tg.id] = value
@@ -518,19 +521,19 @@ def eval_ast(nast, env):
             optype = "Mul"
         else:
             raise Exception('unknown operator', nast.op)
-        
+
         # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
         def istensor(x):
             return isinstance(x,onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
-        
+
         if not istensor(lv) and not istensor(rv):
             return lv * rv
-        
+
         def totensor(x):
             if istensor(x):
                 return x
             res = new_tensor(['TODO'])
-             
+
             env.nodes.append(
                 helper.make_node(
                     'Constant',
