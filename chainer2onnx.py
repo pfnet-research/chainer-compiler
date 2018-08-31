@@ -209,9 +209,9 @@ class Link_NstepLSTM(object):
             env.nodes.append(
                 helper.make_node(
                     "LSTM",
-                    inputs=[v.name, sl.ws[i].W.name,
-                            sl.ws[i].R.name, sl.ws[i].B.name],
-                    outputs=[ys.name, h.name, c.name],
+
+                    inputs=[v.name, sl.ws[i].W.name, sl.ws[i].R.name, sl.ws[i].B.name],
+                    outputs=[h.name, c.name, ys.name],
                     hidden_size=sl.out_size
                 )
             )
@@ -332,7 +332,7 @@ class Function_Pool2d_Util(object):
             # (size + pad) % stride = ksize % stride
             # を仮定してよい？
 
-            pads = [dx, dy, dx, dy]
+            pads = [dx,dy,dx,dy]
         else:
             raise Exception("unimplemented cover_all=False in maxpool2d")
 
@@ -412,10 +412,15 @@ class Function_Concat(object):
         return res
 
 
-class Function_SoftmaxClossEntropy(object):
+class Function_SoftmaxCrossEntropy(object):
     def call(sl, args, keywords, env):
         assert(len(args) == 2)
-        v, w = args[0], args[1]
+
+        v,w = args[0],args[1]
+        # TODO(hamaji): Better to get the dtype of the Tensor from its
+        # actual value.
+        w.type.tensor_type.elem_type = TensorProto.INT64
+
         res = new_tensor(get_dims(v))
         env.nodes.append(
             helper.make_node(
@@ -463,7 +468,7 @@ Func2NodeClass = [
     (F.dropout, Function_Dropout),
     (F.concat, Function_Concat),
     (F.average_pooling_2d, Function_AveragePool2d),
-    (F.softmax_cross_entropy, Function_SoftmaxClossEntropy)
+    (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy)
 ]
 
 Link2NodeClass = [
@@ -524,7 +529,8 @@ def eval_ast(nast, env):
 
         # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
         def istensor(x):
-            return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
+
+            return isinstance(x,onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
 
         if not istensor(lv) and not istensor(rv):
             return lv * rv
