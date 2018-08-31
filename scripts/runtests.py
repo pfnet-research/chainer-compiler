@@ -245,10 +245,11 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     assert os.path.exists(os.path.join(dirname, name))
     TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol))
 
-for name, _ in gen_extra_node_test.get_tests():
+for test in gen_extra_node_test.get_tests():
     dirname = 'out'
-    assert os.path.exists(os.path.join(dirname, name))
-    TEST_CASES.append(TestCase(dirname, name))
+    assert os.path.exists(os.path.join(dirname, test.name))
+    if not test.fail:
+        TEST_CASES.append(TestCase(dirname, test.name))
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
