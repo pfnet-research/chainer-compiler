@@ -439,7 +439,7 @@ std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> LSTMOp::RunImpl(
         output.At({time}) += h;
     }
     h = xchainer::Reshape(h, {1, h.shape()[0], h.shape()[1]});
-    c = xchainer::Reshape(h, {1, c.shape()[0], c.shape()[1]});
+    c = xchainer::Reshape(c, {1, c.shape()[0], c.shape()[1]});
     return std::make_tuple(output, h, c);
 }
 
