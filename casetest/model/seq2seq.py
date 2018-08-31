@@ -108,16 +108,14 @@ if __name__ == '__main__':
     np.random.seed(314)
 
     import test_mxnet
-    
+
     svn = 8
     tvn = 6
-    model = Seq2seq(5,svn,tvn,4)
+    model = Seq2seq(5, svn, tvn, 4)
 
-    
     # batch * channel * H * W
     # 195 ~ 226 までがOKっぽい
     v = np.random.rand(5, 3, 210, 210).astype(np.float32)
-    ln = 
+    ln =
 
     test_mxnet.check_compatibility(model, v)
-

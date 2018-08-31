@@ -14,10 +14,11 @@ class A(chainer.Chain):
         super(A, self).__init__()
         with self.init_scope():
             self.l1 = L.Linear(10)
+
     def forward(self, x):
         #a = F.relu(x)
         #b = F.relu(a)
-        #return a,b
+        # return a,b
         x = self.l1(x)
         x = F.relu(x)
         return x
@@ -33,10 +34,10 @@ if __name__ == '__main__':
 
     model = A()
 
-    v = np.random.rand(5,3).astype(np.float32)
+    v = np.random.rand(5, 3).astype(np.float32)
     import test_mxnet
     test_mxnet.check_compatibility(model, v)
     # testcasegen.generate_testcase(model, v)
-    
+
     # import test_mxnet
     # test_mxnet.check_compatibility(model, v)

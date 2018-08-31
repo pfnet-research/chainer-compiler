@@ -3,8 +3,6 @@
 import chainer
 import chainer.links as L
 
-# Network definition
-
 
 class BaN(chainer.Chain):
 

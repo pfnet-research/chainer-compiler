@@ -13,7 +13,7 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, x):
-        x = F.max_pooling_2d(x,(1,3), stride=(1,4),pad=(0,1))
+        x = F.max_pooling_2d(x, (1, 3), stride=(1, 4), pad=(0, 1))
         return x
 
 # from https://github.com/chainer/chainer/blob/master/examples/imagenet/alex.py

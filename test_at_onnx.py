@@ -103,10 +103,10 @@ def edit_onnx_protobuf(onnxmod, x, chainermod):
 def run_chainer_model(model, x, out_key):
     # Forward computation
     if isinstance(x, (list, tuple)):
-        #for i in x:
+        # for i in x:
         #    assert isinstance(i, (np.ndarray, chainer.Variable))
-        
-        #LSTMとかの場合、これはfailするので無視する
+
+        # LSTMとかの場合、これはfailするので無視する
         chainer_out = model(*x)
     elif isinstance(x, np.ndarray):
         chainer_out = model(chainer.Variable(x))
@@ -117,7 +117,7 @@ def run_chainer_model(model, x, out_key):
             'The \'x\' argument should be a list or tuple of numpy.ndarray or '
             'chainer.Variable, or simply numpy.ndarray or chainer.Variable '
             'itself. But a {} object was given.'.format(type(x)))
-   
+
     # print(chainer_out)
     # code.InteractiveConsole({'co': chainer_out}).interact()
 
