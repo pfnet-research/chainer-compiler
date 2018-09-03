@@ -3,7 +3,9 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/dtype.h>
+#include <compiler/graph.h>
 #include <compiler/serializer_util.h>
+#include <compiler/tensor.h>
 #include <compiler/value.h>
 
 namespace oniku {

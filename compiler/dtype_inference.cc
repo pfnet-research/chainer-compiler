@@ -2,6 +2,7 @@
 
 #include <common/log.h>
 #include <compiler/node.h>
+#include <compiler/tensor.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -214,6 +215,12 @@ void InferDtype(Node* node) {
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
             CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in2.ToString() << " in " << node->DebugString();
             set(0, in0);
+            break;
+        }
+
+        case Node::kScan: {
+            // TODO(hamaji): Implement this.
+            CHECK(false);
             break;
         }
     }
