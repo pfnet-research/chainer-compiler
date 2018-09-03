@@ -218,6 +218,7 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kLoop:
         case Node::kScan: {
             // TODO(hamaji): We assume when all inputs have the smae
             // dtypes, the outputs will be the same.

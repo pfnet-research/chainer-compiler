@@ -128,6 +128,7 @@ NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
+NodeDef('Loop', None, None, body=Graph)
 NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
 NodeDef('OnikuxReluGrad', 2, 1)
