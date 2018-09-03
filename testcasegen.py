@@ -51,6 +51,38 @@ def run_chainer_model(model, xs, out_key):
     return ys
 
 
+from onnx import TensorProto
+from onnx import mapping
+# copy from https://github.com/onnx/onnx/blob/master/onnx/numpy_helper.py#L66
+def numpy_helper_from_array(arr,name):
+    """Converts a numpy array to a tensor def.
+    Inputs:
+        arr: a numpy array.
+        name: the name of the tensor.
+    Returns:
+        tensor_def: the converted tensor def.
+    """
+    tensor = TensorProto()
+    tensor.dims.extend(arr.shape)
+    if name:
+        tensor.name = name
+    
+    # 不揃いなarrのために無視してみる 
+    # if arr.dtype == np.object:
+        # Special care for strings.
+    #    raise NotImplementedError("Need to properly implement string.")
+    # For numerical types, directly use numpy raw bytes.
+    try:
+        dtype = mapping.NP_TYPE_TO_TENSOR_TYPE[arr[0].dtype]
+    except KeyError:
+        raise RuntimeError(
+            "Numpy data type not understood yet: {}".format(str(arr.dtype)))
+    tensor.data_type = dtype
+    tensor.raw_data = arr.tobytes()  # note: tobytes() is only after 1.9.
+
+    return tensor
+
+
 def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
     if not os.path.exists(test_data_dir):
         os.makedirs(test_data_dir)
@@ -68,7 +100,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                 f.write(tensor.SerializeToString())
 
 
-from test_initializer import edit_onnx_protobuf
+from initializer import edit_onnx_protobuf
 
 
 def generate_testcase(model, xs, out_key='prob'):

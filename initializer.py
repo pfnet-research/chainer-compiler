@@ -99,6 +99,7 @@ def collect_inits(lk, pathname):
     return res
 
 
+
 def edit_onnx_protobuf(onnxmod, chainermod):
     # code.InteractiveConsole({'ch': chainermod}).interact()
 

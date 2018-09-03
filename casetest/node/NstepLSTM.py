@@ -35,6 +35,6 @@ if __name__ == '__main__':
     n_time_length = 4
     model = A(n_layer, n_in, n_hidden)
 
-    x = [np.random.rand(n_time_length, n_in).astype(np.float32) for _ in range(n_batch)]
+    x = [np.random.rand(n_time_length , n_in).astype(np.float32) for i in range(n_batch)]
     x = [x]
     testcasegen.generate_testcase(model, x)

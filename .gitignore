@@ -18,3 +18,4 @@ piyo/
 seq2seq/
 *.png
 tmp.py
+*.pyc
