@@ -19,8 +19,7 @@ class A(chainer.Chain):
 
 # ======================================
 
-import testcasegen
-
+import chainer2onnx 
 
 if __name__ == '__main__':
     import numpy as np
@@ -30,4 +29,4 @@ if __name__ == '__main__':
 
     x = np.random.rand(5,7).astype(np.float32)
     x = [x]
-    testcasegen.generate_testcase(model, x)
+    chainer2onnx.generate_testcase(model, x)

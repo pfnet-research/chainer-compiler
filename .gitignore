@@ -12,10 +12,9 @@ net_drawer.py
 oniku/
 .pytest_cache/
 tmp/
-hoge/
 test/
-piyo/
 seq2seq/
 *.png
 tmp.py
 *.pyc
+scraps/

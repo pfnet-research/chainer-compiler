@@ -2,25 +2,25 @@
 # ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 # からもらっってきました
 
-import collections
 import os
-import warnings
 
 import numpy as np
 
 import chainer
-import chainer2onnx
-import test_args
 
+from . chainer2onnx import chainer2onnx
+from . test_args import get_test_args
 
-from onnx import checker
-from onnx import helper
 from onnx import numpy_helper
 
-import code
+from onnx import mapping
+from onnx import TensorProto
 
+from . initializer import edit_onnx_protobuf
 
 # variableを消す
+
+
 def unvariable(xs):
     # print(xs)
     if isinstance(xs, chainer.Variable):
@@ -51,10 +51,10 @@ def run_chainer_model(model, xs, out_key):
     return ys
 
 
-from onnx import TensorProto
-from onnx import mapping
 # copy from https://github.com/onnx/onnx/blob/master/onnx/numpy_helper.py#L66
-def numpy_helper_from_array(arr,name):
+
+
+def numpy_helper_from_array(arr, name):
     """Converts a numpy array to a tensor def.
     Inputs:
         arr: a numpy array.
@@ -66,8 +66,8 @@ def numpy_helper_from_array(arr,name):
     tensor.dims.extend(arr.shape)
     if name:
         tensor.name = name
-    
-    # 不揃いなarrのために無視してみる 
+
+    # 不揃いなarrのために無視してみる
     # if arr.dtype == np.object:
         # Special care for strings.
     #    raise NotImplementedError("Need to properly implement string.")
@@ -91,7 +91,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
         for i, (name, value) in enumerate(values):
             # とりあえずarrayにする
             # value = unvariable(value)
-            if not test_args.get_test_args().quiet:
+            if not get_test_args().quiet:
                 print(typ, i, name, value.shape)
                 # print(value)
             tensor = numpy_helper.from_array(value, name)
@@ -100,14 +100,11 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                 f.write(tensor.SerializeToString())
 
 
-from initializer import edit_onnx_protobuf
-
-
 def generate_testcase(model, xs, out_key='prob'):
-    args = test_args.get_test_args()
+    args = get_test_args()
 
     # さらの状態からonnxのmodをつくる
-    onnxmod, input_tensors, output_tensors = chainer2onnx.chainer2onnx(
+    onnxmod, input_tensors, output_tensors = chainer2onnx(
         model, model.forward)
 
     with open(args.raw_output, 'wb') as fp:
@@ -139,7 +136,7 @@ def generate_testcase(model, xs, out_key='prob'):
         for tensor, value in zip(output_tensors, chainer_out):
             outputs.append((tensor.name, value))
 
-        # TODO LSTMのためだがしぶいのでどうにかしたい
+        # TODO(satos) LSTMのためだがしぶいのでどうにかしたい
         xs = list(map(lambda x: np.array(unvariable(x)), xs))
 
         dump_test_inputs_outputs(

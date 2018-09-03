@@ -19,19 +19,15 @@ class A(chainer.Chain):
 
 # ======================================
 
-import testcasegen
-
+import chainer2onnx
 
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    # とりあえずというかんじ
-    # これはなにかのtestになっているのだろうか
-
     model = A()
 
     v = np.random.rand(7, 4, 2).astype(np.float32)
-    w = np.random.rand(7, 4, 2).astype(np.float32)
+    w = np.random.rand(7, 3, 2).astype(np.float32)
 
-    testcasegen.generate_testcase(model, [v, w])
+    chainer2onnx.generate_testcase(model, [v, w])

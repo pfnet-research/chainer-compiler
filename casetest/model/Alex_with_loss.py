@@ -55,5 +55,5 @@ if __name__ == '__main__':
     w = np.random.randint(1000, size=5)
     # test_mxnet.check_compatibility(model, v)
 
-    import testcasegen
-    testcasegen.generate_testcase(model, [v, w])
+    import chainer2onnx
+    chainer2onnx.generate_testcase(model, [v, w])

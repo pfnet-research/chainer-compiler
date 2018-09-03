@@ -4,16 +4,15 @@ import chainer
 import chainer.links as L
 
 
-class BaN(chainer.Chain):
+class A(chainer.Chain):
 
     def __init__(self):
-        super(BaN, self).__init__()
+        super(A, self).__init__()
         with self.init_scope():
             self.l1 = L.BatchNormalization(3)
 
     def forward(self, x):
         r = self.l1(x)
-        print(r)
         return r
 
 
@@ -23,10 +22,10 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    import test_mxnet
 
-    model = BaN()
+    model = A()
 
     v = np.random.rand(2, 3, 5, 5).astype(np.float32)
-    print(v)
-    test_mxnet.check_compatibility(model, v)
+    
+    import chainer2onnx
+    chainer2onnx.generate_testcase(model, [v])

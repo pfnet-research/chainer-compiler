@@ -5,13 +5,14 @@ node=(
     AddMul.py
     NstepLSTM.py
     EmbedID.py
+    BatchNorm.py
 )
 
 syntax=(
     ListComp.py
 )
 
-#syntax=()
+syntax=()
 
 model=(
     MLP_with_loss.py

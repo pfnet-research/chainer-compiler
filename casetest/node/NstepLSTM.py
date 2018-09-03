@@ -21,7 +21,7 @@ class A(chainer.Chain):
 
 # ======================================
 
-import testcasegen
+import chainer2onnx
 
 
 if __name__ == '__main__':
@@ -37,4 +37,4 @@ if __name__ == '__main__':
 
     x = [np.random.rand(n_time_length , n_in).astype(np.float32) for i in range(n_batch)]
     x = [x]
-    testcasegen.generate_testcase(model, x)
+    chainer2onnx.generate_testcase(model, x)

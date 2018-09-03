@@ -2,22 +2,14 @@
 # ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 # からもらっってきました
 
-import collections
-import os
-import warnings
-
+import chainer
 import numpy as np
 
-import chainer
-import chainer2onnx
-import test_args
-
-from onnx import checker
 from onnx import helper
 from onnx import numpy_helper
 
-from chainer import links as L
 from chainer import functions as F
+from chainer import links as L
 
 
 def convert_parameter(parameter, name):
@@ -41,9 +33,6 @@ def convert_parameter(parameter, name):
 # モデルにxを流して最初の重みを決める
 
 
-import code
-
-
 def collect_inits(lk, pathname):
     res = []
     for na, pa in lk.namedparams():
@@ -55,7 +44,8 @@ def collect_inits(lk, pathname):
     if isinstance(lk, L.BatchNormalization):
         res.append((pathname + '_avg_mean', lk.avg_mean))
         v = lk.avg_var
-        v.array = np.ones(v.shape).astype(np.float32) * 4.0
+        # TODO(satos) このままだと、nodeのテストは通るがResNetのテストがつらい
+        # v.array = np.ones(v.shape).astype(np.float32) * 4.0
         res.append((pathname + '_avg_var', v))
     elif isinstance(lk, L.NStepLSTM):
         # 先にこちらで集めてしまう
@@ -67,20 +57,16 @@ def collect_inits(lk, pathname):
             # どーにも, linkの w2 が式中の w3 に見えるんだが...???
             # clk.w0.array.fill(0)
 
-                # これだと壊れるので .array に入れましょう
-                # exec("clk.w%d = np.zeros(clk.w%d.shape).astype(np.float32)" % (t,t))
-
             # for p in clk.params():
             #    p.array.fill(0)
-            #code.InteractiveConsole({'lk': clk}).interact()
+            # code.InteractiveConsole({'lk': clk}).interact()
 
             ws0 = F.concat([clk.w0.T, clk.w3.T, clk.w1.T, clk.w2.T]).T
-            #ws0 = F.stack([clk.w0,clk.w3,clk.w1,clk.w2])
+            # ws0 = F.stack([clk.w0,clk.w3,clk.w1,clk.w2])
             ws1 = F.concat([clk.w4.T, clk.w7.T, clk.w5.T, clk.w6.T]).T
 
             # print('shape',ws0.shape)
             # >>> ','.join(map(lambda s: 'clk.b%d' % s,range(8)))
-            #bss = F.hstack([clk.b0,clk.b1,clk.b2,clk.b3,clk.b4,clk.b5,clk.b6,clk.b7])
             bss = F.hstack([clk.b0, clk.b3, clk.b1, clk.b2,
                             clk.b4, clk.b7, clk.b5, clk.b6])
             # print('cs',ws0,ws1,bss)
@@ -97,7 +83,6 @@ def collect_inits(lk, pathname):
     for clk in lk.children():
         res += collect_inits(clk, pathname + '_' + clk.name)
     return res
-
 
 
 def edit_onnx_protobuf(onnxmod, chainermod):

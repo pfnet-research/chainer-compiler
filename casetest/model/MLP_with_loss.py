@@ -38,5 +38,5 @@ if __name__ == '__main__':
 
     v = np.random.rand(batch_size, 3).astype(np.float32)
     w = np.random.randint(out_n, size=batch_size)
-    import testcasegen
-    testcasegen.generate_testcase(model, [v, w])
+    import chainer2onnx
+    chainer2onnx.generate_testcase(model, [v, w])

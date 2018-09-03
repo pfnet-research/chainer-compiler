@@ -15,7 +15,7 @@ class A(chainer.Chain):
 
 
 import numpy as np
-import testcasegen
+import chainer2onnx
 if __name__ == '__main__':
 
     out_n = 2
@@ -24,4 +24,4 @@ if __name__ == '__main__':
 
     v = np.random.rand(batch_size, out_n).astype(np.float32)
     w = np.random.randint(out_n, size=batch_size)
-    testcasegen.generate_testcase(model, [v, w])
+    chainer2onnx.generate_testcase(model, [v, w])

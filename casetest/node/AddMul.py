@@ -16,11 +16,11 @@ class A(chainer.Chain):
 
 
 import numpy as np
-import testcasegen
+import chainer2onnx
 if __name__ == '__main__':
     model = A()
 
     v = np.random.rand(3, 5).astype(np.float32)
     w = np.random.rand(3, 5).astype(np.float32)
 
-    testcasegen.generate_testcase(model, [v, w])
+    chainer2onnx.generate_testcase(model, [v, w])
