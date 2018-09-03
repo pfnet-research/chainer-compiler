@@ -23,3 +23,8 @@ def get_test_args():
                         help='Show less messages.')
     _args_cache = parser.parse_args()
     return _args_cache
+
+
+def dprint(*v):
+    if not get_test_args().quiet:
+        print(*v)

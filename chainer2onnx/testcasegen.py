@@ -10,6 +10,7 @@ import chainer
 
 from . chainer2onnx import chainer2onnx
 from . test_args import get_test_args
+from . test_args import dprint
 
 from onnx import numpy_helper
 
@@ -91,9 +92,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
         for i, (name, value) in enumerate(values):
             # とりあえずarrayにする
             # value = unvariable(value)
-            if not get_test_args().quiet:
-                print(typ, i, name, value.shape)
-                # print(value)
+            dprint(typ, i, name, value.shape)
             tensor = numpy_helper.from_array(value, name)
             filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
             with open(filename, 'wb') as f:
@@ -113,8 +112,7 @@ def generate_testcase(model, xs, out_key='prob'):
     chainer.config.train = False
     run_chainer_model(model, xs, out_key)
 
-    if not args.quiet:
-        print("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
+    dprint("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
     chainer_out = run_chainer_model(model, xs, out_key)

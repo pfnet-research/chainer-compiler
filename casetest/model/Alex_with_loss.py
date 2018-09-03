@@ -51,8 +51,8 @@ if __name__ == '__main__':
     model = Alex()
 
     # batch * channel * H * W
-    v = np.random.rand(5, 3, 227, 227).astype(np.float32)
-    w = np.random.randint(1000, size=5)
+    v = np.random.rand(2, 3, 227, 227).astype(np.float32)
+    w = np.random.randint(1000, size=2)
     # test_mxnet.check_compatibility(model, v)
 
     import chainer2onnx

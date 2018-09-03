@@ -13,7 +13,7 @@ import sys
 
 import chainer
 
-from . test_args import get_test_args
+from . test_args import dprint
 from . utils import new_tensor, clip_head, ValueReturn
 from . links_funcs import Func, Func2NodeClass, Link2NodeClass
 
@@ -24,8 +24,7 @@ class User_Defined_Link(object):
         # code.InteractiveConsole({'ch': ch}).interact()
 
         src = clip_head(inspect.getsource(ch.forward))
-        # if not get_test_args().quiet:
-        #    print(src)
+        dprint(src)
         sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
         assert(isinstance(sl.ast, gast.gast.FunctionDef))
 
@@ -101,7 +100,7 @@ class Env(object):
 
 
 def eval_ast(nast, env):
-    print(nast, env.vars.keys())
+    dprint(nast, env.vars.keys())
     if isinstance(nast, list):
         # 逐次実行
         for s in nast:
@@ -343,8 +342,7 @@ def chainer2onnx(model, forward):
     env = Env()
     v = molk.call(input_tensors, [], env)  # keywordsはとりあえず空
 
-    if not get_test_args().quiet:
-        print(v)
+    dprint(v)
     if isinstance(v, tuple):
         output_tensors = list(v)  # ばらしてみる
     else:
@@ -366,8 +364,7 @@ def chainer2onnx(model, forward):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
-    if not get_test_args().quiet:
-        print(graph)
+    dprint(graph)
     # exit(0)
     # checker.check_graph(graph)
     # oniku独自のノードを使うとcheckできなくなる...

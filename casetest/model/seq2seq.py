@@ -71,7 +71,7 @@ class Seq2seq(chainer.Chain):
 
 # from https://github.com/chainer/chainer/blob/master/examples/seq2seq/seq2seq.py
 
-import testcasegen
+import chainer2onnx
 
 if __name__ == '__main__':
     import numpy as np
@@ -84,4 +84,4 @@ if __name__ == '__main__':
     v = np.random.rand(7, 4, 2).astype(np.float32)
     w = np.random.rand(7, 4, 2).astype(np.float32)
 
-    testcasegen.generate_testcase(model, [v,w])
+    chainer2onnx.generate_testcase(model, [v,w])

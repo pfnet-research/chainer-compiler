@@ -6,7 +6,8 @@ from onnx import TensorProto
 from chainer import functions as F
 from chainer import links as L
 
-from . utils import new_tensor, get_dims
+from . utils import new_tensor
+from . utils import get_dims
 
 
 class Link_Linear(object):
