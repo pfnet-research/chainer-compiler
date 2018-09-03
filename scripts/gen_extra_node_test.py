@@ -124,6 +124,91 @@ def gen_scan_sum_test(test_name):
            name=test_name)
 
 
+def gen_scan_sum_test(test_name):
+    inputs1 = np.array([[4, 5, 6], [-4, -6, -5]])
+    inputs2 = np.array([[1, 2, 3], [-3, -2, -1]])
+    state = np.array([0, 0])
+    out_state = []
+    outputs = []
+    for bi1, bi2, st in zip(inputs1, inputs2, state):
+        outs = []
+        for a, b in zip(bi1, bi2):
+            ab = a - b
+            r = ab + st
+            outs.append(ab)
+            st = r
+        outputs.append(outs)
+        out_state.append(st)
+    outputs = np.array(outputs)
+
+    inputs_vi = [_extract_value_info(inputs1[0][0], 'in%d' % i)
+                 for i in range(1 + 2)]
+    outputs_vi = [_extract_value_info(outputs[0][0], n)
+                  for n in ['r', 'ab']]
+
+    sub = onnx.helper.make_node('Sub', inputs=['a', 'b'], outputs=['ab'])
+    add = onnx.helper.make_node('Add', inputs=['ab', 's'], outputs=['r'])
+    body = onnx.helper.make_graph(
+        nodes=[sub, add],
+        name='body',
+        inputs=inputs_vi,
+        outputs=outputs_vi)
+
+    node = onnx.helper.make_node(
+        'Scan',
+        body=body,
+        num_scan_inputs=2,
+        inputs=['state', 'inputs1', 'inputs2'],
+        outputs=['out_state', 'outputs'])
+    expect(node,
+           inputs=[state, inputs1, inputs2],
+           outputs=[out_state, outputs],
+           name=test_name)
+
+
+def gen_loop_sum_fact_test(test_name):
+    inputs = (np.array([4, 5, 6]), np.array([1, 3, 2]))
+    input_states = (np.array(0), np.array(1))
+    states = input_states
+    outputs = []
+    for a, b in zip(*inputs):
+        ab = a - b
+        states = (states[0] + ab, states[1] * ab)
+        outputs.append(ab)
+    outputs = np.array(outputs)
+
+    iter_vi = _extract_value_info(np.array(0), 'iter')
+    cond_vi = _extract_value_info(np.array(True), 'cond')
+    inputs_vi = [_extract_value_info(input, 'in%d' % i)
+                 for i, input in enumerate(inputs)]
+    outputs_vi = [_extract_value_info(outputs[0], n)
+                  for n in ['sum', 'fact', 'ab']]
+
+    sub = onnx.helper.make_node('Sub', inputs=['a', 'b'], outputs=['ab'])
+    sum = onnx.helper.make_node('Add', inputs=['ab', 'in0'], outputs=['sum'])
+    fact = onnx.helper.make_node('Mul', inputs=['ab', 'in1'], outputs=['fact'])
+    three = onnx.helper.make_tensor("three", onnx.TensorProto.INT64, (), [3])
+    loop_cnt = onnx.helper.make_node('Constant', inputs=[],
+                                     outputs=['loop_cnt'], value=three)
+    less = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
+                                 outputs=['less'])
+    body = onnx.helper.make_graph(
+        nodes=[sub, sum, fact, loop_cnt, less],
+        name='body',
+        inputs=[iter_vi] + [cond_vi] + inputs_vi,
+        outputs=outputs_vi)
+
+    node = onnx.helper.make_node(
+        'Loop',
+        body=body,
+        inputs=['state1', 'state2', 'inputs1', 'inputs2'],
+        outputs=['sum', 'fact', 'outputs'])
+    expect(node,
+           inputs=list(input_states) + list(inputs),
+           outputs=list(states) + [outputs],
+           name=test_name)
+
+
 class TestCase(object):
     def __init__(self, name, func, fail=False):
         self.name = name
@@ -134,6 +219,7 @@ class TestCase(object):
 def get_tests():
     return [
         TestCase('extra_test_select_item', gen_select_item_test),
+        TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
 
