@@ -219,8 +219,17 @@ void InferDtype(Node* node) {
         }
 
         case Node::kScan: {
-            // TODO(hamaji): Implement this.
-            CHECK(false);
+            // TODO(hamaji): We assume when all inputs have the smae
+            // dtypes, the outputs will be the same.
+            Dtype dtype = in0;
+            for (Value* in : node->inputs()) {
+                if (in->type().dtype() != dtype) {
+                    WARN_ONCE("Dtype inference for Scan with multiple types of dtypes");
+                }
+            }
+            for (size_t i = 0; i < node->outputs().size(); ++i) {
+                set(i, dtype);
+            }
             break;
         }
     }
