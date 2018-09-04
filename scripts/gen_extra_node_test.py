@@ -297,7 +297,7 @@ def get_tests():
         TestCase('extra_test_loop_simple_sum_false_cond',
                  gen_loop_simple_sum_test(terminal_condition=False)),
         TestCase('extra_test_loop_simple_sum_no_cond',
-                 gen_loop_simple_sum_test(terminal_condition=None), fail=True),
+                 gen_loop_simple_sum_test(terminal_condition=None)),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]

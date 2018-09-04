@@ -421,7 +421,11 @@ private:
             MOVE(GetValueId(body_in), GetValueId(body_out));
         }
 
-        if (!max_trip_count->IsNull()) {
+        if (terminal_condition->IsNull()) {
+            CHECK(!max_trip_count->IsNull());
+            AddFreeOp(prog, cond_id);
+            EMIT(Greater, cond_id, GetValueId(loop.inputs()[0]), iter_id);
+        } else if (!max_trip_count->IsNull()) {
             EMIT(Greater, tmp_id, GetValueId(loop.inputs()[0]), iter_id);
             int tmp2_id = next_value_id_++;
             EMIT(Mul, tmp2_id, cond_id, tmp_id);
