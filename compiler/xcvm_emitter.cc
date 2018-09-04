@@ -363,7 +363,12 @@ private:
     do {                                                                                       \
         Add##op##Op(prog, __VA_ARGS__);                                                        \
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
-    } while (0);
+    } while (0)
+
+#define MOVE(dst, src) do {                     \
+            EMIT(Identity, dst, src);           \
+            AddFreeOp(prog, src);               \
+        } while (0)
 
         RunLoopBodyPasses(loop.body().get());
 
@@ -417,17 +422,14 @@ private:
         for (const Value* value : loop.body()->input_values()) {
             AddFreeOp(prog, GetValueId(value));
         }
-        EMIT(Identity, iter_id, tmp_id);
-        AddFreeOp(prog, tmp_id);
-        EMIT(Identity, cond_id, GetValueId(loop.body()->output_values()[0]));
-        AddFreeOp(prog, GetValueId(loop.body()->output_values()[0]));
+        MOVE(iter_id, tmp_id);
+        MOVE(cond_id, GetValueId(loop.body()->output_values()[0]));
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.body()->input_values().size());
             CHECK_LT(i + 1, loop.body()->output_values().size());
             const Value* body_in = loop.body()->input_values()[i + 2];
             const Value* body_out = loop.body()->output_values()[i + 1];
-            EMIT(Identity, GetValueId(body_in), GetValueId(body_out));
-            AddFreeOp(prog, GetValueId(body_out));
+            MOVE(GetValueId(body_in), GetValueId(body_out));
         }
 
         EMIT(JmpTrue, cond_id, loop_begin);
