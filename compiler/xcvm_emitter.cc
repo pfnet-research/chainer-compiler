@@ -358,7 +358,6 @@ private:
         int num_scans = num_body_outputs - 1 - num_states;
         CHECK_EQ(num_body_inputs, num_states + 2);
         CHECK_EQ(num_loop_outputs, num_states + num_scans);
-        CHECK_EQ(0, num_scans) << "TODO(hamaji): Implement scan outputs";
         Value* max_trip_count = loop.inputs()[0];
         Value* terminal_condition = loop.inputs()[1];
         CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite loop is detected";
@@ -413,6 +412,8 @@ private:
         }
         MOVE(iter_id, tmp_id);
         MOVE(cond_id, GetValueId(loop.body()->output_values()[0]));
+
+        // Propagate the loop state.
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.body()->input_values().size());
             CHECK_LT(i + 1, loop.body()->output_values().size());
@@ -421,6 +422,17 @@ private:
             MOVE(GetValueId(body_in), GetValueId(body_out));
         }
 
+        // Push scan outputs.
+        for (int i = num_states; i < num_states + num_scans; ++i) {
+            CHECK_LT(i + 1, loop.body()->output_values().size());
+            CHECK_LT(i, loop.outputs().size());
+            const Value* body_out = loop.body()->output_values()[i + 1];
+            const Value* loop_out = loop.outputs()[i];
+            EMIT(SequenceAppend, GetValueId(loop_out), GetValueId(body_out));
+            AddFreeOp(prog, GetValueId(body_out));
+        }
+
+        // Check if the loop finishes.
         if (terminal_condition->IsNull()) {
             CHECK(!max_trip_count->IsNull());
             AddFreeOp(prog, cond_id);
@@ -433,7 +445,6 @@ private:
             MOVE(cond_id, tmp2_id);
             AddFreeOp(prog, tmp_id);
         }
-
         EMIT(JmpTrue, cond_id, loop_begin);
 
         if (skip_loop_jmp >= 0) {
@@ -441,6 +452,7 @@ private:
             jmp->mutable_inputs(1)->set_i(prog->instructions_size());
         }
 
+        // Output final states.
         for (size_t i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.body()->input_values().size());
             CHECK_LT(i, loop.outputs().size());
@@ -449,7 +461,13 @@ private:
             EMIT(Identity, GetValueId(loop_out), GetValueId(body_in));
         }
 
-        // TODO(hamaji): Free loop ins/outs.
+        // Stack and output scan outputs.
+        for (int i = num_states; i < num_states + num_scans; ++i) {
+            CHECK_LT(i, loop.outputs().size());
+            const Value* loop_out = loop.outputs()[i];
+            EMIT(SequenceStack, GetValueId(loop_out), GetValueId(loop_out));
+            EMIT(SequenceClear, GetValueId(loop_out));
+        }
 
 #undef EMIT
     }
