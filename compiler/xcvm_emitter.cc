@@ -87,6 +87,7 @@ private:
         // Optional output.
         auto oout = [this, out, &node](int i) {
             if (i >= static_cast<int>(node.outputs().size())) return -1;
+            if (node.outputs()[i]->IsNull()) return -1;
             return out(i);
         };
 
