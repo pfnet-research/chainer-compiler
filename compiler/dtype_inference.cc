@@ -218,14 +218,18 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kLoop:
+        case Node::kLoop: {
+            // TODO(hamaji): Dtype inference for Loop is not implemented yet.
+            break;
+        }
+
         case Node::kScan: {
             // TODO(hamaji): We assume when all inputs have the smae
             // dtypes, the outputs will be the same.
             Dtype dtype = in0;
             for (Value* in : node->inputs()) {
                 if (in->type().dtype() != dtype) {
-                    WARN_ONCE("Dtype inference for Loop/Scan with multiple types of dtypes");
+                    WARN_ONCE("Dtype inference for Scan with multiple types of dtypes");
                 }
             }
             for (size_t i = 0; i < node->outputs().size(); ++i) {
