@@ -7,7 +7,7 @@ if [ ! -e onnx ]; then
     git clone https://github.com/onnx/onnx
 fi
 
-if [ ! -e onnx/.setuptools-cmake-build/libonnx.a ]; then
+if [ ! -e onnx/.setuptools-cmake-build/libonnx.a -o ! -e onnx/.setuptools-cmake-build/onnx/onnx-ml.pb.h ]; then
     (cd onnx && python3 setup.py build)
 fi
 

@@ -5,7 +5,7 @@
 #include <queue>
 #include <set>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <common/log.h>
 #include <compiler/node.h>

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <compiler/dtype.h>
 
@@ -37,11 +37,16 @@ public:
         return is_known_;
     }
 
+    bool is_sequence() const {
+        return sequence_.get();
+    }
+
 private:
     Dtype dtype_{Dtype::kUnknown};
     std::vector<int64_t> dims_;
     std::vector<std::string> dim_params_;
     std::vector<std::string> denotations_;
+    std::unique_ptr<Type> sequence_;
     bool is_known_{true};
 };
 

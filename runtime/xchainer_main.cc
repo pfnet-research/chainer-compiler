@@ -4,7 +4,7 @@
 #include <set>
 #include <string>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <xchainer/array.h>
 #include <xchainer/context.h>

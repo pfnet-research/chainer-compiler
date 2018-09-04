@@ -277,7 +277,7 @@ def gen_gen_node_base_h():
 #include <string>
 #include <vector>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <compiler/dtype.h>
 
@@ -542,7 +542,7 @@ def gen_gen_node_base_cc():
 #include <string>
 #include <vector>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <common/log.h>
 #include <compiler/flags.h>

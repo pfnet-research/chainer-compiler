@@ -3,7 +3,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <xchainer/array.h>
 #include <xchainer/backprop_mode.h>

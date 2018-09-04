@@ -3,7 +3,7 @@
 #include <cstring>
 #include <limits>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <xchainer/array.h>
 #include <xchainer/context.h>

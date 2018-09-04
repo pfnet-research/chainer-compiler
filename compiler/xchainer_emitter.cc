@@ -31,7 +31,7 @@ void EmitIncludes(CodeEmitter& ce) {
             "tuple",
             "google/protobuf/io/coded_stream.h",
             "google/protobuf/io/zero_copy_stream_impl.h",
-            "onnx/onnx.pb.h",
+            "onnx/onnx-ml.pb.h",
             "xchainer/array.h",
             "xchainer/axes.h",
             "xchainer/routines/connection.h",

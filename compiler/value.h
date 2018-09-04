@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <compiler/type.h>
 

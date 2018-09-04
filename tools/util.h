@@ -1,6 +1,6 @@
 #pragma once
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <xchainer/dtype.h>
 

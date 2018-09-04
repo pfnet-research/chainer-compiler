@@ -5,7 +5,7 @@
 #include <iostream>
 #include <limits>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>

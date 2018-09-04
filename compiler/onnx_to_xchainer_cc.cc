@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <onnx/onnx.pb.h>
+#include <onnx/onnx-ml.pb.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
