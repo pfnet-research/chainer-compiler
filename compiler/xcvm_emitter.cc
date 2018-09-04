@@ -432,6 +432,13 @@ private:
             MOVE(GetValueId(body_in), GetValueId(body_out));
         }
 
+        EMIT(Greater, tmp_id, GetValueId(loop.inputs()[0]), iter_id);
+        int tmp2_id = next_value_id_++;
+        EMIT(Mul, tmp2_id, cond_id, tmp_id);
+        AddFreeOp(prog, cond_id);
+        MOVE(cond_id, tmp2_id);
+        AddFreeOp(prog, tmp_id);
+
         EMIT(JmpTrue, cond_id, loop_begin);
 
         for (size_t i = 0; i < num_states; ++i) {
