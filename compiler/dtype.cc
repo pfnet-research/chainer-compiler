@@ -81,6 +81,8 @@ onnx::TensorProto::DataType Dtype::ToONNX() const {
             return onnx::TensorProto::FLOAT;
         case kFloat64:
             return onnx::TensorProto::DOUBLE;
+        case kUnknown:
+            return onnx::TensorProto::UNDEFINED;
         default:
             CHECK(false) << "Unknown data type: " << ToString();
     }
