@@ -176,13 +176,16 @@ def make_constant_node(name, typ, value):
 
 
 def gen_loop_simple_sum_test(max_trip_count=7,
-                             cond_trip_count=6):
+                             cond_trip_count=6,
+                             terminal_condition=True):
     def fn(test_name):
         input_state = np.array(0)
         state = input_state
         trip_count = cond_trip_count
         if max_trip_count is not None:
             trip_count = min(trip_count, max_trip_count)
+        if terminal_condition is False:
+            trip_count = 0
         output = np.array(sum(range(trip_count)))
 
         iter_vi = _extract_value_info(np.array(0), 'iter')
@@ -209,7 +212,7 @@ def gen_loop_simple_sum_test(max_trip_count=7,
             max_trip_cnt_sym = 'max_trip_cnt'
             max_trip_cnt_value = [np.array(max_trip_count)]
         first_cond = make_constant_node(
-            'first_cond', onnx.TensorProto.BOOL, [True])
+            'first_cond', onnx.TensorProto.BOOL, [terminal_condition])
         node = onnx.helper.make_node(
             'Loop',
             body=body,
@@ -282,6 +285,8 @@ def get_tests():
                  gen_loop_simple_sum_test(max_trip_count=4)),
         TestCase('extra_test_loop_simple_sum_no_max_trip_count',
                  gen_loop_simple_sum_test(max_trip_count=None)),
+        TestCase('extra_test_loop_simple_sum_false_cond',
+                 gen_loop_simple_sum_test(terminal_condition=False), fail=True),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
