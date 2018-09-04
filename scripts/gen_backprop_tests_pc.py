@@ -89,6 +89,12 @@ def get_backprop_tests():
             r *= d
         return np.arange(r).reshape(shape).astype(np.float32)
 
+    class Nop(chainer.Chain):
+        def forward(self, x):
+            return x
+
+    test('nop', Nop(), aranges(2, 3))
+
     class AddSelf(chainer.Chain):
         def forward(self, x):
             return x + x
