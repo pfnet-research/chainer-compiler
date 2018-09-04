@@ -89,9 +89,14 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
             case Value::Kind::kTemp:
                 xvalue = xgraph->add_value_info();
                 break;
+            case Value::Kind::kNull:
+                xvalue = nullptr;
+                break;
         }
-        value->ToONNX(xvalue);
+        if (!xvalue)
+            continue;
 
+        value->ToONNX(xvalue);
         if (const Tensor* initializer = value->initializer()) {
             onnx::TensorProto* xtensor = xgraph->add_initializer();
             initializer->ToONNX(xtensor);
@@ -143,16 +148,27 @@ std::vector<Value*> Graph::GetNecessaryInputs() const {
 }
 
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
+    if (name == "" && kind != Value::Kind::kNull) {
+        CHECK(kind == Value::Kind::kTemp) << static_cast<int>(kind);;
+        kind = Value::Kind::kNull;
+    }
     Value* value = new Value(name, kind);
     all_values_.emplace_back(value);
-    if (kind == Value::Kind::kInput)
+    switch (kind) {
+    case Value::Kind::kInput:
         input_values_.push_back(value);
-    else if (kind == Value::Kind::kOutput)
+        break;
+    case Value::Kind::kOutput:
         output_values_.push_back(value);
-    else if (kind == Value::Kind::kTemp)
+        break;
+    case Value::Kind::kTemp:
         temp_values_.push_back(value);
-    else
+        break;
+    case Value::Kind::kNull:
+        break;
+    default:
         CHECK(false) << static_cast<int>(kind);
+    }
     return value;
 }
 
@@ -190,7 +206,7 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
     }
     std::map<Node*, int> input_counts;
     for (Node* node : GetLiveNodes()) {
-        input_counts[node] = node->inputs().size();
+        input_counts[node] = node->GetNumActualInputs();
     }
 
     std::vector<Node*> sorted_nodes;

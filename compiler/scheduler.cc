@@ -23,7 +23,7 @@ void ScheduleComputation(const Graph& graph) {
         const Value* value = q.front();
         q.pop();
         if (Node* node = value->producer()) {
-            if (!input_counts.emplace(node, node->inputs().size()).second) continue;
+            if (!input_counts.emplace(node, node->GetNumActualInputs()).second) continue;
             for (const Value* input : node->inputs()) {
                 q.push(input);
             }

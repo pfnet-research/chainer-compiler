@@ -20,6 +20,7 @@ public:
         kInput,
         kOutput,
         kTemp,
+        kNull,
     };
 
     Value(const onnx::ValueInfoProto& xvalue, Kind kind);

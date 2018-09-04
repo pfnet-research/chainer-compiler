@@ -44,6 +44,9 @@ public:
     }
     void Detach();
 
+    // Returns the number of input values whose type is not `kNull`.
+    int GetNumActualInputs() const;
+
     std::string DebugString() const;
 
 private:
