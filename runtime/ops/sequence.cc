@@ -92,7 +92,6 @@ void SequenceMoveOp::RunImpl(XCVMState* st) {
     CHECK(d->empty());
     std::swap(*d, *s);
     st->SetVar(output, st->GetVar(seq));
-    st->FreeVar(seq);
 }
 
 }  // namespace runtime

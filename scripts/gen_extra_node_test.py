@@ -282,11 +282,16 @@ def gen_sequence_test(test_name):
     nodes.append(onnx.helper.make_node(
         'OnikuxSequenceStack',
         inputs=['seq3'],
-        outputs=['stack_result']))
+        outputs=['stack3_result']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceStack',
+        inputs=['seq2'],
+        outputs=['stack2_result']))
 
     outputs = [
         ('lookup_result', np.array([3, 4])),
-        ('stack_result', np.stack(inputs)),
+        ('stack3_result', np.stack(inputs)),
+        ('stack2_result', np.stack(inputs[0:2])),
     ]
     inputs = [('in%d' % i, input) for i, input in enumerate(inputs)]
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]

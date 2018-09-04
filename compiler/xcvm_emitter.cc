@@ -325,8 +325,14 @@ private:
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
         } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
-            EMIT(SequenceCopy, out(0), in(0));
-            EMIT(SequenceAppend, out(0), in(1));
+            if (node.inputs()[0]->users().size() == 1) {
+                // Avoid O(N^2) copies for the simple case.
+                EMIT(SequenceMove, out(0), in(0));
+                EMIT(SequenceAppend, out(0), in(1));
+            } else {
+                EMIT(SequenceCopy, out(0), in(0));
+                EMIT(SequenceAppend, out(0), in(1));
+            }
         } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {
