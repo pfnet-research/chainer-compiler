@@ -177,7 +177,8 @@ def make_constant_node(name, typ, value):
 
 def gen_loop_simple_sum_test(max_trip_count=7,
                              cond_trip_count=6,
-                             terminal_condition=True):
+                             terminal_condition=True,
+                             has_scan_outputs=False):
     def fn(test_name):
         input_state = np.array(0)
         state = input_state
@@ -191,12 +192,25 @@ def gen_loop_simple_sum_test(max_trip_count=7,
             trip_counts.append(cond_trip_count)
         trip_count = min(trip_counts)
         output = np.array(sum(range(trip_count)))
+        scan_outputs = []
+        if has_scan_outputs:
+            scan_outputs = [
+                np.array(list(sum(range(i + 1)) for i in range(trip_count))),
+                np.array(list(i * i for i in range(trip_count))),
+                np.array(list(range(trip_count)))]
 
         iter_vi = _extract_value_info(np.array(0), 'iter')
         cond_in_vi = _extract_value_info(np.array(True), 'cond_in')
         cond_vi = _extract_value_info(np.array(True), 'cond')
         inputs_vi = [_extract_value_info(state, 'in')]
         outputs_vi = [_extract_value_info(output, 'out')]
+        square = []
+        if has_scan_outputs:
+            outputs_vi.append(_extract_value_info(output, 'out'))
+            outputs_vi.append(_extract_value_info(output, 'square'))
+            outputs_vi.append(_extract_value_info(output, 'iter'))
+            square = [onnx.helper.make_node('Mul', inputs=['iter', 'iter'],
+                                            outputs=['square'])]
 
         body_out = onnx.helper.make_node('Add', inputs=['in', 'iter'],
                                          outputs=['out'])
@@ -205,7 +219,7 @@ def gen_loop_simple_sum_test(max_trip_count=7,
         cond = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
                                      outputs=['cond'])
         body = onnx.helper.make_graph(
-            nodes=[body_out, loop_cnt, cond],
+            nodes=[body_out, loop_cnt, cond] + square,
             name='body',
             inputs=[iter_vi] + [cond_in_vi] + inputs_vi,
             outputs=[cond_vi] + outputs_vi)
@@ -222,14 +236,20 @@ def gen_loop_simple_sum_test(max_trip_count=7,
             terminal_cond_sym = 'terminal_cond'
             terminal_cond_value = [np.array(terminal_condition)]
 
+        output_syms = ['output']
+        output_values = [output]
+        if has_scan_outputs:
+            output_syms += ['history', 'square', 'range']
+            output_values += scan_outputs
+
         node = onnx.helper.make_node(
             'Loop',
             body=body,
             inputs=[max_trip_cnt_sym, terminal_cond_sym, 'state'],
-            outputs=['output'])
+            outputs=output_syms)
         expect(node,
                inputs=max_trip_cnt_value + terminal_cond_value + [state],
-               outputs=[output],
+               outputs=output_values,
                name=test_name)
 
     return fn
@@ -298,6 +318,8 @@ def get_tests():
                  gen_loop_simple_sum_test(terminal_condition=False)),
         TestCase('extra_test_loop_simple_sum_no_cond',
                  gen_loop_simple_sum_test(terminal_condition=None)),
+        TestCase('extra_test_loop_simple_sum_scan_out',
+                 gen_loop_simple_sum_test(has_scan_outputs=True)),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
