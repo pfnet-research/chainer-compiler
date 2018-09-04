@@ -166,7 +166,41 @@ def gen_scan_sum_test(test_name):
            name=test_name)
 
 
+def gen_loop_simple_sum_test(test_name):
+    input_state = np.array(0)
+    state = input_state
+    output = np.array(15)
+
+    iter_vi = _extract_value_info(np.array(0), 'iter')
+    cond_vi = _extract_value_info(np.array(True), 'cond')
+    inputs_vi = [_extract_value_info(state, 'in')]
+    outputs_vi = [_extract_value_info(output, 'out')]
+
+    sum = onnx.helper.make_node('Add', inputs=['in', 'iter'], outputs=['out'])
+    five = onnx.helper.make_tensor("five", onnx.TensorProto.INT64, (), [5])
+    loop_cnt = onnx.helper.make_node('Constant', inputs=[],
+                                     outputs=['loop_cnt'], value=five)
+    less = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
+                                 outputs=['less'])
+    body = onnx.helper.make_graph(
+        nodes=[sum, loop_cnt, less],
+        name='body',
+        inputs=[iter_vi] + [cond_vi] + inputs_vi,
+        outputs=outputs_vi)
+
+    node = onnx.helper.make_node(
+        'Loop',
+        body=body,
+        inputs=['state'],
+        outputs=['output'])
+    expect(node,
+           inputs=[state],
+           outputs=[output],
+           name=test_name)
+
+
 def gen_loop_sum_fact_test(test_name):
+    # TODO(hamaji): Apparently, this test case is broken.
     inputs = (np.array([4, 5, 6]), np.array([1, 3, 2]))
     input_states = (np.array(0), np.array(1))
     states = input_states
@@ -219,6 +253,8 @@ class TestCase(object):
 def get_tests():
     return [
         TestCase('extra_test_select_item', gen_select_item_test),
+        TestCase('extra_test_loop_simple_sum', gen_loop_simple_sum_test,
+                 fail=True),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
