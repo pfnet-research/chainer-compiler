@@ -175,10 +175,10 @@ def make_constant_node(name, typ, value):
     return node
 
 
-def gen_loop_simple_sum_test(max_trip_count=7,
-                             cond_trip_count=6,
-                             terminal_condition=True,
-                             has_scan_outputs=False):
+def gen_loop_test(max_trip_count=7,
+                  cond_trip_count=6,
+                  terminal_condition=True,
+                  has_scan_outputs=False):
     def fn(test_name):
         input_state = np.array(0)
         state = input_state
@@ -255,50 +255,6 @@ def gen_loop_simple_sum_test(max_trip_count=7,
     return fn
 
 
-def gen_loop_sum_fact_test(test_name):
-    # TODO(hamaji): Apparently, this test case is broken.
-    inputs = (np.array([4, 5, 6]), np.array([1, 3, 2]))
-    input_states = (np.array(0), np.array(1))
-    states = input_states
-    outputs = []
-    for a, b in zip(*inputs):
-        ab = a - b
-        states = (states[0] + ab, states[1] * ab)
-        outputs.append(ab)
-    outputs = np.array(outputs)
-
-    iter_vi = _extract_value_info(np.array(0), 'iter')
-    cond_vi = _extract_value_info(np.array(True), 'cond')
-    inputs_vi = [_extract_value_info(input, 'in%d' % i)
-                 for i, input in enumerate(inputs)]
-    outputs_vi = [_extract_value_info(outputs[0], n)
-                  for n in ['sum', 'fact', 'ab']]
-
-    sub = onnx.helper.make_node('Sub', inputs=['a', 'b'], outputs=['ab'])
-    sum = onnx.helper.make_node('Add', inputs=['ab', 'in0'], outputs=['sum'])
-    fact = onnx.helper.make_node('Mul', inputs=['ab', 'in1'], outputs=['fact'])
-    three = onnx.helper.make_tensor("three", onnx.TensorProto.INT64, (), [3])
-    loop_cnt = onnx.helper.make_node('Constant', inputs=[],
-                                     outputs=['loop_cnt'], value=three)
-    less = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
-                                 outputs=['less'])
-    body = onnx.helper.make_graph(
-        nodes=[sub, sum, fact, loop_cnt, less],
-        name='body',
-        inputs=[iter_vi] + [cond_vi] + inputs_vi,
-        outputs=outputs_vi)
-
-    node = onnx.helper.make_node(
-        'Loop',
-        body=body,
-        inputs=['state1', 'state2', 'inputs1', 'inputs2'],
-        outputs=['sum', 'fact', 'outputs'])
-    expect(node,
-           inputs=list(input_states) + list(inputs),
-           outputs=list(states) + [outputs],
-           name=test_name)
-
-
 class TestCase(object):
     def __init__(self, name, func, fail=False):
         self.name = name
@@ -309,18 +265,18 @@ class TestCase(object):
 def get_tests():
     return [
         TestCase('extra_test_select_item', gen_select_item_test),
-        TestCase('extra_test_loop_simple_sum', gen_loop_simple_sum_test()),
-        TestCase('extra_test_loop_simple_sum_max_trip_count',
-                 gen_loop_simple_sum_test(max_trip_count=4)),
-        TestCase('extra_test_loop_simple_sum_no_max_trip_count',
-                 gen_loop_simple_sum_test(max_trip_count=None)),
-        TestCase('extra_test_loop_simple_sum_false_cond',
-                 gen_loop_simple_sum_test(terminal_condition=False)),
-        TestCase('extra_test_loop_simple_sum_no_cond',
-                 gen_loop_simple_sum_test(terminal_condition=None)),
-        TestCase('extra_test_loop_simple_sum_scan_out',
-                 gen_loop_simple_sum_test(has_scan_outputs=True)),
-        TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
+        TestCase('extra_test_loop_basic', gen_loop_test()),
+        TestCase('extra_test_loop_max_trip_count',
+                 gen_loop_test(max_trip_count=4)),
+        TestCase('extra_test_loop_no_max_trip_count',
+                 gen_loop_test(max_trip_count=None)),
+        TestCase('extra_test_loop_false_cond',
+                 gen_loop_test(terminal_condition=False)),
+        TestCase('extra_test_loop_no_cond',
+                 gen_loop_test(terminal_condition=None)),
+        TestCase('extra_test_loop_scan_out',
+                 gen_loop_test(has_scan_outputs=True)),
+
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
 
