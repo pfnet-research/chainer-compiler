@@ -37,17 +37,19 @@ def _extract_value_info(arr, name):
 
 
 def expect(node, inputs, outputs, name):
+    present_inputs = [x for x in node.input if (x != '')]
+    present_outputs = [x for x in node.output if (x != '')]
     inputs = [v.array if hasattr(v, 'array') else v for v in inputs]
     outputs = [v.array if hasattr(v, 'array') else v for v in outputs]
     inputs = list(map(np.array, inputs))
     outputs = list(map(np.array, outputs))
 
-    assert len(node.input) == len(inputs)
-    assert len(node.output) == len(outputs)
+    assert len(present_inputs) == len(inputs)
+    assert len(present_outputs) == len(outputs)
     inputs_vi = [_extract_value_info(a, n)
-                 for a, n in zip(inputs, node.input)]
+                 for a, n in zip(inputs, present_inputs)]
     outputs_vi = [_extract_value_info(a, n)
-                  for a, n in zip(outputs, node.output)]
+                  for a, n in zip(outputs, present_outputs)]
 
     graph = onnx.helper.make_graph(
         nodes=[node],
@@ -61,8 +63,8 @@ def expect(node, inputs, outputs, name):
     makedirs(test_data_set_dir)
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as f:
         f.write(model.SerializeToString())
-    for typ, values in [('input', zip(inputs, node.input)),
-                        ('output', zip(outputs, node.output))]:
+    for typ, values in [('input', zip(inputs, present_inputs)),
+                        ('output', zip(outputs, present_outputs))]:
         for i, (value, name) in enumerate(values):
             filename = os.path.join(test_data_set_dir, '%s_%d.pb' % (typ, i))
             tensor = numpy_helper.from_array(value, name)
@@ -178,7 +180,10 @@ def gen_loop_simple_sum_test(max_trip_count=7,
     def fn(test_name):
         input_state = np.array(0)
         state = input_state
-        output = np.array(sum(range(min(max_trip_count, cond_trip_count))))
+        trip_count = cond_trip_count
+        if max_trip_count is not None:
+            trip_count = min(trip_count, max_trip_count)
+        output = np.array(sum(range(trip_count)))
 
         iter_vi = _extract_value_info(np.array(0), 'iter')
         cond_in_vi = _extract_value_info(np.array(True), 'cond_in')
@@ -198,17 +203,20 @@ def gen_loop_simple_sum_test(max_trip_count=7,
             inputs=[iter_vi] + [cond_in_vi] + inputs_vi,
             outputs=[cond_vi] + outputs_vi)
 
-        max_loop_cnt = make_constant_node(
-            'max_loop_cnt', onnx.TensorProto.INT64, [max_trip_count])
+        max_trip_cnt_sym = ''
+        max_trip_cnt_value = []
+        if max_trip_count is not None:
+            max_trip_cnt_sym = 'max_trip_cnt'
+            max_trip_cnt_value = [np.array(max_trip_count)]
         first_cond = make_constant_node(
             'first_cond', onnx.TensorProto.BOOL, [True])
         node = onnx.helper.make_node(
             'Loop',
             body=body,
-            inputs=['max_loop_cnt', 'first_cond', 'state'],
+            inputs=[max_trip_cnt_sym, 'first_cond', 'state'],
             outputs=['output'])
         expect(node,
-               inputs=[np.array(max_trip_count), np.array(True), state],
+               inputs=max_trip_cnt_value + [np.array(True), state],
                outputs=[output],
                name=test_name)
 
@@ -272,6 +280,8 @@ def get_tests():
         TestCase('extra_test_loop_simple_sum', gen_loop_simple_sum_test()),
         TestCase('extra_test_loop_simple_sum_max_trip_count',
                  gen_loop_simple_sum_test(max_trip_count=4)),
+        TestCase('extra_test_loop_simple_sum_no_max_trip_count',
+                 gen_loop_simple_sum_test(max_trip_count=None)),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
