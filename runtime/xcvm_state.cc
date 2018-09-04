@@ -11,6 +11,7 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
     : pc_(0),
       variables_(num_variables),
       auxiliaries_(num_variables),
+      sequences_(num_variables),
       inputs_(inputs),
       trace_level_(options.trace_level),
       is_training_(options.is_training),
@@ -36,6 +37,12 @@ std::vector<xchainer::Array> XCVMState::GetVarList(const std::vector<int>& index
     std::vector<xchainer::Array> vars;
     for (int i : index) vars.push_back(GetVar(i));
     return vars;
+}
+
+std::vector<xchainer::Array>* XCVMState::GetSequence(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(sequences_.size(), index) << index;
+    return &sequences_[index];
 }
 
 std::string XCVMState::GetVarString(int index) {

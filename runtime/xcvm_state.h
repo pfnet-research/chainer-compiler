@@ -33,13 +33,17 @@ public:
     void set_pc(int pc) {
         pc_ = pc;
     }
+
     xchainer::Array GetVar(int index);
     nonstd::optional<xchainer::Array> GetVarOptional(int index);
     std::vector<xchainer::Array> GetVarList(const std::vector<int>& index);
     void SetVar(int index, xchainer::Array value);
+    void FreeVar(int index);
+
+    std::vector<xchainer::Array>* GetSequence(int index);
+
     std::string GetVarString(int index);
     std::string GetSequenceString(int index);
-    void FreeVar(int index);
 
     Auxiliary* GetAux(int index);
     void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
