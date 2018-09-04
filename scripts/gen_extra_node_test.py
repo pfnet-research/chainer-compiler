@@ -181,11 +181,15 @@ def gen_loop_simple_sum_test(max_trip_count=7,
     def fn(test_name):
         input_state = np.array(0)
         state = input_state
-        trip_count = cond_trip_count
+
+        trip_counts = []
         if max_trip_count is not None:
-            trip_count = min(trip_count, max_trip_count)
+            trip_counts.append(max_trip_count)
         if terminal_condition is False:
-            trip_count = 0
+            trip_counts.append(0)
+        elif terminal_condition is not None:
+            trip_counts.append(cond_trip_count)
+        trip_count = min(trip_counts)
         output = np.array(sum(range(trip_count)))
 
         iter_vi = _extract_value_info(np.array(0), 'iter')
@@ -211,15 +215,20 @@ def gen_loop_simple_sum_test(max_trip_count=7,
         if max_trip_count is not None:
             max_trip_cnt_sym = 'max_trip_cnt'
             max_trip_cnt_value = [np.array(max_trip_count)]
-        first_cond = make_constant_node(
-            'first_cond', onnx.TensorProto.BOOL, [terminal_condition])
+
+        terminal_cond_sym = ''
+        terminal_cond_value = []
+        if terminal_condition is not None:
+            terminal_cond_sym = 'terminal_cond'
+            terminal_cond_value = [np.array(terminal_condition)]
+
         node = onnx.helper.make_node(
             'Loop',
             body=body,
-            inputs=[max_trip_cnt_sym, 'first_cond', 'state'],
+            inputs=[max_trip_cnt_sym, terminal_cond_sym, 'state'],
             outputs=['output'])
         expect(node,
-               inputs=max_trip_cnt_value + [np.array(terminal_condition), state],
+               inputs=max_trip_cnt_value + terminal_cond_value + [state],
                outputs=[output],
                name=test_name)
 
@@ -287,6 +296,8 @@ def get_tests():
                  gen_loop_simple_sum_test(max_trip_count=None)),
         TestCase('extra_test_loop_simple_sum_false_cond',
                  gen_loop_simple_sum_test(terminal_condition=False)),
+        TestCase('extra_test_loop_simple_sum_no_cond',
+                 gen_loop_simple_sum_test(terminal_condition=None), fail=True),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
