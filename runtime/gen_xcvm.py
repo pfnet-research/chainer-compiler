@@ -153,6 +153,7 @@ XC_OPS = [
     # TODO(hamaji): Re-design constants.
     ('IntConstant', [Int('value'), Int('dtype')], ['output']),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
+    ('JmpFalse', [Array('cond'), Int('pc')], []),
 ]
 
 

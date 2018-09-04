@@ -477,5 +477,11 @@ void JmpTrueOp::RunImpl(XCVMState* st, const xchainer::Array& cond) {
     }
 }
 
+void JmpFalseOp::RunImpl(XCVMState* st, const xchainer::Array& cond) {
+    if (!static_cast<bool>(xchainer::AsScalar(cond))) {
+        st->set_pc(pc - 1);
+    }
+}
+
 }  // namespace runtime
 }  // namespace oniku

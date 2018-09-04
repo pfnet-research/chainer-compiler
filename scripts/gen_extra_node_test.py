@@ -219,7 +219,7 @@ def gen_loop_simple_sum_test(max_trip_count=7,
             inputs=[max_trip_cnt_sym, 'first_cond', 'state'],
             outputs=['output'])
         expect(node,
-               inputs=max_trip_cnt_value + [np.array(True), state],
+               inputs=max_trip_cnt_value + [np.array(terminal_condition), state],
                outputs=[output],
                name=test_name)
 
@@ -286,7 +286,7 @@ def get_tests():
         TestCase('extra_test_loop_simple_sum_no_max_trip_count',
                  gen_loop_simple_sum_test(max_trip_count=None)),
         TestCase('extra_test_loop_simple_sum_false_cond',
-                 gen_loop_simple_sum_test(terminal_condition=False), fail=True),
+                 gen_loop_simple_sum_test(terminal_condition=False)),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]

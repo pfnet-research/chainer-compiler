@@ -379,7 +379,6 @@ private:
         RunLoopBodyPasses(loop.body().get());
 
         AssignValueIds(*loop.body());
-        // TODO(hamaji): Emit the first cond.
 
         // Initialize loop variables.
         int iter_id = GetValueId(loop.body()->input_values()[0]);
@@ -392,6 +391,12 @@ private:
             const Value* loop_in = loop.inputs()[i + 2];
             const Value* body_in = loop.body()->input_values()[i + 2];
             EMIT(Identity, GetValueId(body_in), GetValueId(loop_in));
+        }
+
+        int skip_loop_jmp = -1;
+        if (!terminal_condition->IsNull()) {
+            skip_loop_jmp = prog->instructions_size();
+            EMIT(JmpFalse, GetValueId(terminal_condition), -1);
         }
 
         int loop_begin = prog->instructions_size();
@@ -426,6 +431,11 @@ private:
         }
 
         EMIT(JmpTrue, cond_id, loop_begin);
+
+        if (skip_loop_jmp >= 0) {
+            runtime::XCInstructionProto* jmp = prog->mutable_instructions(skip_loop_jmp);
+            jmp->mutable_inputs(1)->set_i(prog->instructions_size());
+        }
 
         for (size_t i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.body()->input_values().size());
