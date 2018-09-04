@@ -322,6 +322,15 @@ private:
             CHECK_EQ(Dtype::kInt64, node.value()->dtype()) << "Only int64 scalar constant is supported in loop";
             CHECK(node.value()->dims().empty()) << "Only int64 scalar constant is supported in loop";
             EMIT(IntConstant, out(0), node.value()->Get<int64_t>(0), node.value()->dtype());
+        } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
+            EMIT(SequenceCreate, out(0));
+        } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
+            EMIT(SequenceCopy, out(0), in(0));
+            EMIT(SequenceAppend, out(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
+            EMIT(SequenceLookup, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxSequenceStack) {
+            EMIT(SequenceStack, out(0), in(0));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

@@ -162,10 +162,13 @@ XC_OPS = [
 ]
 
 XC_SEQ_OPS = [
+    ('SequenceCreate', [], [Sequence('output')]),
     ('SequenceClear', [Sequence('seq')], []),
     ('SequenceAppend', [Sequence('seq'), Array('value')], []),
-    ('SequenceLookup', [Sequence('seq'), Int('index')], ['output']),
+    ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
     ('SequenceStack', [Sequence('seq')], ['output']),
+    ('SequenceCopy', [Sequence('seq')], [Sequence('output')]),
+    ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 
 
@@ -173,7 +176,15 @@ class Op(object):
     def __init__(self, name, inputs, outputs, array_only=True):
         self.name = name
         self.inputs = inputs
-        self.outputs = outputs
+        self.outputs_typed = []
+        self.outputs = []
+        for output in outputs:
+            if isinstance(output, tuple):
+                self.outputs_typed.append(output)
+                self.outputs.append(output[1])
+            else:
+                self.outputs_typed.append((ARRAY, output))
+                self.outputs.append(output)
         self.array_only = array_only
 
 
@@ -409,9 +420,15 @@ def gen_gen_xcvm_ops_cc():
             lines.append('RunImpl(st);')
 
         line = 'if (st->trace_level()) std::cerr'
-        for name in op.outputs:
-            line += f' << " %" << {name} << "="'
-            line += f' << st->GetVarString({name})'
+        for typ, name in op.outputs_typed:
+            if typ == ARRAY or typ == OPTIONAL_ARRAY:
+                line += f' << " %" << {name} << "="'
+                line += f' << st->GetVarString({name})'
+            elif typ == SEQUENCE:
+                line += f' << " @" << {name} << "="'
+                line += f' << st->GetSequenceString({name})'
+            else:
+                raise RuntimeError('Unknown output type: %s' % typ)
         line += ' << std::endl;'
         lines.append(line)
 

@@ -56,12 +56,15 @@ std::string XCVMState::GetVarString(int index) {
 
 std::string XCVMState::GetSequenceString(int index) {
     CHECK_LE(0, index);
-    return Join(MapToString(sequences_[index], [this](const xchainer::Array a) {
-                if (trace_level_ > 1)
-                    return a.ToString();
-                else
-                    return a.shape().ToString();
-            }));
+    return StrCat(
+        '[',
+        Join(MapToString(sequences_[index], [this](const xchainer::Array a) {
+                    if (trace_level_ > 1)
+                        return a.ToString();
+                    else
+                        return a.shape().ToString();
+                })),
+        ']');
 }
 
 XCVMState::Auxiliary* XCVMState::GetAux(int index) {
@@ -85,6 +88,7 @@ void XCVMState::FreeVar(int index) {
     CHECK(variables_[index].has_value());
     variables_[index] = nonstd::nullopt;
     auxiliaries_[index] = nullptr;
+    sequences_[index].clear();
 }
 
 xchainer::Array XCVMState::Input(const std::string& name) {
