@@ -1,6 +1,7 @@
 #include "xcvm_state.h"
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <runtime/xcvm.h>
 
 namespace oniku {
@@ -44,6 +45,16 @@ std::string XCVMState::GetVarString(int index) {
         return var.ToString();
     else
         return var.shape().ToString();
+}
+
+std::string XCVMState::GetSequenceString(int index) {
+    CHECK_LE(0, index);
+    return Join(MapToString(sequences_[index], [this](const xchainer::Array a) {
+                if (trace_level_ > 1)
+                    return a.ToString();
+                else
+                    return a.shape().ToString();
+            }));
 }
 
 XCVMState::Auxiliary* XCVMState::GetAux(int index) {

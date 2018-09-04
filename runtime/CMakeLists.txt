@@ -14,6 +14,7 @@ add_library(oniku_runtime
   meminfo.cc
   ops/normalization.cc
   ops/pooling.cc
+  ops/sequence.cc
   xchainer.cc
   xcvm.cc
   xcvm.pb.cc

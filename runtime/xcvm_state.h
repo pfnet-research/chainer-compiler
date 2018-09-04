@@ -38,6 +38,7 @@ public:
     std::vector<xchainer::Array> GetVarList(const std::vector<int>& index);
     void SetVar(int index, xchainer::Array value);
     std::string GetVarString(int index);
+    std::string GetSequenceString(int index);
     void FreeVar(int index);
 
     Auxiliary* GetAux(int index);
@@ -70,6 +71,7 @@ private:
     int pc_;
     std::vector<nonstd::optional<xchainer::Array>> variables_;
     std::vector<std::unique_ptr<Auxiliary>> auxiliaries_;
+    std::vector<std::vector<xchainer::Array>> sequences_;
     const InOuts& inputs_;
     InOuts outputs_;
     int trace_level_ = 0;
