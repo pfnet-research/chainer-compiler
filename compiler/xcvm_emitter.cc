@@ -3,9 +3,11 @@
 #include <map>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/node.h>
+#include <compiler/passes.h>
 #include <compiler/value.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_proto_util.h>
@@ -331,9 +333,116 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kLoop) {
+            EmitLoop(node, prog);
+        } else if (node.op_type() == Node::kConstant) {
+            CHECK_EQ(Dtype::kInt64, node.value()->dtype()) << "Only int64 scalar constant is supported in loop";
+            CHECK(node.value()->dims().empty()) << "Only int64 scalar constant is supported in loop";
+            EMIT(IntConstant, out(0), node.value()->Get<int64_t>(0), node.value()->dtype());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
+
+#undef EMIT
+    }
+
+    void EmitLoop(const Node& loop, XCProgramProto* prog) {
+        int num_loop_inputs = loop.inputs().size();
+        int num_loop_outputs = loop.outputs().size();
+        int num_body_inputs = loop.body()->input_values().size();
+        int num_body_outputs = loop.body()->output_values().size();
+        int num_states = num_loop_inputs - 2;
+        int num_scans = num_body_outputs - 1 - num_states;
+        CHECK_EQ(num_body_inputs, num_states + 2);
+        CHECK_EQ(num_loop_outputs, num_states + num_scans);
+        CHECK_EQ(0, num_scans) << "TODO(hamaji): Implement scan outputs";
+
+        const std::string& debug_info = loop.DebugString();
+
+#define EMIT(op, ...)                                                                          \
+    do {                                                                                       \
+        Add##op##Op(prog, __VA_ARGS__);                                                        \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
+    } while (0);
+
+        RunLoopBodyPasses(loop.body().get());
+
+        AssignValueIds(*loop.body());
+        // TODO(hamaji): Emit the first cond.
+
+        // Initialize loop variables.
+        int iter_id = GetValueId(loop.body()->input_values()[0]);
+        EMIT(IntConstant, iter_id, 0, Dtype::kInt64);
+        int cond_id = GetValueId(loop.body()->input_values()[1]);
+        EMIT(IntConstant, cond_id, 1, Dtype::kBool);
+        for (int i = 0; i < num_states; ++i) {
+            CHECK_LT(i + 2, loop.inputs().size());
+            CHECK_LT(i + 2, loop.body()->input_values().size());
+            const Value* loop_in = loop.inputs()[i + 2];
+            const Value* body_in = loop.body()->input_values()[i + 2];
+            EMIT(Identity, GetValueId(body_in), GetValueId(loop_in));
+        }
+
+        int loop_begin = prog->instructions_size();
+
+        std::map<const Value*, int> num_users;
+        for (const Value* value : loop.body()->temp_values()) {
+            // TODO(hamaji): Change the number of users in detach.
+            int n = 0;
+            for (const Node* node : value->users()) {
+                if (!node->detached())
+                    n++;
+            }
+            num_users.emplace(value, n);
+        }
+
+        std::vector<const Node*> nodes(loop.body()->GetComputationSequence());
+        for (const Node* node : nodes) {
+            EmitNode(*node, prog);
+
+            for (const Value* input : node->inputs()) {
+                auto found = num_users.find(input);
+                if (found == num_users.end()) continue;
+                if (--found->second == 0) {
+                    AddFreeOp(prog, GetValueId(input));
+                }
+            }
+        }
+
+        int one_id = next_value_id_++;
+        EMIT(IntConstant, one_id, 1, Dtype::kInt64);
+        int tmp_id = next_value_id_++;
+        EMIT(Add, tmp_id, iter_id, one_id);
+        AddFreeOp(prog, one_id);
+        for (const Value* value : loop.body()->input_values()) {
+            AddFreeOp(prog, GetValueId(value));
+        }
+        EMIT(Identity, iter_id, tmp_id);
+        AddFreeOp(prog, tmp_id);
+        EMIT(Identity, cond_id, GetValueId(loop.body()->output_values()[0]));
+        AddFreeOp(prog, GetValueId(loop.body()->output_values()[0]));
+        for (int i = 0; i < num_states; ++i) {
+            CHECK_LT(i + 2, loop.body()->input_values().size());
+            CHECK_LT(i + 1, loop.body()->output_values().size());
+            const Value* body_in = loop.body()->input_values()[i + 2];
+            const Value* body_out = loop.body()->output_values()[i + 1];
+            EMIT(Identity, GetValueId(body_in), GetValueId(body_out));
+            AddFreeOp(prog, GetValueId(body_out));
+        }
+
+        EMIT(JmpTrue, cond_id, loop_begin);
+
+        for (size_t i = 0; i < num_states; ++i) {
+            CHECK_LT(i + 2, loop.body()->input_values().size());
+            CHECK_LT(i, loop.outputs().size());
+            const Value* body_in = loop.body()->input_values()[i + 2];
+            const Value* loop_out = loop.outputs()[i];
+            EMIT(Identity, GetValueId(loop_out), GetValueId(body_in));
+        }
+
+        // TODO(hamaji): Free loop ins/outs.
+
+#undef EMIT
     }
 
     void EmitInputs(XCProgramProto* prog) {

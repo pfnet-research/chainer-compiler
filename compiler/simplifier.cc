@@ -125,14 +125,15 @@ bool ReplaceBatchNormalization(Graph* graph, Node* node) {
 
 }  // namespace
 
-void Simplify(Graph* graph) {
+void Simplify(Graph* graph, bool is_in_loop) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
-    CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    if (!is_in_loop)
+        CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif

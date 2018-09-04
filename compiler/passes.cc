@@ -14,4 +14,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     ScheduleComputation(*graph);
 }
 
+void RunLoopBodyPasses(Graph* graph) {
+    // InferAllDtypeAndShape(graph);
+    Simplify(graph, true  /* is_in_loop */);
+    // if (gen_backprop) AddGradientNodes(graph);
+    ScheduleComputation(*graph);
+}
+
 }  // namespace oniku
