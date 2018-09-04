@@ -166,49 +166,52 @@ def gen_scan_sum_test(test_name):
            name=test_name)
 
 
-def gen_loop_simple_sum_test(test_name):
-    input_state = np.array(0)
-    state = input_state
-    output = np.array(15)
+def make_constant_node(name, typ, value):
+    tensor = onnx.helper.make_tensor(name + '_val', typ, (), value)
+    node = onnx.helper.make_node('Constant', inputs=[], outputs=[name],
+                                 value=tensor)
+    return node
 
-    iter_vi = _extract_value_info(np.array(0), 'iter')
-    cond_in_vi = _extract_value_info(np.array(True), 'cond_in')
-    cond_vi = _extract_value_info(np.array(True), 'cond')
-    inputs_vi = [_extract_value_info(state, 'in')]
-    outputs_vi = [_extract_value_info(output, 'out')]
 
-    sum = onnx.helper.make_node('Add', inputs=['in', 'iter'], outputs=['out'])
-    loop_cnt_val = onnx.helper.make_tensor("five", onnx.TensorProto.INT64,
-                                           (), [5])
-    loop_cnt = onnx.helper.make_node('Constant', inputs=[],
-                                     outputs=['loop_cnt'], value=loop_cnt_val)
-    cond = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
-                                 outputs=['cond'])
-    body = onnx.helper.make_graph(
-        nodes=[sum, loop_cnt, cond],
-        name='body',
-        inputs=[iter_vi] + [cond_in_vi] + inputs_vi,
-        outputs=[cond_vi] + outputs_vi)
+def gen_loop_simple_sum_test():
+    def fn(test_name):
+        input_state = np.array(0)
+        state = input_state
+        output = np.array(15)
 
-    max_loop_cnt_val = onnx.helper.make_tensor(
-        "max_loop_cnt_val", onnx.TensorProto.INT64, (), [7])
-    max_loop_cnt = onnx.helper.make_node('Constant', inputs=[],
-                                         outputs=['max_loop_cnt'],
-                                         value=max_loop_cnt_val)
-    first_cond_val = onnx.helper.make_tensor(
-        "first_cond_val", onnx.TensorProto.BOOL, (), [True])
-    first_cond = onnx.helper.make_node('Constant', inputs=[],
-                                       outputs=['first_cond'],
-                                       value=first_cond_val)
-    node = onnx.helper.make_node(
-        'Loop',
-        body=body,
-        inputs=['max_loop_cnt', 'first_cond', 'state'],
-        outputs=['output'])
-    expect(node,
-           inputs=[np.array(7), np.array(True), state],
-           outputs=[output],
-           name=test_name)
+        iter_vi = _extract_value_info(np.array(0), 'iter')
+        cond_in_vi = _extract_value_info(np.array(True), 'cond_in')
+        cond_vi = _extract_value_info(np.array(True), 'cond')
+        inputs_vi = [_extract_value_info(state, 'in')]
+        outputs_vi = [_extract_value_info(output, 'out')]
+
+        sum = onnx.helper.make_node('Add', inputs=['in', 'iter'],
+                                    outputs=['out'])
+        loop_cnt = make_constant_node(
+            'loop_cnt', onnx.TensorProto.INT64, [5])
+        cond = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
+                                     outputs=['cond'])
+        body = onnx.helper.make_graph(
+            nodes=[sum, loop_cnt, cond],
+            name='body',
+            inputs=[iter_vi] + [cond_in_vi] + inputs_vi,
+            outputs=[cond_vi] + outputs_vi)
+
+        max_loop_cnt = make_constant_node(
+            'max_loop_cnt', onnx.TensorProto.INT64, [7])
+        first_cond = make_constant_node(
+            'first_cond', onnx.TensorProto.BOOL, [True])
+        node = onnx.helper.make_node(
+            'Loop',
+            body=body,
+            inputs=['max_loop_cnt', 'first_cond', 'state'],
+            outputs=['output'])
+        expect(node,
+               inputs=[np.array(7), np.array(True), state],
+               outputs=[output],
+               name=test_name)
+
+    return fn
 
 
 def gen_loop_sum_fact_test(test_name):
@@ -265,7 +268,7 @@ class TestCase(object):
 def get_tests():
     return [
         TestCase('extra_test_select_item', gen_select_item_test),
-        TestCase('extra_test_loop_simple_sum', gen_loop_simple_sum_test),
+        TestCase('extra_test_loop_simple_sum', gen_loop_simple_sum_test()),
         TestCase('extra_test_loop_sum_fact', gen_loop_sum_fact_test, fail=True),
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
     ]
