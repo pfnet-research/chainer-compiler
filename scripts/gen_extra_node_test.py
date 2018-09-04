@@ -68,7 +68,7 @@ def gen_test(graph, inputs, outputs, name):
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as f:
         f.write(model.SerializeToString())
     for typ, values in [('input', inputs), ('output', outputs)]:
-        for i, (value, name) in enumerate(values):
+        for i, (name, value) in enumerate(values):
             filename = os.path.join(test_data_set_dir, '%s_%d.pb' % (typ, i))
             tensor = numpy_helper.from_array(value, name)
             with open(filename, 'wb') as f:
@@ -266,9 +266,7 @@ def gen_sequence_test(test_name):
         inputs=[],
         outputs=['seq0']))
 
-    inputs_vi = []
     for i, input in enumerate(inputs):
-        inputs_vi.append(_extract_value_info(input, 'in%d' % i))
         nodes.append(onnx.helper.make_node(
             'OnikuxSequenceAppend',
             inputs=['seq%d' % i, 'in%d' % i],
@@ -286,8 +284,19 @@ def gen_sequence_test(test_name):
         inputs=['seq3'],
         outputs=['stack_result']))
 
-    #expect(node, inputs=[input, indices], outputs=[output], name=test_name)
-
+    outputs = [
+        ('lookup_result', np.array([3, 4])),
+        ('stack_result', np.stack(inputs)),
+    ]
+    inputs = [('in%d' % i, input) for i, input in enumerate(inputs)]
+    inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
+    outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
+    graph = onnx.helper.make_graph(
+        nodes=nodes,
+        name=test_name,
+        inputs=inputs_vi,
+        outputs=outputs_vi)
+    gen_test(graph, inputs, outputs, name=test_name)
 
 
 class TestCase(object):
@@ -314,7 +323,7 @@ def get_tests():
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
 
-        #TestCase('extra_test_sequence', gen_sequence_test, fail=True),
+        TestCase('extra_test_sequence', gen_sequence_test),
     ]
 
 
