@@ -356,6 +356,9 @@ private:
         CHECK_EQ(num_body_inputs, num_states + 2);
         CHECK_EQ(num_loop_outputs, num_states + num_scans);
         CHECK_EQ(0, num_scans) << "TODO(hamaji): Implement scan outputs";
+        Value* max_trip_count = loop.inputs()[0];
+        Value* terminal_condition = loop.inputs()[1];
+        CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite loop is detected";
 
         const std::string& debug_info = loop.DebugString();
 
@@ -432,8 +435,7 @@ private:
             MOVE(GetValueId(body_in), GetValueId(body_out));
         }
 
-        Value* max_trip_count = loop.inputs()[0];
-        if (max_trip_count->kind() != Value::Kind::kNull) {
+        if (!max_trip_count->IsNull()) {
             EMIT(Greater, tmp_id, GetValueId(loop.inputs()[0]), iter_id);
             int tmp2_id = next_value_id_++;
             EMIT(Mul, tmp2_id, cond_id, tmp_id);

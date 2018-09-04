@@ -81,6 +81,10 @@ public:
         return counter_++;
     }
 
+    bool IsNull() const {
+        return kind_ == Kind::kNull;
+    }
+
 private:
     Kind kind_;
     std::string name_;
