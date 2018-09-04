@@ -225,7 +225,7 @@ void InferDtype(Node* node) {
             Dtype dtype = in0;
             for (Value* in : node->inputs()) {
                 if (in->type().dtype() != dtype) {
-                    WARN_ONCE("Dtype inference for Scan with multiple types of dtypes");
+                    WARN_ONCE("Dtype inference for Loop/Scan with multiple types of dtypes");
                 }
             }
             for (size_t i = 0; i < node->outputs().size(); ++i) {
