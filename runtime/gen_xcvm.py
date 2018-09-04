@@ -149,6 +149,10 @@ XC_OPS = [
     ('GreaterEqual', [Array('a'), Array('b')], ['c']),
     ('Not', [Array('x')], ['y']),
     ('Cast', [Array('input'), Int('to')], ['output']),
+
+    # TODO(hamaji): Re-design constants.
+    ('IntConstant', [Int('value'), Int('dtype')], ['output']),
+    ('JmpTrue', [Array('cond'), Int('pc')], []),
 ]
 
 

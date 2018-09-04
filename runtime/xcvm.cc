@@ -50,7 +50,7 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
             op->Run(&state);
         }
 
-        state.set_pc(pc + 1);
+        state.set_pc(state.pc() + 1);
 
         if (options.dump_memory_usage && options.base_memory_usage >= 0) {
             int64_t bytes = options.base_memory_usage - GetMemoryUsageInBytes();

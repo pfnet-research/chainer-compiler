@@ -467,5 +467,15 @@ xchainer::Array CastOp::RunImpl(XCVMState* st, const xchainer::Array& input) {
     return input.AsType(static_cast<xchainer::Dtype>(to));
 }
 
+xchainer::Array IntConstantOp::RunImpl(XCVMState* st) {
+    return xchainer::Full({}, value, static_cast<xchainer::Dtype>(dtype));
+}
+
+void JmpTrueOp::RunImpl(XCVMState* st, const xchainer::Array& cond) {
+    if (static_cast<bool>(xchainer::AsScalar(cond))) {
+        st->set_pc(pc - 1);
+    }
+}
+
 }  // namespace runtime
 }  // namespace oniku
