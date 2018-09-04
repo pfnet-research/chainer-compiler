@@ -147,7 +147,7 @@ NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('OnikuxSequenceCreate', 0, 1)
 NodeDef('OnikuxSequenceAppend', 2, 1)
 NodeDef('OnikuxSequenceLookup', 2, 1)
-NodeDef('OnikuxSequenceStack', 1, 0)
+NodeDef('OnikuxSequenceStack', 1, 1)
 
 
 class AttrDef(object):
