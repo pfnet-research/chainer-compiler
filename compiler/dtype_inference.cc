@@ -237,6 +237,14 @@ void InferDtype(Node* node) {
             }
             break;
         }
+
+        case Node::kOnikuxSequenceCreate:
+        case Node::kOnikuxSequenceAppend:
+        case Node::kOnikuxSequenceLookup:
+        case Node::kOnikuxSequenceStack: {
+            // TODO(hamaji): Consider implementing dtype inference for sequences.
+            break;
+        }
     }
 }
 

@@ -46,16 +46,20 @@ def expect(node, inputs, outputs, name):
 
     assert len(present_inputs) == len(inputs)
     assert len(present_outputs) == len(outputs)
-    inputs_vi = [_extract_value_info(a, n)
-                 for a, n in zip(inputs, present_inputs)]
-    outputs_vi = [_extract_value_info(a, n)
-                  for a, n in zip(outputs, present_outputs)]
+    inputs = zip(present_inputs, inputs)
+    outputs = zip(present_outputs, outputs)
+    inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
+    outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
 
     graph = onnx.helper.make_graph(
         nodes=[node],
         name=name,
         inputs=inputs_vi,
         outputs=outputs_vi)
+    gen_test(graph, inputs, outputs, name)
+
+
+def gen_test(graph, inputs, outputs, name):
     model = onnx.helper.make_model(graph, producer_name='backend-test')
 
     test_dir = os.path.join('out', name)
@@ -63,8 +67,7 @@ def expect(node, inputs, outputs, name):
     makedirs(test_data_set_dir)
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as f:
         f.write(model.SerializeToString())
-    for typ, values in [('input', zip(inputs, present_inputs)),
-                        ('output', zip(outputs, present_outputs))]:
+    for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (value, name) in enumerate(values):
             filename = os.path.join(test_data_set_dir, '%s_%d.pb' % (typ, i))
             tensor = numpy_helper.from_array(value, name)
@@ -255,6 +258,38 @@ def gen_loop_test(max_trip_count=7,
     return fn
 
 
+def gen_sequence_test(test_name):
+    inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
+    nodes = []
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceCreate',
+        inputs=[],
+        outputs=['seq0']))
+
+    inputs_vi = []
+    for i, input in enumerate(inputs):
+        inputs_vi.append(_extract_value_info(input, 'in%d' % i))
+        nodes.append(onnx.helper.make_node(
+            'OnikuxSequenceAppend',
+            inputs=['seq%d' % i, 'in%d' % i],
+            outputs=['seq%d' % (i + 1)]))
+
+    index_value = 1
+    nodes.append(make_constant_node(
+        'index', onnx.TensorProto.INT64, [index_value]))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceLookup',
+        inputs=['seq3', 'index'],
+        outputs=['lookup_result']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceStack',
+        inputs=['seq3'],
+        outputs=['stack_result']))
+
+    #expect(node, inputs=[input, indices], outputs=[output], name=test_name)
+
+
+
 class TestCase(object):
     def __init__(self, name, func, fail=False):
         self.name = name
@@ -278,6 +313,8 @@ def get_tests():
                  gen_loop_test(has_scan_outputs=True)),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
+
+        #TestCase('extra_test_sequence', gen_sequence_test, fail=True),
     ]
 
 

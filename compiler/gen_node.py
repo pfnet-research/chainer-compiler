@@ -144,6 +144,11 @@ NodeDef('OnikuxLRNGrad', 3, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 
+NodeDef('OnikuxSequenceCreate', 0, 1)
+NodeDef('OnikuxSequenceAppend', 2, 1)
+NodeDef('OnikuxSequenceLookup', 2, 1)
+NodeDef('OnikuxSequenceStack', 1, 0)
+
 
 class AttrDef(object):
     def __init__(self, name, value):
