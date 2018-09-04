@@ -396,13 +396,7 @@ private:
 
         std::map<const Value*, int> num_users;
         for (const Value* value : loop.body()->temp_values()) {
-            // TODO(hamaji): Change the number of users in detach.
-            int n = 0;
-            for (const Node* node : value->users()) {
-                if (!node->detached())
-                    n++;
-            }
-            num_users.emplace(value, n);
+            num_users.emplace(value, value->users().size());
         }
 
         std::vector<const Node*> nodes(loop.body()->GetComputationSequence());

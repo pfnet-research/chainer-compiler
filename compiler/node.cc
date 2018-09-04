@@ -45,6 +45,9 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
 }
 
 void Node::Detach() {
+    for (Value* input : inputs_) {
+        input->DetachUser(this);
+    }
     inputs_.clear();
     outputs_.clear();
     detached_ = true;

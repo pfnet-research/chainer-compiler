@@ -63,6 +63,7 @@ public:
         return users_;
     }
     void AddUser(Node* user);
+    void DetachUser(const Node* user);
 
     Node* producer() const {
         return producer_;

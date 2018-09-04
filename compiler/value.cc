@@ -1,5 +1,7 @@
 #include "value.h"
 
+#include <algorithm>
+
 #include <common/log.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
@@ -33,6 +35,12 @@ void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {
 
 void Value::AddUser(Node* user) {
     users_.push_back(user);
+}
+
+void Value::DetachUser(const Node* user) {
+    auto found = std::find(users_.begin(), users_.end(), user);
+    CHECK(found != users_.end());
+    users_.erase(found);
 }
 
 void Value::SetProducer(Node* producer) {
