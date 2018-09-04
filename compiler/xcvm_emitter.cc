@@ -26,25 +26,7 @@ public:
 
     void Emit(XCProgramProto* program) {
         EmitInputs(program);
-
-        std::map<const Value*, int> num_users;
-        for (const Value* value : graph_.temp_values()) {
-            num_users.emplace(value, value->users().size());
-        }
-
-        std::vector<const Node*> nodes(graph_.GetComputationSequence());
-        for (const Node* node : nodes) {
-            EmitNode(*node, program);
-
-            for (const Value* input : node->inputs()) {
-                auto found = num_users.find(input);
-                if (found == num_users.end()) continue;
-                if (--found->second == 0) {
-                    AddFreeOp(program, GetValueId(input));
-                }
-            }
-        }
-
+        EmitGraph(graph_, program);
         EmitOutputs(program);
     }
 
@@ -347,6 +329,26 @@ private:
 #undef EMIT
     }
 
+    void EmitGraph(const Graph& graph, XCProgramProto* prog) {
+        std::map<const Value*, int> num_users;
+        for (const Value* value : graph.temp_values()) {
+            num_users.emplace(value, value->users().size());
+        }
+
+        std::vector<const Node*> nodes(graph.GetComputationSequence());
+        for (const Node* node : nodes) {
+            EmitNode(*node, prog);
+
+            for (const Value* input : node->inputs()) {
+                auto found = num_users.find(input);
+                if (found == num_users.end()) continue;
+                if (--found->second == 0) {
+                    AddFreeOp(prog, GetValueId(input));
+                }
+            }
+        }
+    }
+
     void EmitLoop(const Node& loop, XCProgramProto* prog) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
@@ -394,23 +396,7 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        std::map<const Value*, int> num_users;
-        for (const Value* value : loop.body()->temp_values()) {
-            num_users.emplace(value, value->users().size());
-        }
-
-        std::vector<const Node*> nodes(loop.body()->GetComputationSequence());
-        for (const Node* node : nodes) {
-            EmitNode(*node, prog);
-
-            for (const Value* input : node->inputs()) {
-                auto found = num_users.find(input);
-                if (found == num_users.end()) continue;
-                if (--found->second == 0) {
-                    AddFreeOp(prog, GetValueId(input));
-                }
-            }
-        }
+        EmitGraph(*loop.body(), prog);
 
         int one_id = next_value_id_++;
         EMIT(IntConstant, one_id, 1, Dtype::kInt64);
