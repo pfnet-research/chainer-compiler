@@ -18,7 +18,8 @@ using oniku::runtime::XCProgramProto;
 
 class XCVMEmitter {
 public:
-    explicit XCVMEmitter(const Graph& graph) : graph_(graph), value_ids_(AssignValueIds(graph)) {
+    explicit XCVMEmitter(const Graph& graph) : graph_(graph) {
+        AssignValueIds(graph);
     }
 
     void Emit(XCProgramProto* program) {
@@ -45,22 +46,19 @@ public:
         EmitOutputs(program);
     }
 
-    static std::map<const Value*, int> AssignValueIds(const Graph& graph) {
-        int id = 1;
-        std::map<const Value*, int> value_ids;
+private:
+    void AssignValueIds(const Graph& graph) {
         for (const Value* v : graph.input_values()) {
-            CHECK(value_ids.emplace(v, id++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second);
         }
         for (const Value* v : graph.temp_values()) {
-            CHECK(value_ids.emplace(v, id++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second);
         }
         for (const Value* v : graph.output_values()) {
-            CHECK(value_ids.emplace(v, id++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second);
         }
-        return value_ids;
     }
 
-private:
     int GetValueId(const Value* v) const {
         auto found = value_ids_.find(v);
         CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
@@ -353,6 +351,7 @@ private:
     }
 
     const Graph& graph_;
+    int next_value_id_{1};
     std::map<const Value*, int> value_ids_;
 };
 
