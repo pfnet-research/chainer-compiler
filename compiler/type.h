@@ -15,6 +15,9 @@ public:
     explicit Type(const onnx::TypeProto& xtype);
     Type(Dtype dtype, const std::vector<int64_t>& dims);
 
+    explicit Type(const Type& type);
+    Type& operator=(const Type&) = delete;
+
     void ToONNX(onnx::TypeProto* xtype) const;
 
     Dtype dtype() const {

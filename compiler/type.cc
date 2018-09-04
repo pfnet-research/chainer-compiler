@@ -26,6 +26,14 @@ Type::Type(const onnx::TypeProto& xtype) {
 Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_(dims) {
 }
 
+Type::Type(const Type& type)
+    : dtype_(type.dtype_),
+      dims_(type.dims_),
+      dim_params_(type.dim_params_),
+      denotations_(type.denotations_),
+      is_known_(type.is_known_) {
+}
+
 void Type::ToONNX(onnx::TypeProto* xtype) const {
     xtype->mutable_tensor_type()->set_elem_type(dtype_.ToONNX());
     if (!is_known_)

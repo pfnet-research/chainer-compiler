@@ -43,9 +43,6 @@ public:
     const Type& type() const {
         return type_;
     }
-    void set_type(const Type& type) {
-        type_ = type;
-    }
     Type* mutable_type() {
         return &type_;
     }
