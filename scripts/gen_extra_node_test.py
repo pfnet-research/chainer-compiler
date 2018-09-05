@@ -2,6 +2,7 @@
 
 
 import os
+import shutil
 
 import chainer
 import numpy as np
@@ -10,11 +11,6 @@ from onnx import numpy_helper
 
 
 F = chainer.functions
-
-
-def makedirs(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
 
 
 def V(a):
@@ -46,8 +42,8 @@ def expect(node, inputs, outputs, name):
 
     assert len(present_inputs) == len(inputs)
     assert len(present_outputs) == len(outputs)
-    inputs = zip(present_inputs, inputs)
-    outputs = zip(present_outputs, outputs)
+    inputs = list(zip(present_inputs, inputs))
+    outputs = list(zip(present_outputs, outputs))
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
     outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
 
@@ -64,7 +60,9 @@ def gen_test(graph, inputs, outputs, name):
 
     test_dir = os.path.join('out', name)
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
-    makedirs(test_data_set_dir)
+    if os.path.exists(test_dir):
+        shutil.rmtree(test_dir)
+    os.makedirs(test_data_set_dir)
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as f:
         f.write(model.SerializeToString())
     for typ, values in [('input', inputs), ('output', outputs)]:
