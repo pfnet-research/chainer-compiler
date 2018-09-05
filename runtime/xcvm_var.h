@@ -21,7 +21,7 @@ public:
     std::vector<xchainer::Array>* GetSequence();
 
     std::string ToString() const;
-    std::string ToDebugString() const;
+    std::string DebugString() const;
 
 private:
     Kind kind_;

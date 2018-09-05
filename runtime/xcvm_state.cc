@@ -3,6 +3,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <runtime/xcvm.h>
+#include <runtime/xcvm_var.h>
 
 namespace oniku {
 namespace runtime {
@@ -11,7 +12,6 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
     : pc_(0),
       variables_(num_variables),
       auxiliaries_(num_variables),
-      sequences_(num_variables),
       inputs_(inputs),
       trace_level_(options.trace_level),
       is_training_(options.is_training),
@@ -19,18 +19,19 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
       check_infs_(options.check_infs) {
 }
 
+XCVMState::~XCVMState() {
+}
+
 xchainer::Array XCVMState::GetVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
-    CHECK(variables_[index].has_value());
-    return *variables_[index];
+    CHECK(variables_[index].get());
+    return variables_[index]->GetArray();
 }
 
 nonstd::optional<xchainer::Array> XCVMState::GetVarOptional(int index) {
     if (index < 0) return nonstd::nullopt;
-    CHECK_GT(variables_.size(), index) << index;
-    CHECK(variables_[index].has_value());
-    return *variables_[index];
+    return GetVar(index);
 }
 
 std::vector<xchainer::Array> XCVMState::GetVarList(const std::vector<int>& index) {
@@ -39,32 +40,26 @@ std::vector<xchainer::Array> XCVMState::GetVarList(const std::vector<int>& index
     return vars;
 }
 
+std::vector<xchainer::Array>* XCVMState::CreateSequence(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    variables_[index].reset(new XCVMVar(XCVMVar::Kind::kSequence));
+    return GetSequence(index);
+}
+
 std::vector<xchainer::Array>* XCVMState::GetSequence(int index) {
     CHECK_LE(0, index) << index;
-    CHECK_GT(sequences_.size(), index) << index;
-    return &sequences_[index];
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get());
+    return variables_[index]->GetSequence();
 }
 
 std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
-    xchainer::Array var(GetVar(index));
     if (trace_level_ > 1)
-        return var.ToString();
+        return variables_[index]->DebugString();
     else
-        return var.shape().ToString();
-}
-
-std::string XCVMState::GetSequenceString(int index) {
-    CHECK_LE(0, index);
-    return StrCat(
-        '[',
-        Join(MapToString(sequences_[index], [this](const xchainer::Array a) {
-                    if (trace_level_ > 1)
-                        return a.ToString();
-                    else
-                        return a.shape().ToString();
-                })),
-        ']');
+        return variables_[index]->ToString();
 }
 
 XCVMState::Auxiliary* XCVMState::GetAux(int index) {
@@ -75,20 +70,19 @@ void XCVMState::SetAux(int index, std::unique_ptr<Auxiliary>&& aux) {
     auxiliaries_[index] = std::move(aux);
 }
 
-void XCVMState::SetVar(int index, xchainer::Array value) {
+void XCVMState::SetVar(int index, const xchainer::Array& value) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
-    CHECK(!variables_[index].has_value());
-    variables_[index] = value;
+    CHECK(!variables_[index].get());
+    variables_[index].reset(new XCVMVar(value));
 }
 
 void XCVMState::FreeVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
-    CHECK(variables_[index].has_value());
-    variables_[index] = nonstd::nullopt;
+    CHECK(variables_[index].get());
+    variables_[index].reset();
     auxiliaries_[index] = nullptr;
-    sequences_[index].clear();
 }
 
 xchainer::Array XCVMState::Input(const std::string& name) {

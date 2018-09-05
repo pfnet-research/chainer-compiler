@@ -41,7 +41,7 @@ std::string XCVMVar::ToString() const {
     CHECK(false);
 }
 
-std::string XCVMVar::ToDebugString() const {
+std::string XCVMVar::DebugString() const {
     switch (kind_) {
     case Kind::kArray:
         return array_->ToString();

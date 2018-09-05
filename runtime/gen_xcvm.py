@@ -57,7 +57,6 @@ def String(name):
 XC_OPS = [
     ('In', [String('name')], 'v'),
     ('Out', [String('name'), Array('v')], []),
-    ('Free', [Array('v')], []),
 
     ('Add', [Array('a'), Array('b')], ['c']),
     ('Sub', [Array('a'), Array('b')], ['c']),
@@ -171,6 +170,10 @@ XC_SEQ_OPS = [
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 
+XC_GENERIC_OPS = [
+    ('Free', [Array('v')], []),
+]
+
 
 class Op(object):
     def __init__(self, name, inputs, outputs, array_only=True):
@@ -190,6 +193,7 @@ class Op(object):
 
 XC_ALL_OPS = [Op(*op) for op in XC_OPS]
 XC_ALL_OPS += [Op(*op, array_only=False) for op in XC_SEQ_OPS]
+XC_ALL_OPS += [Op(*op, array_only=False) for op in XC_GENERIC_OPS]
 
 
 def gen_xcvm_proto():
@@ -386,12 +390,9 @@ def gen_gen_xcvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.inputs:
-            if typ == ARRAY or typ == OPTIONAL_ARRAY:
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += f' << " %" << {name} << "="'
                 line += f' << st->GetVarString({name})'
-            elif typ == SEQUENCE:
-                line += f' << " @" << {name} << "="'
-                line += f' << st->GetSequenceString({name})'
         if op.outputs:
             line += ' << " ->"'
         line += ';'
@@ -421,12 +422,9 @@ def gen_gen_xcvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.outputs_typed:
-            if typ == ARRAY or typ == OPTIONAL_ARRAY:
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += f' << " %" << {name} << "="'
                 line += f' << st->GetVarString({name})'
-            elif typ == SEQUENCE:
-                line += f' << " @" << {name} << "="'
-                line += f' << st->GetSequenceString({name})'
             else:
                 raise RuntimeError('Unknown output type: %s' % typ)
         line += ' << std::endl;'

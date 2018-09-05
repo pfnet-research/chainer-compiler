@@ -8,15 +8,6 @@
 namespace oniku {
 namespace runtime {
 
-namespace {
-
-// TODO(hamaji): Refactor sequence and eliminate the need of this function.
-xchainer::Array DummyArray() {
-    return xchainer::Full({}, -42, xchainer::Dtype::kInt8);
-}
-
-}  // namespace
-
 void SequenceClearOp::RunImpl(XCVMState* st) {
     st->GetSequence(seq)->clear();
 }
@@ -73,25 +64,21 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceCreateOp::RunImpl(XCVMState* st) {
-    std::vector<xchainer::Array>* d = st->GetSequence(output);
-    CHECK(d->empty());
-    st->SetVar(output, DummyArray());
+    st->CreateSequence(output);
 }
 
 void SequenceCopyOp::RunImpl(XCVMState* st) {
     const std::vector<xchainer::Array>& s = *st->GetSequence(seq);
-    std::vector<xchainer::Array>* d = st->GetSequence(output);
+    std::vector<xchainer::Array>* d = st->CreateSequence(output);
     CHECK(d->empty());
     *d = s;
-    st->SetVar(output, st->GetVar(seq));
 }
 
 void SequenceMoveOp::RunImpl(XCVMState* st) {
     std::vector<xchainer::Array>* s = st->GetSequence(seq);
-    std::vector<xchainer::Array>* d = st->GetSequence(output);
+    std::vector<xchainer::Array>* d = st->CreateSequence(output);
     CHECK(d->empty());
     std::swap(*d, *s);
-    st->SetVar(output, st->GetVar(seq));
 }
 
 }  // namespace runtime

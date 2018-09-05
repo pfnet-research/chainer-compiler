@@ -14,6 +14,7 @@ namespace oniku {
 namespace runtime {
 
 class XCVMOptions;
+class XCVMVar;
 
 class XCVMState {
 public:
@@ -26,6 +27,7 @@ public:
     };
 
     XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs);
+    ~XCVMState();
 
     int pc() const {
         return pc_;
@@ -37,13 +39,13 @@ public:
     xchainer::Array GetVar(int index);
     nonstd::optional<xchainer::Array> GetVarOptional(int index);
     std::vector<xchainer::Array> GetVarList(const std::vector<int>& index);
-    void SetVar(int index, xchainer::Array value);
+    void SetVar(int index, const xchainer::Array& value);
     void FreeVar(int index);
 
+    std::vector<xchainer::Array>* CreateSequence(int index);
     std::vector<xchainer::Array>* GetSequence(int index);
 
     std::string GetVarString(int index);
-    std::string GetSequenceString(int index);
 
     Auxiliary* GetAux(int index);
     void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
@@ -73,9 +75,8 @@ public:
 
 private:
     int pc_;
-    std::vector<nonstd::optional<xchainer::Array>> variables_;
+    std::vector<std::unique_ptr<XCVMVar>> variables_;
     std::vector<std::unique_ptr<Auxiliary>> auxiliaries_;
-    std::vector<std::vector<xchainer::Array>> sequences_;
     const InOuts& inputs_;
     InOuts outputs_;
     int trace_level_ = 0;
