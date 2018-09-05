@@ -31,6 +31,17 @@ bool ReplaceLess(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceMin(Graph* graph, Node* node) {
+    CHECK_EQ(1UL, node->outputs().size());
+    GraphBuilder gb(graph, "SimplifyMin", node->outputs()[0]);
+    std::vector<Value*> negs;
+    for (Value* v : node->inputs())
+        negs.push_back(gb.Op(Node::kNeg, {v}));
+    Value* r = gb.Op(Node::kMax, negs);
+    gb.Op(Node::kNeg, {r}, node->outputs()[0]);
+    return true;
+}
+
 bool ReplaceArgMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
@@ -129,6 +140,7 @@ void Simplify(Graph* graph, bool is_in_loop) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
+    CHECK(simplifiers.emplace(Node::kMin, ReplaceMin).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
