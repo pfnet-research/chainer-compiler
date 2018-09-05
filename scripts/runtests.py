@@ -278,14 +278,14 @@ def main():
                 continue
             args.extend(['-d', 'cuda'])
 
-        sys.stdout.write('%s... ' % test_case.name)
+        sys.stderr.write('%s... ' % test_case.name)
         try:
             test_cnt += 1
             subprocess.check_call(args)
-            sys.stdout.write('OK\n')
+            sys.stderr.write('OK\n')
         except subprocess.CalledProcessError:
             fail_cnt += 1
-            sys.stdout.write('FAIL\n')
+            sys.stderr.write('FAIL: %s\n' % ' '.join(args))
     if fail_cnt:
         print('%d/%d tests failed!' % (fail_cnt, test_cnt))
     else:
