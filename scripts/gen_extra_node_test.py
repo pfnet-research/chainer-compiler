@@ -329,6 +329,18 @@ def get_tests():
                  gen_loop_test(max_trip_count=0)),
         TestCase('extra_test_loop_zero_trip_count',
                  gen_loop_test(cond_trip_count=0)),
+        # TODO(hamaji): Probably, we do not care loops with zero
+        # iterations, but for the record: max_trip_count=0 is not
+        # implemented properly and we need to fix `Loop` in
+        # xcvm_emitter.cc. On the other hand, cond_trip_count=0 should
+        # be fixed in the test generator.
+        #
+        # TestCase('extra_test_loop_zero_max_trip_count_scan',
+        #          gen_loop_test(max_trip_count=0,
+        #                        has_scan_outputs=True)),
+        # TestCase('extra_test_loop_zero_trip_count_scan',
+        #          gen_loop_test(cond_trip_count=0,
+        #                        has_scan_outputs=True)),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
 
