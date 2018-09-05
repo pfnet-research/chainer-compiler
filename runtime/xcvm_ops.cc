@@ -45,6 +45,33 @@ xchainer::Array Pow(xchainer::Array a, xchainer::Array b) {
     return xchainer::Exp(xchainer::Log(a) * b);
 }
 
+xchainer::Array ElementwiseMax(xchainer::Array a, xchainer::Array b) {
+    // TODO(hamaji): Implement this in ChainerX.
+    CHECK_EQ(a.dtype(), b.dtype());
+    int64_t an = a.GetTotalSize();
+    int64_t bn = b.GetTotalSize();
+    xchainer::Array result;
+    if (an == 1) {
+        result = xchainer::Maximum(xchainer::AsScalar(a), b);
+    } else if (bn == 1) {
+        result = xchainer::Maximum(a, xchainer::AsScalar(b));
+    } else {
+        CHECK_EQ(an, bn) << "Max with broadcast not supported yet";
+        WARN_ONCE("Slow element-wise Max");
+        // Flatten views.
+        xchainer::Array av = xchainer::Reshape(a, {an});
+        xchainer::Array bv = xchainer::Reshape(b, {an});
+        std::vector<xchainer::Array> maxes;
+        for (int i = 0; i < an; ++i) {
+            xchainer::Array m = xchainer::Maximum(xchainer::AsScalar(av.At({i})), bv.At({i}));
+            maxes.push_back(xchainer::Reshape(m, {1}));
+        }
+        result = Concat(maxes, 0);
+        result = xchainer::Reshape(result, a.shape());
+    }
+    return result;
+}
+
 }  // namespace
 
 xchainer::Array InOp::RunImpl(XCVMState* st) {
@@ -111,6 +138,15 @@ xchainer::Array ArgMaxOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
         r = xchainer::Reshape(r, shape);
     }
     return r;
+}
+
+xchainer::Array MaxOp::RunImpl(XCVMState* st, const std::vector<xchainer::Array>& inputs) {
+    CHECK_LT(0, inputs.size());
+    xchainer::Array result = inputs[0];
+    for (size_t i = 1; i < inputs.size(); ++i) {
+        result = ElementwiseMax(result, inputs[i]);
+    }
+    return result;
 }
 
 xchainer::Array HardmaxOp::RunImpl(XCVMState* st, const xchainer::Array& x) {

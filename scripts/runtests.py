@@ -174,6 +174,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_sum_example'),
     TestCase(NODE_TEST, 'test_sum_one_input'),
     TestCase(NODE_TEST, 'test_sum_two_inputs'),
+    TestCase(NODE_TEST, 'test_max_example'),
+    TestCase(NODE_TEST, 'test_max_one_input'),
+    TestCase(NODE_TEST, 'test_max_two_inputs'),
 
     TestCase(NODE_TEST, 'test_argmax_default_axis_example'),
     TestCase(NODE_TEST, 'test_argmax_default_axis_random'),

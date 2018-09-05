@@ -85,6 +85,8 @@ NodeDef('Concat', None, 1, axis=Required(int))
 NodeDef('Transpose', 1, 1, perm=[int])
 
 NodeDef('Sum', None, 1)
+NodeDef('Max', None, 1)
+NodeDef('Min', None, 1)
 
 NodeDef('ReduceSum', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceSumSquare', 1, 1, axes=[int], keepdims=True)
