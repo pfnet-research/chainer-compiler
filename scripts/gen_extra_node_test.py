@@ -181,7 +181,7 @@ def gen_loop_test(max_trip_count=7,
                   terminal_condition=True,
                   has_scan_outputs=False):
     def fn(test_name):
-        input_state = np.array(0)
+        input_state = np.array(42)
         state = input_state
 
         trip_counts = []
@@ -192,11 +192,13 @@ def gen_loop_test(max_trip_count=7,
         elif terminal_condition is not None:
             trip_counts.append(cond_trip_count)
         trip_count = min(trip_counts)
-        output = np.array(sum(range(trip_count)))
+
+        output = np.array(sum(range(trip_count)) + 42)
         scan_outputs = []
         if has_scan_outputs:
             scan_outputs = [
-                np.array(list(sum(range(i + 1)) for i in range(trip_count))),
+                np.array(list(sum(range(i + 1)) + 42
+                              for i in range(trip_count))),
                 np.array(list(i * i for i in range(trip_count))),
                 np.array(list(range(trip_count)))]
 
