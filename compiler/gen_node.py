@@ -261,10 +261,10 @@ def gen_gen_node_base_h():
 
         if attr.type == Tensor:
             public_lines.append(
-                f'NodeBase& set_{name}(const onnx::TensorProto& {name});')
+                f'NodeBase& set_{name}(Tensor* {name});')
         elif attr.type == Graph:
             public_lines.append(
-                f'NodeBase& set_{name}(const onnx::GraphProto& {name});')
+                f'NodeBase& set_{name}(Graph* {name});')
         else:
             public_lines.append(f'NodeBase& set_{name}({arg} {name}) ' + '{')
             public_lines.append(f'{name}_ = {name};')
@@ -365,9 +365,9 @@ def gen_gen_node_base_cc():
             elif attr.type == Dtype:
                 blines.append(f'set_{attr.c_name}(Dtype(onnx::TensorProto::DataType(xattr.i())));')
             elif attr.type == Tensor:
-                blines.append(f'set_{attr.c_name}(xattr.t());')
+                blines.append(f'set_{attr.c_name}(new Tensor(xattr.t()));')
             elif attr.type == Graph:
-                blines.append(f'set_{attr.c_name}(xattr.g());')
+                blines.append(f'set_{attr.c_name}(new Graph(xattr.g()));')
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
             blines.append(f'was_{attr.c_name}_set_ = true;')
@@ -527,14 +527,12 @@ def gen_gen_node_base_cc():
         typ = attr.c_type()
         if attr.type == Tensor:
             lines.append(
-                f'NodeBase& NodeBase::set_{name}('
-                f'const onnx::TensorProto& {name}) ' + '{')
-            lines.append(f'{name}_.reset(new Tensor({name}));')
+                f'NodeBase& NodeBase::set_{name}(Tensor* {name})' + '{')
+            lines.append(f'{name}_.reset({name});')
         elif attr.type == Graph:
             lines.append(
-                f'NodeBase& NodeBase::set_{name}('
-                f'const onnx::GraphProto& {name}) ' + '{')
-            lines.append(f'{name}_.reset(new Graph({name}));')
+                f'NodeBase& NodeBase::set_{name}(Graph* {name})' + '{')
+            lines.append(f'{name}_.reset({name});')
         else:
             continue
         lines.append(f'was_{name}_set_ = true;')

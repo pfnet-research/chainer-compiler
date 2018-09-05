@@ -21,9 +21,9 @@ Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs,
 
 template <typename T>
 Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data) {
-    int id = id_++;
-    const std::string name = StrCat(category_, '_', target_, '_', id);
-    return graph_->AddConstValue(name, type, data);
+    Value* v = Op(Node::kConstant, {});
+    v->producer()->set_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
+    return v;
 }
 
 template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data);
