@@ -407,6 +407,14 @@ private:
             EMIT(Identity, GetValueId(body_in), GetValueId(loop_in));
         }
 
+        // Prepare temporary sequences for scan outputs.
+        std::vector<int> scan_out_ids;
+        for (int i = 0; i < num_scans; ++i) {
+            int id = next_value_id_++;
+            EMIT(SequenceCreate, id);
+            scan_out_ids.push_back(id);
+        }
+
         int skip_loop_jmp = -1;
         if (!terminal_condition->IsNull()) {
             skip_loop_jmp = prog->instructions_size();
@@ -438,12 +446,10 @@ private:
         }
 
         // Push scan outputs.
-        for (int i = num_states; i < num_states + num_scans; ++i) {
-            CHECK_LT(i + 1, loop.body()->output_values().size());
-            CHECK_LT(i, loop.outputs().size());
-            const Value* body_out = loop.body()->output_values()[i + 1];
-            const Value* loop_out = loop.outputs()[i];
-            EMIT(SequenceAppend, GetValueId(loop_out), GetValueId(body_out));
+        for (int i = 0; i < num_scans; ++i) {
+            CHECK_LT(i + num_states + 1, loop.body()->output_values().size());
+            const Value* body_out = loop.body()->output_values()[i + num_states + 1];
+            EMIT(SequenceAppend, scan_out_ids[i], GetValueId(body_out));
             AddFreeOp(prog, GetValueId(body_out));
         }
 
@@ -477,11 +483,11 @@ private:
         }
 
         // Stack and output scan outputs.
-        for (int i = num_states; i < num_states + num_scans; ++i) {
-            CHECK_LT(i, loop.outputs().size());
-            const Value* loop_out = loop.outputs()[i];
-            EMIT(SequenceStack, GetValueId(loop_out), GetValueId(loop_out));
-            EMIT(SequenceClear, GetValueId(loop_out));
+        for (int i = 0; i < num_scans; ++i) {
+            CHECK_LT(i + num_states, loop.outputs().size());
+            const Value* loop_out = loop.outputs()[i + num_states];
+            EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i]);
+            AddFreeOp(prog, scan_out_ids[i]);
         }
 
 #undef EMIT
