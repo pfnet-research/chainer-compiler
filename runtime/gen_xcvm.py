@@ -54,6 +54,15 @@ def String(name):
     return (STRING, name)
 
 
+def sigil(typ):
+    if typ in [ARRAY, OPTIONAL_ARRAY]:
+        return '$'
+    elif typ == SEQUENCE:
+        return '@'
+    else:
+        raise RuntimeError('Not a varaible: %s' % typ)
+
+
 XC_OPS = [
     ('In', [String('name')], 'v'),
     ('Out', [String('name'), Array('v')], []),
@@ -363,17 +372,15 @@ def gen_gen_xcvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         if op.outputs:
-            for name in op.outputs:
-                line += f' << "%" << {name}'
+            for typ, name in op.outputs_typed:
+                line += f' << "{sigil(typ)}" << {name}'
             line += ' << " = "'
         line += f' << "{op.name}("'
         for i, (typ, name) in enumerate(op.inputs):
             if i:
                 line += ' << ", "'
-            if typ == ARRAY or typ == OPTIONAL_ARRAY:
-                line += f' << "%" << {name}'
-            elif typ == SEQUENCE:
-                line += f' << "@" << {name}'
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
+                line += f' << "{sigil(typ)}" << {name}'
             elif typ in (INT, FLOAT):
                 line += f' << {name}'
             elif typ == STRING:
@@ -391,7 +398,7 @@ def gen_gen_xcvm_ops_cc():
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.inputs:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
-                line += f' << " %" << {name} << "="'
+                line += f' << " {sigil(typ)}" << {name} << "="'
                 line += f' << st->GetVarString({name})'
         if op.outputs:
             line += ' << " ->"'
@@ -423,7 +430,7 @@ def gen_gen_xcvm_ops_cc():
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.outputs_typed:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
-                line += f' << " %" << {name} << "="'
+                line += f' << " {sigil(typ)}" << {name} << "="'
                 line += f' << st->GetVarString({name})'
             else:
                 raise RuntimeError('Unknown output type: %s' % typ)
