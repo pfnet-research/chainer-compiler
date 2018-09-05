@@ -19,8 +19,9 @@ add_library(oniku_runtime
   xcvm.cc
   xcvm.pb.cc
   xcvm_ops.cc
-  xcvm_state.cc
   xcvm_proto_util.cc
+  xcvm_state.cc
+  xcvm_var.cc
   )
 
 add_library(oniku_xchainer_runtime_main
