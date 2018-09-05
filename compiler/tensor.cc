@@ -208,25 +208,15 @@ int64_t Tensor::NumElements() const {
     return num;
 }
 
-template <>
-Tensor::Tensor<double>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<double>& data)
-    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<double>(dtype, data.data(), data.size())), name_(name) {
+template <typename T>
+Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<T>& data)
+    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<T>(dtype, data.data(), data.size())), name_(name) {
 }
 
-template <>
-Tensor::Tensor<float>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<float>& data)
-    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<float>(dtype, data.data(), data.size())), name_(name) {
-}
-
-template <>
-Tensor::Tensor<int>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int>& data)
-    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<int>(dtype, data.data(), data.size())), name_(name) {
-}
-
-template <>
-Tensor::Tensor<long>(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data)
-    : dims_(dims), dtype_(dtype), data_(LoadDataFromTypedData<long>(dtype, data.data(), data.size())), name_(name) {
-}
+template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<double>& data);
+template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<float>& data);
+template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int>& data);
+template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data);
 
 Tensor::Tensor(const std::string& name, const Tensor& t)
     : dims_(t.dims_),
