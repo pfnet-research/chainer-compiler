@@ -8,7 +8,7 @@ if [ ! -e onnx ]; then
 fi
 
 if [ ! -e onnx/.setuptools-cmake-build/libonnx.a -o ! -e onnx/.setuptools-cmake-build/onnx/onnx-ml.pb.h ]; then
-    (cd onnx && python3 setup.py build)
+    (cd onnx && ONNX_ML=1 python3 setup.py build)
 fi
 
 if [ ! -e googletest ]; then
