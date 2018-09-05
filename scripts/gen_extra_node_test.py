@@ -323,6 +323,10 @@ def get_tests():
                  gen_loop_test(terminal_condition=None)),
         TestCase('extra_test_loop_scan_out',
                  gen_loop_test(has_scan_outputs=True)),
+        TestCase('extra_test_loop_zero_max_trip_count',
+                 gen_loop_test(max_trip_count=0)),
+        TestCase('extra_test_loop_zero_trip_count',
+                 gen_loop_test(cond_trip_count=0)),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
 
