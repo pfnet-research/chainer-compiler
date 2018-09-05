@@ -19,4 +19,16 @@ Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs,
     return output;
 }
 
+template <typename T>
+Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data) {
+    int id = id_++;
+    const std::string name = StrCat(category_, '_', target_, '_', id);
+    return graph_->AddConstValue(name, type, data);
+}
+
+template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data);
+
 }  // namespace oniku

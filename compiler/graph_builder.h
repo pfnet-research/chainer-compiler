@@ -7,6 +7,7 @@
 namespace oniku {
 
 class Graph;
+class Type;
 class Value;
 
 class GraphBuilder {
@@ -20,6 +21,9 @@ public:
     // Create a new operation node which has a single output. A new
     // temporary `Value` will be created if `output` is nullptr.
     Value* Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output = nullptr);
+
+    template <class T>
+    Value* Const(const Type& type, const std::vector<T>& data);
 
 private:
     Graph* graph_;
