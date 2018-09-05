@@ -37,5 +37,7 @@ bool HasNan(const xchainer::Array& a);
 
 bool HasInf(const xchainer::Array& a);
 
+xchainer::Array Concat(const std::vector<xchainer::Array>& inputs, int axis);
+
 }  // namespace runtime
 }  // namespace oniku
