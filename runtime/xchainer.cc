@@ -149,14 +149,13 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
 
     chainerx::Shape shape = inputs[0].shape();
     shape[axis] = axis_dim;
-    // TODO(hamaji): Check why we cannot use `Empty` here.
-    chainerx::Array result = chainerx::Zeros(shape, inputs[0].dtype(), inputs[0].device());
+    chainerx::Array result = chainerx::Empty(shape, inputs[0].dtype(), inputs[0].device());
     std::vector<chainerx::ArrayIndex> indices(inputs[0].ndim(), chainerx::Slice());
     axis_dim = 0;
     for (const chainerx::Array& input : inputs) {
         int64_t cur_dim = input.shape()[axis];
         indices[axis] = chainerx::Slice(axis_dim, axis_dim + cur_dim);
-        result.At(indices) += input;
+        input.device().Copy(input, result.At(indices));
         axis_dim += cur_dim;
     }
     return result;
