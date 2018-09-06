@@ -419,6 +419,7 @@ def gen_gen_node_base_cc():
     };
 
     auto add_tensor_attr = [&xnode](const std::string& name, const std::unique_ptr<Tensor>& v) {
+        if (!v.get()) return;
         onnx::AttributeProto* xattr = xnode->add_attribute();
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::TENSOR);
@@ -426,6 +427,7 @@ def gen_gen_node_base_cc():
     };
 
     auto add_graph_attr = [&xnode](const std::string& name, const std::unique_ptr<Graph>& v) {
+        if (!v.get()) return;
         onnx::AttributeProto* xattr = xnode->add_attribute();
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::GRAPH);
