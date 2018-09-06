@@ -47,6 +47,8 @@ public:
     // Returns the number of input values whose type is not `kNull`.
     int GetNumActualInputs() const;
 
+    void ReplaceInput(Value* f, Value* t);
+
     std::string DebugString() const;
 
 private:

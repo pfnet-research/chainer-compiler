@@ -1,5 +1,7 @@
 #include "node.h"
 
+#include <algorithm>
+
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/dtype.h>
@@ -60,6 +62,12 @@ int Node::GetNumActualInputs() const {
             count++;
     }
     return count;
+}
+
+void Node::ReplaceInput(Value* f, Value* t) {
+    auto found = std::find(inputs_.begin(), inputs_.end(), f);
+    CHECK(found != inputs_.end());
+    *found = t;
 }
 
 std::string Node::DebugString() const {
