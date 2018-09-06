@@ -82,6 +82,7 @@ XC_OPS = [
     ('ArgMax', [Array('x'), Int('axis'), Int('keepdims')], ['y']),
     ('Hardmax', [Array('x'), Int('axis')], ['y']),
 
+    ('Clip', [Array('inputs'), Float('max'), Float('min')], ['result']),
     ('Max', [ArrayList('inputs')], ['result']),
     ('ReduceMax', [Array('x'), Ints('axes'), Int('keepdims')], ['y']),
     ('ReduceSum', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),

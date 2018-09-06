@@ -64,6 +64,7 @@ void InferDtype(Node* node) {
         case Node::kReduceSumSquare:
         case Node::kReduceMax:
         case Node::kReduceMin:
+        case Node::kClip:
         case Node::kMaxPool:
         case Node::kTranspose: {
             set(0, in0);

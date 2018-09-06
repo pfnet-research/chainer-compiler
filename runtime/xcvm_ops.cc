@@ -130,6 +130,10 @@ chainerx::Array SigmoidOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return Sigmoid(a);
 }
 
+chainerx::Array ClipOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+    return -chainerx::Maximum(-chainerx::Maximum(x, min), -max);
+}
+
 chainerx::Array ArgMaxOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array r = chainerx::ArgMax(x, axis);
     if (keepdims) {

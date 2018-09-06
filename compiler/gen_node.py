@@ -88,6 +88,7 @@ NodeDef('Transpose', 1, 1, perm=[int])
 NodeDef('Sum', None, 1)
 NodeDef('Max', None, 1)
 NodeDef('Min', None, 1)
+NodeDef('Clip', 1, 1, max=float('inf'), min=float('-inf'))
 
 NodeDef('ReduceSum', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceSumSquare', 1, 1, axes=[int], keepdims=True)
@@ -511,6 +512,7 @@ def gen_gen_node_base_cc():
     lines.append('}')
 
     lines.append('void NodeBase::SetDefaultAttributeValues() {')
+    lines.append('const float inf = std::numeric_limits<float>::infinity();')
     lines.append('switch (op_type_) {')
     for node in NODES:
         lines.append(f'case k{node.op_type}: ' + '{')
@@ -574,6 +576,7 @@ def gen_gen_node_base_cc():
 
 #include "gen_node_base.h"
 
+#include <limits>
 #include <string>
 #include <vector>
 
