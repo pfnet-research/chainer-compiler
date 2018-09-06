@@ -531,8 +531,6 @@ def gen_gen_node_base_cc():
 
     for attr in ATTRS:
         name = attr.c_name
-        arg = attr.c_arg_type()
-        typ = attr.c_type()
         if attr.type == Tensor:
             lines.append(
                 f'NodeBase& NodeBase::set_{name}(Tensor* {name})' + '{')
