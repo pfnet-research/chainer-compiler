@@ -24,10 +24,20 @@ public:
         AssignValueIds(graph);
     }
 
-    void Emit(XCProgramProto* program) {
+    void Emit(XCProgramProto* program, bool dump_value_names) {
         EmitInputs(program);
         EmitGraph(graph_, program);
         EmitOutputs(program);
+        if (dump_value_names) {
+            std::map<int, const Value*> values;
+            for (auto p : value_ids_) {
+                values.emplace(p.second, p.first);
+            }
+            std::cerr << "=== variable names ===\n";
+            for (auto p : values) {
+                std::cerr << "$" << p.first << ": " << p.second->name() << std::endl;
+            }
+        }
     }
 
 private:
@@ -519,15 +529,15 @@ private:
 
 }  // namespace
 
-void Emit(const Model& model, XCProgramProto* program) {
+void Emit(const Model& model, XCProgramProto* program, bool dump_value_names) {
     const Graph& graph = model.graph();
     XCVMEmitter emitter(graph);
-    emitter.Emit(program);
+    emitter.Emit(program, dump_value_names);
 }
 
-void Emit(const Model& model, std::ostream& out) {
+void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
     XCProgramProto program;
-    Emit(model, &program);
+    Emit(model, &program, dump_value_names);
     CHECK(program.SerializeToOstream(&out));
 }
 

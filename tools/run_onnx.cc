@@ -230,9 +230,11 @@ void RunMain(int argc, char** argv) {
         CHECK(xmodel.SerializeToOstream(&ofs));
     }
 
+    int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+
     LOG() << "Generate code..." << std::endl;
     XCProgramProto xcvm_prog;
-    xcvm::Emit(model, &xcvm_prog);
+    xcvm::Emit(model, &xcvm_prog, trace_level > 0);
 
     if (args.exist("dump_xcvm")) {
         std::cerr << xcvm_prog.DebugString();
@@ -245,7 +247,7 @@ void RunMain(int argc, char** argv) {
 
     XCVM xcvm(xcvm_prog);
     XCVMOptions xcvm_opts;
-    xcvm_opts.trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+    xcvm_opts.trace_level = trace_level;
     xcvm_opts.is_training = args.exist("backprop");
     xcvm_opts.check_nans = args.exist("check_nans");
     xcvm_opts.check_infs = args.exist("check_infs");
