@@ -6,14 +6,11 @@
 namespace oniku {
 namespace runtime {
 
-XCVMVar::XCVMVar(Kind kind)
-    : kind_(kind) {
+XCVMVar::XCVMVar(Kind kind) : kind_(kind) {
     CHECK(kind_ != Kind::kArray);
 }
 
-XCVMVar::XCVMVar(xchainer::Array array)
-    : kind_(Kind::kArray),
-      array_(array) {
+XCVMVar::XCVMVar(xchainer::Array array) : kind_(Kind::kArray), array_(array) {
 }
 
 xchainer::Array XCVMVar::GetArray() {
@@ -28,30 +25,20 @@ std::vector<xchainer::Array>* XCVMVar::GetSequence() {
 
 std::string XCVMVar::ToString() const {
     switch (kind_) {
-    case Kind::kArray:
-        return array_->shape().ToString();
-    case Kind::kSequence:
-        return StrCat(
-            '[',
-            Join(MapToString(sequence_, [this](const xchainer::Array a) {
-                        return a.shape().ToString();
-                    })),
-            ']');
+        case Kind::kArray:
+            return array_->shape().ToString();
+        case Kind::kSequence:
+            return StrCat('[', Join(MapToString(sequence_, [this](const xchainer::Array a) { return a.shape().ToString(); })), ']');
     }
     CHECK(false);
 }
 
 std::string XCVMVar::DebugString() const {
     switch (kind_) {
-    case Kind::kArray:
-        return array_->ToString();
-    case Kind::kSequence:
-        return StrCat(
-            '[',
-            Join(MapToString(sequence_, [this](const xchainer::Array a) {
-                        return a.ToString();
-                    })),
-            ']');
+        case Kind::kArray:
+            return array_->ToString();
+        case Kind::kSequence:
+            return StrCat('[', Join(MapToString(sequence_, [this](const xchainer::Array a) { return a.ToString(); })), ']');
     }
     CHECK(false);
 }

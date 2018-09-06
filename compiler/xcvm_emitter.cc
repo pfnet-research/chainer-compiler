@@ -407,16 +407,17 @@ private:
 
         const std::string& debug_info = loop.DebugString();
 
-#define EMIT(op, ...)                                                                          \
-    do {                                                                                       \
-        Add##op##Op(prog, __VA_ARGS__);                                                        \
+#define EMIT(op, ...)                                                                                                  \
+    do {                                                                                                               \
+        Add##op##Op(prog, __VA_ARGS__);                                                                                \
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
     } while (0)
 
-#define MOVE(dst, src) do {                     \
-            EMIT(Identity, dst, src);           \
-            AddFreeOp(prog, src);               \
-        } while (0)
+#define MOVE(dst, src)            \
+    do {                          \
+        EMIT(Identity, dst, src); \
+        AddFreeOp(prog, src);     \
+    } while (0)
 
         AssignValueIds(*loop.body());
 

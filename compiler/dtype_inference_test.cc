@@ -24,15 +24,15 @@ TEST(ShapeInferenceTest, CoerceDtype) {
 
 TEST(ShapeInferenceTest, CoerceDtypeAll) {
     std::vector<Dtype> all_types = {
-        Dtype::kUnknown,
-        Dtype::kBool,
-        Dtype::kInt8,
-        Dtype::kInt16,
-        Dtype::kInt32,
-        Dtype::kInt64,
-        Dtype::kUInt8,
-        Dtype::kFloat32,
-        Dtype::kFloat64,
+            Dtype::kUnknown,
+            Dtype::kBool,
+            Dtype::kInt8,
+            Dtype::kInt16,
+            Dtype::kInt32,
+            Dtype::kInt64,
+            Dtype::kUInt8,
+            Dtype::kFloat32,
+            Dtype::kFloat64,
     };
 
     // All combinations should not crash and reflective.

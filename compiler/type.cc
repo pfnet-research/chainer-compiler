@@ -48,8 +48,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
     }
 
     xtype->mutable_tensor_type()->set_elem_type(dtype_.ToONNX());
-    if (!is_known_)
-        return;
+    if (!is_known_) return;
     onnx::TensorShapeProto* xshape = xtype->mutable_tensor_type()->mutable_shape();
     for (size_t i = 0; i < dims_.size(); ++i) {
         auto* dim = xshape->add_dim();
@@ -66,8 +65,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
 
 int64_t Type::NumElements() const {
     CHECK(!is_sequence());
-    if (!is_known_)
-        return -1;
+    if (!is_known_) return -1;
     int64_t num = 1;
     for (int d : dims_) {
         if (d < 0) return -1;

@@ -8,24 +8,15 @@
 namespace oniku {
 
 Dtype CoerceDtype(Dtype dtype0, Dtype dtype1) {
-    if (dtype0 == dtype1)
-        return dtype0;
-    if (dtype0 == Dtype::kUnknown || dtype1 == Dtype::kUnknown)
-        return Dtype::kUnknown;
-    if (dtype0.IsFloat() && !dtype1.IsFloat())
-        return dtype0;
-    if (!dtype0.IsFloat() && dtype1.IsFloat())
-        return dtype1;
-    if (dtype0.SizeOf() > dtype1.SizeOf())
-        return dtype0;
-    if (dtype0.SizeOf() < dtype1.SizeOf())
-        return dtype1;
-    if (dtype1 == Dtype::kBool)
-        return dtype0;
-    if (dtype0 == Dtype::kBool)
-        return dtype1;
-    if (dtype0 == Dtype::kUInt8 || dtype1 == Dtype::kUInt8)
-        return Dtype::kInt16;
+    if (dtype0 == dtype1) return dtype0;
+    if (dtype0 == Dtype::kUnknown || dtype1 == Dtype::kUnknown) return Dtype::kUnknown;
+    if (dtype0.IsFloat() && !dtype1.IsFloat()) return dtype0;
+    if (!dtype0.IsFloat() && dtype1.IsFloat()) return dtype1;
+    if (dtype0.SizeOf() > dtype1.SizeOf()) return dtype0;
+    if (dtype0.SizeOf() < dtype1.SizeOf()) return dtype1;
+    if (dtype1 == Dtype::kBool) return dtype0;
+    if (dtype0 == Dtype::kBool) return dtype1;
+    if (dtype0 == Dtype::kUInt8 || dtype1 == Dtype::kUInt8) return Dtype::kInt16;
     CHECK(false) << "Unknown type coerce: " << dtype0.ToString() << " vs " << dtype1.ToString();
 }
 
@@ -47,25 +38,20 @@ void InferDtype(Node* node) {
         if (odtype == Dtype::kUnknown) {
             node->outputs()[i]->mutable_type()->set_dtype(dtype);
         } else {
-            if (dtype != Dtype::kUnknown)
-                CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->DebugString();
+            if (dtype != Dtype::kUnknown) CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->DebugString();
         }
     };
 
     auto oset = [node, set](int i, Dtype dtype) {
-        if (i < node->outputs().size())
-            set(i, dtype);
+        if (i < node->outputs().size()) set(i, dtype);
     };
 
     Dtype in0 = Dtype::kUnknown;
-    if (node->inputs().size() >= 1)
-        in0 = node->inputs()[0]->type().dtype();
+    if (node->inputs().size() >= 1) in0 = node->inputs()[0]->type().dtype();
     Dtype in1 = Dtype::kUnknown;
-    if (node->inputs().size() >= 2)
-        in1 = node->inputs()[1]->type().dtype();
+    if (node->inputs().size() >= 2) in1 = node->inputs()[1]->type().dtype();
     Dtype in2 = Dtype::kUnknown;
-    if (node->inputs().size() >= 3)
-        in2 = node->inputs()[2]->type().dtype();
+    if (node->inputs().size() >= 3) in2 = node->inputs()[2]->type().dtype();
 
     switch (node->op_type()) {
         case Node::kIdentity:
@@ -152,15 +138,15 @@ void InferDtype(Node* node) {
         case Node::kGather:
         case Node::kOnikuxSelectItem: {
             // TODO(hamaji): Need an update for the Python compiler.
-            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
+            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
+            // node->DebugString();
             set(0, in0);
             break;
         }
 
         case Node::kLSTM: {
             Dtype dtype = CoerceDtype(in0, in1);
-            if (node->inputs().size() >= 3)
-                dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
+            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
             oset(0, dtype);
             oset(1, dtype);
             oset(2, dtype);
@@ -171,8 +157,7 @@ void InferDtype(Node* node) {
         case Node::kConvTranspose:
         case Node::kOnikuxConvGradWeight: {
             Dtype dtype = CoerceDtype(in0, in1);
-            if (node->inputs().size() >= 3)
-                dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
+            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
             oset(0, dtype);
             break;
         }
@@ -180,14 +165,14 @@ void InferDtype(Node* node) {
         case Node::kBatchNormalization: {
             Dtype dtype = coerce();
             set(0, dtype);
-            for (int i = 1; i < 5; ++i)
-                oset(i, dtype);
+            for (int i = 1; i < 5; ++i) oset(i, dtype);
             break;
         }
 
         case Node::kOnikuxSoftmaxCrossEntropy: {
             // TODO(hamaji): Probably, better to fix the compiler.
-            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
+            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
+            // node->DebugString();
             set(0, in0);
             break;
         }
@@ -216,7 +201,8 @@ void InferDtype(Node* node) {
 
         case Node::kOnikuxSelectItemGrad: {
             // TODO(hamaji): Probably, better to fix the compiler.
-            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
+            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
+            // node->DebugString();
             CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in2.ToString() << " in " << node->DebugString();
             set(0, in0);
             break;

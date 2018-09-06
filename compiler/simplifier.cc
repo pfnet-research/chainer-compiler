@@ -35,8 +35,7 @@ bool ReplaceMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
     GraphBuilder gb(graph, "SimplifyMin", node->outputs()[0]);
     std::vector<Value*> negs;
-    for (Value* v : node->inputs())
-        negs.push_back(gb.Op(Node::kNeg, {v}));
+    for (Value* v : node->inputs()) negs.push_back(gb.Op(Node::kNeg, {v}));
     Value* r = gb.Op(Node::kMax, negs);
     gb.Op(Node::kNeg, {r}, node->outputs()[0]);
     return true;
@@ -231,17 +230,13 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         Value* max_trips = gb.Op(Node::kMax, lengths);
 
         std::vector<Value*> loop_inputs = {max_trips, one};
-        for (Value* value : scan_input_states)
-            loop_inputs.push_back(value);
-        for (Value* value : scan_inputs)
-            loop_inputs.push_back(value);
+        for (Value* value : scan_input_states) loop_inputs.push_back(value);
+        for (Value* value : scan_inputs) loop_inputs.push_back(value);
 
         std::vector<Value*> loop_outputs;
-        for (Value* value : scan_output_states)
-            loop_outputs.push_back(value);
+        for (Value* value : scan_output_states) loop_outputs.push_back(value);
         // All inputs are appended as loop states.
-        for (int i = 0; i < num_scan_inputs; ++i)
-            loop_outputs.push_back(graph->AddValue(gb.GenName()));
+        for (int i = 0; i < num_scan_inputs; ++i) loop_outputs.push_back(graph->AddValue(gb.GenName()));
         std::vector<Value*> loop_scan_outputs;
         for (Value* value : scan_outputs) {
             Value* tv = graph->AddValue(gb.GenName());
@@ -249,8 +244,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
             // Convert length-major to batch-major.
             std::vector<int> perm;
-            for (int i = 0; i < value->type().dims().size(); ++i)
-                perm.push_back(i);
+            for (int i = 0; i < value->type().dims().size(); ++i) perm.push_back(i);
             CHECK_LE(2, perm.size());
             std::swap(perm[0], perm[1]);
             Value* transposed = gb.Op(Node::kTranspose, {tv}, {value});
@@ -275,8 +269,7 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
     CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
-    if (!is_in_loop)
-        CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    if (!is_in_loop) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif
