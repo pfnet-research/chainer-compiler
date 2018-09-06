@@ -57,7 +57,9 @@ void InferDtype(Node* node) {
             set(i, dtype);
     };
 
-    Dtype in0 = node->inputs()[0]->type().dtype();
+    Dtype in0 = Dtype::kUnknown;
+    if (node->inputs().size() >= 1)
+        in0 = node->inputs()[0]->type().dtype();
     Dtype in1 = Dtype::kUnknown;
     if (node->inputs().size() >= 2)
         in1 = node->inputs()[1]->type().dtype();
