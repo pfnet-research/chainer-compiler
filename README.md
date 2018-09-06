@@ -11,14 +11,13 @@ $ ./setup.sh
 $ cmake .
 $ make
 $ ./scripts/runtests.py
-$ ./scripts/runtests_xchainer_cc.sh  # being deprecated.
 ```
 
 ### Run ResNet50 with XCVM backend
 
 ```shell-session
 $ ./setup.sh
-$ ./tools/run_onnx --dump_xcvm 1 --device cuda --test data/resnet50
+$ ./tools/run_onnx --dump_xcvm --device cuda --test data/resnet50 --trace
 
 ```
 
@@ -27,20 +26,5 @@ VGG19 works, too:
 ```shell-session
 $ wget https://s3.amazonaws.com/download.onnx/models/opset_8/vgg19.tar.gz
 $ tar -xvzf vgg19.tar.gz
-$ ./tools/run_onnx --dump_xcvm 1 --device cuda --test vgg19
-```
-
-### Run ResNet50 with C++ backend (to be removed)
-
-```shell-session
-$ ./setup.sh
-$ ONIKU_DEVICE=cuda ./runtests.sh data/resnet50
-```
-
-VGG19 works, too:
-
-```shell-session
-$ wget https://s3.amazonaws.com/download.onnx/models/opset_8/vgg19.tar.gz
-$ tar -xvzf vgg19.tar.gz
-$ ONIKU_DEVICE=cuda ./runtests.sh vgg19
+$ ./tools/run_onnx --dump_xcvm --device cuda --test vgg19 --trace
 ```
