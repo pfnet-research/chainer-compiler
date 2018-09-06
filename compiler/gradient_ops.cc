@@ -140,37 +140,43 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     Value* gy = y[0]->grad();
 
     // Note bias will be ignored thanks to beta=0.
+    Value* gx0 = nullptr;
     if (node->trans_a()) {
-        GRAD_OP(Node::kGemm, {x[1], gy, x[0]}, x[0])
-                ->producer()
-                ->set_alpha(node->alpha())
-                .set_beta(0)
-                .set_trans_a(node->trans_b())
-                .set_trans_b(true);
+        gx0 = TEMP_OP(Node::kGemm, {x[1], gy, x[0]}, x[0]);
+        gx0->producer()
+            ->set_alpha(node->alpha())
+            .set_beta(0)
+            .set_trans_a(node->trans_b())
+            .set_trans_b(true);
     } else {
-        GRAD_OP(Node::kGemm, {gy, x[1], x[0]}, x[0])
-                ->producer()
-                ->set_alpha(node->alpha())
-                .set_beta(0)
-                .set_trans_a(false)
-                .set_trans_b(!node->trans_b());
+        gx0 = TEMP_OP(Node::kGemm, {gy, x[1], x[0]}, x[0]);
+        gx0->producer()
+            ->set_alpha(node->alpha())
+            .set_beta(0)
+            .set_trans_a(false)
+            .set_trans_b(!node->trans_b());
     }
+    Value* shape0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GRAD_OP(Node::kReshape, {gx0, shape0}, x[0]);
 
+    Value* gx1 = nullptr;
     if (node->trans_b()) {
-        GRAD_OP(Node::kGemm, {gy, x[0], x[1]}, x[1])
-                ->producer()
-                ->set_alpha(node->alpha())
-                .set_beta(0)
-                .set_trans_a(true)
-                .set_trans_b(node->trans_a());
+        gx1 = TEMP_OP(Node::kGemm, {gy, x[0], x[1]}, x[1]);
+        gx1->producer()
+            ->set_alpha(node->alpha())
+            .set_beta(0)
+            .set_trans_a(true)
+            .set_trans_b(node->trans_a());
     } else {
-        GRAD_OP(Node::kGemm, {x[0], gy, x[1]}, x[1])
-                ->producer()
-                ->set_alpha(node->alpha())
-                .set_beta(0)
-                .set_trans_a(!node->trans_a())
-                .set_trans_b(false);
+        gx1 = TEMP_OP(Node::kGemm, {x[0], gy, x[1]}, x[1]);
+        gx1->producer()
+            ->set_alpha(node->alpha())
+            .set_beta(0)
+            .set_trans_a(!node->trans_a())
+            .set_trans_b(false);
     }
+    Value* shape1 = TEMP_OP(Node::kShape, {x[1]}, x[1]);
+    GRAD_OP(Node::kReshape, {gx1, shape1}, x[1]);
 
     GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0}).set_keepdims(false);
 }
