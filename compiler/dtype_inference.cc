@@ -228,6 +228,13 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kSplit: {
+            for (size_t i = 0; i < node->outputs().size(); ++i) {
+                set(i, in0);
+            }
+            break;
+        }
+
         case Node::kOnikuxSequenceCreate:
         case Node::kOnikuxSequenceAppend:
         case Node::kOnikuxSequenceLookup:
