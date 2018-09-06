@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+import glob
 import os
 import re
 import sys
@@ -14,23 +15,29 @@ import gen_extra_node_test
 parser = argparse.ArgumentParser(description='Run tests for oniku')
 parser.add_argument('test_filter', default=None, nargs='?',
                     help='A regular expression to filter tests')
+parser.add_argument('--all', '-a', action='store_true',
+                    help='Run all tests')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 cmdline = parser.parse_args()
 
 
+TEST_PATHS = set()
+
+
 class TestCase(object):
 
-    def __init__(self, dirname, name, rtol=1e-4):
+    def __init__(self, dirname, name, rtol=1e-4, fail=False):
         self.dirname = dirname
         self.name = name
         self.rtol = rtol
+        self.fail = fail
+        self.test_dir = os.path.join(self.dirname, self.name)
+        TEST_PATHS.add(self.test_dir)
 
-    def test_dir(self):
-        return os.path.join(self.dirname, self.name)
 
-
-NODE_TEST = 'onnx/onnx/backend/test/data/node'
+ONNX_TEST_DATA = 'onnx/onnx/backend/test/data'
+NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_identity'),
@@ -244,6 +251,15 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_lrn_default', rtol=5e-3),
 ]
 
+if cmdline.all:
+    models = glob.glob(os.path.join(ONNX_TEST_DATA, '*/*/model.onnx'))
+    for onnx in sorted(models):
+        path = os.path.dirname(onnx)
+        if path not in TEST_PATHS:
+            case = TestCase(os.path.dirname(path), os.path.basename(path),
+                            fail=True)
+            TEST_CASES.append(case)
+
 num_official_onnx_tests = len(TEST_CASES)
 
 for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
@@ -261,8 +277,7 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
 for test in gen_extra_node_test.get_tests():
     dirname = 'out'
     assert os.path.exists(os.path.join(dirname, test.name))
-    if not test.fail:
-        TEST_CASES.append(TestCase(dirname, test.name))
+    TEST_CASES.append(TestCase(dirname, test.name, fail=test.fail))
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
@@ -271,6 +286,9 @@ TEST_CASES.append(TestCase('data', 'resnet50'))
 if cmdline.test_filter is not None:
     reg = re.compile(cmdline.test_filter)
     TEST_CASES = [case for case in TEST_CASES if reg.search(case.name)]
+
+if not cmdline.all:
+    TEST_CASES = [case for case in TEST_CASES if not case.fail]
 
 
 def main():
@@ -281,8 +299,9 @@ def main():
 
     test_cnt = 0
     fail_cnt = 0
+    unexpected_pass = 0
     for test_case in TEST_CASES:
-        args = ['tools/run_onnx', '--test', test_case.test_dir(), '--quiet']
+        args = ['tools/run_onnx', '--test', test_case.test_dir, '--quiet']
         args += ['--rtol', str(test_case.rtol)]
         if test_case.name.startswith('backprop_'):
             args.append('--backprop')
@@ -295,7 +314,10 @@ def main():
         try:
             test_cnt += 1
             subprocess.check_call(args)
-            sys.stderr.write('OK\n')
+            if test_case.fail:
+                sys.stderr.write('OK (unexpected)\n')
+            else:
+                sys.stderr.write('OK\n')
         except subprocess.CalledProcessError:
             fail_cnt += 1
             sys.stderr.write('FAIL: %s\n' % ' '.join(args))
