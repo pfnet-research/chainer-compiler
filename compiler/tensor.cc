@@ -70,12 +70,17 @@ Tensor::UniqueData LoadDataFromTypedData(Dtype dtype, const void* data, int64_t 
     }
 }
 
-template <typename To>
+template <typename From, typename To>
 void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* a) {
     CHECK_LE(static_cast<size_t>(t.ElementSize()), sizeof(To));
     for (int64_t i = 0; i < t.NumElements(); ++i) {
-        a->Add(t.Get<To>(i));
+        a->Add(t.Get<From>(i));
     }
+}
+
+template <typename To>
+void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* a) {
+    DumpDataToRepeated<To, To>(t, a);
 }
 
 }  // namespace
@@ -167,13 +172,13 @@ void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
 
     switch (dtype_) {
         case Dtype::kBool:
-            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            DumpDataToRepeated<bool, int>(*this, xtensor->mutable_int32_data());
             break;
         case Dtype::kInt8:
-            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            DumpDataToRepeated<int8_t, int>(*this, xtensor->mutable_int32_data());
             break;
         case Dtype::kInt16:
-            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            DumpDataToRepeated<int16_t, int>(*this, xtensor->mutable_int32_data());
             break;
         case Dtype::kInt32:
             DumpDataToRepeated(*this, xtensor->mutable_int32_data());
@@ -182,7 +187,7 @@ void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
             DumpDataToRepeated(*this, xtensor->mutable_int64_data());
             break;
         case Dtype::kUInt8:
-            DumpDataToRepeated(*this, xtensor->mutable_int32_data());
+            DumpDataToRepeated<uint8_t, int>(*this, xtensor->mutable_int32_data());
             break;
         case Dtype::kFloat32:
             DumpDataToRepeated(*this, xtensor->mutable_float_data());
