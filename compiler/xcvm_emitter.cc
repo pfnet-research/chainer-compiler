@@ -405,8 +405,6 @@ private:
             AddFreeOp(prog, src);               \
         } while (0)
 
-        RunLoopBodyPasses(loop.body().get());
-
         AssignValueIds(*loop.body());
 
         // Initialize loop variables.

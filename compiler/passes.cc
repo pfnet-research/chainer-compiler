@@ -1,17 +1,29 @@
 #include "passes.h"
 
+#include <memory>
+
 #include <compiler/gradient.h>
+#include <compiler/graph.h>
 #include <compiler/scheduler.h>
 #include <compiler/simplifier.h>
 #include <compiler/type_inference.h>
 
 namespace oniku {
 
+void RunPassesInLoops(Graph* graph) {
+    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+        if (node->body().get()) {
+            RunLoopBodyPasses(node->body().get());
+        }
+    }
+}
+
 void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     InferAllDtypeAndShape(graph);
     Simplify(graph);
     if (gen_backprop) AddGradientNodes(graph);
     ScheduleComputation(*graph);
+    RunPassesInLoops(graph);
 }
 
 void RunLoopBodyPasses(Graph* graph) {
@@ -19,6 +31,7 @@ void RunLoopBodyPasses(Graph* graph) {
     Simplify(graph, true  /* is_in_loop */);
     // if (gen_backprop) AddGradientNodes(graph);
     ScheduleComputation(*graph);
+    RunPassesInLoops(graph);
 }
 
 }  // namespace oniku
