@@ -5,6 +5,7 @@
 #include <queue>
 #include <vector>
 
+#include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
@@ -57,11 +58,22 @@ void ScheduleComputation(const Graph& graph) {
         for (Node* node : value->users()) {
             auto found = input_counts.find(node);
             if (found == input_counts.end()) continue;
-            int input_counts = --found->second;
-            if (input_counts > 0) continue;
+            int cnt = --found->second;
+            if (cnt > 0) continue;
             schedule_node(node);
         }
     }
+
+    // Sanity check.
+    std::set<const Value*> output_set;
+    for (const Value* value : graph.output_values()) {
+        output_set.insert(value);
+    }
+    for (const Node* node : nodes) {
+        for (const Value* output : node->outputs())
+            output_set.erase(output);
+    }
+    CHECK(output_set.empty()) << "Cannot output: " << Join(MapToString(output_set, [](const Value* value) { return value->name(); }));
 
     for (size_t i = 0; i < nodes.size(); ++i) {
         nodes[i]->set_onikux_order(i + 1);
