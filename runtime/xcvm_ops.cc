@@ -332,7 +332,14 @@ chainerx::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<chainerx::Arr
 }
 
 std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return Split(input, std::vector<int>{split.begin(), split.end()}, axis);
+    std::vector<int64_t> lens{split.begin(), split.end()};
+    if (lens.empty()) {
+        int64_t dim = input.shape()[axis];
+        int num_splits = outputs.size();
+        CHECK_EQ(0, dim % num_splits) << dim;
+        lens = std::vector<int64_t>(num_splits, dim / num_splits);
+    }
+    return Split(input, lens, axis);
 }
 
 chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {

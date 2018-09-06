@@ -162,7 +162,7 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
     return result;
 }
 
-std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int>& split, int axis) {
+std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int64_t>& split, int axis) {
     CHECK_EQ(std::accumulate(split.begin(), split.end(), 0), input.shape()[axis]);
     std::vector<chainerx::Array> results;
     std::vector<chainerx::ArrayIndex> indices(input.ndim(), chainerx::Slice());
