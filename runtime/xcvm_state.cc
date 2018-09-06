@@ -56,6 +56,8 @@ std::vector<xchainer::Array>* XCVMState::GetSequence(int index) {
 
 std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get());
     if (trace_level_ > 1)
         return variables_[index]->DebugString();
     else
