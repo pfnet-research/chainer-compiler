@@ -83,12 +83,15 @@ void RunMain(int argc, char** argv) {
 
     chainerx::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(chainerx::GetDefaultDevice());
 
+    int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+
     LOG() << "Generate code..." << std::endl;
     XCProgramProto xcvm_prog;
-    xcvm::Emit(model, &xcvm_prog);
+    xcvm::Emit(model, &xcvm_prog, trace_level > 0);
+
     XCVM xcvm(xcvm_prog);
     XCVMOptions xcvm_opts;
-    xcvm_opts.trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+    xcvm_opts.trace_level = trace_level;
     xcvm_opts.is_training = true;
     xcvm_opts.check_nans = args.exist("check_nans");
     xcvm_opts.check_infs = args.exist("check_infs");
