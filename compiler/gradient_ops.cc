@@ -145,16 +145,16 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
         gx0 = TEMP_OP(Node::kGemm, {x[1], gy, x[0]}, x[0]);
         gx0->producer()
             ->set_alpha(node->alpha())
-            .set_beta(0)
-            .set_trans_a(node->trans_b())
-            .set_trans_b(true);
+            ->set_beta(0)
+            ->set_trans_a(node->trans_b())
+            ->set_trans_b(true);
     } else {
         gx0 = TEMP_OP(Node::kGemm, {gy, x[1], x[0]}, x[0]);
         gx0->producer()
             ->set_alpha(node->alpha())
-            .set_beta(0)
-            .set_trans_a(false)
-            .set_trans_b(!node->trans_b());
+            ->set_beta(0)
+            ->set_trans_a(false)
+            ->set_trans_b(!node->trans_b());
     }
     Value* shape0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
     GRAD_OP(Node::kReshape, {gx0, shape0}, x[0]);
@@ -164,21 +164,21 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
         gx1 = TEMP_OP(Node::kGemm, {gy, x[0], x[1]}, x[1]);
         gx1->producer()
             ->set_alpha(node->alpha())
-            .set_beta(0)
-            .set_trans_a(true)
-            .set_trans_b(node->trans_a());
+            ->set_beta(0)
+            ->set_trans_a(true)
+            ->set_trans_b(node->trans_a());
     } else {
         gx1 = TEMP_OP(Node::kGemm, {x[0], gy, x[1]}, x[1]);
         gx1->producer()
             ->set_alpha(node->alpha())
-            .set_beta(0)
-            .set_trans_a(!node->trans_a())
-            .set_trans_b(false);
+            ->set_beta(0)
+            ->set_trans_a(!node->trans_a())
+            ->set_trans_b(false);
     }
     Value* shape1 = TEMP_OP(Node::kShape, {x[1]}, x[1]);
     GRAD_OP(Node::kReshape, {gx1, shape1}, x[1]);
 
-    GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0}).set_keepdims(false);
+    GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0})->set_keepdims(false);
 }
 
 void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -187,22 +187,23 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     // TODO(hamaji): Revisit how we handle shapes.
 #if 0
     GRAD_OP(Node::kConvTranspose, {gy, w}, x[0])->producer()
-        ->set_strides(node->strides()).set_pads(node->pads());
+        ->set_strides(node->strides())->set_pads(node->pads());
 #else
     Value* x_shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
     GRAD_OP(Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
             ->producer()
             ->set_strides(node->strides())
-            .set_pads(node->pads());
+            ->set_pads(node->pads());
 #endif
-    GRAD_OP(Node::kOnikuxConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides()).set_pads(node->pads());
+    GRAD_OP(Node::kOnikuxConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides())->set_pads(node->pads());
     if (x.size() == 3) {
         std::vector<int> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
         for (size_t i = 0; i < node->kernel_shape().size(); ++i) {
             axes.push_back(2 + i);
         }
-        GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes(axes).set_keepdims(false);
+        GRAD_OP(Node::kReduceSum, {gy}, x[2])
+            ->producer()->set_axes(axes)->set_keepdims(false);
     }
 }
 
@@ -220,7 +221,7 @@ void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
 
     Value* gy = y[0]->grad();
     Value* sum_val = TEMP_OP(Node::kReduceSum, {gy}, x[0]);
-    sum_val->producer()->set_axes({node->axis()}).set_keepdims(true);
+    sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
     Value* exp_val = TEMP_OP(Node::kExp, {y[0]}, x[0]);
     Value* mul_val = TEMP_OP(Node::kMul, {exp_val, sum_val}, x[0]);
     GRAD_OP(Node::kSub, {gy, mul_val}, x[0]);
@@ -230,7 +231,7 @@ void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x,
     Value* gy = y[0]->grad();
     Value* gx = TEMP_OP(Node::kMul, {y[0], gy}, x[0]);
     Value* sum_val = TEMP_OP(Node::kReduceSum, {gx}, x[0]);
-    sum_val->producer()->set_axes({node->axis()}).set_keepdims(true);
+    sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
     Value* mul_val = TEMP_OP(Node::kMul, {y[0], sum_val}, x[0]);
     GRAD_OP(Node::kSub, {gx, mul_val}, x[0]);
 }
@@ -250,9 +251,9 @@ void LRNGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, con
     GRAD_OP(Node::kOnikuxLRNGrad, {x[0], y[0], y[0]->grad()}, x[0])
             ->producer()
             ->set_alpha(node->alpha())
-            .set_beta(node->beta())
-            .set_bias(node->bias())
-            .set_size(node->size());
+            ->set_beta(node->beta())
+            ->set_bias(node->bias())
+            ->set_size(node->size());
 }
 
 typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);

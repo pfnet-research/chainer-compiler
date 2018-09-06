@@ -46,7 +46,7 @@ bool ReplaceArgMin(Graph* graph, Node* node) {
     CHECK_EQ(1UL, node->outputs().size());
     GraphBuilder gb(graph, "SimplifyArgMin", node->outputs()[0]);
     Value* t = gb.Op(Node::kNeg, node->inputs());
-    gb.Op(Node::kArgMax, {t}, node->outputs()[0])->producer()->set_axis(node->axis()).set_keepdims(node->keepdims());
+    gb.Op(Node::kArgMax, {t}, node->outputs()[0])->producer()->set_axis(node->axis())->set_keepdims(node->keepdims());
     return true;
 }
 
@@ -56,7 +56,7 @@ bool ReplaceReduceMin(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyReduceMin", node->outputs()[0]);
     Value* t0 = gb.Op(Node::kNeg, node->inputs());
     Value* t1 = gb.Op(Node::kReduceMax, {t0});
-    t1->producer()->set_axes(node->axes()).set_keepdims(node->keepdims());
+    t1->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
     gb.Op(Node::kNeg, {t1}, node->outputs()[0]);
     return true;
 }
@@ -68,7 +68,7 @@ bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
     // TODO(hamaji): Just use ReduceSum for all axes and then divide
     // the result by the batch_size.
     Value* t0 = gb.Op(Node::kReduceMean, {log_prob});
-    t0->producer()->set_axes({0}).set_keepdims(false);
+    t0->producer()->set_axes({0})->set_keepdims(false);
     Value* t1 = gb.Op(Node::kReduceSum, {t0});
     t1->producer()->set_keepdims(false);
     gb.Op(Node::kNeg, {t1}, node->outputs()[0]);

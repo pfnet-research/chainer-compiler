@@ -291,15 +291,15 @@ def gen_gen_node_base_h():
 
         if attr.type == Tensor:
             public_lines.append(
-                f'NodeBase& set_{name}(Tensor* {name});')
+                f'NodeBase* set_{name}(Tensor* {name});')
         elif attr.type == Graph:
             public_lines.append(
-                f'NodeBase& set_{name}(Graph* {name});')
+                f'NodeBase* set_{name}(Graph* {name});')
         else:
-            public_lines.append(f'NodeBase& set_{name}({arg} {name}) ' + '{')
+            public_lines.append(f'NodeBase* set_{name}({arg} {name}) ' + '{')
             public_lines.append(f'{name}_ = {name};')
             public_lines.append(f'was_{name}_set_ = true;')
-            public_lines.append('return *this;')
+            public_lines.append('return this;')
             public_lines.append('}')
         private_lines.append(f'{typ} {name}_;')
         private_lines.append(f'bool was_{name}_set_ = false;')
@@ -559,16 +559,16 @@ def gen_gen_node_base_cc():
         name = attr.c_name
         if attr.type == Tensor:
             lines.append(
-                f'NodeBase& NodeBase::set_{name}(Tensor* {name})' + '{')
+                f'NodeBase* NodeBase::set_{name}(Tensor* {name})' + '{')
             lines.append(f'{name}_.reset({name});')
         elif attr.type == Graph:
             lines.append(
-                f'NodeBase& NodeBase::set_{name}(Graph* {name})' + '{')
+                f'NodeBase* NodeBase::set_{name}(Graph* {name})' + '{')
             lines.append(f'{name}_.reset({name});')
         else:
             continue
         lines.append(f'was_{name}_set_ = true;')
-        lines.append('return *this;')
+        lines.append('return this;')
         lines.append('}')
 
     with open('gen_node_base.cc', 'w') as f:
