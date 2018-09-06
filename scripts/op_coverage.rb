@@ -48,7 +48,7 @@ end
 supported_ops, onikux_ops = categorize(ops)
 grad_onnx_ops, _ = categorize(grad_ops)
 
-puts "Missing ops: #{ops - supported_ops}"
+puts "Missing ops: #{onnx_ops - supported_ops}"
 puts "Node tests: #{num_passing_node_tests}/#{num_node_tests}"
 puts "Custom ops: #{onikux_ops.size}"
 puts "Differentiable ops: #{grad_onnx_ops.size}"
