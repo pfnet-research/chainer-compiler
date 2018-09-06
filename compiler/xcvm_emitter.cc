@@ -367,7 +367,7 @@ private:
         } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {
-            EMIT(SequenceStack, out(0), in(0));
+            EMIT(SequenceStack, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequencePad) {
             EMIT(SequencePad, out(0), in(0), node.length(), node.padding());
         } else {
@@ -518,7 +518,7 @@ private:
         for (int i = 0; i < num_scans; ++i) {
             CHECK_LT(i + num_states, loop.outputs().size());
             const Value* loop_out = loop.outputs()[i + num_states];
-            EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i]);
+            EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.onikux_stack_axis());
             AddFreeOp(prog, scan_out_ids[i]);
         }
 

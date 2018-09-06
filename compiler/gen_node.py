@@ -131,7 +131,7 @@ NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
-NodeDef('Loop', None, None, body=Graph)
+NodeDef('Loop', None, None, body=Graph, onikux_stack_axis=0)
 NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
 NodeDef('OnikuxReluGrad', 2, 1)
@@ -150,7 +150,7 @@ NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('OnikuxSequenceCreate', 0, 1)
 NodeDef('OnikuxSequenceAppend', 2, 1)
 NodeDef('OnikuxSequenceLookup', 2, 1)
-NodeDef('OnikuxSequenceStack', 1, 1)
+NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 NodeDef('OnikuxSequencePad', 1, 1, length=0, padding=0.0)
 
 

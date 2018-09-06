@@ -350,7 +350,7 @@ def get_tests():
         #          gen_loop_test(cond_trip_count=0,
         #                        has_scan_outputs=True)),
 
-        TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
+        TestCase('extra_test_scan_sum', gen_scan_sum_test),
 
         TestCase('extra_test_sequence', gen_sequence_test),
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),

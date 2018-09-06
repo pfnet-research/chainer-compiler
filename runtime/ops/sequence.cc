@@ -30,10 +30,10 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
     std::vector<chainerx::Array> reshaped;
     for (const chainerx::Array& a : v) {
         chainerx::Shape shape{a.shape()};
-        shape.insert(shape.begin(), 1);
+        shape.insert(shape.begin() + axis, 1);
         reshaped.push_back(chainerx::Reshape(a, shape));
     }
-    st->SetVar(output, Concat(reshaped, 0));
+    st->SetVar(output, Concat(reshaped, axis));
 }
 
 void SequencePadOp::RunImpl(XCVMState* st) {

@@ -238,21 +238,11 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         // All inputs are appended as loop states.
         for (int i = 0; i < num_scan_inputs; ++i) loop_outputs.push_back(graph->AddValue(gb.GenName()));
         std::vector<Value*> loop_scan_outputs;
-        for (Value* value : scan_outputs) {
-            Value* tv = graph->AddValue(gb.GenName());
-            loop_outputs.push_back(tv);
-
-            // Convert length-major to batch-major.
-            std::vector<int> perm;
-            for (int i = 0; i < value->type().dims().size(); ++i) perm.push_back(i);
-            CHECK_LE(2, perm.size());
-            std::swap(perm[0], perm[1]);
-            Value* transposed = gb.Op(Node::kTranspose, {tv}, {value});
-            transposed->producer()->set_perm(perm);
-        }
+        for (Value* value : scan_outputs) loop_outputs.push_back(value);
 
         Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);
         loop->set_body(scan->release_body());
+        loop->set_onikux_stack_axis(1);
     }
 
     return true;
