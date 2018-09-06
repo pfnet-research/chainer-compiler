@@ -180,6 +180,8 @@ XC_SEQ_OPS = [
     ('SequencePad', [Sequence('seq'), Int('length'), Float('padding')],
      ['output']),
     ('SequenceSplit', [Array('input'), Int('axis')], [Sequence('output')]),
+    ('SequenceUnpad', [Array('input'), Sequence('lengths')],
+     [Sequence('output')]),
     ('SequenceSize', [Sequence('seq')], ['output']),
     ('SequenceLengths', [Sequence('seq')], [Sequence('output')]),
     ('SequenceCopy', [Sequence('seq')], [Sequence('output')]),

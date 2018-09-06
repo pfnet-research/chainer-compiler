@@ -328,12 +328,20 @@ def gen_sequence_pad_test(test_name):
 
 def gen_sequence_split_test(test_name):
     inputs = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
-    lengths = [3, 1, 2]
+    lengths = np.array([3, 1, 2])
     nodes = []
     nodes.append(onnx.helper.make_node(
         'OnikuxSequenceSplit',
         inputs=['input'],
         outputs=['seq']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceSplit',
+        inputs=['lengths'],
+        outputs=['lengths_seq']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceUnpad',
+        inputs=['input', 'lengths_seq'],
+        outputs=['unpadded']))
 
     for i in range(3):
         nodes.append(make_constant_node(
@@ -342,11 +350,16 @@ def gen_sequence_split_test(test_name):
             'OnikuxSequenceLookup',
             inputs=['seq', 'index_%d' % i],
             outputs=['split_result_%d' % i]))
+        nodes.append(onnx.helper.make_node(
+            'OnikuxSequenceLookup',
+            inputs=['unpadded', 'index_%d' % i],
+            outputs=['unpad_result_%d' % i]))
 
     outputs = []
     for i in range(3):
         outputs.append(('split_result_%d' % i, inputs[i]))
-    inputs = [('input', inputs)]
+        outputs.append(('unpad_result_%d' % i, inputs[i][:lengths[i]]))
+    inputs = [('input', inputs), ('lengths', lengths)]
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
     outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
     graph = onnx.helper.make_graph(

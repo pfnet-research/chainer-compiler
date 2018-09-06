@@ -43,15 +43,33 @@ void SequencePadOp::RunImpl(XCVMState* st) {
     st->SetVar(output, PadSequence(v, length, p));
 }
 
-void SequenceSplitOp::RunImpl(XCVMState* st) {
-    std::vector<int64_t> lens;
-    chainerx::Array v = st->GetVar(input);
-    for (int i = 0; i < v.shape()[axis]; ++i) lens.push_back(1);
-    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+namespace {
+
+void SplitToSequence(chainerx::Array v, int axis, std::vector<chainerx::Array>* seq) {
+    std::vector<int64_t> lens(v.shape()[axis], 1);
     for (chainerx::Array a : Split(v, lens, axis)) {
         chainerx::Shape shape{a.shape()};
         shape.erase(shape.begin() + axis);
         seq->push_back(chainerx::Reshape(a, shape));
+    }
+}
+
+}  // namespace
+
+void SequenceSplitOp::RunImpl(XCVMState* st) {
+    chainerx::Array v = st->GetVar(input);
+    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+    SplitToSequence(v, axis, seq);
+}
+
+void SequenceUnpadOp::RunImpl(XCVMState* st) {
+    chainerx::Array v = st->GetVar(input);
+    const std::vector<chainerx::Array>& lens = *st->GetSequence(lengths);
+    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+    SplitToSequence(v, 0, seq);
+    for (size_t i = 0; i < seq->size(); ++i) {
+        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(lens[i])));
+        (*seq)[i] = (*seq)[i].At({index});
     }
 }
 

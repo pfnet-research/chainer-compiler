@@ -165,6 +165,10 @@ NodeDef('OnikuxSequencePad', 1, 1, length=0, padding=0.0)
 # Splits a tensor to a sequence: (T) -> ([T])
 NodeDef('OnikuxSequenceSplit', 1, 1, axis=0)
 
+# Strips paddings in a tensor and returns a sequence: (T, [I]) -> ([T])
+# Note the result of SequenceLengths can be used as the second argument.
+NodeDef('OnikuxSequenceUnpad', 2, 1)
+
 # Returns the number of elements in a sequence: ([T]) -> (I)
 NodeDef('OnikuxSequenceSize', 1, 1)
 
