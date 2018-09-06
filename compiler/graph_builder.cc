@@ -12,11 +12,15 @@ GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* tar
 }
 
 Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output) {
-    int id = id_++;
-    const std::string name = StrCat(category_, '_', target_, '_', id);
+    const std::string name = GenName();
     if (!output) output = graph_->AddValue(name);
     graph_->AddNode(op_type, inputs, {output}, name);
     return output;
+}
+
+Node* GraphBuilder::MOp(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+    const std::string name = GenName();
+    return graph_->AddNode(op_type, inputs, outputs, name);
 }
 
 template <typename T>
@@ -30,5 +34,10 @@ template Value* GraphBuilder::Const(const Type& type, const std::vector<double>&
 template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data);
+
+std::string GraphBuilder::GenName() {
+    int id = id_++;
+    return StrCat(category_, '_', target_, '_', id);
+}
 
 }  // namespace oniku

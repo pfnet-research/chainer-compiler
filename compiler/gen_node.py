@@ -259,6 +259,11 @@ def gen_gen_node_base_h():
         public_lines.append(f'return {name}_;')
         public_lines.append('}')
 
+        if attr.type == Graph:
+            public_lines.append(f'Graph* release_{name}() ' + '{')
+            public_lines.append(f'return {name}_.release();')
+            public_lines.append('}')
+
         if attr.type == Tensor:
             public_lines.append(
                 f'NodeBase& set_{name}(Tensor* {name});')

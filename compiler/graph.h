@@ -82,6 +82,13 @@ public:
     // before calling this function.
     std::vector<const Node*> GetComputationSequence() const;
 
+    std::vector<Value*>* mutable_input_values() {
+        return &input_values_;
+    }
+    std::vector<Value*>* mutable_output_values() {
+        return &output_values_;
+    }
+
 private:
     std::string GenSym(const std::string& base = "");
 

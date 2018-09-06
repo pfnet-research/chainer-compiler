@@ -134,6 +134,136 @@ bool ReplaceBatchNormalization(Graph* graph, Node* node) {
 
 #endif
 
+bool ReplaceScan(Graph* graph, Node* scan) {
+    // Scan(seq_lens?, states..., inputs...) -> (states.. outputs...)
+    //  body(states..., ins...) -> (states..., outs...)
+    // Loop(max_trips, cond, states...) -> (states..., outputs...)
+    //  body(iter, cond, states...) -> (cond, states..., outs...)
+
+    Graph* body = scan->body().get();
+    int num_scan_inputs = scan->num_scan_inputs();
+    int num_states = body->input_values().size() - num_scan_inputs;
+    int num_scan_outputs = body->output_values().size() - num_states;
+    int num_sequence_lens = scan->inputs().size() - num_states - num_scan_inputs;
+    CHECK_LT(0, num_scan_inputs);
+    CHECK_LT(0, num_scan_outputs);
+    CHECK_LE(0, num_sequence_lens);
+    CHECK_GE(1, num_sequence_lens);
+    CHECK_EQ(scan->outputs().size(), num_states + num_scan_outputs);
+#if 0
+    std::cerr << "SimplifyScan:"
+              << " num_scan_inputs=" << num_scan_inputs
+              << " num_states=" << num_states
+              << " num_scan_outputs=" << num_scan_outputs
+              << " sequence_lens=" << num_sequence_lens
+              << std::endl;
+#endif
+
+    Value* sequence_lens = nullptr;
+    if (num_sequence_lens) {
+        sequence_lens = scan->inputs()[0];
+    }
+    std::vector<Value*> scan_input_states;
+    for (int i = 0; i < num_states; ++i) {
+        scan_input_states.push_back(scan->inputs()[i + num_sequence_lens]);
+    }
+    std::vector<Value*> scan_inputs;
+    for (int i = 0; i < num_scan_inputs; ++i) {
+        scan_inputs.push_back(scan->inputs()[i + num_sequence_lens + num_states]);
+    }
+    std::vector<Value*> scan_output_states;
+    for (int i = 0; i < num_states; ++i) {
+        scan_output_states.push_back(scan->outputs()[i]);
+    }
+    std::vector<Value*> scan_outputs;
+    for (int i = 0; i < num_scan_outputs; ++i) {
+        scan_outputs.push_back(scan->outputs()[i + num_states]);
+    }
+
+    {
+        GraphBuilder gb(body, "SimplifyScanBody", body->output_values()[0]);
+
+        Value* iter = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kInput);
+        Value* cond = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kInput);
+
+        std::vector<Value*>* mutable_inputs = body->mutable_input_values();
+        mutable_inputs->insert(mutable_inputs->begin(), cond);
+        mutable_inputs->insert(mutable_inputs->begin(), iter);
+
+        std::vector<Value*>* mutable_outputs = body->mutable_output_values();
+        for (int i = 0; i < num_scan_inputs; ++i) {
+            Value* input = body->input_values()[2 + i + num_states];
+            // Pass slices of inputs to the original body.
+            const std::vector<Node*> users = input->users();
+            Value* input_t = gb.Op(Node::kGather, {input, iter});
+            input_t->producer()->set_axis(1);
+            for (Node* user : users) {
+                input->DetachUser(user);
+                input_t->AddUser(user);
+                user->ReplaceInput(input, input_t);
+            }
+
+            // All inputs should be carried over to the next loop.
+            Value* input_c = new Value(gb.GenName(), input->type(), Value::Kind::kOutput);
+            gb.Op(Node::kIdentity, {input}, input_c);
+            mutable_outputs->insert(mutable_outputs->begin() + num_states + i, input_c);
+        }
+
+        Value* one = gb.Const(Type(Dtype::kBool, {}), {1});
+        Value* one_c = new Value(gb.GenName(), one->type(), Value::Kind::kOutput);
+        mutable_outputs->insert(mutable_outputs->begin(), gb.Op(Node::kIdentity, {one}, {one_c}));
+    }
+
+    {
+        GraphBuilder gb(graph, "SimplifyScan", scan->outputs()[0]);
+        Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+        // Calcuate the number of trips.
+        // TODO(hamaji): Better to check if all inputs have the same length.
+        std::vector<Value*> lengths;
+        if (sequence_lens) {
+            lengths.push_back(gb.Op(Node::kReduceMax, {sequence_lens}));
+        }
+        for (Value* input : scan_inputs) {
+            Value* shape = gb.Op(Node::kShape, {input});
+            Value* len = gb.Op(Node::kGather, {shape, one});
+            lengths.push_back(len);
+        }
+        Value* max_trips = gb.Op(Node::kMax, lengths);
+
+        std::vector<Value*> loop_inputs = {max_trips, one};
+        for (Value* value : scan_input_states)
+            loop_inputs.push_back(value);
+        for (Value* value : scan_inputs)
+            loop_inputs.push_back(value);
+
+        std::vector<Value*> loop_outputs;
+        for (Value* value : scan_output_states)
+            loop_outputs.push_back(value);
+        // All inputs are appended as loop states.
+        for (int i = 0; i < num_scan_inputs; ++i)
+            loop_outputs.push_back(graph->AddValue(gb.GenName()));
+        std::vector<Value*> loop_scan_outputs;
+        for (Value* value : scan_outputs) {
+            Value* tv = graph->AddValue(gb.GenName());
+            loop_outputs.push_back(tv);
+
+            // Convert length-major to batch-major.
+            std::vector<int> perm;
+            for (int i = 0; i < value->type().dims().size(); ++i)
+                perm.push_back(i);
+            CHECK_LE(2, perm.size());
+            std::swap(perm[0], perm[1]);
+            Value* transposed = gb.Op(Node::kTranspose, {tv}, {value});
+            transposed->producer()->set_perm(perm);
+        }
+
+        Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);
+        loop->set_body(scan->release_body());
+    }
+
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph, bool is_in_loop) {
@@ -144,6 +274,7 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
+    CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
     if (!is_in_loop)
         CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
