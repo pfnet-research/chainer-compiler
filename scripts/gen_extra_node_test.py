@@ -342,23 +342,35 @@ def gen_sequence_split_test(test_name):
         'OnikuxSequenceUnpad',
         inputs=['input', 'lengths_seq'],
         outputs=['unpadded']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceSplit',
+        axis=1,
+        inputs=['input'],
+        outputs=['seq_a1']))
 
-    for i in range(3):
+    for i in range(4):
         nodes.append(make_constant_node(
             'index_%d' % i, onnx.TensorProto.INT64, [i]))
+        if i < 3:
+            nodes.append(onnx.helper.make_node(
+                'OnikuxSequenceLookup',
+                inputs=['seq', 'index_%d' % i],
+                outputs=['split_result_%d' % i]))
+            nodes.append(onnx.helper.make_node(
+                'OnikuxSequenceLookup',
+                inputs=['unpadded', 'index_%d' % i],
+                outputs=['unpad_result_%d' % i]))
         nodes.append(onnx.helper.make_node(
             'OnikuxSequenceLookup',
-            inputs=['seq', 'index_%d' % i],
-            outputs=['split_result_%d' % i]))
-        nodes.append(onnx.helper.make_node(
-            'OnikuxSequenceLookup',
-            inputs=['unpadded', 'index_%d' % i],
-            outputs=['unpad_result_%d' % i]))
+            inputs=['seq_a1', 'index_%d' % i],
+            outputs=['split_a1_result_%d' % i]))
 
     outputs = []
     for i in range(3):
         outputs.append(('split_result_%d' % i, inputs[i]))
         outputs.append(('unpad_result_%d' % i, inputs[i][:lengths[i]]))
+    for i in range(4):
+        outputs.append(('split_a1_result_%d' % i, inputs[:, i]))
     inputs = [('input', inputs), ('lengths', lengths)]
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
     outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
