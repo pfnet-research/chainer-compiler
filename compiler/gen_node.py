@@ -287,6 +287,7 @@ def gen_gen_node_base_h():
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
