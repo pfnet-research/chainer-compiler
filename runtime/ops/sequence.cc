@@ -55,6 +55,11 @@ void SequenceCreateOp::RunImpl(XCVMState* st) {
     st->CreateSequence(output);
 }
 
+void SequenceSizeOp::RunImpl(XCVMState* st) {
+    int64_t size = st->GetSequence(seq)->size();
+    st->SetVar(output, MakeHostArray(chainerx::Dtype::kInt64, {}, &size));
+}
+
 void SequenceCopyOp::RunImpl(XCVMState* st) {
     const std::vector<chainerx::Array>& s = *st->GetSequence(seq);
     std::vector<chainerx::Array>* d = st->CreateSequence(output);

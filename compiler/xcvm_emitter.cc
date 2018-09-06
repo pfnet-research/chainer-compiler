@@ -355,6 +355,8 @@ private:
             }
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
+        } else if (node.op_type() == Node::kOnikuxSequenceSize) {
+            EMIT(SequenceSize, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.

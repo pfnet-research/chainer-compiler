@@ -245,11 +245,16 @@ def gen_sequence_test(test_name):
         'OnikuxSequenceStack',
         inputs=['seq2'],
         outputs=['stack2_result']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceSize',
+        inputs=['seq3'],
+        outputs=['stack3_size']))
 
     outputs = [
         ('lookup_result', np.array([3, 4])),
         ('stack3_result', np.stack(inputs)),
         ('stack2_result', np.stack(inputs[0:2])),
+        ('stack3_size', np.array(3)),
     ]
     inputs = [('in%d' % i, input) for i, input in enumerate(inputs)]
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]

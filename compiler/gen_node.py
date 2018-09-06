@@ -165,6 +165,9 @@ NodeDef('OnikuxSequencePad', 1, 1, length=0, padding=0.0)
 # Splits a tensor to a sequence: (T) -> ([T])
 NodeDef('OnikuxSequenceSplit', 1, 1, axis=0)
 
+# Returns the number of elements in a sequence: ([T]) -> (I)
+NodeDef('OnikuxSequenceSize', 1, 1)
+
 
 class AttrDef(object):
     def __init__(self, name, value):
