@@ -37,16 +37,10 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
 }
 
 void SequencePadOp::RunImpl(XCVMState* st) {
-    WARN_ONCE("Pad wouldn't work. Falling back to Concat.");
     const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
     CHECK(!v.empty());
-    std::vector<chainerx::Array> reshaped;
-    for (const chainerx::Array& a : v) {
-        chainerx::Shape shape{a.shape()};
-        shape.insert(shape.begin(), 1);
-        reshaped.push_back(chainerx::Reshape(a, shape));
-    }
-    st->SetVar(output, Concat(reshaped, 0));
+    chainerx::Scalar p(padding, v[0].dtype());
+    st->SetVar(output, PadSequence(v, length, p));
 }
 
 void SequenceCreateOp::RunImpl(XCVMState* st) {

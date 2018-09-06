@@ -138,10 +138,10 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
     CHECK_LT(0, inputs.size());
     int64_t axis_dim = 0;
     for (const chainerx::Array& input : inputs) {
-        CHECK_LT(axis, input.shape().size());
+        CHECK_LT(axis, input.ndim());
         CHECK_EQ(input.dtype(), inputs[0].dtype());
-        CHECK_EQ(input.shape().size(), inputs[0].shape().size());
-        for (int i = 0; i < input.shape().size(); ++i) {
+        CHECK_EQ(input.ndim(), inputs[0].ndim());
+        for (int i = 0; i < input.ndim(); ++i) {
             if (i != axis) CHECK_EQ(input.shape()[i], inputs[0].shape()[i]);
         }
         axis_dim += input.shape()[axis];
@@ -172,6 +172,38 @@ std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vect
         start += len;
     }
     return results;
+}
+
+chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding) {
+    // TODO(hamaji): Move this logic to xChainer.
+    CHECK_LT(0, inputs.size());
+    int64_t max_length = 0;
+    for (const chainerx::Array& input : inputs) {
+        CHECK_EQ(input.dtype(), inputs[0].dtype());
+        CHECK_EQ(input.ndim(), inputs[0].ndim());
+        max_length = std::max(max_length, input.shape()[0]);
+        for (int i = 1; i < input.ndim(); ++i) {
+            CHECK_EQ(input.shape()[i], inputs[0].shape()[i]);
+        }
+    }
+    if (length == 0) {
+        length = max_length;
+    } else {
+        CHECK_GE(length, max_length) << "Pad overflow";
+    }
+
+    chainerx::Shape shape = inputs[0].shape();
+    shape.insert(shape.begin(), inputs.size());
+    shape[1] = length;
+    chainerx::Array result = chainerx::Full(shape, padding, inputs[0].dtype(), inputs[0].device());
+    std::vector<chainerx::ArrayIndex> indices(shape.ndim(), chainerx::Slice());
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        const chainerx::Array& input = inputs[i];
+        indices[0] = chainerx::ArrayIndex(i);
+        indices[1] = chainerx::Slice(0, input.shape()[0]);
+        input.device().Copy(input, result.At(indices));
+    }
+    return result;
 }
 
 }  // namespace runtime

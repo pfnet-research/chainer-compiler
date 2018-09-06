@@ -41,7 +41,7 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis);
 
 std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int64_t>& split, int axis);
 
-chainerx::Array Pad(const std::vector<chainerx::Array>& inputs, int axis);
+chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding);
 
 }  // namespace runtime
 }  // namespace oniku

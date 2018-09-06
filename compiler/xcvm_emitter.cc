@@ -369,7 +369,7 @@ private:
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {
             EMIT(SequenceStack, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxSequencePad) {
-            EMIT(SequencePad, out(0), in(0), node.padding());
+            EMIT(SequencePad, out(0), in(0), node.length(), node.padding());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

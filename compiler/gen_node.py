@@ -151,7 +151,7 @@ NodeDef('OnikuxSequenceCreate', 0, 1)
 NodeDef('OnikuxSequenceAppend', 2, 1)
 NodeDef('OnikuxSequenceLookup', 2, 1)
 NodeDef('OnikuxSequenceStack', 1, 1)
-NodeDef('OnikuxSequencePad', 1, 1, padding=0.0)
+NodeDef('OnikuxSequencePad', 1, 1, length=0, padding=0.0)
 
 
 class AttrDef(object):

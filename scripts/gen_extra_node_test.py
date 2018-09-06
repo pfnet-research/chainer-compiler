@@ -262,6 +262,56 @@ def gen_sequence_test(test_name):
     gen_test(graph, inputs, outputs, name=test_name)
 
 
+def gen_sequence_pad_test(test_name):
+    inputs = [np.array(a) for a in [[1, 2, 3], [4], [5, 6]]]
+    nodes = []
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceCreate',
+        inputs=[],
+        outputs=['seq0']))
+
+    for i, input in enumerate(inputs):
+        nodes.append(onnx.helper.make_node(
+            'OnikuxSequenceAppend',
+            inputs=['seq%d' % i, 'in%d' % i],
+            outputs=['seq%d' % (i + 1)]))
+
+    index_value = 1
+    nodes.append(make_constant_node(
+        'index', onnx.TensorProto.INT64, [index_value]))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceLookup',
+        inputs=['seq3', 'index'],
+        outputs=['lookup_result']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequencePad',
+        padding=-42.0,
+        length=4,
+        inputs=['seq3'],
+        outputs=['pad3_result']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequencePad',
+        padding=-42.0,
+        inputs=['seq2'],
+        outputs=['pad2_result']))
+
+    padded = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
+    outputs = [
+        ('lookup_result', np.array([4])),
+        ('pad3_result', padded),
+        ('pad2_result', padded[0:2, 0:3]),
+    ]
+    inputs = [('in%d' % i, input) for i, input in enumerate(inputs)]
+    inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
+    outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
+    graph = onnx.helper.make_graph(
+        nodes=nodes,
+        name=test_name,
+        inputs=inputs_vi,
+        outputs=outputs_vi)
+    gen_test(graph, inputs, outputs, name=test_name)
+
+
 class TestCase(object):
     def __init__(self, name, func, fail=False):
         self.name = name
@@ -303,6 +353,7 @@ def get_tests():
         TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
 
         TestCase('extra_test_sequence', gen_sequence_test),
+        TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
     ]
 
 
