@@ -326,6 +326,37 @@ def gen_sequence_pad_test(test_name):
     gen_test(graph, inputs, outputs, name=test_name)
 
 
+def gen_sequence_split_test(test_name):
+    inputs = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
+    lengths = [3, 1, 2]
+    nodes = []
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceSplit',
+        inputs=['input'],
+        outputs=['seq']))
+
+    for i in range(3):
+        nodes.append(make_constant_node(
+            'index_%d' % i, onnx.TensorProto.INT64, [i]))
+        nodes.append(onnx.helper.make_node(
+            'OnikuxSequenceLookup',
+            inputs=['seq', 'index_%d' % i],
+            outputs=['split_result_%d' % i]))
+
+    outputs = []
+    for i in range(3):
+        outputs.append(('split_result_%d' % i, inputs[i]))
+    inputs = [('input', inputs)]
+    inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
+    outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
+    graph = onnx.helper.make_graph(
+        nodes=nodes,
+        name=test_name,
+        inputs=inputs_vi,
+        outputs=outputs_vi)
+    gen_test(graph, inputs, outputs, name=test_name)
+
+
 class TestCase(object):
     def __init__(self, name, func, fail=False):
         self.name = name
@@ -368,6 +399,7 @@ def get_tests():
 
         TestCase('extra_test_sequence', gen_sequence_test),
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
+        TestCase('extra_test_sequence_split', gen_sequence_split_test),
     ]
 
 
