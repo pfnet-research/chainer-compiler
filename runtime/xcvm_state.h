@@ -38,9 +38,11 @@ public:
 
     chainerx::Array GetVar(int index);
     nonstd::optional<chainerx::Array> GetVarOptional(int index);
-    std::vector<chainerx::Array> GetVarList(const std::vector<int>& index);
     void SetVar(int index, const chainerx::Array& value);
     void FreeVar(int index);
+
+    std::vector<chainerx::Array> GetVarList(const std::vector<int>& index);
+    void SetVarList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars);
 
     std::vector<chainerx::Array>* CreateSequence(int index);
     std::vector<chainerx::Array>* GetSequence(int index);

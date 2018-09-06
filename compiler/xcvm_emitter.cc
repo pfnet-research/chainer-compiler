@@ -314,6 +314,11 @@ private:
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Concat, out(0), ins, node.axis());
+        } else if (node.op_type() == Node::kSplit) {
+            CHECK_EQ(1UL, node.inputs().size());
+            std::vector<int> outs;
+            for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
+            EMIT(Split, outs, in(0), node.axis(), node.split());
         } else if (node.op_type() == Node::kMax) {
             CHECK_EQ(1UL, node.outputs().size());
             std::vector<int> ins;

@@ -331,6 +331,10 @@ chainerx::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<chainerx::Arr
     return Concat(inputs, axis);
 }
 
+std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+    return Split(input, std::vector<int>{split.begin(), split.end()}, axis);
+}
+
 chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     return chainerx::Transpose(data, GetXchainerAxes(perm));
 }

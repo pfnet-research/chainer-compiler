@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <limits>
+#include <numeric>
 
 #include <onnx/onnx-ml.pb.h>
 
@@ -150,7 +151,7 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
     shape[axis] = axis_dim;
     // TODO(hamaji): Check why we cannot use `Empty` here.
     chainerx::Array result = chainerx::Zeros(shape, inputs[0].dtype(), inputs[0].device());
-    std::vector<chainerx::ArrayIndex> indices(inputs[0].shape().size(), chainerx::Slice());
+    std::vector<chainerx::ArrayIndex> indices(inputs[0].ndim(), chainerx::Slice());
     axis_dim = 0;
     for (const chainerx::Array& input : inputs) {
         int64_t cur_dim = input.shape()[axis];
@@ -159,6 +160,19 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
         axis_dim += cur_dim;
     }
     return result;
+}
+
+std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int>& split, int axis) {
+    CHECK_EQ(std::accumulate(split.begin(), split.end(), 0), input.shape()[axis]);
+    std::vector<chainerx::Array> results;
+    std::vector<chainerx::ArrayIndex> indices(input.ndim(), chainerx::Slice());
+    int start = 0;
+    for (int len : split) {
+        indices[axis] = chainerx::Slice(start, start + len);
+        results.push_back(input.At(indices));
+        start += len;
+    }
+    return results;
 }
 
 }  // namespace runtime

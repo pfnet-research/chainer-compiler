@@ -40,6 +40,11 @@ std::vector<chainerx::Array> XCVMState::GetVarList(const std::vector<int>& index
     return vars;
 }
 
+void XCVMState::SetVarList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars) {
+    CHECK_EQ(index.size(), vars.size());
+    for (size_t i = 0; i < index.size(); ++i) SetVar(index[i], vars[i]);
+}
+
 std::vector<chainerx::Array>* XCVMState::CreateSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;

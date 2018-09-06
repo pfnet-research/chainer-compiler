@@ -116,6 +116,7 @@ XC_OPS = [
     ('SelectItem', [Array('data'), Array('indices')], ['output']),
     ('SelectItemGrad', [Array('gy'), Array('indices'), Array('shape')], ['gx']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
+    ('Split', [Array('input'), Int('axis'), Ints('split')], [ArrayList('outputs')]),
     ('Transpose', [Array('data'), Ints('perm')], ['transposed']),
 
     ('Softmax', [Array('input'), Int('axis')], ['output']),
@@ -273,7 +274,10 @@ def gen_gen_xcvm_ops_h():
             rettype = 'void'
             num_outputs = len(op.outputs)
             if num_outputs == 1:
-                rettype = 'chainerx::Array'
+                if op.outputs_typed[0][0] == ARRAY_LIST:
+                    rettype = 'std::vector<chainerx::Array>'
+                else:
+                    rettype = 'chainerx::Array'
             elif num_outputs > 1:
                 rettype = ('std::tuple<' +
                            ', '.join(['chainerx::Array'] * num_outputs) + '>')
@@ -299,8 +303,11 @@ def gen_gen_xcvm_ops_h():
                 raise RuntimeError('Unknown type: %s' % typ)
             lines.append(f'{ctype} {name};')
 
-        for name in op.outputs:
-            lines.append('int %s;' % name)
+        for typ, name in op.outputs_typed:
+            if typ == ARRAY_LIST:
+                lines.append('std::vector<int> %s;' % name)
+            else:
+                lines.append('int %s;' % name)
 
         lines.append('};')
 
@@ -361,8 +368,12 @@ def gen_gen_xcvm_ops_cc():
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
 
-        for i, name in enumerate(op.outputs):
-            lines.append('%s = inst.outputs(%d);' % (name, i))
+        for i, (typ, name) in enumerate(op.outputs_typed):
+            if typ == ARRAY_LIST:
+                lines.append('%s.assign(inst.outputs().begin(), '
+                             'inst.outputs().end());' % name)
+            else:
+                lines.append('%s = inst.outputs(%d);' % (name, i))
 
         lines.append('}')
 
@@ -375,7 +386,10 @@ def gen_gen_xcvm_ops_cc():
         line = 'if (st->trace_level()) std::cerr'
         if op.outputs:
             for typ, name in op.outputs_typed:
-                line += f' << "{sigil(typ)}" << {name}'
+                if typ == ARRAY_LIST:
+                    line += f' << ArrayListToString({name})'
+                else:
+                    line += f' << "{sigil(typ)}" << {name}'
             line += ' << " = "'
         line += f' << "{op.name}("'
         for i, (typ, name) in enumerate(op.inputs):
@@ -418,7 +432,11 @@ def gen_gen_xcvm_ops_cc():
                     args.append(f'st->GetVarList({name})')
             call = 'RunImpl(%s)' % ', '.join(args)
             if len(op.outputs) == 1:
-                lines.append('st->SetVar(%s, %s);' % (op.outputs[0], call))
+                if op.outputs_typed[0][0] == ARRAY_LIST:
+                    lines.append('st->SetVarList(%s, %s);' %
+                                 (op.outputs[0], call))
+                else:
+                    lines.append('st->SetVar(%s, %s);' % (op.outputs[0], call))
             elif op.outputs:
                 lines.append('auto r_ = ' + call + ';')
                 for i, output in enumerate(op.outputs):
@@ -434,6 +452,9 @@ def gen_gen_xcvm_ops_cc():
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += f' << " {sigil(typ)}" << {name} << "="'
                 line += f' << st->GetVarString({name})'
+            elif typ == ARRAY_LIST:
+                # TODO(hamaji): Show debug outputs of array lists.
+                pass
             else:
                 raise RuntimeError('Unknown output type: %s' % typ)
         line += ' << std::endl;'
@@ -485,7 +506,7 @@ std::string ArrayListToString(const std::vector<int>& s) {
     std::ostringstream oss;
     for (int v : s) {
         oss << (oss.str().empty() ? '(' : ',');
-        oss << '%' << v;
+        oss << '$' << v;
     }
     oss << ')';
     return oss.str();
@@ -501,8 +522,11 @@ std::string ArrayListToString(const std::vector<int>& s) {
 
 def make_proto_signature(op, inputs, outputs):
     args = ['XCProgramProto* program']
-    for name in outputs:
-        args.append(f'int {name}')
+    for typ, name in outputs:
+        if typ == ARRAY_LIST:
+            args.append(f'std::vector<int> {name}')
+        else:
+            args.append(f'int {name}')
     for typ, name in inputs:
         if typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE]:
             args.append(f'int {name}')
@@ -521,7 +545,7 @@ def make_proto_signature(op, inputs, outputs):
 def gen_xcvm_proto_util_h():
     lines = []
     for op in XC_ALL_OPS:
-        signature = make_proto_signature(op.name, op.inputs, op.outputs)
+        signature = make_proto_signature(op.name, op.inputs, op.outputs_typed)
         lines.append(signature + ';')
 
     with open('xcvm_proto_util.h', 'w') as f:
@@ -543,7 +567,7 @@ namespace runtime {
 def gen_xcvm_proto_util_cc():
     lines = []
     for op in XC_ALL_OPS:
-        signature = make_proto_signature(op.name, op.inputs, op.outputs)
+        signature = make_proto_signature(op.name, op.inputs, op.outputs_typed)
         lines.append(signature + ' {')
 
         lines.append('XCInstructionProto* inst = program->add_instructions();')
@@ -573,8 +597,11 @@ def gen_xcvm_proto_util_cc():
                 raise RuntimeError('Unknown type: %s' % typ)
             lines.append('}')
 
-        for name in op.outputs:
-            lines.append(f'inst->add_outputs({name});')
+        for typ, name in op.outputs_typed:
+            if typ == ARRAY_LIST:
+                lines.append(f'for (int a : {name}) inst->add_outputs(a);')
+            else:
+                lines.append(f'inst->add_outputs({name});')
 
         lines.append('}')
 
