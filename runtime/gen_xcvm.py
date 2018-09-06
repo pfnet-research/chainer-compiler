@@ -179,6 +179,7 @@ XC_SEQ_OPS = [
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
     ('SequencePad', [Sequence('seq'), Int('length'), Float('padding')],
      ['output']),
+    ('SequenceSplit', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceCopy', [Sequence('seq')], [Sequence('output')]),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]

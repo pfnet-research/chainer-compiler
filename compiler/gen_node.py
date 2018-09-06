@@ -152,6 +152,7 @@ NodeDef('OnikuxSequenceAppend', 2, 1)
 NodeDef('OnikuxSequenceLookup', 2, 1)
 NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 NodeDef('OnikuxSequencePad', 1, 1, length=0, padding=0.0)
+NodeDef('OnikuxSequenceSplit', 1, 1, axis=0)
 
 
 class AttrDef(object):

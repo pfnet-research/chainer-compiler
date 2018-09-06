@@ -43,6 +43,14 @@ void SequencePadOp::RunImpl(XCVMState* st) {
     st->SetVar(output, PadSequence(v, length, p));
 }
 
+void SequenceSplitOp::RunImpl(XCVMState* st) {
+    std::vector<int64_t> lens;
+    chainerx::Array v = st->GetVar(input);
+    for (int i = 0; i < v.shape()[axis]; ++i) lens.push_back(i);
+    std::vector<chainerx::Array>* d = st->CreateSequence(output);
+    *d = Split(v, lens, axis);
+}
+
 void SequenceCreateOp::RunImpl(XCVMState* st) {
     st->CreateSequence(output);
 }
