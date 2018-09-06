@@ -36,6 +36,19 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
     st->SetVar(output, Concat(reshaped, 0));
 }
 
+void SequencePadOp::RunImpl(XCVMState* st) {
+    WARN_ONCE("Pad wouldn't work. Falling back to Concat.");
+    const std::vector<xchainer::Array>& v = *st->GetSequence(seq);
+    CHECK(!v.empty());
+    std::vector<xchainer::Array> reshaped;
+    for (const xchainer::Array& a : v) {
+        xchainer::Shape shape{a.shape()};
+        shape.insert(shape.begin(), 1);
+        reshaped.push_back(xchainer::Reshape(a, shape));
+    }
+    st->SetVar(output, Concat(reshaped, 0));
+}
+
 void SequenceCreateOp::RunImpl(XCVMState* st) {
     st->CreateSequence(output);
 }

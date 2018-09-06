@@ -176,6 +176,7 @@ XC_SEQ_OPS = [
     ('SequenceAppend', [Sequence('seq'), Array('value')], []),
     ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
     ('SequenceStack', [Sequence('seq')], ['output']),
+    ('SequencePad', [Sequence('seq'), Float('padding')], ['output']),
     ('SequenceCopy', [Sequence('seq')], [Sequence('output')]),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
