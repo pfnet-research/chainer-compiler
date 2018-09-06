@@ -334,9 +334,20 @@ private:
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kConstant) {
-            CHECK_EQ(Dtype::kInt64, node.value()->dtype()) << "Only int64 scalar constant is supported in loop";
-            CHECK(node.value()->dims().empty()) << "Only int64 scalar constant is supported in loop";
-            EMIT(IntConstant, out(0), node.value()->Get<int64_t>(0), node.value()->dtype());
+            CHECK(!node.value()->dtype().IsFloat()) << "Only int scalar constant is supported in loop";
+            CHECK(node.value()->dims().empty()) << "Only int scalar constant is supported in loop";
+            Dtype dtype = node.value()->dtype();
+            if (dtype.SizeOf() == 1) {
+                EMIT(IntConstant, out(0), node.value()->Get<int8_t>(0), node.value()->dtype());
+            } else if (dtype.SizeOf() == 2) {
+                EMIT(IntConstant, out(0), node.value()->Get<int16_t>(0), node.value()->dtype());
+            } else if (dtype.SizeOf() == 4) {
+                EMIT(IntConstant, out(0), node.value()->Get<int32_t>(0), node.value()->dtype());
+            } else if (dtype.SizeOf() == 8) {
+                EMIT(IntConstant, out(0), node.value()->Get<int64_t>(0), node.value()->dtype());
+            } else {
+                CHECK(false) << "Unknown type: " << dtype;
+            }
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
         } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
