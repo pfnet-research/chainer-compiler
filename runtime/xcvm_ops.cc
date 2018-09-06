@@ -99,6 +99,10 @@ chainerx::Array MulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const ch
 }
 
 chainerx::Array DivOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    // TODO(hamaji): Come up with a better idea to handle cross device ops.
+    if (&a.device() != &b.device() && b.GetTotalSize() == 1) {
+        return a / chainerx::AsScalar(b);
+    }
     return a / b;
 }
 
@@ -378,6 +382,13 @@ chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const c
             last_dim *= xa.shape()[i];
         }
         xa = chainerx::Reshape(xa, chainerx::Shape{xa.shape()[0], last_dim});
+    }
+    if (xb.shape().size() > 2) {
+        int last_dim = 1;
+        for (size_t i = 1; i < xb.shape().size(); ++i) {
+            last_dim *= xb.shape()[i];
+        }
+        xb = chainerx::Reshape(xb, chainerx::Shape{xb.shape()[0], last_dim});
     }
 
     chainerx::Array r = chainerx::Dot(xa, xb);
