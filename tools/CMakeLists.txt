@@ -16,7 +16,7 @@ target_link_libraries(dump_onnx
   oniku_compiler
   oniku_runtime
   oniku_common
-  xchainer
+  chainerx
   protobuf
   )
 set_target_properties(dump_onnx PROPERTIES OUTPUT_NAME "dump_onnx")
@@ -35,7 +35,7 @@ target_link_libraries(run_onnx
   oniku_compiler
   oniku_runtime
   oniku_common
-  xchainer
+  chainerx
   onnx_proto
   protobuf
   ${CUDA_CUDART_LIBRARY}
@@ -49,7 +49,7 @@ target_link_libraries(train_imagenet
   oniku_runtime
   oniku_common
   feeder
-  xchainer
+  chainerx
   onnx_proto
   protobuf
   pthread

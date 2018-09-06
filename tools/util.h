@@ -2,7 +2,7 @@
 
 #include <onnx/onnx-ml.pb.h>
 
-#include <xchainer/dtype.h>
+#include <chainerx/dtype.h>
 
 #include <runtime/xchainer.h>
 
@@ -16,7 +16,7 @@ void MakeHumanReadableValue(onnx::TensorProto* tensor);
 
 void StripLargeValue(onnx::TensorProto* tensor, int num_elements);
 
-xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype);
+chainerx::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype);
 
 InOuts LoadParams(const Model& model);
 

@@ -5,7 +5,7 @@
 
 #include <nonstd/optional.hpp>
 
-#include <xchainer/array.h>
+#include <chainerx/array.h>
 
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.pb.h>
@@ -36,22 +36,22 @@ public:
         pc_ = pc;
     }
 
-    xchainer::Array GetVar(int index);
-    nonstd::optional<xchainer::Array> GetVarOptional(int index);
-    std::vector<xchainer::Array> GetVarList(const std::vector<int>& index);
-    void SetVar(int index, const xchainer::Array& value);
+    chainerx::Array GetVar(int index);
+    nonstd::optional<chainerx::Array> GetVarOptional(int index);
+    std::vector<chainerx::Array> GetVarList(const std::vector<int>& index);
+    void SetVar(int index, const chainerx::Array& value);
     void FreeVar(int index);
 
-    std::vector<xchainer::Array>* CreateSequence(int index);
-    std::vector<xchainer::Array>* GetSequence(int index);
+    std::vector<chainerx::Array>* CreateSequence(int index);
+    std::vector<chainerx::Array>* GetSequence(int index);
 
     std::string GetVarString(int index);
 
     Auxiliary* GetAux(int index);
     void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
 
-    xchainer::Array Input(const std::string& name);
-    void Output(const std::string& name, xchainer::Array value);
+    chainerx::Array Input(const std::string& name);
+    void Output(const std::string& name, chainerx::Array value);
 
     const InOuts& GetOutputs() const {
         return outputs_;

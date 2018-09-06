@@ -6,15 +6,15 @@
 #include <thread>
 #include <vector>
 
-#include <xchainer/array.h>
+#include <chainerx/array.h>
 
 class DataIterator {
 public:
     virtual ~DataIterator();
 
-    std::vector<xchainer::Array> GetNext();
+    std::vector<chainerx::Array> GetNext();
 
-    virtual std::vector<xchainer::Array> GetNextImpl() = 0;
+    virtual std::vector<chainerx::Array> GetNextImpl() = 0;
 
     void Start();
     void Terminate();
@@ -28,7 +28,7 @@ private:
     std::unique_ptr<std::thread> thread_;
     std::mutex mu_;
     std::condition_variable cond_;
-    std::queue<std::vector<xchainer::Array>> buf_;
+    std::queue<std::vector<chainerx::Array>> buf_;
     const int buf_size_;
     bool should_finish_ = false;
     bool is_iteration_finished_ = false;

@@ -25,7 +25,7 @@ if [ $# = "0" ]; then
 
     onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_2d )
     # TODO(xchainer): Support non-2D dot.
-    # terminate called after throwing an instance of 'xchainer::NotImplementedError'
+    # terminate called after throwing an instance of 'chainerx::NotImplementedError'
     #   what():  dot does not support rhs operand with ndim > 2
     # onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_3d )
     # onnx_tests+=( onnx/onnx/backend/test/data/node/test_matmul_4d )

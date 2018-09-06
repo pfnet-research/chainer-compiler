@@ -9,7 +9,7 @@ DataIterator::~DataIterator() {
     Terminate();
 }
 
-std::vector<xchainer::Array> DataIterator::GetNext() {
+std::vector<chainerx::Array> DataIterator::GetNext() {
     std::unique_lock<std::mutex> lock{mu_};
     CHECK(thread_.get());
     while (buf_.empty()) {

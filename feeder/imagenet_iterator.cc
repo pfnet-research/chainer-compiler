@@ -7,18 +7,18 @@
 
 #include <opencv2/highgui/highgui.hpp>
 
-#include <xchainer/routines/creation.h>
+#include <chainerx/routines/creation.h>
 
 #include <common/log.h>
 #include <common/strutil.h>
 
 namespace {
 
-xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src) {
-    int64_t size = xchainer::GetItemSize(dtype) * shape.GetTotalSize();
+chainerx::Array MakeArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src) {
+    int64_t size = chainerx::GetItemSize(dtype) * shape.GetTotalSize();
     std::shared_ptr<void> data(new char[size], std::default_delete<char[]>());
     std::memcpy(data.get(), src, size);
-    xchainer::Array array(xchainer::FromContiguousHostData(shape, dtype, data));
+    chainerx::Array array(chainerx::FromContiguousHostData(shape, dtype, data));
     return array;
 }
 
@@ -40,7 +40,7 @@ ImageNetIterator::ImageNetIterator(
     // std::cerr << dataset_.size() << " examples" << std::endl;
 }
 
-std::vector<xchainer::Array> ImageNetIterator::GetNextImpl() {
+std::vector<chainerx::Array> ImageNetIterator::GetNextImpl() {
     std::vector<std::pair<std::string, int>> batch;
     while (batch_size_ > batch.size()) {
         if (iter_ == dataset_.size()) {
@@ -73,10 +73,10 @@ std::vector<xchainer::Array> ImageNetIterator::GetNextImpl() {
         }
     }
 
-    std::vector<xchainer::Array> arrays;
+    std::vector<chainerx::Array> arrays;
     int bs = static_cast<int>(batch.size());
-    arrays.push_back(MakeArray(xchainer::Dtype::kFloat32, {bs, 3, height_, width_}, image_data.data()));
-    arrays.push_back(MakeArray(xchainer::Dtype::kInt32, {bs}, label_data.data()));
+    arrays.push_back(MakeArray(chainerx::Dtype::kFloat32, {bs, 3, height_, width_}, image_data.data()));
+    arrays.push_back(MakeArray(chainerx::Dtype::kInt32, {bs}, label_data.data()));
     return arrays;
 }
 

@@ -2,7 +2,7 @@
 
 #include <numeric>
 
-#include <xchainer/array.h>
+#include <chainerx/array.h>
 
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>

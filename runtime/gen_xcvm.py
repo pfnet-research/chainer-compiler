@@ -19,7 +19,7 @@ XC_TYPES = [
     ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, INT, FLOAT, INTS, STRING
 ]
 
-STACK_VECTOR = 'xchainer::StackVector<int64_t, xchainer::kMaxNdim>'
+STACK_VECTOR = 'chainerx::StackVector<int64_t, chainerx::kMaxNdim>'
 
 
 def Array(name):
@@ -264,19 +264,19 @@ def gen_gen_xcvm_ops_h():
         if op.array_only:
             for typ, name in op.inputs:
                 if typ == ARRAY:
-                    args.append(f'const xchainer::Array& {name}')
+                    args.append(f'const chainerx::Array& {name}')
                 elif typ == OPTIONAL_ARRAY:
                     args.append(
-                        f'const nonstd::optional<xchainer::Array>& {name}')
+                        f'const nonstd::optional<chainerx::Array>& {name}')
                 elif typ == ARRAY_LIST:
-                    args.append(f'const std::vector<xchainer::Array>& {name}')
+                    args.append(f'const std::vector<chainerx::Array>& {name}')
             rettype = 'void'
             num_outputs = len(op.outputs)
             if num_outputs == 1:
-                rettype = 'xchainer::Array'
+                rettype = 'chainerx::Array'
             elif num_outputs > 1:
                 rettype = ('std::tuple<' +
-                           ', '.join(['xchainer::Array'] * num_outputs) + '>')
+                           ', '.join(['chainerx::Array'] * num_outputs) + '>')
         else:
             rettype = 'void'
         lines.append('%s RunImpl(%s);' % (rettype, ', '.join(args)))
@@ -311,7 +311,7 @@ def gen_gen_xcvm_ops_h():
 
 #include <string>
 
-#include <xchainer/stack_vector.h>
+#include <chainerx/stack_vector.h>
 
 #include <runtime/xcvm_op.h>
 #include <runtime/xcvm_state.h>
@@ -471,7 +471,7 @@ def gen_gen_xcvm_ops_cc():
 namespace oniku {
 namespace runtime {
 
-std::string StackVectorToString(const xchainer::StackVector<int64_t, xchainer::kMaxNdim>& s) {
+std::string StackVectorToString(const chainerx::StackVector<int64_t, chainerx::kMaxNdim>& s) {
     std::ostringstream oss;
     for (int v : s) {
         oss << (oss.str().empty() ? '(' : ',');

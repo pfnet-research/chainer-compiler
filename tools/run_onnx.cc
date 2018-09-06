@@ -15,11 +15,11 @@
 
 #include <onnx/onnx-ml.pb.h>
 
-#include <xchainer/array.h>
-#include <xchainer/backprop_mode.h>
-#include <xchainer/context.h>
-#include <xchainer/numeric.h>
-#include <xchainer/routines/creation.h>
+#include <chainerx/array.h>
+#include <chainerx/backprop_mode.h>
+#include <chainerx/context.h>
+#include <chainerx/numeric.h>
+#include <chainerx/routines/creation.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -72,7 +72,7 @@ void StripONNXModel(onnx::ModelProto* model) {
 struct TestCase {
     std::string name;
     InOuts inputs;
-    std::vector<std::pair<std::string, xchainer::Array>> outputs;
+    std::vector<std::pair<std::string, chainerx::Array>> outputs;
 };
 
 void ReadTestDir(
@@ -90,7 +90,7 @@ void ReadTestDir(
             if (!HasSuffix(tensor_pb, ".pb")) continue;
             if (HasPrefix(Basename(tensor_pb), "input_")) {
                 onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
-                xchainer::Array tensor(MakeArrayFromONNX(xtensor));
+                chainerx::Array tensor(MakeArrayFromONNX(xtensor));
                 std::string name = xtensor.name();
                 if (name.empty()) {
                     CHECK_LT(input_index, input_names.size());
@@ -99,7 +99,7 @@ void ReadTestDir(
                 CHECK(test_case->inputs.emplace(name, tensor).second) << "Duplicate input tensor: " << name;
             } else if (HasPrefix(Basename(tensor_pb), "output_")) {
                 onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
-                xchainer::Array tensor(MakeArrayFromONNX(xtensor));
+                chainerx::Array tensor(MakeArrayFromONNX(xtensor));
                 std::string name = xtensor.name();
                 if (name.empty()) {
                     CHECK_LT(output_index, output_names.size());
@@ -113,8 +113,8 @@ void ReadTestDir(
     CHECK(!test_cases->empty()) << "No test found in " << test_path;
 }
 
-xchainer::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
-    xchainer::Shape shape;
+chainerx::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
+    chainerx::Shape shape;
     for (const auto& dim : xshape.dim()) {
         if (dim.has_dim_value()) {
             shape.push_back(dim.dim_value());
@@ -131,9 +131,9 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
         if (params.count(input.name())) continue;
         CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
         const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
-        xchainer::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
-        xchainer::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
-        xchainer::Array array = xchainer::Ones(shape, dtype);
+        chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
+        chainerx::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
+        chainerx::Array array = chainerx::Ones(shape, dtype);
         CHECK(inputs->emplace(input.name(), array).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
@@ -171,12 +171,12 @@ void RunMain(int argc, char** argv) {
     }
 
     LOG() << "Initializing xChainer..." << std::endl;
-    xchainer::Context ctx;
-    xchainer::SetGlobalDefaultContext(&ctx);
-    xchainer::NoBackpropModeScope no_backprop;
+    chainerx::Context ctx;
+    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::NoBackpropModeScope no_backprop;
     const std::string device = args.get<std::string>("device");
     if (!device.empty()) {
-        xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
+        chainerx::SetDefaultDevice(&chainerx::GetDefaultContext().GetDevice(device));
         g_meminfo_enabled = true;
     }
     int64_t initial_free_bytes = GetMemoryUsageInBytes();
@@ -207,7 +207,7 @@ void RunMain(int argc, char** argv) {
     std::vector<std::unique_ptr<TestCase>> test_cases;
     if (test_path.empty()) {
         std::unique_ptr<TestCase> test_case(new TestCase());
-        test_case->name = "generated data by xchainer::Ones";
+        test_case->name = "generated data by chainerx::Ones";
         GenerateFixedInput(xmodel, params, &test_case->inputs);
         test_cases.emplace_back(std::move(test_case));
     } else {
@@ -289,15 +289,15 @@ void RunMain(int argc, char** argv) {
         for (const auto& p : test_case->outputs) {
             test_cnt++;
             const std::string key = p.first;
-            xchainer::Array expected = p.second;
+            chainerx::Array expected = p.second;
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
-            xchainer::Array actual = found->second;
+            chainerx::Array actual = found->second;
 
-            auto array_str = [&args](xchainer::Array a) {
+            auto array_str = [&args](chainerx::Array a) {
                 int size = a.GetTotalSize();
                 if (size < 100 || args.exist("verbose")) return a.ToString();
-                return a.shape().ToString() + " [0,20]=" + a.Reshape({size}).At({xchainer::Slice{20}}).ToString();
+                return a.shape().ToString() + " [0,20]=" + a.Reshape({size}).At({chainerx::Slice{20}}).ToString();
             };
             auto fail = [&](const std::string& type) {
                 LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << array_str(expected) << "\nActual: " << array_str(actual)
@@ -311,7 +311,7 @@ void RunMain(int argc, char** argv) {
                 fail("shape");
                 continue;
             }
-            if (!xchainer::AllClose(expected, actual, args.get<double>("rtol"))) {
+            if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"))) {
                 fail("value");
                 continue;
             }

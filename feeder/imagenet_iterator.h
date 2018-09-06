@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include <xchainer/array.h>
+#include <chainerx/array.h>
 
 #include <feeder/data_iterator.h>
 
@@ -13,7 +13,7 @@ public:
     explicit ImageNetIterator(
             const std::string& labeled_image_dataset, int buf_size, int batch_size, const std::vector<float>& mean, int height, int width);
 
-    std::vector<xchainer::Array> GetNextImpl() override;
+    std::vector<chainerx::Array> GetNextImpl() override;
 
     std::string GetStatus() const;
 

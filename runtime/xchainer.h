@@ -5,41 +5,41 @@
 
 #include <onnx/onnx-ml.pb.h>
 
-#include <xchainer/array.h>
+#include <chainerx/array.h>
 
 namespace oniku {
 namespace runtime {
 
-typedef std::map<std::string, xchainer::Array> InOuts;
+typedef std::map<std::string, chainerx::Array> InOuts;
 
 InOuts RunGraph(const InOuts& inputs, bool use_trace);
 
-xchainer::Array GetOrDie(const InOuts& m, std::string name);
-void SetOrDie(InOuts& m, std::string name, xchainer::Array& a);
+chainerx::Array GetOrDie(const InOuts& m, std::string name);
+void SetOrDie(InOuts& m, std::string name, chainerx::Array& a);
 
 // TODO(hamaji): Investigate xChainer's BatchNorm.
-xchainer::Array BatchNormONNX(
-        xchainer::Array x, xchainer::Array s, xchainer::Array bias, xchainer::Array mean, xchainer::Array var, float epsilon);
+chainerx::Array BatchNormONNX(
+        chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon);
 
-xchainer::Shape ArrayToShape(const xchainer::Array& a);
+chainerx::Shape ArrayToShape(const chainerx::Array& a);
 
-xchainer::Array ShapeToArray(const xchainer::Shape& s);
+chainerx::Array ShapeToArray(const chainerx::Shape& s);
 
-xchainer::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor);
+chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor);
 
-xchainer::Array MakeArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src);
+chainerx::Array MakeArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
-xchainer::Array MakeScalarArray(float f);
+chainerx::Array MakeScalarArray(float f);
 
-xchainer::Array MakeHostArray(xchainer::Dtype dtype, xchainer::Shape shape, const void* src);
+chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
-bool HasNan(const xchainer::Array& a);
+bool HasNan(const chainerx::Array& a);
 
-bool HasInf(const xchainer::Array& a);
+bool HasInf(const chainerx::Array& a);
 
-xchainer::Array Concat(const std::vector<xchainer::Array>& inputs, int axis);
+chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis);
 
-xchainer::Array Pad(const std::vector<xchainer::Array>& inputs, int axis);
+chainerx::Array Pad(const std::vector<chainerx::Array>& inputs, int axis);
 
 }  // namespace runtime
 }  // namespace oniku

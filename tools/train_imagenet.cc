@@ -5,11 +5,11 @@
 
 #include <onnx/onnx-ml.pb.h>
 
-#include <xchainer/array.h>
-#include <xchainer/backprop_mode.h>
-#include <xchainer/context.h>
-#include <xchainer/routines/creation.h>
-#include <xchainer/routines/manipulation.h>
+#include <chainerx/array.h>
+#include <chainerx/backprop_mode.h>
+#include <chainerx/context.h>
+#include <chainerx/routines/creation.h>
+#include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -62,12 +62,12 @@ void RunMain(int argc, char** argv) {
     int batch_size = args.get<int>("batchsize");
 
     LOG() << "Initializing xChainer..." << std::endl;
-    xchainer::Context ctx;
-    xchainer::SetGlobalDefaultContext(&ctx);
-    xchainer::NoBackpropModeScope no_backprop;
+    chainerx::Context ctx;
+    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::NoBackpropModeScope no_backprop;
     const std::string device = args.get<std::string>("device");
     if (!device.empty()) {
-        xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(device));
+        chainerx::SetDefaultDevice(&chainerx::GetDefaultContext().GetDevice(device));
         g_meminfo_enabled = true;
     }
     int64_t initial_free_bytes = GetMemoryUsageInBytes();
@@ -81,7 +81,7 @@ void RunMain(int argc, char** argv) {
 
     InOuts params(LoadParams(model));
 
-    xchainer::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(xchainer::GetDefaultDevice());
+    chainerx::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(chainerx::GetDefaultDevice());
 
     LOG() << "Generate code..." << std::endl;
     XCProgramProto xcvm_prog;
@@ -117,19 +117,19 @@ void RunMain(int argc, char** argv) {
         {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Prepare");
 
-            std::vector<xchainer::Array> data = train_iter.GetNext();
+            std::vector<chainerx::Array> data = train_iter.GetNext();
             if (data.empty()) break;
 
             inputs = params;
             if (args.exist("for_onnx_chainer")) {
-                inputs["input"] = data[0].ToDevice(xchainer::GetDefaultDevice());
-                xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultDevice()).AsType(xchainer::Dtype::kInt64);
-                xchainer::Array onehot = xchainer::Eye(1000, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32).Take(labels, 0);
+                inputs["input"] = data[0].ToDevice(chainerx::GetDefaultDevice());
+                chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
+                chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
                 inputs["onehot"] = onehot;
                 inputs["batch_size"] = batch_size_array;
             } else {
-                inputs["T0"] = data[0].ToDevice(xchainer::GetDefaultDevice());
-                xchainer::Array labels = data[1].ToDevice(xchainer::GetDefaultDevice()).AsType(xchainer::Dtype::kInt64);
+                inputs["T0"] = data[0].ToDevice(chainerx::GetDefaultDevice());
+                chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 inputs["T1"] = labels;
             }
         }
@@ -155,7 +155,7 @@ void RunMain(int argc, char** argv) {
         double loss;
         {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Sync");
-            loss = static_cast<double>(xchainer::AsScalar(outputs["loss"]));
+            loss = static_cast<double>(chainerx::AsScalar(outputs["loss"]));
         }
 
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();

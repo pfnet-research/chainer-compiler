@@ -1,6 +1,6 @@
-#include <xchainer/routines/manipulation.h>
-#include <xchainer/routines/math.h>
-#include <xchainer/routines/normalization.h>
+#include <chainerx/routines/manipulation.h>
+#include <chainerx/routines/math.h>
+#include <chainerx/routines/normalization.h>
 
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
@@ -13,35 +13,35 @@ namespace {
 
 class BatchNormBackwardContext : public XCVMState::Auxiliary {
 public:
-    BatchNormBackwardContext(std::unique_ptr<xchainer::BatchNormForwardBackward>&& fb, xchainer::Shape x1_shape, xchainer::Shape x2_shape)
+    BatchNormBackwardContext(std::unique_ptr<chainerx::BatchNormForwardBackward>&& fb, chainerx::Shape x1_shape, chainerx::Shape x2_shape)
         : fb_(std::move(fb)), x1_shape_(x1_shape), x2_shape_(x2_shape) {
     }
     virtual ~BatchNormBackwardContext() = default;
 
-    xchainer::BatchNormForwardBackward* fb() {
+    chainerx::BatchNormForwardBackward* fb() {
         return fb_.get();
     }
 
-    const xchainer::Shape& x1_shape() const {
+    const chainerx::Shape& x1_shape() const {
         return x1_shape_;
     }
 
-    const xchainer::Shape& x2_shape() const {
+    const chainerx::Shape& x2_shape() const {
         return x2_shape_;
     }
 
 private:
-    std::unique_ptr<xchainer::BatchNormForwardBackward> fb_;
-    xchainer::Shape x1_shape_;
-    xchainer::Shape x2_shape_;
+    std::unique_ptr<chainerx::BatchNormForwardBackward> fb_;
+    chainerx::Shape x1_shape_;
+    chainerx::Shape x2_shape_;
 };
 
 // TODO(hamaji): Copied from xChainer's code.
-using Array = xchainer::Array;
-using Axes = xchainer::Axes;
-using Dtype = xchainer::Dtype;
-using OptionalAxes = xchainer::OptionalAxes;
-using Shape = xchainer::Shape;
+using Array = chainerx::Array;
+using Axes = chainerx::Axes;
+using Dtype = chainerx::Dtype;
+using OptionalAxes = chainerx::OptionalAxes;
+using Shape = chainerx::Shape;
 
 struct PreprocessBatchNormResult {
     // Arrays are reshaped if necessary
@@ -52,7 +52,7 @@ struct PreprocessBatchNormResult {
     Axes sorted_axis;
 };
 
-// Reshapes the array. If the shape is unchanged, an array with identical array body is returned. Note that xchainer::Reshape() returns
+// Reshapes the array. If the shape is unchanged, an array with identical array body is returned. Note that chainerx::Reshape() returns
 // a view with different array body if the shape is unchanged.
 Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
     if (a.shape() == shape) {
@@ -73,23 +73,23 @@ PreprocessBatchNormResult PreprocessBatchNorm(
 
     Axes sorted_axis = axis.has_value() ? *axis : Axes{0};
 
-    Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), sorted_axis, true);
+    Shape reduced_shape = chainerx::internal::ReduceShape(x.shape(), sorted_axis, true);
     int64_t reduced_size = reduced_shape.GetTotalSize();
 
     if (gamma.GetTotalSize() != reduced_size) {
-        throw xchainer::DimensionError{
+        throw chainerx::DimensionError{
                 "Gamma must have the same size as the reduced input. Actual: ", gamma.GetTotalSize(), ". Expected: ", reduced_size, "."};
     }
     if (beta.GetTotalSize() != reduced_size) {
-        throw xchainer::DimensionError{
+        throw chainerx::DimensionError{
                 "Beta must have the same size as the reduced input. Actual: ", beta.GetTotalSize(), ". Expected: ", reduced_size, "."};
     }
     if (mean.GetTotalSize() != reduced_size) {
-        throw xchainer::DimensionError{
+        throw chainerx::DimensionError{
                 "Mean must have the same size as the reduced input. Actual: ", mean.GetTotalSize(), ". Expected: ", reduced_size, "."};
     }
     if (var.GetTotalSize() != reduced_size) {
-        throw xchainer::DimensionError{
+        throw chainerx::DimensionError{
                 "Variance must have the same size as the reduced input. Actual: ", var.GetTotalSize(), ". Expected: ", reduced_size, "."};
     }
 
@@ -107,42 +107,42 @@ PreprocessBatchNormResult PreprocessBatchNorm(
 
 }  // namespace
 
-xchainer::Array BatchNormalizationOp::RunImpl(
+chainerx::Array BatchNormalizationOp::RunImpl(
         XCVMState* st,
-        const xchainer::Array& x,
-        const xchainer::Array& s,
-        const xchainer::Array& bias,
-        const xchainer::Array& mean,
-        const xchainer::Array& var) {
+        const chainerx::Array& x,
+        const chainerx::Array& s,
+        const chainerx::Array& bias,
+        const chainerx::Array& mean,
+        const chainerx::Array& var) {
     // TODO(hamaji): Support spatial=false.
     CHECK(spatial) << "BatchNormalization with spatial=false is not supported yet";
-    xchainer::Axes axes;
+    chainerx::Axes axes;
     for (int i = 0; i < x.shape().size(); ++i) {
         if (i != 1) axes.push_back(i);
     }
     // TODO(hamaji): Test the training mode.
     if (st->is_training()) {
         PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
-        std::unique_ptr<xchainer::BatchNormForwardBackward> fb =
+        std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
                 x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
         const Array& gamma_reshaped = result.gamma;
         const Array& beta_reshaped = result.beta;
-        xchainer::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
+        chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
         std::unique_ptr<XCVMState::Auxiliary> pfb(new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape()));
         st->SetAux(this->y, std::move(pfb));
         return out;
     } else {
-        return xchainer::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+        return chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
     }
 }
 
-std::tuple<xchainer::Array, xchainer::Array, xchainer::Array> BatchNormalizationGradOp::RunImpl(
-        XCVMState* st, const xchainer::Array& y, const xchainer::Array& gy) {
+std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
+        XCVMState* st, const chainerx::Array& y, const chainerx::Array& gy) {
     auto ctx = dynamic_cast<BatchNormBackwardContext*>(st->GetAux(this->y));
     CHECK(ctx);
-    std::array<xchainer::Array, 3> gxs = ctx->fb()->Backward(gy);
-    xchainer::Array gx1 = xchainer::Reshape(gxs[1], ctx->x1_shape());
-    xchainer::Array gx2 = xchainer::Reshape(gxs[2], ctx->x2_shape());
+    std::array<chainerx::Array, 3> gxs = ctx->fb()->Backward(gy);
+    chainerx::Array gx1 = chainerx::Reshape(gxs[1], ctx->x1_shape());
+    chainerx::Array gx2 = chainerx::Reshape(gxs[2], ctx->x2_shape());
     return std::forward_as_tuple(gxs[0], gx1, gx2);
 }
 
@@ -150,57 +150,57 @@ namespace {
 
 class LRNBackwardContext : public XCVMState::Auxiliary {
 public:
-    explicit LRNBackwardContext(const xchainer::Array& unit_scale) : unit_scale_(unit_scale) {
+    explicit LRNBackwardContext(const chainerx::Array& unit_scale) : unit_scale_(unit_scale) {
     }
     virtual ~LRNBackwardContext() = default;
 
-    const xchainer::Array& unit_scale() const {
+    const chainerx::Array& unit_scale() const {
         return unit_scale_;
     }
 
 private:
-    xchainer::Array unit_scale_;
+    chainerx::Array unit_scale_;
 };
 
 }  // namespace
 
-xchainer::Array LRNOp::RunImpl(XCVMState* st, const xchainer::Array& x) {
+chainerx::Array LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     int half_n = size / 2;
-    xchainer::Array x2 = x * x;
-    xchainer::Array sum_part = x2.Copy();
-    std::vector<xchainer::ArrayIndex> indices1(x2.shape().size(), xchainer::Slice());
-    std::vector<xchainer::ArrayIndex> indices2(x2.shape().size(), xchainer::Slice());
+    chainerx::Array x2 = x * x;
+    chainerx::Array sum_part = x2.Copy();
+    std::vector<chainerx::ArrayIndex> indices1(x2.shape().size(), chainerx::Slice());
+    std::vector<chainerx::ArrayIndex> indices2(x2.shape().size(), chainerx::Slice());
     for (int i = 1; i <= half_n; ++i) {
-        indices1[1] = xchainer::Slice(i, x2.shape()[1]);
-        indices2[1] = xchainer::Slice(x2.shape()[1] - i);
+        indices1[1] = chainerx::Slice(i, x2.shape()[1]);
+        indices2[1] = chainerx::Slice(x2.shape()[1] - i);
         sum_part.At(indices1) += x2.At(indices2);
         sum_part.At(indices2) += x2.At(indices1);
     }
-    xchainer::Array unit_scale = bias + alpha * sum_part;
+    chainerx::Array unit_scale = bias + alpha * sum_part;
     // TODO(hamaji): Add `Pow` and use it.
-    xchainer::Array scale = xchainer::Exp(xchainer::Log(unit_scale) * -beta);
+    chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
     st->SetAux(this->y, std::move(std::unique_ptr<XCVMState::Auxiliary>(new LRNBackwardContext(unit_scale))));
     return x * scale;
 }
 
-xchainer::Array LRNGradOp::RunImpl(XCVMState* st, const xchainer::Array& x, const xchainer::Array& y, const xchainer::Array& gy) {
+chainerx::Array LRNGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
     auto ctx = dynamic_cast<LRNBackwardContext*>(st->GetAux(this->y));
     CHECK(ctx);
     int half_n = size / 2;
-    xchainer::Array unit_scale = ctx->unit_scale();
-    xchainer::Array summand = y * gy / unit_scale;
-    xchainer::Array sum_part = summand.Copy();
-    std::vector<xchainer::ArrayIndex> indices1(summand.shape().size(), xchainer::Slice());
-    std::vector<xchainer::ArrayIndex> indices2(summand.shape().size(), xchainer::Slice());
+    chainerx::Array unit_scale = ctx->unit_scale();
+    chainerx::Array summand = y * gy / unit_scale;
+    chainerx::Array sum_part = summand.Copy();
+    std::vector<chainerx::ArrayIndex> indices1(summand.shape().size(), chainerx::Slice());
+    std::vector<chainerx::ArrayIndex> indices2(summand.shape().size(), chainerx::Slice());
     for (int i = 1; i <= half_n; ++i) {
-        indices1[1] = xchainer::Slice(i, summand.shape()[1]);
-        indices2[1] = xchainer::Slice(summand.shape()[1] - i);
+        indices1[1] = chainerx::Slice(i, summand.shape()[1]);
+        indices2[1] = chainerx::Slice(summand.shape()[1] - i);
         sum_part.At(indices1) += summand.At(indices2);
         sum_part.At(indices2) += summand.At(indices1);
     }
     // TODO(hamaji): Add `Pow` and use it.
     // TODO(hamaji): Decide whether we want to keep this value or recompute.
-    xchainer::Array scale = xchainer::Exp(xchainer::Log(unit_scale) * -beta);
+    chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
     return gy * scale - 2 * alpha * beta * x * sum_part;
 }
 

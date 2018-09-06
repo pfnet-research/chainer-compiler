@@ -36,24 +36,24 @@ void StripLargeValue(onnx::TensorProto* tensor, int num_elements) {
     CLEAR_IF_LARGE(tensor, uint64_data, num_elements);
 }
 
-xchainer::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
+chainerx::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
     switch (xtype) {
         case onnx::TensorProto::BOOL:
-            return xchainer::Dtype::kBool;
+            return chainerx::Dtype::kBool;
         case onnx::TensorProto::INT8:
-            return xchainer::Dtype::kInt8;
+            return chainerx::Dtype::kInt8;
         case onnx::TensorProto::INT16:
-            return xchainer::Dtype::kInt16;
+            return chainerx::Dtype::kInt16;
         case onnx::TensorProto::INT32:
-            return xchainer::Dtype::kInt32;
+            return chainerx::Dtype::kInt32;
         case onnx::TensorProto::INT64:
-            return xchainer::Dtype::kInt64;
+            return chainerx::Dtype::kInt64;
         case onnx::TensorProto::UINT8:
-            return xchainer::Dtype::kUInt8;
+            return chainerx::Dtype::kUInt8;
         case onnx::TensorProto::FLOAT:
-            return xchainer::Dtype::kFloat32;
+            return chainerx::Dtype::kFloat32;
         case onnx::TensorProto::DOUBLE:
-            return xchainer::Dtype::kFloat64;
+            return chainerx::Dtype::kFloat64;
         default:
             CHECK(false) << "Unsupported ONNX data type: " << xtype;
     }
@@ -64,10 +64,10 @@ InOuts LoadParams(const Model& model) {
     for (const Value* input : model.graph().input_values()) {
         if (input->users().empty()) continue;
         if (const Tensor* initializer = input->initializer()) {
-            xchainer::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
-            xchainer::Shape shape(initializer->dims());
+            chainerx::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
+            chainerx::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();
-            xchainer::Array tensor;
+            chainerx::Array tensor;
             // If the input is used only by Reshape or has "NATIVE"
             // prefix, place it on host memory.
             // TODO(hamaji): Introduce more sophisticated approach to

@@ -15,7 +15,7 @@ add_executable(feeder_test
   )
 target_link_libraries(feeder_test
   feeder
-  xchainer
+  chainerx
   gtest
   gtest_main
   pthread

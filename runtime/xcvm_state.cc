@@ -22,32 +22,32 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
 XCVMState::~XCVMState() {
 }
 
-xchainer::Array XCVMState::GetVar(int index) {
+chainerx::Array XCVMState::GetVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return variables_[index]->GetArray();
 }
 
-nonstd::optional<xchainer::Array> XCVMState::GetVarOptional(int index) {
+nonstd::optional<chainerx::Array> XCVMState::GetVarOptional(int index) {
     if (index < 0) return nonstd::nullopt;
     return GetVar(index);
 }
 
-std::vector<xchainer::Array> XCVMState::GetVarList(const std::vector<int>& index) {
-    std::vector<xchainer::Array> vars;
+std::vector<chainerx::Array> XCVMState::GetVarList(const std::vector<int>& index) {
+    std::vector<chainerx::Array> vars;
     for (int i : index) vars.push_back(GetVar(i));
     return vars;
 }
 
-std::vector<xchainer::Array>* XCVMState::CreateSequence(int index) {
+std::vector<chainerx::Array>* XCVMState::CreateSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     variables_[index].reset(new XCVMVar(XCVMVar::Kind::kSequence));
     return GetSequence(index);
 }
 
-std::vector<xchainer::Array>* XCVMState::GetSequence(int index) {
+std::vector<chainerx::Array>* XCVMState::GetSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
@@ -72,7 +72,7 @@ void XCVMState::SetAux(int index, std::unique_ptr<Auxiliary>&& aux) {
     auxiliaries_[index] = std::move(aux);
 }
 
-void XCVMState::SetVar(int index, const xchainer::Array& value) {
+void XCVMState::SetVar(int index, const chainerx::Array& value) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
@@ -87,13 +87,13 @@ void XCVMState::FreeVar(int index) {
     auxiliaries_[index] = nullptr;
 }
 
-xchainer::Array XCVMState::Input(const std::string& name) {
+chainerx::Array XCVMState::Input(const std::string& name) {
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;
     return found->second;
 }
 
-void XCVMState::Output(const std::string& name, xchainer::Array value) {
+void XCVMState::Output(const std::string& name, chainerx::Array value) {
     CHECK(outputs_.emplace(name, value).second) << "Duplicated output name: " << name;
 }
 

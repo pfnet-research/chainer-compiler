@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include <xchainer/context.h>
-#include <xchainer/routines/manipulation.h>
+#include <chainerx/context.h>
+#include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
 #include <feeder/imagenet_iterator.h>
@@ -28,8 +28,8 @@ TEST(TestImageNetIterator, Basic) {
         return;
     }
 
-    xchainer::Context ctx;
-    xchainer::SetGlobalDefaultContext(&ctx);
+    chainerx::Context ctx;
+    chainerx::SetGlobalDefaultContext(&ctx);
 
     std::vector<float> mean(LoadMean("data/imagenet/mean.bin", 192, 192));
     ASSERT_EQ(192 * 192 * 3, mean.size());
@@ -38,11 +38,11 @@ TEST(TestImageNetIterator, Basic) {
 
     ImageNetIterator iter("data/imagenet/test.txt", 3, 5, mean, 192, 192);
     iter.Start();
-    std::vector<xchainer::Array> a(iter.GetNext());
+    std::vector<chainerx::Array> a(iter.GetNext());
     ASSERT_EQ(2, a.size());
-    EXPECT_EQ(xchainer::Shape({5, 3, 192, 192}), a[0].shape());
-    EXPECT_EQ(xchainer::Shape({5}), a[1].shape());
-    EXPECT_EQ(0, int(xchainer::AsScalar(a[1].At({2}))));
+    EXPECT_EQ(chainerx::Shape({5, 3, 192, 192}), a[0].shape());
+    EXPECT_EQ(chainerx::Shape({5}), a[1].shape());
+    EXPECT_EQ(0, int(chainerx::AsScalar(a[1].At({2}))));
     iter.Terminate();
 }
 

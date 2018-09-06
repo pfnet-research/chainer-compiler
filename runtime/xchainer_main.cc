@@ -6,10 +6,10 @@
 
 #include <onnx/onnx-ml.pb.h>
 
-#include <xchainer/array.h>
-#include <xchainer/context.h>
-#include <xchainer/numeric.h>
-#include <xchainer/routines/creation.h>
+#include <chainerx/array.h>
+#include <chainerx/context.h>
+#include <chainerx/numeric.h>
+#include <chainerx/routines/creation.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -26,10 +26,10 @@ void RunMain(int argc, const char** argv) {
                 << " [-in <in0.pb>]... [-out <out0.pb>]...";
     }
 
-    xchainer::Context ctx;
-    xchainer::SetGlobalDefaultContext(&ctx);
+    chainerx::Context ctx;
+    chainerx::SetGlobalDefaultContext(&ctx);
     if (const char* device = getenv("ONIKU_DEVICE")) {
-        xchainer::SetDefaultDevice(&xchainer::GetDefaultContext().GetDevice(std::string(device)));
+        chainerx::SetDefaultDevice(&chainerx::GetDefaultContext().GetDevice(std::string(device)));
     }
 
     InOuts inputs;
@@ -44,7 +44,7 @@ void RunMain(int argc, const char** argv) {
 
         if (arg == "-in") {
             onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(argv[i]));
-            xchainer::Array tensor(MakeArrayFromONNX(xtensor));
+            chainerx::Array tensor(MakeArrayFromONNX(xtensor));
             std::string name = xtensor.name();
             if (name.empty()) {
                 CHECK(!input_names.empty());
@@ -54,7 +54,7 @@ void RunMain(int argc, const char** argv) {
             CHECK(inputs.emplace(name, tensor).second) << "Duplicate input tensor: " << name;
         } else if (arg == "-out") {
             onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(argv[i]));
-            xchainer::Array tensor(MakeArrayFromONNX(xtensor));
+            chainerx::Array tensor(MakeArrayFromONNX(xtensor));
             std::string name = xtensor.name();
             if (name.empty()) {
                 CHECK(!output_names.empty());
@@ -65,7 +65,7 @@ void RunMain(int argc, const char** argv) {
         } else if (arg == "-onnx") {
             onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(argv[i]));
             for (const auto& initializer : xmodel.graph().initializer()) {
-                xchainer::Array tensor(MakeArrayFromONNX(initializer));
+                chainerx::Array tensor(MakeArrayFromONNX(initializer));
                 CHECK(inputs.emplace(initializer.name(), tensor).second) << "Duplicate input tensor: " << initializer.name();
             }
             for (const auto& input : xmodel.graph().input()) {
@@ -92,11 +92,11 @@ void RunMain(int argc, const char** argv) {
 
     for (const auto& p : expectations) {
         const std::string key = p.first;
-        xchainer::Array expected = p.second;
+        chainerx::Array expected = p.second;
         auto found = outputs.find(key);
         CHECK(found != outputs.end()) << "Output does not contain " << key;
-        xchainer::Array actual = found->second;
-        CHECK(xchainer::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
+        chainerx::Array actual = found->second;
+        CHECK(chainerx::AllClose(expected, actual, 1e-4)) << "\nExpected: " << expected << "\nActual: " << actual;
     }
 }
 

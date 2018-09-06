@@ -2,11 +2,11 @@
 
 #include <gtest/gtest.h>
 
-#include <xchainer/array.h>
-#include <xchainer/context.h>
-#include <xchainer/numeric.h>
-#include <xchainer/routines/creation.h>
-#include <xchainer/testing/array.h>
+#include <chainerx/array.h>
+#include <chainerx/context.h>
+#include <chainerx/numeric.h>
+#include <chainerx/routines/creation.h>
+#include <chainerx/testing/array.h>
 
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
@@ -17,8 +17,8 @@ namespace runtime {
 namespace {
 
 TEST(XCVMTest, Run) {
-    xchainer::Context ctx;
-    xchainer::SetGlobalDefaultContext(&ctx);
+    chainerx::Context ctx;
+    chainerx::SetGlobalDefaultContext(&ctx);
 
     XCProgramProto program;
     AddInOp(&program, 0, "in1");
@@ -29,13 +29,13 @@ TEST(XCVMTest, Run) {
 
     XCVM xcvm(program);
     InOuts inputs;
-    inputs["in1"] = xchainer::Eye(2, nonstd::nullopt, nonstd::nullopt, xchainer::Dtype::kFloat32);
-    inputs["in2"] = xchainer::OnesLike(inputs["in1"]);
+    inputs["in1"] = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
+    inputs["in2"] = chainerx::OnesLike(inputs["in1"]);
     InOuts outputs = xcvm.Run(inputs, XCVMOptions());
     ASSERT_EQ(1, outputs.count("out"));
-    xchainer::Array e = xchainer::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
+    chainerx::Array e = chainerx::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
     // TODO(hamaji): Use EXPECT_ARRAY_EQ after fixing namespace?
-    EXPECT_TRUE(xchainer::AllClose(e, outputs["out"], 0, 0));
+    EXPECT_TRUE(chainerx::AllClose(e, outputs["out"], 0, 0));
 }
 
 }  // namespace

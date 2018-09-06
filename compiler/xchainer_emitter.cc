@@ -32,16 +32,16 @@ void EmitIncludes(CodeEmitter& ce) {
             "google/protobuf/io/coded_stream.h",
             "google/protobuf/io/zero_copy_stream_impl.h",
             "onnx/onnx-ml.pb.h",
-            "xchainer/array.h",
-            "xchainer/axes.h",
-            "xchainer/routines/connection.h",
-            "xchainer/routines/creation.h",
-            "xchainer/routines/linalg.h",
-            "xchainer/routines/manipulation.h",
-            "xchainer/routines/math.h",
-            "xchainer/routines/normalization.h",
-            "xchainer/routines/pooling.h",
-            "xchainer/shape.h",
+            "chainerx/array.h",
+            "chainerx/axes.h",
+            "chainerx/routines/connection.h",
+            "chainerx/routines/creation.h",
+            "chainerx/routines/linalg.h",
+            "chainerx/routines/manipulation.h",
+            "chainerx/routines/math.h",
+            "chainerx/routines/normalization.h",
+            "chainerx/routines/pooling.h",
+            "chainerx/shape.h",
             "common/strutil.h",
             "runtime/xchainer.h",
     });
@@ -53,11 +53,11 @@ void EmitIncludes(CodeEmitter& ce) {
 }
 
 void EmitSingleArrayAssignment(const std::string& name, const std::string rhs, CodeEmitter& ce) {
-    ce << "const xchainer::Array& " << name << " = " << rhs << ";\n";
+    ce << "const chainerx::Array& " << name << " = " << rhs << ";\n";
 }
 
 void EmitIntStackVector(const std::string& name, const std::vector<int>& ints, CodeEmitter& ce) {
-    ce << "xchainer::StackVector<int64_t, xchainer::kMaxNdim> " << name << "{" << Join(ints) << "};\n";
+    ce << "chainerx::StackVector<int64_t, chainerx::kMaxNdim> " << name << "{" << Join(ints) << "};\n";
 }
 
 class XChainerEmitter {
@@ -80,7 +80,7 @@ private:
 
     void EmitInputs(CodeEmitter& ce) {
         for (const Value* value : graph_.GetNecessaryInputs()) {
-            ce << "const xchainer::Array& " << GetValueName(value) << " = GetOrDie(inputs, \"" << value->name() << "\");\n";
+            ce << "const chainerx::Array& " << GetValueName(value) << " = GetOrDie(inputs, \"" << value->name() << "\");\n";
         }
         ce << NL;
     }
@@ -150,7 +150,7 @@ private:
             const std::string& strides_sym = emit_strides();
             const std::string& pads_sym = emit_pads();
             const std::string& bias = node.inputs().size() == 3UL ? GetValueName(node.inputs()[2]) : "nonstd::nullopt";
-            std::string r = "xchainer::Conv(" +
+            std::string r = "chainerx::Conv(" +
                             Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1]), bias, strides_sym, pads_sym}) + ")";
             EmitSingleArrayAssignment(out_name(), r, ce);
         } else if (node.op_type() == Node::kGemm) {
@@ -159,12 +159,12 @@ private:
             std::string b = GetValueName(node.inputs()[1]);
             std::string c = GetValueName(node.inputs()[2]);
             if (node.trans_a()) {
-                a = "xchainer::Transpose(" + a + ")";
+                a = "chainerx::Transpose(" + a + ")";
             }
             if (node.trans_b()) {
-                b = "xchainer::Transpose(" + b + ")";
+                b = "chainerx::Transpose(" + b + ")";
             }
-            std::string r = "xchainer::Dot(" + Join({a, b}) + ")";
+            std::string r = "chainerx::Dot(" + Join({a, b}) + ")";
             if (node.alpha() != 1.0) {
                 r = StrCat(r, " * ", node.alpha());
             }
@@ -181,25 +181,25 @@ private:
             EmitIntStackVector(kernel_shape_sym, kernel_shape, ce);
             std::string r;
             if (node.op_type() == Node::kMaxPool) {
-                r = "xchainer::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ", false)";
+                r = "chainerx::MaxPool(" + Join({in_name(), kernel_shape_sym, strides_sym, pads_sym}) + ", false)";
             } else {
                 const std::string pad_mode = node.count_include_pad() ? "kZero" : "kIgnore";
-                r = "xchainer::AveragePool(" +
-                    Join({in_name(), kernel_shape_sym, strides_sym, pads_sym, "xchainer::AveragePoolPadMode::" + pad_mode}) + ")";
+                r = "chainerx::AveragePool(" +
+                    Join({in_name(), kernel_shape_sym, strides_sym, pads_sym, "chainerx::AveragePoolPadMode::" + pad_mode}) + ")";
             }
             EmitSingleArrayAssignment(out_name(), r, ce);
         } else if (node.op_type() == Node::kMatMul) {
             CHECK_EQ(2UL, node.inputs().size());
             EmitSingleArrayAssignment(
-                    out_name(), "xchainer::Dot(" + Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1])}) + ")", ce);
+                    out_name(), "chainerx::Dot(" + Join({GetValueName(node.inputs()[0]), GetValueName(node.inputs()[1])}) + ")", ce);
         } else if (node.op_type() == Node::kRelu) {
             CHECK_EQ(1UL, node.inputs().size());
-            EmitSingleArrayAssignment(out_name(), "xchainer::Maximum(" + GetValueName(node.inputs()[0]) + ", 0)", ce);
+            EmitSingleArrayAssignment(out_name(), "chainerx::Maximum(" + GetValueName(node.inputs()[0]) + ", 0)", ce);
         } else if (node.op_type() == Node::kReshape) {
             CHECK_EQ(2UL, node.inputs().size());
             EmitSingleArrayAssignment(
                     out_name(),
-                    "xchainer::Reshape(" + Join({GetValueName(node.inputs()[0]), "ArrayToShape(" + GetValueName(node.inputs()[1]) + ")"}) +
+                    "chainerx::Reshape(" + Join({GetValueName(node.inputs()[0]), "ArrayToShape(" + GetValueName(node.inputs()[1]) + ")"}) +
                             ")",
                     ce);
         } else if (node.op_type() == Node::kSum) {
@@ -221,9 +221,9 @@ private:
         } else if (node.op_type() == Node::kSoftmax || node.op_type() == Node::kLogSoftmax) {
             int axis = node.axis();
             if (axis < 0) axis = 1;
-            std::string r = StrCat("xchainer::LogSoftmax(", in_name(), ", xchainer::OptionalAxes{", axis, "})");
+            std::string r = StrCat("chainerx::LogSoftmax(", in_name(), ", chainerx::OptionalAxes{", axis, "})");
             if (node.op_type() == Node::kSoftmax) {
-                r = "xchainer::Exp(" + r + ")";
+                r = "chainerx::Exp(" + r + ")";
             }
             EmitSingleArrayAssignment(out_name(), r, ce);
         } else {
