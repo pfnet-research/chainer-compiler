@@ -5,14 +5,21 @@ import chainer.links as L
 
 # Network definition
 
-
 class A(chainer.Chain):
 
     def __init__(self):
         super(A, self).__init__()
+        with self.init_scope():
+            self.l0 = L.Linear(7)
+            self.l1 = L.Linear(5)
+    
+    def g(self,y):
+       return self.l1(y)
 
-    def forward(self, xs):
-        return [ (x+3.0) for x in xs]
+    def forward(sl, x):
+        x1 = sl.l0(x)
+        x2 = sl.g(x1)
+        return x2
 
 
 # ======================================

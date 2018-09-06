@@ -9,10 +9,12 @@ node=(
 )
 
 syntax=(
-    ListComp.py
+    MultiClass.py
+    MultiFunction.py
+    UserDefinedFunc.py
+   # ListComp.py
 )
 
-syntax=()
 
 model=(
     MLP_with_loss.py

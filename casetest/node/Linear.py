@@ -12,9 +12,12 @@ class A(chainer.Chain):
         super(A, self).__init__()
         with self.init_scope():
             self.l1 = L.Linear(None,n_out)
+            self.l2 = L.Linear(7,nobias=True)
 
     def forward(self, x):
-        return self.l1(x)
+        y1 = self.l1(x)
+        y2 = self.l2(x)
+        return (y1,y2)
 
 
 # ======================================

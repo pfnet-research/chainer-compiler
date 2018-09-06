@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import onnx
 from onnx import helper
 from onnx import TensorProto
 import os
@@ -33,3 +34,16 @@ def clip_head(s):
 class ValueReturn(Exception):
     def __init__(sl, value):
         sl.value = value
+
+
+def size2d(v):
+    if isinstance(v, tuple):
+        return list(v)
+    elif isinstance(v, int):
+        return [v, v]
+    else:
+        raise Exception('size should be tuple or int, but got ', v)
+
+
+def istensor(x):
+    return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)

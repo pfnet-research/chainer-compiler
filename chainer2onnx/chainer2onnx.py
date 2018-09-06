@@ -10,52 +10,176 @@ from onnx import helper
 import code
 import copy
 import sys
+import types
 
 import chainer
+import numpy
 
 from . test_args import dprint
-from . utils import new_tensor, clip_head, ValueReturn
-from . links_funcs import Func, Func2NodeClass, Link2NodeClass
+from . utils import new_tensor, clip_head, ValueReturn, istensor
+from . links import Link2NodeClass
+from . funcs import Func, Func2NodeClass, Function_Dummy
+from . xp_numpy import xp_attrs, np_attrs
+from . builtin_funcs import builtin_functions
+
+import builtins
+import six
+
+
+def initLinks(model, parentname):
+    links = {}
+
+    for na, ch in model.__dict__.items():
+        # print(na,ch,issubclass(ch.__class__,chainer.Chain),ch.__class__.__module__)
+        # code.InteractiveConsole({'na': na,'ch': ch}).interact()
+        if issubclass(ch.__class__, chainer.link.Link):
+            if ch.__class__.__module__[:14] == 'chainer.links.':
+                for lk, cl in Link2NodeClass:
+                    if isinstance(ch, lk):
+                        links[na] = cl(ch, parentname)
+                        break
+                else:
+                    print('unknown chainer link')
+                    code.InteractiveConsole({'lk': ch}).interact()
+                    raise Exception('unknown link', ch)
+            else:
+                # User Defined link
+                links[na] = User_Defined_Link(ch, parentname)
+    return links
+
+
+class Attr(object):
+    def __init__(sl, d, ch=None):
+        sl.dic = d
+        sl.ch = ch
+
+    def update(sl, d):
+        sl.dic.update(d)
+
+    def get_attr(sl, k):
+        if k in sl.dic.keys():
+            return sl.dic[k]
+        elif (not sl.ch is None) and (k in dir(sl.ch)) and (callable(getattr(sl.ch, k))):
+            return Func(getattr(sl.ch, k))
+        else:
+            raise Exception(sl.ch, 'has no attr ', k)
+
+    def set_attr(sl, k, v):
+        sl.dic[k] = v
+
+
+class Function_base(object):
+    def stub_call(sl, args, kwargs, loenv):
+
+        # code.InteractiveConsole({'v': sl.ast.args}).interact()
+
+        astargs = list(map(lambda x: x.id, sl.ast.args.args))
+        args = dict(zip(astargs, args))
+
+        defs = sl.ast.args.defaults
+        d = len(astargs) - len(args.keys())
+        if d > 0:
+            for i, v in enumerate(defs[::-1][:d]):
+                args.update({astargs[-i-1]: v})
+
+        args.update(kwargs)
+        # args.update()
+
+        assert(len(astargs) == len(args.keys()))
+        loenv.vars = args
+
+        try:
+            eval_ast(sl.ast.body, loenv)
+            return None
+        except ValueReturn as v:
+            res = v.value
+        return res
+
+
+class User_Defined_Function(Function_base):
+    def __init__(sl, func):
+
+        src = clip_head(inspect.getsource(func))
+        dprint(src)
+        sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
+        assert(isinstance(sl.ast, gast.gast.FunctionDef))
+
+    def call(sl, args, kwargs, env):
+        # code.InteractiveConsole({'nast':sl.ast}).interact()
+
+        loenv = env.localenv()
+        loenv.links = {}
+        loenv.module = env.module
+
+        return sl.stub_call(args, kwargs, loenv)
+
+
+class User_Defined_Func_In_Link(Function_base):
+    def __init__(sl, attrs, links, module, ast, funname):
+        sl.attrs = attrs
+        sl.links = links
+        sl.module = module
+        sl.ast = ast
+
+        # for debuging
+        sl.funname = funname
+
+    def call(sl, args, kwargs, env):
+        print('calling', sl.funname)
+        # code.InteractiveConsole({'nast':sl.ast}).interact()
+
+        loenv = env.localenv()
+        loenv.links = sl.links
+        loenv.module = sl.module
+        args = [sl.attrs] + args
+
+        return sl.stub_call(args, kwargs, loenv)
 
 
 class User_Defined_Link(object):
     def __init__(sl, ch, parentname):
         sl.name = parentname + ('' if ch.name is None else '_' + ch.name)
+        # print('UserDefined',ch)
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        src = clip_head(inspect.getsource(ch.forward))
-        dprint(src)
-        sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
-        assert(isinstance(sl.ast, gast.gast.FunctionDef))
-
+        sl.attrs = Attr({}, ch)
         sl.links = initLinks(ch, sl.name)
         sl.module = sys.modules[ch.__module__]
-        sl.forward_args = list(map(lambda x: x.id, sl.ast.args.args))
 
-        sl.attrs = {'children': Func(lambda _, __, ___: sl.links.values())}
+        # print(gast.ast_to_gast(ast.parse(clip_head(inspect.getsource(ch.__class__)))).body[0].body)
+
+        src = clip_head(inspect.getsource(ch.__class__))
+        dprint(src)
+
+        ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
+        # code.InteractiveConsole({'v': ast_list}).interact()
+        funcs = {}
+        for func in ast_list:
+            if not isinstance(func, gast.gast.FunctionDef):
+                continue
+
+            if func.name == 'forward':
+                # このへんもkwargsの扱いとかどうにかしないと
+                sl.forward_arglen = len(func.args.args)-1
+
+            funcs[func.name] = User_Defined_Func_In_Link(
+                sl.attrs, sl.links, sl.module, func, sl.name + "#" + ch.__class__.__name__ + "@" + func.name)
+
+        sl.attrs.update(vars(ch))
         sl.attrs.update(sl.links)
+        sl.attrs.update({
+            'xp': Attr(xp_attrs),
+        })
+        sl.attrs.update(funcs)
 
-    def call(sl, args, _, env):
-        # 自身のforwardを呼ぶ
-        # print('calling',sl.name,'with',args)
-        # code.InteractiveConsole({'nast':sl.ast}).interact()
+        # print(ch.name,sl.attrs.dic.keys())
+        sl.get_attr = sl.attrs.get_attr
+        # print(sl.attrs.dic)
 
-        loenv = env.localenv()
+        sl.call = sl.get_attr('forward').call
 
-        args = [sl.attrs] + args
-        assert(len(sl.forward_args) == len(args))
-        loenv.vars = dict(zip(sl.forward_args, args))
-
-        loenv.links = sl.links
-        loenv.module = sl.module
-        # print('name', sl.name, 'modules', sl.module)
-
-        try:
-            eval_ast(sl.ast.body, loenv)
-            raise Exception('return not found')
-        except ValueReturn as v:
-            res = v.value
-        return res
+        # print(sl.attrs.dic)
+        # exit(0)
 
     def init_tensors(sl):
         res = []
@@ -64,23 +188,49 @@ class User_Defined_Link(object):
         return res
 
 
-def initLinks(model, parentname):
-    links = {}
-    for ch in model.children():
-        if ch.__class__.__module__[:13] == 'chainer.links':
-            for lk, cl in Link2NodeClass:
-                if isinstance(ch, lk):
-                    links[ch.name] = cl(ch, parentname)
-                    break
-            else:
-                print('unknown chainer link')
-                code.InteractiveConsole({'lk': ch}).interact()
-                raise Exception('unknown link', ch)
-        else:
-            # User Defined link
-            links[ch.name] = User_Defined_Link(ch, parentname)
+class User_Defined_Class(object):
+    def __init__(sl, classtype):
+        sl.attrs = Attr({})
 
-    return links
+        src = clip_head(inspect.getsource(classtype))
+        dprint(src)
+
+        ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
+        # code.InteractiveConsole({'v': classtype}).interact()
+        sl.module = sys.modules[classtype.__module__]
+
+        funcs = {}
+        for func in ast_list:
+            if not isinstance(func, gast.gast.FunctionDef):
+                continue
+
+            funcs[func.name] = User_Defined_Func_In_Link(
+                sl.attrs, {}, sl.module, func, classtype.__name__ + "@" + func.name)
+
+        sl.attrs.update(funcs)
+
+        if issubclass(classtype, chainer.FunctionNode):
+            def applyfunc(args, kwargs, env):
+                # print('apply arg',args)
+                return sl.get_attr('forward').call(args, kwargs, env)
+
+            sl.attrs.update({
+                'apply': Func(applyfunc),
+                # TODO(satos) これbackward側に何か伝える必要がありそう
+                'retain_inputs': Func(lambda _, __, ___: None),
+            })
+
+        # print(ch.name,sl.attrs.dic.keys())
+        sl.get_attr = sl.attrs.get_attr
+        # print(sl.attrs.dic)
+
+        sl.call = sl.get_attr('forward').call
+
+        def f(args, kwargs, env):
+            sl.get_attr('__init__').call(args, kwargs, env)
+            return sl
+
+        sl.init_wrapper = Func(f)
 
 
 class Env(object):
@@ -99,19 +249,51 @@ class Env(object):
         )
 
 
+import logging
+
+
+def islogging(s, env):
+    # dprint('check logging',gast.dump(s), env.vars.keys())
+    return (
+        isinstance(s, gast.Expr) and
+        isinstance(s.value, gast.Call) and
+        isinstance(s.value.func, gast.Attribute) and
+        isinstance(eval_ast(s.value.func.value, env), logging.__class__)
+    )
+
+
 def eval_ast(nast, env):
-    dprint(nast, env.vars.keys())
+    if not isinstance(nast, list):
+        dprint(gast.dump(nast), env.vars.keys())
+
     if isinstance(nast, list):
         # 逐次実行
         for s in nast:
+            if islogging(s, env):
+                continue
             eval_ast(s, env)
     elif isinstance(nast, gast.For):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
-        for v in eval_ast(nast.iter, env):
-            env.vars[tg] = v
-            eval_ast(nast.body, env)
-        env.vars.pop(tg)
+        env.vars[tg] = None
+        ite = eval_ast(nast.iter, env)
+
+        if istensor(ite):
+
+            tx = new_tensor()
+            env.vars[tg] = tx
+            ty = eval_ast(nast.body, env)
+
+            # TODO(satos) あとまわします
+            return new_tensor()
+        else:
+            for v in ite:
+                env.vars[tg] = v
+                eval_ast(nast.body, env)
+                # print('looping',env.vars.keys())
+
+            # print('finish loop',env.vars.keys())
+            env.vars.pop(tg)
 
     elif isinstance(nast, gast.Assign):
         value = eval_ast(nast.value, env)
@@ -128,29 +310,61 @@ def eval_ast(nast, env):
 
             for i, v in enumerate(value):
                 env.vars[tg.elts[i].id] = v  # これこのあと更に再帰的に書く必要あるかも
+
+        elif isinstance(tg, gast.Attribute):
+            body = eval_ast(tg.value, env)
+            body.set_attr(tg.attr, value)
         else:
             raise Exception('invalid assing lvalue', targs[0])
+        return None
+
+    elif isinstance(nast, gast.AugAssign):
+        ca = gast.Assign(targets=[nast.target], value=gast.BinOp(
+            left=nast.target, op=nast.op, right=nast.value))
 
     elif isinstance(nast, gast.Call):
         fn = eval_ast(nast.func, env)
-        args = list(map(lambda x: eval_ast(x, env), nast.args))
+        args = []
+        for ag in nast.args:
+            if isinstance(ag, gast.Starred):
+                args += list(eval_ast(ag.value, env))
+            else:
+                args.append(eval_ast(ag, env))
+
         keywords = dict(
             map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
+
+        # code.InteractiveConsole({'fn': fn}).interact()
+
+        if isinstance(fn, types.FunctionType):
+            fn = User_Defined_Function(fn)
+        elif isinstance(fn, types.BuiltinFunctionType):
+            fn = builtin_functions[fn.__name__]
+        elif fn == range:
+            fn = builtin_functions['range']
+        elif isinstance(fn, type):
+            # なにがしかのinstance 作成
+            assert fn.__module__ != 'builtins'
+
+            fn = User_Defined_Class(fn).init_wrapper
+
+        # print('funccall',fn,args,keywords,env)
         return fn.call(args, keywords, env)
+
     elif isinstance(nast, gast.UnaryOp):
         v = eval_ast(nast.operand, env)
         res = new_tensor()
         if isinstance(nast.op, gast.USub):
             # optype = "Sub"
-            def f(x): return -x
+            def opfun(x): return -x
+        elif isinstance(nast.op, gast.Not):
+            # optype = "Sub"
+            def opfun(x): return not x
         else:
             raise Exception('unknown operator', nast.op)
 
-        def istensor(x):
-            return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
-
         if not istensor(v):
-            return f(v)
+            return opfun(v)
         else:
             raise Exception("Unimplemented")
 
@@ -158,40 +372,45 @@ def eval_ast(nast, env):
         lv = eval_ast(nast.left, env)
         rv = eval_ast(nast.right, env)
         res = new_tensor(['TODO'])
+        isfloor = False
         if isinstance(nast.op, gast.Add):
             optype = "Add"
+
+            def opfun(a, b): return a + b
         elif isinstance(nast.op, gast.Mult):
             optype = "Mul"
+
+            def opfun(a, b): return a * b
+        elif isinstance(nast.op, gast.FloorDiv):
+            optype = "Div"
+            isfloor = True
+
+            def opfun(a, b): return a // b
+        elif isinstance(nast.op, gast.Div):
+            optype = "Div"
+
+            def opfun(a, b): return a / b
         else:
             raise Exception('unknown operator', nast.op)
 
         # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
-        def istensor(x):
-            return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
 
         if not istensor(lv) and not istensor(rv):
-            if optype == "Add":
-                return lv + rv
-            elif optype == "Mul":
-                return lv * rv
-            else:
-                raise Exception('unknown operator', nast.op)
+            return opfun(lv, rv)
 
         def totensor(x):
             if istensor(x):
                 return x
-            res = new_tensor(['TODO'])
+            res = new_tensor()
 
-            env.nodes.append(
-                helper.make_node(
-                    'Constant',
-                    inputs=[], outputs=[res.name],
-                    value=onnx.helper.make_tensor(
-                        name="hoge",
-                        data_type=onnx.TensorProto.FLOAT,
-                        dims=[],
-                        vals=[x],
-                    )
+            env.addnode(
+                'Constant',
+                inputs=[], outputs=[res.name],
+                value=onnx.helper.make_tensor(
+                    name="hoge",
+                    data_type=onnx.TensorProto.FLOAT,
+                    dims=[],
+                    vals=[x],
                 )
             )
             return res
@@ -199,28 +418,117 @@ def eval_ast(nast, env):
         lv = totensor(lv)
         rv = totensor(rv)
 
-        env.nodes.append(
-            helper.make_node(
-                optype,
-                inputs=[lv.name, rv.name], outputs=[res.name],
-            )
+        env.addnode(
+            optype,
+            inputs=[lv.name, rv.name], outputs=[res.name],
         )
-        return res
-    elif isinstance(nast, gast.Attribute):
-        # TODO(satos) 多段attrに対応する
 
-        # code.InteractiveConsole({'nast':nast,'env': env}).interact()
+        if isfloor:
+            r = new_tensor()
+            env.addnode(
+                "Floor",
+                inputs=[res.name], outputs=[r.name],
+            )
+            res = r
+
+        return res
+
+    elif isinstance(nast, gast.BoolOp):
+        vs = list(map(lambda x: eval_ast(x, env), nast.values))
+        res = new_tensor(['TODO'])
+        if isinstance(nast.op, gast.And):
+            def opfun(v): return all(v)
+        else:
+            raise Exception('unknown operator', nast.op)
+
+        # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
+        if not any(map(istensor, vs)):
+            return opfun(vs)
+
+        raise Exception('Unimplemented BoolOp for tensor', nast)
+
+    elif isinstance(nast, gast.Attribute):
         body = eval_ast(nast.value, env)
         # code.InteractiveConsole({'nast':nast,'env': env, 'body':body}).interact()
-        if body == chainer.functions:
+
+        if isinstance(body, chainer.variable.Parameter):
+            if nast.attr == 'shape':
+                return body.shape
+        elif body == chainer.functions:
             v = getattr(body, nast.attr)
             for f, c in Func2NodeClass:
                 if v == f:
                     return c()
             else:
                 raise Exception('unknown function', nast.attr)
+        elif body == numpy:
+            # raise Exception('unknown function',body, nast.attr)
+            return np_attrs[nast.attr]
+        elif istensor(body):
+            if nast.attr == 'shape':
+                res = new_tensor()
+                env.addnode(
+                    'Shape',
+                    inputs=[body.name], outputs=[res.name],
+                )
+                return res
+        elif body == chainer.backends.cuda:
+            if nast.attr == 'to_cpu':
+                # TODO(satos) テンソルの位置についてCPUを通ったかどうかを残す
+                return Func(lambda x, _, __: x[0])
+            elif nast.attr == 'get_array_module':
+                # とりあえずnumpyを返していいんでは
+                return Func(lambda ___, _, __: numpy)
+        elif body == six:
+            if nast.attr == 'moves':
+                return six.moves
+        elif body == six.moves:
+            if nast.attr == 'range':
+                return builtin_functions['range']
+        # TODO(satos) どうすんのこれ(とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embed_id.py#L43) のif文を通んないようにする
+        elif body == chainer.utils.type_check:
+            if nast.attr == 'same_types':
+                return Func(lambda _, __, ___: True)
+
+        elif body == chainer:
+            if nast.attr == 'is_debug':
+                # とりあえずfalseでは
+                return Func(lambda ___, _, __: False)
+
         else:
-            return body[nast.attr]
+            dprint('getattr', body, nast.attr)
+            return body.get_attr(nast.attr)
+
+        raise Exception('value', body, 'attribute',
+                        nast.attr, 'is not imlemented yet')
+
+    elif isinstance(nast, gast.Compare):
+        le = eval_ast(nast.left, env)
+        vs = list(map(lambda x: eval_ast(x, env), nast.comparators))
+        # とりあえず定数畳み込みのみにする
+        assert not (istensor(le) or any(map(istensor, vs)))
+
+        res = True
+        for op, r in zip(nast.ops, vs):
+            # code.InteractiveConsole({'op': op}).interact()
+            if isinstance(op, gast.Eq):
+                res = res and (le == r)
+            elif isinstance(op, gast.IsNot):
+                res = res and (le is not r)
+            elif isinstance(op, gast.Gt):
+                res = res and (le > r)
+            else:
+                raise Exception('unimplemented operator', op)
+        return res
+
+    elif isinstance(nast, gast.If):
+        b = eval_ast(nast.test, env)
+        if b == True:
+            return eval_ast(nast.body, env)
+        elif b == False:
+            return eval_ast(nast.orelse, env)
+        else:
+            raise Exception('Not constant If is not implemented yet')
 
     elif isinstance(nast, gast.ListComp):
         # [ なんやかや for x in xs] 形式のものを Scanで対応する
@@ -235,13 +543,17 @@ def eval_ast(nast, env):
 
         # 新たなenv を作って、評価中にできた子グラフをもとにする
         localenv = Env()
-        localenv.vars = copy.deepcopy(env.vars)
+        localenv.vars = {}
+        for k, v in env.vars.items():
+            localenv.vars[k] = v
+        localenv.module = env.module
         tx = new_tensor()
         localenv.vars[x] = tx
         ty = eval_ast(nast.elt,  localenv)
 
         # Scan は map の map なので、一旦[x]で包んでかけてしまう
 
+        print(localenv.nodes)
         localgraph = helper.make_graph(
             localenv.nodes,
             "Scan_subgraph", [tx], [ty]
@@ -257,7 +569,7 @@ def eval_ast(nast, env):
         bres = new_tensor()
         env.addnode(
             'Scan',
-            inputs=[xs.name], outputs=[bres.name],
+            inputs=[txs.name], outputs=[bres.name],
             body=localgraph,
             num_scan_inputs=1
         )
@@ -272,22 +584,51 @@ def eval_ast(nast, env):
 
     elif isinstance(nast, gast.Subscript):
         vs = eval_ast(nast.value, env)
-        step = nast.slice.step
-        lower = nast.slice.lower
-        upper = nast.slice.upper
-        """
-        if not (step is None) and eval_ast(step,env) == -1:
-            if lower is None and upper is None:
-               # 反転
+
+        def slice2list(sl):
+            if isinstance(sl, gast.Slice):
+                assert sl.step is None
+                lower = eval_ast(sl.lower, env)
+                upper = eval_ast(sl.upper, env)
+                lower = [0] if lower is None else [lower]
+                upper = [-1] if upper is None else [upper]
+                squeeze = [False]
+            elif isinstance(sl, gast.Index):
+                idx = eval_ast(sl.value, env)
+                lower = [idx]
+                upper = [idx+1]
+                squeeze = [True]
+            elif isinstance(sl, gast.ExtSlice):
+                ds = map(slice2list, sl.dims)
+                lower = list(map(lambda x, _, __: x, ds))
+                upper = list(map(lambda _, x, __: x, ds))
+                squeeze = list(map(lambda _, __, x: x, ds))
             else:
-                raise Exception("Unimplemented")
-        else:
-            raise Exception("Unimplemented")
+                raise Exception(sl, " is not Python slice")
+
+            return lower, upper, squeeze
+
+        """
+        print('vs',vs)
+        if not istensor(vs):
+           sls = slice2list(nast.slice)
+           print(sls)
+           raise Exception("Unimplemented") 
         """
 
-        lower = [] if lower is None else lower
-        upper = [] if upper is None else upper
+        vs = new_tensor()
 
+        # TODO このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
+        # のでどうにかしたい
+
+        res = new_tensor()
+        env.addnode(
+            'Donika',
+            inputs=[vs.name], outputs=[res.name],
+        )
+        return res
+
+        lower, upper, squeeze = slice2list(nast.slice)
         res = new_tensor()
         env.addnode(
             'Slice',
@@ -295,7 +636,25 @@ def eval_ast(nast, env):
             starts=lower,
             ends=upper
         )
+
+        if any(squeeze):
+            r = new_tensor()
+            env.addnode(
+                'SqueezeTekina',
+                inputs=[r.name], outputs=[res.name],
+                axes=[0]  # TODO このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
+            )
+            res = r
+
         return res
+
+    elif isinstance(nast, gast.Delete):
+        # おのおの単に忘れる
+        vs = nast.targets
+        for v in vs:
+            assert isinstance(v, gast.Name)
+            env.vars.pop(v.id)
+        return None
 
     elif isinstance(nast, gast.Name):
         if nast.id == 'print':  # とりあえずの実装なのであとでもっとうまくやる
@@ -304,8 +663,8 @@ def eval_ast(nast, env):
             return env.vars[nast.id]
         elif nast.id in dir(env.module):
             return getattr(env.module, nast.id)
-        elif nast.id == env.self_name:
-            return env.self
+        elif nast.id in dir(builtins):
+            return getattr(builtins, nast.id)
         else:
             raise Exception("Undefined name %s" % nast.id)
     elif isinstance(nast, gast.Num):
@@ -335,14 +694,14 @@ def chainer2onnx(model, forward):
     molk = User_Defined_Link(model, '')
 
     input_tensors = []
-    for i, _ in enumerate(molk.forward_args[1:]):  # self 以外
+    for i in range(molk.forward_arglen):  # self 以外
         x = new_tensor(['batch_size%d' % i, 'input_size%d' % i])
         input_tensors.append(x)
 
     env = Env()
     v = molk.call(input_tensors, [], env)  # keywordsはとりあえず空
 
-    dprint(v)
+    dprint('output_tensors', v)
     if isinstance(v, tuple):
         output_tensors = list(v)  # ばらしてみる
     else:
@@ -368,6 +727,7 @@ def chainer2onnx(model, forward):
     # exit(0)
     # checker.check_graph(graph)
     # oniku独自のノードを使うとcheckできなくなる...
+    # Scanがあると、 No Schema registered for Scan with domain_version of 4 でだめぽい
     mo = helper.make_model(graph)
 
     # print(mo)
