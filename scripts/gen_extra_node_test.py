@@ -102,50 +102,8 @@ def gen_scan_sum_test(test_name):
         out_state.append(st)
     outputs = np.array(outputs)
 
-    inputs_vi = [_extract_value_info(inputs1[0][0], 'in%d' % i)
-                 for i in range(1 + 2)]
-    outputs_vi = [_extract_value_info(outputs[0][0], n)
-                  for n in ['r', 'ab']]
-
-    sub = onnx.helper.make_node('Sub', inputs=['a', 'b'], outputs=['ab'])
-    add = onnx.helper.make_node('Add', inputs=['ab', 's'], outputs=['r'])
-    body = onnx.helper.make_graph(
-        nodes=[sub, add],
-        name='body',
-        inputs=inputs_vi,
-        outputs=outputs_vi)
-
-    node = onnx.helper.make_node(
-        'Scan',
-        body=body,
-        num_scan_inputs=2,
-        inputs=['state', 'inputs1', 'inputs2'],
-        outputs=['out_state', 'outputs'])
-    expect(node,
-           inputs=[state, inputs1, inputs2],
-           outputs=[out_state, outputs],
-           name=test_name)
-
-
-def gen_scan_sum_test(test_name):
-    inputs1 = np.array([[4, 5, 6], [-4, -6, -5]])
-    inputs2 = np.array([[1, 2, 3], [-3, -2, -1]])
-    state = np.array([0, 0])
-    out_state = []
-    outputs = []
-    for bi1, bi2, st in zip(inputs1, inputs2, state):
-        outs = []
-        for a, b in zip(bi1, bi2):
-            ab = a - b
-            r = ab + st
-            outs.append(ab)
-            st = r
-        outputs.append(outs)
-        out_state.append(st)
-    outputs = np.array(outputs)
-
-    inputs_vi = [_extract_value_info(inputs1[0][0], 'in%d' % i)
-                 for i in range(1 + 2)]
+    inputs_vi = [_extract_value_info(inputs1[0][0], n)
+                 for n in ['s', 'a', 'b']]
     outputs_vi = [_extract_value_info(outputs[0][0], n)
                   for n in ['r', 'ab']]
 
