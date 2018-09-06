@@ -8,9 +8,9 @@ add_custom_command(OUTPUT backprop_test_pc_stamp
                    COMMAND python3 scripts/gen_backprop_tests_pc.py > /dev/null
                    MAIN_DEPENDENCY gen_backprop_tests_pc.py
                    DEPENDS onnx_chainer_util.py
-                   ../pc/chainer2onnx.py
-                   ../pc/test_args.py
-                   ../pc/testcasegen.py
+                   ../pc/chainer2onnx/chainer2onnx.py
+                   ../pc/chainer2onnx/test_args.py
+                   ../pc/chainer2onnx/testcasegen.py
                    WORKING_DIRECTORY ..)
 
 add_custom_command(OUTPUT extra_test_stamp

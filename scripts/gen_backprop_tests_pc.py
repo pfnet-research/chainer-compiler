@@ -10,9 +10,9 @@ from onnx import onnx_pb
 my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(my_path))
 sys.path.append(os.path.join(my_path, 'pc'))
-from oniku.pc import chainer2onnx
-from oniku.pc import test_args
-from oniku.pc import testcasegen
+from oniku.pc.chainer2onnx import chainer2onnx
+from oniku.pc.chainer2onnx import test_args
+from oniku.pc.chainer2onnx import testcasegen
 from oniku.scripts import onnx_chainer_util
 
 F = chainer.functions
@@ -24,7 +24,7 @@ def create_backprop_test(test_name, model, input_values):
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
     onnx_chainer_util.makedirs(test_data_set_dir)
 
-    xmodel, input_tensors, output_tensors = chainer2onnx.chainer2onnx(
+    xmodel, input_tensors, output_tensors = chainer2onnx(
         model, model.forward)
 
     chainer.config.train = True
