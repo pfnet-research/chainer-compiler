@@ -299,12 +299,21 @@ def gen_sequence_pad_test(test_name):
         padding=-42.0,
         inputs=['seq2'],
         outputs=['pad2_result']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceLengths',
+        inputs=['seq3'],
+        outputs=['seq3_lengths_seq']))
+    nodes.append(onnx.helper.make_node(
+        'OnikuxSequenceStack',
+        inputs=['seq3_lengths_seq'],
+        outputs=['seq3_lengths']))
 
     padded = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
     outputs = [
         ('lookup_result', np.array([4])),
         ('pad3_result', padded),
         ('pad2_result', padded[0:2, 0:3]),
+        ('seq3_lengths', np.array([3, 1, 2])),
     ]
     inputs = [('in%d' % i, input) for i, input in enumerate(inputs)]
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]

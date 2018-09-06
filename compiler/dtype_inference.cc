@@ -240,6 +240,7 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSequenceLookup:
         case Node::kOnikuxSequenceStack:
         case Node::kOnikuxSequenceSplit:
+        case Node::kOnikuxSequenceLengths:
         case Node::kOnikuxSequenceSize:
         case Node::kOnikuxSequencePad: {
             // TODO(hamaji): Consider implementing dtype inference for sequences.

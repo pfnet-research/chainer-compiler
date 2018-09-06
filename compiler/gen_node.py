@@ -168,6 +168,9 @@ NodeDef('OnikuxSequenceSplit', 1, 1, axis=0)
 # Returns the number of elements in a sequence: ([T]) -> (I)
 NodeDef('OnikuxSequenceSize', 1, 1)
 
+# Returns lengths of elements in a sequence: ([T]) -> ([I])
+NodeDef('OnikuxSequenceLengths', 1, 1)
+
 
 class AttrDef(object):
     def __init__(self, name, value):

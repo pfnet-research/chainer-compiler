@@ -181,6 +181,7 @@ XC_SEQ_OPS = [
      ['output']),
     ('SequenceSplit', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceSize', [Sequence('seq')], ['output']),
+    ('SequenceLengths', [Sequence('seq')], [Sequence('output')]),
     ('SequenceCopy', [Sequence('seq')], [Sequence('output')]),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]

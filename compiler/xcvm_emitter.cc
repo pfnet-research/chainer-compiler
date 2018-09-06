@@ -33,7 +33,7 @@ public:
             for (auto p : value_ids_) {
                 values.emplace(p.second, p.first);
             }
-            std::cerr << "=== variable names ===\n";
+            std::cerr << "=== " << values.size() << " variables ===\n";
             for (auto p : values) {
                 std::cerr << "$" << p.first << ": " << p.second->name() << std::endl;
             }
@@ -357,6 +357,8 @@ private:
             EMIT(SequenceCreate, out(0));
         } else if (node.op_type() == Node::kOnikuxSequenceSize) {
             EMIT(SequenceSize, out(0), in(0));
+        } else if (node.op_type() == Node::kOnikuxSequenceLengths) {
+            EMIT(SequenceLengths, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
