@@ -183,7 +183,9 @@ TEST_CASES = [
     # xChainer agrees with Chainer).
     # TODO(hamaji): Relax equality check for "large_number" tests.
     TestCase(NODE_TEST, 'test_softmax_example'),
+    TestCase(NODE_TEST, 'test_softmax_axis_2'),
     TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
+    TestCase(NODE_TEST, 'test_logsoftmax_axis_2'),
 
     TestCase(NODE_TEST, 'test_sum_example'),
     TestCase(NODE_TEST, 'test_sum_one_input'),
@@ -249,6 +251,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
     TestCase(NODE_TEST, 'test_lrn', rtol=5e-3),
     TestCase(NODE_TEST, 'test_lrn_default', rtol=5e-3),
+
+    TestCase(NODE_TEST, 'test_dropout_default'),
+    TestCase(NODE_TEST, 'test_dropout_random'),
 ]
 
 if cmdline.all:
