@@ -12,7 +12,7 @@ import code
 
 
 class Function_Relu(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(get_dims(v))
@@ -25,10 +25,10 @@ class Function_Relu(object):
 
 
 class Function_Pool2d_Util(object):
-    def __init__(sl, pooltype):
-        sl.pooltype = pooltype
+    def __init__(self, pooltype):
+        self.pooltype = pooltype
 
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 2)
         v = args[0]
         res = new_tensor(['TODO'])
@@ -60,7 +60,7 @@ class Function_Pool2d_Util(object):
 
         env.nodes.append(
             helper.make_node(
-                sl.pooltype, inputs=[v.name], outputs=[res.name],
+                self.pooltype, inputs=[v.name], outputs=[res.name],
                 kernel_shape=size2d(ksize),
                 strides=strides,
                 pads=pads
@@ -70,17 +70,17 @@ class Function_Pool2d_Util(object):
 
 
 class Function_MaxPool2d(object):
-    def __init__(sl):
-        sl.call = Function_Pool2d_Util('MaxPool').call
+    def __init__(self):
+        self.call = Function_Pool2d_Util('MaxPool').call
 
 
 class Function_AveragePool2d(object):
-    def __init__(sl):
-        sl.call = Function_Pool2d_Util('AveragePool').call
+    def __init__(self):
+        self.call = Function_Pool2d_Util('AveragePool').call
 
 
 class Function_LocalRespNorm(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(['TODO'])
@@ -99,7 +99,7 @@ class Function_LocalRespNorm(object):
 
 
 class Function_Dropout(object):
-    def call(sl, args, keywords, env):  # たぶん実際には実装できない
+    def call(self, args, keywords, env):  # たぶん実際には実装できない
         if len(args) == 1:
             pass
         elif len(args) == 2:
@@ -119,7 +119,7 @@ class Function_Dropout(object):
 
 
 class Function_Concat(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(['TODO'])
@@ -135,7 +135,7 @@ class Function_Concat(object):
 
 
 class Function_SoftmaxCrossEntropy(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 2)
 
         v, w = args[0], args[1]
@@ -154,7 +154,7 @@ class Function_SoftmaxCrossEntropy(object):
 
 
 class Function_PadSequence(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 1)
 
         # TODO(satos) OnikuにSequenceが実装されたらそれに対応するように直す
@@ -169,7 +169,7 @@ class Function_PadSequence(object):
 
 
 class Function_SwapAxes(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 3)
 
         v = args[0]
@@ -189,7 +189,7 @@ class Function_SwapAxes(object):
 
 
 class Function_Reshape(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         # TODO(satos) あとで実装するんでまって
         assert(len(args) == 2)
 
@@ -205,20 +205,20 @@ class Function_Reshape(object):
 
 
 class Function_Vstack(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 1)
         return Function_Concat().call([args[0]], {'axis': 0}, env)
 
 
 class Function_Hstack(object):
-    def call(sl, args, keywords, env):
+    def call(self, args, keywords, env):
         assert(len(args) == 1)
         return Function_Concat().call([args[0]], {'axis': 1}, env)
 
 
 class Function_Dummy(object):
-    def call(sl, args, keywords, env):
-        # raise Exception(sl,"Unimplemented")
+    def call(self, args, keywords, env):
+        # raise Exception(self,"Unimplemented")
         return new_tensor()
 
 
@@ -244,5 +244,5 @@ Func2NodeClass = [
 
 
 class Func(object):
-    def __init__(sl, f):
-        sl.call = f
+    def __init__(self, f):
+        self.call = f

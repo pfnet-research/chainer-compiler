@@ -49,34 +49,34 @@ def initLinks(model, parentname):
 
 
 class Attr(object):
-    def __init__(sl, d, ch=None):
-        sl.dic = d
-        sl.ch = ch
+    def __init__(self, d, ch=None):
+        self.dic = d
+        self.ch = ch
 
-    def update(sl, d):
-        sl.dic.update(d)
+    def update(self, d):
+        self.dic.update(d)
 
-    def get_attr(sl, k):
-        if k in sl.dic.keys():
-            return sl.dic[k]
-        elif (not sl.ch is None) and (k in dir(sl.ch)) and (callable(getattr(sl.ch, k))):
-            return Func(getattr(sl.ch, k))
+    def get_attr(self, k):
+        if k in self.dic.keys():
+            return self.dic[k]
+        elif (not self.ch is None) and (k in dir(self.ch)) and (callable(getattr(self.ch, k))):
+            return Func(getattr(self.ch, k))
         else:
-            raise Exception(sl.ch, 'has no attr ', k)
+            raise Exception(self.ch, 'has no attr ', k)
 
-    def set_attr(sl, k, v):
-        sl.dic[k] = v
+    def set_attr(self, k, v):
+        self.dic[k] = v
 
 
 class Function_base(object):
-    def stub_call(sl, args, kwargs, loenv):
+    def stub_call(self, args, kwargs, loenv):
 
-        # code.InteractiveConsole({'v': sl.ast.args}).interact()
+        # code.InteractiveConsole({'v': self.ast.args}).interact()
 
-        astargs = list(map(lambda x: x.id, sl.ast.args.args))
+        astargs = list(map(lambda x: x.id, self.ast.args.args))
         args = dict(zip(astargs, args))
 
-        defs = sl.ast.args.defaults
+        defs = self.ast.args.defaults
         d = len(astargs) - len(args.keys())
         if d > 0:
             for i, v in enumerate(defs[::-1][:d]):
@@ -89,7 +89,7 @@ class Function_base(object):
         loenv.vars = args
 
         try:
-            eval_ast(sl.ast.body, loenv)
+            eval_ast(self.ast.body, loenv)
             return None
         except ValueReturn as v:
             res = v.value
@@ -97,54 +97,54 @@ class Function_base(object):
 
 
 class User_Defined_Function(Function_base):
-    def __init__(sl, func):
+    def __init__(self, func):
 
         src = clip_head(inspect.getsource(func))
         dprint(src)
-        sl.ast = gast.ast_to_gast(ast.parse(src)).body[0]
-        assert(isinstance(sl.ast, gast.gast.FunctionDef))
+        self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
+        assert(isinstance(self.ast, gast.gast.FunctionDef))
 
-    def call(sl, args, kwargs, env):
-        # code.InteractiveConsole({'nast':sl.ast}).interact()
+    def call(self, args, kwargs, env):
+        # code.InteractiveConsole({'nast':self.ast}).interact()
 
         loenv = env.localenv()
         loenv.links = {}
         loenv.module = env.module
 
-        return sl.stub_call(args, kwargs, loenv)
+        return self.stub_call(args, kwargs, loenv)
 
 
 class User_Defined_Func_In_Link(Function_base):
-    def __init__(sl, attrs, links, module, ast, funname):
-        sl.attrs = attrs
-        sl.links = links
-        sl.module = module
-        sl.ast = ast
+    def __init__(self, attrs, links, module, ast, funname):
+        self.attrs = attrs
+        self.links = links
+        self.module = module
+        self.ast = ast
 
         # for debuging
-        sl.funname = funname
+        self.funname = funname
 
-    def call(sl, args, kwargs, env):
-        print('calling', sl.funname)
-        # code.InteractiveConsole({'nast':sl.ast}).interact()
+    def call(self, args, kwargs, env):
+        print('calling', self.funname)
+        # code.InteractiveConsole({'nast':self.ast}).interact()
 
         loenv = env.localenv()
-        loenv.links = sl.links
-        loenv.module = sl.module
-        args = [sl.attrs] + args
+        loenv.links = self.links
+        loenv.module = self.module
+        args = [self.attrs] + args
 
-        return sl.stub_call(args, kwargs, loenv)
+        return self.stub_call(args, kwargs, loenv)
 
 
 class User_Defined_Link(object):
-    def __init__(sl, ch, parentname):
-        sl.name = parentname + ('' if ch.name is None else '_' + ch.name)
+    def __init__(self, ch, parentname):
+        self.name = parentname + ('' if ch.name is None else '_' + ch.name)
         # print('UserDefined',ch)
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        sl.attrs = Attr({}, ch)
-        sl.links = initLinks(ch, sl.name)
-        sl.module = sys.modules[ch.__module__]
+        self.attrs = Attr({}, ch)
+        self.links = initLinks(ch, self.name)
+        self.module = sys.modules[ch.__module__]
 
         # print(gast.ast_to_gast(ast.parse(clip_head(inspect.getsource(ch.__class__)))).body[0].body)
 
@@ -160,44 +160,44 @@ class User_Defined_Link(object):
 
             if func.name == 'forward':
                 # このへんもkwargsの扱いとかどうにかしないと
-                sl.forward_arglen = len(func.args.args)-1
+                self.forward_arglen = len(func.args.args)-1
 
             funcs[func.name] = User_Defined_Func_In_Link(
-                sl.attrs, sl.links, sl.module, func, sl.name + "#" + ch.__class__.__name__ + "@" + func.name)
+                self.attrs, self.links, self.module, func, self.name + "#" + ch.__class__.__name__ + "@" + func.name)
 
-        sl.attrs.update(vars(ch))
-        sl.attrs.update(sl.links)
-        sl.attrs.update({
+        self.attrs.update(vars(ch))
+        self.attrs.update(self.links)
+        self.attrs.update({
             'xp': Attr(xp_attrs),
         })
-        sl.attrs.update(funcs)
+        self.attrs.update(funcs)
 
-        # print(ch.name,sl.attrs.dic.keys())
-        sl.get_attr = sl.attrs.get_attr
-        # print(sl.attrs.dic)
+        # print(ch.name,self.attrs.dic.keys())
+        self.get_attr = self.attrs.get_attr
+        # print(self.attrs.dic)
 
-        sl.call = sl.get_attr('forward').call
+        self.call = self.get_attr('forward').call
 
-        # print(sl.attrs.dic)
+        # print(self.attrs.dic)
         # exit(0)
 
-    def init_tensors(sl):
+    def init_tensors(self):
         res = []
-        for l in sl.links.values():
+        for l in self.links.values():
             res += l.init_tensors()
         return res
 
 
 class User_Defined_Class(object):
-    def __init__(sl, classtype):
-        sl.attrs = Attr({})
+    def __init__(self, classtype):
+        self.attrs = Attr({})
 
         src = clip_head(inspect.getsource(classtype))
         dprint(src)
 
         ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
         # code.InteractiveConsole({'v': classtype}).interact()
-        sl.module = sys.modules[classtype.__module__]
+        self.module = sys.modules[classtype.__module__]
 
         funcs = {}
         for func in ast_list:
@@ -205,46 +205,46 @@ class User_Defined_Class(object):
                 continue
 
             funcs[func.name] = User_Defined_Func_In_Link(
-                sl.attrs, {}, sl.module, func, classtype.__name__ + "@" + func.name)
+                self.attrs, {}, self.module, func, classtype.__name__ + "@" + func.name)
 
-        sl.attrs.update(funcs)
+        self.attrs.update(funcs)
 
         if issubclass(classtype, chainer.FunctionNode):
             def applyfunc(args, kwargs, env):
                 # print('apply arg',args)
-                return sl.get_attr('forward').call(args, kwargs, env)
+                return self.get_attr('forward').call(args, kwargs, env)
 
-            sl.attrs.update({
+            self.attrs.update({
                 'apply': Func(applyfunc),
                 # TODO(satos) これbackward側に何か伝える必要がありそう
                 'retain_inputs': Func(lambda _, __, ___: None),
             })
 
-        # print(ch.name,sl.attrs.dic.keys())
-        sl.get_attr = sl.attrs.get_attr
-        # print(sl.attrs.dic)
+        # print(ch.name,self.attrs.dic.keys())
+        self.get_attr = self.attrs.get_attr
+        # print(self.attrs.dic)
 
-        sl.call = sl.get_attr('forward').call
+        self.call = self.get_attr('forward').call
 
         def f(args, kwargs, env):
-            sl.get_attr('__init__').call(args, kwargs, env)
-            return sl
+            self.get_attr('__init__').call(args, kwargs, env)
+            return self
 
-        sl.init_wrapper = Func(f)
+        self.init_wrapper = Func(f)
 
 
 class Env(object):
-    def __init__(sl):
-        sl.vars = {}
-        sl.nodes = []
+    def __init__(self):
+        self.vars = {}
+        self.nodes = []
 
-    def localenv(sl):
+    def localenv(self):
         res = Env()
-        res.nodes = sl.nodes  # こっちはglobalに共通でないといけない
+        res.nodes = self.nodes  # こっちはglobalに共通でないといけない
         return res
 
-    def addnode(sl, *args, **kwargs):
-        sl.nodes.append(
+    def addnode(self, *args, **kwargs):
+        self.nodes.append(
             helper.make_node(*args, **kwargs)
         )
 
@@ -585,26 +585,26 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.Subscript):
         vs = eval_ast(nast.value, env)
 
-        def slice2list(sl):
-            if isinstance(sl, gast.Slice):
-                assert sl.step is None
-                lower = eval_ast(sl.lower, env)
-                upper = eval_ast(sl.upper, env)
+        def slice2list(self):
+            if isinstance(self, gast.Slice):
+                assert self.step is None
+                lower = eval_ast(self.lower, env)
+                upper = eval_ast(self.upper, env)
                 lower = [0] if lower is None else [lower]
                 upper = [-1] if upper is None else [upper]
                 squeeze = [False]
-            elif isinstance(sl, gast.Index):
-                idx = eval_ast(sl.value, env)
+            elif isinstance(self, gast.Index):
+                idx = eval_ast(self.value, env)
                 lower = [idx]
                 upper = [idx+1]
                 squeeze = [True]
-            elif isinstance(sl, gast.ExtSlice):
-                ds = map(slice2list, sl.dims)
+            elif isinstance(self, gast.ExtSlice):
+                ds = map(slice2list, self.dims)
                 lower = list(map(lambda x, _, __: x, ds))
                 upper = list(map(lambda _, x, __: x, ds))
                 squeeze = list(map(lambda _, __, x: x, ds))
             else:
-                raise Exception(sl, " is not Python slice")
+                raise Exception(self, " is not Python slice")
 
             return lower, upper, squeeze
 

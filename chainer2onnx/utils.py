@@ -32,8 +32,8 @@ def clip_head(s):
 
 
 class ValueReturn(Exception):
-    def __init__(sl, value):
-        sl.value = value
+    def __init__(self, value):
+        self.value = value
 
 
 def size2d(v):

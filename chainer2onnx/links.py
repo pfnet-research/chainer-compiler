@@ -12,40 +12,40 @@ import code
 
 
 class Link_Linear(object):
-    def __init__(sl, ch, parentname):
+    def __init__(self, ch, parentname):
         # code.InteractiveConsole({'ch': ch}).interact()
-        sl.name = parentname + '_' + ch.name
+        self.name = parentname + '_' + ch.name
 
         if ch.b is None:
-            sl.n_out = 'output_size'
-            sl.nobias = True
+            self.n_out = 'output_size'
+            self.nobias = True
         else:
-            sl.n_out = ch.b.shape[0]
-            sl.nobias = False
+            self.n_out = ch.b.shape[0]
+            self.nobias = False
 
         if not(ch.W.data is None):
-            sl.n_in = ch.W.shape[1]
+            self.n_in = ch.W.shape[1]
         else:
-            sl.n_in = None
+            self.n_in = None
 
-        sl.W = helper.make_tensor_value_info(
-            sl.name + '_W', TensorProto.FLOAT,
-            [sl.n_out, ('input_size' if (sl.n_in is None) else sl.n_in)])
+        self.W = helper.make_tensor_value_info(
+            self.name + '_W', TensorProto.FLOAT,
+            [self.n_out, ('input_size' if (self.n_in is None) else self.n_in)])
 
-        if not sl.nobias:
-            sl.b = helper.make_tensor_value_info(
-                sl.name + '_b', TensorProto.FLOAT, [sl.n_out])
+        if not self.nobias:
+            self.b = helper.make_tensor_value_info(
+                self.name + '_b', TensorProto.FLOAT, [self.n_out])
 
-    def call(sl, args, _, env):
+    def call(self, args, _, env):
         assert(len(args) == 1)
         v = args[0]
-        res = new_tensor([sl.n_out])
+        res = new_tensor([self.n_out])
 
-        if sl.nobias:
+        if self.nobias:
             x = new_tensor()
             env.addnode(
                 "Transpose",
-                inputs=[sl.W.name], outputs=[x.name],
+                inputs=[self.W.name], outputs=[x.name],
                 perm=[1, 0]
             )
             env.addnode(
@@ -55,16 +55,16 @@ class Link_Linear(object):
         else:
             env.addnode(
                 "Gemm",
-                inputs=[v.name, sl.W.name, sl.b.name], outputs=[res.name],
+                inputs=[v.name, self.W.name, self.b.name], outputs=[res.name],
                 transA=0, transB=1
             )
         return res
 
-    def init_tensors(sl):
-        if sl.nobias:
-            return [sl.W]
+    def init_tensors(self):
+        if self.nobias:
+            return [self.W]
         else:
-            return [sl.W, sl.b]
+            return [self.W, self.b]
 
 
 def size2d(v):
@@ -77,126 +77,126 @@ def size2d(v):
 
 
 class Link_Convolution2D(object):
-    def __init__(sl, ch, parentname):
-        sl.name = parentname + '_' + ch.name
+    def __init__(self, ch, parentname):
+        self.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        sl.ksize = size2d(ch.ksize)
-        sl.stride = size2d(ch.stride)
+        self.ksize = size2d(ch.ksize)
+        self.stride = size2d(ch.stride)
         ps = size2d(ch.pad)
-        sl.pads = ps + ps
+        self.pads = ps + ps
 
         if not (ch.b is None):
             # nobias = True の場合
-            sl.M = ch.b.shape[0]
-            sl.b = helper.make_tensor_value_info(
-                sl.name + '_b', TensorProto.FLOAT, [sl.M])
+            self.M = ch.b.shape[0]
+            self.b = helper.make_tensor_value_info(
+                self.name + '_b', TensorProto.FLOAT, [self.M])
         else:
-            sl.M = "TODO"
-            sl.b = None
+            self.M = "TODO"
+            self.b = None
 
-        sl.W = helper.make_tensor_value_info(
-            sl.name + '_W', TensorProto.FLOAT,
-            [sl.M, 'channel_size'] + sl.ksize)
+        self.W = helper.make_tensor_value_info(
+            self.name + '_W', TensorProto.FLOAT,
+            [self.M, 'channel_size'] + self.ksize)
 
-    def call(sl, args, _, env):
+    def call(self, args, _, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
             helper.make_node(
                 "Conv",
-                inputs=[v.name, sl.W.name] +
-                ([] if sl.b is None else [sl.b.name]),
+                inputs=[v.name, self.W.name] +
+                ([] if self.b is None else [self.b.name]),
                 outputs=[res.name],
-                kernel_shape=sl.ksize,
-                pads=sl.pads,
-                strides=sl.stride
+                kernel_shape=self.ksize,
+                pads=self.pads,
+                strides=self.stride
             )
         )
         return res
 
-    def init_tensors(sl):
-        return [sl.W] + ([] if sl.b is None else [sl.b])
+    def init_tensors(self):
+        return [self.W] + ([] if self.b is None else [self.b])
 
 
 class Link_BatchNormalization(object):
-    def __init__(sl, ch, parentname):
-        sl.name = parentname + '_' + ch.name
+    def __init__(self, ch, parentname):
+        self.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        sl.n_out = ch.beta.shape[0]
+        self.n_out = ch.beta.shape[0]
 
-        sl.scale = helper.make_tensor_value_info(
-            sl.name + '_gamma', TensorProto.FLOAT, [sl.n_out])
-        sl.B = helper.make_tensor_value_info(
-            sl.name + '_beta', TensorProto.FLOAT, [sl.n_out])
-        sl.mean = helper.make_tensor_value_info(
-            sl.name + '_avg_mean', TensorProto.FLOAT, [sl.n_out])
-        sl.var = helper.make_tensor_value_info(
-            sl.name + '_avg_var', TensorProto.FLOAT, [sl.n_out])
+        self.scale = helper.make_tensor_value_info(
+            self.name + '_gamma', TensorProto.FLOAT, [self.n_out])
+        self.B = helper.make_tensor_value_info(
+            self.name + '_beta', TensorProto.FLOAT, [self.n_out])
+        self.mean = helper.make_tensor_value_info(
+            self.name + '_avg_mean', TensorProto.FLOAT, [self.n_out])
+        self.var = helper.make_tensor_value_info(
+            self.name + '_avg_var', TensorProto.FLOAT, [self.n_out])
 
-        sl.eps = ch.eps
-        sl.momentum = ch.decay
+        self.eps = ch.eps
+        self.momentum = ch.decay
 
-    def call(sl, args, _, env):
+    def call(self, args, _, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
             helper.make_node(
                 "BatchNormalization",
-                inputs=[v.name, sl.scale.name, sl.B.name,
-                        sl.mean.name, sl.var.name], outputs=[res.name],
-                epsilon=sl.eps,
-                momentum=sl.momentum,
+                inputs=[v.name, self.scale.name, self.B.name,
+                        self.mean.name, self.var.name], outputs=[res.name],
+                epsilon=self.eps,
+                momentum=self.momentum,
                 # とりあえずspatialは1で(0でも値が変わらなかったのでよくわからん)
             )
         )
         return res
 
-    def init_tensors(sl):
-        return [sl.scale, sl.B, sl.mean, sl.var]
+    def init_tensors(self):
+        return [self.scale, self.B, self.mean, self.var]
 
 
 class Link_NstepLSTM(object):
-    def __init__(sl, ch, parentname):
-        sl.name = parentname + '_' + ch.name
+    def __init__(self, ch, parentname):
+        self.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
         #cs = list(ch.children())
         hd = ch.children().__next__()
         if not(hd.w0 is None):
-            sl.n_in = hd.w0.shape[1]
+            self.n_in = hd.w0.shape[1]
         else:
-            sl.n_in = None
+            self.n_in = None
 
-        sl.out_size = ch.out_size
-        sl.n_layers = ch.n_layers
-        sl.dropout = ch.dropout
+        self.out_size = ch.out_size
+        self.n_layers = ch.n_layers
+        self.dropout = ch.dropout
 
         class step(object):
-            def __init__(sl):
+            def __init__(self):
                 pass
 
-        sl.ws = [step() for _ in range(sl.n_layers)]
-        for i in range(sl.n_layers):
-            sl.ws[i].W = helper.make_tensor_value_info(
-                sl.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
+        self.ws = [step() for _ in range(self.n_layers)]
+        for i in range(self.n_layers):
+            self.ws[i].W = helper.make_tensor_value_info(
+                self.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
             # これ多分うまいこと変換しないといけない
             # chainer : at  ct
             #   onnx  : ct  Ct
             # (chainerのws[0],ws[2],ws[1],ws[3]から連結させたりする)
-            sl.ws[i].R = helper.make_tensor_value_info(
-                sl.name + ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
+            self.ws[i].R = helper.make_tensor_value_info(
+                self.name + ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
             # (chainerのws[4],ws[6],ws[5],ws[7]から連結させたりする)
-            sl.ws[i].B = helper.make_tensor_value_info(
-                sl.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
+            self.ws[i].B = helper.make_tensor_value_info(
+                self.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
             # (chainerのbs[0,2,1,3,4,6,5,7]から連結させたりする)
 
-    def call(sl, args, _, env):
+    def call(self, args, _, env):
         # とりあえずnstep を 1step ずつに分解する
-        # print(sl.name,args)
+        # print(self.name,args)
         # assert(len(args) == 1)
         assert(args[0] is None and args[1] is None)
 
@@ -214,7 +214,7 @@ class Link_NstepLSTM(object):
         hs = []
         cs = []
 
-        for i in range(sl.n_layers):
+        for i in range(self.n_layers):
 
             h = new_tensor(['unknown', 'unknown', 'unknown'])
             c = new_tensor(['unknown', 'unknown', 'unknown'])
@@ -224,10 +224,10 @@ class Link_NstepLSTM(object):
                 helper.make_node(
                     "LSTM",
 
-                    inputs=[v.name, sl.ws[i].W.name,
-                            sl.ws[i].R.name, sl.ws[i].B.name],
+                    inputs=[v.name, self.ws[i].W.name,
+                            self.ws[i].R.name, self.ws[i].B.name],
                     outputs=[ys.name, h.name, c.name],
-                    hidden_size=sl.out_size
+                    hidden_size=self.out_size
                 )
             )
 
@@ -264,49 +264,49 @@ class Link_NstepLSTM(object):
         )
         return ths, tcs, tys
 
-    def init_tensors(sl):
-        return sum([[sl.ws[i].W, sl.ws[i].B, sl.ws[i].R] for i in range(sl.n_layers)], [])
+    def init_tensors(self):
+        return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
 
 
 class Link_EmbedID(object):
-    def __init__(sl, ch, parentname):
-        sl.name = parentname + '_' + ch.name
+    def __init__(self, ch, parentname):
+        self.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        sl.n_vocab = ch.W.shape[0]
-        sl.n_out = ch.W.shape[1]
+        self.n_vocab = ch.W.shape[0]
+        self.n_out = ch.W.shape[1]
 
-        sl.W = helper.make_tensor_value_info(
-            sl.name + '_W', TensorProto.FLOAT, list(ch.W.shape))
+        self.W = helper.make_tensor_value_info(
+            self.name + '_W', TensorProto.FLOAT, list(ch.W.shape))
 
-    def call(sl, args, _, env):
+    def call(self, args, _, env):
         assert(len(args) == 1)
         v = args[0]
         res = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
             helper.make_node(
                 "Gather",
-                inputs=[sl.W.name, v.name], outputs=[res.name],
+                inputs=[self.W.name, v.name], outputs=[res.name],
             )
         )
         return res
 
-    def init_tensors(sl):
-        return [sl.W]
+    def init_tensors(self):
+        return [self.W]
 
 
 class Link_StatelessLSTM(object):
-    def __init__(sl, ch, parentname):
-        sl.name = parentname + '_' + ch.name
+    def __init__(self, ch, parentname):
+        self.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        sl.upward = Link_Linear(ch.upward, sl.name)
-        sl.lateral = Link_Linear(ch.lateral, sl.name)
+        self.upward = Link_Linear(ch.upward, self.name)
+        self.lateral = Link_Linear(ch.lateral, self.name)
 
-    def call(sl, args, _, env):
+    def call(self, args, _, env):
         # TODO(satos) 正しくする(ただただ面倒だが)
         # とりあえずnstep を 1step ずつに分解する
-        # print(sl.name,args)
+        # print(self.name,args)
         # assert(len(args) == 1)
         assert(args[0] is None and args[1] is None)
 
@@ -324,7 +324,7 @@ class Link_StatelessLSTM(object):
         hs = []
         cs = []
 
-        for i in range(sl.n_layers):
+        for i in range(self.n_layers):
 
             h = new_tensor(['unknown', 'unknown', 'unknown'])
             c = new_tensor(['unknown', 'unknown', 'unknown'])
@@ -334,10 +334,10 @@ class Link_StatelessLSTM(object):
                 helper.make_node(
                     "LSTM",
 
-                    inputs=[v.name, sl.ws[i].W.name,
-                            sl.ws[i].R.name, sl.ws[i].B.name],
+                    inputs=[v.name, self.ws[i].W.name,
+                            self.ws[i].R.name, self.ws[i].B.name],
                     outputs=[ys.name, h.name, c.name],
-                    hidden_size=sl.out_size
+                    hidden_size=self.out_size
                 )
             )
 
@@ -374,8 +374,8 @@ class Link_StatelessLSTM(object):
         )
         return ths, tcs, tys
 
-    def init_tensors(sl):
-        return sl.upward.init_tensors() + sl.lateral.init_tensors()
+    def init_tensors(self):
+        return self.upward.init_tensors() + self.lateral.init_tensors()
 
 
 Link2NodeClass = [
