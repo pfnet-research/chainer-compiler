@@ -70,8 +70,7 @@ void ScheduleComputation(const Graph& graph) {
         output_set.insert(value);
     }
     for (const Node* node : nodes) {
-        for (const Value* output : node->outputs())
-            output_set.erase(output);
+        for (const Value* output : node->outputs()) output_set.erase(output);
     }
     CHECK(output_set.empty()) << "Cannot output: " << Join(MapToString(output_set, [](const Value* value) { return value->name(); }));
 
