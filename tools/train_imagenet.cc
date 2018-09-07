@@ -79,6 +79,8 @@ void RunMain(int argc, char** argv) {
     if (!args.exist("skip_shape_inference"))
         onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
+    CHECK_EQ(1, model.graph().output_values().size());
+    const std::string loss_value_name = model.graph().output_values()[0]->name();
     RunDefaultPasses(model.mutable_graph(), true /* gen_backprop */);
 
     LOG() << "Loading data..." << std::endl;
@@ -162,7 +164,7 @@ void RunMain(int argc, char** argv) {
         double loss;
         {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Sync");
-            loss = static_cast<double>(chainerx::AsScalar(outputs["loss"]));
+            loss = static_cast<double>(chainerx::AsScalar(outputs[loss_value_name]));
         }
 
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
