@@ -27,11 +27,13 @@ TEST_PATHS = set()
 
 class TestCase(object):
 
-    def __init__(self, dirname, name, rtol=1e-4, fail=False):
+    def __init__(self, dirname, name, rtol=1e-4, fail=False,
+                 skip_shape_inference=False):
         self.dirname = dirname
         self.name = name
         self.rtol = rtol
         self.fail = fail
+        self.skip_shape_inference = skip_shape_inference
         self.test_dir = os.path.join(self.dirname, self.name)
         TEST_PATHS.add(self.test_dir)
 
@@ -285,7 +287,8 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     dirname = 'out'
     name = 'backprop_test_pc_' + backprop_test.name
     assert os.path.exists(os.path.join(dirname, name))
-    TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol))
+    TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol,
+                               skip_shape_inference=True))
 
 for test in gen_extra_node_test.get_tests():
     dirname = 'out'
@@ -316,6 +319,8 @@ def main():
     for test_case in TEST_CASES:
         args = ['tools/run_onnx', '--test', test_case.test_dir, '--quiet']
         args += ['--rtol', str(test_case.rtol)]
+        if test_case.skip_shape_inference:
+            args.append('--skip_shape_inference')
         if test_case.name.startswith('backprop_'):
             args.append('--backprop')
         if test_case.name == 'resnet50':

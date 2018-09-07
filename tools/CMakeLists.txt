@@ -2,8 +2,11 @@ include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
 include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
+include_directories(../onnx)
 
 include_directories(${CUDA_INCLUDE_DIRS})
+
+add_definitions(-DONNX_NAMESPACE=onnx)
 
 add_library(oniku_tools
   util.cc
@@ -37,6 +40,7 @@ target_link_libraries(run_onnx
   oniku_common
   chainerx
   onnx_proto
+  onnx
   protobuf
   ${CUDA_CUDART_LIBRARY}
   )
@@ -51,6 +55,7 @@ target_link_libraries(train_imagenet
   feeder
   chainerx
   onnx_proto
+  onnx
   protobuf
   pthread
   ${CUDA_CUDART_LIBRARY}

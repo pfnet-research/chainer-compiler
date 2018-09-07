@@ -14,6 +14,7 @@
 #include <cuda_runtime.h>
 
 #include <onnx/onnx-ml.pb.h>
+#include <onnx/shape_inference/implementation.h>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
@@ -152,6 +153,7 @@ void RunMain(int argc, char** argv) {
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
+    args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("trace", 't', "Tracing mode");
     args.add("permissive", '\0', "Relax checks to accept more kinds of ONNX");
     args.add("verbose", 'v', "Verbose mode");
@@ -187,6 +189,8 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
+    if (!args.exist("skip_shape_inference"))
+        onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
     RunDefaultPasses(model.mutable_graph(), args.exist("backprop"));
 

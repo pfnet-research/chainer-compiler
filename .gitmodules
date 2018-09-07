@@ -1,3 +1,7 @@
 [submodule "pc"]
 	path = pc
 	url = git@github.com:pfn-intern/i18-satos.git
+[submodule "onnx"]
+	path = onnx
+	url = https://github.com/onnx/onnx
+	ignore = dirty
