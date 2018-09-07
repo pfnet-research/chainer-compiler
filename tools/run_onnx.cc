@@ -19,6 +19,7 @@
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
+#include <chainerx/native/native_backend.h>
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 
@@ -134,7 +135,7 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
         const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
         chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
         chainerx::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
-        chainerx::Array array = chainerx::Ones(shape, dtype);
+        chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
         CHECK(inputs->emplace(input.name(), array).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
@@ -264,7 +265,8 @@ void RunMain(int argc, char** argv) {
         LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(params);
         for (const auto& p : test_case->inputs) {
-            CHECK(inputs.emplace(p.first, p.second).second) << "Duplicated input parameter: " << p.first;
+            chainerx::Array v = p.second.ToDevice(chainerx::GetDefaultDevice());
+            CHECK(inputs.emplace(p.first, v).second) << "Duplicated input parameter: " << p.first;
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();

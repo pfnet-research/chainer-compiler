@@ -84,7 +84,8 @@ chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
         default:
             CHECK(false) << "Unknown data type: " << static_cast<int>(tensor.dtype());
     }
-    chainerx::Array array(chainerx::FromContiguousHostData(shape, dtype, data));
+    chainerx::Array array(chainerx::FromData(
+            shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
     return array;
 }
 
