@@ -84,5 +84,15 @@ InOuts LoadParams(const Model& model) {
     return params;
 }
 
+void StripONNXModel(onnx::ModelProto* model) {
+    // Strip unnecessary large data.
+    onnx::GraphProto* graph = model->mutable_graph();
+    for (int i = 0; i < graph->initializer_size(); ++i) {
+        onnx::TensorProto* tensor = graph->mutable_initializer(i);
+        StripLargeValue(tensor, 20);
+        MakeHumanReadableValue(tensor);
+    }
+}
+
 }  // namespace runtime
 }  // namespace oniku

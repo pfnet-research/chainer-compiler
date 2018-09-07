@@ -20,5 +20,7 @@ chainerx::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype);
 
 InOuts LoadParams(const Model& model);
 
+void StripONNXModel(onnx::ModelProto* model);
+
 }  // namespace runtime
 }  // namespace oniku
