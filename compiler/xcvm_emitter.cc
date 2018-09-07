@@ -354,7 +354,7 @@ private:
                 } else {
                     CHECK(false) << "Unknown type: " << dtype;
                 }
-                EMIT(FloatConstant, out(0), v, node.value()->dtype(), node.onikux_host());
+                EMIT(FloatScalarConstant, out(0), v, node.value()->dtype(), node.onikux_host());
             } else {
                 int64_t v;
                 if (dtype.SizeOf() == 1) {
@@ -367,7 +367,7 @@ private:
                 } else {
                     CHECK(false) << "Unknown type: " << dtype;
                 }
-                EMIT(IntConstant, out(0), v, node.value()->dtype(), node.onikux_host());
+                EMIT(IntScalarConstant, out(0), v, node.value()->dtype(), node.onikux_host());
             }
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
@@ -452,9 +452,9 @@ private:
 
         // Initialize loop variables.
         int iter_id = GetValueId(loop.body()->input_values()[0]);
-        EMIT(IntConstant, iter_id, 0, Dtype::kInt64, false);
+        EMIT(IntScalarConstant, iter_id, 0, Dtype::kInt64, false);
         int cond_id = GetValueId(loop.body()->input_values()[1]);
-        EMIT(IntConstant, cond_id, 1, Dtype::kBool, false);
+        EMIT(IntScalarConstant, cond_id, 1, Dtype::kBool, false);
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.inputs().size());
             CHECK_LT(i + 2, loop.body()->input_values().size());
@@ -482,7 +482,7 @@ private:
         EmitGraph(*loop.body(), prog);
 
         int one_id = next_value_id_++;
-        EMIT(IntConstant, one_id, 1, Dtype::kInt64, false);
+        EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);
         int tmp_id = next_value_id_++;
         EMIT(Add, tmp_id, iter_id, one_id);
         AddFreeOp(prog, one_id);

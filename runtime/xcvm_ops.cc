@@ -506,26 +506,26 @@ chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
     return input.AsType(static_cast<chainerx::Dtype>(to));
 }
 
+chainerx::Array IntScalarConstantOp::RunImpl(XCVMState* st) {
+    chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
+    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
+}
+
+chainerx::Array FloatScalarConstantOp::RunImpl(XCVMState* st) {
+    chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
+    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
+}
+
 chainerx::Array IntConstantOp::RunImpl(XCVMState* st) {
-    if (host)
-        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), chainerx::GetNativeBackend().GetDevice(0));
-    else
-        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
+    auto make = host ? MakeHostArray : MakeArray;
+    chainerx::Array a = make(chainerx::Dtype::kInt64, chainerx::Shape(shape), value.data());
+    return a.AsType(static_cast<chainerx::Dtype>(dtype));
 }
 
 chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
-    if (host)
-        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), chainerx::GetNativeBackend().GetDevice(0));
-    else
-        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
-}
-
-chainerx::Array IntsConstantOp::RunImpl(XCVMState* st) {
-    CHECK(false);
-}
-
-chainerx::Array FloatsConstantOp::RunImpl(XCVMState* st) {
-    CHECK(false);
+    auto make = host ? MakeHostArray : MakeArray;
+    chainerx::Array a = make(chainerx::Dtype::kFloat64, chainerx::Shape(shape), value.data());
+    return a.AsType(static_cast<chainerx::Dtype>(dtype));
 }
 
 void JmpTrueOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {

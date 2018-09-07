@@ -234,12 +234,13 @@ XC_OPS = [
     ('Not', [Array('x')], ['y']),
     ('Cast', [Array('input'), Int('to')], ['output']),
 
-    # TODO(hamaji): Re-design constants.
-    ('IntConstant', [Int('value'), Int('dtype'), Int('host')], ['output']),
-    ('FloatConstant', [Float('value'), Int('dtype'), Int('host')], ['output']),
-    ('IntsConstant',
+    ('IntScalarConstant',
+     [Int('value'), Int('dtype'), Int('host')], ['output']),
+    ('FloatScalarConstant',
+     [Float('value'), Int('dtype'), Int('host')], ['output']),
+    ('IntConstant',
      [Longs('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
-    ('FloatsConstant',
+    ('FloatConstant',
      [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
