@@ -248,15 +248,15 @@ class Op(object):
     def __init__(self, name, inputs, outputs, array_only=True):
         self.name = name
         self.inputs = inputs
-        self.outputs_typed = []
         self.outputs = []
+        self.output_names = []
         for output in outputs:
             if isinstance(output, tuple):
-                self.outputs_typed.append(output)
-                self.outputs.append(output[1])
-            else:
-                self.outputs_typed.append(Array(output))
                 self.outputs.append(output)
+                self.output_names.append(output[1])
+            else:
+                self.outputs.append(Array(output))
+                self.output_names.append(output)
         self.array_only = array_only
 
 
@@ -331,7 +331,7 @@ def gen_gen_xcvm_ops_h():
             rettype = 'void'
             num_outputs = len(op.outputs)
             if num_outputs == 1:
-                if op.outputs_typed[0][0] == ARRAY_LIST:
+                if op.outputs[0][0] == ARRAY_LIST:
                     rettype = 'std::vector<chainerx::Array>'
                 else:
                     rettype = 'chainerx::Array'
@@ -348,7 +348,7 @@ def gen_gen_xcvm_ops_h():
             ctype = inp.c_storage_type()
             lines.append(f'{ctype} {inp.name};')
 
-        for out in op.outputs_typed:
+        for out in op.outputs:
             ctype = out.c_storage_type()
             lines.append(f'{ctype} {out.name};')
 
@@ -405,7 +405,7 @@ def gen_gen_xcvm_ops_cc():
             else:
                 raise RuntimeError('Unknown type: %s' % inp.typ)
 
-        for i, (typ, name) in enumerate(op.outputs_typed):
+        for i, (typ, name) in enumerate(op.outputs):
             if typ == ARRAY_LIST:
                 lines.append('%s.assign(inst.outputs().begin(), '
                              'inst.outputs().end());' % name)
@@ -422,7 +422,7 @@ def gen_gen_xcvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         if op.outputs:
-            for typ, name in op.outputs_typed:
+            for typ, name in op.outputs:
                 if typ == ARRAY_LIST:
                     line += f' << ArrayListToString({name})'
                 else:
@@ -469,14 +469,14 @@ def gen_gen_xcvm_ops_cc():
                     args.append(f'st->GetVarList({name})')
             call = 'RunImpl(%s)' % ', '.join(args)
             if len(op.outputs) == 1:
-                if op.outputs_typed[0][0] == ARRAY_LIST:
-                    lines.append('st->SetVarList(%s, %s);' %
-                                 (op.outputs[0], call))
+                typ, name = op.outputs[0]
+                if typ == ARRAY_LIST:
+                    lines.append('st->SetVarList(%s, %s);' % (name, call))
                 else:
-                    lines.append('st->SetVar(%s, %s);' % (op.outputs[0], call))
+                    lines.append('st->SetVar(%s, %s);' % (name, call))
             elif op.outputs:
                 lines.append('auto r_ = ' + call + ';')
-                for i, output in enumerate(op.outputs):
+                for i, output in enumerate(op.output_names):
                     # TODO(hamaji): Revisit optional outputs.
                     lines.append(f'if ({output} >= 0) st->SetVar({output}, std::get<{i}>(r_));')
             else:
@@ -485,7 +485,7 @@ def gen_gen_xcvm_ops_cc():
             lines.append('RunImpl(st);')
 
         line = 'if (st->trace_level()) std::cerr'
-        for typ, name in op.outputs_typed:
+        for typ, name in op.outputs:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += f' << " {sigil(typ)}" << {name} << "="'
                 line += f' << st->GetVarString({name})'
@@ -500,7 +500,7 @@ def gen_gen_xcvm_ops_cc():
         if op.outputs:
             inputs_str = ', '.join([name for typ, name in op.inputs
                                     if typ == ARRAY or typ == OPTIONAL_ARRAY])
-            outputs_str = ', '.join(op.outputs)
+            outputs_str = ', '.join(op.output_names)
             lines.append('if (st->check_infs()) st->CheckInfs({%s}, {%s});' %
                          (inputs_str, outputs_str))
 
@@ -570,7 +570,7 @@ def make_proto_signature(op, inputs, outputs):
 def gen_xcvm_proto_util_h():
     lines = []
     for op in XC_ALL_OPS:
-        signature = make_proto_signature(op.name, op.inputs, op.outputs_typed)
+        signature = make_proto_signature(op.name, op.inputs, op.outputs)
         lines.append(signature + ';')
 
     with open('xcvm_proto_util.h', 'w') as f:
@@ -592,7 +592,7 @@ namespace runtime {
 def gen_xcvm_proto_util_cc():
     lines = []
     for op in XC_ALL_OPS:
-        signature = make_proto_signature(op.name, op.inputs, op.outputs_typed)
+        signature = make_proto_signature(op.name, op.inputs, op.outputs)
         lines.append(signature + ' {')
 
         lines.append('XCInstructionProto* inst = program->add_instructions();')
@@ -612,7 +612,7 @@ def gen_xcvm_proto_util_cc():
                 lines.append(f'input_proto->set_{pfn}({name});')
             lines.append('}')
 
-        for typ, name in op.outputs_typed:
+        for typ, name in op.outputs:
             if typ == ARRAY_LIST:
                 lines.append(f'for (int a : {name}) inst->add_outputs(a);')
             else:
