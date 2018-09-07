@@ -75,6 +75,8 @@ public:
         return check_infs_;
     }
 
+    void ShowVariableStatus() const;
+
 private:
     int pc_;
     std::vector<std::unique_ptr<XCVMVar>> variables_;

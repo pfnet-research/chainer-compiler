@@ -61,6 +61,7 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
     }
 
     if (options.dump_memory_usage) {
+        state.ShowVariableStatus();
         std::cerr << "Peak memory usage: " << peak_usage << "MB" << std::endl;
     }
 

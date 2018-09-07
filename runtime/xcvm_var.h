@@ -20,6 +20,8 @@ public:
     chainerx::Array GetArray();
     std::vector<chainerx::Array>* GetSequence();
 
+    int64_t GetTotalSize() const;
+
     std::string ToString() const;
     std::string DebugString() const;
 

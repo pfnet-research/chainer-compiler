@@ -35,7 +35,8 @@ public:
             }
             std::cerr << "=== " << values.size() << " variables ===\n";
             for (auto p : values) {
-                std::cerr << "$" << p.first << ": " << p.second->name() << std::endl;
+                const Value* v = p.second;
+                std::cerr << "$" << p.first << ": " << v->name() << ' ' << v->GetTotalSize() << std::endl;
             }
         }
     }

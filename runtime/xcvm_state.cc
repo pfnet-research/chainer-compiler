@@ -125,5 +125,19 @@ void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>
     }
 }
 
+void XCVMState::ShowVariableStatus() const {
+    int64_t total = 0;
+    for (size_t i = 0; i < variables_.size(); ++i) {
+        const std::unique_ptr<XCVMVar>& var = variables_[i];
+        if (!var.get())
+            continue;
+        int64_t size = var->GetTotalSize();
+        total += size;
+        std::cerr << "$" << i << ": " << size << std::endl;
+    }
+    int64_t total_mb = total / 1000 / 1000;
+    std::cerr << "Total chainerx::Array: " << total_mb << "MB" << std::endl;
+}
+
 }  // namespace runtime
 }  // namespace oniku

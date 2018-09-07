@@ -23,6 +23,19 @@ std::vector<chainerx::Array>* XCVMVar::GetSequence() {
     return &sequence_;
 }
 
+int64_t XCVMVar::GetTotalSize() const {
+    int64_t size = 0;
+    switch (kind_) {
+        case Kind::kArray:
+            size = array_->GetNBytes();
+            break;
+        case Kind::kSequence:
+            for (chainerx::Array a : sequence_) size += a.GetNBytes();
+            break;
+    }
+    return size;
+}
+
 std::string XCVMVar::ToString() const {
     switch (kind_) {
         case Kind::kArray:
