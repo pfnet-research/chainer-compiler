@@ -26,7 +26,7 @@ public:
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
         EmitInputs(program);
-        EmitGraph(graph_, program);
+        EmitGraph(graph_, program, false  /* in_loop */);
         EmitOutputs(program);
         if (dump_value_names) {
             std::map<int, const Value*> values;
@@ -430,10 +430,12 @@ private:
 
 #undef EMIT
 
-    void EmitGraph(const Graph& graph, XCProgramProto* prog) {
+    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop) {
         std::map<const Value*, int> num_users;
-        for (const Value* value : graph.input_values()) {
-            num_users.emplace(value, value->users().size());
+        if (!in_loop) {
+            for (const Value* value : graph.input_values()) {
+                num_users.emplace(value, value->users().size());
+            }
         }
         for (const Value* value : graph.temp_values()) {
             num_users.emplace(value, value->users().size());
@@ -511,7 +513,7 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        EmitGraph(*loop.body(), prog);
+        EmitGraph(*loop.body(), prog, true  /* in_loop */);
 
         int one_id = next_value_id_++;
         EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);
