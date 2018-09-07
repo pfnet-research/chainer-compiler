@@ -1,3 +1,4 @@
+import collections
 import os
 import subprocess
 import sys
@@ -22,36 +23,84 @@ XC_TYPES = [
 STACK_VECTOR = 'chainerx::StackVector<int64_t, chainerx::kMaxNdim>'
 
 
+_ValueInfo = collections.namedtuple('_ValueInfo', ('typ', 'name'))
+
+
+class ValueInfo(_ValueInfo):
+    def is_repeated(self):
+        return self.typ in [INTS, ARRAY_LIST]
+
+    def c_type(self):
+        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE]:
+            return 'int'
+        elif self.typ == FLOAT:
+            return 'float'
+        elif self.typ == STRING:
+            return 'std::string'
+        elif self.typ in [INTS, ARRAY_LIST]:
+            return 'std::vector<int>'
+
+    def c_storage_type(self):
+        if self.typ == INTS:
+            return STACK_VECTOR
+        else:
+            return self.c_type()
+
+    def c_arg_type(self):
+        ctyp = self.c_type()
+        if 'std::' in ctyp:
+            return f'const {ctyp}&'
+        return ctyp
+
+    def proto_field_name(self):
+        if self.typ in [ARRAY, OPTIONAL_ARRAY]:
+            return 'array'
+        elif self.typ == SEQUENCE:
+            return 'sequence'
+        elif self.typ == INT:
+            return 'i'
+        elif self.typ == FLOAT:
+            return 'f'
+        elif self.typ == STRING:
+            return 's'
+        elif self.typ == INTS:
+            return 'ints'
+        elif self.typ == ARRAY_LIST:
+            return 'array_list'
+        else:
+            raise RuntimeError('Unknown type: %s' % self.typ)
+
+
 def Array(name):
-    return (ARRAY, name)
+    return ValueInfo(ARRAY, name)
 
 
 def OptionalArray(name):
-    return (OPTIONAL_ARRAY, name)
+    return ValueInfo(OPTIONAL_ARRAY, name)
 
 
 def ArrayList(name):
-    return (ARRAY_LIST, name)
+    return ValueInfo(ARRAY_LIST, name)
 
 
 def Sequence(name):
-    return (SEQUENCE, name)
+    return ValueInfo(SEQUENCE, name)
 
 
 def Int(name):
-    return (INT, name)
+    return ValueInfo(INT, name)
 
 
 def Float(name):
-    return (FLOAT, name)
+    return ValueInfo(FLOAT, name)
 
 
 def Ints(name):
-    return (INTS, name)
+    return ValueInfo(INTS, name)
 
 
 def String(name):
-    return (STRING, name)
+    return ValueInfo(STRING, name)
 
 
 def sigil(typ):
@@ -206,7 +255,7 @@ class Op(object):
                 self.outputs_typed.append(output)
                 self.outputs.append(output[1])
             else:
-                self.outputs_typed.append((ARRAY, output))
+                self.outputs_typed.append(Array(output))
                 self.outputs.append(output)
         self.array_only = array_only
 
@@ -295,27 +344,13 @@ def gen_gen_xcvm_ops_h():
         lines.append('virtual void Run(XCVMState* st);')
 
         lines.append('private:')
-        for typ, name in op.inputs:
-            ctype = None
-            if typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE]:
-                ctype = 'int'
-            elif typ == FLOAT:
-                ctype = 'float'
-            elif typ == STRING:
-                ctype = 'std::string'
-            elif typ == INTS:
-                ctype = STACK_VECTOR
-            elif typ == ARRAY_LIST:
-                ctype = 'std::vector<int>'
-            else:
-                raise RuntimeError('Unknown type: %s' % typ)
-            lines.append(f'{ctype} {name};')
+        for inp in op.inputs:
+            ctype = inp.c_storage_type()
+            lines.append(f'{ctype} {inp.name};')
 
-        for typ, name in op.outputs_typed:
-            if typ == ARRAY_LIST:
-                lines.append('std::vector<int> %s;' % name)
-            else:
-                lines.append('int %s;' % name)
+        for out in op.outputs_typed:
+            ctype = out.c_storage_type()
+            lines.append(f'{ctype} {out.name};')
 
         lines.append('};')
 
@@ -350,31 +385,25 @@ def gen_gen_xcvm_ops_cc():
         # Emit constructor.
         lines.append('%sOp::%sOp(const XCInstructionProto& inst) {' %
                      (op.name, op.name))
-        for i, (typ, name) in enumerate(op.inputs):
-            enum = typ.replace('OPTIONAL_', '')
+        for i, inp in enumerate(op.inputs):
+            enum = inp.typ.replace('OPTIONAL_', '')
             lines.append(f'CHECK_EQ(XCValueProto::{enum}, ' +
                          f'inst.inputs({i}).type()) ' +
                          f'<< "Unexpected type for input#{i} of {op.name}";')
-            if typ == ARRAY or typ == OPTIONAL_ARRAY:
-                lines.append('%s = inst.inputs(%d).array();' % (name, i))
-            elif typ == SEQUENCE:
-                lines.append('%s = inst.inputs(%d).sequence();' % (name, i))
-            elif typ == INT:
-                lines.append('%s = inst.inputs(%d).i();' % (name, i))
-            elif typ == FLOAT:
-                lines.append('%s = inst.inputs(%d).f();' % (name, i))
-            elif typ == STRING:
-                lines.append('%s = inst.inputs(%d).s();' % (name, i))
-            elif typ == INTS:
+            pfn = inp.proto_field_name()
+            name = inp.name
+            if not inp.is_repeated():
+                lines.append('%s = inst.inputs(%d).%s();' % (name, i, pfn))
+            elif inp.typ == INTS:
                 lines.append(f'{name} = {STACK_VECTOR}(' +
                              f'inst.inputs({i}).ints().begin(), ' +
                              f'inst.inputs({i}).ints().end());')
-            elif typ == ARRAY_LIST:
+            elif inp.typ == ARRAY_LIST:
                 lines.append('%s.assign(inst.inputs(%d).array_list().begin(),'
                              'inst.inputs(%d).array_list().end());' %
                              (name, i, i))
             else:
-                raise RuntimeError('Unknown type: %s' % typ)
+                raise RuntimeError('Unknown type: %s' % inp.typ)
 
         for i, (typ, name) in enumerate(op.outputs_typed):
             if typ == ARRAY_LIST:
@@ -530,22 +559,10 @@ std::string ArrayListToString(const std::vector<int>& s) {
 
 def make_proto_signature(op, inputs, outputs):
     args = ['XCProgramProto* program']
-    for typ, name in outputs:
-        if typ == ARRAY_LIST:
-            args.append(f'std::vector<int> {name}')
-        else:
-            args.append(f'int {name}')
-    for typ, name in inputs:
-        if typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE]:
-            args.append(f'int {name}')
-        elif typ == FLOAT:
-            args.append(f'float {name}')
-        elif typ == STRING:
-            args.append(f'const std::string& {name}')
-        elif typ == INTS or typ == ARRAY_LIST:
-            args.append(f'const std::vector<int>& {name}')
-        else:
-            raise RuntimeError('Unknown type: %s' % typ)
+    for out in outputs:
+        args.append(f'{out.c_type()} {out.name}')
+    for inp in inputs:
+        args.append(f'{inp.c_type()} {inp.name}')
     args = ', '.join(args)
     return f'void Add{op}Op({args})'
 
@@ -581,28 +598,18 @@ def gen_xcvm_proto_util_cc():
         lines.append('XCInstructionProto* inst = program->add_instructions();')
         lines.append(f'inst->set_op(XCInstructionProto::{op.name});')
 
-        for typ, name in op.inputs:
+        for inp in op.inputs:
             lines.append('{')
             lines.append('XCValueProto* input_proto = inst->add_inputs();')
-            enum = typ.replace('OPTIONAL_', '')
+            enum = inp.typ.replace('OPTIONAL_', '')
             lines.append(f'input_proto->set_type(XCValueProto::{enum});')
-            if typ == ARRAY or typ == OPTIONAL_ARRAY:
-                lines.append(f'input_proto->set_array({name});')
-            elif typ == SEQUENCE:
-                lines.append(f'input_proto->set_sequence({name});')
-            elif typ == INT:
-                lines.append(f'input_proto->set_i({name});')
-            elif typ == FLOAT:
-                lines.append(f'input_proto->set_f({name});')
-            elif typ == STRING:
-                lines.append(f'input_proto->set_s({name});')
-            elif typ == INTS:
-                lines.append(f'for (int v : {name}) input_proto->add_ints(v);')
-            elif typ == ARRAY_LIST:
-                lines.append(f'for (int v : {name}) '
-                             'input_proto->add_array_list(v);')
+            pfn = inp.proto_field_name()
+            name = inp.name
+            if inp.is_repeated():
+                lines.append(f'for (auto v : {name}) '
+                             f'input_proto->add_{pfn}(v);')
             else:
-                raise RuntimeError('Unknown type: %s' % typ)
+                lines.append(f'input_proto->set_{pfn}({name});')
             lines.append('}')
 
         for typ, name in op.outputs_typed:
