@@ -15,21 +15,11 @@
 namespace oniku {
 namespace {
 
-Value* AddTempValue(Graph* graph, Value* v) {
-    Value* tv = graph->AddValue(StrCat("grad_tmp_", v->Counter(), '@', v->name()));
-    return tv;
-}
-
-Value* AddTempOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& inputs, Value* v, const std::string& base) {
-    Value* tv = AddTempValue(graph, v);
-    graph->AddNode(op_type, inputs, {tv}, base);
-    return tv;
-}
-
 void SetGrad(Graph* graph, Value* y, Value* gy) {
     if (y->grad()) {
         // Accumulate gradients.
-        Value* v = AddTempOp(graph, Node::kAdd, {y->grad(), gy}, y, __func__);
+        GraphBuilder gb(graph, "SetGrad", y);
+        Value* v = gb.Op(Node::kAdd, {y->grad(), gy});
         y->set_grad(v);
     } else {
         y->set_grad(gy);
