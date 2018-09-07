@@ -12,7 +12,9 @@
 
 namespace oniku {
 
-void ScheduleComputation(const Graph& graph) {
+namespace {
+
+std::map<Node*, int> FindNecessaryNodes(const Graph& graph) {
     // Find necessary nodes.
     std::queue<const Value*> q;
     for (const Value* value : graph.output_values()) {
@@ -30,8 +32,13 @@ void ScheduleComputation(const Graph& graph) {
             }
         }
     }
+    return input_counts;
+}
 
-    // Then, sort them topologically.
+// A simple topological sort.
+std::vector<Node*> ScheduleNaively(const Graph& graph, std::map<Node*, int> input_counts) {
+    std::queue<const Value*> q;
+    // Sort them topologically.
     for (const Value* value : graph.input_values()) {
         q.push(value);
     }
@@ -63,6 +70,14 @@ void ScheduleComputation(const Graph& graph) {
             schedule_node(node);
         }
     }
+    return nodes;
+}
+
+}  // namespace
+
+void ScheduleComputation(const Graph& graph) {
+    std::map<Node*, int> input_counts = FindNecessaryNodes(graph);
+    std::vector<Node*> nodes = ScheduleNaively(graph, input_counts);
 
     // Sanity check.
     std::set<const Value*> output_set;
