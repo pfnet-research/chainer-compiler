@@ -106,12 +106,10 @@ private:
             return strides;
         };
 
-        const std::string& debug_info = node.DebugString();
-
 #define EMIT(op, ...)                                                                          \
     do {                                                                                       \
         Add##op##Op(prog, __VA_ARGS__);                                                        \
-        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(debug_info); \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(node.DebugString()); \
     } while (0);
 
 #define EMIT_SIMPLE_UNARY_OP(name, sym)           \
@@ -343,33 +341,7 @@ private:
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kConstant) {
-            CHECK(node.value()->dims().empty()) << "Only int scalar constant is supported in loop";
-            Dtype dtype = node.value()->dtype();
-            if (dtype.IsFloat()) {
-                double v;
-                if (dtype.SizeOf() == 4) {
-                    v = node.value()->Get<float>(0);
-                } else if (dtype.SizeOf() == 8) {
-                    v = node.value()->Get<double>(0);
-                } else {
-                    CHECK(false) << "Unknown type: " << dtype;
-                }
-                EMIT(FloatScalarConstant, out(0), v, node.value()->dtype(), node.onikux_host());
-            } else {
-                int64_t v;
-                if (dtype.SizeOf() == 1) {
-                    v = node.value()->Get<int8_t>(0);
-                } else if (dtype.SizeOf() == 2) {
-                    v = node.value()->Get<int16_t>(0);
-                } else if (dtype.SizeOf() == 4) {
-                    v = node.value()->Get<int32_t>(0);
-                } else if (dtype.SizeOf() == 8) {
-                    v = node.value()->Get<int64_t>(0);
-                } else {
-                    CHECK(false) << "Unknown type: " << dtype;
-                }
-                EMIT(IntScalarConstant, out(0), v, node.value()->dtype(), node.onikux_host());
-            }
+            EmitConstant(node, prog);
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
         } else if (node.op_type() == Node::kOnikuxSequenceSize) {
@@ -399,8 +371,41 @@ private:
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
 
-#undef EMIT
     }
+
+    void EmitConstant(const Node& node, XCProgramProto* prog) {
+        CHECK_EQ(1, node.outputs().size());
+        int out = GetValueId(node.outputs()[0]);
+        CHECK(node.value()->dims().empty()) << "Only int scalar constant is supported in loop";
+        Dtype dtype = node.value()->dtype();
+        if (dtype.IsFloat()) {
+            double v;
+            if (dtype.SizeOf() == 4) {
+                v = node.value()->Get<float>(0);
+            } else if (dtype.SizeOf() == 8) {
+                v = node.value()->Get<double>(0);
+            } else {
+                CHECK(false) << "Unknown type: " << dtype;
+            }
+            EMIT(FloatScalarConstant, out, v, node.value()->dtype(), node.onikux_host());
+        } else {
+            int64_t v;
+            if (dtype.SizeOf() == 1) {
+                v = node.value()->Get<int8_t>(0);
+            } else if (dtype.SizeOf() == 2) {
+                v = node.value()->Get<int16_t>(0);
+            } else if (dtype.SizeOf() == 4) {
+                v = node.value()->Get<int32_t>(0);
+            } else if (dtype.SizeOf() == 8) {
+                v = node.value()->Get<int64_t>(0);
+            } else {
+                CHECK(false) << "Unknown type: " << dtype;
+            }
+            EMIT(IntScalarConstant, out, v, node.value()->dtype(), node.onikux_host());
+        }
+    }
+
+#undef EMIT
 
     void EmitGraph(const Graph& graph, XCProgramProto* prog) {
         std::map<const Value*, int> num_users;
