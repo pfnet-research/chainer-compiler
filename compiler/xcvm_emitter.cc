@@ -34,10 +34,15 @@ public:
                 values.emplace(p.second, p.first);
             }
             std::cerr << "=== " << values.size() << " variables ===\n";
+            int64_t total = 0;
             for (auto p : values) {
                 const Value* v = p.second;
-                std::cerr << "$" << p.first << ": " << v->name() << ' ' << v->GetNBytes() << std::endl;
+                int64_t size = v->GetNBytes();
+                total += size;
+                std::cerr << "$" << p.first << ": " << v->name() << ' ' << size << std::endl;
             }
+            int64_t total_mb = total / 1000 / 1000;
+            std::cerr << "Total size of all values: " << total_mb << "MB" << std::endl;
         }
     }
 
