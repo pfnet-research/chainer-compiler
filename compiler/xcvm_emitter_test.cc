@@ -22,7 +22,7 @@ TEST(XCVMTest, Compile) {
     std::string model_path = test_path + "model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(model_path));
     Model model(xmodel);
-    RunDefaultPasses(model.mutable_graph());
+    RunDefaultPasses(&model);
 
     std::ostringstream oss;
     xcvm::Emit(model, oss);

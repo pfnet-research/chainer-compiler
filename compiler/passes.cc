@@ -4,6 +4,7 @@
 
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
+#include <compiler/model.h>
 #include <compiler/scheduler.h>
 #include <compiler/simplifier.h>
 #include <compiler/type_inference.h>
@@ -29,7 +30,8 @@ void RunPassesInLoops(Graph* graph) {
 
 }  //  namespace
 
-void RunDefaultPasses(Graph* graph, bool gen_backprop) {
+void RunDefaultPasses(Model* model, bool gen_backprop) {
+    Graph* graph = model->mutable_graph();
     InferAllDtypeAndShape(graph);
     Simplify(graph);
     if (gen_backprop) AddGradientNodes(graph);

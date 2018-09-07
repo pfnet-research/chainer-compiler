@@ -83,7 +83,7 @@ void RunMain(int argc, char** argv) {
     Model model(xmodel);
     CHECK_EQ(1, model.graph().output_values().size());
     const std::string loss_value_name = model.graph().output_values()[0]->name();
-    RunDefaultPasses(model.mutable_graph(), true /* gen_backprop */);
+    RunDefaultPasses(&model, true /* gen_backprop */);
 
     LOG() << "Loading data..." << std::endl;
 

@@ -43,4 +43,8 @@ void Model::ToONNX(onnx::ModelProto* xmodel) const {
     }
 }
 
+void Model::ResetGraph(Graph* graph) {
+    graph_.reset(graph);
+}
+
 }  // namespace oniku

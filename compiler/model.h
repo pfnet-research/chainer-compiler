@@ -54,6 +54,8 @@ public:
         return metadata_props_;
     }
 
+    void ResetGraph(Graph* graph);
+
 private:
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;

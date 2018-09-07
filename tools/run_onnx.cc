@@ -183,7 +183,7 @@ void RunMain(int argc, char** argv) {
     if (!args.exist("skip_shape_inference"))
         onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
-    RunDefaultPasses(model.mutable_graph(), args.exist("backprop"));
+    RunDefaultPasses(&model, args.exist("backprop"));
 
     LOG() << "Loading data..." << std::endl;
 

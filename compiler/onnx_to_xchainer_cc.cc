@@ -17,7 +17,7 @@ void RunMain(int argc, const char** argv) {
 
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(argv[1]));
     Model model(xmodel);
-    RunDefaultPasses(model.mutable_graph());
+    RunDefaultPasses(&model);
     xchainer::Emit(model, std::cout);
 }
 

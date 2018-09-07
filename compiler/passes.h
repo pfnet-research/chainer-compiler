@@ -3,8 +3,9 @@
 namespace oniku {
 
 class Graph;
+class Model;
 
-void RunDefaultPasses(Graph* graph, bool gen_backprop = false);
+void RunDefaultPasses(Model* model, bool gen_backprop = false);
 
 void RunLoopBodyPasses(Graph* graph);
 
