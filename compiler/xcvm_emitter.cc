@@ -25,7 +25,7 @@ public:
     }
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
-        EmitInputs(program);
+        // EmitInputs(program);
         EmitGraph(graph_, program, false  /* in_loop */);
         EmitOutputs(program);
         if (dump_value_names) {
@@ -441,8 +441,21 @@ private:
             num_users.emplace(value, value->users().size());
         }
 
+        std::set<const Value*> staged_inputs;
+
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
+            if (!in_loop) {
+                for (const Value* value : node->inputs()) {
+                    if (value->kind() != Value::Kind::kInput)
+                        continue;
+                    if (!staged_inputs.emplace(value).second)
+                        continue;
+                    AddInOp(prog, GetValueId(value), value->name());
+                    prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
+                }
+            }
+
             EmitNode(*node, prog);
 
             for (const Value* input : node->inputs()) {
