@@ -15,9 +15,12 @@ INT = 'INT'
 FLOAT = 'FLOAT'
 INTS = 'INTS'
 STRING = 'STRING'
+LONGS = 'LONGS'
+DOUBLES = 'DOUBLES'
 
 XC_TYPES = [
-    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, INT, FLOAT, INTS, STRING
+    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, INT, FLOAT, INTS, STRING,
+    LONGS, DOUBLES
 ]
 
 STACK_VECTOR = 'chainerx::StackVector<int64_t, chainerx::kMaxNdim>'
@@ -28,7 +31,7 @@ _ValueInfo = collections.namedtuple('_ValueInfo', ('typ', 'name'))
 
 class ValueInfo(_ValueInfo):
     def is_repeated(self):
-        return self.typ in [INTS, ARRAY_LIST]
+        return self.typ in [INTS, ARRAY_LIST, LONGS, DOUBLES]
 
     def c_type(self):
         if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE]:
@@ -39,6 +42,10 @@ class ValueInfo(_ValueInfo):
             return 'std::string'
         elif self.typ in [INTS, ARRAY_LIST]:
             return 'std::vector<int>'
+        elif self.typ == LONGS:
+            return 'std::vector<int64_t>'
+        elif self.typ == DOUBLES:
+            return 'std::vector<double>'
 
     def c_storage_type(self):
         if self.typ == INTS:
@@ -65,6 +72,10 @@ class ValueInfo(_ValueInfo):
             return 's'
         elif self.typ == INTS:
             return 'ints'
+        elif self.typ == LONGS:
+            return 'longs'
+        elif self.typ == DOUBLES:
+            return 'doubles'
         elif self.typ == ARRAY_LIST:
             return 'array_list'
         else:
@@ -101,6 +112,14 @@ def Ints(name):
 
 def String(name):
     return ValueInfo(STRING, name)
+
+
+def Longs(name):
+    return ValueInfo(LONGS, name)
+
+
+def Doubles(name):
+    return ValueInfo(DOUBLES, name)
 
 
 def sigil(typ):
@@ -218,6 +237,10 @@ XC_OPS = [
     # TODO(hamaji): Re-design constants.
     ('IntConstant', [Int('value'), Int('dtype'), Int('host')], ['output']),
     ('FloatConstant', [Float('value'), Int('dtype'), Int('host')], ['output']),
+    ('IntsConstant',
+     [Longs('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
+    ('FloatsConstant',
+     [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
 ]
@@ -280,6 +303,8 @@ def gen_xcvm_proto():
     lines.append('optional string s = 6;')
     lines.append('repeated int32 array_list = 7;')
     lines.append('optional int32 sequence = 8;')
+    lines.append('repeated int64 longs = 9;')
+    lines.append('repeated double doubles = 10;')
     lines.append('}')
 
     lines.append('message XCInstructionProto {')
@@ -398,12 +423,9 @@ def gen_gen_xcvm_ops_cc():
                 lines.append(f'{name} = {STACK_VECTOR}(' +
                              f'inst.inputs({i}).ints().begin(), ' +
                              f'inst.inputs({i}).ints().end());')
-            elif inp.typ == ARRAY_LIST:
-                lines.append('%s.assign(inst.inputs(%d).array_list().begin(),'
-                             'inst.inputs(%d).array_list().end());' %
-                             (name, i, i))
             else:
-                raise RuntimeError('Unknown type: %s' % inp.typ)
+                lines.append(f'{name}.assign(inst.inputs({i}).{pfn}().begin(),'
+                             f'inst.inputs({i}).{pfn}().end());')
 
         for i, (typ, name) in enumerate(op.outputs):
             if typ == ARRAY_LIST:
@@ -436,7 +458,7 @@ def gen_gen_xcvm_ops_cc():
                 line += f' << "{sigil(typ)}" << {name}'
             elif typ in (INT, FLOAT):
                 line += f' << {name}'
-            elif typ == STRING:
+            elif typ in [STRING, LONGS, DOUBLES]:
                 line += f' << "{name}"'
             elif typ == INTS:
                 line += f' << StackVectorToString({name})'
