@@ -7,6 +7,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/graph.h>
+#include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
@@ -47,7 +48,6 @@ Value* AddGradOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& 
     return gv;
 }
 
-#define TEMP_OP(...) AddTempOp(graph, __VA_ARGS__, __func__)
 #define GRAD_OP(...) AddGradOp(graph, __VA_ARGS__, __func__)
 
 void AddGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
@@ -69,8 +69,9 @@ void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
     Value* gy = y[0]->grad();
     Value* gx0 = GRAD_OP(Node::kDiv, {gy, x[1]}, x[0]);
 
-    Value* t0 = TEMP_OP(Node::kNeg, {gx0}, x[1]);
-    Value* t1 = TEMP_OP(Node::kMul, {t0, x[0]}, x[1]);
+    GraphBuilder gb(graph, "DivGrad", x[1]);
+    Value* t0 = gb.Op(Node::kNeg, {gx0});
+    Value* t1 = gb.Op(Node::kMul, {t0, x[0]});
     GRAD_OP(Node::kDiv, {t1, x[1]}, x[1]);
 }
 
@@ -83,12 +84,13 @@ void ExpGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
 }
 
 void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    // Support non-float values.
+    // TODO(hamaji): Support non-float values.
     CHECK_EQ(Dtype::kFloat32, x[0]->type().dtype());
+    GraphBuilder gb(graph, "SigmoidGrad", x[0]);
     Value* gy = y[0]->grad();
-    Value* one = graph->AddConstValue("grad_tmp_one@" + x[0]->name(), Type(x[0]->type().dtype(), {1}), {1.0});
-    Value* t0 = TEMP_OP(Node::kMul, {gy, y[0]}, x[0]);
-    Value* t1 = TEMP_OP(Node::kSub, {one, y[0]}, x[0]);
+    Value* one = gb.Const(Type(x[0]->type().dtype(), {}), {1.0});
+    Value* t0 = gb.Op(Node::kMul, {gy, y[0]});
+    Value* t1 = gb.Op(Node::kSub, {one, y[0]});
     GRAD_OP(Node::kMul, {t0, t1}, x[0]);
 }
 
@@ -97,7 +99,8 @@ void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const s
 }
 
 void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* t0 = TEMP_OP(Node::kAdd, {y[0], y[0]}, x[0]);
+    GraphBuilder gb(graph, "SqrtGrad", x[0]);
+    Value* t0 = gb.Op(Node::kAdd, {y[0], y[0]});
     GRAD_OP(Node::kDiv, {y[0]->grad(), t0}, x[0]);
 }
 
@@ -106,31 +109,36 @@ void IdentityGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, con
 }
 
 void ReshapeGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* t0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GraphBuilder gb(graph, "ReshapeGrad", x[0]);
+    Value* t0 = gb.Op(Node::kShape, {x[0]});
     GRAD_OP(Node::kReshape, {y[0]->grad(), t0}, x[0]);
 }
 
 void SelectItemGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
-    Value* t0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    GraphBuilder gb(graph, "SelectItemGrad", x[0]);
+    Value* t0 = gb.Op(Node::kShape, {x[0]});
     GRAD_OP(Node::kOnikuxSelectItemGrad, {y[0]->grad(), x[1], t0}, x[0]);
 }
 
 void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    GraphBuilder gb(graph, "ReduceSumGrad", x[0]);
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
-    Value* shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    Value* shape = gb.Op(Node::kShape, {x[0]});
     GRAD_OP(Node::kExpand, {gy, shape}, x[0]);
 }
 
 void ReduceMeanGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    GraphBuilder gb(graph, "ReduceMeanGrad", x[0]);
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
-    Value* shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
+    Value* shape = gb.Op(Node::kShape, {x[0]});
+    // TODO(hamaji): Use GraphBuilder.
     Value* zero = graph->AddConstValue("NATIVE_grad_tmp_zero@" + x[0]->name(), Type(Dtype::kInt64, {}), {0});
-    Value* batch_size_int = TEMP_OP(Node::kGather, {shape, zero}, x[0]);
-    Value* batch_size = TEMP_OP(Node::kCast, {batch_size_int}, x[0]);
+    Value* batch_size_int = gb.Op(Node::kGather, {shape, zero});
+    Value* batch_size = gb.Op(Node::kCast, {batch_size_int});
     batch_size->producer()->set_to(Dtype::kFloat32);
-    Value* divided = TEMP_OP(Node::kDiv, {gy, batch_size}, x[0]);
+    Value* divided = gb.Op(Node::kDiv, {gy, batch_size});
     GRAD_OP(Node::kExpand, {divided, shape}, x[0]);
 }
 
@@ -140,27 +148,33 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     Value* gy = y[0]->grad();
 
     // Note bias will be ignored thanks to beta=0.
-    Value* gx0 = nullptr;
-    if (node->trans_a()) {
-        gx0 = TEMP_OP(Node::kGemm, {x[1], gy, x[0]}, x[0]);
-        gx0->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(node->trans_b())->set_trans_b(true);
-    } else {
-        gx0 = TEMP_OP(Node::kGemm, {gy, x[1], x[0]}, x[0]);
-        gx0->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(false)->set_trans_b(!node->trans_b());
+    {
+        GraphBuilder gb(graph, "GemmGrad", x[0]);
+        Value* gx0 = nullptr;
+        if (node->trans_a()) {
+            gx0 = gb.Op(Node::kGemm, {x[1], gy, x[0]});
+            gx0->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(node->trans_b())->set_trans_b(true);
+        } else {
+            gx0 = gb.Op(Node::kGemm, {gy, x[1], x[0]});
+            gx0->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(false)->set_trans_b(!node->trans_b());
+        }
+        Value* shape0 = gb.Op(Node::kShape, {x[0]});
+        GRAD_OP(Node::kReshape, {gx0, shape0}, x[0]);
     }
-    Value* shape0 = TEMP_OP(Node::kShape, {x[0]}, x[0]);
-    GRAD_OP(Node::kReshape, {gx0, shape0}, x[0]);
 
-    Value* gx1 = nullptr;
-    if (node->trans_b()) {
-        gx1 = TEMP_OP(Node::kGemm, {gy, x[0], x[1]}, x[1]);
-        gx1->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(true)->set_trans_b(node->trans_a());
-    } else {
-        gx1 = TEMP_OP(Node::kGemm, {x[0], gy, x[1]}, x[1]);
-        gx1->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(!node->trans_a())->set_trans_b(false);
+    {
+        GraphBuilder gb(graph, "GemmGrad", x[1]);
+        Value* gx1 = nullptr;
+        if (node->trans_b()) {
+            gx1 = gb.Op(Node::kGemm, {gy, x[0], x[1]});
+            gx1->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(true)->set_trans_b(node->trans_a());
+        } else {
+            gx1 = gb.Op(Node::kGemm, {x[0], gy, x[1]});
+            gx1->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(!node->trans_a())->set_trans_b(false);
+        }
+        Value* shape1 = gb.Op(Node::kShape, {x[1]});
+        GRAD_OP(Node::kReshape, {gx1, shape1}, x[1]);
     }
-    Value* shape1 = TEMP_OP(Node::kShape, {x[1]}, x[1]);
-    GRAD_OP(Node::kReshape, {gx1, shape1}, x[1]);
 
     GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0})->set_keepdims(false);
 }
@@ -173,11 +187,14 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     GRAD_OP(Node::kConvTranspose, {gy, w}, x[0])->producer()
         ->set_strides(node->strides())->set_pads(node->pads());
 #else
-    Value* x_shape = TEMP_OP(Node::kShape, {x[0]}, x[0]);
-    GRAD_OP(Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
+    {
+        GraphBuilder gb(graph, "ConvGrad", x[0]);
+        Value* x_shape = gb.Op(Node::kShape, {x[0]});
+        GRAD_OP(Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
             ->producer()
             ->set_strides(node->strides())
             ->set_pads(node->pads());
+    }
 #endif
     GRAD_OP(Node::kOnikuxConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides())->set_pads(node->pads());
     if (x.size() == 3) {
@@ -199,23 +216,25 @@ void AveragePoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>
 }
 
 void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    GraphBuilder gb(graph, "LogSoftmaxGrad", x[0]);
     // TODO(hamaji): This probably works as is. Test it.
     CHECK_EQ(1, node->axis());
 
     Value* gy = y[0]->grad();
-    Value* sum_val = TEMP_OP(Node::kReduceSum, {gy}, x[0]);
+    Value* sum_val = gb.Op(Node::kReduceSum, {gy});
     sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
-    Value* exp_val = TEMP_OP(Node::kExp, {y[0]}, x[0]);
-    Value* mul_val = TEMP_OP(Node::kMul, {exp_val, sum_val}, x[0]);
+    Value* exp_val = gb.Op(Node::kExp, {y[0]});
+    Value* mul_val = gb.Op(Node::kMul, {exp_val, sum_val});
     GRAD_OP(Node::kSub, {gy, mul_val}, x[0]);
 }
 
 void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    GraphBuilder gb(graph, "SoftmaxGrad", x[0]);
     Value* gy = y[0]->grad();
-    Value* gx = TEMP_OP(Node::kMul, {y[0], gy}, x[0]);
-    Value* sum_val = TEMP_OP(Node::kReduceSum, {gx}, x[0]);
+    Value* gx = gb.Op(Node::kMul, {y[0], gy});
+    Value* sum_val = gb.Op(Node::kReduceSum, {gx});
     sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
-    Value* mul_val = TEMP_OP(Node::kMul, {y[0], sum_val}, x[0]);
+    Value* mul_val = gb.Op(Node::kMul, {y[0], sum_val});
     GRAD_OP(Node::kSub, {gx, mul_val}, x[0]);
 }
 
