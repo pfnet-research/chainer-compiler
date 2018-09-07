@@ -10,6 +10,15 @@
 
 namespace oniku {
 
+namespace {
+
+void CollectGarbageNode(Graph* graph) {
+    for (const auto& node : graph->nodes()) {
+        if (node->onikux_order() <= 0)
+            graph->DetachNode(node.get());
+    }
+}
+
 void RunPassesInLoops(Graph* graph) {
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
         if (node->body().get()) {
@@ -18,12 +27,15 @@ void RunPassesInLoops(Graph* graph) {
     }
 }
 
+}  //  namespace
+
 void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     InferAllDtypeAndShape(graph);
     Simplify(graph);
     if (gen_backprop) AddGradientNodes(graph);
     ScheduleComputation(*graph);
     RunPassesInLoops(graph);
+    CollectGarbageNode(graph);
 }
 
 void RunLoopBodyPasses(Graph* graph) {
@@ -32,6 +44,7 @@ void RunLoopBodyPasses(Graph* graph) {
     // if (gen_backprop) AddGradientNodes(graph);
     ScheduleComputation(*graph);
     RunPassesInLoops(graph);
+    CollectGarbageNode(graph);
 }
 
 }  // namespace oniku
