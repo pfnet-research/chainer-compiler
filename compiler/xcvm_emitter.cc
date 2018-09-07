@@ -432,6 +432,9 @@ private:
 
     void EmitGraph(const Graph& graph, XCProgramProto* prog) {
         std::map<const Value*, int> num_users;
+        for (const Value* value : graph.input_values()) {
+            num_users.emplace(value, value->users().size());
+        }
         for (const Value* value : graph.temp_values()) {
             num_users.emplace(value, value->users().size());
         }
