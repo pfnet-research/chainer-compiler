@@ -3,10 +3,9 @@
 from onnx import helper
 from onnx import TensorProto
 
-from chainer import functions as F
 from chainer import links as L
 
-from . utils import new_tensor, get_dims, size2d
+from . utils import new_tensor, size2d
 
 import code
 
@@ -65,15 +64,6 @@ class Link_Linear(object):
             return [self.W]
         else:
             return [self.W, self.b]
-
-
-def size2d(v):
-    if isinstance(v, tuple):
-        return list(v)
-    elif isinstance(v, int):
-        return [v, v]
-    else:
-        raise Exception('size should be tuple or int, but got ', v)
 
 
 class Link_Convolution2D(object):
@@ -164,7 +154,7 @@ class Link_NstepLSTM(object):
         self.name = parentname + '_' + ch.name
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        #cs = list(ch.children())
+        # cs = list(ch.children())
         hd = ch.children().__next__()
         if not(hd.w0 is None):
             self.n_in = hd.w0.shape[1]

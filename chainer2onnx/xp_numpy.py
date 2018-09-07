@@ -1,22 +1,10 @@
 # coding: utf-8
 
-import ast
-import gast
-import inspect
 import onnx
-from onnx import checker
-from onnx import helper
 
-import code
-import copy
-import sys
-import types
-
-import chainer
 import numpy
 
-from . test_args import dprint
-from . utils import new_tensor, clip_head, ValueReturn, istensor
+from . utils import new_tensor, istensor
 from . funcs import Func, Function_Dummy
 
 

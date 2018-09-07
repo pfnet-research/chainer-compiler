@@ -4,7 +4,6 @@ from onnx import helper
 from onnx import TensorProto
 
 from chainer import functions as F
-from chainer import links as L
 
 from . utils import new_tensor, get_dims, size2d
 

@@ -8,7 +8,6 @@ from onnx import checker
 from onnx import helper
 
 import code
-import copy
 import sys
 import types
 
@@ -18,7 +17,7 @@ import numpy
 from . test_args import dprint
 from . utils import new_tensor, clip_head, ValueReturn, istensor
 from . links import Link2NodeClass
-from . funcs import Func, Func2NodeClass, Function_Dummy
+from . funcs import Func, Func2NodeClass
 from . xp_numpy import xp_attrs, np_attrs
 from . builtin_funcs import builtin_functions
 
@@ -59,7 +58,7 @@ class Attr(object):
     def get_attr(self, k):
         if k in self.dic.keys():
             return self.dic[k]
-        elif (not self.ch is None) and (k in dir(self.ch)) and (callable(getattr(self.ch, k))):
+        elif (self.ch is not None) and (k in dir(self.ch)) and (callable(getattr(self.ch, k))):
             return Func(getattr(self.ch, k))
         else:
             raise Exception(self.ch, 'has no attr ', k)
@@ -322,6 +321,8 @@ def eval_ast(nast, env):
         ca = gast.Assign(targets=[nast.target], value=gast.BinOp(
             left=nast.target, op=nast.op, right=nast.value))
 
+        return eval_ast(ca, env)
+
     elif isinstance(nast, gast.Call):
         fn = eval_ast(nast.func, env)
         args = []
@@ -523,9 +524,9 @@ def eval_ast(nast, env):
 
     elif isinstance(nast, gast.If):
         b = eval_ast(nast.test, env)
-        if b == True:
+        if b is True:
             return eval_ast(nast.body, env)
-        elif b == False:
+        elif b is False:
             return eval_ast(nast.orelse, env)
         else:
             raise Exception('Not constant If is not implemented yet')
@@ -613,12 +614,12 @@ def eval_ast(nast, env):
         if not istensor(vs):
            sls = slice2list(nast.slice)
            print(sls)
-           raise Exception("Unimplemented") 
+           raise Exception("Unimplemented")
         """
 
         vs = new_tensor()
 
-        # TODO このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
+        # TODO(satos) このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
         # のでどうにかしたい
 
         res = new_tensor()
@@ -642,7 +643,8 @@ def eval_ast(nast, env):
             env.addnode(
                 'SqueezeTekina',
                 inputs=[r.name], outputs=[res.name],
-                axes=[0]  # TODO このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
+                # TODO(satos) このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
+                axes=[0]
             )
             res = r
 
