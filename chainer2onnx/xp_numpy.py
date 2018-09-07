@@ -41,10 +41,13 @@ def xp_ceil(args, _, env):
 xp_attrs = {
     'array': Func(xp_array),
     'ceil': Func(xp_ceil),
+    'full': Function_Dummy(),
 }
 
 np_attrs = {
     'float32': numpy.float32,
     'int32': numpy.int32,
     'cumsum': Function_Dummy(),
+    'concatenate': Function_Dummy(),
+    'mean': Function_Dummy(),
 }

@@ -17,7 +17,7 @@ import numpy
 from . test_args import dprint
 from . utils import new_tensor, clip_head, ValueReturn, istensor
 from . links import Link2NodeClass
-from . funcs import Func, Func2NodeClass
+from . funcs import Func, Func2NodeClass, Function_Dummy
 from . xp_numpy import xp_attrs, np_attrs
 from . builtin_funcs import builtin_functions
 
@@ -79,7 +79,7 @@ class Function_base(object):
         d = len(astargs) - len(args.keys())
         if d > 0:
             for i, v in enumerate(defs[::-1][:d]):
-                args.update({astargs[-i-1]: v})
+                args.update({astargs[-i-1]: eval_ast(v,loenv)})
 
         args.update(kwargs)
         # args.update()
@@ -167,7 +167,7 @@ class User_Defined_Link(object):
         self.attrs.update(vars(ch))
         self.attrs.update(self.links)
         self.attrs.update({
-            'xp': Attr(xp_attrs),
+            'xp': Attr(xp_attrs,'xp'),
         })
         self.attrs.update(funcs)
 
@@ -271,6 +271,7 @@ def eval_ast(nast, env):
             if islogging(s, env):
                 continue
             eval_ast(s, env)
+        return None
     elif isinstance(nast, gast.For):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
@@ -293,7 +294,7 @@ def eval_ast(nast, env):
 
             # print('finish loop',env.vars.keys())
             env.vars.pop(tg)
-
+            return None
     elif isinstance(nast, gast.Assign):
         value = eval_ast(nast.value, env)
         targs = nast.targets
@@ -372,12 +373,17 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.BinOp):
         lv = eval_ast(nast.left, env)
         rv = eval_ast(nast.right, env)
+
         res = new_tensor(['TODO'])
         isfloor = False
         if isinstance(nast.op, gast.Add):
             optype = "Add"
-
             def opfun(a, b): return a + b
+        
+        elif isinstance(nast.op, gast.Sub):
+            optype = "Sub"
+            def opfun(a, b): return a - b
+        
         elif isinstance(nast.op, gast.Mult):
             optype = "Mul"
 
@@ -415,7 +421,7 @@ def eval_ast(nast, env):
                 )
             )
             return res
-
+        
         lv = totensor(lv)
         rv = totensor(rv)
 
@@ -461,7 +467,7 @@ def eval_ast(nast, env):
                 if v == f:
                     return c()
             else:
-                raise Exception('unknown function', nast.attr)
+                raise Exception('unknown chainer function', nast.attr)
         elif body == numpy:
             # raise Exception('unknown function',body, nast.attr)
             return np_attrs[nast.attr]
@@ -473,9 +479,12 @@ def eval_ast(nast, env):
                     inputs=[body.name], outputs=[res.name],
                 )
                 return res
-            elif nast.attr == '__add__':
-                # TODO(satos) 応急処置なのであとで消す
+        
+        elif isinstance(body,list):
+            if nast.attr == 'append':
+                #TODO(satos) あとでやる
                 return Func(lambda _,__,___: new_tensor())
+
         elif body == chainer.backends.cuda:
             if nast.attr == 'to_cpu':
                 # TODO(satos) テンソルの位置についてCPUを通ったかどうかを残す
@@ -498,11 +507,12 @@ def eval_ast(nast, env):
             if nast.attr == 'is_debug':
                 # とりあえずfalseでは
                 return Func(lambda ___, _, __: False)
-
+            elif nast.attr == 'Variable':
+                return Function_Dummy()
         else:
             dprint('getattr', body, nast.attr)
             return body.get_attr(nast.attr)
-
+        
         raise Exception('value', body, 'attribute',
                         nast.attr, 'is not imlemented yet')
 
@@ -510,7 +520,14 @@ def eval_ast(nast, env):
         le = eval_ast(nast.left, env)
         vs = list(map(lambda x: eval_ast(x, env), nast.comparators))
         # とりあえず定数畳み込みのみにする
-        assert not (istensor(le) or any(map(istensor, vs)))
+        
+
+        if (istensor(le) or any(map(istensor, vs))):
+            # TODO(satos) めちゃ緊急回避
+            if nast.left.id == 'dec_z':
+                return False
+
+            raise Exception('unimplemented tensor comparetion')
 
         res = True
         for op, r in zip(nast.ops, vs):
@@ -692,7 +709,8 @@ def eval_ast(nast, env):
         print('unknown ast')
         code.InteractiveConsole({'nast': nast, 'env': env}).interact()
         raise Exception('unknown ast', nast)
-
+    
+    raise Exception("shouldn't reach here", nast)
 
 def chainer2onnx(model, forward):
     # return helper.make_graph([],'dummy',[],[])

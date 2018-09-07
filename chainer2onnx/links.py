@@ -298,71 +298,8 @@ class Link_StatelessLSTM(object):
         # とりあえずnstep を 1step ずつに分解する
         # print(self.name,args)
         # assert(len(args) == 1)
-        assert(args[0] is None and args[1] is None)
-
-        # v = args[2]
-        v = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Transpose",
-                perm=(1, 0, 2),
-                inputs=[args[2].name],
-                outputs=[v.name],
-            )
-        )
-
-        hs = []
-        cs = []
-
-        for i in range(self.n_layers):
-
-            h = new_tensor(['unknown', 'unknown', 'unknown'])
-            c = new_tensor(['unknown', 'unknown', 'unknown'])
-            ys = new_tensor(['unknown', 'unknown', 'unknown'])
-
-            env.nodes.append(
-                helper.make_node(
-                    "LSTM",
-
-                    inputs=[v.name, self.ws[i].W.name,
-                            self.ws[i].R.name, self.ws[i].B.name],
-                    outputs=[ys.name, h.name, c.name],
-                    hidden_size=self.out_size
-                )
-            )
-
-            hs.append(h.name)
-            cs.append(c.name)
-            v = ys
-        # print(hs)
-        # print(cs)
-        ths = new_tensor(['unknown', 'unknown', 'unknown'])
-        tcs = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Concat",
-                inputs=hs, outputs=[ths.name],
-                axis=0,
-            )
-        )
-        env.nodes.append(
-            helper.make_node(
-                "Concat",
-                inputs=cs, outputs=[tcs.name],
-                axis=0,
-            )
-        )
-
-        tys = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Transpose",
-                perm=(1, 0, 2),
-                inputs=[v.name],
-                outputs=[tys.name],
-            )
-        )
-        return ths, tcs, tys
+        
+        return new_tensor(),new_tensor()
 
     def init_tensors(self):
         return self.upward.init_tensors() + self.lateral.init_tensors()

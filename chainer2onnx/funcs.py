@@ -231,7 +231,8 @@ Func2NodeClass = [
     (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),
     (F.pad_sequence, Function_PadSequence),
     (F.swapaxes, Function_SwapAxes),
-    (F.reshape, Function_Reshape),
+    
+    (F.reshape, Function_Dummy),
     (F.vstack, Function_Dummy),
     (F.split_axis, Function_Dummy),
     (F.tanh, Function_Dummy),
@@ -239,6 +240,12 @@ Func2NodeClass = [
     (F.stack, Function_Dummy),
     (F.flatten, Function_Dummy),
     (F.accuracy, Function_Dummy),
+    (F.squeeze, Function_Dummy),
+    (F.broadcast_to, Function_Dummy),
+    (F.expand_dims, Function_Dummy),
+    (F.softmax, Function_Dummy),
+    (F.sum, Function_Dummy),
+    (F.hstack, Function_Dummy),
 ]
 
 

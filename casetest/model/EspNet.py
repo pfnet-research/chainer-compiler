@@ -54,7 +54,7 @@ def linear_tensor(linear, x):
     # return F.reshape(y, (x.shape[:-1] + (-1,)))
     
     y = linear(F.reshape(x, (-1, x.shape[-1])))
-    return F.reshape(y, (x.shape[:-1].__add__((-1,))))
+    return F.reshape(y, np.concatenate([x.shape[:-1],(-1,)]))
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
@@ -439,8 +439,10 @@ class AttLoc(chainer.Chain):
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
         
         # (satos) これ初回だけNoneとかですか？？？？？(どないすねん)
-        print('dec_z',dec_z.__class__)
+        # print('dec_z',dec_z.__class__)
         # if dec_z is None:
+        # たってき回避する
+        
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
                 (batch, self.dunits), dtype=np.float32))
@@ -589,7 +591,8 @@ class Decoder(chainer.Chain):
         # pre-computation of embedding
         eys = self.embed(pad_ys_in)  # utt x olen x zdim
         eys = F.separate(eys, axis=1)
-
+        
+        """
         # loop for an output sequence
         for i in six.moves.range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
@@ -597,6 +600,27 @@ class Decoder(chainer.Chain):
             c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
             for l in six.moves.range(1, self.dlayers):
                 c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            z_all.append(z_list[-1])
+        """
+
+        # (satos)ここ、indexing代入のないように書き直す 
+        # loop for an output sequence
+        for i in six.moves.range(olength):
+            z_new_list = []
+            c_new_list = []
+            att_c, att_w = self.att(hs, z_list[0], att_w)
+            ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
+            
+            new_c0, new_z0 = self.lstm0(c_list[0], z_list[0], ey)
+            z_new_list.append(new_z0) 
+            c_new_list.append(new_c0) 
+            for l in six.moves.range(1, self.dlayers):
+                cl, zl = self['lstm%d' % l](c_list[l], z_list[l], c_new_list[l - 1])
+                z_new_list.append(zl) 
+                c_new_list.append(cl) 
+            
+            z_list = z_new_list
+            c_list = c_new_list
             z_all.append(z_list[-1])
 
         z_all = F.reshape(F.stack(z_all, axis=1),
@@ -1134,6 +1158,6 @@ if __name__ == '__main__':
     a,b = model(xs,ilens,ys)
     print(a,b)
 
-    import chainer2onnx
-    chainer2onnx.generate_testcase(model, [xs,ilens,ys])
+    #import chainer2onnx
+    #chainer2onnx.generate_testcase(model, [xs,ilens,ys])
 
