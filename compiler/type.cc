@@ -74,4 +74,11 @@ int64_t Type::NumElements() const {
     return num;
 }
 
+int64_t Type::GetTotalSize() const {
+    int64_t num_elements = NumElements();
+    if (num_elements < 0)
+        return -1;
+    return num_elements * dtype_.SizeOf();
+}
+
 }  // namespace oniku

@@ -33,6 +33,10 @@ void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {
     initializer_.reset(tensor.release());
 }
 
+int64_t Value::GetTotalSize() const {
+    return type_.GetTotalSize();
+}
+
 void Value::AddUser(Node* user) {
     users_.push_back(user);
 }

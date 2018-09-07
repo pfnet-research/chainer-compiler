@@ -47,6 +47,8 @@ public:
         return &type_;
     }
 
+    int64_t GetTotalSize() const;
+
     const std::string& doc_string() const {
         return doc_string_;
     }
