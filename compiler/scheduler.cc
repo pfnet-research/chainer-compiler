@@ -86,7 +86,7 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
         int64_t estimated_input_size = 0;
         for (const Value* input : node->inputs()) {
             CHECK(!input->users().empty());
-            int64_t s = input->GetTotalSize();
+            int64_t s = input->GetNBytes();
             if (s < 0) {
                 estimated_input_size = -1;
                 break;
@@ -95,12 +95,12 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
         }
         int64_t output_size = 0;
         for (const Value* output : node->outputs()) {
-            int64_t s = output->GetTotalSize();
+            int64_t s = output->GetNBytes();
             if (s < 0) {
                 output_size = -1;
                 break;
             }
-            output_size += output->GetTotalSize();
+            output_size += output->GetNBytes();
         }
 
         int64_t estimated_memory_increase = 0;

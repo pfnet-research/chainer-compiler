@@ -36,7 +36,7 @@ public:
             std::cerr << "=== " << values.size() << " variables ===\n";
             for (auto p : values) {
                 const Value* v = p.second;
-                std::cerr << "$" << p.first << ": " << v->name() << ' ' << v->GetTotalSize() << std::endl;
+                std::cerr << "$" << p.first << ": " << v->name() << ' ' << v->GetNBytes() << std::endl;
             }
         }
     }

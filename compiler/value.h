@@ -47,7 +47,7 @@ public:
         return &type_;
     }
 
-    int64_t GetTotalSize() const;
+    int64_t GetNBytes() const;
 
     const std::string& doc_string() const {
         return doc_string_;

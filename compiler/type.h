@@ -34,7 +34,7 @@ public:
 
     int64_t NumElements() const;
 
-    int64_t GetTotalSize() const;
+    int64_t GetNBytes() const;
 
     bool is_known() const {
         return is_known_;

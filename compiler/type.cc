@@ -74,7 +74,7 @@ int64_t Type::NumElements() const {
     return num;
 }
 
-int64_t Type::GetTotalSize() const {
+int64_t Type::GetNBytes() const {
     if (dtype_ == Dtype::kUnknown)
         return -1;
     int64_t num_elements = NumElements();
