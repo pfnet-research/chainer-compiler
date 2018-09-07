@@ -19,6 +19,8 @@ parser.add_argument('--all', '-a', action='store_true',
                     help='Run all tests')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
+parser.add_argument('--use_gpu_all', '-G', action='store_true',
+                    help='Run all tests with GPU')
 cmdline = parser.parse_args()
 
 
@@ -323,8 +325,8 @@ def main():
             args.append('--skip_shape_inference')
         if test_case.name.startswith('backprop_'):
             args.append('--backprop')
-        if test_case.name == 'resnet50':
-            if not cmdline.use_gpu:
+        if test_case.name == 'resnet50' or cmdline.use_gpu_all:
+            if not cmdline.use_gpu and not cmdline.use_gpu_all:
                 continue
             args.extend(['-d', 'cuda'])
 
