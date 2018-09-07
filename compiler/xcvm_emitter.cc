@@ -358,6 +358,7 @@ private:
             } else {
                 int64_t v;
                 if (dtype.SizeOf() == 1) {
+                    v = node.value()->Get<int8_t>(0);
                 } else if (dtype.SizeOf() == 2) {
                     v = node.value()->Get<int16_t>(0);
                 } else if (dtype.SizeOf() == 4) {
