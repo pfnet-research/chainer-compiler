@@ -48,9 +48,13 @@ def linear_tensor(linear, x):
     :return:
     :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
     '''
-    y = linear(F.reshape(x, (-1, x.shape[-1])))
-    return F.reshape(y, (x.shape[:-1] + (-1,)))
 
+    # (satos) + のオーバーロードを一旦無視する
+    # y = linear(F.reshape(x, (-1, x.shape[-1])))
+    # return F.reshape(y, (x.shape[:-1] + (-1,)))
+    
+    y = linear(F.reshape(x, (-1, x.shape[-1])))
+    return F.reshape(y, (x.shape[:-1].__add__((-1,))))
 
 # TODO(watanabe) merge Loss and E2E: there is no need to make these separately
 class Loss(chainer.Chain):
@@ -434,9 +438,9 @@ class AttLoc(chainer.Chain):
             # utt x frame x att_dim
             self.pre_compute_enc_h = linear_tensor(self.mlp_enc, self.enc_h)
         
-        for i,j in zip(range(10),range(10)):
-            pass
-
+        # (satos) これ初回だけNoneとかですか？？？？？(どないすねん)
+        print('dec_z',dec_z.__class__)
+        # if dec_z is None:
         if dec_z is None:
             dec_z = chainer.Variable(self.xp.zeros(
                 (batch, self.dunits), dtype=np.float32))

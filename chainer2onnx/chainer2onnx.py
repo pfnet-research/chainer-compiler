@@ -473,6 +473,9 @@ def eval_ast(nast, env):
                     inputs=[body.name], outputs=[res.name],
                 )
                 return res
+            elif nast.attr == '__add__':
+                # TODO(satos) 応急処置なのであとで消す
+                return Func(lambda _,__,___: new_tensor())
         elif body == chainer.backends.cuda:
             if nast.attr == 'to_cpu':
                 # TODO(satos) テンソルの位置についてCPUを通ったかどうかを残す
@@ -514,6 +517,8 @@ def eval_ast(nast, env):
             # code.InteractiveConsole({'op': op}).interact()
             if isinstance(op, gast.Eq):
                 res = res and (le == r)
+            elif isinstance(op, gast.Is):
+                res = res and (le is r)
             elif isinstance(op, gast.IsNot):
                 res = res and (le is not r)
             elif isinstance(op, gast.Gt):
