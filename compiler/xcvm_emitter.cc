@@ -607,6 +607,7 @@ private:
         for (const Value* value : graph_.output_values()) {
             AddOutOp(prog, value->name(), GetValueId(value));
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
+            AddFreeOp(prog, GetValueId(value));
         }
     }
 
