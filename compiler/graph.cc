@@ -11,7 +11,6 @@
 #include <compiler/node.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
-#include <compiler/type_inference.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -193,10 +192,6 @@ Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, co
     Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs);
     // Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
-    // TODO(hamaji): Consider when we run inferences. The `node` would
-    // be incomplete so we may not have enough information yet (e.g.,
-    // for Constant, Cast).
-    // InferDtypeAndShape(node);
     return node;
 }
 

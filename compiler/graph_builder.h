@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <compiler/node.h>
 
@@ -17,6 +18,8 @@ public:
     // intended to be a name of component while `target` is a unique
     // name in the target graph.
     GraphBuilder(Graph* graph, const std::string& category, Value* target);
+
+    ~GraphBuilder();
 
     // Creates a new operation node which has a single output. A new
     // temporary `Value` will be created if `output` is nullptr.
@@ -40,6 +43,7 @@ private:
     const std::string category_;
     const std::string target_;
     int id_{0};
+    std::vector<Node*> added_nodes_;
 };
 
 }  // namespace oniku
