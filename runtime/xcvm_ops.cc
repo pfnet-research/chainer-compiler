@@ -1,6 +1,8 @@
 #include <algorithm>
 
 #include <chainerx/axes.h>
+#include <chainerx/context.h>
+#include <chainerx/native/native_backend.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/indexing.h>
@@ -505,11 +507,17 @@ chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
 }
 
 chainerx::Array IntConstantOp::RunImpl(XCVMState* st) {
-    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
+    if (host)
+        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), chainerx::GetNativeBackend().GetDevice(0));
+    else
+        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
 }
 
 chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
-    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
+    if (host)
+        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), chainerx::GetNativeBackend().GetDevice(0));
+    else
+        return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
 }
 
 void JmpTrueOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {

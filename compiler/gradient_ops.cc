@@ -123,8 +123,8 @@ void ReduceMeanGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
     Value* shape = gb.Op(Node::kShape, {x[0]});
-    // TODO(hamaji): Use GraphBuilder.
-    Value* zero = graph->AddConstValue("NATIVE_grad_tmp_zero@" + x[0]->name(), Type(Dtype::kInt64, {}), {0});
+    Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
+    zero->producer()->set_onikux_host(true);
     Value* batch_size_int = gb.Op(Node::kGather, {shape, zero});
     Value* batch_size = gb.Op(Node::kCast, {batch_size_int});
     batch_size->producer()->set_to(Dtype::kFloat32);

@@ -71,7 +71,7 @@ NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
 NodeDef('Less', 2, 1)
 
-NodeDef('Constant', 0, 1, value=Required(Tensor))
+NodeDef('Constant', 0, 1, value=Required(Tensor), onikux_host=False)
 NodeDef('Cast', 1, 1, to=Required(Dtype))
 NodeDef('Shape', 1, 1)
 NodeDef('Size', 1, 1)

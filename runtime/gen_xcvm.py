@@ -167,8 +167,8 @@ XC_OPS = [
     ('Cast', [Array('input'), Int('to')], ['output']),
 
     # TODO(hamaji): Re-design constants.
-    ('IntConstant', [Int('value'), Int('dtype')], ['output']),
-    ('FloatConstant', [Float('value'), Int('dtype')], ['output']),
+    ('IntConstant', [Int('value'), Int('dtype'), Int('host')], ['output']),
+    ('FloatConstant', [Float('value'), Int('dtype'), Int('host')], ['output']),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
 ]
