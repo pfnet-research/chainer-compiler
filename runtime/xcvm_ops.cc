@@ -508,6 +508,10 @@ chainerx::Array IntConstantOp::RunImpl(XCVMState* st) {
     return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
 }
 
+chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
+    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype));
+}
+
 void JmpTrueOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {
     if (static_cast<bool>(chainerx::AsScalar(cond))) {
         st->set_pc(pc - 1);

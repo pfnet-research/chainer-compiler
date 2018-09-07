@@ -168,6 +168,7 @@ XC_OPS = [
 
     # TODO(hamaji): Re-design constants.
     ('IntConstant', [Int('value'), Int('dtype')], ['output']),
+    ('FloatConstant', [Float('value'), Int('dtype')], ['output']),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
 ]
@@ -224,8 +225,8 @@ def gen_xcvm_proto():
     lines.append('}')
     lines.append('required Type type = 1;')
     lines.append('optional int32 array = 2;')
-    lines.append('optional int32 i = 3;')
-    lines.append('optional float f = 4;')
+    lines.append('optional int64 i = 3;')
+    lines.append('optional double f = 4;')
     lines.append('repeated int32 ints = 5;')
     lines.append('optional string s = 6;')
     lines.append('repeated int32 array_list = 7;')

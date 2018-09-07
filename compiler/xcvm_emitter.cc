@@ -343,19 +343,28 @@ private:
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kConstant) {
-            CHECK(!node.value()->dtype().IsFloat()) << "Only int scalar constant is supported in loop";
             CHECK(node.value()->dims().empty()) << "Only int scalar constant is supported in loop";
             Dtype dtype = node.value()->dtype();
-            if (dtype.SizeOf() == 1) {
-                EMIT(IntConstant, out(0), node.value()->Get<int8_t>(0), node.value()->dtype());
-            } else if (dtype.SizeOf() == 2) {
-                EMIT(IntConstant, out(0), node.value()->Get<int16_t>(0), node.value()->dtype());
-            } else if (dtype.SizeOf() == 4) {
-                EMIT(IntConstant, out(0), node.value()->Get<int32_t>(0), node.value()->dtype());
-            } else if (dtype.SizeOf() == 8) {
-                EMIT(IntConstant, out(0), node.value()->Get<int64_t>(0), node.value()->dtype());
+            if (dtype.IsFloat()) {
+                if (dtype.SizeOf() == 4) {
+                    EMIT(FloatConstant, out(0), node.value()->Get<float>(0), node.value()->dtype());
+                } else if (dtype.SizeOf() == 8) {
+                    EMIT(FloatConstant, out(0), node.value()->Get<double>(0), node.value()->dtype());
+                } else {
+                    CHECK(false) << "Unknown type: " << dtype;
+                }
             } else {
-                CHECK(false) << "Unknown type: " << dtype;
+                if (dtype.SizeOf() == 1) {
+                    EMIT(IntConstant, out(0), node.value()->Get<int8_t>(0), node.value()->dtype());
+                } else if (dtype.SizeOf() == 2) {
+                    EMIT(IntConstant, out(0), node.value()->Get<int16_t>(0), node.value()->dtype());
+                } else if (dtype.SizeOf() == 4) {
+                    EMIT(IntConstant, out(0), node.value()->Get<int32_t>(0), node.value()->dtype());
+                } else if (dtype.SizeOf() == 8) {
+                    EMIT(IntConstant, out(0), node.value()->Get<int64_t>(0), node.value()->dtype());
+                } else {
+                    CHECK(false) << "Unknown type: " << dtype;
+                }
             }
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
