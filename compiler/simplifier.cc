@@ -76,6 +76,9 @@ bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
 }
 
 bool ReplaceConstant(Graph* graph, Node* node) {
+    // Do not move host Constant to initializer. They should be small
+    // and cheap to initialize.
+    if (node->onikux_host()) return false;
     // TODO(hamaji): Use GraphBuilder.
     const std::string& name = StrCat("SimplifyConstant_", node->outputs()[0]->name());
     Value* v = graph->AddInputValue(name, Type(node->value()->dtype(), node->value()->dims()));
