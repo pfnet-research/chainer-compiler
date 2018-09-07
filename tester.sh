@@ -1,4 +1,5 @@
 node=(
+    Id.py
     Linear.py
     Concat.py
     SoftmaxClossEntropy.py
@@ -12,7 +13,7 @@ syntax=(
     MultiClass.py
     MultiFunction.py
     UserDefinedFunc.py
-   # ListComp.py
+    ListComp.py
 )
 
 

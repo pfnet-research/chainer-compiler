@@ -69,7 +69,6 @@ class Attr(object):
 
 class Function_base(object):
     def stub_call(self, args, kwargs, loenv):
-
         # code.InteractiveConsole({'v': self.ast.args}).interact()
 
         astargs = list(map(lambda x: x.id, self.ast.args.args))
@@ -82,7 +81,6 @@ class Function_base(object):
                 args.update({astargs[-i-1]: eval_ast(v,loenv)})
 
         args.update(kwargs)
-        # args.update()
 
         assert(len(astargs) == len(args.keys()))
         loenv.vars = args
@@ -97,19 +95,15 @@ class Function_base(object):
 
 class User_Defined_Function(Function_base):
     def __init__(self, func):
-
         src = clip_head(inspect.getsource(func))
         dprint(src)
         self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
         assert(isinstance(self.ast, gast.gast.FunctionDef))
 
     def call(self, args, kwargs, env):
-        # code.InteractiveConsole({'nast':self.ast}).interact()
-
         loenv = env.localenv()
         loenv.links = {}
         loenv.module = env.module
-
         return self.stub_call(args, kwargs, loenv)
 
 
@@ -124,14 +118,11 @@ class User_Defined_Func_In_Link(Function_base):
         self.funname = funname
 
     def call(self, args, kwargs, env):
-        print('calling', self.funname)
-        # code.InteractiveConsole({'nast':self.ast}).interact()
-
+        dprint('calling', self.funname)
         loenv = env.localenv()
         loenv.links = self.links
         loenv.module = self.module
         args = [self.attrs] + args
-
         return self.stub_call(args, kwargs, loenv)
 
 
@@ -145,13 +136,10 @@ class User_Defined_Link(object):
         self.links = initLinks(ch, self.name)
         self.module = sys.modules[ch.__module__]
 
-        # print(gast.ast_to_gast(ast.parse(clip_head(inspect.getsource(ch.__class__)))).body[0].body)
-
         src = clip_head(inspect.getsource(ch.__class__))
         dprint(src)
 
         ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
-        # code.InteractiveConsole({'v': ast_list}).interact()
         funcs = {}
         for func in ast_list:
             if not isinstance(func, gast.gast.FunctionDef):
@@ -170,15 +158,9 @@ class User_Defined_Link(object):
             'xp': Attr(xp_attrs,'xp'),
         })
         self.attrs.update(funcs)
-
-        # print(ch.name,self.attrs.dic.keys())
         self.get_attr = self.attrs.get_attr
-        # print(self.attrs.dic)
 
         self.call = self.get_attr('forward').call
-
-        # print(self.attrs.dic)
-        # exit(0)
 
     def init_tensors(self):
         res = []
@@ -195,7 +177,6 @@ class User_Defined_Class(object):
         dprint(src)
 
         ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
-        # code.InteractiveConsole({'v': classtype}).interact()
         self.module = sys.modules[classtype.__module__]
 
         funcs = {}
@@ -219,9 +200,7 @@ class User_Defined_Class(object):
                 'retain_inputs': Func(lambda _, __, ___: None),
             })
 
-        # print(ch.name,self.attrs.dic.keys())
         self.get_attr = self.attrs.get_attr
-        # print(self.attrs.dic)
 
         self.call = self.get_attr('forward').call
 
@@ -251,13 +230,17 @@ class Env(object):
 import logging
 
 
-def islogging(s, env):
-    # dprint('check logging',gast.dump(s), env.vars.keys())
+def is_print_logging(s, env):
     return (
         isinstance(s, gast.Expr) and
         isinstance(s.value, gast.Call) and
         isinstance(s.value.func, gast.Attribute) and
         isinstance(eval_ast(s.value.func.value, env), logging.__class__)
+    ) or (
+        isinstance(s, gast.Expr) and
+        isinstance(s.value, gast.Call) and
+        isinstance(s.value.func, gast.Name) and
+        s.value.func.id == 'print'
     )
 
 
@@ -268,7 +251,7 @@ def eval_ast(nast, env):
     if isinstance(nast, list):
         # 逐次実行
         for s in nast:
-            if islogging(s, env):
+            if is_print_logging(s, env):
                 continue
             eval_ast(s, env)
         return None
@@ -292,7 +275,6 @@ def eval_ast(nast, env):
                 eval_ast(nast.body, env)
                 # print('looping',env.vars.keys())
 
-            # print('finish loop',env.vars.keys())
             env.vars.pop(tg)
             return None
     elif isinstance(nast, gast.Assign):
@@ -304,12 +286,11 @@ def eval_ast(nast, env):
         if isinstance(tg, gast.Name):
             env.vars[tg.id] = value
         elif isinstance(tg, gast.Tuple):
-            # code.InteractiveConsole({'tg': tg,'v': value}).interact()
             assert(isinstance(value, tuple))
             assert(len(tg.elts) == len(value))
 
             for i, v in enumerate(value):
-                env.vars[tg.elts[i].id] = v  # これこのあと更に再帰的に書く必要あるかも
+                env.vars[tg.elts[i].id] = v  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
 
         elif isinstance(tg, gast.Attribute):
             body = eval_ast(tg.value, env)
@@ -321,7 +302,6 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.AugAssign):
         ca = gast.Assign(targets=[nast.target], value=gast.BinOp(
             left=nast.target, op=nast.op, right=nast.value))
-
         return eval_ast(ca, env)
 
     elif isinstance(nast, gast.Call):
@@ -333,8 +313,7 @@ def eval_ast(nast, env):
             else:
                 args.append(eval_ast(ag, env))
 
-        keywords = dict(
-            map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
+        keywords = dict(map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
 
         # code.InteractiveConsole({'fn': fn}).interact()
 
@@ -345,30 +324,28 @@ def eval_ast(nast, env):
         elif fn == range:
             fn = builtin_functions['range']
         elif isinstance(fn, type):
-            # なにがしかのinstance 作成
+            # なにがしかのinstanceを作成したはず
             assert fn.__module__ != 'builtins'
-
             fn = User_Defined_Class(fn).init_wrapper
 
-        # print('funccall',fn,args,keywords,env)
         return fn.call(args, keywords, env)
 
     elif isinstance(nast, gast.UnaryOp):
         v = eval_ast(nast.operand, env)
         res = new_tensor()
         if isinstance(nast.op, gast.USub):
-            # optype = "Sub"
+            # optype = "*= -1"
             def opfun(x): return -x
         elif isinstance(nast.op, gast.Not):
-            # optype = "Sub"
+            # optype = "Not"
             def opfun(x): return not x
         else:
             raise Exception('unknown operator', nast.op)
-
+        
         if not istensor(v):
             return opfun(v)
         else:
-            raise Exception("Unimplemented")
+            raise Exception("Unimplemented yet")
 
     elif isinstance(nast, gast.BinOp):
         lv = eval_ast(nast.left, env)
@@ -386,17 +363,17 @@ def eval_ast(nast, env):
         
         elif isinstance(nast.op, gast.Mult):
             optype = "Mul"
-
             def opfun(a, b): return a * b
+        
         elif isinstance(nast.op, gast.FloorDiv):
             optype = "Div"
             isfloor = True
-
             def opfun(a, b): return a // b
+        
         elif isinstance(nast.op, gast.Div):
             optype = "Div"
-
             def opfun(a, b): return a / b
+        
         else:
             raise Exception('unknown operator', nast.op)
 
@@ -448,7 +425,6 @@ def eval_ast(nast, env):
         else:
             raise Exception('unknown operator', nast.op)
 
-        # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
         if not any(map(istensor, vs)):
             return opfun(vs)
 
@@ -456,8 +432,8 @@ def eval_ast(nast, env):
 
     elif isinstance(nast, gast.Attribute):
         body = eval_ast(nast.value, env)
-        # code.InteractiveConsole({'nast':nast,'env': env, 'body':body}).interact()
-
+        
+        # TODO(satos) 以下のif文連続を配列にまとめたりしたいですね〜
         if isinstance(body, chainer.variable.Parameter):
             if nast.attr == 'shape':
                 return body.shape
@@ -469,7 +445,6 @@ def eval_ast(nast, env):
             else:
                 raise Exception('unknown chainer function', nast.attr)
         elif body == numpy:
-            # raise Exception('unknown function',body, nast.attr)
             return np_attrs[nast.attr]
         elif istensor(body):
             if nast.attr == 'shape':
@@ -521,7 +496,6 @@ def eval_ast(nast, env):
         vs = list(map(lambda x: eval_ast(x, env), nast.comparators))
         # とりあえず定数畳み込みのみにする
         
-
         if (istensor(le) or any(map(istensor, vs))):
             # TODO(satos) めちゃ緊急回避
             if nast.left.id == 'dec_z':
@@ -531,7 +505,6 @@ def eval_ast(nast, env):
 
         res = True
         for op, r in zip(nast.ops, vs):
-            # code.InteractiveConsole({'op': op}).interact()
             if isinstance(op, gast.Eq):
                 res = res and (le == r)
             elif isinstance(op, gast.Is):
@@ -576,7 +549,6 @@ def eval_ast(nast, env):
 
         # Scan は map の map なので、一旦[x]で包んでかけてしまう
 
-        print(localenv.nodes)
         localgraph = helper.make_graph(
             localenv.nodes,
             "Scan_subgraph", [tx], [ty]
@@ -681,9 +653,7 @@ def eval_ast(nast, env):
         return None
 
     elif isinstance(nast, gast.Name):
-        if nast.id == 'print':  # とりあえずの実装なのであとでもっとうまくやる
-            return Func(lambda _, __, ___: None)
-        elif nast.id in env.vars.keys():
+        if nast.id in env.vars.keys():
             return env.vars[nast.id]
         elif nast.id in dir(env.module):
             return getattr(env.module, nast.id)

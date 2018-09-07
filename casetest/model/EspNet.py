@@ -167,6 +167,9 @@ class E2E(chainer.Chain):
         '''
         # 1. encoder
         hs, ilens = self.enc(xs, ilens)
+        
+        
+        return F.pad_sequence(hs,ilens)
 
         # 3. CTC loss
         if self.mtlalpha == 0:
@@ -1155,9 +1158,9 @@ if __name__ == '__main__':
     #true output variable(6.5717525) variable(0.13333334)
  
     # print(xs,ilens,ys)
-    a,b = model(xs,ilens,ys)
-    print(a,b)
+    #a,b = model(xs,ilens,ys)
+    #print(a,b)
 
-    #import chainer2onnx
-    #chainer2onnx.generate_testcase(model, [xs,ilens,ys])
+    import chainer2onnx
+    chainer2onnx.generate_testcase(model, [xs,ilens,ys])
 
