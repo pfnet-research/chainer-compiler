@@ -2,6 +2,11 @@ namespace oniku {
 
 class Graph;
 
-void ScheduleComputation(const Graph& graph);
+enum class SchedulerType {
+    kNaive,
+    kGreedy,
+};
+
+void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type = SchedulerType::kNaive);
 
 }  // namespace oniku

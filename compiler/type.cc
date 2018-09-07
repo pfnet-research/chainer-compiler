@@ -75,6 +75,8 @@ int64_t Type::NumElements() const {
 }
 
 int64_t Type::GetTotalSize() const {
+    if (dtype_ == Dtype::kUnknown)
+        return -1;
     int64_t num_elements = NumElements();
     if (num_elements < 0)
         return -1;
