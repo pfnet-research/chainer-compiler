@@ -282,7 +282,7 @@ void RunMain(int argc, char** argv) {
             LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
         }
 
-        if (test_case->outputs.empty()) {
+        if (test_case->outputs.empty() && args.exist("verbose")) {
             LOG() << "Outputs:" << std::endl;
             for (const auto& p : outputs) {
                 LOG() << p.first << ": " << p.second.ToString() << std::endl;
