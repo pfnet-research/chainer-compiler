@@ -7,6 +7,6 @@ enum class SchedulerType {
     kGreedy,
 };
 
-void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type = SchedulerType::kNaive);
+void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type = SchedulerType::kGreedy);
 
 }  // namespace oniku
