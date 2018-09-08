@@ -69,6 +69,9 @@ void GetReluRecompute(Graph* graph) {
 
         int relu_dist = GetDistance(node.get(), distances);
         if (relu_dist < 0) continue;
+        // It's not worth recomputing Relu if this Relu is the only
+        // user of the input value.
+        if (node->inputs()[0]->users().size() == 1) continue;
         Value* relu_output = node->outputs()[0];
         int num_near_users = 0;
         std::multimap<int, Node*> far_users;
@@ -83,6 +86,7 @@ void GetReluRecompute(Graph* graph) {
         }
         if (far_users.empty() || !num_near_users) continue;
 
+        // std::cerr << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB" << " " << node->DebugString() << std::endl;
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());
         for (const auto& p : far_users) {

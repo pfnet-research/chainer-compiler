@@ -1,6 +1,8 @@
 #include "scheduler.h"
 
+#include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <queue>
 #include <vector>
@@ -13,6 +15,79 @@
 namespace oniku {
 
 namespace {
+
+int64_t EstimateMemoryIncrease(Node* node) {
+    int64_t estimated_input_size = 0;
+    for (const Value* input : node->inputs()) {
+        CHECK(!input->users().empty());
+        int64_t s = input->GetNBytes();
+        if (s < 0) {
+            estimated_input_size = -1;
+            break;
+        }
+        estimated_input_size += s / input->users().size();
+    }
+    int64_t output_size = 0;
+    for (const Value* output : node->outputs()) {
+        int64_t s = output->GetNBytes();
+        if (s < 0) {
+            output_size = -1;
+            break;
+        }
+        output_size += output->GetNBytes();
+    }
+    int64_t estimated_memory_increase = 0;
+    if (estimated_input_size >= 0 && output_size >= 0) {
+        estimated_memory_increase = output_size - estimated_input_size;
+    }
+    return estimated_memory_increase;
+}
+
+std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
+    std::vector<std::vector<Node*>> nodes;
+    std::map<Node*, size_t> node_to_index;
+    auto get_index = [&node_to_index](Node* node) {
+        auto found = node_to_index.find(node);
+        CHECK(found != node_to_index.end());
+        return found->second;
+    };
+
+    for (size_t i = 0; i < nodes_in.size(); ++i) {
+        Node* node = nodes_in[i];
+        nodes.push_back({node});
+        CHECK(node_to_index.emplace(node, i).second);
+    }
+
+    for (int i = nodes.size() - 1; i >= 0; --i) {
+        if (nodes[i].empty()) continue;
+        CHECK_EQ(1, nodes[i].size());
+        Node* node = nodes[i][0];
+        for (Value* input : node->inputs()) {
+            while (Node* prev = input->producer()) {
+                if (input->users().size() > 1)
+                    break;
+                if (prev->inputs().size() != 1 || prev->outputs().size() != 1)
+                    break;
+                int64_t memory_increase = EstimateMemoryIncrease(prev);
+                if (memory_increase > 0)
+                    break;
+
+                int index = get_index(prev);
+                // std::cerr << "Delayed: from " << index << " to " << i << " " <<  prev->DebugString() << std::endl;
+                CHECK_EQ(1, nodes[index].size());
+                nodes[index].clear();
+                nodes[i].push_back(prev);
+                input = prev->inputs()[0];
+            }
+        }
+    }
+
+    std::vector<Node*> reordered;
+    for (const std::vector<Node*>& ns : nodes) {
+        std::copy(ns.rbegin(), ns.rend(), std::back_inserter(reordered));
+    }
+    return reordered;
+}
 
 // A simple topological sort.
 std::vector<Node*> ScheduleNaively(const Graph& graph) {
@@ -62,30 +137,9 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
     std::multimap<int64_t, Node*> q;
 
     auto enqueue_node = [&q](Node* node) {
-        int64_t estimated_input_size = 0;
-        for (const Value* input : node->inputs()) {
-            CHECK(!input->users().empty());
-            int64_t s = input->GetNBytes();
-            if (s < 0) {
-                estimated_input_size = -1;
-                break;
-            }
-            estimated_input_size += s / input->users().size();
-        }
-        int64_t output_size = 0;
-        for (const Value* output : node->outputs()) {
-            int64_t s = output->GetNBytes();
-            if (s < 0) {
-                output_size = -1;
-                break;
-            }
-            output_size += output->GetNBytes();
-        }
-
-        int64_t estimated_memory_increase = 0;
-        if (estimated_input_size >= 0 && output_size >= 0) {
-            estimated_memory_increase = output_size - estimated_input_size;
-        }
+        int64_t estimated_memory_increase = EstimateMemoryIncrease(node);
+        if (node->op_type() == Node::kRelu)
+            estimated_memory_increase += 1000 * 1000 * 1000;
         q.emplace(estimated_memory_increase, node);
     };
 
@@ -122,6 +176,8 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
             make_value_ready(output);
         }
     }
+
+    nodes = DelaySimpleNodes(nodes);
     return nodes;
 }
 
