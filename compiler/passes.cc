@@ -5,6 +5,7 @@
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <compiler/recompute.h>
 #include <compiler/scheduler.h>
 #include <compiler/simplifier.h>
 #include <compiler/type_inference.h>
@@ -35,6 +36,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     InferAllDtypeAndShape(graph);
     Simplify(graph);
     if (gen_backprop) AddGradientNodes(graph);
+    // GetReluRecompute(graph);
     ScheduleComputation(*graph);
     RunPassesInLoops(graph);
     CollectGarbageNode(graph);

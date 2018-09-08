@@ -20,6 +20,7 @@ add_library(oniku_compiler
   model.cc
   node.cc
   passes.cc
+  recompute.cc
   scheduler.cc
   simplifier.cc
   tensor.cc
