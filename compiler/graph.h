@@ -78,6 +78,9 @@ public:
 
     std::vector<Node*> GetTopologicallySortedNodes() const;
 
+    // Returns a map from nodes to the number of their users.
+    std::map<Node*, int> GetUsedCounts() const;
+
     // Gets a sequence of scheduled nodes. Node::order() must be set
     // before calling this function.
     std::vector<const Node*> GetComputationSequence() const;
