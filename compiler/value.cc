@@ -10,13 +10,13 @@
 namespace oniku {
 
 Value::Value(const onnx::ValueInfoProto& xvalue, Kind kind)
-    : kind_(kind), name_(xvalue.name()), type_(xvalue.type()), doc_string_(xvalue.doc_string()) {
+    : kind_(kind), name_(xvalue.name()), type_(new Type(xvalue.type())), doc_string_(xvalue.doc_string()) {
 }
 
-Value::Value(const std::string& name, Kind kind) : kind_(kind), name_(name), type_(Dtype::kUnknown, {}) {
+Value::Value(const std::string& name, Kind kind) : kind_(kind), name_(name), type_(new Type(Dtype::kUnknown, {})) {
 }
 
-Value::Value(const std::string& name, const Type& type, Kind kind) : kind_(kind), name_(name), type_(type) {
+Value::Value(const std::string& name, const Type& type, Kind kind) : kind_(kind), name_(name), type_(new Type(type)) {
 }
 
 Value::~Value() {
@@ -25,7 +25,7 @@ Value::~Value() {
 
 void Value::ToONNX(onnx::ValueInfoProto* xvalue) const {
     DUMP_STRING(xvalue, name);
-    type_.ToONNX(xvalue->mutable_type());
+    type_->ToONNX(xvalue->mutable_type());
     DUMP_STRING(xvalue, doc_string);
 }
 
@@ -34,7 +34,7 @@ void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {
 }
 
 int64_t Value::GetNBytes() const {
-    return type_.GetNBytes();
+    return type_->GetNBytes();
 }
 
 void Value::AddUser(Node* user) {

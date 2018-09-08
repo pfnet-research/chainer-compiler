@@ -6,8 +6,6 @@
 
 #include <onnx/onnx-ml.pb.h>
 
-#include <compiler/type.h>
-
 namespace oniku {
 
 class Node;
@@ -41,10 +39,13 @@ public:
     }
 
     const Type& type() const {
-        return type_;
+        return *type_;
+    }
+    void set_type(Type* type) {
+        type_.reset(type);
     }
     Type* mutable_type() {
-        return &type_;
+        return type_.get();
     }
 
     int64_t GetNBytes() const;
@@ -88,7 +89,7 @@ public:
 private:
     Kind kind_;
     std::string name_;
-    Type type_;
+    std::unique_ptr<Type> type_;
     std::string doc_string_;
     std::unique_ptr<Tensor> initializer_;
 

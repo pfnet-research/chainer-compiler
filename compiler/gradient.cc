@@ -71,7 +71,10 @@ public:
 
         // Reset gradients.
         for (const auto& v : graph_->all_values()) {
-            v->set_grad(nullptr);
+            if (Value* gv = v->grad()) {
+                gv->set_type(new Type(v->type()));
+                v->set_grad(nullptr);
+            }
         }
     }
 
