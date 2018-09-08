@@ -43,6 +43,8 @@ int64_t EstimateMemoryIncrease(Node* node) {
     return estimated_memory_increase;
 }
 
+// Naivly delay single-input-single-output nodes until the outcome
+// really needed.
 std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
     std::vector<std::vector<Node*>> nodes;
     std::map<Node*, size_t> node_to_index;
@@ -60,23 +62,36 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
 
     for (int i = nodes.size() - 1; i >= 0; --i) {
         if (nodes[i].empty()) continue;
+        if (nodes[i].size() > 1) continue;
         CHECK_EQ(1, nodes[i].size());
         Node* node = nodes[i][0];
         for (Value* input : node->inputs()) {
+            int to = i;
             while (Node* prev = input->producer()) {
-                if (input->users().size() > 1)
-                    break;
                 if (prev->inputs().size() != 1 || prev->outputs().size() != 1)
                     break;
                 int64_t memory_increase = EstimateMemoryIncrease(prev);
-                if (memory_increase > 0)
+                if (memory_increase < 0)
                     break;
+                for (Node* user : input->users()) {
+                    auto found = node_to_index.find(user);
+                    if (found == node_to_index.end()) continue;
+                    to = std::min<int>(to, found->second);
+                }
 
                 int index = get_index(prev);
-                // std::cerr << "Delayed: from " << index << " to " << i << " " <<  prev->DebugString() << std::endl;
+                // Already delayed.
+                if (nodes[index].empty()) break;
+                // TODO(hamaji): For example, this can happen when
+                // `node` has two inputs and the second input depends
+                // on the first input. In this case, the first input
+                // is moved to just before the second input, but we
+                // want to delay both of them as much as possible.
+                if (nodes[index].size() > 1 || nodes[index][0] != prev) break;
+                std::cerr << "Delayed: from " << index << " to " << to << " " <<  prev->DebugString() << std::endl;
                 CHECK_EQ(1, nodes[index].size());
                 nodes[index].clear();
-                nodes[i].push_back(prev);
+                nodes[to].push_back(prev);
                 input = prev->inputs()[0];
             }
         }

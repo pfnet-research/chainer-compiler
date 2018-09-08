@@ -62,7 +62,7 @@ int GetDistance(const Node* node, const std::map<const Node*, int>& distances) {
 
 void GetReluRecompute(Graph* graph) {
     const std::map<const Node*, int> distances = GetDistancesOfNodes(*graph);
-    constexpr int kSoon = 3;
+    constexpr int kSoon = 15;
 
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
         if (node->op_type() != Node::kRelu) continue;
@@ -86,9 +86,11 @@ void GetReluRecompute(Graph* graph) {
         }
         if (far_users.empty() || !num_near_users) continue;
 
-        // std::cerr << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB" << " " << node->DebugString() << std::endl;
+        std::cerr << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB" << " " << node->DebugString() << std::endl;
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());
+        // TODO(hamaji): This should be done by shape inference.
+        recomputed->set_type(new Type(node->inputs()[0]->type()));
         for (const auto& p : far_users) {
             Node* user = p.second;
             relu_output->DetachUser(user);
