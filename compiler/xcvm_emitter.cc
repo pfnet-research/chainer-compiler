@@ -139,6 +139,7 @@ private:
     } while (0)
 
         EMIT_SIMPLE_UNARY_OP(Node::kNeg, Neg);
+        EMIT_SIMPLE_UNARY_OP(Node::kReciprocal, Reciprocal);
         EMIT_SIMPLE_UNARY_OP(Node::kExp, Exp);
         EMIT_SIMPLE_UNARY_OP(Node::kLog, Log);
         EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);

@@ -54,6 +54,7 @@ class NodeDef(object):
 
 NodeDef('Identity', 1, 1)
 NodeDef('Neg', 1, 1)
+NodeDef('Reciprocal', 1, 1)
 NodeDef('Exp', 1, 1)
 NodeDef('Log', 1, 1)
 NodeDef('Sqrt', 1, 1)

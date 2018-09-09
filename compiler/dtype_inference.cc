@@ -74,6 +74,7 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kReciprocal:
         case Node::kExp:
         case Node::kTanh:
         case Node::kLog:

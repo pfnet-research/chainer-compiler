@@ -64,6 +64,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_neg'),
     TestCase(NODE_TEST, 'test_neg_example'),
+    TestCase(NODE_TEST, 'test_reciprocal'),
+    TestCase(NODE_TEST, 'test_reciprocal_example'),
     TestCase(NODE_TEST, 'test_exp'),
     TestCase(NODE_TEST, 'test_exp_example'),
     TestCase(NODE_TEST, 'test_log'),

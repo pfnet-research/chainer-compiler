@@ -116,6 +116,10 @@ chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
+chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+    return chainerx::Reciprocal(a);
+}
+
 chainerx::Array ExpOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Exp(a);
 }
