@@ -102,6 +102,7 @@ void InferDtype(Node* node) {
         case Node::kDiv:
         case Node::kPow:
         case Node::kSum:
+        case Node::kMean:
         case Node::kMax:
         case Node::kMin:
         case Node::kConcat:

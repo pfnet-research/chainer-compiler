@@ -87,6 +87,7 @@ NodeDef('Split', 1, None, axis=0, split=[int])
 NodeDef('Transpose', 1, 1, perm=[int])
 
 NodeDef('Sum', None, 1)
+NodeDef('Mean', None, 1)
 NodeDef('Max', None, 1)
 NodeDef('Min', None, 1)
 NodeDef('Clip', 1, 1, max=float('inf'), min=float('-inf'))

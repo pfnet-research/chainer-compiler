@@ -23,6 +23,15 @@ bool ReplaceSum(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceMean(Graph* graph, Node* node) {
+    CHECK_EQ(1UL, node->outputs().size());
+    GraphBuilder gb(graph, "SimplifyMean", node->outputs()[0]);
+    Value* v = gb.Op(Node::kSum, node->inputs());
+    Value* divisor = gb.Const(Type(node->outputs()[0]->type().dtype(), {}), {static_cast<int64_t>(node->inputs().size())});
+    gb.Op(Node::kDiv, {v, divisor}, node->outputs()[0]);
+    return true;
+}
+
 bool ReplaceLess(Graph* graph, Node* node) {
     CHECK_EQ(2UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
@@ -304,6 +313,7 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kGlobalMaxPool, ReplaceGlobalMaxPool).second);
     CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
     CHECK(simplifiers.emplace(Node::kFlatten, ReplaceFlatten).second);
+    CHECK(simplifiers.emplace(Node::kMean, ReplaceMean).second);
     // if (!is_in_loop) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
