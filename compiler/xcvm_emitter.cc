@@ -409,13 +409,13 @@ private:
             std::vector<int64_t> v;
             for (int64_t i = 0; i < node.value()->NumElements(); ++i) {
                 if (dtype.SizeOf() == 1) {
-                    v.push_back(node.value()->Get<int8_t>(0));
+                    v.push_back(node.value()->Get<int8_t>(i));
                 } else if (dtype.SizeOf() == 2) {
-                    v.push_back(node.value()->Get<int16_t>(0));
+                    v.push_back(node.value()->Get<int16_t>(i));
                 } else if (dtype.SizeOf() == 4) {
-                    v.push_back(node.value()->Get<int32_t>(0));
+                    v.push_back(node.value()->Get<int32_t>(i));
                 } else if (dtype.SizeOf() == 8) {
-                    v.push_back(node.value()->Get<int64_t>(0));
+                    v.push_back(node.value()->Get<int64_t>(i));
                 } else {
                     CHECK(false) << "Unknown type: " << dtype;
                 }
