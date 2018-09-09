@@ -255,12 +255,12 @@ bool ReplaceScan(Graph* graph, Node* scan) {
     return true;
 }
 
-void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const char* name) {
+void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const std::string& name) {
     CHECK_EQ(1, node->inputs().size()) << name;
     CHECK_LT(0, node->inputs()[0]->type().GetNBytes()) << "The input shape of " << name << " must be known";
     CHECK_LT(2, node->inputs()[0]->type().dims().size()) << "The input of " << name << " must have at least 3 dimensions";
     std::vector<int> kernel_shape(node->inputs()[0]->type().dims().begin() + 2, node->inputs()[0]->type().dims().end());
-    GraphBuilder gb(graph, "SimplifyGlobalMaxPool", node->outputs()[0]);
+    GraphBuilder gb(graph, "Simplify" + name, node->outputs()[0]);
     gb.Op(new_op, node->inputs(), node->outputs()[0])->producer()->set_kernel_shape(kernel_shape);
 }
 
@@ -271,6 +271,22 @@ bool ReplaceGlobalMaxPool(Graph* graph, Node* node) {
 
 bool ReplaceGlobalAveragePool(Graph* graph, Node* node) {
     ReplaceGlobalPool(graph, node, Node::kAveragePool, "GlobalAveragePool");
+    return true;
+}
+
+bool ReplaceFlatten(Graph* graph, Node* node) {
+    CHECK_EQ(1, node->inputs().size());
+    const Type& type = node->inputs()[0]->type();
+    CHECK_LT(0, type.GetNBytes()) << "The input shape of Flatten must be known";
+    CHECK_LT(1, type.dims().size()) << "The input of Flatten must have at least 2 dimensions";
+    GraphBuilder gb(graph, "SimplifyFlatten", node->outputs()[0]);
+    int64_t d0 = 1;
+    int64_t d1 = 1;
+    for (size_t i = 0; i < type.dims().size(); ++i) {
+        (i < node->axis() ? d0 : d1) *= type.dims()[i];
+    }
+    Value* shape = gb.Const(Type(Dtype::kInt64, {2}), {d0, d1});
+    gb.Op(Node::kReshape, {node->inputs()[0], shape}, node->outputs()[0]);
     return true;
 }
 
@@ -287,6 +303,7 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
     CHECK(simplifiers.emplace(Node::kGlobalMaxPool, ReplaceGlobalMaxPool).second);
     CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
+    CHECK(simplifiers.emplace(Node::kFlatten, ReplaceFlatten).second);
     // if (!is_in_loop) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);

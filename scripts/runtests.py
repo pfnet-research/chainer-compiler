@@ -151,6 +151,11 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
     TestCase(NODE_TEST, 'test_unsqueeze'),
+    TestCase(NODE_TEST, 'test_flatten_axis0'),
+    TestCase(NODE_TEST, 'test_flatten_axis1'),
+    TestCase(NODE_TEST, 'test_flatten_axis2'),
+    TestCase(NODE_TEST, 'test_flatten_axis3'),
+    TestCase(NODE_TEST, 'test_flatten_default_axis'),
 
     TestCase(NODE_TEST, 'test_slice'),
     TestCase(NODE_TEST, 'test_slice_default_axes'),

@@ -60,6 +60,7 @@ void InferDtype(Node* node) {
         case Node::kRelu:
         case Node::kSqueeze:
         case Node::kUnsqueeze:
+        case Node::kFlatten:
         case Node::kSlice:
         case Node::kReduceSum:
         case Node::kReduceSumSquare:
