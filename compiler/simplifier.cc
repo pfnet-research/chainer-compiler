@@ -255,6 +255,25 @@ bool ReplaceScan(Graph* graph, Node* scan) {
     return true;
 }
 
+void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const char* name) {
+    CHECK_EQ(1, node->inputs().size()) << name;
+    CHECK_LT(0, node->inputs()[0]->type().GetNBytes()) << "The input shape of " << name << " must be known";
+    CHECK_LT(2, node->inputs()[0]->type().dims().size()) << "The input of " << name << " must have at least 3 dimensions";
+    std::vector<int> kernel_shape(node->inputs()[0]->type().dims().begin() + 2, node->inputs()[0]->type().dims().end());
+    GraphBuilder gb(graph, "SimplifyGlobalMaxPool", node->outputs()[0]);
+    gb.Op(new_op, node->inputs(), node->outputs()[0])->producer()->set_kernel_shape(kernel_shape);
+}
+
+bool ReplaceGlobalMaxPool(Graph* graph, Node* node) {
+    ReplaceGlobalPool(graph, node, Node::kMaxPool, "GlobalMaxPool");
+    return true;
+}
+
+bool ReplaceGlobalAveragePool(Graph* graph, Node* node) {
+    ReplaceGlobalPool(graph, node, Node::kAveragePool, "GlobalAveragePool");
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph, bool is_in_loop) {
@@ -266,6 +285,8 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
     CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
+    CHECK(simplifiers.emplace(Node::kGlobalMaxPool, ReplaceGlobalMaxPool).second);
+    CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
     // if (!is_in_loop) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);

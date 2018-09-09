@@ -67,6 +67,7 @@ void InferDtype(Node* node) {
         case Node::kReduceMin:
         case Node::kClip:
         case Node::kMaxPool:
+        case Node::kGlobalMaxPool:
         case Node::kTranspose: {
             set(0, in0);
             break;
@@ -83,7 +84,8 @@ void InferDtype(Node* node) {
         case Node::kLRN:
         case Node::kSoftmax:
         case Node::kLogSoftmax:
-        case Node::kAveragePool: {
+        case Node::kAveragePool:
+        case Node::kGlobalAveragePool: {
             set(0, in0.IsFloat() ? in0 : default_float);
             break;
         }

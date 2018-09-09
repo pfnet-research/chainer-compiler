@@ -129,6 +129,8 @@ pool_attrs = attr_sets(auto_pad='NOTSET',
                        strides=[int])
 NodeDef('MaxPool', 1, (1, 2), **pool_attrs)
 NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
+NodeDef('GlobalMaxPool', 1, 1)
+NodeDef('GlobalAveragePool', 1, 1)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)

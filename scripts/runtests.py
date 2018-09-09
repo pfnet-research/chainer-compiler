@@ -130,6 +130,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_averagepool_2d_strides'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads_count_include_pad'),
+    TestCase(NODE_TEST, 'test_globalmaxpool'),
+    TestCase(NODE_TEST, 'test_globalmaxpool_precomputed'),
+    TestCase(NODE_TEST, 'test_globalaveragepool'),
+    TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
 
     TestCase(NODE_TEST, 'test_shape'),
     TestCase(NODE_TEST, 'test_shape_example'),
