@@ -307,9 +307,22 @@ chainerx::Array UnsqueezeOp::RunImpl(XCVMState* st, const chainerx::Array& data)
 chainerx::Array SliceOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
     for (size_t i = 0; i < axes.size(); ++i) {
-        int axis = axes[i];
-        int start = starts[i];
-        int end = ends[i];
+        int64_t axis = axes[i];
+        int64_t start = starts[i];
+        int64_t end = ends[i];
+        indices[axis] = chainerx::Slice(start, end, 1);
+    }
+    return data.At(indices);
+}
+
+chainerx::Array DynamicSliceOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& starts, const chainerx::Array& ends, const nonstd::optional<chainerx::Array>& axes) {
+    CHECK_EQ(1, starts.ndim());
+    CHECK_EQ(1, ends.ndim());
+    std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
+    for (int64_t i = 0; i < starts.shape()[0]; ++i) {
+        int64_t axis = axes.has_value() ? int64_t(chainerx::AsScalar(axes->At({i}))) : i;
+        int64_t start = int64_t(chainerx::AsScalar(starts.At({i})));
+        int64_t end = int64_t(chainerx::AsScalar(ends.At({i})));
         indices[axis] = chainerx::Slice(start, end, 1);
     }
     return data.At(indices);

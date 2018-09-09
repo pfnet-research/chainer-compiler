@@ -310,6 +310,8 @@ private:
                 CHECK_EQ(node.starts().size(), axes.size());
             }
             EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
+        } else if (node.op_type() == Node::kDynamicSlice) {
+            EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3));
         } else if (node.op_type() == Node::kGather) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
