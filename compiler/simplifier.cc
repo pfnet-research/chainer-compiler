@@ -299,6 +299,29 @@ bool ReplaceFlatten(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceReduceL2(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyReduceL2", node->outputs()[0]);
+    Value* v = gb.Op(Node::kReduceSumSquare, node->inputs());
+    v->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
+    gb.Op(Node::kSqrt, {v}, node->outputs()[0]);
+    return true;
+}
+
+bool ReplaceReduceLogSum(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyReduceLogSum", node->outputs()[0]);
+    Value* v = gb.Op(Node::kReduceSum, node->inputs());
+    v->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
+    gb.Op(Node::kLog, {v}, node->outputs()[0]);
+    return true;
+}
+
+bool ReplaceReduceLogSumExp(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyReduceLogSumExp", node->outputs()[0]);
+    Value* v = gb.Op(Node::kExp, node->inputs());
+    gb.Op(Node::kReduceLogSum, {v}, node->outputs()[0])->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());;
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph, bool is_in_loop) {
@@ -314,6 +337,9 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
     CHECK(simplifiers.emplace(Node::kFlatten, ReplaceFlatten).second);
     CHECK(simplifiers.emplace(Node::kMean, ReplaceMean).second);
+    CHECK(simplifiers.emplace(Node::kReduceL2, ReplaceReduceL2).second);
+    CHECK(simplifiers.emplace(Node::kReduceLogSum, ReplaceReduceLogSum).second);
+    CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
     // if (!is_in_loop) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);

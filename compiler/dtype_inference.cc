@@ -65,6 +65,9 @@ void InferDtype(Node* node) {
         case Node::kDynamicSlice:
         case Node::kReduceSum:
         case Node::kReduceSumSquare:
+        case Node::kReduceL2:
+        case Node::kReduceLogSum:
+        case Node::kReduceLogSumExp:
         case Node::kReduceMax:
         case Node::kReduceMin:
         case Node::kClip:
