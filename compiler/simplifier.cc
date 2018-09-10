@@ -311,6 +311,14 @@ bool ReplaceFlatten(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceReduceL1(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyReduceL1", node->outputs()[0]);
+    Value* v0 = gb.Op(Node::kAbs, node->inputs());
+    Value* v1 = gb.Op(Node::kReduceSum, {v0}, node->outputs()[0]);
+    v1->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
+    return true;
+}
+
 bool ReplaceReduceL2(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyReduceL2", node->outputs()[0]);
     Value* v = gb.Op(Node::kReduceSumSquare, node->inputs());
@@ -350,6 +358,7 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
     CHECK(simplifiers.emplace(Node::kFlatten, ReplaceFlatten).second);
     CHECK(simplifiers.emplace(Node::kMean, ReplaceMean).second);
+    CHECK(simplifiers.emplace(Node::kReduceL1, ReplaceReduceL1).second);
     CHECK(simplifiers.emplace(Node::kReduceL2, ReplaceReduceL2).second);
     CHECK(simplifiers.emplace(Node::kReduceLogSum, ReplaceReduceLogSum).second);
     CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
