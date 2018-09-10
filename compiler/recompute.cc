@@ -6,6 +6,7 @@
 
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
+#include <compiler/log.h>
 #include <compiler/node.h>
 
 namespace oniku {
@@ -85,7 +86,7 @@ void GetReluRecompute(Graph* graph, int threshold) {
         }
         if (far_users.empty() || !num_near_users) continue;
 
-        // std::cerr << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB" << " " << node->DebugString() << std::endl;
+        LOG() << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB" << " " << node->DebugString() << std::endl;
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());
         // TODO(hamaji): This should be done by shape inference.

@@ -2,6 +2,9 @@
 
 namespace oniku {
 
+// Enables logging.
+extern bool g_compiler_log;
+
 // The compiler will accept some kinds of invalid operations to
 // support older ONNX, etc.
 extern bool g_permissive;

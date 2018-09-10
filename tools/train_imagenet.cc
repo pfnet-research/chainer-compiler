@@ -29,6 +29,7 @@
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <tools/cmdline.h>
+#include <tools/compiler_flags.h>
 #include <tools/util.h>
 
 namespace oniku {
@@ -66,7 +67,11 @@ void RunMain(int argc, char** argv) {
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
+    AddCompilerFlags(&args);
     args.parse_check(argc, argv);
+    ApplyCompilerFlags(args);
+    g_compiler_log |= args.exist("trace") || args.exist("verbose");
+
     if (args.rest().size() != 3) {
         std::cerr << args.usage() << std::endl;
         QFAIL() << "Usage: " << argv[0] << " <onnx> <train.txt> <mean.bin>";

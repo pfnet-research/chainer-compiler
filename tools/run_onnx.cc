@@ -27,6 +27,7 @@
 #include <common/protoutil.h>
 #include <common/strutil.h>
 #include <compiler/graph.h>
+#include <compiler/flags.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/tensor.h>
@@ -152,6 +153,7 @@ void RunMain(int argc, char** argv) {
     AddCompilerFlags(&args);
     args.parse_check(argc, argv);
     ApplyCompilerFlags(args);
+    g_compiler_log |= args.exist("trace") || args.exist("verbose");
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
