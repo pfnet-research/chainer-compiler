@@ -44,7 +44,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
 void RunLoopBodyPasses(Graph* graph) {
     // InferAllDtypeAndShape(graph);
-    Simplify(graph, true /* is_in_loop */);
+    Simplify(graph);
     // if (gen_backprop) AddGradientNodes(graph);
     ScheduleComputation(*graph);
     RunPassesInLoops(graph);

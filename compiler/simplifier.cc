@@ -322,7 +322,7 @@ bool ReplaceReduceLogSumExp(Graph* graph, Node* node) {
 
 }  // namespace
 
-void Simplify(Graph* graph, bool is_in_loop) {
+void Simplify(Graph* graph) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);

@@ -4,6 +4,6 @@ namespace oniku {
 
 class Graph;
 
-void Simplify(Graph* graph, bool is_in_loop = false);
+void Simplify(Graph* graph);
 
 }  // namespace oniku
