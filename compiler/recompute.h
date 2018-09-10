@@ -4,6 +4,6 @@ namespace oniku {
 
 class Graph;
 
-void GetReluRecompute(Graph* graph);
+void GetReluRecompute(Graph* graph, int threshold);
 
 }  // namespace oniku

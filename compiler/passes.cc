@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <compiler/flags.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -36,7 +37,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     InferAllDtypeAndShape(graph);
     Simplify(graph);
     if (gen_backprop) AddGradientNodes(graph);
-    // GetReluRecompute(graph);
+    if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
     ScheduleComputation(*graph);
     RunPassesInLoops(graph);
     CollectGarbageNode(graph);
