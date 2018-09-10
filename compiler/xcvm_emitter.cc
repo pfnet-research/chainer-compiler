@@ -144,6 +144,7 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kLog, Log);
         EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);
         EMIT_SIMPLE_UNARY_OP(Node::kTanh, Tanh);
+        EMIT_SIMPLE_UNARY_OP(Node::kAbs, Abs);
         EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
         EMIT_SIMPLE_UNARY_OP(Node::kFloor, Floor);
         EMIT_SIMPLE_UNARY_OP(Node::kCeil, Ceil);
@@ -173,6 +174,18 @@ private:
             }
             // TODO(hamaji): Dropout does nothing for now.
             EMIT(Identity, out(0), in(0));
+        } else if (node.op_type() == Node::kSelu) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_LE(1UL, node.outputs().size());
+            EMIT(Selu, out(0), in(0), node.alpha(), node.gamma());
+        } else if (node.op_type() == Node::kLeakyRelu) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_LE(1UL, node.outputs().size());
+            EMIT(LeakyRelu, out(0), in(0), node.alpha());
+        } else if (node.op_type() == Node::kElu) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_LE(1UL, node.outputs().size());
+            EMIT(Elu, out(0), in(0), node.alpha());
         } else if (node.op_type() == Node::kConv) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());

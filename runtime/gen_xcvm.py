@@ -145,6 +145,7 @@ XC_OPS = [
     ('Exp', [Array('x')], ['y']),
     ('Log', [Array('x')], ['y']),
     ('Sqrt', [Array('x')], ['y']),
+    ('Abs', [Array('x')], ['y']),
     ('Tanh', [Array('x')], ['y']),
     ('Sigmoid', [Array('x')], ['y']),
 
@@ -174,6 +175,9 @@ XC_OPS = [
     ('Identity', [Array('x')], ['y']),
     ('Relu', [Array('x')], ['y']),
     ('ReluGrad', [Array('x'), Array('gy')], ['gx']),
+    ('Selu', [Array('x'), Float('alpha'), Float('gamma')], ['y']),
+    ('LeakyRelu', [Array('x'), Float('alpha')], ['y']),
+    ('Elu', [Array('x'), Float('alpha')], ['y']),
     ('Floor', [Array('x')], ['y']),
     ('Ceil', [Array('x')], ['y']),
     ('Shape', [Array('data')], ['shape']),

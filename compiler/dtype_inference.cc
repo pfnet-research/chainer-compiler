@@ -57,6 +57,7 @@ void InferDtype(Node* node) {
     switch (node->op_type()) {
         case Node::kIdentity:
         case Node::kNeg:
+        case Node::kAbs:
         case Node::kRelu:
         case Node::kFloor:
         case Node::kCeil:
@@ -87,6 +88,9 @@ void InferDtype(Node* node) {
         case Node::kLog:
         case Node::kSqrt:
         case Node::kSigmoid:
+        case Node::kSelu:
+        case Node::kLeakyRelu:
+        case Node::kElu:
         case Node::kReduceMean:
         case Node::kHardmax:
         case Node::kDropout:
