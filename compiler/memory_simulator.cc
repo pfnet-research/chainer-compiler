@@ -15,8 +15,9 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
     int64_t mem = 0;
 
     auto alloc = [&usage, &mem](int64_t increase) {
+        usage.num_values++;
         if (increase < 0) {
-            usage.incorrect = true;
+            usage.num_unknowns++;
             return;
         }
         mem += increase;

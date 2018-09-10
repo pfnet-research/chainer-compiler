@@ -222,8 +222,8 @@ void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
 
     if (g_compiler_log) {
         SimulatedMemoryUsage usage = SimulateMemoryUsage(graph);
-        if (usage.incorrect) {
-            WARN_ONCE("Incomplete memory simulation due to unknown shapes");
+        if (usage.num_unknowns) {
+            WARN_ONCE(StrCat("Incomplete memory simulation due to unknown shapes (", usage.num_unknowns, "/", usage.num_values, ")"));
         }
         int64_t param_mb = usage.param / 1000 / 1000;
         int64_t peak_mb = usage.peak / 1000 / 1000;

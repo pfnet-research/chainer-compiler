@@ -10,7 +10,8 @@ struct SimulatedMemoryUsage {
     int64_t param;
     int64_t peak;
     int64_t all;
-    bool incorrect;
+    int num_values;
+    int num_unknowns;
 };
 
 SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph);
