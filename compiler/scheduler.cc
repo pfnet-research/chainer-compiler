@@ -193,6 +193,33 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
     return nodes;
 }
 
+void CheckSanity(const Graph& graph, const std::vector<Node*>& nodes) {
+    std::set<const Value*> values;
+    for (const Value* value : graph.input_values()) {
+        values.emplace(value);
+    }
+    for (const Node* node : nodes) {
+        for (const Value* output : node->outputs()) values.emplace(output);
+    }
+
+    std::map<Node*, int> input_counts = graph.GetUsedCounts();
+    for (Node* node : nodes) {
+        input_counts.erase(node);
+    }
+    if (!input_counts.empty()) {
+        for (auto p : input_counts) {
+            Node* node = p.first;
+            std::cerr << "Failed to schedule: " << node->DebugString() << std::endl;
+            for (Value* value : node->inputs()) {
+                if (!values.count(value)) {
+                    std::cerr << " " << value->name() << " cannot be ready\n";
+                }
+            }
+        }
+        CHECK(false);
+    }
+}
+
 }  // namespace
 
 void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
@@ -206,15 +233,7 @@ void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
             break;
     }
 
-    // Sanity check.
-    std::set<const Value*> output_set;
-    for (const Value* value : graph.output_values()) {
-        output_set.insert(value);
-    }
-    for (const Node* node : nodes) {
-        for (const Value* output : node->outputs()) output_set.erase(output);
-    }
-    CHECK(output_set.empty()) << "Cannot output: " << Join(MapToString(output_set, [](const Value* value) { return value->name(); }));
+    CheckSanity(graph, nodes);
 
     for (size_t i = 0; i < nodes.size(); ++i) {
         nodes[i]->set_onikux_order(i + 1);
