@@ -13,7 +13,7 @@ import code
 class Link_Linear(object):
     def __init__(self, ch, parentname):
         # code.InteractiveConsole({'ch': ch}).interact()
-        self.name = parentname + '_' + ch.name
+        self.name = ''
 
         if ch.b is None:
             self.n_out = 'output_size'
@@ -68,7 +68,7 @@ class Link_Linear(object):
 
 class Link_Convolution2D(object):
     def __init__(self, ch, parentname):
-        self.name = parentname + '_' + ch.name
+        self.name = ''
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.ksize = size2d(ch.ksize)
@@ -112,7 +112,7 @@ class Link_Convolution2D(object):
 
 class Link_BatchNormalization(object):
     def __init__(self, ch, parentname):
-        self.name = parentname + '_' + ch.name
+        self.name = ''
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.n_out = ch.beta.shape[0]
@@ -151,7 +151,7 @@ class Link_BatchNormalization(object):
 
 class Link_NstepLSTM(object):
     def __init__(self, ch, parentname):
-        self.name = parentname + '_' + ch.name
+        self.name = ''
         # code.InteractiveConsole({'ch': ch}).interact()
 
         # cs = list(ch.children())
@@ -260,7 +260,7 @@ class Link_NstepLSTM(object):
 
 class Link_EmbedID(object):
     def __init__(self, ch, parentname):
-        self.name = parentname + '_' + ch.name
+        self.name = ''
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.n_vocab = ch.W.shape[0]
@@ -287,7 +287,7 @@ class Link_EmbedID(object):
 
 class Link_StatelessLSTM(object):
     def __init__(self, ch, parentname):
-        self.name = parentname + '_' + ch.name
+        self.name = ''
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.upward = Link_Linear(ch.upward, self.name)

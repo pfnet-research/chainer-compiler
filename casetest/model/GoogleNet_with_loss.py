@@ -111,7 +111,7 @@ class GoogLeNet(chainer.Chain):
 
     def forward(self, x, t):
         h = F.relu(self.conv1(x))
-        return h
+        # return h
         h = F.local_response_normalization(
             F.max_pooling_2d(h, 3, stride=2), n=5)
         h = F.relu(self.conv2_reduce(h))
@@ -129,7 +129,7 @@ class GoogLeNet(chainer.Chain):
         l = F.relu(self.loss1_fc1(l))
         l = self.loss1_fc2(l)
         loss1 = F.softmax_cross_entropy(l, t)
-        return loss1
+        # return loss1
         h = self.inc4b(h)
         h = self.inc4c(h)
         h = self.inc4d(h)

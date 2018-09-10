@@ -25,46 +25,44 @@ import builtins
 import six
 
 
-def initLinks(model, parentname):
-    links = {}
-
-    for na, ch in model.__dict__.items():
-        # print(na,ch,issubclass(ch.__class__,chainer.Chain),ch.__class__.__module__)
-        # code.InteractiveConsole({'na': na,'ch': ch}).interact()
-        if issubclass(ch.__class__, chainer.link.Link):
-            if ch.__class__.__module__[:14] == 'chainer.links.':
-                for lk, cl in Link2NodeClass:
-                    if isinstance(ch, lk):
-                        links[na] = cl(ch, parentname)
-                        break
-                else:
-                    print('unknown chainer link')
-                    code.InteractiveConsole({'lk': ch}).interact()
-                    raise Exception('unknown link', ch)
-            else:
-                # User Defined link
-                links[na] = User_Defined_Link(ch, parentname)
-    return links
 
 
-class Attr(object):
-    def __init__(self, d, ch=None):
-        self.dic = d
-        self.ch = ch
+id2name_list = []
+def init_id2name(ch):
+    global id2name_list
+    id2name_list = []
+    for k,v in ch.namedlinks():
+        print('add link',k,v,id(v))
+        id2name_list.append((id(v),k.replace('/','_')))
+    #exit(0)
 
-    def update(self, d):
-        self.dic.update(d)
+def id2name(nid):
+    print('nid',nid)
+    for k,v in id2name_list:
+        if k == nid:
+            return v
+    raise Exception("Not Found ID ",nid)
 
-    def get_attr(self, k):
-        if k in self.dic.keys():
-            return self.dic[k]
-        elif (self.ch is not None) and (k in dir(self.ch)) and (callable(getattr(self.ch, k))):
-            return Func(getattr(self.ch, k))
+def convert_link(ch,env):
+    res = None
+    if ch.__class__.__module__[:14] == 'chainer.links.':
+        for lk, cl in Link2NodeClass:
+            if isinstance(ch, lk):
+                res = cl(ch,'')
+                break
         else:
-            raise Exception(self.ch, 'has no attr ', k)
+            print('unknown chainer link')
+            code.InteractiveConsole({'lk': ch}).interact()
+            raise Exception('unknown link', ch)
+    else:
+        res = User_Defined_Link(ch)
+    
+    ts = res.init_tensors()
+    if len(ts) != 0:
+        pathname = id2name(id(ch))
+        env.add_init(ts,pathname)
+    return res
 
-    def set_attr(self, k, v):
-        self.dic[k] = v
 
 
 class Function_base(object):
@@ -95,6 +93,7 @@ class Function_base(object):
 
 class User_Defined_Function(Function_base):
     def __init__(self, func):
+        self.func = func
         src = clip_head(inspect.getsource(func))
         dprint(src)
         self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
@@ -103,111 +102,56 @@ class User_Defined_Function(Function_base):
     def call(self, args, kwargs, env):
         loenv = env.localenv()
         loenv.links = {}
-        loenv.module = env.module
+        loenv.module = sys.modules[self.func.__module__]
         return self.stub_call(args, kwargs, loenv)
 
 
 class User_Defined_Func_In_Link(Function_base):
-    def __init__(self, attrs, links, module, ast, funname):
-        self.attrs = attrs
-        self.links = links
-        self.module = module
-        self.ast = ast
-
-        # for debuging
-        self.funname = funname
+    def __init__(self, ch, fn):
+        self.ch = ch
+        src = clip_head(inspect.getsource(fn))
+        dprint(src)
+        self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
 
     def call(self, args, kwargs, env):
-        dprint('calling', self.funname)
         loenv = env.localenv()
-        loenv.links = self.links
-        loenv.module = self.module
-        args = [self.attrs] + args
+        loenv.module = sys.modules[self.ch.__module__]
+        args = [self.ch] + args
         return self.stub_call(args, kwargs, loenv)
 
-
 class User_Defined_Link(object):
-    def __init__(self, ch, parentname):
-        self.name = parentname + ('' if ch.name is None else '_' + ch.name)
-        # print('UserDefined',ch)
-        # code.InteractiveConsole({'ch': ch}).interact()
-
-        self.attrs = Attr({}, ch)
-        self.links = initLinks(ch, self.name)
-        self.module = sys.modules[ch.__module__]
-
-        src = clip_head(inspect.getsource(ch.__class__))
+    def __init__(self, ch):
+        src = clip_head(inspect.getsource(ch.forward))
         dprint(src)
+        self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
 
-        ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
-        funcs = {}
-        for func in ast_list:
-            if not isinstance(func, gast.gast.FunctionDef):
-                continue
-
-            if func.name == 'forward':
-                # このへんもkwargsの扱いとかどうにかしないと
-                self.forward_arglen = len(func.args.args)-1
-
-            funcs[func.name] = User_Defined_Func_In_Link(
-                self.attrs, self.links, self.module, func, self.name + "#" + ch.__class__.__name__ + "@" + func.name)
-
-        self.attrs.update(vars(ch))
-        self.attrs.update(self.links)
-        self.attrs.update({
-            'xp': Attr(xp_attrs,'xp'),
-        })
-        self.attrs.update(funcs)
-        self.get_attr = self.attrs.get_attr
-
-        self.call = self.get_attr('forward').call
+        self.call = User_Defined_Func_In_Link(ch,ch.forward).call 
+         
+        # 以下、 最初の外からのためのやつ
+        # code.InteractiveConsole({'v': self.ast}).interact()
+        self.forward_arglen = len(self.ast.args.args)-1
 
     def init_tensors(self):
-        res = []
-        for l in self.links.values():
-            res += l.init_tensors()
-        return res
+        return []
 
 
 class User_Defined_Class(object):
     def __init__(self, classtype):
-        self.attrs = Attr({})
-
-        src = clip_head(inspect.getsource(classtype))
-        dprint(src)
-
-        ast_list = gast.ast_to_gast(ast.parse(src)).body[0].body
-        self.module = sys.modules[classtype.__module__]
-
-        funcs = {}
-        for func in ast_list:
-            if not isinstance(func, gast.gast.FunctionDef):
-                continue
-
-            funcs[func.name] = User_Defined_Func_In_Link(
-                self.attrs, {}, self.module, func, classtype.__name__ + "@" + func.name)
-
-        self.attrs.update(funcs)
-
-        if issubclass(classtype, chainer.FunctionNode):
-            def applyfunc(args, kwargs, env):
-                # print('apply arg',args)
-                return self.get_attr('forward').call(args, kwargs, env)
-
-            self.attrs.update({
-                'apply': Func(applyfunc),
-                # TODO(satos) これbackward側に何か伝える必要がありそう
-                'retain_inputs': Func(lambda _, __, ___: None),
-            })
-
-        self.get_attr = self.attrs.get_attr
-
-        self.call = self.get_attr('forward').call
-
+        # classtypeのmethod は持ってるが init は呼ばれてない、というobjectが必要になる。
+        # ので、あえて parent のinit を呼ばない継承をする
+        class Tmp(classtype):
+            def __init__(_):
+                pass
+        
+        ch = Tmp()
+       
+        # code.InteractiveConsole({'v': classtype.__init__}).interact()
         def f(args, kwargs, env):
-            self.get_attr('__init__').call(args, kwargs, env)
-            return self
-
+            
+            if not isinstance(classtype.__init__,type(str.__init__)): # slot wrapper というものらしい
+                User_Defined_Func_In_Link(ch,classtype.__init__).call(args,kwargs,env)
+            return ch
+         
         self.init_wrapper = Func(f)
 
 
@@ -215,17 +159,24 @@ class Env(object):
     def __init__(self):
         self.vars = {}
         self.nodes = []
+        self.init_tensors = []
 
     def localenv(self):
         res = Env()
         res.nodes = self.nodes  # こっちはglobalに共通でないといけない
+        res.init_tensors = self.init_tensors #こっちも共通
         return res
 
     def addnode(self, *args, **kwargs):
         self.nodes.append(
             helper.make_node(*args, **kwargs)
         )
-
+    
+    def add_init(self,inits,pathname):
+        for v in inits:
+            # drint('add_init',v,p)
+            v.name = pathname + v.name
+            self.init_tensors.append(v)
 
 import logging
 
@@ -294,7 +245,7 @@ def eval_ast(nast, env):
 
         elif isinstance(tg, gast.Attribute):
             body = eval_ast(tg.value, env)
-            body.set_attr(tg.attr, value)
+            setattr(body, tg.attr, value)
         else:
             raise Exception('invalid assing lvalue', targs[0])
         return None
@@ -316,9 +267,17 @@ def eval_ast(nast, env):
         keywords = dict(map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
 
         # code.InteractiveConsole({'fn': fn}).interact()
+       
+        # chainer.functions の関数とかは、ここでfookをかける。
+        for fr,to in Func2NodeClass:
+            if fr ==  fn:
+                return to().call(args, keywords, env)
 
+        print(fn,fn.__class__)
         if isinstance(fn, types.FunctionType):
             fn = User_Defined_Function(fn)
+        elif isinstance(fn, types.MethodType):
+            fn = User_Defined_Func_In_Link(fn.__self__,fn)
         elif isinstance(fn, types.BuiltinFunctionType):
             fn = builtin_functions[fn.__name__]
         elif fn == range:
@@ -327,7 +286,9 @@ def eval_ast(nast, env):
             # なにがしかのinstanceを作成したはず
             assert fn.__module__ != 'builtins'
             fn = User_Defined_Class(fn).init_wrapper
-
+        elif isinstance(fn,chainer.link.Link):
+            fn = convert_link(fn,env)
+        
         return fn.call(args, keywords, env)
 
     elif isinstance(nast, gast.UnaryOp):
@@ -432,21 +393,8 @@ def eval_ast(nast, env):
 
     elif isinstance(nast, gast.Attribute):
         body = eval_ast(nast.value, env)
-        
-        # TODO(satos) 以下のif文連続を配列にまとめたりしたいですね〜
-        if isinstance(body, chainer.variable.Parameter):
-            if nast.attr == 'shape':
-                return body.shape
-        elif body == chainer.functions:
-            v = getattr(body, nast.attr)
-            for f, c in Func2NodeClass:
-                if v == f:
-                    return c()
-            else:
-                raise Exception('unknown chainer function', nast.attr)
-        elif body == numpy:
-            return np_attrs[nast.attr]
-        elif istensor(body):
+
+        if istensor(body):
             if nast.attr == 'shape':
                 res = new_tensor()
                 env.addnode(
@@ -454,42 +402,9 @@ def eval_ast(nast, env):
                     inputs=[body.name], outputs=[res.name],
                 )
                 return res
-        
-        elif isinstance(body,list):
-            if nast.attr == 'append':
-                #TODO(satos) あとでやる
-                return Func(lambda _,__,___: new_tensor())
+            raise Exception('Unimplemented attribute ', nast.attr ,' for tensor')
+        return getattr(body,nast.attr)
 
-        elif body == chainer.backends.cuda:
-            if nast.attr == 'to_cpu':
-                # TODO(satos) テンソルの位置についてCPUを通ったかどうかを残す
-                return Func(lambda x, _, __: x[0])
-            elif nast.attr == 'get_array_module':
-                # とりあえずnumpyを返していいんでは
-                return Func(lambda ___, _, __: numpy)
-        elif body == six:
-            if nast.attr == 'moves':
-                return six.moves
-        elif body == six.moves:
-            if nast.attr == 'range':
-                return builtin_functions['range']
-        # TODO(satos) どうすんのこれ(とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embed_id.py#L43) のif文を通んないようにする
-        elif body == chainer.utils.type_check:
-            if nast.attr == 'same_types':
-                return Func(lambda _, __, ___: True)
-
-        elif body == chainer:
-            if nast.attr == 'is_debug':
-                # とりあえずfalseでは
-                return Func(lambda ___, _, __: False)
-            elif nast.attr == 'Variable':
-                return Function_Dummy()
-        else:
-            dprint('getattr', body, nast.attr)
-            return body.get_attr(nast.attr)
-        
-        raise Exception('value', body, 'attribute',
-                        nast.attr, 'is not imlemented yet')
 
     elif isinstance(nast, gast.Compare):
         le = eval_ast(nast.left, env)
@@ -684,25 +599,33 @@ def eval_ast(nast, env):
 
 def chainer2onnx(model, forward):
     # return helper.make_graph([],'dummy',[],[])
-
+    
+    init_id2name(model)
     # code.InteractiveConsole({'mo': model}).interact()
-    molk = User_Defined_Link(model, '')
+    molk = User_Defined_Link(model)
 
     input_tensors = []
     for i in range(molk.forward_arglen):  # self 以外
         x = new_tensor(['batch_size%d' % i, 'input_size%d' % i])
         input_tensors.append(x)
-
+    
     env = Env()
-    v = molk.call(input_tensors, [], env)  # keywordsはとりあえず空
+    
+    # forward = molk.forward
+    env.module = sys.modules[model.__module__]
+    # for k,v in zip(map(lambda x: x.id,forward.args.args),[model] + input_tensors):
+    #    env.vars[k] = v
+    
+    v = molk.call(input_tensors,[],env)
 
     dprint('output_tensors', v)
     if isinstance(v, tuple):
         output_tensors = list(v)  # ばらしてみる
     else:
         output_tensors = [v]  # とりあえず1tensor
-
-    input_tensors += molk.init_tensors()
+    
+    print('all_inits',env.init_tensors)
+    input_tensors += env.init_tensors
 
     # print(env.nodes)
     # print(input_tensors)

@@ -156,7 +156,6 @@ class Function_PadSequence(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
 
-        # TODO(satos) OnikuにSequenceが実装されたらそれに対応するように直す
         v = args[0]
 
         res = new_tensor()
