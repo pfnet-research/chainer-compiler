@@ -46,7 +46,7 @@ bool ExpectsOnehot(const Model& model) {
     for (const Value* input : model.graph().input_values()) {
         CHECK(input_names.emplace(input->name()).second);
     }
-    return (input_names.count("input") && input_names.count("onehot") && input_names.count("batch_size"));
+    return (input_names.count("Input_0") && input_names.count("Input_1") && input_names.count("Input_2"));
 }
 
 void RunMain(int argc, char** argv) {
@@ -157,11 +157,11 @@ void RunMain(int argc, char** argv) {
 
             inputs = params;
             if (expects_onehot) {
-                inputs["input"] = data[0].ToDevice(chainerx::GetDefaultDevice());
+                inputs["Input_0"] = data[0].ToDevice(chainerx::GetDefaultDevice());
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
-                inputs["onehot"] = onehot;
-                inputs["batch_size"] = batch_size_array;
+                inputs["Input_1"] = onehot;
+                inputs["Input_2"] = batch_size_array;
             } else {
                 inputs["T0"] = data[0].ToDevice(chainerx::GetDefaultDevice());
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
