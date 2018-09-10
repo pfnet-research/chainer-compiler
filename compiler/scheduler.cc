@@ -10,6 +10,7 @@
 #include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/log.h>
+#include <compiler/memory_simulator.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
 
@@ -217,6 +218,17 @@ void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
 
     for (size_t i = 0; i < nodes.size(); ++i) {
         nodes[i]->set_onikux_order(i + 1);
+    }
+
+    if (g_compiler_log) {
+        SimulatedMemoryUsage usage = SimulateMemoryUsage(graph);
+        if (usage.incorrect) {
+            WARN_ONCE("Incomplete memory simulation due to unknown shapes");
+        }
+        int64_t param_mb = usage.param / 1000 / 1000;
+        int64_t peak_mb = usage.peak / 1000 / 1000;
+        int64_t all_mb = usage.all / 1000 / 1000;
+        std::cerr << "Simulated memory usage: param=" << param_mb << "MB peak=" << peak_mb << "MB all=" << all_mb << "MB" << std::endl;
     }
 }
 

@@ -17,6 +17,7 @@ add_library(oniku_compiler
   gradient_ops.cc
   graph.cc
   graph_builder.cc
+  memory_simulator.cc
   model.cc
   node.cc
   passes.cc
