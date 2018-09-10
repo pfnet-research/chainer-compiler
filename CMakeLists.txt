@@ -4,6 +4,7 @@ execute_process(COMMAND git submodule update --init)
 
 enable_testing()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
