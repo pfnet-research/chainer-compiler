@@ -77,6 +77,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_relu'),
     TestCase(NODE_TEST, 'test_sigmoid'),
     TestCase(NODE_TEST, 'test_sigmoid_example'),
+    TestCase(NODE_TEST, 'test_floor'),
+    TestCase(NODE_TEST, 'test_floor_example'),
+    TestCase(NODE_TEST, 'test_ceil'),
+    TestCase(NODE_TEST, 'test_ceil_example'),
 
     TestCase(NODE_TEST, 'test_not_2d'),
     TestCase(NODE_TEST, 'test_not_3d'),

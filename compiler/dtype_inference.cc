@@ -58,6 +58,8 @@ void InferDtype(Node* node) {
         case Node::kIdentity:
         case Node::kNeg:
         case Node::kRelu:
+        case Node::kFloor:
+        case Node::kCeil:
         case Node::kSqueeze:
         case Node::kUnsqueeze:
         case Node::kFlatten:

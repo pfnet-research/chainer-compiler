@@ -145,6 +145,8 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);
         EMIT_SIMPLE_UNARY_OP(Node::kTanh, Tanh);
         EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
+        EMIT_SIMPLE_UNARY_OP(Node::kFloor, Floor);
+        EMIT_SIMPLE_UNARY_OP(Node::kCeil, Ceil);
         EMIT_SIMPLE_UNARY_OP(Node::kSigmoid, Sigmoid);
         EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
         EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
