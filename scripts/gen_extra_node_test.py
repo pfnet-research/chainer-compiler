@@ -88,24 +88,29 @@ def gen_select_item_test(test_name):
 def gen_scan_sum_test(test_name):
     inputs1 = np.array([[4, 5, 6], [-4, -6, -5]])
     inputs2 = np.array([[1, 2, 3], [-3, -2, -1]])
-    state = np.array([0, 0])
+    state = np.array(0)
     out_state = []
     outputs = []
-    for bi1, bi2, st in zip(inputs1, inputs2, state):
+    out_all_states = []
+    for bi1, bi2 in zip(inputs1, inputs2):
+        st = state
         outs = []
+        all_states = []
         for a, b in zip(bi1, bi2):
             ab = a - b
             r = ab + st
             outs.append(ab)
+            all_states.append(st)
             st = r
         outputs.append(outs)
         out_state.append(st)
+        out_all_states.append(all_states)
     outputs = np.array(outputs)
 
     inputs_vi = [_extract_value_info(inputs1[0][0], n)
                  for n in ['s', 'a', 'b']]
     outputs_vi = [_extract_value_info(outputs[0][0], n)
-                  for n in ['r', 'ab']]
+                  for n in ['r', 'ab', 's']]
 
     sub = onnx.helper.make_node('Sub', inputs=['a', 'b'], outputs=['ab'])
     add = onnx.helper.make_node('Add', inputs=['ab', 's'], outputs=['r'])
@@ -120,10 +125,10 @@ def gen_scan_sum_test(test_name):
         body=body,
         num_scan_inputs=2,
         inputs=['state', 'inputs1', 'inputs2'],
-        outputs=['out_state', 'outputs'])
+        outputs=['out_state', 'outputs', 'out_all_states'])
     expect(node,
            inputs=[state, inputs1, inputs2],
-           outputs=[out_state, outputs],
+           outputs=[out_state, outputs, out_all_states],
            name=test_name)
 
 

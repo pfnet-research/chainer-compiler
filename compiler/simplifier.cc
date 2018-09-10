@@ -228,22 +228,36 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
     {
         GraphBuilder gb(graph, "SimplifyScan", scan->outputs()[0]);
+        Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
         Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+        Value* one_vec = gb.Const(Type(Dtype::kInt64, {1}), {1});
         // Calcuate the number of trips.
         // TODO(hamaji): Better to check if all inputs have the same length.
         std::vector<Value*> lengths;
         if (sequence_lens) {
             lengths.push_back(gb.Op(Node::kReduceMax, {sequence_lens}));
         }
+        Value* batch_size = nullptr;
         for (Value* input : scan_inputs) {
             Value* shape = gb.Op(Node::kShape, {input});
             Value* len = gb.Op(Node::kGather, {shape, one});
             lengths.push_back(len);
+            if (!batch_size) {
+                batch_size = gb.Op(Node::kGather, {shape, zero});
+            }
         }
         Value* max_trips = gb.Op(Node::kMax, lengths);
 
         std::vector<Value*> loop_inputs = {max_trips, one};
-        for (Value* value : scan_input_states) loop_inputs.push_back(value);
+        for (Value* value : scan_input_states) {
+            Value* shape = gb.Op(Node::kShape, {value});
+            Value* unsqueezed = gb.Op(Node::kUnsqueeze, {value});
+            unsqueezed->producer()->set_axes({0});
+            Value* bs = gb.Op(Node::kReshape, {batch_size, one_vec});
+            Value* new_shape = gb.Op(Node::kConcat, {bs, shape});
+            Value* expanded = gb.Op(Node::kExpand, {unsqueezed, new_shape});
+            loop_inputs.push_back(expanded);
+        }
         for (Value* value : scan_inputs) loop_inputs.push_back(value);
 
         std::vector<Value*> loop_outputs;
