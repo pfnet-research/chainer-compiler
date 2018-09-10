@@ -66,7 +66,7 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     makedirs(test_data_dir)
     for i, var in enumerate(list(inputs) + list(onnx_extra_inputs)):
         with open(os.path.join(test_data_dir, 'input_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx(var.name, var.data)
+            t = npz_to_onnx.np_array_to_onnx('Input_%d' % i, var.data)
             f.write(t.SerializeToString())
 
     chainer.config.train = True
@@ -75,7 +75,7 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     result.grad = np.ones(result.shape, result.dtype)
     result.backward()
 
-    outputs = [(result.name, result.array)]
+    outputs = [('', result.array)]
     for name, param in model.namedparams():
         outputs.append(('grad_out@' + name, param.grad))
     for i, (name, value) in enumerate(outputs):
