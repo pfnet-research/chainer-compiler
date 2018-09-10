@@ -72,8 +72,8 @@ InOuts LoadParams(const Model& model) {
             // TODO(hamaji): Introduce more sophisticated approach to
             // decide the device to be used.
             if (std::find_if(input->users().begin(), input->users().end(), [](const Node* node) {
-                        return node->op_type() != Node::kReshape;
-                    }) == input->users().end()) {
+                    return node->op_type() != Node::kReshape;
+                }) == input->users().end()) {
                 tensor = MakeHostArray(dtype, shape, data);
             } else {
                 tensor = MakeArray(dtype, shape, data);

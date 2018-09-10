@@ -69,11 +69,9 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
         for (Value* input : node->inputs()) {
             int to = i;
             while (Node* prev = input->producer()) {
-                if (prev->inputs().size() != 1 || prev->outputs().size() != 1)
-                    break;
+                if (prev->inputs().size() != 1 || prev->outputs().size() != 1) break;
                 int64_t memory_increase = EstimateMemoryIncrease(prev);
-                if (memory_increase < 0)
-                    break;
+                if (memory_increase < 0) break;
                 for (Node* user : input->users()) {
                     auto found = node_to_index.find(user);
                     if (found == node_to_index.end()) continue;
@@ -89,7 +87,7 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
                 // is moved to just before the second input, but we
                 // want to delay both of them as much as possible.
                 if (nodes[index].size() > 1 || nodes[index][0] != prev) break;
-                LOG() << "Delayed: from " << index << " to " << to << " " <<  prev->DebugString() << std::endl;
+                LOG() << "Delayed: from " << index << " to " << to << " " << prev->DebugString() << std::endl;
                 CHECK_EQ(1, nodes[index].size());
                 nodes[index].clear();
                 nodes[to].push_back(prev);
@@ -154,20 +152,17 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
 
     auto enqueue_node = [&q](Node* node) {
         int64_t estimated_memory_increase = EstimateMemoryIncrease(node);
-        if (node->op_type() == Node::kRelu)
-            estimated_memory_increase += 1000 * 1000 * 1000;
+        if (node->op_type() == Node::kRelu) estimated_memory_increase += 1000 * 1000 * 1000;
         q.emplace(estimated_memory_increase, node);
     };
 
     auto make_value_ready = [&input_counts, enqueue_node](const Value* value) {
         for (Node* node : value->users()) {
             auto found = input_counts.find(node);
-            if (found == input_counts.end())
-                continue;
+            if (found == input_counts.end()) continue;
             int cnt = --found->second;
             CHECK_LE(0, cnt) << node->DebugString();
-            if (cnt != 0)
-                continue;
+            if (cnt != 0) continue;
             enqueue_node(node);
         }
     };
@@ -202,12 +197,12 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
 void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
     std::vector<Node*> nodes;
     switch (scheduler_type) {
-    case SchedulerType::kNaive:
-        nodes = ScheduleNaively(graph);
-        break;
-    case SchedulerType::kGreedy:
-        nodes = ScheduleGreedy(graph);
-        break;
+        case SchedulerType::kNaive:
+            nodes = ScheduleNaively(graph);
+            break;
+        case SchedulerType::kGreedy:
+            nodes = ScheduleGreedy(graph);
+            break;
     }
 
     // Sanity check.

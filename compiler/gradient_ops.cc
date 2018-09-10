@@ -181,9 +181,9 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
         GraphBuilder gb(graph, "ConvGrad", x[0]);
         Value* x_shape = gb.Op(Node::kShape, {x[0]});
         GRAD_OP(Node::kOnikuxConvTransposeWithDynamicOutputShape, {gy, w, x_shape}, x[0])
-            ->producer()
-            ->set_strides(node->strides())
-            ->set_pads(node->pads());
+                ->producer()
+                ->set_strides(node->strides())
+                ->set_pads(node->pads());
     }
 #endif
     GRAD_OP(Node::kOnikuxConvGradWeight, {w, x[0], gy}, x[1])->producer()->set_strides(node->strides())->set_pads(node->pads());

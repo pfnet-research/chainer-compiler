@@ -46,9 +46,7 @@ bool ExpectsOnehot(const Model& model) {
     for (const Value* input : model.graph().input_values()) {
         CHECK(input_names.emplace(input->name()).second);
     }
-    return (input_names.count("input") &&
-            input_names.count("onehot") &&
-            input_names.count("batch_size"));
+    return (input_names.count("input") && input_names.count("onehot") && input_names.count("batch_size"));
 }
 
 void RunMain(int argc, char** argv) {
@@ -93,8 +91,7 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
-    if (!args.exist("skip_shape_inference"))
-        onnx::shape_inference::InferShapes(xmodel);
+    if (!args.exist("skip_shape_inference")) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
     const bool expects_onehot = ExpectsOnehot(model);
     CHECK_EQ(1, model.graph().output_values().size());

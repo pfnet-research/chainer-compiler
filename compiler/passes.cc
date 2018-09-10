@@ -17,8 +17,7 @@ namespace {
 
 void CollectGarbageNode(Graph* graph) {
     for (const auto& node : graph->nodes()) {
-        if (node->onikux_order() <= 0)
-            graph->DetachNode(node.get());
+        if (node->onikux_order() <= 0) graph->DetachNode(node.get());
     }
 }
 

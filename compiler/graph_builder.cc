@@ -13,8 +13,7 @@ GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* tar
 }
 
 GraphBuilder::~GraphBuilder() {
-    for (Node* node : added_nodes_)
-        InferDtypeAndShape(node);
+    for (Node* node : added_nodes_) InferDtypeAndShape(node);
 }
 
 Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output) {

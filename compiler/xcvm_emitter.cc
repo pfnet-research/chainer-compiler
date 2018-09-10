@@ -26,7 +26,7 @@ public:
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
         // EmitInputs(program);
-        EmitGraph(graph_, program, false  /* in_loop */);
+        EmitGraph(graph_, program, false /* in_loop */);
         EmitOutputs(program);
         if (dump_value_names) {
             std::map<int, const Value*> values;
@@ -112,9 +112,9 @@ private:
             return strides;
         };
 
-#define EMIT(op, ...)                                                                          \
-    do {                                                                                       \
-        Add##op##Op(prog, __VA_ARGS__);                                                        \
+#define EMIT(op, ...)                                                                                  \
+    do {                                                                                               \
+        Add##op##Op(prog, __VA_ARGS__);                                                                \
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(node.DebugString()); \
     } while (0);
 
@@ -379,7 +379,6 @@ private:
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
-
     }
 
     void EmitConstant(const Node& node, XCProgramProto* prog) {
@@ -450,10 +449,8 @@ private:
         for (const Node* node : nodes) {
             if (!in_loop) {
                 for (const Value* value : node->inputs()) {
-                    if (value->kind() != Value::Kind::kInput)
-                        continue;
-                    if (!staged_inputs.emplace(value).second)
-                        continue;
+                    if (value->kind() != Value::Kind::kInput) continue;
+                    if (!staged_inputs.emplace(value).second) continue;
                     AddInOp(prog, GetValueId(value), value->name());
                     prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
                 }
@@ -529,7 +526,7 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        EmitGraph(*loop.body(), prog, true  /* in_loop */);
+        EmitGraph(*loop.body(), prog, true /* in_loop */);
 
         int one_id = next_value_id_++;
         EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);

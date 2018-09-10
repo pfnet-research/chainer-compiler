@@ -129,8 +129,7 @@ void XCVMState::ShowVariableStatus() const {
     int64_t total = 0;
     for (size_t i = 0; i < variables_.size(); ++i) {
         const std::unique_ptr<XCVMVar>& var = variables_[i];
-        if (!var.get())
-            continue;
+        if (!var.get()) continue;
         int64_t size = var->GetTotalSize();
         total += size;
         std::cerr << "$" << i << ": " << size << std::endl;

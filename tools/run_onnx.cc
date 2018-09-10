@@ -26,8 +26,8 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
-#include <compiler/graph.h>
 #include <compiler/flags.h>
+#include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/tensor.h>
@@ -183,8 +183,7 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    if (!args.exist("skip_shape_inference"))
-        onnx::shape_inference::InferShapes(xmodel);
+    if (!args.exist("skip_shape_inference")) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
     RunDefaultPasses(&model, args.exist("backprop"));
 
@@ -243,8 +242,7 @@ void RunMain(int argc, char** argv) {
         CHECK(xcvm_prog.SerializeToOstream(&ofs));
     }
 
-    if (args.exist("compile_only"))
-        return;
+    if (args.exist("compile_only")) return;
 
     XCVM xcvm(xcvm_prog);
     XCVMOptions xcvm_opts;
