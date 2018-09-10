@@ -141,6 +141,7 @@ void RunMain(int argc, char** argv) {
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
+    args.add("compile_only", '\0', "Exit after compilation");
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
@@ -239,6 +240,9 @@ void RunMain(int argc, char** argv) {
         CHECK(ofs) << "Failed to open output XCVM: " << out_xcvm;
         CHECK(xcvm_prog.SerializeToOstream(&ofs));
     }
+
+    if (args.exist("compile_only"))
+        return;
 
     XCVM xcvm(xcvm_prog);
     XCVMOptions xcvm_opts;
