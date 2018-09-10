@@ -2,6 +2,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
@@ -84,8 +85,6 @@ bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
     return true;
 }
 
-#if 0
-
 bool ReplaceConstant(Graph* graph, Node* node) {
     // Do not move host Constant to initializer. They should be small
     // and cheap to initialize.
@@ -97,8 +96,6 @@ bool ReplaceConstant(Graph* graph, Node* node) {
     graph->AddNode(Node::kIdentity, {v}, {node->outputs()[0]});
     return true;
 }
-
-#endif
 
 #if 0
 
@@ -340,7 +337,7 @@ void Simplify(Graph* graph, bool is_in_loop) {
     CHECK(simplifiers.emplace(Node::kReduceL2, ReplaceReduceL2).second);
     CHECK(simplifiers.emplace(Node::kReduceLogSum, ReplaceReduceLogSum).second);
     CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
-    // if (!is_in_loop) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    if (g_replace_constant) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif

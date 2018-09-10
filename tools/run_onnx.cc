@@ -26,7 +26,6 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
-#include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
@@ -38,6 +37,7 @@
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <tools/cmdline.h>
+#include <tools/compiler_flags.h>
 #include <tools/util.h>
 
 namespace oniku {
@@ -147,10 +147,11 @@ void RunMain(int argc, char** argv) {
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("trace", 't', "Tracing mode");
-    args.add("permissive", '\0', "Relax checks to accept more kinds of ONNX");
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
+    AddCompilerFlags(&args);
     args.parse_check(argc, argv);
+    ApplyCompilerFlags(args);
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
@@ -158,7 +159,6 @@ void RunMain(int argc, char** argv) {
     const std::string out_xcvm = args.get<std::string>("out_xcvm");
 
     g_quiet = args.exist("quiet");
-    g_permissive = args.exist("permissive");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
         std::cerr << args.usage() << std::endl;
         QFAIL() << "Either --onnx or --test must be specified!";
