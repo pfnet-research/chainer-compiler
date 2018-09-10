@@ -197,6 +197,7 @@ XC_OPS = [
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
 
+    ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads')],
      ['y']),
@@ -258,7 +259,7 @@ XC_SEQ_OPS = [
     ('SequenceAppend', [Sequence('seq'), Array('value')], []),
     ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
-    ('SequencePad', [Sequence('seq'), Int('length'), Float('padding')],
+    ('SequencePad', [Sequence('seq'), Int('length'), Float('value')],
      ['output']),
     ('SequenceSplit', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceUnpad', [Array('input'), Sequence('lengths')],

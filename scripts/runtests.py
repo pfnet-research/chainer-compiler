@@ -122,6 +122,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_convtranspose_pads'),
     TestCase(NODE_TEST, 'test_convtranspose_with_kernel'),
 
+    TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
     # TODO(hamaji): Support non-2D pools.
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),

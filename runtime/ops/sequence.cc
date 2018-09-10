@@ -39,7 +39,7 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
 void SequencePadOp::RunImpl(XCVMState* st) {
     const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
     CHECK(!v.empty());
-    chainerx::Scalar p(padding, v[0].dtype());
+    chainerx::Scalar p(value, v[0].dtype());
     st->SetVar(output, PadSequence(v, length, p));
 }
 

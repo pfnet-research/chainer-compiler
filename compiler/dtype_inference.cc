@@ -73,6 +73,7 @@ void InferDtype(Node* node) {
         case Node::kReduceMax:
         case Node::kReduceMin:
         case Node::kClip:
+        case Node::kPad:
         case Node::kMaxPool:
         case Node::kGlobalMaxPool:
         case Node::kTranspose: {

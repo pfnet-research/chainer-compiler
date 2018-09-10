@@ -247,6 +247,11 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.bias(), node.size());
+        } else if (node.op_type() == Node::kPad) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
+            EMIT(Pad, out(0), in(0), node.pads(), node.value());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -377,7 +382,7 @@ private:
         } else if (node.op_type() == Node::kOnikuxSequenceUnpad) {
             EMIT(SequenceUnpad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequencePad) {
-            EMIT(SequencePad, out(0), in(0), node.length(), node.padding());
+            EMIT(SequencePad, out(0), in(0), node.length(), node.value());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

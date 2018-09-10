@@ -295,13 +295,13 @@ def gen_sequence_pad_test(test_name):
         outputs=['lookup_result']))
     nodes.append(onnx.helper.make_node(
         'OnikuxSequencePad',
-        padding=-42.0,
+        value=-42.0,
         length=4,
         inputs=['seq3'],
         outputs=['pad3_result']))
     nodes.append(onnx.helper.make_node(
         'OnikuxSequencePad',
-        padding=-42.0,
+        value=-42.0,
         inputs=['seq2'],
         outputs=['pad2_result']))
     nodes.append(onnx.helper.make_node(

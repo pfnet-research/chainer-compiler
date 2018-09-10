@@ -140,6 +140,7 @@ NodeDef('MaxPool', 1, (1, 2), **pool_attrs)
 NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
+NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
@@ -172,7 +173,7 @@ NodeDef('OnikuxSequenceLookup', 2, 1)
 NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 
 # Pads elements in a sequence: ([T]) -> (T)
-NodeDef('OnikuxSequencePad', 1, 1, length=0, padding=0.0)
+NodeDef('OnikuxSequencePad', 1, 1, length=0, value=0.0)
 
 # Splits a tensor to a sequence: (T) -> ([T])
 NodeDef('OnikuxSequenceSplit', 1, 1, axis=0)
