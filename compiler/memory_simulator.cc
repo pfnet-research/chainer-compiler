@@ -10,7 +10,6 @@ namespace oniku {
 
 SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
     std::map<const Value*, int> num_users;
-    std::set<const Value*> staged_inputs;
     SimulatedMemoryUsage usage{};
     int64_t mem = 0;
 
@@ -27,14 +26,13 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
 
     for (const Value* value : graph.GetNecessaryInputs()) {
         int nu = value->users().size();
+        int64_t bytes = value->GetNBytes();
         if (value->initializer()) {
-            CHECK(staged_inputs.emplace(value).second);
-            int64_t bytes = value->GetNBytes();
             usage.param += bytes >= 0 ? bytes : 0;
-            alloc(bytes);
             // We assume parameters will never be freed.
             nu++;
         }
+        alloc(bytes);
         CHECK(num_users.emplace(value, nu).second);
     }
     for (const Value* value : graph.temp_values()) {
@@ -43,12 +41,6 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
 
     std::vector<const Node*> nodes(graph.GetComputationSequence());
     for (const Node* node : nodes) {
-        for (const Value* value : node->inputs()) {
-            if (value->kind() != Value::Kind::kInput) continue;
-            if (!staged_inputs.emplace(value).second) continue;
-            alloc(value->GetNBytes());
-        }
-
         for (const Value* value : node->outputs()) {
             alloc(value->GetNBytes());
         }
