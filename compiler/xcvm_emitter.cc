@@ -386,48 +386,49 @@ private:
     void EmitConstant(const Node& node, XCProgramProto* prog) {
         CHECK_EQ(1, node.outputs().size());
         int out = GetValueId(node.outputs()[0]);
-        Dtype dtype = node.value()->dtype();
+        Tensor* value = node.tensor_value().get();
+        Dtype dtype = value->dtype();
         std::vector<int> shape;
-        for (int64_t d : node.value()->dims()) {
+        for (int64_t d : value->dims()) {
             CHECK_LE(0, d);
             CHECK_GT(1ULL << 32ULL, d);
             shape.push_back(d);
         }
         if (dtype.IsFloat()) {
             std::vector<double> v;
-            for (int64_t i = 0; i < node.value()->NumElements(); ++i) {
+            for (int64_t i = 0; i < value->NumElements(); ++i) {
                 if (dtype.SizeOf() == 4) {
-                    v.push_back(node.value()->Get<float>(i));
+                    v.push_back(value->Get<float>(i));
                 } else if (dtype.SizeOf() == 8) {
-                    v.push_back(node.value()->Get<double>(i));
+                    v.push_back(value->Get<double>(i));
                 } else {
                     CHECK(false) << "Unknown type: " << dtype;
                 }
             }
             if (shape.empty()) {
-                EMIT(FloatScalarConstant, out, v[0], node.value()->dtype(), node.onikux_host());
+                EMIT(FloatScalarConstant, out, v[0], value->dtype(), node.onikux_host());
             } else {
-                EMIT(FloatConstant, out, v, node.value()->dtype(), shape, node.onikux_host());
+                EMIT(FloatConstant, out, v, value->dtype(), shape, node.onikux_host());
             }
         } else {
             std::vector<int64_t> v;
-            for (int64_t i = 0; i < node.value()->NumElements(); ++i) {
+            for (int64_t i = 0; i < value->NumElements(); ++i) {
                 if (dtype.SizeOf() == 1) {
-                    v.push_back(node.value()->Get<int8_t>(i));
+                    v.push_back(value->Get<int8_t>(i));
                 } else if (dtype.SizeOf() == 2) {
-                    v.push_back(node.value()->Get<int16_t>(i));
+                    v.push_back(value->Get<int16_t>(i));
                 } else if (dtype.SizeOf() == 4) {
-                    v.push_back(node.value()->Get<int32_t>(i));
+                    v.push_back(value->Get<int32_t>(i));
                 } else if (dtype.SizeOf() == 8) {
-                    v.push_back(node.value()->Get<int64_t>(i));
+                    v.push_back(value->Get<int64_t>(i));
                 } else {
                     CHECK(false) << "Unknown type: " << dtype;
                 }
             }
             if (shape.empty()) {
-                EMIT(IntScalarConstant, out, v[0], node.value()->dtype(), node.onikux_host());
+                EMIT(IntScalarConstant, out, v[0], value->dtype(), node.onikux_host());
             } else {
-                EMIT(IntConstant, out, v, node.value()->dtype(), shape, node.onikux_host());
+                EMIT(IntConstant, out, v, value->dtype(), shape, node.onikux_host());
             }
         }
     }

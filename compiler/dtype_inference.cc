@@ -136,7 +136,7 @@ void InferDtype(Node* node) {
         }
 
         case Node::kConstant: {
-            set(0, node->value()->dtype());
+            set(0, node->tensor_value()->dtype());
             break;
         }
 

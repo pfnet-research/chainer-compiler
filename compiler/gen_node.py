@@ -74,7 +74,7 @@ NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
 NodeDef('Less', 2, 1)
 
-NodeDef('Constant', 0, 1, value=Required(Tensor), onikux_host=False)
+NodeDef('Constant', 0, 1, tensor_value=Required(Tensor), onikux_host=False)
 NodeDef('Cast', 1, 1, to=Required(Dtype))
 NodeDef('Shape', 1, 1)
 NodeDef('Size', 1, 1)
@@ -191,6 +191,9 @@ NodeDef('OnikuxSequenceLengths', 1, 1)
 class AttrDef(object):
     def __init__(self, name, value):
         self.name = name
+        self.onnx_name = self.name
+        if self.onnx_name == 'tensor_value':
+            self.onnx_name = 'value'
         self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m[0].lower(), name)
         self.required = False
         self.value = None
@@ -388,7 +391,7 @@ def gen_gen_node_base_cc():
         conds = []
         bodies = []
         for _, attr in sorted(node.attr_defs.items()):
-            conds.append(f'xattr.name() == "{attr.name}"')
+            conds.append(f'xattr.name() == "{attr.onnx_name}"')
             blines = []
             blines.append('if (!g_permissive) '
                           f'CHECK_EQ(xattr.type(), {attr.onnx_type()});')
@@ -510,7 +513,7 @@ def gen_gen_node_base_cc():
         lines.append(f'case k{node.op_type}: ' + '{')
         for _, attr in sorted(node.attr_defs.items()):
             lines.append(f'if (was_{attr.c_name}_set_)')
-            lines.append(f'    {attr.add_func()}("{attr.name}",'
+            lines.append(f'    {attr.add_func()}("{attr.onnx_name}",'
                          f' {attr.c_name}_);')
         lines.append('break;')
         lines.append('}')

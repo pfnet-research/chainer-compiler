@@ -33,7 +33,7 @@ Node* GraphBuilder::MOp(Node::OpType op_type, const std::vector<Value*>& inputs,
 template <typename T>
 Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data) {
     Value* v = Op(Node::kConstant, {});
-    v->producer()->set_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
+    v->producer()->set_tensor_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
     return v;
 }
 

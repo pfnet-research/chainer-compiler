@@ -91,8 +91,9 @@ bool ReplaceConstant(Graph* graph, Node* node) {
     if (node->onikux_host()) return false;
     // TODO(hamaji): Use GraphBuilder.
     const std::string& name = StrCat("SimplifyConstant_", node->outputs()[0]->name());
-    Value* v = graph->AddInputValue(name, Type(node->value()->dtype(), node->value()->dims()));
-    v->ResetInitializer(std::make_unique<Tensor>(name, *node->value()));
+    Tensor* tensor = node->tensor_value().get();
+    Value* v = graph->AddInputValue(name, Type(tensor->dtype(), tensor->dims()));
+    v->ResetInitializer(std::make_unique<Tensor>(name, *tensor));
     graph->AddNode(Node::kIdentity, {v}, {node->outputs()[0]});
     return true;
 }
