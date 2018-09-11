@@ -616,7 +616,7 @@ private:
             CHECK_LT(i, loop.outputs().size());
             const Value* body_in = loop.body()->input_values()[i + 2];
             const Value* loop_out = loop.outputs()[i];
-            EMIT(Identity, GetValueId(loop_out), GetValueId(body_in));
+            MOVE(GetValueId(loop_out), GetValueId(body_in));
         }
 
         // Stack and output scan outputs.
@@ -626,6 +626,9 @@ private:
             EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.onikux_stack_axis());
             AddFreeOp(prog, scan_out_ids[i]);
         }
+
+        AddFreeOp(prog, iter_id);
+        AddFreeOp(prog, cond_id);
 
 #undef EMIT
     }
