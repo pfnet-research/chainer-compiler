@@ -44,6 +44,7 @@ class GraphBuilder(object):
         self.graph_name = graph_name
         self.nodes = []
         self.inputs = []
+        self.params = []
         self.outputs = []
         self.ids = collections.defaultdict(int)
 
@@ -51,8 +52,9 @@ class GraphBuilder(object):
         if not name[0].isupper():
             raise AttributeError('Unknown attribute: %s' % name)
 
-        def make_node(outputs=None, **kwargs):
-            return self.make_node(name, outputs=outputs, **kwargs)
+        def make_node(inputs=[], outputs=None, **kwargs):
+            return self.make_node(name, inputs=inputs, outputs=outputs,
+                                  **kwargs)
 
         return make_node
 
@@ -77,6 +79,10 @@ class GraphBuilder(object):
         self.inputs.append((name, value))
         return name
 
+    def param(self, name, value):
+        self.params.append((name, value))
+        return name
+
     def output(self, name, value):
         self.outputs.append((name, value))
         return name
@@ -89,10 +95,18 @@ class GraphBuilder(object):
         return name
 
     def make_graph(self):
-        inputs_vi = [_extract_value_info(a, n) for n, a in self.inputs]
+        inputs_vi = [_extract_value_info(a, n)
+                     for n, a in self.inputs + self.params]
         outputs_vi = [_extract_value_info(a, n) for n, a in self.outputs]
-        return onnx.helper.make_graph(self.nodes, self.graph_name,
-                                      inputs=inputs_vi, outputs=outputs_vi)
+        initializer = []
+        for name, value in self.params:
+            typ = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
+            tensor = onnx.helper.make_tensor(name, typ, value.shape, value.flat)
+            initializer.append(tensor)
+        graph = onnx.helper.make_graph(self.nodes, self.graph_name,
+                                       inputs=inputs_vi, outputs=outputs_vi,
+                                       initializer=initializer)
+        return graph
 
     def gen_test(self, graph=None):
         if graph is None:
