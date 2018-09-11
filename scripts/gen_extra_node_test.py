@@ -323,6 +323,57 @@ def gen_sequence_split_test(test_name):
     gb.gen_test()
 
 
+def gen_imdb_test(num_vocabs=10, num_hidden=16):
+    def fn(test_name):
+        embed_size = num_hidden
+        np.random.seed(42)
+        gb = oniku_script.GraphBuilder(test_name)
+        labels = np.array([[1, 2, 3, 7], [4, 5, 0, 0], [6, 0, 0, 0]])
+        lengths = np.array([4, 2, 1])
+        embed = np.random.random((num_vocabs, embed_size)).astype(np.float32)
+        weight = np.random.random(
+            (embed_size, num_hidden * 6)).astype(np.float32)
+        bias = np.random.random((num_hidden * 6,)).astype(np.float32)
+        linear = np.random.random((num_hidden, 2)).astype(np.float32)
+
+        x = F.embed_id(labels, embed)
+        state = np.zeros((1, len(labels), num_hidden)).astype(np.float32)
+        xs = F.transpose_sequence([v[:l] for v, l in zip(x, lengths)])
+        h, gru_outputs = F.n_step_gru(1, 0.0,
+                                      state,
+                                      [np.split(weight, 6, axis=1)],
+                                      [np.split(bias, 6, axis=0)],
+                                      xs)
+        gru_outputs = F.pad_sequence(gru_outputs)
+        gru_outputs = F.expand_dims(gru_outputs, axis=1)
+        result = F.linear(h[0], np.transpose(linear))
+
+        weight_w, weight_r = np.split(weight, 2, axis=1)
+        labels_v = gb.input('labels', labels)
+        lengths_v = gb.input('lengths', lengths)
+        embed_v = gb.param('embed', embed)
+        weight_w_v = gb.param('weight_w',
+                              np.expand_dims(np.transpose(weight_w), axis=0))
+        weight_r_v = gb.param('weight_r',
+                              np.expand_dims(np.transpose(weight_r), axis=0))
+        bias_v = gb.param('bias', np.expand_dims(bias, axis=0))
+        linear_v = gb.param('linear', linear)
+
+        x = gb.Gather([embed_v, labels_v])
+        x = gb.Transpose([x], perm=[1, 0, 2])
+        gru_outputs_v, h = gb.GRU(
+            [x, weight_w_v, weight_r_v, bias_v, lengths_v],
+            outputs=['gru_outputs', 'last_state'])
+        h = gb.Squeeze([h], axes=[0])
+        result_v = gb.MatMul([h, linear_v])
+        gb.output(result_v, result.array)
+        gb.output(gru_outputs_v, gru_outputs.array)
+
+        gb.gen_test()
+
+    return fn
+
+
 class TestCase(object):
     def __init__(self, name, func, fail=False):
         self.name = name
@@ -366,6 +417,8 @@ def get_tests():
         TestCase('extra_test_sequence', gen_sequence_test),
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
         TestCase('extra_test_sequence_split', gen_sequence_split_test),
+
+        TestCase('extra_test_imdb', gen_imdb_test(), fail=True),
     ]
 
 
