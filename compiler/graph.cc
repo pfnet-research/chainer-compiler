@@ -217,7 +217,7 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
         for (Node* node : v->users()) {
             auto found = input_counts.find(node);
             CHECK(found != input_counts.end());
-            if (--found->second) {
+            if (--found->second == 0) {
                 sorted_nodes.push_back(node);
                 for (Value* n : node->outputs()) {
                     q.push(n);
