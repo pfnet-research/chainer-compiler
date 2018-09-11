@@ -13,7 +13,8 @@ syntax=(
     MultiClass.py
     MultiFunction.py
     UserDefinedFunc.py
-    ListComp.py
+    Slice.py
+    # ListComp.py
 )
 
 

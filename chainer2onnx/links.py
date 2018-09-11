@@ -192,13 +192,11 @@ class Link_NstepLSTM(object):
 
         # v = args[2]
         v = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Transpose",
-                perm=(1, 0, 2),
-                inputs=[args[2].name],
-                outputs=[v.name],
-            )
+        env.addnode(
+            "Transpose",
+            perm=(1, 0, 2),
+            inputs=[args[2].name],
+            outputs=[v.name],
         )
 
         hs = []
@@ -210,15 +208,12 @@ class Link_NstepLSTM(object):
             c = new_tensor(['unknown', 'unknown', 'unknown'])
             ys = new_tensor(['unknown', 'unknown', 'unknown'])
 
-            env.nodes.append(
-                helper.make_node(
-                    "LSTM",
-
-                    inputs=[v.name, self.ws[i].W.name,
-                            self.ws[i].R.name, self.ws[i].B.name],
-                    outputs=[ys.name, h.name, c.name],
-                    hidden_size=self.out_size
-                )
+            env.addnode(
+                "LSTM",
+                inputs=[v.name, self.ws[i].W.name,
+                        self.ws[i].R.name, self.ws[i].B.name],
+                outputs=[ys.name, h.name, c.name],
+                hidden_size=self.out_size
             )
 
             hs.append(h.name)
@@ -228,29 +223,121 @@ class Link_NstepLSTM(object):
         # print(cs)
         ths = new_tensor(['unknown', 'unknown', 'unknown'])
         tcs = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Concat",
-                inputs=hs, outputs=[ths.name],
-                axis=0,
-            )
+        env.addnode(
+            "Concat",
+            inputs=hs, outputs=[ths.name],
+            axis=0,
         )
-        env.nodes.append(
-            helper.make_node(
-                "Concat",
-                inputs=cs, outputs=[tcs.name],
-                axis=0,
-            )
+        env.addnode(
+            "Concat",
+            inputs=cs, outputs=[tcs.name],
+            axis=0,
         )
 
         tys = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.nodes.append(
-            helper.make_node(
-                "Transpose",
-                perm=(1, 0, 2),
-                inputs=[v.name],
-                outputs=[tys.name],
+        env.addnode(
+            "Transpose",
+            perm=(1, 0, 2),
+            inputs=[v.name],
+            outputs=[tys.name],
+        )
+        return ths, tcs, tys
+
+    def init_tensors(self):
+        return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
+
+
+class Link_NstepBiLSTM(object):
+    def __init__(self, ch, parentname):
+        self.name = ''
+        # code.InteractiveConsole({'ch': ch}).interact()
+
+        # cs = list(ch.children())
+        hd = ch.children().__next__()
+        if not(hd.w0 is None):
+            self.n_in = hd.w0.shape[1]
+        else:
+            self.n_in = None
+
+        self.out_size = ch.out_size
+        self.n_layers = ch.n_layers
+        self.dropout = ch.dropout
+
+        class step(object):
+            def __init__(self):
+                pass
+
+        self.ws = [step() for _ in range(self.n_layers*2)]
+        for i in range(self.n_layers*2):
+            self.ws[i].W = helper.make_tensor_value_info(
+                self.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
+            # これ多分うまいこと変換しないといけない
+            # chainer : at  ct
+            #   onnx  : ct  Ct
+            # (chainerのws[0],ws[2],ws[1],ws[3]から連結させたりする)
+            self.ws[i].R = helper.make_tensor_value_info(
+                self.name + ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
+            # (chainerのws[4],ws[6],ws[5],ws[7]から連結させたりする)
+            self.ws[i].B = helper.make_tensor_value_info(
+                self.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
+            # (chainerのbs[0,2,1,3,4,6,5,7]から連結させたりする)
+
+    def call(self, args, _, env):
+        # とりあえずnstep を 1step ずつに分解する
+        # print(self.name,args)
+        # assert(len(args) == 1)
+        assert(args[0] is None and args[1] is None)
+
+        # v = args[2]
+        v = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.addnode(
+            "Transpose",
+            perm=(1, 0, 2),
+            inputs=[args[2].name],
+            outputs=[v.name],
+        )
+
+        hs = []
+        cs = []
+
+        for i in range(self.n_layers):
+
+            h = new_tensor(['unknown', 'unknown', 'unknown'])
+            c = new_tensor(['unknown', 'unknown', 'unknown'])
+            ys = new_tensor(['unknown', 'unknown', 'unknown'])
+
+            env.addnode(
+                "LSTM",
+                inputs=[v.name, self.ws[i].W.name,
+                        self.ws[i].R.name, self.ws[i].B.name],
+                outputs=[ys.name, h.name, c.name],
+                hidden_size=self.out_size
             )
+
+            hs.append(h.name)
+            cs.append(c.name)
+            v = ys
+        # print(hs)
+        # print(cs)
+        ths = new_tensor(['unknown', 'unknown', 'unknown'])
+        tcs = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.addnode(
+            "Concat",
+            inputs=hs, outputs=[ths.name],
+            axis=0,
+        )
+        env.addnode(
+            "Concat",
+            inputs=cs, outputs=[tcs.name],
+            axis=0,
+        )
+
+        tys = new_tensor(['unknown', 'unknown', 'unknown'])
+        env.addnode(
+            "Transpose",
+            perm=(1, 0, 2),
+            inputs=[v.name],
+            outputs=[tys.name],
         )
         return ths, tcs, tys
 
@@ -298,11 +385,26 @@ class Link_StatelessLSTM(object):
         # とりあえずnstep を 1step ずつに分解する
         # print(self.name,args)
         # assert(len(args) == 1)
-        
-        return new_tensor(),new_tensor()
+
+        return new_tensor(), new_tensor()
 
     def init_tensors(self):
         return self.upward.init_tensors() + self.lateral.init_tensors()
+
+
+class Link_Dummy(object):
+    def __init__(self, ch, parentname):
+        self.name = ''
+
+    def call(self, args, _, env):
+        env.addnode(
+            "Dummy link and should be removed",
+            inputs=[], outputs=[]
+        )
+        return new_tensor(), new_tensor(), new_tensor()
+
+    def init_tensors(self):
+        return []
 
 
 Link2NodeClass = [
@@ -311,6 +413,6 @@ Link2NodeClass = [
     (L.BatchNormalization, Link_BatchNormalization),
     (L.NStepLSTM, Link_NstepLSTM),
     (L.EmbedID, Link_EmbedID),
-    (L.NStepBiLSTM, Link_NstepLSTM),  # TODO(satos) はりぼてなのでなおす
+    (L.NStepBiLSTM, Link_NstepBiLSTM),
     (L.StatelessLSTM, Link_StatelessLSTM),
 ]

@@ -46,4 +46,24 @@ def size2d(v):
 
 
 def istensor(x):
-    return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto) 
+    return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
+
+
+def totensor(x, env):
+    if istensor(x):
+        return x
+    res = new_tensor()
+
+    assert type(x) == float or type(x) == int
+    env.addnode(
+        'Constant',
+        inputs=[], outputs=[res.name],
+        value=onnx.helper.make_tensor(
+            name="hoge",
+            data_type=(onnx.TensorProto.FLOAT if type(x) ==
+                       float else onnx.TensorProto.INT64),
+            dims=[],
+            vals=[x],
+        )
+    )
+    return res

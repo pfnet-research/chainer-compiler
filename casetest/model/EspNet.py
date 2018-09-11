@@ -168,8 +168,8 @@ class E2E(chainer.Chain):
         # 1. encoder
         hs, ilens = self.enc(xs, ilens)
         
-        
-        return F.pad_sequence(hs,ilens)
+        # print(hs,ilens) 
+        return F.pad_sequence(hs)
 
         # 3. CTC loss
         if self.mtlalpha == 0:
@@ -1155,6 +1155,9 @@ if __name__ == '__main__':
     ys = [np.random.randint(1, 5, olen).astype(np.int32) for olen in olens]
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
     
+
+    xs = F.pad_sequence(xs)
+    ys = F.pad_sequence(ys)
     #true output variable(6.5717525) variable(0.13333334)
  
     # print(xs,ilens,ys)

@@ -7,6 +7,8 @@ import numpy
 from . utils import new_tensor, istensor
 from . funcs import Func, Function_Dummy
 
+import chainer
+
 
 def xp_array(args, _, env):
     assert len(args) <= 2
@@ -51,3 +53,13 @@ np_attrs = {
     'concatenate': Function_Dummy(),
     'mean': Function_Dummy(),
 }
+
+
+Np2NodeClass = [
+    (numpy.array, Func(xp_array)),
+    (numpy.ceil, Func(xp_ceil)),
+    (numpy.cumsum, Function_Dummy()),
+    (chainer.backends.cuda.to_cpu, Function_Dummy()),
+    # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embed_id.py#L43) のif文を通らないようにする
+    (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
+]

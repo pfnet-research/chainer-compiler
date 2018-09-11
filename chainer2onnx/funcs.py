@@ -154,13 +154,13 @@ class Function_SoftmaxCrossEntropy(object):
 
 class Function_PadSequence(object):
     def call(self, args, keywords, env):
-        assert(len(args) == 1)
+        # assert(len(args) == 1)
 
         v = args[0]
 
         res = new_tensor()
         env.addnode(
-            "OnikuxPadSequenceTekina",
+            "OnikuxSequencePad",
             inputs=[v.name], outputs=[res.name]
         )
         return res
@@ -217,6 +217,10 @@ class Function_Hstack(object):
 class Function_Dummy(object):
     def call(self, args, keywords, env):
         # raise Exception(self,"Unimplemented")
+        env.addnode(
+            "Dummy and should be removed",
+            inputs=[], outputs=[]
+        )
         return new_tensor()
 
 
@@ -230,7 +234,7 @@ Func2NodeClass = [
     (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),
     (F.pad_sequence, Function_PadSequence),
     (F.swapaxes, Function_SwapAxes),
-    
+
     (F.reshape, Function_Dummy),
     (F.vstack, Function_Dummy),
     (F.split_axis, Function_Dummy),

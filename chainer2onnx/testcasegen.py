@@ -30,6 +30,8 @@ def unvariable(xs):
         pass
     elif isinstance(xs, list):
         xs = np.array([unvariable(x) for x in xs])
+    elif isinstance(xs, np.float32) or isinstance(xs, np.int64):
+        pass
     else:
         raise ValueError('Unknown type: {}'.format(type(xs)))
 
@@ -92,7 +94,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
         for i, (name, value) in enumerate(values):
             # とりあえずarrayにする
             # value = unvariable(value)
-            dprint(typ, i, name, value.shape)
+            dprint(typ, i, name, value.shape, value)
             tensor = numpy_helper.from_array(value, name)
             filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
             with open(filename, 'wb') as f:
