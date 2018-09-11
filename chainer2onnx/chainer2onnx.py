@@ -274,11 +274,7 @@ def eval_ast(nast, env):
         # code.InteractiveConsole({'fn': fn}).interact()
 
         # chainer.functions の関数とかは、ここでfookをかける。
-        for fr, to in Func2NodeClass:
-            if fr == fn:
-                return to().call(args, keywords, env)
-
-        for fr, to in Np2NodeClass:
+        for fr, to in Func2NodeClass + Np2NodeClass:
             if fr == fn:
                 return to.call(args, keywords, env)
 
@@ -494,6 +490,8 @@ def eval_ast(nast, env):
         )
 
         # graph内のテンソルのうち、参照すべきものは外から与えないといけないぽい。
+
+        # TODO(satos) 活性解析とかして、 参照すべきテンソルを列挙する
         closure = []  # [env.vars['ps']]
         cnames = list(map(lambda x: x.name, closure))
 
@@ -676,6 +674,8 @@ def chainer2onnx(model, forward):
     # print(env.init_tensors)
     input_tensors += env.init_tensors
 
+    for no in env.nodes:
+        print(no.op_type)
     # print(env.nodes)
     # print(input_tensors)
     # print(output_tensors)

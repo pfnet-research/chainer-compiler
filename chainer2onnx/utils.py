@@ -54,16 +54,40 @@ def totensor(x, env):
         return x
     res = new_tensor()
 
-    assert type(x) == float or type(x) == int
-    env.addnode(
-        'Constant',
-        inputs=[], outputs=[res.name],
-        value=onnx.helper.make_tensor(
-            name="hoge",
-            data_type=(onnx.TensorProto.FLOAT if type(x) ==
-                       float else onnx.TensorProto.INT64),
-            dims=[],
-            vals=[x],
+    if type(x) == float or type(x) == int:
+        if type(x) == float:
+            dt = onnx.TensorProto.FLOAT
+        else:
+            dt = onnx.TensorProto.INT64
+        env.addnode(
+            'Constant',
+            inputs=[], outputs=[res.name],
+            value=onnx.helper.make_tensor(
+                name="hoge",
+                data_type=dt,
+                dims=[],
+                vals=[x],
+            )
         )
-    )
+    elif type(x) == tuple or type(x) == list:
+        def f(v):
+            tv = totensor(v, env)
+            tw = new_tensor()
+            env.addnode(
+                'Unsqueeze',
+                inputs=[tv.name], outputs=[tw.name],
+                axes=[0]
+            )
+            return tw.name
+
+        vs = list(map(f, x))
+        # print(vs)
+        env.addnode(
+            'Concat',
+            inputs=vs, outputs=[res.name],
+            axis=0
+        )
+    else:
+        raise Exception("totensor of %s is not implemented yet" % str(x))
+
     return res

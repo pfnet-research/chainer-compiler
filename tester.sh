@@ -7,6 +7,8 @@ node=(
     NstepLSTM.py
     EmbedID.py
     BatchNorm.py
+    Reshape.py
+    Tanh.py
 )
 
 syntax=(
@@ -14,7 +16,7 @@ syntax=(
     MultiFunction.py
     UserDefinedFunc.py
     Slice.py
-    # ListComp.py
+    ListComp.py
 )
 
 

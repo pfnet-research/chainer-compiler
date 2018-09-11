@@ -5,7 +5,7 @@ from onnx import TensorProto
 
 from chainer import functions as F
 
-from . utils import new_tensor, get_dims, size2d
+from . utils import new_tensor, get_dims, size2d, totensor
 
 import code
 
@@ -188,14 +188,27 @@ class Function_SwapAxes(object):
 
 class Function_Reshape(object):
     def call(self, args, keywords, env):
-        # TODO(satos) あとで実装するんでまって
         assert(len(args) == 2)
 
         v = args[0]
+        w = totensor(args[1], env)
 
         res = new_tensor()
         env.addnode(
-            "ReshapePpoiyatu",
+            "Reshape",
+            inputs=[v.name, w.name], outputs=[res.name],
+            perm=[]
+        )
+        return res
+
+
+class Function_Tanh(object):
+    def call(self, args, keywords, env):
+        assert(len(args) == 1)
+        v = args[0]
+        res = new_tensor()
+        env.addnode(
+            "Tanh",
             inputs=[v.name], outputs=[res.name],
             perm=[]
         )
@@ -215,41 +228,48 @@ class Function_Hstack(object):
 
 
 class Function_Dummy(object):
+    def __init__(self, s=""):
+        self.name = s
+
     def call(self, args, keywords, env):
         # raise Exception(self,"Unimplemented")
         env.addnode(
-            "Dummy and should be removed",
+            "Dummy of %s and should be removed" % self.name,
             inputs=[], outputs=[]
         )
         return new_tensor()
 
 
-Func2NodeClass = [
-    (F.relu, Function_Relu),
-    (F.max_pooling_2d, Function_MaxPool2d),
-    (F.local_response_normalization, Function_LocalRespNorm),
-    (F.dropout, Function_Dropout),
-    (F.concat, Function_Concat),
-    (F.average_pooling_2d, Function_AveragePool2d),
-    (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),
-    (F.pad_sequence, Function_PadSequence),
-    (F.swapaxes, Function_SwapAxes),
-
-    (F.reshape, Function_Dummy),
-    (F.vstack, Function_Dummy),
-    (F.split_axis, Function_Dummy),
-    (F.tanh, Function_Dummy),
-    (F.separate, Function_Dummy),
-    (F.stack, Function_Dummy),
-    (F.flatten, Function_Dummy),
-    (F.accuracy, Function_Dummy),
-    (F.squeeze, Function_Dummy),
-    (F.broadcast_to, Function_Dummy),
-    (F.expand_dims, Function_Dummy),
-    (F.softmax, Function_Dummy),
-    (F.sum, Function_Dummy),
-    (F.hstack, Function_Dummy),
+dummies = [
+    F.vstack,
+    F.split_axis,
+    F.separate,
+    F.stack,
+    F.flatten,
+    F.accuracy,
+    F.squeeze,
+    F.broadcast_to,
+    F.expand_dims,
+    F.softmax,
+    F.sum,
+    F.hstack,
 ]
+
+Func2NodeClass = [
+    (F.relu, Function_Relu()),
+    (F.max_pooling_2d, Function_MaxPool2d()),
+    (F.local_response_normalization, Function_LocalRespNorm()),
+    (F.dropout, Function_Dropout()),
+    (F.concat, Function_Concat()),
+    (F.average_pooling_2d, Function_AveragePool2d()),
+    (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy()),
+    (F.pad_sequence, Function_PadSequence()),
+    (F.swapaxes, Function_SwapAxes()),
+    (F.reshape, Function_Reshape()),
+    (F.tanh, Function_Tanh()),
+] + (
+    list(map(lambda f: (f, Function_Dummy(f)), dummies))
+)
 
 
 class Func(object):
