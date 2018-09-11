@@ -165,6 +165,7 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kGRU:
         case Node::kLSTM: {
             Dtype dtype = CoerceDtype(in0, in1);
             if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
