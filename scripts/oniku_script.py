@@ -2,6 +2,7 @@ import collections
 import os
 import shutil
 
+import numpy as np
 import onnx
 from onnx import numpy_helper
 
@@ -15,7 +16,8 @@ def _extract_value_info(arr, name):
 
 
 def make_constant_node(name, typ, value):
-    tensor = onnx.helper.make_tensor(name + '_val', typ, (), value)
+    value = np.array(value)
+    tensor = onnx.helper.make_tensor(name + '_val', typ, value.shape, value)
     node = onnx.helper.make_node('Constant', inputs=[], outputs=[name],
                                  value=tensor)
     return node
