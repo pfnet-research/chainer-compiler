@@ -465,7 +465,7 @@ def eval_ast(nast, env):
             raise Exception('Not constant If is not implemented yet')
 
     elif isinstance(nast, gast.ListComp):
-        # [ なんやかや for x in xs] 形式のものを Scanで対応する
+        # [ なんやかや for x in xs] 形式のものを Loopで対応する
         assert len(nast.generators) == 1
         gen = nast.generators[0]
         assert len(gen.ifs) == 0
@@ -485,39 +485,46 @@ def eval_ast(nast, env):
         localenv.vars[x] = tx
         ty = eval_ast(nast.elt,  localenv)
 
-        # Scan は map の map なので、一旦[x]で包んでかけてしまう
+        cnt = new_tensor()
+        gtx = new_tensor()
+        localenv.addnode(
+            "Gather",
+            inputs=[gtx.name, cnt.name], outputs=[tx.name],
+            axis=0
+        )
 
         # graph内のテンソルのうち、参照すべきものは外から与えないといけないぽい。
-        closure = [env.vars['xs']]
+        closure = []  # [env.vars['ps']]
         cnames = list(map(lambda x: x.name, closure))
+
+        cond = new_tensor()
         localgraph = helper.make_graph(
             localenv.nodes,
-            "Scan_subgraph", (closure + [tx]), (closure + [ty])
+            "Scan_subgraph", [cnt, cond, gtx] +
+            closure, [cond, gtx] + closure + [ty]
         )
 
-        txs = new_tensor()
+        mtc = new_tensor()
+        v = new_tensor()
         env.addnode(
-            'Unsqueeze',
-            inputs=[xs.name], outputs=[txs.name],
-            axes=[0]
+            "Shape",
+            inputs=[xs.name], outputs=[v.name]
         )
 
-        bres = new_tensor()
         env.addnode(
-            'Scan',
-            inputs=(cnames + [txs.name]), outputs=(["hoge"] + [bres.name]),
-            body=localgraph,
-            num_scan_inputs=1
+            "Gather",
+            inputs=[v.name, totensor(0, env).name], outputs=[mtc.name],
+            axis=0
         )
 
         res = new_tensor()
         env.addnode(
-            'Squeeze',
-            inputs=[bres.name], outputs=[res.name],
-            axes=[0]
+            'Loop',
+            inputs=[mtc.name, "", xs.name] + cnames, outputs=["hoge"] + cnames + [res.name],
+            body=localgraph,
+            num_scan_inputs=1
         )
 
-        res = bres
         return res
 
     elif isinstance(nast, gast.Subscript):
@@ -579,14 +586,6 @@ def eval_ast(nast, env):
 
             return lower, upper, squeeze
 
-        """
-        print('vs',vs)
-        if not istensor(vs):
-           sls = slice2list(nast.slice)
-           print(sls)
-           raise Exception("Unimplemented")
-        """
-
         lower, upper, squeeze = slice2list(nast.slice)
         # print(lower,upper,squeeze)
         res = new_tensor()
@@ -601,7 +600,6 @@ def eval_ast(nast, env):
             env.addnode(
                 'Squeeze',
                 inputs=[res.name], outputs=[r.name],
-                # TODO(satos) このままだといろいろまずいきがする(合わせるとか以前に、indexが可変でない)
                 axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
             )
             res = r

@@ -11,9 +11,11 @@ class A(chainer.Chain):
     def __init__(self):
         super(A, self).__init__()
 
-    def forward(self, xs):
-        return [ (x+3.0) for x in xs]
-
+    def forward(self, xs,ps):
+        y1 =  [ x[3:5] for x in xs]
+        # y2 =  [ x[ps[0]:ps[0]+3] for x in xs]
+        
+        return y1
 
 # ======================================
 
@@ -27,4 +29,5 @@ if __name__ == '__main__':
     model = A()
 
     v = np.random.rand(10,20).astype(np.float32)
-    chainer2onnx.generate_testcase(model, [v])
+    w = np.random.randint(0,5,size=2)
+    chainer2onnx.generate_testcase(model, [v,w])
