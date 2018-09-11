@@ -215,6 +215,7 @@ class AttrDef(object):
         self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m[0].lower(), name)
         self.required = False
         self.value = None
+        self.op_types = []
         if isinstance(value, Required):
             self.required = True
             value = value.v
@@ -245,6 +246,13 @@ class AttrDef(object):
         if 'std::' in typ:
             return f'const {typ}&'
         return typ
+
+    def c_setter_arg_type(self):
+        if self.type == Tensor:
+            return 'Tensor*'
+        if self.type == Graph:
+            return 'Graph*'
+        return self.c_arg_type()
 
     def onnx_type(self, typ=None):
         typ = self.type if typ is None else typ
@@ -290,6 +298,7 @@ for node in NODES:
             assert attr.type == ATTRS[name].type
         else:
             ATTRS[name] = attr
+        ATTRS[name].op_types.append(node.op_type)
 
 
 ATTRS = [a for _, a in sorted(ATTRS.items())]
@@ -321,18 +330,8 @@ def gen_gen_node_base_h():
             public_lines.append(f'return {name}_.release();')
             public_lines.append('}')
 
-        if attr.type == Tensor:
-            public_lines.append(
-                f'NodeBase* set_{name}(Tensor* {name});')
-        elif attr.type == Graph:
-            public_lines.append(
-                f'NodeBase* set_{name}(Graph* {name});')
-        else:
-            public_lines.append(f'NodeBase* set_{name}({arg} {name}) ' + '{')
-            public_lines.append(f'{name}_ = {name};')
-            public_lines.append(f'was_{name}_set_ = true;')
-            public_lines.append('return this;')
-            public_lines.append('}')
+        sarg = attr.c_setter_arg_type()
+        public_lines.append(f'NodeBase* set_{name}({sarg} {name});')
         private_lines.append(f'{typ} {name}_;')
         private_lines.append(f'bool was_{name}_set_ = false;')
 
@@ -435,7 +434,10 @@ def gen_gen_node_base_cc():
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
             blines.append(f'was_{attr.c_name}_set_ = true;')
             bodies.append(blines)
-        bodies.append('unknown_attributes_.push_back(xattr);')
+        bodies.append([
+            'if (!g_permissive) CHECK(false) << "Invalid attribute `"'
+            '<< xattr.name() << "\' for " << OpTypeToString(op_type_);',
+            'unknown_attributes_.push_back(xattr);'])
         lines += codegen_util.cond(conds, bodies)
 
         lines.append('}')
@@ -589,16 +591,16 @@ def gen_gen_node_base_cc():
 
     for attr in ATTRS:
         name = attr.c_name
-        if attr.type == Tensor:
-            lines.append(
-                f'NodeBase* NodeBase::set_{name}(Tensor* {name})' + '{')
-            lines.append(f'{name}_.reset({name});')
-        elif attr.type == Graph:
-            lines.append(
-                f'NodeBase* NodeBase::set_{name}(Graph* {name})' + '{')
+        arg = attr.c_setter_arg_type()
+        lines.append(f'NodeBase* NodeBase::set_{name}({arg} {name}) ' + '{')
+        cond = ' || '.join(f'op_type_ == k{t}' for t in attr.op_types)
+        lines.append(f'CHECK({cond}) << "Invalid attribute `{name}\' for " '
+                     '<< OpTypeToString(op_type_);')
+        if attr.type in [Tensor, Graph]:
             lines.append(f'{name}_.reset({name});')
         else:
-            continue
+            lines.append(f'{name}_ = {name};')
+
         lines.append(f'was_{name}_set_ = true;')
         lines.append('return this;')
         lines.append('}')
