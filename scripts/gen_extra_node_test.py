@@ -398,8 +398,7 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         embed_size = num_hidden
         np.random.seed(42)
         labels = np.array([[1, 2, 3, 7], [4, 5, 0, 0], [6, 0, 0, 0]])
-        #lengths = np.array([4, 2, 1])
-        lengths = np.array([4, 4, 4])
+        lengths = np.array([4, 2, 1])
         embed = np.random.random((num_vocabs, embed_size)).astype(np.float32)
         weight = np.random.random(
             (embed_size, num_hidden * wr)).astype(np.float32)

@@ -1,5 +1,6 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/linalg.h>
+#include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
@@ -180,7 +181,13 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         pf = ps.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
     }
 
-    chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
+    chainerx::Array sequence_mask;
+    if (sequence_lens.has_value()) {
+        sequence_mask = chainerx::Transpose(chainerx::BroadcastTo(chainerx::Arange(seq_length, chainerx::Dtype::kInt64), chainerx::Shape({batch_size, seq_length})));
+        sequence_mask = chainerx::Less(sequence_mask, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(x.dtype());
+    }
+
+    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
         chainerx::Array gates = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
@@ -204,12 +211,26 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         i = Sigmoid(i);
         f = Sigmoid(f);
         nc = Tanh(nc);
-        c = f * c + i * nc;
         o = Sigmoid(o);
-        h = o * Tanh(c);
+        nc = f * c + i * nc;
+        chainerx::Array nh = o * Tanh(nc);
+        if (sequence_lens.has_value()) {
+            chainerx::Array mask = chainerx::Reshape(sequence_mask.At({time}), {batch_size, 1});
+            chainerx::Array nmask = 1 - mask;
+            c = nc * mask + c * nmask;
+            h = nh * mask + h * nmask;
+        } else {
+            c = nc;
+            h = nh;
+        }
 
-        output.At({time, 0}) += h;
+        output.At({time}) += h;
     }
+
+    if (sequence_lens.has_value()) {
+        output *= chainerx::Reshape(sequence_mask, {seq_length, batch_size, 1});
+    }
+    output = chainerx::Reshape(output, {seq_length, 1, batch_size, hidden_size});
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     c = chainerx::Reshape(c, {1, c.shape()[0], c.shape()[1]});
     return std::make_tuple(output, h, c);
