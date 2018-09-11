@@ -486,6 +486,12 @@ private:
 
             EmitNode(*node, prog);
 
+            for (const Value* output : node->outputs()) {
+                if (output->kind() == Value::Kind::kTemp &&
+                    output->users().empty())
+                    AddFreeOp(prog, GetValueId(output));
+            }
+
             for (const Value* input : node->inputs()) {
                 auto found = num_users.find(input);
                 if (found == num_users.end()) continue;
