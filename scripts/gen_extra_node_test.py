@@ -386,6 +386,13 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         if cell_type == 'LSTM':
             wr = 8
             perm = [0, 2, 1, 3, 4, 6, 5, 7]
+            num_direction = 1
+            direction = 'forward'
+        elif cell_type == 'BiLSTM':
+            wr = 16
+            perm = np.tile([0, 2, 1, 3], 4) + np.repeat(np.arange(4), 4) * 4
+            num_direction = 2
+            direction = 'bidirectional'
         else:
             raise RuntimeError('Unknown cell_type: %s' % cell_type)
         embed_size = num_hidden
@@ -400,7 +407,8 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         linear = np.random.random((num_hidden, 2)).astype(np.float32)
 
         x = F.embed_id(labels, embed)
-        state = np.zeros((1, len(labels), num_hidden)).astype(np.float32)
+        state = np.zeros(
+            (num_direction, len(labels), num_hidden)).astype(np.float32)
         xs = F.transpose_sequence([v[:l] for v, l in zip(x, lengths)])
         ch_weight = np.split(weight, wr, axis=1)
         ch_weight = [ch_weight[i] for i in perm]
@@ -413,28 +421,43 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
                                               [ch_weight],
                                               [ch_bias],
                                               xs)
+        elif cell_type == 'BiLSTM':
+            h, _, rnn_outputs = F.n_step_bilstm(1, 0.0,
+                                                state,
+                                                state,
+                                                [ch_weight[:8], ch_weight[8:]],
+                                                [ch_bias[:8], ch_bias[8:]],
+                                                xs)
+        shape = (len(labels) * num_direction, num_hidden)
+        h = F.reshape(h, shape)
         rnn_outputs = F.pad_sequence(rnn_outputs)
         rnn_outputs = F.expand_dims(rnn_outputs, axis=1)
-        result = F.linear(h[0], np.transpose(linear))
+        result = F.linear(h, np.transpose(linear))
 
         weight_w, weight_r = np.split(weight, 2, axis=1)
         labels_v = gb.input('labels', labels)
         lengths_v = gb.input('lengths', lengths)
         embed_v = gb.param('embed', embed)
-        weight_w_v = gb.param('weight_w',
-                              np.expand_dims(np.transpose(weight_w), axis=0))
-        weight_r_v = gb.param('weight_r',
-                              np.expand_dims(np.transpose(weight_r), axis=0))
-        bias_v = gb.param('bias', np.expand_dims(bias, axis=0))
+        weight_w_v = gb.param(
+            'weight_w',
+            np.reshape(np.transpose(weight_w),
+                       (num_direction, -1, embed_size)))
+        weight_r_v = gb.param(
+            'weight_r',
+            np.reshape(np.transpose(weight_r),
+                       (num_direction, -1, num_hidden)))
+        bias_v = gb.param('bias', np.reshape(bias, (num_direction, -1)))
         linear_v = gb.param('linear', linear)
 
         x = gb.Gather([embed_v, labels_v])
         x = gb.Transpose([x], perm=[1, 0, 2])
-        if cell_type == 'LSTM':
+        if cell_type in ['LSTM', 'BiLSTM']:
             rnn_outputs_v, h = gb.LSTM(
                 [x, weight_w_v, weight_r_v, bias_v, lengths_v],
-                outputs=['rnn_outputs', 'last_state'])
-        h = gb.Squeeze([h], axes=[0])
+                outputs=['rnn_outputs', 'last_state'],
+                direction=direction)
+        shape_v = gb.const(onnx.TensorProto.INT64, shape)
+        h = gb.Reshape([h, shape_v])
         result_v = gb.MatMul([h, linear_v])
         gb.output(rnn_outputs_v, rnn_outputs.array)
         gb.output(result_v, result.array)
@@ -491,6 +514,8 @@ def get_tests():
 
         TestCase('extra_test_imdb', gen_imdb_test(), fail=True),
         TestCase('extra_test_imdb_lstm', gen_imdb_rnn_test('LSTM'), rtol=0.2),
+        TestCase('extra_test_imdb_bilstm', gen_imdb_rnn_test('BiLSTM'),
+                 fail=True, rtol=0.2),
     ]
 
 
