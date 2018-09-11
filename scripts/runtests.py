@@ -221,6 +221,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_softmax_axis_2'),
     TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
     TestCase(NODE_TEST, 'test_logsoftmax_axis_2'),
+    TestCase(NODE_TEST, 'test_softplus'),
+    TestCase(NODE_TEST, 'test_softplus_example'),
+    TestCase(NODE_TEST, 'test_softsign'),
+    TestCase(NODE_TEST, 'test_softsign_example'),
 
     TestCase(NODE_TEST, 'test_sum_example'),
     TestCase(NODE_TEST, 'test_sum_one_input'),

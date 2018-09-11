@@ -343,6 +343,24 @@ bool ReplaceReduceLogSumExp(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSoftplus(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySoftplus", node->outputs()[0]);
+    Value* v0 = gb.Op(Node::kExp, node->inputs());
+    Value* one = gb.Const(Type(node->inputs()[0]->type().dtype(), {}), {1});
+    Value* v1 = gb.Op(Node::kAdd, {v0, one});
+    gb.Op(Node::kLog, {v1}, node->outputs()[0]);
+    return true;
+}
+
+bool ReplaceSoftsign(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySoftsign", node->outputs()[0]);
+    Value* v0 = gb.Op(Node::kAbs, node->inputs());
+    Value* one = gb.Const(Type(node->inputs()[0]->type().dtype(), {}), {1});
+    Value* v1 = gb.Op(Node::kAdd, {v0, one});
+    gb.Op(Node::kDiv, {node->inputs()[0], v1}, node->outputs()[0]);
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph) {
@@ -362,6 +380,8 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kReduceL2, ReplaceReduceL2).second);
     CHECK(simplifiers.emplace(Node::kReduceLogSum, ReplaceReduceLogSum).second);
     CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
+    CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
+    CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
     if (g_replace_constant) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);

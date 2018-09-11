@@ -92,6 +92,8 @@ void InferDtype(Node* node) {
         case Node::kSelu:
         case Node::kLeakyRelu:
         case Node::kElu:
+        case Node::kSoftsign:
+        case Node::kSoftplus:
         case Node::kReduceMean:
         case Node::kHardmax:
         case Node::kDropout:

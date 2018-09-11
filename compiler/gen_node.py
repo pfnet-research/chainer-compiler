@@ -69,6 +69,8 @@ NodeDef('Sigmoid', 1, 1)
 NodeDef('Not', 1, 1)
 NodeDef('Floor', 1, 1)
 NodeDef('Ceil', 1, 1)
+NodeDef('Softplus', 1, 1)
+NodeDef('Softsign', 1, 1)
 
 NodeDef('Add', 2, 1)
 NodeDef('Sub', 2, 1)
