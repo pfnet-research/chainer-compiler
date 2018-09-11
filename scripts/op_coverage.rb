@@ -1,14 +1,16 @@
 #!/usr/bin/ruby
 
-num_passing_node_tests = 0
+passing_node_tests = []
 File.readlines('scripts/runtests.py').each do |line|
   next if line =~ /^ *#/
-  if line =~ /TestCase\(NODE_TEST, /
-    num_passing_node_tests += 1
+  if line =~ /TestCase\(NODE_TEST, '(.*?)'/
+    passing_node_tests << $1
   end
 end
 
-num_node_tests = Dir.glob('onnx/onnx/backend/test/data/node/*').size
+node_tests = Dir.glob('onnx/onnx/backend/test/data/node/*').map do |f|
+  File.basename(f)
+end
 
 onnx_ops = []
 File.readlines('onnx/docs/Operators.md').each do |line|
@@ -48,8 +50,10 @@ end
 supported_ops, onikux_ops = categorize(ops)
 grad_onnx_ops, _ = categorize(grad_ops)
 
+puts "Failing node tests:"
+puts (node_tests - passing_node_tests).sort * "\n"
 puts "Missing ops: #{onnx_ops - supported_ops}"
-puts "Node tests: #{num_passing_node_tests}/#{num_node_tests}"
+puts "Node tests: #{passing_node_tests.size}/#{node_tests.size}"
 puts "Custom ops: #{onikux_ops.size}"
 puts "Differentiable ops: #{grad_onnx_ops.size}"
 puts "Supported ops: #{supported_ops.size}/#{onnx_ops.size}"
