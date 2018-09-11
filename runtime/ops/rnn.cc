@@ -44,7 +44,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
     chainerx::Array h =
             initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
 
-    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+    chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
         chainerx::Array nh = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
@@ -52,7 +52,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
             nh += bm;
         }
         h = Tanh(nh);
-        output.At({time}) += h;
+        output.At({time, 0}) += h;
     }
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     return std::make_tuple(output, h);
@@ -101,7 +101,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     chainerx::Array h =
             initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
 
-    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+    chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
         chainerx::Array gates = chainerx::Dot(cur_x, gates_w) + chainerx::Dot(h, gates_r);
@@ -125,7 +125,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         if (b.has_value()) nh += w_bh;
         nh = Tanh(nh);
         h = (1 - z) * nh + z * h;
-        output.At({time}) += h;
+        output.At({time, 0}) += h;
     }
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     return std::make_tuple(output, h);
@@ -180,7 +180,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         pf = ps.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
     }
 
-    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+    chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
         chainerx::Array gates = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
@@ -208,7 +208,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         o = Sigmoid(o);
         h = o * Tanh(c);
 
-        output.At({time}) += h;
+        output.At({time, 0}) += h;
     }
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     c = chainerx::Reshape(c, {1, c.shape()[0], c.shape()[1]});
