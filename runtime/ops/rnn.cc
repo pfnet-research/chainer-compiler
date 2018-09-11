@@ -8,6 +8,56 @@
 namespace oniku {
 namespace runtime {
 
+std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
+        XCVMState* st,
+        const chainerx::Array& x,
+        const chainerx::Array& w,
+        const chainerx::Array& r,
+        const nonstd::optional<chainerx::Array>& b,
+        const nonstd::optional<chainerx::Array>& sequence_lens,
+        const nonstd::optional<chainerx::Array>& initial_h) {
+    // X: [seq_length, batch_size, input_size]
+    // W: [num_directions, hidden_size, input_size]
+    // R: [num_directions, hidden_size, hidden_size]
+    // B: [num_directions, 2 * hidden_size]
+    // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
+    CHECK_EQ(1, w.shape()[0]) << "Multi-directional RNN is not implemented yet";
+    if (sequence_lens.has_value()) {
+        WARN_ONCE("RNN with sequence_lens is not supported yet");
+    }
+
+    int64_t seq_length = x.shape()[0];
+    int64_t batch_size = x.shape()[1];
+    int64_t hidden_size = w.shape()[1];
+    CHECK_EQ(hidden_size, r.shape()[1]);
+    if (b.has_value()) CHECK_EQ(2 * hidden_size, b.value().shape()[1]);
+
+    chainerx::Array wt = chainerx::Transpose(chainerx::Squeeze(w, {0}));
+    chainerx::Array rt = chainerx::Transpose(chainerx::Squeeze(r, {0}));
+    chainerx::Array bm;
+    if (b.has_value()) {
+        chainerx::Array bs = chainerx::Squeeze(b.value(), {0});
+        chainerx::Array b1 = bs.At({chainerx::Slice(0, hidden_size)});
+        chainerx::Array b2 = bs.At({chainerx::Slice(hidden_size, 2 * hidden_size)});
+        bm = b1 + b2;
+    }
+    chainerx::Array h =
+            initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+
+    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+    for (int64_t time = 0; time < x.shape()[0]; ++time) {
+        chainerx::Array cur_x = x.At({time});
+        chainerx::Array nh = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
+        if (b.has_value()) {
+            nh += bm;
+        }
+        h = Tanh(nh);
+        output.At({time}) += h;
+    }
+    h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
+    return std::make_tuple(output, h);
+}
+
 std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         XCVMState* st,
         const chainerx::Array& x,

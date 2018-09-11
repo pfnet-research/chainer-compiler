@@ -122,6 +122,10 @@ NodeDef('Dropout', 1, (1, 2), ratio=0.5)
 NodeDef('MatMul', 2, 1)
 NodeDef('Gemm', 3, 1, alpha=1.0, beta=1.0, transA=False, transB=False)
 
+NodeDef('RNN', (3, 4, 5, 6), (0, 1, 2),
+        activation_alpha=[float], activation_beta=[float],
+        activations=[str], clip=float, direction='forward',
+        hidden_size=int)
 NodeDef('GRU', (3, 4, 5, 6), (0, 1, 2),
         activation_alpha=[float], activation_beta=[float],
         activations=[str], clip=float, direction='forward',

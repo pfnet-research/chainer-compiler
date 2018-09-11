@@ -165,6 +165,7 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kRNN:
         case Node::kGRU:
         case Node::kLSTM: {
             Dtype dtype = CoerceDtype(in0, in1);

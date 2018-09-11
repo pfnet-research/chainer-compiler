@@ -218,6 +218,13 @@ XC_OPS = [
       Float('alpha'), Float('beta'), Int('trans_a'), Int('trans_b')],
      ['y']),
 
+    ('RNN',
+     [Array('x'), Array('w'), Array('r'),
+      OptionalArray('b'), OptionalArray('sequence_lens'),
+      OptionalArray('initial_h'),
+      Int('hidden_size'),
+     ],
+     ['y', 'y_h']),
     ('GRU',
      [Array('x'), Array('w'), Array('r'),
       OptionalArray('b'), OptionalArray('sequence_lens'),

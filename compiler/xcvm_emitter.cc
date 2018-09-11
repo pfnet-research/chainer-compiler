@@ -212,6 +212,8 @@ private:
             // TODO(xchainer): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
+        } else if (node.op_type() == Node::kRNN) {
+            EMIT(RNN, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size());
         } else if (node.op_type() == Node::kGRU) {
             EMIT(GRU, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), node.linear_before_reset());
         } else if (node.op_type() == Node::kLSTM) {
