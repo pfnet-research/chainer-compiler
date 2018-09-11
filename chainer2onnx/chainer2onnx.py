@@ -142,7 +142,7 @@ class User_Defined_Class(object):
         class Tmp(classtype):
             def __init__(_):
                 pass
-        
+
         # dprint('user defined class of',classtype)
         ch = Tmp()
         ch.__module__ = classtype.__module__
@@ -152,7 +152,7 @@ class User_Defined_Class(object):
             if not isinstance(classtype.__init__, type(str.__init__)):  # slot wrapper というものらしい
                 User_Defined_Func_In_Link(
                     ch, classtype.__init__).call(args, kwargs, env)
-            
+
             return ch
 
         self.init_wrapper = Func(f)
@@ -302,8 +302,8 @@ def eval_ast(nast, env):
             fn = User_Defined_Class(fn).init_wrapper
         elif isinstance(fn, chainer.link.Link):
             fn = convert_link(fn, env)
-        
-        dprint('converted to',fn)
+
+        dprint('converted to', fn)
         return fn.call(args, keywords, env)
 
     elif isinstance(nast, gast.UnaryOp):
@@ -490,19 +490,35 @@ def eval_ast(nast, env):
             axis=0
         )
 
-        # graph内のテンソルのうち、参照すべきものは外から与えないといけないぽい。
-
+        # graph内で参照されるテンソルは入力として与えないといけない。
         # TODO(satos) 活性解析とかして、 参照すべきテンソルを列挙する
-        closure = []  # [env.vars['ps']]
-        cnames = list(map(lambda x: x.name, closure))
-        
+        closure = set()
+        # print(closure)
+        removes = set()
+        for no in localenv.nodes:
+            #code.InteractiveConsole({'v': no}).interact()
+            closure = closure | set(no.input)
+            removes = removes | set(no.output)
+
+        closure = closure - removes
+        # print(closure)
+        cnames = list(closure)
+        closure = []
+        # 名前しか得られないのでテンソルを得る
+        # 生きているのはvarsで参照できるやつだけ...だと思う
+        for _, v in env.vars.items():
+            if istensor(v) and v.name in cnames:
+                closure.append(v)
+
+        cnames = [x.name for x in closure]
+
         # dprint(localenv.nodes)
         # print('ty',ty)
         cond = new_tensor()
         localgraph = helper.make_graph(
             localenv.nodes,
-            "Loop_subgraph", 
-            [cnt, cond, gtx] + closure, 
+            "Loop_subgraph",
+            [cnt, cond, gtx] + closure,
             [cond, gtx] + closure + [ty]
         )
 
@@ -519,11 +535,14 @@ def eval_ast(nast, env):
             axis=0
         )
 
+        dummy_name = ["dummy_" +
+                      new_tensor().name for _ in range(len(cnames)+1)]
         res = new_tensor()
         env.addnode(
             'Loop',
-            inputs=[mtc.name, "", xs.name] + cnames, 
-            outputs=["hoge"] + cnames + [res.name],
+            inputs=[mtc.name, "", xs.name] + cnames,
+            # ほかのと名前が衝突しないようにする
+            outputs=dummy_name+[res.name],
             body=localgraph
         )
 
@@ -678,8 +697,8 @@ def chainer2onnx(model, forward):
     # print(env.init_tensors)
     input_tensors += env.init_tensors
 
-    for no in env.nodes:
-        print(no.op_type)
+    # for no in env.nodes:
+    #    print(no.op_type)
     # print(env.nodes)
     # print(input_tensors)
     # print(output_tensors)

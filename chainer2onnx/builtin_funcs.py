@@ -24,25 +24,25 @@ class Builtin_Len(object):
         )
 
         return res
-    
+
 
 def builtin_range(args, _, env):
     assert len(args) <= 1  # TODO(satos) 一般的にする
-     
+
     if not any(map(istensor, args)):
         # print('constant loop',args)
         return range(*args)
-    
+
     a = new_tensor()
     b = new_tensor()
     res = new_tensor()
     env.addnode(
         'Loop',
-        inputs=[args[0].name,""],outputs=[res.name],
+        inputs=[args[0].name, ""], outputs=[res.name],
         body=helper.make_graph(
             [],
             "Range_subgraph",
-            [a,b],[b,a]
+            [a, b], [b, a]
         )
     )
     return res

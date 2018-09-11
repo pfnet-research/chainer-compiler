@@ -217,10 +217,8 @@ class Function_Tanh(object):
         return res
 
 
-
-
 class Np_Array(object):
-    def call(self,args, keywords, env):
+    def call(self, args, keywords, env):
         assert len(args) <= 2
         # TODO(satos) 型のこと考える
         v = args[0]
@@ -238,13 +236,13 @@ class Np_Array(object):
             )
         )
         return res
-    
+
 
 class Np_Int32(object):
-    def call(self,args, keywords, env):
+    def call(self, args, keywords, env):
         assert len(args) == 1
         v = args[0]
-        tt = TensorProto.INT32  
+        tt = TensorProto.INT32
         res = new_tensor()
         res.type.tensor_type.elem_type = tt
         env.addnode(
@@ -256,7 +254,7 @@ class Np_Int32(object):
 
 
 class Xp_Np_Ceil(object):
-    def call(self,args, _, env):
+    def call(self, args, _, env):
         assert len(args) == 1
         res = new_tensor()
         env.addnode(
@@ -264,10 +262,10 @@ class Xp_Np_Ceil(object):
             inputs=[args[0].name], outputs=[res.name]
         )
         return res
-    
+
 
 class Cuda_ToCpu(object):
-    def call(self,args, _, env):
+    def call(self, args, _, env):
         assert len(args) == 1
         # TODO(satos) gpuからcpuに移ったというデータをどうにかして載せる
         return args[0]
@@ -316,9 +314,11 @@ dummies = [
     numpy.cumsum,
 ]
 
+
 class Func(object):
     def __init__(self, f):
         self.call = f
+
 
 Func2NodeClass = [
     (F.relu, Function_Relu()),
@@ -343,5 +343,3 @@ Func2NodeClass = [
 ] + (
     list(map(lambda f: (f, Function_Dummy(f)), dummies))
 )
-
-

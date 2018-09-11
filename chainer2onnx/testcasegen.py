@@ -33,7 +33,7 @@ def unvariable(xs):
     elif (
             isinstance(xs, np.float32) or
             isinstance(xs, np.float64) or
-            isinstance(xs, np.int32)   or
+            isinstance(xs, np.int32) or
             isinstance(xs, np.int64)):
         pass
     else:

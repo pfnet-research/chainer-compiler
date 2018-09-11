@@ -12,8 +12,8 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, xs,p):
-        y1 = [np.int32(x) for x in range(p)]
-        # y1 =  [ xs[x,x+2] for x in range(p)]
+        # y1 = [np.int32(x) for x in range(p)]
+        y1 =  [ xs[x,x+2] for x in range(p)]
         # y2 =  [ x[ps[0]:ps[0]+3] for x in xs]
         
         return y1

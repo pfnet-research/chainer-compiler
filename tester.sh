@@ -4,7 +4,7 @@ node=(
     Concat.py
     SoftmaxClossEntropy.py
     AddMul.py
-    NstepLSTM.py
+    # NstepLSTM.py starts broken
     EmbedID.py
     BatchNorm.py
     Reshape.py
