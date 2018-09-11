@@ -488,7 +488,9 @@ private:
 
             for (const Value* output : node->outputs()) {
                 if (output->kind() == Value::Kind::kTemp &&
-                    output->users().empty())
+                    output->users().empty() &&
+                    // TODO(hamaji): Figure out how we should handle batch norm.
+                    node->op_type() != Node::kBatchNormalization)
                     AddFreeOp(prog, GetValueId(output));
             }
 

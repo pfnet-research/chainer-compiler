@@ -87,7 +87,7 @@ void XCVMState::SetVar(int index, const chainerx::Array& value) {
 void XCVMState::FreeVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
-    CHECK(variables_[index].get());
+    CHECK(variables_[index].get()) << index;
     variables_[index].reset();
     auxiliaries_[index] = nullptr;
 }
