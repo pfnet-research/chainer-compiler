@@ -1,16 +1,19 @@
 """Yet another ONNX test generator for custom ops and new ops."""
 
 
-import os
-import shutil
-
 import chainer
 import numpy as np
 import onnx
-from onnx import numpy_helper
+
+import oniku_script
 
 
 F = chainer.functions
+
+
+_extract_value_info = oniku_script._extract_value_info
+make_constant_node = oniku_script.make_constant_node
+gen_test = oniku_script.gen_test
 
 
 def V(a):
@@ -22,14 +25,6 @@ def aranges(*shape):
     for d in shape:
         r *= d
     return np.arange(r).reshape(shape).astype(np.float32)
-
-
-# From onnx/backend/test/case/node/__init__.py
-def _extract_value_info(arr, name):
-    return onnx.helper.make_tensor_value_info(
-        name=name,
-        elem_type=onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[arr.dtype],
-        shape=arr.shape)
 
 
 def expect(node, inputs, outputs, name):
@@ -53,24 +48,6 @@ def expect(node, inputs, outputs, name):
         inputs=inputs_vi,
         outputs=outputs_vi)
     gen_test(graph, inputs, outputs, name)
-
-
-def gen_test(graph, inputs, outputs, name):
-    model = onnx.helper.make_model(graph, producer_name='backend-test')
-
-    test_dir = os.path.join('out', name)
-    test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
-    if os.path.exists(test_dir):
-        shutil.rmtree(test_dir)
-    os.makedirs(test_data_set_dir)
-    with open(os.path.join(test_dir, 'model.onnx'), 'wb') as f:
-        f.write(model.SerializeToString())
-    for typ, values in [('input', inputs), ('output', outputs)]:
-        for i, (name, value) in enumerate(values):
-            filename = os.path.join(test_data_set_dir, '%s_%d.pb' % (typ, i))
-            tensor = numpy_helper.from_array(value, name)
-            with open(filename, 'wb') as f:
-                f.write(tensor.SerializeToString())
 
 
 def gen_select_item_test(test_name):
@@ -130,13 +107,6 @@ def gen_scan_sum_test(test_name):
            inputs=[state, inputs1, inputs2],
            outputs=[out_state, outputs, out_all_states],
            name=test_name)
-
-
-def make_constant_node(name, typ, value):
-    tensor = onnx.helper.make_tensor(name + '_val', typ, (), value)
-    node = onnx.helper.make_node('Constant', inputs=[], outputs=[name],
-                                 value=tensor)
-    return node
 
 
 def gen_loop_test(max_trip_count=7,
@@ -332,59 +302,36 @@ def gen_sequence_pad_test(test_name):
 
 
 def gen_sequence_split_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
     inputs = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
     lengths = np.array([3, 1, 2])
-    nodes = []
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceSplit',
-        inputs=['input'],
-        outputs=['seq']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceSplit',
-        inputs=['lengths'],
-        outputs=['lengths_seq']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceUnpad',
-        inputs=['input', 'lengths_seq'],
-        outputs=['unpadded']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceSplit',
-        axis=1,
-        inputs=['input'],
-        outputs=['seq_a1']))
+
+    inputs_v = gb.input('input', inputs)
+    lengths_v = gb.input('lengths', lengths)
+
+    seq_v = gb.OnikuxSequenceSplit(inputs=[inputs_v], outputs=['seq'])
+    lengths_seq_v = gb.OnikuxSequenceSplit(inputs=[lengths_v],
+                                           outputs=['lengths_seq'])
+    unpadded_v = gb.OnikuxSequenceUnpad(inputs=[inputs_v, lengths_seq_v],
+                                        outputs=['unpadded'])
+    seq_a1_v = gb.OnikuxSequenceSplit(axis=1,
+                                      inputs=[inputs_v],
+                                      outputs=['seq_a1'])
 
     for i in range(4):
-        nodes.append(make_constant_node(
-            'index_%d' % i, onnx.TensorProto.INT64, [i]))
+        index_v = gb.const(onnx.TensorProto.INT64, [i], name='index_%d' % i)
         if i < 3:
-            nodes.append(onnx.helper.make_node(
-                'OnikuxSequenceLookup',
-                inputs=['seq', 'index_%d' % i],
-                outputs=['split_result_%d' % i]))
-            nodes.append(onnx.helper.make_node(
-                'OnikuxSequenceLookup',
-                inputs=['unpadded', 'index_%d' % i],
-                outputs=['unpad_result_%d' % i]))
-        nodes.append(onnx.helper.make_node(
-            'OnikuxSequenceLookup',
-            inputs=['seq_a1', 'index_%d' % i],
-            outputs=['split_a1_result_%d' % i]))
+            gb.output(gb.OnikuxSequenceLookup(
+                inputs=[seq_v, index_v],
+                outputs=['split_result_%d' % i]), inputs[i])
+            gb.output(gb.OnikuxSequenceLookup(
+                inputs=[unpadded_v, index_v],
+                outputs=['unpad_result_%d' % i]), inputs[i][:lengths[i]])
+        gb.output(gb.OnikuxSequenceLookup(
+            inputs=[seq_a1_v, index_v],
+            outputs=['split_a1_result_%d' % i]), inputs[:, i])
 
-    outputs = []
-    for i in range(3):
-        outputs.append(('split_result_%d' % i, inputs[i]))
-        outputs.append(('unpad_result_%d' % i, inputs[i][:lengths[i]]))
-    for i in range(4):
-        outputs.append(('split_a1_result_%d' % i, inputs[:, i]))
-    inputs = [('input', inputs), ('lengths', lengths)]
-    inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
-    outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
-    graph = onnx.helper.make_graph(
-        nodes=nodes,
-        name=test_name,
-        inputs=inputs_vi,
-        outputs=outputs_vi)
-    gen_test(graph, inputs, outputs, name=test_name)
+    gb.gen_test()
 
 
 class TestCase(object):
@@ -437,7 +384,8 @@ def main():
     for test in get_tests():
         test.func(test.name)
     # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/extra_test_stamp', 'w'): pass
+    with open('scripts/extra_test_stamp', 'w'):
+        pass
 
 
 if __name__ == '__main__':
