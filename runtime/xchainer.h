@@ -43,5 +43,9 @@ std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vect
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding);
 
+chainerx::Array Sigmoid(chainerx::Array a);
+
+chainerx::Array Tanh(chainerx::Array a);
+
 }  // namespace runtime
 }  // namespace oniku

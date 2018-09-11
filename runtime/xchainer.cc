@@ -207,5 +207,20 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
     return result;
 }
 
+
+chainerx::Array Sigmoid(chainerx::Array a) {
+    // TODO(hamaji): Revisit implementation of this function.
+    CHECK(a.dtype() == chainerx::Dtype::kFloat32);
+    float f = 1.0f;
+    chainerx::Array one = MakeArray(a.dtype(), {}, &f);
+    return one / (one + chainerx::Exp(-a));
+}
+
+chainerx::Array Tanh(chainerx::Array a) {
+    chainerx::Array p = chainerx::Exp(a);
+    chainerx::Array m = chainerx::Exp(-a);
+    return (p - m) / (p + m);
+}
+
 }  // namespace runtime
 }  // namespace oniku
