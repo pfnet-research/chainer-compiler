@@ -14,15 +14,9 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, xs, xss, ps):
-        y1 = xs[2]
-        y2 = xs[3:5]
-        y3 = xs[ps[0]]
-        y4 = xs[ps[0]:ps[0]+2]
-        y5 = xss[ps[0]:10,ps[1]:ps[1]+4]
-        y6 = xss[ps[0],ps[1]:ps[1]+4]
         y7 = xss[3,ps[0]]
-        # TODO(satos) listによるインデクシングもできるようにする
-        #y8 = xs[[1,3,5]]
+        #print(ps,xs[ps[0]:ps[0]+3])
+        # ys = [xs[p] for p in ps]
         return y1,y2,y3,y4,y5,y6,y7
 
 # ======================================

@@ -311,7 +311,8 @@ class Link_NstepBiLSTM(object):
                 inputs=[v.name, self.ws[i].W.name,
                         self.ws[i].R.name, self.ws[i].B.name],
                 outputs=[ys.name, h.name, c.name],
-                hidden_size=self.out_size
+                hidden_size=self.out_size,
+                direction="bidirectional"
             )
 
             hs.append(h.name)

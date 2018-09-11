@@ -80,7 +80,7 @@ def collect_inits(lk, pathname):
 
         return res
 
-    elif isinstance(lk, L.NStepLSTM):
+    elif isinstance(lk, L.NStepBiLSTM):
         # 先にこちらで集めてしまう
         for i, clk in enumerate(lk.children()):
             # for t in range(0,8):

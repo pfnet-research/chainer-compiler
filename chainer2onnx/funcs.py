@@ -4,8 +4,10 @@ from onnx import helper
 from onnx import TensorProto
 
 from chainer import functions as F
+import chainer
+import numpy
 
-from . utils import new_tensor, get_dims, size2d, totensor
+from . utils import new_tensor, get_dims, size2d, istensor, totensor
 
 import code
 
@@ -215,16 +217,74 @@ class Function_Tanh(object):
         return res
 
 
+
+
+class Np_Array(object):
+    def call(self,args, keywords, env):
+        assert len(args) <= 2
+        # TODO(satos) 型のこと考える
+        v = args[0]
+        res = new_tensor()
+        if istensor(v):
+            return v
+        env.addnode(
+            'Constant',
+            inputs=[], outputs=[res.name],
+            value=onnx.helper.make_tensor(
+                name="hoge",
+                data_type=onnx.TensorProto.FLOAT,
+                dims=[],
+                vals=v,
+            )
+        )
+        return res
+    
+
+class Np_Int32(object):
+    def call(self,args, keywords, env):
+        assert len(args) == 1
+        v = args[0]
+        tt = TensorProto.INT32  
+        res = new_tensor()
+        res.type.tensor_type.elem_type = tt
+        env.addnode(
+            'Cast',
+            inputs=[v.name], outputs=[res.name],
+            to=tt
+        )
+        return res
+
+
+class Xp_Np_Ceil(object):
+    def call(self,args, _, env):
+        assert len(args) == 1
+        res = new_tensor()
+        env.addnode(
+            'Ceil',
+            inputs=[args[0].name], outputs=[res.name]
+        )
+        return res
+    
+
+class Cuda_ToCpu(object):
+    def call(self,args, _, env):
+        assert len(args) == 1
+        # TODO(satos) gpuからcpuに移ったというデータをどうにかして載せる
+        return args[0]
+
+
 class Function_Vstack(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
-        return Function_Concat().call([args[0]], {'axis': 0}, env)
+        print(args)
+        print(list(map(lambda x: x.name, args)))
+        return Function_Concat().call([args], {'axis': 0}, env)
 
 
 class Function_Hstack(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
-        return Function_Concat().call([args[0]], {'axis': 1}, env)
+        return Function_Concat().call([args], {'axis': 1}, env)
 
 
 class Function_Dummy(object):
@@ -253,7 +313,12 @@ dummies = [
     F.softmax,
     F.sum,
     F.hstack,
+    numpy.cumsum,
 ]
+
+class Func(object):
+    def __init__(self, f):
+        self.call = f
 
 Func2NodeClass = [
     (F.relu, Function_Relu()),
@@ -267,11 +332,16 @@ Func2NodeClass = [
     (F.swapaxes, Function_SwapAxes()),
     (F.reshape, Function_Reshape()),
     (F.tanh, Function_Tanh()),
+    (numpy.array, Np_Array()),
+    (numpy.ceil, Xp_Np_Ceil()),
+    (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
+    (F.vstack, Function_Vstack()),
+    (numpy.int32, Np_Int32()),
+
+    # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embe    d_id.py#L43) のif文を通らないようにする
+    (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
 ] + (
     list(map(lambda f: (f, Function_Dummy(f)), dummies))
 )
 
 
-class Func(object):
-    def __init__(self, f):
-        self.call = f

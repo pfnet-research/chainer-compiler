@@ -14,8 +14,8 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, xs, ilens):
-        print(xs)
-        xs = [xs[i, :ilens[i], :] for i in range(len(ilens))]
+        #print(xs)
+        xs = 
         xs = F.pad_sequence(xs)
         return xs
 

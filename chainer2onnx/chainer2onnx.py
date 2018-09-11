@@ -18,7 +18,6 @@ from . test_args import dprint
 from . utils import new_tensor, clip_head, ValueReturn, istensor, totensor
 from . links import Link2NodeClass
 from . funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy
-from . xp_numpy import Np2NodeClass
 from . builtin_funcs import builtin_functions
 
 import builtins
@@ -143,16 +142,17 @@ class User_Defined_Class(object):
         class Tmp(classtype):
             def __init__(_):
                 pass
-
+        
+        # dprint('user defined class of',classtype)
         ch = Tmp()
         ch.__module__ = classtype.__module__
 
         # code.InteractiveConsole({'v': classtype.__init__}).interact()
         def f(args, kwargs, env):
-
             if not isinstance(classtype.__init__, type(str.__init__)):  # slot wrapper というものらしい
                 User_Defined_Func_In_Link(
                     ch, classtype.__init__).call(args, kwargs, env)
+            
             return ch
 
         self.init_wrapper = Func(f)
@@ -274,7 +274,7 @@ def eval_ast(nast, env):
         # code.InteractiveConsole({'fn': fn}).interact()
 
         # chainer.functions の関数とかは、ここでfookをかける。
-        for fr, to in Func2NodeClass + Np2NodeClass:
+        for fr, to in Func2NodeClass:
             if fr == fn:
                 return to.call(args, keywords, env)
 
@@ -302,7 +302,8 @@ def eval_ast(nast, env):
             fn = User_Defined_Class(fn).init_wrapper
         elif isinstance(fn, chainer.link.Link):
             fn = convert_link(fn, env)
-
+        
+        dprint('converted to',fn)
         return fn.call(args, keywords, env)
 
     elif isinstance(nast, gast.UnaryOp):
@@ -494,12 +495,15 @@ def eval_ast(nast, env):
         # TODO(satos) 活性解析とかして、 参照すべきテンソルを列挙する
         closure = []  # [env.vars['ps']]
         cnames = list(map(lambda x: x.name, closure))
-
+        
+        # dprint(localenv.nodes)
+        # print('ty',ty)
         cond = new_tensor()
         localgraph = helper.make_graph(
             localenv.nodes,
-            "Scan_subgraph", [cnt, cond, gtx] +
-            closure, [cond, gtx] + closure + [ty]
+            "Loop_subgraph", 
+            [cnt, cond, gtx] + closure, 
+            [cond, gtx] + closure + [ty]
         )
 
         mtc = new_tensor()
@@ -518,9 +522,9 @@ def eval_ast(nast, env):
         res = new_tensor()
         env.addnode(
             'Loop',
-            inputs=[mtc.name, "", xs.name] + cnames, outputs=["hoge"] + cnames + [res.name],
-            body=localgraph,
-            num_scan_inputs=1
+            inputs=[mtc.name, "", xs.name] + cnames, 
+            outputs=["hoge"] + cnames + [res.name],
+            body=localgraph
         )
 
         return res
