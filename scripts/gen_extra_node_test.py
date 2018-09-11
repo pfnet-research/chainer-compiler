@@ -323,7 +323,7 @@ def gen_sequence_split_test(test_name):
     gb.gen_test()
 
 
-def gen_imdb_test(num_vocabs=10, num_hidden=16):
+def gen_imdb_test(num_vocabs=10, num_hidden=5):
     def fn(test_name):
         embed_size = num_hidden
         np.random.seed(42)
@@ -339,10 +339,15 @@ def gen_imdb_test(num_vocabs=10, num_hidden=16):
         x = F.embed_id(labels, embed)
         state = np.zeros((1, len(labels), num_hidden)).astype(np.float32)
         xs = F.transpose_sequence([v[:l] for v, l in zip(x, lengths)])
+        perm = [1, 0, 2, 4, 3, 5]
+        ch_weight = np.split(weight, 6, axis=1)
+        ch_weight = [ch_weight[i] for i in perm]
+        ch_bias = np.split(bias, 6, axis=0)
+        ch_bias = [ch_bias[i] for i in perm]
         h, gru_outputs = F.n_step_gru(1, 0.0,
                                       state,
-                                      [np.split(weight, 6, axis=1)],
-                                      [np.split(bias, 6, axis=0)],
+                                      [ch_weight],
+                                      [ch_bias],
                                       xs)
         gru_outputs = F.pad_sequence(gru_outputs)
         gru_outputs = F.expand_dims(gru_outputs, axis=1)
@@ -363,11 +368,12 @@ def gen_imdb_test(num_vocabs=10, num_hidden=16):
         x = gb.Transpose([x], perm=[1, 0, 2])
         gru_outputs_v, h = gb.GRU(
             [x, weight_w_v, weight_r_v, bias_v, lengths_v],
-            outputs=['gru_outputs', 'last_state'])
+            outputs=['gru_outputs', 'last_state'],
+            linear_before_reset=1)
         h = gb.Squeeze([h], axes=[0])
         result_v = gb.MatMul([h, linear_v])
-        gb.output(result_v, result.array)
         gb.output(gru_outputs_v, gru_outputs.array)
+        gb.output(result_v, result.array)
 
         gb.gen_test()
 
