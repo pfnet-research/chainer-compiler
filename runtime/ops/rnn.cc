@@ -183,7 +183,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
 
     chainerx::Array sequence_mask;
     if (sequence_lens.has_value()) {
-        sequence_mask = chainerx::Transpose(chainerx::BroadcastTo(chainerx::Arange(seq_length, chainerx::Dtype::kInt64), chainerx::Shape({batch_size, seq_length})));
+        sequence_mask = chainerx::Transpose(chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype()), chainerx::Shape({batch_size, seq_length})));
         sequence_mask = chainerx::Less(sequence_mask, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(x.dtype());
     }
 
