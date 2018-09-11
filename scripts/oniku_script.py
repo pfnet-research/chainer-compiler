@@ -49,7 +49,7 @@ class GraphBuilder(object):
 
     def __getattr__(self, name):
         if not name[0].isupper():
-            super(GraphBuilder, self).__getattr__(name)
+            raise AttributeError('Unknown attribute: %s' % name)
 
         def make_node(outputs=None, **kwargs):
             return self.make_node(name, outputs=outputs, **kwargs)
@@ -58,7 +58,7 @@ class GraphBuilder(object):
 
     def make_node(self, name, outputs=None, **kwargs):
         if outputs is None:
-            outputs = ['%s_%d' % (name, self.gen_id(name))]
+            outputs = [self.gen_id(name)]
         elif isinstance(outputs, str):
             outputs = [outputs]
         node = onnx.helper.make_node(name, outputs=outputs, **kwargs)
@@ -70,8 +70,8 @@ class GraphBuilder(object):
 
     def gen_id(self, name):
         oid = self.ids[name]
-        self.gen_name[name] += 1
-        return oid
+        self.ids[name] += 1
+        return '%s_%d' % (name, oid)
 
     def input(self, name, value):
         self.inputs.append((name, value))

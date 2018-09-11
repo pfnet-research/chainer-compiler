@@ -243,45 +243,34 @@ def gen_sequence_test(test_name):
 
 
 def gen_sequence_pad_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
     inputs = [np.array(a) for a in [[1, 2, 3], [4], [5, 6]]]
-    nodes = []
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceCreate',
-        inputs=[],
-        outputs=['seq0']))
+    gb.OnikuxSequenceCreate(inputs=[], outputs=['seq0'])
 
     for i, input in enumerate(inputs):
-        nodes.append(onnx.helper.make_node(
-            'OnikuxSequenceAppend',
-            inputs=['seq%d' % i, 'in%d' % i],
-            outputs=['seq%d' % (i + 1)]))
+        gb.OnikuxSequenceAppend(inputs=['seq%d' % i, 'in%d' % i],
+                                outputs=['seq%d' % (i + 1)])
 
     index_value = 1
-    nodes.append(make_constant_node(
-        'index', onnx.TensorProto.INT64, [index_value]))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceLookup',
-        inputs=['seq3', 'index'],
-        outputs=['lookup_result']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequencePad',
+    index_v = gb.const(onnx.TensorProto.INT64, [index_value])
+    gb.OnikuxSequenceLookup(
+        inputs=['seq3', index_v],
+        outputs=['lookup_result'])
+    gb.OnikuxSequencePad(
         value=-42.0,
         length=4,
         inputs=['seq3'],
-        outputs=['pad3_result']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequencePad',
+        outputs=['pad3_result'])
+    gb.OnikuxSequencePad(
         value=-42.0,
         inputs=['seq2'],
-        outputs=['pad2_result']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceLengths',
+        outputs=['pad2_result'])
+    gb.OnikuxSequenceLengths(
         inputs=['seq3'],
-        outputs=['seq3_lengths_seq']))
-    nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceStack',
+        outputs=['seq3_lengths_seq'])
+    gb.OnikuxSequenceStack(
         inputs=['seq3_lengths_seq'],
-        outputs=['seq3_lengths']))
+        outputs=['seq3_lengths'])
 
     padded = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
     outputs = [
@@ -294,7 +283,7 @@ def gen_sequence_pad_test(test_name):
     inputs_vi = [_extract_value_info(a, n) for n, a in inputs]
     outputs_vi = [_extract_value_info(a, n) for n, a in outputs]
     graph = onnx.helper.make_graph(
-        nodes=nodes,
+        nodes=gb.nodes,
         name=test_name,
         inputs=inputs_vi,
         outputs=outputs_vi)
@@ -314,9 +303,9 @@ def gen_sequence_split_test(test_name):
                                            outputs=['lengths_seq'])
     unpadded_v = gb.OnikuxSequenceUnpad(inputs=[inputs_v, lengths_seq_v],
                                         outputs=['unpadded'])
-    seq_a1_v = gb.OnikuxSequenceSplit(axis=1,
-                                      inputs=[inputs_v],
-                                      outputs=['seq_a1'])
+    seq_a1_v = gb.OnikuxSequenceSplit(inputs=[inputs_v],
+                                      outputs=['seq_a1'],
+                                      axis=1)
 
     for i in range(4):
         index_v = gb.const(onnx.TensorProto.INT64, [i], name='index_%d' % i)
