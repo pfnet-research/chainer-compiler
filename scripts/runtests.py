@@ -29,7 +29,7 @@ TEST_PATHS = set()
 
 class TestCase(object):
 
-    def __init__(self, dirname, name, rtol=1e-4, fail=False,
+    def __init__(self, dirname, name, rtol=None, fail=False,
                  skip_shape_inference=False):
         self.dirname = dirname
         self.name = name
@@ -362,7 +362,8 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
 for test in gen_extra_node_test.get_tests():
     dirname = 'out'
     assert os.path.exists(os.path.join(dirname, test.name))
-    TEST_CASES.append(TestCase(dirname, test.name, fail=test.fail))
+    TEST_CASES.append(TestCase(dirname, test.name,
+                               rtol=test.rtol, fail=test.fail))
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
@@ -387,7 +388,8 @@ def main():
     unexpected_pass = 0
     for test_case in TEST_CASES:
         args = ['tools/run_onnx', '--test', test_case.test_dir, '--quiet']
-        args += ['--rtol', str(test_case.rtol)]
+        if test_case.rtol is not None:
+            args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
             args.append('--skip_shape_inference')
         if test_case.name.startswith('backprop_'):
