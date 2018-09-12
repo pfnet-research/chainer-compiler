@@ -4,7 +4,7 @@
 
 #include <chainerx/dtype.h>
 
-#include <runtime/xchainer.h>
+#include <runtime/xcvm.h>
 
 namespace oniku {
 

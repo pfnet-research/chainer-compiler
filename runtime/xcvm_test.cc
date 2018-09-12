@@ -11,6 +11,7 @@
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_proto_util.h>
+#include <runtime/xcvm_var.h>
 
 namespace oniku {
 namespace runtime {
@@ -29,13 +30,14 @@ TEST(XCVMTest, Run) {
 
     XCVM xcvm(program);
     InOuts inputs;
-    inputs["in1"] = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
-    inputs["in2"] = chainerx::OnesLike(inputs["in1"]);
+    chainerx::Array in1 = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
+    inputs.emplace("in1", new XCVMVar(in1));
+    inputs.emplace("in2", new XCVMVar(chainerx::OnesLike(in1)));
     InOuts outputs = xcvm.Run(inputs, XCVMOptions());
     ASSERT_EQ(1, outputs.count("out"));
     chainerx::Array e = chainerx::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
     // TODO(hamaji): Use EXPECT_ARRAY_EQ after fixing namespace?
-    EXPECT_TRUE(chainerx::AllClose(e, outputs["out"], 0, 0));
+    EXPECT_TRUE(chainerx::AllClose(e, outputs["out"]->GetArray(), 0, 0));
 }
 
 }  // namespace

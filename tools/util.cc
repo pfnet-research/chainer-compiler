@@ -8,6 +8,7 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 #include <runtime/xchainer.h>
+#include <runtime/xcvm_var.h>
 
 namespace oniku {
 namespace runtime {
@@ -78,7 +79,7 @@ InOuts LoadParams(const Model& model) {
             } else {
                 tensor = MakeArray(dtype, shape, data);
             }
-            CHECK(params.emplace(initializer->name(), tensor).second) << "Duplicate input tensor: " << initializer->name();
+            CHECK(params.emplace(initializer->name(), new XCVMVar(tensor)).second) << "Duplicate input tensor: " << initializer->name();
         }
     }
     return params;

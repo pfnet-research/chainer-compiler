@@ -7,7 +7,7 @@
 
 #include <chainerx/array.h>
 
-#include <runtime/xchainer.h>
+#include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 
 namespace oniku {
@@ -57,8 +57,8 @@ public:
     chainerx::Array Input(const std::string& name);
     void Output(const std::string& name, chainerx::Array value);
 
-    const InOuts& GetOutputs() const {
-        return outputs_;
+    const InOuts& GetOutputs() {
+        return std::move(outputs_);
     }
 
     void CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs);
@@ -83,7 +83,7 @@ private:
     int pc_;
     std::vector<std::unique_ptr<XCVMVar>> variables_;
     std::vector<std::unique_ptr<Auxiliary>> auxiliaries_;
-    const InOuts& inputs_;
+    InOuts inputs_;
     InOuts outputs_;
     int trace_level_ = 0;
     bool is_training_ = false;

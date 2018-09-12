@@ -37,6 +37,7 @@
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
+#include <runtime/xcvm_var.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
@@ -89,7 +90,7 @@ void ReadTestDir(
                     CHECK_LT(input_index, input_names.size());
                     name = input_names[input_index++];
                 }
-                CHECK(test_case->inputs.emplace(name, tensor).second) << "Duplicate input tensor: " << name;
+                CHECK(test_case->inputs.emplace(name, new XCVMVar(tensor)).second) << "Duplicate input tensor: " << name;
             } else if (HasPrefix(Basename(tensor_pb), "output_")) {
                 onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
                 chainerx::Array tensor(MakeArrayFromONNX(xtensor));
@@ -127,7 +128,7 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
         chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
         chainerx::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input.name(), array).second) << "Duplicated input: " << input.name();
+        CHECK(inputs->emplace(input.name(), new XCVMVar(array)).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
@@ -259,8 +260,8 @@ void RunMain(int argc, char** argv) {
         LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(params);
         for (const auto& p : test_case->inputs) {
-            chainerx::Array v = p.second.ToDevice(chainerx::GetDefaultDevice());
-            CHECK(inputs.emplace(p.first, v).second) << "Duplicated input parameter: " << p.first;
+            chainerx::Array v = p.second->GetArray().ToDevice(chainerx::GetDefaultDevice());
+            CHECK(inputs.emplace(p.first, new XCVMVar(v)).second) << "Duplicated input parameter: " << p.first;
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -279,7 +280,7 @@ void RunMain(int argc, char** argv) {
         if (test_case->outputs.empty() && args.exist("verbose")) {
             LOG() << "Outputs:" << std::endl;
             for (const auto& p : outputs) {
-                LOG() << p.first << ": " << p.second.ToString() << std::endl;
+                LOG() << p.first << ": " << p.second->ToString() << std::endl;
             }
             continue;
         }
@@ -292,7 +293,7 @@ void RunMain(int argc, char** argv) {
             chainerx::Array expected = p.second;
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
-            chainerx::Array actual = found->second;
+            chainerx::Array actual = found->second->GetArray();
 
             auto array_str = [&args](chainerx::Array a) {
                 int size = a.GetTotalSize();

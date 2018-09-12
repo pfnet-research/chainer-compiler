@@ -36,7 +36,7 @@ XCVM::~XCVM() {
 }
 
 InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
-    XCVMState state(options, num_variables_, program_inputs);
+    XCVMState state(options, num_variables_, std::move(program_inputs));
     int64_t peak_usage = 0;
 
     while (true) {

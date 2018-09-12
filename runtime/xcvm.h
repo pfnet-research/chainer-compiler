@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,9 @@ namespace runtime {
 
 class ChromeTracingEmitter;
 class XCVMOp;
+class XCVMVar;
+
+typedef std::map<std::string, std::shared_ptr<XCVMVar>> InOuts;
 
 struct XCVMOptions {
 public:

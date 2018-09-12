@@ -101,11 +101,11 @@ void XCVMState::FreeVar(int index) {
 chainerx::Array XCVMState::Input(const std::string& name) {
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;
-    return found->second;
+    return found->second->GetArray();
 }
 
 void XCVMState::Output(const std::string& name, chainerx::Array value) {
-    CHECK(outputs_.emplace(name, value).second) << "Duplicated output name: " << name;
+    CHECK(outputs_.emplace(name, new XCVMVar(value)).second) << "Duplicated output name: " << name;
 }
 
 void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {

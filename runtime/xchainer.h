@@ -10,8 +10,6 @@
 namespace oniku {
 namespace runtime {
 
-typedef std::map<std::string, chainerx::Array> InOuts;
-
 // TODO(hamaji): Investigate xChainer's BatchNorm.
 chainerx::Array BatchNormONNX(
         chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon);

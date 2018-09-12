@@ -28,6 +28,7 @@
 #include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
+#include <runtime/xcvm_var.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
@@ -157,15 +158,15 @@ void RunMain(int argc, char** argv) {
 
             inputs = params;
             if (expects_onehot) {
-                inputs["Input_0"] = data[0].ToDevice(chainerx::GetDefaultDevice());
+                inputs.emplace("Input_0", new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice())));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
-                inputs["Input_1"] = onehot;
-                inputs["Input_2"] = batch_size_array;
+                inputs.emplace("Input_1", new XCVMVar(onehot));
+                inputs.emplace("Input_2", new XCVMVar(batch_size_array));
             } else {
-                inputs["T0"] = data[0].ToDevice(chainerx::GetDefaultDevice());
+                inputs.emplace("T0", new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice())));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
-                inputs["T1"] = labels;
+                inputs.emplace("T1", new XCVMVar(labels));
             }
         }
 
@@ -183,14 +184,18 @@ void RunMain(int argc, char** argv) {
                 const std::string& param_name = p.first.substr(9);
                 auto found = inputs.find(param_name);
                 CHECK(found != inputs.end());
-                found->second -= p.second * args.get<float>("learning_rate");
+                XCVMVar* param = found->second.get();
+                XCVMVar* grad = p.second.get();
+                CHECK(param->kind() == XCVMVar::Kind::kArray) << "Only an array can be a parameter";
+                CHECK(grad->kind() == XCVMVar::Kind::kArray) << "Only an array can be a parameter";
+                param->GetArray() -= grad->GetArray() * args.get<float>("learning_rate");
             }
         }
 
         double loss;
         {
             ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Sync");
-            loss = static_cast<double>(chainerx::AsScalar(outputs[loss_value_name]));
+            loss = static_cast<double>(chainerx::AsScalar(outputs[loss_value_name]->GetArray()));
         }
 
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
