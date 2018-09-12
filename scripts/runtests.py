@@ -2,6 +2,7 @@
 
 import argparse
 import glob
+import multiprocessing
 import os
 import re
 import sys
@@ -17,6 +18,9 @@ parser.add_argument('test_filter', default=None, nargs='?',
                     help='A regular expression to filter tests')
 parser.add_argument('--all', '-a', action='store_true',
                     help='Run all tests')
+parser.add_argument('--jobs', '-j', type=int,
+                    default=multiprocessing.cpu_count(),
+                    help='Number of parallel jobs')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
@@ -37,6 +41,7 @@ class TestCase(object):
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
         self.test_dir = os.path.join(self.dirname, self.name)
+        self.args = None
         TEST_PATHS.add(self.test_dir)
 
 
@@ -498,6 +503,43 @@ if not cmdline.all:
     TEST_CASES = [case for case in TEST_CASES if not case.fail]
 
 
+class TestRunner(object):
+    def __init__(self, test_cases):
+        self.test_cases = test_cases
+        self.test_cnt = 0
+        self.fail_cnt = 0
+
+    def run(self, num_parallel_jobs):
+        tests = list(reversed(self.test_cases))
+        procs = {}
+        while tests or procs:
+            if tests and len(procs) < num_parallel_jobs:
+                test_case = tests.pop()
+                proc = subprocess.Popen(test_case.args,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+                procs[proc.pid] = (test_case, proc)
+                continue
+
+            assert procs
+            pid, status = os.wait()
+            assert pid in procs
+            test_case, proc = procs[pid]
+            del procs[pid]
+
+            sys.stdout.write('%s... ' % test_case.name)
+            self.test_cnt += 1
+            if status == 0:
+                if test_case.fail:
+                    sys.stdout.write('OK (unexpected)\n')
+                else:
+                    sys.stdout.write('OK\n')
+            else:
+                self.fail_cnt += 1
+                sys.stdout.write('FAIL: %s\n' % ' '.join(test_case.args))
+            sys.stdout.buffer.write(proc.stdout.read())
+
+
 def main():
     if os.path.exists('Makefile'):
         subprocess.check_call(['make', '-j4'])
@@ -506,9 +548,11 @@ def main():
 
     test_cnt = 0
     fail_cnt = 0
-    unexpected_pass = 0
+    tests = []
+    gpu_tests = []
     for test_case in TEST_CASES:
         args = ['tools/run_onnx', '--test', test_case.test_dir, '--quiet']
+        is_gpu = False
         if test_case.rtol is not None:
             args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
@@ -519,18 +563,19 @@ def main():
             if not cmdline.use_gpu and not cmdline.use_gpu_all:
                 continue
             args.extend(['-d', 'cuda'])
+            is_gpu = True
+        test_case.args = args
+        if is_gpu:
+            gpu_tests.append(test_case)
+        else:
+            tests.append(test_case)
 
-        sys.stderr.write('%s... ' % test_case.name)
-        try:
-            test_cnt += 1
-            subprocess.check_call(args)
-            if test_case.fail:
-                sys.stderr.write('OK (unexpected)\n')
-            else:
-                sys.stderr.write('OK\n')
-        except subprocess.CalledProcessError:
-            fail_cnt += 1
-            sys.stderr.write('FAIL: %s\n' % ' '.join(args))
+    for tests, num_jobs in [(tests, cmdline.jobs), (gpu_tests, 1)]:
+        runner = TestRunner(tests)
+        runner.run(num_jobs)
+        test_cnt += runner.test_cnt
+        fail_cnt += runner.fail_cnt
+
     if fail_cnt:
         print('%d/%d tests failed!' % (fail_cnt, test_cnt))
     else:
