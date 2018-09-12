@@ -447,7 +447,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_sum_keepdim'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_repeat', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_repeat_dim_overflow', fail=True),
-    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_rnn'),
+    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_rnn', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_rnn_single_layer', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_selu'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_sqrt', fail=True),
