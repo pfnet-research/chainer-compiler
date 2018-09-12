@@ -63,6 +63,7 @@ def gen_select_item_test(test_name):
 
 
 def gen_scan_sum_test(test_name):
+    # TODO(hamaji): Rewrite with oniku_script.
     inputs1 = np.array([[4, 5, 6], [-4, -6, -5]])
     inputs2 = np.array([[1, 2, 3], [-3, -2, -1]])
     state = np.array(0)
@@ -113,6 +114,7 @@ def gen_loop_test(max_trip_count=7,
                   cond_trip_count=6,
                   terminal_condition=True,
                   has_scan_outputs=False):
+    # TODO(hamaji): Rewrite with oniku_script.
     def fn(test_name):
         input_state = np.array(42)
         state = input_state
@@ -192,6 +194,7 @@ def gen_loop_test(max_trip_count=7,
 
 
 def gen_sequence_test(test_name):
+    # TODO(hamaji): Rewrite with oniku_script.
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
     nodes = []
     nodes.append(onnx.helper.make_node(
@@ -243,6 +246,7 @@ def gen_sequence_test(test_name):
 
 
 def gen_sequence_pad_test(test_name):
+    # TODO(hamaji): Rewrite with GraphBuilder's input/output.
     gb = oniku_script.GraphBuilder(test_name)
     inputs = [np.array(a) for a in [[1, 2, 3], [4], [5, 6]]]
     gb.OnikuxSequenceCreate(inputs=[], outputs=['seq0'])
