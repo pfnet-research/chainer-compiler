@@ -67,19 +67,24 @@ private:
 
     void EmitNode(const Node& node, XCProgramProto* prog) {
         auto in = [this, &node](int i) {
-            CHECK_LT(i, node.inputs().size());
-            return GetValueId(node.inputs()[i]);
+            CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory";
+            Value* input = node.inputs()[i];
+            CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory";
+            return GetValueId(input);
         };
 
         // Optional input.
         auto oin = [this, in, &node](int i) {
             if (i >= static_cast<int>(node.inputs().size())) return -1;
+            if (node.inputs()[i]->IsNull()) return -1;
             return in(i);
         };
 
         auto out = [this, &node](int i) {
-            CHECK_LT(i, node.outputs().size());
-            return GetValueId(node.outputs()[i]);
+            CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";;
+            Value* output = node.outputs()[i];
+            CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
+            return GetValueId(output);
         };
 
         // Optional output.
