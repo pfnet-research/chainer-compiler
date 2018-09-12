@@ -219,12 +219,21 @@ private:
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kRNN) {
             CHECK_NE(node.direction(), "reverse") << "Not supported yet";
+            CHECK(node.activations().empty()) << "activations not supporte yet";
+            CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
+            CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
             EMIT(RNN, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size());
         } else if (node.op_type() == Node::kGRU) {
             CHECK_NE(node.direction(), "reverse") << "Not supported yet";
+            CHECK(node.activations().empty()) << "activations not supporte yet";
+            CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
+            CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
             EMIT(GRU, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), node.linear_before_reset());
         } else if (node.op_type() == Node::kLSTM) {
             CHECK_NE(node.direction(), "reverse") << "Not supported yet";
+            CHECK(node.activations().empty()) << "activations not supporte yet";
+            CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
+            CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
             CHECK_LE(3, node.inputs().size());
             CHECK_GE(3, node.outputs().size());
             EMIT(LSTM, oout(0), oout(1), oout(2), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size());
