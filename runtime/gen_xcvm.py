@@ -172,7 +172,6 @@ XC_OPS = [
     ('ConvGradWeight',
      [Array('w'), Array('x'), Array('gy'), Ints('strides'), Ints('pads')],
      ['y']),
-    ('Identity', [Array('x')], ['y']),
     ('Relu', [Array('x')], ['y']),
     ('ReluGrad', [Array('x'), Array('gy')], ['gx']),
     ('Selu', [Array('x'), Float('alpha'), Float('gamma')], ['y']),
@@ -295,12 +294,13 @@ XC_SEQ_OPS = [
 ]
 
 XC_GENERIC_OPS = [
+    ('Identity', [Array('x')], ['y']),
     ('Free', [Array('v')], []),
-    ('GenericLen', [Array('v')], [Array('len')]),
-    ('GenericGetItem', [Array('v'), Array('index')], [Array('output')]),
+    ('GenericLen', [Array('v')], ['len']),
+    ('GenericGetItem', [Array('v'), Array('index')], ['output']),
     ('GenericGetSlice',
      [Array('v'), OptionalArray('start'),
-      OptionalArray('end'), OptionalArray('step')], [Array('output')]),
+      OptionalArray('end'), OptionalArray('step')], ['output']),
 ]
 
 

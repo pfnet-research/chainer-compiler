@@ -35,6 +35,26 @@ int64_t GetOptionalInt(XCVMState* st, int index, int64_t default_value) {
 
 }  // namespace
 
+void IdentityOp::RunImpl(XCVMState* st) {
+    XCVMVar* var = st->GetXCVMVar(x);
+    switch (var->kind()) {
+    case XCVMVar::Kind::kArray:
+        st->SetVar(y, var->GetArray());
+        break;
+
+    case XCVMVar::Kind::kSequence:
+        const std::vector<chainerx::Array>& s = *var->GetSequence();
+        std::vector<chainerx::Array>* d = st->CreateSequence(y);
+        CHECK(d->empty());
+        *d = s;
+        break;
+    }
+}
+
+void FreeOp::RunImpl(XCVMState* st) {
+    st->FreeVar(v);
+}
+
 void GenericLenOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(v);
     int64_t size = GetSize(var);

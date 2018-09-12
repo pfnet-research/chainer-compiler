@@ -70,10 +70,6 @@ void OutOp::RunImpl(XCVMState* st, const chainerx::Array& v) {
     st->Output(name, v);
 }
 
-void FreeOp::RunImpl(XCVMState* st) {
-    st->FreeVar(v);
-}
-
 chainerx::Array AddOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     return a + b;
 }
@@ -217,10 +213,6 @@ chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
 
 chainerx::Array ConvGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array& w, const chainerx::Array& x, const chainerx::Array& gy) {
     return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, strides, pads, false /* cover_all */);
-}
-
-chainerx::Array IdentityOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    return x;
 }
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
