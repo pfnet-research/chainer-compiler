@@ -22,14 +22,14 @@ from . initializer import edit_onnx_protobuf
 # variableを消す
 
 
-def unvariable(xs):
+def _validate_inout(xs):
     # print(xs)
     if isinstance(xs, chainer.Variable):
         xs = xs.array
     elif isinstance(xs, np.ndarray):
         pass
     elif isinstance(xs, list):
-        xs = np.array([unvariable(x) for x in xs])
+        xs = [_validate_inout(x) for x in xs]
     elif (
             isinstance(xs, np.float32) or
             isinstance(xs, np.float64) or
@@ -53,7 +53,7 @@ def run_chainer_model(model, xs, out_key):
         ys = [ys]
 
     # print('befys',ys)
-    ys = list(map(lambda y: np.array(unvariable(y)), ys))
+    ys = list(map(lambda y: _validate_inout(y), ys))
     # print('afterys',ys)
     return ys
 
@@ -96,13 +96,22 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (name, value) in enumerate(values):
-            # とりあえずarrayにする
-            # value = unvariable(value)
-            dprint(typ, i, name, value.shape, value)
-            tensor = numpy_helper.from_array(value, name)
-            filename = os.path.join(test_data_dir, '%s_%d.pb' % (typ, i))
-            with open(filename, 'wb') as f:
-                f.write(tensor.SerializeToString())
+            if isinstance(value, list):
+                assert value
+                digits = len(str(len(value)))
+                for j, v in enumerate(value):
+                    filename = os.path.join(
+                        test_data_dir,
+                        f'%s_%d_%0{digits}d.pb' % (typ, i, j))
+                    tensor = numpy_helper.from_array(v, name)
+                    with open(filename, 'wb') as f:
+                        f.write(tensor.SerializeToString())
+            else:
+                filename = os.path.join(test_data_dir,
+                                        '%s_%d.pb' % (typ, i))
+                tensor = numpy_helper.from_array(value, name)
+                with open(filename, 'wb') as f:
+                    f.write(tensor.SerializeToString())
 
 
 def generate_testcase(model, xs, out_key='prob'):
@@ -140,8 +149,7 @@ def generate_testcase(model, xs, out_key='prob'):
         for tensor, value in zip(output_tensors, chainer_out):
             outputs.append((tensor.name, value))
 
-        # TODO(satos) LSTMのためだがしぶいのでどうにかしたい
-        xs = list(map(lambda x: np.array(unvariable(x)), xs))
+        xs = list(map(lambda x: _validate_inout(x), xs))
 
         dump_test_inputs_outputs(
             list(zip(input_names, xs)),
