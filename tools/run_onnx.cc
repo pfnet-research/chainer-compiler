@@ -66,7 +66,7 @@ std::vector<std::string> ListDir(const std::string& dirname) {
 struct TestCase {
     std::string name;
     InOuts inputs;
-    std::vector<std::pair<std::string, chainerx::Array>> outputs;
+    InOuts outputs;
 };
 
 void ReadTestDir(
@@ -80,26 +80,59 @@ void ReadTestDir(
         test_case->name = data_set_dir;
         size_t input_index = 0;
         size_t output_index = 0;
+
+        std::vector<std::tuple<std::string, std::string, chainerx::Array>> all_tensors;
         for (const std::string& tensor_pb : ListDir(data_set_dir)) {
             if (!HasSuffix(tensor_pb, ".pb")) continue;
-            if (HasPrefix(Basename(tensor_pb), "input_")) {
-                onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
-                chainerx::Array tensor(MakeArrayFromONNX(xtensor));
-                std::string name = xtensor.name();
-                if (name.empty()) {
+            onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
+            chainerx::Array tensor(MakeArrayFromONNX(xtensor));
+            all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);
+        }
+
+        std::vector<std::tuple<std::string, std::string, XCVMVar*>> all_vars;
+        for (size_t i = 0; i < all_tensors.size(); ++i) {
+            const std::string& filename = std::get<0>(all_tensors[i]);
+            const std::string& tensor_name = std::get<1>(all_tensors[i]);
+            size_t first_found = filename.find('_');
+            if (first_found == std::string::npos) continue;
+            size_t found = filename.find('_', first_found + 1);
+            if (found == std::string::npos) {
+                all_vars.emplace_back(filename, tensor_name, new XCVMVar(std::get<2>(all_tensors[i])));
+                continue;
+            }
+
+            std::string prefix = filename.substr(0, found + 1);
+            std::unique_ptr<XCVMVar> seq(new XCVMVar(XCVMVar::Kind::kSequence));
+            for (; i < all_tensors.size(); ++i) {
+                CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
+                const std::string& filename = std::get<0>(all_tensors[i]);
+                if (HasPrefix(filename, prefix)) {
+                    seq->GetSequence()->push_back(std::get<2>(all_tensors[i]));
+                } else {
+                    --i;
+                    break;
+                }
+            }
+            all_vars.emplace_back(filename, tensor_name, seq.release());
+        }
+
+
+        for (const auto& p : all_vars) {
+            const std::string& filename = std::get<0>(p);
+            std::string tensor_name = std::get<1>(p);
+            XCVMVar* var = std::get<2>(p);
+            if (HasPrefix(filename, "input_")) {
+                if (tensor_name.empty()) {
                     CHECK_LT(input_index, input_names.size());
-                    name = input_names[input_index++];
+                    tensor_name = input_names[input_index++];
                 }
-                CHECK(test_case->inputs.emplace(name, new XCVMVar(tensor)).second) << "Duplicate input tensor: " << name;
-            } else if (HasPrefix(Basename(tensor_pb), "output_")) {
-                onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
-                chainerx::Array tensor(MakeArrayFromONNX(xtensor));
-                std::string name = xtensor.name();
-                if (name.empty()) {
+                CHECK(test_case->inputs.emplace(tensor_name, var).second) << "Duplicate input tensor: " << tensor_name;
+            } else if (HasPrefix(filename, "output_")) {
+                if (tensor_name.empty()) {
                     CHECK_LT(output_index, output_names.size());
-                    name = output_names[output_index++];
+                    tensor_name = output_names[output_index++];
                 }
-                test_case->outputs.emplace_back(name, tensor);
+                CHECK(test_case->outputs.emplace(tensor_name, var).second) << "Duplicate output tensor:" << tensor_name;
             }
         }
         test_cases->emplace_back(std::move(test_case));
@@ -290,32 +323,77 @@ void RunMain(int argc, char** argv) {
         for (const auto& p : test_case->outputs) {
             test_cnt++;
             const std::string key = p.first;
-            chainerx::Array expected = p.second;
+            XCVMVar* expected = p.second.get();
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
-            chainerx::Array actual = found->second->GetArray();
+            XCVMVar* actual = found->second.get();
 
-            auto array_str = [&args](chainerx::Array a) {
+            auto array_str = [&args](const chainerx::Array& a) {
                 int size = a.GetTotalSize();
                 if (size < 100 || args.exist("verbose")) return a.ToString();
                 return a.shape().ToString() + " [0,20]=" + a.Reshape({size}).At({chainerx::Slice{20}}).ToString();
             };
+
+            auto var_str = [&args, array_str](XCVMVar* v) {
+                switch (v->kind()) {
+                case XCVMVar::Kind::kArray:
+                    return array_str(v->GetArray());
+                case XCVMVar::Kind::kSequence:
+                    return Join(MapToString(*v->GetSequence(), array_str));
+                }
+                CHECK(false);
+            };
+
             auto fail = [&](const std::string& type) {
-                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << array_str(expected) << "\nActual: " << array_str(actual)
+                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
                       << std::endl;
             };
-            if (expected.dtype() != actual.dtype()) {
-                fail("dtype");
+
+            auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
+                if (expected.dtype() != actual.dtype()) {
+                    fail("dtype");
+                    return false;
+                }
+                if (expected.shape() != actual.shape()) {
+                    fail("shape");
+                    return false;
+                }
+                if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"))) {
+                    fail("value");
+                    return false;
+                }
+                return true;
+            };
+
+            if (expected->kind() != actual->kind()) {
+                fail("kind");
                 continue;
             }
-            if (expected.shape() != actual.shape()) {
-                fail("shape");
-                continue;
+
+            bool ok = false;
+            switch (expected->kind()) {
+            case XCVMVar::Kind::kArray:
+                ok = check_array(expected->GetArray(), actual->GetArray());
+                break;
+
+            case XCVMVar::Kind::kSequence: {
+                const auto& expected_seq = *expected->GetSequence();
+                const auto& actual_seq = *actual->GetSequence();
+                if (expected_seq.size() != actual_seq.size()) {
+                    fail("seq_size");
+                    ok = false;
+                    break;
+                }
+
+                for (size_t i = 0; i < expected_seq.size(); ++i) {
+                    ok = check_array(expected_seq[i], actual_seq[i]);
+                    if (!ok) break;
+                }
             }
-            if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"))) {
-                fail("value");
-                continue;
             }
+
+            if (!ok) continue;
+
             LOG() << "OK: " << key << std::endl;
             ++ok_cnt;
         }
