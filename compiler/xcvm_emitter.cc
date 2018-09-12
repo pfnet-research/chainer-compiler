@@ -117,6 +117,18 @@ private:
             return strides;
         };
 
+        auto direction = [&node]() {
+            const std::string& dir = node.direction();
+            if (dir == "" || dir == "forward")
+                return 0;
+            else if (dir == "reversed")
+                return 1;
+            else if (dir == "bidirectional")
+                return 2;
+            else
+                CHECK(false) << "Unknown direction: " << dir;
+        };
+
 #define EMIT(op, ...)                                                                                  \
     do {                                                                                               \
         Add##op##Op(prog, __VA_ARGS__);                                                                \
@@ -236,7 +248,7 @@ private:
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
             CHECK_LE(3, node.inputs().size());
             CHECK_GE(3, node.outputs().size());
-            EMIT(LSTM, oout(0), oout(1), oout(2), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size());
+            EMIT(LSTM, oout(0), oout(1), oout(2), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size(), direction());
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

@@ -200,75 +200,101 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
     // R: [num_directions, 4 * hidden_size, hidden_size]
     // B: [num_directions, 8 * hidden_size]
     // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
-    CHECK_EQ(1, w.shape()[0]) << "Multi-directional LSTM is not implemented yet";
+    //CHECK_EQ(1, w.shape()[0]) << "Multi-directional LSTM is not implemented yet";
     int64_t seq_length = x.shape()[0];
     int64_t batch_size = x.shape()[1];
     CHECK_EQ(0, w.shape()[1] % 4);
     int64_t hidden_size = w.shape()[1] / 4;
     CHECK_EQ(4 * hidden_size, r.shape()[1]);
     if (b.has_value()) CHECK_EQ(8 * hidden_size, b.value().shape()[1]);
-
-    chainerx::Array wt = chainerx::Transpose(chainerx::Squeeze(w, {0}));
-    chainerx::Array rt = chainerx::Transpose(chainerx::Squeeze(r, {0}));
-    chainerx::Array h =
-            initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
-    chainerx::Array c =
-            initial_c.has_value() ? chainerx::Squeeze(initial_c.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
-    std::vector<chainerx::ArrayIndex> indices(2, chainerx::Slice());
-    chainerx::Array bm;
-    if (b.has_value()) {
-        chainerx::Array bs = chainerx::Squeeze(b.value(), {0});
-        chainerx::Array b1 = bs.At({chainerx::Slice(0, 4 * hidden_size)});
-        chainerx::Array b2 = bs.At({chainerx::Slice(4 * hidden_size, 8 * hidden_size)});
-        bm = b1 + b2;
-    }
-    chainerx::Array pi, po, pf;
-    if (p.has_value()) {
-        chainerx::Array ps = chainerx::Squeeze(p.value(), {0});
-        pi = ps.At({chainerx::Slice(0, hidden_size)});
-        po = ps.At({chainerx::Slice(hidden_size, 2 * hidden_size)});
-        pf = ps.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
+    int num_direction = w.shape()[0];
+    if (direction != 2) {
+        CHECK_EQ(1, num_direction);
+    } else {
+        CHECK_EQ(2, num_direction);
     }
 
     SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
+    chainerx::Array outputs[2];
+    chainerx::Array hs[2];
+    chainerx::Array cs[2];
 
-    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
-    for (int64_t time = 0; time < x.shape()[0]; ++time) {
-        chainerx::Array cur_x = x.At({time});
-        chainerx::Array gates = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
+    for (int d = 0; d < num_direction; ++d) {
+        chainerx::Array wt = chainerx::Transpose(w.At({d}));
+        chainerx::Array rt = chainerx::Transpose(r.At({d}));
+        chainerx::Array h =
+            initial_h.has_value() ? initial_h->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+        chainerx::Array c =
+            initial_c.has_value() ? initial_c->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+        std::vector<chainerx::ArrayIndex> indices(2, chainerx::Slice());
+        chainerx::Array bm;
         if (b.has_value()) {
-            gates += bm;
+            chainerx::Array bs = b->At({d});
+            chainerx::Array b1 = bs.At({chainerx::Slice(0, 4 * hidden_size)});
+            chainerx::Array b2 = bs.At({chainerx::Slice(4 * hidden_size, 8 * hidden_size)});
+            bm = b1 + b2;
         }
-        indices[1] = chainerx::Slice({0, hidden_size});
-        chainerx::Array i = gates.At(indices);
-        indices[1] = chainerx::Slice({hidden_size, hidden_size * 2});
-        chainerx::Array o = gates.At(indices);
-        indices[1] = chainerx::Slice({hidden_size * 2, hidden_size * 3});
-        chainerx::Array f = gates.At(indices);
-        indices[1] = chainerx::Slice({hidden_size * 3, hidden_size * 4});
-        chainerx::Array nc = gates.At(indices);
-
+        chainerx::Array pi, po, pf;
         if (p.has_value()) {
-            i += pi * c;
-            f += pf * c;
-            o += po * c;
+            chainerx::Array ps = p->At({d});
+            pi = ps.At({chainerx::Slice(0, hidden_size)});
+            po = ps.At({chainerx::Slice(hidden_size, 2 * hidden_size)});
+            pf = ps.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
         }
-        i = Sigmoid(i);
-        f = Sigmoid(f);
-        nc = Tanh(nc);
-        o = Sigmoid(o);
-        nc = f * c + i * nc;
-        chainerx::Array nh = o * Tanh(nc);
-        mask.UpdateState(time, nc, &c);
-        mask.UpdateState(time, nh, &h);
-        output.At({time}) += h;
+
+        chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+
+        for (int64_t t = 0; t < x.shape()[0]; ++t) {
+            int64_t time = t;
+            if (direction == 1 || d == 1)
+                time = x.shape()[0] - t - 1;
+            chainerx::Array cur_x = x.At({time});
+            chainerx::Array gates = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
+            if (b.has_value()) {
+                gates += bm;
+            }
+            indices[1] = chainerx::Slice({0, hidden_size});
+            chainerx::Array i = gates.At(indices);
+            indices[1] = chainerx::Slice({hidden_size, hidden_size * 2});
+            chainerx::Array o = gates.At(indices);
+            indices[1] = chainerx::Slice({hidden_size * 2, hidden_size * 3});
+            chainerx::Array f = gates.At(indices);
+            indices[1] = chainerx::Slice({hidden_size * 3, hidden_size * 4});
+            chainerx::Array nc = gates.At(indices);
+
+            if (p.has_value()) {
+                i += pi * c;
+                f += pf * c;
+                o += po * c;
+            }
+            i = Sigmoid(i);
+            f = Sigmoid(f);
+            nc = Tanh(nc);
+            o = Sigmoid(o);
+            nc = f * c + i * nc;
+            chainerx::Array nh = o * Tanh(nc);
+            mask.UpdateState(time, nc, &c);
+            mask.UpdateState(time, nh, &h);
+            output.At({time}) += h;
+        }
+
+        mask.MaskOutput(&output);
+        outputs[d] = output;
+        hs[d] = h;
+        cs[d] = c;
     }
 
-    mask.MaskOutput(&output);
-    output = chainerx::Reshape(output, {seq_length, 1, batch_size, hidden_size});
-    h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
-    c = chainerx::Reshape(c, {1, c.shape()[0], c.shape()[1]});
-    return std::make_tuple(output, h, c);
+    if (num_direction == 1) {
+        chainerx::Array output = chainerx::Reshape(outputs[0], {seq_length, 1, batch_size, hidden_size});
+        chainerx::Array h = chainerx::Reshape(hs[0], {1, hs[0].shape()[0], hs[0].shape()[1]});
+        chainerx::Array c = chainerx::Reshape(cs[0], {1, cs[0].shape()[0], cs[0].shape()[1]});
+        return std::make_tuple(output, h, c);
+    } else {
+        chainerx::Array output = Stack({outputs[0], outputs[1]}, 1);
+        chainerx::Array h = Stack({hs[0], hs[1]}, 1);
+        chainerx::Array c = Stack({cs[0], cs[1]}, 1);
+        return std::make_tuple(output, h, c);
+    }
 }
 
 }  // namespace runtime

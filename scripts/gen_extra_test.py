@@ -554,7 +554,9 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         shape = (len(labels) * num_direction, num_hidden)
         h = F.reshape(h, shape)
         rnn_outputs = F.pad_sequence(rnn_outputs)
-        rnn_outputs = F.expand_dims(rnn_outputs, axis=1)
+        rnn_outputs = F.reshape(rnn_outputs,
+                                (-1, len(labels), num_direction, num_hidden))
+        rnn_outputs = F.transpose(rnn_outputs, axes=[0, 2, 1, 3])
         result = F.linear(h, np.transpose(linear))
 
         weight_w, weight_r = np.split(weight, 2, axis=1)
@@ -650,7 +652,7 @@ def get_tests():
         TestCase('extra_test_imdb', gen_imdb_test(), fail=True),
         TestCase('extra_test_imdb_lstm', gen_imdb_rnn_test('LSTM'), rtol=0.2),
         TestCase('extra_test_imdb_bilstm', gen_imdb_rnn_test('BiLSTM'),
-                 fail=True, rtol=0.2),
+                 rtol=0.5),
 
         TestCase('extra_test_generic_len', gen_generic_len_test),
         TestCase('extra_test_generic_getitem', gen_generic_getitem_test),

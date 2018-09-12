@@ -233,7 +233,7 @@ XC_OPS = [
       OptionalArray('b'), OptionalArray('sequence_lens'),
       OptionalArray('initial_h'), OptionalArray('initial_c'),
       OptionalArray('p'),
-      Int('hidden_size'),
+      Int('hidden_size'), Int('direction'),
      ],
      ['y', 'y_h', 'y_c']),
 
