@@ -297,6 +297,7 @@ XC_SEQ_OPS = [
 XC_GENERIC_OPS = [
     ('Free', [Array('v')], []),
     ('GenericLen', [Array('v')], [Array('len')]),
+    ('GenericGetItem', [Array('v'), Array('index')], [Array('output')]),
 ]
 
 

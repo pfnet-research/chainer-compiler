@@ -341,6 +341,24 @@ def gen_generic_len_test(test_name):
     gb.gen_test()
 
 
+def gen_generic_getitem_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    input = aranges(4, 5, 3)
+    reduced = np.sum(input, 0)
+
+    input_v = gb.input('input', input)
+    reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
+    seq_v = gb.OnikuxSequenceSplit(inputs=[input_v])
+
+    for i in range(4):
+        index_v = gb.const(onnx.TensorProto.INT64, [i])
+        gb.output(gb.OnikuxGenericGetItem([input_v, index_v]), input[i])
+        gb.output(gb.OnikuxGenericGetItem([reduced_v, index_v]), reduced[i])
+        gb.output(gb.OnikuxGenericGetItem([seq_v, index_v]), input[i])
+
+    gb.gen_test()
+
+
 def gen_imdb_test(num_vocabs=10, num_hidden=5):
     def fn(test_name):
         embed_size = num_hidden
@@ -535,6 +553,7 @@ def get_tests():
                  fail=True, rtol=0.2),
 
         TestCase('extra_test_generic_len', gen_generic_len_test),
+        TestCase('extra_test_generic_getitem', gen_generic_getitem_test),
     ]
 
 

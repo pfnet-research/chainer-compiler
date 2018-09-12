@@ -427,6 +427,8 @@ private:
             EMIT(SequencePad, out(0), in(0), node.length(), node.value());
         } else if (node.op_type() == Node::kOnikuxGenericLen) {
             EMIT(GenericLen, out(0), in(0));
+        } else if (node.op_type() == Node::kOnikuxGenericGetItem) {
+            EMIT(GenericGetItem, out(0), in(0), in(1));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
