@@ -104,9 +104,9 @@ void ReadTestDir(
             std::string prefix = filename.substr(0, found + 1);
             std::unique_ptr<XCVMVar> seq(new XCVMVar(XCVMVar::Kind::kSequence));
             for (; i < all_tensors.size(); ++i) {
-                CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
                 const std::string& filename = std::get<0>(all_tensors[i]);
                 if (HasPrefix(filename, prefix)) {
+                    CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
                     seq->GetSequence()->push_back(std::get<2>(all_tensors[i]));
                 } else {
                     --i;
@@ -164,6 +164,20 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
         CHECK(inputs->emplace(input.name(), new XCVMVar(array)).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
+}
+
+XCVMVar* StageVar(XCVMVar* var) {
+    switch (var->kind()) {
+    case XCVMVar::Kind::kArray:
+        return new XCVMVar(var->GetArray().ToDevice(chainerx::GetDefaultDevice()));
+    case XCVMVar::Kind::kSequence: {
+        XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
+        for (const chainerx::Array& a : *var->GetSequence())
+            out->GetSequence()->push_back(a.ToDevice(chainerx::GetDefaultDevice()));
+        return out;
+    }
+    }
+    CHECK(false);
 }
 
 void RunMain(int argc, char** argv) {
@@ -293,8 +307,8 @@ void RunMain(int argc, char** argv) {
         LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(params);
         for (const auto& p : test_case->inputs) {
-            chainerx::Array v = p.second->GetArray().ToDevice(chainerx::GetDefaultDevice());
-            CHECK(inputs.emplace(p.first, new XCVMVar(v)).second) << "Duplicated input parameter: " << p.first;
+            XCVMVar* v = StageVar(p.second.get());
+            CHECK(inputs.emplace(p.first, v).second) << "Duplicated input parameter: " << p.first;
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
