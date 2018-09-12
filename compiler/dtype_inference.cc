@@ -106,6 +106,11 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kConstantFill: {
+            set(0, node->dtype());
+            break;
+        }
+
         case Node::kCast: {
             set(0, node->to());
             break;

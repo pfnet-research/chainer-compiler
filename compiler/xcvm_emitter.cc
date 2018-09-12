@@ -324,6 +324,14 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Cast, out(0), in(0), node.to());
+        } else if (node.op_type() == Node::kConstantFill) {
+            if (node.input_as_shape()) {
+                CHECK_EQ(1UL, node.inputs().size());
+            } else {
+                CHECK_EQ(0UL, node.inputs().size());
+            }
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ConstantFill, out(0), oin(0), node.dtype(), node.extra_shape(), node.shape(), node.value());
         } else if (node.op_type() == Node::kSlice) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

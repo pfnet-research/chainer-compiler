@@ -268,6 +268,11 @@ XC_OPS = [
      [Longs('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('FloatConstant',
      [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
+    ('ConstantFill',
+     [OptionalArray('input'), Int('dtype'), Ints('extra_shape'),
+      Ints('shape'), Float('value')],
+     ['output']),
+
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
 ]

@@ -506,6 +506,17 @@ chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
     return a.AsType(static_cast<chainerx::Dtype>(dtype));
 }
 
+chainerx::Array ConstantFillOp::RunImpl(XCVMState* st, const nonstd::optional<chainerx::Array>& input) {
+    CHECK(extra_shape.empty()) << "extra_shape not implemented yet";
+    chainerx::Shape shape;
+    if (input.has_value()) {
+        shape = ArrayToShape(*input);
+    } else {
+        shape = chainerx::Shape(this->shape);
+    }
+    return chainerx::Full(shape, value, static_cast<chainerx::Dtype>(dtype));
+}
+
 void JmpTrueOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {
     if (static_cast<bool>(chainerx::AsScalar(cond))) {
         st->set_pc(pc - 1);
