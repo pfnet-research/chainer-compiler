@@ -10,10 +10,10 @@ import oniku_script
 
 F = chainer.functions
 
-
 _extract_value_info = oniku_script._extract_value_info
 make_constant_node = oniku_script.make_constant_node
 gen_test = oniku_script.gen_test
+Seq = oniku_script.Seq
 
 
 def V(a):
@@ -327,6 +327,25 @@ def gen_sequence_split_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_io_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    input = aranges(3, 2, 4)
+    input_seq = [[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]]
+
+    input_v = gb.input('input', input)
+    input_seq_v = gb.input('input_seq', Seq(input_seq))
+
+    split_v = gb.OnikuxSequenceSplit([input_v])
+    stack_v = gb.OnikuxSequenceStack([input_seq_v])
+
+    gb.output(input_v, input)
+    gb.output(input_seq_v, Seq(input_seq))
+    gb.output(split_v, Seq(list(map(np.squeeze, np.split(input, len(input))))))
+    gb.output(stack_v, np.stack(input_seq))
+
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -595,6 +614,7 @@ def get_tests():
         TestCase('extra_test_sequence', gen_sequence_test),
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
         TestCase('extra_test_sequence_split', gen_sequence_split_test),
+        TestCase('extra_test_sequence_io', gen_sequence_io_test, fail=True),
 
         TestCase('extra_test_imdb', gen_imdb_test(), fail=True),
         TestCase('extra_test_imdb_lstm', gen_imdb_rnn_test('LSTM'), rtol=0.2),

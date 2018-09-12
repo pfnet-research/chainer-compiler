@@ -9,10 +9,21 @@ from onnx import numpy_helper
 
 # From onnx/backend/test/case/node/__init__.py
 def _extract_value_info(arr, name):
-    return onnx.helper.make_tensor_value_info(
-        name=name,
-        elem_type=onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[arr.dtype],
-        shape=arr.shape)
+    if isinstance(arr, list):
+        assert arr
+        assert not isinstance(arr[0], list)
+        value_info_proto = onnx.ValueInfoProto()
+        value_info_proto.name = name
+        sequence_type_proto = value_info_proto.type.sequence_type
+        nested = _extract_value_info(arr[0], name)
+        tensor_type = sequence_type_proto.elem_type.tensor_type
+        tensor_type.CopyFrom(nested.type.tensor_type)
+        return value_info_proto
+    else:
+        return onnx.helper.make_tensor_value_info(
+            name=name,
+            elem_type=onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[arr.dtype],
+            shape=arr.shape)
 
 
 def make_constant_node(name, typ, value):
@@ -35,10 +46,34 @@ def gen_test(graph, inputs, outputs, name):
         f.write(model.SerializeToString())
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (name, value) in enumerate(values):
-            filename = os.path.join(test_data_set_dir, '%s_%d.pb' % (typ, i))
-            tensor = numpy_helper.from_array(value, name)
-            with open(filename, 'wb') as f:
-                f.write(tensor.SerializeToString())
+            if isinstance(value, list):
+                for j, v in enumerate(value):
+                    filename = os.path.join(test_data_set_dir,
+                                            '%s_%d_%d.pb' % (typ, i, j))
+                    tensor = numpy_helper.from_array(v, name)
+                    with open(filename, 'wb') as f:
+                        f.write(tensor.SerializeToString())
+            else:
+                filename = os.path.join(test_data_set_dir,
+                                        '%s_%d.pb' % (typ, i))
+                tensor = numpy_helper.from_array(value, name)
+                with open(filename, 'wb') as f:
+                    f.write(tensor.SerializeToString())
+
+
+class Seq(object):
+    """Wraps a Python list to clearly identify sequence inputs/outputs."""
+
+    def __init__(self, l):
+        assert isinstance(l, list)
+        self.list = l
+
+
+def _validate_inout(value):
+    if isinstance(value, Seq):
+        return list(map(np.array, value.list))
+    else:
+        return np.array(value)
 
 
 class GraphBuilder(object):
@@ -78,7 +113,7 @@ class GraphBuilder(object):
         return '%s_%d' % (name, oid)
 
     def input(self, name, value):
-        self.inputs.append((name, np.array(value)))
+        self.inputs.append((name, _validate_inout(value)))
         return name
 
     def param(self, name, value):
@@ -86,7 +121,7 @@ class GraphBuilder(object):
         return name
 
     def output(self, name, value):
-        self.outputs.append((name, np.array(value)))
+        self.outputs.append((name, _validate_inout(value)))
         return name
 
     def const(self, dtype, value, name=None):
