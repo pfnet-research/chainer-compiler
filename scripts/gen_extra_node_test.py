@@ -570,6 +570,17 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
     return fn
 
 
+def gen_hello_world_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    hello = 'Hello, world!\n'
+    out_v = gb.OnikuxSequenceCreate([])
+    for ch in hello:
+        ch_v = gb.const(onnx.TensorProto.UINT8, ord(ch))
+        out_v = gb.OnikuxSequenceAppend([out_v, ch_v])
+    gb.output(out_v, Seq(list(np.array(ord(ch), np.uint8) for ch in hello)))
+    gb.gen_test()
+
+
 class TestCase(object):
     def __init__(self, name, func, rtol=None, fail=False):
         self.name = name
@@ -624,6 +635,8 @@ def get_tests():
         TestCase('extra_test_generic_len', gen_generic_len_test),
         TestCase('extra_test_generic_getitem', gen_generic_getitem_test),
         TestCase('extra_test_generic_getslice', gen_generic_getslice_test),
+
+        TestCase('extra_test_hello_world', gen_hello_world_test),
     ]
 
 

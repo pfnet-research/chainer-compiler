@@ -28,7 +28,8 @@ def _extract_value_info(arr, name):
 
 def make_constant_node(name, typ, value):
     value = np.array(value)
-    tensor = onnx.helper.make_tensor(name + '_val', typ, value.shape, value)
+    tensor = onnx.helper.make_tensor(name + '_val', typ,
+                                     value.shape, value.flat)
     node = onnx.helper.make_node('Constant', inputs=[], outputs=[name],
                                  value=tensor)
     return node
