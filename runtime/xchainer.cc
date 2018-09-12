@@ -20,16 +20,6 @@
 namespace oniku {
 namespace runtime {
 
-chainerx::Array GetOrDie(const InOuts& m, std::string name) {
-    auto found = m.find(name);
-    CHECK(found != m.end()) << "Input value not exist: " << name;
-    return found->second;
-}
-
-void SetOrDie(InOuts& m, std::string name, chainerx::Array& a) {
-    CHECK(m.emplace(name, a).second) << "Duplicated output name: " << name;
-}
-
 chainerx::Array BatchNormONNX(
         chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon) {
     int64_t size = s.GetTotalSize();

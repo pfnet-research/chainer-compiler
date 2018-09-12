@@ -12,9 +12,6 @@ namespace runtime {
 
 typedef std::map<std::string, chainerx::Array> InOuts;
 
-chainerx::Array GetOrDie(const InOuts& m, std::string name);
-void SetOrDie(InOuts& m, std::string name, chainerx::Array& a);
-
 // TODO(hamaji): Investigate xChainer's BatchNorm.
 chainerx::Array BatchNormONNX(
         chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon);
