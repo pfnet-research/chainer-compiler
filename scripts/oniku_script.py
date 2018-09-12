@@ -47,9 +47,12 @@ def gen_test(graph, inputs, outputs, name):
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (name, value) in enumerate(values):
             if isinstance(value, list):
+                assert value
+                digits = len(str(len(value)))
                 for j, v in enumerate(value):
-                    filename = os.path.join(test_data_set_dir,
-                                            '%s_%d_%d.pb' % (typ, i, j))
+                    filename = os.path.join(
+                        test_data_set_dir,
+                        f'%s_%d_%0{digits}d.pb' % (typ, i, j))
                     tensor = numpy_helper.from_array(v, name)
                     with open(filename, 'wb') as f:
                         f.write(tensor.SerializeToString())
