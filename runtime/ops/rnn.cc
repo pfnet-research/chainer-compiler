@@ -9,6 +9,53 @@
 namespace oniku {
 namespace runtime {
 
+namespace {
+
+class SequenceLengthMask {
+public:
+    SequenceLengthMask(const nonstd::optional<chainerx::Array>& sequence_lens, chainerx::Dtype dtype, int seq_length, int batch_size)
+        : batch_size_(batch_size) {
+        has_mask_ = sequence_lens.has_value();
+        if (!has_mask_) return;
+        CHECK_EQ(1, sequence_lens->ndim());
+        CHECK_EQ(batch_size_, sequence_lens->shape()[0]);
+        sequence_mask_ = chainerx::Transpose(chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype()), chainerx::Shape({batch_size, seq_length})));
+        sequence_mask_ = chainerx::Less(sequence_mask_, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(dtype);
+    }
+
+    bool has_mask() const {
+        return has_mask_;
+    }
+
+    void UpdateState(int time, const chainerx::Array& new_value, chainerx::Array* out) {
+        if (has_mask_) {
+            CHECK_LE(0, time);
+            if (prev_time_ != time) {
+                pmask_ = chainerx::Reshape(sequence_mask_.At({time}), {batch_size_, 1});
+                nmask_ = 1 - pmask_;
+                prev_time_ = time;
+            }
+            *out = new_value * pmask_ + *out * nmask_;
+        } else {
+            *out = new_value;
+        }
+    }
+
+    void MaskOutput(chainerx::Array* out) const {
+        if (!has_mask_) return;
+        *out *= chainerx::Reshape(sequence_mask_, {out->shape()[0], batch_size_, 1});
+    }
+
+private:
+    chainerx::Array sequence_mask_;
+    int batch_size_;
+    bool has_mask_;
+    int prev_time_{-1};
+    chainerx::Array pmask_, nmask_;
+};
+
+}  // namespace
+
 std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
         XCVMState* st,
         const chainerx::Array& x,
@@ -24,7 +71,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
     // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
     CHECK_EQ(1, w.shape()[0]) << "Multi-directional RNN is not implemented yet";
     if (sequence_lens.has_value()) {
-        WARN_ONCE("RNN with sequence_lens is not supported yet");
+        WARN_ONCE("RNN with sequence_lens is not test yet");
     }
 
     int64_t seq_length = x.shape()[0];
@@ -45,6 +92,8 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
     chainerx::Array h =
             initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
 
+    SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
+
     chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
@@ -52,9 +101,10 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
         if (b.has_value()) {
             nh += bm;
         }
-        h = Tanh(nh);
+        mask.UpdateState(time, Tanh(nh), &h);
         output.At({time, 0}) += h;
     }
+    mask.MaskOutput(&output);
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     return std::make_tuple(output, h);
 }
@@ -74,7 +124,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
     CHECK_EQ(1, w.shape()[0]) << "Multi-directional GRU is not implemented yet";
     if (sequence_lens.has_value()) {
-        WARN_ONCE("GRU with sequence_lens is not supported yet");
+        WARN_ONCE("GRU with sequence_lens is not tested yet");
     }
 
     int64_t seq_length = x.shape()[0];
@@ -102,6 +152,8 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     chainerx::Array h =
             initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
 
+    SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
+
     chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
@@ -125,9 +177,10 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         }
         if (b.has_value()) nh += w_bh;
         nh = Tanh(nh);
-        h = (1 - z) * nh + z * h;
+        mask.UpdateState(time, (1 - z) * nh + z * h, &h);
         output.At({time, 0}) += h;
     }
+    mask.MaskOutput(&output);
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     return std::make_tuple(output, h);
 }
@@ -148,10 +201,6 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
     // B: [num_directions, 8 * hidden_size]
     // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
     CHECK_EQ(1, w.shape()[0]) << "Multi-directional LSTM is not implemented yet";
-    if (sequence_lens.has_value()) {
-        WARN_ONCE("LSTM with sequence_lens is not supported yet");
-    }
-
     int64_t seq_length = x.shape()[0];
     int64_t batch_size = x.shape()[1];
     CHECK_EQ(0, w.shape()[1] % 4);
@@ -181,11 +230,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         pf = ps.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
     }
 
-    chainerx::Array sequence_mask;
-    if (sequence_lens.has_value()) {
-        sequence_mask = chainerx::Transpose(chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype()), chainerx::Shape({batch_size, seq_length})));
-        sequence_mask = chainerx::Less(sequence_mask, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(x.dtype());
-    }
+    SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
 
     chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
@@ -214,22 +259,12 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         o = Sigmoid(o);
         nc = f * c + i * nc;
         chainerx::Array nh = o * Tanh(nc);
-        if (sequence_lens.has_value()) {
-            chainerx::Array mask = chainerx::Reshape(sequence_mask.At({time}), {batch_size, 1});
-            chainerx::Array nmask = 1 - mask;
-            c = nc * mask + c * nmask;
-            h = nh * mask + h * nmask;
-        } else {
-            c = nc;
-            h = nh;
-        }
-
+        mask.UpdateState(time, nc, &c);
+        mask.UpdateState(time, nh, &h);
         output.At({time}) += h;
     }
 
-    if (sequence_lens.has_value()) {
-        output *= chainerx::Reshape(sequence_mask, {seq_length, batch_size, 1});
-    }
+    mask.MaskOutput(&output);
     output = chainerx::Reshape(output, {seq_length, 1, batch_size, hidden_size});
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     c = chainerx::Reshape(c, {1, c.shape()[0], c.shape()[1]});
