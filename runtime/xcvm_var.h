@@ -16,6 +16,7 @@ public:
 
     explicit XCVMVar(Kind kind);
     explicit XCVMVar(chainerx::Array array);
+    explicit XCVMVar(const XCVMVar&) = default;
 
     const chainerx::Array& GetArray();
     std::vector<chainerx::Array>* GetSequence();

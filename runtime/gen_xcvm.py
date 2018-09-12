@@ -132,9 +132,6 @@ def sigil(typ):
 
 
 XC_OPS = [
-    ('In', [String('name')], 'v'),
-    ('Out', [String('name'), Array('v')], []),
-
     ('Add', [Array('a'), Array('b')], ['c']),
     ('Sub', [Array('a'), Array('b')], ['c']),
     ('Mul', [Array('a'), Array('b')], ['c']),
@@ -296,6 +293,9 @@ XC_SEQ_OPS = [
 XC_GENERIC_OPS = [
     ('Identity', [Array('x')], ['y']),
     ('Free', [Array('v')], []),
+    ('In', [String('name')], ['v']),
+    ('Out', [String('name'), Array('v')], []),
+
     ('GenericLen', [Array('v')], ['len']),
     ('GenericGetItem', [Array('v'), Array('index')], ['output']),
     ('GenericGetSlice',

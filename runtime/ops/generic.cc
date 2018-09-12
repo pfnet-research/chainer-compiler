@@ -35,6 +35,14 @@ int64_t GetOptionalInt(XCVMState* st, int index, int64_t default_value) {
 
 }  // namespace
 
+void InOp::RunImpl(XCVMState* st) {
+    st->Input(name, v);
+}
+
+void OutOp::RunImpl(XCVMState* st) {
+    st->Output(name, v);
+}
+
 void IdentityOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(x);
     switch (var->kind()) {

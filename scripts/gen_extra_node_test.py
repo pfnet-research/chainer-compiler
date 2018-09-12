@@ -614,7 +614,7 @@ def get_tests():
         TestCase('extra_test_sequence', gen_sequence_test),
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
         TestCase('extra_test_sequence_split', gen_sequence_split_test),
-        TestCase('extra_test_sequence_io', gen_sequence_io_test, fail=True),
+        TestCase('extra_test_sequence_io', gen_sequence_io_test),
 
         TestCase('extra_test_imdb', gen_imdb_test(), fail=True),
         TestCase('extra_test_imdb_lstm', gen_imdb_rnn_test('LSTM'), rtol=0.2),

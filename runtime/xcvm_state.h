@@ -54,8 +54,8 @@ public:
     Auxiliary* GetAux(int index);
     void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
 
-    chainerx::Array Input(const std::string& name);
-    void Output(const std::string& name, chainerx::Array value);
+    void Input(const std::string& name, int index);
+    void Output(const std::string& name, int index);
 
     const InOuts& GetOutputs() {
         return std::move(outputs_);

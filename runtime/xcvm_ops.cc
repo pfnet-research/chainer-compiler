@@ -62,14 +62,6 @@ chainerx::Array ElementwiseMax(chainerx::Array a, chainerx::Array b) {
 
 }  // namespace
 
-chainerx::Array InOp::RunImpl(XCVMState* st) {
-    return st->Input(name);
-}
-
-void OutOp::RunImpl(XCVMState* st, const chainerx::Array& v) {
-    st->Output(name, v);
-}
-
 chainerx::Array AddOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     return a + b;
 }

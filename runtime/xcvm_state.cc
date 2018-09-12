@@ -98,14 +98,20 @@ void XCVMState::FreeVar(int index) {
     auxiliaries_[index] = nullptr;
 }
 
-chainerx::Array XCVMState::Input(const std::string& name) {
+void XCVMState::Input(const std::string& name, int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(!variables_[index].get()) << index;
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;
-    return found->second->GetArray();
+    variables_[index].reset(new XCVMVar(*found->second.get()));
 }
 
-void XCVMState::Output(const std::string& name, chainerx::Array value) {
-    CHECK(outputs_.emplace(name, new XCVMVar(value)).second) << "Duplicated output name: " << name;
+void XCVMState::Output(const std::string& name, int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get()) << index;
+    CHECK(outputs_.emplace(name, new XCVMVar(*variables_[index])).second) << "Duplicated output name: " << name;
 }
 
 void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
