@@ -429,6 +429,8 @@ private:
             EMIT(GenericLen, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxGenericGetItem) {
             EMIT(GenericGetItem, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxGenericGetSlice) {
+            EMIT(GenericGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

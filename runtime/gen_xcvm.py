@@ -298,6 +298,9 @@ XC_GENERIC_OPS = [
     ('Free', [Array('v')], []),
     ('GenericLen', [Array('v')], [Array('len')]),
     ('GenericGetItem', [Array('v'), Array('index')], [Array('output')]),
+    ('GenericGetSlice',
+     [Array('v'), OptionalArray('start'),
+      OptionalArray('end'), OptionalArray('step')], [Array('output')]),
 ]
 
 

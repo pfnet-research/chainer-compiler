@@ -213,12 +213,16 @@ NodeDef('OnikuxSequenceLengths', 1, 1)
 # For sequences: OnikuxSequenceSize(input0)
 NodeDef('OnikuxGenericLen', 1, 1)
 
-# Equivalent to Python's __getitem__.
+# Equivalent to Python's __getitem__ for a scalar index.
 # For tensors: Gather(input0, input1)
 # For sequences: OnikuxSequenceLookup(input0, input1)
 NodeDef('OnikuxGenericGetItem', 2, 1)
 
-# TODO(hamaji): `GenericGetItem` for slice.
+# Equivalent to Python's __getitem__ for a slice.
+# For tensors: DynamicSlice(input0, [input1], [input2]) -> tensor
+# For sequences: input0[input1:input2:input3] in Python -> sequence
+NodeDef('OnikuxGenericGetSlice', (1, 2, 3, 4), 1)
+
 # TODO(hamaji): `GenericAdd` (Add / SequenceExtend).
 
 

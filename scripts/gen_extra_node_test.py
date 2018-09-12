@@ -359,6 +359,51 @@ def gen_generic_getitem_test(test_name):
     gb.gen_test()
 
 
+def gen_generic_getslice_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    input = aranges(4, 5, 3)
+    reduced = np.sum(input, 0)
+
+    input_v = gb.input('input', input)
+    reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
+    seq_v = gb.OnikuxSequenceSplit(inputs=[input_v])
+
+    def get_slice(input_v, s):
+        ins = [input_v]
+        if s.start is not None:
+            v = gb.const(onnx.TensorProto.INT64, [s.start])
+            ins.append(v)
+        if s.stop is not None:
+            v = gb.const(onnx.TensorProto.INT64, [s.stop])
+            ins.append(v)
+        if s.step is not None:
+            v = gb.const(onnx.TensorProto.INT64, [s.step])
+            ins.append(v)
+        return gb.OnikuxGenericGetSlice(ins)
+
+    def add_test(s):
+        expected = input[s]
+        gb.output(get_slice(input_v, s), expected)
+        gb.output(get_slice(reduced_v, s), reduced[s])
+        actual_v = get_slice(seq_v, s)
+        if len(expected):
+            gb.output(gb.OnikuxSequenceStack([actual_v]), expected)
+        else:
+            gb.output(gb.OnikuxSequenceSize([actual_v]), 0)
+
+    add_test(slice(None))
+    for i in range(4):
+        add_test(slice(i, None))
+
+    for s, e in [(1, 2), (-2, 3), (0, -2), (999, 9999)]:
+        add_test(slice(s, e))
+
+    for s, e, t in [(1, 4, 2), (0, 100, -1), (0, 100, -2)]:
+        add_test(slice(s, e, t))
+
+    gb.gen_test()
+
+
 def gen_imdb_test(num_vocabs=10, num_hidden=5):
     def fn(test_name):
         embed_size = num_hidden
@@ -554,6 +599,7 @@ def get_tests():
 
         TestCase('extra_test_generic_len', gen_generic_len_test),
         TestCase('extra_test_generic_getitem', gen_generic_getitem_test),
+        TestCase('extra_test_generic_getslice', gen_generic_getslice_test),
     ]
 
 
