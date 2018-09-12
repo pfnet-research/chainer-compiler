@@ -12,6 +12,7 @@ add_library(oniku_runtime
   chrome_tracing.cc
   gen_xcvm_ops.cc
   meminfo.cc
+  ops/generic.cc
   ops/normalization.cc
   ops/pooling.cc
   ops/rnn.cc

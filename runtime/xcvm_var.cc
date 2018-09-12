@@ -13,7 +13,7 @@ XCVMVar::XCVMVar(Kind kind) : kind_(kind) {
 XCVMVar::XCVMVar(chainerx::Array array) : kind_(Kind::kArray), array_(array) {
 }
 
-chainerx::Array XCVMVar::GetArray() {
+const chainerx::Array& XCVMVar::GetArray() {
     CHECK(kind_ == Kind::kArray) << static_cast<int>(kind_);
     return *array_;
 }

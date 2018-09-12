@@ -323,6 +323,24 @@ def gen_sequence_split_test(test_name):
     gb.gen_test()
 
 
+def gen_generic_len_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    input = aranges(4, 2, 3)
+
+    input_v = gb.input('input', input)
+    len0_v = gb.OnikuxGenericLen([input_v])
+    reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
+    len1_v = gb.OnikuxGenericLen([reduced_v])
+    seq_v = gb.OnikuxSequenceSplit(inputs=[input_v])
+    len_seq_v = gb.OnikuxGenericLen([seq_v])
+
+    gb.output(len0_v, input.shape[0])
+    gb.output(len1_v, input.shape[1])
+    gb.output(len_seq_v, input.shape[0])
+
+    gb.gen_test()
+
+
 def gen_imdb_test(num_vocabs=10, num_hidden=5):
     def fn(test_name):
         embed_size = num_hidden
@@ -515,6 +533,8 @@ def get_tests():
         TestCase('extra_test_imdb_lstm', gen_imdb_rnn_test('LSTM'), rtol=0.2),
         TestCase('extra_test_imdb_bilstm', gen_imdb_rnn_test('BiLSTM'),
                  fail=True, rtol=0.2),
+
+        TestCase('extra_test_generic_len', gen_generic_len_test),
     ]
 
 

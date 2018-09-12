@@ -78,15 +78,15 @@ class GraphBuilder(object):
         return '%s_%d' % (name, oid)
 
     def input(self, name, value):
-        self.inputs.append((name, value))
+        self.inputs.append((name, np.array(value)))
         return name
 
     def param(self, name, value):
-        self.params.append((name, value))
+        self.params.append((name, np.array(value)))
         return name
 
     def output(self, name, value):
-        self.outputs.append((name, value))
+        self.outputs.append((name, np.array(value)))
         return name
 
     def const(self, dtype, value, name=None):

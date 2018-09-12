@@ -271,7 +271,9 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSequenceUnpad:
         case Node::kOnikuxSequenceLengths:
         case Node::kOnikuxSequenceSize:
-        case Node::kOnikuxSequencePad: {
+        case Node::kOnikuxSequencePad:
+        case Node::kOnikuxGenericLen:
+        case Node::kOnikuxGenericGetItem: {
             // TODO(hamaji): Consider implementing dtype inference for sequences.
             break;
         }

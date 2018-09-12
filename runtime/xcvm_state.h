@@ -47,6 +47,8 @@ public:
     std::vector<chainerx::Array>* CreateSequence(int index);
     std::vector<chainerx::Array>* GetSequence(int index);
 
+    XCVMVar* GetXCVMVar(int index);
+
     std::string GetVarString(int index);
 
     Auxiliary* GetAux(int index);

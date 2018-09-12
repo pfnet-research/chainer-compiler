@@ -17,8 +17,12 @@ public:
     explicit XCVMVar(Kind kind);
     explicit XCVMVar(chainerx::Array array);
 
-    chainerx::Array GetArray();
+    const chainerx::Array& GetArray();
     std::vector<chainerx::Array>* GetSequence();
+
+    Kind kind() const {
+        return kind_;
+    }
 
     int64_t GetTotalSize() const;
 

@@ -208,6 +208,19 @@ NodeDef('OnikuxSequenceSize', 1, 1)
 # Returns lengths of elements in a sequence: ([T]) -> ([I])
 NodeDef('OnikuxSequenceLengths', 1, 1)
 
+# Equivalent to Python's __len__.
+# For tensors: Gather(Shape(input0), 0)
+# For sequences: OnikuxSequenceSize(input0)
+NodeDef('OnikuxGenericLen', 1, 1)
+
+# Equivalent to Python's __getitem__.
+# For tensors: Gather(input0, input1)
+# For sequences: OnikuxSequenceLookup(input0, input1)
+NodeDef('OnikuxGenericGetItem', 2, 1)
+
+# TODO(hamaji): `GenericGetItem` for slice.
+# TODO(hamaji): `GenericAdd` (Add / SequenceExtend).
+
 
 class AttrDef(object):
     def __init__(self, name, value):
