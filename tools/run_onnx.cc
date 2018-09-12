@@ -22,6 +22,7 @@
 #include <chainerx/native/native_backend.h>
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -324,10 +325,17 @@ void RunMain(int argc, char** argv) {
             LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
         }
 
-        if (test_case->outputs.empty() && args.exist("verbose")) {
-            LOG() << "Outputs:" << std::endl;
-            for (const auto& p : outputs) {
-                LOG() << p.first << ": " << p.second->ToString() << std::endl;
+        if (test_case->outputs.empty()) {
+            if (outputs.size() == 1 && outputs.begin()->second->kind() == XCVMVar::Kind::kSequence) {
+                for (auto ch : *outputs.begin()->second->GetSequence()) {
+                    putchar(static_cast<uint8_t>(chainerx::AsScalar(ch)));
+                }
+            }
+            if (args.exist("verbose")) {
+                LOG() << "Outputs:" << std::endl;
+                for (const auto& p : outputs) {
+                    LOG() << p.first << ": " << p.second->ToString() << std::endl;
+                }
             }
             continue;
         }
