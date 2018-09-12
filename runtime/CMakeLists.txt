@@ -26,10 +26,6 @@ add_library(oniku_runtime
   xcvm_var.cc
   )
 
-add_library(oniku_xchainer_runtime_main
-  xchainer_main.cc
-  )
-
 include_directories(../googletest/googletest/include)
 add_executable(runtime_test
   xcvm_test.cc

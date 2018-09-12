@@ -12,8 +12,6 @@ namespace runtime {
 
 typedef std::map<std::string, chainerx::Array> InOuts;
 
-InOuts RunGraph(const InOuts& inputs, bool use_trace);
-
 chainerx::Array GetOrDie(const InOuts& m, std::string name);
 void SetOrDie(InOuts& m, std::string name, chainerx::Array& a);
 
