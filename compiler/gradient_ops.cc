@@ -94,6 +94,15 @@ void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const s
     GRAD_OP(Node::kDiv, {y[0]->grad(), t0}, x[0]);
 }
 
+void TanhGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+    GraphBuilder gb(graph, "TanhGrad", x[0]);
+    Value* one = gb.Const(Type(x[0]->type().dtype(), {}), {1.0});
+    Value* gy = y[0]->grad();
+    Value* t0 = gb.Op(Node::kMul, {y[0], y[0]});
+    Value* t1 = gb.Op(Node::kSub, {one, t0});
+    GRAD_OP(Node::kMul, {gy, t1}, x[0]);
+}
+
 void IdentityGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kIdentity, {y[0]->grad()}, x[0]);
 }
@@ -280,6 +289,7 @@ void AddGradientForNode(Graph* graph, const Node* node) {
         register_grad_fn(Node::kSigmoid, 1, 1, &SigmoidGradFn);
         register_grad_fn(Node::kRelu, 1, 1, &ReluGradFn);
         register_grad_fn(Node::kSqrt, 1, 1, &SqrtGradFn);
+        register_grad_fn(Node::kTanh, 1, 1, &TanhGradFn);
 
         register_grad_fn(Node::kIdentity, 1, 1, &IdentityGradFn);
         register_grad_fn(Node::kReshape, 2, 1, &ReshapeGradFn);

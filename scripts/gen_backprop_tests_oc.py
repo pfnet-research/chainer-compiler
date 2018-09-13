@@ -86,6 +86,7 @@ def get_backprop_tests():
     #      a=[3, 5])
 
     test('sqrt', lambda m: F.sqrt(m.a), a=[3, 5])
+    test('tanh', lambda m: F.tanh(m.a), a=[0.3, 0.6])
 
     # ONNX chainer creates an extra parameter named 'None' for bias of
     # Gemm.
