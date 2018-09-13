@@ -57,7 +57,8 @@ public:
             AddGradientForNode(graph_, node);
 
             for (Value* input : node->inputs()) {
-                if (input->producer()) op_queue_.push(input->producer());
+                if (input->grad() && input->producer())
+                    op_queue_.push(input->producer());
             }
         }
 
