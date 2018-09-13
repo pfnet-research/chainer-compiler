@@ -9,7 +9,21 @@ import oniku_script
 F = chainer.functions
 
 
-def gen_rnn_sentiment_test(cell_type, num_vocabs=10, num_hidden=5):
+def _gen_random_sequence(batch_size, sequence_length, num_vocabs):
+    lengths = np.random.randint(2, sequence_length, size=batch_size)
+    lengths = np.flip(np.sort(lengths), axis=0)
+    labels = np.random.randint(
+        2, num_vocabs, size=(batch_size, sequence_length))
+    return labels, lengths
+
+
+def gen_rnn_sentiment_test(cell_type,
+                           num_vocabs=10,
+                           num_hidden=5,
+                           batch_size=3,
+                           sequence_length=4,
+                           output_loss_only=False,
+                           param_initializer=np.random.random):
     def fn(test_name):
         gb = oniku_script.GraphBuilder(test_name)
         if cell_type == 'LSTM':
@@ -36,15 +50,23 @@ def gen_rnn_sentiment_test(cell_type, num_vocabs=10, num_hidden=5):
             raise RuntimeError('Unknown cell_type: %s' % cell_type)
         embed_size = num_hidden
         np.random.seed(42)
-        labels = np.array([[1, 2, 3, 7], [4, 5, 0, 0], [6, 0, 0, 0]])
-        lengths = np.array([4, 2, 1])
-        targets = np.array([1, 0, 1])
-        embed = np.random.random((num_vocabs, embed_size)).astype(np.float32)
-        weight = np.random.random(
-            (embed_size, num_hidden * wr)).astype(np.float32)
-        bias = np.random.random((num_hidden * wr,)).astype(np.float32)
-        linear = np.random.random(
-            (num_direction * num_hidden, 2)).astype(np.float32)
+        if batch_size == 3 and sequence_length == 4:
+            labels = np.array([[1, 2, 3, 7], [4, 5, 0, 0], [6, 0, 0, 0]])
+            lengths = np.array([4, 2, 1])
+            targets = np.array([1, 0, 1])
+        else:
+            labels, lengths = _gen_random_sequence(
+                batch_size, sequence_length, num_vocabs)
+            targets = np.random.randint(2, size=batch_size)
+
+        embed = param_initializer(
+            size=(num_vocabs, embed_size)).astype(np.float32)
+        weight = param_initializer(
+            size=(embed_size, num_hidden * wr)).astype(np.float32)
+        bias = param_initializer(
+            size=(num_hidden * wr,)).astype(np.float32)
+        linear = param_initializer(
+            size=(num_direction * num_hidden, 2)).astype(np.float32)
 
         x = F.embed_id(labels, embed)
         state = np.zeros(
@@ -122,10 +144,23 @@ def gen_rnn_sentiment_test(cell_type, num_vocabs=10, num_hidden=5):
         result_v = gb.MatMul([h, linear_v])
         loss_v = gb.OnikuxSoftmaxCrossEntropy([result_v, targets_v])
 
-        gb.output(rnn_outputs_v, rnn_outputs.array)
-        gb.output(result_v, result.array)
+        if not output_loss_only:
+            gb.output(rnn_outputs_v, rnn_outputs.array)
+            gb.output(result_v, result.array)
         gb.output(loss_v, loss.array)
 
         gb.gen_test()
 
     return fn
+
+
+if __name__ == '__main__':
+    # https://github.com/ilkarman/DeepLearningFrameworks/blob/master/notebooks/common/params_lstm.py
+    fn = gen_rnn_sentiment_test('LSTM',
+                                num_vocabs=30000,
+                                num_hidden=100,
+                                batch_size=64,
+                                sequence_length=150,
+                                output_loss_only=False,
+                                param_initializer=np.random.normal)
+    fn('sentiment_lstm')
