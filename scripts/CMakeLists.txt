@@ -16,7 +16,7 @@ add_custom_command(OUTPUT backprop_test_pc_stamp
 add_custom_command(OUTPUT extra_test_stamp
                    COMMAND python3 scripts/gen_extra_test.py > /dev/null
                    MAIN_DEPENDENCY gen_extra_test.py
-                   DEPENDS oniku_script.py
+                   DEPENDS oniku_script.py sentiment.py
                    WORKING_DIRECTORY ..)
 
 add_custom_command(OUTPUT mnist_mlp_stamp
