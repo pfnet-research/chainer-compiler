@@ -79,11 +79,7 @@ def get_backprop_tests():
 
     test('mul_same', lambda m: m.a * m.a, a=[3, 5])
 
-    # TODO(hamaji): To get this work, the following TODO in
-    # onnx-chainer should be fixed:
-    # https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/functions/array.py#L79
-    # test('reshape', lambda m: F.reshape(m.a, (1, 2, 1)),
-    #      a=[3, 5])
+    test('reshape', lambda m: F.reshape(m.a, (1, 2, 1)), a=[3, 5])
 
     test('sqrt', lambda m: F.sqrt(m.a), a=[3, 5])
     test('tanh', lambda m: F.tanh(m.a), a=[0.3, 0.6])
