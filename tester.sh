@@ -10,6 +10,7 @@ node=(
     Reshape.py
     Tanh.py
     Cumsum.py
+    SplitAxis.py
 )
 
 syntax=(

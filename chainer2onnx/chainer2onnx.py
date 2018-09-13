@@ -694,7 +694,8 @@ def eval_ast(nast, env):
                     else:
                         return totensor(x, env)
                 lower = unsqueeze(f(self.lower, 0))
-                upper = unsqueeze(f(self.upper, -1))
+                # TODO(satos)　その場しのぎっぽいのでどうにかする(けどこれどうにもならないですよね...?)
+                upper = unsqueeze(f(self.upper, 2 ** 30))
                 squeeze = [False]
             elif isinstance(self, gast.Index):
                 idx = eval_ast(self.value, env)
@@ -783,7 +784,7 @@ def eval_ast(nast, env):
             inputs=[],outputs=[res.name]
         )
         for v in vs:
-            v = totensor(v)
+            v = totensor(v,env)
             tr = new_tensor()
             env.addnode(
                 "OnikuxSequenceAppend",

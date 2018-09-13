@@ -7,10 +7,11 @@ from chainer import functions as F
 import chainer
 import numpy
 
-from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env
+from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
 
+import ast
 import code
-
+import gast
 
 class Function_Relu(object):
     def call(self, args, keywords, env):
@@ -260,6 +261,8 @@ class Np_Cumsum(object):
         # 戻り値は入力に依らずテンソルらしい
         # TODO(satos) さすがに仮定がきつい
         v = args[0]
+        
+        # これ戻り値がテンソルでなくSequenceなら、SplitAxisみたいにかっこよく書けるはず 
         """
         a = new_tensor()
         env.addnode(
@@ -318,6 +321,42 @@ class Np_Cumsum(object):
 
         return res
 
+class Function_SplitAxis(object):
+    def call(self, args, keywords, env):
+        assert len(args) == 2
+        assert keywords['axis'] == 0
+        # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
+        # 戻り値はtuple(!!)らしいが、たってきSequenceで返してます。
+        # TODO(satos) さすがに仮定がきつい
+        
+        v = args[0]
+        ilens = args[1]
+
+        from . chainer2onnx import eval_ast
+        
+        src = """
+        r = []
+        bs = [0][0]
+        for s in ilens:
+            r.append(v[bs:s])
+            bs = s
+        r.append(v[bs:])
+        """
+        src = clip_head(src)
+        nast = gast.ast_to_gast(ast.parse(src))
+        
+        localenv = Env()
+        localenv.module = {}
+        vs = {
+            'v': v,
+            'ilens': ilens,
+        }
+        localenv.vars.update(vs)
+        eval_ast(nast.body,localenv)
+        
+        env.nodes += localenv.nodes
+        return localenv.vars['r']
+
 
 class Xp_Np_Ceil(object):
     def call(self, args, _, env):
@@ -366,7 +405,6 @@ class Function_Dummy(object):
 
 dummies = [
     F.vstack,
-    F.split_axis,
     F.separate,
     F.stack,
     F.flatten,
@@ -402,7 +440,8 @@ Func2NodeClass = [
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
     (F.vstack, Function_Vstack()),
     (numpy.int32, Np_Int32()),
-    (numpy.cumsum,Np_Cumsum()),
+    (numpy.cumsum, Np_Cumsum()),
+    (F.split_axis, Function_SplitAxis()),
 
     # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embe    d_id.py#L43) のif文を通らないようにする
     (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
