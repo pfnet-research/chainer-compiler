@@ -25,10 +25,11 @@ public:
     }
 
     void Run() {
+        necessary_values_ = graph_->GetNecessaryValues();
         std::set<Value*> original_input_values;
-        for (Value* input : graph_->GetNecessaryInputs()) {
-            if (!input->initializer()) continue;
-            CHECK(original_input_values.emplace(input).second);
+        for (Value* value : necessary_values_) {
+            if (value->kind() != Value::Kind::kInput || !value->initializer()) continue;
+            CHECK(original_input_values.emplace(value).second);
         }
 
         for (Value* value : graph_->output_values()) {
@@ -111,6 +112,7 @@ private:
     Graph* graph_;
     std::queue<const Node*> op_queue_;
     std::set<const Node*> seen_nodes_;
+    std::set<Value*> necessary_values_;
 };
 
 }  // namespace

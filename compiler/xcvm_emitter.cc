@@ -25,7 +25,6 @@ public:
     }
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
-        // EmitInputs(program);
         EmitGraph(graph_, program, false /* in_loop */);
         EmitOutputs(program);
         if (dump_value_names) {
@@ -672,13 +671,6 @@ private:
         AddFreeOp(prog, cond_id);
 
 #undef EMIT
-    }
-
-    void EmitInputs(XCProgramProto* prog) {
-        for (const Value* value : graph_.GetNecessaryInputs()) {
-            AddInOp(prog, GetValueId(value), value->name());
-            prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
-        }
     }
 
     void EmitOutputs(XCProgramProto* prog) {

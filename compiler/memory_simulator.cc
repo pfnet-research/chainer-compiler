@@ -24,19 +24,18 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
         usage.peak = std::max<int64_t>(usage.peak, mem);
     };
 
-    for (const Value* value : graph.GetNecessaryInputs()) {
+    for (const Value* value : graph.GetNecessaryValues()) {
         int nu = value->users().size();
-        int64_t bytes = value->GetNBytes();
-        if (value->initializer()) {
-            usage.param += bytes >= 0 ? bytes : 0;
-            // We assume parameters will never be freed.
-            nu++;
+        if (value->kind() == Value::Kind::kInput) {
+            int64_t bytes = value->GetNBytes();
+            if (value->initializer()) {
+                usage.param += bytes >= 0 ? bytes : 0;
+                // We assume parameters will never be freed.
+                nu++;
+            }
+            alloc(bytes);
         }
-        alloc(bytes);
         CHECK(num_users.emplace(value, nu).second);
-    }
-    for (const Value* value : graph.temp_values()) {
-        CHECK(num_users.emplace(value, value->users().size()).second);
     }
 
     std::vector<const Node*> nodes(graph.GetComputationSequence());

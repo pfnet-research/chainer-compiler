@@ -124,17 +124,13 @@ std::vector<Node*> Graph::GetLiveNodes() const {
     return nodes;
 }
 
-std::vector<Value*> Graph::GetNecessaryInputs() const {
+std::set<Value*> Graph::GetNecessaryValues(const std::vector<Value*>& output_values) const {
     std::queue<Value*> q;
-    for (Value* value : output_values()) {
-        q.push(value);
-    }
+    for (Value* value : output_values) q.push(value);
 
     std::set<Value*> seen_values;
-    std::vector<Value*> input_values;
     while (!q.empty()) {
         Value* value = q.front();
-        if (value->kind() == Value::Kind::kInput) input_values.push_back(value);
         q.pop();
         if (Node* node = value->producer()) {
             for (Value* input : node->inputs()) {
@@ -143,9 +139,11 @@ std::vector<Value*> Graph::GetNecessaryInputs() const {
             }
         }
     }
-    std::sort(input_values.begin(), input_values.end());
-    input_values.erase(std::unique(input_values.begin(), input_values.end()), input_values.end());
-    return input_values;
+    return seen_values;
+}
+
+std::set<Value*> Graph::GetNecessaryValues() const {
+    return GetNecessaryValues(output_values_);
 }
 
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
