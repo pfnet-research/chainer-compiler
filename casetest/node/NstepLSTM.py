@@ -27,14 +27,22 @@ import chainer2onnx
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
+    
 
     n_batch = 7
     n_layer = 3
     n_in = 8
     n_hidden = 5
     n_time_length = 4
+    
+    #n_batch = 1
+    n_layer = 2
+    #n_in = 1
+    #n_hidden = 1
+    #n_time_length = 1
+
+    
     model = A(n_layer, n_in, n_hidden)
 
     x = [np.random.rand(n_time_length , n_in).astype(np.float32) for i in range(n_batch)]
-    x = [x]
-    chainer2onnx.generate_testcase(model, x)
+    chainer2onnx.generate_testcase(model, [x])

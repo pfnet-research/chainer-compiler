@@ -191,7 +191,7 @@ class Link_NstepLSTM(object):
         assert(args[0] is None and args[1] is None)
 
         # v = args[2]
-        v = new_tensor(['unknown', 'unknown', 'unknown'])
+        v = new_tensor()
         env.addnode(
             "Transpose",
             perm=(1, 0, 2),
@@ -204,9 +204,9 @@ class Link_NstepLSTM(object):
 
         for i in range(self.n_layers):
 
-            h = new_tensor(['unknown', 'unknown', 'unknown'])
-            c = new_tensor(['unknown', 'unknown', 'unknown'])
-            ys = new_tensor(['unknown', 'unknown', 'unknown'])
+            h = new_tensor()
+            c = new_tensor()
+            ys = new_tensor()
 
             env.addnode(
                 "LSTM",
@@ -221,8 +221,8 @@ class Link_NstepLSTM(object):
             v = ys
         # print(hs)
         # print(cs)
-        ths = new_tensor(['unknown', 'unknown', 'unknown'])
-        tcs = new_tensor(['unknown', 'unknown', 'unknown'])
+        ths = new_tensor()
+        tcs = new_tensor()
         env.addnode(
             "Concat",
             inputs=hs, outputs=[ths.name],
@@ -234,11 +234,18 @@ class Link_NstepLSTM(object):
             axis=0,
         )
 
-        tys = new_tensor(['unknown', 'unknown', 'unknown'])
+        tys = new_tensor()
+        p = new_tensor()
+        env.addnode(
+            "Squeeze",
+            inputs=[v.name],
+            outputs=[p.name],
+            axes=[1]
+        )
         env.addnode(
             "Transpose",
             perm=(1, 0, 2),
-            inputs=[v.name],
+            inputs=[p.name],
             outputs=[tys.name],
         )
         return ths, tcs, tys

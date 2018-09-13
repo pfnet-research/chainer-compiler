@@ -4,7 +4,7 @@ node=(
     Concat.py
     SoftmaxClossEntropy.py
     AddMul.py
-    # NstepLSTM.py starts broken
+    # NstepLSTM.py こわれた
     EmbedID.py
     BatchNorm.py
     Reshape.py
@@ -17,6 +17,10 @@ syntax=(
     UserDefinedFunc.py
     Slice.py
     ListComp.py
+    Range.py
+    Sequence.py
+    ChainerFunctionNode.py
+    # Unpad_pad.py まだ
 )
 
 

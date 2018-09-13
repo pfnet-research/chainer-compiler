@@ -6,6 +6,7 @@ import inspect
 import onnx
 from onnx import checker
 from onnx import helper
+from onnx import TensorProto
 
 import code
 import sys
@@ -55,7 +56,7 @@ def convert_link(ch, env):
             code.InteractiveConsole({'lk': ch}).interact()
             raise Exception('unknown link', ch)
     else:
-        res = User_Defined_Link(ch)
+        res = User_Defined_Link(ch,env)
 
     ts = res.init_tensors()
     if len(ts) != 0:
@@ -113,6 +114,7 @@ class User_Defined_Func_In_Link(Function_base):
         self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
 
     def call(self, args, kwargs, env):
+
         loenv = env.localenv()
         loenv.module = sys.modules[self.ch.__module__]
         args = [self.ch] + args
@@ -120,7 +122,7 @@ class User_Defined_Func_In_Link(Function_base):
 
 
 class User_Defined_Link(object):
-    def __init__(self, ch):
+    def __init__(self, ch,env):
         src = clip_head(inspect.getsource(ch.forward))
         dprint(src)
         self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
@@ -130,9 +132,23 @@ class User_Defined_Link(object):
         # 以下、 最初の外からのためのやつ
         # code.InteractiveConsole({'v': self.ast}).interact()
         self.forward_arglen = len(self.ast.args.args)-1
+        
+        # ここで、初期化したやつを上書きしてやる必要が出てくる
+        self.inits = []
+        for s,v in ch.namedparams():
+            s = s[1:]
+            if s.find('/') != -1:
+                continue
+            t = helper.make_tensor_value_info(
+                    '_'+s, TensorProto.FLOAT, list(v.shape))
+            self.inits.append(t)
+            mv = getattr(ch,s)
+            setattr(ch,s,t)
+            env.restore_funcs.append(lambda: setattr(ch,s,mv))
+            
 
     def init_tensors(self):
-        return []
+        return self.inits
 
 
 class User_Defined_Class(object):
@@ -147,7 +163,7 @@ class User_Defined_Class(object):
         ch = Tmp()
         ch.__module__ = classtype.__module__
 
-        # code.InteractiveConsole({'v': classtype.__init__}).interact()
+        # code.InteractiveConsole({'Tmp': Tmp,'v': ch}).interact()
         def f(args, kwargs, env):
             if not isinstance(classtype.__init__, type(str.__init__)):  # slot wrapper というものらしい
                 User_Defined_Func_In_Link(
@@ -163,11 +179,13 @@ class Env(object):
         self.vars = {}
         self.nodes = []
         self.init_tensors = []
+        self.restore_funcs = [] # User定義Linkの初期化子を正常化させるやつ
 
     def localenv(self):
         res = Env()
         res.nodes = self.nodes  # こっちはglobalに共通でないといけない
         res.init_tensors = self.init_tensors  # こっちも共通
+        res.restore_funcs  = self.restore_funcs
         return res
 
     def addnode(self, *args, **kwargs):
@@ -481,14 +499,22 @@ def eval_ast(nast, env):
         tx = new_tensor()
         localenv.vars[x] = tx
         ty = eval_ast(nast.elt,  localenv)
-
+        
+        
         cnt = new_tensor()
         gtx = new_tensor()
         localenv.addnode(
-            "Gather",
+            "OnikuxGenericGetItem",
             inputs=[gtx.name, cnt.name], outputs=[tx.name],
-            axis=0
         )
+        
+        ty_init = new_tensor()
+        tty = new_tensor()
+        localenv.addnode(
+            "OnikuxSequenceAppend",
+            inputs=[ty_init.name, ty.name], outputs=[tty.name],
+        )
+        ty = tty
 
         # graph内で参照されるテンソルは入力として与えないといけない。
         # TODO(satos) 活性解析とかして、 参照すべきテンソルを列挙する
@@ -518,11 +544,14 @@ def eval_ast(nast, env):
         localgraph = helper.make_graph(
             localenv.nodes,
             "Loop_subgraph",
-            [cnt, cond, gtx] + closure,
+            [cnt, cond, gtx] + closure + [ty_init],
             [cond, gtx] + closure + [ty]
         )
+        
 
+         
         mtc = new_tensor()
+        """
         v = new_tensor()
         env.addnode(
             "Shape",
@@ -534,13 +563,26 @@ def eval_ast(nast, env):
             inputs=[v.name, totensor(0, env).name], outputs=[mtc.name],
             axis=0
         )
+        """
+        
+        nullseq = new_tensor()
+        env.addnode(
+            "OnikuxSequenceCreate",
+            inputs=[], outputs=[nullseq.name] 
+        )
+        
+
+        env.addnode(
+            "OnikuxGenericLen",
+            inputs=[xs.name], outputs=[mtc.name] 
+        )
 
         dummy_name = ["dummy_" +
                       new_tensor().name for _ in range(len(cnames)+1)]
         res = new_tensor()
         env.addnode(
             'Loop',
-            inputs=[mtc.name, "", xs.name] + cnames,
+            inputs=[mtc.name, "", xs.name] + cnames + [nullseq.name],
             # ほかのと名前が衝突しないようにする
             outputs=dummy_name+[res.name],
             body=localgraph
@@ -550,6 +592,29 @@ def eval_ast(nast, env):
 
     elif isinstance(nast, gast.Subscript):
         vs = eval_ast(nast.value, env)
+        if isinstance(vs,tuple):
+            assert isinstance(nast.slice,gast.Index)
+            idx = eval_ast(nast.slice.value, env)
+            assert isinstance(idx,int)
+            return vs[idx]
+        elif isinstance(vs,list):
+            raise Exception("unimplemented")
+            
+        # sliceがIdxの場合は、Idxのexprにlistが来うる可能性があるのでGatherする
+        # Numpyのsliceは闇では...???
+        # TODO(satos) Sliceの実装を"ちゃんと"したものにする(現在だと v[0:1,[2,3]] みたいなのは動かない)
+        # あと、これだとIndexに副作用が存在する場合にやばい
+        if isinstance(nast.slice,gast.Index):
+            idx = eval_ast(nast.slice.value,env)
+            if istensor(idx):
+                res = new_tensor()
+                env.addnode(
+                    'Gather',
+                    inputs=[vs.name, idx.name],
+                    outputs=[res.name]
+                )
+                return res
+
 
         def unsqueeze(x):
             tx = new_tensor()
@@ -606,9 +671,8 @@ def eval_ast(nast, env):
                 raise Exception(self, " is not Python slice")
 
             return lower, upper, squeeze
-
+        # print('slice',nast.slice)
         lower, upper, squeeze = slice2list(nast.slice)
-        # print(lower,upper,squeeze)
         res = new_tensor()
         env.addnode(
             'DynamicSlice',
@@ -671,15 +735,14 @@ def chainer2onnx(model, forward):
 
     init_id2name(model)
     # code.InteractiveConsole({'mo': model}).interact()
-    molk = User_Defined_Link(model)
+    env = Env()
+    molk = User_Defined_Link(model,env)
 
     input_tensors = []
     for i in range(molk.forward_arglen):  # self 以外
-        # x = new_tensor(['batch_size%d' % i, 'input_size%d' % i])
-        x = new_tensor()  # ここもたぶん不明になる
+        x = new_tensor()  # ここの次元は不明になる
         input_tensors.append(x)
 
-    env = Env()
 
     # forward = molk.forward
     env.module = sys.modules[model.__module__]
@@ -688,17 +751,21 @@ def chainer2onnx(model, forward):
 
     v = molk.call(input_tensors, [], env)
 
+
     dprint('output_tensors', v)
     if isinstance(v, tuple):
         output_tensors = list(v)  # ばらしてみる
     else:
         output_tensors = [v]  # とりあえず1tensor
 
-    # print(env.init_tensors)
+    #print('env.init_tensors ',env.init_tensors)
     input_tensors += env.init_tensors
+    
+    for f in env.restore_funcs:
+        f()
 
-    # for no in env.nodes:
-    #    print(no.op_type)
+    #for no in env.nodes:
+    #   print(no.op_type)
     # print(env.nodes)
     # print(input_tensors)
     # print(output_tensors)

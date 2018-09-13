@@ -6,11 +6,11 @@ import chainer.links as L
 # Network definition
 
 
-class F(chainer.Link):
+class F(object):
     def __init__(self,a):
         self.a = a
 
-    def forward(self,x):
+    def g(self,x):
         return self.a + x
 
 def h(x,y):
@@ -22,7 +22,7 @@ class A(chainer.Chain):
         super(A, self).__init__()
  
     def forward(self, x,y,z):
-        p = F(x)(y)
+        p = F(x).g(y)
         return h(p,z)
 
 

@@ -199,7 +199,6 @@ class Function_Reshape(object):
         env.addnode(
             "Reshape",
             inputs=[v.name, w.name], outputs=[res.name],
-            perm=[]
         )
         return res
 
@@ -212,7 +211,6 @@ class Function_Tanh(object):
         env.addnode(
             "Tanh",
             inputs=[v.name], outputs=[res.name],
-            perm=[]
         )
         return res
 
@@ -242,6 +240,22 @@ class Np_Int32(object):
     def call(self, args, keywords, env):
         assert len(args) == 1
         v = args[0]
+        tt = TensorProto.INT32
+        res = new_tensor()
+        res.type.tensor_type.elem_type = tt
+        env.addnode(
+            'Cast',
+            inputs=[v.name], outputs=[res.name],
+            to=tt
+        )
+        return res
+
+
+class Np_Cumsum(object):
+    def call(self, args, keywords, env):
+        assert len(args) == 1
+        v = args[0]
+        raise 'TODO'
         tt = TensorProto.INT32
         res = new_tensor()
         res.type.tensor_type.elem_type = tt
