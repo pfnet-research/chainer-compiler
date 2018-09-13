@@ -427,6 +427,26 @@ def gen_generic_getslice_test(test_name):
     gb.gen_test()
 
 
+def gen_generic_add_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    input1 = aranges(3, 4)
+    input2 = aranges(3, 1) * 2
+    seq1 = [np.squeeze(i, 0) for i in np.split(input1, 3)]
+    seq2 = [np.squeeze(i, 0) for i in np.split(input2, 3)]
+
+    input1_v = gb.input('input1', input1)
+    input2_v = gb.input('input2', input2)
+    seq1_v = gb.OnikuxSequenceSplit([input1_v])
+    seq2_v = gb.OnikuxSequenceSplit([input2_v])
+
+    gb.output(gb.OnikuxGenericAdd([input1_v, input2_v]), input1 + input2)
+    gb.output(gb.OnikuxGenericAdd([seq1_v, seq2_v]), Seq(seq1 + seq2))
+    gb.output(gb.OnikuxGenericAdd([input1_v, seq2_v]), input1 + input2)
+    gb.output(gb.OnikuxGenericAdd([seq1_v, input2_v]), input1 + input2)
+
+    gb.gen_test()
+
+
 def gen_imdb_test(num_vocabs=10, num_hidden=5):
     def fn(test_name):
         embed_size = num_hidden
@@ -635,6 +655,7 @@ def get_tests():
         TestCase('extra_test_generic_len', gen_generic_len_test),
         TestCase('extra_test_generic_getitem', gen_generic_getitem_test),
         TestCase('extra_test_generic_getslice', gen_generic_getslice_test),
+        TestCase('extra_test_generic_add', gen_generic_add_test),
 
         TestCase('extra_test_hello_world', gen_hello_world_test),
     ]

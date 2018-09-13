@@ -152,6 +152,17 @@ chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
     return result;
 }
 
+chainerx::Array Stack(const std::vector<chainerx::Array>& inputs, int axis) {
+    CHECK(!inputs.empty());
+    std::vector<chainerx::Array> reshaped;
+    for (const chainerx::Array& a : inputs) {
+        chainerx::Shape shape{a.shape()};
+        shape.insert(shape.begin() + axis, 1);
+        reshaped.push_back(chainerx::Reshape(a, shape));
+    }
+    return Concat(reshaped, axis);
+}
+
 std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int64_t>& split, int axis) {
     CHECK_EQ(std::accumulate(split.begin(), split.end(), 0), input.shape()[axis]);
     std::vector<chainerx::Array> results;

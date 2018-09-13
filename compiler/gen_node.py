@@ -223,7 +223,10 @@ NodeDef('OnikuxGenericGetItem', 2, 1)
 # For sequences: input0[input1:input2:input3] in Python -> sequence
 NodeDef('OnikuxGenericGetSlice', (1, 2, 3, 4), 1)
 
-# TODO(hamaji): `GenericAdd` (Add / SequenceExtend).
+# Equivalent to Python's __add__.
+# For tensors: Add(input0, input1) -> tensor
+# For sequences: input0 + input1 in Python -> sequence
+NodeDef('OnikuxGenericAdd', 2, 1)
 
 
 class AttrDef(object):

@@ -127,5 +127,25 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
     }
 }
 
+void GenericAddOp::RunImpl(XCVMState* st) {
+    XCVMVar* var0 = st->GetXCVMVar(a);
+    XCVMVar* var1 = st->GetXCVMVar(b);
+
+    if (var0->kind() == XCVMVar::Kind::kArray || var1->kind() == XCVMVar::Kind::kArray) {
+        auto to_a = [](XCVMVar* v) {
+            if (v->kind() == XCVMVar::Kind::kArray) {
+                return v->GetArray();
+            }
+            return Stack(*v->GetSequence(), 0);
+        };
+        st->SetVar(output, to_a(var0) + to_a(var1));
+    } else {
+        std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+        *seq = *var0->GetSequence();
+        for (const auto& a : *var1->GetSequence())
+            seq->push_back(a);
+    }
+}
+
 }  // namespace runtime
 }  // namespace oniku

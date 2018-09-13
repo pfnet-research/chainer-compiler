@@ -25,15 +25,7 @@ void SequenceLookupOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceStackOp::RunImpl(XCVMState* st) {
-    const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
-    CHECK(!v.empty());
-    std::vector<chainerx::Array> reshaped;
-    for (const chainerx::Array& a : v) {
-        chainerx::Shape shape{a.shape()};
-        shape.insert(shape.begin() + axis, 1);
-        reshaped.push_back(chainerx::Reshape(a, shape));
-    }
-    st->SetVar(output, Concat(reshaped, axis));
+    st->SetVar(output, Stack(*st->GetSequence(seq), axis));
 }
 
 void SequencePadOp::RunImpl(XCVMState* st) {

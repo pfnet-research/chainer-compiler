@@ -301,6 +301,7 @@ XC_GENERIC_OPS = [
     ('GenericGetSlice',
      [Array('v'), OptionalArray('start'),
       OptionalArray('end'), OptionalArray('step')], ['output']),
+    ('GenericAdd', [Array('a'), Array('b')], ['output']),
 ]
 
 
