@@ -230,17 +230,15 @@ private:
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kRNN) {
-            CHECK_NE(node.direction(), "reverse") << "Not supported yet";
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            EMIT(RNN, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size());
+            EMIT(RNN, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), direction());
         } else if (node.op_type() == Node::kGRU) {
-            CHECK_NE(node.direction(), "reverse") << "Not supported yet";
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            EMIT(GRU, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), node.linear_before_reset());
+            EMIT(GRU, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), node.linear_before_reset(), direction());
         } else if (node.op_type() == Node::kLSTM) {
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";

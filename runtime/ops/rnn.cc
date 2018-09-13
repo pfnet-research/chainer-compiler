@@ -70,6 +70,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
     // B: [num_directions, 2 * hidden_size]
     // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
     CHECK_EQ(1, w.shape()[0]) << "Multi-directional RNN is not implemented yet";
+    CHECK_EQ(0, direction) << "Reversed RNN is not implemented yet";
     if (sequence_lens.has_value()) {
         WARN_ONCE("RNN with sequence_lens is not test yet");
     }
@@ -122,66 +123,92 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     // W: [num_directions, 3 * hidden_size, input_size]
     // R: [num_directions, 3 * hidden_size, hidden_size]
     // B: [num_directions, 6 * hidden_size]
-    // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
-    CHECK_EQ(1, w.shape()[0]) << "Multi-directional GRU is not implemented yet";
-
     int64_t seq_length = x.shape()[0];
     int64_t batch_size = x.shape()[1];
     CHECK_EQ(0, w.shape()[1] % 3);
     int64_t hidden_size = w.shape()[1] / 3;
     CHECK_EQ(3 * hidden_size, r.shape()[1]);
     if (b.has_value()) CHECK_EQ(6 * hidden_size, b.value().shape()[1]);
-
-    chainerx::Array ws = chainerx::Squeeze(w, {0});
-    chainerx::Array rs = chainerx::Squeeze(r, {0});
-    chainerx::Array gates_w = chainerx::Transpose(ws.At({chainerx::Slice(0, 2 * hidden_size)}));
-    chainerx::Array w_h = chainerx::Transpose(ws.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)}));
-    chainerx::Array gates_r = chainerx::Transpose(rs.At({chainerx::Slice(0, 2 * hidden_size)}));
-    chainerx::Array r_h = chainerx::Transpose(rs.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)}));
-    chainerx::Array gates_b;
-    chainerx::Array w_bh;
-    chainerx::Array r_bh;
-    if (b.has_value()) {
-        chainerx::Array bs = chainerx::Squeeze(b.value(), {0});
-        gates_b = bs.At({chainerx::Slice(0, 2 * hidden_size)}) + bs.At({chainerx::Slice(3 * hidden_size, 5 * hidden_size)});
-        w_bh = bs.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
-        r_bh = bs.At({chainerx::Slice(5 * hidden_size, 6 * hidden_size)});
+    int num_direction = w.shape()[0];
+    if (direction != 2) {
+        CHECK_EQ(1, num_direction);
+    } else {
+        CHECK_EQ(2, num_direction);
     }
-    chainerx::Array h =
-            initial_h.has_value() ? chainerx::Squeeze(initial_h.value(), {0}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+    if (direction == 1) {
+        WARN_ONCE("Reverse GRU is not tested yet");
+    }
+    if (direction == 2) {
+        WARN_ONCE("Bidirectional GRU has huge error");
+    }
 
     SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
+    chainerx::Array outputs[2];
+    chainerx::Array hs[2];
 
-    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
-    for (int64_t time = 0; time < x.shape()[0]; ++time) {
-        chainerx::Array cur_x = x.At({time});
-        chainerx::Array gates = chainerx::Dot(cur_x, gates_w) + chainerx::Dot(h, gates_r);
+    for (int d = 0; d < num_direction; ++d) {
+        chainerx::Array ws = w.At({d});
+        chainerx::Array rs = r.At({d});
+        chainerx::Array gates_w = chainerx::Transpose(ws.At({chainerx::Slice(0, 2 * hidden_size)}));
+        chainerx::Array w_h = chainerx::Transpose(ws.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)}));
+        chainerx::Array gates_r = chainerx::Transpose(rs.At({chainerx::Slice(0, 2 * hidden_size)}));
+        chainerx::Array r_h = chainerx::Transpose(rs.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)}));
+        chainerx::Array gates_b;
+        chainerx::Array w_bh;
+        chainerx::Array r_bh;
         if (b.has_value()) {
-            gates += gates_b;
+            chainerx::Array bs = b->At({d});
+            gates_b = bs.At({chainerx::Slice(0, 2 * hidden_size)}) + bs.At({chainerx::Slice(3 * hidden_size, 5 * hidden_size)});
+            w_bh = bs.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
+            r_bh = bs.At({chainerx::Slice(5 * hidden_size, 6 * hidden_size)});
         }
-        chainerx::Array z = gates.At({chainerx::Slice(), chainerx::Slice(0, hidden_size)});
-        chainerx::Array r = gates.At({chainerx::Slice(), chainerx::Slice(hidden_size, 2 * hidden_size)});
-        z = Sigmoid(z);
-        r = Sigmoid(r);
-        chainerx::Array xw = chainerx::Dot(cur_x, w_h);
-        chainerx::Array nh;
-        if (linear_before_reset) {
-            chainerx::Array hr = chainerx::Dot(h, r_h);
-            if (b.has_value()) hr += r_bh;
-            nh = xw + r * hr;
-        } else {
-            nh = xw + chainerx::Dot(r * h, r_h);
-            if (b.has_value()) nh += r_bh;
+        chainerx::Array h =
+            initial_h.has_value() ? initial_h->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+
+        chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
+        for (int64_t t = 0; t < x.shape()[0]; ++t) {
+            int64_t time = t;
+            if (direction == 1 || d == 1)
+                time = x.shape()[0] - t - 1;
+
+            chainerx::Array cur_x = x.At({time});
+            chainerx::Array gates = chainerx::Dot(cur_x, gates_w) + chainerx::Dot(h, gates_r);
+            if (b.has_value()) {
+                gates += gates_b;
+            }
+            chainerx::Array z = gates.At({chainerx::Slice(), chainerx::Slice(0, hidden_size)});
+            chainerx::Array r = gates.At({chainerx::Slice(), chainerx::Slice(hidden_size, 2 * hidden_size)});
+            z = Sigmoid(z);
+            r = Sigmoid(r);
+            chainerx::Array xw = chainerx::Dot(cur_x, w_h);
+            chainerx::Array nh;
+            if (linear_before_reset) {
+                chainerx::Array hr = chainerx::Dot(h, r_h);
+                if (b.has_value()) hr += r_bh;
+                nh = xw + r * hr;
+            } else {
+                nh = xw + chainerx::Dot(r * h, r_h);
+                if (b.has_value()) nh += r_bh;
+            }
+            if (b.has_value()) nh += w_bh;
+            nh = Tanh(nh);
+            mask.UpdateState(time, (1 - z) * nh + z * h, &h);
+            output.At({time}) += h;
         }
-        if (b.has_value()) nh += w_bh;
-        nh = Tanh(nh);
-        mask.UpdateState(time, (1 - z) * nh + z * h, &h);
-        output.At({time}) += h;
+        mask.MaskOutput(&output);
+        outputs[d] = output;
+        hs[d] = h;
     }
-    mask.MaskOutput(&output);
-    output = chainerx::Reshape(output, {seq_length, 1, batch_size, hidden_size});
-    h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
-    return std::make_tuple(output, h);
+
+    if (num_direction == 1) {
+        chainerx::Array output = chainerx::Reshape(outputs[0], {seq_length, 1, batch_size, hidden_size});
+        chainerx::Array h = chainerx::Reshape(hs[0], {1, hs[0].shape()[0], hs[0].shape()[1]});
+        return std::make_tuple(output, h);
+    } else {
+        chainerx::Array output = Stack({outputs[0], outputs[1]}, 1);
+        chainerx::Array h = Stack({hs[0], hs[1]}, 1);
+        return std::make_tuple(output, h);
+    }
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
