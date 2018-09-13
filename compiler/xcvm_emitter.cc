@@ -121,7 +121,7 @@ private:
             const std::string& dir = node.direction();
             if (dir == "" || dir == "forward")
                 return 0;
-            else if (dir == "reversed")
+            else if (dir == "reverse")
                 return 1;
             else if (dir == "bidirectional")
                 return 2;
@@ -242,7 +242,6 @@ private:
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
             EMIT(GRU, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), node.linear_before_reset());
         } else if (node.op_type() == Node::kLSTM) {
-            CHECK_NE(node.direction(), "reverse") << "Not supported yet";
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";

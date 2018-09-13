@@ -199,8 +199,6 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
     // W: [num_directions, 4 * hidden_size, input_size]
     // R: [num_directions, 4 * hidden_size, hidden_size]
     // B: [num_directions, 8 * hidden_size]
-    // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
-    //CHECK_EQ(1, w.shape()[0]) << "Multi-directional LSTM is not implemented yet";
     int64_t seq_length = x.shape()[0];
     int64_t batch_size = x.shape()[1];
     CHECK_EQ(0, w.shape()[1] % 4);
@@ -212,6 +210,9 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         CHECK_EQ(1, num_direction);
     } else {
         CHECK_EQ(2, num_direction);
+    }
+    if (direction == 1) {
+        WARN_ONCE("Reverse LSTM is not tested yet");
     }
 
     SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
