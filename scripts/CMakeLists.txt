@@ -14,8 +14,8 @@ add_custom_command(OUTPUT backprop_test_pc_stamp
                    WORKING_DIRECTORY ..)
 
 add_custom_command(OUTPUT extra_test_stamp
-                   COMMAND python3 scripts/gen_extra_node_test.py > /dev/null
-                   MAIN_DEPENDENCY gen_extra_node_test.py
+                   COMMAND python3 scripts/gen_extra_test.py > /dev/null
+                   MAIN_DEPENDENCY gen_extra_test.py
                    DEPENDS oniku_script.py
                    WORKING_DIRECTORY ..)
 
