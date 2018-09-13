@@ -327,9 +327,16 @@ void RunMain(int argc, char** argv) {
 
         if (test_case->outputs.empty()) {
             if (outputs.size() == 1 && outputs.begin()->second->kind() == XCVMVar::Kind::kSequence) {
+                std::string msg;
                 for (auto ch : *outputs.begin()->second->GetSequence()) {
-                    putchar(static_cast<uint8_t>(chainerx::AsScalar(ch)));
+                    if (ch.GetNBytes() == 1) {
+                        msg += static_cast<uint8_t>(chainerx::AsScalar(ch));
+                    } else {
+                        msg.clear();
+                        break;
+                    }
                 }
+                printf("%s", msg.c_str());
             }
             if (args.exist("verbose")) {
                 LOG() << "Outputs:" << std::endl;
