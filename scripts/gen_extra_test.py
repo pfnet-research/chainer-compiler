@@ -476,11 +476,13 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         np.random.seed(42)
         labels = np.array([[1, 2, 3, 7], [4, 5, 0, 0], [6, 0, 0, 0]])
         lengths = np.array([4, 2, 1])
+        targets = np.array([1, 0, 1])
         embed = np.random.random((num_vocabs, embed_size)).astype(np.float32)
         weight = np.random.random(
             (embed_size, num_hidden * wr)).astype(np.float32)
         bias = np.random.random((num_hidden * wr,)).astype(np.float32)
-        linear = np.random.random((num_hidden, 2)).astype(np.float32)
+        linear = np.random.random(
+            (num_direction * num_hidden, 2)).astype(np.float32)
 
         x = F.embed_id(labels, embed)
         state = np.zeros(
@@ -516,17 +518,19 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
                                             [ch_weight[:6], ch_weight[6:]],
                                             [ch_bias[:6], ch_bias[6:]],
                                             xs)
-        shape = (len(labels) * num_direction, num_hidden)
+        shape = (len(labels), num_hidden * num_direction)
         h = F.reshape(h, shape)
         rnn_outputs = F.pad_sequence(rnn_outputs)
         rnn_outputs = F.reshape(rnn_outputs,
                                 (-1, len(labels), num_direction, num_hidden))
         rnn_outputs = F.transpose(rnn_outputs, axes=[0, 2, 1, 3])
         result = F.linear(h, np.transpose(linear))
+        loss = F.softmax_cross_entropy(result, targets)
 
         weight_w, weight_r = np.split(weight, 2, axis=1)
         labels_v = gb.input('labels', labels)
         lengths_v = gb.input('lengths', lengths)
+        targets_v = gb.input('targets', targets)
         embed_v = gb.param('embed', embed)
         weight_w_v = gb.param(
             'weight_w',
@@ -554,8 +558,11 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         shape_v = gb.const(onnx.TensorProto.INT64, shape)
         h = gb.Reshape([h, shape_v])
         result_v = gb.MatMul([h, linear_v])
+        loss_v = gb.OnikuxSoftmaxCrossEntropy([result_v, targets_v])
+
         gb.output(rnn_outputs_v, rnn_outputs.array)
         gb.output(result_v, result.array)
+        gb.output(loss_v, loss.array)
 
         gb.gen_test()
 
