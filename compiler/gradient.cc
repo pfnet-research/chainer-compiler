@@ -44,14 +44,25 @@ public:
             op_queue_.push(value->producer());
         }
 
+        int not_ready_count = 0;
         while (!op_queue_.empty()) {
             const Node* node = op_queue_.front();
             CHECK(node);
             op_queue_.pop();
             if (!IsReady(node)) {
                 op_queue_.push(node);
+                if (++not_ready_count > op_queue_.size() * 2) {
+                    std::cerr << "Infinite loop during backprop!" << std::endl;
+                    while (!op_queue_.empty()) {
+                        const Node* node = op_queue_.front();
+                        op_queue_.pop();
+                        std::cerr << node->DebugString() << std::endl;
+                    }
+                    CHECK(false);
+                }
                 continue;
             }
+            not_ready_count = 0;
             if (!seen_nodes_.emplace(node).second) continue;
 
             AddGradientForNode(graph_, node);
