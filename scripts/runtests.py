@@ -10,7 +10,7 @@ import subprocess
 
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
-import gen_extra_node_test
+import gen_extra_test
 
 
 parser = argparse.ArgumentParser(description='Run tests for oniku')
@@ -485,7 +485,7 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol,
                                skip_shape_inference=True))
 
-for test in gen_extra_node_test.get_tests():
+for test in gen_extra_test.get_tests():
     dirname = 'out'
     assert os.path.exists(os.path.join(dirname, test.name))
     TEST_CASES.append(TestCase(dirname, test.name,
