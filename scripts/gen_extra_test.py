@@ -211,6 +211,55 @@ def gen_backprop_test(test_name):
     gb.gen_test()
 
 
+# Borrowed from: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/cc/framework/while_gradients_test.cc
+def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
+    i, j, k = ii, ji, ki
+    while i < 10:
+        i += j
+        j += 1
+    expected = np.array(i + j + k, np.float32)
+
+    def fn(test_name):
+        gb = oniku_script.GraphBuilder(test_name)
+        i = np.array(ii, np.float32)
+        j = np.array(ji, np.float32)
+        k = np.array(ki, np.float32)
+        i_v = gb.param('i', i)
+        j_v = gb.param('j', j)
+        k_v = gb.param('k', k)
+
+        bb = oniku_script.GraphBuilder(test_name + '_body')
+        iter_v = bb.input('iter', np.array(0))
+        cond_v = bb.input('cond', np.array(True))
+        bi_v = bb.input('bi', i)
+        bj_v = bb.input('bj', j)
+        bk_v = bb.input('bk', k)
+        one_v = bb.const(onnx.TensorProto.FLOAT, 1.0)
+        ni_v = bb.Add([bi_v, bj_v])
+        nj_v = bb.Add([bj_v, one_v])
+        ten_v = bb.const(onnx.TensorProto.FLOAT, 10)
+        cond_v = bb.Less([ni_v, ten_v])
+        bb.output(cond_v, np.array(True))
+        bb.output(ni_v, i)
+        bb.output(nj_v, j)
+        bb.output(bk_v, k)
+
+        true_v = gb.const(onnx.TensorProto.BOOL, True)
+        oi_v, oj_v, ok_v = gb.Loop(['', true_v, i_v, j_v, k_v],
+                                   body=bb.make_graph(),
+                                   outputs=['oi', 'oj', 'ok'])
+        sum_v = gb.Sum([oi_v, oj_v, ok_v])
+
+        gb.output(sum_v, expected)
+        gb.gradient(i_v, np.array(gi, np.float32))
+        gb.gradient(j_v, np.array(gj, np.float32))
+        gb.gradient(k_v, np.array(gk, np.float32))
+
+        gb.gen_test()
+
+    return fn
+
+
 def gen_sequence_test(test_name):
     # TODO(hamaji): Rewrite with oniku_script.
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
@@ -516,6 +565,9 @@ def get_tests():
         #                        has_scan_outputs=True)),
 
         TestCase('extra_backprop_test', gen_backprop_test),
+
+        TestCase('extra_backprop_test_loop_012',
+                 gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test),
 
