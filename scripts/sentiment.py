@@ -68,8 +68,9 @@ def gen_rnn_sentiment_test(cell_type,
             size=(embed_size, num_hidden * wr)).astype(np.float32)
         bias = param_initializer(
             size=(num_hidden * wr,)).astype(np.float32)
-        linear = param_initializer(
+        linear_w = param_initializer(
             size=(num_direction * num_hidden, 2)).astype(np.float32)
+        linear_b = param_initializer(size=(2,)).astype(np.float32)
 
         x = F.embed_id(labels, embed)
         state = np.zeros(
@@ -111,7 +112,7 @@ def gen_rnn_sentiment_test(cell_type,
         rnn_outputs = F.reshape(rnn_outputs,
                                 (-1, len(labels), num_direction, num_hidden))
         rnn_outputs = F.transpose(rnn_outputs, axes=[0, 2, 1, 3])
-        result = F.linear(h, np.transpose(linear))
+        result = F.linear(h, np.transpose(linear_w), linear_b)
         loss = F.softmax_cross_entropy(result, targets)
 
         weight_w, weight_r = np.split(weight, 2, axis=1)
@@ -128,7 +129,8 @@ def gen_rnn_sentiment_test(cell_type,
             np.reshape(np.transpose(weight_r),
                        (num_direction, -1, num_hidden)))
         bias_v = gb.param('bias', np.reshape(bias, (num_direction, -1)))
-        linear_v = gb.param('linear', linear)
+        linear_w_v = gb.param('linear_w', linear_w)
+        linear_b_v = gb.param('linear_b', linear_b)
 
         x = gb.Gather([embed_v, labels_v])
         x = gb.Transpose([x], perm=[1, 0, 2])
@@ -144,7 +146,7 @@ def gen_rnn_sentiment_test(cell_type,
                 direction=direction)
         shape_v = gb.const(onnx.TensorProto.INT64, shape)
         h = gb.Reshape([h, shape_v])
-        result_v = gb.MatMul([h, linear_v])
+        result_v = gb.Gemm([h, linear_w_v, linear_b_v])
         loss_v = gb.OnikuxSoftmaxCrossEntropy([result_v, targets_v])
 
         if not output_loss_only:
