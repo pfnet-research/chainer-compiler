@@ -91,3 +91,30 @@ def totensor(x, env):
         raise Exception("totensor of %s is not implemented yet" % str(x))
 
     return res
+
+
+class Env(object):
+    def __init__(self):
+        self.vars = {}
+        self.nodes = []
+        self.init_tensors = []
+        self.restore_funcs = [] # User定義Linkの初期化子を正常化させるやつ
+
+    def localenv(self):
+        res = Env()
+        res.nodes = self.nodes  # こっちはglobalに共通でないといけない
+        res.init_tensors = self.init_tensors  # こっちも共通
+        res.restore_funcs  = self.restore_funcs
+        return res
+
+    def addnode(self, *args, **kwargs):
+        self.nodes.append(
+            helper.make_node(*args, **kwargs)
+        )
+
+    def add_init(self, inits, pathname):
+        for v in inits:
+            # drint('add_init',v,p)
+            v.name = pathname + v.name
+            self.init_tensors.append(v)
+

@@ -28,6 +28,8 @@ def _validate_inout(xs):
         xs = xs.array
     elif isinstance(xs, np.ndarray):
         pass
+    elif isinstance(xs, int):
+        xs = np.int64(xs)
     elif isinstance(xs, list):
         xs = [_validate_inout(x) for x in xs]
     elif (

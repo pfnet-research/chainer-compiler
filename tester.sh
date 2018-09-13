@@ -9,6 +9,7 @@ node=(
     BatchNorm.py
     Reshape.py
     Tanh.py
+    Cumsum.py
 )
 
 syntax=(

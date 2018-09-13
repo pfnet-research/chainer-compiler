@@ -12,12 +12,14 @@ class A(chainer.Chain):
 
     def __init__(self):
         super(A, self).__init__()
-
+    
     def forward(self, xs,ps,p):
         t = [ xs[:i+1] for i in range(p) ]
         y1 =  [ v[-2:-1] for v in t]
-        #y1 = [xs for x in xs]
-        return y1
+        v = []
+        v.append(xs[2])
+        v.append(xs[0])
+        return y1,v
 
 # ======================================
 

@@ -7,7 +7,7 @@ from chainer import functions as F
 import chainer
 import numpy
 
-from . utils import new_tensor, get_dims, size2d, istensor, totensor
+from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env
 
 import code
 
@@ -254,16 +254,68 @@ class Np_Int32(object):
 class Np_Cumsum(object):
     def call(self, args, keywords, env):
         assert len(args) == 1
+        assert not 'axis' in keywords.keys()
+        assert not 'dtype' in keywords.keys()
+        # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
+        # 戻り値は入力に依らずテンソルらしい
+        # TODO(satos) さすがに仮定がきつい
         v = args[0]
-        raise 'TODO'
-        tt = TensorProto.INT32
-        res = new_tensor()
-        res.type.tensor_type.elem_type = tt
+        """
+        a = new_tensor()
         env.addnode(
-            'Cast',
-            inputs=[v.name], outputs=[res.name],
-            to=tt
+            'Flatten',
+            inputs=[v.name],outputs[a.name],
+            axis=0
         )
+        v = a
+        a = new_tensor()
+        env.addnode(
+            'Squeeze',
+            inputs=[v.name],outputs[a.name],
+            axes=[0]
+        )
+        """
+        ls = new_tensor()
+        env.addnode(
+            'OnikuxSequenceSize',
+            inputs=[v.name],outputs=[ls.name],
+        )
+
+        
+        def dummy():
+            return "dummy_" + new_tensor().name
+        
+        localenv = Env()
+        cnt = new_tensor()
+        cond = new_tensor()    
+        s = new_tensor()    
+        ts = new_tensor()    
+        gtx = new_tensor()
+        tx = new_tensor()
+        localenv.addnode(
+            "OnikuxGenericGetItem",
+            inputs=[gtx.name, cnt.name], outputs=[tx.name],
+        )
+        localenv.addnode(
+            "Add",
+            inputs=[tx.name, s.name], outputs=[ts.name],
+        )
+
+        zero = totensor(0,env)
+
+        res = new_tensor()
+        env.addnode(
+            'Loop',
+            inputs=[ls.name, "", v.name,zero.name],
+            outputs=[dummy(),dummy(),res.name],
+            body=helper.make_graph(
+                localenv.nodes,
+                "Loop_subgraph",
+                [cnt, cond, gtx, s],
+                [cond, gtx, ts, ts]
+            )
+        )
+
         return res
 
 
@@ -325,7 +377,6 @@ dummies = [
     F.softmax,
     F.sum,
     F.hstack,
-    numpy.cumsum,
 ]
 
 
@@ -351,6 +402,7 @@ Func2NodeClass = [
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
     (F.vstack, Function_Vstack()),
     (numpy.int32, Np_Int32()),
+    (numpy.cumsum,Np_Cumsum()),
 
     # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embe    d_id.py#L43) のif文を通らないようにする
     (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),

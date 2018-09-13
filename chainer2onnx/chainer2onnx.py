@@ -16,7 +16,7 @@ import chainer
 import numpy
 
 from . test_args import dprint
-from . utils import new_tensor, clip_head, ValueReturn, istensor, totensor
+from . utils import new_tensor, clip_head, ValueReturn, istensor, totensor, Env
 from . links import Link2NodeClass
 from . funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy
 from . builtin_funcs import builtin_functions
@@ -172,32 +172,6 @@ class User_Defined_Class(object):
             return ch
 
         self.init_wrapper = Func(f)
-
-
-class Env(object):
-    def __init__(self):
-        self.vars = {}
-        self.nodes = []
-        self.init_tensors = []
-        self.restore_funcs = [] # User定義Linkの初期化子を正常化させるやつ
-
-    def localenv(self):
-        res = Env()
-        res.nodes = self.nodes  # こっちはglobalに共通でないといけない
-        res.init_tensors = self.init_tensors  # こっちも共通
-        res.restore_funcs  = self.restore_funcs
-        return res
-
-    def addnode(self, *args, **kwargs):
-        self.nodes.append(
-            helper.make_node(*args, **kwargs)
-        )
-
-    def add_init(self, inits, pathname):
-        for v in inits:
-            # drint('add_init',v,p)
-            v.name = pathname + v.name
-            self.init_tensors.append(v)
 
 
 import logging
@@ -673,6 +647,15 @@ def eval_ast(nast, env):
         elif isinstance(vs,list):
             raise Exception("unimplemented")
             
+        def unsqueeze(x):
+            tx = new_tensor()
+            env.addnode(
+                'Unsqueeze',
+                inputs=[x.name], outputs=[tx.name],
+                axes=[0]
+            )
+            return tx
+        
         # sliceがIdxの場合は、Idxのexprにlistが来うる可能性があるのでGatherする
         # Numpyのsliceは闇では...???
         # TODO(satos) Sliceの実装を"ちゃんと"したものにする(現在だと v[0:1,[2,3]] みたいなのは動かない)
@@ -687,16 +670,16 @@ def eval_ast(nast, env):
                     outputs=[res.name]
                 )
                 return res
-
-
-        def unsqueeze(x):
-            tx = new_tensor()
-            env.addnode(
-                'Unsqueeze',
-                inputs=[x.name], outputs=[tx.name],
-                axes=[0]
-            )
-            return tx
+            elif isinstance(idx,int):
+                # TODO(satos) スライドのためのごまかしのごまかし
+                res = new_tensor()
+                idx = unsqueeze(totensor(idx,env))
+                env.addnode(
+                    'OnikuxGenericGetItem',
+                    inputs=[vs.name, idx.name],
+                    outputs=[res.name]
+                )
+                return res
 
         def slice2list(self):
             if isinstance(self, gast.Slice):
