@@ -99,7 +99,7 @@ private:
             return node->outputs()[0]->grad();
         }
         for (Value* value : node->outputs()) {
-            if (!value->grad()) return false;
+            if (necessary_values_.count(value) && !value->grad()) return false;
         }
         return true;
     }
