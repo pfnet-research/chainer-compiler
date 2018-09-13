@@ -164,6 +164,6 @@ if __name__ == '__main__':
                                 num_hidden=100,
                                 batch_size=64,
                                 sequence_length=150,
-                                output_loss_only=False,
+                                output_loss_only=True,
                                 param_initializer=np.random.normal)
     fn('sentiment_lstm')
