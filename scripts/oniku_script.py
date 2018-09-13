@@ -87,6 +87,7 @@ class GraphBuilder(object):
         self.inputs = []
         self.params = []
         self.outputs = []
+        self.gradients = []
         self.ids = collections.defaultdict(int)
 
     def __getattr__(self, name):
@@ -128,6 +129,9 @@ class GraphBuilder(object):
         self.outputs.append((name, _validate_inout(value)))
         return name
 
+    def gradient(self, name, value):
+        self.gradients.append(('grad_out@' + name, _validate_inout(value)))
+
     def const(self, dtype, value, name=None):
         if name is None:
             name = self.gen_id('const')
@@ -152,4 +156,5 @@ class GraphBuilder(object):
     def gen_test(self, graph=None):
         if graph is None:
             graph = self.make_graph()
-        gen_test(graph, self.inputs, self.outputs, name=self.graph_name)
+        outputs = self.outputs + self.gradients
+        gen_test(graph, self.inputs, outputs, name=self.graph_name)

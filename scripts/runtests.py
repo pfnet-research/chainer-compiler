@@ -557,7 +557,7 @@ def main():
             args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
             args.append('--skip_shape_inference')
-        if test_case.name.startswith('backprop_'):
+        if 'backprop_' in test_case.name:
             args.append('--backprop')
         if test_case.name == 'resnet50' or cmdline.use_gpu_all:
             if not cmdline.use_gpu and not cmdline.use_gpu_all:

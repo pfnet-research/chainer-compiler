@@ -195,6 +195,22 @@ def gen_loop_test(max_trip_count=7,
     return fn
 
 
+def gen_backprop_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    i = np.array(42, np.float32)
+    j = np.array(99, np.float32)
+
+    i_v = gb.param('i', i)
+    j_v = gb.param('j', j)
+
+    r_v = gb.Mul([i_v, j_v])
+
+    gb.output(r_v, i * j)
+    gb.gradient(i_v, j)
+    gb.gradient(j_v, i)
+    gb.gen_test()
+
+
 def gen_sequence_test(test_name):
     # TODO(hamaji): Rewrite with oniku_script.
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
@@ -498,6 +514,8 @@ def get_tests():
         # TestCase('extra_test_loop_zero_trip_count_scan',
         #          gen_loop_test(cond_trip_count=0,
         #                        has_scan_outputs=True)),
+
+        TestCase('extra_backprop_test', gen_backprop_test),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test),
 
