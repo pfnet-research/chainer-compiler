@@ -517,6 +517,16 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
             perm = np.tile([0, 2, 1, 3], 4) + np.repeat(np.arange(4), 4) * 4
             num_direction = 2
             direction = 'bidirectional'
+        elif cell_type == 'GRU':
+            wr = 6
+            perm = [1, 0, 2, 4, 3, 5]
+            num_direction = 1
+            direction = 'forward'
+        elif cell_type == 'BiGRU':
+            wr = 12
+            perm = [1, 0, 2, 4, 3, 5, 7, 6, 8, 10, 9, 11]
+            num_direction = 2
+            direction = 'bidirectional'
         else:
             raise RuntimeError('Unknown cell_type: %s' % cell_type)
         embed_size = num_hidden
@@ -551,6 +561,18 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
                                                 [ch_weight[:8], ch_weight[8:]],
                                                 [ch_bias[:8], ch_bias[8:]],
                                                 xs)
+        elif cell_type == 'GRU':
+            h, rnn_outputs = F.n_step_gru(1, 0.0,
+                                          state,
+                                          [ch_weight],
+                                          [ch_bias],
+                                          xs)
+        elif cell_type == 'BiGRU':
+            h, rnn_outputs = F.n_step_bigru(1, 0.0,
+                                            state,
+                                            [ch_weight[:6], ch_weight[6:]],
+                                            [ch_bias[:6], ch_bias[6:]],
+                                            xs)
         shape = (len(labels) * num_direction, num_hidden)
         h = F.reshape(h, shape)
         rnn_outputs = F.pad_sequence(rnn_outputs)
@@ -578,6 +600,11 @@ def gen_imdb_rnn_test(cell_type, num_vocabs=10, num_hidden=5):
         x = gb.Transpose([x], perm=[1, 0, 2])
         if cell_type in ['LSTM', 'BiLSTM']:
             rnn_outputs_v, h = gb.LSTM(
+                [x, weight_w_v, weight_r_v, bias_v, lengths_v],
+                outputs=['rnn_outputs', 'last_state'],
+                direction=direction)
+        elif cell_type in ['GRU', 'BiGRU']:
+            rnn_outputs_v, h = gb.GRU(
                 [x, weight_w_v, weight_r_v, bias_v, lengths_v],
                 outputs=['rnn_outputs', 'last_state'],
                 direction=direction)
@@ -653,6 +680,9 @@ def get_tests():
         TestCase('extra_test_imdb_lstm', gen_imdb_rnn_test('LSTM'), rtol=0.2),
         TestCase('extra_test_imdb_bilstm', gen_imdb_rnn_test('BiLSTM'),
                  rtol=0.5),
+        TestCase('extra_test_imdb_gru', gen_imdb_rnn_test('GRU'), rtol=0.4),
+        TestCase('extra_test_imdb_bigru',
+                 gen_imdb_rnn_test('BiGRU'), rtol=0.4, fail=True),
 
         TestCase('extra_test_generic_len', gen_generic_len_test),
         TestCase('extra_test_generic_getitem', gen_generic_getitem_test),

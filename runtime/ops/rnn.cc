@@ -94,7 +94,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
 
     SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
 
-    chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
+    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
         chainerx::Array nh = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
@@ -102,9 +102,10 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
             nh += bm;
         }
         mask.UpdateState(time, Tanh(nh), &h);
-        output.At({time, 0}) += h;
+        output.At({time}) += h;
     }
     mask.MaskOutput(&output);
+    output = chainerx::Reshape(output, {seq_length, 1, batch_size, hidden_size});
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     return std::make_tuple(output, h);
 }
@@ -123,9 +124,6 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     // B: [num_directions, 6 * hidden_size]
     // TODO(hamaji): They cannot be tested as ONNX does not have test cases.
     CHECK_EQ(1, w.shape()[0]) << "Multi-directional GRU is not implemented yet";
-    if (sequence_lens.has_value()) {
-        WARN_ONCE("GRU with sequence_lens is not tested yet");
-    }
 
     int64_t seq_length = x.shape()[0];
     int64_t batch_size = x.shape()[1];
@@ -154,7 +152,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
 
     SequenceLengthMask mask(sequence_lens, x.dtype(), seq_length, batch_size);
 
-    chainerx::Array output = chainerx::Zeros({seq_length, 1, batch_size, hidden_size}, x.dtype());
+    chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
         chainerx::Array cur_x = x.At({time});
         chainerx::Array gates = chainerx::Dot(cur_x, gates_w) + chainerx::Dot(h, gates_r);
@@ -178,9 +176,10 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         if (b.has_value()) nh += w_bh;
         nh = Tanh(nh);
         mask.UpdateState(time, (1 - z) * nh + z * h, &h);
-        output.At({time, 0}) += h;
+        output.At({time}) += h;
     }
     mask.MaskOutput(&output);
+    output = chainerx::Reshape(output, {seq_length, 1, batch_size, hidden_size});
     h = chainerx::Reshape(h, {1, h.shape()[0], h.shape()[1]});
     return std::make_tuple(output, h);
 }
