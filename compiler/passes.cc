@@ -21,10 +21,12 @@ void CollectGarbageNode(Graph* graph) {
     }
 }
 
-void RunPassesInLoops(Graph* graph) {
+template <class Fn>
+void Recursively(Fn fn, Graph* graph) {
+    fn(graph);
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
         if (node->body().get()) {
-            RunLoopBodyPasses(node->body().get());
+            fn(node->body().get());
         }
     }
 }
@@ -34,21 +36,14 @@ void RunPassesInLoops(Graph* graph) {
 void RunDefaultPasses(Model* model, bool gen_backprop) {
     Graph* graph = model->mutable_graph();
     InferAllDtypeAndShape(graph);
-    Simplify(graph);
+
+    Recursively(Simplify, graph);
+
     if (gen_backprop) AddGradientNodes(graph);
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
-    ScheduleComputation(*graph);
-    RunPassesInLoops(graph);
-    CollectGarbageNode(graph);
-}
 
-void RunLoopBodyPasses(Graph* graph) {
-    // InferAllDtypeAndShape(graph);
-    Simplify(graph);
-    // if (gen_backprop) AddGradientNodes(graph);
-    ScheduleComputation(*graph);
-    RunPassesInLoops(graph);
-    CollectGarbageNode(graph);
+    Recursively([](Graph* g){ScheduleComputation(*g);}, graph);
+    Recursively(CollectGarbageNode, graph);
 }
 
 }  // namespace oniku
