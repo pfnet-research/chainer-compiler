@@ -20,6 +20,7 @@ syntax=(
     Range.py
     Sequence.py
     ChainerFunctionNode.py
+    For.py
     # Unpad_pad.py まだ
 )
 

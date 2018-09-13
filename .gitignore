@@ -19,3 +19,4 @@ tmp.py
 *.pyc
 scraps/
 espnet/
+model2png.sh

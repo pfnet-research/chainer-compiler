@@ -229,20 +229,99 @@ def eval_ast(nast, env):
             eval_ast(s, env)
         return None
     elif isinstance(nast, gast.For):
-        # とりあえず実際にfor文を回す
-        tg = nast.target.id
-        env.vars[tg] = None
+        assert nast.orelse == []
         ite = eval_ast(nast.iter, env)
 
         if istensor(ite):
-
+            assert isinstance(nast.target, gast.Name)
+            x = nast.target.id
+    
+            # 新たなenv を作って、評価中にできた子グラフをもとにする
+            localenv = Env()
+            localenv.vars = {}
+            for k, v in env.vars.items():
+                localenv.vars[k] = v
+            localenv.module = env.module
             tx = new_tensor()
-            env.vars[tg] = tx
-            ty = eval_ast(nast.body, env)
+            localenv.vars[x] = tx
+            ty = eval_ast(nast.body,  localenv)
+            assert ty is None
 
-            # TODO(satos) あとまわします
-            return new_tensor()
+            cnt = new_tensor()
+            gtx = new_tensor()
+            localenv.addnode(
+                "OnikuxGenericGetItem",
+                inputs=[gtx.name, cnt.name], outputs=[tx.name],
+            )
+
+            # graph内で参照されるテンソルは入力として与えないといけない。
+            closure = set()
+            for no in localenv.nodes:
+                closure = closure | set(no.input)
+    
+            cnames = list(closure)
+            in_closure = {}
+            # 名前しか得られないのでテンソルを得る
+            # 生きているのはvarsで参照できるやつだけ...だと思う
+            for k, v in env.vars.items():
+                if istensor(v) and v.name in cnames:
+                    in_closure[k] = (v,v)
+            
+            # graph内で出力されるテンソルは環境を上書きしないといけない
+            closure = set()
+            for no in localenv.nodes:
+                closure = closure | set(no.output)
+    
+            cnames = list(closure)
+            # 名前しか得られないのでテンソルを得る
+            # 生きているのはvarsで参照できるやつだけ...だと思う
+            for k, v in localenv.vars.items():
+                if istensor(v) and v.name in cnames:
+                    if not (k in in_closure.keys()):
+                        # for文の中で新たに変数が定義されることは、とりあえず想定しない。
+                        # (この場合、Undefined variable にする)
+                        continue
+                    
+                    fv,_ = in_closure[k]
+                    in_closure[k] = (fv,v) 
+            
+
+            # dprint(localenv.nodes)
+            # print('ty',ty)
+            cond = new_tensor()
+            localgraph = helper.make_graph(
+                localenv.nodes,
+                "Loop_subgraph",
+                [cnt, cond, gtx] + [vv[0] for vv in in_closure.values()],
+                [cond, gtx] + [vv[1] for vv in in_closure.values()]
+            )
+            
+            mtc = new_tensor()
+            env.addnode(
+                "OnikuxGenericLen",
+                inputs=[ite.name], outputs=[mtc.name] 
+            )
+
+            
+            def dummy():
+                return "dummy_" + new_tensor().name
+            
+            env.addnode(
+                'Loop',
+                inputs=[mtc.name, "", ite.name] + [vv[0].name for vv in in_closure.values()],
+                # ほかのと名前が衝突しないようにする
+                outputs=[dummy()] +  [(dummy() if vv[0]==vv[1] else vv[1].name) for vv in in_closure.values()],
+                body=localgraph
+            )
+
+            for k,(_,v) in in_closure.items():
+                env.vars[k] = v
+
+            return None
         else:
+            # とりあえず実際にfor文を回す
+            tg = nast.target.id
+            env.vars[tg] = None
             for v in ite:
                 env.vars[tg] = v
                 eval_ast(nast.body, env)
@@ -381,23 +460,6 @@ def eval_ast(nast, env):
         if not istensor(lv) and not istensor(rv):
             return opfun(lv, rv)
 
-        def totensor_(x):
-            if istensor(x):
-                return x
-            res = new_tensor()
-
-            env.addnode(
-                'Constant',
-                inputs=[], outputs=[res.name],
-                value=onnx.helper.make_tensor(
-                    name="hoge",
-                    data_type=onnx.TensorProto.FLOAT,
-                    dims=[],
-                    vals=[x],
-                )
-            )
-            return res
-
         lv = totensor(lv, env)
         rv = totensor(rv, env)
 
@@ -440,6 +502,21 @@ def eval_ast(nast, env):
                     inputs=[body.name], outputs=[res.name],
                 )
                 return res
+            elif nast.attr == 'append':
+                # TODO(satos) ごまかさない()
+                assert isinstance(nast.value,gast.Name) and nast.value.id in env.vars.keys()
+                na = nast.value.id
+                def f(args,_,env):
+                    assert len(args)==1
+                    v = args[0]
+                    res = new_tensor()
+                    env.addnode(
+                        'OnikuxSequenceAppend',
+                        inputs=[body.name,v.name],outputs=[res.name]
+                    )
+                    env.vars[na] = res
+                return Func(f)
+            
             raise Exception('Unimplemented attribute ',
                             nast.attr, ' for tensor')
         return getattr(body, nast.attr)
@@ -517,17 +594,13 @@ def eval_ast(nast, env):
         ty = tty
 
         # graph内で参照されるテンソルは入力として与えないといけない。
-        # TODO(satos) 活性解析とかして、 参照すべきテンソルを列挙する
         closure = set()
-        # print(closure)
         removes = set()
         for no in localenv.nodes:
-            #code.InteractiveConsole({'v': no}).interact()
             closure = closure | set(no.input)
             removes = removes | set(no.output)
 
         closure = closure - removes
-        # print(closure)
         cnames = list(closure)
         closure = []
         # 名前しか得られないのでテンソルを得る
@@ -719,7 +792,22 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.Tuple):
         return tuple(map(lambda x: eval_ast(x, env), nast.elts))
     elif isinstance(nast, gast.List):
-        return list(map(lambda x: eval_ast(x, env), nast.elts))
+        #Sequenceにする
+        vs = list(map(lambda x: eval_ast(x, env), nast.elts))
+        res = new_tensor()
+        env.addnode(
+            "OnikuxSequenceCreate",
+            inputs=[],outputs=[res.name]
+        )
+        for v in vs:
+            v = totensor(v)
+            tr = new_tensor()
+            env.addnode(
+                "OnikuxSequenceAppend",
+                inputs=[res.name,v.name],outputs=[tr.name]
+            )
+            res = tr
+        return res
     elif isinstance(nast, gast.Return):
         raise ValueReturn(eval_ast(nast.value, env))
     else:

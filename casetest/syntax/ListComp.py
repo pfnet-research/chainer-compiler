@@ -15,10 +15,13 @@ class A(chainer.Chain):
         y1 =  [ x[3:5] for x in xs]
         y2 =  [ x[ps[0]:ps[0]+3] for x in xs]
         y3 = [ x[p:p+4] for x in xs]
-        # y4 = [[ x[i:i+4] for x in xs] for i in range(p)]
+        #y4 = [ xs[p][p:p+p] for p in ps]
+        y4 = [ xs[i][:i] for i in range(p)]
+        # y5 = [[ x[i:i+4] for x in xs] for i in range(p)]
+        # y5 = y5[1:1+1][0]
+        # print(y5)
         # y4 = [[ x for x in xs] for i in ps]
-        # return y4
-        return y1,y2,y3
+        return y1,y2,y3,y4
 
 # ======================================
 
@@ -32,7 +35,6 @@ if __name__ == '__main__':
     model = A()
 
     v = np.random.rand(10,20).astype(np.float32)
-    w = np.random.randint(0,5,size=2)
-    p = np.int64(3)
     ps = np.array([1,3,5])
-    chainer2onnx.generate_testcase(model, [v,w,p])
+    p = np.int64(5)
+    chainer2onnx.generate_testcase(model, [v,ps,p])
