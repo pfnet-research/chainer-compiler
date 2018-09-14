@@ -144,7 +144,7 @@ def gen_rnn_sentiment_test(cell_type,
                 [x, weight_w_v, weight_r_v, bias_v, lengths_v],
                 outputs=['rnn_outputs', 'last_state'],
                 direction=direction)
-        shape_v = gb.const(onnx.TensorProto.INT64, shape)
+        shape_v = gb.const(shape)
         h = gb.Reshape([h, shape_v])
         result_v = gb.Gemm([h, linear_w_v, linear_b_v])
         loss_v = gb.OnikuxSoftmaxCrossEntropy([result_v, targets_v])

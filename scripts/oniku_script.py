@@ -132,7 +132,13 @@ class GraphBuilder(object):
     def gradient(self, name, value):
         self.gradients.append(('grad_out@' + name, _validate_inout(value)))
 
-    def const(self, dtype, value, name=None):
+    def const(self, value, dtype=None, name=None):
+        if dtype is None and isinstance(value, float):
+            dtype = np.float
+        value = np.array(value, dtype=dtype)
+        if not isinstance(dtype, int):
+            dtype = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
+
         if name is None:
             name = self.gen_id('const')
         node = make_constant_node(name, dtype, value)

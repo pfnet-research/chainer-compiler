@@ -234,17 +234,17 @@ def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
         bi_v = bb.input('bi', i)
         bj_v = bb.input('bj', j)
         bk_v = bb.input('bk', k)
-        one_v = bb.const(onnx.TensorProto.FLOAT, 1.0)
+        one_v = bb.const(1.0)
         ni_v = bb.Add([bi_v, bj_v])
         nj_v = bb.Add([bj_v, one_v])
-        ten_v = bb.const(onnx.TensorProto.FLOAT, 10)
+        ten_v = bb.const(10.0)
         cond_v = bb.Less([ni_v, ten_v])
         bb.output(cond_v, np.array(True))
         bb.output(ni_v, i)
         bb.output(nj_v, j)
         bb.output(bk_v, k)
 
-        true_v = gb.const(onnx.TensorProto.BOOL, True)
+        true_v = gb.const(True)
         oi_v, oj_v, ok_v = gb.Loop(['', true_v, i_v, j_v, k_v],
                                    body=bb.make_graph(),
                                    outputs=['oi', 'oj', 'ok'])
@@ -323,7 +323,7 @@ def gen_sequence_pad_test(test_name):
                                 outputs=['seq%d' % (i + 1)])
 
     index_value = 1
-    index_v = gb.const(onnx.TensorProto.INT64, [index_value])
+    index_v = gb.const([index_value])
     gb.OnikuxSequenceLookup(
         inputs=['seq3', index_v],
         outputs=['lookup_result'])
@@ -379,7 +379,7 @@ def gen_sequence_split_test(test_name):
                                       axis=1)
 
     for i in range(4):
-        index_v = gb.const(onnx.TensorProto.INT64, [i], name='index_%d' % i)
+        index_v = gb.const([i], name='index_%d' % i)
         if i < 3:
             gb.output(gb.OnikuxSequenceLookup(
                 inputs=[seq_v, index_v],
@@ -441,7 +441,7 @@ def gen_generic_getitem_test(test_name):
     seq_v = gb.OnikuxSequenceSplit(inputs=[input_v])
 
     for i in range(4):
-        index_v = gb.const(onnx.TensorProto.INT64, [i])
+        index_v = gb.const([i])
         gb.output(gb.OnikuxGenericGetItem([input_v, index_v]), input[i])
         gb.output(gb.OnikuxGenericGetItem([reduced_v, index_v]), reduced[i])
         gb.output(gb.OnikuxGenericGetItem([seq_v, index_v]), input[i])
@@ -461,13 +461,13 @@ def gen_generic_getslice_test(test_name):
     def get_slice(input_v, s):
         ins = [input_v]
         if s.start is not None:
-            v = gb.const(onnx.TensorProto.INT64, [s.start])
+            v = gb.const([s.start])
             ins.append(v)
         if s.stop is not None:
-            v = gb.const(onnx.TensorProto.INT64, [s.stop])
+            v = gb.const([s.stop])
             ins.append(v)
         if s.step is not None:
-            v = gb.const(onnx.TensorProto.INT64, [s.step])
+            v = gb.const([s.step])
             ins.append(v)
         return gb.OnikuxGenericGetSlice(ins)
 
@@ -519,7 +519,7 @@ def gen_hello_world_test(test_name):
     hello = 'Hello, world!\n'
     out_v = gb.OnikuxSequenceCreate([])
     for ch in hello:
-        ch_v = gb.const(onnx.TensorProto.UINT8, ord(ch))
+        ch_v = gb.const(ord(ch), dtype=np.uint8)
         out_v = gb.OnikuxSequenceAppend([out_v, ch_v])
     gb.output(out_v, Seq(list(np.array(ord(ch), np.uint8) for ch in hello)))
     gb.gen_test()
