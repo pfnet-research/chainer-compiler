@@ -199,7 +199,8 @@ XC_OPS = [
 
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
     ('MaxPool',
-     [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads')],
+     [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
+      Int('cover_all')],
      ['y']),
     ('AveragePool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),

@@ -297,8 +297,10 @@ private:
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(MaxPool, out(0), in(0), node.kernel_shape(), strides(), pads());
+            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
+            EMIT(MaxPool, out(0), in(0), node.kernel_shape(), strides(), pads(), node.onikux_cover_all());
         } else if (node.op_type() == Node::kAveragePool) {
+            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(AveragePool, out(0), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());

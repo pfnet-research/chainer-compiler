@@ -28,7 +28,7 @@ private:
 
 chainerx::Array MaxPoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
-    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_shape, strides, pads, false);
+    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_shape, strides, pads, cover_all);
     chainerx::Array out = fb->Forward(x);
     std::unique_ptr<XCVMState::Auxiliary> pfb(new BackwardContext<chainerx::MaxPoolForwardBackward>(std::move(fb)));
     st->SetAux(this->y, std::move(pfb));
