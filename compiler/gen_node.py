@@ -386,6 +386,7 @@ public:
     void SetDefaultAttributeValues();
 
     void ValidateNumInputsOutputs(const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) const;
+    void ValidateAttributes() const;
 
 ''')
         f.writelines(codegen_util.format_code(lines, num_indents=4))
@@ -469,6 +470,9 @@ def gen_gen_node_base_cc():
         lines.append('}')
 
     lines.append('}')
+
+    lines.append('ValidateAttributes();')
+
     lines.append('}')
 
     lines.append('const char* NodeBase::OpTypeToString(OpType op_type) {')
@@ -607,6 +611,20 @@ def gen_gen_node_base_cc():
                 lines.append(f'CHECK_EQ({num}, {sym}.size()) << '
                              f'"Unexpected number of {sym} for {op}";')
 
+        lines.append('break;')
+        lines.append('}')
+    lines.append('}')
+    lines.append('}')
+
+    lines.append('void NodeBase::ValidateAttributes() const {')
+    lines.append('switch (op_type_) {')
+    for node in NODES:
+        op = node.op_type
+        lines.append(f'case k{op}: ' + '{')
+        for key, value in node.attributes.items():
+            if isinstance(value, Required):
+                lines.append(
+                    f'CHECK(was_{key}_set_) << "{key} is mandatory for {op}";')
         lines.append('break;')
         lines.append('}')
     lines.append('}')
