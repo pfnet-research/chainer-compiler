@@ -83,7 +83,7 @@ NodeDef('Less', 2, 1)
 
 NodeDef('Constant', 0, 1, tensor_value=Required(Tensor), onikux_host=False)
 NodeDef('ConstantFill', (0, 1), 1,
-        dtype=Required(Dtype), extra_shape=[int], input_as_shape=int,
+        dtype=Dtype, extra_shape=[int], input_as_shape=int,
         shape=[int], value=0.0)
 NodeDef('Cast', 1, 1, to=Required(Dtype))
 NodeDef('Shape', 1, 1)
