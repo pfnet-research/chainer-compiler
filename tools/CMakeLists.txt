@@ -13,8 +13,8 @@ add_library(oniku_tools
   util.cc
   )
 
-add_executable(dump_onnx dump_onnx.cc)
-target_link_libraries(dump_onnx
+add_executable(dump dump.cc)
+target_link_libraries(dump
   onnx_proto
   oniku_tools
   oniku_compiler
@@ -23,15 +23,7 @@ target_link_libraries(dump_onnx
   chainerx
   protobuf
   )
-set_target_properties(dump_onnx PROPERTIES OUTPUT_NAME "dump_onnx")
-
-add_executable(dump_tensor dump_tensor.cc)
-target_link_libraries(dump_tensor
-  oniku_compiler
-  onnx_proto
-  protobuf
-  )
-set_target_properties(dump_tensor PROPERTIES OUTPUT_NAME "dump_tensor")
+set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
 add_executable(run_onnx run_onnx.cc)
 target_link_libraries(run_onnx
