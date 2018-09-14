@@ -546,6 +546,19 @@ def gen_type_coersion_test(test_name):
     gb.gen_test()
 
 
+def gen_incomplete_transpose_test(test_name):
+    # ONNX does not allow transposition with incomplete permutations,
+    # but this is necessary to realize things like np.swapaxes.
+    gb = oniku_script.GraphBuilder(test_name)
+
+    input = aranges(3, 2, 4, 5, 6)
+    input_v = gb.input('input', input)
+    gb.output(gb.Transpose([input_v], perm=[0, 2, 1]),
+              np.transpose(input, axes=[0, 2, 1, 3, 4]))
+
+    gb.gen_test()
+
+
 class TestCase(object):
     def __init__(self, name, func, rtol=None, fail=False,
                  skip_shape_inference=False):
@@ -618,6 +631,9 @@ def get_tests():
         TestCase('extra_test_hello_world', gen_hello_world_test),
 
         TestCase('extra_test_type_coersion', gen_type_coersion_test,
+                 skip_shape_inference=True),
+        TestCase('extra_test_incomplete_transpose',
+                 gen_incomplete_transpose_test,
                  skip_shape_inference=True),
     ]
 

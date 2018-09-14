@@ -418,7 +418,11 @@ std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Arr
 }
 
 chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
-    return chainerx::Transpose(data, GetXchainerAxes(perm));
+    chainerx::OptionalAxes axes = GetXchainerAxes(perm);
+    while (data.ndim() > axes->size()) {
+        axes->push_back(axes->size());
+    }
+    return chainerx::Transpose(data, axes);
 }
 
 chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
