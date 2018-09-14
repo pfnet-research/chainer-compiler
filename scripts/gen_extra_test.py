@@ -525,12 +525,35 @@ def gen_hello_world_test(test_name):
     gb.gen_test()
 
 
+def gen_type_coersion_test(test_name):
+    # Probably, ONNX expects no type coersion happens and this test is
+    # not valid ONNX, but we relax the restriction.
+    gb = oniku_script.GraphBuilder(test_name)
+    iv = 42
+    fv = 2.3
+    int_v = gb.const(iv)
+    float_v = gb.const(fv)
+
+    gb.output(gb.Add([int_v, float_v]), iv + fv)
+    gb.output(gb.Add([float_v, int_v]), fv + iv)
+    gb.output(gb.Sub([int_v, float_v]), iv - fv)
+    gb.output(gb.Sub([float_v, int_v]), fv - iv)
+    gb.output(gb.Mul([int_v, float_v]), iv * fv)
+    gb.output(gb.Mul([float_v, int_v]), fv * iv)
+    gb.output(gb.Div([int_v, float_v]), iv / fv)
+    gb.output(gb.Div([float_v, int_v]), fv / iv)
+
+    gb.gen_test()
+
+
 class TestCase(object):
-    def __init__(self, name, func, rtol=None, fail=False):
+    def __init__(self, name, func, rtol=None, fail=False,
+                 skip_shape_inference=False):
         self.name = name
         self.func = func
         self.rtol = rtol
         self.fail = fail
+        self.skip_shape_inference = skip_shape_inference
 
 
 def get_tests():
@@ -593,6 +616,9 @@ def get_tests():
         TestCase('extra_test_generic_add', gen_generic_add_test),
 
         TestCase('extra_test_hello_world', gen_hello_world_test),
+
+        TestCase('extra_test_type_coersion', gen_type_coersion_test,
+                 skip_shape_inference=True),
     ]
 
 

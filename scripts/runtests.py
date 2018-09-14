@@ -489,7 +489,8 @@ for test in gen_extra_test.get_tests():
     dirname = 'out'
     assert os.path.exists(os.path.join(dirname, test.name))
     TEST_CASES.append(TestCase(dirname, test.name,
-                               rtol=test.rtol, fail=test.fail))
+                               rtol=test.rtol, fail=test.fail,
+                               skip_shape_inference=test.skip_shape_inference))
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
