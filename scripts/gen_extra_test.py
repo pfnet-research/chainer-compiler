@@ -559,6 +559,23 @@ def gen_incomplete_transpose_test(test_name):
     gb.gen_test()
 
 
+def gen_maxpool_cover_all_test(test_name):
+    # A custom attribute for Chainer/ChainerX's `cover_all` parameter.
+    gb = oniku_script.GraphBuilder(test_name)
+
+    input = np.random.random((1, 3, 7, 7))
+    input_v = gb.input('input', input)
+    gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
+                         outputs=['not_cover_all']),
+              F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
+    gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
+                         onikux_cover_all=True,
+                         outputs=['cover_all']),
+              F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
+
+    gb.gen_test()
+
+
 class TestCase(object):
     def __init__(self, name, func, rtol=None, fail=False,
                  skip_shape_inference=False):
@@ -634,6 +651,8 @@ def get_tests():
                  skip_shape_inference=True),
         TestCase('extra_test_incomplete_transpose',
                  gen_incomplete_transpose_test,
+                 skip_shape_inference=True),
+        TestCase('extra_test_maxpool_cover_all', gen_maxpool_cover_all_test,
                  skip_shape_inference=True),
     ]
 

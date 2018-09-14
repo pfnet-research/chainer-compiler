@@ -2,6 +2,7 @@ import collections
 import os
 import shutil
 
+import chainer
 import numpy as np
 import onnx
 from onnx import numpy_helper
@@ -126,6 +127,8 @@ class GraphBuilder(object):
         return name
 
     def output(self, name, value):
+        if isinstance(value, chainer.variable.Variable):
+            value = value.array
         self.outputs.append((name, _validate_inout(value)))
         return name
 
