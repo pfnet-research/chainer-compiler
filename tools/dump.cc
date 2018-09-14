@@ -1,9 +1,14 @@
 // Dump an ONNX proto
 
+#include <glob.h>
+
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <string>
+#include <vector>
 
 #include <onnx/onnx-ml.pb.h>
 
@@ -55,6 +60,22 @@ void RunMain(int argc, char** argv) {
             DumpONNX(filename, args);
         } else if (HasSuffix(filename, ".pb")) {
             DumpTensor(filename);
+        } else {
+            // TODO(hamaji): Check if this directory is a standard
+            // ONNX test directory.
+            DumpONNX(filename + "/model.onnx", args);
+
+            glob_t gl;
+            glob((filename + "/*/*.pb").c_str(), 0, nullptr, &gl);
+            std::vector<std::string> filenames;
+            for (size_t i = 0; i < gl.gl_pathc; i++) {
+                filenames.push_back(gl.gl_pathv[i]);
+            }
+            std::sort(filenames.begin(), filenames.end());
+            for (const std::string& filename : filenames) {
+                std::cout << "=== " << filename << " ===\n";
+                DumpTensor(filename);
+            }
         }
     }
 }
