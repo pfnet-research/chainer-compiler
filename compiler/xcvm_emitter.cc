@@ -695,17 +695,23 @@ private:
         }
         std::vector<Value*> input_values;
         for (const std::string& name : loop.input_value_names()) {
-            if (name.empty()) continue;
-            auto found = values.find(name);
-            CHECK(found != values.end());
-            input_values.push_back(found->second);
+            if (name.empty()) {
+                input_values.push_back(graph->AddValue("", Value::Kind::kNull));
+            } else {
+                auto found = values.find(name);
+                CHECK(found != values.end());
+                input_values.push_back(found->second);
+            }
         }
         std::vector<Value*> output_values;
         for (const std::string& name : loop.output_value_names()) {
-            if (name.empty()) continue;
-            auto found = values.find(name);
-            CHECK(found != values.end());
-            output_values.push_back(found->second);
+            if (name.empty()) {
+                output_values.push_back(graph->AddValue("", Value::Kind::kNull));
+            } else {
+                auto found = values.find(name);
+                CHECK(found != values.end());
+                output_values.push_back(found->second);
+            }
         }
         EmitLoopImpl(loop, prog, input_values, output_values);
     }
