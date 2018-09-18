@@ -10,6 +10,9 @@
 namespace oniku {
 namespace {
 
+class SchedulerTest : public ::testing::TestWithParam<SchedulerType> {
+};
+
 // TODO(hamaji): Move this to somewhere as a utility function.
 int LookupIntAttribute(const onnx::NodeProto& xnode, const std::string& name, int default_value) {
     for (const onnx::AttributeProto& xattribute : xnode.attribute()) {
@@ -21,7 +24,7 @@ int LookupIntAttribute(const onnx::NodeProto& xnode, const std::string& name, in
     return default_value;
 }
 
-TEST(SchedulerTest, Basic) {
+TEST_P(SchedulerTest, Basic) {
     Graph graph("test");
     Value* out = graph.AddValue("out", Value::Kind::kOutput);
     Value* t1 = graph.AddValue("tmp");
@@ -33,7 +36,7 @@ TEST(SchedulerTest, Basic) {
     Node* n2 = graph.AddNode(Node::kIdentity, {in}, {t1});
     Node* n3 = graph.AddNode(Node::kIdentity, {unused1}, {unused2});
 
-    ScheduleComputation(graph);
+    ScheduleComputation(graph, GetParam());
 
     const std::vector<const Node*> nodes(graph.GetComputationSequence());
     ASSERT_EQ(2UL, nodes.size());
@@ -52,6 +55,11 @@ TEST(SchedulerTest, Basic) {
     n3->ToONNX(&xn3);
     EXPECT_EQ(-1, LookupIntAttribute(xn3, "onikux_order", -1));
 }
+
+INSTANTIATE_TEST_CASE_P(
+    ForEachScheduler,
+    SchedulerTest,
+    ::testing::Values(SchedulerType::kNaive, SchedulerType::kGreedy));
 
 }  // namespace
 }  // namespace oniku
