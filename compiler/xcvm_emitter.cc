@@ -16,6 +16,12 @@ namespace oniku {
 namespace xcvm {
 namespace {
 
+#define FREE(...)                                                       \
+    do {                                                                \
+        AddFreeOp(prog, __VA_ARGS__);                                   \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat("@", __LINE__)); \
+    } while (0)
+
 using oniku::runtime::XCProgramProto;
 
 class XCVMEmitter {
@@ -25,7 +31,7 @@ public:
     }
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
-        EmitGraph(graph_, program, false /* in_loop */, graph_.output_values());
+        EmitGraph(graph_, program, false /* in_loop */, graph_.output_values(), {});
         EmitOutputs(program);
         if (dump_value_names) {
             std::map<int, const Value*> values;
@@ -502,7 +508,7 @@ private:
 
 #undef EMIT
 
-    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values) {
+    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values, const std::set<const Value*>& protected_values) {
         std::map<const Value*, int> num_users;
         if (!in_loop) {
             for (const Value* value : graph.input_values()) {
@@ -535,25 +541,29 @@ private:
             EmitNode(*node, prog);
 
             for (const Value* output : node->outputs()) {
-                todo_outputs.erase(output);
+                // Do not free output values.
+                if (todo_outputs.erase(output))
+                    continue;
+                if (protected_values.count(output))
+                    continue;
                 if (output->kind() == Value::Kind::kTemp &&
                     output->users().empty() &&
                     // TODO(hamaji): Figure out how we should handle batch norm.
                     node->op_type() != Node::kBatchNormalization)
-                    AddFreeOp(prog, GetValueId(output));
+                    FREE(GetValueId(output));
             }
 
             for (const Value* input : node->inputs()) {
                 auto found = num_users.find(input);
                 if (found == num_users.end()) continue;
-                if (--found->second == 0) {
-                    AddFreeOp(prog, GetValueId(input));
+                if (--found->second == 0 && !protected_values.count(input)) {
+                    FREE(GetValueId(input));
                 }
             }
         }
     }
 
-    void EmitLoopImpl(const Node& loop, Graph* body, const std::vector<Value*>& body_input_values, const std::vector<Value*>& body_output_values, XCProgramProto* prog) {
+    void EmitLoopImpl(const Node& loop, Graph* body, const std::vector<Value*>& body_input_values, const std::vector<Value*>& body_output_values, const std::set<const Value*>& protected_values, XCProgramProto* prog) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
         int num_body_inputs = body_input_values.size();
@@ -577,7 +587,7 @@ private:
 #define MOVE(dst, src)            \
     do {                          \
         EMIT(Identity, dst, src); \
-        AddFreeOp(prog, src);     \
+        FREE(src);     \
     } while (0)
 
         // Initialize loop variables.
@@ -609,14 +619,14 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        EmitGraph(*body, prog, true /* in_loop */, body_output_values);
+        EmitGraph(*body, prog, true /* in_loop */, body_output_values, protected_values);
         int one_id = next_value_id_++;
         EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);
         int tmp_id = next_value_id_++;
         EMIT(Add, tmp_id, iter_id, one_id);
-        AddFreeOp(prog, one_id);
+        FREE(one_id);
         for (const Value* value : body_input_values) {
-            AddFreeOp(prog, GetValueId(value));
+            FREE(GetValueId(value));
         }
         MOVE(iter_id, tmp_id);
         MOVE(cond_id, GetValueId(body_output_values[0]));
@@ -635,21 +645,21 @@ private:
             CHECK_LT(i + num_states + 1, body_output_values.size());
             const Value* body_out = body_output_values[i + num_states + 1];
             EMIT(SequenceAppend, scan_out_ids[i], GetValueId(body_out));
-            AddFreeOp(prog, GetValueId(body_out));
+            FREE(GetValueId(body_out));
         }
 
         // Check if the loop finishes.
         if (terminal_condition->IsNull()) {
             CHECK(!max_trip_count->IsNull());
-            AddFreeOp(prog, cond_id);
+            FREE(cond_id);
             EMIT(Greater, cond_id, GetValueId(loop.inputs()[0]), iter_id);
         } else if (!max_trip_count->IsNull()) {
             EMIT(Greater, tmp_id, GetValueId(loop.inputs()[0]), iter_id);
             int tmp2_id = next_value_id_++;
             EMIT(Mul, tmp2_id, cond_id, tmp_id);
-            AddFreeOp(prog, cond_id);
+            FREE(cond_id);
             MOVE(cond_id, tmp2_id);
-            AddFreeOp(prog, tmp_id);
+            FREE(tmp_id);
         }
         EMIT(JmpTrue, cond_id, loop_begin);
 
@@ -672,18 +682,18 @@ private:
             CHECK_LT(i + num_states, loop.outputs().size());
             const Value* loop_out = loop.outputs()[i + num_states];
             EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.onikux_stack_axis());
-            AddFreeOp(prog, scan_out_ids[i]);
+            FREE(scan_out_ids[i]);
         }
 
-        AddFreeOp(prog, iter_id);
-        AddFreeOp(prog, cond_id);
+        FREE(iter_id);
+        FREE(cond_id);
 
 #undef EMIT
     }
 
     void EmitLoop(const Node& loop, XCProgramProto* prog) {
         AssignValueIds(*loop.body());
-        EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), prog);
+        EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), {}, prog);
     }
 
     void EmitLoopRef(const Node& loop, XCProgramProto* prog) {
@@ -712,14 +722,18 @@ private:
                 output_values.push_back(found->second);
             }
         }
-        EmitLoopImpl(loop, body, input_values, output_values, prog);
+
+        std::set<const Value*> protected_values;
+        for (Value* value : input_values) protected_values.insert(value);
+        for (Value* value : output_values) protected_values.insert(value);
+        EmitLoopImpl(loop, body, input_values, output_values, protected_values, prog);
     }
 
     void EmitOutputs(XCProgramProto* prog) {
         for (const Value* value : graph_.output_values()) {
             AddOutOp(prog, value->name(), GetValueId(value));
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
-            AddFreeOp(prog, GetValueId(value));
+            FREE(GetValueId(value));
         }
     }
 
