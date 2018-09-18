@@ -26,9 +26,17 @@ public:
     const std::vector<Value*>& inputs() const {
         return inputs_;
     }
+    std::vector<Value*>* mutable_inputs() {
+        return &inputs_;
+    }
+
     const std::vector<Value*>& outputs() const {
         return outputs_;
     }
+    std::vector<Value*>* mutable_outputs() {
+        return &outputs_;
+    }
+
     const std::string& name() const {
         return name_;
     }

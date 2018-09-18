@@ -5,6 +5,6 @@ namespace oniku {
 class Graph;
 class Node;
 
-void AddGradientForNode(Graph* graph, const Node* node);
+void AddGradientForNode(Graph* graph, Node* node);
 
 }  // namespace oniku

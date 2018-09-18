@@ -38,7 +38,7 @@ public:
 
         int not_ready_count = 0;
         while (!op_queue_.empty()) {
-            const Node* node = op_queue_.front();
+            Node* node = op_queue_.front();
             CHECK(node);
             op_queue_.pop();
             if (!IsReady(node)) {
@@ -46,7 +46,7 @@ public:
                 if (++not_ready_count > op_queue_.size() * 2) {
                     std::cerr << "Infinite loop during backprop!" << std::endl;
                     while (!op_queue_.empty()) {
-                        const Node* node = op_queue_.front();
+                        Node* node = op_queue_.front();
                         op_queue_.pop();
                         std::cerr << node->DebugString() << std::endl;
                     }
@@ -96,7 +96,7 @@ private:
     }
 
     Graph* graph_;
-    std::queue<const Node*> op_queue_;
+    std::queue<Node*> op_queue_;
     std::set<const Node*> seen_nodes_;
     std::set<Value*> necessary_values_;
 };

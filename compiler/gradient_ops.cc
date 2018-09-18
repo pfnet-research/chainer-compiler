@@ -6,6 +6,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
@@ -40,22 +41,22 @@ Value* AddGradOp(Graph* graph, Node::OpType op_type, const std::vector<Value*>& 
 
 #define GRAD_OP(...) AddGradOp(graph, __VA_ARGS__, __func__)
 
-void AddGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void AddGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(graph, x[0], y[0]->grad());
     SetGrad(graph, x[1], y[0]->grad());
 }
 
-void SubGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void SubGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     SetGrad(graph, x[0], y[0]->grad());
     GRAD_OP(Node::kNeg, {y[0]->grad()}, x[1]);
 }
 
-void MulGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void MulGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kMul, {x[1], y[0]->grad()}, x[0]);
     GRAD_OP(Node::kMul, {x[0], y[0]->grad()}, x[1]);
 }
 
-void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void DivGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gy = y[0]->grad();
     Value* gx0 = GRAD_OP(Node::kDiv, {gy, x[1]}, x[0]);
 
@@ -65,15 +66,15 @@ void DivGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const st
     GRAD_OP(Node::kDiv, {t1, x[1]}, x[1]);
 }
 
-void NegGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void NegGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kNeg, {y[0]->grad()}, x[0]);
 }
 
-void ExpGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void ExpGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kMul, {y[0], y[0]->grad()}, x[0]);
 }
 
-void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void SigmoidGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): Support non-float values.
     CHECK_EQ(Dtype::kFloat32, x[0]->type().dtype());
     GraphBuilder gb(graph, "SigmoidGrad", x[0]);
@@ -84,17 +85,17 @@ void SigmoidGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, cons
     GRAD_OP(Node::kMul, {t0, t1}, x[0]);
 }
 
-void ReluGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void ReluGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kOnikuxReluGrad, {x[0], y[0]->grad()}, x[0]);
 }
 
-void SqrtGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void SqrtGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "SqrtGrad", x[0]);
     Value* t0 = gb.Op(Node::kAdd, {y[0], y[0]});
     GRAD_OP(Node::kDiv, {y[0]->grad(), t0}, x[0]);
 }
 
-void TanhGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void TanhGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "TanhGrad", x[0]);
     Value* one = gb.Const(Type(x[0]->type().dtype(), {}), {1.0});
     Value* gy = y[0]->grad();
@@ -103,23 +104,23 @@ void TanhGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const s
     GRAD_OP(Node::kMul, {gy, t1}, x[0]);
 }
 
-void IdentityGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void IdentityGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kIdentity, {y[0]->grad()}, x[0]);
 }
 
-void ReshapeGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void ReshapeGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "ReshapeGrad", x[0]);
     Value* t0 = gb.Op(Node::kShape, {x[0]});
     GRAD_OP(Node::kReshape, {y[0]->grad(), t0}, x[0]);
 }
 
-void SelectItemGradFn(Graph* graph, const Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void SelectItemGradFn(Graph* graph, Node*, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "SelectItemGrad", x[0]);
     Value* t0 = gb.Op(Node::kShape, {x[0]});
     GRAD_OP(Node::kOnikuxSelectItemGrad, {y[0]->grad(), x[1], t0}, x[0]);
 }
 
-void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void ReduceSumGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "ReduceSumGrad", x[0]);
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
@@ -127,7 +128,7 @@ void ReduceSumGradFn(Graph* graph, const Node* node, const std::vector<Value*>& 
     GRAD_OP(Node::kExpand, {gy, shape}, x[0]);
 }
 
-void ReduceMeanGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void ReduceMeanGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "ReduceMeanGrad", x[0]);
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
     Value* gy = y[0]->grad();
@@ -141,7 +142,7 @@ void ReduceMeanGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     GRAD_OP(Node::kExpand, {divided, shape}, x[0]);
 }
 
-void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void GemmGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     // TODO(hamaji): I'm not sure this function is right. I mean I'm
     // pretty sure something is wrong.
     Value* gy = y[0]->grad();
@@ -178,7 +179,7 @@ void GemmGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     GRAD_OP(Node::kReduceSum, {gy}, x[2])->producer()->set_axes({0})->set_keepdims(false);
 }
 
-void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void ConvGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gy = y[0]->grad();
     Value* w = x[1];
     // TODO(hamaji): Revisit how we handle shapes.
@@ -206,15 +207,15 @@ void ConvGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, co
     }
 }
 
-void MaxPoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void MaxPoolGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kOnikuxMaxPoolGrad, {y[0], y[0]->grad()}, x[0]);
 }
 
-void AveragePoolGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void AveragePoolGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kOnikuxAveragePoolGrad, {y[0], y[0]->grad()}, x[0]);
 }
 
-void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void LogSoftmaxGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "LogSoftmaxGrad", x[0]);
     // TODO(hamaji): This probably works as is. Test it.
     CHECK_EQ(1, node->axis());
@@ -227,7 +228,7 @@ void LogSoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>&
     GRAD_OP(Node::kSub, {gy, mul_val}, x[0]);
 }
 
-void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void SoftmaxGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GraphBuilder gb(graph, "SoftmaxGrad", x[0]);
     Value* gy = y[0]->grad();
     Value* gx = gb.Op(Node::kMul, {y[0], gy});
@@ -237,7 +238,7 @@ void SoftmaxGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x,
     GRAD_OP(Node::kSub, {gx, mul_val}, x[0]);
 }
 
-void BatchNormalizationGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void BatchNormalizationGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     Value* gx0 = AddGradValue(graph, x[0]);
     Value* gx1 = AddGradValue(graph, x[1]);
     Value* gx2 = AddGradValue(graph, x[2]);
@@ -248,7 +249,7 @@ void BatchNormalizationGradFn(Graph* graph, const Node* node, const std::vector<
     SetGrad(graph, x[4], zero);
 }
 
-void LRNGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
+void LRNGradFn(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y) {
     GRAD_OP(Node::kOnikuxLRNGrad, {x[0], y[0], y[0]->grad()}, x[0])
             ->producer()
             ->set_alpha(node->alpha())
@@ -257,7 +258,96 @@ void LRNGradFn(Graph* graph, const Node* node, const std::vector<Value*>& x, con
             ->set_size(node->size());
 }
 
-typedef void (*GradFn)(Graph*, const Node*, const std::vector<Value*>&, const std::vector<Value*>&);
+void OutputIterationCount(Graph* graph, Node* loop) {
+    int num_states = loop->inputs().size() - 2;
+
+    {
+        GraphBuilder gb(graph, "LoopGradIterCnt", loop->outputs()[0]);
+        Value* input_iter = gb.Const(Type(Dtype::kInt64, {}), {0});
+        loop->mutable_inputs()->push_back(input_iter);
+        Value* output_iter = graph->AddValue(gb.GenName());
+        loop->mutable_outputs()->insert(
+            loop->mutable_outputs()->begin() + num_states, output_iter);
+    }
+
+    {
+        Graph* body = loop->body().get();
+        GraphBuilder gb(body, "LoopGradIterCntBody", loop->outputs()[0]);
+        Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+        Value* input_cnt = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kInput);
+        Value* output_cnt = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kOutput);
+        gb.Op(Node::kAdd, {input_cnt, one}, {output_cnt});
+        body->mutable_input_values()->push_back(input_cnt);
+        body->mutable_output_values()->push_back(output_cnt);
+    }
+}
+
+void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std::vector<Value*>&) {
+    OutputIterationCount(graph, loop);
+    const std::vector<Value*>& xs = loop->inputs();
+    const std::vector<Value*>& ys = loop->outputs();
+    Graph* body = loop->body().get();
+    int num_loop_inputs = xs.size();
+    int num_loop_outputs = ys.size();
+    int num_body_inputs = body->input_values().size();
+    int num_body_outputs = body->output_values().size();
+    int num_states = num_loop_inputs - 2;
+    int num_scans = num_body_outputs - 1 - num_states;
+    CHECK_EQ(num_body_inputs, num_states + 2);
+    CHECK_EQ(num_loop_outputs, num_states + num_scans);
+
+    CHECK_EQ(0, num_scans) << "Not implemented yet";
+    CHECK_EQ(0, loop->onikux_stack_axis()) << "Not implemented yet";
+
+    {
+        for (Value* y : body->output_values()) {
+            Value* gy = graph->AddValue("loop_grad_in@" + y->name());
+            CHECK(y->grad() == nullptr);
+            y->set_grad(gy);
+        }
+        AddGradientNodes(body, body->output_values());
+    }
+
+    {
+        GraphBuilder gb(graph, "LoopGrad", xs[0]);
+        std::vector<Value*> gys;
+        for (Value* y : ys) {
+            gys.push_back(y->grad());
+        }
+        std::vector<Value*> gxs;
+        for (int i = 0; i < num_states; ++i) {
+            if (body->input_values()[i + 2]->grad())
+                gxs.push_back(AddGradValue(graph, xs[i + 2]));
+        }
+
+        std::vector<Value*> backward_inputs;
+        backward_inputs.push_back(ys[num_states - 1]);
+        backward_inputs.push_back(graph->AddValue("", Value::Kind::kNull));
+        for (Value* gy : gys) backward_inputs.push_back(gy);
+
+        Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef,
+                                     backward_inputs, gxs);
+        backward_loop->set_body_ref(body->name());
+
+        // Two extra inputs/outputs for iterator and condition.
+        std::vector<std::string> input_value_names = {"", ""};
+        for (Value* y : body->output_values()) {
+            CHECK(y->grad());
+            input_value_names.push_back(y->grad()->name());
+        }
+        backward_loop->set_input_values(input_value_names);
+
+        std::vector<std::string> output_value_names = {};
+        for (Value* x : body->input_values()) {
+            if (x->grad()) {
+                output_value_names.push_back(x->grad()->name());
+            }
+        }
+        backward_loop->set_output_values(output_value_names);
+    }
+}
+
+typedef void (*GradFn)(Graph*, Node*, const std::vector<Value*>&, const std::vector<Value*>&);
 
 struct GradientFunc {
     int num_inputs;
@@ -267,7 +357,7 @@ struct GradientFunc {
 
 }  // namespace
 
-void AddGradientForNode(Graph* graph, const Node* node) {
+void AddGradientForNode(Graph* graph, Node* node) {
     static std::map<Node::OpType, GradientFunc>* s_gradient_funcs;
     if (!s_gradient_funcs) {
         // Leak.
@@ -309,6 +399,8 @@ void AddGradientForNode(Graph* graph, const Node* node) {
 
         // TODO(hamaji): Implement dropout.
         register_grad_fn(Node::kDropout, 1, 1, &IdentityGradFn);
+
+        register_grad_fn(Node::kLoop, -1, -1, &LoopGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

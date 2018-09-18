@@ -179,6 +179,10 @@ NodeDef('OnikuxSelectItemGrad', 3, 1)
 NodeDef('OnikuxLRNGrad', 3, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
+# Body is a name of a Graph in a sibling Loop node.
+NodeDef('OnikuxLoopRef', None, None,
+        body_ref=Required(str), input_values=[str], output_values=[str],
+        onikux_stack_axis=0)
 
 # Creates a new sequence: () -> ([T])
 NodeDef('OnikuxSequenceCreate', 0, 1)
