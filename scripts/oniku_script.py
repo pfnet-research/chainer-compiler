@@ -137,7 +137,7 @@ class GraphBuilder(object):
 
     def const(self, value, dtype=None, name=None):
         if dtype is None and isinstance(value, float):
-            dtype = np.float
+            dtype = np.float32
         value = np.array(value, dtype=dtype)
         if not isinstance(dtype, int):
             dtype = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
