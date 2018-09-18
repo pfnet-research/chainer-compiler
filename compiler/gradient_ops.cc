@@ -282,6 +282,9 @@ void OutputIterationCount(Graph* graph, Node* loop) {
     }
 }
 
+void DoNothingGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std::vector<Value*>&) {
+}
+
 void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std::vector<Value*>&) {
     OutputIterationCount(graph, loop);
     const std::vector<Value*>& xs = loop->inputs();
@@ -400,6 +403,9 @@ void AddGradientForNode(Graph* graph, Node* node) {
 
         // TODO(hamaji): Implement dropout.
         register_grad_fn(Node::kDropout, 1, 1, &IdentityGradFn);
+
+        register_grad_fn(Node::kGreater, 2, 1, &DoNothingGradFn);
+        register_grad_fn(Node::kConstant, 0, 1, &DoNothingGradFn);
 
         register_grad_fn(Node::kLoop, -1, -1, &LoopGradFn);
     }
