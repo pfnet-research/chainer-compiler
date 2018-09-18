@@ -269,4 +269,16 @@ void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& i
     nodes_.emplace_back(std::move(node));
 }
 
+Graph* Graph::GetSubGraph(const std::string& name) {
+    Graph* found = nullptr;
+    for (const auto& node : nodes_) {
+        if (node->body().get() && node->body()->name() == name) {
+            CHECK(found == nullptr) << "Two subgraphs found for name=" << name;
+            found = node->body().get();
+        }
+    }
+    CHECK(found != nullptr) << "No subgraph found for name=" << name;
+    return found;
+}
+
 }  // namespace oniku

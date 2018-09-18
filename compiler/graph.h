@@ -94,6 +94,8 @@ public:
         return &output_values_;
     }
 
+    Graph* GetSubGraph(const std::string& name);
+
 private:
     std::string GenSym(const std::string& base = "");
 
