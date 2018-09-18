@@ -25,10 +25,9 @@ public:
 
     void Run(const std::vector<Value*>& ys) {
         necessary_values_ = graph_->GetNecessaryValues();
-        std::set<Value*> original_input_values;
         for (Value* value : necessary_values_) {
             if (value->kind() != Value::Kind::kInput || !value->initializer()) continue;
-            CHECK(original_input_values.emplace(value).second);
+            CHECK(original_input_values_.emplace(value).second);
         }
 
         for (Value* y : ys) {
@@ -64,9 +63,11 @@ public:
                     op_queue_.push(input->producer());
             }
         }
+    }
 
+    void ExposeParamGradsAsOutputs() {
         for (Value* input : graph_->input_values()) {
-            if (!original_input_values.count(input)) continue;
+            if (!original_input_values_.count(input)) continue;
             if (!input->type().dtype().IsFloat()) continue;
             CHECK(input->grad()) << input->name();
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
@@ -99,6 +100,7 @@ private:
     std::queue<Node*> op_queue_;
     std::set<const Node*> seen_nodes_;
     std::set<Value*> necessary_values_;
+    std::set<Value*> original_input_values_;
 };
 
 }  // namespace
@@ -124,7 +126,10 @@ void AddGradientNodes(Graph* graph) {
         value->set_grad(grad);
         ys.push_back(value);
     }
-    AddGradientNodes(graph, ys);
+
+    GradientGenerator gen(graph);
+    gen.Run(ys);
+    gen.ExposeParamGradsAsOutputs();
 }
 
 }  // namespace oniku
