@@ -306,7 +306,7 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
 
     {
         for (Value* y : body->output_values()) {
-            Value* gy = graph->AddValue("loop_grad_in@" + y->name());
+            Value* gy = body->AddValue("loop_grad_in@" + y->name());
             CHECK(y->grad() == nullptr);
             y->set_grad(gy);
         }
