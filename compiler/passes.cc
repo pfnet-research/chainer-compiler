@@ -68,14 +68,14 @@ void ScheduleBackpropGraphs(Graph* graph) {
             for (const std::string& name : ref->input_value_names()) {
                 if (name.empty()) continue;
                 auto found = values.find(name);
-                CHECK(found != values.end());
+                CHECK(found != values.end()) << name;
                 input_values.push_back(found->second);
             }
             std::vector<Value*> output_values;
             for (const std::string& name : ref->output_value_names()) {
                 if (name.empty()) continue;
                 auto found = values.find(name);
-                CHECK(found != values.end());
+                CHECK(found != values.end()) << name;
                 output_values.push_back(found->second);
             }
             ScheduleComputation(*graph, input_values, output_values);
