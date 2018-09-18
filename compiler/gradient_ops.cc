@@ -315,7 +315,8 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
         GraphBuilder gb(graph, "LoopGrad", xs[0]);
         std::vector<Value*> gys;
         for (Value* y : ys) {
-            gys.push_back(y->grad());
+            if (y->grad())
+                gys.push_back(y->grad());
         }
         std::vector<Value*> gxs;
         for (int i = 0; i < num_states; ++i) {
@@ -328,16 +329,15 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
         backward_inputs.push_back(graph->AddValue("", Value::Kind::kNull));
         for (Value* gy : gys) backward_inputs.push_back(gy);
 
-        Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef,
-                                     backward_inputs, gxs);
+        Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef, backward_inputs, gxs);
         CHECK(!body->name().empty()) << "Loop body must have a name";
         backward_loop->set_body_ref(body->name());
 
         // Two extra inputs/outputs for iterator and condition.
         std::vector<std::string> input_value_names = {"", ""};
         for (Value* y : body->output_values()) {
-            CHECK(y->grad());
-            input_value_names.push_back(y->grad()->name());
+            if (y->grad())
+                input_value_names.push_back(y->grad()->name());
         }
         backward_loop->set_input_value_names(input_value_names);
 
