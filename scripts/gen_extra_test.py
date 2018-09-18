@@ -260,6 +260,62 @@ def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
     return fn
 
 
+# This case needs stacks for retained inputs/outputs in the loop.
+def gen_loop_backprop_need_stack_test():
+    ii = 1.0
+    ji = 1.0
+    ki = 1.0
+    i = np.array(ii, np.float32)
+    j = np.array(ji, np.float32)
+    k = np.array(ki, np.float32)
+    while i < 100:
+        i *= j
+        j += 1
+        k = np.sqrt(k)
+    expected = i + j + k
+
+    def fn(test_name):
+        gb = oniku_script.GraphBuilder(test_name)
+        i = np.array(ii, np.float32)
+        j = np.array(ji, np.float32)
+        k = np.array(ki, np.float32)
+        i_v = gb.param('i', i)
+        j_v = gb.param('j', j)
+        k_v = gb.param('k', k)
+
+        bb = oniku_script.GraphBuilder(test_name + '_body')
+        iter_v = bb.input('iter', np.array(0))
+        cond_v = bb.input('cond', np.array(True))
+        bi_v = bb.input('bi', i)
+        bj_v = bb.input('bj', j)
+        bk_v = bb.input('bk', k)
+        one_v = bb.const(1.0)
+        ni_v = bb.Mul([bi_v, bj_v])
+        nj_v = bb.Add([bj_v, one_v])
+        nk_v = bb.Mul([bb.Sqrt([bk_v]), nj_v])
+        hundred_v = bb.const(100.0)
+        cond_v = bb.Less([ni_v, hundred_v])
+        bb.output(cond_v, np.array(True))
+        bb.output(ni_v, i)
+        bb.output(nj_v, j)
+        bb.output(nk_v, k)
+
+        true_v = gb.const(True)
+        oi_v, oj_v, ok_v = gb.Loop(['', true_v, i_v, j_v, k_v],
+                                   body=bb.make_graph(),
+                                   outputs=['oi', 'oj', 'ok'])
+        sum_v = gb.Sum([oi_v, oj_v, ok_v])
+
+        gb.output(sum_v, expected)
+        gb.gradient(i_v, np.array(120.0, np.float32))
+        gb.gradient(j_v, np.array(284.1395, np.float32))
+        gb.gradient(k_v, np.array(0.7103229, np.float32))
+
+        gb.gen_test()
+
+    return fn
+
+
 def gen_sequence_test(test_name):
     # TODO(hamaji): Rewrite with oniku_script.
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
@@ -632,10 +688,10 @@ def get_tests():
 
         TestCase('extra_backprop_test_loop_012',
                  gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
-        TestCase('extra_backprop_test_loop_110',
-                 gen_loop_backprop_test(1, 1, 0, 1, 5, 1)),
         TestCase('extra_backprop_test_loop_000',
                  gen_loop_backprop_test(0, 0, 0, 1, 6, 1)),
+        TestCase('extra_backprop_test_need_stack_loop',
+                 gen_loop_backprop_need_stack_test(), fail=True),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test),
 
