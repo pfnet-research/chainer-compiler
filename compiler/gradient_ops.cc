@@ -316,14 +316,15 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
     {
         GraphBuilder gb(graph, "LoopGrad", xs[0]);
         std::vector<Value*> gys;
-        for (Value* y : ys) {
-            if (y->grad())
-                gys.push_back(y->grad());
+        for (int i = 0; i < num_states - 1; ++i) {
+            Value* y = ys[i];
+            CHECK(y->grad());
+            gys.push_back(y->grad());
         }
         std::vector<Value*> gxs;
-        for (int i = 0; i < num_states; ++i) {
-            if (body->input_values()[i + 2]->grad())
-                gxs.push_back(AddGradValue(graph, xs[i + 2]));
+        for (int i = 0; i < num_states - 1; ++i) {
+            CHECK(body->input_values()[i + 2]->grad());
+            gxs.push_back(AddGradValue(graph, xs[i + 2]));
         }
 
         std::vector<Value*> backward_inputs;
@@ -337,17 +338,18 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
 
         // Two extra inputs/outputs for iterator and condition.
         std::vector<std::string> input_value_names = {"", ""};
-        for (Value* y : body->output_values()) {
-            if (y->grad())
-                input_value_names.push_back(y->grad()->name());
+        for (int i = 0; i < num_states - 1; ++i) {
+            Value* y = body->output_values()[i + 1];
+            CHECK(y->grad());
+            input_value_names.push_back(y->grad()->name());
         }
         backward_loop->set_input_value_names(input_value_names);
 
         std::vector<std::string> output_value_names = {};
-        for (Value* x : body->input_values()) {
-            if (x->grad()) {
-                output_value_names.push_back(x->grad()->name());
-            }
+        for (int i = 0; i < num_states - 1; ++i) {
+            Value* x = body->input_values()[i + 2];
+            CHECK(x->grad());
+            output_value_names.push_back(x->grad()->name());
         }
         backward_loop->set_output_value_names(output_value_names);
     }
