@@ -304,13 +304,35 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
     CHECK_EQ(0, num_scans) << "Not implemented yet";
     CHECK_EQ(0, loop->onikux_stack_axis()) << "Not implemented yet";
 
+    std::vector<std::string> input_value_names;
+    std::vector<std::string> output_value_names;
     {
+        GraphBuilder gb(body, "LoopGradBody", xs[0]);
         for (Value* y : body->output_values()) {
             Value* gy = body->AddValue("loop_grad_in@" + y->name());
             CHECK(y->grad() == nullptr);
             y->set_grad(gy);
         }
         AddGradientNodes(body, body->output_values());
+
+        // Two extra inputs for iterator and condition.
+        for (int i = 0; i < 2; ++i) {
+            input_value_names.push_back(body->AddValue(gb.GenName())->name());
+        }
+        for (int i = 0; i < num_states - 1; ++i) {
+            Value* y = body->output_values()[i + 1];
+            CHECK(y->grad());
+            input_value_names.push_back(y->grad()->name());
+        }
+
+        Value* output_cond = gb.Const(Type(Dtype::kBool, {}), {1});
+        output_value_names.push_back(output_cond->name());
+        for (int i = 0; i < num_states - 1; ++i) {
+            Value* x = body->input_values()[i + 2];
+            CHECK(x->grad());
+            Value* out = gb.Op(Node::kIdentity, {x->grad()});
+            output_value_names.push_back(out->name());
+        }
     }
 
     {
@@ -335,27 +357,7 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
         Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef, backward_inputs, gxs);
         CHECK(!body->name().empty()) << "Loop body must have a name";
         backward_loop->set_body_ref(body->name());
-
-        std::vector<std::string> input_value_names;
-        // Two extra inputs for iterator and condition.
-        for (int i = 0; i < 2; ++i) {
-            input_value_names.push_back(body->AddValue(gb.GenName())->name());
-        }
-        for (int i = 0; i < num_states - 1; ++i) {
-            Value* y = body->output_values()[i + 1];
-            CHECK(y->grad());
-            input_value_names.push_back(y->grad()->name());
-        }
         backward_loop->set_input_value_names(input_value_names);
-
-        std::vector<std::string> output_value_names;
-        // An extra output for condition.
-        output_value_names.push_back(body->AddValue(gb.GenName())->name());
-        for (int i = 0; i < num_states - 1; ++i) {
-            Value* x = body->input_values()[i + 2];
-            CHECK(x->grad());
-            output_value_names.push_back(x->grad()->name());
-        }
         backward_loop->set_output_value_names(output_value_names);
     }
 }
