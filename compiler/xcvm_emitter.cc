@@ -553,7 +553,7 @@ private:
         }
     }
 
-    void EmitLoopImpl(const Node& loop, XCProgramProto* prog, const std::vector<Value*>& body_input_values, const std::vector<Value*>& body_output_values) {
+    void EmitLoopImpl(const Node& loop, Graph* body, const std::vector<Value*>& body_input_values, const std::vector<Value*>& body_output_values, XCProgramProto* prog) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
         int num_body_inputs = body_input_values.size();
@@ -579,8 +579,6 @@ private:
         EMIT(Identity, dst, src); \
         AddFreeOp(prog, src);     \
     } while (0)
-
-        AssignValueIds(*loop.body());
 
         // Initialize loop variables.
         int iter_id = GetValueId(body_input_values[0]);
@@ -611,7 +609,7 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        EmitGraph(*loop.body(), prog, true /* in_loop */, body_output_values);
+        EmitGraph(*body, prog, true /* in_loop */, body_output_values);
         int one_id = next_value_id_++;
         EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);
         int tmp_id = next_value_id_++;
@@ -684,19 +682,20 @@ private:
     }
 
     void EmitLoop(const Node& loop, XCProgramProto* prog) {
-        EmitLoopImpl(loop, prog, loop.body()->input_values(), loop.body()->output_values());
+        AssignValueIds(*loop.body());
+        EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), prog);
     }
 
     void EmitLoopRef(const Node& loop, XCProgramProto* prog) {
-        Graph* graph = graph_.GetSubGraph(loop.body_ref());
+        Graph* body = graph_.GetSubGraph(loop.body_ref());
         std::map<std::string, Value*> values;
-        for (Value* v : graph->temp_values()) {
+        for (Value* v : body->temp_values()) {
             CHECK(values.emplace(v->name(), v).second);
         }
         std::vector<Value*> input_values;
         for (const std::string& name : loop.input_value_names()) {
             if (name.empty()) {
-                input_values.push_back(graph->AddValue("", Value::Kind::kNull));
+                input_values.push_back(body->AddValue("", Value::Kind::kNull));
             } else {
                 auto found = values.find(name);
                 CHECK(found != values.end());
@@ -706,14 +705,14 @@ private:
         std::vector<Value*> output_values;
         for (const std::string& name : loop.output_value_names()) {
             if (name.empty()) {
-                output_values.push_back(graph->AddValue("", Value::Kind::kNull));
+                output_values.push_back(body->AddValue("", Value::Kind::kNull));
             } else {
                 auto found = values.find(name);
                 CHECK(found != values.end());
                 output_values.push_back(found->second);
             }
         }
-        EmitLoopImpl(loop, prog, input_values, output_values);
+        EmitLoopImpl(loop, body, input_values, output_values, prog);
     }
 
     void EmitOutputs(XCProgramProto* prog) {
