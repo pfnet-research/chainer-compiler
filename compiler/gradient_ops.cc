@@ -327,6 +327,7 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
 
         Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef,
                                      backward_inputs, gxs);
+        CHECK(!body->name().empty()) << "Loop body must have a name";
         backward_loop->set_body_ref(body->name());
 
         // Two extra inputs/outputs for iterator and condition.
@@ -335,7 +336,7 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
             CHECK(y->grad());
             input_value_names.push_back(y->grad()->name());
         }
-        backward_loop->set_input_values(input_value_names);
+        backward_loop->set_input_value_names(input_value_names);
 
         std::vector<std::string> output_value_names = {};
         for (Value* x : body->input_values()) {
@@ -343,7 +344,7 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
                 output_value_names.push_back(x->grad()->name());
             }
         }
-        backward_loop->set_output_values(output_value_names);
+        backward_loop->set_output_value_names(output_value_names);
     }
 }
 

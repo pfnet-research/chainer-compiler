@@ -252,8 +252,8 @@ void ScheduleComputation(const Graph& graph, const std::vector<Value*>& input_va
         max_order = std::max(max_order, node->onikux_order());
     }
 
-    for (size_t i = 0; i < nodes.size(); ++i) {
-        nodes[i]->set_onikux_order(max_order + i + 1);
+    for (Node* node : nodes) {
+        node->set_onikux_order(++max_order);
     }
 
     if (g_compiler_log) {

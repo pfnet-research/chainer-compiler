@@ -25,7 +25,7 @@ public:
     }
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
-        EmitGraph(graph_, program, false /* in_loop */);
+        EmitGraph(graph_, program, false /* in_loop */, graph_.output_values());
         EmitOutputs(program);
         if (dump_value_names) {
             std::map<int, const Value*> values;
@@ -408,6 +408,8 @@ private:
             EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
+        } else if (node.op_type() == Node::kOnikuxLoopRef) {
+            EmitLoopRef(node, prog);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
@@ -500,7 +502,7 @@ private:
 
 #undef EMIT
 
-    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop) {
+    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values) {
         std::map<const Value*, int> num_users;
         if (!in_loop) {
             for (const Value* value : graph.input_values()) {
@@ -512,9 +514,15 @@ private:
         }
 
         std::set<const Value*> staged_inputs;
+        std::set<const Value*> todo_outputs(output_values.begin(), output_values.end());
 
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
+            if (todo_outputs.empty())
+                break;
+            if (!emitted_.emplace(node).second)
+                continue;
+
             if (!in_loop) {
                 for (const Value* value : node->inputs()) {
                     if (value->kind() != Value::Kind::kInput) continue;
@@ -527,6 +535,7 @@ private:
             EmitNode(*node, prog);
 
             for (const Value* output : node->outputs()) {
+                todo_outputs.erase(output);
                 if (output->kind() == Value::Kind::kTemp &&
                     output->users().empty() &&
                     // TODO(hamaji): Figure out how we should handle batch norm.
@@ -544,11 +553,11 @@ private:
         }
     }
 
-    void EmitLoop(const Node& loop, XCProgramProto* prog) {
+    void EmitLoopImpl(const Node& loop, XCProgramProto* prog, const std::vector<Value*>& body_input_values, const std::vector<Value*>& body_output_values) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
-        int num_body_inputs = loop.body()->input_values().size();
-        int num_body_outputs = loop.body()->output_values().size();
+        int num_body_inputs = body_input_values.size();
+        int num_body_outputs = body_output_values.size();
         int num_states = num_loop_inputs - 2;
         int num_scans = num_body_outputs - 1 - num_states;
         CHECK_EQ(num_body_inputs, num_states + 2);
@@ -574,15 +583,15 @@ private:
         AssignValueIds(*loop.body());
 
         // Initialize loop variables.
-        int iter_id = GetValueId(loop.body()->input_values()[0]);
+        int iter_id = GetValueId(body_input_values[0]);
         EMIT(IntScalarConstant, iter_id, 0, Dtype::kInt64, false);
-        int cond_id = GetValueId(loop.body()->input_values()[1]);
+        int cond_id = GetValueId(body_input_values[1]);
         EMIT(IntScalarConstant, cond_id, 1, Dtype::kBool, false);
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.inputs().size());
-            CHECK_LT(i + 2, loop.body()->input_values().size());
+            CHECK_LT(i + 2, body_input_values.size());
             const Value* loop_in = loop.inputs()[i + 2];
-            const Value* body_in = loop.body()->input_values()[i + 2];
+            const Value* body_in = body_input_values[i + 2];
             EMIT(Identity, GetValueId(body_in), GetValueId(loop_in));
         }
 
@@ -602,32 +611,31 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        EmitGraph(*loop.body(), prog, true /* in_loop */);
-
+        EmitGraph(*loop.body(), prog, true /* in_loop */, body_output_values);
         int one_id = next_value_id_++;
         EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);
         int tmp_id = next_value_id_++;
         EMIT(Add, tmp_id, iter_id, one_id);
         AddFreeOp(prog, one_id);
-        for (const Value* value : loop.body()->input_values()) {
+        for (const Value* value : body_input_values) {
             AddFreeOp(prog, GetValueId(value));
         }
         MOVE(iter_id, tmp_id);
-        MOVE(cond_id, GetValueId(loop.body()->output_values()[0]));
+        MOVE(cond_id, GetValueId(body_output_values[0]));
 
         // Propagate the loop state.
         for (int i = 0; i < num_states; ++i) {
-            CHECK_LT(i + 2, loop.body()->input_values().size());
-            CHECK_LT(i + 1, loop.body()->output_values().size());
-            const Value* body_in = loop.body()->input_values()[i + 2];
-            const Value* body_out = loop.body()->output_values()[i + 1];
+            CHECK_LT(i + 2, body_input_values.size());
+            CHECK_LT(i + 1, body_output_values.size());
+            const Value* body_in = body_input_values[i + 2];
+            const Value* body_out = body_output_values[i + 1];
             MOVE(GetValueId(body_in), GetValueId(body_out));
         }
 
         // Push scan outputs.
         for (int i = 0; i < num_scans; ++i) {
-            CHECK_LT(i + num_states + 1, loop.body()->output_values().size());
-            const Value* body_out = loop.body()->output_values()[i + num_states + 1];
+            CHECK_LT(i + num_states + 1, body_output_values.size());
+            const Value* body_out = body_output_values[i + num_states + 1];
             EMIT(SequenceAppend, scan_out_ids[i], GetValueId(body_out));
             AddFreeOp(prog, GetValueId(body_out));
         }
@@ -654,9 +662,9 @@ private:
 
         // Output final states.
         for (size_t i = 0; i < num_states; ++i) {
-            CHECK_LT(i + 2, loop.body()->input_values().size());
+            CHECK_LT(i + 2, body_input_values.size());
             CHECK_LT(i, loop.outputs().size());
-            const Value* body_in = loop.body()->input_values()[i + 2];
+            const Value* body_in = body_input_values[i + 2];
             const Value* loop_out = loop.outputs()[i];
             MOVE(GetValueId(loop_out), GetValueId(body_in));
         }
@@ -675,6 +683,33 @@ private:
 #undef EMIT
     }
 
+    void EmitLoop(const Node& loop, XCProgramProto* prog) {
+        EmitLoopImpl(loop, prog, loop.body()->input_values(), loop.body()->output_values());
+    }
+
+    void EmitLoopRef(const Node& loop, XCProgramProto* prog) {
+        Graph* graph = graph_.GetSubGraph(loop.body_ref());
+        std::map<std::string, Value*> values;
+        for (Value* v : graph->temp_values()) {
+            CHECK(values.emplace(v->name(), v).second);
+        }
+        std::vector<Value*> input_values;
+        for (const std::string& name : loop.input_value_names()) {
+            if (name.empty()) continue;
+            auto found = values.find(name);
+            CHECK(found != values.end());
+            input_values.push_back(found->second);
+        }
+        std::vector<Value*> output_values;
+        for (const std::string& name : loop.output_value_names()) {
+            if (name.empty()) continue;
+            auto found = values.find(name);
+            CHECK(found != values.end());
+            output_values.push_back(found->second);
+        }
+        EmitLoopImpl(loop, prog, input_values, output_values);
+    }
+
     void EmitOutputs(XCProgramProto* prog) {
         for (const Value* value : graph_.output_values()) {
             AddOutOp(prog, value->name(), GetValueId(value));
@@ -686,6 +721,7 @@ private:
     const Graph& graph_;
     int next_value_id_{1};
     std::map<const Value*, int> value_ids_;
+    std::set<const Node*> emitted_;
 };
 
 }  // namespace
