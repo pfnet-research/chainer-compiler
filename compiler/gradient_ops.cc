@@ -360,6 +360,8 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
         backward_loop->set_input_value_names(input_value_names);
         backward_loop->set_output_value_names(output_value_names);
     }
+
+    body->ResetGradients();
 }
 
 typedef void (*GradFn)(Graph*, Node*, const std::vector<Value*>&, const std::vector<Value*>&);

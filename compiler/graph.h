@@ -96,6 +96,8 @@ public:
 
     Graph* GetSubGraph(const std::string& name) const;
 
+    void ResetGradients();
+
 private:
     std::string GenSym(const std::string& base = "");
 

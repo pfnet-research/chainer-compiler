@@ -281,4 +281,13 @@ Graph* Graph::GetSubGraph(const std::string& name) const {
     return found;
 }
 
+void Graph::ResetGradients() {
+    for (const auto& v : all_values()) {
+        if (Value* gv = v->grad()) {
+            gv->set_type(new Type(v->type()));
+            v->set_grad(nullptr);
+        }
+    }
+}
+
 }  // namespace oniku

@@ -74,13 +74,7 @@ public:
             graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
         }
 
-        // Reset gradients.
-        for (const auto& v : graph_->all_values()) {
-            if (Value* gv = v->grad()) {
-                gv->set_type(new Type(v->type()));
-                v->set_grad(nullptr);
-            }
-        }
+        graph_->ResetGradients();
     }
 
 private:
