@@ -105,12 +105,12 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
 }
 
 // A simple topological sort.
-std::vector<Node*> ScheduleNaively(const Graph& graph) {
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
+std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values) {
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
 
     std::queue<const Value*> q;
     // Sort them topologically.
-    for (const Value* value : graph.input_values()) {
+    for (const Value* value : input_values) {
         q.push(value);
     }
 
@@ -146,8 +146,8 @@ std::vector<Node*> ScheduleNaively(const Graph& graph) {
 
 // A greedy scheduler which tries to reduce the current working
 // memory in greedy mannar.
-std::vector<Node*> ScheduleGreedy(const Graph& graph) {
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
+std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values) {
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
     // A map from estimated memory increase to schedulable nodes.
     std::multimap<int64_t, Node*> q;
 
@@ -175,7 +175,7 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
         }
     }
 
-    for (const Value* value : graph.input_values()) {
+    for (const Value* value : input_values) {
         make_value_ready(value);
     }
 
@@ -193,16 +193,16 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph) {
     return nodes;
 }
 
-void CheckSanity(const Graph& graph, const std::vector<Node*>& nodes) {
+void CheckSanity(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values, const std::vector<Node*>& nodes) {
     std::set<const Value*> values;
-    for (const Value* value : graph.input_values()) {
+    for (const Value* value : input_values) {
         values.emplace(value);
     }
     for (const Node* node : nodes) {
         for (const Value* output : node->outputs()) values.emplace(output);
     }
 
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
     for (Node* node : nodes) {
         input_counts.erase(node);
     }
@@ -222,18 +222,18 @@ void CheckSanity(const Graph& graph, const std::vector<Node*>& nodes) {
 
 }  // namespace
 
-void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
+void ScheduleComputation(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values, SchedulerType scheduler_type) {
     std::vector<Node*> nodes;
     switch (scheduler_type) {
         case SchedulerType::kNaive:
-            nodes = ScheduleNaively(graph);
+            nodes = ScheduleNaively(graph, input_values, output_values);
             break;
         case SchedulerType::kGreedy:
-            nodes = ScheduleGreedy(graph);
+            nodes = ScheduleGreedy(graph, input_values, output_values);
             break;
     }
 
-    CheckSanity(graph, nodes);
+    CheckSanity(graph, input_values, output_values, nodes);
 
     for (size_t i = 0; i < nodes.size(); ++i) {
         nodes[i]->set_onikux_order(i + 1);
@@ -249,6 +249,10 @@ void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
         int64_t all_mb = usage.all / 1000 / 1000;
         std::cerr << "Simulated memory usage: param=" << param_mb << "MB peak=" << peak_mb << "MB all=" << all_mb << "MB" << std::endl;
     }
+}
+
+void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
+    ScheduleComputation(graph, graph.input_values(), graph.output_values(), scheduler_type);
 }
 
 }  // namespace oniku
