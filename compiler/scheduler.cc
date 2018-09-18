@@ -106,7 +106,7 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
 
 // A simple topological sort.
 std::vector<Node*> ScheduleNaively(const Graph& graph) {
-    std::map<Node*, int> input_counts = graph.GetUsedCounts();
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
 
     std::queue<const Value*> q;
     // Sort them topologically.
@@ -147,7 +147,7 @@ std::vector<Node*> ScheduleNaively(const Graph& graph) {
 // A greedy scheduler which tries to reduce the current working
 // memory in greedy mannar.
 std::vector<Node*> ScheduleGreedy(const Graph& graph) {
-    std::map<Node*, int> input_counts = graph.GetUsedCounts();
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
     // A map from estimated memory increase to schedulable nodes.
     std::multimap<int64_t, Node*> q;
 
@@ -202,7 +202,7 @@ void CheckSanity(const Graph& graph, const std::vector<Node*>& nodes) {
         for (const Value* output : node->outputs()) values.emplace(output);
     }
 
-    std::map<Node*, int> input_counts = graph.GetUsedCounts();
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
     for (Node* node : nodes) {
         input_counts.erase(node);
     }

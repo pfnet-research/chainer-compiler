@@ -226,10 +226,10 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
     return sorted_nodes;
 }
 
-std::map<Node*, int> Graph::GetUsedCounts() const {
+std::map<Node*, int> Graph::GetNecessaryNodesAndUsers(const std::vector<Value*>& output_values) const {
     // Find necessary nodes.
     std::queue<const Value*> q;
-    for (const Value* value : output_values()) {
+    for (const Value* value : output_values) {
         q.push(value);
     }
 
