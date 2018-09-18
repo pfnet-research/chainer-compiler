@@ -336,7 +336,7 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
         CHECK(!body->name().empty()) << "Loop body must have a name";
         backward_loop->set_body_ref(body->name());
 
-        // Two extra inputs/outputs for iterator and condition.
+        // Two extra inputs for iterator and condition.
         std::vector<std::string> input_value_names = {"", ""};
         for (int i = 0; i < num_states - 1; ++i) {
             Value* y = body->output_values()[i + 1];
@@ -345,7 +345,8 @@ void LoopGradFn(Graph* graph, Node* loop, const std::vector<Value*>&, const std:
         }
         backward_loop->set_input_value_names(input_value_names);
 
-        std::vector<std::string> output_value_names = {};
+        // An extra output for condition.
+        std::vector<std::string> output_value_names = {""};
         for (int i = 0; i < num_states - 1; ++i) {
             Value* x = body->input_values()[i + 2];
             CHECK(x->grad());
