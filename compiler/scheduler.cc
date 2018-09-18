@@ -117,7 +117,8 @@ std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>
     std::vector<Node*> nodes;
 
     auto schedule_node = [&nodes, &q](Node* node) {
-        nodes.push_back(node);
+        if (node->onikux_order() < 0)
+            nodes.push_back(node);
         for (const Value* output : node->outputs()) {
             q.push(output);
         }
@@ -150,6 +151,9 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>&
     std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
     // A map from estimated memory increase to schedulable nodes.
     std::multimap<int64_t, Node*> q;
+    // TODO(hamaji): Redesign scheduler to allow delaying nodes for
+    // the second scheduling.
+    bool has_already_scheduled_nodes = false;
 
     auto enqueue_node = [&q](Node* node) {
         int64_t estimated_memory_increase = EstimateMemoryIncrease(node);
@@ -183,13 +187,17 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>&
     while (!q.empty()) {
         Node* node = q.begin()->second;
         q.erase(q.begin());
-        nodes.push_back(node);
+        if (node->onikux_order() < 0) {
+            nodes.push_back(node);
+            has_already_scheduled_nodes = true;
+        }
         for (Value* output : node->outputs()) {
             make_value_ready(output);
         }
     }
 
-    nodes = DelaySimpleNodes(nodes);
+    if (!has_already_scheduled_nodes)
+        nodes = DelaySimpleNodes(nodes);
     return nodes;
 }
 
@@ -203,6 +211,10 @@ void CheckSanity(const Graph& graph, const std::vector<Value*>& input_values, co
     }
 
     std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
+    for (const std::unique_ptr<Node>& node : graph.nodes()) {
+        if (node->onikux_order() > 0)
+            input_counts.erase(node.get());
+    }
     for (Node* node : nodes) {
         input_counts.erase(node);
     }
@@ -235,8 +247,13 @@ void ScheduleComputation(const Graph& graph, const std::vector<Value*>& input_va
 
     CheckSanity(graph, input_values, output_values, nodes);
 
+    int max_order = 0;
+    for (const std::unique_ptr<Node>& node : graph.nodes()) {
+        max_order = std::max(max_order, node->onikux_order());
+    }
+
     for (size_t i = 0; i < nodes.size(); ++i) {
-        nodes[i]->set_onikux_order(i + 1);
+        nodes[i]->set_onikux_order(max_order + i + 1);
     }
 
     if (g_compiler_log) {
