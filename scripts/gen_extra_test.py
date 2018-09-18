@@ -620,7 +620,11 @@ def get_tests():
         TestCase('extra_backprop_test', gen_backprop_test),
 
         TestCase('extra_backprop_test_loop_012',
-                 gen_loop_backprop_test(0, 1, 2, 1, 5, 1), fail=True),
+                 gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
+        TestCase('extra_backprop_test_loop_110',
+                 gen_loop_backprop_test(1, 1, 0, 1, 5, 1)),
+        TestCase('extra_backprop_test_loop_000',
+                 gen_loop_backprop_test(0, 0, 0, 1, 6, 1)),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test),
 
