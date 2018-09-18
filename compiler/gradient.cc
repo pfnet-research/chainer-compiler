@@ -21,10 +21,9 @@ namespace {
 class GradientGenerator {
 public:
     explicit GradientGenerator(Graph* graph) : graph_(graph) {
-        CHECK_EQ(1UL, graph->output_values().size());
     }
 
-    void Run() {
+    void Run(const std::vector<Value*>& ys) {
         necessary_values_ = graph_->GetNecessaryValues();
         std::set<Value*> original_input_values;
         for (Value* value : necessary_values_) {
@@ -32,17 +31,9 @@ public:
             CHECK(original_input_values.emplace(value).second);
         }
 
-        for (Value* value : graph_->output_values()) {
-            // TODO(hamaji): Refactor code to support non-float values.
-            CHECK_EQ(Dtype::kFloat32, value->type().dtype());
-            std::vector<float> data(1, 1.0);
-            Value* one = graph_->AddConstValue("grad_in_one@" + value->name(), Type(value->type().dtype(), {}), data);
-            Value* shape = graph_->AddValue("grad_in_shape@" + value->name());
-            Value* grad = graph_->AddValue("grad_in@" + value->name());
-            graph_->AddNode(Node::kShape, {value}, {shape});
-            graph_->AddNode(Node::kExpand, {one, shape}, {grad});
-            SetGrad(value, grad);
-            op_queue_.push(value->producer());
+        for (Value* y : ys) {
+            CHECK(y->grad());
+            op_queue_.push(y->producer());
         }
 
         int not_ready_count = 0;
@@ -104,11 +95,6 @@ private:
         return true;
     }
 
-    void SetGrad(Value* y, Value* gy) {
-        CHECK(y->grad() == nullptr);
-        y->set_grad(gy);
-    }
-
     Graph* graph_;
     std::queue<const Node*> op_queue_;
     std::set<const Node*> seen_nodes_;
@@ -117,9 +103,28 @@ private:
 
 }  // namespace
 
-void AddGradientNodes(Graph* graph) {
+void AddGradientNodes(Graph* graph, const std::vector<Value*>& ys) {
     GradientGenerator gen(graph);
-    gen.Run();
+    gen.Run(ys);
+}
+
+void AddGradientNodes(Graph* graph) {
+    CHECK_EQ(1UL, graph->output_values().size());
+    std::vector<Value*> ys;
+    for (Value* value : graph->output_values()) {
+        // TODO(hamaji): Refactor code to support non-float values.
+        CHECK_EQ(Dtype::kFloat32, value->type().dtype());
+        std::vector<float> data(1, 1.0);
+        Value* one = graph->AddConstValue("grad_in_one@" + value->name(), Type(value->type().dtype(), {}), data);
+        Value* shape = graph->AddValue("grad_in_shape@" + value->name());
+        Value* grad = graph->AddValue("grad_in@" + value->name());
+        graph->AddNode(Node::kShape, {value}, {shape});
+        graph->AddNode(Node::kExpand, {one, shape}, {grad});
+        CHECK(value->grad() == nullptr);
+        value->set_grad(grad);
+        ys.push_back(value);
+    }
+    AddGradientNodes(graph, ys);
 }
 
 }  // namespace oniku
