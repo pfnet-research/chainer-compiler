@@ -233,6 +233,43 @@ void CheckSanity(
     }
 }
 
+// StackPush has no output so it looks like an unnecessary node when
+// its input is an input value of the graph. StackPop has no input so
+// it looks like it can be executed at arbitrary timing, but in fact
+// it should be scheduled soon before its first consumer.
+std::vector<Node*> ScheduleStackPushPop(const std::vector<Value*>& input_values, const std::vector<Node*>& nodes) {
+    std::vector<Node*> reordered;
+    auto schedule_push = [&reordered](Value* v) {
+        for (Node* user : v->users()) {
+            if (user->op_type() == Node::kOnikuxBackpropStackPush) {
+                reordered.push_back(user);
+            }
+        }
+    };
+    for (Value* input : input_values) schedule_push(input);
+
+    std::map<Node*, std::vector<Node*>> delayed;
+    for (Node* node : nodes) {
+        if (node->op_type() == Node::kOnikuxBackpropStackPop) {
+            CHECK_EQ(1, node->outputs().size());
+            // TODO(hamaji): Number of users can be more than 1. Fix.
+            CHECK_EQ(1, node->outputs()[0]->users().size());
+            delayed[node->outputs()[0]->users()[0]].push_back(node);
+        } else if (node->op_type() != Node::kOnikuxBackpropStackPush) {
+            auto found = delayed.find(node);
+            if (found != delayed.end()) {
+                for (Node* n : found->second) reordered.push_back(n);
+            }
+            reordered.push_back(node);
+
+            for (Value* output : node->outputs()) {
+                schedule_push(output);
+            }
+        }
+    }
+    return reordered;
+}
+
 }  // namespace
 
 void ScheduleComputation(
@@ -249,6 +286,8 @@ void ScheduleComputation(
             nodes = ScheduleGreedy(graph, input_values, output_values);
             break;
     }
+
+    nodes = ScheduleStackPushPop(input_values, nodes);
 
     CheckSanity(graph, input_values, output_values, nodes);
 

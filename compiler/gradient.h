@@ -7,8 +7,8 @@ namespace oniku {
 class Graph;
 class Value;
 
-void AddGradientNodes(Graph* graph, const std::vector<Value*>& ys);
+void AddGradientNodes(Graph* graph, const std::vector<Value*>& ys, bool retain_in_stack);
 
-void AddGradientNodes(Graph* graph);
+void AddGradientNodes(Graph* graph, bool retain_in_stack);
 
 }  // namespace oniku

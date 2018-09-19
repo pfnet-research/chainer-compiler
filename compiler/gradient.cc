@@ -24,7 +24,7 @@ public:
     explicit GradientGenerator(Graph* graph) : graph_(graph) {
     }
 
-    void Run(const std::vector<Value*>& ys) {
+    void Run(const std::vector<Value*>& ys, bool retain_in_stack) {
         for (Value* value : graph_->GetNecessaryValues(ys)) {
             if (value->kind() != Value::Kind::kInput || !value->initializer()) continue;
             CHECK(original_input_values_.emplace(value).second);
@@ -38,7 +38,7 @@ public:
         }
         std::reverse(necessary_nodes.begin(), necessary_nodes.end());
         for (Node* node : necessary_nodes) {
-            AddGradientForNode(graph_, node, false);
+            AddGradientForNode(graph_, node, retain_in_stack);
         }
     }
 
@@ -63,12 +63,12 @@ private:
 
 }  // namespace
 
-void AddGradientNodes(Graph* graph, const std::vector<Value*>& ys) {
+void AddGradientNodes(Graph* graph, const std::vector<Value*>& ys, bool retain_in_stack) {
     GradientGenerator gen(graph);
-    gen.Run(ys);
+    gen.Run(ys, retain_in_stack);
 }
 
-void AddGradientNodes(Graph* graph) {
+void AddGradientNodes(Graph* graph, bool retain_in_stack) {
     CHECK_EQ(1UL, graph->output_values().size());
     std::vector<Value*> ys;
     for (Value* value : graph->output_values()) {
@@ -86,7 +86,7 @@ void AddGradientNodes(Graph* graph) {
     }
 
     GradientGenerator gen(graph);
-    gen.Run(ys);
+    gen.Run(ys, retain_in_stack);
     gen.ExposeParamGradsAsOutputs();
 }
 

@@ -248,6 +248,10 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         if (!input_counts.emplace(node, node->GetNumActualInputs()).second) continue;
         for (const Value* input : node->inputs()) {
             q.push(input->producer());
+            for (Node* node : input->users()) {
+                if (node->outputs().empty())
+                    q.push(node);
+            }
         }
 
         // Nodes without any outputs are always necessary (e.g., OnikuxPrint).

@@ -185,6 +185,9 @@ NodeDef('OnikuxLoopRef', None, None,
         input_value_names=[str], output_value_names=[str],
         onikux_stack_axis=0)
 
+NodeDef('OnikuxBackpropStackPush', 1, 0, id=Required(int))
+NodeDef('OnikuxBackpropStackPop', 0, 1, id=Required(int))
+
 NodeDef('OnikuxPrint', None, 0)
 
 # Creates a new sequence: () -> ([T])

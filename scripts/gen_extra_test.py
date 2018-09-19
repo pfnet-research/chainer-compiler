@@ -704,7 +704,7 @@ def get_tests():
         TestCase('extra_backprop_test_loop_000',
                  gen_loop_backprop_test(0, 0, 0, 1, 6, 1)),
         TestCase('extra_backprop_test_need_stack_loop',
-                 gen_loop_backprop_need_stack_test(), fail=True),
+                 gen_loop_backprop_need_stack_test()),
 
         TestCase('extra_test_scan_sum', gen_scan_sum_test),
 

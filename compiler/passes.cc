@@ -62,7 +62,7 @@ void ScheduleBackpropGraphs(Graph* graph) {
         for (Node* ref : sg.refs) {
             std::map<std::string, Value*> values;
             for (Value* v : graph->temp_values()) {
-                CHECK(values.emplace(v->name(), v).second);
+                CHECK(values.emplace(v->name(), v).second) << v->name();
             }
             std::vector<Value*> input_values;
             for (const std::string& name : ref->input_value_names()) {
@@ -91,7 +91,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     Recursively(Simplify, graph);
 
-    if (gen_backprop) AddGradientNodes(graph);
+    if (gen_backprop) AddGradientNodes(graph, false  /* retain_in_stack */);
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
     Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);

@@ -17,6 +17,13 @@ void SequenceAppendOp::RunImpl(XCVMState* st) {
     st->GetSequence(seq)->push_back(st->GetVar(value));
 }
 
+void SequencePopOp::RunImpl(XCVMState* st) {
+    std::vector<chainerx::Array>* v = st->GetSequence(seq);
+    CHECK(!v->empty());
+    st->SetVar(output, v->back());
+    v->pop_back();
+}
+
 void SequenceLookupOp::RunImpl(XCVMState* st) {
     const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(index)));

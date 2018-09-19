@@ -1,5 +1,6 @@
 #include "gradient_ops.h"
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
@@ -34,16 +35,27 @@ public:
         return node_;
     }
 
+    Value* Retain(Value* v) {
+        if (!retain_in_stack_) return v;
+        int id = ++id_;
+        GraphBuilder gb(graph_, StrCat(name_, "Retain", id), v);
+        gb.MOp(Node::kOnikuxBackpropStackPush, {v}, {})->set_id(id);
+        Value* retained = gb.Op(Node::kOnikuxBackpropStackPop, {});
+        retained->set_type(new Type(v->type()));
+        retained->producer()->set_id(id);
+        return retained;
+    }
+
     Value* x(int i) {
         CHECK_LE(0, i) << i;
         CHECK_GT(x_.size(), i) << i;
-        return x_[i];
+        return Retain(x_[i]);
     }
 
     Value* y(int i) {
         CHECK_LE(0, i) << i;
         CHECK_GT(y_.size(), i) << i;
-        return y_[i];
+        return Retain(y_[i]);
     }
 
     Value* gy(int i) {
@@ -57,10 +69,12 @@ public:
     }
 
     void SetGrad(int xi, Value* gx) {
-        Value* x = this->x(xi);
+        CHECK_LE(0, xi) << xi;
+        CHECK_GT(x_.size(), xi) << xi;
+        Value* x = x_[xi];
         if (x->grad()) {
             // Accumulate gradients.
-            GraphBuilder gb(graph_, "SetGrad", x);
+            GraphBuilder gb(graph_, "AccumGrad", x->grad());
             Value* v = gb.Op(Node::kAdd, {x->grad(), gx});
             x->set_grad(v);
         } else {
@@ -87,7 +101,10 @@ private:
     const std::vector<Value*>& y_;
     std::string name_;
     bool retain_in_stack_;
+    static std::atomic<int> id_;
 };
+
+std::atomic<int> GradientOpContext::id_;
 
 void AddGradFn(GradientOpContext* gc) {
     gc->SetGrad(0, gc->gy(0));
@@ -362,22 +379,20 @@ void LoopGradFn(GradientOpContext* gc) {
     std::vector<std::string> output_value_names;
     {
         GraphBuilder gb(body, "LoopGradBody", xs[0]);
-        for (Value* y : body->output_values()) {
-            Value* gy = body->AddValue("loop_grad_in@" + y->name());
-            CHECK(y->grad() == nullptr);
-            y->set_grad(gy);
-        }
-        AddGradientNodes(body, body->output_values());
-
         // Two extra inputs for iterator and condition.
         for (int i = 0; i < 2; ++i) {
             input_value_names.push_back(body->AddValue(gb.GenName())->name());
         }
+        std::vector<Value*> ys;
         for (int i = 0; i < num_states - 1; ++i) {
             Value* y = body->output_values()[i + 1];
-            CHECK(y->grad());
-            input_value_names.push_back(y->grad()->name());
+            Value* gy = body->AddValue("loop_grad_in@" + y->name());
+            CHECK(y->grad() == nullptr);
+            y->set_grad(gb.Op(Node::kIdentity, {gy}));
+            ys.push_back(y);
+            input_value_names.push_back(gy->name());
         }
+        AddGradientNodes(body, ys, true  /* retain_in_stack */);
 
         Value* output_cond = gb.Const(Type(Dtype::kBool, {}), {1});
         output_value_names.push_back(output_cond->name());

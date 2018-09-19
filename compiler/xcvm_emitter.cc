@@ -31,6 +31,7 @@ public:
     }
 
     void Emit(XCProgramProto* program, bool dump_value_names) {
+        EmitStackInit(graph_, program);
         EmitGraph(graph_, program, false /* in_loop */, graph_.output_values(), {});
         EmitOutputs(program);
         if (dump_value_names) {
@@ -49,6 +50,7 @@ public:
             int64_t total_mb = total / 1000 / 1000;
             std::cerr << "Total size of all values: " << total_mb << "MB" << std::endl;
         }
+        EmitStackQuit(program);
     }
 
 private:
@@ -68,6 +70,28 @@ private:
         auto found = value_ids_.find(v);
         CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
         return found->second;
+    }
+
+    int GetStackId(int i) const {
+        auto found = stack_ids_.find(i);
+        CHECK(found != stack_ids_.end()) << "Stack not exist: " << i;
+        return found->second;
+    }
+
+    void EmitStackInit(const Graph& graph, XCProgramProto* prog) {
+        for (const std::unique_ptr<Node>& node : graph.nodes()) {
+            if (node->op_type() == Node::kOnikuxBackpropStackPush) {
+                int id = next_value_id_++;
+                CHECK(stack_ids_.emplace(node->id(), id).second);
+                AddSequenceCreateOp(prog, id);
+            }
+        }
+    }
+
+    void EmitStackQuit(XCProgramProto* prog) {
+        for (auto p : stack_ids_) {
+            FREE(p.second);
+        }
     }
 
     void EmitNode(const Node& node, XCProgramProto* prog) {
@@ -441,6 +465,12 @@ private:
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kOnikuxLoopRef) {
             EmitLoopRef(node, prog);
+        } else if (node.op_type() == Node::kOnikuxBackpropStackPush) {
+            int id = GetStackId(node.id());
+            EMIT(SequenceAppend, id, in(0));
+        } else if (node.op_type() == Node::kOnikuxBackpropStackPop) {
+            int id = GetStackId(node.id());
+            EMIT(SequencePop, out(0), id);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
         } else if (node.op_type() == Node::kOnikuxPrint) {
@@ -728,6 +758,7 @@ private:
 
     void EmitLoop(const Node& loop, XCProgramProto* prog) {
         AssignValueIds(*loop.body());
+        EmitStackInit(*loop.body(), prog);
         EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), {}, prog);
     }
 
@@ -775,6 +806,7 @@ private:
     const Graph& graph_;
     int next_value_id_{1};
     std::map<const Value*, int> value_ids_;
+    std::map<int, int> stack_ids_;
     std::set<const Node*> emitted_;
 };
 
