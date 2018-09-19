@@ -313,8 +313,8 @@ chainerx::Array ReshapeOp::RunImpl(XCVMState* st, const chainerx::Array& data, c
             to_total_size *= d;
         }
     }
-    if (from_total_size != to_total_size) {
-        CHECK_GT(from_total_size, to_total_size) << "Reshape from " << data.shape() << " to " << s;
+    if (to_minus_one_index >= 0) {
+        CHECK_GE(from_total_size, to_total_size) << "Reshape from " << data.shape() << " to " << s;
         CHECK_EQ(0, from_total_size % to_total_size) << "Reshape from " << data.shape() << " to " << s;
         CHECK_LE(0, to_minus_one_index) << "Reshape from " << data.shape() << " to " << s;
         s[to_minus_one_index] = from_total_size / to_total_size;

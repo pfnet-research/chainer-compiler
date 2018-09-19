@@ -52,6 +52,16 @@ def expect(node, inputs, outputs, name):
     gen_test(graph, inputs, outputs, name)
 
 
+def gen_negative_reshape_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    v = np.array([2, 3, 4])
+    v_v = gb.const(v)
+    shape_v = gb.const([-1, 3])
+    reshaped_v = gb.Reshape([v_v, shape_v])
+    gb.output(reshaped_v, v.reshape((-1, 3)))
+    gb.gen_test()
+
+
 def gen_select_item_test(test_name):
     input = V(aranges(4, 3))
     indices = V([1, 2, 0, 1])
@@ -655,7 +665,10 @@ class TestCase(object):
 
 def get_tests():
     return [
+        TestCase('extra_test_negative_reshape', gen_negative_reshape_test),
+
         TestCase('extra_test_select_item', gen_select_item_test),
+
         TestCase('extra_test_loop_basic', gen_loop_test()),
         TestCase('extra_test_loop_max_trip_count',
                  gen_loop_test(max_trip_count=4)),
