@@ -74,11 +74,17 @@ class Seq(object):
         self.list = l
 
 
+def _array(value, dtype=None):
+    if dtype is None and isinstance(value, float):
+        dtype = np.float32
+    return np.array(value, dtype=dtype)
+
+
 def _validate_inout(value):
     if isinstance(value, Seq):
         return list(map(np.array, value.list))
     else:
-        return np.array(value)
+        return _array(value)
 
 
 class GraphBuilder(object):
@@ -123,7 +129,7 @@ class GraphBuilder(object):
         return name
 
     def param(self, name, value):
-        self.params.append((name, np.array(value)))
+        self.params.append((name, _array(value)))
         return name
 
     def output(self, name, value):
@@ -136,9 +142,7 @@ class GraphBuilder(object):
         self.gradients.append(('grad_out@' + name, _validate_inout(value)))
 
     def const(self, value, dtype=None, name=None):
-        if dtype is None and isinstance(value, float):
-            dtype = np.float32
-        value = np.array(value, dtype=dtype)
+        value = _array(value, dtype=dtype)
         if not isinstance(dtype, int):
             dtype = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
 
