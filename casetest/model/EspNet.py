@@ -1011,7 +1011,7 @@ class BLSTM(chainer.Chain):
         # need to move ilens to cpu
         ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
-        return hy,ilens 
+        return ys,ilens
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
         
         # (satos) xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)

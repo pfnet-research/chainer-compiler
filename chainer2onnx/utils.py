@@ -98,13 +98,13 @@ class Env(object):
         self.vars = {}
         self.nodes = []
         self.init_tensors = []
-        self.restore_funcs = [] # User定義Linkの初期化子を正常化させるやつ
+        self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
 
     def localenv(self):
         res = Env()
         res.nodes = self.nodes  # こっちはglobalに共通でないといけない
         res.init_tensors = self.init_tensors  # こっちも共通
-        res.restore_funcs  = self.restore_funcs
+        res.restore_funcs = self.restore_funcs
         return res
 
     def addnode(self, *args, **kwargs):
@@ -117,18 +117,10 @@ class Env(object):
             # drint('add_init',v,p)
             v.name = pathname + v.name
             self.init_tensors.append(v)
-    
-    def calc(self,*args,**kwargs):
+
+    def calc(self, *args, **kwargs):
         res = new_tensor()
-        assert not 'outputs' in kwargs.keys()
-        kwargs['outputs'] = [res.name] 
-        self.addnode(*args,**kwargs)
+        assert 'outputs' not in kwargs.keys()
+        kwargs['outputs'] = [res.name]
+        self.addnode(*args, **kwargs)
         return res
-
-
-
-
-
-
-
-

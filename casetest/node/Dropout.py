@@ -9,9 +9,7 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, x):
-        # TODO(satos) テストケース増やす
-        # y1 = F.max_pooling_2d(x, (1, 3), stride=(1, 4), pad=(0, 1))
-        y1 = F.max_pooling_2d(x, (1, 3), stride=(1, 4))
+        y1 = F.dropout(x)
         return y1
 
 
@@ -23,6 +21,6 @@ import numpy as np
 if __name__ == '__main__':
     
     model = A()
-    
-    x = v = np.random.rand(2, 3, 1, 13).astype(np.float32)
+
+    x = np.random.rand(6,4).astype(np.float32)
     chainer2onnx.generate_testcase(model, [x])

@@ -13,15 +13,13 @@ import ast
 import code
 import gast
 
+
 class Function_Relu(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
-        res = new_tensor(get_dims(v))
-        env.nodes.append(
-            helper.make_node(
-                "Relu", inputs=[v.name], outputs=[res.name]
-            )
+        res = env.calc(
+            "Relu", inputs=[v.name],
         )
         return res
 
@@ -33,7 +31,7 @@ class Function_Pool2d_Util(object):
     def call(self, args, keywords, env):
         assert(len(args) == 2)
         v = args[0]
-        res = new_tensor(['TODO'])
+        res = new_tensor()
         ksize = args[1]
         strides = size2d(keywords.get('stride', ksize))
         # chainer のsize参考
@@ -44,16 +42,13 @@ class Function_Pool2d_Util(object):
             dy, dx = size2d(keywords['pad'])
 
         pads = [dx, dy, dx, dy]
-        
-        # print(pads,strides,ksize)
-        env.nodes.append(
-            helper.make_node(
-                self.pooltype, inputs=[v.name], outputs=[res.name],
-                kernel_shape=size2d(ksize),
-                strides=strides,
-                pads=pads,
-                onikux_cover_all=keywords.get('cover_all', True)
-            )
+
+        res = env.calc(
+            self.pooltype, inputs=[v.name],
+            kernel_shape=size2d(ksize),
+            strides=strides,
+            pads=pads,
+            onikux_cover_all=keywords.get('cover_all', True)
         )
         return res
 
@@ -72,17 +67,14 @@ class Function_LocalRespNorm(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
-        res = new_tensor(['TODO'])
         n = keywords.get('n', 5)
         alpha = keywords.get('alpha', 0.0001)
-        env.nodes.append(
-            helper.make_node(
-                "LRN", inputs=[v.name], outputs=[res.name],
-                size=n,
-                bias=keywords.get('k', 2.0),
-                alpha=alpha * n,  # chainerとonnx(mxnet)で一致しない
-                beta=keywords.get('beta', 0.75)
-            )
+        res = env.calc(
+            "LRN", inputs=[v.name],
+            size=n,
+            bias=keywords.get('k', 2.0),
+            alpha=alpha * n,  # chainerとonnx(mxnet)で一致しない
+            beta=keywords.get('beta', 0.75)
         )
         return res
 
@@ -97,12 +89,9 @@ class Function_Dropout(object):
             raise Exception("invalid length")
 
         v = args[0]
-        res = new_tensor(['TODO'])
-        env.nodes.append(
-            helper.make_node(
-                "Dropout", inputs=[v.name], outputs=[res.name],
-                ratio=keywords.get('ratio', 0.5),
-            )
+        res = env.calc(
+            "Dropout", inputs=[v.name],
+            ratio=keywords.get('ratio', 0.5),
         )
         return res
 
@@ -111,15 +100,10 @@ class Function_Concat(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
-        # print(v)
-        res = new_tensor(['TODO'])
-        # print(list(v))
-        env.nodes.append(
-            helper.make_node(
-                "Concat",
-                inputs=list(map(lambda x: x.name, v)), outputs=[res.name],
-                axis=keywords.get('axis', 1),
-            )
+        res = env.calc(
+            "Concat",
+            inputs=list(map(lambda x: x.name, v)),
+            axis=keywords.get('axis', 1),
         )
         return res
 
@@ -133,26 +117,21 @@ class Function_SoftmaxCrossEntropy(object):
         # actual value.
         w.type.tensor_type.elem_type = TensorProto.INT64
 
-        res = new_tensor(get_dims(v))
-        env.nodes.append(
-            helper.make_node(
-                "OnikuxSoftmaxCrossEntropy",
-                inputs=[v.name, w.name], outputs=[res.name]
-            )
+        res = env.calc(
+            "OnikuxSoftmaxCrossEntropy",
+            inputs=[v.name, w.name],
         )
         return res
 
 
 class Function_PadSequence(object):
     def call(self, args, keywords, env):
-        # assert(len(args) == 1)
+        assert(len(args) == 1)
 
         v = args[0]
-
-        res = new_tensor()
-        env.addnode(
+        res = env.calc(
             "OnikuxSequencePad",
-            inputs=[v.name], outputs=[res.name]
+            inputs=[v.name],
         )
         return res
 
@@ -162,18 +141,14 @@ class Function_SwapAxes(object):
         assert(len(args) == 3)
 
         v = args[0]
-
         a, b = args[1], args[2]
         pe = list(range(max(a, b)+1))
-        # TODO(satos) どうにかする
-        pe = list(range(4))
         pe[a] = b
         pe[b] = a
 
-        res = new_tensor()
-        env.addnode(
+        res = env.calc(
             "Transpose",
-            inputs=[v.name], outputs=[res.name],
+            inputs=[v.name],
             perm=pe
         )
         return res
@@ -206,7 +181,7 @@ class Function_Tanh(object):
         return res
 
 
-def castto(v,tt,env):
+def castto(v, tt, env):
     res = new_tensor()
     res.type.tensor_type.elem_type = tt
     env.addnode(
@@ -222,8 +197,7 @@ class Np_Array(object):
         assert len(args) <= 2
         assert 'dtype' in keywords.keys()
         v = args[0]
-        res = new_tensor()
-        
+
         t = keywords['dtype']
         if t == numpy.int32:
             tt = TensorProto.INT32
@@ -231,13 +205,14 @@ class Np_Array(object):
             tt = TensorProto.FLOAT
         else:
             raise Exception("Unimplemented")
-        
+
         if istensor(v):
-            return castto(v,tt,env)
-        else: 
-            env.addnode(
+            return castto(v, tt, env)
+        else:
+            import onnx
+            res = env.calc(
                 'Constant',
-                inputs=[], outputs=[res.name],
+                inputs=[],
                 value=onnx.helper.make_tensor(
                     name="hoge",
                     data_type=tt,
@@ -252,20 +227,20 @@ class Np_Int32(object):
     def call(self, args, keywords, env):
         assert len(args) == 1
         v = args[0]
-        return castto(v,TensorProto.INT32,env)
+        return castto(v, TensorProto.INT32, env)
 
 
 class Np_Cumsum(object):
     def call(self, args, keywords, env):
         assert len(args) == 1
-        assert not 'axis' in keywords.keys()
-        assert not 'dtype' in keywords.keys()
+        assert 'axis' not in keywords.keys()
+        assert 'dtype' not in keywords.keys()
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
         # 戻り値は入力に依らずテンソルらしい
         # TODO(satos) さすがに仮定がきつい
         v = args[0]
-        
-        # これ戻り値がテンソルでなくSequenceなら、SplitAxisみたいにかっこよく書けるはず 
+
+        # これ戻り値がテンソルでなくSequenceなら、SplitAxisみたいにかっこよく書けるはず
         """
         a = new_tensor()
         env.addnode(
@@ -283,19 +258,18 @@ class Np_Cumsum(object):
         """
         ls = new_tensor()
         env.addnode(
-            'OnikuxSequenceSize',
-            inputs=[v.name],outputs=[ls.name],
+            'OnikuxGenericLen',
+            inputs=[v.name], outputs=[ls.name],
         )
 
-        
         def dummy():
             return "dummy_" + new_tensor().name
-        
+
         localenv = Env()
         cnt = new_tensor()
-        cond = new_tensor()    
-        s = new_tensor()    
-        ts = new_tensor()    
+        cond = new_tensor()
+        s = new_tensor()
+        ts = new_tensor()
         gtx = new_tensor()
         tx = new_tensor()
         localenv.addnode(
@@ -307,13 +281,13 @@ class Np_Cumsum(object):
             inputs=[tx.name, s.name], outputs=[ts.name],
         )
 
-        zero = totensor(0,env)
+        zero = totensor(0, env)
 
         res = new_tensor()
         env.addnode(
             'Loop',
-            inputs=[ls.name, "", v.name,zero.name],
-            outputs=[dummy(),dummy(),res.name],
+            inputs=[ls.name, "", v.name, zero.name],
+            outputs=[dummy(), dummy(), res.name],
             body=helper.make_graph(
                 localenv.nodes,
                 "Loop_subgraph",
@@ -324,6 +298,7 @@ class Np_Cumsum(object):
 
         return res
 
+
 class Function_SplitAxis(object):
     def call(self, args, keywords, env):
         assert len(args) == 2
@@ -331,12 +306,12 @@ class Function_SplitAxis(object):
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
         # 戻り値はtuple(!!)らしいが、たってきSequenceで返してます。
         # TODO(satos) さすがに仮定がきつい
-        
+
         v = args[0]
         ilens = args[1]
 
         from . chainer2onnx import eval_ast
-        
+
         src = """
         r = []
         for s in ilens:
@@ -346,17 +321,17 @@ class Function_SplitAxis(object):
         """
         src = clip_head(src)
         nast = gast.ast_to_gast(ast.parse(src))
-        
+
         localenv = Env()
         localenv.module = {}
         vs = {
             'v': v,
             'ilens': ilens,
-            'bs': totensor(0,env)
+            'bs': totensor(0, env)
         }
         localenv.vars.update(vs)
-        eval_ast(nast.body,localenv)
-        
+        eval_ast(nast.body, localenv)
+
         env.nodes += localenv.nodes
         return localenv.vars['r']
 

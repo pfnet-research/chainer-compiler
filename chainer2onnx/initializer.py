@@ -82,7 +82,7 @@ def collect_inits(lk, pathname):
 
     elif isinstance(lk, L.NStepBiLSTM):
         # 先にこちらで集めてしまう
-        
+
         ws0 = [[] for _ in range(lk.n_layers*2)]
         ws1 = [[] for _ in range(lk.n_layers*2)]
         bss = [[] for _ in range(lk.n_layers*2)]
@@ -93,13 +93,12 @@ def collect_inits(lk, pathname):
             ws1[i] = F.concat([clk.w4.T, clk.w7.T, clk.w5.T, clk.w6.T]).T
 
             bss[i] = F.hstack([clk.b0, clk.b3, clk.b1, clk.b2,
-                            clk.b4, clk.b7, clk.b5, clk.b6])
-            
-        
+                               clk.b4, clk.b7, clk.b5, clk.b6])
+
         for i in range(lk.n_layers):
-            nws0 = np.array([ws0[i*2].data,ws0[i*2+1].data])
-            nws1 = np.array([ws1[i*2].data,ws1[i*2+1].data])
-            nbss = np.array([bss[i*2].data,bss[i*2+1].data])
+            nws0 = np.array([ws0[i*2].data, ws0[i*2+1].data])
+            nws1 = np.array([ws1[i*2].data, ws1[i*2+1].data])
+            nbss = np.array([bss[i*2].data, bss[i*2+1].data])
             res.append((pathname + '_%d_ws0' % i, nws0))
             res.append((pathname + '_%d_ws1' % i, nws1))
             res.append((pathname + '_%d_bss' % i, nbss))

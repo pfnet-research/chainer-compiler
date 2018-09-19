@@ -13,7 +13,13 @@ node=(
     SplitAxis.py
     PadSequence.py
     NstepBiLSTM.py
-    # SwapAxes.py
+    Relu.py
+    SwapAxes.py
+    Dropout.py
+    Ceil.py
+    # LRN.py   精度が足らないのでテストが通らない
+    # Vstack.py
+    AveragePool2d.py
 )
 
 syntax=(

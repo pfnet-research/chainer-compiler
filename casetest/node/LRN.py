@@ -3,9 +3,6 @@
 import chainer
 import chainer.functions as F
 
-# Network definition
-
-
 class LRN(chainer.Chain):
 
     def __init__(self):
@@ -15,15 +12,13 @@ class LRN(chainer.Chain):
         return F.local_response_normalization(x)
 
 
-# ======================================from MLP
+# ===========================================
+
+import chainer2onnx
+import numpy as np
 
 if __name__ == '__main__':
-    import numpy as np
-    np.random.seed(314)
-
-    import test_mxnet
 
     model = LRN()
-
-    v = np.random.rand(1, 11, 1, 1).astype(np.float32)
-    test_mxnet.check_compatibility(model, v)
+    v = np.random.rand(2,3).astype(np.float32)
+    chainer2onnx.generate_testcase(model, [v])
