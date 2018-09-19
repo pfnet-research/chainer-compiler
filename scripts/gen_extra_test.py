@@ -271,7 +271,7 @@ def gen_loop_backprop_need_stack_test():
     while i < 100:
         i *= j
         j += 1
-        k = np.sqrt(k)
+        k = np.sqrt(k) * j
     expected = i + j + k
 
     def fn(test_name):
