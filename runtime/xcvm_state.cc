@@ -75,6 +75,30 @@ std::string XCVMState::GetVarString(int index) {
         return variables_[index]->ToString();
 }
 
+std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
+    std::ostringstream oss;
+    oss << '[';
+    bool is_first = true;
+    for (int index : indices) {
+        if (!is_first) oss << ", ";
+        is_first = false;
+
+        if (index < 0) {
+            oss << "null";
+            continue;
+        }
+        XCVMVar* var = GetXCVMVar(index);
+        if (!var) {
+            oss << "null";
+            continue;
+        }
+        oss << var->Sigil() << index << '=';
+        oss << GetVarString(index);
+    }
+    oss << ']';
+    return oss.str();
+}
+
 XCVMState::Auxiliary* XCVMState::GetAux(int index) {
     return auxiliaries_[index].get();
 }

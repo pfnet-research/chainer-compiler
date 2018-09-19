@@ -27,6 +27,8 @@ public:
 
     int64_t GetTotalSize() const;
 
+    char Sigil() const;
+
     std::string ToString() const;
     std::string DebugString() const;
 

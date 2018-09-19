@@ -514,6 +514,8 @@ def gen_gen_xcvm_ops_cc():
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += f' << " {sigil(typ)}" << {name} << "="'
                 line += f' << st->GetVarString({name})'
+            elif typ == ARRAY_LIST:
+                line += f' << st->GetVarListString({name})'
         if op.outputs:
             line += ' << " ->"'
         line += ';'

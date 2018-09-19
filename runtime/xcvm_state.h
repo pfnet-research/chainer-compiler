@@ -50,6 +50,7 @@ public:
     XCVMVar* GetXCVMVar(int index);
 
     std::string GetVarString(int index);
+    std::string GetVarListString(const std::vector<int>& indices);
 
     Auxiliary* GetAux(int index);
     void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);

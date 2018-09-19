@@ -36,6 +36,16 @@ int64_t XCVMVar::GetTotalSize() const {
     return size;
 }
 
+char XCVMVar::Sigil() const {
+    switch (kind_) {
+        case Kind::kArray:
+            return '@';
+        case Kind::kSequence:
+            return '$';
+    }
+    CHECK(false);
+}
+
 std::string XCVMVar::ToString() const {
     switch (kind_) {
         case Kind::kArray:
