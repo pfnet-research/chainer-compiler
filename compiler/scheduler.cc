@@ -106,7 +106,7 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
 
 // A simple topological sort.
 std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values) {
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(output_values);
 
     std::queue<const Value*> q;
     // Sort them topologically.
@@ -148,7 +148,7 @@ std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>
 // A greedy scheduler which tries to reduce the current working
 // memory in greedy mannar.
 std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values) {
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(output_values);
     // A map from estimated memory increase to schedulable nodes.
     std::multimap<int64_t, Node*> q;
     // TODO(hamaji): Redesign scheduler to allow delaying nodes for
@@ -210,7 +210,7 @@ void CheckSanity(const Graph& graph, const std::vector<Value*>& input_values, co
         for (const Value* output : node->outputs()) values.emplace(output);
     }
 
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(output_values);
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(output_values);
     for (const std::unique_ptr<Node>& node : graph.nodes()) {
         if (node->onikux_order() > 0)
             input_counts.erase(node.get());

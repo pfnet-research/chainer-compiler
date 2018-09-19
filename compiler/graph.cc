@@ -226,25 +226,25 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
     return sorted_nodes;
 }
 
-std::map<Node*, int> Graph::GetNecessaryNodesAndUsers(const std::vector<Value*>& output_values) const {
+std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Value*>& output_values) const {
     // Find necessary nodes.
     std::queue<const Value*> q;
     for (const Value* value : output_values) {
         q.push(value);
     }
 
-    std::map<Node*, int> used_counts;
+    std::map<Node*, int> input_counts;
     while (!q.empty()) {
         const Value* value = q.front();
         q.pop();
         if (Node* node = value->producer()) {
-            if (!used_counts.emplace(node, node->GetNumActualInputs()).second) continue;
+            if (!input_counts.emplace(node, node->GetNumActualInputs()).second) continue;
             for (const Value* input : node->inputs()) {
                 q.push(input);
             }
         }
     }
-    return used_counts;
+    return input_counts;
 }
 
 std::vector<const Node*> Graph::GetComputationSequence() const {

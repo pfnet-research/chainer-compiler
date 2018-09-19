@@ -15,7 +15,7 @@ namespace {
 
 std::map<const Node*, int> GetDistancesOfNodes(const Graph& graph) {
     std::map<const Node*, int> distances;
-    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndUsers(graph.output_values());
+    std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(graph.output_values());
     std::queue<std::pair<Node*, int>> q;
 
     auto make_value_ready = [&input_counts, &q](const Value* value, int distance) {
