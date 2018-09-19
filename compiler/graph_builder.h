@@ -21,6 +21,9 @@ public:
 
     ~GraphBuilder();
 
+    GraphBuilder(const GraphBuilder&) = delete;
+    GraphBuilder& operator=(const GraphBuilder&) = delete;
+
     // Creates a new operation node which has a single output. A new
     // temporary `Value` will be created if `output` is nullptr.
     Value* Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output = nullptr);
