@@ -1,5 +1,6 @@
 #include "gradient.h"
 
+#include <algorithm>
 #include <map>
 #include <queue>
 #include <set>
@@ -24,43 +25,20 @@ public:
     }
 
     void Run(const std::vector<Value*>& ys) {
-        necessary_values_ = graph_->GetNecessaryValues();
-        for (Value* value : necessary_values_) {
+        for (Value* value : graph_->GetNecessaryValues(ys)) {
             if (value->kind() != Value::Kind::kInput || !value->initializer()) continue;
             CHECK(original_input_values_.emplace(value).second);
         }
 
-        for (Value* y : ys) {
-            CHECK(y->grad());
-            op_queue_.push(y->producer());
+        std::vector<Node*> necessary_nodes;
+        std::map<Node*, int> node_set = graph_->GetNecessaryNodesAndInputCounts(ys);
+        for (Node* node : graph_->GetTopologicallySortedNodes()) {
+            if (node_set.count(node))
+                necessary_nodes.push_back(node);
         }
-
-        int not_ready_count = 0;
-        while (!op_queue_.empty()) {
-            Node* node = op_queue_.front();
-            CHECK(node);
-            op_queue_.pop();
-            if (!IsReady(node)) {
-                op_queue_.push(node);
-                if (++not_ready_count > op_queue_.size() * 2) {
-                    std::cerr << "Infinite loop during backprop!" << std::endl;
-                    while (!op_queue_.empty()) {
-                        Node* node = op_queue_.front();
-                        op_queue_.pop();
-                        std::cerr << node->DebugString() << std::endl;
-                    }
-                    CHECK(false);
-                }
-                continue;
-            }
-            not_ready_count = 0;
-            if (!seen_nodes_.emplace(node).second) continue;
-
+        std::reverse(necessary_nodes.begin(), necessary_nodes.end());
+        for (Node* node : necessary_nodes) {
             AddGradientForNode(graph_, node, false);
-
-            for (Value* input : node->inputs()) {
-                if (input->grad() && input->producer()) op_queue_.push(input->producer());
-            }
         }
     }
 
@@ -77,22 +55,9 @@ public:
     }
 
 private:
-    bool IsReady(const Node* node) const {
-        // TODO(hamaji): Figure out a better way to select outputs
-        // required to compute gradients.
-        if (node->op_type() == Node::kBatchNormalization) {
-            return node->outputs()[0]->grad();
-        }
-        for (Value* value : node->outputs()) {
-            if (necessary_values_.count(value) && !value->grad()) return false;
-        }
-        return true;
-    }
 
     Graph* graph_;
     std::queue<Node*> op_queue_;
-    std::set<const Node*> seen_nodes_;
-    std::set<Value*> necessary_values_;
     std::set<Value*> original_input_values_;
 };
 

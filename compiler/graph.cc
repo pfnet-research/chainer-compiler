@@ -208,6 +208,14 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
         input_counts[node] = node->GetNumActualInputs();
     }
 
+    for (const auto& p : input_counts) {
+        if (p.second == 0) {
+            for (Value* v : p.first->outputs()) {
+                q.push(v);
+            }
+        }
+    }
+
     std::vector<Node*> sorted_nodes;
     while (!q.empty()) {
         Value* v = q.front();
