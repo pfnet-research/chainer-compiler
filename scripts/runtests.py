@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import argparse
+import copy
 import glob
 import multiprocessing
 import os
@@ -36,14 +37,17 @@ TEST_PATHS = set()
 class TestCase(object):
 
     def __init__(self, dirname, name, rtol=None, fail=False,
-                 skip_shape_inference=False):
+                 skip_shape_inference=False,
+                 always_retain_in_stack=False):
         self.dirname = dirname
         self.name = name
         self.rtol = rtol
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
+        self.always_retain_in_stack = always_retain_in_stack
         self.test_dir = os.path.join(self.dirname, self.name)
         self.args = None
+        self.is_backprop = 'backprop_' in name
         TEST_PATHS.add(self.test_dir)
 
 
@@ -498,6 +502,19 @@ TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50'))
 
+for test_case in list(TEST_CASES):
+    if not test_case.is_backprop:
+        continue
+    new_test = copy.copy(test_case)
+    new_test.name = test_case.name + '_stack'
+    new_test.always_retain_in_stack = True
+    new_test.fail = ('conv' in test_case.name or
+                     'pool' in test_case.name or
+                     'batch_norm' in test_case.name or
+                     'lrn' in test_case.name or
+                     'mlp' in test_case.name)
+    TEST_CASES.append(new_test)
+
 if args.test_filter is not None:
     reg = re.compile(args.test_filter)
     TEST_CASES = [case for case in TEST_CASES if reg.search(case.name)]
@@ -567,7 +584,9 @@ def main():
             test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_shape_inference')
-        if 'backprop_' in test_case.name:
+        if test_case.always_retain_in_stack:
+            test_case.args.append('--always_retain_in_stack')
+        if test_case.is_backprop:
             test_case.args.append('--backprop')
         if args.verbose:
             test_case.args.append('--verbose')
