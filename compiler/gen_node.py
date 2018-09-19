@@ -185,6 +185,8 @@ NodeDef('OnikuxLoopRef', None, None,
         input_value_names=[str], output_value_names=[str],
         onikux_stack_axis=0)
 
+NodeDef('OnikuxPrint', None, 0)
+
 # Creates a new sequence: () -> ([T])
 NodeDef('OnikuxSequenceCreate', 0, 1)
 

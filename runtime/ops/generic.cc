@@ -63,6 +63,12 @@ void FreeOp::RunImpl(XCVMState* st) {
     st->FreeVar(v);
 }
 
+void PrintOp::RunImpl(XCVMState* st) {
+    for (int v : values) {
+        std::cout << st->GetXCVMVar(v)->DebugString() << std::endl;
+    }
+}
+
 void GenericLenOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(v);
     int64_t size = GetSize(var);

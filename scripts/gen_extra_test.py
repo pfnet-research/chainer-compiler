@@ -514,6 +514,17 @@ def gen_generic_add_test(test_name):
     gb.gen_test()
 
 
+# TODO(hamaji): Test actual output.
+def gen_print_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    in1_v = gb.const(21)
+    in2_v = gb.const(2)
+    result_v = gb.Mul([in1_v, in2_v])
+    gb.OnikuxPrint([result_v], outputs=[])
+    gb.output(gb.Identity([result_v]), 42)
+    gb.gen_test()
+
+
 def gen_hello_world_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     hello = 'Hello, world!\n'
@@ -649,6 +660,7 @@ def get_tests():
         TestCase('extra_test_generic_getslice', gen_generic_getslice_test),
         TestCase('extra_test_generic_add', gen_generic_add_test),
 
+        TestCase('extra_test_print', gen_print_test),
         TestCase('extra_test_hello_world', gen_hello_world_test),
 
         TestCase('extra_test_type_coersion', gen_type_coersion_test,

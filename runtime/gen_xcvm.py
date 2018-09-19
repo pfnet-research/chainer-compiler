@@ -296,6 +296,7 @@ XC_GENERIC_OPS = [
     ('Free', [Array('v')], []),
     ('In', [String('name')], ['v']),
     ('Out', [String('name'), Array('v')], []),
+    ('Print', [ArrayList('values')], []),
 
     ('GenericLen', [Array('v')], ['len']),
     ('GenericGetItem', [Array('v'), Array('index')], ['output']),

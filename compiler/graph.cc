@@ -227,20 +227,26 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
 }
 
 std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Value*>& output_values) const {
-    // Find necessary nodes.
-    std::queue<const Value*> q;
+    std::queue<Node*> q;
     for (const Value* value : output_values) {
-        q.push(value);
+        q.push(value->producer());
     }
 
     std::map<Node*, int> input_counts;
     while (!q.empty()) {
-        const Value* value = q.front();
+        Node* node = q.front();
         q.pop();
-        if (Node* node = value->producer()) {
-            if (!input_counts.emplace(node, node->GetNumActualInputs()).second) continue;
-            for (const Value* input : node->inputs()) {
-                q.push(input);
+        if (!node) continue;
+        if (!input_counts.emplace(node, node->GetNumActualInputs()).second) continue;
+        for (const Value* input : node->inputs()) {
+            q.push(input->producer());
+        }
+
+        // Nodes without any outputs are always necessary (e.g., OnikuxPrint).
+        for (const Value* output : node->outputs()) {
+            for (Node* node : output->users()) {
+                if (node->outputs().empty())
+                    q.push(node);
             }
         }
     }

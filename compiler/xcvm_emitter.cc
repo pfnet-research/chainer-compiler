@@ -418,6 +418,10 @@ private:
             EmitLoopRef(node, prog);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
+        } else if (node.op_type() == Node::kOnikuxPrint) {
+            std::vector<int> ins;
+            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            EMIT(Print, ins);
         } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
             EMIT(SequenceCreate, out(0));
         } else if (node.op_type() == Node::kOnikuxSequenceSize) {
