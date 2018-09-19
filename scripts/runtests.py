@@ -25,6 +25,8 @@ parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
                     help='Run all tests with GPU')
+parser.add_argument('--verbose', action='store_true',
+                    help='Run tests with --verbose flag')
 cmdline = parser.parse_args()
 
 
@@ -516,9 +518,15 @@ class TestRunner(object):
         while tests or procs:
             if tests and len(procs) < num_parallel_jobs:
                 test_case = tests.pop()
-                proc = subprocess.Popen(test_case.args,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT)
+                if cmdline.verbose:
+                    # Discard verbose outputs.
+                    proc = subprocess.Popen(test_case.args,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.DEVNULL)
+                else:
+                    proc = subprocess.Popen(test_case.args,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.STDOUT)
                 procs[proc.pid] = (test_case, proc)
                 continue
 
@@ -560,6 +568,8 @@ def main():
             args.append('--skip_shape_inference')
         if 'backprop_' in test_case.name:
             args.append('--backprop')
+        if cmdline.verbose:
+            args.append('--verbose')
         if test_case.name == 'resnet50' or cmdline.use_gpu_all:
             if not cmdline.use_gpu and not cmdline.use_gpu_all:
                 continue
