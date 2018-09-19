@@ -248,13 +248,22 @@ std::vector<Node*> ScheduleStackPushPop(const std::vector<Value*>& input_values,
     };
     for (Value* input : input_values) schedule_push(input);
 
+    std::map<Node*, size_t> node_to_index;
+    for (size_t i = 0; i < nodes.size(); ++i) {
+        CHECK(node_to_index.emplace(nodes[i], i).second);
+    }
+
     std::map<Node*, std::vector<Node*>> delayed;
     for (Node* node : nodes) {
         if (node->op_type() == Node::kOnikuxBackpropStackPop) {
             CHECK_EQ(1, node->outputs().size());
-            // TODO(hamaji): Number of users can be more than 1. Fix.
-            CHECK_EQ(1, node->outputs()[0]->users().size());
-            delayed[node->outputs()[0]->users()[0]].push_back(node);
+            CHECK_LT(0, node->outputs()[0]->users().size());
+            size_t min_index = (size_t)-1;
+            for (Node* user : node->outputs()[0]->users()) {
+                size_t index = node_to_index[user];
+                min_index = std::min(min_index, index);
+            }
+            delayed[nodes[min_index]].push_back(node);
         } else if (node->op_type() != Node::kOnikuxBackpropStackPush) {
             auto found = delayed.find(node);
             if (found != delayed.end()) {
