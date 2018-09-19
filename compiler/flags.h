@@ -17,4 +17,14 @@ extern bool g_replace_constant;
 // this number of steps.
 extern int g_recompute_relu;
 
+// Always use stacks to retain values for backprop. This exists only
+// to complement poor test coverage for backprop in loops.
+extern bool g_always_retain_in_stack;
+
+// Dumps the ONNX graph at a specific timing.
+extern bool g_dump_after_inference;
+extern bool g_dump_after_simplification;
+extern bool g_dump_after_gradient;
+extern bool g_dump_after_scheduling;
+
 }  // namespace oniku

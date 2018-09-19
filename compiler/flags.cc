@@ -10,4 +10,11 @@ bool g_replace_constant;
 
 int g_recompute_relu;
 
+bool g_always_retain_in_stack;
+
+bool g_dump_after_inference;
+bool g_dump_after_simplification;
+bool g_dump_after_gradient;
+bool g_dump_after_scheduling;
+
 }  // namespace oniku

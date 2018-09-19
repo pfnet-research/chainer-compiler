@@ -89,13 +89,29 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     Graph* graph = model->mutable_graph();
     InferAllDtypeAndShape(graph);
 
+    auto dump_onnx = [&graph](bool cond, const char* msg) {
+        if (cond) {
+            std::cerr << "=== vvv " << msg << " vvv ===\n";
+            std::cerr << graph->ToString();
+            std::cerr << "=== ^^^ " << msg << " ^^^ ===\n";
+        }
+    };
+
+    dump_onnx(g_dump_after_inference, "after inference");
+
     Recursively(Simplify, graph);
 
-    if (gen_backprop) AddGradientNodes(graph, false  /* retain_in_stack */);
-    if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
+    dump_onnx(g_dump_after_simplification, "after simplification");
 
+    if (gen_backprop) AddGradientNodes(graph, g_always_retain_in_stack);
+
+    dump_onnx(g_dump_after_gradient, "after gradient generation");
+
+    if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
     Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);
     if (gen_backprop) Recursively(ScheduleBackpropGraphs, graph);
+
+    dump_onnx(g_dump_after_scheduling, "after scheduling");
 
     Recursively(CollectGarbageNode, graph);
 }
