@@ -27,7 +27,7 @@ parser.add_argument('--use_gpu_all', '-G', action='store_true',
                     help='Run all tests with GPU')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
-cmdline = parser.parse_args()
+args = parser.parse_args()
 
 
 TEST_PATHS = set()
@@ -463,7 +463,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_view', fail=True),
 ]
 
-if cmdline.all:
+if args.all:
     models = glob.glob(os.path.join(ONNX_TEST_DATA, '*/*/model.onnx'))
     for onnx in sorted(models):
         path = os.path.dirname(onnx)
@@ -498,11 +498,11 @@ TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50'))
 
-if cmdline.test_filter is not None:
-    reg = re.compile(cmdline.test_filter)
+if args.test_filter is not None:
+    reg = re.compile(args.test_filter)
     TEST_CASES = [case for case in TEST_CASES if reg.search(case.name)]
 
-if not cmdline.all:
+if not args.all:
     TEST_CASES = [case for case in TEST_CASES if not case.fail]
 
 
@@ -518,7 +518,7 @@ class TestRunner(object):
         while tests or procs:
             if tests and len(procs) < num_parallel_jobs:
                 test_case = tests.pop()
-                if cmdline.verbose:
+                if args.verbose:
                     # Discard verbose outputs.
                     proc = subprocess.Popen(test_case.args,
                                             stdout=subprocess.PIPE,
@@ -560,28 +560,28 @@ def main():
     tests = []
     gpu_tests = []
     for test_case in TEST_CASES:
-        args = ['tools/run_onnx', '--test', test_case.test_dir, '--quiet']
+        test_case.args = ['tools/run_onnx',
+                          '--test', test_case.test_dir, '--quiet']
         is_gpu = False
         if test_case.rtol is not None:
-            args += ['--rtol', str(test_case.rtol)]
+            test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
-            args.append('--skip_shape_inference')
+            test_case.args.append('--skip_shape_inference')
         if 'backprop_' in test_case.name:
-            args.append('--backprop')
-        if cmdline.verbose:
-            args.append('--verbose')
-        if test_case.name == 'resnet50' or cmdline.use_gpu_all:
-            if not cmdline.use_gpu and not cmdline.use_gpu_all:
+            test_case.args.append('--backprop')
+        if args.verbose:
+            test_case.args.append('--verbose')
+        if test_case.name == 'resnet50' or args.use_gpu_all:
+            if not args.use_gpu and not args.use_gpu_all:
                 continue
-            args.extend(['-d', 'cuda'])
+            test_case.args.extend(['-d', 'cuda'])
             is_gpu = True
-        test_case.args = args
         if is_gpu:
             gpu_tests.append(test_case)
         else:
             tests.append(test_case)
 
-    for tests, num_jobs in [(tests, cmdline.jobs), (gpu_tests, 1)]:
+    for tests, num_jobs in [(tests, args.jobs), (gpu_tests, 1)]:
         runner = TestRunner(tests)
         runner.run(num_jobs)
         test_cnt += runner.test_cnt
