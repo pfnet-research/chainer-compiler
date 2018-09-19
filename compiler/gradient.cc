@@ -56,7 +56,7 @@ public:
             not_ready_count = 0;
             if (!seen_nodes_.emplace(node).second) continue;
 
-            AddGradientForNode(graph_, node);
+            AddGradientForNode(graph_, node, false);
 
             for (Value* input : node->inputs()) {
                 if (input->grad() && input->producer())

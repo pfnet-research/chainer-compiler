@@ -18,8 +18,8 @@ namespace {
 
 class GradientOpContext {
 public:
-    GradientOpContext(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y)
-        : graph_(graph), node_(node), x_(x), y_(y) {
+    GradientOpContext(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, bool retain_in_stack)
+        : graph_(graph), node_(node), x_(x), y_(y), retain_in_stack_(retain_in_stack) {
         name_ = Node::OpTypeToString(node->op_type());
         const std::string prefix = "Onikux";
         if (HasPrefix(name_, prefix)) name_ = name_.substr(prefix.size());
@@ -86,6 +86,7 @@ private:
     const std::vector<Value*>& x_;
     const std::vector<Value*>& y_;
     std::string name_;
+    bool retain_in_stack_;
 };
 
 void AddGradFn(GradientOpContext* gc) {
@@ -428,7 +429,7 @@ struct GradientFunc {
 
 }  // namespace
 
-void AddGradientForNode(Graph* graph, Node* node) {
+void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     static std::map<Node::OpType, GradientFunc>* s_gradient_funcs;
     if (!s_gradient_funcs) {
         // Leak.
@@ -483,7 +484,7 @@ void AddGradientForNode(Graph* graph, Node* node) {
     if (func.num_inputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
     if (func.num_outputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
 
-    GradientOpContext gc(graph, node, node->inputs(), node->outputs());
+    GradientOpContext gc(graph, node, node->inputs(), node->outputs(), retain_in_stack);
     func.fn(&gc);
 }
 
