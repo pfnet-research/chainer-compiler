@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stack>
 #include <string>
 #include <vector>
 
@@ -52,8 +53,10 @@ public:
     std::string GetVarString(int index);
     std::string GetVarListString(const std::vector<int>& indices);
 
-    Auxiliary* GetAux(int index);
-    void SetAux(int index, std::unique_ptr<Auxiliary>&& aux);
+    std::shared_ptr<Auxiliary> GetAux(int index);
+    void SetAux(int index, std::shared_ptr<Auxiliary> aux);
+    void PushAux(int index, std::shared_ptr<Auxiliary> aux);
+    std::shared_ptr<Auxiliary> PopAux(int index);
 
     void Input(const std::string& name, int index);
     void Output(const std::string& name, int index);
@@ -83,7 +86,8 @@ public:
 private:
     int pc_;
     std::vector<std::unique_ptr<XCVMVar>> variables_;
-    std::vector<std::unique_ptr<Auxiliary>> auxiliaries_;
+    std::vector<std::shared_ptr<Auxiliary>> auxiliaries_;
+    std::map<int, std::stack<std::shared_ptr<Auxiliary>>> auxiliary_stack_;
     InOuts inputs_;
     InOuts outputs_;
     int trace_level_ = 0;

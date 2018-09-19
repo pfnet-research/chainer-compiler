@@ -99,12 +99,22 @@ std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
     return oss.str();
 }
 
-XCVMState::Auxiliary* XCVMState::GetAux(int index) {
-    return auxiliaries_[index].get();
+std::shared_ptr<XCVMState::Auxiliary> XCVMState::GetAux(int index) {
+    return auxiliaries_[index];
 }
 
-void XCVMState::SetAux(int index, std::unique_ptr<Auxiliary>&& aux) {
-    auxiliaries_[index] = std::move(aux);
+void XCVMState::SetAux(int index, std::shared_ptr<Auxiliary> aux) {
+    auxiliaries_[index] = aux;
+}
+
+void XCVMState::PushAux(int index, std::shared_ptr<Auxiliary> aux) {
+    auxiliary_stack_[index].push(aux);
+}
+
+std::shared_ptr<XCVMState::Auxiliary> XCVMState::PopAux(int index) {
+    std::shared_ptr<XCVMState::Auxiliary> aux = auxiliary_stack_[index].top();
+    auxiliary_stack_[index].pop();
+    return aux;
 }
 
 void XCVMState::SetVar(int index, const chainerx::Array& value) {

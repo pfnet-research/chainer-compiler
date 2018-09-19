@@ -15,6 +15,9 @@ void SequenceClearOp::RunImpl(XCVMState* st) {
 
 void SequenceAppendOp::RunImpl(XCVMState* st) {
     st->GetSequence(seq)->push_back(st->GetVar(value));
+    if (move_aux) {
+        st->PushAux(seq, st->GetAux(value));
+    }
 }
 
 void SequencePopOp::RunImpl(XCVMState* st) {
@@ -22,6 +25,9 @@ void SequencePopOp::RunImpl(XCVMState* st) {
     CHECK(!v->empty());
     st->SetVar(output, v->back());
     v->pop_back();
+    if (move_aux) {
+        st->SetAux(output, st->PopAux(seq));
+    }
 }
 
 void SequenceLookupOp::RunImpl(XCVMState* st) {

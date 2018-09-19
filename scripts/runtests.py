@@ -509,9 +509,6 @@ for test_case in list(TEST_CASES):
     new_test.name = test_case.name + '_stack'
     new_test.always_retain_in_stack = True
     new_test.fail = ('conv' in test_case.name or
-                     'pool' in test_case.name or
-                     'batch_norm' in test_case.name or
-                     'lrn' in test_case.name or
                      'mlp' in test_case.name)
     TEST_CASES.append(new_test)
 

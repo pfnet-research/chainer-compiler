@@ -467,10 +467,10 @@ private:
             EmitLoopRef(node, prog);
         } else if (node.op_type() == Node::kOnikuxBackpropStackPush) {
             int id = GetStackId(node.id());
-            EMIT(SequenceAppend, id, in(0));
+            EMIT(SequenceAppend, id, in(0), 1);
         } else if (node.op_type() == Node::kOnikuxBackpropStackPop) {
             int id = GetStackId(node.id());
-            EMIT(SequencePop, out(0), id);
+            EMIT(SequencePop, out(0), id, 1);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
         } else if (node.op_type() == Node::kOnikuxPrint) {
@@ -487,10 +487,10 @@ private:
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
                 EMIT(SequenceMove, out(0), in(0));
-                EMIT(SequenceAppend, out(0), in(1));
+                EMIT(SequenceAppend, out(0), in(1), 0);
             } else {
                 EMIT(SequenceCopy, out(0), in(0));
-                EMIT(SequenceAppend, out(0), in(1));
+                EMIT(SequenceAppend, out(0), in(1), 0);
             }
         } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
@@ -709,7 +709,7 @@ private:
         for (int i = 0; i < num_scans; ++i) {
             CHECK_LT(i + num_states + 1, body_output_values.size());
             const Value* body_out = body_output_values[i + num_states + 1];
-            EMIT(SequenceAppend, scan_out_ids[i], GetValueId(body_out));
+            EMIT(SequenceAppend, scan_out_ids[i], GetValueId(body_out), 0);
             FREE(GetValueId(body_out));
         }
 
