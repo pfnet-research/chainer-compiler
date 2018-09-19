@@ -558,7 +558,8 @@ class TestRunner(object):
                     sys.stdout.write('OK\n')
             else:
                 self.fail_cnt += 1
-                sys.stdout.write('FAIL: %s\n' % ' '.join(test_case.args))
+                filtered = [a for a in test_case.args if a != '--quiet']
+                sys.stdout.write('FAIL: %s\n' % ' '.join(filtered))
             sys.stdout.buffer.write(proc.stdout.read())
 
 
@@ -573,8 +574,7 @@ def main():
     tests = []
     gpu_tests = []
     for test_case in TEST_CASES:
-        test_case.args = ['tools/run_onnx',
-                          '--test', test_case.test_dir, '--quiet']
+        test_case.args = ['tools/run_onnx', '--test', test_case.test_dir]
         is_gpu = False
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
@@ -591,6 +591,8 @@ def main():
                 continue
             test_case.args.extend(['-d', 'cuda'])
             is_gpu = True
+        test_case.args.append('--quiet')
+
         if is_gpu:
             gpu_tests.append(test_case)
         else:
