@@ -23,6 +23,7 @@ public:
 
     GraphBuilder(const GraphBuilder&) = delete;
     GraphBuilder& operator=(const GraphBuilder&) = delete;
+    GraphBuilder(GraphBuilder&&) = default;
 
     // Creates a new operation node which has a single output. A new
     // temporary `Value` will be created if `output` is nullptr.

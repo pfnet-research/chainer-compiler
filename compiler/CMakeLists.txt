@@ -42,6 +42,7 @@ add_executable(compiler_test
 target_link_libraries(compiler_test
   oniku_compiler
   oniku_runtime
+  oniku_common
   onnx_proto
   protobuf
   gtest
