@@ -19,7 +19,8 @@ public:
         if (!has_mask_) return;
         CHECK_EQ(1, sequence_lens->ndim());
         CHECK_EQ(batch_size_, sequence_lens->shape()[0]);
-        sequence_mask_ = chainerx::Transpose(chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype()), chainerx::Shape({batch_size, seq_length})));
+        sequence_mask_ = chainerx::Transpose(
+                chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype()), chainerx::Shape({batch_size, seq_length})));
         sequence_mask_ = chainerx::Less(sequence_mask_, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(dtype);
     }
 
@@ -162,14 +163,12 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
             w_bh = bs.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
             r_bh = bs.At({chainerx::Slice(5 * hidden_size, 6 * hidden_size)});
         }
-        chainerx::Array h =
-            initial_h.has_value() ? initial_h->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+        chainerx::Array h = initial_h.has_value() ? initial_h->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
 
         chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
         for (int64_t t = 0; t < x.shape()[0]; ++t) {
             int64_t time = t;
-            if (direction == 1 || d == 1)
-                time = x.shape()[0] - t - 1;
+            if (direction == 1 || d == 1) time = x.shape()[0] - t - 1;
 
             chainerx::Array cur_x = x.At({time});
             chainerx::Array gates = chainerx::Dot(cur_x, gates_w) + chainerx::Dot(h, gates_r);
@@ -249,10 +248,8 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
     for (int d = 0; d < num_direction; ++d) {
         chainerx::Array wt = chainerx::Transpose(w.At({d}));
         chainerx::Array rt = chainerx::Transpose(r.At({d}));
-        chainerx::Array h =
-            initial_h.has_value() ? initial_h->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
-        chainerx::Array c =
-            initial_c.has_value() ? initial_c->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+        chainerx::Array h = initial_h.has_value() ? initial_h->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
+        chainerx::Array c = initial_c.has_value() ? initial_c->At({d}) : chainerx::Zeros({batch_size, hidden_size}, x.dtype());
         std::vector<chainerx::ArrayIndex> indices(2, chainerx::Slice());
         chainerx::Array bm;
         if (b.has_value()) {
@@ -273,8 +270,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
 
         for (int64_t t = 0; t < x.shape()[0]; ++t) {
             int64_t time = t;
-            if (direction == 1 || d == 1)
-                time = x.shape()[0] - t - 1;
+            if (direction == 1 || d == 1) time = x.shape()[0] - t - 1;
             chainerx::Array cur_x = x.At({time});
             chainerx::Array gates = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
             if (b.has_value()) {

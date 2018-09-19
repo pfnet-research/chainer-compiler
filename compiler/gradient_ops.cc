@@ -323,8 +323,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
         loop->mutable_inputs()->push_back(input_iter);
         input_iter->AddUser(loop);
         Value* output_iter = graph->AddValue(gb.GenName());
-        loop->mutable_outputs()->insert(
-            loop->mutable_outputs()->begin() + num_states, output_iter);
+        loop->mutable_outputs()->insert(loop->mutable_outputs()->begin() + num_states, output_iter);
         output_iter->SetProducer(loop);
     }
 

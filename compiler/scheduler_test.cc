@@ -10,8 +10,7 @@
 namespace oniku {
 namespace {
 
-class SchedulerTest : public ::testing::TestWithParam<SchedulerType> {
-};
+class SchedulerTest : public ::testing::TestWithParam<SchedulerType> {};
 
 // TODO(hamaji): Move this to somewhere as a utility function.
 int LookupIntAttribute(const onnx::NodeProto& xnode, const std::string& name, int default_value) {
@@ -91,10 +90,7 @@ TEST_P(SchedulerTest, MultipleTimes) {
     EXPECT_EQ(2, n3->onikux_order());
 }
 
-INSTANTIATE_TEST_CASE_P(
-    ForEachScheduler,
-    SchedulerTest,
-    ::testing::Values(SchedulerType::kNaive, SchedulerType::kGreedy));
+INSTANTIATE_TEST_CASE_P(ForEachScheduler, SchedulerTest, ::testing::Values(SchedulerType::kNaive, SchedulerType::kGreedy));
 
 }  // namespace
 }  // namespace oniku

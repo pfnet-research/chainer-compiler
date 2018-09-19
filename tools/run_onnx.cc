@@ -117,7 +117,6 @@ void ReadTestDir(
             all_vars.emplace_back(filename, tensor_name, seq.release());
         }
 
-
         for (const auto& p : all_vars) {
             const std::string& filename = std::get<0>(p);
             std::string tensor_name = std::get<1>(p);
@@ -169,14 +168,13 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
 
 XCVMVar* StageVar(XCVMVar* var) {
     switch (var->kind()) {
-    case XCVMVar::Kind::kArray:
-        return new XCVMVar(var->GetArray().ToDevice(chainerx::GetDefaultDevice()));
-    case XCVMVar::Kind::kSequence: {
-        XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
-        for (const chainerx::Array& a : *var->GetSequence())
-            out->GetSequence()->push_back(a.ToDevice(chainerx::GetDefaultDevice()));
-        return out;
-    }
+        case XCVMVar::Kind::kArray:
+            return new XCVMVar(var->GetArray().ToDevice(chainerx::GetDefaultDevice()));
+        case XCVMVar::Kind::kSequence: {
+            XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
+            for (const chainerx::Array& a : *var->GetSequence()) out->GetSequence()->push_back(a.ToDevice(chainerx::GetDefaultDevice()));
+            return out;
+        }
     }
     CHECK(false);
 }
@@ -365,10 +363,10 @@ void RunMain(int argc, char** argv) {
 
             auto var_str = [&args, array_str](XCVMVar* v) {
                 switch (v->kind()) {
-                case XCVMVar::Kind::kArray:
-                    return array_str(v->GetArray());
-                case XCVMVar::Kind::kSequence:
-                    return Join(MapToString(*v->GetSequence(), array_str));
+                    case XCVMVar::Kind::kArray:
+                        return array_str(v->GetArray());
+                    case XCVMVar::Kind::kSequence:
+                        return Join(MapToString(*v->GetSequence(), array_str));
                 }
                 CHECK(false);
             };
@@ -401,24 +399,24 @@ void RunMain(int argc, char** argv) {
 
             bool ok = false;
             switch (expected->kind()) {
-            case XCVMVar::Kind::kArray:
-                ok = check_array(expected->GetArray(), actual->GetArray());
-                break;
-
-            case XCVMVar::Kind::kSequence: {
-                const auto& expected_seq = *expected->GetSequence();
-                const auto& actual_seq = *actual->GetSequence();
-                if (expected_seq.size() != actual_seq.size()) {
-                    fail("seq_size");
-                    ok = false;
+                case XCVMVar::Kind::kArray:
+                    ok = check_array(expected->GetArray(), actual->GetArray());
                     break;
-                }
 
-                for (size_t i = 0; i < expected_seq.size(); ++i) {
-                    ok = check_array(expected_seq[i], actual_seq[i]);
-                    if (!ok) break;
+                case XCVMVar::Kind::kSequence: {
+                    const auto& expected_seq = *expected->GetSequence();
+                    const auto& actual_seq = *actual->GetSequence();
+                    if (expected_seq.size() != actual_seq.size()) {
+                        fail("seq_size");
+                        ok = false;
+                        break;
+                    }
+
+                    for (size_t i = 0; i < expected_seq.size(); ++i) {
+                        ok = check_array(expected_seq[i], actual_seq[i]);
+                        if (!ok) break;
+                    }
                 }
-            }
             }
 
             if (!ok) continue;

@@ -94,7 +94,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     if (gen_backprop) AddGradientNodes(graph);
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
-    Recursively([](Graph* g){ScheduleComputation(*g);}, graph);
+    Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);
     if (gen_backprop) Recursively(ScheduleBackpropGraphs, graph);
 
     Recursively(CollectGarbageNode, graph);

@@ -16,10 +16,10 @@ namespace {
 
 int64_t GetSize(XCVMVar* var) {
     switch (var->kind()) {
-    case XCVMVar::Kind::kArray:
-        return var->GetArray().shape()[0];
-    case XCVMVar::Kind::kSequence:
-        return var->GetSequence()->size();
+        case XCVMVar::Kind::kArray:
+            return var->GetArray().shape()[0];
+        case XCVMVar::Kind::kSequence:
+            return var->GetSequence()->size();
     }
     CHECK(false);
 }
@@ -46,16 +46,16 @@ void OutOp::RunImpl(XCVMState* st) {
 void IdentityOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(x);
     switch (var->kind()) {
-    case XCVMVar::Kind::kArray:
-        st->SetVar(y, var->GetArray());
-        break;
+        case XCVMVar::Kind::kArray:
+            st->SetVar(y, var->GetArray());
+            break;
 
-    case XCVMVar::Kind::kSequence:
-        const std::vector<chainerx::Array>& s = *var->GetSequence();
-        std::vector<chainerx::Array>* d = st->CreateSequence(y);
-        CHECK(d->empty());
-        *d = s;
-        break;
+        case XCVMVar::Kind::kSequence:
+            const std::vector<chainerx::Array>& s = *var->GetSequence();
+            std::vector<chainerx::Array>* d = st->CreateSequence(y);
+            CHECK(d->empty());
+            *d = s;
+            break;
     }
 }
 
@@ -79,16 +79,16 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(v);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(index)));
     switch (var->kind()) {
-    case XCVMVar::Kind::kArray:
-        CHECK_LT(i, var->GetArray().shape()[0]);
-        st->SetVar(output, var->GetArray().At({i}));
-        break;
+        case XCVMVar::Kind::kArray:
+            CHECK_LT(i, var->GetArray().shape()[0]);
+            st->SetVar(output, var->GetArray().At({i}));
+            break;
 
-    case XCVMVar::Kind::kSequence:
-        const std::vector<chainerx::Array>& v = *var->GetSequence();
-        CHECK_LT(i, v.size());
-        st->SetVar(output, v[i]);
-        break;
+        case XCVMVar::Kind::kSequence:
+            const std::vector<chainerx::Array>& v = *var->GetSequence();
+            CHECK_LT(i, v.size());
+            st->SetVar(output, v[i]);
+            break;
     }
 }
 
@@ -107,29 +107,29 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
     CHECK_NE(0, step) << "Slice step cannot be zero";
 
     switch (var->kind()) {
-    case XCVMVar::Kind::kArray: {
-        st->SetVar(output, var->GetArray().At({chainerx::Slice(start, end, step)}));
-        break;
-    }
-
-    case XCVMVar::Kind::kSequence: {
-        const std::vector<chainerx::Array>& v = *var->GetSequence();
-        std::vector<chainerx::Array>* seq = st->CreateSequence(output);
-        if (step > 0) {
-            for (int64_t i = start; i < end; i += step) {
-                CHECK_LE(0, i);
-                CHECK_LT(i, v.size());
-                seq->push_back(v[i]);
-            }
-        } else {
-            for (int64_t i = start; i > end; i += step) {
-                CHECK_LE(0, i);
-                CHECK_LT(i, v.size());
-                seq->push_back(v[i]);
-            }
+        case XCVMVar::Kind::kArray: {
+            st->SetVar(output, var->GetArray().At({chainerx::Slice(start, end, step)}));
+            break;
         }
-        break;
-    }
+
+        case XCVMVar::Kind::kSequence: {
+            const std::vector<chainerx::Array>& v = *var->GetSequence();
+            std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+            if (step > 0) {
+                for (int64_t i = start; i < end; i += step) {
+                    CHECK_LE(0, i);
+                    CHECK_LT(i, v.size());
+                    seq->push_back(v[i]);
+                }
+            } else {
+                for (int64_t i = start; i > end; i += step) {
+                    CHECK_LE(0, i);
+                    CHECK_LT(i, v.size());
+                    seq->push_back(v[i]);
+                }
+            }
+            break;
+        }
     }
 }
 
@@ -148,8 +148,7 @@ void GenericAddOp::RunImpl(XCVMState* st) {
     } else {
         std::vector<chainerx::Array>* seq = st->CreateSequence(output);
         *seq = *var0->GetSequence();
-        for (const auto& a : *var1->GetSequence())
-            seq->push_back(a);
+        for (const auto& a : *var1->GetSequence()) seq->push_back(a);
     }
 }
 

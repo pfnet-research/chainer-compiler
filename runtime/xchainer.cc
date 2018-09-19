@@ -208,7 +208,6 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
     return result;
 }
 
-
 chainerx::Array Sigmoid(chainerx::Array a) {
     // TODO(hamaji): Revisit implementation of this function.
     CHECK(a.dtype() == chainerx::Dtype::kFloat32);

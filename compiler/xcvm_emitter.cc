@@ -16,9 +16,9 @@ namespace oniku {
 namespace xcvm {
 namespace {
 
-#define FREE(...)                                                       \
-    do {                                                                \
-        AddFreeOp(prog, __VA_ARGS__);                                   \
+#define FREE(...)                                                                                         \
+    do {                                                                                                  \
+        AddFreeOp(prog, __VA_ARGS__);                                                                     \
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat("@", __LINE__)); \
     } while (0)
 
@@ -86,7 +86,8 @@ private:
         };
 
         auto out = [this, &node](int i) {
-            CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";;
+            CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
+            ;
             Value* output = node.outputs()[i];
             CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
             return GetValueId(output);
@@ -243,14 +244,38 @@ private:
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            EMIT(GRU, oout(0), oout(1), in(0), in(1), in(2), oin(3), oin(4), oin(5), node.hidden_size(), node.linear_before_reset(), direction());
+            EMIT(GRU,
+                 oout(0),
+                 oout(1),
+                 in(0),
+                 in(1),
+                 in(2),
+                 oin(3),
+                 oin(4),
+                 oin(5),
+                 node.hidden_size(),
+                 node.linear_before_reset(),
+                 direction());
         } else if (node.op_type() == Node::kLSTM) {
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
             CHECK_LE(3, node.inputs().size());
             CHECK_GE(3, node.outputs().size());
-            EMIT(LSTM, oout(0), oout(1), oout(2), in(0), in(1), in(2), oin(3), oin(4), oin(5), oin(6), oin(7), node.hidden_size(), direction());
+            EMIT(LSTM,
+                 oout(0),
+                 oout(1),
+                 oout(2),
+                 in(0),
+                 in(1),
+                 in(2),
+                 oin(3),
+                 oin(4),
+                 oin(5),
+                 oin(6),
+                 oin(7),
+                 node.hidden_size(),
+                 direction());
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -512,7 +537,12 @@ private:
 
 #undef EMIT
 
-    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values, const std::set<const Value*>& protected_values) {
+    void EmitGraph(
+            const Graph& graph,
+            XCProgramProto* prog,
+            bool in_loop,
+            const std::vector<Value*>& output_values,
+            const std::set<const Value*>& protected_values) {
         std::map<const Value*, int> num_users;
         if (!in_loop) {
             for (const Value* value : graph.input_values()) {
@@ -528,10 +558,8 @@ private:
 
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
-            if (todo_outputs.empty())
-                break;
-            if (!emitted_.emplace(node).second)
-                continue;
+            if (todo_outputs.empty()) break;
+            if (!emitted_.emplace(node).second) continue;
 
             if (!in_loop) {
                 for (const Value* value : node->inputs()) {
@@ -546,12 +574,9 @@ private:
 
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
-                if (todo_outputs.erase(output))
-                    continue;
-                if (protected_values.count(output))
-                    continue;
-                if (output->kind() == Value::Kind::kTemp &&
-                    output->users().empty() &&
+                if (todo_outputs.erase(output)) continue;
+                if (protected_values.count(output)) continue;
+                if (output->kind() == Value::Kind::kTemp && output->users().empty() &&
                     // TODO(hamaji): Figure out how we should handle batch norm.
                     node->op_type() != Node::kBatchNormalization)
                     FREE(GetValueId(output));
@@ -567,7 +592,13 @@ private:
         }
     }
 
-    void EmitLoopImpl(const Node& loop, Graph* body, const std::vector<Value*>& body_input_values, const std::vector<Value*>& body_output_values, const std::set<const Value*>& protected_values, XCProgramProto* prog) {
+    void EmitLoopImpl(
+            const Node& loop,
+            Graph* body,
+            const std::vector<Value*>& body_input_values,
+            const std::vector<Value*>& body_output_values,
+            const std::set<const Value*>& protected_values,
+            XCProgramProto* prog) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
         int num_body_inputs = body_input_values.size();
@@ -591,7 +622,7 @@ private:
 #define MOVE(dst, src)            \
     do {                          \
         EMIT(Identity, dst, src); \
-        FREE(src);     \
+        FREE(src);                \
     } while (0)
 
         // Initialize loop variables.

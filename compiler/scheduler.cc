@@ -117,8 +117,7 @@ std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>
     std::vector<Node*> nodes;
 
     auto schedule_node = [&nodes, &q](Node* node) {
-        if (node->onikux_order() < 0)
-            nodes.push_back(node);
+        if (node->onikux_order() < 0) nodes.push_back(node);
         for (const Value* output : node->outputs()) {
             q.push(output);
         }
@@ -196,12 +195,15 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>&
         }
     }
 
-    if (!has_already_scheduled_nodes)
-        nodes = DelaySimpleNodes(nodes);
+    if (!has_already_scheduled_nodes) nodes = DelaySimpleNodes(nodes);
     return nodes;
 }
 
-void CheckSanity(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values, const std::vector<Node*>& nodes) {
+void CheckSanity(
+        const Graph& graph,
+        const std::vector<Value*>& input_values,
+        const std::vector<Value*>& output_values,
+        const std::vector<Node*>& nodes) {
     std::set<const Value*> values;
     for (const Value* value : input_values) {
         values.emplace(value);
@@ -212,8 +214,7 @@ void CheckSanity(const Graph& graph, const std::vector<Value*>& input_values, co
 
     std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(output_values);
     for (const std::unique_ptr<Node>& node : graph.nodes()) {
-        if (node->onikux_order() > 0)
-            input_counts.erase(node.get());
+        if (node->onikux_order() > 0) input_counts.erase(node.get());
     }
     for (Node* node : nodes) {
         input_counts.erase(node);
@@ -234,7 +235,11 @@ void CheckSanity(const Graph& graph, const std::vector<Value*>& input_values, co
 
 }  // namespace
 
-void ScheduleComputation(const Graph& graph, const std::vector<Value*>& input_values, const std::vector<Value*>& output_values, SchedulerType scheduler_type) {
+void ScheduleComputation(
+        const Graph& graph,
+        const std::vector<Value*>& input_values,
+        const std::vector<Value*>& output_values,
+        SchedulerType scheduler_type) {
     std::vector<Node*> nodes;
     switch (scheduler_type) {
         case SchedulerType::kNaive:
