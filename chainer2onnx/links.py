@@ -8,14 +8,12 @@ from chainer import links as L
 from . utils import new_tensor, size2d, totensor, Env, clip_head
 
 import ast
-import gast
 import code
+import gast
 
 
 class Link_Linear(object):
-    def __init__(self, ch, parentname):
-        # code.InteractiveConsole({'ch': ch}).interact()
-        self.name = ''
+    def __init__(self, ch):
 
         if ch.b is None:
             self.n_out = 'output_size'
@@ -30,12 +28,12 @@ class Link_Linear(object):
             self.n_in = None
 
         self.W = helper.make_tensor_value_info(
-            self.name + '_W', TensorProto.FLOAT,
+            '_W', TensorProto.FLOAT,
             [self.n_out, ('input_size' if (self.n_in is None) else self.n_in)])
 
         if not self.nobias:
             self.b = helper.make_tensor_value_info(
-                self.name + '_b', TensorProto.FLOAT, [self.n_out])
+                '_b', TensorProto.FLOAT, [self.n_out])
 
     def call(self, args, _, env):
         assert(len(args) == 1)
@@ -69,8 +67,7 @@ class Link_Linear(object):
 
 
 class Link_Convolution2D(object):
-    def __init__(self, ch, parentname):
-        self.name = ''
+    def __init__(self, ch):
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.ksize = size2d(ch.ksize)
@@ -82,13 +79,13 @@ class Link_Convolution2D(object):
             # nobias = True の場合
             self.M = ch.b.shape[0]
             self.b = helper.make_tensor_value_info(
-                self.name + '_b', TensorProto.FLOAT, [self.M])
+                '_b', TensorProto.FLOAT, [self.M])
         else:
             self.M = "TODO"
             self.b = None
 
         self.W = helper.make_tensor_value_info(
-            self.name + '_W', TensorProto.FLOAT,
+            '_W', TensorProto.FLOAT,
             [self.M, 'channel_size'] + self.ksize)
 
     def call(self, args, _, env):
@@ -113,20 +110,18 @@ class Link_Convolution2D(object):
 
 
 class Link_BatchNormalization(object):
-    def __init__(self, ch, parentname):
-        self.name = ''
-        # code.InteractiveConsole({'ch': ch}).interact()
+    def __init__(self, ch):
 
         self.n_out = ch.beta.shape[0]
 
         self.scale = helper.make_tensor_value_info(
-            self.name + '_gamma', TensorProto.FLOAT, [self.n_out])
+            '_gamma', TensorProto.FLOAT, [self.n_out])
         self.B = helper.make_tensor_value_info(
-            self.name + '_beta', TensorProto.FLOAT, [self.n_out])
+            '_beta', TensorProto.FLOAT, [self.n_out])
         self.mean = helper.make_tensor_value_info(
-            self.name + '_avg_mean', TensorProto.FLOAT, [self.n_out])
+            '_avg_mean', TensorProto.FLOAT, [self.n_out])
         self.var = helper.make_tensor_value_info(
-            self.name + '_avg_var', TensorProto.FLOAT, [self.n_out])
+            '_avg_var', TensorProto.FLOAT, [self.n_out])
 
         self.eps = ch.eps
         self.momentum = ch.decay
@@ -152,11 +147,9 @@ class Link_BatchNormalization(object):
 
 
 class Link_NstepLSTM(object):
-    def __init__(self, ch, parentname):
-        self.name = ''
+    def __init__(self, ch):
         # code.InteractiveConsole({'ch': ch}).interact()
 
-        # cs = list(ch.children())
         hd = ch.children().__next__()
         if not(hd.w0 is None):
             self.n_in = hd.w0.shape[1]
@@ -174,16 +167,16 @@ class Link_NstepLSTM(object):
         self.ws = [step() for _ in range(self.n_layers)]
         for i in range(self.n_layers):
             self.ws[i].W = helper.make_tensor_value_info(
-                self.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
+                ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
             # これ多分うまいこと変換しないといけない
             # chainer : at  ct
             #   onnx  : ct  Ct
             # (chainerのws[0],ws[2],ws[1],ws[3]から連結させたりする)
             self.ws[i].R = helper.make_tensor_value_info(
-                self.name + ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
+                ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
             # (chainerのws[4],ws[6],ws[5],ws[7]から連結させたりする)
             self.ws[i].B = helper.make_tensor_value_info(
-                self.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
+                ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
             # (chainerのbs[0,2,1,3,4,6,5,7]から連結させたりする)
 
     def call(self, args, _, env):
@@ -288,9 +281,8 @@ class Link_NstepLSTM(object):
 
 
 class Link_NstepBiLSTM(object):
-    def __init__(self, ch, parentname):
-        self.name = ''
-        #code.InteractiveConsole({'ch': ch}).interact()
+    def __init__(self, ch):
+        # code.InteractiveConsole({'ch': ch}).interact()
 
         hd = ch.children().__next__()
         if not(hd.w0 is None):
@@ -309,11 +301,11 @@ class Link_NstepBiLSTM(object):
         self.ws = [step() for _ in range(self.n_layers)]
         for i in range(self.n_layers):
             self.ws[i].W = helper.make_tensor_value_info(
-                self.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
+                ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
             self.ws[i].R = helper.make_tensor_value_info(
-                self.name + ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
+                ('_%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
             self.ws[i].B = helper.make_tensor_value_info(
-                self.name + ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
+                ('_%d_bss' % i), TensorProto.FLOAT, ["TODO"])
 
     def call(self, args, _, env):
         # とりあえずnstep を 1step ずつに分解する
@@ -414,15 +406,12 @@ class Link_NstepBiLSTM(object):
 
 
 class Link_EmbedID(object):
-    def __init__(self, ch, parentname):
-        self.name = ''
-        # code.InteractiveConsole({'ch': ch}).interact()
-
+    def __init__(self, ch):
         self.n_vocab = ch.W.shape[0]
         self.n_out = ch.W.shape[1]
 
         self.W = helper.make_tensor_value_info(
-            self.name + '_W', TensorProto.FLOAT, list(ch.W.shape))
+            '_W', TensorProto.FLOAT, list(ch.W.shape))
 
     def call(self, args, _, env):
         assert(len(args) == 1)

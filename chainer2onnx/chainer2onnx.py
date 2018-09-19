@@ -49,7 +49,7 @@ def convert_link(ch, env):
     if ch.__class__.__module__[:14] == 'chainer.links.':
         for lk, cl in Link2NodeClass:
             if isinstance(ch, lk):
-                res = cl(ch, '')
+                res = cl(ch)
                 break
         else:
             print('unknown chainer link')
