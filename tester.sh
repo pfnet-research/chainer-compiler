@@ -4,13 +4,16 @@ node=(
     Concat.py
     SoftmaxClossEntropy.py
     AddMul.py
-    # NstepLSTM.py こわれた
+    NstepLSTM.py
     EmbedID.py
     BatchNorm.py
     Reshape.py
     Tanh.py
     Cumsum.py
     SplitAxis.py
+    PadSequence.py
+    NstepBiLSTM.py
+    # SwapAxes.py
 )
 
 syntax=(

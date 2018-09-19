@@ -39,33 +39,20 @@ class Function_Pool2d_Util(object):
         # chainer のsize参考
         # https://github.com/chainer/chainer/blob/v4.3.1/chainer/utils/conv.py#L7
 
-        # paddingについて、Chainerの cover_all=Falseと
-        # onnx の pads=0 が一致する
-        # ので、 cover_all=True(デフォルト)なら
-        # padsを入れる必要あり
-        pads = [0, 0, 0, 0]
-        if keywords.get('cover_all', True):
-            dx, dy = 0, 0
-            if 'pad' in keywords.keys():
-                dy, dx = size2d(keywords['pad'])
-            # pads = [dx, dy, strides[0]+dx-1, strides[1]+dy-1]
-            # 多めに足しておくとうまいこといくはず (この時点で入力大きさが不明なので)
-            # mxnetだと足しておくとよかったが、
-            # Onikuだとそうではないっぽい？
+        dx, dy = 0, 0
+        if 'pad' in keywords.keys():
+            dy, dx = size2d(keywords['pad'])
 
-            # (size + pad) % stride = ksize % stride
-            # を仮定してよい？
-
-            pads = [dx, dy, dx, dy]
-        else:
-            raise Exception("unimplemented cover_all=False in maxpool2d")
-
+        pads = [dx, dy, dx, dy]
+        
+        # print(pads,strides,ksize)
         env.nodes.append(
             helper.make_node(
                 self.pooltype, inputs=[v.name], outputs=[res.name],
                 kernel_shape=size2d(ksize),
                 strides=strides,
-                pads=pads
+                pads=pads,
+                onikux_cover_all=keywords.get('cover_all', True)
             )
         )
         return res
@@ -124,6 +111,7 @@ class Function_Concat(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
+        # print(v)
         res = new_tensor(['TODO'])
         # print(list(v))
         env.nodes.append(
@@ -177,6 +165,8 @@ class Function_SwapAxes(object):
 
         a, b = args[1], args[2]
         pe = list(range(max(a, b)+1))
+        # TODO(satos) どうにかする
+        pe = list(range(4))
         pe[a] = b
         pe[b] = a
 
@@ -216,40 +206,53 @@ class Function_Tanh(object):
         return res
 
 
+def castto(v,tt,env):
+    res = new_tensor()
+    res.type.tensor_type.elem_type = tt
+    env.addnode(
+        'Cast',
+        inputs=[v.name], outputs=[res.name],
+        to=tt
+    )
+    return res
+
+
 class Np_Array(object):
     def call(self, args, keywords, env):
         assert len(args) <= 2
-        # TODO(satos) 型のこと考える
+        assert 'dtype' in keywords.keys()
         v = args[0]
         res = new_tensor()
+        
+        t = keywords['dtype']
+        if t == numpy.int32:
+            tt = TensorProto.INT32
+        elif t == numpy.float32:
+            tt = TensorProto.FLOAT
+        else:
+            raise Exception("Unimplemented")
+        
         if istensor(v):
-            return v
-        env.addnode(
-            'Constant',
-            inputs=[], outputs=[res.name],
-            value=onnx.helper.make_tensor(
-                name="hoge",
-                data_type=onnx.TensorProto.FLOAT,
-                dims=[],
-                vals=v,
+            return castto(v,tt,env)
+        else: 
+            env.addnode(
+                'Constant',
+                inputs=[], outputs=[res.name],
+                value=onnx.helper.make_tensor(
+                    name="hoge",
+                    data_type=tt,
+                    dims=[],
+                    vals=v,
+                )
             )
-        )
-        return res
+            return res
 
 
 class Np_Int32(object):
     def call(self, args, keywords, env):
         assert len(args) == 1
         v = args[0]
-        tt = TensorProto.INT32
-        res = new_tensor()
-        res.type.tensor_type.elem_type = tt
-        env.addnode(
-            'Cast',
-            inputs=[v.name], outputs=[res.name],
-            to=tt
-        )
-        return res
+        return castto(v,TensorProto.INT32,env)
 
 
 class Np_Cumsum(object):
@@ -336,7 +339,6 @@ class Function_SplitAxis(object):
         
         src = """
         r = []
-        bs = [0][0]
         for s in ilens:
             r.append(v[bs:s])
             bs = s
@@ -350,6 +352,7 @@ class Function_SplitAxis(object):
         vs = {
             'v': v,
             'ilens': ilens,
+            'bs': totensor(0,env)
         }
         localenv.vars.update(vs)
         eval_ast(nast.body,localenv)

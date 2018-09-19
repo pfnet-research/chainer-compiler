@@ -29,7 +29,7 @@ def _validate_inout(xs):
     elif isinstance(xs, np.ndarray):
         pass
     elif isinstance(xs, int):
-        xs = np.int64(xs)
+        xs = np.int32(xs)
     elif isinstance(xs, list):
         xs = [_validate_inout(x) for x in xs]
     elif (

@@ -18,7 +18,7 @@ import numpy
 from . test_args import dprint
 from . utils import new_tensor, clip_head, ValueReturn, istensor, totensor, Env
 from . links import Link2NodeClass
-from . funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy
+from . funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
 from . builtin_funcs import builtin_functions
 
 import builtins
@@ -228,15 +228,14 @@ def eval_ast(nast, env):
                 inputs=[gtx.name, cnt.name], outputs=[tx.name],
             )
 
-            # graph内で参照されるテンソルは入力として与えないといけない。
+            
+            # 入力側のテンソルを見る。
             closure = set()
             for no in localenv.nodes:
                 closure = closure | set(no.input)
     
             cnames = list(closure)
             in_closure = {}
-            # 名前しか得られないのでテンソルを得る
-            # 生きているのはvarsで参照できるやつだけ...だと思う
             for k, v in env.vars.items():
                 if istensor(v) and v.name in cnames:
                     in_closure[k] = (v,v)
@@ -252,14 +251,25 @@ def eval_ast(nast, env):
             for k, v in localenv.vars.items():
                 if istensor(v) and v.name in cnames:
                     if not (k in in_closure.keys()):
-                        # for文の中で新たに変数が定義されることは、とりあえず想定しない。
-                        # (この場合、Undefined variable にする)
+                        """
+                        if k in env.vars.keys():
+                            # 実はテンソルになる必要があったやつなので、再登録する
+                            fv = env.vars[k]
+                            fv = totensor(fv,env)
+                            in_closure[k] = (fv,fv)  
+                        else:
+                            # for文の中で新たに変数が定義されることは、とりあえず想定しない。
+                            # (この場合、Undefined variable にする)
+                            continue
+                        """
+                        # これだとgraphを再評価する必要があるのでだめ
+                        # TODO(satos) どうにかする
                         continue
                     
                     fv,_ = in_closure[k]
                     in_closure[k] = (fv,v) 
             
-
+            # print(in_closure)
             # dprint(localenv.nodes)
             # print('ty',ty)
             cond = new_tensor()
@@ -423,7 +433,6 @@ def eval_ast(nast, env):
 
         elif isinstance(nast.op, gast.Div):
             optype = "Div"
-
             def opfun(a, b): return a / b
 
         else:
@@ -720,9 +729,9 @@ def eval_ast(nast, env):
             elif isinstance(self, gast.ExtSlice):
                 ds = list(map(slice2list, self.dims))
                 lower = Function_Concat().call(
-                    [list(map(lambda x: x[0], ds))], {'axis': 0}, env)
+                    [list(map(lambda x: castto(x[0],TensorProto.INT32,env), ds))], {'axis': 0}, env)
                 upper = Function_Concat().call(
-                    [list(map(lambda x: x[1], ds))], {'axis': 0}, env)
+                    [list(map(lambda x: castto(x[1],TensorProto.INT32,env), ds))], {'axis': 0}, env)
                 squeeze = sum(map(lambda x: x[2], ds), [])
             else:
                 raise Exception(self, " is not Python slice")

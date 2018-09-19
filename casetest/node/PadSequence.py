@@ -11,7 +11,7 @@ class A(chainer.Chain):
     def __init__(self):
         super(A, self).__init__()
 
-    def forward(self, xs, p):
+    def forward(self, xs):
         y1 = F.pad_sequence(xs)
         return y1
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     np.random.seed(314)
     
     model = A()
-
-    x = np.random.rand(12,6,4).astype(np.float32)
-    p = np.int64(3)
-    chainer2onnx.generate_testcase(model, [x,p])
+    
+    ls = np.random.randint(0,10,size=5)
+    x = [np.random.rand(i).astype(np.float32) for i in ls]
+    chainer2onnx.generate_testcase(model, [x])

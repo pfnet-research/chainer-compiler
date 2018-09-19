@@ -33,16 +33,17 @@ if __name__ == '__main__':
     n_layer = 3
     n_in = 8
     n_hidden = 5
-    n_time_length = 4
+    n_maxlen = 10
     
-    #n_batch = 1
-    n_layer = 2
-    #n_in = 1
-    #n_hidden = 1
-    #n_time_length = 1
+    #n_batch = 2
+    #n_layer = 2
+    #n_in = 2
+    #n_hidden = 4
 
     
     model = A(n_layer, n_in, n_hidden)
-
-    x = [np.random.rand(n_time_length , n_in).astype(np.float32) for i in range(n_batch)]
-    chainer2onnx.generate_testcase(model, [x])
+    
+    #ilens = np.random.randint(1,n_maxlen,size=n_batch)
+    ilens = [t for t in range(n_batch)]
+    xs = [np.random.rand(i+4,n_in).astype(np.float32) for i in ilens]
+    chainer2onnx.generate_testcase(model, [xs])

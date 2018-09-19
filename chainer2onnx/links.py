@@ -5,8 +5,9 @@ from onnx import TensorProto
 
 from chainer import links as L
 
-from . utils import new_tensor, size2d
+from . utils import new_tensor, size2d, totensor, Env, clip_head
 
+import ast,gast
 import code
 
 
@@ -192,12 +193,33 @@ class Link_NstepLSTM(object):
 
         # v = args[2]
         v = new_tensor()
+        ilens = new_tensor()
         env.addnode(
-            "Transpose",
-            perm=(1, 0, 2),
+           "OnikuxSequenceLengths",
+           inputs=[args[2].name],
+           outputs=[ilens.name]
+        )
+
+        tilens = new_tensor()
+        env.addnode(
+            "OnikuxSequenceStack",
+            inputs=[ilens.name],
+            outputs=[tilens.name]
+        )
+
+        env.addnode(
+            "OnikuxSequencePad",
             inputs=[args[2].name],
             outputs=[v.name],
         )
+        tv = new_tensor()
+        env.addnode(
+            "Transpose",
+            perm=(1, 0, 2),
+            inputs=[v.name],
+            outputs=[tv.name],
+        )
+        v = tv
 
         hs = []
         cs = []
@@ -211,14 +233,23 @@ class Link_NstepLSTM(object):
             env.addnode(
                 "LSTM",
                 inputs=[v.name, self.ws[i].W.name,
-                        self.ws[i].R.name, self.ws[i].B.name],
+                        self.ws[i].R.name, self.ws[i].B.name,tilens.name],
                 outputs=[ys.name, h.name, c.name],
-                hidden_size=self.out_size
+                direction='forward',
+                hidden_size=self.out_size,
+                # sequence_lens=[ilens.name]
             )
 
             hs.append(h.name)
             cs.append(c.name)
-            v = ys
+            yys = new_tensor()
+            env.addnode(
+                "Squeeze",
+                inputs=[ys.name],
+                outputs=[yys.name],
+                axes=[1]
+            )
+            v = yys
         # print(hs)
         # print(cs)
         ths = new_tensor()
@@ -233,31 +264,33 @@ class Link_NstepLSTM(object):
             inputs=cs, outputs=[tcs.name],
             axis=0,
         )
-
-        tys = new_tensor()
-        p = new_tensor()
-        env.addnode(
-            "Squeeze",
-            inputs=[v.name],
-            outputs=[p.name],
-            axes=[1]
-        )
+        
+        tv = new_tensor()
         env.addnode(
             "Transpose",
             perm=(1, 0, 2),
-            inputs=[p.name],
-            outputs=[tys.name],
+            inputs=[v.name],
+            outputs=[tv.name],
+        )
+        v = tv
+        
+        tys = new_tensor()
+        env.addnode(
+            "OnikuxSequenceUnpad",
+            inputs=[v.name,ilens.name],
+            outputs=[tys.name]
         )
         return ths, tcs, tys
 
     def init_tensors(self):
         return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
 
+  
 
 class Link_NstepBiLSTM(object):
     def __init__(self, ch, parentname):
         self.name = ''
-        # code.InteractiveConsole({'ch': ch}).interact()
+        #code.InteractiveConsole({'ch': ch}).interact()
 
         # cs = list(ch.children())
         hd = ch.children().__next__()
@@ -274,8 +307,8 @@ class Link_NstepBiLSTM(object):
             def __init__(self):
                 pass
 
-        self.ws = [step() for _ in range(self.n_layers*2)]
-        for i in range(self.n_layers*2):
+        self.ws = [step() for _ in range(self.n_layers)]
+        for i in range(self.n_layers):
             self.ws[i].W = helper.make_tensor_value_info(
                 self.name + ('_%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
             # これ多分うまいこと変換しないといけない
@@ -294,63 +327,101 @@ class Link_NstepBiLSTM(object):
         # print(self.name,args)
         # assert(len(args) == 1)
         assert(args[0] is None and args[1] is None)
-
+        
         # v = args[2]
-        v = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.addnode(
-            "Transpose",
-            perm=(1, 0, 2),
-            inputs=[args[2].name],
-            outputs=[v.name],
+        v = new_tensor()
+        
+        ilens = env.calc(
+           "OnikuxSequenceLengths",
+           inputs=[args[2].name],
         )
 
+        tilens = env.calc(
+            "OnikuxSequenceStack",
+            inputs=[ilens.name],
+        )
+        
+        v = args[2]
+        
         hs = []
         cs = []
 
         for i in range(self.n_layers):
+            v = env.calc(
+                "OnikuxSequencePad",
+                inputs=[v.name],
+            )
+            v = env.calc(
+                "Transpose",
+                perm=(1,0,2),
+                inputs=[v.name]
+            )
 
-            h = new_tensor(['unknown', 'unknown', 'unknown'])
-            c = new_tensor(['unknown', 'unknown', 'unknown'])
-            ys = new_tensor(['unknown', 'unknown', 'unknown'])
+            h = new_tensor()
+            c = new_tensor()
+            ys = new_tensor()
 
             env.addnode(
                 "LSTM",
                 inputs=[v.name, self.ws[i].W.name,
-                        self.ws[i].R.name, self.ws[i].B.name],
+                        self.ws[i].R.name, self.ws[i].B.name,tilens.name],
                 outputs=[ys.name, h.name, c.name],
+                direction='bidirectional',
                 hidden_size=self.out_size,
-                direction="bidirectional"
+                # sequence_lens=[ilens.name]
             )
 
             hs.append(h.name)
             cs.append(c.name)
-            v = ys
-        # print(hs)
-        # print(cs)
-        ths = new_tensor(['unknown', 'unknown', 'unknown'])
-        tcs = new_tensor(['unknown', 'unknown', 'unknown'])
+            
+            # ys :: seqlen * 2 * batchsize * hiddensize
+            v  = env.calc("Transpose",perm=(2,0,1,3),inputs=[ys.name])
+            v = env.calc("OnikuxSequenceUnpad",inputs=[v.name,ilens.name])
+            
+            from . chainer2onnx import eval_ast
+            import chainer
+            localenv = Env()
+            localenv.module = {}
+            vs = {
+                'v': v,
+                'F': chainer.functions
+            }
+            localenv.vars.update(vs)
+            src = """
+            r = []
+            for d in v:
+                r.append(F.reshape(d,(-1,%d)))
+            v = r
+            """ % (2 * self.out_size) 
+            src = clip_head(src)
+            nast = gast.ast_to_gast(ast.parse(src))
+            eval_ast(nast.body,localenv)
+
+            env.nodes += localenv.nodes
+            v = localenv.vars['v']
+            
+        ths = new_tensor()
+        tcs = new_tensor()
         env.addnode(
             "Concat",
             inputs=hs, outputs=[ths.name],
-            axis=0,
+            axis=1,
         )
         env.addnode(
             "Concat",
             inputs=cs, outputs=[tcs.name],
-            axis=0,
+            axis=1,
         )
 
-        tys = new_tensor(['unknown', 'unknown', 'unknown'])
-        env.addnode(
-            "Transpose",
-            perm=(1, 0, 2),
-            inputs=[v.name],
-            outputs=[tys.name],
-        )
+        ths = env.calc("Transpose",inputs=[ths.name],perm=(1,0,2))
+        tcs = env.calc("Transpose",inputs=[tcs.name],perm=(1,0,2))
+        
+        tys = v
         return ths, tcs, tys
 
     def init_tensors(self):
         return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
+
 
 
 class Link_EmbedID(object):

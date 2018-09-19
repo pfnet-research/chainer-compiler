@@ -117,4 +117,18 @@ class Env(object):
             # drint('add_init',v,p)
             v.name = pathname + v.name
             self.init_tensors.append(v)
+    
+    def calc(self,*args,**kwargs):
+        res = new_tensor()
+        assert not 'outputs' in kwargs.keys()
+        kwargs['outputs'] = [res.name] 
+        self.addnode(*args,**kwargs)
+        return res
+
+
+
+
+
+
+
 

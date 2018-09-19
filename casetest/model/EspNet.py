@@ -169,7 +169,7 @@ class E2E(chainer.Chain):
         hs, ilens = self.enc(xs, ilens)
         
         # print(hs,ilens) 
-        return F.pad_sequence(hs)
+        return hs[0],hs[1],hs[2],ilens
 
         # 3. CTC loss
         if self.mtlalpha == 0:
@@ -1011,8 +1011,8 @@ class BLSTM(chainer.Chain):
         # need to move ilens to cpu
         ilens = cuda.to_cpu(ilens)
         hy, cy, ys = self.nblstm(None, None, xs)
+        return hy,ilens 
         ys = self.l_last(F.vstack(ys))  # (sum _utt frame_utt) x dim
-        
         
         # (satos) xs = F.split_axis(ys, np.cumsum(ilens[:-1]), axis=0)
         # (satos) del hy, cy
@@ -1058,9 +1058,6 @@ class VGG2L(chainer.Chain):
 
         # x: utt x frame x dim
         xs = F.pad_sequence(xs)
-
-        
-        # print(xs.shape)
         
         # x: utt x 1 (input channel num) x frame x dim
         xs = F.swapaxes(F.reshape(
@@ -1069,7 +1066,7 @@ class VGG2L(chainer.Chain):
         xs = F.relu(self.conv1_1(xs))
         xs = F.relu(self.conv1_2(xs))
         xs = F.max_pooling_2d(xs, 2, stride=2)
-
+        
         xs = F.relu(self.conv2_1(xs))
         xs = F.relu(self.conv2_2(xs))
         xs = F.max_pooling_2d(xs, 2, stride=2)
@@ -1079,7 +1076,7 @@ class VGG2L(chainer.Chain):
             ilens, dtype=np.float32) / 2), dtype=np.int32)
         ilens = self.xp.array(self.xp.ceil(self.xp.array(
             ilens, dtype=np.float32) / 2), dtype=np.int32)
-
+        
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = F.swapaxes(xs, 1, 2)
         xs = F.reshape(
@@ -1156,8 +1153,6 @@ if __name__ == '__main__':
     ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
     
 
-    xs = F.pad_sequence(xs)
-    ys = F.pad_sequence(ys)
     #true output variable(6.5717525) variable(0.13333334)
  
     # print(xs,ilens,ys)
