@@ -25,8 +25,9 @@ class Function_Relu(object):
 
 
 class Function_Pool2d_Util(object):
-    def __init__(self, pooltype):
+    def __init__(self, pooltype, hascoverall):
         self.pooltype = pooltype
+        self.hascoverall = hascoverall
 
     def call(self, args, keywords, env):
         assert(len(args) == 2)
@@ -43,24 +44,32 @@ class Function_Pool2d_Util(object):
 
         pads = [dx, dy, dx, dy]
 
-        res = env.calc(
-            self.pooltype, inputs=[v.name],
-            kernel_shape=size2d(ksize),
-            strides=strides,
-            pads=pads,
-            onikux_cover_all=keywords.get('cover_all', True)
-        )
+        if self.hascoverall:
+            res = env.calc(
+                self.pooltype, inputs=[v.name],
+                kernel_shape=size2d(ksize),
+                strides=strides,
+                pads=pads,
+                onikux_cover_all=keywords.get('cover_all', True)
+            )
+        else:
+            res = env.calc(
+                self.pooltype, inputs=[v.name],
+                kernel_shape=size2d(ksize),
+                strides=strides,
+                pads=pads
+            )
         return res
 
 
 class Function_MaxPool2d(object):
     def __init__(self):
-        self.call = Function_Pool2d_Util('MaxPool').call
+        self.call = Function_Pool2d_Util('MaxPool', True).call
 
 
 class Function_AveragePool2d(object):
     def __init__(self):
-        self.call = Function_Pool2d_Util('AveragePool').call
+        self.call = Function_Pool2d_Util('AveragePool', False).call
 
 
 class Function_LocalRespNorm(object):

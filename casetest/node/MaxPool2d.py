@@ -11,7 +11,7 @@ class A(chainer.Chain):
     def forward(self, x):
         # TODO(satos) テストケース増やす
         # y1 = F.max_pooling_2d(x, (1, 3), stride=(1, 4), pad=(0, 1))
-        y1 = F.average_pooling_2d(x, (1, 3), stride=(1, 4))
+        y1 = F.max_pooling_2d(x, (1, 3), stride=(1, 4))
         return y1
 
 

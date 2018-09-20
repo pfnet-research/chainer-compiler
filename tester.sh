@@ -20,6 +20,7 @@ node=(
     # LRN.py   精度が足らないのでテストが通らない
     # Vstack.py
     AveragePool2d.py
+    MaxPool2d.py
 )
 
 syntax=(
@@ -32,7 +33,6 @@ syntax=(
     Sequence.py
     ChainerFunctionNode.py
     For.py
-    # Unpad_pad.py まだ
 )
 
 

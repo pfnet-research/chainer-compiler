@@ -3,7 +3,6 @@
 import ast
 import gast
 import inspect
-import onnx
 from onnx import checker
 from onnx import helper
 from onnx import TensorProto
@@ -22,7 +21,6 @@ from . funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castt
 from . builtin_funcs import builtin_functions
 
 import builtins
-import six
 
 
 id2name_list = []
@@ -135,6 +133,7 @@ class User_Defined_Link(object):
 
         # ここで、初期化したやつを上書きしてやる必要が出てくる
         self.inits = []
+
         for s, v in ch.namedparams():
             s = s[1:]
             if s.find('/') != -1:
@@ -145,6 +144,11 @@ class User_Defined_Link(object):
             mv = getattr(ch, s)
             setattr(ch, s, t)
             env.restore_funcs.append(lambda: setattr(ch, s, mv))
+
+        # TODO(satos) Yieldをコンパイルできるとこれが消える...
+        mv = getattr(ch, 'children')
+        setattr(ch, 'children', Func(lambda _, __, ___: mv()))
+        env.restore_funcs.append(lambda: setattr(ch, 'children', mv))
 
     def init_tensors(self):
         return self.inits
@@ -835,7 +839,7 @@ def chainer2onnx(model, forward):
     else:
         output_tensors = [v]  # とりあえず1tensor
 
-    #print('env.init_tensors ',env.init_tensors)
+    # print('env.init_tensors ',env.init_tensors)
     input_tensors += env.init_tensors
 
     for f in env.restore_funcs:

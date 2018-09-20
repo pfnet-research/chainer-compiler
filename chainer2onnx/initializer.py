@@ -43,10 +43,9 @@ def collect_inits(lk, pathname):
 
     if isinstance(lk, L.BatchNormalization):
         res.append((pathname + '_avg_mean', lk.avg_mean))
-        v = lk.avg_var
         # TODO(satos) このままだと、nodeのテストは通るがResNetのテストがつらい
-        # v.array = np.ones(v.shape).astype(np.float32) * 4.0
-        res.append((pathname + '_avg_var', v))
+        # lk.avg_var = np.ones(lk.avg_var.shape).astype(np.float32) * 4.0
+        res.append((pathname + '_avg_var', lk.avg_var))
     elif isinstance(lk, L.NStepLSTM):
         # 先にこちらで集めてしまう
         for i, clk in enumerate(lk.children()):
