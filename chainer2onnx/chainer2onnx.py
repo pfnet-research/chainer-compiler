@@ -65,7 +65,7 @@ def convert_link(ch, env):
 
 class Function_base(object):
     def stub_call(self, args, kwargs, loenv):
-        # code.InteractiveConsole({'v': self.ast.args}).interact()
+        # 関数引数は inspect.signature できれいにしたい
 
         astargs = list(map(lambda x: x.id, self.ast.args.args))
         args = dict(zip(astargs, args))
@@ -81,12 +81,13 @@ class Function_base(object):
         assert(len(astargs) == len(args.keys()))
         loenv.vars = args
 
+        # このやり方は、If文などでコントロールフローが別れるような場合に
+        # 複数ヶ所の return を変換する際に問題になる
         try:
             eval_ast(self.ast.body, loenv)
             return None
         except ValueReturn as v:
-            res = v.value
-        return res
+            return v.value
 
 
 class User_Defined_Function(Function_base):
@@ -99,7 +100,6 @@ class User_Defined_Function(Function_base):
 
     def call(self, args, kwargs, env):
         loenv = env.localenv()
-        loenv.links = {}
         loenv.module = sys.modules[self.func.__module__]
         return self.stub_call(args, kwargs, loenv)
 
@@ -110,9 +110,9 @@ class User_Defined_Func_In_Link(Function_base):
         src = clip_head(inspect.getsource(fn))
         dprint(src)
         self.ast = gast.ast_to_gast(ast.parse(src)).body[0]
+        assert(isinstance(self.ast, gast.gast.FunctionDef))
 
     def call(self, args, kwargs, env):
-
         loenv = env.localenv()
         loenv.module = sys.modules[self.ch.__module__]
         args = [self.ch] + args
@@ -132,6 +132,8 @@ class User_Defined_Link(object):
         self.forward_arglen = len(self.ast.args.args)-1
 
         # ここで、初期化したやつを上書きしてやる必要が出てくる
+        # あとでchainerで実行するために回復しないといけないので、
+        # restore_funcs に復元すべきものを追加している
         self.inits = []
 
         for s, v in ch.namedparams():
@@ -145,7 +147,7 @@ class User_Defined_Link(object):
             setattr(ch, s, t)
             env.restore_funcs.append(lambda: setattr(ch, s, mv))
 
-        # TODO(satos) Yieldをコンパイルできるとこれが消える...
+        # TODO(satos) Yieldをコンパイルできるとこれを消せる
         mv = getattr(ch, 'children')
         setattr(ch, 'children', Func(lambda _, __, ___: mv()))
         env.restore_funcs.append(lambda: setattr(ch, 'children', mv))
@@ -178,6 +180,10 @@ class User_Defined_Class(object):
 
 
 import logging
+
+# logging. なんとか
+# print( なんとか )
+# はデバッグ出力なのでコンパイルせずに読み飛ばしたい
 
 
 def is_print_logging(s, env):
@@ -216,49 +222,55 @@ def eval_ast(nast, env):
             # 新たなenv を作って、評価中にできた子グラフをもとにする
             localenv = Env()
             localenv.vars = {}
-            for k, v in env.vars.items():
-                localenv.vars[k] = v
+            localenv.vars.update(env.vars)
             localenv.module = env.module
-            tx = new_tensor()
-            localenv.vars[x] = tx
-            ty = eval_ast(nast.body,  localenv)
-            assert ty is None
 
             cnt = new_tensor()
             gtx = new_tensor()
-            localenv.addnode(
+            localenv.vars[x] = localenv.calc(
                 "OnikuxGenericGetItem",
-                inputs=[gtx.name, cnt.name], outputs=[tx.name],
+                inputs=[gtx.name, cnt.name],
             )
+            ty = eval_ast(nast.body,  localenv)
+            assert ty is None
 
             # 入力側のテンソルを見る。
-            closure = set()
+            in_names = set()
             for no in localenv.nodes:
-                closure = closure | set(no.input)
+                in_names = in_names | set(no.input)
 
-            cnames = list(closure)
+            in_names = list(in_names)
             in_closure = {}
             for k, v in env.vars.items():
-                if istensor(v) and v.name in cnames:
+                if istensor(v) and v.name in in_names:
                     in_closure[k] = (v, v)
 
             # graph内で出力されるテンソルは環境を上書きしないといけない
-            closure = set()
+            out_names = set()
             for no in localenv.nodes:
-                closure = closure | set(no.output)
+                out_names = out_names | set(no.output)
 
-            cnames = list(closure)
+            out_names = list(out_names)
             # 名前しか得られないのでテンソルを得る
             # 生きているのはvarsで参照できるやつだけ...だと思う
             for k, v in localenv.vars.items():
-                if istensor(v) and v.name in cnames:
-                    if not (k in in_closure.keys()):
+                if istensor(v) and v.name in out_names:
+                    if k not in in_closure.keys():
+                        """
+                        以下のコメントアウトしているやつは、
+                        i = 0
+                        for x in xs:
+                            i = x + 2
+                        のようなものをコンパイルする際に、
+                        i をさかのぼってテンソルにしないといけないので、
+                        これをやろうとしたもの。(下の実装だとなにか不都合が生じて諦めたはず)
+                        """
                         """
                         if k in env.vars.keys():
                             # 実はテンソルになる必要があったやつなので、再登録する
                             fv = env.vars[k]
                             fv = totensor(fv,env)
-                            in_closure[k] = (fv,fv)  
+                            in_closure[k] = (fv,fv)
                         else:
                             # for文の中で新たに変数が定義されることは、とりあえず想定しない。
                             # (この場合、Undefined variable にする)
@@ -279,6 +291,12 @@ def eval_ast(nast, env):
                 key = '#' + init.name
                 in_closure[key] = (init, init)
 
+            # この時点で
+            # in_closure[k] = (a,b) は、
+            # 『ループ内で参照されている変数kは
+            # ループのbodyの頭にはテンソルaの値であり、
+            # ループのbodyの足ではテンソルbの値である』という気持ち
+
             # print(in_closure)
             # dprint(localenv.nodes)
             # print('ty',ty)
@@ -290,10 +308,9 @@ def eval_ast(nast, env):
                 [cond, gtx] + [vv[1] for vv in in_closure.values()]
             )
 
-            mtc = new_tensor()
-            env.addnode(
+            mtc = env.calc(
                 "OnikuxGenericLen",
-                inputs=[ite.name], outputs=[mtc.name]
+                inputs=[ite.name],
             )
 
             def dummy():
@@ -303,7 +320,8 @@ def eval_ast(nast, env):
                 'Loop',
                 inputs=[mtc.name, "", ite.name] +
                 [vv[0].name for vv in in_closure.values()],
-                # ほかのと名前が衝突しないようにする
+                # ループの中でupdateされない変数は出力先はdummyにする
+                # updateするならそれでできる新たなテンソルを出力とする
                 outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
                                      for vv in in_closure.values()],
                 body=localgraph
@@ -328,6 +346,11 @@ def eval_ast(nast, env):
         value = eval_ast(nast.value, env)
         targs = nast.targets
         assert(len(targs) == 1)
+        # v,w = 1 も targetsは長さ1のlistになるので len(rargs) != 1 の状況は謎ですね
+
+        # tgとして、下以外に
+        # List, ListのIndex, Starred
+        # またこれらを再帰的に組み合わせたものが存在しうる
 
         tg = targs[0]
         if isinstance(tg, gast.Name):
@@ -347,12 +370,14 @@ def eval_ast(nast, env):
         return None
 
     elif isinstance(nast, gast.AugAssign):
+        # referenceへの代入に対してこれは不正確
         ca = gast.Assign(targets=[nast.target], value=gast.BinOp(
             left=nast.target, op=nast.op, right=nast.value))
         return eval_ast(ca, env)
 
     elif isinstance(nast, gast.Call):
         fn = eval_ast(nast.func, env)
+
         args = []
         for ag in nast.args:
             if isinstance(ag, gast.Starred):
@@ -385,6 +410,7 @@ def eval_ast(nast, env):
             else:
                 fn = User_Defined_Func_In_Link(fn.__self__, fn)
         elif isinstance(fn, types.BuiltinFunctionType):
+            # BuiltinFunctionType はbuiltinsではなくCで書かれた関数のこととのこと
             fn = builtin_functions[fn.__name__]
         elif fn == range:
             fn = builtin_functions['range']
@@ -453,29 +479,29 @@ def eval_ast(nast, env):
         # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
 
         if not istensor(lv) and not istensor(rv):
+            # 定数畳み込みを行う
             return opfun(lv, rv)
 
         lv = totensor(lv, env)
         rv = totensor(rv, env)
 
-        env.addnode(
+        res = env.calc(
             optype,
-            inputs=[lv.name, rv.name], outputs=[res.name],
+            inputs=[lv.name, rv.name],
         )
 
         if isfloor:
-            r = new_tensor()
-            env.addnode(
+            res = env.calc(
                 "Floor",
-                inputs=[res.name], outputs=[r.name],
+                inputs=[res.name],
             )
-            res = r
 
         return res
 
     elif isinstance(nast, gast.BoolOp):
+        # 現在は定数boleanのみ対応
         vs = list(map(lambda x: eval_ast(x, env), nast.values))
-        res = new_tensor(['TODO'])
+        res = new_tensor()
         if isinstance(nast.op, gast.And):
             def opfun(v): return all(v)
         else:
@@ -498,10 +524,16 @@ def eval_ast(nast, env):
                 )
                 return res
             elif nast.attr == 'append':
-                # TODO(satos) ごまかさない()
+                # TODO(satos) ごまかさない
                 assert isinstance(
                     nast.value, gast.Name) and nast.value.id in env.vars.keys()
                 na = nast.value.id
+
+                # あと、ここのnaがreferenceの場合不正確
+                # たとえば
+                # x = y
+                # x.append(3)
+                # のyが更新されないので問題
 
                 def f(args, _, env):
                     assert len(args) == 1
@@ -524,10 +556,6 @@ def eval_ast(nast, env):
         # とりあえず定数畳み込みのみにする
 
         if (istensor(le) or any(map(istensor, vs))):
-            # TODO(satos) めちゃ緊急回避
-            if nast.left.id == 'dec_z':
-                return False
-
             raise Exception('unimplemented tensor comparetion')
 
         res = True
@@ -567,27 +595,23 @@ def eval_ast(nast, env):
         # 新たなenv を作って、評価中にできた子グラフをもとにする
         localenv = Env()
         localenv.vars = {}
-        for k, v in env.vars.items():
-            localenv.vars[k] = v
+        localenv.vars.update(env.vars)
         localenv.module = env.module
-        tx = new_tensor()
-        localenv.vars[x] = tx
-        ty = eval_ast(nast.elt,  localenv)
 
         cnt = new_tensor()
         gtx = new_tensor()
-        localenv.addnode(
+        tx = localenv.calc(
             "OnikuxGenericGetItem",
-            inputs=[gtx.name, cnt.name], outputs=[tx.name],
+            inputs=[gtx.name, cnt.name],
         )
+        localenv.vars[x] = tx
+        ty = eval_ast(nast.elt,  localenv)
 
         ty_init = new_tensor()
-        tty = new_tensor()
-        localenv.addnode(
+        ty = localenv.calc(
             "OnikuxSequenceAppend",
-            inputs=[ty_init.name, ty.name], outputs=[tty.name],
+            inputs=[ty_init.name, ty.name],
         )
-        ty = tty
 
         # graph内で参照されるテンソルは入力として与えないといけない。
         closure = set()
@@ -608,7 +632,7 @@ def eval_ast(nast, env):
         cnames = [x.name for x in closure]
 
         # TODO(hamaji): Support this.
-        assert not localenv.init_tensors # リスト内包で Link は使えない
+        assert not localenv.init_tensors  # リスト内包で Link は使えない
 
         # dprint(localenv.nodes)
         # print('ty',ty)
@@ -620,30 +644,14 @@ def eval_ast(nast, env):
             [cond, gtx] + closure + [ty]
         )
 
-        mtc = new_tensor()
-        """
-        v = new_tensor()
-        env.addnode(
-            "Shape",
-            inputs=[xs.name], outputs=[v.name]
-        )
-
-        env.addnode(
-            "Gather",
-            inputs=[v.name, totensor(0, env).name], outputs=[mtc.name],
-            axis=0
-        )
-        """
-
-        nullseq = new_tensor()
-        env.addnode(
+        nullseq = env.calc(
             "OnikuxSequenceCreate",
-            inputs=[], outputs=[nullseq.name]
+            inputs=[],
         )
 
-        env.addnode(
+        mtc = env.calc(
             "OnikuxGenericLen",
-            inputs=[xs.name], outputs=[mtc.name]
+            inputs=[xs.name],
         )
 
         dummy_name = ["dummy_" +
@@ -660,6 +668,10 @@ def eval_ast(nast, env):
         return res
 
     elif isinstance(nast, gast.Subscript):
+        # Subscriptの実装は以下の感じではだめで、
+        # コンパイラはシリアライズするだけにして
+        # あとはOnikuのほうにお願いすることになりそう
+
         vs = eval_ast(nast.value, env)
         if isinstance(vs, tuple):
             assert isinstance(nast.slice, gast.Index)
@@ -798,6 +810,8 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.Tuple):
         return tuple(map(lambda x: eval_ast(x, env), nast.elts))
     elif isinstance(nast, gast.List):
+        # Sequenceにしているが、ここはPythonのlistのままにしておきたいとのこと
+
         # Sequenceにする
         vs = list(map(lambda x: eval_ast(x, env), nast.elts))
         res = new_tensor()

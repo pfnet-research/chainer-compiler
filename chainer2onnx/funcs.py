@@ -3,8 +3,8 @@
 from onnx import helper
 from onnx import TensorProto
 
-from chainer import functions as F
 import chainer
+from chainer import functions as F
 import numpy
 
 from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
@@ -112,7 +112,7 @@ class Function_Concat(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
-        assert isinstance(v, tuple) # 今のところ tuple 以外は concat できない
+        assert isinstance(v, tuple)  # 今のところ tuple 以外は concat できない
         res = env.calc(
             "Concat",
             inputs=list(map(lambda x: x.name, v)),

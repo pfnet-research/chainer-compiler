@@ -40,6 +40,7 @@ model=(
     MLP_with_loss.py
     Alex_with_loss.py
     GoogleNet_with_loss.py
+    # Resnet_with_loss.py Batchnormのavg_varの問題を解消しないとinfになってテストできない
 )
 
 files=()

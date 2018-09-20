@@ -13,8 +13,9 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, x, y):
-        res = F.concat((x, y))
-        return res
+        y1 = F.concat((x, y))
+        # y2 = F.concat([y, x])
+        return y1
 
 
 # ======================================
