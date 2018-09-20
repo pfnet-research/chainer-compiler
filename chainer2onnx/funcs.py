@@ -14,12 +14,15 @@ import code
 import gast
 
 
-class Function_Relu(object):
+class Function_SimpleUnary(object):
+    def __init__(self, onnx_name):
+        self.onnx_name = onnx_name
+
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
         res = env.calc(
-            "Relu", inputs=[v.name],
+            self.onnx_name, inputs=[v.name],
         )
         return res
 
@@ -175,18 +178,6 @@ class Function_Reshape(object):
         env.addnode(
             "Reshape",
             inputs=[v.name, w.name], outputs=[res.name],
-        )
-        return res
-
-
-class Function_Tanh(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-        v = args[0]
-        res = new_tensor()
-        env.addnode(
-            "Tanh",
-            inputs=[v.name], outputs=[res.name],
         )
         return res
 
@@ -412,7 +403,9 @@ class Func(object):
 
 
 Func2NodeClass = [
-    (F.relu, Function_Relu()),
+    (F.relu, Function_SimpleUnary('Relu')),
+    (F.sigmoid, Function_SimpleUnary('Sigmoid')),
+    (F.tanh, Function_SimpleUnary('Tanh')),
     (F.max_pooling_2d, Function_MaxPool2d()),
     (F.local_response_normalization, Function_LocalRespNorm()),
     (F.dropout, Function_Dropout()),
@@ -422,7 +415,6 @@ Func2NodeClass = [
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
     (F.reshape, Function_Reshape()),
-    (F.tanh, Function_Tanh()),
     (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
