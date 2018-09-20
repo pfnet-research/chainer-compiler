@@ -8,7 +8,7 @@ import numpy as np
 
 import chainer
 
-from . chainer2onnx import chainer2onnx
+from . chainer2onnx import compiler
 from . test_args import get_test_args
 from . test_args import dprint
 
@@ -88,8 +88,7 @@ def generate_testcase(model, xs, out_key='prob'):
     args = get_test_args()
 
     # さらの状態からonnxのmodをつくる
-    onnxmod, input_tensors, output_tensors = chainer2onnx(
-        model, model.forward)
+    onnxmod, input_tensors, output_tensors = compiler(model)
 
     with open(args.raw_output, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())

@@ -99,6 +99,7 @@ class Env(object):
         self.nodes = []
         self.init_tensors = []
         self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
+        self.module = None
 
     def localenv(self):
         res = Env()

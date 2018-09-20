@@ -837,7 +837,7 @@ def eval_ast(nast, env):
     raise Exception("shouldn't reach here", nast)
 
 
-def chainer2onnx(model, forward):
+def compiler(model):
     # return helper.make_graph([],'dummy',[],[])
 
     init_id2name(model)
@@ -850,10 +850,7 @@ def chainer2onnx(model, forward):
         x = new_tensor()  # ここの次元は不明になる
         input_tensors.append(x)
 
-    # forward = molk.forward
     env.module = sys.modules[model.__module__]
-    # for k,v in zip(map(lambda x: x.id,forward.args.args),[model] + input_tensors):
-    #    env.vars[k] = v
 
     v = molk.call(input_tensors, [], env)
 
@@ -886,10 +883,8 @@ def chainer2onnx(model, forward):
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
     dprint(graph)
-    # exit(0)
     # checker.check_graph(graph)
     # oniku独自のノードを使うとcheckできなくなる...
-    # Scanがあると、 No Schema registered for Scan with domain_version of 4 でだめぽい
     mo = helper.make_model(graph)
 
     # print(mo)

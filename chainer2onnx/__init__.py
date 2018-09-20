@@ -1,2 +1,2 @@
-from chainer2onnx.chainer2onnx import chainer2onnx
+from chainer2onnx.chainer2onnx import compiler
 from chainer2onnx.testcasegen import generate_testcase
