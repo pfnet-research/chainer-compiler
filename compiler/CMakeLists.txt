@@ -1,7 +1,8 @@
-add_custom_command(OUTPUT gen_node_base.h gen_node_base.cc
-                   COMMAND python3 gen_node.py
-                   MAIN_DEPENDENCY gen_node.py
-                   DEPENDS ../common/codegen_util.py)
+add_custom_command(
+  OUTPUT gen_node_base.h gen_node_base.cc
+  COMMAND python3 gen_node.py
+  MAIN_DEPENDENCY gen_node.py
+  DEPENDS ../common/codegen_util.py)
 
 include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)

@@ -1,7 +1,8 @@
-add_custom_command(OUTPUT gen_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h gen_xcvm_ops.h xcvm_proto_util.cc xcvm_proto_util.h
-                   COMMAND python3 gen_xcvm.py
-                   MAIN_DEPENDENCY gen_xcvm.py
-                   DEPENDS ../common/codegen_util.py)
+add_custom_command(
+  OUTPUT gen_xcvm_ops.cc xcvm.pb.cc xcvm.pb.h gen_xcvm_ops.h xcvm_proto_util.cc xcvm_proto_util.h
+  COMMAND python3 gen_xcvm.py
+  MAIN_DEPENDENCY gen_xcvm.py
+  DEPENDS ../common/codegen_util.py)
 
 include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
