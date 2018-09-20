@@ -182,6 +182,22 @@ class Function_Reshape(object):
         return res
 
 
+class Function_ExpandDims(object):
+    def call(self, args, keywords, env):
+        # TODO(hamaji): `axis` may be passed as a positional parameter.
+        assert(len(args) == 1)  # axis はキーワード引数でないといけない
+        assert 'axis' in keywords.keys()
+
+        v = args[0]
+
+        res = env.calc(
+            "Unsqueeze",
+            inputs=[v.name],
+            axes=[keywords['axis']],
+        )
+        return res
+
+
 def castto(v, tt, env):
     res = new_tensor()
     res.type.tensor_type.elem_type = tt
@@ -390,7 +406,6 @@ dummies = [
     F.accuracy,
     F.squeeze,
     F.broadcast_to,
-    F.expand_dims,
     F.softmax,
     F.sum,
     F.hstack,
@@ -415,6 +430,7 @@ Func2NodeClass = [
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
     (F.reshape, Function_Reshape()),
+    (F.expand_dims, Function_ExpandDims()),
     (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
