@@ -39,13 +39,13 @@ def collect_inits(lk, pathname):
         if isinstance(pa.data, type(None)):
             continue
         if na.count('/') == 1:
-            res.append((pathname + '_' + na[1:], pa))
+            res.append((pathname + na, pa))
 
     if isinstance(lk, L.BatchNormalization):
-        res.append((pathname + '_avg_mean', lk.avg_mean))
+        res.append((pathname + '/avg_mean', lk.avg_mean))
         # TODO(satos) このままだと、nodeのテストは通るがResNetのテストがつらい
         # lk.avg_var = np.ones(lk.avg_var.shape).astype(np.float32) * 4.0
-        res.append((pathname + '_avg_var', lk.avg_var))
+        res.append((pathname + '/avg_var', lk.avg_var))
     elif isinstance(lk, L.NStepLSTM):
         # 先にこちらで集めてしまう
         for i, clk in enumerate(lk.children()):
@@ -73,9 +73,9 @@ def collect_inits(lk, pathname):
             ws1 = np.array([ws1.data])
             bss = np.array([bss.data])
             # Uni-directional なので全部1次元になる
-            res.append((pathname + '_%d_ws0' % i, ws0))
-            res.append((pathname + '_%d_ws1' % i, ws1))
-            res.append((pathname + '_%d_bss' % i, bss))
+            res.append((pathname + '/%d_ws0' % i, ws0))
+            res.append((pathname + '/%d_ws1' % i, ws1))
+            res.append((pathname + '/%d_bss' % i, bss))
 
         return res
 
@@ -98,12 +98,12 @@ def collect_inits(lk, pathname):
             nws0 = np.array([ws0[i*2].data, ws0[i*2+1].data])
             nws1 = np.array([ws1[i*2].data, ws1[i*2+1].data])
             nbss = np.array([bss[i*2].data, bss[i*2+1].data])
-            res.append((pathname + '_%d_ws0' % i, nws0))
-            res.append((pathname + '_%d_ws1' % i, nws1))
-            res.append((pathname + '_%d_bss' % i, nbss))
+            res.append((pathname + '/%d_ws0' % i, nws0))
+            res.append((pathname + '/%d_ws1' % i, nws1))
+            res.append((pathname + '/%d_bss' % i, nbss))
 
     for clk in lk.children():
-        res += collect_inits(clk, pathname + '_' + clk.name)
+        res += collect_inits(clk, pathname + '/' + clk.name)
     return res
 
 

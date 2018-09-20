@@ -31,7 +31,7 @@ def init_id2name(ch):
     id2name_list = []
     for k, v in ch.namedlinks():
         # print('add link',k,v,id(v))
-        id2name_list.append((id(v), k.replace('/', '_')))
+        id2name_list.append((id(v), k))
 
 
 def id2name(nid):
@@ -141,7 +141,7 @@ class User_Defined_Link(object):
             if s.find('/') != -1:
                 continue
             t = helper.make_tensor_value_info(
-                '_'+s, TensorProto.FLOAT, list(v.shape))
+                '/'+s, TensorProto.FLOAT, list(v.shape))
             self.inits.append(t)
             mv = getattr(ch, s)
             setattr(ch, s, t)
