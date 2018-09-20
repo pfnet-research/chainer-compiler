@@ -109,6 +109,7 @@ class Function_Concat(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
         v = args[0]
+        assert isinstance(v, tuple) # 今のところ tuple 以外は concat できない
         res = env.calc(
             "Concat",
             inputs=list(map(lambda x: x.name, v)),
