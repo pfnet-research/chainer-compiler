@@ -198,6 +198,20 @@ class Function_ExpandDims(object):
         return res
 
 
+class Function_BroadcastTo(object):
+    def call(self, args, keywords, env):
+        assert(len(args) == 2)
+
+        v = args[0]
+        w = totensor(args[1], env)
+
+        res = env.calc(
+            "Expand",
+            inputs=[v.name, w.name]
+        )
+        return res
+
+
 def castto(v, tt, env):
     res = new_tensor()
     res.type.tensor_type.elem_type = tt
@@ -405,7 +419,6 @@ dummies = [
     F.flatten,
     F.accuracy,
     F.squeeze,
-    F.broadcast_to,
     F.softmax,
     F.sum,
     F.hstack,
@@ -430,6 +443,7 @@ Func2NodeClass = [
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
     (F.reshape, Function_Reshape()),
+    (F.broadcast_to, Function_BroadcastTo()),
     (F.expand_dims, Function_ExpandDims()),
     (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
