@@ -271,6 +271,14 @@ def eval_ast(nast, env):
                     fv, _ = in_closure[k]
                     in_closure[k] = (fv, v)
 
+            # ループ内で使われた link パラメータは
+            # 1. 外の env にコピーしなければならない
+            env.init_tensors.extend(localenv.init_tensors)
+            # 2. state としてループ内に持ち込まなければならない
+            for init in localenv.init_tensors:
+                key = '#' + init.name
+                in_closure[key] = (init, init)
+
             # print(in_closure)
             # dprint(localenv.nodes)
             # print('ty',ty)
@@ -598,6 +606,9 @@ def eval_ast(nast, env):
                 closure.append(v)
 
         cnames = [x.name for x in closure]
+
+        # TODO(hamaji): Support this.
+        assert not localenv.init_tensors # リスト内包で Link は使えない
 
         # dprint(localenv.nodes)
         # print('ty',ty)
