@@ -430,7 +430,7 @@ class Func(object):
         self.call = f
 
 
-Func2NodeClass = [
+Func2NodeClass = dict([
     (F.relu, Function_SimpleUnary('Relu')),
     (F.sigmoid, Function_SimpleUnary('Sigmoid')),
     (F.tanh, Function_SimpleUnary('Tanh')),
@@ -457,4 +457,4 @@ Func2NodeClass = [
     (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
 ] + (
     list(map(lambda f: (f, Function_Dummy(f)), dummies))
-)
+))

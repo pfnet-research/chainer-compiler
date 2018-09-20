@@ -391,9 +391,8 @@ def eval_ast(nast, env):
         # code.InteractiveConsole({'fn': fn}).interact()
 
         # chainer.functions の関数とかは、ここでfookをかける。
-        for fr, to in Func2NodeClass:
-            if fr == fn:
-                return to.call(args, keywords, env)
+        if fn in Func2NodeClass.keys():
+            return Func2NodeClass[fn].call(args, keywords, env)
 
         dprint(fn, fn.__class__)
         if isinstance(fn, types.FunctionType):
