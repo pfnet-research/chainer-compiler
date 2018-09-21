@@ -139,7 +139,7 @@ chainerx::Array SqrtOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
 }
 
 chainerx::Array TanhOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return oniku::runtime::Tanh(a);
+    return chainerx::Tanh(a);
 }
 
 chainerx::Array SigmoidOp::RunImpl(XCVMState* st, const chainerx::Array& a) {

@@ -2,6 +2,7 @@
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
+#include <chainerx/routines/math.h>
 
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
@@ -103,7 +104,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
         if (b.has_value()) {
             nh += bm;
         }
-        mask.UpdateState(time, Tanh(nh), &h);
+        mask.UpdateState(time, chainerx::Tanh(nh), &h);
         output.At({time}) += h;
     }
     mask.MaskOutput(&output);
@@ -190,7 +191,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
                 if (b.has_value()) nh += r_bh;
             }
             if (b.has_value()) nh += w_bh;
-            nh = Tanh(nh);
+            nh = chainerx::Tanh(nh);
             mask.UpdateState(time, (1 - z) * nh + z * h, &h);
             output.At({time}) += h;
         }
@@ -292,10 +293,10 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
             }
             i = Sigmoid(i);
             f = Sigmoid(f);
-            nc = Tanh(nc);
+            nc = chainerx::Tanh(nc);
             o = Sigmoid(o);
             nc = f * c + i * nc;
-            chainerx::Array nh = o * Tanh(nc);
+            chainerx::Array nh = o * chainerx::Tanh(nc);
             mask.UpdateState(time, nc, &c);
             mask.UpdateState(time, nh, &h);
             output.At({time}) += h;
