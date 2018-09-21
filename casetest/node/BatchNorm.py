@@ -22,10 +22,9 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-
     model = A()
 
     v = np.random.rand(2, 3, 5, 5).astype(np.float32)
-    
+
     import chainer2onnx
     chainer2onnx.generate_testcase(model, [v])

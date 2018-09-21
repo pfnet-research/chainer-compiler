@@ -18,6 +18,7 @@ class A(chainer.Chain):
 
 # ======================================
 
+
 import chainer2onnx
 
 if __name__ == '__main__':
@@ -27,8 +28,8 @@ if __name__ == '__main__':
     n_vocab = 7
     n_out = 3
     n_batch = 5
-    
-    model = A(n_vocab,n_out)
-    
+
+    model = A(n_vocab, n_out)
+
     v = np.random.randint(n_vocab, size=n_batch)
     chainer2onnx.generate_testcase(model, [v])

@@ -1,7 +1,6 @@
 # coding: utf-8
 
 import chainer
-import chainer.functions as F
 
 
 class A(chainer.Chain):
@@ -15,8 +14,8 @@ class A(chainer.Chain):
         return z
 
 
-import numpy as np
 import chainer2onnx
+import numpy as np
 if __name__ == '__main__':
     model = A()
 

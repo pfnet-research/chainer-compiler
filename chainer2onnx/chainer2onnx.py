@@ -262,20 +262,20 @@ def eval_ast(nast, env):
                         for x in xs:
                             i = x + 2
                         のようなものをコンパイルする際に、
-                        i をさかのぼってテンソルにしないといけないので、
+                        i や 2 をさかのぼってテンソルにしないといけないので、
                         これをやろうとしたもの。(下の実装だとなにか不都合が生じて諦めたはず)
                         """
-                        """
+
                         if k in env.vars.keys():
                             # 実はテンソルになる必要があったやつなので、再登録する
                             fv = env.vars[k]
-                            fv = totensor(fv,env)
-                            in_closure[k] = (fv,fv)
+                            fv = totensor(fv, env)
+                            in_closure[k] = (fv, fv)
                         else:
                             # for文の中で新たに変数が定義されることは、とりあえず想定しない。
                             # (この場合、Undefined variable にする)
                             continue
-                        """
+
                         # これだとgraphを再評価する必要があるのでだめ
                         # TODO(satos) どうにかする
                         continue
@@ -516,10 +516,9 @@ def eval_ast(nast, env):
 
         if istensor(body):
             if nast.attr == 'shape':
-                res = new_tensor()
-                env.addnode(
+                res = env.calc(
                     'Shape',
-                    inputs=[body.name], outputs=[res.name],
+                    inputs=[body.name],
                 )
                 return res
             elif nast.attr == 'append':
@@ -536,13 +535,13 @@ def eval_ast(nast, env):
 
                 def f(args, _, env):
                     assert len(args) == 1
-                    v = args[0]
-                    res = new_tensor()
-                    env.addnode(
+                    v = totensor(args[0], env)
+                    env.vars[na] = env.calc(
                         'OnikuxSequenceAppend',
-                        inputs=[body.name, v.name], outputs=[res.name]
+                        inputs=[body.name, v.name],
                     )
-                    env.vars[na] = res
+                    return None
+
                 return Func(f)
 
             raise Exception('Unimplemented attribute ',
@@ -581,89 +580,27 @@ def eval_ast(nast, env):
             raise Exception('Not constant If is not implemented yet')
 
     elif isinstance(nast, gast.ListComp):
-        # [ なんやかや for x in xs] 形式のものを Loopで対応する
-        assert len(nast.generators) == 1
-        gen = nast.generators[0]
-        assert len(gen.ifs) == 0
-        assert gen.is_async == 0
 
-        xs = eval_ast(gen.iter, env)
-        assert isinstance(gen.target, gast.Name)
-        x = gen.target.id
+        vn = "dummy@" + new_tensor().name  # 重ならない名前にする(ループ内ループもあるため)
+        assert len(nast.generators) >= 1
+        tast = gast.ast_to_gast(ast.parse("v.append(w)")).body[0]
+        tast.value.func.value.id = vn
+        tast.value.args[0] = nast.elt
 
-        # 新たなenv を作って、評価中にできた子グラフをもとにする
-        localenv = Env()
-        localenv.vars = {}
-        localenv.vars.update(env.vars)
-        localenv.module = env.module
+        for gen in nast.generators:
+            # とりあえず、このあたりはまだ実装しません
+            assert len(gen.ifs) == 0 and gen.is_async == 0
+            tast = gast.For(target=gen.target, iter=gen.iter,
+                            body=[tast], orelse=[])
 
-        cnt = new_tensor()
-        gtx = new_tensor()
-        tx = localenv.calc(
-            "OnikuxGenericGetItem",
-            inputs=[gtx.name, cnt.name],
-        )
-        localenv.vars[x] = tx
-        ty = eval_ast(nast.elt,  localenv)
+        init = gast.ast_to_gast(ast.parse("v = []")).body[0]
+        init.targets[0].id = vn
+        tast = [init, tast]
 
-        ty_init = new_tensor()
-        ty = localenv.calc(
-            "OnikuxSequenceAppend",
-            inputs=[ty_init.name, ty.name],
-        )
-
-        # graph内で参照されるテンソルは入力として与えないといけない。
-        closure = set()
-        removes = set()
-        for no in localenv.nodes:
-            closure = closure | set(no.input)
-            removes = removes | set(no.output)
-
-        closure = closure - removes
-        cnames = list(closure)
-        closure = []
-        # 名前しか得られないのでテンソルを得る
-        # 生きているのはvarsで参照できるやつだけ...だと思う
-        for _, v in env.vars.items():
-            if istensor(v) and v.name in cnames:
-                closure.append(v)
-
-        cnames = [x.name for x in closure]
-
-        # TODO(hamaji): Support this.
-        assert not localenv.init_tensors  # リスト内包で Link は使えない
-
-        # dprint(localenv.nodes)
-        # print('ty',ty)
-        cond = new_tensor()
-        localgraph = helper.make_graph(
-            localenv.nodes,
-            "Loop_subgraph",
-            [cnt, cond, gtx] + closure + [ty_init],
-            [cond, gtx] + closure + [ty]
-        )
-
-        nullseq = env.calc(
-            "OnikuxSequenceCreate",
-            inputs=[],
-        )
-
-        mtc = env.calc(
-            "OnikuxGenericLen",
-            inputs=[xs.name],
-        )
-
-        dummy_name = ["dummy_" +
-                      new_tensor().name for _ in range(len(cnames)+1)]
-        res = new_tensor()
-        env.addnode(
-            'Loop',
-            inputs=[mtc.name, "", xs.name] + cnames + [nullseq.name],
-            # ほかのと名前が衝突しないようにする
-            outputs=dummy_name+[res.name],
-            body=localgraph
-        )
-
+        rv = eval_ast(tast, env)
+        assert rv is None
+        res = env.vars[vn]
+        env.vars.pop(vn)
         return res
 
     elif isinstance(nast, gast.Subscript):
@@ -753,9 +690,9 @@ def eval_ast(nast, env):
             elif isinstance(self, gast.ExtSlice):
                 ds = list(map(slice2list, self.dims))
                 lower = Function_Concat().call(
-                    [tuple(map(lambda x: castto(x[0], TensorProto.INT32, env), ds))], {'axis': 0}, env)
+                    [tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds))], {'axis': 0}, env)
                 upper = Function_Concat().call(
-                    [tuple(map(lambda x: castto(x[1], TensorProto.INT32, env), ds))], {'axis': 0}, env)
+                    [tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds))], {'axis': 0}, env)
                 squeeze = sum(map(lambda x: x[2], ds), [])
             else:
                 raise Exception(self, " is not Python slice")

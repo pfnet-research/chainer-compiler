@@ -3,6 +3,7 @@
 import chainer
 import chainer.functions as F
 
+
 class A(chainer.Chain):
 
     def __init__(self):
@@ -15,12 +16,12 @@ class A(chainer.Chain):
 
 # ======================================
 
-import chainer2onnx 
+import chainer2onnx
 import numpy as np
 
 if __name__ == '__main__':
-    
+
     model = A()
 
-    x = np.random.rand(6,4).astype(np.float32) - 0.5
+    x = np.random.rand(6, 4).astype(np.float32) - 0.5
     chainer2onnx.generate_testcase(model, [x])

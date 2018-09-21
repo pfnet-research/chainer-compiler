@@ -3,6 +3,7 @@
 import chainer
 import chainer.functions as F
 
+
 class A(chainer.Chain):
 
     def __init__(self):
@@ -22,5 +23,5 @@ if __name__ == '__main__':
 
     model = A()
 
-    x = np.random.rand(6,4,1).astype(np.float32) - 0.5
+    x = np.random.rand(6, 4, 1).astype(np.float32) - 0.5
     chainer2onnx.generate_testcase(model, [x])

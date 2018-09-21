@@ -385,9 +385,11 @@ class Cuda_ToCpu(object):
         return args[0]
 
 
+# F.vstack, F.hstack は形だけ書いてますがまだ実装していません...
 class Function_Vstack(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
+        raise Exception("This implementation of Vstack seems wrong")
         print(args)
         print(list(map(lambda x: x.name, args)))
         return Function_Concat().call([args], {'axis': 0}, env)
@@ -396,6 +398,7 @@ class Function_Vstack(object):
 class Function_Hstack(object):
     def call(self, args, keywords, env):
         assert(len(args) == 1)
+        raise Exception("This implementation of Hstack is wrong")
         return Function_Concat().call([args], {'axis': 1}, env)
 
 
@@ -413,7 +416,6 @@ class Function_Dummy(object):
 
 
 dummies = [
-    F.vstack,
     F.separate,
     F.stack,
     F.flatten,

@@ -18,14 +18,14 @@ class A(chainer.Chain):
 
 # ======================================
 
-import chainer2onnx 
+import chainer2onnx
 
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
-    
+
     model = A()
-    
-    ls = np.random.randint(0,10,size=5)
+
+    ls = np.random.randint(0, 10, size=5)
     x = [np.random.rand(i).astype(np.float32) for i in ls]
     chainer2onnx.generate_testcase(model, [x])

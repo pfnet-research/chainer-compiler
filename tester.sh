@@ -17,8 +17,8 @@ node=(
     SwapAxes.py
     Dropout.py
     Ceil.py
-    # LRN.py   精度が足らないのでテストが通らない
-    # Vstack.py
+    # LRN.py     精度が足らないのでテストが通らない
+    # Vstack.py  結局未実装
     AveragePool2d.py
     MaxPool2d.py
 )
@@ -40,7 +40,7 @@ model=(
     MLP_with_loss.py
     Alex_with_loss.py
     GoogleNet_with_loss.py
-    # Resnet_with_loss.py Batchnormのavg_varの問題を解消しないとinfになってテストできない
+    # Resnet_with_loss.py    Batchnormのavg_varの問題を解消しないとinfになってテストできない
 )
 
 files=()

@@ -6,7 +6,6 @@ import chainer.functions as F
 import numpy as np
 # Network definition
 
-    
 
 class A(chainer.Chain):
 
@@ -14,10 +13,11 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, ps):
-        y1 =  np.cumsum(ps)
+        y1 = np.cumsum(ps)
         return y1
 
 # ======================================
+
 
 import chainer2onnx
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     np.random.seed(12)
 
     model = A()
-    
-    ps = [3,1,4,1,5,9,2]
-    
+
+    ps = [3, 1, 4, 1, 5, 9, 2]
+
     chainer2onnx.generate_testcase(model, [ps])

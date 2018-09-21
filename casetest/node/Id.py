@@ -15,14 +15,15 @@ class A(chainer.Chain):
 
 # ======================================
 
-import chainer2onnx 
+
+import chainer2onnx
 
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
-    
+
     model = A()
 
-    x = np.random.rand(5,7).astype(np.float32)
+    x = np.random.rand(5, 7).astype(np.float32)
     x = [x]
     chainer2onnx.generate_testcase(model, x)

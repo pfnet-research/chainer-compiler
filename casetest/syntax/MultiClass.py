@@ -5,17 +5,18 @@ import chainer.links as L
 
 # Network definition
 
+
 class B(chainer.Chain):
-    def __init__(self,n_out,p):
+    def __init__(self, n_out, p):
         super(B, self).__init__()
         with self.init_scope():
-            self.l = L.Linear(None,n_out)
+            self.l = L.Linear(None, n_out)
         self.p = p
 
     def forward(self, x):
         x = self.l(x) * self.p
         return x
-    
+
 
 class A(chainer.Chain):
 
@@ -23,8 +24,8 @@ class A(chainer.Chain):
         super(A, self).__init__()
         with self.init_scope():
             self.l0 = L.Linear(3)
-            self.l1 = B(10,3.1)
-            self.l2 = B(20,4.2)
+            self.l1 = B(10, 3.1)
+            self.l2 = B(20, 4.2)
 
     def forward(self, x):
         x = self.l0(x)
@@ -44,5 +45,5 @@ if __name__ == '__main__':
 
     model = A()
 
-    v = np.random.rand(10,20).astype(np.float32)
+    v = np.random.rand(10, 20).astype(np.float32)
     chainer2onnx.generate_testcase(model, [v])

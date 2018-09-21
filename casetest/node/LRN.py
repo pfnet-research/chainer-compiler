@@ -3,6 +3,7 @@
 import chainer
 import chainer.functions as F
 
+
 class LRN(chainer.Chain):
 
     def __init__(self):
@@ -20,5 +21,5 @@ import numpy as np
 if __name__ == '__main__':
 
     model = LRN()
-    v = np.random.rand(2,3).astype(np.float32)
+    v = np.random.rand(2, 3).astype(np.float32)
     chainer2onnx.generate_testcase(model, [v])
