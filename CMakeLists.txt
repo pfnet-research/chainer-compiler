@@ -28,7 +28,7 @@ add_subdirectory(tools)
 
 function(gen_ch2o_test dir ch2o_test)
 
-  set(out_dir out/ch2o_${dir}/${ch2o_test})
+  set(out_dir out/ch2o_${dir}_${ch2o_test})
 
   add_custom_command(
     OUTPUT ${out_dir}/model.onnx
