@@ -9,9 +9,11 @@ import re
 import sys
 import subprocess
 
+import ch2o_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
+from test_case import TestCase
 
 
 parser = argparse.ArgumentParser(description='Run tests for oniku')
@@ -29,26 +31,6 @@ parser.add_argument('--use_gpu_all', '-G', action='store_true',
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
-
-
-TEST_PATHS = set()
-
-
-class TestCase(object):
-
-    def __init__(self, dirname, name, rtol=None, fail=False,
-                 skip_shape_inference=False,
-                 always_retain_in_stack=False):
-        self.dirname = dirname
-        self.name = name
-        self.rtol = rtol
-        self.fail = fail
-        self.skip_shape_inference = skip_shape_inference
-        self.always_retain_in_stack = always_retain_in_stack
-        self.test_dir = os.path.join(self.dirname, self.name)
-        self.args = None
-        self.is_backprop = 'backprop_' in name
-        TEST_PATHS.add(self.test_dir)
 
 
 ONNX_TEST_DATA = 'onnx/onnx/backend/test/data'
@@ -467,6 +449,11 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_view', fail=True),
 ]
 
+TEST_PATHS = set()
+for test_case in TEST_CASES:
+    TEST_PATHS.add(test_case.test_dir)
+
+
 if args.all:
     models = glob.glob(os.path.join(ONNX_TEST_DATA, '*/*/model.onnx'))
     for onnx in sorted(models):
@@ -501,6 +488,8 @@ for test in gen_extra_test.get_tests():
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50'))
+
+TEST_CASES.extend(ch2o_tests.get())
 
 for test_case in list(TEST_CASES):
     if not test_case.is_backprop:
