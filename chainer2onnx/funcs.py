@@ -345,6 +345,7 @@ class Function_SplitAxis(object):
 
         src = """
         r = []
+        bs = 0
         for s in ilens:
             r.append(v[bs:s])
             bs = s
@@ -358,7 +359,6 @@ class Function_SplitAxis(object):
         vs = {
             'v': v,
             'ilens': ilens,
-            'bs': totensor(0, env)
         }
         localenv.vars.update(vs)
         eval_ast(nast.body, localenv)

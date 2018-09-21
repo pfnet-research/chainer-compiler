@@ -245,43 +245,38 @@ def eval_ast(nast, env):
                 if istensor(v) and v.name in in_names:
                     in_closure[k] = (v, v)
 
-            # graph内で出力されるテンソルは環境を上書きしないといけない
-            out_names = set()
-            for no in localenv.nodes:
-                out_names = out_names | set(no.output)
+            compile_retry = False
 
-            out_names = list(out_names)
-            # 名前しか得られないのでテンソルを得る
-            # 生きているのはvarsで参照できるやつだけ...だと思う
-            for k, v in localenv.vars.items():
-                if istensor(v) and v.name in out_names:
-                    if k not in in_closure.keys():
+            # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
+            for k in localenv.vars.keys():
+                if k not in env.vars.keys():
+                    # for文の中で新たに変数が定義されることは、とりあえず想定しない。
+                    # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
+                    continue
+                if localenv.vars[k] != env.vars[k]:
+                    if not istensor(env.vars[k]):
+                        # この場合、LoopでUpdateしないといけないので
+                        # env.vars[k] は tensorでないといけない。
+                        # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
+                        env.vars[k] = totensor(env.vars[k], env)
+                        compile_retry = True
+
                         """
-                        以下のコメントアウトしているやつは、
-                        i = 0
-                        for x in xs:
-                            i = x + 2
-                        のようなものをコンパイルする際に、
-                        i や 2 をさかのぼってテンソルにしないといけないので、
-                        これをやろうとしたもの。(下の実装だとなにか不都合が生じて諦めたはず)
+                        あと、この実装だと、
+                        bs = 0
+                        cs = 3
+                        for s in ilens:
+                            cs = s
+                            bs = cs
+                        のときに、 cs と bs が同じtensorを指していて
+                        Loop Operator の出力が同じtensorになってエラーになるので、
+                        同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
                         """
+                    else:
+                        in_closure[k] = (env.vars[k], localenv.vars[k])
 
-                        if k in env.vars.keys():
-                            # 実はテンソルになる必要があったやつなので、再登録する
-                            fv = env.vars[k]
-                            fv = totensor(fv, env)
-                            in_closure[k] = (fv, fv)
-                        else:
-                            # for文の中で新たに変数が定義されることは、とりあえず想定しない。
-                            # (この場合、Undefined variable にする)
-                            continue
-
-                        # これだとgraphを再評価する必要があるのでだめ
-                        # TODO(satos) どうにかする
-                        continue
-
-                    fv, _ = in_closure[k]
-                    in_closure[k] = (fv, v)
+            if compile_retry:
+                return eval_ast(nast, env)
 
             # ループ内で使われた link パラメータは
             # 1. 外の env にコピーしなければならない
