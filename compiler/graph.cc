@@ -249,8 +249,7 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         for (const Value* input : node->inputs()) {
             q.push(input->producer());
             for (Node* node : input->users()) {
-                if (node->outputs().empty())
-                    q.push(node);
+                if (node->outputs().empty()) q.push(node);
             }
         }
 

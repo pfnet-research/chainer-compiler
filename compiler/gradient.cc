@@ -33,8 +33,7 @@ public:
         std::vector<Node*> necessary_nodes;
         std::map<Node*, int> node_set = graph_->GetNecessaryNodesAndInputCounts(ys);
         for (Node* node : graph_->GetTopologicallySortedNodes()) {
-            if (node_set.count(node))
-                necessary_nodes.push_back(node);
+            if (node_set.count(node)) necessary_nodes.push_back(node);
         }
         std::reverse(necessary_nodes.begin(), necessary_nodes.end());
         for (Node* node : necessary_nodes) {
@@ -55,7 +54,6 @@ public:
     }
 
 private:
-
     Graph* graph_;
     std::queue<Node*> op_queue_;
     std::set<Value*> original_input_values_;

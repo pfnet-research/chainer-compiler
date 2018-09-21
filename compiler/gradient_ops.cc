@@ -392,7 +392,7 @@ void LoopGradFn(GradientOpContext* gc) {
             ys.push_back(y);
             input_value_names.push_back(gy->name());
         }
-        AddGradientNodes(body, ys, true  /* retain_in_stack */);
+        AddGradientNodes(body, ys, true /* retain_in_stack */);
 
         Value* output_cond = gb.Const(Type(Dtype::kBool, {}), {1});
         output_value_names.push_back(output_cond->name());
