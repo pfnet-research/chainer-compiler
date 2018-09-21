@@ -97,7 +97,7 @@ foreach(
     SplitAxis
     SwapAxes
     Tanh
-    Vstack
+    #Vstack
     )
 
   gen_ch2o_test(node ${ch2o_test})
