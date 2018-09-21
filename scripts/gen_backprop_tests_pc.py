@@ -10,7 +10,7 @@ from onnx import onnx_pb
 my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(my_path))
 sys.path.append(os.path.join(my_path, 'pc'))
-from oniku.pc.chainer2onnx import chainer2onnx
+from oniku.pc.chainer2onnx import compiler
 from oniku.pc.chainer2onnx import test_args
 from oniku.pc.chainer2onnx import testcasegen
 from oniku.scripts import onnx_chainer_util
@@ -24,8 +24,7 @@ def create_backprop_test(test_name, model, input_values):
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
     onnx_chainer_util.makedirs(test_data_set_dir)
 
-    xmodel, input_tensors, output_tensors = chainer2onnx(
-        model, model.forward)
+    xmodel, input_tensors, output_tensors = compiler(model)
 
     chainer.config.train = True
     model.cleargrads()
@@ -56,7 +55,7 @@ def create_backprop_test(test_name, model, input_values):
     for tensor, value in zip(output_tensors, output_values):
         outputs.append((tensor.name, value.array))
     for name, param in sorted(model.namedparams()):
-        bp_name = 'grad_out@' + name.replace('/', '_')
+        bp_name = 'grad_out@' + name
         outputs.append((bp_name, param.grad))
 
     testcasegen.dump_test_inputs_outputs(
