@@ -148,9 +148,26 @@ void XCVMState::Output(const std::string& name, int index) {
     CHECK(outputs_.emplace(name, new XCVMVar(*variables_[index])).second) << "Duplicated output name: " << name;
 }
 
+void XCVMState::ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        if (inputs[i] < 0)
+            std::cerr << "input #" << i << ": null\n";
+        else
+            std::cerr << "input #" << i << ": " << GetVar(inputs[i]) << std::endl;
+    }
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        std::cerr << "output #" << i << ": " << GetVar(outputs[i]) << std::endl;
+    }
+    CHECK(false);
+}
+
 void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
-    // TODO(hamaji): Implement this function.
-    CHECK(false) << "NaN check is not implemented yet!";
+    for (int output : outputs) {
+        if (!HasNan(GetVar(output))) continue;
+
+        std::cerr << "NaN detected!\n";
+        ReportInvalidInOuts(inputs, outputs);
+    }
 }
 
 void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
@@ -158,16 +175,7 @@ void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>
         if (!HasInf(GetVar(output))) continue;
 
         std::cerr << "Inf detected!\n";
-        for (size_t i = 0; i < inputs.size(); ++i) {
-            if (inputs[i] < 0)
-                std::cerr << "input #" << i << ": null\n";
-            else
-                std::cerr << "input #" << i << ": " << GetVar(inputs[i]) << std::endl;
-        }
-        for (size_t i = 0; i < outputs.size(); ++i) {
-            std::cerr << "output #" << i << ": " << GetVar(outputs[i]) << std::endl;
-        }
-        CHECK(false);
+        ReportInvalidInOuts(inputs, outputs);
     }
 }
 

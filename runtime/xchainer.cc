@@ -108,19 +108,18 @@ chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, cons
 }
 
 bool HasNan(const chainerx::Array& a) {
-    // TODO(hamaji): Implement this function.
-    CHECK(false) << "NaN check is not implemented yet!";
+    if (a.dtype() != chainerx::Dtype::kFloat32 && a.dtype() != chainerx::Dtype::kFloat64) return false;
+    chainerx::Array isinf = chainerx::IsNan(a);
+    int result = static_cast<int>(chainerx::AsScalar(chainerx::Sum(isinf)));
+    if (result) return true;
     return false;
 }
 
 bool HasInf(const chainerx::Array& a) {
     if (a.dtype() != chainerx::Dtype::kFloat32 && a.dtype() != chainerx::Dtype::kFloat64) return false;
-    for (float inf : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()}) {
-        chainerx::Array inf_array = MakeScalarArray(inf).AsType(a.dtype());
-        chainerx::Array cmp_result = (a == inf_array);
-        int result = static_cast<int>(chainerx::AsScalar(chainerx::Sum(cmp_result)));
-        if (result) return true;
-    }
+    chainerx::Array isinf = chainerx::IsInf(a);
+    int result = static_cast<int>(chainerx::AsScalar(chainerx::Sum(isinf)));
+    if (result) return true;
     return false;
 }
 

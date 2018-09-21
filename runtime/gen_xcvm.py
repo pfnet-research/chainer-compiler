@@ -569,6 +569,8 @@ def gen_gen_xcvm_ops_cc():
             outputs_str = ', '.join(op.output_names)
             lines.append('if (st->check_infs()) st->CheckInfs({%s}, {%s});' %
                          (inputs_str, outputs_str))
+            lines.append('if (st->check_nans()) st->CheckNans({%s}, {%s});' %
+                         (inputs_str, outputs_str))
 
         lines.append('}')
 

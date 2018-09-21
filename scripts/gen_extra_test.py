@@ -62,6 +62,20 @@ def gen_negative_reshape_test(test_name):
     gb.gen_test()
 
 
+def gen_inf_nan_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    one_v = gb.const(1.0)
+    none_v = gb.const(-1.0)
+    zero_v = gb.const(0.0)
+    inf_v = gb.Div([one_v, zero_v])
+    ninf_v = gb.Div([none_v, zero_v])
+    nan_v = gb.Log([none_v])
+    gb.output(inf_v, np.inf)
+    gb.output(ninf_v, -np.inf)
+    gb.output(nan_v, -np.nan)
+    gb.gen_test()
+
+
 def gen_select_item_test(test_name):
     input = V(aranges(4, 3))
     indices = V([1, 2, 0, 1])
@@ -666,6 +680,8 @@ class TestCase(object):
 def get_tests():
     return [
         TestCase('extra_test_negative_reshape', gen_negative_reshape_test),
+
+        TestCase('extra_test_inf_nan', gen_inf_nan_test),
 
         TestCase('extra_test_select_item', gen_select_item_test),
 

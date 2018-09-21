@@ -84,6 +84,8 @@ public:
     void ShowVariableStatus() const;
 
 private:
+    void ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs);
+
     int pc_;
     std::vector<std::unique_ptr<XCVMVar>> variables_;
     std::vector<std::shared_ptr<Auxiliary>> auxiliaries_;

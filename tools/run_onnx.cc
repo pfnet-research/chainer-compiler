@@ -23,6 +23,7 @@
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
+#include <chainerx/routines/math.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -386,6 +387,11 @@ void RunMain(int argc, char** argv) {
                     return false;
                 }
                 if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"))) {
+                    if (expected.GetTotalSize() == 1 &&
+                        static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
+                        static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
+                        return true;
+                    }
                     fail("value");
                     return false;
                 }
