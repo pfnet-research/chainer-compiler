@@ -13,6 +13,7 @@ import ch2o_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
+import onnx_real_tests
 from test_case import TestCase
 
 
@@ -487,9 +488,11 @@ for test in gen_extra_test.get_tests():
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
-TEST_CASES.append(TestCase('data', 'resnet50'))
+TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
 
 TEST_CASES.extend(ch2o_tests.get())
+
+TEST_CASES.extend(onnx_real_tests.get())
 
 for test_case in list(TEST_CASES):
     if not test_case.is_backprop:
@@ -520,6 +523,8 @@ class TestRunner(object):
         while tests or procs:
             if tests and len(procs) < num_parallel_jobs:
                 test_case = tests.pop()
+                if num_parallel_jobs == 1:
+                    sys.stdout.write('%s... ' % test_case.name)
                 if args.verbose:
                     # Discard verbose outputs.
                     proc = subprocess.Popen(test_case.args,
@@ -538,7 +543,8 @@ class TestRunner(object):
             test_case, proc = procs[pid]
             del procs[pid]
 
-            sys.stdout.write('%s... ' % test_case.name)
+            if num_parallel_jobs != 1:
+                sys.stdout.write('%s... ' % test_case.name)
             self.test_cnt += 1
             if status == 0:
                 if test_case.fail:
@@ -575,7 +581,7 @@ def main():
             test_case.args.append('--backprop')
         if args.verbose:
             test_case.args.append('--verbose')
-        if test_case.name == 'resnet50' or args.use_gpu_all:
+        if test_case.want_gpu or args.use_gpu_all:
             if not args.use_gpu and not args.use_gpu_all:
                 continue
             test_case.args.extend(['-d', 'cuda'])
@@ -586,6 +592,9 @@ def main():
             gpu_tests.append(test_case)
         else:
             tests.append(test_case)
+
+    for test in tests + gpu_tests:
+        test.prepare()
 
     for tests, num_jobs in [(tests, args.jobs), (gpu_tests, 1)]:
         runner = TestRunner(tests)
