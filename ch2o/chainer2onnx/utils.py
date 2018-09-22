@@ -46,7 +46,7 @@ def size2d(v):
 
 
 def istensor(x):
-    return isinstance(x, onnx.onnx_ONNX_NAMESPACE_ml_pb2.ValueInfoProto)
+    return isinstance(x, onnx.ValueInfoProto)
 
 
 def totensor(x, env):
