@@ -446,6 +446,11 @@ chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& inpu
     return chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
 }
 
+std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+    chainerx::Array mask = chainerx::OnesLike(data);
+    return {data, mask};
+}
+
 chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     return chainerx::Dot(a, b);
 }

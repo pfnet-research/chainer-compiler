@@ -197,6 +197,8 @@ XC_OPS = [
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
 
+    ('Dropout', [Array('data'), Float('ratio')], ['output', 'mask']),
+
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),

@@ -219,8 +219,7 @@ private:
             if (node.outputs().size() >= 2UL) {
                 WARN_ONCE("The second output of Dropout is not handled yet");
             }
-            // TODO(hamaji): Dropout does nothing for now.
-            EMIT(Identity, out(0), in(0));
+            EMIT(Dropout, out(0), oout(1), in(0), node.ratio());
         } else if (node.op_type() == Node::kSelu) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
