@@ -116,6 +116,8 @@ chainerx::Array BatchNormalizationOp::RunImpl(
         const chainerx::Array& var) {
     // TODO(hamaji): Support spatial=false.
     CHECK(spatial) << "BatchNormalization with spatial=false is not supported yet";
+    // To workaround the limitation of CuDNN.
+    if (epsilon <= 1e-5) epsilon = 1e-5 + 1e-12;
     chainerx::Axes axes;
     for (int i = 0; i < x.shape().size(); ++i) {
         if (i != 1) axes.push_back(i);
