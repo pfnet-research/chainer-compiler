@@ -32,18 +32,18 @@ function(gen_ch2o_test dir ch2o_test)
 
   add_custom_command(
     OUTPUT ${out_dir}/model.onnx
-    COMMAND PYTHONPATH=pc python3 pc/casetest/${dir}/${ch2o_test}.py --output ${out_dir}/model.onnx --test_data_dir ${out_dir}/test_data_set_0 --quiet
-    MAIN_DEPENDENCY pc/casetest/${dir}/${ch2o_test}.py
+    COMMAND PYTHONPATH=ch2o python3 ch2o/casetest/${dir}/${ch2o_test}.py --output ${out_dir}/model.onnx --test_data_dir ${out_dir}/test_data_set_0 --quiet
+    MAIN_DEPENDENCY ch2o/casetest/${dir}/${ch2o_test}.py
     DEPENDS
-    pc/chainer2onnx/__init__.py
-    pc/chainer2onnx/builtin_funcs.py
-    pc/chainer2onnx/chainer2onnx.py
-    pc/chainer2onnx/funcs.py
-    pc/chainer2onnx/initializer.py
-    pc/chainer2onnx/links.py
-    pc/chainer2onnx/test_args.py
-    pc/chainer2onnx/testcasegen.py
-    pc/chainer2onnx/utils.py
+    ch2o/chainer2onnx/__init__.py
+    ch2o/chainer2onnx/builtin_funcs.py
+    ch2o/chainer2onnx/chainer2onnx.py
+    ch2o/chainer2onnx/funcs.py
+    ch2o/chainer2onnx/initializer.py
+    ch2o/chainer2onnx/links.py
+    ch2o/chainer2onnx/test_args.py
+    ch2o/chainer2onnx/testcasegen.py
+    ch2o/chainer2onnx/utils.py
     )
 
   add_custom_target(
