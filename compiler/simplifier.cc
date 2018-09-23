@@ -264,7 +264,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         std::vector<Value*> loop_outputs;
         for (Value* value : scan_output_states) loop_outputs.push_back(value);
         // All inputs are appended as loop states.
-        for (int i = 0; i < num_scan_inputs; ++i) loop_outputs.push_back(graph->AddValue(gb.GenName()));
+        for (int i = 0; i < num_scan_inputs; ++i) loop_outputs.push_back(gb.Temp());
         std::vector<Value*> loop_scan_outputs;
         for (Value* value : scan_outputs) loop_outputs.push_back(value);
 

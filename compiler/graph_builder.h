@@ -40,6 +40,8 @@ public:
         return Const(type, std::vector<T>{data});
     }
 
+    Value* Temp();
+
     std::string GenName();
 
 private:

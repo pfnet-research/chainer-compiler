@@ -42,6 +42,10 @@ template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& 
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data);
 
+Value* GraphBuilder::Temp() {
+    return graph_->AddValue(GenName());
+}
+
 std::string GraphBuilder::GenName() {
     int id = id_++;
     return StrCat(category_, '_', target_, '_', id);
