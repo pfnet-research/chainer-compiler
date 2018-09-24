@@ -361,6 +361,46 @@ bool ReplaceSoftsign(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceConv(Graph* graph, Node* node) {
+    CHECK_LT(0, node->group());
+    if (node->group() == 1) return false;
+    GraphBuilder gb(graph, "SimplifyConvGroup", node->outputs()[0]);
+
+    // Split the input.
+    std::vector<Value*> inputs;
+    for (int i = 0; i < node->group(); ++i) {
+        inputs.push_back(gb.Temp());
+    }
+    gb.MOp(Node::kSplit, {node->inputs()[0]}, inputs)->set_axis(1);
+
+    std::vector<Value*> weights;
+    for (int i = 0; i < node->group(); ++i) {
+        weights.push_back(gb.Temp());
+    }
+    gb.MOp(Node::kSplit, {node->inputs()[1]}, weights)->set_axis(0);
+
+    std::vector<Value*> biases;
+    if (node->inputs().size() >= 3) {
+        for (int i = 0; i < node->group(); ++i) {
+            biases.push_back(gb.Temp());
+        }
+        gb.MOp(Node::kSplit, {node->inputs()[2]}, biases)->set_axis(0);
+    }
+
+    std::vector<Value*> outputs;
+    for (int i = 0; i < node->group(); ++i) {
+        std::vector<Value*> ins = {inputs[i], weights[i]};
+        if (!biases.empty()) {
+            ins.push_back(biases[i]);
+        }
+        outputs.push_back(gb.Op(Node::kConv, ins));
+    }
+
+    gb.Op(Node::kConcat, outputs, node->outputs()[0])->producer()->set_axis(1);
+
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph) {
@@ -382,6 +422,7 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
     CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
+    CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
     if (g_replace_constant) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
