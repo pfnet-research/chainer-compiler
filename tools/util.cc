@@ -69,11 +69,13 @@ InOuts LoadParams(const Model& model) {
             chainerx::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();
             chainerx::Array tensor;
-            // If the input is used only by Reshape, place it on host memory.
+            // If the input is used only by Reshape as a shape, place
+            // it on host memory.
             // TODO(hamaji): Introduce more sophisticated approach to
             // decide the device to be used.
-            if (std::find_if(input->users().begin(), input->users().end(), [](const Node* node) {
-                    return node->op_type() != Node::kReshape;
+            if (std::find_if(input->users().begin(), input->users().end(),
+                             [input](const Node* node) {
+                        return node->op_type() != Node::kReshape || node->inputs()[1] != input;
                 }) == input->users().end()) {
                 tensor = MakeHostArray(dtype, shape, data);
             } else {
