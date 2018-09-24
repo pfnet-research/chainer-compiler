@@ -44,6 +44,11 @@ def get():
             json_data = json.loads(json_content)
 
         downloader = _Downloader(json_content, json_data)
+        rtol = None
+        if downloader.name == 'densenet121':
+            rtol = 1e-3
         tests.append(TestCase('out', downloader.test_name(),
-                              prepare_func=downloader.prepare, want_gpu=True))
+                              prepare_func=downloader.prepare,
+                              want_gpu=True,
+                              rtol=rtol))
     return tests
