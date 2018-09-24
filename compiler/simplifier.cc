@@ -393,7 +393,9 @@ bool ReplaceConv(Graph* graph, Node* node) {
         if (!biases.empty()) {
             ins.push_back(biases[i]);
         }
-        outputs.push_back(gb.Op(Node::kConv, ins));
+        Value* conv = gb.Op(Node::kConv, ins);
+        conv->producer()->set_auto_pad(node->auto_pad())->set_dilations(node->dilations())->set_kernel_shape(node->kernel_shape())->set_pads(node->pads())->set_strides(node->strides());
+        outputs.push_back(conv);
     }
 
     gb.Op(Node::kConcat, outputs, node->outputs()[0])->producer()->set_axis(1);
