@@ -431,7 +431,9 @@ bool ReplaceMaxPool(Graph* graph, Node* node) {
 
 bool ReplaceAveragePool(Graph* graph, Node* node) {
     if (!HasImbalancedPad(node)) return false;
-    CHECK_EQ(1, node->count_include_pad()) << "Not implemented yet";
+    if (!node->count_include_pad()) {
+        WARN_ONCE("AveragePool with imbalanced pads and count_include_pad would lead an incorrect result");
+    }
     GraphBuilder gb(graph, "SimplifyAveragePoolPad", node->outputs()[0]);
 
     Value* padded = gb.Op(Node::kPad, node->inputs());
@@ -439,7 +441,7 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
     for (int p : node->pads()) pads.push_back(p);
     padded->producer()->set_pads(pads)->set_value(0);
 
-    gb.Op(Node::kAveragePool, {padded}, node->outputs()[0])->producer()->set_onikux_cover_all(node->onikux_cover_all())->set_auto_pad(node->auto_pad())->set_kernel_shape(node->kernel_shape())->set_storage_order(node->storage_order())->set_strides(node->strides());
+    gb.Op(Node::kAveragePool, {padded}, node->outputs()[0])->producer()->set_auto_pad(node->auto_pad())->set_kernel_shape(node->kernel_shape())->set_storage_order(node->storage_order())->set_strides(node->strides());
     return true;
 }
 
