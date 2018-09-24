@@ -1,5 +1,7 @@
 #include "simplifier.h"
 
+#include <limits>
+
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
@@ -403,6 +405,44 @@ bool ReplaceConv(Graph* graph, Node* node) {
     return true;
 }
 
+bool HasImbalancedPad(const Node* node) {
+    const std::vector<int>& pads = node->pads();
+    CHECK_EQ(pads.size() % 2, 0);
+    for (size_t i = 0; i < pads.size() / 2; ++i) {
+        if (pads[i] != pads[i + pads.size() / 2])
+            return true;
+    }
+    return false;
+}
+
+bool ReplaceMaxPool(Graph* graph, Node* node) {
+    if (!HasImbalancedPad(node)) return false;
+    CHECK_EQ(1, node->outputs().size()) << "Not implemented yet";
+    GraphBuilder gb(graph, "SimplifyMaxPoolPad", node->outputs()[0]);
+
+    Value* padded = gb.Op(Node::kPad, node->inputs());
+    std::vector<int> pads = {0, 0, 0, 0};
+    for (int p : node->pads()) pads.push_back(p);
+    padded->producer()->set_pads(pads)->set_value(-std::numeric_limits<float>::infinity());
+
+    gb.Op(Node::kMaxPool, {padded}, node->outputs()[0])->producer()->set_onikux_cover_all(node->onikux_cover_all())->set_auto_pad(node->auto_pad())->set_kernel_shape(node->kernel_shape())->set_storage_order(node->storage_order())->set_strides(node->strides());
+    return true;
+}
+
+bool ReplaceAveragePool(Graph* graph, Node* node) {
+    if (!HasImbalancedPad(node)) return false;
+    CHECK_EQ(1, node->count_include_pad()) << "Not implemented yet";
+    GraphBuilder gb(graph, "SimplifyAveragePoolPad", node->outputs()[0]);
+
+    Value* padded = gb.Op(Node::kPad, node->inputs());
+    std::vector<int> pads = {0, 0, 0, 0};
+    for (int p : node->pads()) pads.push_back(p);
+    padded->producer()->set_pads(pads)->set_value(0);
+
+    gb.Op(Node::kAveragePool, {padded}, node->outputs()[0])->producer()->set_onikux_cover_all(node->onikux_cover_all())->set_auto_pad(node->auto_pad())->set_kernel_shape(node->kernel_shape())->set_storage_order(node->storage_order())->set_strides(node->strides());
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph) {
@@ -425,6 +465,14 @@ void Simplify(Graph* graph) {
     CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
     CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
+
+    // These passes are workarounds for backends such as Chainer which
+    // do not support pooling with imbalanced padding.
+    if (g_modify_pool_with_imbalanced_pads) {
+        CHECK(simplifiers.emplace(Node::kMaxPool, ReplaceMaxPool).second);
+        CHECK(simplifiers.emplace(Node::kAveragePool, ReplaceAveragePool).second);
+    }
+
     if (g_replace_constant) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);

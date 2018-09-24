@@ -51,6 +51,8 @@ bool ExpectsOnehot(const Model& model) {
 }
 
 void RunMain(int argc, char** argv) {
+    g_modify_pool_with_imbalanced_pads = true;
+
     cmdline::parser args;
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
     args.add<float>("learning_rate", '\0', "Learning rate", false, 0.01);

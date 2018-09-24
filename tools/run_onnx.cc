@@ -181,6 +181,8 @@ XCVMVar* StageVar(XCVMVar* var) {
 }
 
 void RunMain(int argc, char** argv) {
+    g_modify_pool_with_imbalanced_pads = true;
+
     cmdline::parser args;
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
