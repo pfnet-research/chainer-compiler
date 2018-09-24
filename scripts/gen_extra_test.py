@@ -667,6 +667,24 @@ def gen_maxpool_cover_all_test(test_name):
     gb.gen_test()
 
 
+def gen_chainer_lrn_test(test_name):
+    # Chainer's LRN implementation would have less error than
+    # ONNX's so we need to set a fairly large rtol for the LRN
+    # test. This makes sure our LRN matches Chainer's with no rtol.
+    gb = oniku_script.GraphBuilder(test_name)
+    alpha = 0.0001
+    beta = 0.75
+    bias = 1.0
+    size = 3
+
+    x = np.random.randn(5, 5, 5, 5).astype(np.float32)
+    x_v = gb.input('x', x)
+    y_v = gb.LRN(x_v, alpha=alpha, beta=beta, bias=bias, size=size)
+    y = F.local_response_normalization(x, size, bias, alpha, beta)
+    gb.output(y_v, y)
+    gb.gen_test()
+
+
 class TestCase(object):
     def __init__(self, name, func, rtol=None, fail=False,
                  skip_shape_inference=False):
@@ -682,6 +700,8 @@ def get_tests():
         TestCase('extra_test_negative_reshape', gen_negative_reshape_test),
 
         TestCase('extra_test_inf_nan', gen_inf_nan_test),
+
+        TestCase('extra_test_chainer_lrn', gen_chainer_lrn_test),
 
         TestCase('extra_test_select_item', gen_select_item_test),
 
