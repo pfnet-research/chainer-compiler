@@ -316,7 +316,7 @@ void RunMain(int argc, char** argv) {
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         InOuts outputs(xcvm.Run(inputs, xcvm_opts));
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-        double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() * 0.001;
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
         if (initial_free_bytes >= 0) {
             int64_t free_bytes = GetMemoryUsageInBytes();

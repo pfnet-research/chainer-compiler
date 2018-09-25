@@ -201,7 +201,7 @@ void RunMain(int argc, char** argv) {
         }
 
         std::chrono::system_clock::time_point end = std::chrono::system_clock::now();
-        double elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() * 0.001;
         start = end;
         std::cout << train_iter.GetStatus() << " loss=" << loss << " elapsed=" << elapsed << "ms";
         if (initial_free_bytes >= 0) {
