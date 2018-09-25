@@ -145,7 +145,7 @@ void XCVMState::Output(const std::string& name, int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get()) << index;
-    CHECK(outputs_.emplace(name, new XCVMVar(*variables_[index])).second) << "Duplicated output name: " << name;
+    CHECK(outputs_.emplace(name, std::shared_ptr<XCVMVar>(new XCVMVar(*variables_[index]))).second) << "Duplicated output name: " << name;
 }
 
 void XCVMState::ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs) {

@@ -160,15 +160,15 @@ void RunMain(int argc, char** argv) {
 
             inputs = params;
             if (expects_onehot) {
-                inputs.emplace("Input_0", new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice())));
+                inputs.emplace("Input_0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
-                inputs.emplace("Input_1", new XCVMVar(onehot));
-                inputs.emplace("Input_2", new XCVMVar(batch_size_array));
+                inputs.emplace("Input_1", std::shared_ptr<XCVMVar>(new XCVMVar(onehot)));
+                inputs.emplace("Input_2", std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
             } else {
-                inputs.emplace("T0", new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice())));
+                inputs.emplace("T0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
-                inputs.emplace("T1", new XCVMVar(labels));
+                inputs.emplace("T1", std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
             }
         }
 

@@ -81,7 +81,7 @@ InOuts LoadParams(const Model& model) {
             } else {
                 tensor = MakeArray(dtype, shape, data);
             }
-            CHECK(params.emplace(initializer->name(), new XCVMVar(tensor)).second) << "Duplicate input tensor: " << initializer->name();
+            CHECK(params.emplace(initializer->name(), std::shared_ptr<XCVMVar>(new XCVMVar(tensor))).second) << "Duplicate input tensor: " << initializer->name();
         }
     }
     return params;

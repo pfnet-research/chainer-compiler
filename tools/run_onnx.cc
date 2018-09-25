@@ -121,7 +121,7 @@ void ReadTestDir(
         for (const auto& p : all_vars) {
             const std::string& filename = std::get<0>(p);
             std::string tensor_name = std::get<1>(p);
-            XCVMVar* var = std::get<2>(p);
+            std::shared_ptr<XCVMVar> var(std::get<2>(p));
             if (HasPrefix(filename, "input_")) {
                 if (tensor_name.empty()) {
                     CHECK_LT(input_index, input_names.size());
@@ -162,7 +162,7 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
         chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
         chainerx::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input.name(), new XCVMVar(array)).second) << "Duplicated input: " << input.name();
+        CHECK(inputs->emplace(input.name(), std::shared_ptr<XCVMVar>(new XCVMVar(array))).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
@@ -310,7 +310,7 @@ void RunMain(int argc, char** argv) {
         InOuts inputs(params);
         for (const auto& p : test_case->inputs) {
             XCVMVar* v = StageVar(p.second.get());
-            CHECK(inputs.emplace(p.first, v).second) << "Duplicated input parameter: " << p.first;
+            CHECK(inputs.emplace(p.first, std::shared_ptr<XCVMVar>(v)).second) << "Duplicated input parameter: " << p.first;
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();

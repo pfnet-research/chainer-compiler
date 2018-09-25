@@ -31,8 +31,8 @@ TEST(XCVMTest, Run) {
     XCVM xcvm(program);
     InOuts inputs;
     chainerx::Array in1 = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
-    inputs.emplace("in1", new XCVMVar(in1));
-    inputs.emplace("in2", new XCVMVar(chainerx::OnesLike(in1)));
+    inputs.emplace("in1", std::shared_ptr<XCVMVar>(new XCVMVar(in1)));
+    inputs.emplace("in2", std::shared_ptr<XCVMVar>(new XCVMVar(chainerx::OnesLike(in1))));
     InOuts outputs = xcvm.Run(inputs, XCVMOptions());
     ASSERT_EQ(1, outputs.count("out"));
     chainerx::Array e = chainerx::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
