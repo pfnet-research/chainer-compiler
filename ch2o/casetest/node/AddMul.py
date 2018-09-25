@@ -9,7 +9,6 @@ class A(chainer.Chain):
         super(A, self).__init__()
 
     def forward(self, x, y):
-        print(x, y)
         z = (0.5 * 0.2) + 0.3 * x + y
         return z
 

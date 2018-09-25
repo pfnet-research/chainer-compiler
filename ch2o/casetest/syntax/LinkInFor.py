@@ -6,6 +6,8 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
+from chainer2onnx.test_args import dprint
+
 
 class LinkInFor(chainer.Chain):
 
@@ -37,5 +39,5 @@ if __name__ == '__main__':
     h = np.random.rand(batch_size, num_hidden).astype(np.float32)
 
     args = [x, h, np.arange(sequence_length)]
-    print(model(*args))
+    dprint(model(*args))
     chainer2onnx.generate_testcase(model, args)
