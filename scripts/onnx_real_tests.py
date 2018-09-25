@@ -47,11 +47,9 @@ def get():
         rtol = None
         if downloader.name == 'densenet121':
             rtol = 1e-3
-        # They need a large rtol probably due to LRN.
-        if (downloader.name == 'bvlc_alexnet' or
-            downloader.name == 'zfnet512' or
-            downloader.name == 'inception_v1'):
-            rtol = 20
+        # TODO(hamaji): Investigate the fairly large error.
+        if downloader.name == 'inception_v1':
+            rtol = 2
         tests.append(TestCase('out', downloader.test_name(),
                               prepare_func=downloader.prepare,
                               want_gpu=True,

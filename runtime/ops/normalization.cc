@@ -178,7 +178,7 @@ chainerx::Array LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
         sum_part.At(indices1) += x2.At(indices2);
         sum_part.At(indices2) += x2.At(indices1);
     }
-    chainerx::Array unit_scale = bias + alpha * sum_part;
+    chainerx::Array unit_scale = bias + (alpha / size) * sum_part;
     // TODO(hamaji): Add `Pow` and use it.
     chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
     st->SetAux(this->y, std::shared_ptr<XCVMState::Auxiliary>(new LRNBackwardContext(unit_scale)));
@@ -203,7 +203,7 @@ chainerx::Array LRNGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, cons
     // TODO(hamaji): Add `Pow` and use it.
     // TODO(hamaji): Decide whether we want to keep this value or recompute.
     chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
-    return gy * scale - 2 * alpha * beta * x * sum_part;
+    return gy * scale - 2 * (alpha / size) * beta * x * sum_part;
 }
 
 }  // namespace runtime

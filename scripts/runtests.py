@@ -322,8 +322,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_batchnorm_example'),
     TestCase(NODE_TEST, 'test_batchnorm_epsilon'),
-    TestCase(NODE_TEST, 'test_lrn', rtol=5e-3),
-    TestCase(NODE_TEST, 'test_lrn_default', rtol=5e-3),
+    TestCase(NODE_TEST, 'test_lrn'),
+    TestCase(NODE_TEST, 'test_lrn_default'),
 
     TestCase(NODE_TEST, 'test_dropout_default'),
     TestCase(NODE_TEST, 'test_dropout_random'),
