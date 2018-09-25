@@ -2,7 +2,9 @@
 # ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 # からもらっってきました
 
+import glob
 import os
+import shutil
 
 import numpy as np
 
@@ -84,7 +86,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                     f.write(tensor.SerializeToString())
 
 
-def generate_testcase(model, xs, out_key='prob'):
+def generate_testcase(model, xs, out_key='prob', subname=None):
     args = get_test_args()
 
     # さらの状態からonnxのmodをつくる
@@ -99,6 +101,12 @@ def generate_testcase(model, xs, out_key='prob'):
     chainer_out = run_chainer_model(model, xs, out_key)
 
     output_dir = args.output
+    if subname is None:
+        # Remove all related directories to renamed tests.
+        for d in [output_dir] + glob.glob(output_dir + '_*'):
+            shutil.rmtree(d)
+    else:
+        output_dir = output_dir + '_' + subname
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:

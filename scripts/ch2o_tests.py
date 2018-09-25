@@ -1,3 +1,6 @@
+import glob
+import os
+
 from test_case import TestCase
 
 
@@ -60,5 +63,8 @@ def get():
                 kwargs['rtol'] = 1e-3
             if test_name == 'ch2o_syntax_MultiFunction':
                 kwargs['rtol'] = 1e-3
-            tests.append(TestCase('out', test_name, **kwargs))
+
+            for d in glob.glob('out/%s*' % test_name):
+                tests.append(TestCase('out', os.path.basename(d), **kwargs))
+
     return tests
