@@ -171,35 +171,19 @@ def castto(v, tt, env):
     return res
 
 
-class Np_Array(object):
-    def call(self, args, keywords, env):
-        assert len(args) <= 2
-        assert 'dtype' in keywords.keys()
-        v = args[0]
+class Np_Array(Callable):
+    def __init__(self, _):
+        def a(object, dtype=None, copy=True,
+              order='K', subok=False, ndmin=0):
+            pass
+        super(Np_Array, self).__init__(a)
 
-        t = keywords['dtype']
-        if t == numpy.int32:
-            tt = TensorProto.INT32
-        elif t == numpy.float32:
-            tt = TensorProto.FLOAT
-        else:
-            raise Exception("Unimplemented")
-
-        if istensor(v):
-            return castto(v, tt, env)
-        else:
-            import onnx
-            res = env.calc(
-                'Constant',
-                inputs=[],
-                value=onnx.helper.make_tensor(
-                    name="hoge",
-                    data_type=tt,
-                    dims=[],
-                    vals=v,
-                )
-            )
-            return res
+    def call_impl(self, env, object, dtype, copy, order, subok, ndmin):
+        assert copy.value is not True  # TODO(hamaji): Not supported yet.
+        assert order.value != 'K'  # TODO(hamaji): Not supported yet.
+        assert subok.value is not False   # TODO(hamaji): Not supported yet.
+        assert ndmin.value != 0  # TODO(hamaji): Not supported yet.
+        return object.to_tensor(env, dtype=dtype.value).name
 
 
 class Np_Int32(object):
@@ -382,7 +366,6 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
     (F.vstack, Function_Vstack()),
@@ -407,6 +390,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.pad_sequence, Function_PadSequence),
                 (F.swapaxes, Function_SwapAxes),
                 (F.split_axis, Function_SplitAxis),
+                (numpy.array, Np_Array),
 ]:
     Func2NodeClass[fn] = cls(fn)
 

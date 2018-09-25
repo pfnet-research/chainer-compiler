@@ -47,13 +47,16 @@ def istensor(x):
     return isinstance(x, onnx.ValueInfoProto)
 
 
-def totensor(x, env):
+def totensor(x, env, dtype=None):
     if istensor(x):
+        assert dtype is None
         return x
     res = new_tensor()
 
     if type(x) == float or type(x) == int:
-        if type(x) == float:
+        if dtype is not None:
+            dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[dtype]
+        elif type(x) == float:
             dt = onnx.TensorProto.FLOAT
         else:
             dt = onnx.TensorProto.INT64

@@ -38,11 +38,11 @@ class Value(object):
     def is_none(self) -> bool:
         return self.is_py and self.value is None
 
-    def to_tensor(self, env: Env) -> onnx.ValueInfoProto:
+    def to_tensor(self, env: Env, dtype:type=None) -> onnx.ValueInfoProto:
         if self.is_py:
             # TODO(hamaji): Rewrite `totensor` to convert a Python
             # list to a tensor.
-            self.value = totensor(self.value, env)
+            self.value = totensor(self.value, env, dtype=dtype)
             self.is_py = False
 
         if not self.value.type.tensor_type:
