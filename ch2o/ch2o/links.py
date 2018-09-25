@@ -5,6 +5,7 @@ from onnx import TensorProto
 
 from chainer import links as L
 
+from ch2o.callable import Callable
 from ch2o.utils import new_tensor, size2d, totensor, Env, clip_head
 
 import ast
@@ -12,8 +13,9 @@ import code
 import gast
 
 
-class Link_Linear(object):
+class Link_Linear(Callable):
     def __init__(self, ch):
+        super(Link_Linear, self).__init__(L.Linear(None))
 
         if ch.b is None:
             self.n_out = 'output_size'
@@ -35,26 +37,25 @@ class Link_Linear(object):
             self.b = helper.make_tensor_value_info(
                 '/b', TensorProto.FLOAT, [self.n_out])
 
-    def call(self, args, _, env):
-        assert(len(args) == 1)
-        v = args[0]
+    def call_impl(self, env, x):
+        x = x.to_tensor(env)
         res = new_tensor([self.n_out])
 
         if self.nobias:
-            x = new_tensor()
+            t = new_tensor()
             env.addnode(
                 "Transpose",
-                inputs=[self.W.name], outputs=[x.name],
+                inputs=[self.W.name], outputs=[t.name],
                 perm=[1, 0]
             )
             env.addnode(
                 "MatMul",
-                inputs=[v.name, x.name], outputs=[res.name]
+                inputs=[x.name, t.name], outputs=[res.name]
             )
         else:
             env.addnode(
                 "Gemm",
-                inputs=[v.name, self.W.name, self.b.name], outputs=[res.name],
+                inputs=[x.name, self.W.name, self.b.name], outputs=[res.name],
                 transA=0, transB=1
             )
         return res
@@ -66,8 +67,10 @@ class Link_Linear(object):
             return [self.W, self.b]
 
 
-class Link_Convolution2D(object):
+class Link_Convolution2D(Callable):
     def __init__(self, ch):
+        super(Link_Convolution2D, self).__init__(L.Convolution2D(None, None))
+
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.ksize = size2d(ch.ksize)
@@ -88,14 +91,12 @@ class Link_Convolution2D(object):
             '/W', TensorProto.FLOAT,
             [self.M, 'channel_size'] + list(self.ksize))
 
-    def call(self, args, _, env):
-        assert(len(args) == 1)
-        v = args[0]
+    def call_impl(self, env, x):
         res = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
             helper.make_node(
                 "Conv",
-                inputs=[v.name, self.W.name] +
+                inputs=[x.to_tensor(env).name, self.W.name] +
                 ([] if self.b is None else [self.b.name]),
                 outputs=[res.name],
                 kernel_shape=self.ksize,
@@ -109,8 +110,10 @@ class Link_Convolution2D(object):
         return [self.W] + ([] if self.b is None else [self.b])
 
 
-class Link_BatchNormalization(object):
+class Link_BatchNormalization(Callable):
     def __init__(self, ch):
+        super(Link_BatchNormalization, self).__init__(
+            L.BatchNormalization(None))
 
         self.n_out = ch.beta.shape[0]
 
@@ -126,14 +129,13 @@ class Link_BatchNormalization(object):
         self.eps = ch.eps
         self.momentum = ch.decay
 
-    def call(self, args, _, env):
-        assert(len(args) == 1)
-        v = args[0]
+    def call_impl(self, env, x, **kwargs):
+        assert not kwargs  # TODO(hamaji): finetune not supported yet.
         res = new_tensor(['unknown', 'unknown', 'unknown'])
         env.nodes.append(
             helper.make_node(
                 "BatchNormalization",
-                inputs=[v.name, self.scale.name, self.B.name,
+                inputs=[x.to_tensor(env).name, self.scale.name, self.B.name,
                         self.mean.name, self.var.name], outputs=[res.name],
                 epsilon=self.eps,
                 momentum=self.momentum,
@@ -146,8 +148,9 @@ class Link_BatchNormalization(object):
         return [self.scale, self.B, self.mean, self.var]
 
 
-class Link_NstepLSTM(object):
+class Link_NStepLSTM(Callable):
     def __init__(self, ch):
+        super(Link_NStepLSTM, self).__init__(L.NStepLSTM(1, 1, 1, 0))
         # code.InteractiveConsole({'ch': ch}).interact()
 
         hd = ch.children().__next__()
@@ -179,18 +182,17 @@ class Link_NstepLSTM(object):
                 ('/%d_bss' % i), TensorProto.FLOAT, ["TODO"])
             # (chainerのbs[0,2,1,3,4,6,5,7]から連結させたりする)
 
-    def call(self, args, _, env):
-        # とりあえずnstep を 1step ずつに分解する
-        # print(self.name,args)
-        # assert(len(args) == 1)
-        assert(args[0] is None and args[1] is None)
+    def call_impl(self, env, hx, cx, xs):
+        assert hx.value is None  # TODO(hamaji): Not implemented yet.
+        assert cx.value is None  # TODO(hamaji): Not implemented yet.
+        xs = xs.to_tensor(env)
 
-        # v = args[2]
+        # とりあえずnstep を 1step ずつに分解する
         v = new_tensor()
         ilens = new_tensor()
         env.addnode(
             "OnikuxSequenceLengths",
-            inputs=[args[2].name],
+            inputs=[xs.name],
             outputs=[ilens.name]
         )
 
@@ -203,7 +205,7 @@ class Link_NstepLSTM(object):
 
         env.addnode(
             "OnikuxSequencePad",
-            inputs=[args[2].name],
+            inputs=[xs.name],
             outputs=[v.name],
         )
         tv = new_tensor()
@@ -280,8 +282,9 @@ class Link_NstepLSTM(object):
         return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
 
 
-class Link_NstepBiLSTM(object):
+class Link_NStepBiLSTM(Callable):
     def __init__(self, ch):
+        super(Link_NStepBiLSTM, self).__init__(L.NStepBiLSTM(1, 1, 1, 0))
         # code.InteractiveConsole({'ch': ch}).interact()
 
         hd = ch.children().__next__()
@@ -307,18 +310,16 @@ class Link_NstepBiLSTM(object):
             self.ws[i].B = helper.make_tensor_value_info(
                 ('/%d_bss' % i), TensorProto.FLOAT, ["TODO"])
 
-    def call(self, args, _, env):
+    def call_impl(self, env, hx, cx, xs):
+        assert hx.value is None  # TODO(hamaji): Not implemented yet.
+        assert cx.value is None  # TODO(hamaji): Not implemented yet.
+        xs = xs.to_tensor(env)
+
         # とりあえずnstep を 1step ずつに分解する
-        # print(self.name,args)
-        # assert(len(args) == 1)
-        assert(args[0] is None and args[1] is None)
-
-        # v = args[2]
         v = new_tensor()
-
         ilens = env.calc(
             "OnikuxSequenceLengths",
-            inputs=[args[2].name],
+            inputs=[xs.name],
         )
 
         tilens = env.calc(
@@ -326,7 +327,7 @@ class Link_NstepBiLSTM(object):
             inputs=[ilens.name],
         )
 
-        v = args[2]
+        v = xs
 
         hs = []
         cs = []
@@ -405,20 +406,20 @@ class Link_NstepBiLSTM(object):
         return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
 
 
-class Link_EmbedID(object):
+class Link_EmbedID(Callable):
     def __init__(self, ch):
+        super(Link_EmbedID, self).__init__(L.EmbedID(1, 1))
+
         self.n_vocab = ch.W.shape[0]
         self.n_out = ch.W.shape[1]
 
         self.W = helper.make_tensor_value_info(
             '/W', TensorProto.FLOAT, list(ch.W.shape))
 
-    def call(self, args, _, env):
-        assert(len(args) == 1)
-        v = args[0]
+    def call_impl(self, env, x):
         res = env.calc(
             "Gather",
-            inputs=[self.W.name, v.name],
+            inputs=[self.W.name, x.to_tensor(env).name],
         )
         return res
 
@@ -426,15 +427,17 @@ class Link_EmbedID(object):
         return [self.W]
 
 
-class Link_StatelessLSTM(object):
+class Link_StatelessLSTM(Callable):
     def __init__(self, ch, parentname):
+        super(Link_StatelessLSTM, self).__init__(L.StatelessLSTM(1))
+
         self.name = ''
         # code.InteractiveConsole({'ch': ch}).interact()
 
         self.upward = Link_Linear(ch.upward, self.name)
         self.lateral = Link_Linear(ch.lateral, self.name)
 
-    def call(self, args, _, env):
+    def call_impl(self, env, c, h, x):
         # TODO(satos) 正しくする(ただただ面倒だが)
         # とりあえずnstep を 1step ずつに分解する
         # print(self.name,args)
@@ -446,27 +449,12 @@ class Link_StatelessLSTM(object):
         return self.upward.init_tensors() + self.lateral.init_tensors()
 
 
-class Link_Dummy(object):
-    def __init__(self, ch, parentname):
-        self.name = ''
-
-    def call(self, args, _, env):
-        env.addnode(
-            "Dummy link and should be removed",
-            inputs=[], outputs=[]
-        )
-        return new_tensor(), new_tensor(), new_tensor()
-
-    def init_tensors(self):
-        return []
-
-
 Link2NodeClass = [
     (L.Linear, Link_Linear),
     (L.Convolution2D, Link_Convolution2D),
     (L.BatchNormalization, Link_BatchNormalization),
-    (L.NStepLSTM, Link_NstepLSTM),
+    (L.NStepLSTM, Link_NStepLSTM),
+    (L.NStepBiLSTM, Link_NStepBiLSTM),
     (L.EmbedID, Link_EmbedID),
-    (L.NStepBiLSTM, Link_NstepBiLSTM),
     (L.StatelessLSTM, Link_StatelessLSTM),
 ]
