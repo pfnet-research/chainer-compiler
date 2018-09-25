@@ -60,9 +60,9 @@ class Function_LocalRespNorm(Callable):
             "LRN",
             inputs=[x.name],
             size=n,
-            bias=k,
-            alpha=alpha * n,  # chainerとonnx(mxnet)で一致しない
-            beta=beta
+            bias=float(k),
+            alpha=float(alpha * n),  # chainerとonnx(mxnet)で一致しない
+            beta=float(beta)
         )
 
 
