@@ -25,6 +25,8 @@ parser.add_argument('--all', '-a', action='store_true',
 parser.add_argument('--jobs', '-j', type=int,
                     default=multiprocessing.cpu_count(),
                     help='Number of parallel jobs')
+parser.add_argument('--show_log', action='store_true',
+                    help='Show logs')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
@@ -556,6 +558,7 @@ class TestRunner(object):
                 filtered = [a for a in test_case.args if a != '--quiet']
                 sys.stdout.write('FAIL: %s\n' % ' '.join(filtered))
             sys.stdout.buffer.write(proc.stdout.read())
+            sys.stdout.flush()
 
 
 def main():
@@ -586,7 +589,8 @@ def main():
                 continue
             test_case.args.extend(['-d', 'cuda'])
             is_gpu = True
-        test_case.args.append('--quiet')
+        if not args.show_log:
+            test_case.args.append('--quiet')
 
         if is_gpu:
             gpu_tests.append(test_case)
