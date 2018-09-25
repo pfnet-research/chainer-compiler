@@ -217,13 +217,7 @@ chainerx::Array ConvTransposeOp::RunImpl(
         XCVMState* st, const chainerx::Array& x, const chainerx::Array& w, const nonstd::optional<chainerx::Array>& b) {
     nonstd::optional<chainerx::StackVector<int64_t, chainerx::kMaxNdim>> out_size = nonstd::nullopt;
     if (!output_shape.empty()) {
-        // TODO(hamaji): Revisit after getting answer to https://github.com/onnx/onnx/pull/1158
-        if (x.ndim() == output_shape.size()) {
-            CHECK_LE(2UL, output_shape.size());
-            out_size = chainerx::StackVector<int64_t, chainerx::kMaxNdim>(output_shape.begin() + 2, output_shape.end());
-        } else {
-            out_size = output_shape;
-        }
+        out_size = output_shape;
     }
     return chainerx::ConvTranspose(x, w, b, strides, pads, out_size);
 }
