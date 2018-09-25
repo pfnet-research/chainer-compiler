@@ -28,3 +28,9 @@ $ wget https://s3.amazonaws.com/download.onnx/models/opset_8/vgg19.tar.gz
 $ tar -xvzf vgg19.tar.gz
 $ ./tools/run_onnx --dump_xcvm --device cuda --test vgg19 --trace
 ```
+
+You can run more models defined in [ONNX's tests](https://github.com/onnx/onnx/tree/master/onnx/backend/test/data/real):
+
+```shell-session
+$ ./scripts/runtests.py real_onnx -g
+```
