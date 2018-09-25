@@ -73,15 +73,15 @@ InOuts LoadParams(const Model& model) {
             // it on host memory.
             // TODO(hamaji): Introduce more sophisticated approach to
             // decide the device to be used.
-            if (std::find_if(input->users().begin(), input->users().end(),
-                             [input](const Node* node) {
-                        return node->op_type() != Node::kReshape || node->inputs()[1] != input;
+            if (std::find_if(input->users().begin(), input->users().end(), [input](const Node* node) {
+                    return node->op_type() != Node::kReshape || node->inputs()[1] != input;
                 }) == input->users().end()) {
                 tensor = MakeHostArray(dtype, shape, data);
             } else {
                 tensor = MakeArray(dtype, shape, data);
             }
-            CHECK(params.emplace(initializer->name(), std::shared_ptr<XCVMVar>(new XCVMVar(tensor))).second) << "Duplicate input tensor: " << initializer->name();
+            CHECK(params.emplace(initializer->name(), std::shared_ptr<XCVMVar>(new XCVMVar(tensor))).second)
+                    << "Duplicate input tensor: " << initializer->name();
         }
     }
     return params;

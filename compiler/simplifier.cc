@@ -396,7 +396,12 @@ bool ReplaceConv(Graph* graph, Node* node) {
             ins.push_back(biases[i]);
         }
         Value* conv = gb.Op(Node::kConv, ins);
-        conv->producer()->set_auto_pad(node->auto_pad())->set_dilations(node->dilations())->set_kernel_shape(node->kernel_shape())->set_pads(node->pads())->set_strides(node->strides());
+        conv->producer()
+                ->set_auto_pad(node->auto_pad())
+                ->set_dilations(node->dilations())
+                ->set_kernel_shape(node->kernel_shape())
+                ->set_pads(node->pads())
+                ->set_strides(node->strides());
         outputs.push_back(conv);
     }
 
@@ -409,8 +414,7 @@ bool HasImbalancedPad(const Node* node) {
     const std::vector<int>& pads = node->pads();
     CHECK_EQ(pads.size() % 2, 0);
     for (size_t i = 0; i < pads.size() / 2; ++i) {
-        if (pads[i] != pads[i + pads.size() / 2])
-            return true;
+        if (pads[i] != pads[i + pads.size() / 2]) return true;
     }
     return false;
 }
@@ -425,7 +429,13 @@ bool ReplaceMaxPool(Graph* graph, Node* node) {
     for (int p : node->pads()) pads.push_back(p);
     padded->producer()->set_pads(pads)->set_value(-std::numeric_limits<float>::infinity());
 
-    gb.Op(Node::kMaxPool, {padded}, node->outputs()[0])->producer()->set_onikux_cover_all(node->onikux_cover_all())->set_auto_pad(node->auto_pad())->set_kernel_shape(node->kernel_shape())->set_storage_order(node->storage_order())->set_strides(node->strides());
+    gb.Op(Node::kMaxPool, {padded}, node->outputs()[0])
+            ->producer()
+            ->set_onikux_cover_all(node->onikux_cover_all())
+            ->set_auto_pad(node->auto_pad())
+            ->set_kernel_shape(node->kernel_shape())
+            ->set_storage_order(node->storage_order())
+            ->set_strides(node->strides());
     return true;
 }
 
@@ -441,7 +451,12 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
     for (int p : node->pads()) pads.push_back(p);
     padded->producer()->set_pads(pads)->set_value(0);
 
-    gb.Op(Node::kAveragePool, {padded}, node->outputs()[0])->producer()->set_auto_pad(node->auto_pad())->set_kernel_shape(node->kernel_shape())->set_storage_order(node->storage_order())->set_strides(node->strides());
+    gb.Op(Node::kAveragePool, {padded}, node->outputs()[0])
+            ->producer()
+            ->set_auto_pad(node->auto_pad())
+            ->set_kernel_shape(node->kernel_shape())
+            ->set_storage_order(node->storage_order())
+            ->set_strides(node->strides());
     return true;
 }
 
