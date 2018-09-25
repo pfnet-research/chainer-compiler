@@ -38,6 +38,8 @@ include_directories(onnx/.setuptools-cmake-build)
 link_directories(onnx/.setuptools-cmake-build)
 link_directories(googletest/googletest)
 
+add_custom_target(large_tests)
+
 add_subdirectory(compiler)
 add_subdirectory(common)
 add_subdirectory(feeder)
@@ -45,7 +47,7 @@ add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 
-function(gen_ch2o_test dir ch2o_test)
+function(gen_ch2o_test dir ch2o_test all)
 
   set(out_dir out/ch2o_${dir}_${ch2o_test})
 
@@ -58,8 +60,10 @@ function(gen_ch2o_test dir ch2o_test)
 
   add_custom_target(
     ${dir}_${ch2o_test}
-    ALL
+    ${all}
     DEPENDS ${out_dir}/model.onnx)
+
+  add_dependencies(large_tests ${dir}_${ch2o_test})
 
 endfunction()
 
@@ -76,7 +80,7 @@ foreach(
     UserDefinedFunc
     )
 
-  gen_ch2o_test(syntax ${ch2o_test})
+  gen_ch2o_test(syntax ${ch2o_test} ALL)
 
 endforeach()
 
@@ -110,6 +114,18 @@ foreach(
     #Vstack
     )
 
-  gen_ch2o_test(node ${ch2o_test})
+  gen_ch2o_test(node ${ch2o_test} ALL)
+
+endforeach()
+
+foreach(
+    ch2o_test
+    Alex_with_loss
+    GoogleNet_with_loss
+    MLP_with_loss
+    Resnet_with_loss
+    )
+
+  gen_ch2o_test(model ${ch2o_test} "")
 
 endforeach()
