@@ -2,14 +2,17 @@
 
 from onnx import helper
 
-from ch2o.utils import istensor, new_tensor
+from ch2o.callable import Callable
 from ch2o.funcs import Func, totensor
+from ch2o.utils import istensor, new_tensor
 
 
-class Builtin_Len(object):
-    def call(self, args, _, env):
-        assert len(args) == 1
-        x = args[0]
+class Builtin_Len(Callable):
+    def __init__(self):
+        super(Builtin_Len, self).__init__(lambda x: x)
+
+    def call_impl(self, env, x):
+        x = x.to_tensor(env)
         res = new_tensor()
         v = new_tensor()
         env.addnode(
