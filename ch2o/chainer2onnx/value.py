@@ -63,9 +63,9 @@ class Value(object):
     def to_bool(self) -> bool:
         if not self.is_py or not isinstance(self.value, bool):
             raise TypeError('Expected a bool scalar: %s' % self.value)
-        return int(self.value)
+        return bool(self.value)
 
-    def to_int_list(self) -> [int]:
+    def to_int_list(self) -> List[int]:
         if not self.is_py or not isinstance(self.value, collections.Iterable):
             raise TypeError('Expected an int list: %s' % self.value)
         ints = list(self.value)

@@ -16,6 +16,8 @@ import ast
 import code
 import gast
 
+from typing import List, Mapping
+
 
 class Function_SimpleUnary(Callable):
     def __init__(self, fn, onnx_name):
@@ -26,7 +28,7 @@ class Function_SimpleUnary(Callable):
         return env.calc(self.onnx_name, inputs=[v.to_tensor(env).name])
 
 
-def _pair(v: Value) -> [int]:
+def _pair(v: Value) -> List[int]:
     if not v.is_py:
         raise TypeError('Expected an int or an int list: %s' % v.value)
     if isinstance(v.value, collections.Iterable):
