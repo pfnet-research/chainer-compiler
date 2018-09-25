@@ -566,6 +566,15 @@ def eval_list_comp(nast, env):
     return res
 
 
+def _concat(xs, axis, env):
+    assert isinstance(xs, tuple)  # 今のところ tuple 以外は concat できない
+    return env.calc(
+        "Concat",
+        inputs=list(map(lambda x: x.name, xs)),
+        axis=axis,
+    )
+
+
 def eval_subscript(nast, env):
     # Subscriptの実装は以下の感じではだめで、
     # コンパイラはシリアライズするだけにして
@@ -652,10 +661,10 @@ def eval_subscript(nast, env):
                 squeeze = [True]
         elif isinstance(self, gast.ExtSlice):
             ds = list(map(slice2list, self.dims))
-            lower = Function_Concat(chainer.functions.concat).call(
-                [tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds))], {'axis': 0}, env)
-            upper = Function_Concat(chainer.functions.concat).call(
-                [tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds))], {'axis': 0}, env)
+            lower = _concat(
+                tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds)), 0, env)
+            upper = _concat(
+                tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds)), 0, env)
             squeeze = sum(map(lambda x: x[2], ds), [])
         else:
             raise Exception(self, " is not Python slice")

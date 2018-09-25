@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import collections
 from onnx import helper
 from onnx import TensorProto
 
@@ -9,6 +10,7 @@ import numpy
 
 from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
 from . callable import Callable
+from . value import Value
 
 import ast
 import code
@@ -21,111 +23,121 @@ class Function_SimpleUnary(Callable):
         self.onnx_name = onnx_name
 
     def call_impl(self, env, v):
-        return env.calc(self.onnx_name, inputs=[v.name])
+        return env.calc(self.onnx_name, inputs=[v.to_tensor(env).name])
+
+
+def _pair(v: Value) -> [int]:
+    if not v.is_py:
+        raise TypeError('Expected an int or an int list: %s' % v.value)
+    if isinstance(v.value, collections.Iterable):
+        return list(v.value)
+    return v.value, v.value
 
 
 class Function_MaxPool2d(Callable):
     def call_impl(self, env, x, ksize, stride, pad, cover_all, return_indices):
-        assert not return_indices  # TODO(hamaji): Not implemented yet.
+        assert not return_indices.value  # TODO(hamaji): Not implemented yet.
         kwargs = {}
-        if stride is not None:
-            kwargs['strides'] = size2d(stride)
-        if not pad:
-            kwargs['pads'] = size2d(pad) * 2
+        if not stride.is_none:
+            kwargs['strides'] = _pair(stride)
+        if not pad.value:
+            kwargs['pads'] = _pair(pad) * 2
         return env.calc(
             'MaxPool',
-            inputs=[x.name],
-            kernel_shape=size2d(ksize),
-            onikux_cover_all=cover_all,
+            inputs=[x.to_tensor(env).name],
+            kernel_shape=_pair(ksize),
+            onikux_cover_all=cover_all.to_bool(),
             **kwargs)
 
 
 class Function_AveragePool2d(Callable):
     def call_impl(self, env, x, ksize, stride, pad):
         kwargs = {}
-        if stride is not None:
-            kwargs['strides'] = size2d(stride)
-        if not pad:
-            kwargs['pads'] = size2d(pad) * 2
+        if not stride.is_none():
+            kwargs['strides'] = _pair(stride)
+        if not pad.value:
+            kwargs['pads'] = _pair(pad) * 2
         return env.calc(
             'AveragePool',
-            inputs=[x.name],
-            kernel_shape=size2d(ksize),
+            inputs=[x.to_tensor(env).name],
+            kernel_shape=_pair(ksize),
             **kwargs)
 
 
 class Function_LocalRespNorm(Callable):
     def call_impl(self, env, x, n, k, alpha, beta):
+        n = n.to_int()
         return env.calc(
             "LRN",
-            inputs=[x.name],
+            inputs=[x.to_tensor(env).name],
             size=n,
-            bias=float(k),
-            alpha=float(alpha * n),  # chainerとonnx(mxnet)で一致しない
-            beta=float(beta)
+            bias=k.to_float(),
+            alpha=alpha.to_float() * n,  # chainerとonnx(mxnet)で一致しない
+            beta=beta.to_float()
         )
 
 
 class Function_Dropout(Callable):
     def call_impl(self, env, x, ratio, **kwargs):
         assert not kwargs  # TODO(hamaji): Not supported yet.
-        return env.calc("Dropout", inputs=[x.name], ratio=ratio)
+        return env.calc("Dropout",
+                        inputs=[x.to_tensor(env).name], ratio=ratio.to_float())
 
 
 class Function_Concat(Callable):
     def call_impl(self, env, xs, axis):
-        assert isinstance(xs, tuple)  # 今のところ tuple 以外は concat できない
+        assert isinstance(xs.value, tuple)  # 今のところ tuple 以外は concat できない
         return env.calc(
             "Concat",
-            inputs=list(map(lambda x: x.name, xs)),
-            axis=axis,
+            inputs=list(map(lambda x: x.name, xs.value)),
+            axis=axis.to_int(),
         )
 
 
 class Function_SoftmaxCrossEntropy(Callable):
     def call_impl(self, env, x, t, normalize, cache_score, class_weight, ignore_label, reduce, enable_double_backprop):
-        assert normalize  # TODO(hamaji): Not supported yet.
-        assert cache_score  # TODO(hamaji): Not supported yet.
-        assert class_weight is None  # TODO(hamaji): Not supported yet.
-        assert ignore_label == -1  # TODO(hamaji): Not supported yet.
-        assert reduce == 'mean'  # TODO(hamaji): Not supported yet.
-        assert not enable_double_backprop  # TODO(hamaji): Not supported yet.
+        assert normalize.value  # TODO(hamaji): Not supported yet.
+        assert cache_score.value  # TODO(hamaji): Not supported yet.
+        assert class_weight.value is None  # TODO(hamaji): Not supported yet.
+        assert ignore_label.value == -1  # TODO(hamaji): Not supported yet.
+        assert reduce.value == 'mean'  # TODO(hamaji): Not supported yet.
+        assert not enable_double_backprop.value  # TODO(hamaji): Not supported yet.
         return env.calc(
             "OnikuxSoftmaxCrossEntropy",
-            inputs=[x.name, t.name],
+            inputs=[x.to_tensor(env).name, t.to_tensor(env).name],
         )
 
 
 class Function_PadSequence(Callable):
     def call_impl(self, env, xs, length, padding):
-        assert length is None  # TODO(hamaji): Not supported yet.
-        assert padding == 0  # TODO(hamaji): Not supported yet.
+        assert length.value is None  # TODO(hamaji): Not supported yet.
+        assert padding.value == 0  # TODO(hamaji): Not supported yet.
         return env.calc(
             "OnikuxSequencePad",
-            inputs=[xs.name],
+            inputs=[xs.to_tensor(env).name],
         )
 
 
 class Function_SwapAxes(Callable):
     def call_impl(self, env, x, axis1, axis2):
-        a, b = axis1, axis2
+        a = axis1.to_int()
+        b = axis2.to_int()
         pe = list(range(max(a, b)+1))
         pe[a] = b
         pe[b] = a
 
         return env.calc(
             "Transpose",
-            inputs=[x.name],
+            inputs=[x.to_tensor(env).name],
             perm=pe
         )
 
 
 class Function_Reshape(Callable):
     def call_impl(self, env, x, shape):
-        shape = totensor(shape, env)
         return env.calc(
             "Reshape",
-            inputs=[x.name, shape.name]
+            inputs=[x.to_tensor(env).name, shape.to_tensor(env).name]
         )
 
 
@@ -133,17 +145,16 @@ class Function_ExpandDims(Callable):
     def call_impl(self, env, x, axis):
         return env.calc(
             "Unsqueeze",
-            inputs=[x.name],
-            axes=[axis],
+            inputs=[x.to_tensor(env).name],
+            axes=[axis.to_int()],
         )
 
 
 class Function_BroadcastTo(Callable):
     def call_impl(self, env, x, shape):
-        shape = totensor(shape, env)
         return env.calc(
             "Expand",
-            inputs=[x.name, shape.name]
+            inputs=[x.to_tensor(env).name, shape.to_tensor(env).name]
         )
 
 
@@ -267,14 +278,15 @@ class Np_Cumsum(object):
 
 class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
-        assert axis == 0
-        assert force_tuple is True
+        assert axis.value == 0
+        assert force_tuple.value is True
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
         # 戻り値はtuple(!!)らしいが、たってきSequenceで返してます。
         # TODO(satos) さすがに仮定がきつい
 
-        v = x
-        ilens = indices_or_sections
+        # TODO(hamaji): Do not use `Value.value`.
+        v = x.value
+        ilens = indices_or_sections.value
 
         from . chainer2onnx import eval_ast
 

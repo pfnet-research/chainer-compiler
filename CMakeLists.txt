@@ -42,6 +42,7 @@ function(gen_ch2o_test dir ch2o_test)
     DEPENDS
     ch2o/chainer2onnx/__init__.py
     ch2o/chainer2onnx/builtin_funcs.py
+    ch2o/chainer2onnx/callable.py
     ch2o/chainer2onnx/chainer2onnx.py
     ch2o/chainer2onnx/funcs.py
     ch2o/chainer2onnx/initializer.py
