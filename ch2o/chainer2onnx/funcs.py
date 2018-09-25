@@ -96,34 +96,28 @@ class Function_SoftmaxCrossEntropy(Callable):
         )
 
 
-class Function_PadSequence(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-
-        v = args[0]
-        res = env.calc(
+class Function_PadSequence(Callable):
+    def call_impl(self, env, xs, length, padding):
+        assert length is None  # TODO(hamaji): Not supported yet.
+        assert padding == 0  # TODO(hamaji): Not supported yet.
+        return env.calc(
             "OnikuxSequencePad",
-            inputs=[v.name],
+            inputs=[xs.name],
         )
-        return res
 
 
-class Function_SwapAxes(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 3)
-
-        v = args[0]
-        a, b = args[1], args[2]
+class Function_SwapAxes(Callable):
+    def call_impl(self, env, x, axis1, axis2):
+        a, b = axis1, axis2
         pe = list(range(max(a, b)+1))
         pe[a] = b
         pe[b] = a
 
-        res = env.calc(
+        return env.calc(
             "Transpose",
-            inputs=[v.name],
+            inputs=[x.name],
             perm=pe
         )
-        return res
 
 
 class Function_Reshape(Callable):
@@ -271,16 +265,16 @@ class Np_Cumsum(object):
         return res
 
 
-class Function_SplitAxis(object):
-    def call(self, args, keywords, env):
-        assert len(args) == 2
-        assert keywords['axis'] == 0
+class Function_SplitAxis(Callable):
+    def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
+        assert axis == 0
+        assert force_tuple is True
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
         # 戻り値はtuple(!!)らしいが、たってきSequenceで返してます。
         # TODO(satos) さすがに仮定がきつい
 
-        v = args[0]
-        ilens = args[1]
+        v = x
+        ilens = indices_or_sections
 
         from . chainer2onnx import eval_ast
 
@@ -374,15 +368,12 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (F.pad_sequence, Function_PadSequence()),
-    (F.swapaxes, Function_SwapAxes()),
     (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
     (F.vstack, Function_Vstack()),
     (numpy.int32, Np_Int32()),
     (numpy.cumsum, Np_Cumsum()),
-    (F.split_axis, Function_SplitAxis()),
 
     # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embe    d_id.py#L43) のif文を通らないようにする
     (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
@@ -399,6 +390,9 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.local_response_normalization, Function_LocalRespNorm),
                 (F.concat, Function_Concat),
                 (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),
+                (F.pad_sequence, Function_PadSequence),
+                (F.swapaxes, Function_SwapAxes),
+                (F.split_axis, Function_SplitAxis),
 ]:
     Func2NodeClass[fn] = cls(fn)
 
