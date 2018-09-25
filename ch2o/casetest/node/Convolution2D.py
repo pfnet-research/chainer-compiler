@@ -26,5 +26,6 @@ if __name__ == '__main__':
 
     model = A()
 
+    np.random.seed(123)
     x = v = np.random.rand(2, 20, 15, 17).astype(np.float32)
     chainer2onnx.generate_testcase(model, [x])
