@@ -186,22 +186,27 @@ class Np_Array(Callable):
         return object.to_tensor(env, dtype=dtype.value).name
 
 
-class Np_Int32(object):
-    def call(self, args, keywords, env):
-        assert len(args) == 1
-        v = args[0]
-        return castto(v, TensorProto.INT32, env)
+class Np_Int32(Callable):
+    def __init__(self, _):
+        super(Np_Int32, self).__init__(lambda x: x)
+
+    def call(self, env, x):
+        return castto(x.to_tensor(env).name, TensorProto.INT32, env)
 
 
-class Np_Cumsum(object):
-    def call(self, args, keywords, env):
-        assert len(args) == 1
-        assert 'axis' not in keywords.keys()
-        assert 'dtype' not in keywords.keys()
+class Np_Cumsum(Callable):
+    def __init__(self, _):
+        super(Np_Cumsum, self).__init__(
+            lambda a, axis=None, dtype=None, out=None: a)
+
+    def call_impl(self, env, a, axis, dtype, out):
+        assert axis.is_none()  # TODO(hamaji): Not supported yet.
+        assert dtype.is_none()  # TODO(hamaji): Not supported yet.
+        assert out.is_none()  # TODO(hamaji): Not supported yet.
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
         # 戻り値は入力に依らずテンソルらしい
         # TODO(satos) さすがに仮定がきつい
-        v = args[0]
+        v = a.to_tensor(env)
 
         # これ戻り値がテンソルでなくSequenceなら、SplitAxisみたいにかっこよく書けるはず
         """
@@ -300,15 +305,12 @@ class Function_SplitAxis(Callable):
         return localenv.vars['r']
 
 
-class Xp_Np_Ceil(object):
-    def call(self, args, _, env):
-        assert len(args) == 1
-        res = new_tensor()
-        env.addnode(
-            'Ceil',
-            inputs=[args[0].name], outputs=[res.name]
-        )
-        return res
+class Xp_Np_Ceil(Callable):
+    def __init__(self, _):
+        super(Xp_Np_Ceil, self).__init__(lambda x: x)
+
+    def call_impl(self, env, x):
+        return env.calc('Ceil', inputs=[x.to_tensor(env).name])
 
 
 class Cuda_ToCpu(object):
@@ -366,11 +368,8 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
     (F.vstack, Function_Vstack()),
-    (numpy.int32, Np_Int32()),
-    (numpy.cumsum, Np_Cumsum()),
 
     # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embe    d_id.py#L43) のif文を通らないようにする
     (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
@@ -391,6 +390,9 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.swapaxes, Function_SwapAxes),
                 (F.split_axis, Function_SplitAxis),
                 (numpy.array, Np_Array),
+                (numpy.int32, Np_Int32),
+                (numpy.ceil, Xp_Np_Ceil),
+                (numpy.cumsum, Np_Cumsum),
 ]:
     Func2NodeClass[fn] = cls(fn)
 
