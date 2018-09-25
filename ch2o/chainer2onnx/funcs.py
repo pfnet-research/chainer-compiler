@@ -40,9 +40,9 @@ class Function_MaxPool2d(Callable):
     def call_impl(self, env, x, ksize, stride, pad, cover_all, return_indices):
         assert not return_indices.value  # TODO(hamaji): Not implemented yet.
         kwargs = {}
-        if not stride.is_none:
+        if not stride.is_none():
             kwargs['strides'] = _pair(stride)
-        if not pad.value:
+        if pad.value:
             kwargs['pads'] = _pair(pad) * 2
         return env.calc(
             'MaxPool',
@@ -57,7 +57,7 @@ class Function_AveragePool2d(Callable):
         kwargs = {}
         if not stride.is_none():
             kwargs['strides'] = _pair(stride)
-        if not pad.value:
+        if pad.value:
             kwargs['pads'] = _pair(pad) * 2
         return env.calc(
             'AveragePool',
