@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import collections
 import onnx
 from onnx import helper
 from onnx import TensorProto
@@ -36,13 +37,10 @@ class ValueReturn(Exception):
         self.value = value
 
 
-def size2d(v):
-    if isinstance(v, tuple):
-        return list(v)
-    elif isinstance(v, int):
-        return [v, v]
-    else:
-        raise Exception('size should be tuple or int, but got ', v)
+def size2d(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return x, x
 
 
 def istensor(x):

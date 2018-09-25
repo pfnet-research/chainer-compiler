@@ -24,52 +24,34 @@ class Function_SimpleUnary(Callable):
         return env.calc(self.onnx_name, inputs=[v.name])
 
 
-class Function_Pool2d_Util(object):
-    def __init__(self, pooltype, hascoverall):
-        self.pooltype = pooltype
-        self.hascoverall = hascoverall
-
-    def call(self, args, keywords, env):
-        assert(len(args) == 2)
-        v = args[0]
-        res = new_tensor()
-        ksize = args[1]
-        strides = size2d(keywords.get('stride', ksize))
-        # chainer のsize参考
-        # https://github.com/chainer/chainer/blob/v4.3.1/chainer/utils/conv.py#L7
-
-        dx, dy = 0, 0
-        if 'pad' in keywords.keys():
-            dy, dx = size2d(keywords['pad'])
-
-        pads = [dx, dy, dx, dy]
-
-        if self.hascoverall:
-            res = env.calc(
-                self.pooltype, inputs=[v.name],
-                kernel_shape=size2d(ksize),
-                strides=strides,
-                pads=pads,
-                onikux_cover_all=keywords.get('cover_all', True)
-            )
-        else:
-            res = env.calc(
-                self.pooltype, inputs=[v.name],
-                kernel_shape=size2d(ksize),
-                strides=strides,
-                pads=pads
-            )
-        return res
+class Function_MaxPool2d(Callable):
+    def call_impl(self, env, x, ksize, stride, pad, cover_all, return_indices):
+        assert not return_indices  # TODO(hamaji): Not implemented yet.
+        kwargs = {}
+        if stride is not None:
+            kwargs['strides'] = size2d(stride)
+        if not pad:
+            kwargs['pads'] = size2d(pad) * 2
+        return env.calc(
+            'MaxPool',
+            inputs=[x.name],
+            kernel_shape=size2d(ksize),
+            onikux_cover_all=cover_all,
+            **kwargs)
 
 
-class Function_MaxPool2d(object):
-    def __init__(self):
-        self.call = Function_Pool2d_Util('MaxPool', True).call
-
-
-class Function_AveragePool2d(object):
-    def __init__(self):
-        self.call = Function_Pool2d_Util('AveragePool', False).call
+class Function_AveragePool2d(Callable):
+    def call_impl(self, env, x, ksize, stride, pad):
+        kwargs = {}
+        if stride is not None:
+            kwargs['strides'] = size2d(stride)
+        if not pad:
+            kwargs['pads'] = size2d(pad) * 2
+        return env.calc(
+            'AveragePool',
+            inputs=[x.name],
+            kernel_shape=size2d(ksize),
+            **kwargs)
 
 
 class Function_LocalRespNorm(object):
@@ -401,10 +383,8 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (F.max_pooling_2d, Function_MaxPool2d()),
     (F.local_response_normalization, Function_LocalRespNorm()),
     (F.concat, Function_Concat()),
-    (F.average_pooling_2d, Function_AveragePool2d()),
     (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy()),
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
@@ -426,6 +406,8 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.broadcast_to, Function_BroadcastTo),
                 (F.reshape, Function_Reshape),
                 (F.dropout, Function_Dropout),
+                (F.max_pooling_2d, Function_MaxPool2d),
+                (F.average_pooling_2d, Function_AveragePool2d),
 ]:
     Func2NodeClass[fn] = cls(fn)
 

@@ -86,7 +86,7 @@ class Link_Convolution2D(object):
 
         self.W = helper.make_tensor_value_info(
             '/W', TensorProto.FLOAT,
-            [self.M, 'channel_size'] + self.ksize)
+            [self.M, 'channel_size'] + list(self.ksize))
 
     def call(self, args, _, env):
         assert(len(args) == 1)
