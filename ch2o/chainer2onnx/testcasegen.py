@@ -90,9 +90,6 @@ def generate_testcase(model, xs, out_key='prob'):
     # さらの状態からonnxのmodをつくる
     onnxmod, input_tensors, output_tensors = compiler(model)
 
-    with open(args.raw_output, 'wb') as fp:
-        fp.write(onnxmod.SerializeToString())
-
     chainer.config.train = False
     run_chainer_model(model, xs, out_key)
 
@@ -101,6 +98,8 @@ def generate_testcase(model, xs, out_key='prob'):
     edit_onnx_protobuf(onnxmod, model)
     chainer_out = run_chainer_model(model, xs, out_key)
 
+    if not os.path.exists(os.path.basename(args.output)):
+        os.makedirs(os.path.basename(args.output))
     with open(args.output, 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
 

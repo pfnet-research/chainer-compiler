@@ -11,8 +11,6 @@ def get_test_args():
 
     parser = argparse.ArgumentParser(
         description='A test for Python => ONNX compiler')
-    parser.add_argument('--raw_output', type=str, default='raw_MLP.onnx',
-                        help='An output ONNX graph without parameters.')
     parser.add_argument('--output', type=str, default='initialized_MLP.onnx',
                         help='An output ONNX graph with parameters.')
     parser.add_argument('--test_data_dir', type=str, default='',
