@@ -10,9 +10,9 @@ from onnx import onnx_pb
 my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(my_path))
 sys.path.append(os.path.join(my_path, 'ch2o'))
-from oniku.ch2o.chainer2onnx import compiler
-from oniku.ch2o.chainer2onnx import test_args
-from oniku.ch2o.chainer2onnx import testcasegen
+from ch2o import compiler
+from ch2o import test_args
+from ch2o import testcasegen
 from oniku.scripts import onnx_chainer_util
 
 F = chainer.functions

@@ -15,6 +15,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
+set(CH2O_FILES
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/__init__.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/callable.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/chainer2onnx.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/funcs.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/initializer.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/links.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/test_args.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/testcasegen.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/utils.py
+  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/value.py
+  )
+
 find_package(OpenCV REQUIRED)
 find_package(CUDA REQUIRED)
 
@@ -37,20 +51,9 @@ function(gen_ch2o_test dir ch2o_test)
 
   add_custom_command(
     OUTPUT ${out_dir}/model.onnx
-    COMMAND PYTHONPATH=ch2o python3 ch2o/casetest/${dir}/${ch2o_test}.py ${out_dir} --quiet
-    MAIN_DEPENDENCY ch2o/casetest/${dir}/${ch2o_test}.py
-    DEPENDS
-    ch2o/chainer2onnx/__init__.py
-    ch2o/chainer2onnx/builtin_funcs.py
-    ch2o/chainer2onnx/callable.py
-    ch2o/chainer2onnx/chainer2onnx.py
-    ch2o/chainer2onnx/funcs.py
-    ch2o/chainer2onnx/initializer.py
-    ch2o/chainer2onnx/links.py
-    ch2o/chainer2onnx/test_args.py
-    ch2o/chainer2onnx/testcasegen.py
-    ch2o/chainer2onnx/utils.py
-    ch2o/chainer2onnx/value.py
+    COMMAND PYTHONPATH=ch2o python3 ch2o/tests/${dir}/${ch2o_test}.py ${out_dir} --quiet
+    MAIN_DEPENDENCY ch2o/tests/${dir}/${ch2o_test}.py
+    DEPENDS ${CH2O_FILES}
     )
 
   add_custom_target(
