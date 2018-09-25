@@ -88,21 +88,10 @@ class Function_LocalRespNorm(object):
         return res
 
 
-class Function_Dropout(object):
-    def call(self, args, keywords, env):  # たぶん実際には実装できない
-        if len(args) == 1:
-            pass
-        elif len(args) == 2:
-            keywords['ratio'] = args[1]
-        else:
-            raise Exception("invalid length")
-
-        v = args[0]
-        res = env.calc(
-            "Dropout", inputs=[v.name],
-            ratio=keywords.get('ratio', 0.5),
-        )
-        return res
+class Function_Dropout(Callable):
+    def call_impl(self, env, x, ratio, **kwargs):
+        assert not kwargs  # TODO(hamaji): Not supported yet.
+        return env.calc("Dropout", inputs=[x.name], ratio=ratio)
 
 
 class Function_Concat(object):
@@ -164,19 +153,13 @@ class Function_SwapAxes(object):
         return res
 
 
-class Function_Reshape(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 2)
-
-        v = args[0]
-        w = totensor(args[1], env)
-
-        res = new_tensor()
-        env.addnode(
+class Function_Reshape(Callable):
+    def call_impl(self, env, x, shape):
+        shape = totensor(shape, env)
+        return env.calc(
             "Reshape",
-            inputs=[v.name, w.name], outputs=[res.name],
+            inputs=[x.name, shape.name]
         )
-        return res
 
 
 class Function_ExpandDims(Callable):
@@ -420,13 +403,11 @@ class Func(object):
 Func2NodeClass = dict([
     (F.max_pooling_2d, Function_MaxPool2d()),
     (F.local_response_normalization, Function_LocalRespNorm()),
-    (F.dropout, Function_Dropout()),
     (F.concat, Function_Concat()),
     (F.average_pooling_2d, Function_AveragePool2d()),
     (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy()),
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
-    (F.reshape, Function_Reshape()),
     (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
@@ -443,6 +424,8 @@ Func2NodeClass = dict([
 
 for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.broadcast_to, Function_BroadcastTo),
+                (F.reshape, Function_Reshape),
+                (F.dropout, Function_Dropout),
 ]:
     Func2NodeClass[fn] = cls(fn)
 

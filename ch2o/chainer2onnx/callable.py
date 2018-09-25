@@ -10,7 +10,7 @@ class Callable(object):
     def call(self, args, kwargs, env):
         bound = self.sig.bind(*args, **kwargs)
         bound.apply_defaults()
-        return self.call_impl(env, *bound.args)
+        return self.call_impl(env, *bound.args, **bound.kwargs)
 
     def call_impl(self, env, *args):
         raise NotImplementedError('call_impl must be implemented')
