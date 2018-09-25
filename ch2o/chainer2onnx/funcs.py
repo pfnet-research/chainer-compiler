@@ -54,20 +54,16 @@ class Function_AveragePool2d(Callable):
             **kwargs)
 
 
-class Function_LocalRespNorm(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-        v = args[0]
-        n = keywords.get('n', 5)
-        alpha = keywords.get('alpha', 0.0001)
-        res = env.calc(
-            "LRN", inputs=[v.name],
+class Function_LocalRespNorm(Callable):
+    def call_impl(self, env, x, n, k, alpha, beta):
+        return env.calc(
+            "LRN",
+            inputs=[x.name],
             size=n,
-            bias=keywords.get('k', 2.0),
+            bias=k,
             alpha=alpha * n,  # chainerとonnx(mxnet)で一致しない
-            beta=keywords.get('beta', 0.75)
+            beta=beta
         )
-        return res
 
 
 class Function_Dropout(Callable):
@@ -383,7 +379,6 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (F.local_response_normalization, Function_LocalRespNorm()),
     (F.concat, Function_Concat()),
     (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy()),
     (F.pad_sequence, Function_PadSequence()),
@@ -408,6 +403,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.dropout, Function_Dropout),
                 (F.max_pooling_2d, Function_MaxPool2d),
                 (F.average_pooling_2d, Function_AveragePool2d),
+                (F.local_response_normalization, Function_LocalRespNorm),
 ]:
     Func2NodeClass[fn] = cls(fn)
 
