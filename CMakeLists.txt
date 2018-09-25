@@ -50,6 +50,7 @@ function(gen_ch2o_test dir ch2o_test)
     ch2o/chainer2onnx/test_args.py
     ch2o/chainer2onnx/testcasegen.py
     ch2o/chainer2onnx/utils.py
+    ch2o/chainer2onnx/value.py
     )
 
   add_custom_target(
