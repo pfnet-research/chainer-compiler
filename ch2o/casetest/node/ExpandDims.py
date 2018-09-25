@@ -11,7 +11,8 @@ class A(chainer.Chain):
 
     def forward(self, x):
         y = F.expand_dims(x, axis=1)
-        return y
+        y2 = F.expand_dims(x, 1)
+        return y, y2
 
 
 # ======================================

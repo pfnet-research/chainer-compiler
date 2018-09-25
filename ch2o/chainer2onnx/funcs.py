@@ -8,23 +8,20 @@ from chainer import functions as F
 import numpy
 
 from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
+from . callable import Callable
 
 import ast
 import code
 import gast
 
 
-class Function_SimpleUnary(object):
-    def __init__(self, onnx_name):
+class Function_SimpleUnary(Callable):
+    def __init__(self, fn, onnx_name):
+        super(Function_SimpleUnary, self).__init__(fn)
         self.onnx_name = onnx_name
 
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-        v = args[0]
-        res = env.calc(
-            self.onnx_name, inputs=[v.name],
-        )
-        return res
+    def call_impl(self, env, v):
+        return env.calc(self.onnx_name, inputs=[v.name])
 
 
 class Function_Pool2d_Util(object):
@@ -182,34 +179,22 @@ class Function_Reshape(object):
         return res
 
 
-class Function_ExpandDims(object):
-    def call(self, args, keywords, env):
-        # TODO(hamaji): `axis` may be passed as a positional parameter.
-        assert(len(args) == 1)  # axis はキーワード引数でないといけない
-        assert 'axis' in keywords.keys()
-
-        v = args[0]
-
-        res = env.calc(
+class Function_ExpandDims(Callable):
+    def call_impl(self, env, x, axis):
+        return env.calc(
             "Unsqueeze",
-            inputs=[v.name],
-            axes=[keywords['axis']],
+            inputs=[x.name],
+            axes=[axis],
         )
-        return res
 
 
-class Function_BroadcastTo(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 2)
-
-        v = args[0]
-        w = totensor(args[1], env)
-
-        res = env.calc(
+class Function_BroadcastTo(Callable):
+    def call_impl(self, env, x, shape):
+        shape = totensor(shape, env)
+        return env.calc(
             "Expand",
-            inputs=[v.name, w.name]
+            inputs=[x.name, shape.name]
         )
-        return res
 
 
 def castto(v, tt, env):
@@ -433,9 +418,6 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (F.relu, Function_SimpleUnary('Relu')),
-    (F.sigmoid, Function_SimpleUnary('Sigmoid')),
-    (F.tanh, Function_SimpleUnary('Tanh')),
     (F.max_pooling_2d, Function_MaxPool2d()),
     (F.local_response_normalization, Function_LocalRespNorm()),
     (F.dropout, Function_Dropout()),
@@ -445,8 +427,6 @@ Func2NodeClass = dict([
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
     (F.reshape, Function_Reshape()),
-    (F.broadcast_to, Function_BroadcastTo()),
-    (F.expand_dims, Function_ExpandDims()),
     (numpy.array, Np_Array()),
     (numpy.ceil, Xp_Np_Ceil()),
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
@@ -460,3 +440,13 @@ Func2NodeClass = dict([
 ] + (
     list(map(lambda f: (f, Function_Dummy(f)), dummies))
 ))
+
+for fn, cls in [(F.expand_dims, Function_ExpandDims),
+                (F.broadcast_to, Function_BroadcastTo),
+]:
+    Func2NodeClass[fn] = cls(fn)
+
+for fn, name in [(F.relu, 'Relu'),
+                 (F.sigmoid, 'Sigmoid'),
+                 (F.tanh, 'Tanh')]:
+    Func2NodeClass[fn] = Function_SimpleUnary(fn, name)
