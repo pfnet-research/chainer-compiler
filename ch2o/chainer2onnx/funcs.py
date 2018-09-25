@@ -72,33 +72,28 @@ class Function_Dropout(Callable):
         return env.calc("Dropout", inputs=[x.name], ratio=ratio)
 
 
-class Function_Concat(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-        v = args[0]
-        assert isinstance(v, tuple)  # 今のところ tuple 以外は concat できない
-        res = env.calc(
+class Function_Concat(Callable):
+    def call_impl(self, env, xs, axis):
+        assert isinstance(xs, tuple)  # 今のところ tuple 以外は concat できない
+        return env.calc(
             "Concat",
-            inputs=list(map(lambda x: x.name, v)),
-            axis=keywords.get('axis', 1),
+            inputs=list(map(lambda x: x.name, xs)),
+            axis=axis,
         )
-        return res
 
 
-class Function_SoftmaxCrossEntropy(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 2)
-
-        v, w = args[0], args[1]
-        # TODO(hamaji): Better to get the dtype of the Tensor from its
-        # actual value.
-        w.type.tensor_type.elem_type = TensorProto.INT64
-
-        res = env.calc(
+class Function_SoftmaxCrossEntropy(Callable):
+    def call_impl(self, env, x, t, normalize, cache_score, class_weight, ignore_label, reduce, enable_double_backprop):
+        assert normalize  # TODO(hamaji): Not supported yet.
+        assert cache_score  # TODO(hamaji): Not supported yet.
+        assert class_weight is None  # TODO(hamaji): Not supported yet.
+        assert ignore_label == -1  # TODO(hamaji): Not supported yet.
+        assert reduce == 'mean'  # TODO(hamaji): Not supported yet.
+        assert not enable_double_backprop  # TODO(hamaji): Not supported yet.
+        return env.calc(
             "OnikuxSoftmaxCrossEntropy",
-            inputs=[v.name, w.name],
+            inputs=[x.name, t.name],
         )
-        return res
 
 
 class Function_PadSequence(object):
@@ -379,8 +374,6 @@ class Func(object):
 
 
 Func2NodeClass = dict([
-    (F.concat, Function_Concat()),
-    (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy()),
     (F.pad_sequence, Function_PadSequence()),
     (F.swapaxes, Function_SwapAxes()),
     (numpy.array, Np_Array()),
@@ -404,6 +397,8 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.max_pooling_2d, Function_MaxPool2d),
                 (F.average_pooling_2d, Function_AveragePool2d),
                 (F.local_response_normalization, Function_LocalRespNorm),
+                (F.concat, Function_Concat),
+                (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),
 ]:
     Func2NodeClass[fn] = cls(fn)
 

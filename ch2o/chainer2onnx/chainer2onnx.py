@@ -652,9 +652,9 @@ def eval_subscript(nast, env):
                 squeeze = [True]
         elif isinstance(self, gast.ExtSlice):
             ds = list(map(slice2list, self.dims))
-            lower = Function_Concat().call(
+            lower = Function_Concat(chainer.functions.concat).call(
                 [tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds))], {'axis': 0}, env)
-            upper = Function_Concat().call(
+            upper = Function_Concat(chainer.functions.concat).call(
                 [tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds))], {'axis': 0}, env)
             squeeze = sum(map(lambda x: x[2], ds), [])
         else:
