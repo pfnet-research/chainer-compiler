@@ -10,7 +10,6 @@ git submodule update --init
 if [ ! -e onnx/.setuptools-cmake-build/libonnx.a -o ! -e onnx/.setuptools-cmake-build/onnx/onnx-ml.pb.h ]; then
     (cd onnx && ONNX_ML=1 python3 setup.py build)
 fi
-cp onnx/.setuptools-cmake-build/onnx/onnx-ml.pb.h onnx/.setuptools-cmake-build/onnx/onnx.pb.h
 
 if [ ! -e googletest ]; then
     git clone https://github.com/google/googletest

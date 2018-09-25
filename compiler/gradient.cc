@@ -5,7 +5,7 @@
 #include <queue>
 #include <set>
 
-#include <onnx/onnx-ml.pb.h>
+#include <onnx/onnx_pb.h>
 
 #include <common/log.h>
 #include <compiler/gradient_ops.h>

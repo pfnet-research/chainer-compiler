@@ -1,8 +1,6 @@
 include_directories(../gsl-lite/include)
 include_directories(../optional-lite/include)
-include_directories(../onnx/.setuptools-cmake-build)
 include_directories(..)
-include_directories(../onnx)
 
 include_directories(${CUDA_INCLUDE_DIRS})
 

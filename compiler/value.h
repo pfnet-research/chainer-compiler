@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <onnx/onnx-ml.pb.h>
+#include <onnx/onnx_pb.h>
 
 namespace oniku {
 
