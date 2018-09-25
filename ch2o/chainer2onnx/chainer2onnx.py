@@ -200,6 +200,508 @@ def is_print_logging(s, env):
     )
 
 
+def eval_for(nast, env):
+    assert nast.orelse == []
+    ite = eval_ast(nast.iter, env)
+
+    if istensor(ite):
+        assert isinstance(nast.target, gast.Name)
+        x = nast.target.id
+
+        # 新たなenv を作って、評価中にできた子グラフをもとにする
+        localenv = Env()
+        localenv.vars = {}
+        localenv.vars.update(env.vars)
+        localenv.module = env.module
+
+        cnt = new_tensor()
+        gtx = new_tensor()
+        localenv.vars[x] = localenv.calc(
+            "OnikuxGenericGetItem",
+            inputs=[gtx.name, cnt.name],
+        )
+        ty = eval_ast(nast.body,  localenv)
+        assert ty is None
+
+        # 入力側のテンソルを見る。
+        in_names = set()
+        for no in localenv.nodes:
+            in_names = in_names | set(no.input)
+
+        in_names = list(in_names)
+        in_closure = {}
+        for k, v in env.vars.items():
+            if istensor(v) and v.name in in_names:
+                in_closure[k] = (v, v)
+
+        compile_retry = False
+
+        # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
+        for k in localenv.vars.keys():
+            if k not in env.vars.keys():
+                # for文の中で新たに変数が定義されることは、とりあえず想定しない。
+                # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
+                continue
+            if localenv.vars[k] != env.vars[k]:
+                if not istensor(env.vars[k]):
+                    # この場合、LoopでUpdateしないといけないので
+                    # env.vars[k] は tensorでないといけない。
+                    # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
+                    env.vars[k] = totensor(env.vars[k], env)
+                    compile_retry = True
+
+                    """
+                    あと、この実装だと、
+                    bs = 0
+                    cs = 3
+                    for s in ilens:
+                        cs = s
+                        bs = cs
+                    のときに、 cs と bs が同じtensorを指していて
+                    Loop Operator の出力が同じtensorになってエラーになるので、
+                    同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
+                    """
+                else:
+                    in_closure[k] = (env.vars[k], localenv.vars[k])
+
+        if compile_retry:
+            return eval_ast(nast, env)
+
+        # ループ内で使われた link パラメータは
+        # 1. 外の env にコピーしなければならない
+        env.init_tensors.extend(localenv.init_tensors)
+        # 2. state としてループ内に持ち込まなければならない
+        for init in localenv.init_tensors:
+            key = '#' + init.name
+            in_closure[key] = (init, init)
+
+        # この時点で
+        # in_closure[k] = (a,b) は、
+        # 『ループ内で参照されている変数kは
+        # ループのbodyの頭にはテンソルaの値であり、
+        # ループのbodyの足ではテンソルbの値である』という気持ち
+
+        # print(in_closure)
+        # dprint(localenv.nodes)
+        # print('ty',ty)
+        cond = new_tensor()
+        localgraph = helper.make_graph(
+            localenv.nodes,
+            "Loop_subgraph",
+            [cnt, cond, gtx] + [vv[0] for vv in in_closure.values()],
+            [cond, gtx] + [vv[1] for vv in in_closure.values()]
+        )
+
+        mtc = env.calc(
+            "OnikuxGenericLen",
+            inputs=[ite.name],
+        )
+
+        def dummy():
+            return "dummy_" + new_tensor().name
+
+        env.addnode(
+            'Loop',
+            inputs=[mtc.name, "", ite.name] +
+            [vv[0].name for vv in in_closure.values()],
+            # ループの中でupdateされない変数は出力先はdummyにする
+            # updateするならそれでできる新たなテンソルを出力とする
+            outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
+                                 for vv in in_closure.values()],
+            body=localgraph
+        )
+
+        for k, (_, v) in in_closure.items():
+            env.vars[k] = v
+
+        return None
+    else:
+        # とりあえず実際にfor文を回す
+        tg = nast.target.id
+        env.vars[tg] = None
+        for v in ite:
+            env.vars[tg] = v
+            eval_ast(nast.body, env)
+            # print('looping',env.vars.keys())
+
+        env.vars.pop(tg)
+        return None
+
+
+def eval_assign(nast, env):
+    value = eval_ast(nast.value, env)
+    targs = nast.targets
+    assert(len(targs) == 1)
+    # v,w = 1 も targetsは長さ1のlistになるので len(rargs) != 1 の状況は謎ですね
+
+    # tgとして、下以外に
+    # List, ListのIndex, Starred
+    # またこれらを再帰的に組み合わせたものが存在しうる
+
+    tg = targs[0]
+    if isinstance(tg, gast.Name):
+        env.vars[tg.id] = value
+    elif isinstance(tg, gast.Tuple):
+        assert(isinstance(value, tuple))
+        assert(len(tg.elts) == len(value))
+
+        for i, v in enumerate(value):
+            env.vars[tg.elts[i].id] = v  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
+
+    elif isinstance(tg, gast.Attribute):
+        body = eval_ast(tg.value, env)
+        setattr(body, tg.attr, value)
+    else:
+        raise Exception('invalid assing lvalue', targs[0])
+    return None
+
+
+def eval_call(nast, env):
+    fn = eval_ast(nast.func, env)
+
+    args = []
+    for ag in nast.args:
+        if isinstance(ag, gast.Starred):
+            args += list(eval_ast(ag.value, env))
+        else:
+            args.append(eval_ast(ag, env))
+
+    keywords = dict(
+        map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
+
+    # code.InteractiveConsole({'fn': fn}).interact()
+
+    # chainer.functions の関数とかは、ここでfookをかける。
+    if fn in Func2NodeClass.keys():
+        return Func2NodeClass[fn].call(args, keywords, env)
+
+    dprint(fn, fn.__class__)
+    if isinstance(fn, types.FunctionType):
+        fn = User_Defined_Function(fn)
+    elif isinstance(fn, types.MethodType):
+        # apply はforwardにする
+        # code.InteractiveConsole({'fn': fn}).interact()
+        if fn.__func__ == chainer.FunctionNode.apply:
+            fn = User_Defined_Func_In_Link(
+                fn.__self__, fn.__self__.forward)
+        elif fn.__func__ == chainer.FunctionNode.retain_inputs:
+            # TODO(satos) これbackward側に何か伝える必要がありそう
+            fn = Func(lambda _, __, ___: None)
+        else:
+            fn = User_Defined_Func_In_Link(fn.__self__, fn)
+    elif isinstance(fn, types.BuiltinFunctionType):
+        # BuiltinFunctionType はbuiltinsではなくCで書かれた関数のこととのこと
+        fn = builtin_functions[fn.__name__]
+    elif fn == range:
+        fn = builtin_functions['range']
+    elif isinstance(fn, type):
+        # なにがしかのinstanceを作成したはず
+        assert fn.__module__ != 'builtins'
+        fn = User_Defined_Class(fn).init_wrapper
+    elif isinstance(fn, chainer.link.Link):
+        fn = convert_link(fn, env)
+
+    dprint('converted to', fn)
+    return fn.call(args, keywords, env)
+
+
+def eval_unary_op(nast, env):
+    v = eval_ast(nast.operand, env)
+    res = new_tensor()
+    if isinstance(nast.op, gast.USub):
+        # optype = "*= -1"
+        def opfun(x): return -x
+    elif isinstance(nast.op, gast.Not):
+        # optype = "Not"
+        def opfun(x): return not x
+    else:
+        raise Exception('unknown operator', nast.op)
+
+    if not istensor(v):
+        return opfun(v)
+    else:
+        raise Exception("Unimplemented yet")
+
+
+def eval_binary_op(nast, env):
+    lv = eval_ast(nast.left, env)
+    rv = eval_ast(nast.right, env)
+
+    res = new_tensor(['TODO'])
+    isfloor = False
+    if isinstance(nast.op, gast.Add):
+        optype = "Add"
+
+        def opfun(a, b): return a + b
+
+    elif isinstance(nast.op, gast.Sub):
+        optype = "Sub"
+
+        def opfun(a, b): return a - b
+
+    elif isinstance(nast.op, gast.Mult):
+        optype = "Mul"
+
+        def opfun(a, b): return a * b
+
+    elif isinstance(nast.op, gast.FloorDiv):
+        optype = "Div"
+        isfloor = True
+
+        def opfun(a, b): return a // b
+
+    elif isinstance(nast.op, gast.Div):
+        optype = "Div"
+
+        def opfun(a, b): return a / b
+
+    else:
+        raise Exception('unknown operator', nast.op)
+
+    # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
+
+    if not istensor(lv) and not istensor(rv):
+        # 定数畳み込みを行う
+        return opfun(lv, rv)
+
+    lv = totensor(lv, env)
+    rv = totensor(rv, env)
+
+    res = env.calc(
+        optype,
+        inputs=[lv.name, rv.name],
+    )
+
+    if isfloor:
+        res = env.calc(
+            "Floor",
+            inputs=[res.name],
+        )
+
+    return res
+
+
+def eval_attribute(nast, env):
+    body = eval_ast(nast.value, env)
+
+    if istensor(body):
+        if nast.attr == 'shape':
+            res = env.calc(
+                'Shape',
+                inputs=[body.name],
+            )
+            return res
+        elif nast.attr == 'append':
+            # TODO(satos) ごまかさない
+            assert isinstance(
+                nast.value, gast.Name) and nast.value.id in env.vars.keys()
+            na = nast.value.id
+
+            # あと、ここのnaがreferenceの場合不正確
+            # たとえば
+            # x = y
+            # x.append(3)
+            # のyが更新されないので問題
+
+            def f(args, _, env):
+                assert len(args) == 1
+                v = totensor(args[0], env)
+                env.vars[na] = env.calc(
+                    'OnikuxSequenceAppend',
+                    inputs=[body.name, v.name],
+                )
+                return None
+
+            return Func(f)
+
+        raise Exception('Unimplemented attribute ',
+                        nast.attr, ' for tensor')
+    return getattr(body, nast.attr)
+
+
+def eval_compare(nast, env):
+    le = eval_ast(nast.left, env)
+    vs = list(map(lambda x: eval_ast(x, env), nast.comparators))
+    # とりあえず定数畳み込みのみにする
+
+    if (istensor(le) or any(map(istensor, vs))):
+        raise Exception('unimplemented tensor comparetion')
+
+    res = True
+    for op, r in zip(nast.ops, vs):
+        if isinstance(op, gast.Eq):
+            res = res and (le == r)
+        elif isinstance(op, gast.Is):
+            res = res and (le is r)
+        elif isinstance(op, gast.IsNot):
+            res = res and (le is not r)
+        elif isinstance(op, gast.Gt):
+            res = res and (le > r)
+        else:
+            raise Exception('unimplemented operator', op)
+    return res
+
+
+def eval_list_comp(nast, env):
+    vn = "dummy@" + new_tensor().name  # 重ならない名前にする(ループ内ループもあるため)
+    assert len(nast.generators) >= 1
+    tast = gast.ast_to_gast(ast.parse("v.append(w)")).body[0]
+    tast.value.func.value.id = vn
+    tast.value.args[0] = nast.elt
+
+    for gen in nast.generators:
+        # とりあえず、このあたりはまだ実装しません
+        assert len(gen.ifs) == 0 and gen.is_async == 0
+        tast = gast.For(target=gen.target, iter=gen.iter,
+                        body=[tast], orelse=[])
+
+    init = gast.ast_to_gast(ast.parse("v = []")).body[0]
+    init.targets[0].id = vn
+    tast = [init, tast]
+
+    rv = eval_ast(tast, env)
+    assert rv is None
+    res = env.vars[vn]
+    env.vars.pop(vn)
+    return res
+
+
+def eval_subscript(nast, env):
+    # Subscriptの実装は以下の感じではだめで、
+    # コンパイラはシリアライズするだけにして
+    # あとはOnikuのほうにお願いすることになりそう
+
+    vs = eval_ast(nast.value, env)
+    if isinstance(vs, tuple):
+        assert isinstance(nast.slice, gast.Index)
+        idx = eval_ast(nast.slice.value, env)
+        assert isinstance(idx, int)
+        return vs[idx]
+    elif isinstance(vs, list):
+        raise Exception("unimplemented")
+
+    def unsqueeze(x):
+        tx = new_tensor()
+        env.addnode(
+            'Unsqueeze',
+            inputs=[x.name], outputs=[tx.name],
+            axes=[0]
+        )
+        return tx
+
+    # sliceがIdxの場合は、Idxのexprにlistが来うる可能性があるのでGatherする
+    # Numpyのsliceは闇では...???
+    # TODO(satos) Sliceの実装を"ちゃんと"したものにする(現在だと v[0:1,[2,3]] みたいなのは動かない)
+    # あと、これだとIndexに副作用が存在する場合にやばい
+    if isinstance(nast.slice, gast.Index):
+        idx = eval_ast(nast.slice.value, env)
+        if istensor(idx):
+            res = new_tensor()
+            env.addnode(
+                'Gather',
+                inputs=[vs.name, idx.name],
+                outputs=[res.name]
+            )
+            return res
+        elif isinstance(idx, int):
+            # TODO(satos) スライドのためのごまかしのごまかし
+            res = new_tensor()
+            idx = unsqueeze(totensor(idx, env))
+            env.addnode(
+                'OnikuxGenericGetItem',
+                inputs=[vs.name, idx.name],
+                outputs=[res.name]
+            )
+            return res
+
+    def slice2list(self):
+        if isinstance(self, gast.Slice):
+            assert self.step is None
+
+            def f(x, v):
+                if x is None:
+                    return totensor(v, env)
+                x = eval_ast(x, env)
+                if istensor(x):
+                    return x
+                else:
+                    return totensor(x, env)
+            lower = unsqueeze(f(self.lower, 0))
+            # TODO(satos)　その場しのぎっぽいのでどうにかする(けどこれどうにもならないですよね...?)
+            upper = unsqueeze(f(self.upper, 2 ** 30))
+            squeeze = [False]
+        elif isinstance(self, gast.Index):
+            idx = eval_ast(self.value, env)
+            if isinstance(idx, tuple):  # ここにTupleが来うる
+                # TODO(satos) もっとうまくやったほうがいいかも
+                vs = [gast.Index(gast.NameConstant(value=v)) for v in idx]
+                lower, upper, squeeze = slice2list(gast.ExtSlice(dims=vs))
+            elif istensor(idx):
+                lower = unsqueeze(idx)
+                ot = totensor(1, env)
+                upper = new_tensor()
+                env.addnode(
+                    "Add",
+                    inputs=[idx.name, ot.name], outputs=[upper.name],
+                )
+                upper = unsqueeze(upper)
+                squeeze = [True]
+            else:
+                lower = unsqueeze(totensor(idx, env))
+                upper = unsqueeze(totensor(idx+1, env))
+                squeeze = [True]
+        elif isinstance(self, gast.ExtSlice):
+            ds = list(map(slice2list, self.dims))
+            lower = Function_Concat().call(
+                [tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds))], {'axis': 0}, env)
+            upper = Function_Concat().call(
+                [tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds))], {'axis': 0}, env)
+            squeeze = sum(map(lambda x: x[2], ds), [])
+        else:
+            raise Exception(self, " is not Python slice")
+
+        return lower, upper, squeeze
+    # print('slice',nast.slice)
+    lower, upper, squeeze = slice2list(nast.slice)
+    res = new_tensor()
+    env.addnode(
+        'DynamicSlice',
+        inputs=[vs.name, lower.name, upper.name],
+        outputs=[res.name]
+    )
+
+    if any(squeeze):
+        r = new_tensor()
+        env.addnode(
+            'Squeeze',
+            inputs=[res.name], outputs=[r.name],
+            axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
+        )
+        res = r
+
+    return res
+
+
+def eval_list(nast, env):
+    # Sequenceにしているが、ここはPythonのlistのままにしておきたいとのこと
+    # Sequenceにする
+    vs = list(map(lambda x: eval_ast(x, env), nast.elts))
+    res = new_tensor()
+    env.addnode(
+        "OnikuxSequenceCreate",
+        inputs=[], outputs=[res.name]
+    )
+    for v in vs:
+        v = totensor(v, env)
+        tr = new_tensor()
+        env.addnode(
+            "OnikuxSequenceAppend",
+            inputs=[res.name, v.name], outputs=[tr.name]
+        )
+        res = tr
+    return res
+
+
 def eval_ast(nast, env):
     if not isinstance(nast, list):
         dprint(gast.dump(nast), env.vars.keys())
@@ -212,157 +714,10 @@ def eval_ast(nast, env):
             eval_ast(s, env)
         return None
     elif isinstance(nast, gast.For):
-        assert nast.orelse == []
-        ite = eval_ast(nast.iter, env)
+        return eval_for(nast, env)
 
-        if istensor(ite):
-            assert isinstance(nast.target, gast.Name)
-            x = nast.target.id
-
-            # 新たなenv を作って、評価中にできた子グラフをもとにする
-            localenv = Env()
-            localenv.vars = {}
-            localenv.vars.update(env.vars)
-            localenv.module = env.module
-
-            cnt = new_tensor()
-            gtx = new_tensor()
-            localenv.vars[x] = localenv.calc(
-                "OnikuxGenericGetItem",
-                inputs=[gtx.name, cnt.name],
-            )
-            ty = eval_ast(nast.body,  localenv)
-            assert ty is None
-
-            # 入力側のテンソルを見る。
-            in_names = set()
-            for no in localenv.nodes:
-                in_names = in_names | set(no.input)
-
-            in_names = list(in_names)
-            in_closure = {}
-            for k, v in env.vars.items():
-                if istensor(v) and v.name in in_names:
-                    in_closure[k] = (v, v)
-
-            compile_retry = False
-
-            # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
-            for k in localenv.vars.keys():
-                if k not in env.vars.keys():
-                    # for文の中で新たに変数が定義されることは、とりあえず想定しない。
-                    # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
-                    continue
-                if localenv.vars[k] != env.vars[k]:
-                    if not istensor(env.vars[k]):
-                        # この場合、LoopでUpdateしないといけないので
-                        # env.vars[k] は tensorでないといけない。
-                        # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                        env.vars[k] = totensor(env.vars[k], env)
-                        compile_retry = True
-
-                        """
-                        あと、この実装だと、
-                        bs = 0
-                        cs = 3
-                        for s in ilens:
-                            cs = s
-                            bs = cs
-                        のときに、 cs と bs が同じtensorを指していて
-                        Loop Operator の出力が同じtensorになってエラーになるので、
-                        同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
-                        """
-                    else:
-                        in_closure[k] = (env.vars[k], localenv.vars[k])
-
-            if compile_retry:
-                return eval_ast(nast, env)
-
-            # ループ内で使われた link パラメータは
-            # 1. 外の env にコピーしなければならない
-            env.init_tensors.extend(localenv.init_tensors)
-            # 2. state としてループ内に持ち込まなければならない
-            for init in localenv.init_tensors:
-                key = '#' + init.name
-                in_closure[key] = (init, init)
-
-            # この時点で
-            # in_closure[k] = (a,b) は、
-            # 『ループ内で参照されている変数kは
-            # ループのbodyの頭にはテンソルaの値であり、
-            # ループのbodyの足ではテンソルbの値である』という気持ち
-
-            # print(in_closure)
-            # dprint(localenv.nodes)
-            # print('ty',ty)
-            cond = new_tensor()
-            localgraph = helper.make_graph(
-                localenv.nodes,
-                "Loop_subgraph",
-                [cnt, cond, gtx] + [vv[0] for vv in in_closure.values()],
-                [cond, gtx] + [vv[1] for vv in in_closure.values()]
-            )
-
-            mtc = env.calc(
-                "OnikuxGenericLen",
-                inputs=[ite.name],
-            )
-
-            def dummy():
-                return "dummy_" + new_tensor().name
-
-            env.addnode(
-                'Loop',
-                inputs=[mtc.name, "", ite.name] +
-                [vv[0].name for vv in in_closure.values()],
-                # ループの中でupdateされない変数は出力先はdummyにする
-                # updateするならそれでできる新たなテンソルを出力とする
-                outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
-                                     for vv in in_closure.values()],
-                body=localgraph
-            )
-
-            for k, (_, v) in in_closure.items():
-                env.vars[k] = v
-
-            return None
-        else:
-            # とりあえず実際にfor文を回す
-            tg = nast.target.id
-            env.vars[tg] = None
-            for v in ite:
-                env.vars[tg] = v
-                eval_ast(nast.body, env)
-                # print('looping',env.vars.keys())
-
-            env.vars.pop(tg)
-            return None
     elif isinstance(nast, gast.Assign):
-        value = eval_ast(nast.value, env)
-        targs = nast.targets
-        assert(len(targs) == 1)
-        # v,w = 1 も targetsは長さ1のlistになるので len(rargs) != 1 の状況は謎ですね
-
-        # tgとして、下以外に
-        # List, ListのIndex, Starred
-        # またこれらを再帰的に組み合わせたものが存在しうる
-
-        tg = targs[0]
-        if isinstance(tg, gast.Name):
-            env.vars[tg.id] = value
-        elif isinstance(tg, gast.Tuple):
-            assert(isinstance(value, tuple))
-            assert(len(tg.elts) == len(value))
-
-            for i, v in enumerate(value):
-                env.vars[tg.elts[i].id] = v  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
-
-        elif isinstance(tg, gast.Attribute):
-            body = eval_ast(tg.value, env)
-            setattr(body, tg.attr, value)
-        else:
-            raise Exception('invalid assing lvalue', targs[0])
-        return None
+        return eval_assign(nast, env)
 
     elif isinstance(nast, gast.AugAssign):
         # referenceへの代入に対してこれは不正確
@@ -371,126 +726,13 @@ def eval_ast(nast, env):
         return eval_ast(ca, env)
 
     elif isinstance(nast, gast.Call):
-        fn = eval_ast(nast.func, env)
-
-        args = []
-        for ag in nast.args:
-            if isinstance(ag, gast.Starred):
-                args += list(eval_ast(ag.value, env))
-            else:
-                args.append(eval_ast(ag, env))
-
-        keywords = dict(
-            map(lambda x: (x.arg, eval_ast(x.value, env)), nast.keywords))
-
-        # code.InteractiveConsole({'fn': fn}).interact()
-
-        # chainer.functions の関数とかは、ここでfookをかける。
-        if fn in Func2NodeClass.keys():
-            return Func2NodeClass[fn].call(args, keywords, env)
-
-        dprint(fn, fn.__class__)
-        if isinstance(fn, types.FunctionType):
-            fn = User_Defined_Function(fn)
-        elif isinstance(fn, types.MethodType):
-            # apply はforwardにする
-            # code.InteractiveConsole({'fn': fn}).interact()
-            if fn.__func__ == chainer.FunctionNode.apply:
-                fn = User_Defined_Func_In_Link(
-                    fn.__self__, fn.__self__.forward)
-            elif fn.__func__ == chainer.FunctionNode.retain_inputs:
-                # TODO(satos) これbackward側に何か伝える必要がありそう
-                fn = Func(lambda _, __, ___: None)
-            else:
-                fn = User_Defined_Func_In_Link(fn.__self__, fn)
-        elif isinstance(fn, types.BuiltinFunctionType):
-            # BuiltinFunctionType はbuiltinsではなくCで書かれた関数のこととのこと
-            fn = builtin_functions[fn.__name__]
-        elif fn == range:
-            fn = builtin_functions['range']
-        elif isinstance(fn, type):
-            # なにがしかのinstanceを作成したはず
-            assert fn.__module__ != 'builtins'
-            fn = User_Defined_Class(fn).init_wrapper
-        elif isinstance(fn, chainer.link.Link):
-            fn = convert_link(fn, env)
-
-        dprint('converted to', fn)
-        return fn.call(args, keywords, env)
+        return eval_call(nast, env)
 
     elif isinstance(nast, gast.UnaryOp):
-        v = eval_ast(nast.operand, env)
-        res = new_tensor()
-        if isinstance(nast.op, gast.USub):
-            # optype = "*= -1"
-            def opfun(x): return -x
-        elif isinstance(nast.op, gast.Not):
-            # optype = "Not"
-            def opfun(x): return not x
-        else:
-            raise Exception('unknown operator', nast.op)
-
-        if not istensor(v):
-            return opfun(v)
-        else:
-            raise Exception("Unimplemented yet")
+        return eval_unary_op(nast, env)
 
     elif isinstance(nast, gast.BinOp):
-        lv = eval_ast(nast.left, env)
-        rv = eval_ast(nast.right, env)
-
-        res = new_tensor(['TODO'])
-        isfloor = False
-        if isinstance(nast.op, gast.Add):
-            optype = "Add"
-
-            def opfun(a, b): return a + b
-
-        elif isinstance(nast.op, gast.Sub):
-            optype = "Sub"
-
-            def opfun(a, b): return a - b
-
-        elif isinstance(nast.op, gast.Mult):
-            optype = "Mul"
-
-            def opfun(a, b): return a * b
-
-        elif isinstance(nast.op, gast.FloorDiv):
-            optype = "Div"
-            isfloor = True
-
-            def opfun(a, b): return a // b
-
-        elif isinstance(nast.op, gast.Div):
-            optype = "Div"
-
-            def opfun(a, b): return a / b
-
-        else:
-            raise Exception('unknown operator', nast.op)
-
-        # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
-
-        if not istensor(lv) and not istensor(rv):
-            # 定数畳み込みを行う
-            return opfun(lv, rv)
-
-        lv = totensor(lv, env)
-        rv = totensor(rv, env)
-
-        res = env.calc(
-            optype,
-            inputs=[lv.name, rv.name],
-        )
-
-        if isfloor:
-            res = env.calc(
-                "Floor",
-                inputs=[res.name],
-            )
-
-        return res
+        return eval_binary_op(nast, env)
 
     elif isinstance(nast, gast.BoolOp):
         # 現在は定数boleanのみ対応
@@ -507,63 +749,10 @@ def eval_ast(nast, env):
         raise Exception('Unimplemented BoolOp for tensor', nast)
 
     elif isinstance(nast, gast.Attribute):
-        body = eval_ast(nast.value, env)
-
-        if istensor(body):
-            if nast.attr == 'shape':
-                res = env.calc(
-                    'Shape',
-                    inputs=[body.name],
-                )
-                return res
-            elif nast.attr == 'append':
-                # TODO(satos) ごまかさない
-                assert isinstance(
-                    nast.value, gast.Name) and nast.value.id in env.vars.keys()
-                na = nast.value.id
-
-                # あと、ここのnaがreferenceの場合不正確
-                # たとえば
-                # x = y
-                # x.append(3)
-                # のyが更新されないので問題
-
-                def f(args, _, env):
-                    assert len(args) == 1
-                    v = totensor(args[0], env)
-                    env.vars[na] = env.calc(
-                        'OnikuxSequenceAppend',
-                        inputs=[body.name, v.name],
-                    )
-                    return None
-
-                return Func(f)
-
-            raise Exception('Unimplemented attribute ',
-                            nast.attr, ' for tensor')
-        return getattr(body, nast.attr)
+        return eval_attribute(nast, env)
 
     elif isinstance(nast, gast.Compare):
-        le = eval_ast(nast.left, env)
-        vs = list(map(lambda x: eval_ast(x, env), nast.comparators))
-        # とりあえず定数畳み込みのみにする
-
-        if (istensor(le) or any(map(istensor, vs))):
-            raise Exception('unimplemented tensor comparetion')
-
-        res = True
-        for op, r in zip(nast.ops, vs):
-            if isinstance(op, gast.Eq):
-                res = res and (le == r)
-            elif isinstance(op, gast.Is):
-                res = res and (le is r)
-            elif isinstance(op, gast.IsNot):
-                res = res and (le is not r)
-            elif isinstance(op, gast.Gt):
-                res = res and (le > r)
-            else:
-                raise Exception('unimplemented operator', op)
-        return res
+        return eval_compare(nast, env)
 
     elif isinstance(nast, gast.If):
         b = eval_ast(nast.test, env)
@@ -575,143 +764,10 @@ def eval_ast(nast, env):
             raise Exception('Not constant If is not implemented yet')
 
     elif isinstance(nast, gast.ListComp):
-
-        vn = "dummy@" + new_tensor().name  # 重ならない名前にする(ループ内ループもあるため)
-        assert len(nast.generators) >= 1
-        tast = gast.ast_to_gast(ast.parse("v.append(w)")).body[0]
-        tast.value.func.value.id = vn
-        tast.value.args[0] = nast.elt
-
-        for gen in nast.generators:
-            # とりあえず、このあたりはまだ実装しません
-            assert len(gen.ifs) == 0 and gen.is_async == 0
-            tast = gast.For(target=gen.target, iter=gen.iter,
-                            body=[tast], orelse=[])
-
-        init = gast.ast_to_gast(ast.parse("v = []")).body[0]
-        init.targets[0].id = vn
-        tast = [init, tast]
-
-        rv = eval_ast(tast, env)
-        assert rv is None
-        res = env.vars[vn]
-        env.vars.pop(vn)
-        return res
+        return eval_list_comp(nast, env)
 
     elif isinstance(nast, gast.Subscript):
-        # Subscriptの実装は以下の感じではだめで、
-        # コンパイラはシリアライズするだけにして
-        # あとはOnikuのほうにお願いすることになりそう
-
-        vs = eval_ast(nast.value, env)
-        if isinstance(vs, tuple):
-            assert isinstance(nast.slice, gast.Index)
-            idx = eval_ast(nast.slice.value, env)
-            assert isinstance(idx, int)
-            return vs[idx]
-        elif isinstance(vs, list):
-            raise Exception("unimplemented")
-
-        def unsqueeze(x):
-            tx = new_tensor()
-            env.addnode(
-                'Unsqueeze',
-                inputs=[x.name], outputs=[tx.name],
-                axes=[0]
-            )
-            return tx
-
-        # sliceがIdxの場合は、Idxのexprにlistが来うる可能性があるのでGatherする
-        # Numpyのsliceは闇では...???
-        # TODO(satos) Sliceの実装を"ちゃんと"したものにする(現在だと v[0:1,[2,3]] みたいなのは動かない)
-        # あと、これだとIndexに副作用が存在する場合にやばい
-        if isinstance(nast.slice, gast.Index):
-            idx = eval_ast(nast.slice.value, env)
-            if istensor(idx):
-                res = new_tensor()
-                env.addnode(
-                    'Gather',
-                    inputs=[vs.name, idx.name],
-                    outputs=[res.name]
-                )
-                return res
-            elif isinstance(idx, int):
-                # TODO(satos) スライドのためのごまかしのごまかし
-                res = new_tensor()
-                idx = unsqueeze(totensor(idx, env))
-                env.addnode(
-                    'OnikuxGenericGetItem',
-                    inputs=[vs.name, idx.name],
-                    outputs=[res.name]
-                )
-                return res
-
-        def slice2list(self):
-            if isinstance(self, gast.Slice):
-                assert self.step is None
-
-                def f(x, v):
-                    if x is None:
-                        return totensor(v, env)
-                    x = eval_ast(x, env)
-                    if istensor(x):
-                        return x
-                    else:
-                        return totensor(x, env)
-                lower = unsqueeze(f(self.lower, 0))
-                # TODO(satos)　その場しのぎっぽいのでどうにかする(けどこれどうにもならないですよね...?)
-                upper = unsqueeze(f(self.upper, 2 ** 30))
-                squeeze = [False]
-            elif isinstance(self, gast.Index):
-                idx = eval_ast(self.value, env)
-                if isinstance(idx, tuple):  # ここにTupleが来うる
-                    # TODO(satos) もっとうまくやったほうがいいかも
-                    vs = [gast.Index(gast.NameConstant(value=v)) for v in idx]
-                    lower, upper, squeeze = slice2list(gast.ExtSlice(dims=vs))
-                elif istensor(idx):
-                    lower = unsqueeze(idx)
-                    ot = totensor(1, env)
-                    upper = new_tensor()
-                    env.addnode(
-                        "Add",
-                        inputs=[idx.name, ot.name], outputs=[upper.name],
-                    )
-                    upper = unsqueeze(upper)
-                    squeeze = [True]
-                else:
-                    lower = unsqueeze(totensor(idx, env))
-                    upper = unsqueeze(totensor(idx+1, env))
-                    squeeze = [True]
-            elif isinstance(self, gast.ExtSlice):
-                ds = list(map(slice2list, self.dims))
-                lower = Function_Concat().call(
-                    [tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds))], {'axis': 0}, env)
-                upper = Function_Concat().call(
-                    [tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds))], {'axis': 0}, env)
-                squeeze = sum(map(lambda x: x[2], ds), [])
-            else:
-                raise Exception(self, " is not Python slice")
-
-            return lower, upper, squeeze
-        # print('slice',nast.slice)
-        lower, upper, squeeze = slice2list(nast.slice)
-        res = new_tensor()
-        env.addnode(
-            'DynamicSlice',
-            inputs=[vs.name, lower.name, upper.name],
-            outputs=[res.name]
-        )
-
-        if any(squeeze):
-            r = new_tensor()
-            env.addnode(
-                'Squeeze',
-                inputs=[res.name], outputs=[r.name],
-                axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
-            )
-            res = r
-
-        return res
+        return eval_subscript(nast, env)
 
     elif isinstance(nast, gast.Delete):
         # おのおの単に忘れる
@@ -741,26 +797,11 @@ def eval_ast(nast, env):
     elif isinstance(nast, gast.Tuple):
         return tuple(map(lambda x: eval_ast(x, env), nast.elts))
     elif isinstance(nast, gast.List):
-        # Sequenceにしているが、ここはPythonのlistのままにしておきたいとのこと
+        return eval_list(nast, env)
 
-        # Sequenceにする
-        vs = list(map(lambda x: eval_ast(x, env), nast.elts))
-        res = new_tensor()
-        env.addnode(
-            "OnikuxSequenceCreate",
-            inputs=[], outputs=[res.name]
-        )
-        for v in vs:
-            v = totensor(v, env)
-            tr = new_tensor()
-            env.addnode(
-                "OnikuxSequenceAppend",
-                inputs=[res.name, v.name], outputs=[tr.name]
-            )
-            res = tr
-        return res
     elif isinstance(nast, gast.Return):
         raise ValueReturn(eval_ast(nast.value, env))
+
     else:
         print('unknown ast')
         code.InteractiveConsole({'nast': nast, 'env': env}).interact()
