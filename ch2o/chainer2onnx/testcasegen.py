@@ -98,28 +98,28 @@ def generate_testcase(model, xs, out_key='prob'):
     edit_onnx_protobuf(onnxmod, model)
     chainer_out = run_chainer_model(model, xs, out_key)
 
-    if not os.path.exists(os.path.dirname(args.output)):
-        os.makedirs(os.path.dirname(args.output))
-    with open(args.output, 'wb') as fp:
+    output_dir = args.output
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:
         fp.write(onnxmod.SerializeToString())
 
-    if args.test_data_dir:
-        initializer_names = set()
-        for initializer in onnxmod.graph.initializer:
-            initializer_names.add(initializer.name)
-        input_names = []
-        for input_tensor in input_tensors:
-            if input_tensor.name not in initializer_names:
-                input_names.append(input_tensor.name)
+    initializer_names = set()
+    for initializer in onnxmod.graph.initializer:
+        initializer_names.add(initializer.name)
+    input_names = []
+    for input_tensor in input_tensors:
+        if input_tensor.name not in initializer_names:
+            input_names.append(input_tensor.name)
 
-        assert len(output_tensors) == len(chainer_out)
-        outputs = []
-        for tensor, value in zip(output_tensors, chainer_out):
-            outputs.append((tensor.name, value))
+    assert len(output_tensors) == len(chainer_out)
+    outputs = []
+    for tensor, value in zip(output_tensors, chainer_out):
+        outputs.append((tensor.name, value))
 
-        xs = list(map(lambda x: _validate_inout(x), xs))
+    xs = list(map(lambda x: _validate_inout(x), xs))
 
-        dump_test_inputs_outputs(
-            list(zip(input_names, xs)),
-            outputs,
-            args.test_data_dir)
+    dump_test_inputs_outputs(
+        list(zip(input_names, xs)),
+        outputs,
+        os.path.join(output_dir, 'test_data_set_0'))

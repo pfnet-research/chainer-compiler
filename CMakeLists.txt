@@ -37,7 +37,7 @@ function(gen_ch2o_test dir ch2o_test)
 
   add_custom_command(
     OUTPUT ${out_dir}/model.onnx
-    COMMAND PYTHONPATH=ch2o python3 ch2o/casetest/${dir}/${ch2o_test}.py --output ${out_dir}/model.onnx --test_data_dir ${out_dir}/test_data_set_0 --quiet
+    COMMAND PYTHONPATH=ch2o python3 ch2o/casetest/${dir}/${ch2o_test}.py ${out_dir} --quiet
     MAIN_DEPENDENCY ch2o/casetest/${dir}/${ch2o_test}.py
     DEPENDS
     ch2o/chainer2onnx/__init__.py

@@ -147,4 +147,5 @@ def main():
 
 if __name__ == '__main__':
     sys.argv.append('--quiet')
+    sys.argv.append('/tmp/dummy_dir')
     main()

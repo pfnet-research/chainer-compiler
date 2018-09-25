@@ -11,10 +11,8 @@ def get_test_args():
 
     parser = argparse.ArgumentParser(
         description='A test for Python => ONNX compiler')
-    parser.add_argument('--output', type=str, default='initialized_MLP.onnx',
-                        help='An output ONNX graph with parameters.')
-    parser.add_argument('--test_data_dir', type=str, default='',
-                        help='If specified, output test inputs/outputs.')
+    parser.add_argument('output', type=str,
+                        help='An output ONNX testcase directory.')
     parser.add_argument('--nocheck', dest='check', action='store_false',
                         help='Do not run the check with mxnet.')
     parser.add_argument('--quiet', action='store_true',
