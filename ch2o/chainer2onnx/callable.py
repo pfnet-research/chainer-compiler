@@ -1,6 +1,6 @@
 import inspect
 
-from . value import Value
+from chainer2onnx.value import Value
 
 
 class Callable(object):

@@ -8,16 +8,16 @@ import numpy as np
 
 import chainer
 
-from . chainer2onnx import compiler
-from . test_args import get_test_args
-from . test_args import dprint
+from chainer2onnx.chainer2onnx import compiler
+from chainer2onnx.test_args import get_test_args
+from chainer2onnx.test_args import dprint
 
 from onnx import numpy_helper
 
 from onnx import mapping
 from onnx import TensorProto
 
-from . initializer import edit_onnx_protobuf
+from chainer2onnx.initializer import edit_onnx_protobuf
 
 # variableを消す
 

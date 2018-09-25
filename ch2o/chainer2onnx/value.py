@@ -3,7 +3,7 @@ import onnx
 
 from typing import List, Mapping
 
-from . utils import Env, totensor
+from chainer2onnx.utils import Env, totensor
 
 
 def _is_float_value(v):

@@ -5,7 +5,7 @@ from onnx import TensorProto
 
 from chainer import links as L
 
-from . utils import new_tensor, size2d, totensor, Env, clip_head
+from chainer2onnx.utils import new_tensor, size2d, totensor, Env, clip_head
 
 import ast
 import code

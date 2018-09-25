@@ -14,11 +14,11 @@ import types
 import chainer
 import numpy
 
-from . test_args import dprint
-from . utils import new_tensor, clip_head, ValueReturn, istensor, totensor, Env
-from . links import Link2NodeClass
-from . funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
-from . builtin_funcs import builtin_functions
+from chainer2onnx.test_args import dprint
+from chainer2onnx.utils import new_tensor, clip_head, ValueReturn, istensor, totensor, Env
+from chainer2onnx.links import Link2NodeClass
+from chainer2onnx.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
+from chainer2onnx.builtin_funcs import builtin_functions
 
 import builtins
 

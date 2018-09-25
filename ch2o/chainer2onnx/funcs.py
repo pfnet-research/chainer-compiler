@@ -8,9 +8,9 @@ import chainer
 from chainer import functions as F
 import numpy
 
-from . utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
-from . callable import Callable
-from . value import Value
+from chainer2onnx.utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
+from chainer2onnx.callable import Callable
+from chainer2onnx.value import Value
 
 import ast
 import code

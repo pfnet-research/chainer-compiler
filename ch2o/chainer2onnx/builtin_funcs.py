@@ -2,8 +2,8 @@
 
 from onnx import helper
 
-from . utils import istensor, new_tensor
-from . funcs import Func, totensor
+from chainer2onnx.utils import istensor, new_tensor
+from chainer2onnx.funcs import Func, totensor
 
 
 class Builtin_Len(object):
