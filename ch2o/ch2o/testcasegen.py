@@ -104,7 +104,8 @@ def generate_testcase(model, xs, subname=None):
     if subname is None:
         # Remove all related directories to renamed tests.
         for d in [output_dir] + glob.glob(output_dir + '_*'):
-            shutil.rmtree(d)
+            if os.path.exists(output_dir):
+                shutil.rmtree(d)
     else:
         output_dir = output_dir + '_' + subname
     if not os.path.exists(output_dir):
