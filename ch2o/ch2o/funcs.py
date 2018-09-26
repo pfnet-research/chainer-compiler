@@ -162,13 +162,12 @@ class Function_BroadcastTo(Callable):
 
 
 def castto(v, tt, env):
-    res = new_tensor()
-    res.type.tensor_type.elem_type = tt
-    env.addnode(
+    res = env.calc(
         'Cast',
-        inputs=[v.name], outputs=[res.name],
+        inputs=[v.name],
         to=tt
     )
+    res.type.tensor_type.elem_type = tt
     return res
 
 
@@ -225,10 +224,9 @@ class Np_Cumsum(Callable):
             axes=[0]
         )
         """
-        ls = new_tensor()
-        env.addnode(
+        ls = env.calc(
             'OnikuxGenericLen',
-            inputs=[v.name], outputs=[ls.name],
+            inputs=[v.name],
         )
 
         def dummy():
@@ -238,16 +236,14 @@ class Np_Cumsum(Callable):
         cnt = new_tensor()
         cond = new_tensor()
         s = new_tensor()
-        ts = new_tensor()
         gtx = new_tensor()
-        tx = new_tensor()
-        localenv.addnode(
+        tx = localenv.calc(
             "OnikuxGenericGetItem",
-            inputs=[gtx.name, cnt.name], outputs=[tx.name],
+            inputs=[gtx.name, cnt.name],
         )
-        localenv.addnode(
+        ts = localenv.calc(
             "Add",
-            inputs=[tx.name, s.name], outputs=[ts.name],
+            inputs=[tx.name, s.name],
         )
 
         zero = totensor(0, env)
@@ -345,11 +341,10 @@ class Function_Dummy(object):
 
     def call(self, args, keywords, env):
         # raise Exception(self,"Unimplemented")
-        env.addnode(
+        return env.calc(
             "Dummy of %s and should be removed" % self.name,
-            inputs=[], outputs=[]
+            inputs=[]
         )
-        return new_tensor()
 
 
 dummies = [

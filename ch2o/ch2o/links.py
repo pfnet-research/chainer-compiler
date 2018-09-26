@@ -43,20 +43,19 @@ class Link_Linear(Callable):
         res = new_tensor([self.n_out])
 
         if self.nobias:
-            t = new_tensor()
-            env.addnode(
+            t = env.calc(
                 "Transpose",
-                inputs=[self.W.name], outputs=[t.name],
+                inputs=[self.W.name],
                 perm=[1, 0]
             )
-            env.addnode(
+            res = env.calc(
                 "MatMul",
-                inputs=[x.name, t.name], outputs=[res.name]
+                inputs=[x.name, t.name],
             )
         else:
-            env.addnode(
+            res = env.calc(
                 "Gemm",
-                inputs=[x.name, self.W.name, self.b.name], outputs=[res.name],
+                inputs=[x.name, self.W.name, self.b.name],
                 transA=0, transB=1
             )
         return res
@@ -189,34 +188,25 @@ class Link_NStepLSTM(Callable):
         xs = xs.to_tensor(env)
 
         # とりあえずnstep を 1step ずつに分解する
-        v = new_tensor()
-        ilens = new_tensor()
-        env.addnode(
+        ilens = env.calc(
             "OnikuxSequenceLengths",
             inputs=[xs.name],
-            outputs=[ilens.name]
         )
 
-        tilens = new_tensor()
-        env.addnode(
+        tilens = env.calc(
             "OnikuxSequenceStack",
             inputs=[ilens.name],
-            outputs=[tilens.name]
         )
 
-        env.addnode(
+        v = env.calc(
             "OnikuxSequencePad",
             inputs=[xs.name],
-            outputs=[v.name],
         )
-        tv = new_tensor()
-        env.addnode(
+        v = env.calc(
             "Transpose",
             perm=(1, 0, 2),
             inputs=[v.name],
-            outputs=[tv.name],
         )
-        v = tv
 
         hs = []
         cs = []
@@ -239,43 +229,35 @@ class Link_NStepLSTM(Callable):
 
             hs.append(h.name)
             cs.append(c.name)
-            yys = new_tensor()
-            env.addnode(
+            yys = env.calc(
                 "Squeeze",
                 inputs=[ys.name],
-                outputs=[yys.name],
                 axes=[1]
             )
             v = yys
         # print(hs)
         # print(cs)
-        ths = new_tensor()
-        tcs = new_tensor()
-        env.addnode(
+        ths = env.calc(
             "Concat",
-            inputs=hs, outputs=[ths.name],
+            inputs=hs,
             axis=0,
         )
-        env.addnode(
+        tcs = env.calc(
             "Concat",
-            inputs=cs, outputs=[tcs.name],
+            inputs=cs,
             axis=0,
         )
 
-        tv = new_tensor()
-        env.addnode(
+        tv = env.calc(
             "Transpose",
             perm=(1, 0, 2),
             inputs=[v.name],
-            outputs=[tv.name],
         )
         v = tv
 
-        tys = new_tensor()
-        env.addnode(
+        tys = env.calc(
             "OnikuxSequenceUnpad",
             inputs=[v.name, ilens.name],
-            outputs=[tys.name]
         )
         return ths, tcs, tys
 

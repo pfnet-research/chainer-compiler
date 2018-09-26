@@ -73,7 +73,6 @@ def totensor(x, env, dtype=None):
     if istensor(x):
         assert dtype is None
         return x
-    res = new_tensor()
 
     if type(x) == float or type(x) == int:
         if dtype is not None:
@@ -82,9 +81,9 @@ def totensor(x, env, dtype=None):
             dt = onnx.TensorProto.FLOAT
         else:
             dt = onnx.TensorProto.INT64
-        env.addnode(
+        res = env.calc(
             'Constant',
-            inputs=[], outputs=[res.name],
+            inputs=[],
             value=onnx.helper.make_tensor(
                 name="hoge",
                 data_type=dt,
@@ -95,19 +94,18 @@ def totensor(x, env, dtype=None):
     elif type(x) == tuple or type(x) == list:
         def f(v):
             tv = v.to_tensor(env)
-            tw = new_tensor()
-            env.addnode(
+            tw = env.calc(
                 'Unsqueeze',
-                inputs=[tv.name], outputs=[tw.name],
+                inputs=[tv.name],
                 axes=[0]
             )
             return tw.name
 
         vs = list(map(f, x))
         # print(vs)
-        env.addnode(
+        res = env.calc(
             'Concat',
-            inputs=vs, outputs=[res.name],
+            inputs=vs,
             axis=0
         )
     else:

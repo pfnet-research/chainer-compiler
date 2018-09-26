@@ -600,10 +600,9 @@ def eval_subscript(nast, env):
         raise Exception("unimplemented")
 
     def unsqueeze(x):
-        tx = new_tensor()
-        env.addnode(
+        tx = env.calc(
             'Unsqueeze',
-            inputs=[x.name], outputs=[tx.name],
+            inputs=[x.name],
             axes=[0]
         )
         return tx
@@ -615,21 +614,17 @@ def eval_subscript(nast, env):
     if isinstance(nast.slice, gast.Index):
         idx = eval_ast(nast.slice.value, env)
         if istensor(idx):
-            res = new_tensor()
-            env.addnode(
+            res = env.calc(
                 'Gather',
                 inputs=[vs.name, idx.name],
-                outputs=[res.name]
             )
             return res
         elif isinstance(idx, int):
             # TODO(satos) スライドのためのごまかしのごまかし
-            res = new_tensor()
             idx = unsqueeze(idx.to_tensor(env))
-            env.addnode(
+            res = env.calc(
                 'OnikuxGenericGetItem',
                 inputs=[vs.name, idx.name],
-                outputs=[res.name]
             )
             return res
 
@@ -658,11 +653,9 @@ def eval_subscript(nast, env):
             elif not idx.is_py:
                 lower = unsqueeze(idx.value)
                 ot = totensor(1, env)
-                upper = new_tensor()
-                env.addnode(
+                upper = env.calc(
                     "Add",
                     inputs=[idx.to_tensor(env).name, ot.name],
-                    outputs=[upper.name],
                 )
                 upper = unsqueeze(upper)
                 squeeze = [True]
@@ -687,20 +680,17 @@ def eval_subscript(nast, env):
     vs = Value(vs).to_tensor(env)
     lower = Value(lower).to_tensor(env)
     upper = Value(upper).to_tensor(env)
-    env.addnode(
+    res = env.calc(
         'DynamicSlice',
         inputs=[vs.name, lower.name, upper.name],
-        outputs=[res.name]
     )
 
     if any(squeeze):
-        r = new_tensor()
-        env.addnode(
+        res = env.calc(
             'Squeeze',
-            inputs=[res.name], outputs=[r.name],
+            inputs=[res.name],
             axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
         )
-        res = r
 
     return res
 
@@ -709,19 +699,16 @@ def eval_list(nast, env):
     # Sequenceにしているが、ここはPythonのlistのままにしておきたいとのこと
     # Sequenceにする
     vs = list(map(lambda x: eval_ast(x, env), nast.elts))
-    res = new_sequence()
-    env.addnode(
+    res = env.calc_seq(
         "OnikuxSequenceCreate",
-        inputs=[], outputs=[res.name]
+        inputs=[],
     )
     for v in vs:
         v = v.to_tensor(env)
-        tr = new_sequence()
-        env.addnode(
+        res = env.calc_seq(
             "OnikuxSequenceAppend",
-            inputs=[res.name, v.name], outputs=[tr.name]
+            inputs=[res.name, v.name],
         )
-        res = tr
     return res
 
 

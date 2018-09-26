@@ -13,16 +13,14 @@ class Builtin_Len(Callable):
 
     def call_impl(self, env, x):
         x = x.to_tensor(env)
-        res = new_tensor()
-        v = new_tensor()
-        env.addnode(
+        v = env.calc(
             "Shape",
-            inputs=[x.name], outputs=[v.name]
+            inputs=[x.name],
         )
 
-        env.addnode(
+        res = env.calc(
             "Gather",
-            inputs=[v.name, totensor(0, env).name], outputs=[res.name],
+            inputs=[v.name, totensor(0, env).name],
             axis=0
         )
 
@@ -39,9 +37,9 @@ def builtin_range(args, _, env):
     a = new_tensor()
     b = new_tensor()
     res = new_tensor()
-    env.addnode(
+    res = env.calc(
         'Loop',
-        inputs=[args[0].to_tensor(env).name, ""], outputs=[res.name],
+        inputs=[args[0].to_tensor(env).name, ""],
         body=helper.make_graph(
             [],
             "Range_subgraph",

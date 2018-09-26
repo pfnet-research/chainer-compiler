@@ -73,10 +73,9 @@ class Value(object):
         if self.is_py:
             if not isinstance(self.value, collections.Iterable):
                 raise TypeError('Expected a sequence: %s' % self.value)
-            res = new_tensor()
-            env.addnode(
+            res = env.calc_seq(
                 "OnikuxSequenceCreate",
-                inputs=[], outputs=[res.name]
+                inputs=[],
             )
             for v in self.value:
                 v = v.to_tensor(env)
