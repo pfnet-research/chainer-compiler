@@ -72,7 +72,7 @@ def totensor(x, env, dtype=None):
         )
     elif type(x) == tuple or type(x) == list:
         def f(v):
-            tv = totensor(v, env)
+            tv = v.to_tensor(env)
             tw = new_tensor()
             env.addnode(
                 'Unsqueeze',

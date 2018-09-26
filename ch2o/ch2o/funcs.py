@@ -32,7 +32,8 @@ def _pair(v: Value) -> List[int]:
     if not v.is_py:
         raise TypeError('Expected an int or an int list: %s' % v.value)
     if isinstance(v.value, collections.Iterable):
-        return list(v.value)
+        assert all(x.is_py for x in v.value)
+        return list(x.value for x in v.value)
     return v.value, v.value
 
 
@@ -91,7 +92,7 @@ class Function_Concat(Callable):
         assert isinstance(xs.value, tuple)  # 今のところ tuple 以外は concat できない
         return env.calc(
             "Concat",
-            inputs=list(map(lambda x: x.name, xs.value)),
+            inputs=list(x.to_tensor(env).name for x in xs.value),
             axis=axis.to_int(),
         )
 

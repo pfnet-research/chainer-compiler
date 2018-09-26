@@ -7,6 +7,7 @@ from chainer import links as L
 
 from ch2o.callable import Callable
 from ch2o.utils import new_tensor, size2d, totensor, Env, clip_head
+from ch2o.value import Value
 
 import ast
 import code
@@ -316,7 +317,6 @@ class Link_NStepBiLSTM(Callable):
         xs = xs.to_tensor(env)
 
         # とりあえずnstep を 1step ずつに分解する
-        v = new_tensor()
         ilens = env.calc(
             "OnikuxSequenceLengths",
             inputs=[xs.name],
@@ -333,6 +333,7 @@ class Link_NStepBiLSTM(Callable):
         cs = []
 
         for i in range(self.n_layers):
+            v = Value(v).to_tensor(env)
             v = env.calc(
                 "OnikuxSequencePad",
                 inputs=[v.name],

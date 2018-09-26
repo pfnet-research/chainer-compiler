@@ -25,18 +25,20 @@ class Value(object):
             raise TypeError('Unsupported attribute %s for an ONNX value' % key)
         return Value(getattr(self.value, key))
 
-    def call(self, args: List['Value'],
-             kwargs: Mapping[str, 'Value'], env: Env):
-        assert self.is_py
-        return Value(self.value.call(args, kwargs, env))
-
-    def value_info(self) -> onnx.ValueInfoProto:
-        print(self.value)
-        assert not self.is_py
-        return self.value
-
     def is_none(self) -> bool:
         return self.is_py and self.value is None
+
+    def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
+        if self.is_py:
+            # TODO(hamaji): Rewrite `totensor` to convert a Python
+            # list to a tensor.
+            self.value = totensor(self.value, env)
+            self.is_py = False
+
+        if not self.value.type.tensor_type:
+            raise TypeError('Expected a tensor: %s' % self.value)
+
+        return self.value
 
     def to_tensor(self, env: Env, dtype:type=None) -> onnx.ValueInfoProto:
         if self.is_py:

@@ -19,6 +19,7 @@ from ch2o.utils import new_tensor, clip_head, ValueReturn, istensor, totensor, E
 from ch2o.links import Link2NodeClass
 from ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
 from ch2o.builtin_funcs import builtin_functions
+from ch2o.value import Value
 
 import builtins
 
@@ -204,7 +205,7 @@ def eval_for(nast, env):
     assert nast.orelse == []
     ite = eval_ast(nast.iter, env)
 
-    if istensor(ite):
+    if not ite.is_py:
         assert isinstance(nast.target, gast.Name)
         x = nast.target.id
 
@@ -221,7 +222,7 @@ def eval_for(nast, env):
             inputs=[gtx.name, cnt.name],
         )
         ty = eval_ast(nast.body,  localenv)
-        assert ty is None
+        assert ty.is_none()
 
         # 入力側のテンソルを見る。
         in_names = set()
@@ -247,7 +248,7 @@ def eval_for(nast, env):
                     # この場合、LoopでUpdateしないといけないので
                     # env.vars[k] は tensorでないといけない。
                     # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                    env.vars[k] = totensor(env.vars[k], env)
+                    env.vars[k] = env.vars[k].to_tensor(env)
                     compile_retry = True
 
                     """
@@ -284,17 +285,21 @@ def eval_for(nast, env):
         # print(in_closure)
         # dprint(localenv.nodes)
         # print('ty',ty)
+
         cond = new_tensor()
+        in_closure_values = [(Value(inv).to_tensor(env),
+                              Value(outv).to_tensor(env))
+                             for inv, outv in in_closure.values()]
         localgraph = helper.make_graph(
             localenv.nodes,
             "Loop_subgraph",
-            [cnt, cond, gtx] + [vv[0] for vv in in_closure.values()],
-            [cond, gtx] + [vv[1] for vv in in_closure.values()]
+            [cnt, cond, gtx] + [vv[0] for vv in in_closure_values],
+            [cond, gtx] + [vv[1] for vv in in_closure_values]
         )
 
         mtc = env.calc(
             "OnikuxGenericLen",
-            inputs=[ite.name],
+            inputs=[ite.to_tensor(env).name],
         )
 
         def dummy():
@@ -302,12 +307,12 @@ def eval_for(nast, env):
 
         env.addnode(
             'Loop',
-            inputs=[mtc.name, "", ite.name] +
+            inputs=[mtc.name, "", ite.to_tensor(env).name] +
             [vv[0].name for vv in in_closure.values()],
             # ループの中でupdateされない変数は出力先はdummyにする
             # updateするならそれでできる新たなテンソルを出力とする
             outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
-                                 for vv in in_closure.values()],
+                                 for vv in in_closure_values],
             body=localgraph
         )
 
@@ -319,7 +324,7 @@ def eval_for(nast, env):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
         env.vars[tg] = None
-        for v in ite:
+        for v in ite.value:
             env.vars[tg] = v
             eval_ast(nast.body, env)
             # print('looping',env.vars.keys())
@@ -342,7 +347,8 @@ def eval_assign(nast, env):
     if isinstance(tg, gast.Name):
         env.vars[tg.id] = value
     elif isinstance(tg, gast.Tuple):
-        assert(isinstance(value, tuple))
+        assert(isinstance(value.value, tuple))
+        value = value.value
         assert(len(tg.elts) == len(value))
 
         for i, v in enumerate(value):
@@ -350,7 +356,7 @@ def eval_assign(nast, env):
 
     elif isinstance(tg, gast.Attribute):
         body = eval_ast(tg.value, env)
-        setattr(body, tg.attr, value)
+        setattr(body.value, tg.attr, value)
     else:
         raise Exception('invalid assing lvalue', targs[0])
     return None
@@ -358,6 +364,9 @@ def eval_assign(nast, env):
 
 def eval_call(nast, env):
     fn = eval_ast(nast.func, env)
+    if not fn.is_py:
+        raise TypeError('Expected a callable: %s' % fn.value)
+    fn = fn.value
 
     args = []
     for ag in nast.args:
@@ -418,7 +427,7 @@ def eval_unary_op(nast, env):
         raise Exception('unknown operator', nast.op)
 
     if not istensor(v):
-        return opfun(v)
+        return opfun(v.value)
     else:
         raise Exception("Unimplemented yet")
 
@@ -460,12 +469,13 @@ def eval_binary_op(nast, env):
 
     # code.InteractiveConsole({'lv': lv, 'rv': rv}).interact()
 
-    if not istensor(lv) and not istensor(rv):
-        # 定数畳み込みを行う
-        return opfun(lv, rv)
+    # TODO(hamaji): Reconsider if constant folding is necessary in CH2O.
+    #if not istensor(lv) and not istensor(rv):
+    #    # 定数畳み込みを行う
+    #    return opfun(lv, rv)
 
-    lv = totensor(lv, env)
-    rv = totensor(rv, env)
+    lv = lv.to_tensor(env)
+    rv = rv.to_tensor(env)
 
     res = env.calc(
         optype,
@@ -484,7 +494,7 @@ def eval_binary_op(nast, env):
 def eval_attribute(nast, env):
     body = eval_ast(nast.value, env)
 
-    if istensor(body):
+    if not body.is_py:
         if nast.attr == 'shape':
             res = env.calc(
                 'Shape',
@@ -505,10 +515,10 @@ def eval_attribute(nast, env):
 
             def f(args, _, env):
                 assert len(args) == 1
-                v = totensor(args[0], env)
+                v = args[0].to_tensor(env)
                 env.vars[na] = env.calc(
                     'OnikuxSequenceAppend',
-                    inputs=[body.name, v.name],
+                    inputs=[body.to_tensor(env).name, v.name],
                 )
                 return None
 
@@ -516,7 +526,7 @@ def eval_attribute(nast, env):
 
         raise Exception('Unimplemented attribute ',
                         nast.attr, ' for tensor')
-    return getattr(body, nast.attr)
+    return body.get_attribute(nast.attr)
 
 
 def eval_compare(nast, env):
@@ -560,7 +570,7 @@ def eval_list_comp(nast, env):
     tast = [init, tast]
 
     rv = eval_ast(tast, env)
-    assert rv is None
+    assert rv.is_none()
     res = env.vars[vn]
     env.vars.pop(vn)
     return res
@@ -615,7 +625,7 @@ def eval_subscript(nast, env):
         elif isinstance(idx, int):
             # TODO(satos) スライドのためのごまかしのごまかし
             res = new_tensor()
-            idx = unsqueeze(totensor(idx, env))
+            idx = unsqueeze(idx.to_tensor(env))
             env.addnode(
                 'OnikuxGenericGetItem',
                 inputs=[vs.name, idx.name],
@@ -629,35 +639,36 @@ def eval_subscript(nast, env):
 
             def f(x, v):
                 if x is None:
-                    return totensor(v, env)
+                    return Value(v).to_tensor(env)
                 x = eval_ast(x, env)
                 if istensor(x):
                     return x
                 else:
-                    return totensor(x, env)
+                    return x.to_tensor(env)
             lower = unsqueeze(f(self.lower, 0))
             # TODO(satos)　その場しのぎっぽいのでどうにかする(けどこれどうにもならないですよね...?)
             upper = unsqueeze(f(self.upper, 2 ** 30))
             squeeze = [False]
         elif isinstance(self, gast.Index):
             idx = eval_ast(self.value, env)
-            if isinstance(idx, tuple):  # ここにTupleが来うる
+            if isinstance(idx.value, tuple):  # ここにTupleが来うる
                 # TODO(satos) もっとうまくやったほうがいいかも
-                vs = [gast.Index(gast.NameConstant(value=v)) for v in idx]
+                vs = [gast.Index(gast.NameConstant(value=v)) for v in idx.value]
                 lower, upper, squeeze = slice2list(gast.ExtSlice(dims=vs))
-            elif istensor(idx):
-                lower = unsqueeze(idx)
+            elif not idx.is_py:
+                lower = unsqueeze(idx.value)
                 ot = totensor(1, env)
                 upper = new_tensor()
                 env.addnode(
                     "Add",
-                    inputs=[idx.name, ot.name], outputs=[upper.name],
+                    inputs=[idx.to_tensor(env).name, ot.name],
+                    outputs=[upper.name],
                 )
                 upper = unsqueeze(upper)
                 squeeze = [True]
             else:
-                lower = unsqueeze(totensor(idx, env))
-                upper = unsqueeze(totensor(idx+1, env))
+                lower = unsqueeze(totensor(idx.value, env))
+                upper = unsqueeze(totensor(idx.value+1, env))
                 squeeze = [True]
         elif isinstance(self, gast.ExtSlice):
             ds = list(map(slice2list, self.dims))
@@ -673,6 +684,9 @@ def eval_subscript(nast, env):
     # print('slice',nast.slice)
     lower, upper, squeeze = slice2list(nast.slice)
     res = new_tensor()
+    vs = Value(vs).to_tensor(env)
+    lower = Value(lower).to_tensor(env)
+    upper = Value(upper).to_tensor(env)
     env.addnode(
         'DynamicSlice',
         inputs=[vs.name, lower.name, upper.name],
@@ -701,7 +715,7 @@ def eval_list(nast, env):
         inputs=[], outputs=[res.name]
     )
     for v in vs:
-        v = totensor(v, env)
+        v = v.to_tensor(env)
         tr = new_tensor()
         env.addnode(
             "OnikuxSequenceAppend",
@@ -712,6 +726,14 @@ def eval_list(nast, env):
 
 
 def eval_ast(nast, env):
+    r = eval_ast_impl(nast, env)
+    if (isinstance(r, User_Defined_Function) or
+        isinstance(r, User_Defined_Func_In_Link)):
+        return r
+    return Value(r)
+
+
+def eval_ast_impl(nast, env):
     if not isinstance(nast, list):
         dprint(gast.dump(nast), env.vars.keys())
 
@@ -837,8 +859,8 @@ def compiler(model):
     v = molk.call(input_tensors, [], env)
 
     dprint('output_tensors', v)
-    if isinstance(v, tuple):
-        output_tensors = list(v)  # ばらしてみる
+    if isinstance(v.value, tuple):
+        output_tensors = list(v.value)  # ばらしてみる
     else:
         output_tensors = [v]  # とりあえず1tensor
 
@@ -856,9 +878,10 @@ def compiler(model):
     # for ch in model.namedparams():
     #    print(ch)
 
+    outputs_vi = [o.to_value_info(env) for o in output_tensors]
     graph = helper.make_graph(env.nodes,
                               'name_is_unknown_now', input_tensors,
-                              output_tensors
+                              outputs_vi,
                               )
 
     # inputのうち、重みであるものにはinitializerをつける
@@ -870,4 +893,4 @@ def compiler(model):
     mo = helper.make_model(graph)
 
     # print(mo)
-    return mo, input_tensors, output_tensors
+    return mo, input_tensors, outputs_vi

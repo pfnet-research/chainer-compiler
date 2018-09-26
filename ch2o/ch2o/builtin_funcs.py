@@ -30,18 +30,18 @@ class Builtin_Len(Callable):
 
 
 def builtin_range(args, _, env):
-    assert len(args) <= 1  # TODO(satos) 一般的にする
-
-    if not any(map(istensor, args)):
+    if all(a.is_py for a in args):
         # print('constant loop',args)
-        return range(*args)
+        return range(*(a.value for a in args))
+
+    assert len(args) <= 1  # TODO(satos) 一般的にする
 
     a = new_tensor()
     b = new_tensor()
     res = new_tensor()
     env.addnode(
         'Loop',
-        inputs=[args[0].name, ""], outputs=[res.name],
+        inputs=[args[0].to_tensor(env).name, ""], outputs=[res.name],
         body=helper.make_graph(
             [],
             "Range_subgraph",
