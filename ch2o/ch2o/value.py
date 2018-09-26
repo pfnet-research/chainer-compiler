@@ -3,7 +3,7 @@ import onnx
 
 from typing import List, Mapping
 
-from ch2o.utils import Env, totensor
+from ch2o.utils import Env, totensor, new_tensor
 
 
 def _is_float_value(v):
@@ -19,6 +19,9 @@ class Value(object):
             value = value.value
         self.value = value
         self.is_py = not isinstance(self.value, onnx.ValueInfoProto)
+        if not self.is_py:
+            assert self.is_tensor() or self.is_sequence()
+            assert not (self.is_tensor() and self.is_sequence())
 
     def __str__(self):
         if self.is_py:
@@ -33,6 +36,12 @@ class Value(object):
 
     def is_none(self) -> bool:
         return self.is_py and self.value is None
+
+    def is_tensor(self) -> bool:
+        return self.value.type.HasField('tensor_type')
+
+    def is_sequence(self) -> bool:
+        return self.value.type.HasField('sequence_type')
 
     def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
         if self.is_py:
@@ -53,10 +62,36 @@ class Value(object):
             self.value = totensor(self.value, env, dtype=dtype)
             self.is_py = False
 
-        if not self.value.type.tensor_type:
+        if self.is_sequence():
+            self.value = env.calc('OnikuxSequenceStack',
+                                  inputs=[self.value.name])
+            self.is_py = False
+
+        if not self.is_tensor():
             raise TypeError('Expected a tensor: %s' % self.value)
 
         return self.value
+
+    def to_sequence(self, env: Env) -> onnx.ValueInfoProto:
+        if self.is_py:
+            if not isinstance(self.value, collections.Iterable):
+                raise TypeError('Expected a sequence: %s' % self.value)
+            res = new_tensor()
+            env.addnode(
+                "OnikuxSequenceCreate",
+                inputs=[], outputs=[res.name]
+            )
+            for v in self.value:
+                v = v.to_tensor(env)
+                tr = new_tensor()
+                env.addnode(
+                    "OnikuxSequenceAppend",
+                    inputs=[res.name, v.name], outputs=[tr.name]
+                )
+                res = tr
+            return res
+        else:
+            return env.calc('OnikuxSequenceSplit', inputs=[self.value])
 
     def to_float(self) -> float:
         if not self.is_py:

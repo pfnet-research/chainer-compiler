@@ -15,7 +15,7 @@ import chainer
 import numpy
 
 from ch2o.test_args import dprint
-from ch2o.utils import new_tensor, clip_head, ValueReturn, istensor, totensor, Env
+from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, Env
 from ch2o.links import Link2NodeClass
 from ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
 from ch2o.builtin_funcs import builtin_functions
@@ -709,14 +709,14 @@ def eval_list(nast, env):
     # Sequenceにしているが、ここはPythonのlistのままにしておきたいとのこと
     # Sequenceにする
     vs = list(map(lambda x: eval_ast(x, env), nast.elts))
-    res = new_tensor()
+    res = new_sequence()
     env.addnode(
         "OnikuxSequenceCreate",
         inputs=[], outputs=[res.name]
     )
     for v in vs:
         v = v.to_tensor(env)
-        tr = new_tensor()
+        tr = new_sequence()
         env.addnode(
             "OnikuxSequenceAppend",
             inputs=[res.name, v.name], outputs=[tr.name]

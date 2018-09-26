@@ -180,11 +180,11 @@ class Np_Array(Callable):
         super(Np_Array, self).__init__(a)
 
     def call_impl(self, env, object, dtype, copy, order, subok, ndmin):
-        assert copy.value is not True  # TODO(hamaji): Not supported yet.
-        assert order.value != 'K'  # TODO(hamaji): Not supported yet.
-        assert subok.value is not False   # TODO(hamaji): Not supported yet.
-        assert ndmin.value != 0  # TODO(hamaji): Not supported yet.
-        return object.to_tensor(env, dtype=dtype.value).name
+        assert copy.value is True  # TODO(hamaji): Not supported yet.
+        assert order.value == 'K'  # TODO(hamaji): Not supported yet.
+        assert subok.value is False   # TODO(hamaji): Not supported yet.
+        assert ndmin.value == 0  # TODO(hamaji): Not supported yet.
+        return object.to_tensor(env, dtype=dtype.value)
 
 
 class Np_Int32(Callable):

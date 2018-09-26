@@ -22,6 +22,7 @@ Id
 LRN
 Linear
 MaxPool2d
+NpArray
 NstepBiLSTM
 NstepLSTM
 PadSequence

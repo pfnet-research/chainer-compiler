@@ -7,14 +7,36 @@ from onnx import TensorProto
 import os
 
 
-def new_tensor(dims=['Undefined']):
-    tn = new_tensor.cnt
-    new_tensor.cnt += 1
-    return helper.make_tensor_value_info(
-        'T' + str(tn), TensorProto.FLOAT, dims)
+_cnt = 0
 
 
-new_tensor.cnt = 0
+def gen_cnt():
+    global _cnt
+    _cnt += 1
+    return _cnt
+
+
+def new_tensor(dims=['Undefined'], dtype=None):
+    if dtype is not None:
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[dtype]
+    else:
+        # TODO(hamaji): Deprecate this fallback pass.
+        dt = onnx.TensorProto.FLOAT
+    tn = gen_cnt()
+    return helper.make_tensor_value_info('T' + str(tn), dt, dims)
+
+
+def new_sequence(dtype=None):
+    if dtype is not None:
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[dtype]
+    else:
+        # TODO(hamaji): Deprecate this fallback pass.
+        dt = onnx.TensorProto.FLOAT
+    tn = gen_cnt()
+    vi = onnx.ValueInfoProto()
+    vi.name = 'S' + str(tn)
+    vi.type.sequence_type.elem_type.tensor_type.elem_type = dt
+    return vi
 
 
 def get_dims(tensor):
