@@ -55,7 +55,7 @@ class Value(object):
 
         return self.value
 
-    def to_tensor(self, env: Env, dtype:type=None) -> onnx.ValueInfoProto:
+    def to_tensor(self, env: Env, dtype: type = None) -> onnx.ValueInfoProto:
         if self.is_py:
             # TODO(hamaji): Rewrite `totensor` to convert a Python
             # list to a tensor.

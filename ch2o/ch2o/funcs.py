@@ -270,6 +270,7 @@ class Np_Cumsum(Callable):
 
 class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
+        assert False  # TODO(hamaji): Re-implement split_axis.
         assert axis.value == 0
         assert force_tuple.value is True
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます

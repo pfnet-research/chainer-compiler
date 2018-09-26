@@ -23,14 +23,12 @@ LRN
 Linear
 MaxPool2d
 NpArray
-NstepBiLSTM
 NstepLSTM
 PadSequence
 Relu
 Reshape
 Sigmoid
 SoftmaxClossEntropy
-SplitAxis
 SwapAxes
 Tanh
 '''.split()

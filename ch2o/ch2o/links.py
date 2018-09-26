@@ -312,6 +312,7 @@ class Link_NStepBiLSTM(Callable):
                 ('/%d_bss' % i), TensorProto.FLOAT, ["TODO"])
 
     def call_impl(self, env, hx, cx, xs):
+        assert False  # TODO(hamaji): Re-implement NStepBiLSTM.
         assert hx.value is None  # TODO(hamaji): Not implemented yet.
         assert cx.value is None  # TODO(hamaji): Not implemented yet.
         xs = xs.to_tensor(env)

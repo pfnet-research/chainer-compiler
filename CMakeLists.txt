@@ -102,14 +102,14 @@ foreach(
     Linear
     MaxPool2d
     NpArray
-    NstepBiLSTM
+    #NstepBiLSTM
     NstepLSTM
     PadSequence
     Relu
     Reshape
     Sigmoid
     SoftmaxClossEntropy
-    SplitAxis
+    #SplitAxis
     SwapAxes
     Tanh
     #Vstack
