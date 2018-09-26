@@ -231,6 +231,7 @@ def eval_for(nast, env):
         in_names = list(in_names)
         in_closure = {}
         for k, v in env.vars.items():
+            if isinstance(v, Value): v = v.value
             if istensor(v) and v.name in in_names:
                 in_closure[k] = (v, v)
 
