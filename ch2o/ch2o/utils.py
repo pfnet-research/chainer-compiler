@@ -117,15 +117,15 @@ def totensor(x, env, dtype=None):
 
 
 class Env(object):
-    def __init__(self):
+    def __init__(self, module):
         self.vars = {}
         self.nodes = []
         self.init_tensors = []
         self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
-        self.module = None
+        self.module = module
 
-    def localenv(self):
-        res = Env()
+    def localenv(self, module):
+        res = Env(module)
         res.nodes = self.nodes  # こっちはglobalに共通でないといけない
         res.init_tensors = self.init_tensors  # こっちも共通
         res.restore_funcs = self.restore_funcs

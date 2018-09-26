@@ -232,7 +232,7 @@ class Np_Cumsum(Callable):
         def dummy():
             return "dummy_" + new_tensor().name
 
-        localenv = Env()
+        localenv = Env(env.module)
         cnt = new_tensor()
         cond = new_tensor()
         s = new_tensor()

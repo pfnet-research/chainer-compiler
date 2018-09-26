@@ -102,8 +102,7 @@ class User_Defined_Function(Function_base):
         assert(isinstance(self.ast, gast.gast.FunctionDef))
 
     def call(self, args, kwargs, env):
-        loenv = env.localenv()
-        loenv.module = sys.modules[self.func.__module__]
+        loenv = env.localenv(sys.modules[self.func.__module__])
         return self.stub_call(args, kwargs, loenv)
 
 
@@ -116,8 +115,7 @@ class User_Defined_Func_In_Link(Function_base):
         assert(isinstance(self.ast, gast.gast.FunctionDef))
 
     def call(self, args, kwargs, env):
-        loenv = env.localenv()
-        loenv.module = sys.modules[self.ch.__module__]
+        loenv = env.localenv(sys.modules[self.ch.__module__])
         args = [self.ch] + args
         return self.stub_call(args, kwargs, loenv)
 
@@ -212,10 +210,9 @@ def eval_for(nast, env):
         x = nast.target.id
 
         # 新たなenv を作って、評価中にできた子グラフをもとにする
-        localenv = Env()
+        localenv = Env(env.module)
         localenv.vars = {}
         localenv.vars.update(env.vars)
-        localenv.module = env.module
 
         cnt = new_tensor()
         gtx = new_sequence()
@@ -836,15 +833,13 @@ def compiler(model):
 
     init_id2name(model)
     # code.InteractiveConsole({'mo': model}).interact()
-    env = Env()
+    env = Env(sys.modules[model.__module__])
     molk = User_Defined_Link(model, env)
 
     input_tensors = []
     for i in range(molk.forward_arglen):  # self 以外
         x = new_tensor()  # ここの次元は不明になる
         input_tensors.append(x)
-
-    env.module = sys.modules[model.__module__]
 
     v = molk.call(input_tensors, [], env)
 
