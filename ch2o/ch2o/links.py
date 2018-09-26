@@ -113,7 +113,7 @@ class Link_Convolution2D(Callable):
 class Link_BatchNormalization(Callable):
     def __init__(self, ch):
         super(Link_BatchNormalization, self).__init__(
-            L.BatchNormalization(None))
+            L.BatchNormalization(1))
 
         self.n_out = ch.beta.shape[0]
 
