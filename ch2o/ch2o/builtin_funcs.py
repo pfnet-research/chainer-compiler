@@ -36,7 +36,6 @@ def builtin_range(args, _, env):
 
     a = new_tensor()
     b = new_tensor()
-    res = new_tensor()
     res = env.calc(
         'Loop',
         inputs=[args[0].to_tensor(env).name, ""],
@@ -46,6 +45,7 @@ def builtin_range(args, _, env):
             [a, b], [b, a]
         )
     )
+    res = env.calc_seq('OnikuxSequenceSplit', inputs=[res.name])
     return res
 
 

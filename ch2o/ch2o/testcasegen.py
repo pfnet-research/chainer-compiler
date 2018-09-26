@@ -2,6 +2,7 @@
 # ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 # からもらっってきました
 
+import collections
 import glob
 import os
 import shutil
@@ -32,7 +33,7 @@ def _validate_inout(xs):
         pass
     elif isinstance(xs, int):
         xs = np.int64(xs)
-    elif isinstance(xs, list):
+    elif isinstance(xs, collections.Iterable):
         xs = [_validate_inout(x) for x in xs]
     elif (
             isinstance(xs, np.float32) or
