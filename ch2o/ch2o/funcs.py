@@ -34,7 +34,7 @@ def _pair(v: Value) -> List[int]:
     if isinstance(v.value, collections.Iterable):
         assert all(x.is_py for x in v.value)
         return list(x.value for x in v.value)
-    return v.value, v.value
+    return [v.value, v.value]
 
 
 class Function_MaxPool2d(Callable):
