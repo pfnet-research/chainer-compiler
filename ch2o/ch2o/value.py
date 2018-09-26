@@ -38,10 +38,10 @@ class Value(object):
         return self.is_py and self.value is None
 
     def is_tensor(self) -> bool:
-        return self.value.type.HasField('tensor_type')
+        return not self.is_py and self.value.type.HasField('tensor_type')
 
     def is_sequence(self) -> bool:
-        return self.value.type.HasField('sequence_type')
+        return not self.is_py and self.value.type.HasField('sequence_type')
 
     def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
         if self.is_py:
@@ -61,15 +61,12 @@ class Value(object):
             # list to a tensor.
             self.value = totensor(self.value, env, dtype=dtype)
             self.is_py = False
-
-        if self.is_sequence():
+        elif self.is_sequence():
             self.value = env.calc('OnikuxSequenceStack',
                                   inputs=[self.value.name])
             self.is_py = False
 
-        if not self.is_tensor():
-            raise TypeError('Expected a tensor: %s' % self.value)
-
+        assert self.is_tensor()
         return self.value
 
     def to_sequence(self, env: Env) -> onnx.ValueInfoProto:
@@ -83,15 +80,20 @@ class Value(object):
             )
             for v in self.value:
                 v = v.to_tensor(env)
-                tr = new_tensor()
-                env.addnode(
+                res = env.calc_seq(
                     "OnikuxSequenceAppend",
-                    inputs=[res.name, v.name], outputs=[tr.name]
+                    inputs=[res.name, v.name],
                 )
-                res = tr
-            return res
-        else:
-            return env.calc('OnikuxSequenceSplit', inputs=[self.value])
+            self.value = res
+            self.is_py = False
+        elif self.is_tensor():
+            self.value = env.calc_seq(
+                'OnikuxSequenceSplit',
+                inputs=[self.value.name]
+            )
+
+        assert self.is_sequence()
+        return self.value
 
     def to_float(self) -> float:
         if not self.is_py:

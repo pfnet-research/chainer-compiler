@@ -216,12 +216,12 @@ def eval_for(nast, env):
         localenv.module = env.module
 
         cnt = new_tensor()
-        gtx = new_tensor()
+        gtx = new_sequence()
         localenv.vars[x] = localenv.calc(
             "OnikuxGenericGetItem",
             inputs=[gtx.name, cnt.name],
         )
-        ty = eval_ast(nast.body,  localenv)
+        ty = eval_ast(nast.body, localenv)
         assert ty.is_none()
 
         # 入力側のテンソルを見る。
@@ -248,7 +248,7 @@ def eval_for(nast, env):
                     # この場合、LoopでUpdateしないといけないので
                     # env.vars[k] は tensorでないといけない。
                     # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                    env.vars[k] = env.vars[k].to_tensor(env)
+                    env.vars[k] = env.vars[k].to_value_info(env)
                     compile_retry = True
 
                     """
@@ -287,8 +287,8 @@ def eval_for(nast, env):
         # print('ty',ty)
 
         cond = new_tensor()
-        in_closure_values = [(Value(inv).to_tensor(env),
-                              Value(outv).to_tensor(env))
+        in_closure_values = [(Value(inv).to_value_info(env),
+                              Value(outv).to_value_info(env))
                              for inv, outv in in_closure.values()]
         localgraph = helper.make_graph(
             localenv.nodes,
@@ -299,7 +299,7 @@ def eval_for(nast, env):
 
         mtc = env.calc(
             "OnikuxGenericLen",
-            inputs=[ite.to_tensor(env).name],
+            inputs=[ite.to_value_info(env).name],
         )
 
         def dummy():
@@ -516,9 +516,9 @@ def eval_attribute(nast, env):
             def f(args, _, env):
                 assert len(args) == 1
                 v = args[0].to_tensor(env)
-                env.vars[na] = env.calc(
+                env.vars[na] = env.calc_seq(
                     'OnikuxSequenceAppend',
-                    inputs=[body.to_tensor(env).name, v.name],
+                    inputs=[body.to_sequence(env).name, v.name],
                 )
                 return None
 

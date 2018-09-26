@@ -148,3 +148,10 @@ class Env(object):
         kwargs['outputs'] = [res.name]
         self.addnode(*args, **kwargs)
         return res
+
+    def calc_seq(self, *args, **kwargs):
+        res = new_sequence()
+        assert 'outputs' not in kwargs.keys()
+        kwargs['outputs'] = [res.name]
+        self.addnode(*args, **kwargs)
+        return res
