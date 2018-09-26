@@ -120,6 +120,9 @@ def generate_testcase(model, xs, subname=None):
         if input_tensor.name not in initializer_names:
             input_names.append(input_tensor.name)
 
+    if len(output_tensors) < len(chainer_out):
+        assert len(output_tensors) == 1
+        chainer_out = [np.array(chainer_out)]
     assert len(output_tensors) == len(chainer_out)
     outputs = []
     for tensor, value in zip(output_tensors, chainer_out):

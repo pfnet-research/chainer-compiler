@@ -3,6 +3,8 @@
 import ast
 import gast
 import inspect
+
+import numpy as np
 from onnx import checker
 from onnx import helper
 from onnx import TensorProto
@@ -498,7 +500,8 @@ def eval_attribute(nast, env):
         if nast.attr == 'shape':
             res = env.calc(
                 'Shape',
-                inputs=[body.name],
+                inputs=[body.to_tensor(env).name],
+                npdtype=np.int64,
             )
             return res
         elif nast.attr == 'append':

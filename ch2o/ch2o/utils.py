@@ -1,10 +1,12 @@
 # coding: utf-8
 
 import collections
+import os
+
+import numpy as np
 import onnx
 from onnx import helper
 from onnx import TensorProto
-import os
 
 
 _cnt = 0
@@ -18,7 +20,7 @@ def gen_cnt():
 
 def new_tensor(dims=['Undefined'], dtype=None):
     if dtype is not None:
-        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[dtype]
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
     else:
         # TODO(hamaji): Deprecate this fallback pass.
         dt = onnx.TensorProto.FLOAT
@@ -140,15 +142,15 @@ class Env(object):
             v.name = pathname + v.name
             self.init_tensors.append(v)
 
-    def calc(self, *args, **kwargs):
-        res = new_tensor()
+    def calc(self, *args, npdtype=None, **kwargs):
+        res = new_tensor(dtype=npdtype)
         assert 'outputs' not in kwargs.keys()
         kwargs['outputs'] = [res.name]
         self.addnode(*args, **kwargs)
         return res
 
-    def calc_seq(self, *args, **kwargs):
-        res = new_sequence()
+    def calc_seq(self, *args, npdtype=None, **kwargs):
+        res = new_sequence(dtype=npdtype)
         assert 'outputs' not in kwargs.keys()
         kwargs['outputs'] = [res.name]
         self.addnode(*args, **kwargs)
