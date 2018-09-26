@@ -46,7 +46,7 @@ def _validate_inout(xs):
     return xs
 
 
-def run_chainer_model(model, xs, out_key):
+def run_chainer_model(model, xs):
     # forward 個分のlistとする
     ys = model(*xs)
 
@@ -86,19 +86,19 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                     f.write(tensor.SerializeToString())
 
 
-def generate_testcase(model, xs, out_key='prob', subname=None):
+def generate_testcase(model, xs, subname=None):
     args = get_test_args()
 
     # さらの状態からonnxのmodをつくる
     onnxmod, input_tensors, output_tensors = compiler(model)
 
     chainer.config.train = False
-    run_chainer_model(model, xs, out_key)
+    run_chainer_model(model, xs)
 
     dprint("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
-    chainer_out = run_chainer_model(model, xs, out_key)
+    chainer_out = run_chainer_model(model, xs)
 
     output_dir = args.output
     if subname is None:
