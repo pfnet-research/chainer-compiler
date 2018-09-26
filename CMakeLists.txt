@@ -102,8 +102,8 @@ foreach(
     Linear
     MaxPool2d
     NpArray
-    #NstepBiLSTM
-    NstepLSTM
+    #NStepBiLSTM
+    NStepLSTM
     PadSequence
     Relu
     Reshape

@@ -23,7 +23,7 @@ LRN
 Linear
 MaxPool2d
 NpArray
-NstepLSTM
+NStepLSTM
 PadSequence
 Relu
 Reshape
