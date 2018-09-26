@@ -20,6 +20,12 @@ class Value(object):
         self.value = value
         self.is_py = not isinstance(self.value, onnx.ValueInfoProto)
 
+    def __str__(self):
+        if self.is_py:
+            return 'Value(%s)' % str(self.value)
+        else:
+            return 'Value(%s)' % self.value.name
+
     def get_attribute(self, key: str) -> 'Value':
         if not self.is_py:
             raise TypeError('Unsupported attribute %s for an ONNX value' % key)
