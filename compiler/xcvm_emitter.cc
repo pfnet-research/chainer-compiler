@@ -649,18 +649,29 @@ private:
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
     } while (0)
 
+        CHECK_EQ(cond.inputs().size(), then_input_values.size() + 1);
+        CHECK_EQ(cond.inputs().size(), else_input_values.size() + 1);
         CHECK_EQ(cond.outputs().size(), then_output_values.size());
         CHECK_EQ(cond.outputs().size(), else_output_values.size());
+
+        auto emit_branch = [this, &cond, prog, &protected_values, &debug_info](Graph* graph, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+            for (size_t i = 0; i < inputs.size(); ++i) {
+                Value* from = cond.inputs()[i + 1];
+                Value* to = inputs[i];
+                EMIT(Identity, GetValueId(to), GetValueId(from));
+            }
+            EmitGraph(*graph, prog, true /* in_loop */, outputs, protected_values);
+            for (size_t i = 0; i < cond.outputs().size(); ++i) {
+                Value* from = outputs[i];
+                Value* to = cond.outputs()[i];
+                MOVE(GetValueId(to), GetValueId(from));
+            }
+        };
 
         int branch_jmp = prog->instructions_size();
         EMIT(JmpTrue, GetValueId(cond.inputs()[0]), -1);
 
-        EmitGraph(*else_body, prog, true /* in_loop */, else_output_values, protected_values);
-        for (size_t i = 0; i < cond.outputs().size(); ++i) {
-            Value* from = else_output_values[i];
-            Value* to = cond.outputs()[i];
-            MOVE(GetValueId(to), GetValueId(from));
-        }
+        emit_branch(else_body, else_input_values, else_output_values);
 
         int done_jmp = prog->instructions_size();
         EMIT(Jmp, -1);
@@ -668,12 +679,7 @@ private:
         runtime::XCInstructionProto* branch = prog->mutable_instructions(branch_jmp);
         branch->mutable_inputs(1)->set_i(prog->instructions_size());
 
-        EmitGraph(*then_body, prog, true /* in_loop */, then_output_values, protected_values);
-        for (size_t i = 0; i < cond.outputs().size(); ++i) {
-            Value* from = then_output_values[i];
-            Value* to = cond.outputs()[i];
-            MOVE(GetValueId(to), GetValueId(from));
-        }
+        emit_branch(then_body, then_input_values, then_output_values);
 
         runtime::XCInstructionProto* done = prog->mutable_instructions(done_jmp);
         done->mutable_inputs(0)->set_i(prog->instructions_size());
