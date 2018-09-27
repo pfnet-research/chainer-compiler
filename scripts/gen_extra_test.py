@@ -136,6 +136,33 @@ def gen_scan_sum_test(test_name):
            name=test_name)
 
 
+def gen_if_test(cond):
+    def fn(test_name):
+        tb = oniku_script.GraphBuilder(test_name + '_true')
+        cond_v = tb.input('cond', cond)
+        for i in [42, 99]:
+            true_value_v = tb.const(i)
+            tb.output(true_value_v, i)
+
+        fb = oniku_script.GraphBuilder(test_name + '_true')
+        cond_v = fb.input('cond', cond)
+        for i in [-42, -99]:
+            false_value_v = fb.const(i)
+            fb.output(false_value_v, i)
+
+        gb = oniku_script.GraphBuilder(test_name)
+        gb.input('cond', cond)
+        out1_v, out2_v = gb.If([cond_v],
+                               then_branch=tb.make_graph(),
+                               else_branch=fb.make_graph(),
+                               outputs=['42', '99'])
+        gb.output(out1_v, 42 if cond else -42)
+        gb.output(out2_v, 99 if cond else -99)
+        gb.gen_test()
+
+    return fn
+
+
 def gen_loop_test(max_trip_count=7,
                   cond_trip_count=6,
                   terminal_condition=True,
@@ -694,6 +721,9 @@ def get_tests():
         TestCase('extra_test_inf_nan', gen_inf_nan_test),
 
         TestCase('extra_test_select_item', gen_select_item_test),
+
+        TestCase('extra_test_if_true', gen_if_test(True)),
+        TestCase('extra_test_if_false', gen_if_test(False)),
 
         TestCase('extra_test_loop_basic', gen_loop_test()),
         TestCase('extra_test_loop_max_trip_count',
