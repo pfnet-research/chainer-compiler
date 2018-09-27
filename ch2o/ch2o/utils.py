@@ -2,6 +2,7 @@
 
 import collections
 import os
+import traceback
 
 import numpy as np
 import onnx
@@ -9,13 +10,29 @@ from onnx import helper
 from onnx import TensorProto
 
 
+def _get_trace_str():
+    # TODO(hamaji): Use parsing context instead of CH2O codebase.
+    skip_names = set(['addnode', 'calc', 'calc_seq'])
+    trace = []
+    for stack in reversed(traceback.extract_stack()):
+        if stack.name in skip_names:
+            continue
+        trace.append('%s:%s:%d' %
+                     (stack.name,
+                      os.path.basename(stack.filename),
+                      stack.lineno))
+        if len(trace) == 3:
+            break
+    return ' '.join(trace)
+
+
 _cnt = 0
 
 
-def gen_cnt():
+def gen_id(prefix):
     global _cnt
     _cnt += 1
-    return _cnt
+    return prefix + str(_cnt)
 
 
 def new_tensor(dims=['Undefined'], dtype=None):
@@ -24,8 +41,7 @@ def new_tensor(dims=['Undefined'], dtype=None):
     else:
         # TODO(hamaji): Deprecate this fallback pass.
         dt = onnx.TensorProto.FLOAT
-    tn = gen_cnt()
-    return helper.make_tensor_value_info('T' + str(tn), dt, dims)
+    return helper.make_tensor_value_info(gen_id('T'), dt, dims)
 
 
 def new_sequence(dtype=None):
@@ -34,9 +50,8 @@ def new_sequence(dtype=None):
     else:
         # TODO(hamaji): Deprecate this fallback pass.
         dt = onnx.TensorProto.FLOAT
-    tn = gen_cnt()
     vi = onnx.ValueInfoProto()
-    vi.name = 'S' + str(tn)
+    vi.name = gen_id('S')
     vi.type.sequence_type.elem_type.tensor_type.elem_type = dt
     return vi
 
@@ -132,9 +147,9 @@ class Env(object):
         return res
 
     def addnode(self, *args, **kwargs):
-        self.nodes.append(
-            helper.make_node(*args, **kwargs)
-        )
+        node = helper.make_node(*args, **kwargs)
+        node.doc_string = _get_trace_str()
+        self.nodes.append(node)
 
     def add_init(self, inits, pathname):
         for v in inits:
