@@ -12,7 +12,7 @@ from onnx import TensorProto
 
 def _get_trace_str():
     # TODO(hamaji): Use parsing context instead of CH2O codebase.
-    skip_names = set(['addnode', 'calc', 'calc_seq'])
+    skip_names = set(['_get_trace_str', 'addnode', 'calc', 'calc_seq'])
     trace = []
     for stack in reversed(traceback.extract_stack()):
         if stack.name in skip_names:
