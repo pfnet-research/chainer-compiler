@@ -22,6 +22,12 @@ namespace {
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat("@", __LINE__)); \
     } while (0)
 
+#define MOVE(dst, src)            \
+    do {                          \
+        EMIT(Identity, dst, src); \
+        FREE(src);                \
+    } while (0)
+
 using oniku::runtime::XCProgramProto;
 
 class XCVMEmitter {
@@ -460,6 +466,8 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kIf) {
+            EmitIf(node, prog);
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kOnikuxLoopRef) {
@@ -623,6 +631,62 @@ private:
         }
     }
 
+    void EmitIfImpl(
+            const Node& cond,
+            Graph* then_body,
+            const std::vector<Value*>& then_input_values,
+            const std::vector<Value*>& then_output_values,
+            Graph* else_body,
+            const std::vector<Value*>& else_input_values,
+            const std::vector<Value*>& else_output_values,
+            const std::set<const Value*>& protected_values,
+            XCProgramProto* prog) {
+        const std::string& debug_info = cond.DebugString();
+
+#define EMIT(op, ...)                                                   \
+    do {                                                                                                               \
+        Add##op##Op(prog, __VA_ARGS__);                                                                                \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
+    } while (0)
+
+        CHECK_EQ(cond.outputs().size(), then_output_values.size());
+        CHECK_EQ(cond.outputs().size(), else_output_values.size());
+
+        int branch_jmp = prog->instructions_size();
+        EMIT(JmpTrue, GetValueId(cond.inputs()[0]), -1);
+
+        EmitGraph(*else_body, prog, true /* in_loop */, else_output_values, protected_values);
+        for (size_t i = 0; i < cond.outputs().size(); ++i) {
+            Value* from = else_output_values[i];
+            Value* to = cond.outputs()[i];
+            MOVE(GetValueId(to), GetValueId(from));
+        }
+
+        int done_jmp = prog->instructions_size();
+        EMIT(Jmp, -1);
+
+        runtime::XCInstructionProto* branch = prog->mutable_instructions(branch_jmp);
+        branch->mutable_inputs(1)->set_i(prog->instructions_size());
+
+        EmitGraph(*then_body, prog, true /* in_loop */, then_output_values, protected_values);
+        for (size_t i = 0; i < cond.outputs().size(); ++i) {
+            Value* from = then_output_values[i];
+            Value* to = cond.outputs()[i];
+            MOVE(GetValueId(to), GetValueId(from));
+        }
+
+        runtime::XCInstructionProto* done = prog->mutable_instructions(done_jmp);
+        done->mutable_inputs(0)->set_i(prog->instructions_size());
+
+#undef EMIT
+    }
+
+    void EmitIf(const Node& cond, XCProgramProto* prog) {
+        AssignValueIds(*cond.then_branch());
+        AssignValueIds(*cond.else_branch());
+        EmitIfImpl(cond, cond.then_branch().get(), cond.then_branch()->input_values(), cond.then_branch()->output_values(), cond.else_branch().get(), cond.else_branch()->input_values(), cond.else_branch()->output_values(), {}, prog);
+    }
+
     void EmitLoopImpl(
             const Node& loop,
             Graph* body,
@@ -648,12 +712,6 @@ private:
     do {                                                                                                               \
         Add##op##Op(prog, __VA_ARGS__);                                                                                \
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
-    } while (0)
-
-#define MOVE(dst, src)            \
-    do {                          \
-        EMIT(Identity, dst, src); \
-        FREE(src);                \
     } while (0)
 
         // Initialize loop variables.

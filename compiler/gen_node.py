@@ -164,6 +164,7 @@ NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
+NodeDef('If', 1, None, else_branch=Graph, then_branch=Graph)
 NodeDef('Loop', None, None, body=Graph, onikux_stack_axis=0)
 NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 

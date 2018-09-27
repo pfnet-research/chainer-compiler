@@ -272,6 +272,7 @@ XC_OPS = [
       Ints('shape'), Float('value')],
      ['output']),
 
+    ('Jmp', [Int('pc')], []),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
 ]

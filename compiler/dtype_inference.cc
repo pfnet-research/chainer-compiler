@@ -236,6 +236,7 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kIf:
         case Node::kLoop:
         case Node::kOnikuxLoopRef: {
             // TODO(hamaji): Dtype inference for Loop is not implemented yet.

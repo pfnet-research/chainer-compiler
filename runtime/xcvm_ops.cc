@@ -537,6 +537,10 @@ chainerx::Array ConstantFillOp::RunImpl(XCVMState* st, const nonstd::optional<ch
     return chainerx::Full(shape, value, dtype);
 }
 
+void JmpOp::RunImpl(XCVMState* st) {
+    st->set_pc(pc - 1);
+}
+
 void JmpTrueOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {
     if (static_cast<bool>(chainerx::AsScalar(cond))) {
         st->set_pc(pc - 1);
