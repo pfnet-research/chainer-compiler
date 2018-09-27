@@ -525,8 +525,9 @@ def gen_gen_xcvm_ops_cc():
                 line += ' << st->GetVarListString(%s)' % (name)
         if op.outputs:
             line += ' << " ->"'
-        line += ';'
-        lines.append(line)
+        if not line.endswith('std::cerr'):
+            line += ';'
+            lines.append(line)
 
         if op.array_only:
             args = ['st']
