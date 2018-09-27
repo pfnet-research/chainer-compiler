@@ -102,7 +102,7 @@ foreach(
     Linear
     MaxPool2d
     NpArray
-    #NStepBiLSTM
+    NStepBiLSTM
     NStepLSTM
     PadSequence
     Relu
