@@ -18,6 +18,7 @@ Cumsum
 Dropout
 EmbedID
 ExpandDims
+Hstack
 Id
 LRN
 Linear
@@ -33,6 +34,7 @@ SplitAxis
 SoftmaxClossEntropy
 SwapAxes
 Tanh
+Vstack
 '''.split()
 
 SYNTAX_TESTS = '''

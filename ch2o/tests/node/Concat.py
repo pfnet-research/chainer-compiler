@@ -3,8 +3,6 @@
 import chainer
 import chainer.functions as F
 
-# Network definition
-
 
 class A(chainer.Chain):
 

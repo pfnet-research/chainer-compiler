@@ -315,21 +315,28 @@ class Cuda_ToCpu(object):
         return args[0]
 
 
-# F.vstack, F.hstack は形だけ書いてますがまだ実装していません...
-class Function_Vstack(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-        raise Exception("This implementation of Vstack seems wrong")
-        print(args)
-        print(list(map(lambda x: x.name, args)))
-        return Function_Concat().call([args], {'axis': 0}, env)
+class Function_Vstack(Callable):
+    def call_impl(self, env, xs):
+        # TODO(hamaji): Here we assume the input is a sequence. As
+        # vstack can appear as the first link in a model, we may not
+        # track the kind of `xs` yet so we cannot call to_sequence.
+        return env.calc(
+            'OnikuxSequenceConcat',
+            inputs=[xs.to_value_info(env).name],
+            axis=0
+        )
 
 
-class Function_Hstack(object):
-    def call(self, args, keywords, env):
-        assert(len(args) == 1)
-        raise Exception("This implementation of Hstack is wrong")
-        return Function_Concat().call([args], {'axis': 1}, env)
+class Function_Hstack(Callable):
+    def call_impl(self, env, xs):
+        # TODO(hamaji): Here we assume the input is a sequence. As
+        # hstack can appear as the first link in a model, we may not
+        # track the kind of `xs` yet so we cannot call to_sequence.
+        return env.calc(
+            'OnikuxSequenceConcat',
+            inputs=[xs.to_value_info(env).name],
+            axis=1
+        )
 
 
 class Function_Dummy(object):
@@ -363,7 +370,6 @@ class Func(object):
 
 Func2NodeClass = dict([
     (chainer.backends.cuda.to_cpu, Cuda_ToCpu()),
-    (F.vstack, Function_Vstack()),
 
     # TODO(satos) とりあえずhttps://github.com/espnet/espnet/blob/master/src/nets/deterministic_embe    d_id.py#L43) のif文を通らないようにする
     (chainer.utils.type_check.same_types, Func(lambda _, __, ___: True)),
@@ -387,6 +393,8 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (numpy.int32, Np_Int32),
                 (numpy.ceil, Xp_Np_Ceil),
                 (numpy.cumsum, Np_Cumsum),
+                (F.vstack, Function_Vstack),
+                (F.hstack, Function_Hstack),
 ]:
     Func2NodeClass[fn] = cls(fn)
 
