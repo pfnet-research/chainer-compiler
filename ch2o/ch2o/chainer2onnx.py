@@ -10,6 +10,7 @@ from onnx import helper
 from onnx import TensorProto
 
 import code
+import logging
 import sys
 import types
 
@@ -375,6 +376,12 @@ def eval_call(nast, env):
         raise TypeError('Expected a callable: %s' % fn.value)
     fn = fn.value
 
+    # TODO(hamaji): Merge this logic with is_print_logging. Also,
+    # maybe it's better to try emitting OnikuxPrint.
+    if fn in (logging.debug, logging.info,
+              logging.warn, logging.warning, logging.error):
+        return None
+
     args = []
     for ag in nast.args:
         if isinstance(ag, gast.Starred):
@@ -726,7 +733,7 @@ _eval_ast_depth = 0
 def eval_ast(nast, env):
     global _eval_ast_depth
     if not isinstance(nast, list):
-        dprint(' ' * _eval_ast_depth + gast.dump(nast), env.vars.keys())
+        dprint('-' * _eval_ast_depth, gast.dump(nast), env.vars.keys())
 
     _eval_ast_depth += 1
     r = eval_ast_impl(nast, env)
