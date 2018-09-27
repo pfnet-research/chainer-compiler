@@ -266,16 +266,14 @@ class Np_Cumsum(Callable):
 
 class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
-        assert False  # TODO(hamaji): Re-implement split_axis.
         assert axis.value == 0
         assert force_tuple.value is True
         # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
         # 戻り値はtuple(!!)らしいが、たってきSequenceで返してます。
         # TODO(satos) さすがに仮定がきつい
 
-        # TODO(hamaji): Do not use `Value.value`.
-        v = x.value
-        ilens = indices_or_sections.value
+        v = x
+        ilens = indices_or_sections
 
         from . chainer2onnx import eval_ast
 
@@ -290,8 +288,7 @@ class Function_SplitAxis(Callable):
         src = clip_head(src)
         nast = gast.ast_to_gast(ast.parse(src))
 
-        localenv = Env()
-        localenv.module = {}
+        localenv = Env({})
         vs = {
             'v': v,
             'ilens': ilens,

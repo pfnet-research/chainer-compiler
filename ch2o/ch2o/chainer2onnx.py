@@ -307,7 +307,7 @@ def eval_for(nast, env):
 
         env.addnode(
             'Loop',
-            inputs=[mtc.name, "", ite.to_tensor(env).name] +
+            inputs=[mtc.name, "", ite.to_value_info(env).name] +
             [vv[0].name for vv in in_closure.values()],
             # ループの中でupdateされない変数は出力先はdummyにする
             # updateするならそれでできる新たなテンソルを出力とする

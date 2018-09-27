@@ -109,7 +109,7 @@ foreach(
     Reshape
     Sigmoid
     SoftmaxClossEntropy
-    #SplitAxis
+    SplitAxis
     SwapAxes
     Tanh
     #Vstack

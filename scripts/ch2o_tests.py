@@ -29,6 +29,7 @@ PadSequence
 Relu
 Reshape
 Sigmoid
+SplitAxis
 SoftmaxClossEntropy
 SwapAxes
 Tanh
