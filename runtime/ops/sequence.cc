@@ -41,6 +41,10 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
     st->SetVar(output, Stack(*st->GetSequence(seq), axis));
 }
 
+void SequenceConcatOp::RunImpl(XCVMState* st) {
+    st->SetVar(output, Concat(*st->GetSequence(seq), axis));
+}
+
 void SequencePadOp::RunImpl(XCVMState* st) {
     const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
     CHECK(!v.empty());

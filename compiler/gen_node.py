@@ -202,6 +202,9 @@ NodeDef('OnikuxSequenceLookup', 2, 1)
 # Stacks elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 
+# Concatenates elements in a sequence: ([T]) -> (T)
+NodeDef('OnikuxSequenceConcat', 1, 1, axis=0)
+
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequencePad', 1, 1, length=0, value=0.0)
 
