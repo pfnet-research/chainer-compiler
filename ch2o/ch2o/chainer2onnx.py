@@ -720,8 +720,17 @@ def eval_list(nast, env):
     return res
 
 
+_eval_ast_depth = 0
+
+
 def eval_ast(nast, env):
+    global _eval_ast_depth
+    if not isinstance(nast, list):
+        dprint(' ' * _eval_ast_depth + gast.dump(nast), env.vars.keys())
+
+    _eval_ast_depth += 1
     r = eval_ast_impl(nast, env)
+    _eval_ast_depth -= 1
     if (isinstance(r, User_Defined_Function) or
         isinstance(r, User_Defined_Func_In_Link)):
         return r
@@ -729,9 +738,6 @@ def eval_ast(nast, env):
 
 
 def eval_ast_impl(nast, env):
-    if not isinstance(nast, list):
-        dprint(gast.dump(nast), env.vars.keys())
-
     if isinstance(nast, list):
         # 逐次実行
         for s in nast:
