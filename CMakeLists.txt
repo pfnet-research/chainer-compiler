@@ -121,9 +121,18 @@ endforeach()
 
 foreach(
     ch2o_test
+    MLP_with_loss
+    MyLSTM
+    )
+
+  gen_ch2o_test(model ${ch2o_test} ALL)
+
+endforeach()
+
+foreach(
+    ch2o_test
     Alex_with_loss
     GoogleNet_with_loss
-    MLP_with_loss
     Resnet_with_loss
     )
 

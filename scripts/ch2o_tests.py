@@ -47,10 +47,16 @@ Slice
 UserDefinedFunc
 '''.split()
 
+MODEL_TESTS = '''
+MyLSTM
+MLP_with_loss
+'''
+
 
 def get():
     tests = []
-    for category, names in [('node', NODE_TESTS),
+    for category, names in [('model', MODEL_TESTS),
+                            ('node', NODE_TESTS),
                             ('syntax', SYNTAX_TESTS)]:
         for name in names:
             test_name = 'ch2o_%s_%s' % (category, name)
