@@ -39,10 +39,9 @@ class MyLSTM(chainer.Chain):
                                   dtype=np.float32)
         self.initial_c = np.zeros((batch_size, self.num_hidden),
                                   dtype=np.float32)
-        self.indices = np.arange(sequence_length)
         self.batch_size = batch_size
 
-    def forward(self, xs, h, c, indices, mask):
+    def forward(self, xs, h, c, mask):
         batch_size = len(xs)
         lens = [x.shape[0] for x in xs]
         #max_len = max(lens)
@@ -54,8 +53,7 @@ class MyLSTM(chainer.Chain):
         #h = self.initial_h
         #c = self.initial_c
         inputs = F.pad_sequence(xs)
-        #for i in range(max_len):
-        for time in indices:
+        for time in range(max_len):
             x = inputs[:, time]
             input = F.concat((x, h), axis=1)
             gate = self.l(input)
@@ -112,13 +110,12 @@ if __name__ == '__main__':
     for l in lengths:
         xs.append(np.random.rand(l, num_hidden).astype(dtype=np.float32))
 
-    xs = [chainer.variable.Variable(x) for x in xs]
     h = np.zeros((batch_size, num_hidden), dtype=np.float32)
     c = np.zeros((batch_size, num_hidden), dtype=np.float32)
     mask = (np.expand_dims(np.arange(sequence_length), 0) <
             np.expand_dims(lengths, 1)).astype(np.float32)
 
-    args = [xs, h, c, np.arange(sequence_length), mask]
+    args = [xs, h, c, mask]
 
     #print(model(*args))
     #print(run_with_n_step_lstm(xs, h, c, model.l.W, model.l.b))

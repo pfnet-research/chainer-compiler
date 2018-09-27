@@ -45,14 +45,10 @@ class Value(object):
 
     def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
         if self.is_py:
-            # TODO(hamaji): Rewrite `totensor` to convert a Python
-            # list to a tensor.
-            self.value = totensor(self.value, env)
-            self.is_py = False
-
-        if not self.value.type.tensor_type:
-            raise TypeError('Expected a tensor: %s' % self.value)
-
+            if isinstance(self.value, collections.Iterable):
+                return self.to_sequence(env)
+            else:
+                return self.to_tensor(env)
         return self.value
 
     def to_tensor(self, env: Env, dtype: type = None) -> onnx.ValueInfoProto:

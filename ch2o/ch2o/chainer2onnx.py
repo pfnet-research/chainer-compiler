@@ -205,122 +205,11 @@ def eval_for(nast, env):
     assert nast.orelse == []
     ite = eval_ast(nast.iter, env)
 
-    if not ite.is_py:
-        assert isinstance(nast.target, gast.Name)
-        x = nast.target.id
-
-        # 新たなenv を作って、評価中にできた子グラフをもとにする
-        localenv = Env(env.module)
-        localenv.vars = {}
-        localenv.vars.update(env.vars)
-
-        cnt = new_tensor()
-        gtx = new_sequence()
-        localenv.vars[x] = localenv.calc(
-            "OnikuxGenericGetItem",
-            inputs=[gtx.name, cnt.name],
-        )
-        ty = eval_ast(nast.body, localenv)
-        assert ty.is_none()
-
-        # 入力側のテンソルを見る。
-        in_names = set()
-        for no in localenv.nodes:
-            in_names = in_names | set(no.input)
-
-        in_names = list(in_names)
-        in_closure = {}
-        for k, v in env.vars.items():
-            if isinstance(v, Value): v = v.value
-            if istensor(v) and v.name in in_names:
-                in_closure[k] = (v, v)
-
-        compile_retry = False
-
-        # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
-        for k in localenv.vars.keys():
-            if k not in env.vars.keys():
-                # for文の中で新たに変数が定義されることは、とりあえず想定しない。
-                # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
-                continue
-            if localenv.vars[k] != env.vars[k]:
-                if not istensor(env.vars[k]):
-                    # この場合、LoopでUpdateしないといけないので
-                    # env.vars[k] は tensorでないといけない。
-                    # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                    env.vars[k] = env.vars[k].to_value_info(env)
-                    compile_retry = True
-
-                    """
-                    あと、この実装だと、
-                    bs = 0
-                    cs = 3
-                    for s in ilens:
-                        cs = s
-                        bs = cs
-                    のときに、 cs と bs が同じtensorを指していて
-                    Loop Operator の出力が同じtensorになってエラーになるので、
-                    同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
-                    """
-                else:
-                    in_closure[k] = (env.vars[k], localenv.vars[k])
-
-        if compile_retry:
-            return eval_ast(nast, env)
-
-        # ループ内で使われた link パラメータは
-        # 1. 外の env にコピーしなければならない
-        env.init_tensors.extend(localenv.init_tensors)
-        # 2. state としてループ内に持ち込まなければならない
-        for init in localenv.init_tensors:
-            key = '#' + init.name
-            in_closure[key] = (init, init)
-
-        # この時点で
-        # in_closure[k] = (a,b) は、
-        # 『ループ内で参照されている変数kは
-        # ループのbodyの頭にはテンソルaの値であり、
-        # ループのbodyの足ではテンソルbの値である』という気持ち
-
-        # print(in_closure)
-        # dprint(localenv.nodes)
-        # print('ty',ty)
-
-        cond = new_tensor()
-        in_closure_values = [(Value(inv).to_value_info(env),
-                              Value(outv).to_value_info(env))
-                             for inv, outv in in_closure.values()]
-        localgraph = helper.make_graph(
-            localenv.nodes,
-            "Loop_subgraph",
-            [cnt, cond, gtx] + [vv[0] for vv in in_closure_values],
-            [cond, gtx] + [vv[1] for vv in in_closure_values]
-        )
-
-        mtc = env.calc(
-            "OnikuxGenericLen",
-            inputs=[ite.to_value_info(env).name],
-        )
-
-        def dummy():
-            return "dummy_" + new_tensor().name
-
-        env.addnode(
-            'Loop',
-            inputs=[mtc.name, "", ite.to_value_info(env).name] +
-            [vv[0].name for vv in in_closure.values()],
-            # ループの中でupdateされない変数は出力先はdummyにする
-            # updateするならそれでできる新たなテンソルを出力とする
-            outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
-                                 for vv in in_closure_values],
-            body=localgraph
-        )
-
-        for k, (_, v) in in_closure.items():
-            env.vars[k] = v
-
-        return None
-    else:
+    # A hack for ResNet50.
+    # TODO(hamaji): Come up with a sophisticated way.
+    # TODO(hamaji): This code doesn't handle scope properly, I think.
+    if (isinstance(ite.value, types.GeneratorType) and
+        'ChainList.children' in str(ite.value)):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
         env.vars[tg] = None
@@ -331,6 +220,124 @@ def eval_for(nast, env):
 
         env.vars.pop(tg)
         return None
+
+    if ite.is_py:
+        ite = Value([Value(v) for v in ite.value])
+
+    assert isinstance(nast.target, gast.Name)
+    x = nast.target.id
+
+    # 新たなenv を作って、評価中にできた子グラフをもとにする
+    localenv = Env(env.module)
+    localenv.vars = {}
+    localenv.vars.update(env.vars)
+
+    cnt = new_tensor()
+    gtx = new_sequence()
+    localenv.vars[x] = localenv.calc(
+        "OnikuxGenericGetItem",
+        inputs=[gtx.name, cnt.name],
+    )
+    ty = eval_ast(nast.body, localenv)
+    assert ty.is_none()
+
+    # 入力側のテンソルを見る。
+    in_names = set()
+    for no in localenv.nodes:
+        in_names = in_names | set(no.input)
+
+    in_names = list(in_names)
+    in_closure = {}
+    for k, v in env.vars.items():
+        if isinstance(v, Value): v = v.value
+        if istensor(v) and v.name in in_names:
+            in_closure[k] = (v, v)
+
+    compile_retry = False
+
+    # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
+    for k in localenv.vars.keys():
+        if k not in env.vars.keys():
+            # for文の中で新たに変数が定義されることは、とりあえず想定しない。
+            # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
+            continue
+        if localenv.vars[k] != env.vars[k]:
+            if not istensor(env.vars[k]):
+                # この場合、LoopでUpdateしないといけないので
+                # env.vars[k] は tensorでないといけない。
+                # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
+                env.vars[k] = env.vars[k].to_value_info(env)
+                compile_retry = True
+
+                """
+                あと、この実装だと、
+                bs = 0
+                cs = 3
+                for s in ilens:
+                    cs = s
+                    bs = cs
+                のときに、 cs と bs が同じtensorを指していて
+                Loop Operator の出力が同じtensorになってエラーになるので、
+                同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
+                """
+            else:
+                in_closure[k] = (env.vars[k], localenv.vars[k])
+
+    if compile_retry:
+        return eval_ast(nast, env)
+
+    # ループ内で使われた link パラメータは
+    # 1. 外の env にコピーしなければならない
+    env.init_tensors.extend(localenv.init_tensors)
+    # 2. state としてループ内に持ち込まなければならない
+    for init in localenv.init_tensors:
+        key = '#' + init.name
+        in_closure[key] = (init, init)
+
+    # この時点で
+    # in_closure[k] = (a,b) は、
+    # 『ループ内で参照されている変数kは
+    # ループのbodyの頭にはテンソルaの値であり、
+    # ループのbodyの足ではテンソルbの値である』という気持ち
+
+    # print(in_closure)
+    # dprint(localenv.nodes)
+    # print('ty',ty)
+
+    cond = new_tensor()
+    in_closure_values = [(Value(inv).to_value_info(env),
+                          Value(outv).to_value_info(env))
+                         for inv, outv in in_closure.values()]
+    localgraph = helper.make_graph(
+        localenv.nodes,
+        "Loop_subgraph",
+        [cnt, cond, gtx] + [vv[0] for vv in in_closure_values],
+        [cond, gtx] + [vv[1] for vv in in_closure_values]
+    )
+
+    mtc = env.calc(
+        "OnikuxGenericLen",
+        inputs=[ite.to_value_info(env).name],
+    )
+
+    def dummy():
+        return "dummy_" + new_tensor().name
+
+    env.addnode(
+        'Loop',
+        inputs=[mtc.name, "", ite.to_value_info(env).name] +
+        [vv[0].name for vv in in_closure.values()],
+        # ループの中でupdateされない変数は出力先はdummyにする
+        # updateするならそれでできる新たなテンソルを出力とする
+        outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
+                             for vv in in_closure_values],
+        body=localgraph
+    )
+
+    for k, (_, v) in in_closure.items():
+        env.vars[k] = v
+
+    return None
 
 
 def eval_assign(nast, env):
