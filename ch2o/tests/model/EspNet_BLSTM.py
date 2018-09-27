@@ -7,7 +7,7 @@ import argparse
 import datetime
 import logging
 
-import numpy
+import numpy as np
 
 import chainer
 from chainer.backends import cuda
@@ -16,16 +16,7 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
-
-def _gen_random_sequence(batch_size, sequence_length, num_vocabs):
-    lengths = np.random.randint(2, sequence_length, size=batch_size)
-    lengths = np.flip(np.sort(lengths), axis=0)
-    # At least a single element should have the maximum sequence
-    # length to avoid a shape mismatch.
-    lengths[0] = sequence_length
-    labels = np.random.randint(
-        2, num_vocabs, size=(batch_size, sequence_length))
-    return labels, lengths
+from tests.utils import sequence_utils
 
 
 class BLSTM(chainer.Chain):
@@ -101,7 +92,7 @@ if __name__ == '__main__':
     num_vocabs = 10
 
     model = BLSTM(idim, elayers, cdim, hdim, 0)
-    labels, ilens = _gen_random_sequence(
+    labels, ilens = sequence_utils.gen_random_sequence(
         batch_size, sequence_length, num_vocabs)
     xs = []
     for l in ilens:

@@ -15,16 +15,7 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
-
-def _gen_random_sequence(batch_size, sequence_length, num_vocabs):
-    lengths = np.random.randint(2, sequence_length, size=batch_size)
-    lengths = np.flip(np.sort(lengths), axis=0)
-    # At least a single element should have the maximum sequence
-    # length to avoid a shape mismatch.
-    lengths[0] = sequence_length
-    labels = np.random.randint(
-        2, num_vocabs, size=(batch_size, sequence_length))
-    return labels, lengths
+from tests.utils import sequence_utils
 
 
 class MyLSTM(chainer.Chain):
@@ -105,7 +96,8 @@ if __name__ == '__main__':
     num_hidden = 5
 
     model = MyLSTM(num_hidden, batch_size, sequence_length)
-    labels, lengths = _gen_random_sequence(batch_size, sequence_length, num_vocabs)
+    labels, lengths = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, num_vocabs)
     xs = []
     for l in lengths:
         xs.append(np.random.rand(l, num_hidden).astype(dtype=np.float32))
