@@ -19,7 +19,7 @@ def cond(conds, bodies):
     assert len(conds) + 1 == len(bodies)
     lines = []
     for i, c in enumerate(conds):
-        line = f'if ({c}) ' + '{'
+        line = ('if (%s) ' % c) + '{'
         if i:
             line = '} else ' + line
         lines.append(line)

@@ -7,8 +7,18 @@ set -e
 
 git submodule update --init
 
-if [ ! -e onnx/.setuptools-cmake-build/libonnx.a -o ! -e onnx/.setuptools-cmake-build/onnx/onnx-ml.pb.h ]; then
-    (cd onnx && ONNX_ML=1 python3 setup.py build)
+if [ ! -e onnx/build/libonnx.a -o ! -e onnx/build/onnx/onnx-ml.pb.h ]; then
+    (cd onnx && \
+        ([ -d "build" ] || mkdir -p build) && \
+        cd build && \
+        cmake \
+            -DBUILD_ONNX_PYTHON=OFF \
+            -DCMAKE_CXX_FLAGS=-fPIC \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DONNX_ML=1 \
+            -DONNX_NAMESPACE=onnx \
+            .. && \
+        cmake --build . -- -j$(nproc))
 fi
 
 if [ ! -e googletest ]; then
