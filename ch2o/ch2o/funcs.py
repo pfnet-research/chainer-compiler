@@ -293,11 +293,11 @@ class Function_SplitAxis(Callable):
             'v': v,
             'ilens': ilens,
         }
-        localenv.vars.update(vs)
+        localenv.update_vars(vs)
         eval_ast(nast.body, localenv)
 
         env.nodes += localenv.nodes
-        return localenv.vars['r']
+        return localenv.get_var('r')
 
 
 class Xp_Np_Ceil(Callable):

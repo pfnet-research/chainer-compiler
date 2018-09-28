@@ -359,7 +359,7 @@ class Link_NStepBiLSTM(Callable):
                 'v': Value(v),
                 'F': chainer.functions
             }
-            localenv.vars.update(vs)
+            localenv.update_vars(vs)
             src = """
             r = []
             for d in v:
@@ -371,7 +371,7 @@ class Link_NStepBiLSTM(Callable):
             eval_ast(nast.body, localenv)
 
             env.nodes += localenv.nodes
-            v = localenv.vars['v']
+            v = localenv.get_var('v')
 
         ths = env.calc(
             "Concat",

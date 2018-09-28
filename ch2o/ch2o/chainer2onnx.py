@@ -91,7 +91,7 @@ class Function_base(object):
         args.update(kwargs)
 
         assert(len(astargs) == len(args.keys()))
-        loenv.vars = args
+        loenv.update_vars(args)
 
         # このやり方は、If文などでコントロールフローが別れるような場合に
         # 複数ヶ所の return を変換する際に問題になる
@@ -221,13 +221,13 @@ def eval_for(nast, env):
         'ChainList.children' in str(ite.value)):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
-        env.vars[tg] = Value(None)
+        env.set_var(tg, Value(None))
         for v in ite.value:
-            env.vars[tg] = _value(v)
+            env.set_vars(tg, _value(v))
             eval_ast(nast.body, env)
             # print('looping',env.vars.keys())
 
-        env.vars.pop(tg)
+        env.pop_var(tg)
         return None
 
     if ite.is_py:
@@ -238,15 +238,14 @@ def eval_for(nast, env):
 
     # 新たなenv を作って、評価中にできた子グラフをもとにする
     localenv = Env(env.module)
-    localenv.vars = {}
-    localenv.vars.update(env.vars)
+    localenv.update_vars(env.get_var_dict())
 
     cnt = new_tensor()
     gtx = new_sequence()
-    localenv.vars[x] = _value(localenv.calc(
+    localenv.set_var(x, _value(localenv.calc(
         "OnikuxGenericGetItem",
         inputs=[gtx.name, cnt.name],
-    ))
+    )))
     ty = eval_ast(nast.body, localenv)
     assert ty.is_none()
 
@@ -257,7 +256,7 @@ def eval_for(nast, env):
 
     in_names = list(in_names)
     in_closure = {}
-    for k, v in env.vars.items():
+    for k, v in env.get_var_dict().items():
         if isinstance(v, Value): v = v.value
         if istensor(v) and v.name in in_names:
             in_closure[k] = (v, v)
@@ -265,17 +264,17 @@ def eval_for(nast, env):
     compile_retry = False
 
     # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
-    for k in localenv.vars.keys():
-        if k not in env.vars.keys():
+    for k in localenv.get_var_dict().keys():
+        if k not in env.get_var_dict().keys():
             # for文の中で新たに変数が定義されることは、とりあえず想定しない。
             # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
             continue
-        if localenv.vars[k] != env.vars[k]:
-            if env.vars[k].is_py:
+        if localenv.get_var(k) != env.get_var(k):
+            if env.get_var(k).is_py:
                 # この場合、LoopでUpdateしないといけないので
                 # env.vars[k] は tensorでないといけない。
                 # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                env.vars[k] = _value(env.vars[k].to_value_info(env))
+                env.set_var(k, _value(env.get_var(k).to_value_info(env)))
                 compile_retry = True
 
                 """
@@ -290,7 +289,7 @@ def eval_for(nast, env):
                 同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
                 """
             else:
-                in_closure[k] = (env.vars[k], localenv.vars[k])
+                in_closure[k] = (env.get_var(k), localenv.get_var(k))
 
     if compile_retry:
         return eval_ast(nast, env)
@@ -344,7 +343,7 @@ def eval_for(nast, env):
     )
 
     for k, (_, v) in in_closure.items():
-        env.vars[k] = _value(v)
+        env.set_var(k, _value(v))
 
     return None
 
@@ -361,14 +360,14 @@ def eval_assign(nast, env):
 
     tg = targs[0]
     if isinstance(tg, gast.Name):
-        env.vars[tg.id] = _value(value)
+        env.set_var(tg.id, _value(value))
     elif isinstance(tg, gast.Tuple):
         assert(isinstance(value.value, tuple))
         value = value.value
         assert(len(tg.elts) == len(value))
 
         for i, v in enumerate(value):
-            env.vars[tg.elts[i].id] = _value(v)  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
+            env.set_var(tg.elts[i].id, _value(v))  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
 
     elif isinstance(tg, gast.Attribute):
         body = eval_ast(tg.value, env)
@@ -527,7 +526,7 @@ def eval_attribute(nast, env):
         elif nast.attr == 'append':
             # TODO(satos) ごまかさない
             assert isinstance(
-                nast.value, gast.Name) and nast.value.id in env.vars.keys()
+                nast.value, gast.Name) and nast.value.id in env.get_var_dict().keys()
             na = nast.value.id
 
             # あと、ここのnaがreferenceの場合不正確
@@ -539,10 +538,10 @@ def eval_attribute(nast, env):
             def f(args, _, env):
                 assert len(args) == 1
                 v = args[0].to_tensor(env)
-                env.vars[na] = _value(env.calc_seq(
+                env.set_var(na, _value(env.calc_seq(
                     'OnikuxSequenceAppend',
                     inputs=[body.to_sequence(env).name, v.name],
-                ))
+                )))
                 return None
 
             return Func(f)
@@ -594,8 +593,7 @@ def eval_list_comp(nast, env):
 
     rv = eval_ast(tast, env)
     assert rv.is_none()
-    res = env.vars[vn]
-    env.vars.pop(vn)
+    res = env.pop_var(vn)
     return res
 
 
@@ -739,12 +737,12 @@ _eval_ast_depth = 0
 
 
 def eval_ast(nast, env):
-    for k, v in env.vars.items():
+    for k, v in env.get_var_dict().items():
         assert not isinstance(v, onnx.ValueInfoProto), '%s %s' % (k, v)
 
     global _eval_ast_depth
     if not isinstance(nast, list):
-        dprint('-' * _eval_ast_depth, gast.dump(nast), env.vars.keys())
+        dprint('-' * _eval_ast_depth, gast.dump(nast), env.get_var_dict().keys())
 
     _eval_ast_depth += 1
     r = eval_ast_impl(nast, env)
@@ -821,12 +819,12 @@ def eval_ast_impl(nast, env):
         vs = nast.targets
         for v in vs:
             assert isinstance(v, gast.Name)
-            env.vars.pop(v.id)
+            env.pop_var(v.id)
         return None
 
     elif isinstance(nast, gast.Name):
-        if nast.id in env.vars.keys():
-            return env.vars[nast.id]
+        if nast.id in env.get_var_dict().keys():
+            return env.get_var(nast.id)
         elif nast.id in dir(env.module):
             return getattr(env.module, nast.id)
         elif nast.id in dir(builtins):

@@ -133,11 +133,26 @@ def totensor(x, env, dtype=None):
 
 class Env(object):
     def __init__(self, module):
-        self.vars = {}
+        self._vars = {}
         self.nodes = []
         self.init_tensors = []
         self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
         self.module = module
+
+    def get_var(self, k):
+        return self._vars[k]
+
+    def set_var(self, k, v):
+        self._vars[k] = v
+
+    def update_vars(self, d):
+        self._vars.update(d)
+
+    def pop_var(self, k):
+        return self._vars.pop(k)
+
+    def get_var_dict(self):
+        return self._vars
 
     def localenv(self, module):
         res = Env(module)
