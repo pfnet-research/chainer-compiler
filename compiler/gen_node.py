@@ -250,7 +250,7 @@ class AttrDef(object):
         self.onnx_name = self.name
         if self.onnx_name == 'tensor_value':
             self.onnx_name = 'value'
-        self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m[0].lower(), name)
+        self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m.group(0).lower(), name)
         self.required = False
         self.value = None
         self.op_types = []
