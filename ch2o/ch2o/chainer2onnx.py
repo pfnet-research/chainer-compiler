@@ -223,7 +223,7 @@ def eval_for(nast, env):
         tg = nast.target.id
         env.set_var(tg, Value(None))
         for v in ite.value:
-            env.set_vars(tg, _value(v))
+            env.set_var(tg, _value(v))
             eval_ast(nast.body, env)
             # print('looping',env.vars.keys())
 
@@ -235,6 +235,19 @@ def eval_for(nast, env):
 
     assert isinstance(nast.target, gast.Name)
     x = nast.target.id
+
+    # Convert all literals to tensors so that updated values can be
+    # detected. E.g.,
+    #
+    # s = 0
+    # for i in range(4):
+    #   s += i
+    #
+    # TODO(hamaji): This could be inefficient when `s` is not actually
+    # used in the loop above.
+    for _, v in env.get_var_dict().items():
+        if isinstance(v, Value):
+            v.to_value_info(env)
 
     # 新たなenv を作って、評価中にできた子グラフをもとにする
     localenv = Env(env.module)
@@ -261,38 +274,18 @@ def eval_for(nast, env):
         if istensor(v) and v.name in in_names:
             in_closure[k] = (v, v)
 
-    compile_retry = False
-
     # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
     for k in localenv.get_var_dict().keys():
         if k not in env.get_var_dict().keys():
             # for文の中で新たに変数が定義されることは、とりあえず想定しない。
             # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
             continue
-        if localenv.get_var(k) != env.get_var(k):
-            if env.get_var(k).is_py:
-                # この場合、LoopでUpdateしないといけないので
-                # env.vars[k] は tensorでないといけない。
-                # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                env.set_var(k, _value(env.get_var(k).to_value_info(env)))
-                compile_retry = True
-
-                """
-                あと、この実装だと、
-                bs = 0
-                cs = 3
-                for s in ilens:
-                    cs = s
-                    bs = cs
-                のときに、 cs と bs が同じtensorを指していて
-                Loop Operator の出力が同じtensorになってエラーになるので、
-                同じテンソルは出力時に片方dummyにする、などの工夫が必要そう
-                """
-            else:
-                in_closure[k] = (env.get_var(k), localenv.get_var(k))
-
-    if compile_retry:
-        return eval_ast(nast, env)
+        if not (isinstance(localenv.get_var(k), Value) and
+                isinstance(env.get_var(k), Value)):
+            continue
+        if localenv.get_var(k).value != env.get_var(k).value:
+            assert not env.get_var(k).is_py
+            in_closure[k] = (env.get_var(k), localenv.get_var(k))
 
     # ループ内で使われた link パラメータは
     # 1. 外の env にコピーしなければならない

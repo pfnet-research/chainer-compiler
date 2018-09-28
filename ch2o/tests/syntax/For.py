@@ -23,7 +23,6 @@ class A(chainer.Chain):
         return v
 
 
-
 class B(chainer.Chain):
     def forward(self, xs, l):
         inputs = F.pad_sequence(xs)
@@ -31,6 +30,16 @@ class B(chainer.Chain):
         for time in range(l):
             h = inputs[:, time]
         return h
+
+
+class C(chainer.Chain):
+    def forward(self):
+        bs = 0
+        cs = 0
+        for i in range(4):
+            cs = i
+            bs = cs
+        return bs, cs
 
 
 # ======================================
@@ -54,3 +63,6 @@ if __name__ == '__main__':
         xs.append(np.random.rand(length, 5).astype(dtype=np.float32))
     args = [xs, length]
     ch2o.generate_testcase(model, args, subname='closure_bug')
+
+    # TODO(hamaji): Fix this.
+    # ch2o.generate_testcase(C(), [], subname='multi_ref')
