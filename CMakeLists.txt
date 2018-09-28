@@ -33,9 +33,9 @@ find_package(OpenCV REQUIRED)
 find_package(CUDA REQUIRED)
 
 include_directories(onnx)
-include_directories(onnx/.setuptools-cmake-build)
+include_directories(onnx/build)
 
-link_directories(onnx/.setuptools-cmake-build)
+link_directories(onnx/build)
 link_directories(googletest/googletest)
 
 add_custom_target(large_tests)
