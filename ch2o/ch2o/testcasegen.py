@@ -75,7 +75,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                 for j, v in enumerate(value):
                     filename = os.path.join(
                         test_data_dir,
-                        '%%s_%%d_%%0%dd.pb' % (digits) % (typ, i, j))
+                        '%s_%d_%s.pb' % (typ, i, str(j).zfill(digits)))
                     tensor = numpy_helper.from_array(v, name)
                     with open(filename, 'wb') as f:
                         f.write(tensor.SerializeToString())
