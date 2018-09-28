@@ -356,7 +356,7 @@ class Link_NStepBiLSTM(Callable):
             import chainer
             localenv = Env({})
             vs = {
-                'v': v,
+                'v': Value(v),
                 'F': chainer.functions
             }
             localenv.vars.update(vs)

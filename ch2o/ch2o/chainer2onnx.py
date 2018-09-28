@@ -5,6 +5,7 @@ import gast
 import inspect
 
 import numpy as np
+import onnx
 from onnx import checker
 from onnx import helper
 from onnx import TensorProto
@@ -44,6 +45,13 @@ def id2name(nid):
         if k == nid:
             return v
     raise Exception("Not Found ID ", nid)
+
+
+def _value(v):
+    if (isinstance(v, User_Defined_Function) or
+        isinstance(v, User_Defined_Func_In_Link)):
+        return v
+    return Value(v)
 
 
 def convert_link(ch, env):
@@ -213,9 +221,9 @@ def eval_for(nast, env):
         'ChainList.children' in str(ite.value)):
         # とりあえず実際にfor文を回す
         tg = nast.target.id
-        env.vars[tg] = None
+        env.vars[tg] = Value(None)
         for v in ite.value:
-            env.vars[tg] = v
+            env.vars[tg] = _value(v)
             eval_ast(nast.body, env)
             # print('looping',env.vars.keys())
 
@@ -235,10 +243,10 @@ def eval_for(nast, env):
 
     cnt = new_tensor()
     gtx = new_sequence()
-    localenv.vars[x] = localenv.calc(
+    localenv.vars[x] = _value(localenv.calc(
         "OnikuxGenericGetItem",
         inputs=[gtx.name, cnt.name],
-    )
+    ))
     ty = eval_ast(nast.body, localenv)
     assert ty.is_none()
 
@@ -263,11 +271,11 @@ def eval_for(nast, env):
             # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
             continue
         if localenv.vars[k] != env.vars[k]:
-            if not istensor(env.vars[k]):
+            if env.vars[k].is_py:
                 # この場合、LoopでUpdateしないといけないので
                 # env.vars[k] は tensorでないといけない。
                 # とりあえずコンパイルをやり直しているが、できればやり直さずにしたいですね。
-                env.vars[k] = env.vars[k].to_value_info(env)
+                env.vars[k] = _value(env.vars[k].to_value_info(env))
                 compile_retry = True
 
                 """
@@ -327,7 +335,7 @@ def eval_for(nast, env):
     env.addnode(
         'Loop',
         inputs=[mtc.name, "", ite.to_value_info(env).name] +
-        [vv[0].name for vv in in_closure.values()],
+        [vv[0].name for vv in in_closure_values],
         # ループの中でupdateされない変数は出力先はdummyにする
         # updateするならそれでできる新たなテンソルを出力とする
         outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
@@ -336,7 +344,7 @@ def eval_for(nast, env):
     )
 
     for k, (_, v) in in_closure.items():
-        env.vars[k] = v
+        env.vars[k] = _value(v)
 
     return None
 
@@ -353,14 +361,14 @@ def eval_assign(nast, env):
 
     tg = targs[0]
     if isinstance(tg, gast.Name):
-        env.vars[tg.id] = value
+        env.vars[tg.id] = _value(value)
     elif isinstance(tg, gast.Tuple):
         assert(isinstance(value.value, tuple))
         value = value.value
         assert(len(tg.elts) == len(value))
 
         for i, v in enumerate(value):
-            env.vars[tg.elts[i].id] = v  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
+            env.vars[tg.elts[i].id] = _value(v)  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
 
     elif isinstance(tg, gast.Attribute):
         body = eval_ast(tg.value, env)
@@ -531,10 +539,10 @@ def eval_attribute(nast, env):
             def f(args, _, env):
                 assert len(args) == 1
                 v = args[0].to_tensor(env)
-                env.vars[na] = env.calc_seq(
+                env.vars[na] = _value(env.calc_seq(
                     'OnikuxSequenceAppend',
                     inputs=[body.to_sequence(env).name, v.name],
-                )
+                ))
                 return None
 
             return Func(f)
@@ -731,6 +739,9 @@ _eval_ast_depth = 0
 
 
 def eval_ast(nast, env):
+    for k, v in env.vars.items():
+        assert not isinstance(v, onnx.ValueInfoProto), '%s %s' % (k, v)
+
     global _eval_ast_depth
     if not isinstance(nast, list):
         dprint('-' * _eval_ast_depth, gast.dump(nast), env.vars.keys())
@@ -738,10 +749,7 @@ def eval_ast(nast, env):
     _eval_ast_depth += 1
     r = eval_ast_impl(nast, env)
     _eval_ast_depth -= 1
-    if (isinstance(r, User_Defined_Function) or
-        isinstance(r, User_Defined_Func_In_Link)):
-        return r
-    return Value(r)
+    return _value(r)
 
 
 def eval_ast_impl(nast, env):
@@ -862,7 +870,8 @@ def compiler(model):
         x = new_tensor()  # ここの次元は不明になる
         input_tensors.append(x)
 
-    v = molk.call(input_tensors, [], env)
+    input_values = [Value(i) for i in input_tensors]
+    v = molk.call(input_values, [], env)
 
     dprint('output_tensors', v)
     if isinstance(v.value, tuple):
