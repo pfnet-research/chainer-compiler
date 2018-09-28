@@ -31,7 +31,7 @@ add_custom_command(
   )
 
 add_custom_target(
-  gen_test_onnx ALL
+  gen_test_onnx ${ONIKU_TEST_ALL}
   DEPENDS
   backprop_test_oc_stamp
   backprop_test_pc_stamp

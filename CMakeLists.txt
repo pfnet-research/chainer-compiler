@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 3.4)
 
 execute_process(COMMAND git submodule update --init)
 
+option(ONIKU_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
+
+if(${ONIKU_GENERATE_TESTS})
+  set(ONIKU_TEST_ALL ALL)
+else()
+  set(ONIKU_TEST_ALL "")
+endif()
+
 enable_testing()
 
 add_definitions(-DONNX_ML=1)
@@ -80,7 +88,7 @@ foreach(
     UserDefinedFunc
     )
 
-  gen_ch2o_test(syntax ${ch2o_test} ALL)
+  gen_ch2o_test(syntax ${ch2o_test} "${ONIKU_TEST_ALL}")
 
 endforeach()
 
@@ -116,7 +124,7 @@ foreach(
     Vstack
     )
 
-  gen_ch2o_test(node ${ch2o_test} ALL)
+  gen_ch2o_test(node ${ch2o_test} "${ONIKU_TEST_ALL}")
 
 endforeach()
 
@@ -126,7 +134,7 @@ foreach(
     MyLSTM
     )
 
-  gen_ch2o_test(model ${ch2o_test} ALL)
+  gen_ch2o_test(model ${ch2o_test} "${ONIKU_TEST_ALL}")
 
 endforeach()
 
