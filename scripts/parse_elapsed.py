@@ -22,4 +22,4 @@ with open(sys.argv[1]) as f:
             tests[cur_test] = float(m.group(1))
 
 for name, elapsed in sorted(tests.items()):
-    print(f'{name} {elapsed}')
+    print('%s %s' % (name, elapsed))

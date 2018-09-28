@@ -250,7 +250,7 @@ class AttrDef(object):
         self.onnx_name = self.name
         if self.onnx_name == 'tensor_value':
             self.onnx_name = 'value'
-        self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m[0].lower(), name)
+        self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m.group(0).lower(), name)
         self.required = False
         self.value = None
         self.op_types = []
@@ -282,7 +282,7 @@ class AttrDef(object):
     def c_arg_type(self):
         typ = self.c_type()
         if 'std::' in typ:
-            return f'const {typ}&'
+            return 'const %s&' % (typ)
         return typ
 
     def c_setter_arg_type(self):
@@ -347,7 +347,7 @@ def gen_gen_node_base_h():
     private_lines = []
     public_lines.append('enum OpType {')
     for node in NODES:
-        public_lines.append(f'k{node.op_type},')
+        public_lines.append('k%s,' % (node.op_type))
     public_lines.append('};')
     public_lines.append('static const char* OpTypeToString(OpType op_type);')
     public_lines.append('OpType op_type() const {')
@@ -359,19 +359,19 @@ def gen_gen_node_base_h():
         arg = attr.c_arg_type()
         typ = attr.c_type()
 
-        public_lines.append(f'{arg} {name}() const ' + '{')
-        public_lines.append(f'return {name}_;')
+        public_lines.append('%s %s() const ' % (arg, name) + '{')
+        public_lines.append('return %s_;' % (name))
         public_lines.append('}')
 
         if attr.type == Graph:
-            public_lines.append(f'Graph* release_{name}() ' + '{')
-            public_lines.append(f'return {name}_.release();')
+            public_lines.append('Graph* release_%s() ' % (name) + '{')
+            public_lines.append('return %s_.release();' % (name))
             public_lines.append('}')
 
         sarg = attr.c_setter_arg_type()
-        public_lines.append(f'NodeBase* set_{name}({sarg} {name});')
-        private_lines.append(f'{typ} {name}_;')
-        private_lines.append(f'bool was_{name}_set_ = false;')
+        public_lines.append('NodeBase* set_%s(%s %s);' % (name, sarg, name))
+        private_lines.append('%s %s_;' % (typ, name))
+        private_lines.append('bool was_%s_set_ = false;' % (name))
 
     lines = public_lines + ['protected:'] + private_lines
 
@@ -424,10 +424,10 @@ def gen_gen_node_base_cc():
                  'const std::vector<Value*>& inputs, '
                  'const std::vector<Value*>& outputs) {')
     for i, node in enumerate(NODES):
-        lines.append(f'if (xnode.op_type() == "{node.op_type}") ' + '{')
+        lines.append('if (xnode.op_type() == "%s") ' % (node.op_type) + '{')
         if i:
             lines[-1] = '} else ' + lines[-1]
-        lines.append(f'op_type_ = k{node.op_type};')
+        lines.append('op_type_ = k%s;' % (node.op_type))
     lines.append('} else {')
     lines.append('CHECK(false) << "Unsupported op_type: " '
                  '<< xnode.op_type();')
@@ -441,37 +441,37 @@ def gen_gen_node_base_cc():
     lines.append('switch (op_type_) {')
     for node in NODES:
         op = node.op_type
-        lines.append(f'case k{node.op_type}: ' + '{')
+        lines.append('case k%s: ' % (node.op_type) + '{')
         lines.append('for (const onnx::AttributeProto& xattr : '
                      'xnode.attribute()) {')
         conds = []
         bodies = []
         for _, attr in sorted(node.attr_defs.items()):
-            conds.append(f'xattr.name() == "{attr.onnx_name}"')
+            conds.append('xattr.name() == "%s"' % (attr.onnx_name))
             blines = []
             blines.append('if (!g_permissive) '
-                          f'CHECK_EQ(xattr.type(), {attr.onnx_type()});')
+                          'CHECK_EQ(xattr.type(), %s);' % (attr.onnx_type()))
             if attr.type == int:
-                blines.append(f'set_{attr.c_name}(xattr.i());')
+                blines.append('set_%s(xattr.i());' % (attr.c_name))
             elif attr.type == bool:
-                blines.append(f'set_{attr.c_name}(xattr.i() != 0);')
+                blines.append('set_%s(xattr.i() != 0);' % (attr.c_name))
             elif attr.type == float:
-                blines.append(f'set_{attr.c_name}(xattr.f());')
+                blines.append('set_%s(xattr.f());' % (attr.c_name))
             elif attr.type == str:
-                blines.append(f'set_{attr.c_name}(xattr.s());')
+                blines.append('set_%s(xattr.s());' % (attr.c_name))
             elif isinstance(attr.type, list):
                 fs = attr.onnx_field()
-                blines.append(f'{attr.c_name}_.assign(xattr.{fs}().begin(), '
-                              f'xattr.{fs}().end());')
+                blines.append('%s_.assign(xattr.%s().begin(), ' % (attr.c_name, fs) +
+                              'xattr.%s().end());' % (fs))
             elif attr.type == Dtype:
-                blines.append(f'set_{attr.c_name}(Dtype(onnx::TensorProto::DataType(xattr.i())));')
+                blines.append('set_%s(Dtype(onnx::TensorProto::DataType(xattr.i())));' % (attr.c_name))
             elif attr.type == Tensor:
-                blines.append(f'set_{attr.c_name}(new Tensor(xattr.t()));')
+                blines.append('set_%s(new Tensor(xattr.t()));' % (attr.c_name))
             elif attr.type == Graph:
-                blines.append(f'set_{attr.c_name}(new Graph(xattr.g()));')
+                blines.append('set_%s(new Graph(xattr.g()));' % (attr.c_name))
             else:
                 raise RuntimeError('Unknown attribute type: %s' % attr.type)
-            blines.append(f'was_{attr.c_name}_set_ = true;')
+            blines.append('was_%s_set_ = true;' % (attr.c_name))
             bodies.append(blines)
         bodies.append([
             'if (!g_permissive) CHECK(false) << "Invalid attribute `"'
@@ -493,8 +493,8 @@ def gen_gen_node_base_cc():
     lines.append('const char* NodeBase::OpTypeToString(OpType op_type) {')
     lines.append('switch (op_type) {')
     for node in NODES:
-        lines.append(f'case NodeBase::k{node.op_type}: '
-                     f'return "{node.op_type}";')
+        lines.append('case NodeBase::k%s: ' % (node.op_type) +
+                     'return "%s";' % (node.op_type))
     lines.append('default: CHECK(false) << "Unknown op_type: " << '
                  'static_cast<int>(op_type);')
     lines.append('}')
@@ -572,11 +572,11 @@ def gen_gen_node_base_cc():
 
     lines.append('switch (op_type_) {')
     for node in NODES:
-        lines.append(f'case k{node.op_type}: ' + '{')
+        lines.append('case k%s: ' % (node.op_type) + '{')
         for _, attr in sorted(node.attr_defs.items()):
-            lines.append(f'if (was_{attr.c_name}_set_)')
-            lines.append(f'    {attr.add_func()}("{attr.onnx_name}",'
-                         f' {attr.c_name}_);')
+            lines.append('if (was_%s_set_)' % (attr.c_name))
+            lines.append('    %s("%s",' % (attr.add_func(), attr.onnx_name) +
+                         ' %s_);' % (attr.c_name))
         lines.append('break;')
         lines.append('}')
     lines.append('}')
@@ -591,16 +591,16 @@ def gen_gen_node_base_cc():
     lines.append('const float inf = std::numeric_limits<float>::infinity();')
     lines.append('switch (op_type_) {')
     for node in NODES:
-        lines.append(f'case k{node.op_type}: ' + '{')
+        lines.append('case k%s: ' % (node.op_type) + '{')
         for _, attr in sorted(node.attr_defs.items()):
             if attr.value is None:
                 continue
             if attr.type == str:
-                lines.append(f'{attr.c_name}_ = "{attr.value}";')
+                lines.append('%s_ = "%s";' % (attr.c_name, attr.value))
             elif attr.type == bool:
-                lines.append(f'{attr.c_name}_ = {str(attr.value).lower()};')
+                lines.append('%s_ = %s;' % (attr.c_name, str(attr.value).lower()))
             else:
-                lines.append(f'{attr.c_name}_ = {attr.value};')
+                lines.append('%s_ = %s;' % (attr.c_name, attr.value))
         lines.append('break;')
         lines.append('}')
     lines.append('}')
@@ -613,18 +613,18 @@ def gen_gen_node_base_cc():
     for node in NODES:
         op = node.op_type
 
-        lines.append(f'case k{op}: ' + '{')
+        lines.append('case k%s: ' % (op) + '{')
         for sym, num in [('inputs', node.num_inputs),
                          ('outputs', node.num_outputs)]:
             if isinstance(num, tuple):
-                conds = [f'{n} == {sym}.size()' for n in num]
+                conds = ['%d == %s.size()' % (n, sym) for n in num]
                 cond = ' || '.join(conds)
-                lines.append(f'CHECK({cond}) << '
-                             f'"Unexpected number of {sym} for {op} (" << '
-                             f'{sym}.size() << ")";')
+                lines.append('CHECK(%s) << ' % (cond) +
+                             '"Unexpected number of %s for %s (" << ' % (sym, op) +
+                             '%s.size() << ")";' % (sym))
             elif num is not None:
-                lines.append(f'CHECK_EQ({num}, {sym}.size()) << '
-                             f'"Unexpected number of {sym} for {op}";')
+                lines.append('CHECK_EQ(%d, %s.size()) << ' % (num, sym) +
+                             '"Unexpected number of %s for %s";' % (sym, op))
 
         lines.append('break;')
         lines.append('}')
@@ -635,11 +635,11 @@ def gen_gen_node_base_cc():
     lines.append('switch (op_type_) {')
     for node in NODES:
         op = node.op_type
-        lines.append(f'case k{op}: ' + '{')
+        lines.append('case k%s: ' % (op) + '{')
         for key, value in node.attributes.items():
             if isinstance(value, Required):
                 lines.append(
-                    f'CHECK(was_{key}_set_) << "{key} is mandatory for {op}";')
+                    'CHECK(was_%s_set_) << "%s is mandatory for %s";' % (key, key, op))
         lines.append('break;')
         lines.append('}')
     lines.append('}')
@@ -648,16 +648,16 @@ def gen_gen_node_base_cc():
     for attr in ATTRS:
         name = attr.c_name
         arg = attr.c_setter_arg_type()
-        lines.append(f'NodeBase* NodeBase::set_{name}({arg} {name}) ' + '{')
-        cond = ' || '.join(f'op_type_ == k{t}' for t in attr.op_types)
-        lines.append(f'CHECK({cond}) << "Invalid attribute `{name}\' for " '
+        lines.append('NodeBase* NodeBase::set_%s(%s %s) ' % (name, arg, name) + '{')
+        cond = ' || '.join('op_type_ == k%s' % (t) for t in attr.op_types)
+        lines.append('CHECK(%s) << "Invalid attribute `%s\' for " ' % (cond, name) +
                      '<< OpTypeToString(op_type_);')
         if attr.type in [Tensor, Graph]:
-            lines.append(f'{name}_.reset({name});')
+            lines.append('%s_.reset(%s);' % (name, name))
         else:
-            lines.append(f'{name}_ = {name};')
+            lines.append('%s_ = %s;' % (name, name))
 
-        lines.append(f'was_{name}_set_ = true;')
+        lines.append('was_%s_set_ = true;' % (name))
         lines.append('return this;')
         lines.append('}')
 
