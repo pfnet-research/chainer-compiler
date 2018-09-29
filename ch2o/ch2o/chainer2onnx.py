@@ -210,6 +210,53 @@ def is_print_logging(s, env):
     )
 
 
+def _find_in_out(localenv, env):
+    # 入力側のテンソルを見る。
+    in_names = set()
+    for no in localenv.nodes:
+        in_names = in_names | set(no.input)
+
+    in_names = list(in_names)
+    in_closure = {}
+    for k, v in env.get_var_dict().items():
+        if isinstance(v, Value): v = v.value
+        if istensor(v) and v.name in in_names:
+            in_closure[k] = (v, v)
+
+    # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
+    for k in localenv.get_var_dict().keys():
+        if k not in env.get_var_dict().keys():
+            # for文の中で新たに変数が定義されることは、とりあえず想定しない。
+            # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
+            continue
+        if not (isinstance(localenv.get_var(k), Value) and
+                isinstance(env.get_var(k), Value)):
+            continue
+        if localenv.get_var(k).value != env.get_var(k).value:
+            assert not env.get_var(k).is_py
+            in_closure[k] = (env.get_var(k), localenv.get_var(k))
+
+    # ループ内で使われた link パラメータは
+    # 1. 外の env にコピーしなければならない
+    env.init_tensors.extend(localenv.init_tensors)
+    # 2. state としてループ内に持ち込まなければならない
+    for init in localenv.init_tensors:
+        key = '#' + init.name
+        in_closure[key] = (init, init)
+
+    # この時点で
+    # in_closure[k] = (a,b) は、
+    # 『ループ内で参照されている変数kは
+    # ループのbodyの頭にはテンソルaの値であり、
+    # ループのbodyの足ではテンソルbの値である』という気持ち
+
+    # print(in_closure)
+    # dprint(localenv.nodes)
+    # print('ty',ty)
+
+    return in_closure
+
+
 def eval_for(nast, env):
     assert nast.orelse == []
     ite = eval_ast(nast.iter, env)
@@ -262,48 +309,7 @@ def eval_for(nast, env):
     ty = eval_ast(nast.body, localenv)
     assert ty.is_none()
 
-    # 入力側のテンソルを見る。
-    in_names = set()
-    for no in localenv.nodes:
-        in_names = in_names | set(no.input)
-
-    in_names = list(in_names)
-    in_closure = {}
-    for k, v in env.get_var_dict().items():
-        if isinstance(v, Value): v = v.value
-        if istensor(v) and v.name in in_names:
-            in_closure[k] = (v, v)
-
-    # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
-    for k in localenv.get_var_dict().keys():
-        if k not in env.get_var_dict().keys():
-            # for文の中で新たに変数が定義されることは、とりあえず想定しない。
-            # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
-            continue
-        if not (isinstance(localenv.get_var(k), Value) and
-                isinstance(env.get_var(k), Value)):
-            continue
-        if localenv.get_var(k).value != env.get_var(k).value:
-            assert not env.get_var(k).is_py
-            in_closure[k] = (env.get_var(k), localenv.get_var(k))
-
-    # ループ内で使われた link パラメータは
-    # 1. 外の env にコピーしなければならない
-    env.init_tensors.extend(localenv.init_tensors)
-    # 2. state としてループ内に持ち込まなければならない
-    for init in localenv.init_tensors:
-        key = '#' + init.name
-        in_closure[key] = (init, init)
-
-    # この時点で
-    # in_closure[k] = (a,b) は、
-    # 『ループ内で参照されている変数kは
-    # ループのbodyの頭にはテンソルaの値であり、
-    # ループのbodyの足ではテンソルbの値である』という気持ち
-
-    # print(in_closure)
-    # dprint(localenv.nodes)
-    # print('ty',ty)
+    in_closure = _find_in_out(localenv, env)
 
     cond = new_tensor()
     in_closure_values = [(Value(inv).to_value_info(env),
