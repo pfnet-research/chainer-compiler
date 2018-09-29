@@ -42,6 +42,13 @@ class C(chainer.Chain):
         return bs, cs
 
 
+class D(chainer.Chain):
+    def forward(self):
+        for i in range(4):
+            o = i
+        return o
+
+
 # ======================================
 
 
@@ -66,3 +73,6 @@ if __name__ == '__main__':
 
     # TODO(hamaji): Fix this.
     # ch2o.generate_testcase(C(), [], subname='multi_ref')
+
+    # TODO(hamaji): Fix this.
+    # ch2o.generate_testcase(D(), [], subname='leak')
