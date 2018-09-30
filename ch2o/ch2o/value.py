@@ -23,7 +23,7 @@ class Value(object):
             assert self.is_tensor() or self.is_sequence()
             assert not (self.is_tensor() and self.is_sequence())
 
-    def __str__(self):
+    def __repr__(self):
         if self.is_py:
             return 'Value(%s)' % str(self.value)
         else:

@@ -211,30 +211,35 @@ def is_print_logging(s, env):
 
 
 def _find_in_out(localenv, env):
-    # 入力側のテンソルを見る。
-    in_names = set()
-    for no in localenv.nodes:
-        in_names = in_names | set(no.input)
+    used_onnx_names = set()
+    for node in localenv.nodes:
+        used_onnx_names |= set(node.input)
 
-    in_names = list(in_names)
-    in_closure = {}
-    for k, v in env.get_var_dict().items():
-        if isinstance(v, Value): v = v.value
-        if istensor(v) and v.name in in_names:
-            in_closure[k] = (v, v)
+    outer_vars = env.get_var_dict()
+    inner_vars = localenv.get_var_dict()
+    keys = set(list(outer_vars.keys()) + list(inner_vars.keys()))
 
-    # for文の中で値の変更が起こったものは、 in_closure に加える必要がある
-    for k in localenv.get_var_dict().keys():
-        if k not in env.get_var_dict().keys():
-            # for文の中で新たに変数が定義されることは、とりあえず想定しない。
-            # (この場合、forの外に漏れ出していたとしても、Undefined variable にする)
+    # A tuple of (in-value, out-value) keyed by a variable name.
+    in_out = {}
+    for key in keys:
+        ov = outer_vars.get(key, None)
+        iv = inner_vars.get(key, None)
+
+        if isinstance(ov, Value):
+            # Changing link or something to Value is not supported.
+            assert isinstance(iv, Value), '%s => %s' % (ov, iv)
+        else:
+            # Changing Value to link or something is not supported.
+            assert ov is None or not isinstance(iv, Value), (
+                '%s => %s' % (ov, iv))
             continue
-        if not (isinstance(localenv.get_var(k), Value) and
-                isinstance(env.get_var(k), Value)):
+
+        if ov is None or iv is None or ov.value != iv.value:
+            in_out[key] = (ov, iv)
             continue
-        if localenv.get_var(k).value != env.get_var(k).value:
-            assert not env.get_var(k).is_py
-            in_closure[k] = (env.get_var(k), localenv.get_var(k))
+
+        if ov.to_value_info(env).name in used_onnx_names:
+            in_out[key] = (ov, None)
 
     # ループ内で使われた link パラメータは
     # 1. 外の env にコピーしなければならない
@@ -242,19 +247,9 @@ def _find_in_out(localenv, env):
     # 2. state としてループ内に持ち込まなければならない
     for init in localenv.init_tensors:
         key = '#' + init.name
-        in_closure[key] = (init, init)
+        in_out[key] = (Value(init), None)
 
-    # この時点で
-    # in_closure[k] = (a,b) は、
-    # 『ループ内で参照されている変数kは
-    # ループのbodyの頭にはテンソルaの値であり、
-    # ループのbodyの足ではテンソルbの値である』という気持ち
-
-    # print(in_closure)
-    # dprint(localenv.nodes)
-    # print('ty',ty)
-
-    return in_closure
+    return in_out
 
 
 def eval_for(nast, env):
@@ -309,17 +304,32 @@ def eval_for(nast, env):
     ty = eval_ast(nast.body, localenv)
     assert ty.is_none()
 
-    in_closure = _find_in_out(localenv, env)
+    in_out = _find_in_out(localenv, env)
+
+    def dummy():
+        return "dummy_" + new_tensor().name
+
+    input_values = []
+    output_values = []
+    final_output_names = []
+    for key, (iv, ov) in in_out.items():
+        # TODO(hamaji): Handle leaking values.
+        if iv is None:
+            continue
+        if ov is None:
+            final_output_names.append(dummy())
+            ov = iv
+        else:
+            final_output_names.append(ov.to_value_info(env).name)
+        input_values.append(iv.to_value_info(env))
+        output_values.append(ov.to_value_info(env))
 
     cond = new_tensor()
-    in_closure_values = [(Value(inv).to_value_info(env),
-                          Value(outv).to_value_info(env))
-                         for inv, outv in in_closure.values()]
     localgraph = helper.make_graph(
         localenv.nodes,
         "Loop_subgraph",
-        [cnt, cond, gtx] + [vv[0] for vv in in_closure_values],
-        [cond, gtx] + [vv[1] for vv in in_closure_values]
+        [cnt, cond, gtx] + input_values,
+        [cond, gtx] + output_values
     )
 
     mtc = env.calc(
@@ -327,22 +337,17 @@ def eval_for(nast, env):
         inputs=[ite.to_value_info(env).name],
     )
 
-    def dummy():
-        return "dummy_" + new_tensor().name
-
     env.addnode(
         'Loop',
-        inputs=[mtc.name, "", ite.to_value_info(env).name] +
-        [vv[0].name for vv in in_closure_values],
-        # ループの中でupdateされない変数は出力先はdummyにする
-        # updateするならそれでできる新たなテンソルを出力とする
-        outputs=[dummy()] + [(dummy() if vv[0] == vv[1] else vv[1].name)
-                             for vv in in_closure_values],
+        inputs=([mtc.name, "", ite.to_value_info(env).name] +
+                [i.name for i in input_values]),
+        outputs=[dummy()] + final_output_names,
         body=localgraph
     )
 
-    for k, (_, v) in in_closure.items():
-        env.set_var(k, _value(v))
+    for k, (_, v) in in_out.items():
+        if v is not None:
+            env.set_var(k, _value(v))
 
     return None
 
