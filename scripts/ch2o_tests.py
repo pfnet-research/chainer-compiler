@@ -38,6 +38,7 @@ Vstack
 '''.split()
 
 SYNTAX_TESTS = '''
+Cmp
 For
 If
 LinkInFor

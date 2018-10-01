@@ -78,6 +78,7 @@ endfunction()
 
 foreach(
     ch2o_test
+    Cmp
     For
     If
     LinkInFor
