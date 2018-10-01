@@ -253,6 +253,16 @@ def _find_in_out(localenv, env):
     return in_out
 
 
+def eval_if(nast, env):
+    b = eval_ast(nast.test, env)
+    if b is True:
+        return eval_ast(nast.body, env)
+    elif b is False:
+        return eval_ast(nast.orelse, env)
+
+    raise Exception('Not constant If is not implemented yet')
+
+
 def eval_for(nast, env):
     assert nast.orelse == []
     ite = eval_ast(nast.iter, env)
@@ -801,13 +811,7 @@ def eval_ast_impl(nast, env):
         return eval_compare(nast, env)
 
     elif isinstance(nast, gast.If):
-        b = eval_ast(nast.test, env)
-        if b is True:
-            return eval_ast(nast.body, env)
-        elif b is False:
-            return eval_ast(nast.orelse, env)
-        else:
-            raise Exception('Not constant If is not implemented yet')
+        return eval_if(nast, env)
 
     elif isinstance(nast, gast.ListComp):
         return eval_list_comp(nast, env)
