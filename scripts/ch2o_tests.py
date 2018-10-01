@@ -39,6 +39,7 @@ Vstack
 
 SYNTAX_TESTS = '''
 For
+If
 LinkInFor
 ListComp
 MultiClass

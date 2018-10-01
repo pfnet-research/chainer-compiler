@@ -79,6 +79,7 @@ endfunction()
 foreach(
     ch2o_test
     For
+    If
     LinkInFor
     ListComp
     MultiClass
