@@ -26,9 +26,9 @@ template <class Fn>
 void Recursively(Fn fn, Graph* graph) {
     fn(graph);
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
-        if (node->body().get()) fn(node->body().get());
-        if (node->then_branch().get()) fn(node->then_branch().get());
-        if (node->else_branch().get()) fn(node->else_branch().get());
+        if (node->body().get()) Recursively(fn, node->body().get());
+        if (node->then_branch().get()) Recursively(fn, node->then_branch().get());
+        if (node->else_branch().get()) Recursively(fn, node->else_branch().get());
     }
 }
 
