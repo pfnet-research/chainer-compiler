@@ -210,6 +210,21 @@ def is_print_logging(s, env):
     )
 
 
+def _prepare_scope(env):
+    # Convert all literals to tensors so that updated values can be
+    # detected. E.g.,
+    #
+    # s = 0
+    # for i in range(4):
+    #   s += i
+    #
+    # TODO(hamaji): This could be inefficient when `s` is not actually
+    # used in the loop above.
+    for _, v in env.get_var_dict().items():
+        if isinstance(v, Value):
+            v.to_value_info(env)
+
+
 def _find_in_out(localenv, env):
     used_onnx_names = set()
     for node in localenv.nodes:
@@ -254,13 +269,84 @@ def _find_in_out(localenv, env):
 
 
 def eval_if(nast, env):
-    b = eval_ast(nast.test, env)
-    if b is True:
+    cond = eval_ast(nast.test, env)
+    if cond.is_py and cond.value is True:
         return eval_ast(nast.body, env)
-    elif b is False:
+    elif cond.is_py and cond.value is False:
         return eval_ast(nast.orelse, env)
 
-    raise Exception('Not constant If is not implemented yet')
+    _prepare_scope(env)
+
+    then_env = Env(env.module)
+    then_env.update_vars(env.get_var_dict())
+    ty = eval_ast(nast.body, then_env)
+    assert ty.is_none()
+
+    else_env = Env(env.module)
+    else_env.update_vars(env.get_var_dict())
+    ty = eval_ast(nast.orelse, else_env)
+    assert ty.is_none()
+
+    then_in_out = _find_in_out(then_env, env)
+    else_in_out = _find_in_out(else_env, env)
+    keys = set(list(then_in_out.keys()) + list(else_in_out.keys()))
+
+    input_values = []
+    then_outputs = []
+    else_outputs = []
+    final_outputs = []
+    for key in keys:
+        then_iv, then_ov = then_in_out.get(key, None)
+        else_iv, else_ov = else_in_out.get(key, None)
+
+        iv = else_iv if then_iv is None else then_iv
+        if iv is None:
+            iv = Value(False)
+        input_values.append(iv.to_value_info(env))
+
+        if then_ov is None and else_ov is None:
+            then_outputs.append(iv.to_value_info(env))
+            else_outputs.append(iv.to_value_info(env))
+            final_outputs.append((key, new_tensor(name='unused_%s' % key)))
+        elif then_ov is None:
+            then_outputs.append(iv.to_value_info(env))
+            else_outputs.append(else_ov.to_value_info(env))
+            final_outputs.append((key, else_ov.copy(env, name=key).value))
+        elif else_ov is None:
+            then_outputs.append(then_ov.to_value_info(env))
+            else_outputs.append(iv.to_value_info(env))
+            final_outputs.append((key, then_ov.copy(env, name=key).value))
+        else:
+            then_outputs.append(then_ov.to_value_info(env))
+            else_outputs.append(else_ov.to_value_info(env))
+            final_outputs.append((key, then_ov.copy(env, name=key).value))
+
+    then_graph = helper.make_graph(
+        then_env.nodes,
+        "If_then",
+        input_values,
+        then_outputs,
+    )
+
+    else_graph = helper.make_graph(
+        else_env.nodes,
+        "If_else",
+        input_values,
+        else_outputs,
+    )
+
+    env.addnode(
+        'If',
+        inputs=[cond.to_value_info(env).name] + [i.name for i in input_values],
+        outputs=[o.name for _, o in final_outputs],
+        then_branch=then_graph,
+        else_branch=else_graph,
+    )
+
+    for k, o in final_outputs:
+        env.set_var(k, _value(o))
+
+    return None
 
 
 def eval_for(nast, env):
@@ -289,18 +375,7 @@ def eval_for(nast, env):
     assert isinstance(nast.target, gast.Name)
     x = nast.target.id
 
-    # Convert all literals to tensors so that updated values can be
-    # detected. E.g.,
-    #
-    # s = 0
-    # for i in range(4):
-    #   s += i
-    #
-    # TODO(hamaji): This could be inefficient when `s` is not actually
-    # used in the loop above.
-    for _, v in env.get_var_dict().items():
-        if isinstance(v, Value):
-            v.to_value_info(env)
+    _prepare_scope(env)
 
     # 新たなenv を作って、評価中にできた子グラフをもとにする
     localenv = Env(env.module)
