@@ -31,8 +31,10 @@ def _validate_inout(xs):
         xs = xs.array
     elif isinstance(xs, np.ndarray):
         pass
+    elif isinstance(xs, bool):
+        xs = np.array(xs, dtype=np.bool)
     elif isinstance(xs, int):
-        xs = np.int64(xs)
+        xs = np.array(xs, dtype=np.int64)
     elif isinstance(xs, collections.Iterable):
         xs = [_validate_inout(x) for x in xs]
     elif (
@@ -58,7 +60,7 @@ def run_chainer_model(model, xs):
         ys = [ys]
 
     # print('befys',ys)
-    ys = list(map(lambda y: _validate_inout(y), ys))
+    ys = list(map(_validate_inout, ys))
     # print('afterys',ys)
     return ys
 

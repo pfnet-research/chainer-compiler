@@ -651,26 +651,74 @@ def eval_attribute(nast, env):
 
 
 def eval_compare(nast, env):
-    le = eval_ast(nast.left, env)
-    vs = list(map(lambda x: eval_ast(x, env), nast.comparators))
-    # とりあえず定数畳み込みのみにする
+    lv = eval_ast(nast.left, env)
+    vs = [eval_ast(x, env) for x in nast.comparators]
 
-    if (istensor(le) or any(map(istensor, vs))):
-        raise Exception('unimplemented tensor comparetion')
+    if all(v.is_py for v in [lv] + vs):
+        # Constant folding.
+        lv = lv.value
+        res = True
+        for op, r in zip(nast.ops, vs):
+            r = r.value
+            if isinstance(op, gast.Eq):
+                res = res and (lv == r)
+            elif isinstance(op, gast.NotEq):
+                res = res and (lv != r)
+            elif isinstance(op, gast.Is):
+                res = res and (lv is r)
+            elif isinstance(op, gast.IsNot):
+                res = res and (lv is not r)
+            elif isinstance(op, gast.Gt):
+                res = res and (lv > r)
+            elif isinstance(op, gast.GtE):
+                res = res and (lv >= r)
+            elif isinstance(op, gast.Lt):
+                res = res and (lv < r)
+            elif isinstance(op, gast.LtE):
+                res = res and (lv <= r)
+            else:
+                raise Exception('unimplemented operator', op)
+        return res
 
-    res = True
+    assert len(vs) == 1, 'Multiple comparator not implemented yet'
+    res = None
     for op, r in zip(nast.ops, vs):
+        needs_not = False
         if isinstance(op, gast.Eq):
-            res = res and (le == r)
+            optype = 'Equal'
+        elif isinstance(op, gast.NotEq):
+            needs_not = True
+            optype = 'Equal'
         elif isinstance(op, gast.Is):
-            res = res and (le is r)
+            # TODO(hamaji): Better to have OnikuxIs
+            optype = 'Equal'
         elif isinstance(op, gast.IsNot):
-            res = res and (le is not r)
+            needs_not = True
+            # TODO(hamaji): Better to have OnikuxIs
+            optype = 'Equal'
         elif isinstance(op, gast.Gt):
-            res = res and (le > r)
+            optype = 'Greater'
+        elif isinstance(op, gast.GtE):
+            # TODO(hamaji): This computation is wrong for NaNs.
+            needs_not = True
+            optype = 'Less'
+        elif isinstance(op, gast.Lt):
+            optype = 'Less'
+        elif isinstance(op, gast.LtE):
+            # TODO(hamaji): This computation is wrong for NaNs.
+            needs_not = True
+            optype = 'Greater'
         else:
             raise Exception('unimplemented operator', op)
+
+        res = env.calc(optype,
+                       npdtype=np.bool,
+                       inputs=[lv.to_value_info(env).name,
+                               r.to_value_info(env).name])
+        if needs_not:
+            res = env.calc('Not', npdtype=np.bool, inputs=[res.name])
     return res
+
 
 
 def eval_list_comp(nast, env):
