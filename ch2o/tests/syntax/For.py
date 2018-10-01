@@ -71,8 +71,6 @@ if __name__ == '__main__':
     args = [xs, length]
     ch2o.generate_testcase(model, args, subname='closure_bug')
 
-    # TODO(hamaji): Fix this.
-    # ch2o.generate_testcase(C(), [], subname='multi_ref')
+    ch2o.generate_testcase(C(), [], subname='multi_ref')
 
-    # TODO(hamaji): Fix this.
-    # ch2o.generate_testcase(D(), [], subname='leak')
+    ch2o.generate_testcase(D(), [], subname='leak')

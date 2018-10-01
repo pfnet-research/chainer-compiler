@@ -3,7 +3,7 @@ import onnx
 
 from typing import List, Mapping
 
-from ch2o.utils import Env, totensor, new_tensor
+from ch2o.utils import Env, totensor, gen_id
 
 
 def _is_float_value(v):
@@ -42,6 +42,18 @@ class Value(object):
 
     def is_sequence(self) -> bool:
         return not self.is_py and self.value.type.HasField('sequence_type')
+
+    def copy(self, env: Env, name=None) -> 'Value':
+        self.to_value_info(env)
+        vi = self.value
+        nvi = onnx.ValueInfoProto()
+        if self.is_tensor():
+            nvi.name = gen_id(name, 'T')
+        else:
+            assert self.is_sequence(), self
+            nvi.name = gen_id(name, 'S')
+        nvi.type.CopyFrom(vi.type)
+        return Value(nvi)
 
     def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
         if self.is_py:

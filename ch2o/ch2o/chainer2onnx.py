@@ -228,10 +228,11 @@ def _find_in_out(localenv, env):
         if isinstance(ov, Value):
             # Changing link or something to Value is not supported.
             assert isinstance(iv, Value), '%s => %s' % (ov, iv)
+        elif ov is None or iv is None:
+            pass
         else:
             # Changing Value to link or something is not supported.
-            assert ov is None or not isinstance(iv, Value), (
-                '%s => %s' % (ov, iv))
+            assert ov is None or not isinstance(iv, Value), '%s => %s' % (ov, iv)
             continue
 
         if ov is None or iv is None or ov.value != iv.value:
@@ -306,25 +307,21 @@ def eval_for(nast, env):
 
     in_out = _find_in_out(localenv, env)
 
-    def dummy():
-        return "dummy_" + new_tensor().name
-
     input_values = []
     output_values = []
-    final_output_names = []
+    final_outputs = []
     for key, (iv, ov) in in_out.items():
-        # TODO(hamaji): Handle leaking values.
         if iv is None:
-            continue
+            iv = Value(False)
         if ov is None:
-            final_output_names.append(dummy())
+            final_outputs.append((key, new_tensor(name='unused_%s' % key)))
             ov = iv
         else:
-            final_output_names.append(ov.to_value_info(env).name)
+            final_outputs.append((key, ov.copy(env, name=key).value))
         input_values.append(iv.to_value_info(env))
         output_values.append(ov.to_value_info(env))
 
-    cond = new_tensor()
+    cond = new_tensor(name='loop_cond')
     localgraph = helper.make_graph(
         localenv.nodes,
         "Loop_subgraph",
@@ -341,13 +338,13 @@ def eval_for(nast, env):
         'Loop',
         inputs=([mtc.name, "", ite.to_value_info(env).name] +
                 [i.name for i in input_values]),
-        outputs=[dummy()] + final_output_names,
+        outputs=([new_tensor('out_generator').name] +
+                 [o.name for _, o in final_outputs]),
         body=localgraph
     )
 
-    for k, (_, v) in in_out.items():
-        if v is not None:
-            env.set_var(k, _value(v))
+    for k, o in final_outputs:
+        env.set_var(k, _value(o))
 
     return None
 

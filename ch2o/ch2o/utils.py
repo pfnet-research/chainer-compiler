@@ -29,29 +29,32 @@ def _get_trace_str():
 _cnt = 0
 
 
-def gen_id(prefix):
+def gen_id(name, prefix):
     global _cnt
     _cnt += 1
-    return prefix + str(_cnt)
+    r = prefix + str(_cnt)
+    if name is not None:
+        r = name + '_' + r
+    return r
 
 
-def new_tensor(dims=['Undefined'], dtype=None):
+def new_tensor(dims=['Undefined'], dtype=None, name=None):
     if dtype is not None:
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
     else:
         # TODO(hamaji): Deprecate this fallback pass.
         dt = onnx.TensorProto.FLOAT
-    return helper.make_tensor_value_info(gen_id('T'), dt, dims)
+    return helper.make_tensor_value_info(gen_id(name, 'T'), dt, dims)
 
 
-def new_sequence(dtype=None):
+def new_sequence(dtype=None, name=None):
     if dtype is not None:
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[dtype]
     else:
         # TODO(hamaji): Deprecate this fallback pass.
         dt = onnx.TensorProto.FLOAT
     vi = onnx.ValueInfoProto()
-    vi.name = gen_id('S')
+    vi.name = gen_id(name, 'S')
     vi.type.sequence_type.elem_type.tensor_type.elem_type = dt
     return vi
 
