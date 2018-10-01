@@ -247,7 +247,7 @@ def _find_in_out(localenv, env):
             pass
         else:
             # Changing Value to link or something is not supported.
-            assert ov is None or not isinstance(iv, Value), '%s => %s' % (ov, iv)
+            assert not isinstance(iv, Value), '%s => %s' % (ov, iv)
             continue
 
         if ov is None or iv is None or ov.value != iv.value:
@@ -296,8 +296,8 @@ def eval_if(nast, env):
     else_outputs = []
     final_outputs = []
     for key in keys:
-        then_iv, then_ov = then_in_out.get(key, None)
-        else_iv, else_ov = else_in_out.get(key, None)
+        then_iv, then_ov = then_in_out.get(key, (None, None))
+        else_iv, else_ov = else_in_out.get(key, (None, None))
 
         iv = else_iv if then_iv is None else then_iv
         if iv is None:

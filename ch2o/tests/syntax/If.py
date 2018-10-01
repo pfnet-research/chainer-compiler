@@ -45,6 +45,13 @@ class DynamicCond(chainer.Chain):
         return x
 
 
+class DynamicCondNoElse(chainer.Chain):
+    def forward(self, x, cond):
+        if cond:
+            x += 3
+        return x
+
+
 # ======================================
 
 
@@ -66,3 +73,9 @@ if __name__ == '__main__':
     ch2o.generate_testcase(DynamicCond(), [42, False], subname='false')
 
     ch2o.generate_testcase(DynamicCond(), [42, True], subname='true')
+
+    ch2o.generate_testcase(DynamicCondNoElse(), [42, False],
+                           subname='false_no_else')
+
+    ch2o.generate_testcase(DynamicCondNoElse(), [42, True],
+                           subname='true_no_else')
