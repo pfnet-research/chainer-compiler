@@ -323,15 +323,15 @@ def eval_if(nast, env):
             final_outputs.append((key, new_tensor(name='unused_%s' % key)))
         elif then_ov is None:
             then_outputs.append(iv.to_value_info(env))
-            else_outputs.append(else_ov.to_value_info(env))
+            else_outputs.append(else_ov.to_value_info(else_env))
             final_outputs.append((key, else_ov.copy(env, name=key).value))
         elif else_ov is None:
-            then_outputs.append(then_ov.to_value_info(env))
+            then_outputs.append(then_ov.to_value_info(then_env))
             else_outputs.append(iv.to_value_info(env))
             final_outputs.append((key, then_ov.copy(env, name=key).value))
         else:
-            then_outputs.append(then_ov.to_value_info(env))
-            else_outputs.append(else_ov.to_value_info(env))
+            then_outputs.append(then_ov.to_value_info(then_env))
+            else_outputs.append(else_ov.to_value_info(else_env))
             final_outputs.append((key, then_ov.copy(env, name=key).value))
 
     then_graph = helper.make_graph(
