@@ -662,6 +662,10 @@ private:
                 EMIT(Identity, GetValueId(to), GetValueId(from));
             }
             EmitGraph(*graph, prog, true /* in_loop */, outputs, protected_values);
+            // TODO(hamaji): Fix `EmitGraph` so it frees inputs automatically.
+            for (size_t i = 0; i < inputs.size(); ++i) {
+                FREE(GetValueId(inputs[i]));
+            }
             for (size_t i = 0; i < cond.outputs().size(); ++i) {
                 Value* from = outputs[i];
                 Value* to = cond.outputs()[i];

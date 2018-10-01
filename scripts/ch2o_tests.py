@@ -40,6 +40,7 @@ Vstack
 SYNTAX_TESTS = '''
 Cmp
 For
+ForAndIf
 If
 LinkInFor
 ListComp

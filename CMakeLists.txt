@@ -80,6 +80,7 @@ foreach(
     ch2o_test
     Cmp
     For
+    ForAndIf
     If
     LinkInFor
     ListComp
