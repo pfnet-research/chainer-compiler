@@ -89,6 +89,9 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                     f.write(tensor.SerializeToString())
 
 
+_seen_subnames = set()
+
+
 def generate_testcase(model, xs, subname=None):
     args = get_test_args()
 
@@ -104,12 +107,13 @@ def generate_testcase(model, xs, subname=None):
     chainer_out = run_chainer_model(model, xs)
 
     output_dir = args.output
-    if subname is None:
+    if not _seen_subnames:
         # Remove all related directories to renamed tests.
         for d in [output_dir] + glob.glob(output_dir + '_*'):
             if os.path.exists(output_dir):
                 shutil.rmtree(d)
-    else:
+    _seen_subnames.add(subname)
+    if subname is not None:
         output_dir = output_dir + '_' + subname
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
