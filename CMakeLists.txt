@@ -59,10 +59,11 @@ add_subdirectory(tools)
 function(gen_ch2o_test dir ch2o_test all)
 
   set(out_dir out/ch2o_${dir}_${ch2o_test})
+  set(out_stamp ${out_dir}_stamp)
 
   add_custom_command(
-    OUTPUT ${out_dir}/model.onnx
-    COMMAND PYTHONPATH=ch2o python3 ch2o/tests/${dir}/${ch2o_test}.py ${out_dir} --quiet
+    OUTPUT ${out_stamp}
+    COMMAND PYTHONPATH=ch2o python3 ch2o/tests/${dir}/${ch2o_test}.py ${out_dir} --quiet && touch ${out_stamp}
     MAIN_DEPENDENCY ch2o/tests/${dir}/${ch2o_test}.py
     DEPENDS ${CH2O_FILES}
     )
@@ -70,7 +71,7 @@ function(gen_ch2o_test dir ch2o_test all)
   add_custom_target(
     ${dir}_${ch2o_test}
     ${all}
-    DEPENDS ${out_dir}/model.onnx)
+    DEPENDS ${out_stamp})
 
   add_dependencies(large_tests ${dir}_${ch2o_test})
 
