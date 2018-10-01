@@ -243,6 +243,11 @@ NodeDef('OnikuxGenericGetSlice', (1, 2, 3, 4), 1)
 # For sequences: input0 + input1 in Python -> sequence
 NodeDef('OnikuxGenericAdd', 2, 1)
 
+# Similar to Python's `is` keyword.
+# This returns true only when both inputs are bool scalars and have
+# the same value.
+NodeDef('OnikuxGenericIs', 2, 1)
+
 
 class AttrDef(object):
     def __init__(self, name, value):

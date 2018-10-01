@@ -152,5 +152,32 @@ void GenericAddOp::RunImpl(XCVMState* st) {
     }
 }
 
+void GenericIsOp::RunImpl(XCVMState* st) {
+    XCVMVar* var0 = st->GetXCVMVar(a);
+    XCVMVar* var1 = st->GetXCVMVar(b);
+
+    bool result = false;
+    if (var0->kind() != var1->kind()) {
+        // We are sure the return value is false.
+    } else if (var0->kind() == XCVMVar::Kind::kArray) {
+        chainerx::Array a = var0->GetArray();
+        chainerx::Array b = var1->GetArray();
+        if (a.ndim() == 0 && b.ndim() == 0 &&
+            a.dtype() == chainerx::Dtype::kBool &&
+            b.dtype() == chainerx::Dtype::kBool) {
+            result = (static_cast<bool>(chainerx::AsScalar(a)) ==
+                      static_cast<bool>(chainerx::AsScalar(b)));
+        } else if (a.dtype() != b.dtype() || a.shape() != b.shape() ||
+                   a.raw_data() != b.raw_data()) {
+            // We are sure the return value is false.
+        } else {
+            WARN_ONCE("`is` keyword for non boolean scalars might be wrong");
+        }
+    } else {
+        WARN_ONCE("`is` keyword for sequences might be wrong");
+    }
+    st->SetVar(output, MakeHostArray(chainerx::Dtype::kBool, {}, &result));
+}
+
 }  // namespace runtime
 }  // namespace oniku

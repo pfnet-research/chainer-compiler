@@ -310,6 +310,7 @@ XC_GENERIC_OPS = [
      [Array('v'), OptionalArray('start'),
       OptionalArray('end'), OptionalArray('step')], ['output']),
     ('GenericAdd', [Array('a'), Array('b')], ['output']),
+    ('GenericIs', [Array('a'), Array('b')], ['output']),
 ]
 
 

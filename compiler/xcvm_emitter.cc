@@ -212,6 +212,7 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kPow, Pow);
         EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
         EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
+        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxGenericIs, GenericIs);
 
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxReluGrad, ReluGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxMaxPoolGrad, MaxPoolGrad);

@@ -690,12 +690,10 @@ def eval_compare(nast, env):
             needs_not = True
             optype = 'Equal'
         elif isinstance(op, gast.Is):
-            # TODO(hamaji): Better to have OnikuxIs
-            optype = 'Equal'
+            optype = 'OnikuxGenericIs'
         elif isinstance(op, gast.IsNot):
             needs_not = True
-            # TODO(hamaji): Better to have OnikuxIs
-            optype = 'Equal'
+            optype = 'OnikuxGenericIs'
         elif isinstance(op, gast.Gt):
             optype = 'Greater'
         elif isinstance(op, gast.GtE):

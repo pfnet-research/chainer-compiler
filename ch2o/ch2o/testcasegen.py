@@ -27,6 +27,12 @@ from ch2o.initializer import edit_onnx_protobuf
 
 def _validate_inout(xs):
     # print(xs)
+
+    # We use a scalar false as a None.
+    # TODO(hamaji): Revisit to check if this decision is OK.
+    if xs is None:
+        xs = False
+
     if isinstance(xs, chainer.Variable):
         xs = xs.array
     elif isinstance(xs, np.ndarray):
