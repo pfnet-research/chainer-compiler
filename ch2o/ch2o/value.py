@@ -55,6 +55,12 @@ class Value(object):
         nvi.type.CopyFrom(vi.type)
         return Value(nvi)
 
+    def identity(self, env: Env, name=None) -> 'Value':
+        nv = self.copy(env, name=name)
+        env.addnode('Identity',
+                    inputs=[self.value.name], outputs=[nv.value.name])
+        return nv
+
     def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
         if self.is_py:
             if isinstance(self.value, collections.Iterable):

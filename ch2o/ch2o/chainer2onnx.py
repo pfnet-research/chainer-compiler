@@ -220,9 +220,22 @@ def _prepare_scope(env):
     #
     # TODO(hamaji): This could be inefficient when `s` is not actually
     # used in the loop above.
-    for _, v in env.get_var_dict().items():
-        if isinstance(v, Value):
-            v.to_value_info(env)
+    for value in env.get_var_dict().values():
+        if isinstance(value, Value):
+            value.to_value_info(env)
+
+    # Resolve all aliases so that all inputs will get unique ONNX names.
+    onnx_names = set()
+    aliases = []
+    for key, value in env.get_var_dict().items():
+        if isinstance(value, Value):
+            if value.value.name in onnx_names:
+                aliases.append((key, value.identity(env, name=key)))
+            else:
+                onnx_names.add(value.value.name)
+
+    for key, new_value in aliases:
+        env.set_var(key, new_value)
 
 
 def _find_in_out(localenv, env):
