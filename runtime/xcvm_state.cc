@@ -62,6 +62,7 @@ std::vector<chainerx::Array>* XCVMState::GetSequence(int index) {
 XCVMVar* XCVMState::GetXCVMVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get());
     return variables_[index].get();
 }
 
