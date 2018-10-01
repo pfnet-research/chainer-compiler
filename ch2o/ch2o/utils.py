@@ -94,6 +94,11 @@ def totensor(x, env, dtype=None):
         assert dtype is None
         return x
 
+    # We use a scalar false as a None.
+    # TODO(hamaji): Revisit to check if this decision is OK.
+    if x is None:
+        x = False
+
     if type(x) == tuple or type(x) == list:
         def f(v):
             tv = v.to_tensor(env)
