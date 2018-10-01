@@ -91,24 +91,7 @@ def totensor(x, env, dtype=None):
         assert dtype is None
         return x
 
-    if type(x) == float or type(x) == int:
-        if dtype is not None:
-            dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[dtype]
-        elif type(x) == float:
-            dt = onnx.TensorProto.FLOAT
-        else:
-            dt = onnx.TensorProto.INT64
-        res = env.calc(
-            'Constant',
-            inputs=[],
-            value=onnx.helper.make_tensor(
-                name="hoge",
-                data_type=dt,
-                dims=[],
-                vals=[x],
-            )
-        )
-    elif type(x) == tuple or type(x) == list:
+    if type(x) == tuple or type(x) == list:
         def f(v):
             tv = v.to_tensor(env)
             tw = env.calc(
@@ -126,7 +109,20 @@ def totensor(x, env, dtype=None):
             axis=0
         )
     else:
-        raise Exception("totensor of %s is not implemented yet" % str(x))
+        if dtype is None and type(x) == float:
+            dtype = np.float32
+        x = np.array(x, dtype=dtype)
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[x.dtype]
+        res = env.calc(
+            'Constant',
+            inputs=[],
+            value=onnx.helper.make_tensor(
+                name="hoge",
+                data_type=dt,
+                dims=[],
+                vals=[x],
+            )
+        )
 
     return res
 
