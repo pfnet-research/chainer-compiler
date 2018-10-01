@@ -52,6 +52,15 @@ class DynamicCondNoElse(chainer.Chain):
         return x
 
 
+class DynamicCondLeak(chainer.Chain):
+    def forward(self, x, cond):
+        if cond:
+            y = x + 3
+        else:
+            y = x + 10
+        return x
+
+
 # ======================================
 
 
@@ -79,3 +88,7 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(DynamicCondNoElse(), [42, True],
                            subname='true_no_else')
+
+    ch2o.generate_testcase(DynamicCondLeak(), [42, False], subname='leak_false')
+
+    ch2o.generate_testcase(DynamicCondLeak(), [42, True], subname='leak_true')
