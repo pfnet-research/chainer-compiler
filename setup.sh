@@ -12,10 +12,8 @@ if [ ! -e onnx/build/libonnx.a -o ! -e onnx/build/onnx/onnx-ml.pb.h ]; then
         ([ -d "build" ] || mkdir -p build) && \
         cd build && \
         cmake \
-            -DBUILD_ONNX_PYTHON=OFF \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DONNX_ML=1 \
-            -DONNX_NAMESPACE=onnx \
+            -DONNX_ML=ON \
             .. && \
         cmake --build . -- -j$(nproc))
 fi
