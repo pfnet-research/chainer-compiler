@@ -79,6 +79,29 @@ class UpdateSelf(chainer.Chain):
         return self.x
 
 
+class LazyInit(chainer.Chain):
+    def __init__(self):
+        super(LazyInit, self).__init__()
+        self.x = None
+
+    def forward(self, x):
+        if self.x is None:
+            self.x = x
+        return self.x
+
+
+class LazyInitUse(chainer.Chain):
+    def __init__(self):
+        super(LazyInitUse, self).__init__()
+        with self.init_scope():
+            self.li = LazyInit()
+
+    def forward(self, x):
+        a = self.li(x)
+        b = self.li(x * 2)
+        return a + b
+
+
 # ======================================
 
 
@@ -121,3 +144,10 @@ if __name__ == '__main__':
                            subname='update_self_true')
     ch2o.generate_testcase(UpdateSelf(), [42, False],
                            subname='update_self_false')
+
+    ch2o.generate_testcase(LazyInit, [10],
+                           subname='lazy_init')
+
+    # TODO(hamaji): Handle this case.
+    # ch2o.generate_testcase(LazyInitUse, [10],
+    #                        subname='lazy_init_use')
