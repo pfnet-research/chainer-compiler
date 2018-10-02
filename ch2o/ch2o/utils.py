@@ -14,7 +14,8 @@ from ch2o import value
 
 def _get_trace_str():
     # TODO(hamaji): Use parsing context instead of CH2O codebase.
-    skip_names = set(['_get_trace_str', 'addnode', 'calc', 'calc_seq'])
+    skip_names = set(['_get_trace_str', 'addnode', 'calc', 'calc_seq',
+                      'totensor', 'to_tensor', 'to_sequence', 'to_value_info'])
     trace = []
     for stack in reversed(traceback.extract_stack()):
         if stack.name in skip_names:
