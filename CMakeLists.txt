@@ -59,7 +59,7 @@ add_subdirectory(tools)
 function(gen_ch2o_test dir ch2o_test all)
 
   set(out_dir out/ch2o_${dir}_${ch2o_test})
-  set(out_stamp ${out_dir}_stamp)
+  set(out_stamp stamp_${out_dir})
 
   add_custom_command(
     OUTPUT ${out_stamp}
