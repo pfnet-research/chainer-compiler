@@ -71,6 +71,14 @@ class DynamicCondAlias(chainer.Chain):
         return y
 
 
+class UpdateSelf(chainer.Chain):
+    def forward(self, x, cond):
+        self.x = x
+        if cond:
+            self.x += 10
+        return self.x
+
+
 # ======================================
 
 
@@ -108,3 +116,8 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(DynamicCondAlias(), [42, True],
                            subname='alias_true')
+
+    ch2o.generate_testcase(UpdateSelf(), [42, True],
+                           subname='update_self_true')
+    ch2o.generate_testcase(UpdateSelf(), [42, False],
+                           subname='update_self_false')

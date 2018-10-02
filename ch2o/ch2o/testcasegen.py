@@ -101,9 +101,13 @@ _seen_subnames = set()
 def generate_testcase(model, xs, subname=None):
     args = get_test_args()
 
-    # さらの状態からonnxのmodをつくる
-    onnxmod, input_tensors, output_tensors = compiler(model)
+    def get_model():
+        return model() if isinstance(model, type) else model
 
+    # さらの状態からonnxのmodをつくる
+    onnxmod, input_tensors, output_tensors = compiler(get_model())
+
+    model = get_model()
     chainer.config.train = False
     run_chainer_model(model, xs)
 

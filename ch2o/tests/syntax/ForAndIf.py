@@ -14,6 +14,19 @@ class LazyInit(chainer.Chain):
         return y
 
 
+class LazySelfInit(chainer.Chain):
+    def __init__(self):
+        super(LazySelfInit, self).__init__()
+        self.y = None
+
+    def forward(self, x):
+        for i in range(x):
+            if self.y is None:
+                self.y = 42
+            self.y += i
+        return self.y
+
+
 # ======================================
 
 
@@ -23,3 +36,6 @@ import numpy as np
 
 if __name__ == '__main__':
     ch2o.generate_testcase(LazyInit(), [5], subname='lazy_init')
+
+    # TODO(hamaji): Implement this.
+    # ch2o.generate_testcase(LazySelfInit, [5], subname='lazy_self_init')

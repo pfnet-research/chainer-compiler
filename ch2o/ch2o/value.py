@@ -29,10 +29,13 @@ class Value(object):
         else:
             return 'Value(%s)' % self.value.name
 
-    def get_attribute(self, key: str) -> 'Value':
+    def get_attribute(self, key: str, env: 'utils.Env') -> 'Value':
         if not self.is_py:
             raise TypeError('Unsupported attribute %s for an ONNX value' % key)
-        return Value(getattr(self.value, key))
+        value = Value(getattr(self.value, key))
+        if not value.is_py:
+            env.read_attrs.append((self, key, value))
+        return value
 
     def is_none(self) -> bool:
         return self.is_py and self.value is None

@@ -150,6 +150,14 @@ class Env(object):
         self._vars = {}
         self.nodes = []
         self.init_tensors = []
+
+        # Lists of a tuple of (this, key, value) where
+        # - this: A `Value` object.
+        # - key: A str of the attribute name.
+        # - value: A `Value` object.
+        self.read_attrs = []
+        self.wrote_attrs = []
+
         self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
         self.module = module
         self.outer_block = None

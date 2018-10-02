@@ -218,11 +218,11 @@ def _find_in_out(localenv, env):
     outer_vars = env.get_var_dict()
     inner_vars = localenv.get_var_dict()
 
-    # A tuple of (in-value, out-value) keyed by a variable name.
+    # A tuple of (in-value, out-value, extra info for later setattr)
+    # keyed by a variable name.
     in_out = {}
     for key, iv in inner_vars.items():
         ov = outer_vars.get(key, None)
-
         if isinstance(ov, Value):
             # Changing link or something to Value is not supported.
             assert isinstance(iv, Value), '%s => %s' % (ov, iv)
@@ -234,19 +234,42 @@ def _find_in_out(localenv, env):
             continue
 
         if ov is None or iv is None or ov.value != iv.value:
-            in_out[key] = (ov, iv)
+            in_out[key] = (ov, iv, None)
             continue
 
         if ov.to_value_info(env).name in used_onnx_names:
-            in_out[key] = (ov, None)
+            in_out[key] = (ov, None, None)
+
+    var_ids = {}
+    def attr_id(var, key):
+        vid = id(var.value)
+        if vid not in var_ids:
+            var_ids[vid] = 'v%d' % (len(var_ids) + 1)
+        return var_ids[vid] + '.' + key
+
+    in_attrs = {}
+    for var, key, value in localenv.read_attrs:
+        k = attr_id(var, key)
+        if k not in in_attrs:
+            in_attrs[k] = value
+
+    out_attrs = {}
+    for var, key, value in localenv.wrote_attrs:
+        k = attr_id(var, key)
+        out_attrs[k] = (value, (var, key))
+
+    for k in set(list(in_attrs.keys()) + list(out_attrs.keys())):
+        iv = in_attrs.get(k, None)
+        ov, setattr_info = out_attrs.get(k, (None, None))
+        in_out[k] = (iv, ov, setattr_info)
 
     # ループ内で使われた link パラメータは
     # 1. 外の env にコピーしなければならない
     env.init_tensors.extend(localenv.init_tensors)
     # 2. state としてループ内に持ち込まなければならない
     for init in localenv.init_tensors:
-        key = '#' + init.name
-        in_out[key] = (Value(init), None)
+        key = '/' + init.name
+        in_out[key] = (Value(init), None, None)
 
     return in_out
 
@@ -274,9 +297,26 @@ def eval_if(nast, env):
     then_outputs = []
     else_outputs = []
     final_outputs = []
+    final_setattrs = []
+
     for key in keys:
-        then_iv, then_ov = then_in_out.get(key, (None, None))
-        else_iv, else_ov = else_in_out.get(key, (None, None))
+        then_iv, then_ov, then_setattr_info = then_in_out.get(
+            key, (None, None, None))
+        else_iv, else_ov, else_setattr_info = else_in_out.get(
+            key, (None, None, None))
+
+        if then_setattr_info is None:
+            setattr_info = else_setattr_info
+        else:
+            if else_setattr_info is not None:
+                assert then_setattr_info == else_setattr_info
+            setattr_info = then_setattr_info
+
+        def set_final_output(key, out):
+            out = out.copy(env, name=key)
+            final_outputs.append((key, out.value))
+            if setattr_info is not None:
+                final_setattrs.append(tuple(list(setattr_info) + [out]))
 
         iv = else_iv if then_iv is None else then_iv
         if iv is None:
@@ -290,15 +330,15 @@ def eval_if(nast, env):
         elif then_ov is None:
             then_outputs.append(iv.to_value_info(env))
             else_outputs.append(else_ov.to_value_info(else_env))
-            final_outputs.append((key, else_ov.copy(env, name=key).value))
+            set_final_output(key, else_ov)
         elif else_ov is None:
             then_outputs.append(then_ov.to_value_info(then_env))
             else_outputs.append(iv.to_value_info(env))
-            final_outputs.append((key, then_ov.copy(env, name=key).value))
+            set_final_output(key, then_ov)
         else:
             then_outputs.append(then_ov.to_value_info(then_env))
             else_outputs.append(else_ov.to_value_info(else_env))
-            final_outputs.append((key, then_ov.copy(env, name=key).value))
+            set_final_output(key, then_ov)
 
     then_graph = helper.make_graph(
         then_env.nodes,
@@ -324,6 +364,9 @@ def eval_if(nast, env):
 
     for k, o in final_outputs:
         env.set_var(k, _value(o))
+
+    for var, key, value in final_setattrs:
+        setattr(var.value, key, value)
 
     return None
 
@@ -371,14 +414,18 @@ def eval_for(nast, env):
     input_values = []
     output_values = []
     final_outputs = []
-    for key, (iv, ov) in in_out.items():
+    final_setattrs = []
+    for key, (iv, ov, setattr_info) in in_out.items():
         if iv is None:
             iv = Value(False)
         if ov is None:
             final_outputs.append((key, new_tensor(name='unused_%s' % key)))
             ov = iv
         else:
-            final_outputs.append((key, ov.copy(env, name=key).value))
+            out = ov.copy(env, name=key)
+            final_outputs.append((key, out.value))
+            if setattr_info is not None:
+                final_setattrs.append(tuple(list(setattr_info) + [out]))
         input_values.append(iv.to_value_info(env))
         output_values.append(ov.to_value_info(env))
 
@@ -405,7 +452,11 @@ def eval_for(nast, env):
     )
 
     for k, o in final_outputs:
-        env.set_var(k, _value(o))
+        if '.' not in k and '/' not in k:
+            env.set_var(k, _value(o))
+
+    for var, key, value in final_setattrs:
+        setattr(var.value, key, value)
 
     return None
 
@@ -439,6 +490,7 @@ def eval_assign(nast, env):
 
     elif isinstance(tg, gast.Attribute):
         body = eval_ast(tg.value, env)
+        env.wrote_attrs.append((body, tg.attr, value))
         setattr(body.value, tg.attr, value)
     else:
         raise Exception('invalid assing lvalue', targs[0])
@@ -616,7 +668,7 @@ def eval_attribute(nast, env):
 
         raise Exception('Unimplemented attribute ',
                         nast.attr, ' for tensor')
-    return body.get_attribute(nast.attr)
+    return body.get_attribute(nast.attr, env)
 
 
 def eval_compare(nast, env):

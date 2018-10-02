@@ -38,6 +38,22 @@ class D(chainer.Chain):
         return o
 
 
+class UpdateSelf(chainer.Chain):
+    def forward(self, x):
+        self.x = x
+        for i in range(5):
+            self.x += i
+        return self.x
+
+
+class UpdateSelfLiteral(chainer.Chain):
+    def forward(self):
+        self.x = 42
+        for i in range(5):
+            self.x += i
+        return self.x
+
+
 # ======================================
 
 
@@ -63,3 +79,9 @@ if __name__ == '__main__':
     ch2o.generate_testcase(C(), [], subname='multi_ref')
 
     ch2o.generate_testcase(D(), [], subname='leak')
+
+    ch2o.generate_testcase(UpdateSelf(), [42], subname='update_self')
+
+    # TODO(hamaji): Implement this.
+    # ch2o.generate_testcase(UpdateSelfLiteral(), [],
+    #                        subname='update_self_literal')
