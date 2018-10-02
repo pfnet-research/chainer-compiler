@@ -3,7 +3,7 @@ import onnx
 
 from typing import List, Mapping
 
-from ch2o.utils import Env, totensor, gen_id
+from ch2o import utils
 
 
 def _is_float_value(v):
@@ -43,25 +43,25 @@ class Value(object):
     def is_sequence(self) -> bool:
         return not self.is_py and self.value.type.HasField('sequence_type')
 
-    def copy(self, env: Env, name=None) -> 'Value':
+    def copy(self, env: 'utils.Env', name=None) -> 'Value':
         self.to_value_info(env)
         vi = self.value
         nvi = onnx.ValueInfoProto()
         if self.is_tensor():
-            nvi.name = gen_id(name, 'T')
+            nvi.name = utils.gen_id(name, 'T')
         else:
             assert self.is_sequence(), self
-            nvi.name = gen_id(name, 'S')
+            nvi.name = utils.gen_id(name, 'S')
         nvi.type.CopyFrom(vi.type)
         return Value(nvi)
 
-    def identity(self, env: Env, name=None) -> 'Value':
+    def identity(self, env: 'utils.Env', name=None) -> 'Value':
         nv = self.copy(env, name=name)
         env.addnode('Identity',
                     inputs=[self.value.name], outputs=[nv.value.name])
         return nv
 
-    def to_value_info(self, env: Env) -> onnx.ValueInfoProto:
+    def to_value_info(self, env: 'utils.Env') -> onnx.ValueInfoProto:
         if self.is_py:
             if isinstance(self.value, collections.Iterable):
                 return self.to_sequence(env)
@@ -69,11 +69,12 @@ class Value(object):
                 return self.to_tensor(env)
         return self.value
 
-    def to_tensor(self, env: Env, dtype: type = None) -> onnx.ValueInfoProto:
+    def to_tensor(self, env: 'utils.Env',
+                  dtype: type = None) -> onnx.ValueInfoProto:
         if self.is_py:
             # TODO(hamaji): Rewrite `totensor` to convert a Python
             # list to a tensor.
-            self.value = totensor(self.value, env, dtype=dtype)
+            self.value = utils.totensor(self.value, env, dtype=dtype)
             self.is_py = False
         elif self.is_sequence():
             self.value = env.calc('OnikuxSequenceStack',
@@ -83,7 +84,7 @@ class Value(object):
         assert self.is_tensor()
         return self.value
 
-    def to_sequence(self, env: Env) -> onnx.ValueInfoProto:
+    def to_sequence(self, env: 'utils.Env') -> onnx.ValueInfoProto:
         if self.is_py:
             if not isinstance(self.value, collections.Iterable):
                 raise TypeError('Expected a sequence: %s' % self.value)

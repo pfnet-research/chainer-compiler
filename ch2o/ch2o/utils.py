@@ -9,6 +9,8 @@ import onnx
 from onnx import helper
 from onnx import TensorProto
 
+from ch2o import value
+
 
 def _get_trace_str():
     # TODO(hamaji): Use parsing context instead of CH2O codebase.
@@ -152,8 +154,7 @@ class Env(object):
             raise NameError("name '%s' is not defined" % k)
 
         var = self.outer_block.get_var(k)
-        # TODO(hamaji): Use `isinstance` instead of `type`.
-        if 'ch2o.value.Value' in str(type(var)):
+        if isinstance(var, value.Value):
             # Convert literals to tensors in outer scope.
             var.to_value_info(self.outer_block)
         self._vars[k] = var
