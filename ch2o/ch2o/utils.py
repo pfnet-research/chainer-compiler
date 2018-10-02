@@ -139,6 +139,14 @@ def totensor(x, env, dtype=None):
 
 class Env(object):
     def __init__(self, module):
+        # Local variables keyed by their names. When a value is an
+        # ONNX tensor, its value must be different from ones in other
+        # variables.
+        #
+        # Note the type of values are `Value` or something like
+        # User_Defined_*.
+        #
+        # TODO(hamaji): Revisit here for re-design.
         self._vars = {}
         self.nodes = []
         self.init_tensors = []

@@ -210,21 +210,6 @@ def is_print_logging(s, env):
     )
 
 
-def _prepare_scope(env):
-    # Resolve all aliases so that all inputs will get unique ONNX names.
-    onnx_names = set()
-    aliases = []
-    for key, value in env.get_var_dict().items():
-        if isinstance(value, Value) and not value.is_py:
-            if value.value.name in onnx_names:
-                aliases.append((key, value.identity(env, name=key)))
-            else:
-                onnx_names.add(value.value.name)
-
-    for key, new_value in aliases:
-        env.set_var(key, new_value)
-
-
 def _find_in_out(localenv, env):
     used_onnx_names = set()
     for node in localenv.nodes:
@@ -272,8 +257,6 @@ def eval_if(nast, env):
         return eval_ast(nast.body, env)
     elif cond.is_py and cond.value is False:
         return eval_ast(nast.orelse, env)
-
-    _prepare_scope(env)
 
     then_env = env.new_block()
     ty = eval_ast(nast.body, then_env)
@@ -371,8 +354,6 @@ def eval_for(nast, env):
     assert isinstance(nast.target, gast.Name)
     x = nast.target.id
 
-    _prepare_scope(env)
-
     # 新たなenv を作って、評価中にできた子グラフをもとにする
     localenv = env.new_block()
 
@@ -439,16 +420,22 @@ def eval_assign(nast, env):
     # List, ListのIndex, Starred
     # またこれらを再帰的に組み合わせたものが存在しうる
 
+    def set_var(k, v):
+        v = _value(v)
+        if not v.is_py:
+            v = v.identity(env, name=k)
+        env.set_var(k, v)
+
     tg = targs[0]
     if isinstance(tg, gast.Name):
-        env.set_var(tg.id, _value(value))
+        set_var(tg.id, value)
     elif isinstance(tg, gast.Tuple):
         assert(isinstance(value.value, tuple))
         value = value.value
         assert(len(tg.elts) == len(value))
 
         for i, v in enumerate(value):
-            env.set_var(tg.elts[i].id, _value(v))  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
+            set_var(tg.elts[i].id, v)  # TODO(satos) これこのあと更に再帰的に書く必要あるかも
 
     elif isinstance(tg, gast.Attribute):
         body = eval_ast(tg.value, env)
