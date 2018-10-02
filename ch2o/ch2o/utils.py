@@ -153,7 +153,8 @@ class Env(object):
 
         var = self.outer_block.get_var(k)
         # TODO(hamaji): Use `isinstance` instead of `type`.
-        if type(var) == 'Value':
+        if 'ch2o.value.Value' in str(type(var)):
+            # Convert literals to tensors in outer scope.
             var.to_value_info(self.outer_block)
         self._vars[k] = var
         return var

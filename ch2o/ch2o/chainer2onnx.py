@@ -211,24 +211,11 @@ def is_print_logging(s, env):
 
 
 def _prepare_scope(env):
-    # Convert all literals to tensors so that updated values can be
-    # detected. E.g.,
-    #
-    # s = 0
-    # for i in range(4):
-    #   s += i
-    #
-    # TODO(hamaji): This could be inefficient when `s` is not actually
-    # used in the loop above.
-    for value in env.get_var_dict().values():
-        if isinstance(value, Value):
-            value.to_value_info(env)
-
     # Resolve all aliases so that all inputs will get unique ONNX names.
     onnx_names = set()
     aliases = []
     for key, value in env.get_var_dict().items():
-        if isinstance(value, Value):
+        if isinstance(value, Value) and not value.is_py:
             if value.value.name in onnx_names:
                 aliases.append((key, value.identity(env, name=key)))
             else:
@@ -649,7 +636,7 @@ def eval_compare(nast, env):
     lv = eval_ast(nast.left, env)
     vs = [eval_ast(x, env) for x in nast.comparators]
 
-    if all(v.is_py for v in [lv] + vs):
+    if env.outer_block is None and all(v.is_py for v in [lv] + vs):
         # Constant folding.
         lv = lv.value
         res = True
