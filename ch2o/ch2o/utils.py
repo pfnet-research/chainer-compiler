@@ -142,6 +142,7 @@ class Env(object):
         self.init_tensors = []
         self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
         self.module = module
+        self.outer_scope = None
 
     def get_var(self, k):
         return self._vars[k]
@@ -164,6 +165,12 @@ class Env(object):
         res.init_tensors = self.init_tensors  # こっちも共通
         res.restore_funcs = self.restore_funcs
         return res
+
+    def new_block(self):
+        block = Env(self.module)
+        block.update_vars(self._vars)
+        block.outer_scope = self
+        return block
 
     def addnode(self, *args, **kwargs):
         node = helper.make_node(*args, **kwargs)

@@ -290,13 +290,11 @@ def eval_if(nast, env):
 
     _prepare_scope(env)
 
-    then_env = Env(env.module)
-    then_env.update_vars(env.get_var_dict())
+    then_env = env.new_block()
     ty = eval_ast(nast.body, then_env)
     assert ty.is_none()
 
-    else_env = Env(env.module)
-    else_env.update_vars(env.get_var_dict())
+    else_env = env.new_block()
     ty = eval_ast(nast.orelse, else_env)
     assert ty.is_none()
 
@@ -391,8 +389,7 @@ def eval_for(nast, env):
     _prepare_scope(env)
 
     # 新たなenv を作って、評価中にできた子グラフをもとにする
-    localenv = Env(env.module)
-    localenv.update_vars(env.get_var_dict())
+    localenv = env.new_block()
 
     cnt = new_tensor()
     gtx = new_sequence()
