@@ -142,10 +142,21 @@ class Env(object):
         self.init_tensors = []
         self.restore_funcs = []  # User定義Linkの初期化子を正常化させるやつ
         self.module = module
-        self.outer_scope = None
+        self.outer_block = None
 
     def get_var(self, k):
-        return self._vars[k]
+        if k in self._vars:
+            return self._vars[k]
+
+        if self.outer_block is None:
+            raise NameError("name '%s' is not defined" % k)
+
+        var = self.outer_block.get_var(k)
+        # TODO(hamaji): Use `isinstance` instead of `type`.
+        if type(var) == 'Value':
+            var.to_value_info(self.outer_block)
+        self._vars[k] = var
+        return var
 
     def set_var(self, k, v):
         self._vars[k] = v
@@ -168,8 +179,7 @@ class Env(object):
 
     def new_block(self):
         block = Env(self.module)
-        block.update_vars(self._vars)
-        block.outer_scope = self
+        block.outer_block = self
         return block
 
     def addnode(self, *args, **kwargs):

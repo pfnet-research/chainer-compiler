@@ -245,13 +245,11 @@ def _find_in_out(localenv, env):
 
     outer_vars = env.get_var_dict()
     inner_vars = localenv.get_var_dict()
-    keys = set(list(outer_vars.keys()) + list(inner_vars.keys()))
 
     # A tuple of (in-value, out-value) keyed by a variable name.
     in_out = {}
-    for key in keys:
+    for key, iv in inner_vars.items():
         ov = outer_vars.get(key, None)
-        iv = inner_vars.get(key, None)
 
         if isinstance(ov, Value):
             # Changing link or something to Value is not supported.
@@ -959,14 +957,14 @@ def eval_ast_impl(nast, env):
         return None
 
     elif isinstance(nast, gast.Name):
-        if nast.id in env.get_var_dict().keys():
+        try:
             return env.get_var(nast.id)
-        elif nast.id in dir(env.module):
-            return getattr(env.module, nast.id)
-        elif nast.id in dir(builtins):
-            return getattr(builtins, nast.id)
-        else:
-            raise Exception("Undefined name %s" % nast.id)
+        except NameError as ne:
+            if nast.id in dir(env.module):
+                return getattr(env.module, nast.id)
+            elif nast.id in dir(builtins):
+                return getattr(builtins, nast.id)
+            raise
     elif isinstance(nast, gast.Num):
         return nast.n
     elif isinstance(nast, gast.NameConstant):
