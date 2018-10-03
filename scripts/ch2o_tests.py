@@ -55,7 +55,7 @@ UserDefinedFunc
 MODEL_TESTS = '''
 MyLSTM
 MLP_with_loss
-'''
+'''.split()
 
 
 def get():
@@ -76,7 +76,9 @@ def get():
             if test_name == 'ch2o_syntax_MultiFunction':
                 kwargs['rtol'] = 1e-3
 
-            for d in glob.glob('out/%s*' % test_name):
+            test_dirs = glob.glob('out/%s' % test_name)
+            test_dirs += glob.glob('out/%s_*' % test_name)
+            for d in test_dirs:
                 tests.append(TestCase('out', os.path.basename(d), **kwargs))
 
     return tests
