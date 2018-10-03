@@ -26,16 +26,12 @@ public:
     const std::vector<Value*>& inputs() const {
         return inputs_;
     }
-    std::vector<Value*>* mutable_inputs() {
-        return &inputs_;
-    }
+    void AddInput(Value* value);
 
     const std::vector<Value*>& outputs() const {
         return outputs_;
     }
-    std::vector<Value*>* mutable_outputs() {
-        return &outputs_;
-    }
+    void AddOutput(Value* value, size_t index = static_cast<size_t>(-1));
 
     const std::string& name() const {
         return name_;

@@ -46,6 +46,21 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     FillONNXAttributes(xnode);
 }
 
+void Node::AddInput(Value* value) {
+    inputs_.push_back(value);
+    value->AddUser(this);
+}
+
+void Node::AddOutput(Value* value, size_t index) {
+    if (index == static_cast<size_t>(-1)) {
+        outputs_.push_back(value);
+    } else {
+        outputs_.insert(outputs_.begin() + index, value);
+    }
+    CHECK(!value->producer());
+    value->SetProducer(this);
+}
+
 void Node::Detach() {
     for (Value* input : inputs_) {
         input->DetachUser(this);
