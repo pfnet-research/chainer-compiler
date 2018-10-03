@@ -58,7 +58,7 @@ void ResolveExternalDependencies(Graph* graph) {
                 auto found = symtab.find(required->name());
                 Value* external = nullptr;
                 if (found == symtab.end()) {
-                    external = graph->AddValue("CanonicalizeLoopIn@" + required->name());
+                    external = graph->AddValue(required->name());
                     external->set_type(new Type(required->type()));
                 } else {
                     external = found->second;
@@ -100,7 +100,7 @@ void ResolveExternalDependencies(Graph* graph) {
                 auto found = symtab.find(required->name());
                 Value* external = nullptr;
                 if (found == symtab.end()) {
-                    external = graph->AddValue("CanonicalizeIfIn@" + required->name());
+                    external = graph->AddValue(required->name());
                     external->set_type(new Type(required->type()));
                 } else {
                     external = found->second;
