@@ -266,6 +266,37 @@ def gen_loop_test(max_trip_count=7,
     return fn
 
 
+def gen_loop_use_enclosing_test():
+    def fn(test_name):
+        gb = oniku_script.GraphBuilder(test_name)
+        init = np.array(10, np.float32)
+        init_v = gb.param('init', init)
+        external = np.array(42, np.float32)
+        external_v = gb.param('external', external)
+
+        bb = oniku_script.GraphBuilder(test_name + '_body')
+        iter_v = bb.input('iter', np.array(0))
+        cond_v = bb.input('cond', np.array(True))
+
+        state_v = bb.input('state', init)
+        result_v = bb.Add([state_v, external_v])
+        cond_v = bb.const(True)
+        bb.output(cond_v, np.array(True))
+        bb.output(result_v, init)
+
+        num_iter_v = gb.const(5)
+        true_v = gb.const(True)
+        out_v = gb.Loop([num_iter_v, true_v, init_v],
+                        body=bb.make_graph())
+
+        expected = float(5 * 42 + 10)
+        gb.output(out_v, expected)
+
+        gb.gen_test()
+
+    return fn
+
+
 def gen_backprop_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     i = np.array(42, np.float32)
@@ -776,6 +807,9 @@ def get_tests():
         # TestCase('extra_test_loop_zero_trip_count_scan',
         #          gen_loop_test(cond_trip_count=0,
         #                        has_scan_outputs=True)),
+
+        TestCase('extra_test_loop_use_enclosing',
+                 gen_loop_use_enclosing_test()),
 
         TestCase('extra_backprop_test', gen_backprop_test),
 

@@ -10,6 +10,7 @@
 #include <compiler/recompute.h>
 #include <compiler/scheduler.h>
 #include <compiler/simplifier.h>
+#include <compiler/subgraph_canonicalizer.h>
 #include <compiler/type_inference.h>
 
 namespace oniku {
@@ -100,6 +101,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     dump_onnx(g_dump_after_inference, "after inference");
 
     Recursively(Simplify, graph);
+
+    CanonicalizeSubGraphs(graph);
 
     dump_onnx(g_dump_after_simplification, "after simplification");
 

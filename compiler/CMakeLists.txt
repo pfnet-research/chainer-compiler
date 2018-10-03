@@ -23,6 +23,7 @@ add_library(oniku_compiler
   recompute.cc
   scheduler.cc
   simplifier.cc
+  subgraph_canonicalizer.cc
   tensor.cc
   type.cc
   type_inference.cc
