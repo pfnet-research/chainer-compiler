@@ -9,23 +9,23 @@ namespace oniku {
 
 namespace {
 
-std::set<Value*> GetRequiredValues(Graph* graph) {
-    std::set<Value*> required_values;
+std::map<std::string, Value*> GetRequiredValues(Graph* graph) {
+    std::map<std::string, Value*> required_values;
     for (Value* value : graph->output_values()) {
-        required_values.insert(value);
+        required_values[value->name()] = value;
     }
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
         for (Value* value : node->inputs()) {
-            required_values.insert(value);
+            required_values[value->name()] = value;
         }
     }
 
     for (Value* value : graph->input_values()) {
-        required_values.erase(value);
+        required_values.erase(value->name());
     }
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
         for (Value* value : node->outputs()) {
-            required_values.erase(value);
+            required_values.erase(value->name());
         }
     }
     return required_values;
@@ -48,8 +48,8 @@ void ResolveExternalDependencies(Graph* graph) {
             CHECK(body);
             ResolveExternalDependencies(body);
 
-            std::set<Value*> required_values = GetRequiredValues(node->body().get());
-            for (Value* required : required_values) {
+            for (auto& p : GetRequiredValues(node->body().get())) {
+                Value* required = p.second;
                 Value* new_input = body->AddInputValue("CanonicalizeLoopBodyIn@" + required->name(), required->type());
                 body->AddNode(Node::kIdentity, {new_input}, {required}, "CanonicalizeLoop");
                 Value* new_output = body->AddOutputValue("CanonicalizeLoopBodyOut@" + required->name(), required->type());
@@ -68,12 +68,45 @@ void ResolveExternalDependencies(Graph* graph) {
                 node->AddOutput(dummy);
             }
         } else if (node->op_type() == Node::kIf) {
-            CHECK(node->then_branch().get());
-            CHECK(node->else_branch().get());
-            ResolveExternalDependencies(node->then_branch().get());
-            ResolveExternalDependencies(node->else_branch().get());
+            Graph* then_branch = node->then_branch().get();
+            Graph* else_branch = node->else_branch().get();
+            CHECK(then_branch);
+            CHECK(else_branch);
+            ResolveExternalDependencies(then_branch);
+            ResolveExternalDependencies(else_branch);
 
-            // TODO(hamaji): Implement.
+            std::map<std::string, Value*> required_values_then = GetRequiredValues(node->then_branch().get());
+            std::map<std::string, Value*> required_values_else = GetRequiredValues(node->else_branch().get());
+            std::map<std::string, Value*> required_values = required_values_then;
+            required_values.insert(required_values_else.begin(), required_values_else.end());
+
+            for (auto& p : required_values) {
+                Value* required = p.second;
+                {
+                    Value* new_input = then_branch->AddInputValue("CanonicalizeIfThenIn@" + required->name(), required->type());
+                    auto found = required_values_then.find(required->name());
+                    if (found != required_values_then.end()) {
+                        then_branch->AddNode(Node::kIdentity, {new_input}, {found->second}, "CanonicalizeIfThen");
+                    }
+                }
+                {
+                    Value* new_input = else_branch->AddInputValue("CanonicalizeIfElseIn@" + required->name(), required->type());
+                    auto found = required_values_else.find(required->name());
+                    if (found != required_values_else.end()) {
+                        else_branch->AddNode(Node::kIdentity, {new_input}, {found->second}, "CanonicalizeIfElse");
+                    }
+                }
+
+                auto found = symtab.find(required->name());
+                Value* external = nullptr;
+                if (found == symtab.end()) {
+                    external = graph->AddValue("CanonicalizeIfIn@" + required->name());
+                    external->set_type(new Type(required->type()));
+                } else {
+                    external = found->second;
+                }
+                node->AddInput(external);
+            }
         } else if (node->op_type() == Node::kOnikuxLoopRef) {
             // Do nothing. OnikuxLoopRef must not have external dependencies.
         } else {

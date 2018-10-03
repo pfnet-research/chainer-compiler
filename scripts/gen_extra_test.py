@@ -183,6 +183,29 @@ def gen_if_with_input_test(cond):
     return fn
 
 
+def gen_if_with_external_test(cond):
+    def fn(test_name):
+        gb = oniku_script.GraphBuilder(test_name)
+        in0_v = gb.input('in0', 42)
+        in1_v = gb.input('in1', 99)
+        in2_v = gb.input('in2', 100)
+
+        tb = oniku_script.GraphBuilder(test_name + '_true')
+        tb.output(tb.Add([in0_v, in1_v]), 42)
+
+        fb = oniku_script.GraphBuilder(test_name + '_false')
+        fb.output(fb.Sub([in1_v, in2_v]), 42)
+
+        cond_v = gb.input('cond', cond)
+        out_v = gb.If([cond_v],
+                      then_branch=tb.make_graph(),
+                      else_branch=fb.make_graph())
+        gb.output(out_v, 42 + 99 if cond else 99 - 100)
+        gb.gen_test()
+
+    return fn
+
+
 def gen_loop_test(max_trip_count=7,
                   cond_trip_count=6,
                   terminal_condition=True,
@@ -779,6 +802,10 @@ def get_tests():
                  gen_if_with_input_test(True)),
         TestCase('extra_test_if_with_input_false',
                  gen_if_with_input_test(False)),
+        TestCase('extra_test_if_with_external_true',
+                 gen_if_with_external_test(True)),
+        TestCase('extra_test_if_with_external_false',
+                 gen_if_with_external_test(False)),
 
         TestCase('extra_test_loop_basic', gen_loop_test()),
         TestCase('extra_test_loop_max_trip_count',
