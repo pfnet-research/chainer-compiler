@@ -120,9 +120,6 @@ def main():
 
     main_impl(args)
 
-    # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/mnist_mlp_stamp', 'w'): pass
-
 
 def create_trainer(args, model):
     # Setup an optimizer

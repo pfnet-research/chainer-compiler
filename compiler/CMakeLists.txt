@@ -1,17 +1,26 @@
-add_custom_command(
-  OUTPUT gen_node_base.h gen_node_base.cc
-  COMMAND python3 gen_node.py
-  MAIN_DEPENDENCY gen_node.py
-  DEPENDS ../common/codegen_util.py)
+get_filename_component(ONIKU_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
+set(ONIKU_COMMON_DIR ${ONIKU_ROOT_DIR}/common)
+set(GOOGLETEST_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/googletest/googletest/include)
+set(GSLLITE_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/gsl-lite/include)
+set(OPTIONALLITE_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/optional-lite/include)
 
-include_directories(../gsl-lite/include)
-include_directories(../optional-lite/include)
-include_directories(..)
+add_custom_command(
+  OUTPUT
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.h
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
+  MAIN_DEPENDENCY gen_node.py
+  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py)
+
+include_directories(${GSLLITE_INCLUDE_DIRS})
+include_directories(${OPTIONALLITE_INCLUDE_DIRS})
+include_directories(${ONIKU_ROOT_DIR})
+include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/compiler`
 add_library(oniku_compiler
   dtype.cc
   dtype_inference.cc
   flags.cc
-  gen_node_base.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   gradient.cc
   gradient_ops.cc
   graph.cc
@@ -30,8 +39,9 @@ add_library(oniku_compiler
   value.cc
   xcvm_emitter.cc
   )
+add_dependencies(oniku_compiler runtime_xcvm_pb_h runtime_xcvm_proto_util_h)
 
-include_directories(../googletest/googletest/include)
+include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(compiler_test
   dtype_inference_test.cc
   gradient_test.cc
@@ -40,6 +50,7 @@ add_executable(compiler_test
   tensor_test.cc
   xcvm_emitter_test.cc
   )
+add_dependencies(compiler_test runtime_xcvm_pb_h)
 target_link_libraries(compiler_test
   oniku_compiler
   oniku_runtime

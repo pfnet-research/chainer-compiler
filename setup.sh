@@ -5,6 +5,10 @@
 
 set -e
 
+BASE_DIR=$(cd "$(dirname "${BASH_SOURCE:-$0}")"; pwd)
+
+cd ${BASE_DIR}
+
 git submodule update --init
 
 if [ ! -e onnx/build/libonnx.a -o ! -e onnx/build/onnx/onnx-ml.pb.h ]; then
@@ -20,6 +24,7 @@ fi
 
 if [ ! -e googletest ]; then
     git clone https://github.com/google/googletest
+    (cd googletest && git checkout refs/tags/release-1.8.1)
 fi
 
 if [ ! -e googletest/googletest/libgtest.a ]; then
@@ -47,8 +52,3 @@ fi
 if [ ! -e optional-lite/include/nonstd/optional.hpp ]; then
     git clone https://github.com/martinmoene/optional-lite
 fi
-
-# CMake would be confused when there are no generated code yet.
-# TODO(hamaji): Remove this by fixing dependency specified in
-# runtime/CMakeLists.txt.
-(cd runtime && python3 gen_xcvm.py)

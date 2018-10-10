@@ -15,5 +15,5 @@ PYTHONPATH=ch2o python3 "${py}" out/ch2o_tmp/tmp
 
 for i in out/ch2o_tmp/*; do
     echo "*** Testing $i ***"
-    ./tools/run_onnx --test $i "$@"
+    ./build/tools/run_onnx --test $i "$@"
 done
