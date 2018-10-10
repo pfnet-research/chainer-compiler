@@ -886,9 +886,6 @@ def get_tests():
 def main():
     for test in get_tests():
         test.func(test.name)
-    # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/extra_test_stamp', 'w'):
-        pass
 
 
 if __name__ == '__main__':

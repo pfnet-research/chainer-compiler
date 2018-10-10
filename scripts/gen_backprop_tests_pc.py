@@ -141,8 +141,6 @@ def main():
     for test in get_backprop_tests():
         np.random.seed(42)
         test.generate()
-    # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/backprop_test_pc_stamp', 'w'): pass
 
 
 if __name__ == '__main__':

@@ -25,27 +25,27 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 set(CH2O_FILES
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/__init__.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/callable.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/chainer2onnx.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/funcs.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/initializer.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/links.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/test_args.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/testcasegen.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/utils.py
-  ${CMAKE_SOURCE_DIR}/ch2o/ch2o/value.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/callable.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/initializer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/links.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/test_args.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/testcasegen.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/utils.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/value.py
   )
 
 find_package(OpenCV REQUIRED)
 find_package(CUDA REQUIRED)
 
-include_directories(onnx)
-include_directories(onnx/build)
+set(ONNX_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/onnx" "${CMAKE_CURRENT_SOURCE_DIR}/onnx/build")
+include_directories(${ONNX_INCLUDE_DIRS})
 
-link_directories(onnx/build)
-link_directories(googletest/googletest)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx/build)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest)
 
 add_custom_target(large_tests)
 
@@ -58,13 +58,17 @@ add_subdirectory(tools)
 
 function(gen_ch2o_test dir ch2o_test all)
 
-  set(out_dir out/ch2o_${dir}_${ch2o_test})
-  set(out_stamp stamp_${out_dir})
+  set(ch2o_test_py ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/tests/${dir}/${ch2o_test}.py)
+  set(out_dir ${CMAKE_CURRENT_SOURCE_DIR}/out/ch2o_${dir}_${ch2o_test}) # TODO: move to build/ directory
+  set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/ch2o_${dir}_${ch2o_test})
+
+  file(MAKE_DIRECTORY ${out_dir})
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stamp_out)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=ch2o python3 ch2o/tests/${dir}/${ch2o_test}.py ${out_dir} --quiet && touch ${out_stamp}
-    MAIN_DEPENDENCY ch2o/tests/${dir}/${ch2o_test}.py
+    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/ch2o python3 ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
 

@@ -143,8 +143,6 @@ def get_backprop_tests():
 def main():
     for test in get_backprop_tests():
         test.generate()
-    # TODO(hamaji): Stop writing a file to scripts.
-    with open('scripts/backprop_test_oc_stamp', 'w'): pass
 
 
 if __name__ == '__main__':
