@@ -22,6 +22,8 @@ parser.add_argument('test_filter', default=None, nargs='?',
                     help='A regular expression to filter tests')
 parser.add_argument('--all', '-a', action='store_true',
                     help='Run all tests')
+parser.add_argument('--build_dir', '-b', default=None,
+                    help='The build directory')
 parser.add_argument('--jobs', '-j', type=int,
                     default=multiprocessing.cpu_count(),
                     help='Number of parallel jobs')
@@ -567,12 +569,23 @@ def main():
     elif os.path.exists('build.ninja'):
         subprocess.check_call('ninja')
 
+    if args.build_dir is None:
+        if os.path.exists('build/CMakeCache.txt'):
+            args.build_dir = 'build'
+        elif os.path.exists('CMakeCache.txt'):
+            args.build_dir = '.'
+        else:
+            args.build_dir = 'build'
+
+    run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
+    print('Testing %s' % run_onnx)
+
     test_cnt = 0
     fail_cnt = 0
     tests = []
     gpu_tests = []
     for test_case in TEST_CASES:
-        test_case.args = ['build/tools/run_onnx', '--test', test_case.test_dir]
+        test_case.args = [run_onnx, '--test', test_case.test_dir]
         is_gpu = False
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
