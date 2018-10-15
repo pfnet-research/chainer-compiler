@@ -224,7 +224,7 @@ void CheckSanity(
             Node* node = p.first;
             std::cerr << "Failed to schedule: " << node->DebugString() << std::endl;
             for (Value* value : node->inputs()) {
-                if (!values.count(value)) {
+                if (!values.count(value) && !value->name().empty()) {
                     std::cerr << " " << value->name() << " cannot be ready\n";
                 }
             }
