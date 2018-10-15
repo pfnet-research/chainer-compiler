@@ -95,7 +95,8 @@ if __name__ == '__main__':
     num_vocabs = 10
     num_hidden = 5
 
-    model = MyLSTM(num_hidden, batch_size, sequence_length)
+    model_fn = lambda: MyLSTM(num_hidden, batch_size, sequence_length)
+
     labels, lengths = sequence_utils.gen_random_sequence(
         batch_size, sequence_length, num_vocabs)
     xs = []
@@ -109,7 +110,7 @@ if __name__ == '__main__':
 
     args = [xs, h, c, mask]
 
-    #print(model(*args))
+    #print(model_fn()(*args))
     #print(run_with_n_step_lstm(xs, h, c, model.l.W, model.l.b))
 
-    ch2o.generate_testcase(model, args)
+    ch2o.generate_testcase(model_fn, args)

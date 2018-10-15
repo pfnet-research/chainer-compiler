@@ -43,7 +43,5 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    model = A()
-
     v = np.random.rand(10, 20).astype(np.float32)
-    ch2o.generate_testcase(model, [v])
+    ch2o.generate_testcase(A, [v])

@@ -82,6 +82,5 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(UpdateSelf(), [42], subname='update_self')
 
-    # TODO(hamaji): Implement this.
-    # ch2o.generate_testcase(UpdateSelfLiteral(), [],
-    #                        subname='update_self_literal')
+    ch2o.generate_testcase(UpdateSelfLiteral(), [],
+                           subname='update_self_literal')

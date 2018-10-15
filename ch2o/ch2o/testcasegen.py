@@ -6,6 +6,7 @@ import collections
 import glob
 import os
 import shutil
+import types
 
 import numpy as np
 
@@ -102,7 +103,9 @@ def generate_testcase(model, xs, subname=None):
     args = get_test_args()
 
     def get_model():
-        return model() if isinstance(model, type) else model
+        if isinstance(model, type) or isinstance(model, types.FunctionType):
+            return model()
+        return model
 
     # さらの状態からonnxのmodをつくる
     onnxmod, input_tensors, output_tensors = compiler(get_model())

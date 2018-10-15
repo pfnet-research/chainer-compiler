@@ -1,4 +1,6 @@
 import collections
+
+import numpy as np
 import onnx
 
 from typing import List, Mapping
@@ -33,6 +35,11 @@ class Value(object):
         if not self.is_py:
             raise TypeError('Unsupported attribute %s for an ONNX value' % key)
         value = Value(getattr(self.value, key))
+        if (value.is_py and
+            not isinstance(value.value, type) and
+            np.array(value.value).dtype != np.object):
+            value.to_value_info(env.root())
+            setattr(self.value, key, value)
         if not value.is_py:
             env.read_attrs.append((self, key, value))
         return value

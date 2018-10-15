@@ -196,6 +196,12 @@ class Env(object):
         res.restore_funcs = self.restore_funcs
         return res
 
+    def root(self):
+        env = self
+        while env.outer_block is not None:
+            env = env.outer_block
+        return env
+
     def new_block(self):
         block = Env(self.module)
         block.outer_block = self
