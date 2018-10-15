@@ -54,6 +54,17 @@ class UpdateSelfLiteral(chainer.Chain):
         return self.x
 
 
+class UpdateSelfLiteralInInit(chainer.Chain):
+    def __init__(self):
+        super(UpdateSelfLiteralInInit, self).__init__()
+        self.x = 42
+
+    def forward(self):
+        for i in range(5):
+            self.x += i
+        return self.x
+
+
 # ======================================
 
 
@@ -84,3 +95,7 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(UpdateSelfLiteral(), [],
                            subname='update_self_literal')
+
+    ch2o.generate_testcase(UpdateSelfLiteralInInit, [],
+                           subname='update_self_literal_in_init',
+                           has_side_effect=True)

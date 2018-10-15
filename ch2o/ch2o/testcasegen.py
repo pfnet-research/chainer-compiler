@@ -99,7 +99,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 _seen_subnames = set()
 
 
-def generate_testcase(model, xs, subname=None):
+def generate_testcase(model, xs, subname=None, has_side_effect=False):
     args = get_test_args()
 
     def get_model():
@@ -112,12 +112,13 @@ def generate_testcase(model, xs, subname=None):
 
     model = get_model()
     chainer.config.train = False
-    run_chainer_model(model, xs)
+    chainer_out = run_chainer_model(model, xs)
 
     dprint("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
-    chainer_out = run_chainer_model(model, xs)
+    if not has_side_effect:
+        chainer_out = run_chainer_model(model, xs)
 
     output_dir = args.output
     if not _seen_subnames:
