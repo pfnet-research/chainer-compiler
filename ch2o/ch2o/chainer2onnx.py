@@ -886,20 +886,36 @@ def eval_subscript(nast, env):
     # print('slice',nast.slice)
     lower, upper, squeeze = slice2list(nast.slice)
     res = new_tensor()
-    vs = Value(vs).to_tensor(env)
-    lower = Value(lower).to_tensor(env)
-    upper = Value(upper).to_tensor(env)
-    res = env.calc(
-        'DynamicSlice',
-        inputs=[vs.name, lower.name, upper.name],
-    )
-
-    if any(squeeze):
+    if vs.is_sequence():
+        vs = Value(vs).to_sequence(env)
+        lower = Value(lower).to_tensor(env)
+        upper = Value(upper).to_tensor(env)
+        assert len(squeeze) == 1
+        if any(squeeze):
+            res = env.calc(
+                'OnikuxGenericGetItem',
+                inputs=[vs.name, lower.name],
+            )
+        else:
+            res = env.calc_seq(
+                'OnikuxGenericGetSlice',
+                inputs=[vs.name, lower.name, upper.name],
+            )
+    else:
+        vs = Value(vs).to_tensor(env)
+        lower = Value(lower).to_tensor(env)
+        upper = Value(upper).to_tensor(env)
         res = env.calc(
-            'Squeeze',
-            inputs=[res.name],
-            axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
+            'DynamicSlice',
+            inputs=[vs.name, lower.name, upper.name],
         )
+
+        if any(squeeze):
+            res = env.calc(
+                'Squeeze',
+                inputs=[res.name],
+                axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
+            )
 
     return res
 

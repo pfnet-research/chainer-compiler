@@ -4,10 +4,6 @@ import chainer
 
 
 class A(chainer.Chain):
-
-    def __init__(self):
-        super(A, self).__init__()
-
     def forward(self, xs, xss, ps):
         y1 = xs[2]
         y2 = xs[3:5]
@@ -21,6 +17,18 @@ class A(chainer.Chain):
         # TODO(satos) listによるインデクシングもできるようにする
         # y10 = xs[[1,3,5]]
         return y1, y2, y3, y4, y5, y6, y7, y8, y9
+
+
+class ListSlice(chainer.Chain):
+    def forward(self, x):
+        # Use `shape` to make a sequence.
+        xs = x.shape
+        y1 = np.array(xs[2])
+        y2 = np.array(xs[-2])
+        y3 = np.array(xs[:2])
+        y4 = np.array(xs[1:3])
+        return y1, y2, y3, y4
+
 
 # ======================================
 
@@ -39,3 +47,6 @@ if __name__ == '__main__':
     w = np.random.randint(0, n_maxlen, size=2)
 
     ch2o.generate_testcase(model, [u, v, w])
+
+    x = np.random.rand(4, 3, 5, 7)
+    ch2o.generate_testcase(ListSlice(), [x], subname='list')
