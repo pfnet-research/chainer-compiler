@@ -152,7 +152,7 @@ if __name__ == '__main__':
     sequence_length = 4
     num_vocabs = 10
 
-    model = AttDot(eprojs, dunits, att_dim)
+    model_fn = lambda: AttDot(eprojs, dunits, att_dim)
     labels, ilens = sequence_utils.gen_random_sequence(
         batch_size, sequence_length, num_vocabs)
     xs = []
@@ -160,9 +160,9 @@ if __name__ == '__main__':
         xs.append(np.random.rand(l, eprojs).astype(dtype=np.float32))
 
     # Check if our modification is valid.
-    expected = model.original(xs, None, None)
-    actual = model.forward(xs, None, None)
+    expected = model_fn().original(xs, None, None)
+    actual = model_fn().forward(xs, None, None)
     for e, a in zip(expected, actual):
         assert np.allclose(e.array, a.array)
 
-    ch2o.generate_testcase(model, [xs, ilens])
+    ch2o.generate_testcase(model_fn, [xs, None, None])
