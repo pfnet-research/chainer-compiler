@@ -631,7 +631,7 @@ def gen_generic_getitem_test(test_name):
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
     seq_v = gb.OnikuxSequenceSplit(inputs=[input_v])
 
-    for i in range(4):
+    for i in range(-2, 4):
         index_v = gb.const([i])
         gb.output(gb.OnikuxGenericGetItem([input_v, index_v]), input[i])
         gb.output(gb.OnikuxGenericGetItem([reduced_v, index_v]), reduced[i])

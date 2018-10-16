@@ -77,7 +77,9 @@ void GenericLenOp::RunImpl(XCVMState* st) {
 
 void GenericGetItemOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(v);
+    int64_t size = GetSize(var);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(index)));
+    if (i < 0) i += size;
     switch (var->kind()) {
         case XCVMVar::Kind::kArray:
             CHECK_LT(i, var->GetArray().shape()[0]);
