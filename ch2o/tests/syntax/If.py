@@ -148,6 +148,5 @@ if __name__ == '__main__':
     ch2o.generate_testcase(LazyInit, [10],
                            subname='lazy_init')
 
-    # TODO(hamaji): Handle this case.
-    # ch2o.generate_testcase(LazyInitUse, [10],
-    #                        subname='lazy_init_use')
+    ch2o.generate_testcase(LazyInitUse, [10],
+                           subname='lazy_init_use')

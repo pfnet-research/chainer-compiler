@@ -36,8 +36,9 @@ class Value(object):
             raise TypeError('Unsupported attribute %s for an ONNX value' % key)
         value = Value(getattr(self.value, key))
         if (value.is_py and
-            not isinstance(value.value, type) and
-            np.array(value.value).dtype != np.object):
+            (value.value is None or
+             not isinstance(value.value, type) and
+             np.array(value.value).dtype != np.object)):
             value.to_value_info(env.root())
             setattr(self.value, key, value)
         if not value.is_py:

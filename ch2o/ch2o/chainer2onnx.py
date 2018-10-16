@@ -490,6 +490,11 @@ def eval_assign(nast, env):
 
     elif isinstance(tg, gast.Attribute):
         body = eval_ast(tg.value, env)
+        # If the attr already exists, de-literalize and push it to
+        # `read_attrs` by calling `get_attribute`. See lazy_self_init
+        # test in ForAndIf.py.
+        if hasattr(body.value, tg.attr):
+            body.get_attribute(tg.attr, env)
         env.wrote_attrs.append((body, tg.attr, value))
         setattr(body.value, tg.attr, value)
     else:
