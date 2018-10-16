@@ -63,7 +63,7 @@ class AttDot(chainer.Chain):
         self.pre_compute_enc_h = F.tanh(
             linear_tensor(self.mlp_enc, self.enc_h))
 
-    def forward(self, enc_hs, dec_z, att_prev, scaling=2.0):
+    def forward(self, enc_hs, dec_z, att_prev):
         '''AttDot forward
 
         :param enc_hs:
@@ -71,6 +71,8 @@ class AttDot(chainer.Chain):
         :param scaling:
         :return:
         '''
+        # EDIT(hamaji): scaling is now a local variable.
+        scaling = 2.0
         batch = len(enc_hs)
 
         if self.pre_compute_enc_h is None:

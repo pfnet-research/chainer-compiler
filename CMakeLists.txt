@@ -144,6 +144,8 @@ endforeach()
 
 foreach(
     ch2o_test
+    EspNet_BLSTM
+    EspNet_AttDot
     MLP_with_loss
     MyLSTM
     )

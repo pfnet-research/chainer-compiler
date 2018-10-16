@@ -58,6 +58,8 @@ UserDefinedFunc
 '''.split()
 
 MODEL_TESTS = '''
+EspNet_BLSTM
+EspNet_AttDot
 MyLSTM
 MLP_with_loss
 '''.split()
