@@ -1,12 +1,13 @@
 # coding: utf-8
 
 import collections
+import onnx
 from onnx import helper
 from onnx import TensorProto
 
 import chainer
 from chainer import functions as F
-import numpy
+import numpy as np
 
 from ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
 from ch2o.callable import Callable
@@ -192,6 +193,24 @@ class Np_Int32(Callable):
 
     def call(self, env, x):
         return castto(x.to_tensor(env).name, TensorProto.INT32, env)
+
+
+class Np_Zeros(Callable):
+    def __init__(self, _):
+        def a(shape, dtype=float, order='C'):
+            pass
+        super(Np_Zeros, self).__init__(a)
+
+    def call_impl(self, env, shape, dtype, order):
+        assert order.value == 'C'
+        a = np.zeros((), dtype=dtype.value)
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
+        return env.calc(
+            'ConstantFill',
+            inputs=[shape.to_tensor(env).name],
+            input_as_shape=1,
+            dtype=dt
+        )
 
 
 class Np_Cumsum(Callable):
@@ -389,10 +408,11 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.pad_sequence, Function_PadSequence),
                 (F.swapaxes, Function_SwapAxes),
                 (F.split_axis, Function_SplitAxis),
-                (numpy.array, Np_Array),
-                (numpy.int32, Np_Int32),
-                (numpy.ceil, Xp_Np_Ceil),
-                (numpy.cumsum, Np_Cumsum),
+                (np.array, Np_Array),
+                (np.int32, Np_Int32),
+                (np.ceil, Xp_Np_Ceil),
+                (np.zeros, Np_Zeros),
+                (np.cumsum, Np_Cumsum),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),
 ]:
