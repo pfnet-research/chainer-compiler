@@ -120,6 +120,7 @@ foreach(
     Linear
     MaxPool2d
     NpArray
+    NpZeros
     NStepBiLSTM
     NStepLSTM
     PadSequence
@@ -130,6 +131,7 @@ foreach(
     SplitAxis
     SwapAxes
     Tanh
+    Variable
     Vstack
     )
 

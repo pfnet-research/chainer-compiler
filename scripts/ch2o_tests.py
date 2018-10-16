@@ -24,6 +24,7 @@ LRN
 Linear
 MaxPool2d
 NpArray
+NpZeros
 NStepBiLSTM
 NStepLSTM
 PadSequence
@@ -34,6 +35,7 @@ SplitAxis
 SoftmaxClossEntropy
 SwapAxes
 Tanh
+Variable
 Vstack
 '''.split()
 
