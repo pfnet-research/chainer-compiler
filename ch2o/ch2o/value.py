@@ -138,7 +138,7 @@ class Value(object):
     def to_int_list(self) -> List[int]:
         if not self.is_py or not isinstance(self.value, collections.Iterable):
             raise TypeError('Expected an int list: %s' % self.value)
-        ints = list(self.value)
+        ints = list(Value(v).value for v in self.value)
         if ints and _is_float_value(ints[0]):
             raise TypeError('Expected an int list: %s' % self.value)
         return ints
