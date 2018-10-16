@@ -358,6 +358,15 @@ class Function_Hstack(Callable):
         )
 
 
+class Function_Chainer_Variable(Callable):
+    def call_impl(self, env, data, **kwargs):
+        assert not kwargs   # TODO(hamaji): Not supported yet.
+        return env.calc(
+            'Identity',
+            inputs=[data.to_value_info(env).name],
+        )
+
+
 class Function_Dummy(object):
     def __init__(self, s=""):
         self.name = s
@@ -415,6 +424,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (np.cumsum, Np_Cumsum),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),
+                (chainer.Variable, Function_Chainer_Variable),
 ]:
     Func2NodeClass[fn] = cls(fn)
 
