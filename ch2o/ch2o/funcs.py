@@ -379,6 +379,15 @@ class Function_Sum(Callable):
         )
 
 
+class Function_Softmax(Callable):
+    def call_impl(self, env, x, axis):
+        return env.calc(
+            'Softmax',
+            inputs=[x.to_tensor(env).name],
+            axis=axis.to_int()
+        )
+
+
 class Function_Chainer_Variable(Callable):
     def call_impl(self, env, data, **kwargs):
         assert not kwargs   # TODO(hamaji): Not supported yet.
@@ -406,7 +415,6 @@ dummies = [
     F.flatten,
     F.accuracy,
     F.squeeze,
-    F.softmax,
 ]
 
 
@@ -444,6 +452,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),
                 (F.sum, Function_Sum),
+                (F.softmax, Function_Softmax),
                 (chainer.Variable, Function_Chainer_Variable),
 ]:
     Func2NodeClass[fn] = cls(fn)
