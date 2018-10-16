@@ -620,10 +620,20 @@ def eval_binary_op(nast, env):
     #    # 定数畳み込みを行う
     #    return opfun(lv, rv)
 
-    lv = lv.to_tensor(env)
-    rv = rv.to_tensor(env)
+    lv.to_value_info(env)
+    rv.to_value_info(env)
+    if lv.is_sequence() and rv.is_sequence():
+        assert optype == 'Add'
+        optype = 'OnikuxGenericAdd'
+        lv = lv.to_sequence(env)
+        rv = rv.to_sequence(env)
+        calc_fn = env.calc_seq
+    else:
+        lv = lv.to_tensor(env)
+        rv = rv.to_tensor(env)
+        calc_fn = env.calc
 
-    res = env.calc(
+    res = calc_fn(
         optype,
         inputs=[lv.name, rv.name],
     )
@@ -646,6 +656,10 @@ def eval_attribute(nast, env):
                 'Shape',
                 inputs=[body.to_tensor(env).name],
                 npdtype=np.int64,
+            )
+            res = env.calc_seq(
+                'OnikuxSequenceSplit',
+                inputs=[res.name],
             )
             return res
         elif nast.attr == 'append':
