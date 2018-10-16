@@ -821,6 +821,8 @@ def eval_subscript(nast, env):
             return res
 
     def slice2list(self):
+        # TODO(hamaji): Use 2**63-1 instead.
+        int_max = 2 ** 31 - 1
         if isinstance(self, gast.Slice):
             assert self.step is None
 
@@ -834,7 +836,7 @@ def eval_subscript(nast, env):
                     return x.to_tensor(env)
             lower = unsqueeze(f(self.lower, 0))
             # TODO(satos)　その場しのぎっぽいのでどうにかする(けどこれどうにもならないですよね...?)
-            upper = unsqueeze(f(self.upper, 2 ** 30))
+            upper = unsqueeze(f(self.upper, int_max))
             squeeze = [False]
         elif isinstance(self, gast.Index):
             idx = eval_ast(self.value, env)
@@ -853,7 +855,8 @@ def eval_subscript(nast, env):
                 squeeze = [True]
             else:
                 lower = unsqueeze(totensor(idx.value, env))
-                upper = unsqueeze(totensor(idx.value+1, env))
+                upper_value = idx.value + 1 if idx.value != -1 else int_max
+                upper = unsqueeze(totensor(upper_value, env))
                 squeeze = [True]
         elif isinstance(self, gast.ExtSlice):
             ds = list(map(slice2list, self.dims))
