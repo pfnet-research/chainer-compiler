@@ -20,6 +20,7 @@ EmbedID
 ExpandDims
 Hstack
 Id
+Len
 LRN
 Linear
 MaxPool2d

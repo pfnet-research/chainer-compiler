@@ -13,18 +13,10 @@ class Builtin_Len(Callable):
 
     def call_impl(self, env, x):
         x = x.to_tensor(env)
-        v = env.calc(
-            "Shape",
+        return env.calc(
+            "OnikuxGenericLen",
             inputs=[x.name],
         )
-
-        res = env.calc(
-            "Gather",
-            inputs=[v.name, totensor(0, env).name],
-            axis=0
-        )
-
-        return res
 
 
 def builtin_range(args, _, env):
