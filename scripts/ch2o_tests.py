@@ -32,7 +32,9 @@ Relu
 Reshape
 Sigmoid
 SplitAxis
+Softmax
 SoftmaxClossEntropy
+Sum
 SwapAxes
 Tanh
 Variable
@@ -68,9 +70,13 @@ def get():
         for name in names:
             test_name = 'ch2o_%s_%s' % (category, name)
             kwargs = {}
+            # TODO(hamaji): Get rid of this whitelist or reduce the
+            # number of tests at least by setting input/output types
+            # properly.
             if ('node_BatchNorm' in test_name or
                 'node_ExpandDims' in test_name or
                 'node_EmbedID' in test_name or
+                'node_Sum' in test_name or
                 'node_Reshape' in test_name):
                 kwargs['skip_shape_inference'] = True
             if test_name == 'ch2o_node_LRN':

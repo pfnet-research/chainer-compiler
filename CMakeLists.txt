@@ -127,8 +127,10 @@ foreach(
     Relu
     Reshape
     Sigmoid
+    Softmax
     SoftmaxClossEntropy
     SplitAxis
+    Sum
     SwapAxes
     Tanh
     Variable
