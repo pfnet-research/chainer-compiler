@@ -90,12 +90,18 @@ class Function_Dropout(Callable):
 
 class Function_Concat(Callable):
     def call_impl(self, env, xs, axis):
-        assert isinstance(xs.value, tuple)  # 今のところ tuple 以外は concat できない
-        return env.calc(
-            "Concat",
-            inputs=list(x.to_tensor(env).name for x in xs.value),
-            axis=axis.to_int(),
-        )
+        if isinstance(xs.value, tuple):
+            return env.calc(
+                "Concat",
+                inputs=list(x.to_tensor(env).name for x in xs.value),
+                axis=axis.to_int(),
+            )
+        else:
+            return env.calc(
+                "OnikuxSequenceConcat",
+                inputs=[xs.to_sequence(env).name],
+                axis=axis.to_int(),
+            )
 
 
 class Function_SoftmaxCrossEntropy(Callable):
