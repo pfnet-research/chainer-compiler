@@ -7,7 +7,7 @@ import chainer.functions as F
 class Shape(chainer.Chain):
     def forward(self, x):
         y1 = x.shape
-        return y1
+        return list(y1)
 
 
 class ShapeConcat(chainer.Chain):
@@ -28,4 +28,4 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(Shape(), [x])
 
-    ch2o.generate_testcase(ShapeConcat(), [x])
+    ch2o.generate_testcase(ShapeConcat(), [x], subname='concat')
