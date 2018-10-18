@@ -116,21 +116,25 @@ foreach(
     ExpandDims
     Hstack
     Id
-    Len
     LRN
+    Len
     Linear
     MaxPool2d
-    NpArray
-    NpZeros
     NStepBiLSTM
     NStepLSTM
+    NpArray
+    NpZeros
     PadSequence
     Relu
     Reshape
+    Separate
+    Shape
     Sigmoid
+    Size
+    SplitAxis
     Softmax
     SoftmaxClossEntropy
-    SplitAxis
+    Stack
     Sum
     SwapAxes
     Tanh
