@@ -110,9 +110,24 @@ class Decoder(chainer.Chain):
             # else:
             #     ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
             ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
-            c_list[0], z_list[0] = self.lstm0(c_list[0], z_list[0], ey)
-            for l in six.moves.range(1, self.dlayers):
-                c_list[l], z_list[l] = self['lstm%d' % l](c_list[l], z_list[l], z_list[l - 1])
+            # EDIT(hamaji): Unrolled, etc.
+            c_list_new = []
+            z_list_new = []
+            c_new, z_new = self.lstm0(c_list[0], z_list[0], ey)
+            c_list_new.append(c_new)
+            z_list_new.append(z_new)
+            c_new, z_new = self.lstm1(c_list[1], z_list[1], z_list_new[-1])
+            c_list_new.append(c_new)
+            z_list_new.append(z_new)
+            c_new, z_new = self.lstm2(c_list[2], z_list[2], z_list_new[-1])
+            c_list_new.append(c_new)
+            z_list_new.append(z_new)
+            # for l in six.moves.range(1, self.dlayers):
+            #     c_new, z_new = self['lstm%d' % l](c_list[l], z_list[l], z_list_new[-1])
+            #     c_list_new.append(c_new)
+            #     z_list_new.append(z_new)
+            c_list = c_list_new
+            z_list = z_list_new
             z_all.append(z_list[-1])
 
         z_all = F.reshape(F.stack(z_all, axis=1),
