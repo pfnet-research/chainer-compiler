@@ -23,6 +23,17 @@ from tests.model.EspNet_AttDot import AttDot
 from tests.model.StatelessLSTM import StatelessLSTM
 
 
+def _mean(xs):
+    sum_len = 0.0
+    for x in xs:
+        sum_len += len(x)
+    return sum_len / len(xs)
+
+
+def _flatten(xs):
+    return F.reshape(xs, (xs.size,))
+
+
 class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att_dim, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
@@ -134,14 +145,13 @@ class Decoder(chainer.Chain):
                           (batch * olength, self.dunits))
         # compute loss
         y_all = self.output(z_all)
-        self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
+        # EDIT(hamaji): `np.flatten` implemented by ourselves.
+        # self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
+        self.loss = F.softmax_cross_entropy(y_all, _flatten(pad_ys_out))
         # -1: eos, which is removed in the loss computation
         # EDIT(hamaji): `np.mean` implemented by a naive loop.
         # self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        sum_len = 0.0
-        for x in ys_in:
-            sum_len += len(x)
-        self.loss *= sum_len / len(ys_in) - 1
+        self.loss *= _mean(ys_in) - 1
         # EDIT(hamaji): No need to compute accuracy.
         # acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
         # logging.info('att loss:' + str(self.loss.data))
