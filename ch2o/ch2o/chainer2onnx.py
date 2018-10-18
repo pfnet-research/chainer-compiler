@@ -652,6 +652,15 @@ def eval_attribute(nast, env):
                 inputs=[res.name],
             )
             return res
+
+        elif nast.attr == 'size':
+            res = env.calc(
+                'Size',
+                inputs=[body.to_tensor(env).name],
+                npdtype=np.int64,
+            )
+            return res
+
         elif nast.attr == 'append':
             # TODO(satos) ごまかさない
             assert isinstance(

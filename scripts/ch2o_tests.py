@@ -79,6 +79,7 @@ def get():
             if ('node_BatchNorm' in test_name or
                 'node_ExpandDims' in test_name or
                 'node_EmbedID' in test_name or
+                'node_Size' in test_name or
                 'node_Sum' in test_name or
                 'node_Reshape' in test_name):
                 kwargs['skip_shape_inference'] = True
