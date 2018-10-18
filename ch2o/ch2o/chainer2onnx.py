@@ -1045,6 +1045,10 @@ def eval_ast_impl(nast, env):
     elif isinstance(nast, gast.Return):
         raise ValueReturn(eval_ast(nast.value, env))
 
+    elif isinstance(nast, gast.Assert):
+        # TODO(hamaji): Emit an assertion?
+        return None
+
     else:
         print('unknown ast')
         code.InteractiveConsole({'nast': nast, 'env': env}).interact()
