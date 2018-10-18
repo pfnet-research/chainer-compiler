@@ -512,6 +512,8 @@ private:
             EMIT(SequenceUnpad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequencePad) {
             EMIT(SequencePad, out(0), in(0), node.length(), node.value());
+        } else if (node.op_type() == Node::kOnikuxSequenceRange) {
+            EMIT(SequenceRange, out(0), in(0), oin(1), oin(2));
         } else if (node.op_type() == Node::kOnikuxGenericLen) {
             EMIT(GenericLen, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxGenericGetItem) {

@@ -604,6 +604,24 @@ def gen_sequence_io_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_range_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    num_inputs = 0
+    for args in [(4,), (-4,), (3, 8), (5, 2),
+                 (1, 16, 3), (1, 17, 3), (5, -2, -1), (9, 15, -1)]:
+        input_vs = []
+        for arg in args:
+            input_vs.append(gb.input('input_%d' % num_inputs, arg))
+            num_inputs += 1
+        output_v = gb.OnikuxSequenceRange(input_vs)
+        len_v = gb.OnikuxSequenceSize([output_v])
+        expected = list(range(*args))
+        gb.output(len_v, len(expected))
+        if expected:
+            gb.output(output_v, Seq(expected))
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -853,6 +871,7 @@ def get_tests():
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
         TestCase('extra_test_sequence_split', gen_sequence_split_test),
         TestCase('extra_test_sequence_io', gen_sequence_io_test),
+        TestCase('extra_test_sequence_range', gen_sequence_range_test),
 
         TestCase('extra_test_sentiment_lstm',
                  sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2),

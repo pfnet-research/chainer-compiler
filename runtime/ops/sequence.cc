@@ -52,6 +52,26 @@ void SequencePadOp::RunImpl(XCVMState* st) {
     st->SetVar(output, PadSequence(v, length, p));
 }
 
+void SequenceRangeOp::RunImpl(XCVMState* st) {
+    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+    int64_t start, stop, step = 1;
+    if (arg1 >= 0) {
+        start = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(arg0)));
+        stop = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(arg1)));
+        if (arg2 >= 0) {
+            step = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(arg2)));
+        }
+    } else {
+        start = 0;
+        stop = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(arg0)));
+    }
+    CHECK_NE(step, 0);
+
+    for (int64_t i = start; step > 0 ? (i < stop) : (i > stop); i += step) {
+        seq->push_back(MakeArray(chainerx::Dtype::kInt64, {}, &i));
+    }
+}
+
 namespace {
 
 void SplitToSequence(chainerx::Array v, int axis, std::vector<chainerx::Array>* seq) {

@@ -223,6 +223,9 @@ NodeDef('OnikuxSequenceSize', 1, 1)
 # Returns lengths of elements in a sequence: ([T]) -> ([I])
 NodeDef('OnikuxSequenceLengths', 1, 1)
 
+# Equivalent to Python's range.
+NodeDef('OnikuxSequenceRange', (1, 2, 3), 1)
+
 # Equivalent to Python's __len__.
 # For tensors: Gather(Shape(input0), 0)
 # For sequences: OnikuxSequenceSize(input0)
