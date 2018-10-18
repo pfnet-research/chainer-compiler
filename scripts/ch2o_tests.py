@@ -62,8 +62,9 @@ UserDefinedFunc
 '''.split()
 
 MODEL_TESTS = '''
-EspNet_BLSTM
 EspNet_AttDot
+EspNet_BLSTM
+EspNet_Decoder
 MyLSTM
 MLP_with_loss
 '''.split()
@@ -85,6 +86,7 @@ def get():
                 'node_EmbedID' in test_name or
                 'node_Size' in test_name or
                 'node_Sum' in test_name or
+                'model_EspNet_Decoder' in test_name or
                 'node_Reshape' in test_name):
                 kwargs['skip_shape_inference'] = True
             if test_name == 'ch2o_node_LRN':
