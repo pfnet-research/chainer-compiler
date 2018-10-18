@@ -437,12 +437,12 @@ class Link_StatelessLSTM(Callable):
         return self.upward.init_tensors() + self.lateral.init_tensors()
 
 
-Link2NodeClass = [
-    (L.Linear, Link_Linear),
-    (L.Convolution2D, Link_Convolution2D),
-    (L.BatchNormalization, Link_BatchNormalization),
-    (L.NStepLSTM, Link_NStepLSTM),
-    (L.NStepBiLSTM, Link_NStepBiLSTM),
-    (L.EmbedID, Link_EmbedID),
-    (L.StatelessLSTM, Link_StatelessLSTM),
-]
+Link2NodeClass = {
+    L.Linear: Link_Linear,
+    L.Convolution2D: Link_Convolution2D,
+    L.BatchNormalization: Link_BatchNormalization,
+    L.NStepLSTM: Link_NStepLSTM,
+    L.NStepBiLSTM: Link_NStepBiLSTM,
+    L.EmbedID: Link_EmbedID,
+    L.StatelessLSTM: Link_StatelessLSTM,
+}

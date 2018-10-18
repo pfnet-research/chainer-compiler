@@ -56,15 +56,8 @@ def _value(v):
 
 def convert_link(ch, env):
     res = None
-    if ch.__class__.__module__[:14] == 'chainer.links.':
-        for lk, cl in Link2NodeClass:
-            if isinstance(ch, lk):
-                res = cl(ch)
-                break
-        else:
-            print('unknown chainer link')
-            code.InteractiveConsole({'lk': ch}).interact()
-            raise Exception('unknown link', ch)
+    if type(ch) in Link2NodeClass:
+        res = Link2NodeClass[type(ch)](ch)
     else:
         res = User_Defined_Link(ch, env)
 
