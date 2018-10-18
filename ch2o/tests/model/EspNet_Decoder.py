@@ -106,7 +106,7 @@ class AttDot(chainer.Chain):
 
 
 class Decoder(chainer.Chain):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att, verbose=0,
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att_dim, verbose=0,
                  char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         with self.init_scope():
@@ -117,9 +117,10 @@ class Decoder(chainer.Chain):
             for l in six.moves.range(1, dlayers):
                 setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
+            # EDIT(hamaji): `att_dim` is passed instead of `att`.
+            self.att = AttDot(eprojs, dunits, att_dim)
 
         self.loss = None
-        self.att = att
         self.dlayers = dlayers
         self.dunits = dunits
         self.sos = sos
@@ -335,8 +336,9 @@ if __name__ == '__main__':
     eos = odim - 2
 
     def model_fn():
-        att = AttDot(eprojs, dunits, att_dim)
-        dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att)
+        # att = AttDot(eprojs, dunits, att_dim)
+        # dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att)
+        dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att_dim)
         return dec
 
     labels, ilens = sequence_utils.gen_random_sequence(
