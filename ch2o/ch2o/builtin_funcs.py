@@ -24,21 +24,10 @@ def builtin_range(args, _, env):
         # print('constant loop',args)
         return range(*(a.value for a in args))
 
-    assert len(args) <= 1  # TODO(satos) 一般的にする
-
-    a = new_tensor()
-    b = new_tensor()
-    res = env.calc(
-        'Loop',
-        inputs=[args[0].to_tensor(env).name, ""],
-        body=helper.make_graph(
-            [],
-            "Range_subgraph",
-            [a, b], [b, a]
-        )
+    return env.calc_seq(
+        'OnikuxSequenceRange',
+        inputs=[a.to_tensor(env).name for a in args]
     )
-    res = env.calc_seq('OnikuxSequenceSplit', inputs=[res.name])
-    return res
 
 
 builtin_functions = {
