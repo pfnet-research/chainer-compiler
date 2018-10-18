@@ -31,7 +31,7 @@ def lstm_forward(c_prev, x):
     f = F.sigmoid(f)
     o = F.sigmoid(o)
 
-    c_next = a * i + f * c_prev[:batch]
+    c_next = a * i + f * c_prev
     h = o * F.tanh(c_next)
     return c_next, h
 
@@ -169,13 +169,14 @@ class StatelessLSTM(LSTMBase):
         lstm_in = self.upward(x)
         if h is not None:
             lstm_in += self.lateral(h)
-        # EDIT(hamaji): `c` must not be None.
-        assert c is not None
-        # if c is None:
-        #     xp = self.xp
-        #     with cuda.get_device_from_id(self._device_id):
-        #         c = variable.Variable(
-        #             xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
+        if c is None:
+            # EDIT(hamaji): Use numpy and np.float32.
+            # xp = self.xp
+            # with cuda.get_device_from_id(self._device_id):
+            #     c = variable.Variable(
+            #         xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
+            c = variable.Variable(
+                np.zeros((x.shape[0], self.state_size), dtype=np.float32))
         # EDIT(hamaji): Use lstm_forward.
         return lstm_forward(c, lstm_in)
         # return lstm.lstm(c, lstm_in)

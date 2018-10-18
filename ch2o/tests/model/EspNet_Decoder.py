@@ -19,90 +19,8 @@ from chainer import training
 from chainer.training import extensions
 
 from tests.utils import sequence_utils
-
-
-# TODO(kan-bayashi): no need to use linear tensor
-def linear_tensor(linear, x):
-    '''Apply linear matrix operation only for the last dimension of a tensor
-
-    :param Link linear: Linear link (M x N matrix)
-    :param Variable x: Tensor (D_1 x D_2 x ... x M matrix)
-    :return:
-    :param Variable y: Tensor (D_1 x D_2 x ... x N matrix)
-    '''
-    y = linear(F.reshape(x, (-1, x.shape[-1])))
-    return F.reshape(y, (x.shape[:-1] + (-1,)))
-
-
-class AttDot(chainer.Chain):
-    def __init__(self, eprojs, dunits, att_dim):
-        super(AttDot, self).__init__()
-        with self.init_scope():
-            self.mlp_enc = L.Linear(eprojs, att_dim)
-            self.mlp_dec = L.Linear(dunits, att_dim)
-
-        self.dunits = dunits
-        self.eprojs = eprojs
-        self.att_dim = att_dim
-        self.h_length = None
-        self.enc_h = None
-        self.pre_compute_enc_h = None
-
-    def reset(self):
-        '''reset states
-
-        :return:
-        '''
-        self.h_length = None
-        self.enc_h = None
-        self.pre_compute_enc_h = None
-
-    def precompute(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        assert self.pre_compute_enc_h is None
-        self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
-        self.h_length = self.enc_h.shape[1]
-        # utt x frame x att_dim
-        self.pre_compute_enc_h = F.tanh(
-            linear_tensor(self.mlp_enc, self.enc_h))
-
-    def forward(self, enc_hs, dec_z, att_prev):
-        '''AttDot forward
-
-        :param enc_hs:
-        :param dec_z:
-        :param scaling:
-        :return:
-        '''
-        # EDIT(hamaji): scaling is now a local variable.
-        scaling = 2.0
-        batch = len(enc_hs)
-
-        if self.pre_compute_enc_h is None:
-            self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
-            self.h_length = self.enc_h.shape[1]
-            # utt x frame x att_dim
-            self.pre_compute_enc_h = F.tanh(
-                linear_tensor(self.mlp_enc, self.enc_h))
-
-        if dec_z is None:
-            dec_z = chainer.Variable(self.xp.zeros(
-                (batch, self.dunits), dtype=np.float32))
-        else:
-            dec_z = F.reshape(dec_z, (batch, self.dunits))
-
-        # <phi (h_t), psi (s)> for all t
-        u = F.broadcast_to(F.expand_dims(F.tanh(self.mlp_dec(dec_z)), 1),
-                           self.pre_compute_enc_h.shape)
-        e = F.sum(self.pre_compute_enc_h * u, axis=2)  # utt x frame
-        # Applying a minus-large-number filter to make a probability value zero for a padded area
-        # simply degrades the performance, and I gave up this implementation
-        # Apply a scaling to make an attention sharp
-        w = F.softmax(scaling * e)
-        # weighted sum over flames
-        # utt x hdim
-        c = F.sum(self.enc_h * F.broadcast_to(F.expand_dims(w, 2), self.enc_h.shape), axis=1)
-
-        return c, w
+from tests.model.EspNet_AttDot import AttDot
+from tests.model.StatelessLSTM import StatelessLSTM
 
 
 class Decoder(chainer.Chain):
@@ -113,9 +31,13 @@ class Decoder(chainer.Chain):
             # EDIT(hamaji): Use L.Embed instead of DL.EmbedID.
             # self.embed = DL.EmbedID(odim, dunits)
             self.embed = L.EmbedID(odim, dunits)
-            self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
+            # EDIT(hamaji): Use StatelessLSTM instead of Chainer's.
+            # self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
+            self.lstm0 = StatelessLSTM(dunits + eprojs, dunits)
             for l in six.moves.range(1, dlayers):
-                setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
+                # EDIT(hamaji): Use StatelessLSTM instead of Chainer's.
+                # setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
+                setattr(self, 'lstm%d' % l, StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
             # EDIT(hamaji): `att_dim` is passed instead of `att`.
             self.att = AttDot(eprojs, dunits, att_dim)
