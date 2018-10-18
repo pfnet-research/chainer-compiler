@@ -136,31 +136,40 @@ class Decoder(chainer.Chain):
         y_all = self.output(z_all)
         self.loss = F.softmax_cross_entropy(y_all, F.flatten(pad_ys_out))
         # -1: eos, which is removed in the loss computation
-        self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
-        logging.info('att loss:' + str(self.loss.data))
+        # EDIT(hamaji): `np.mean` implemented by a naive loop.
+        # self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
+        sum_len = 0.0
+        for x in ys_in:
+            sum_len += len(x)
+        self.loss *= sum_len / len(ys_in) - 1
+        # EDIT(hamaji): No need to compute accuracy.
+        # acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
+        # logging.info('att loss:' + str(self.loss.data))
+        acc = None
 
-        # show predicted character sequence for debug
-        if self.verbose > 0 and self.char_list is not None:
-            y_hat = F.reshape(y_all, (batch, olength, -1))
-            y_true = pad_ys_out
-            for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data), y_true.data):
-                if i == MAX_DECODER_OUTPUT:
-                    break
-                idx_hat = self.xp.argmax(y_hat_[y_true_ != -1], axis=1)
-                idx_true = y_true_[y_true_ != -1]
-                seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
-                seq_true = [self.char_list[int(idx)] for idx in idx_true]
-                seq_hat = "".join(seq_hat).replace('<space>', ' ')
-                seq_true = "".join(seq_true).replace('<space>', ' ')
-                logging.info("groundtruth[%d]: " % i + seq_true)
-                logging.info("prediction [%d]: " % i + seq_hat)
+        # EDIT(hamaji): Skip verbose logging.
+        # # show predicted character sequence for debug
+        # if self.verbose > 0 and self.char_list is not None:
+        #     y_hat = F.reshape(y_all, (batch, olength, -1))
+        #     y_true = pad_ys_out
+        #     for (i, y_hat_), y_true_ in zip(enumerate(y_hat.data), y_true.data):
+        #         if i == MAX_DECODER_OUTPUT:
+        #             break
+        #         idx_hat = self.xp.argmax(y_hat_[y_true_ != -1], axis=1)
+        #         idx_true = y_true_[y_true_ != -1]
+        #         seq_hat = [self.char_list[int(idx)] for idx in idx_hat]
+        #         seq_true = [self.char_list[int(idx)] for idx in idx_true]
+        #         seq_hat = "".join(seq_hat).replace('<space>', ' ')
+        #         seq_true = "".join(seq_true).replace('<space>', ' ')
+        #         logging.info("groundtruth[%d]: " % i + seq_true)
+        #         logging.info("prediction [%d]: " % i + seq_hat)
 
-        if self.labeldist is not None:
-            if self.vlabeldist is None:
-                self.vlabeldist = chainer.Variable(self.xp.asarray(self.labeldist))
-            loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
-            self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
+        # EDIT(hamaji): Skip `labeldist` thing.
+        # if self.labeldist is not None:
+        #     if self.vlabeldist is None:
+        #         self.vlabeldist = chainer.Variable(self.xp.asarray(self.labeldist))
+        #     loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
+        #     self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
         return self.loss, acc
 
@@ -289,9 +298,8 @@ if __name__ == '__main__':
 
     model = model_fn()
     # Check if our modification is valid.
-    expected = model.original(hs, ys)
-    actual = model.forward(hs, ys)
-    for e, a in zip(expected, actual):
-        assert np.allclose(e.array, a.array)
+    expected, _ = model.original(hs, ys)
+    actual, _ = model.forward(hs, ys)
+    assert np.allclose(expected.array, actual.array)
 
     ch2o.generate_testcase(model_fn, [hs, ys])
