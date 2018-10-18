@@ -1042,6 +1042,14 @@ def eval_ast_impl(nast, env):
         # TODO(hamaji): Emit an assertion?
         return None
 
+    # TODO(hamaji): Implement `with`.
+    # elif isinstance(nast, gast.With):
+    #     sys.stderr.write(
+    #         'WARNING: Currenctly, the context of `with` is just ignored\n')
+    #     for s in nast.body:
+    #         eval_ast(s, env)
+    #     return None
+
     else:
         print('unknown ast')
         code.InteractiveConsole({'nast': nast, 'env': env}).interact()
