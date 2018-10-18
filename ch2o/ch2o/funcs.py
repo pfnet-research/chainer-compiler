@@ -125,9 +125,12 @@ class Function_PadSequence(Callable):
             kwargs['length'] = length.to_int()
         if not padding.is_none():
             kwargs['value'] = padding.to_float()
+        # TODO(hamaji): Here we assume the input is a sequence. As
+        # pad_sequence can appear as the first link in a model, we may not
+        # track the kind of `xs` yet so we cannot call to_sequence.
         return env.calc(
             "OnikuxSequencePad",
-            inputs=[xs.to_tensor(env).name],
+            inputs=[xs.to_value_info(env).name],
             **kwargs
         )
 
@@ -371,7 +374,7 @@ class Function_Hstack(Callable):
 class Function_Stack(Callable):
     def call_impl(self, env, xs, axis):
         # TODO(hamaji): Here we assume the input is a sequence. As
-        # hstack can appear as the first link in a model, we may not
+        # stack can appear as the first link in a model, we may not
         # track the kind of `xs` yet so we cannot call to_sequence.
         return env.calc(
             'OnikuxSequenceStack',
