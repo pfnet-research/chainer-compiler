@@ -8,5 +8,5 @@ def gen_random_sequence(batch_size, sequence_length, num_vocabs):
     # length to avoid a shape mismatch.
     lengths[0] = sequence_length
     labels = np.random.randint(
-        2, num_vocabs, size=(batch_size, sequence_length))
+        2, num_vocabs, size=(batch_size, sequence_length)).astype(np.int32)
     return labels, lengths
