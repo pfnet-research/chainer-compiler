@@ -368,6 +368,15 @@ class Function_Hstack(Callable):
         )
 
 
+class Function_Separate(Callable):
+    def call_impl(self, env, x, axis):
+        return env.calc_seq(
+            'OnikuxSequenceSplit',
+            inputs=[x.to_tensor(env).name],
+            axis=axis.to_int()
+        )
+
+
 class Function_Sum(Callable):
     def call_impl(self, env, x, axis, keepdims):
         if not axis.is_py:
@@ -420,7 +429,6 @@ class Function_Dummy(object):
 
 
 dummies = [
-    F.separate,
     F.stack,
     F.flatten,
     F.accuracy,
@@ -461,6 +469,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (np.cumsum, Np_Cumsum),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),
+                (F.separate, Function_Separate),
                 (F.sum, Function_Sum),
                 (F.softmax, Function_Softmax),
                 (chainer.Variable, Function_Chainer_Variable),

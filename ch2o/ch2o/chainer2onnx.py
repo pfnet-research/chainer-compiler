@@ -537,11 +537,8 @@ def eval_call(nast, env):
             fn = Func(lambda _, __, ___: None)
         else:
             fn = User_Defined_Func_In_Link(fn.__self__, fn)
-    elif isinstance(fn, types.BuiltinFunctionType):
-        # BuiltinFunctionType はbuiltinsではなくCで書かれた関数のこととのこと
-        fn = builtin_functions[fn.__name__]
-    elif fn == range:
-        fn = builtin_functions['range']
+    elif fn in builtin_functions:
+        fn = builtin_functions[fn]
     elif isinstance(fn, type):
         # なにがしかのinstanceを作成したはず
         assert fn.__module__ != 'builtins'

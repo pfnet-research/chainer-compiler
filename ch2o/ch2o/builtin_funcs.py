@@ -19,6 +19,17 @@ class Builtin_Len(Callable):
         )
 
 
+class Builtin_List(Callable):
+    def __init__(self):
+        super(Builtin_List, self).__init__(lambda x: x)
+
+    def call_impl(self, env, x):
+        return env.calc(
+            "Identity",
+            inputs=[x.to_sequence(env).name],
+        )
+
+
 def builtin_range(args, _, env):
     if all(a.is_py for a in args):
         # print('constant loop',args)
@@ -31,6 +42,7 @@ def builtin_range(args, _, env):
 
 
 builtin_functions = {
-    'len': Builtin_Len(),
-    'range': Func(builtin_range),
+    len: Builtin_Len(),
+    list: Builtin_List(),
+    range: Func(builtin_range),
 }
