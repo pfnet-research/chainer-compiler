@@ -87,10 +87,21 @@ class Value(object):
             # list to a tensor.
             self.value = utils.totensor(self.value, env, dtype=dtype)
             self.is_py = False
-        elif self.is_sequence():
-            self.value = env.calc('OnikuxSequenceStack',
-                                  inputs=[self.value.name])
-            self.is_py = False
+        else:
+            if self.is_sequence():
+                self.value = env.calc('OnikuxSequenceStack',
+                                      inputs=[self.value.name])
+                self.is_py = False
+
+            if dtype is not None:
+                x = np.array(0, dtype=dtype)
+                dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[x.dtype]
+                self.value = env.calc(
+                    'Cast',
+                    inputs=[self.value.name],
+                    to=dt
+                )
+                self.value.type.tensor_type.elem_type = dt
 
         assert self.is_tensor()
         return self.value
