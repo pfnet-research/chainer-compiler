@@ -120,11 +120,15 @@ class Function_SoftmaxCrossEntropy(Callable):
 
 class Function_PadSequence(Callable):
     def call_impl(self, env, xs, length, padding):
-        assert length.value is None  # TODO(hamaji): Not supported yet.
-        assert padding.value == 0  # TODO(hamaji): Not supported yet.
+        kwargs = {}
+        if not length.is_none():
+            kwargs['length'] = length.to_int()
+        if not padding.is_none():
+            kwargs['value'] = padding.to_float()
         return env.calc(
             "OnikuxSequencePad",
             inputs=[xs.to_tensor(env).name],
+            **kwargs
         )
 
 
