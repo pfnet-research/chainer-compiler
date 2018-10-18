@@ -67,6 +67,7 @@ EspNet_BLSTM
 EspNet_Decoder
 MyLSTM
 MLP_with_loss
+StatelessLSTM
 '''.split()
 
 

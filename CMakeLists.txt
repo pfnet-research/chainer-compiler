@@ -153,6 +153,7 @@ foreach(
     EspNet_Decoder
     MLP_with_loss
     MyLSTM
+    StatelessLSTM
     )
 
   gen_ch2o_test(model ${ch2o_test} "${ONIKU_TEST_ALL}")
