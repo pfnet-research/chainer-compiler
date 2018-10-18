@@ -370,8 +370,21 @@ chainerx::Array DynamicSliceOp::RunImpl(
     return data.At(indices);
 }
 
+namespace {
+
+chainerx::Array Indices(chainerx::Array indices) {
+    // TODO(hamaji): Support int32 Take in ChainerX.
+    WARN_ONCE("int32 Take is not supported by ChainerX, could be slow");
+    if (indices.dtype() == chainerx::Dtype::kInt32) {
+        return indices.AsType(chainerx::Dtype::kInt64);
+    }
+    return indices;
+}
+
+}  // namespace
+
 chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(indices, axis);
+    return data.Take(Indices(indices), axis);
 }
 
 chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
@@ -379,7 +392,7 @@ chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data
     int64_t batch_size = data.shape()[0];
     int64_t num_classes = data.shape()[1];
     int64_t total_size = batch_size * num_classes;
-    chainerx::Array take_indices = indices + chainerx::Arange(0, total_size, num_classes);
+    chainerx::Array take_indices = Indices(indices) + chainerx::Arange(0, total_size, num_classes);
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 

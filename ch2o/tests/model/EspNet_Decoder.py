@@ -105,7 +105,9 @@ class Decoder(chainer.Chain):
         self.att.reset()  # reset pre-computation of h
 
         # pre-computation of embedding
-        eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        # TODO(hamaji): Cast to np.int64.
+        # eys = self.embed(pad_ys_in)  # utt x olen x zdim
+        eys = self.embed(pad_ys_in)
         eys = F.separate(eys, axis=1)
 
         # loop for an output sequence
