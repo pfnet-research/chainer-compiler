@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# AttDot from EspNet's e2e_asr.py.
+# Decoder from EspNet's e2e_asr.py.
 #
 
 import argparse
