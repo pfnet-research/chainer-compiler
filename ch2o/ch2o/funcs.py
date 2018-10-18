@@ -368,6 +368,18 @@ class Function_Hstack(Callable):
         )
 
 
+class Function_Stack(Callable):
+    def call_impl(self, env, xs, axis):
+        # TODO(hamaji): Here we assume the input is a sequence. As
+        # hstack can appear as the first link in a model, we may not
+        # track the kind of `xs` yet so we cannot call to_sequence.
+        return env.calc(
+            'OnikuxSequenceStack',
+            inputs=[xs.to_value_info(env).name],
+            axis=axis.to_int()
+        )
+
+
 class Function_Separate(Callable):
     def call_impl(self, env, x, axis):
         return env.calc_seq(
@@ -429,7 +441,6 @@ class Function_Dummy(object):
 
 
 dummies = [
-    F.stack,
     F.flatten,
     F.accuracy,
     F.squeeze,
@@ -469,6 +480,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (np.cumsum, Np_Cumsum),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),
+                (F.stack, Function_Stack),
                 (F.separate, Function_Separate),
                 (F.sum, Function_Sum),
                 (F.softmax, Function_Softmax),
