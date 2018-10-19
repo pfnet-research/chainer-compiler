@@ -9,6 +9,7 @@ import chainer
 from chainer import functions as F
 import numpy as np
 
+from ch2o import utils
 from ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
 from ch2o.callable import Callable
 from ch2o.value import Value
@@ -216,14 +217,27 @@ class Np_Zeros(Callable):
 
     def call_impl(self, env, shape, dtype, order):
         assert order.value == 'C'
-        a = np.zeros((), dtype=dtype.value)
-        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
+        dt = utils.onnx_dtype(dtype.value)
         return env.calc(
             'ConstantFill',
             inputs=[shape.to_tensor(env).name],
             input_as_shape=1,
             dtype=dt
         )
+
+
+class Np_Full(Callable):
+    def call_impl(self, env, shape, fill_value, dtype, order):
+        assert order.value == 'C'
+        res = env.calc(
+            'Expand',
+            inputs=[fill_value.to_tensor(env).name,
+                    shape.to_tensor(env).name],
+        )
+        if not dtype.is_none():
+            dt = utils.onnx_dtype(dtype.value)
+            res = castto(res, dt, env)
+        return res
 
 
 class Np_Cumsum(Callable):
@@ -480,6 +494,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (np.int32, Np_Int32),
                 (np.ceil, Xp_Np_Ceil),
                 (np.zeros, Np_Zeros),
+                (np.full, Np_Full),
                 (np.cumsum, Np_Cumsum),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),

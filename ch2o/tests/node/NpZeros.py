@@ -6,10 +6,6 @@ import chainer.functions as F
 
 
 class A(chainer.Chain):
-
-    def __init__(self):
-        super(A, self).__init__()
-
     def forward(self):
         y1 = np.zeros((3, 4), dtype=np.float32)
         return y1

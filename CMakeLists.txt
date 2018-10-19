@@ -122,6 +122,7 @@ foreach(
     NStepBiLSTM
     NStepLSTM
     NpArray
+    NpFull
     NpZeros
     PadSequence
     Relu

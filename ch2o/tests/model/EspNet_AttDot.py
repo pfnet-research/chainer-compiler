@@ -55,14 +55,6 @@ class AttDot(chainer.Chain):
         self.enc_h = None
         self.pre_compute_enc_h = None
 
-    def precompute(self, enc_hs, dec_z, att_prev, scaling=2.0):
-        assert self.pre_compute_enc_h is None
-        self.enc_h = F.pad_sequence(enc_hs)  # utt x frame x hdim
-        self.h_length = self.enc_h.shape[1]
-        # utt x frame x att_dim
-        self.pre_compute_enc_h = F.tanh(
-            linear_tensor(self.mlp_enc, self.enc_h))
-
     def forward(self, enc_hs, dec_z, att_prev):
         '''AttDot forward
 

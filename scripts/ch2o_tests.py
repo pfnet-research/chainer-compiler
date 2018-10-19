@@ -27,6 +27,7 @@ MaxPool2d
 NStepBiLSTM
 NStepLSTM
 NpArray
+NpFull
 NpZeros
 PadSequence
 Relu
@@ -87,6 +88,7 @@ def get():
                 'node_EmbedID' in test_name or
                 'node_Size' in test_name or
                 'node_Sum' in test_name or
+                'node_NpFull' in test_name or
                 'model_EspNet_Decoder' in test_name or
                 'node_Reshape' in test_name):
                 kwargs['skip_shape_inference'] = True

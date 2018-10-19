@@ -138,6 +138,12 @@ def totensor(x, env, dtype=None):
     return res
 
 
+def onnx_dtype(dtype):
+    a = np.zeros((), dtype=dtype)
+    dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
+    return dt
+
+
 class Env(object):
     def __init__(self, module):
         # Local variables keyed by their names. When a value is an
