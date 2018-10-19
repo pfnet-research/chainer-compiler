@@ -132,6 +132,7 @@ foreach(
     Sigmoid
     Size
     SplitAxis
+    Squeeze
     Softmax
     SoftmaxClossEntropy
     Stack

@@ -39,6 +39,7 @@ Size
 SplitAxis
 Softmax
 SoftmaxClossEntropy
+Squeeze
 Stack
 Sum
 SwapAxes
