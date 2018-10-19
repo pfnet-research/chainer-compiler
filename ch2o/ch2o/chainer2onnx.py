@@ -317,10 +317,8 @@ def eval_if(nast, env):
         input_values.append(iv.to_value_info(env))
 
         if then_ov is None and else_ov is None:
-            then_outputs.append(iv.to_value_info(env))
-            else_outputs.append(iv.to_value_info(env))
-            final_outputs.append((key, new_tensor(name='unused_%s' % key)))
-        elif then_ov is None:
+            continue
+        if then_ov is None:
             then_outputs.append(iv.to_value_info(env))
             else_outputs.append(else_ov.to_value_info(else_env))
             set_final_output(key, else_ov)
@@ -409,16 +407,14 @@ def eval_for(nast, env):
     final_outputs = []
     final_setattrs = []
     for key, (iv, ov, setattr_info) in in_out.items():
+        if ov is None:
+            continue
         if iv is None:
             iv = Value(False)
-        if ov is None:
-            final_outputs.append((key, new_tensor(name='unused_%s' % key)))
-            ov = iv
-        else:
-            out = ov.copy(env, name=key)
-            final_outputs.append((key, out.value))
-            if setattr_info is not None:
-                final_setattrs.append(tuple(list(setattr_info) + [out]))
+        out = ov.copy(env, name=key)
+        final_outputs.append((key, out.value))
+        if setattr_info is not None:
+            final_setattrs.append(tuple(list(setattr_info) + [out]))
         input_values.append(iv.to_value_info(env))
         output_values.append(ov.to_value_info(env))
 
