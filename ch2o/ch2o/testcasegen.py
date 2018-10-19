@@ -16,9 +16,8 @@ from ch2o.chainer2onnx import compiler
 from ch2o.test_args import get_test_args
 from ch2o.test_args import dprint
 
+import onnx
 from onnx import numpy_helper
-
-from onnx import mapping
 from onnx import TensorProto
 
 from ch2o.initializer import edit_onnx_protobuf
@@ -77,7 +76,8 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
         os.makedirs(test_data_dir)
 
     for typ, values in [('input', inputs), ('output', outputs)]:
-        for i, (name, value) in enumerate(values):
+        for i, (value_info, value) in enumerate(values):
+            name = value_info.name
             if isinstance(value, list):
                 assert value
                 digits = len(str(len(value)))
@@ -88,12 +88,21 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                     tensor = numpy_helper.from_array(v, name)
                     with open(filename, 'wb') as f:
                         f.write(tensor.SerializeToString())
+
+                value_info.type.CopyFrom(onnx.TypeProto())
+                sequence_type = value_info.type.sequence_type
+                tensor_type = sequence_type.elem_type.tensor_type
+                tensor_type.elem_type = tensor.data_type
             else:
                 filename = os.path.join(test_data_dir,
                                         '%s_%d.pb' % (typ, i))
                 tensor = numpy_helper.from_array(value, name)
                 with open(filename, 'wb') as f:
                     f.write(tensor.SerializeToString())
+
+                vi = onnx.helper.make_tensor_value_info(
+                    name, tensor.data_type, tensor.dims)
+                value_info.CopyFrom(vi)
 
 
 _seen_subnames = set()
@@ -108,7 +117,9 @@ def generate_testcase(model, xs, subname=None, has_side_effect=False):
         return model
 
     # さらの状態からonnxのmodをつくる
-    onnxmod, input_tensors, output_tensors = compiler(get_model())
+    onnxmod = compiler(get_model())
+    all_input_tensors = onnxmod.graph.input
+    output_tensors = onnxmod.graph.output
 
     model = get_model()
     chainer.config.train = False
@@ -132,28 +143,26 @@ def generate_testcase(model, xs, subname=None, has_side_effect=False):
         output_dir = output_dir + '_' + subname
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:
-        fp.write(onnxmod.SerializeToString())
 
     initializer_names = set()
     for initializer in onnxmod.graph.initializer:
         initializer_names.add(initializer.name)
-    input_names = []
-    for input_tensor in input_tensors:
+    input_tensors = []
+    for input_tensor in all_input_tensors:
         if input_tensor.name not in initializer_names:
-            input_names.append(input_tensor.name)
+            input_tensors.append(input_tensor)
 
     if len(output_tensors) < len(chainer_out):
         assert len(output_tensors) == 1
         chainer_out = [np.array(chainer_out)]
     assert len(output_tensors) == len(chainer_out)
-    outputs = []
-    for tensor, value in zip(output_tensors, chainer_out):
-        outputs.append((tensor.name, value))
 
     xs = list(map(lambda x: _validate_inout(x), xs))
 
     dump_test_inputs_outputs(
-        list(zip(input_names, xs)),
-        outputs,
+        list(zip(input_tensors, xs)),
+        list(zip(output_tensors, chainer_out)),
         os.path.join(output_dir, 'test_data_set_0'))
+
+    with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:
+        fp.write(onnxmod.SerializeToString())

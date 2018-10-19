@@ -1115,4 +1115,4 @@ def compiler(model):
     mo = helper.make_model(graph)
 
     # print(mo)
-    return mo, input_tensors, outputs_vi
+    return mo

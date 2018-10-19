@@ -83,14 +83,8 @@ def get():
             # TODO(hamaji): Get rid of this whitelist or reduce the
             # number of tests at least by setting input/output types
             # properly.
-            if ('node_BatchNorm' in test_name or
-                'node_ExpandDims' in test_name or
-                'node_EmbedID' in test_name or
-                'node_Size' in test_name or
-                'node_Sum' in test_name or
-                'node_NpFull' in test_name or
-                'model_EspNet_Decoder' in test_name or
-                'node_Reshape' in test_name):
+            if ('node_MaxPool2d' in test_name or
+                'node_SwapAxes' in test_name):
                 kwargs['skip_shape_inference'] = True
             if test_name == 'ch2o_node_LRN':
                 kwargs['rtol'] = 1e-3

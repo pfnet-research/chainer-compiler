@@ -5,6 +5,7 @@ import sys
 
 import chainer
 import numpy as np
+import onnx
 from onnx import onnx_pb
 
 my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +25,9 @@ def create_backprop_test(test_name, model, input_values):
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
     onnx_chainer_util.makedirs(test_data_set_dir)
 
-    xmodel, input_tensors, output_tensors = compiler(model)
+    xmodel = compiler(model)
+    all_input_tensors = xmodel.graph.input
+    output_tensors = xmodel.graph.output
 
     chainer.config.train = True
     model.cleargrads()
@@ -43,23 +46,24 @@ def create_backprop_test(test_name, model, input_values):
     initializer_names = set()
     for initializer in xmodel.graph.initializer:
         initializer_names.add(initializer.name)
-    input_names = []
-    for input_tensor in input_tensors:
+    input_tensors = []
+    for input_tensor in all_input_tensors:
         if input_tensor.name not in initializer_names:
-            input_names.append(input_tensor.name)
+            input_tensors.append(input_tensor)
 
-    assert len(input_names) == len(input_values)
+    assert len(input_tensors) == len(input_values)
     assert len(output_tensors) == len(output_values)
 
     outputs = []
     for tensor, value in zip(output_tensors, output_values):
-        outputs.append((tensor.name, value.array))
+        outputs.append((tensor, value.array))
     for name, param in sorted(model.namedparams()):
-        bp_name = 'grad_out@' + name
+        bp_name = onnx.helper.make_tensor_value_info(
+            'grad_out@' + name, onnx.TensorProto.FLOAT, ())
         outputs.append((bp_name, param.grad))
 
     testcasegen.dump_test_inputs_outputs(
-        list(zip(input_names, input_values)),
+        list(zip(input_tensors, input_values)),
         outputs,
         test_data_set_dir)
 
