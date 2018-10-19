@@ -74,18 +74,25 @@ StatelessLSTM
 
 def get():
     tests = []
+
+    skip_shape_inference_blacklist = [
+        # ONNX's does now know cover_all.
+        'node_MaxPool2d',
+        # A bug of ONNX's shape inference?
+        # TODO(hamaji): Investigate.
+        'node_SwapAxes',
+    ]
+
     for category, names in [('model', MODEL_TESTS),
                             ('node', NODE_TESTS),
                             ('syntax', SYNTAX_TESTS)]:
         for name in names:
             test_name = 'ch2o_%s_%s' % (category, name)
             kwargs = {}
-            # TODO(hamaji): Get rid of this whitelist or reduce the
-            # number of tests at least by setting input/output types
-            # properly.
-            if ('node_MaxPool2d' in test_name or
-                'node_SwapAxes' in test_name):
-                kwargs['skip_shape_inference'] = True
+            for substr in skip_shape_inference_blacklist:
+                if substr in test_name:
+                    kwargs['skip_shape_inference'] = True
+                    break
             if test_name == 'ch2o_node_LRN':
                 kwargs['rtol'] = 1e-3
             if test_name == 'ch2o_syntax_MultiFunction':
