@@ -62,7 +62,6 @@ function(gen_ch2o_test dir ch2o_test all)
   set(out_dir ${CMAKE_CURRENT_SOURCE_DIR}/out/ch2o_${dir}_${ch2o_test}) # TODO: move to build/ directory
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/ch2o_${dir}_${ch2o_test})
 
-  file(MAKE_DIRECTORY ${out_dir})
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stamp_out)
 
   add_custom_command(
