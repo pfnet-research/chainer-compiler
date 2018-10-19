@@ -30,6 +30,15 @@ class Function_SimpleUnary(Callable):
         return env.calc(self.onnx_name, inputs=[v.to_tensor(env).name])
 
 
+def _int_or_list(v: Value) -> List[int]:
+    if not v.is_py:
+        raise TypeError('Expected an int or an int list: %s' % v.value)
+    if isinstance(v.value, collections.Iterable):
+        assert all(x.is_py for x in v.value)
+        return list(x.value for x in v.value)
+    return [v.value]
+
+
 def _pair(v: Value) -> List[int]:
     if not v.is_py:
         raise TypeError('Expected an int or an int list: %s' % v.value)
@@ -406,6 +415,16 @@ class Function_Separate(Callable):
         )
 
 
+class Function_Squeeze(Callable):
+    def call_impl(self, env, x, axis):
+        assert not axis.is_none()  # TODO(hamaji): Not supported yet.
+        return env.calc(
+            'Squeeze',
+            inputs=[x.to_tensor(env).name],
+            axes=_int_or_list(axis)
+        )
+
+
 class Function_Sum(Callable):
     def call_impl(self, env, x, axis, keepdims):
         if not axis.is_py:
@@ -460,7 +479,6 @@ class Function_Dummy(object):
 dummies = [
     F.flatten,
     F.accuracy,
-    F.squeeze,
 ]
 
 
@@ -502,6 +520,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.separate, Function_Separate),
                 (F.sum, Function_Sum),
                 (F.softmax, Function_Softmax),
+                (F.squeeze, Function_Squeeze),
                 (chainer.Variable, Function_Chainer_Variable),
 ]:
     Func2NodeClass[fn] = cls(fn)
