@@ -16,6 +16,7 @@ std::map<std::string, Value*> GetRequiredValues(Graph* graph) {
     }
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
         for (Value* value : node->inputs()) {
+            if (value->IsNull()) continue;
             required_values[value->name()] = value;
         }
     }
