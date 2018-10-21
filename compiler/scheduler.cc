@@ -133,6 +133,7 @@ std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>
     while (!q.empty()) {
         const Value* value = q.front();
         q.pop();
+        if (value->IsNull()) continue;
         for (Node* node : value->users()) {
             auto found = input_counts.find(node);
             if (found == input_counts.end()) continue;
@@ -161,6 +162,7 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>&
     };
 
     auto make_value_ready = [&input_counts, enqueue_node](const Value* value) {
+        if (value->IsNull()) return;
         for (Node* node : value->users()) {
             auto found = input_counts.find(node);
             if (found == input_counts.end()) continue;
