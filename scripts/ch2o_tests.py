@@ -65,6 +65,7 @@ UserDefinedFunc
 
 MODEL_TESTS = '''
 EspNet_AttDot
+EspNet_AttLoc
 EspNet_BLSTM
 EspNet_Decoder
 MyLSTM

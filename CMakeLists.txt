@@ -150,6 +150,7 @@ endforeach()
 foreach(
     ch2o_test
     EspNet_AttDot
+    EspNet_AttLoc
     EspNet_BLSTM
     EspNet_Decoder
     MLP_with_loss
