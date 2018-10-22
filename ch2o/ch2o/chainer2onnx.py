@@ -394,7 +394,7 @@ def eval_for(nast, env):
     cnt = new_tensor()
     gtx = new_sequence()
     localenv.set_var(x, _value(localenv.calc(
-        "OnikuxSequenceLookup",
+        "OnikuxGenericGetItem",
         inputs=[gtx.name, cnt.name],
     )))
     ty = eval_ast(nast.body, localenv)
@@ -821,7 +821,6 @@ def eval_subscript(nast, env):
             )
             return res
         elif isinstance(idx, int):
-            raise  # TODO(hamaji): Check if this code is still useful.
             # TODO(satos) スライドのためのごまかしのごまかし
             idx = unsqueeze(idx.to_tensor(env))
             res = env.calc(
@@ -889,7 +888,7 @@ def eval_subscript(nast, env):
         assert len(squeeze) == 1
         if any(squeeze):
             res = env.calc(
-                'OnikuxSequenceLookup',
+                'OnikuxGenericGetItem',
                 inputs=[vs.name, lower.name],
             )
         else:
