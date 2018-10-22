@@ -43,6 +43,12 @@ chainerx::Array ShapeToArray(const chainerx::Shape& s) {
 chainerx::Shape ArrayToShape(const chainerx::Array& a) {
     // TODO(hamaji): Think again if we revive this.
     // WARN_ONCE("Shape info was not statically known.");
+
+    // ONNX's document says "shape" of "Expand" op should be 1D tensor
+    // while others are not explicitly specified. Here we will allow
+    // scalar values as shapes to be aligned with numpy.
+    if (a.ndim() == 0) return {int64_t(chainerx::AsScalar(a))};
+
     CHECK_EQ(a.ndim(), 1);
     chainerx::Shape shape;
     for (int i = 0; i < a.shape()[0]; ++i) {
