@@ -20,6 +20,7 @@ from chainer.training import extensions
 
 from tests.utils import sequence_utils
 from tests.model.EspNet_AttDot import AttDot
+from tests.model.EspNet_AttLoc import AttLoc
 from tests.model.StatelessLSTM import StatelessLSTM
 
 
@@ -35,8 +36,10 @@ def _flatten(xs):
 
 
 class Decoder(chainer.Chain):
-    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att_dim, verbose=0,
-                 char_list=None, labeldist=None, lsm_weight=0., sampling_probability=0.0):
+    def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att_dim,
+                 aconv_chans=None, aconv_filts=None,
+                 verbose=0, char_list=None, labeldist=None,
+                 lsm_weight=0., sampling_probability=0.0):
         super(Decoder, self).__init__()
         with self.init_scope():
             # EDIT(hamaji): Use L.Embed instead of DL.EmbedID.
@@ -50,8 +53,12 @@ class Decoder(chainer.Chain):
                 # setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
                 setattr(self, 'lstm%d' % l, StatelessLSTM(dunits, dunits))
             self.output = L.Linear(dunits, odim)
-            # EDIT(hamaji): `att_dim` is passed instead of `att`.
-            self.att = AttDot(eprojs, dunits, att_dim)
+            # EDIT(hamaji): attention parameters are passed instead of `att`.
+            if aconv_chans is None:
+                self.att = AttDot(eprojs, dunits, att_dim)
+            else:
+                self.att = AttLoc(eprojs, dunits, att_dim,
+                                  aconv_chans, aconv_filts)
 
         self.loss = None
         self.dlayers = dlayers
@@ -290,12 +297,8 @@ if __name__ == '__main__':
     odim = 11
     sos = odim - 1
     eos = odim - 2
-
-    def model_fn():
-        # att = AttDot(eprojs, dunits, att_dim)
-        # dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att)
-        dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att_dim)
-        return dec
+    aconv_chans = 7
+    aconv_filts = 6
 
     labels, ilens = sequence_utils.gen_random_sequence(
         batch_size, sequence_length, num_vocabs)
@@ -306,10 +309,26 @@ if __name__ == '__main__':
     ys, ilens = sequence_utils.gen_random_sequence(
         batch_size, sequence_length, odim)
 
-    model = model_fn()
-    # Check if our modification is valid.
-    expected, _ = model.original(hs, ys)
-    actual, _ = model.forward(hs, ys)
-    assert np.allclose(expected.array, actual.array)
+    def gen_test(model_fn, subname=None):
+        model = model_fn()
+        # Check if our modification is valid.
+        expected, _ = model.original(hs, ys)
+        actual, _ = model.forward(hs, ys)
+        assert np.allclose(expected.array, actual.array)
 
-    ch2o.generate_testcase(model_fn, [hs, ys])
+        ch2o.generate_testcase(model_fn, [hs, ys], subname=subname)
+
+    def model_fn():
+        # att = AttDot(eprojs, dunits, att_dim)
+        # dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att)
+        dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att_dim)
+        return dec
+
+    gen_test(model_fn)
+
+    def model_fn():
+        dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos,
+                      att_dim, aconv_chans, aconv_filts)
+        return dec
+
+    gen_test(model_fn, subname='attloc')
