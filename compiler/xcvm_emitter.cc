@@ -500,6 +500,15 @@ private:
                 EMIT(SequenceCopy, out(0), in(0));
                 EMIT(SequenceAppend, out(0), in(1), 0);
             }
+        } else if (node.op_type() == Node::kOnikuxSequencePop) {
+            if (node.inputs()[0]->users().size() == 1) {
+                // Avoid O(N^2) copies for the simple case.
+                EMIT(SequenceMove, out(0), in(0));
+                EMIT(SequencePop, out(1), out(0), 0);
+            } else {
+                EMIT(SequenceCopy, out(0), in(0));
+                EMIT(SequencePop, out(1), out(0), 0);
+            }
         } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {

@@ -622,6 +622,34 @@ def gen_sequence_range_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_pop_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    inputs = np.array([10, 3, 4, 7, 2, 5])
+
+    inputs_v = gb.input('input', inputs)
+
+    seq_v = gb.OnikuxSequenceSplit(inputs=[inputs_v])
+    pop_count = 3
+    for i in range(pop_count):
+        seq_v, pop_v = gb.OnikuxSequencePop(
+            inputs=[seq_v],
+            outputs=['seq_%d' % i, 'pop_%d' % i]
+        )
+        gb.output(pop_v, inputs[-1-i])
+
+    # This `seq_v` is used twice, so not-optimized pass will be tested.
+    len1_v = gb.OnikuxSequenceSize(inputs=[seq_v])
+    seq_v, _ = gb.OnikuxSequencePop(
+        inputs=[seq_v],
+        outputs=['seq_final', 'pop_final'],
+    )
+    len2_v = gb.OnikuxSequenceSize(inputs=[seq_v])
+    gb.output(gb.Add(inputs=[len1_v, len2_v]),
+              (len(inputs) - pop_count) * 2 - 1)
+
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -872,6 +900,7 @@ def get_tests():
         TestCase('extra_test_sequence_split', gen_sequence_split_test),
         TestCase('extra_test_sequence_io', gen_sequence_io_test),
         TestCase('extra_test_sequence_range', gen_sequence_range_test),
+        TestCase('extra_test_sequence_pop', gen_sequence_pop_test),
 
         TestCase('extra_test_sentiment_lstm',
                  sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2),

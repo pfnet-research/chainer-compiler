@@ -198,6 +198,9 @@ NodeDef('OnikuxSequenceCreate', 0, 1)
 # Appends an element to a sequence: ([T], T) -> ([T])
 NodeDef('OnikuxSequenceAppend', 2, 1)
 
+# Pops an element from a sequence: ([T]) -> ([T], T)
+NodeDef('OnikuxSequencePop', 1, 2)
+
 # Looks up an element in a sequence: ([T], I) -> (T)
 NodeDef('OnikuxSequenceLookup', 2, 1)
 

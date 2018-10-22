@@ -274,6 +274,7 @@ void InferDtype(Node* node) {
 
         case Node::kOnikuxSequenceCreate:
         case Node::kOnikuxSequenceAppend:
+        case Node::kOnikuxSequencePop:
         case Node::kOnikuxSequenceLookup:
         case Node::kOnikuxSequenceStack:
         case Node::kOnikuxSequenceConcat:
