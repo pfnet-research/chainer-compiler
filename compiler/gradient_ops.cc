@@ -53,8 +53,6 @@ public:
     }
 
     Value* y(int i) {
-        CHECK_LE(0, i) << i;
-        CHECK_GT(y_.size(), i) << i;
         return Retain(y_[i]);
     }
 
@@ -65,7 +63,9 @@ public:
     }
 
     GraphBuilder builder(int xi) {
-        return GraphBuilder(graph_, name_, x(xi));
+        CHECK_LE(0, xi) << xi;
+        CHECK_GT(x_.size(), xi) << xi;
+        return GraphBuilder(graph_, name_, x_[xi]);
     }
 
     void SetGrad(int xi, Value* gx) {
@@ -83,7 +83,9 @@ public:
     }
 
     Value* AddGradValue(int xi) {
-        Value* gv = graph_->AddValue("grad@" + x(xi)->name());
+        CHECK_LE(0, xi) << xi;
+        CHECK_GT(x_.size(), xi) << xi;
+        Value* gv = graph_->AddValue("grad@" + x_[xi]->name());
         SetGrad(xi, gv);
         return gv;
     }
