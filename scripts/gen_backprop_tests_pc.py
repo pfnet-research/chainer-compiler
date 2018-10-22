@@ -21,6 +21,10 @@ L = chainer.links
 
 
 def create_backprop_test(test_name, model, input_values):
+    chainer.config.train = True
+    model.cleargrads()
+    output_values = model(*map(chainer.variable.Variable, input_values))
+
     test_dir = 'out/backprop_test_pc_%s' % test_name
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
     onnx_chainer_util.makedirs(test_data_set_dir)
@@ -29,9 +33,6 @@ def create_backprop_test(test_name, model, input_values):
     all_input_tensors = xmodel.graph.input
     output_tensors = xmodel.graph.output
 
-    chainer.config.train = True
-    model.cleargrads()
-    output_values = model(*map(chainer.variable.Variable, input_values))
     if not isinstance(output_values, (list, tuple)):
         output_values = (output_values,)
     for output_value in output_values:
@@ -139,30 +140,19 @@ def get_backprop_tests():
     test('lrn', LRN(), aranges(2, 3))
 
     class Stack(chainer.Chain):
-        def __init__(self):
+        def __init__(self, axis):
             super(Stack, self).__init__()
+            self.axis = axis
             with self.init_scope():
                 self.l1 = L.Linear(None, 4)
                 self.l2 = L.Linear(None, 4)
 
         def forward(self, x, y):
             xs = [self.l1(x) * 2, self.l2(y) * 3]
-            return F.stack(xs)
+            return F.stack(xs, axis=self.axis)
 
-    test('stack', Stack(), aranges(2, 3), aranges(2, 3) + 1)
-
-    class StackAxis1(chainer.Chain):
-        def __init__(self):
-            super(StackAxis1, self).__init__()
-            with self.init_scope():
-                self.l1 = L.Linear(None, 4)
-                self.l2 = L.Linear(None, 4)
-
-        def forward(self, x, y):
-            xs = [self.l1(x) * 2, self.l2(y) * 3]
-            return F.stack(xs, axis=1)
-
-    test('stack_axis1', StackAxis1(), aranges(2, 3), aranges(2, 3) + 1)
+    test('stack', Stack(0), aranges(2, 3), aranges(2, 3) + 1)
+    test('stack_axis1', Stack(1), aranges(2, 3), aranges(2, 3) + 1)
 
     return tests
 

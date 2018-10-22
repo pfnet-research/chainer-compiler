@@ -18,7 +18,10 @@ class Value(object):
 
     def __init__(self, value):
         if isinstance(value, Value):
+            self.const_value = value.const_value
             value = value.value
+        else:
+            self.const_value = None
         self.value = value
         self.is_py = not isinstance(self.value, onnx.ValueInfoProto)
         if not self.is_py:
@@ -83,6 +86,7 @@ class Value(object):
     def to_tensor(self, env: 'utils.Env',
                   dtype: type = None) -> onnx.ValueInfoProto:
         if self.is_py:
+            self.const_value = Value(self.value)
             # TODO(hamaji): Rewrite `totensor` to convert a Python
             # list to a tensor.
             self.value = utils.totensor(self.value, env, dtype=dtype)
@@ -107,6 +111,7 @@ class Value(object):
 
     def to_sequence(self, env: 'utils.Env') -> onnx.ValueInfoProto:
         if self.is_py:
+            self.const_value = Value(self.value)
             if not isinstance(self.value, collections.Iterable):
                 raise TypeError('Expected a sequence: %s' % self.value)
             res = env.calc_seq(
@@ -130,25 +135,35 @@ class Value(object):
         assert self.is_sequence()
         return self.value
 
+    def _const(self) -> 'Value':
+        if not self.is_py and self.const_value is not None:
+            return self.const_value
+        return self
+
     def to_float(self) -> float:
-        if not self.is_py:
-            raise TypeError('Expected a float scalar: %s' % self.value)
-        return float(self.value)
+        value = self._const()
+        if not value.is_py:
+            raise TypeError('Expected a float scalar: %s' % value.value)
+        return float(value.value)
 
     def to_int(self) -> int:
-        if not self.is_py or _is_float_value(self.value):
-            raise TypeError('Expected an int scalar: %s' % self.value)
-        return int(self.value)
+        value = self._const()
+        if not value.is_py or _is_float_value(value.value):
+            print(value.const_value)
+            raise TypeError('Expected an int scalar: %s' % value.value)
+        return int(value.value)
 
     def to_bool(self) -> bool:
-        if not self.is_py or not isinstance(self.value, bool):
-            raise TypeError('Expected a bool scalar: %s' % self.value)
-        return bool(self.value)
+        value = self._const()
+        if not value.is_py or not isinstance(value.value, bool):
+            raise TypeError('Expected a bool scalar: %s' % value.value)
+        return bool(value.value)
 
     def to_int_list(self) -> List[int]:
-        if not self.is_py or not isinstance(self.value, collections.Iterable):
-            raise TypeError('Expected an int list: %s' % self.value)
-        ints = list(Value(v).value for v in self.value)
+        value = self._const()
+        if not value.is_py or not isinstance(value.value, collections.Iterable):
+            raise TypeError('Expected an int list: %s' % value.value)
+        ints = list(Value(v).value for v in value.value)
         if ints and _is_float_value(ints[0]):
-            raise TypeError('Expected an int list: %s' % self.value)
+            raise TypeError('Expected an int list: %s' % value.value)
         return ints
