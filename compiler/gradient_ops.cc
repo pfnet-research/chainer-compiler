@@ -431,6 +431,23 @@ void LoopGradFn(GradientOpContext* gc) {
     body->ResetGradients();
 }
 
+void SequenceStackGradFn(GradientOpContext* gc) {
+    const Node* node = gc->node();
+    // TODO(hamaji): This probably works as is. Test it.
+    CHECK_EQ(0, node->axis());
+    Value* gy = gc->gy(0);
+    gc->GradOp(Node::kOnikuxSequenceSplit, 0, {gy})->producer()->set_axis(node->axis());
+}
+
+void SequenceAppendGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    std::vector<Value*> gxs;
+    for (int i = 0; i < 2; ++i) {
+        gxs.push_back(gc->AddGradValue(i));
+    }
+    gb.MOp(Node::kOnikuxSequencePop, {gc->gy(0)}, gxs);
+}
+
 typedef void (*GradFn)(GradientOpContext*);
 
 struct GradientFunc {
@@ -488,6 +505,9 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kConstant, 0, 1, &DoNothingGradFn);
 
         register_grad_fn(Node::kLoop, -1, -1, &LoopGradFn);
+
+        register_grad_fn(Node::kOnikuxSequenceStack, 1, 1, &SequenceStackGradFn);
+        register_grad_fn(Node::kOnikuxSequenceAppend, 2, 1, &SequenceAppendGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

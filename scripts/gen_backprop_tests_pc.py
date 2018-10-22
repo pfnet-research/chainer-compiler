@@ -138,6 +138,19 @@ def get_backprop_tests():
 
     test('lrn', LRN(), aranges(2, 3))
 
+    class Stack(chainer.Chain):
+        def __init__(self):
+            super(Stack, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 4)
+                self.l2 = L.Linear(None, 4)
+
+        def forward(self, x, y):
+            xs = [self.l1(x) * 2, self.l2(y) * 3]
+            return F.stack(xs)
+
+    test('stack', Stack(), aranges(2, 3), aranges(2, 3) + 1)
+
     return tests
 
 
