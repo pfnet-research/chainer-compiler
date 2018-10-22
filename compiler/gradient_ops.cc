@@ -19,6 +19,9 @@ namespace {
 
 class GradientOpContext {
 public:
+    // Thrown when a necessary `gy` is missing.
+    struct NoGradient {};
+
     GradientOpContext(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, bool retain_in_stack)
         : graph_(graph), node_(node), x_(x), y_(y), retain_in_stack_(retain_in_stack) {
         name_ = Node::OpTypeToString(node->op_type());
@@ -59,7 +62,11 @@ public:
     Value* gy(int i) {
         CHECK_LE(0, i) << i;
         CHECK_GT(y_.size(), i) << i;
-        return y_[i]->grad();
+        Value* r = y_[i]->grad();
+        if (!r) {
+            throw NoGradient();
+        }
+        return r;
     }
 
     GraphBuilder builder(int xi) {
@@ -524,7 +531,13 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     if (func.num_outputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
 
     GradientOpContext gc(graph, node, node->inputs(), node->outputs(), retain_in_stack);
-    func.fn(&gc);
+    // TODO(hamaji): Better to get gradient functions declare which
+    // `gy` are necessary by themselves instead of relying on the
+    // exception thrown in `gy`.
+    try {
+        func.fn(&gc);
+    } catch (GradientOpContext::NoGradient) {
+    }
 }
 
 }  // namespace oniku
