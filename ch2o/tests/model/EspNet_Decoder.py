@@ -162,7 +162,6 @@ class Decoder(chainer.Chain):
         # EDIT(hamaji): No need to compute accuracy.
         # acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
         # logging.info('att loss:' + str(self.loss.data))
-        acc = None
 
         # EDIT(hamaji): Skip verbose logging.
         # # show predicted character sequence for debug
@@ -188,7 +187,9 @@ class Decoder(chainer.Chain):
         #     loss_reg = - F.sum(F.scale(F.log_softmax(y_all), self.vlabeldist, axis=1)) / len(ys_in)
         #     self.loss = (1. - self.lsm_weight) * self.loss + self.lsm_weight * loss_reg
 
-        return self.loss, acc
+        # EDIT(hamaji): Return loss only.
+        # return self.loss, acc
+        return self.loss
 
     def original(self, hs, ys):
         '''Decoder forward
@@ -313,7 +314,7 @@ if __name__ == '__main__':
         model = model_fn()
         # Check if our modification is valid.
         expected, _ = model.original(hs, ys)
-        actual, _ = model.forward(hs, ys)
+        actual = model.forward(hs, ys)
         assert np.allclose(expected.array, actual.array)
 
         ch2o.generate_testcase(model_fn, [hs, ys], subname=subname)
