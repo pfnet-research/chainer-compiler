@@ -9,6 +9,24 @@
 namespace oniku {
 namespace runtime {
 
+namespace {
+
+class ConcatBackwardContext : public XCVMState::Auxiliary {
+public:
+    explicit ConcatBackwardContext(const std::vector<int64_t>& split) : split_(split) {
+    }
+    virtual ~ConcatBackwardContext() = default;
+
+    const std::vector<int64_t>& split() {
+        return split_;
+    }
+
+private:
+    std::vector<int64_t> split_;
+};
+
+}  // namespace
+
 void SequenceClearOp::RunImpl(XCVMState* st) {
     st->GetSequence(seq)->clear();
 }
@@ -42,7 +60,20 @@ void SequenceStackOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceConcatOp::RunImpl(XCVMState* st) {
-    st->SetVar(output, Concat(*st->GetSequence(seq), axis));
+    const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
+    std::vector<int64_t> split;
+    for (const chainerx::Array& a : v) {
+        split.push_back(a.shape()[axis]);
+    }
+    st->SetVar(output, Concat(v, axis));
+    st->SetAux(output, std::shared_ptr<XCVMState::Auxiliary>(new ConcatBackwardContext(split)));
+}
+
+void SequenceConcatGradOp::RunImpl(XCVMState* st) {
+    // TODO(hamaji): Probably better to get rid of auxiliary.
+    auto ctx = dynamic_cast<ConcatBackwardContext*>(st->GetAux(y).get());
+    CHECK(ctx);
+    *st->CreateSequence(gx) = Split(st->GetVar(gy), ctx->split(), axis);
 }
 
 void SequencePadOp::RunImpl(XCVMState* st) {

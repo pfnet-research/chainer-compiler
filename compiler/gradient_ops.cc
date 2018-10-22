@@ -448,6 +448,12 @@ void SequenceAppendGradFn(GradientOpContext* gc) {
     gb.MOp(Node::kOnikuxSequencePop, {gc->gy(0)}, gxs);
 }
 
+void SequenceConcatGradFn(GradientOpContext* gc) {
+    const Node* node = gc->node();
+    gc->GradOp(Node::kOnikuxSequenceConcatGrad, 0, {gc->y(0), gc->gy(0)})
+        ->producer()->set_axis(node->axis());
+}
+
 typedef void (*GradFn)(GradientOpContext*);
 
 struct GradientFunc {
@@ -508,6 +514,7 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
 
         register_grad_fn(Node::kOnikuxSequenceStack, 1, 1, &SequenceStackGradFn);
         register_grad_fn(Node::kOnikuxSequenceAppend, 2, 1, &SequenceAppendGradFn);
+        register_grad_fn(Node::kOnikuxSequenceConcat, 1, 1, &SequenceConcatGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

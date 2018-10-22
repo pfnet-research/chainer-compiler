@@ -278,6 +278,7 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSequenceLookup:
         case Node::kOnikuxSequenceStack:
         case Node::kOnikuxSequenceConcat:
+        case Node::kOnikuxSequenceConcatGrad:
         case Node::kOnikuxSequenceSplit:
         case Node::kOnikuxSequenceUnpad:
         case Node::kOnikuxSequenceLengths:

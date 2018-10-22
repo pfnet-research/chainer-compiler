@@ -292,6 +292,8 @@ XC_SEQ_OPS = [
     ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
     ('SequenceConcat', [Sequence('seq'), Int('axis')], ['output']),
+    ('SequenceConcatGrad', [Array('y'), Array('gy'), Int('axis')],
+     [Sequence('gx')]),
     ('SequencePad', [Sequence('seq'), Int('length'), Float('value')],
      ['output']),
     ('SequenceRange',

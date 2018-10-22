@@ -154,6 +154,21 @@ def get_backprop_tests():
     test('stack', Stack(0), aranges(2, 3), aranges(2, 3) + 1)
     test('stack_axis1', Stack(1), aranges(2, 3), aranges(2, 3) + 1)
 
+    class Concat(chainer.Chain):
+        def __init__(self, axis):
+            super(Concat, self).__init__()
+            self.axis = axis
+            with self.init_scope():
+                self.l1 = L.Linear(None, 4)
+                self.l2 = L.Linear(None, 4)
+
+        def forward(self, x, y):
+            xs = [self.l1(x) * 2, self.l2(y) * 3]
+            return F.concat(xs, axis=self.axis)
+
+    test('concat', Concat(0), aranges(2, 3), aranges(2, 3) + 1)
+    test('concat_axis1', Concat(1), aranges(2, 3), aranges(2, 3) + 1)
+
     return tests
 
 
