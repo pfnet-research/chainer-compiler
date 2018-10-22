@@ -460,9 +460,20 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceConcat(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyConcat", node->outputs()[0]);
+    Value* seq = gb.Op(Node::kOnikuxSequenceCreate, {});
+    for (Value* v : node->inputs()) {
+        seq = gb.Op(Node::kOnikuxSequenceAppend, {seq, v});
+    }
+    gb.Op(Node::kOnikuxSequenceConcat, {seq}, node->outputs()[0])
+        ->producer()->set_axis(node->axis());
+    return true;
+}
+
 }  // namespace
 
-void Simplify(Graph* graph) {
+void Simplify(Graph* graph, bool gen_backprop) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
@@ -494,6 +505,10 @@ void Simplify(Graph* graph) {
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif
+
+    if (gen_backprop) {
+        CHECK(simplifiers.emplace(Node::kConcat, ReplaceConcat).second);
+    }
 
     bool replaced = true;
     while (replaced) {

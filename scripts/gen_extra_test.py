@@ -336,6 +336,25 @@ def gen_backprop_test(test_name):
     gb.gen_test()
 
 
+def gen_concat_backprop_test(test_name):
+    gb = oniku_script.GraphBuilder(test_name)
+    i = np.array([42], np.float32)
+    j = np.array([99], np.float32)
+
+    i_v = gb.param('i', i)
+    j_v = gb.param('j', j)
+
+    concat_v = gb.Concat([i_v, j_v], axis=0)
+    m = np.array([2, 3], np.float32)
+    r_v = gb.Mul([concat_v, gb.const(m)])
+    r = np.concatenate([i, j]) * m
+
+    gb.output(r_v, r)
+    gb.gradient(i_v, np.array([2], np.float32))
+    gb.gradient(j_v, np.array([3], np.float32))
+    gb.gen_test()
+
+
 # Borrowed from: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/cc/framework/while_gradients_test.cc
 def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
     i, j, k = ii, ji, ki
@@ -885,6 +904,8 @@ def get_tests():
                  gen_loop_use_enclosing_test()),
 
         TestCase('extra_backprop_test', gen_backprop_test),
+
+        TestCase('extra_backprop_test_concat', gen_concat_backprop_test),
 
         TestCase('extra_backprop_test_loop_012',
                  gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
