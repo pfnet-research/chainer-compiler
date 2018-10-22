@@ -433,8 +433,6 @@ void LoopGradFn(GradientOpContext* gc) {
 
 void SequenceStackGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
-    // TODO(hamaji): This probably works as is. Test it.
-    CHECK_EQ(0, node->axis());
     Value* gy = gc->gy(0);
     gc->GradOp(Node::kOnikuxSequenceSplit, 0, {gy})->producer()->set_axis(node->axis());
 }
