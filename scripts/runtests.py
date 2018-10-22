@@ -501,6 +501,8 @@ TEST_CASES.extend(onnx_real_tests.get())
 for test_case in list(TEST_CASES):
     if not test_case.is_backprop:
         continue
+    if test_case.name.startswith('backprop_test_pc_stack'):
+        continue
     new_test = copy.copy(test_case)
     new_test.name = test_case.name + '_stack'
     new_test.always_retain_in_stack = True
