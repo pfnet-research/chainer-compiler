@@ -136,7 +136,7 @@ def get_backprop_tests():
         def forward(self, x):
             return F.local_response_normalization(self.l1(x))
 
-    test('lrn', LRN(), aranges(2, 3), rtol=1e-1)
+    test('lrn', LRN(), aranges(2, 3))
 
     return tests
 
