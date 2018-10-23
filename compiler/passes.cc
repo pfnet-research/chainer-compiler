@@ -108,6 +108,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     if (gen_backprop) AddGradientNodes(graph, g_always_retain_in_stack);
 
+    Recursively([gen_backprop](Graph* g){ Simplify(g, gen_backprop); }, graph);
+
     dump_onnx(g_dump_after_gradient, "after gradient generation");
 
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
