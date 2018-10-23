@@ -11,6 +11,21 @@ namespace runtime {
 
 namespace {
 
+class LookupBackwardContext : public XCVMState::Auxiliary {
+public:
+    LookupBackwardContext(int64_t index, int64_t size)
+        : index_(index), size_(size) {
+    }
+    virtual ~LookupBackwardContext() = default;
+
+    int64_t index() const { return index_; }
+    int64_t size() const { return size_; }
+
+private:
+    const int64_t index_;
+    const int64_t size_;
+};
+
 class ConcatBackwardContext : public XCVMState::Auxiliary {
 public:
     explicit ConcatBackwardContext(const std::vector<int64_t>& split) : split_(split) {
@@ -22,7 +37,7 @@ public:
     }
 
 private:
-    std::vector<int64_t> split_;
+    const std::vector<int64_t> split_;
 };
 
 }  // namespace
@@ -54,6 +69,16 @@ void SequenceLookupOp::RunImpl(XCVMState* st) {
     if (i < 0) i += v.size();
     CHECK_LT(i, v.size());
     st->SetVar(output, *v[i]);
+    st->SetAux(output, std::shared_ptr<XCVMState::Auxiliary>(new LookupBackwardContext(i, v.size())));
+}
+
+void SequenceLookupGradOp::RunImpl(XCVMState* st) {
+    // TODO(hamaji): Probably better to get rid of auxiliary.
+    auto ctx = dynamic_cast<LookupBackwardContext*>(st->GetAux(y).get());
+    CHECK(ctx);
+    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(gx);
+    seq->resize(ctx->size());
+    (*seq)[ctx->index()] = st->GetVar(gy);
 }
 
 void SequenceStackOp::RunImpl(XCVMState* st) {

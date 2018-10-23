@@ -210,9 +210,6 @@ NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 # Concatenates elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequenceConcat', 1, 1, axis=0)
 
-# Splits a tensor to a sequence with retained original shape: (T) -> ([T])
-NodeDef('OnikuxSequenceConcatGrad', 2, 1, axis=0)
-
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequencePad', 1, 1, length=0, value=0.0)
 
@@ -231,6 +228,10 @@ NodeDef('OnikuxSequenceLengths', 1, 1)
 
 # Equivalent to Python's range.
 NodeDef('OnikuxSequenceRange', (1, 2, 3), 1)
+
+# The gradients of sequence related ops.
+NodeDef('OnikuxSequenceLookupGrad', 2, 1)
+NodeDef('OnikuxSequenceConcatGrad', 2, 1, axis=0)
 
 # Equivalent to Python's __len__.
 # For tensors: Gather(Shape(input0), 0)
@@ -256,6 +257,11 @@ NodeDef('OnikuxGenericAdd', 2, 1)
 # This returns true only when both inputs are bool scalars and have
 # the same value.
 NodeDef('OnikuxGenericIs', 2, 1)
+
+# Accumulates two gradient values.
+# For tensors: Add(input0, input1) -> tensor
+# For sequence: Add(i0, i1) for each element in sequences.
+NodeDef('OnikuxGenericAccumulateGrad', 2, 1)
 
 
 class AttrDef(object):

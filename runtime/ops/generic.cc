@@ -181,5 +181,35 @@ void GenericIsOp::RunImpl(XCVMState* st) {
     st->SetVar(output, MakeHostArray(chainerx::Dtype::kBool, {}, &result));
 }
 
+void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
+    XCVMVar* var0 = st->GetXCVMVar(a);
+    XCVMVar* var1 = st->GetXCVMVar(b);
+    CHECK(var0->kind() == var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
+
+    switch (var0->kind()) {
+    case XCVMVar::Kind::kArray: {
+        st->SetVar(output, var0->GetArray() + var1->GetArray());
+        break;
+    }
+    case XCVMVar::Kind::kSequence: {
+        const std::vector<nonstd::optional<chainerx::Array>>& seq0 = *var0->GetSequence();
+        const std::vector<nonstd::optional<chainerx::Array>>& seq1 = *var1->GetSequence();
+        std::vector<nonstd::optional<chainerx::Array>>* out = st->CreateSequence(output);
+        CHECK(seq0.size() == seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
+        out->resize(seq0.size());
+        for (size_t i = 0; i < seq0.size(); ++i) {
+            if (seq0[i].has_value() && seq1[i].has_value()) {
+                (*out)[i] = *seq0[i] + *seq1[i];
+            } else if (seq0[i].has_value()) {
+                (*out)[i] = seq0[i];
+            } else if (seq1[i].has_value()) {
+                (*out)[i] = seq1[i];
+            }
+        }
+        break;
+    }
+    }
+}
+
 }  // namespace runtime
 }  // namespace oniku

@@ -82,7 +82,8 @@ public:
         if (x->grad()) {
             // Accumulate gradients.
             GraphBuilder gb(graph_, "AccumGrad", x->grad());
-            Value* v = gb.Op(Node::kAdd, {x->grad(), gx});
+            Value* v = gb.Op(Node::kOnikuxGenericAccumulateGrad,
+                             {x->grad(), gx});
             x->set_grad(v);
         } else {
             x->set_grad(gx);
@@ -461,6 +462,10 @@ void SequenceConcatGradFn(GradientOpContext* gc) {
         ->producer()->set_axis(node->axis());
 }
 
+void SequenceLookupGradFn(GradientOpContext* gc) {
+    gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->y(0), gc->gy(0)});
+}
+
 typedef void (*GradFn)(GradientOpContext*);
 
 struct GradientFunc {
@@ -497,6 +502,8 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
 
         register_grad_fn(Node::kIdentity, 1, 1, &IdentityGradFn);
         register_grad_fn(Node::kReshape, 2, 1, &ReshapeGradFn);
+        register_grad_fn(Node::kSqueeze, 1, 1, &ReshapeGradFn);
+        register_grad_fn(Node::kUnsqueeze, 1, 1, &ReshapeGradFn);
         register_grad_fn(Node::kOnikuxSelectItem, 2, 1, &SelectItemGradFn);
 
         register_grad_fn(Node::kReduceSum, 1, 1, &ReduceSumGradFn);
@@ -522,6 +529,7 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kOnikuxSequenceStack, 1, 1, &SequenceStackGradFn);
         register_grad_fn(Node::kOnikuxSequenceAppend, 2, 1, &SequenceAppendGradFn);
         register_grad_fn(Node::kOnikuxSequenceConcat, 1, 1, &SequenceConcatGradFn);
+        register_grad_fn(Node::kOnikuxSequenceLookup, 2, 1, &SequenceLookupGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

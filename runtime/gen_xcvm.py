@@ -290,6 +290,8 @@ XC_SEQ_OPS = [
      []),
     ('SequencePop', [Sequence('seq'), Int('move_aux')], ['output']),
     ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
+    ('SequenceLookupGrad', [Array('y'), Array('gy')],
+     [Sequence('gx')]),
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
     ('SequenceConcat', [Sequence('seq'), Int('axis')], ['output']),
     ('SequenceConcatGrad', [Array('y'), Array('gy'), Int('axis')],
@@ -322,6 +324,7 @@ XC_GENERIC_OPS = [
       OptionalArray('end'), OptionalArray('step')], ['output']),
     ('GenericAdd', [Array('a'), Array('b')], ['output']),
     ('GenericIs', [Array('a'), Array('b')], ['output']),
+    ('GenericAccumulateGrad', [Array('a'), Array('b')], ['output']),
 ]
 
 

@@ -511,6 +511,8 @@ private:
             }
         } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxSequenceLookupGrad) {
+            EMIT(SequenceLookupGrad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceConcat) {
@@ -533,6 +535,8 @@ private:
             EMIT(GenericGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
         } else if (node.op_type() == Node::kOnikuxGenericAdd) {
             EMIT(GenericAdd, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxGenericAccumulateGrad) {
+            EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

@@ -51,7 +51,7 @@ std::string XCVMVar::ToString() const {
         case Kind::kArray:
             return array_->shape().ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a->shape().ToString(); })), ']');
+            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->shape().ToString() : "(null)"; })), ']');
     }
     CHECK(false);
 }
@@ -61,7 +61,7 @@ std::string XCVMVar::DebugString() const {
         case Kind::kArray:
             return array_->ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a->ToString(); })), ']');
+            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->ToString() : "(null)"; })), ']');
     }
     CHECK(false);
 }

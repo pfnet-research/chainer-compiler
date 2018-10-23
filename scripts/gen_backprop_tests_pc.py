@@ -177,11 +177,10 @@ def get_backprop_tests():
 
         def forward(self, x, y, z):
             xs = [self.l1(x) * 2, self.l1(y) * 3, self.l2(z) * 4]
-            return xs[0] * xs[2] * xs[0]
+            return xs[0] * xs[2] * xs[0] * xs[1] * xs[2] * xs[2]
 
     test('lookup', Lookup(),
-         aranges(2, 3), aranges(2, 3) + 1, aranges(2, 3) + 2,
-         fail=True)
+         aranges(2, 3), aranges(2, 3) + 1, aranges(2, 3) + 2)
 
     return tests
 
