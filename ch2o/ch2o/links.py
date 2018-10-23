@@ -315,7 +315,7 @@ class Link_NStepBiLSTM(Callable):
         cs = []
 
         for i in range(self.n_layers):
-            v = Value(v).to_value_info(env)
+            v = Value(v).to_sequence(env)
             v = env.calc(
                 "OnikuxSequencePad",
                 inputs=[v.name],
@@ -344,7 +344,7 @@ class Link_NStepBiLSTM(Callable):
 
             # ys :: seqlen * 2 * batchsize * hiddensize
             v = env.calc("Transpose", perm=(2, 0, 1, 3), inputs=[ys.name])
-            v = env.calc("OnikuxSequenceUnpad", inputs=[v.name, ilens.name])
+            v = env.calc_seq("OnikuxSequenceUnpad", inputs=[v.name, ilens.name])
 
             from . chainer2onnx import eval_ast
             import chainer

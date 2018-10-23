@@ -394,7 +394,7 @@ def eval_for(nast, env):
     cnt = new_tensor()
     gtx = new_sequence()
     localenv.set_var(x, _value(localenv.calc(
-        "OnikuxGenericGetItem",
+        "OnikuxSequenceLookup",
         inputs=[gtx.name, cnt.name],
     )))
     ty = eval_ast(nast.body, localenv)
@@ -428,12 +428,12 @@ def eval_for(nast, env):
 
     mtc = env.calc(
         "OnikuxGenericLen",
-        inputs=[ite.to_value_info(env).name],
+        inputs=[ite.to_sequence(env).name],
     )
 
     env.addnode(
         'Loop',
-        inputs=([mtc.name, "", ite.to_value_info(env).name] +
+        inputs=([mtc.name, "", ite.to_sequence(env).name] +
                 [i.name for i in input_values]),
         outputs=([new_tensor('out_generator').name] +
                  [o.name for _, o in final_outputs]),
@@ -821,6 +821,7 @@ def eval_subscript(nast, env):
             )
             return res
         elif isinstance(idx, int):
+            raise  # TODO(hamaji): Check if this code is still useful.
             # TODO(satos) スライドのためのごまかしのごまかし
             idx = unsqueeze(idx.to_tensor(env))
             res = env.calc(
@@ -888,7 +889,7 @@ def eval_subscript(nast, env):
         assert len(squeeze) == 1
         if any(squeeze):
             res = env.calc(
-                'OnikuxGenericGetItem',
+                'OnikuxSequenceLookup',
                 inputs=[vs.name, lower.name],
             )
         else:

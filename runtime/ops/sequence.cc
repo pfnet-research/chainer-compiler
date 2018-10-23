@@ -51,6 +51,7 @@ void SequencePopOp::RunImpl(XCVMState* st) {
 void SequenceLookupOp::RunImpl(XCVMState* st) {
     const std::vector<nonstd::optional<chainerx::Array>>& v = *st->GetSequence(seq);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(index)));
+    if (i < 0) i += v.size();
     CHECK_LT(i, v.size());
     st->SetVar(output, *v[i]);
 }
