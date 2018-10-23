@@ -17,6 +17,20 @@
 namespace oniku {
 namespace {
 
+Dtype GetFloatDtype(const Value* value) {
+    Dtype dtype = value->type().dtype();
+    switch (dtype) {
+    case Dtype::kFloat32:
+    case Dtype::kFloat64:
+        return dtype;
+    case Dtype::kUnknown:
+        WARN_ONCE("Incomplete float dtype, assuming float32...");
+        return Dtype::kFloat32;
+    default:
+        CHECK(false) << dtype << ' ' << value->name();
+    }
+}
+
 class GradientOpContext {
 public:
     // Thrown when a necessary `gy` is missing.
@@ -150,11 +164,9 @@ void ExpGradFn(GradientOpContext* gc) {
 }
 
 void SigmoidGradFn(GradientOpContext* gc) {
-    // TODO(hamaji): Support non-float values.
-    CHECK_EQ(Dtype::kFloat32, gc->x(0)->type().dtype());
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
-    Value* one = gb.Const(Type(gc->x(0)->type().dtype(), {}), {1.0});
+    Value* one = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {1.0});
     Value* t0 = gb.Op(Node::kMul, {gy, gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, gc->y(0)});
     gc->GradOp(Node::kMul, 0, {t0, t1});
@@ -172,7 +184,7 @@ void SqrtGradFn(GradientOpContext* gc) {
 
 void TanhGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* one = gb.Const(Type(gc->x(0)->type().dtype(), {}), {1.0});
+    Value* one = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {1.0});
     Value* gy = gc->gy(0);
     Value* t0 = gb.Op(Node::kMul, {gc->y(0), gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, t0});
@@ -322,7 +334,7 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
     gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gc->y(0), gc->gy(0)}, {gx0, gx1, gx2}, __func__);
-    Value* zero = gc->graph()->AddConstValue("grad_tmp_zero@" + gc->x(0)->name(), Type(gc->x(0)->type().dtype(), {1}), {0.0});
+    Value* zero = gc->graph()->AddConstValue("grad_tmp_zero@" + gc->x(0)->name(), Type(GetFloatDtype(gc->x(0)), {1}), {0.0});
     // No gradients since update should have been done for running mean/variance.
     gc->SetGrad(3, zero);
     gc->SetGrad(4, zero);
