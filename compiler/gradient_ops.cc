@@ -418,7 +418,7 @@ void LoopGradFn(GradientOpContext* gc) {
         output_value_names.push_back(output_cond->name());
         for (int i = 0; i < num_states - 1; ++i) {
             Value* x = body->input_values()[i + 2];
-            CHECK(x->grad());
+            CHECK(x->grad()) << loop->DebugString();
             Value* out = gb.Op(Node::kIdentity, {x->grad()});
             output_value_names.push_back(out->name());
         }
@@ -429,12 +429,12 @@ void LoopGradFn(GradientOpContext* gc) {
         std::vector<Value*> gys;
         for (int i = 0; i < num_states - 1; ++i) {
             Value* y = ys[i];
-            CHECK(y->grad());
+            CHECK(y->grad()) << loop->DebugString();
             gys.push_back(y->grad());
         }
         std::vector<Value*> gxs;
         for (int i = 0; i < num_states - 1; ++i) {
-            CHECK(body->input_values()[i + 2]->grad());
+            CHECK(body->input_values()[i + 2]->grad()) << loop->DebugString();
             gxs.push_back(gc->AddGradValue(i + 2));
         }
 
