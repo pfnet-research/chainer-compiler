@@ -471,6 +471,29 @@ bool ReplaceConcat(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceConstantLike(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyConstantLike", node->outputs()[0]);
+    Node* op = nullptr;
+    if (node->inputs().empty()) {
+        op = gb.Op(Node::kConstantFill, {}, node->outputs()[0])->producer();
+        op->set_dtype(node->dtype())->set_shape(node->shape());
+    } else {
+        CHECK_EQ(1, node->inputs().size());
+        CHECK_EQ(0, node->shape().size());
+        Value* shape = gb.Op(Node::kShape, node->inputs());
+        op = gb.Op(Node::kConstantFill, {shape}, node->outputs()[0])->producer();
+        if (node->dtype()) {
+            op->set_dtype(node->dtype());
+        } else {
+            CHECK_NE(Dtype::kUnknown, node->inputs()[0]->type().dtype());
+            op->set_dtype(node->inputs()[0]->type().dtype());
+        }
+        op->set_input_as_shape(true);
+    }
+    op->set_value(node->value());
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph, bool gen_backprop) {
@@ -493,6 +516,7 @@ void Simplify(Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
     CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
+    CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
 
     // These passes are workarounds for backends such as Chainer which
     // do not support pooling with imbalanced padding.
