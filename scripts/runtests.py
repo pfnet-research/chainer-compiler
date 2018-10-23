@@ -481,7 +481,8 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     name = 'backprop_test_pc_' + backprop_test.name
     assert os.path.exists(os.path.join(dirname, name))
     TEST_CASES.append(TestCase(dirname, name, rtol=backprop_test.rtol,
-                               skip_shape_inference=True))
+                               skip_shape_inference=True,
+                               fail=backprop_test.fail))
 
 for test in gen_extra_test.get_tests():
     dirname = 'out'
@@ -504,7 +505,7 @@ for test_case in list(TEST_CASES):
     new_test = copy.copy(test_case)
     new_test.name = test_case.name + '_stack'
     new_test.always_retain_in_stack = True
-    new_test.fail = 'mlp' in test_case.name
+    new_test.fail = new_test.fail or ('mlp' in test_case.name)
     TEST_CASES.append(new_test)
 
 if args.test_filter is not None:

@@ -68,11 +68,12 @@ def create_backprop_test(test_name, model, input_values):
 
 
 class BackpropTest(object):
-    def __init__(self, name, model, inputs, rtol=1e-4):
+    def __init__(self, name, model, inputs, rtol=1e-4, fail=False):
         self.name = name
         self.model = model
         self.inputs = inputs
         self.rtol = rtol
+        self.fail = fail
 
     def generate(self):
         create_backprop_test(self.name, self.model, self.inputs)
@@ -82,8 +83,8 @@ def get_backprop_tests():
     F = chainer.functions
     tests = []
 
-    def test(name, model, *inputs, rtol=1e-4):
-        tests.append(BackpropTest(name, model, inputs, rtol))
+    def test(name, model, *inputs, rtol=1e-4, fail=False):
+        tests.append(BackpropTest(name, model, inputs, rtol=rtol, fail=fail))
 
     def aranges(*shape):
         r = 1
@@ -166,6 +167,21 @@ def get_backprop_tests():
 
     test('concat', Concat(0), aranges(2, 3), aranges(2, 3) + 1)
     test('concat_axis1', Concat(1), aranges(2, 3), aranges(2, 3) + 1)
+
+    class Lookup(chainer.Chain):
+        def __init__(self):
+            super(Lookup, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 4)
+                self.l2 = L.Linear(None, 4)
+
+        def forward(self, x, y, z):
+            xs = [self.l1(x) * 2, self.l1(y) * 3, self.l2(z) * 4]
+            return xs[0] * xs[2] * xs[0]
+
+    test('lookup', Lookup(),
+         aranges(2, 3), aranges(2, 3) + 1, aranges(2, 3) + 2,
+         fail=True)
 
     return tests
 
