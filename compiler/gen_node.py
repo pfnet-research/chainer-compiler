@@ -188,6 +188,7 @@ NodeDef('OnikuxLoopRef', None, None,
         body_ref=Required(str),
         input_value_names=[str], output_value_names=[str],
         onikux_stack_axis=0)
+NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
 
 NodeDef('OnikuxBackpropStackPush', 1, 0, id=Required(int))
 NodeDef('OnikuxBackpropStackPop', 0, 1, id=Required(int))

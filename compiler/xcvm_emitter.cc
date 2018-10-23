@@ -467,6 +467,8 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kOnikuxDynamicSliceGrad) {
+            EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4));
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
         } else if (node.op_type() == Node::kLoop) {

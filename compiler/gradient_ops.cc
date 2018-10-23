@@ -478,6 +478,16 @@ void SequenceLookupGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->y(0), gc->gy(0)});
 }
 
+void DynamicSliceGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* shape = gb.Op(Node::kShape, {gc->x(0)});
+    std::vector<Value*> inputs = {gc->gy(0), shape};
+    for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
+        inputs.push_back(gc->node()->inputs()[i]);
+    }
+    gc->GradOp(Node::kOnikuxDynamicSliceGrad, 0, inputs);
+}
+
 typedef void (*GradFn)(GradientOpContext*);
 
 struct GradientFunc {
@@ -535,8 +545,8 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
 
         register_grad_fn(Node::kGreater, 2, 1, &DoNothingGradFn);
         register_grad_fn(Node::kConstant, 0, 1, &DoNothingGradFn);
-
         register_grad_fn(Node::kLoop, -1, -1, &LoopGradFn);
+        register_grad_fn(Node::kDynamicSlice, -1, -1, &DynamicSliceGradFn);
 
         register_grad_fn(Node::kOnikuxSequenceStack, 1, 1, &SequenceStackGradFn);
         register_grad_fn(Node::kOnikuxSequenceAppend, 2, 1, &SequenceAppendGradFn);
