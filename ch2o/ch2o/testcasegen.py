@@ -12,7 +12,7 @@ import numpy as np
 
 import chainer
 
-from ch2o.chainer2onnx import compiler
+from ch2o.chainer2onnx import compile_model
 from ch2o.test_args import get_test_args
 from ch2o.test_args import dprint
 
@@ -117,7 +117,7 @@ def generate_testcase(model, xs, subname=None, has_side_effect=False):
         return model
 
     # さらの状態からonnxのmodをつくる
-    onnxmod = compiler(get_model())
+    onnxmod = compile_model(get_model(), xs)
     all_input_tensors = onnxmod.graph.input
     output_tensors = onnxmod.graph.output
 

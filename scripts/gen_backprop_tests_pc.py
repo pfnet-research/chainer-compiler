@@ -11,9 +11,7 @@ from onnx import onnx_pb
 my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.dirname(my_path))
 sys.path.append(os.path.join(my_path, 'ch2o'))
-from ch2o import compiler
-from ch2o import test_args
-from ch2o import testcasegen
+import ch2o
 from oniku.scripts import onnx_chainer_util
 
 F = chainer.functions
@@ -29,7 +27,7 @@ def create_backprop_test(test_name, model, input_values):
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
     onnx_chainer_util.makedirs(test_data_set_dir)
 
-    xmodel = compiler(model)
+    xmodel = ch2o.compile_model(model, input_values)
     all_input_tensors = xmodel.graph.input
     output_tensors = xmodel.graph.output
 
@@ -39,7 +37,7 @@ def create_backprop_test(test_name, model, input_values):
         output_value.grad = np.ones(output_value.shape, output_value.dtype)
         output_value.backward()
 
-    testcasegen.edit_onnx_protobuf(xmodel, model)
+    ch2o.testcasegen.edit_onnx_protobuf(xmodel, model)
 
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as fp:
         fp.write(xmodel.SerializeToString())
@@ -63,7 +61,7 @@ def create_backprop_test(test_name, model, input_values):
             'grad_out@' + name, onnx.TensorProto.FLOAT, ())
         outputs.append((bp_name, param.grad))
 
-    testcasegen.dump_test_inputs_outputs(
+    ch2o.testcasegen.dump_test_inputs_outputs(
         list(zip(input_tensors, input_values)),
         outputs,
         test_data_set_dir)

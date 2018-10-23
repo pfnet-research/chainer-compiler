@@ -1060,7 +1060,7 @@ def eval_ast_impl(nast, env):
     raise Exception("shouldn't reach here", nast)
 
 
-def compiler(model):
+def compile_model(model, inputs):
     # return helper.make_graph([],'dummy',[],[])
 
     init_id2name(model)
@@ -1069,6 +1069,7 @@ def compiler(model):
     molk = User_Defined_Link(model, env)
 
     input_tensors = []
+    # TODO(hamaji): Use `inputs`.
     for i in range(molk.forward_arglen):  # self 以外
         x = new_tensor()  # ここの次元は不明になる
         input_tensors.append(x)
