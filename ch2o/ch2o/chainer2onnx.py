@@ -610,19 +610,47 @@ def eval_binary_op(nast, env):
     rv.to_value_info(env)
     if lv.is_sequence() and rv.is_sequence():
         assert optype == 'Add'
-        optype = 'OnikuxGenericAdd'
         lv = lv.to_sequence(env)
         rv = rv.to_sequence(env)
-        calc_fn = env.calc_seq
+
+        state = new_sequence(name='seq_plus_state')
+        cond = new_tensor(name='seq_plus_cond')
+        index = new_tensor(name='seq_plus_index')
+        elem = new_tensor(name='seq_plus_elem')
+        out_state = new_tensor(name='seq_plus_out_state')
+        nodes = []
+        nodes.append(helper.make_node(
+            'OnikuxSequenceLookup',
+            inputs=[rv.name, index.name],
+            outputs=[elem.name]
+        ))
+        nodes.append(helper.make_node(
+            'OnikuxSequenceAppend',
+            inputs=[state.name, elem.name],
+            outputs=[out_state.name]
+        ))
+        loop = helper.make_graph(
+            nodes,
+            "SeqPlus",
+            [index, cond, state],
+            [cond, out_state],
+        )
+
+        length = env.calc('OnikuxGenericLen', inputs=[rv.name])
+        res = new_sequence(name='seq_plus')
+        env.addnode(
+            'Loop',
+            inputs=[length.name, "", lv.name],
+            outputs=[res.name],
+            body=loop
+        )
     else:
         lv = lv.to_tensor(env)
         rv = rv.to_tensor(env)
-        calc_fn = env.calc
-
-    res = calc_fn(
-        optype,
-        inputs=[lv.name, rv.name],
-    )
+        res = env.calc(
+            optype,
+            inputs=[lv.name, rv.name],
+        )
 
     if isfloor:
         res = env.calc(
