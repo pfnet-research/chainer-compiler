@@ -766,9 +766,27 @@ private:
         }
 
         int skip_loop_jmp = -1;
+        int skip_loop_cond_id = -1;
+        if (!max_trip_count->IsNull()) {
+            int zero_id = next_value_id_++;
+            skip_loop_cond_id = next_value_id_++;
+            EMIT(IntScalarConstant, zero_id, 0, Dtype::kInt64, false);
+            EMIT(Greater, skip_loop_cond_id, GetValueId(max_trip_count), zero_id);
+            FREE(zero_id);
+        }
         if (!terminal_condition->IsNull()) {
+            int tmp_id = next_value_id_++;
+            if (skip_loop_cond_id >= 0) {
+                EMIT(Mul, tmp_id, skip_loop_cond_id, GetValueId(terminal_condition));
+                FREE(skip_loop_cond_id);
+            } else {
+                EMIT(Identity, tmp_id, GetValueId(terminal_condition));
+            }
+            skip_loop_cond_id = tmp_id;
+        }
+        if (skip_loop_cond_id >= 0) {
             skip_loop_jmp = prog->instructions_size();
-            EMIT(JmpFalse, GetValueId(terminal_condition), -1);
+            EMIT(JmpFalse, skip_loop_cond_id, -1);
         }
 
         int loop_begin = prog->instructions_size();
@@ -820,6 +838,7 @@ private:
         if (skip_loop_jmp >= 0) {
             runtime::XCInstructionProto* jmp = prog->mutable_instructions(skip_loop_jmp);
             jmp->mutable_inputs(1)->set_i(prog->instructions_size());
+            FREE(skip_loop_cond_id);
         }
 
         // Output final states.

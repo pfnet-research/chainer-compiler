@@ -221,16 +221,18 @@ def gen_loop_test(max_trip_count=7,
         if terminal_condition is False:
             trip_counts.append(0)
         elif terminal_condition is not None:
-            trip_counts.append(cond_trip_count)
+            # `cond_trip_count` is not checked until the first
+            # iteration finishes.
+            trip_counts.append(max(cond_trip_count, 1))
         trip_count = min(trip_counts)
 
-        output = np.array(sum(range(trip_count)) + 42)
+        output = np.array(sum(range(trip_count)) + 11 * trip_count + 42)
         scan_outputs = []
         if has_scan_outputs:
             scan_outputs = [
-                np.array(list(sum(range(i + 1)) + 42
-                              for i in range(trip_count))),
-                np.array(list(i * i for i in range(trip_count))),
+                np.array([sum(range(i + 1)) + 11 * (i + 1) + 42
+                          for i in range(trip_count)]),
+                np.array([i * i for i in range(trip_count)]),
                 np.array(list(range(trip_count)))]
 
         iter_vi = _extract_value_info(np.array(0), 'iter')
@@ -238,22 +240,25 @@ def gen_loop_test(max_trip_count=7,
         cond_vi = _extract_value_info(np.array(True), 'cond')
         inputs_vi = [_extract_value_info(state, 'in')]
         outputs_vi = [_extract_value_info(output, 'out')]
-        square = []
+        nodes = []
         if has_scan_outputs:
             outputs_vi.append(_extract_value_info(output, 'out'))
             outputs_vi.append(_extract_value_info(output, 'square'))
             outputs_vi.append(_extract_value_info(output, 'iter'))
-            square = [onnx.helper.make_node('Mul', inputs=['iter', 'iter'],
-                                            outputs=['square'])]
+            nodes.append(onnx.helper.make_node('Mul', inputs=['iter', 'iter'],
+                                               outputs=['square']))
 
-        body_out = onnx.helper.make_node('Add', inputs=['in', 'iter'],
-                                         outputs=['out'])
-        loop_cnt = make_constant_node(
-            'loop_cnt', onnx.TensorProto.INT64, [cond_trip_count - 1])
-        cond = onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
-                                     outputs=['cond'])
+        nodes.append(make_constant_node(
+            'const_11', onnx.TensorProto.INT64, 11))
+        nodes.append(onnx.helper.make_node('Sum',
+                                           inputs=['in', 'iter', 'const_11'],
+                                           outputs=['out']))
+        nodes.append(make_constant_node(
+            'loop_cnt', onnx.TensorProto.INT64, cond_trip_count - 1))
+        nodes.append(onnx.helper.make_node('Less', inputs=['iter', 'loop_cnt'],
+                                           outputs=['cond']))
         body = onnx.helper.make_graph(
-            nodes=[body_out, loop_cnt, cond] + square,
+            nodes=nodes,
             name='body',
             inputs=[iter_vi] + [cond_in_vi] + inputs_vi,
             outputs=[cond_vi] + outputs_vi)
@@ -888,10 +893,7 @@ def get_tests():
         TestCase('extra_test_loop_zero_trip_count',
                  gen_loop_test(cond_trip_count=0)),
         # TODO(hamaji): Probably, we do not care loops with zero
-        # iterations, but for the record: max_trip_count=0 is not
-        # implemented properly and we need to fix `Loop` in
-        # xcvm_emitter.cc. On the other hand, cond_trip_count=0 should
-        # be fixed in the test generator.
+        # iterations and scan outputs.
         #
         # TestCase('extra_test_loop_zero_max_trip_count_scan',
         #          gen_loop_test(max_trip_count=0,
