@@ -45,14 +45,14 @@ void XCVMState::SetVarList(const std::vector<int>& index, const std::vector<chai
     for (size_t i = 0; i < index.size(); ++i) SetVar(index[i], vars[i]);
 }
 
-std::vector<chainerx::Array>* XCVMState::CreateSequence(int index) {
+std::vector<nonstd::optional<chainerx::Array>>* XCVMState::CreateSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     variables_[index].reset(new XCVMVar(XCVMVar::Kind::kSequence));
     return GetSequence(index);
 }
 
-std::vector<chainerx::Array>* XCVMState::GetSequence(int index) {
+std::vector<nonstd::optional<chainerx::Array>>* XCVMState::GetSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());

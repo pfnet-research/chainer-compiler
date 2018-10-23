@@ -45,8 +45,8 @@ public:
     std::vector<chainerx::Array> GetVarList(const std::vector<int>& index);
     void SetVarList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars);
 
-    std::vector<chainerx::Array>* CreateSequence(int index);
-    std::vector<chainerx::Array>* GetSequence(int index);
+    std::vector<nonstd::optional<chainerx::Array>>* CreateSequence(int index);
+    std::vector<nonstd::optional<chainerx::Array>>* GetSequence(int index);
 
     XCVMVar* GetXCVMVar(int index);
 

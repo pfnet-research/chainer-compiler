@@ -39,9 +39,9 @@ void SequenceAppendOp::RunImpl(XCVMState* st) {
 }
 
 void SequencePopOp::RunImpl(XCVMState* st) {
-    std::vector<chainerx::Array>* v = st->GetSequence(seq);
+    std::vector<nonstd::optional<chainerx::Array>>* v = st->GetSequence(seq);
     CHECK(!v->empty());
-    st->SetVar(output, v->back());
+    st->SetVar(output, *v->back());
     v->pop_back();
     if (move_aux) {
         st->SetAux(output, st->PopAux(seq));
@@ -49,23 +49,23 @@ void SequencePopOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceLookupOp::RunImpl(XCVMState* st) {
-    const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
+    const std::vector<nonstd::optional<chainerx::Array>>& v = *st->GetSequence(seq);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(index)));
     CHECK_LT(i, v.size());
-    st->SetVar(output, v[i]);
+    st->SetVar(output, *v[i]);
 }
 
 void SequenceStackOp::RunImpl(XCVMState* st) {
-    st->SetVar(output, Stack(*st->GetSequence(seq), axis));
+    st->SetVar(output, Stack(NonOptional(*st->GetSequence(seq)), axis));
 }
 
 void SequenceConcatOp::RunImpl(XCVMState* st) {
-    const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
+    const std::vector<nonstd::optional<chainerx::Array>>& v = *st->GetSequence(seq);
     std::vector<int64_t> split;
-    for (const chainerx::Array& a : v) {
-        split.push_back(a.shape()[axis]);
+    for (const nonstd::optional<chainerx::Array>& a : v) {
+        split.push_back(a->shape()[axis]);
     }
-    st->SetVar(output, Concat(v, axis));
+    st->SetVar(output, Concat(NonOptional(v), axis));
     st->SetAux(output, std::shared_ptr<XCVMState::Auxiliary>(new ConcatBackwardContext(split)));
 }
 
@@ -73,18 +73,21 @@ void SequenceConcatGradOp::RunImpl(XCVMState* st) {
     // TODO(hamaji): Probably better to get rid of auxiliary.
     auto ctx = dynamic_cast<ConcatBackwardContext*>(st->GetAux(y).get());
     CHECK(ctx);
-    *st->CreateSequence(gx) = Split(st->GetVar(gy), ctx->split(), axis);
+    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(gx);
+    for (const chainerx::Array& a : Split(st->GetVar(gy), ctx->split(), axis)) {
+        seq->push_back(a);
+    }
 }
 
 void SequencePadOp::RunImpl(XCVMState* st) {
-    const std::vector<chainerx::Array>& v = *st->GetSequence(seq);
+    const std::vector<nonstd::optional<chainerx::Array>>& v = *st->GetSequence(seq);
     CHECK(!v.empty());
-    chainerx::Scalar p(value, v[0].dtype());
-    st->SetVar(output, PadSequence(v, length, p));
+    chainerx::Scalar p(value, v[0]->dtype());
+    st->SetVar(output, PadSequence(NonOptional(v), length, p));
 }
 
 void SequenceRangeOp::RunImpl(XCVMState* st) {
-    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
     int64_t start, stop, step = 1;
     if (arg1 >= 0) {
         start = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(arg0)));
@@ -105,7 +108,7 @@ void SequenceRangeOp::RunImpl(XCVMState* st) {
 
 namespace {
 
-void SplitToSequence(chainerx::Array v, int axis, std::vector<chainerx::Array>* seq) {
+void SplitToSequence(chainerx::Array v, int axis, std::vector<nonstd::optional<chainerx::Array>>* seq) {
     std::vector<int64_t> lens(v.shape()[axis], 1);
     for (chainerx::Array a : Split(v, lens, axis)) {
         chainerx::Shape shape{a.shape()};
@@ -118,18 +121,18 @@ void SplitToSequence(chainerx::Array v, int axis, std::vector<chainerx::Array>* 
 
 void SequenceSplitOp::RunImpl(XCVMState* st) {
     chainerx::Array v = st->GetVar(input);
-    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
     SplitToSequence(v, axis, seq);
 }
 
 void SequenceUnpadOp::RunImpl(XCVMState* st) {
     chainerx::Array v = st->GetVar(input);
-    const std::vector<chainerx::Array>& lens = *st->GetSequence(lengths);
-    std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+    const std::vector<nonstd::optional<chainerx::Array>>& lens = *st->GetSequence(lengths);
+    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
     SplitToSequence(v, 0, seq);
     for (size_t i = 0; i < seq->size(); ++i) {
-        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(lens[i])));
-        (*seq)[i] = (*seq)[i].At({index});
+        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(*lens[i])));
+        (*seq)[i] = (*seq)[i]->At({index});
     }
 }
 
@@ -143,23 +146,23 @@ void SequenceSizeOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceLengthsOp::RunImpl(XCVMState* st) {
-    std::vector<chainerx::Array>* lengths = st->CreateSequence(output);
-    for (chainerx::Array a : *st->GetSequence(seq)) {
-        size_t len = a.shape()[0];
+    std::vector<nonstd::optional<chainerx::Array>>* lengths = st->CreateSequence(output);
+    for (const nonstd::optional<chainerx::Array>& a : *st->GetSequence(seq)) {
+        size_t len = a->shape()[0];
         lengths->push_back(MakeHostArray(chainerx::Dtype::kInt64, {}, &len));
     }
 }
 
 void SequenceCopyOp::RunImpl(XCVMState* st) {
-    const std::vector<chainerx::Array>& s = *st->GetSequence(seq);
-    std::vector<chainerx::Array>* d = st->CreateSequence(output);
+    const std::vector<nonstd::optional<chainerx::Array>>& s = *st->GetSequence(seq);
+    std::vector<nonstd::optional<chainerx::Array>>* d = st->CreateSequence(output);
     CHECK(d->empty());
     *d = s;
 }
 
 void SequenceMoveOp::RunImpl(XCVMState* st) {
-    std::vector<chainerx::Array>* s = st->GetSequence(seq);
-    std::vector<chainerx::Array>* d = st->CreateSequence(output);
+    std::vector<nonstd::optional<chainerx::Array>>* s = st->GetSequence(seq);
+    std::vector<nonstd::optional<chainerx::Array>>* d = st->CreateSequence(output);
     CHECK(d->empty());
     std::swap(*d, *s);
 }

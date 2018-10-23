@@ -51,8 +51,8 @@ void IdentityOp::RunImpl(XCVMState* st) {
             break;
 
         case XCVMVar::Kind::kSequence:
-            const std::vector<chainerx::Array>& s = *var->GetSequence();
-            std::vector<chainerx::Array>* d = st->CreateSequence(y);
+            const std::vector<nonstd::optional<chainerx::Array>>& s = *var->GetSequence();
+            std::vector<nonstd::optional<chainerx::Array>>* d = st->CreateSequence(y);
             CHECK(d->empty());
             *d = s;
             break;
@@ -87,9 +87,9 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
             break;
 
         case XCVMVar::Kind::kSequence:
-            const std::vector<chainerx::Array>& v = *var->GetSequence();
+            const std::vector<nonstd::optional<chainerx::Array>>& v = *var->GetSequence();
             CHECK_LT(i, v.size());
-            st->SetVar(output, v[i]);
+            st->SetVar(output, *v[i]);
             break;
     }
 }
@@ -115,8 +115,8 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
         }
 
         case XCVMVar::Kind::kSequence: {
-            const std::vector<chainerx::Array>& v = *var->GetSequence();
-            std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+            const std::vector<nonstd::optional<chainerx::Array>>& v = *var->GetSequence();
+            std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
             if (step > 0) {
                 for (int64_t i = start; i < end; i += step) {
                     CHECK_LE(0, i);
@@ -144,11 +144,11 @@ void GenericAddOp::RunImpl(XCVMState* st) {
             if (v->kind() == XCVMVar::Kind::kArray) {
                 return v->GetArray();
             }
-            return Stack(*v->GetSequence(), 0);
+            return Stack(NonOptional(*v->GetSequence()), 0);
         };
         st->SetVar(output, to_a(var0) + to_a(var1));
     } else {
-        std::vector<chainerx::Array>* seq = st->CreateSequence(output);
+        std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
         *seq = *var0->GetSequence();
         for (const auto& a : *var1->GetSequence()) seq->push_back(a);
     }

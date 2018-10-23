@@ -221,5 +221,13 @@ chainerx::Array Sigmoid(chainerx::Array a) {
     return chainerx::Tanh(a * half) * half + half;
 }
 
+std::vector<chainerx::Array> NonOptional(const std::vector<nonstd::optional<chainerx::Array>>& v) {
+    std::vector<chainerx::Array> r;
+    for (const nonstd::optional<chainerx::Array>& a : v) {
+        r.push_back(*a);
+    }
+    return r;
+}
+
 }  // namespace runtime
 }  // namespace oniku

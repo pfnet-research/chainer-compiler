@@ -18,7 +18,7 @@ const chainerx::Array& XCVMVar::GetArray() {
     return *array_;
 }
 
-std::vector<chainerx::Array>* XCVMVar::GetSequence() {
+std::vector<nonstd::optional<chainerx::Array>>* XCVMVar::GetSequence() {
     CHECK(kind_ == Kind::kSequence) << static_cast<int>(kind_);
     return &sequence_;
 }
@@ -30,7 +30,7 @@ int64_t XCVMVar::GetTotalSize() const {
             size = array_->GetNBytes();
             break;
         case Kind::kSequence:
-            for (chainerx::Array a : sequence_) size += a.GetNBytes();
+            for (const nonstd::optional<chainerx::Array>& a : sequence_) size += a->GetNBytes();
             break;
     }
     return size;
@@ -51,7 +51,7 @@ std::string XCVMVar::ToString() const {
         case Kind::kArray:
             return array_->shape().ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(sequence_, [this](const chainerx::Array a) { return a.shape().ToString(); })), ']');
+            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a->shape().ToString(); })), ']');
     }
     CHECK(false);
 }
@@ -61,7 +61,7 @@ std::string XCVMVar::DebugString() const {
         case Kind::kArray:
             return array_->ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(sequence_, [this](const chainerx::Array a) { return a.ToString(); })), ']');
+            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a->ToString(); })), ']');
     }
     CHECK(false);
 }

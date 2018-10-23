@@ -40,5 +40,7 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
 
 chainerx::Array Sigmoid(chainerx::Array a);
 
+std::vector<chainerx::Array> NonOptional(const std::vector<nonstd::optional<chainerx::Array>>& v);
+
 }  // namespace runtime
 }  // namespace oniku

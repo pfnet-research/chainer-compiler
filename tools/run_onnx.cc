@@ -173,7 +173,7 @@ XCVMVar* StageVar(XCVMVar* var) {
             return new XCVMVar(var->GetArray().ToDevice(chainerx::GetDefaultDevice()));
         case XCVMVar::Kind::kSequence: {
             XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
-            for (const chainerx::Array& a : *var->GetSequence()) out->GetSequence()->push_back(a.ToDevice(chainerx::GetDefaultDevice()));
+            for (const nonstd::optional<chainerx::Array>& a : *var->GetSequence()) out->GetSequence()->push_back(a->ToDevice(chainerx::GetDefaultDevice()));
             return out;
         }
     }
@@ -328,8 +328,8 @@ void RunMain(int argc, char** argv) {
             if (outputs.size() == 1 && outputs.begin()->second->kind() == XCVMVar::Kind::kSequence) {
                 std::string msg;
                 for (auto ch : *outputs.begin()->second->GetSequence()) {
-                    if (ch.GetNBytes() == 1) {
-                        msg += static_cast<uint8_t>(chainerx::AsScalar(ch));
+                    if (ch->GetNBytes() == 1) {
+                        msg += static_cast<uint8_t>(chainerx::AsScalar(*ch));
                     } else {
                         msg.clear();
                         break;
@@ -356,10 +356,10 @@ void RunMain(int argc, char** argv) {
             CHECK(found != outputs.end()) << "Output does not contain " << key;
             XCVMVar* actual = found->second.get();
 
-            auto array_str = [&args](const chainerx::Array& a) {
-                int size = a.GetTotalSize();
-                if (size < 100 || args.exist("verbose")) return a.ToString();
-                return a.shape().ToString() + " [0,20]=" + a.Reshape({size}).At({chainerx::Slice{20}}).ToString();
+            auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
+                int size = a->GetTotalSize();
+                if (size < 100 || args.exist("verbose")) return a->ToString();
+                return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
             };
 
             auto var_str = [&args, array_str](XCVMVar* v) {
@@ -418,7 +418,7 @@ void RunMain(int argc, char** argv) {
                     }
 
                     for (size_t i = 0; i < expected_seq.size(); ++i) {
-                        ok = check_array(expected_seq[i], actual_seq[i]);
+                        ok = check_array(*expected_seq[i], *actual_seq[i]);
                         if (!ok) break;
                     }
                 }

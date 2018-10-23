@@ -19,7 +19,7 @@ public:
     explicit XCVMVar(const XCVMVar&) = default;
 
     const chainerx::Array& GetArray();
-    std::vector<chainerx::Array>* GetSequence();
+    std::vector<nonstd::optional<chainerx::Array>>* GetSequence();
 
     Kind kind() const {
         return kind_;
@@ -35,7 +35,7 @@ public:
 private:
     Kind kind_;
     nonstd::optional<chainerx::Array> array_;
-    std::vector<chainerx::Array> sequence_;
+    std::vector<nonstd::optional<chainerx::Array>> sequence_;
 };
 
 }  // namespace runtime
