@@ -156,7 +156,7 @@ class Env(object):
         # TODO(hamaji): Revisit here for re-design.
         self._vars = {}
         self.nodes = []
-        self.init_tensors = []
+        self.init_tensors = {}
 
         # Lists of a tuple of (this, key, value) where
         # - this: A `Value` object.
@@ -222,7 +222,7 @@ class Env(object):
         for v in inits:
             # drint('add_init',v,p)
             v.name = pathname + v.name
-            self.init_tensors.append(v)
+            self.init_tensors[v.name] = v
 
     def calc(self, *args, npdtype=None, **kwargs):
         res = new_tensor(dtype=npdtype)

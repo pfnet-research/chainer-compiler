@@ -258,9 +258,9 @@ def _find_in_out(localenv, env):
 
     # ループ内で使われた link パラメータは
     # 1. 外の env にコピーしなければならない
-    env.init_tensors.extend(localenv.init_tensors)
+    env.init_tensors.update(localenv.init_tensors)
     # 2. state としてループ内に持ち込まなければならない
-    for init in localenv.init_tensors:
+    for init in localenv.init_tensors.values():
         key = '/' + init.name
         in_out[key] = (Value(init), None, None)
 
@@ -1088,7 +1088,7 @@ def compile_model(model, inputs):
         output_tensors = [v]  # とりあえず1tensor
 
     # print('env.init_tensors ',env.init_tensors)
-    input_tensors += env.init_tensors
+    input_tensors += list(env.init_tensors.values())
 
     for f in env.restore_funcs:
         f()
