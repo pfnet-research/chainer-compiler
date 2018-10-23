@@ -488,7 +488,7 @@ struct GradientFunc {
 
 }  // namespace
 
-void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
+bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     static std::map<Node::OpType, GradientFunc>* s_gradient_funcs;
     if (!s_gradient_funcs) {
         // Leak.
@@ -545,7 +545,10 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
-    CHECK(found != s_gradient_funcs->end()) << "Gradient not supported: " << node->op_type();
+    if (found == s_gradient_funcs->end()) {
+        std::cerr << "Gradient not supported: " << node->op_type() << std::endl;
+        return false;
+    }
     const GradientFunc& func = found->second;
     if (func.num_inputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
     if (func.num_outputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
@@ -558,6 +561,7 @@ void AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         func.fn(&gc);
     } catch (GradientOpContext::NoGradient) {
     }
+    return true;
 }
 
 }  // namespace oniku
