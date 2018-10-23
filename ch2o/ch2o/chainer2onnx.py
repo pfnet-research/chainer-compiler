@@ -1069,9 +1069,12 @@ def compile_model(model, inputs):
     molk = User_Defined_Link(model, env)
 
     input_tensors = []
-    # TODO(hamaji): Use `inputs`.
-    for i in range(molk.forward_arglen):  # self 以外
-        x = new_tensor()  # ここの次元は不明になる
+    for i in inputs:
+        # TODO(hamaji): Set valid type info.
+        if isinstance(i, (list, tuple)):
+            x = new_sequence()
+        else:
+            x = new_tensor()
         input_tensors.append(x)
 
     input_values = [Value(i) for i in input_tensors]

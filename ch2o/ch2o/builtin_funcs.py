@@ -12,7 +12,7 @@ class Builtin_Len(Callable):
         super(Builtin_Len, self).__init__(lambda x: x)
 
     def call_impl(self, env, x):
-        x = x.to_tensor(env)
+        x = x.to_value_info(env)
         return env.calc(
             "OnikuxGenericLen",
             inputs=[x.name],

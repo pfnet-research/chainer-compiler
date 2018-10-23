@@ -185,10 +185,7 @@ class Link_NStepLSTM(Callable):
     def call_impl(self, env, hx, cx, xs):
         assert hx.value is None  # TODO(hamaji): Not implemented yet.
         assert cx.value is None  # TODO(hamaji): Not implemented yet.
-        # TODO(hamaji): Here we assume the input is a sequence. As
-        # LSTMs can appear as the first link in a model, we may not
-        # track the kind of `xs` yet so we cannot call to_sequence.
-        xs = xs.to_value_info(env)
+        xs = xs.to_sequence(env)
 
         # とりあえずnstep を 1step ずつに分解する
         ilens = env.calc(
@@ -299,10 +296,7 @@ class Link_NStepBiLSTM(Callable):
     def call_impl(self, env, hx, cx, xs):
         assert hx.value is None  # TODO(hamaji): Not implemented yet.
         assert cx.value is None  # TODO(hamaji): Not implemented yet.
-        # TODO(hamaji): Here we assume the input is a sequence. As
-        # LSTMs can appear as the first link in a model, we may not
-        # track the kind of `xs` yet so we cannot call to_sequence.
-        xs = xs.to_value_info(env)
+        xs = xs.to_sequence(env)
 
         # とりあえずnstep を 1step ずつに分解する
         ilens = env.calc(

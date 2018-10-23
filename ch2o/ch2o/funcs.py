@@ -135,12 +135,9 @@ class Function_PadSequence(Callable):
             kwargs['length'] = length.to_int()
         if not padding.is_none():
             kwargs['value'] = padding.to_float()
-        # TODO(hamaji): Here we assume the input is a sequence. As
-        # pad_sequence can appear as the first link in a model, we may not
-        # track the kind of `xs` yet so we cannot call to_sequence.
         return env.calc(
             "OnikuxSequencePad",
-            inputs=[xs.to_value_info(env).name],
+            inputs=[xs.to_sequence(env).name],
             **kwargs
         )
 
@@ -372,36 +369,27 @@ class Cuda_ToCpu(object):
 
 class Function_Vstack(Callable):
     def call_impl(self, env, xs):
-        # TODO(hamaji): Here we assume the input is a sequence. As
-        # vstack can appear as the first link in a model, we may not
-        # track the kind of `xs` yet so we cannot call to_sequence.
         return env.calc(
             'OnikuxSequenceConcat',
-            inputs=[xs.to_value_info(env).name],
+            inputs=[xs.to_sequence(env).name],
             axis=0
         )
 
 
 class Function_Hstack(Callable):
     def call_impl(self, env, xs):
-        # TODO(hamaji): Here we assume the input is a sequence. As
-        # hstack can appear as the first link in a model, we may not
-        # track the kind of `xs` yet so we cannot call to_sequence.
         return env.calc(
             'OnikuxSequenceConcat',
-            inputs=[xs.to_value_info(env).name],
+            inputs=[xs.to_sequence(env).name],
             axis=1
         )
 
 
 class Function_Stack(Callable):
     def call_impl(self, env, xs, axis):
-        # TODO(hamaji): Here we assume the input is a sequence. As
-        # stack can appear as the first link in a model, we may not
-        # track the kind of `xs` yet so we cannot call to_sequence.
         return env.calc(
             'OnikuxSequenceStack',
-            inputs=[xs.to_value_info(env).name],
+            inputs=[xs.to_sequence(env).name],
             axis=axis.to_int()
         )
 
