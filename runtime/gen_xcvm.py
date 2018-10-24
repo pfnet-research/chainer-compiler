@@ -295,7 +295,7 @@ XC_SEQ_OPS = [
      []),
     ('SequencePop', [Sequence('seq'), Int('move_aux')], ['output']),
     ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
-    ('SequenceLookupGrad', [Array('y'), Array('gy')],
+    ('SequenceLookupGrad', [Array('gy'), Array('index'), Array('size')],
      [Sequence('gx')]),
     ('SequenceGetSlice',
      [Sequence('seq'), OptionalArray('start'),

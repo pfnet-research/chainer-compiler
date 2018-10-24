@@ -63,6 +63,18 @@ public:
         return retained;
     }
 
+    Value* NoRetainX(int i) {
+        CHECK_LE(0, i) << i;
+        CHECK_GT(x_.size(), i) << i;
+        return x_[i];
+    }
+
+    Value* NoRetainY(int i) {
+        CHECK_LE(0, i) << i;
+        CHECK_GT(y_.size(), i) << i;
+        return y_[i];
+    }
+
     Value* x(int i) {
         CHECK_LE(0, i) << i;
         CHECK_GT(x_.size(), i) << i;
@@ -493,7 +505,10 @@ void SequenceSplitGradFn(GradientOpContext* gc) {
 }
 
 void SequenceLookupGradFn(GradientOpContext* gc) {
-    gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->y(0), gc->gy(0)});
+    GraphBuilder gb{gc->builder(0)};
+    Value* size = gb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
+    size = gc->Retain(size);
+    gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->gy(0), gc->x(1), size});
 }
 
 void DynamicSliceGradFn(GradientOpContext* gc) {

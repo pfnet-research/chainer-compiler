@@ -236,7 +236,7 @@ NodeDef('OnikuxSequenceLengths', 1, 1)
 NodeDef('OnikuxSequenceRange', (1, 2, 3), 1)
 
 # The gradients of sequence related ops.
-NodeDef('OnikuxSequenceLookupGrad', 2, 1)
+NodeDef('OnikuxSequenceLookupGrad', 3, 1)
 NodeDef('OnikuxSequenceConcatGrad', 2, 1, axis=0)
 
 # Equivalent to Python's __len__.
