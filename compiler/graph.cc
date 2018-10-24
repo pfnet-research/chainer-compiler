@@ -239,6 +239,10 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
     for (const Value* value : output_values) {
         q.push(value->producer());
     }
+    for (const std::unique_ptr<Node>& node : nodes_) {
+        if (node->op_type() == Node::kOnikuxBackpropStackPush)
+            q.push(node.get());
+    }
 
     std::map<Node*, int> input_counts;
     while (!q.empty()) {
