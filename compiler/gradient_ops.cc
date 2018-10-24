@@ -535,8 +535,6 @@ void DynamicSliceGradFn(GradientOpContext* gc) {
 typedef void (*GradFn)(GradientOpContext*);
 
 struct GradientFunc {
-    int num_inputs;
-    int num_outputs;
     GradFn fn;
 };
 
@@ -547,57 +545,55 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     if (!s_gradient_funcs) {
         // Leak.
         s_gradient_funcs = new std::map<Node::OpType, GradientFunc>;
-        auto register_grad_fn = [](Node::OpType op_type, int num_inputs, int num_outputs, GradFn fn) {
+        auto register_grad_fn = [](Node::OpType op_type, GradFn fn) {
             GradientFunc func;
-            func.num_inputs = num_inputs;
-            func.num_outputs = num_outputs;
             func.fn = fn;
             CHECK(s_gradient_funcs->emplace(op_type, func).second);
         };
 
-        register_grad_fn(Node::kAdd, 2, 1, &AddGradFn);
-        register_grad_fn(Node::kSub, 2, 1, &SubGradFn);
-        register_grad_fn(Node::kMul, 2, 1, &MulGradFn);
-        register_grad_fn(Node::kDiv, 2, 1, &DivGradFn);
-        register_grad_fn(Node::kNeg, 1, 1, &NegGradFn);
-        register_grad_fn(Node::kExp, 1, 1, &ExpGradFn);
-        register_grad_fn(Node::kSigmoid, 1, 1, &SigmoidGradFn);
-        register_grad_fn(Node::kRelu, 1, 1, &ReluGradFn);
-        register_grad_fn(Node::kSqrt, 1, 1, &SqrtGradFn);
-        register_grad_fn(Node::kTanh, 1, 1, &TanhGradFn);
+        register_grad_fn(Node::kAdd, &AddGradFn);
+        register_grad_fn(Node::kSub, &SubGradFn);
+        register_grad_fn(Node::kMul, &MulGradFn);
+        register_grad_fn(Node::kDiv, &DivGradFn);
+        register_grad_fn(Node::kNeg, &NegGradFn);
+        register_grad_fn(Node::kExp, &ExpGradFn);
+        register_grad_fn(Node::kSigmoid, &SigmoidGradFn);
+        register_grad_fn(Node::kRelu, &ReluGradFn);
+        register_grad_fn(Node::kSqrt, &SqrtGradFn);
+        register_grad_fn(Node::kTanh, &TanhGradFn);
 
-        register_grad_fn(Node::kIdentity, 1, 1, &IdentityGradFn);
-        register_grad_fn(Node::kReshape, 2, 1, &ReshapeGradFn);
-        register_grad_fn(Node::kSqueeze, 1, 1, &ReshapeGradFn);
-        register_grad_fn(Node::kUnsqueeze, 1, 1, &ReshapeGradFn);
-        register_grad_fn(Node::kOnikuxSelectItem, 2, 1, &SelectItemGradFn);
+        register_grad_fn(Node::kIdentity, &IdentityGradFn);
+        register_grad_fn(Node::kReshape, &ReshapeGradFn);
+        register_grad_fn(Node::kSqueeze, &ReshapeGradFn);
+        register_grad_fn(Node::kUnsqueeze, &ReshapeGradFn);
+        register_grad_fn(Node::kOnikuxSelectItem, &SelectItemGradFn);
 
-        register_grad_fn(Node::kReduceSum, 1, 1, &ReduceSumGradFn);
-        register_grad_fn(Node::kReduceMean, 1, 1, &ReduceMeanGradFn);
-        register_grad_fn(Node::kGemm, 3, 1, &GemmGradFn);
-        register_grad_fn(Node::kConv, -1, 1, &ConvGradFn);
-        register_grad_fn(Node::kMaxPool, 1, 1, &MaxPoolGradFn);
-        register_grad_fn(Node::kAveragePool, 1, 1, &AveragePoolGradFn);
-        register_grad_fn(Node::kLogSoftmax, 1, 1, &LogSoftmaxGradFn);
-        register_grad_fn(Node::kSoftmax, 1, 1, &SoftmaxGradFn);
+        register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
+        register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
+        register_grad_fn(Node::kGemm, &GemmGradFn);
+        register_grad_fn(Node::kConv, &ConvGradFn);
+        register_grad_fn(Node::kMaxPool, &MaxPoolGradFn);
+        register_grad_fn(Node::kAveragePool, &AveragePoolGradFn);
+        register_grad_fn(Node::kLogSoftmax, &LogSoftmaxGradFn);
+        register_grad_fn(Node::kSoftmax, &SoftmaxGradFn);
 
-        register_grad_fn(Node::kBatchNormalization, 5, -1, &BatchNormalizationGradFn);
-        register_grad_fn(Node::kLRN, 1, 1, &LRNGradFn);
+        register_grad_fn(Node::kBatchNormalization, &BatchNormalizationGradFn);
+        register_grad_fn(Node::kLRN, &LRNGradFn);
 
         // TODO(hamaji): Implement dropout.
-        register_grad_fn(Node::kDropout, 1, 1, &IdentityGradFn);
+        register_grad_fn(Node::kDropout, &IdentityGradFn);
 
-        register_grad_fn(Node::kGreater, 2, 1, &DoNothingGradFn);
-        register_grad_fn(Node::kConstant, 0, 1, &DoNothingGradFn);
-        register_grad_fn(Node::kLoop, -1, -1, &LoopGradFn);
-        register_grad_fn(Node::kDynamicSlice, -1, -1, &DynamicSliceGradFn);
+        register_grad_fn(Node::kGreater, &DoNothingGradFn);
+        register_grad_fn(Node::kConstant, &DoNothingGradFn);
+        register_grad_fn(Node::kLoop, &LoopGradFn);
+        register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
 
-        register_grad_fn(Node::kOnikuxSequenceStack, 1, 1, &SequenceStackGradFn);
-        register_grad_fn(Node::kOnikuxSequenceAppend, 2, 1, &SequenceAppendGradFn);
-        register_grad_fn(Node::kOnikuxSequenceConcat, 1, 1, &SequenceConcatGradFn);
-        register_grad_fn(Node::kOnikuxSequenceSplit, 1, 1, &SequenceSplitGradFn);
-        register_grad_fn(Node::kOnikuxSequenceLookup, 2, 1, &SequenceLookupGradFn);
-        register_grad_fn(Node::kOnikuxSequenceGetSlice, -1, 1, &SequenceGetSliceGradFn);
+        register_grad_fn(Node::kOnikuxSequenceStack, &SequenceStackGradFn);
+        register_grad_fn(Node::kOnikuxSequenceAppend, &SequenceAppendGradFn);
+        register_grad_fn(Node::kOnikuxSequenceConcat, &SequenceConcatGradFn);
+        register_grad_fn(Node::kOnikuxSequenceSplit, &SequenceSplitGradFn);
+        register_grad_fn(Node::kOnikuxSequenceLookup, &SequenceLookupGradFn);
+        register_grad_fn(Node::kOnikuxSequenceGetSlice, &SequenceGetSliceGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
@@ -606,8 +602,6 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         return false;
     }
     const GradientFunc& func = found->second;
-    if (func.num_inputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_inputs), node->inputs().size());
-    if (func.num_outputs >= 0) CHECK_EQ(static_cast<size_t>(func.num_outputs), node->outputs().size());
 
     GradientOpContext gc(graph, node, node->inputs(), node->outputs(), retain_in_stack);
     // TODO(hamaji): Better to get gradient functions declare which
