@@ -168,6 +168,22 @@ def get_backprop_tests():
     test('concat', Concat(0), aranges(2, 3), aranges(2, 3) + 1)
     test('concat_axis1', Concat(1), aranges(2, 3), aranges(2, 3) + 1)
 
+    class Separate(chainer.Chain):
+        def __init__(self, axis):
+            super(Separate, self).__init__()
+            self.axis = axis
+            with self.init_scope():
+                self.l1 = L.Linear(None, 4)
+
+        def forward(self, x):
+            x = self.l1(x)
+            xs = F.separate(x, axis=self.axis)
+            return xs[0] * xs[1] * xs[1] * xs[2] * xs[2] * xs[2]
+
+    test('separate', Separate(0), aranges(3, 2))
+    # TODO(hamaji): Fix this test.
+    # test('separate_axis1', Separate(1), aranges(3, 2))
+
     class Lookup(chainer.Chain):
         def __init__(self):
             super(Lookup, self).__init__()
