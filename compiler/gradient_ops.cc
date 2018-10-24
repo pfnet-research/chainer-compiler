@@ -383,17 +383,29 @@ void LoopGradFn(GradientOpContext* gc) {
     const std::vector<Value*>& xs = loop->inputs();
     const std::vector<Value*>& ys = loop->outputs();
     Graph* body = loop->body().get();
-    int num_loop_inputs = xs.size();
-    int num_loop_outputs = ys.size();
-    int num_body_inputs = body->input_values().size();
-    int num_body_outputs = body->output_values().size();
-    int num_states = num_loop_inputs - 2;
-    int num_scans = num_body_outputs - 1 - num_states;
+    const int num_loop_inputs = xs.size();
+    const int num_loop_outputs = ys.size();
+    const int num_body_inputs = body->input_values().size();
+    const int num_body_outputs = body->output_values().size();
+    const int num_states = num_loop_inputs - 2;
+    const int num_scans = num_body_outputs - 1 - num_states;
     CHECK_EQ(num_body_inputs, num_states + 2);
     CHECK_EQ(num_loop_outputs, num_states + num_scans);
 
     CHECK_EQ(0, num_scans) << "Not implemented yet";
     CHECK_EQ(0, loop->onikux_stack_axis()) << "Not implemented yet";
+
+    // Skip gradient calculation when there are no gradients propagated.
+    // TODO(hamaji): Handle cases where gradient values are partially fed.
+    bool has_gy = false;
+    for (int i = 0; i < num_states - 1; ++i) {
+        Value* y = ys[i];
+        if (y->grad()) {
+            has_gy = true;
+            break;
+        }
+    }
+    if (!has_gy) return;
 
     std::vector<std::string> input_value_names;
     std::vector<std::string> output_value_names;
