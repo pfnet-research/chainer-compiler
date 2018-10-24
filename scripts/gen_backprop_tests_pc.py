@@ -68,7 +68,7 @@ def create_backprop_test(test_name, model, input_values):
 
 
 class BackpropTest(object):
-    def __init__(self, name, model, inputs, rtol=1e-4, fail=False):
+    def __init__(self, name, model, inputs, rtol=None, fail=False):
         self.name = name
         self.model = model
         self.inputs = inputs
@@ -83,7 +83,7 @@ def get_backprop_tests():
     F = chainer.functions
     tests = []
 
-    def test(name, model, *inputs, rtol=1e-4, fail=False):
+    def test(name, model, *inputs, rtol=None, fail=False):
         tests.append(BackpropTest(name, model, inputs, rtol=rtol, fail=fail))
 
     def aranges(*shape):
