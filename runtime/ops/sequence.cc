@@ -95,6 +95,28 @@ void SequenceGetSliceOp::RunImpl(XCVMState* st) {
     }
 }
 
+void SequenceGetSliceGradOp::RunImpl(XCVMState* st) {
+    const std::vector<nonstd::optional<chainerx::Array>>& gy = *st->GetSequence(this->gy);
+    std::vector<nonstd::optional<chainerx::Array>>* gx = st->CreateSequence(this->gx);
+    int64_t size = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(this->size)));
+    int64_t start = GetOptionalInt(st, this->start, 0);
+    if (start < 0) start += size;
+    start = std::max<int64_t>(0, start);
+    start = std::min<int64_t>(size, start);
+    int64_t end = GetOptionalInt(st, this->end, size);
+    if (end < 0) end += size;
+    end = std::max<int64_t>(0, end);
+    end = std::min<int64_t>(size, end);
+    int64_t step = GetOptionalInt(st, this->step, 1);
+    CHECK_NE(0, step) << "Slice step cannot be zero";
+
+    gx->resize(size);
+    int64_t j = 0;
+    for (int64_t i = start; step > 0 ? (i < end) : (i > end); i += step) {
+        (*gx)[i] = gy[j++];
+    }
+}
+
 void SequenceStackOp::RunImpl(XCVMState* st) {
     st->SetVar(output, Stack(NonOptional(*st->GetSequence(seq)), axis));
 }

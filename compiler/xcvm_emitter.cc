@@ -517,6 +517,8 @@ private:
             EMIT(SequenceGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
         } else if (node.op_type() == Node::kOnikuxSequenceLookupGrad) {
             EMIT(SequenceLookupGrad, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kOnikuxSequenceGetSliceGrad) {
+            EMIT(SequenceGetSliceGrad, out(0), in(0), in(1), oin(2), oin(3), oin(4));
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceConcat) {

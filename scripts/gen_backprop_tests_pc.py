@@ -197,6 +197,22 @@ def get_backprop_tests():
     test('lookup', Lookup(),
          aranges(2, 3), aranges(2, 3) + 1, aranges(2, 3) + 2)
 
+    class GetSlice(chainer.Chain):
+        def __init__(self):
+            super(GetSlice, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 4)
+                self.l2 = L.Linear(None, 4)
+
+        def forward(self, x, y, z):
+            xs = [self.l1(x) * 2, self.l1(y) * 3, self.l2(z) * 4]
+            a = xs[0:2]
+            b = xs[1:3]
+            return a[0] * a[1] * b[0] * b[1]
+
+    test('get_slice', GetSlice(),
+         aranges(2, 3), aranges(2, 3) + 1, aranges(2, 3) + 2)
+
     class DynamicSlice(chainer.Chain):
         def __init__(self):
             super(DynamicSlice, self).__init__()

@@ -293,6 +293,7 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSequencePad:
         case Node::kOnikuxSequenceRange:
         case Node::kOnikuxSequenceGetSlice:
+        case Node::kOnikuxSequenceGetSliceGrad:
         case Node::kOnikuxGenericLen:
         case Node::kOnikuxGenericGetItem:
         case Node::kOnikuxGenericGetSlice:

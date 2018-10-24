@@ -508,7 +508,18 @@ void SequenceLookupGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* size = gb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
     size = gc->Retain(size);
-    gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->gy(0), gc->x(1), size});
+    gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->gy(0), size, gc->x(1)});
+}
+
+void SequenceGetSliceGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* size = gb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
+    size = gc->Retain(size);
+    std::vector<Value*> inputs = {gc->gy(0), size};
+    for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
+        inputs.push_back(gc->x(i));
+    }
+    gc->GradOp(Node::kOnikuxSequenceGetSliceGrad, 0, inputs);
 }
 
 void DynamicSliceGradFn(GradientOpContext* gc) {
@@ -516,7 +527,7 @@ void DynamicSliceGradFn(GradientOpContext* gc) {
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
     std::vector<Value*> inputs = {gc->gy(0), shape};
     for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
-        inputs.push_back(gc->node()->inputs()[i]);
+        inputs.push_back(gc->x(i));
     }
     gc->GradOp(Node::kOnikuxDynamicSliceGrad, 0, inputs);
 }
@@ -586,6 +597,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kOnikuxSequenceConcat, 1, 1, &SequenceConcatGradFn);
         register_grad_fn(Node::kOnikuxSequenceSplit, 1, 1, &SequenceSplitGradFn);
         register_grad_fn(Node::kOnikuxSequenceLookup, 2, 1, &SequenceLookupGradFn);
+        register_grad_fn(Node::kOnikuxSequenceGetSlice, -1, 1, &SequenceGetSliceGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());
