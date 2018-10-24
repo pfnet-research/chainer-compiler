@@ -922,7 +922,7 @@ def eval_subscript(nast, env):
             )
         else:
             res = env.calc_seq(
-                'OnikuxGenericGetSlice',
+                'OnikuxSequenceGetSlice',
                 inputs=[vs.name, lower.name, upper.name],
             )
     else:

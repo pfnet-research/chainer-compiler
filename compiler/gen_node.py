@@ -207,6 +207,9 @@ NodeDef('OnikuxSequencePop', 1, 2)
 # Looks up an element in a sequence: ([T], I) -> (T)
 NodeDef('OnikuxSequenceLookup', 2, 1)
 
+# Equivalent to Python's __getitem__ for a slice: ([T], I, I, I) -> ([T])
+NodeDef('OnikuxSequenceGetSlice', (1, 2, 3, 4), 1)
+
 # Stacks elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 
@@ -244,16 +247,19 @@ NodeDef('OnikuxGenericLen', 1, 1)
 # Equivalent to Python's __getitem__ for a scalar index.
 # For tensors: Gather(input0, input1)
 # For sequences: OnikuxSequenceLookup(input0, input1)
+# TODO(hamaji): Deprecate this op.
 NodeDef('OnikuxGenericGetItem', 2, 1)
 
 # Equivalent to Python's __getitem__ for a slice.
 # For tensors: DynamicSlice(input0, [input1], [input2]) -> tensor
 # For sequences: input0[input1:input2:input3] in Python -> sequence
+# TODO(hamaji): Deprecate this op.
 NodeDef('OnikuxGenericGetSlice', (1, 2, 3, 4), 1)
 
 # Equivalent to Python's __add__.
 # For tensors: Add(input0, input1) -> tensor
 # For sequences: input0 + input1 in Python -> sequence
+# TODO(hamaji): Deprecate this op.
 NodeDef('OnikuxGenericAdd', 2, 1)
 
 # Similar to Python's `is` keyword.

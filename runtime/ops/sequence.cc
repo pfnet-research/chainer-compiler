@@ -40,6 +40,15 @@ private:
     const std::vector<int64_t> split_;
 };
 
+int64_t GetOptionalInt(XCVMState* st, int index, int64_t default_value) {
+    nonstd::optional<chainerx::Array> var = st->GetVarOptional(index);
+    if (var.has_value()) {
+        return static_cast<int64_t>(chainerx::AsScalar(*var));
+    } else {
+        return default_value;
+    }
+}
+
 }  // namespace
 
 void SequenceClearOp::RunImpl(XCVMState* st) {
@@ -79,6 +88,28 @@ void SequenceLookupGradOp::RunImpl(XCVMState* st) {
     std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(gx);
     seq->resize(ctx->size());
     (*seq)[ctx->index()] = st->GetVar(gy);
+}
+
+void SequenceGetSliceOp::RunImpl(XCVMState* st) {
+    const std::vector<nonstd::optional<chainerx::Array>>& v = *st->GetSequence(seq);
+    int64_t size = v.size();
+    int64_t start = GetOptionalInt(st, this->start, 0);
+    if (start < 0) start += size;
+    start = std::max<int64_t>(0, start);
+    start = std::min<int64_t>(size, start);
+    int64_t end = GetOptionalInt(st, this->end, size);
+    if (end < 0) end += size;
+    end = std::max<int64_t>(0, end);
+    end = std::min<int64_t>(size, end);
+    int64_t step = GetOptionalInt(st, this->step, 1);
+    CHECK_NE(0, step) << "Slice step cannot be zero";
+
+    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
+    for (int64_t i = start; step > 0 ? (i < end) : (i > end); i += step) {
+        CHECK_LE(0, i);
+        CHECK_LT(i, v.size());
+        seq->push_back(v[i]);
+    }
 }
 
 void SequenceStackOp::RunImpl(XCVMState* st) {
