@@ -281,6 +281,34 @@ void GemmGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kReduceSum, 2, {gy})->producer()->set_axes({0})->set_keepdims(false);
 }
 
+void MatMulGradFn(GradientOpContext* gc) {
+    // TODO(hamaji): This is wrong for non-2D MatMul.
+    Value* gy = gc->gy(0);
+    {
+        GraphBuilder gb{gc->builder(0)};
+        Value* x1 = gb.Op(Node::kTranspose, {gc->x(1)});
+        gc->GradOp(Node::kMatMul, 0, {gy, x1});
+    }
+    {
+        GraphBuilder gb{gc->builder(1)};
+        Value* x0 = gb.Op(Node::kTranspose, {gc->x(0)});
+        gc->GradOp(Node::kMatMul, 1, {x0, gy});
+    }
+}
+
+void TransposeGradFn(GradientOpContext* gc) {
+    const Node* node = gc->node();
+    Value* gy = gc->gy(0);
+    Value* gx = gc->GradOp(Node::kTranspose, 0, {gy});
+    if (!node->perm().empty()) {
+        std::vector<int> perm(node->perm().size());
+        for (size_t i = 0; i < node->perm().size(); ++i) {
+            perm[node->perm()[i]] = i;
+        }
+        gx->producer()->set_perm(perm);
+    }
+}
+
 void ConvGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     Value* gy = gc->gy(0);
@@ -667,6 +695,8 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
         register_grad_fn(Node::kGemm, &GemmGradFn);
+        register_grad_fn(Node::kMatMul, &MatMulGradFn);
+        register_grad_fn(Node::kTranspose, &TransposeGradFn);
         register_grad_fn(Node::kConv, &ConvGradFn);
         register_grad_fn(Node::kMaxPool, &MaxPoolGradFn);
         register_grad_fn(Node::kAveragePool, &AveragePoolGradFn);

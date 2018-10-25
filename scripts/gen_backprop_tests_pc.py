@@ -115,6 +115,17 @@ def get_backprop_tests():
 
     test('linear', Linear(), aranges(2, 3))
 
+    class LinearNoBias(chainer.Chain):
+        def __init__(self):
+            super(LinearNoBias, self).__init__()
+            with self.init_scope():
+                self.l1 = L.Linear(None, 10, nobias=True)
+
+        def forward(self, x):
+            return F.relu(self.l1(x))
+
+    test('linear_nobias', LinearNoBias(), aranges(2, 3))
+
     class SoftmaxCrossEntropy(chainer.Chain):
         def __init__(self):
             super(SoftmaxCrossEntropy, self).__init__()
