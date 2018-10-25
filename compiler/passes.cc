@@ -27,53 +27,64 @@ template <class Fn>
 void Recursively(Fn fn, Graph* graph) {
     fn(graph);
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
-        if (node->body().get()) Recursively(fn, node->body().get());
-        if (node->then_branch().get()) Recursively(fn, node->then_branch().get());
-        if (node->else_branch().get()) Recursively(fn, node->else_branch().get());
+        for (Graph* subgraph : node->GetSubGraphs()) {
+            Recursively(fn, subgraph);
+        }
     }
 }
 
 void ScheduleBackpropGraphs(Graph* graph) {
     struct SubGraph {
         Node* node;
-        std::vector<Node*> refs;
+        struct Ref {
+            Node* node;
+            const std::vector<std::string> input_value_names;
+            const std::vector<std::string> output_value_names;
+        };
+        std::vector<Ref> refs;
     };
 
     std::map<Graph*, SubGraph> sub_graphs;
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
-        if (node->body().get()) {
+        for (Graph* sub_graph : node->GetSubGraphs()) {
             SubGraph sg;
             sg.node = node.get();
-            CHECK(sub_graphs.emplace(node->body().get(), sg).second);
+            CHECK(sub_graphs.emplace(sub_graph, sg).second);
         }
     }
 
+    auto add_sub_graph_ref = [&sub_graphs, graph](Node* node, const std::string& graph_name, const std::vector<std::string>& input_value_names, const std::vector<std::string>& output_value_names) {
+        if (graph_name.empty()) return;
+        Graph* sub_graph = graph->GetSubGraph(graph_name);
+        auto found = sub_graphs.find(sub_graph);
+        CHECK(found != sub_graphs.end()) << graph_name;
+        found->second.refs.emplace_back(SubGraph::Ref{node, input_value_names, output_value_names});
+    };
+
     for (const std::unique_ptr<Node>& node : graph->nodes()) {
-        if (node->body_ref().empty()) continue;
-        Graph* body = graph->GetSubGraph(node->body_ref());
-        auto found = sub_graphs.find(body);
-        CHECK(found != sub_graphs.end());
-        found->second.refs.push_back(node.get());
+        add_sub_graph_ref(node.get(), node->body_ref(), node->input_value_names(), node->output_value_names());
+        add_sub_graph_ref(node.get(), node->then_branch_ref(), node->then_input_value_names(), node->then_output_value_names());
+        add_sub_graph_ref(node.get(), node->else_branch_ref(), node->else_input_value_names(), node->else_output_value_names());
     }
 
     for (const auto& p : sub_graphs) {
         Graph* graph = p.first;
         const SubGraph& sg = p.second;
 
-        for (Node* ref : sg.refs) {
+        for (const SubGraph::Ref& ref : sg.refs) {
             std::map<std::string, Value*> values;
             for (Value* v : graph->temp_values()) {
                 CHECK(values.emplace(v->name(), v).second) << v->name();
             }
             std::vector<Value*> input_values;
-            for (const std::string& name : ref->input_value_names()) {
+            for (const std::string& name : ref.input_value_names) {
                 if (name.empty()) continue;
                 auto found = values.find(name);
                 CHECK(found != values.end()) << name;
                 input_values.push_back(found->second);
             }
             std::vector<Value*> output_values;
-            for (const std::string& name : ref->output_value_names()) {
+            for (const std::string& name : ref.output_value_names) {
                 if (name.empty()) continue;
                 auto found = values.find(name);
                 CHECK(found != values.end()) << name;

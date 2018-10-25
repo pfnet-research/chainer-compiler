@@ -227,6 +227,24 @@ def get_backprop_tests():
 
     test('dynamic_slice', DynamicSlice(), aranges(4, 2))
 
+    class If(chainer.Chain):
+        def __init__(self, cond):
+            super(If, self).__init__()
+            self.cond = cond
+            with self.init_scope():
+                self.l1 = L.Linear(None, 5)
+
+        def forward(self, x):
+            x = self.l1(x)
+            if self.cond:
+                x = x * 3
+            else:
+                x = x * -2
+            return x
+
+    test('if_true', If(True), aranges(4, 2))
+    test('if_false', If(False), aranges(4, 2))
+
     return tests
 
 

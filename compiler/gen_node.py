@@ -183,11 +183,16 @@ NodeDef('OnikuxSelectItemGrad', 3, 1)
 NodeDef('OnikuxLRNGrad', 3, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
-# Body is a name of a Graph in a sibling Loop node.
+# body_ref is a name of a sub Graph in a sibling Loop node.
 NodeDef('OnikuxLoopRef', None, None,
         body_ref=Required(str),
         input_value_names=[str], output_value_names=[str],
         onikux_stack_axis=0)
+NodeDef('OnikuxIfRef', None, None,
+        then_branch_ref=Required(str),
+        else_branch_ref=Required(str),
+        then_input_value_names=[str], then_output_value_names=[str],
+        else_input_value_names=[str], else_output_value_names=[str])
 NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
 
 NodeDef('OnikuxBackpropStackPush', 1, 0, id=Required(int))

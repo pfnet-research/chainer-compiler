@@ -52,6 +52,8 @@ public:
         return node_;
     }
 
+    bool retain_in_stack() const { return retain_in_stack_; }
+
     Value* Retain(Value* v) {
         if (!retain_in_stack_) return v;
         int id = ++id_;
@@ -477,6 +479,102 @@ void LoopGradFn(GradientOpContext* gc) {
     body->ResetGradients();
 }
 
+void IfGradFn(GradientOpContext* gc) {
+    Node* if_node = gc->node();
+    Graph* then_graph = if_node->then_branch().get();
+    Graph* else_graph = if_node->else_branch().get();
+    const std::vector<Value*>& xs = if_node->inputs();
+    const std::vector<Value*>& ys = if_node->outputs();
+    int num_states = ys.size();
+    CHECK_EQ(num_states, xs.size() - 1);
+
+    // Skip gradient calculation when there are no gradients propagated.
+    // TODO(hamaji): Handle cases where gradient values are partially fed.
+    bool has_gy = false;
+    for (int i = 0; i < num_states; ++i) {
+        Value* y = ys[i];
+        if (y->grad()) {
+            has_gy = true;
+            break;
+        }
+    }
+    if (!has_gy) return;
+
+    std::vector<std::string> then_input_value_names;
+    std::vector<std::string> then_output_value_names;
+    std::vector<std::string> else_input_value_names;
+    std::vector<std::string> else_output_value_names;
+    {
+        GraphBuilder then_gb(then_graph, "IfGradThen", xs[0]);
+        GraphBuilder else_gb(else_graph, "IfGradElse", xs[0]);
+
+        std::vector<Value*> then_ys;
+        std::vector<Value*> else_ys;
+        for (int i = 0; i < num_states; ++i) {
+            Value* then_y = then_graph->output_values()[i];
+            Value* then_gy = then_graph->AddValue("if_grad_in@" + then_y->name());
+            CHECK(then_y->grad() == nullptr);
+            then_y->set_grad(then_gb.Op(Node::kIdentity, {then_gy}));
+            then_ys.push_back(then_y);
+            then_input_value_names.push_back(then_gy->name());
+
+            Value* else_y = else_graph->output_values()[i];
+            Value* else_gy = else_graph->AddValue("if_grad_in@" + else_y->name());
+            CHECK(else_y->grad() == nullptr);
+            else_y->set_grad(else_gb.Op(Node::kIdentity, {else_gy}));
+            else_ys.push_back(else_y);
+            else_input_value_names.push_back(else_gy->name());
+        }
+        AddGradientNodes(then_graph, then_ys, gc->retain_in_stack());
+        AddGradientNodes(else_graph, else_ys, gc->retain_in_stack());
+
+        for (int i = 0; i < num_states; ++i) {
+            Value* then_x = then_graph->input_values()[i];
+            CHECK(then_x->grad()) << if_node->DebugString();
+            Value* then_out = then_gb.Op(Node::kIdentity, {then_x->grad()});
+            then_output_value_names.push_back(then_out->name());
+
+            Value* else_x = else_graph->input_values()[i];
+            CHECK(else_x->grad()) << if_node->DebugString();
+            Value* else_out = else_gb.Op(Node::kIdentity, {else_x->grad()});
+            else_output_value_names.push_back(else_out->name());
+        }
+    }
+
+    {
+        GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
+        std::vector<Value*> gys;
+        for (int i = 0; i < num_states; ++i) {
+            Value* y = ys[i];
+            CHECK(y->grad()) << if_node->DebugString();
+            gys.push_back(y->grad());
+        }
+        std::vector<Value*> gxs;
+        for (int i = 0; i < num_states; ++i) {
+            CHECK(then_graph->input_values()[i]->grad()) << if_node->DebugString();
+            CHECK(else_graph->input_values()[i]->grad()) << if_node->DebugString();
+            gxs.push_back(gc->AddGradValue(i + 1));
+        }
+
+        std::vector<Value*> backward_inputs;
+        backward_inputs.push_back(gc->x(0));
+        for (Value* gy : gys) backward_inputs.push_back(gy);
+
+        Node* backward_if = gb.MOp(Node::kOnikuxIfRef, backward_inputs, gxs);
+        CHECK(!then_graph->name().empty()) << "If then_branch must have a name";
+        CHECK(!else_graph->name().empty()) << "If else_branch must have a name";
+        backward_if->set_then_branch_ref(then_graph->name());
+        backward_if->set_else_branch_ref(else_graph->name());
+        backward_if->set_then_input_value_names(then_input_value_names);
+        backward_if->set_then_output_value_names(then_output_value_names);
+        backward_if->set_else_input_value_names(else_input_value_names);
+        backward_if->set_else_output_value_names(else_output_value_names);
+    }
+
+    then_graph->ResetGradients();
+    else_graph->ResetGradients();
+}
+
 void SequenceStackGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     Value* gy = gc->gy(0);
@@ -586,6 +684,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kGreater, &DoNothingGradFn);
         register_grad_fn(Node::kConstant, &DoNothingGradFn);
         register_grad_fn(Node::kLoop, &LoopGradFn);
+        register_grad_fn(Node::kIf, &IfGradFn);
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
 
         register_grad_fn(Node::kOnikuxSequenceStack, &SequenceStackGradFn);

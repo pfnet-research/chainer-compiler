@@ -471,6 +471,8 @@ private:
             EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4));
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
+        } else if (node.op_type() == Node::kOnikuxIfRef) {
+            EmitIfRef(node, prog);
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kOnikuxLoopRef) {
@@ -715,9 +717,26 @@ private:
 #undef EMIT
     }
 
+    void EmitIfRef(const Node& cond, XCProgramProto* prog) {
+        Graph* then_branch = graph_.GetSubGraph(cond.then_branch_ref());
+        Graph* else_branch = graph_.GetSubGraph(cond.else_branch_ref());
+        std::vector<Value*> then_input_values;
+        std::vector<Value*> then_output_values;
+        std::vector<Value*> else_input_values;
+        std::vector<Value*> else_output_values;
+        std::set<const Value*> protected_values;
+        CollectSubGraphValues(then_branch, cond.then_input_value_names(), cond.then_output_value_names(),
+                              &then_input_values, &then_output_values, &protected_values);
+        CollectSubGraphValues(else_branch, cond.else_input_value_names(), cond.else_output_value_names(),
+                              &else_input_values, &else_output_values, &protected_values);
+        EmitIfImpl(cond, then_branch, then_input_values, then_output_values, else_branch, else_input_values, else_output_values, protected_values, prog);
+    }
+
     void EmitIf(const Node& cond, XCProgramProto* prog) {
         AssignValueIds(*cond.then_branch());
         AssignValueIds(*cond.else_branch());
+        EmitStackInit(*cond.then_branch(), prog);
+        EmitStackInit(*cond.else_branch(), prog);
         EmitIfImpl(cond, cond.then_branch().get(), cond.then_branch()->input_values(), cond.then_branch()->output_values(), cond.else_branch().get(), cond.else_branch()->input_values(), cond.else_branch()->output_values(), {}, prog);
     }
 
@@ -875,35 +894,12 @@ private:
     }
 
     void EmitLoopRef(const Node& loop, XCProgramProto* prog) {
-        Graph* body = graph_.GetSubGraph(loop.body_ref());
-        std::map<std::string, Value*> values;
-        for (Value* v : body->temp_values()) {
-            CHECK(values.emplace(v->name(), v).second);
-        }
         std::vector<Value*> input_values;
-        for (const std::string& name : loop.input_value_names()) {
-            if (name.empty()) {
-                input_values.push_back(body->AddValue("", Value::Kind::kNull));
-            } else {
-                auto found = values.find(name);
-                CHECK(found != values.end());
-                input_values.push_back(found->second);
-            }
-        }
         std::vector<Value*> output_values;
-        for (const std::string& name : loop.output_value_names()) {
-            if (name.empty()) {
-                output_values.push_back(body->AddValue("", Value::Kind::kNull));
-            } else {
-                auto found = values.find(name);
-                CHECK(found != values.end());
-                output_values.push_back(found->second);
-            }
-        }
-
         std::set<const Value*> protected_values;
-        for (Value* value : input_values) protected_values.insert(value);
-        for (Value* value : output_values) protected_values.insert(value);
+        Graph* body = graph_.GetSubGraph(loop.body_ref());
+        CollectSubGraphValues(body, loop.input_value_names(), loop.output_value_names(),
+                              &input_values, &output_values, &protected_values);
         EmitLoopImpl(loop, body, input_values, output_values, protected_values, prog);
     }
 
@@ -913,6 +909,39 @@ private:
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
             FREE(GetValueId(value));
         }
+    }
+
+    void CollectSubGraphValues(Graph* body,
+                               const std::vector<std::string>& input_value_names,
+                               const std::vector<std::string>& output_value_names,
+                               std::vector<Value*>* input_values,
+                               std::vector<Value*>* output_values,
+                               std::set<const Value*>* protected_values) {
+        std::map<std::string, Value*> values;
+        for (Value* v : body->temp_values()) {
+            CHECK(values.emplace(v->name(), v).second);
+        }
+        for (const std::string& name : input_value_names) {
+            if (name.empty()) {
+                input_values->push_back(body->AddValue("", Value::Kind::kNull));
+            } else {
+                auto found = values.find(name);
+                CHECK(found != values.end());
+                input_values->push_back(found->second);
+            }
+        }
+        for (const std::string& name : output_value_names) {
+            if (name.empty()) {
+                output_values->push_back(body->AddValue("", Value::Kind::kNull));
+            } else {
+                auto found = values.find(name);
+                CHECK(found != values.end());
+                output_values->push_back(found->second);
+            }
+        }
+
+        for (Value* value : *input_values) protected_values->insert(value);
+        for (Value* value : *output_values) protected_values->insert(value);
     }
 
     const Graph& graph_;

@@ -84,6 +84,14 @@ void Node::ReplaceInput(Value* f, Value* t) {
     *found = t;
 }
 
+std::vector<Graph*> Node::GetSubGraphs() const {
+    std::vector<Graph*> subgraphs;
+    if (body().get()) subgraphs.push_back(body().get());
+    if (then_branch().get()) subgraphs.push_back(then_branch().get());
+    if (else_branch().get()) subgraphs.push_back(else_branch().get());
+    return subgraphs;
+}
+
 std::string Node::DebugString() const {
     std::ostringstream oss;
     oss << op_type();

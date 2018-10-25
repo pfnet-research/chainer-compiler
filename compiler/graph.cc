@@ -292,9 +292,11 @@ void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& i
 Graph* Graph::GetSubGraph(const std::string& name) const {
     Graph* found = nullptr;
     for (const auto& node : nodes_) {
-        if (node->body().get() && node->body()->name() == name) {
-            CHECK(found == nullptr) << "Two subgraphs found for name=" << name;
-            found = node->body().get();
+        for (Graph* sub_graph : node->GetSubGraphs()) {
+            if (sub_graph->name() == name) {
+                CHECK(found == nullptr) << "Two subgraphs found for name=" << name;
+                found = sub_graph;
+            }
         }
     }
     CHECK(found != nullptr) << "No subgraph found for name=" << name;

@@ -53,6 +53,8 @@ public:
 
     void ReplaceInput(Value* f, Value* t);
 
+    std::vector<Graph*> GetSubGraphs() const;
+
     std::string DebugString() const;
 
 private:
