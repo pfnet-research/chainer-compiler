@@ -485,13 +485,11 @@ void IfGradFn(GradientOpContext* gc) {
     Graph* else_graph = if_node->else_branch().get();
     const std::vector<Value*>& xs = if_node->inputs();
     const std::vector<Value*>& ys = if_node->outputs();
-    int num_states = ys.size();
-    CHECK_EQ(num_states, xs.size() - 1);
 
     // Skip gradient calculation when there are no gradients propagated.
     // TODO(hamaji): Handle cases where gradient values are partially fed.
     bool has_gy = false;
-    for (int i = 0; i < num_states; ++i) {
+    for (size_t i = 0; i < ys.size(); ++i) {
         Value* y = ys[i];
         if (y->grad()) {
             has_gy = true;
@@ -510,7 +508,7 @@ void IfGradFn(GradientOpContext* gc) {
 
         std::vector<Value*> then_ys;
         std::vector<Value*> else_ys;
-        for (int i = 0; i < num_states; ++i) {
+        for (size_t i = 0; i < ys.size(); ++i) {
             Value* then_y = then_graph->output_values()[i];
             Value* then_gy = then_graph->AddValue("if_grad_in@" + then_y->name());
             CHECK(then_y->grad() == nullptr);
@@ -528,7 +526,7 @@ void IfGradFn(GradientOpContext* gc) {
         AddGradientNodes(then_graph, then_ys, gc->retain_in_stack());
         AddGradientNodes(else_graph, else_ys, gc->retain_in_stack());
 
-        for (int i = 0; i < num_states; ++i) {
+        for (size_t i = 0; i < xs.size() - 1; ++i) {
             Value* then_x = then_graph->input_values()[i];
             CHECK(then_x->grad()) << if_node->DebugString();
             Value* then_out = then_gb.Op(Node::kIdentity, {then_x->grad()});
@@ -544,13 +542,13 @@ void IfGradFn(GradientOpContext* gc) {
     {
         GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
         std::vector<Value*> gys;
-        for (int i = 0; i < num_states; ++i) {
+        for (size_t i = 0; i < ys.size(); ++i) {
             Value* y = ys[i];
             CHECK(y->grad()) << if_node->DebugString();
             gys.push_back(y->grad());
         }
         std::vector<Value*> gxs;
-        for (int i = 0; i < num_states; ++i) {
+        for (size_t i = 0; i < xs.size() - 1; ++i) {
             CHECK(then_graph->input_values()[i]->grad()) << if_node->DebugString();
             CHECK(else_graph->input_values()[i]->grad()) << if_node->DebugString();
             gxs.push_back(gc->AddGradValue(i + 1));
