@@ -508,24 +508,24 @@ void LoopGradFn(GradientOpContext* gc) {
 }
 
 void IfGradFn(GradientOpContext* gc) {
-    Node* if_node = gc->node();
-    Graph* then_graph = if_node->then_branch().get();
-    Graph* else_graph = if_node->else_branch().get();
-    const std::vector<Value*>& xs = if_node->inputs();
-    const std::vector<Value*>& ys = if_node->outputs();
+    Node* cond = gc->node();
+    Graph* then_graph = cond->then_branch().get();
+    Graph* else_graph = cond->else_branch().get();
+    const std::vector<Value*>& xs = cond->inputs();
+    const std::vector<Value*>& ys = cond->outputs();
 
-    // Skip gradient calculation when there are no gradients propagated.
-    // TODO(hamaji): Handle cases where gradient values are partially fed.
-    bool has_gy = false;
+    std::vector<size_t> gy_indices;
+    std::vector<Value*> gys;
     for (size_t i = 0; i < ys.size(); ++i) {
         Value* y = ys[i];
         if (y->grad()) {
-            has_gy = true;
-            break;
+            gy_indices.push_back(i);
+            gys.push_back(y->grad());
         }
     }
-    if (!has_gy) return;
+    if (gy_indices.empty()) return;
 
+    std::vector<size_t> gx_indices;
     std::vector<std::string> then_input_value_names;
     std::vector<std::string> then_output_value_names;
     std::vector<std::string> else_input_value_names;
@@ -536,7 +536,7 @@ void IfGradFn(GradientOpContext* gc) {
 
         std::vector<Value*> then_ys;
         std::vector<Value*> else_ys;
-        for (size_t i = 0; i < ys.size(); ++i) {
+        for (size_t i : gy_indices) {
             Value* then_y = then_graph->output_values()[i];
             Value* then_gy = then_graph->AddValue("if_grad_in@" + then_y->name());
             CHECK(then_y->grad() == nullptr);
@@ -556,12 +556,14 @@ void IfGradFn(GradientOpContext* gc) {
 
         for (size_t i = 0; i < xs.size() - 1; ++i) {
             Value* then_x = then_graph->input_values()[i];
-            CHECK(then_x->grad()) << if_node->DebugString();
+            Value* else_x = else_graph->input_values()[i];
+            if (then_x->grad() == nullptr || else_x->grad() == nullptr) {
+                continue;
+            }
+
+            gx_indices.push_back(i);
             Value* then_out = then_gb.Op(Node::kIdentity, {then_x->grad()});
             then_output_value_names.push_back(then_out->name());
-
-            Value* else_x = else_graph->input_values()[i];
-            CHECK(else_x->grad()) << if_node->DebugString();
             Value* else_out = else_gb.Op(Node::kIdentity, {else_x->grad()});
             else_output_value_names.push_back(else_out->name());
         }
@@ -569,16 +571,10 @@ void IfGradFn(GradientOpContext* gc) {
 
     {
         GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
-        std::vector<Value*> gys;
-        for (size_t i = 0; i < ys.size(); ++i) {
-            Value* y = ys[i];
-            CHECK(y->grad()) << if_node->DebugString();
-            gys.push_back(y->grad());
-        }
         std::vector<Value*> gxs;
-        for (size_t i = 0; i < xs.size() - 1; ++i) {
-            CHECK(then_graph->input_values()[i]->grad()) << if_node->DebugString();
-            CHECK(else_graph->input_values()[i]->grad()) << if_node->DebugString();
+        for (size_t i : gx_indices) {
+            CHECK(then_graph->input_values()[i]->grad()) << cond->DebugString();
+            CHECK(else_graph->input_values()[i]->grad()) << cond->DebugString();
             gxs.push_back(gc->AddGradValue(i + 1));
         }
 

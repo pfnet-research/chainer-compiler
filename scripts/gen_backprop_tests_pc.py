@@ -256,6 +256,27 @@ def get_backprop_tests():
     test('if_true', If(True), aranges(4, 2))
     test('if_false', If(False), aranges(4, 2))
 
+    class IfPartiallyDifferentiable(chainer.Chain):
+        def __init__(self, cond):
+            super(IfPartiallyDifferentiable, self).__init__()
+            self.cond = cond
+            with self.init_scope():
+                self.l1 = L.Linear(None, 5)
+
+        def forward(self, x):
+            x = self.l1(x)
+            y = 2
+            if self.cond:
+                x = x * 3
+                y = 3
+            else:
+                x = x * -2
+                y = 4
+            return x[:y]
+
+    test('if_pd_true', IfPartiallyDifferentiable(True), aranges(4, 2))
+    test('if_pd_false', IfPartiallyDifferentiable(False), aranges(4, 2))
+
     return tests
 
 
