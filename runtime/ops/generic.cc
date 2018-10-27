@@ -25,7 +25,7 @@ int64_t GetSize(XCVMVar* var) {
 }
 
 int64_t GetOptionalInt(XCVMState* st, int index, int64_t default_value) {
-    nonstd::optional<chainerx::Array> var = st->GetVarOptional(index);
+    nonstd::optional<chainerx::Array> var = st->GetOptionalArray(index);
     if (var.has_value()) {
         return static_cast<int64_t>(chainerx::AsScalar(*var));
     } else {
@@ -47,7 +47,7 @@ void IdentityOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(x);
     switch (var->kind()) {
         case XCVMVar::Kind::kArray:
-            st->SetVar(y, var->GetArray());
+            st->SetArray(y, var->GetArray());
             break;
 
         case XCVMVar::Kind::kSequence:
@@ -72,24 +72,24 @@ void PrintOp::RunImpl(XCVMState* st) {
 void GenericLenOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(v);
     int64_t size = GetSize(var);
-    st->SetVar(len, MakeHostArray(chainerx::Dtype::kInt64, {}, &size));
+    st->SetArray(len, MakeHostArray(chainerx::Dtype::kInt64, {}, &size));
 }
 
 void GenericGetItemOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetXCVMVar(v);
     int64_t size = GetSize(var);
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetVar(index)));
+    int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
     if (i < 0) i += size;
     switch (var->kind()) {
         case XCVMVar::Kind::kArray:
             CHECK_LT(i, var->GetArray().shape()[0]);
-            st->SetVar(output, var->GetArray().At({i}));
+            st->SetArray(output, var->GetArray().At({i}));
             break;
 
         case XCVMVar::Kind::kSequence:
             const std::vector<nonstd::optional<chainerx::Array>>& v = *var->GetSequence();
             CHECK_LT(i, v.size());
-            st->SetVar(output, *v[i]);
+            st->SetArray(output, *v[i]);
             break;
     }
 }
@@ -110,7 +110,7 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
 
     switch (var->kind()) {
         case XCVMVar::Kind::kArray: {
-            st->SetVar(output, var->GetArray().At({chainerx::Slice(start, end, step)}));
+            st->SetArray(output, var->GetArray().At({chainerx::Slice(start, end, step)}));
             break;
         }
 
@@ -146,7 +146,7 @@ void GenericAddOp::RunImpl(XCVMState* st) {
             }
             return Stack(NonOptional(*v->GetSequence()), 0);
         };
-        st->SetVar(output, to_a(var0) + to_a(var1));
+        st->SetArray(output, to_a(var0) + to_a(var1));
     } else {
         std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
         *seq = *var0->GetSequence();
@@ -178,7 +178,7 @@ void GenericIsOp::RunImpl(XCVMState* st) {
     } else {
         WARN_ONCE("`is` keyword for sequences might be wrong");
     }
-    st->SetVar(output, MakeHostArray(chainerx::Dtype::kBool, {}, &result));
+    st->SetArray(output, MakeHostArray(chainerx::Dtype::kBool, {}, &result));
 }
 
 void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
@@ -188,7 +188,7 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
 
     switch (var0->kind()) {
     case XCVMVar::Kind::kArray: {
-        st->SetVar(output, var0->GetArray() + var1->GetArray());
+        st->SetArray(output, var0->GetArray() + var1->GetArray());
         break;
     }
     case XCVMVar::Kind::kSequence: {

@@ -561,23 +561,23 @@ def gen_gen_xcvm_ops_cc():
             args = ['st']
             for typ, name in op.inputs:
                 if typ == ARRAY:
-                    args.append('st->GetVar(%s)' % (name))
+                    args.append('st->GetArray(%s)' % (name))
                 elif typ == OPTIONAL_ARRAY:
-                    args.append('st->GetVarOptional(%s)' % (name))
+                    args.append('st->GetOptionalArray(%s)' % (name))
                 elif typ == ARRAY_LIST:
-                    args.append('st->GetVarList(%s)' % (name))
+                    args.append('st->GetArrayList(%s)' % (name))
             call = 'RunImpl(%s)' % ', '.join(args)
             if len(op.outputs) == 1:
                 typ, name = op.outputs[0]
                 if typ == ARRAY_LIST:
-                    lines.append('st->SetVarList(%s, %s);' % (name, call))
+                    lines.append('st->SetArrayList(%s, %s);' % (name, call))
                 else:
-                    lines.append('st->SetVar(%s, %s);' % (name, call))
+                    lines.append('st->SetArray(%s, %s);' % (name, call))
             elif op.outputs:
                 lines.append('auto r_ = ' + call + ';')
                 for i, output in enumerate(op.output_names):
                     # TODO(hamaji): Revisit optional outputs.
-                    lines.append('if (%s >= 0) st->SetVar(%s, std::get<%d>(r_));' % (output, output, i))
+                    lines.append('if (%s >= 0) st->SetArray(%s, std::get<%d>(r_));' % (output, output, i))
             else:
                 lines.append(call + ';')
         else:

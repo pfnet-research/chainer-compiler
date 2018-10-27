@@ -22,27 +22,27 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
 XCVMState::~XCVMState() {
 }
 
-chainerx::Array XCVMState::GetVar(int index) {
+chainerx::Array XCVMState::GetArray(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return variables_[index]->GetArray();
 }
 
-nonstd::optional<chainerx::Array> XCVMState::GetVarOptional(int index) {
+nonstd::optional<chainerx::Array> XCVMState::GetOptionalArray(int index) {
     if (index < 0) return nonstd::nullopt;
-    return GetVar(index);
+    return GetArray(index);
 }
 
-std::vector<chainerx::Array> XCVMState::GetVarList(const std::vector<int>& index) {
+std::vector<chainerx::Array> XCVMState::GetArrayList(const std::vector<int>& index) {
     std::vector<chainerx::Array> vars;
-    for (int i : index) vars.push_back(GetVar(i));
+    for (int i : index) vars.push_back(GetArray(i));
     return vars;
 }
 
-void XCVMState::SetVarList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars) {
+void XCVMState::SetArrayList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars) {
     CHECK_EQ(index.size(), vars.size());
-    for (size_t i = 0; i < index.size(); ++i) SetVar(index[i], vars[i]);
+    for (size_t i = 0; i < index.size(); ++i) SetArray(index[i], vars[i]);
 }
 
 std::vector<nonstd::optional<chainerx::Array>>* XCVMState::CreateSequence(int index) {
@@ -118,7 +118,7 @@ std::shared_ptr<XCVMState::Auxiliary> XCVMState::PopAux(int index) {
     return aux;
 }
 
-void XCVMState::SetVar(int index, const chainerx::Array& value) {
+void XCVMState::SetArray(int index, const chainerx::Array& value) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
@@ -154,17 +154,17 @@ void XCVMState::ReportInvalidInOuts(const std::vector<int>& inputs, const std::v
         if (inputs[i] < 0)
             std::cerr << "input #" << i << ": null\n";
         else
-            std::cerr << "input #" << i << ": " << GetVar(inputs[i]) << std::endl;
+            std::cerr << "input #" << i << ": " << GetVarString(inputs[i]) << std::endl;
     }
     for (size_t i = 0; i < outputs.size(); ++i) {
-        std::cerr << "output #" << i << ": " << GetVar(outputs[i]) << std::endl;
+        std::cerr << "output #" << i << ": " << GetVarString(outputs[i]) << std::endl;
     }
     CHECK(false);
 }
 
 void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
-        if (!HasNan(GetVar(output))) continue;
+        if (!HasNan(GetArray(output))) continue;
 
         std::cerr << "NaN detected!\n";
         ReportInvalidInOuts(inputs, outputs);
@@ -173,7 +173,7 @@ void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>
 
 void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
-        if (!HasInf(GetVar(output))) continue;
+        if (!HasInf(GetArray(output))) continue;
 
         std::cerr << "Inf detected!\n";
         ReportInvalidInOuts(inputs, outputs);
