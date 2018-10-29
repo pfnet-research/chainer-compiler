@@ -923,7 +923,7 @@ private:
         }
         for (const std::string& name : input_value_names) {
             if (name.empty()) {
-                input_values->push_back(body->AddValue("", Value::Kind::kNull));
+                input_values->push_back(body->AddNullValue());
             } else {
                 auto found = values.find(name);
                 CHECK(found != values.end());
@@ -932,7 +932,7 @@ private:
         }
         for (const std::string& name : output_value_names) {
             if (name.empty()) {
-                output_values->push_back(body->AddValue("", Value::Kind::kNull));
+                output_values->push_back(body->AddNullValue());
             } else {
                 auto found = values.find(name);
                 CHECK(found != values.end());

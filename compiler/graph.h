@@ -60,6 +60,7 @@ public:
     Value* AddValue(const std::string& name, Value::Kind kind = Value::Kind::kTemp);
     Value* AddInputValue(const std::string& name, const Type& type);
     Value* AddOutputValue(const std::string& name, const Type& type);
+    Value* AddNullValue();
 
     template <class T>
     Value* AddConstValue(const std::string& name, const Type& type, const std::vector<T>& data) {
@@ -108,6 +109,7 @@ private:
     std::vector<Value*> temp_values_;
     std::vector<std::unique_ptr<Value>> all_values_;
     std::vector<std::unique_ptr<Node>> nodes_;
+    Value* null_value_;
     std::string name_;
     std::string doc_string_;
 

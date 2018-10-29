@@ -186,6 +186,10 @@ Value* Graph::AddOutputValue(const std::string& name, const Type& type) {
     return value;
 }
 
+Value* Graph::AddNullValue() {
+    return AddValue("", Value::Kind::kNull);
+}
+
 Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base) {
     Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs);
     // Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);

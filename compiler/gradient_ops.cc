@@ -494,7 +494,7 @@ void LoopGradFn(GradientOpContext* gc) {
 
         std::vector<Value*> backward_inputs;
         backward_inputs.push_back(ys[num_states - 1]);
-        backward_inputs.push_back(graph->AddValue("", Value::Kind::kNull));
+        backward_inputs.push_back(graph->AddNullValue());
         for (Value* gy : gys) backward_inputs.push_back(gy);
 
         Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef, backward_inputs, gxs);
