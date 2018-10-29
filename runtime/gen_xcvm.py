@@ -295,6 +295,8 @@ XC_OPS = [
 
 XC_SEQ_OPS = [
     ('SequenceLookup', [Sequence('seq'), Array('index')], [Array('output')]),
+    ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
+     [Sequence('gx')]),
 ]
 
 XC_SEQ_OPS_UNTYPED = [
@@ -303,8 +305,6 @@ XC_SEQ_OPS_UNTYPED = [
     ('SequenceAppend', [Sequence('seq'), Array('value'), Int('move_aux')],
      []),
     ('SequencePop', [Sequence('seq'), Int('move_aux')], ['output']),
-    ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
-     [Sequence('gx')]),
     ('SequenceGetSlice',
      [Sequence('seq'), OptionalArray('start'),
       OptionalArray('end'), OptionalArray('step')],
@@ -442,11 +442,11 @@ def gen_gen_xcvm_ops_h():
                     assert typ in FIELD_TYPES, 'Unknown type: %s' % typ
 
             output_ctypes = []
-            for typ, _ in op.outputs:
+            for typ, name in op.outputs:
                 if typ == ARRAY_LIST:
                     output_ctypes.append('std::vector<chainerx::Array>')
                 elif typ == SEQUENCE:
-                    output_ctypes.append('XCVMSequence')
+                    args.append('XCVMSequence* %s' % name)
                 else:
                     output_ctypes.append('chainerx::Array')
 
@@ -539,7 +539,7 @@ def gen_gen_xcvm_ops_cc():
         if op.outputs:
             for typ, name in op.outputs:
                 if typ == ARRAY_LIST:
-                    line += ' << ArrayListToString(%s)' % (name)
+                    line += ' << ArrayListToString(%s)' % name
                 else:
                     line += ' << "%s" << %s' % (sigil(typ), name)
             line += ' << " = "'
@@ -550,13 +550,13 @@ def gen_gen_xcvm_ops_cc():
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += ' << "%s" << %s' % (sigil(typ), name)
             elif typ in (INT, FLOAT):
-                line += ' << %s' % (name)
+                line += ' << %s' % name
             elif typ in [STRING, LONGS, DOUBLES]:
-                line += ' << "%s"' % (name)
+                line += ' << "%s"' % name
             elif typ == INTS:
-                line += ' << StackVectorToString(%s)' % (name)
+                line += ' << StackVectorToString(%s)' % name
             elif typ == ARRAY_LIST:
-                line += ' << ArrayListToString(%s)' % (name)
+                line += ' << ArrayListToString(%s)' % name
             else:
                 raise RuntimeError('Unknown type: %s' % typ)
         line += ' << ")"'
@@ -567,9 +567,9 @@ def gen_gen_xcvm_ops_cc():
         for typ, name in op.inputs:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += ' << " %s" << %s << "="' % (sigil(typ), name)
-                line += ' << st->GetVarString(%s)' % (name)
+                line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:
-                line += ' << st->GetVarListString(%s)' % (name)
+                line += ' << st->GetVarListString(%s)' % name
         if op.outputs:
             line += ' << " ->"'
         if not line.endswith('std::cerr'):
@@ -580,23 +580,32 @@ def gen_gen_xcvm_ops_cc():
             args = ['st']
             for typ, name in op.inputs:
                 if typ == ARRAY:
-                    args.append('st->GetArray(%s)' % (name))
+                    args.append('st->GetArray(%s)' % name)
                 elif typ == OPTIONAL_ARRAY:
-                    args.append('st->GetOptionalArray(%s)' % (name))
+                    args.append('st->GetOptionalArray(%s)' % name)
                 elif typ == ARRAY_LIST:
-                    args.append('st->GetArrayList(%s)' % (name))
+                    args.append('st->GetArrayList(%s)' % name)
                 elif typ == SEQUENCE:
-                    args.append('*st->GetSequence(%s)' % (name))
+                    args.append('*st->GetSequence(%s)' % name)
+
+            outputs = []
+            for output in op.outputs:
+                typ, name = output
+                if typ == SEQUENCE:
+                    args.append('st->CreateSequence(%s)' % name)
+                else:
+                    outputs.append(output)
+
             call = 'RunImpl(%s)' % ', '.join(args)
-            if len(op.outputs) == 1:
-                typ, name = op.outputs[0]
+            if len(outputs) == 1:
+                typ, name = outputs[0]
                 if typ == ARRAY_LIST:
                     lines.append('st->SetArrayList(%s, %s);' % (name, call))
                 else:
                     lines.append('st->SetArray(%s, %s);' % (name, call))
-            elif op.outputs:
+            elif outputs:
                 lines.append('auto r_ = ' + call + ';')
-                for i, output in enumerate(op.output_names):
+                for i, (_, output) in enumerate(outputs):
                     # TODO(hamaji): Revisit optional outputs.
                     lines.append('if (%s >= 0) st->SetArray(%s, std::get<%d>(r_));' % (output, output, i))
             else:
@@ -608,7 +617,7 @@ def gen_gen_xcvm_ops_cc():
         for typ, name in op.outputs:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
                 line += ' << " %s" << %s << "="' % (sigil(typ), name)
-                line += ' << st->GetVarString(%s)' % (name)
+                line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:
                 # TODO(hamaji): Show debug outputs of array lists.
                 pass
@@ -718,27 +727,27 @@ def gen_xcvm_proto_util_cc():
         lines.append(signature + ' {')
 
         lines.append('XCInstructionProto* inst = program->add_instructions();')
-        lines.append('inst->set_op(XCInstructionProto::%s);' % (op.name))
+        lines.append('inst->set_op(XCInstructionProto::%s);' % op.name)
 
         for inp in op.inputs:
             lines.append('{')
             lines.append('XCValueProto* input_proto = inst->add_inputs();')
             enum = inp.typ.replace('OPTIONAL_', '')
-            lines.append('input_proto->set_type(XCValueProto::%s);' % (enum))
+            lines.append('input_proto->set_type(XCValueProto::%s);' % enum)
             pfn = inp.proto_field_name()
             name = inp.name
             if inp.is_repeated():
-                lines.append('for (auto v : %s) ' % (name) +
-                             'input_proto->add_%s(v);' % (pfn))
+                lines.append('for (auto v : %s) ' % name +
+                             'input_proto->add_%s(v);' % pfn)
             else:
                 lines.append('input_proto->set_%s(%s);' % (pfn, name))
             lines.append('}')
 
         for typ, name in op.outputs:
             if typ == ARRAY_LIST:
-                lines.append('for (int a : %s) inst->add_outputs(a);' % (name))
+                lines.append('for (int a : %s) inst->add_outputs(a);' % name)
             else:
-                lines.append('inst->add_outputs(%s);' % (name))
+                lines.append('inst->add_outputs(%s);' % name)
 
         lines.append('}')
 

@@ -64,12 +64,11 @@ chainerx::Array SequenceLookupOp::RunImpl(XCVMState* st, const XCVMSequence& seq
     return *seq[i];
 }
 
-void SequenceLookupGradOp::RunImpl(XCVMState* st) {
-    std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(gx);
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
-    int64_t sz = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(size)));
-    seq->resize(sz);
-    (*seq)[i] = st->GetArray(gy);
+void SequenceLookupGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const chainerx::Array& size, const chainerx::Array& index, XCVMSequence* gx) {
+    int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
+    int64_t sz = static_cast<int64_t>(chainerx::AsScalar(size));
+    gx->resize(sz);
+    (*gx)[i] = gy;
 }
 
 void SequenceGetSliceOp::RunImpl(XCVMState* st) {
