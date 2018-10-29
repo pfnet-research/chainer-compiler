@@ -7,6 +7,8 @@
 namespace oniku {
 namespace runtime {
 
+typedef std::vector<nonstd::optional<chainerx::Array>> XCVMSequence;
+
 class XCVMVar {
 public:
     enum class Kind {
@@ -19,7 +21,7 @@ public:
     explicit XCVMVar(const XCVMVar&) = default;
 
     const chainerx::Array& GetArray();
-    std::vector<nonstd::optional<chainerx::Array>>* GetSequence();
+    XCVMSequence* GetSequence();
 
     Kind kind() const {
         return kind_;
@@ -35,7 +37,7 @@ public:
 private:
     Kind kind_;
     nonstd::optional<chainerx::Array> array_;
-    std::vector<nonstd::optional<chainerx::Array>> sequence_;
+    XCVMSequence sequence_;
 };
 
 }  // namespace runtime

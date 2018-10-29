@@ -57,12 +57,11 @@ void SequencePopOp::RunImpl(XCVMState* st) {
     }
 }
 
-void SequenceLookupOp::RunImpl(XCVMState* st) {
-    const std::vector<nonstd::optional<chainerx::Array>>& v = *st->GetSequence(seq);
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
-    if (i < 0) i += v.size();
-    CHECK_LT(i, v.size());
-    st->SetArray(output, *v[i]);
+chainerx::Array SequenceLookupOp::RunImpl(XCVMState* st, const XCVMSequence& seq, const chainerx::Array& index) {
+    int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
+    if (i < 0) i += seq.size();
+    CHECK_LT(i, seq.size());
+    return *seq[i];
 }
 
 void SequenceLookupGradOp::RunImpl(XCVMState* st) {

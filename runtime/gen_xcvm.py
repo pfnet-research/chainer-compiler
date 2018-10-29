@@ -24,10 +24,15 @@ STRING = 'STRING'
 LONGS = 'LONGS'
 DOUBLES = 'DOUBLES'
 
-XC_TYPES = [
-    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, INT, FLOAT, INTS, STRING,
-    LONGS, DOUBLES
+ARG_TYPES = [
+    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE
 ]
+
+FIELD_TYPES = [
+    INT, FLOAT, INTS, STRING, LONGS, DOUBLES
+]
+
+XC_TYPES = ARG_TYPES + FIELD_TYPES
 
 STACK_VECTOR = 'chainerx::StackVector<int64_t, chainerx::kMaxNdim>'
 
@@ -289,12 +294,15 @@ XC_OPS = [
 ]
 
 XC_SEQ_OPS = [
+    ('SequenceLookup', [Sequence('seq'), Array('index')], [Array('output')]),
+]
+
+XC_SEQ_OPS_UNTYPED = [
     ('SequenceCreate', [], [Sequence('output')]),
     ('SequenceClear', [Sequence('seq')], []),
     ('SequenceAppend', [Sequence('seq'), Array('value'), Int('move_aux')],
      []),
     ('SequencePop', [Sequence('seq'), Int('move_aux')], ['output']),
-    ('SequenceLookup', [Sequence('seq'), Array('index')], ['output']),
     ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
      [Sequence('gx')]),
     ('SequenceGetSlice',
@@ -342,7 +350,7 @@ XC_GENERIC_OPS = [
 
 
 class Op(object):
-    def __init__(self, name, inputs, outputs, array_only=True):
+    def __init__(self, name, inputs, outputs, typed=True):
         self.name = name
         self.inputs = inputs
         self.outputs = []
@@ -354,12 +362,13 @@ class Op(object):
             else:
                 self.outputs.append(Array(output))
                 self.output_names.append(output)
-        self.array_only = array_only
+        self.typed = typed
 
 
 XC_ALL_OPS = [Op(*op) for op in XC_OPS]
-XC_ALL_OPS += [Op(*op, array_only=False) for op in XC_SEQ_OPS]
-XC_ALL_OPS += [Op(*op, array_only=False) for op in XC_GENERIC_OPS]
+XC_ALL_OPS += [Op(*op) for op in XC_SEQ_OPS]
+XC_ALL_OPS += [Op(*op, typed=False) for op in XC_SEQ_OPS_UNTYPED]
+XC_ALL_OPS += [Op(*op, typed=False) for op in XC_GENERIC_OPS]
 
 
 def gen_xcvm_proto():
@@ -418,25 +427,35 @@ def gen_gen_xcvm_ops_h():
         lines.append('explicit %sOp(const XCInstructionProto& inst);' % op.name)
 
         args = ['XCVMState* st']
-        if op.array_only:
+        if op.typed:
             for typ, name in op.inputs:
                 if typ == ARRAY:
-                    args.append('const chainerx::Array& %s' % (name))
+                    args.append('const chainerx::Array& %s' % name)
                 elif typ == OPTIONAL_ARRAY:
                     args.append(
-                        'const nonstd::optional<chainerx::Array>& %s' % (name))
+                        'const nonstd::optional<chainerx::Array>& %s' % name)
                 elif typ == ARRAY_LIST:
-                    args.append('const std::vector<chainerx::Array>& %s' % (name))
-            rettype = 'void'
-            num_outputs = len(op.outputs)
-            if num_outputs == 1:
-                if op.outputs[0][0] == ARRAY_LIST:
-                    rettype = 'std::vector<chainerx::Array>'
+                    args.append('const std::vector<chainerx::Array>& %s' % name)
+                elif typ == SEQUENCE:
+                    args.append('const XCVMSequence& %s' % name)
                 else:
-                    rettype = 'chainerx::Array'
-            elif num_outputs > 1:
-                rettype = ('std::tuple<' +
-                           ', '.join(['chainerx::Array'] * num_outputs) + '>')
+                    assert typ in FIELD_TYPES, 'Unknown type: %s' % typ
+
+            output_ctypes = []
+            for typ, _ in op.outputs:
+                if typ == ARRAY_LIST:
+                    output_ctypes.append('std::vector<chainerx::Array>')
+                elif typ == SEQUENCE:
+                    output_ctypes.append('XCVMSequence')
+                else:
+                    output_ctypes.append('chainerx::Array')
+
+            if len(output_ctypes) == 0:
+                rettype = 'void'
+            elif len(output_ctypes) == 1:
+                rettype = output_ctypes[0]
+            else:
+                rettype = 'std::tuple<' + ', '.join(output_ctypes) + '>'
         else:
             rettype = 'void'
         lines.append('%s RunImpl(%s);' % (rettype, ', '.join(args)))
@@ -557,7 +576,7 @@ def gen_gen_xcvm_ops_cc():
             line += ';'
             lines.append(line)
 
-        if op.array_only:
+        if op.typed:
             args = ['st']
             for typ, name in op.inputs:
                 if typ == ARRAY:
@@ -566,6 +585,8 @@ def gen_gen_xcvm_ops_cc():
                     args.append('st->GetOptionalArray(%s)' % (name))
                 elif typ == ARRAY_LIST:
                     args.append('st->GetArrayList(%s)' % (name))
+                elif typ == SEQUENCE:
+                    args.append('*st->GetSequence(%s)' % (name))
             call = 'RunImpl(%s)' % ', '.join(args)
             if len(op.outputs) == 1:
                 typ, name = op.outputs[0]

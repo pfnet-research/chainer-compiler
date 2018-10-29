@@ -10,6 +10,7 @@
 
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
+#include <runtime/xcvm_var.h>
 
 namespace oniku {
 namespace runtime {
@@ -45,8 +46,8 @@ public:
     std::vector<chainerx::Array> GetArrayList(const std::vector<int>& index);
     void SetArrayList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars);
 
-    std::vector<nonstd::optional<chainerx::Array>>* CreateSequence(int index);
-    std::vector<nonstd::optional<chainerx::Array>>* GetSequence(int index);
+    XCVMSequence* CreateSequence(int index);
+    XCVMSequence* GetSequence(int index);
 
     XCVMVar* GetXCVMVar(int index);
 
