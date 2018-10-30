@@ -9,19 +9,34 @@ namespace runtime {
 
 typedef std::vector<nonstd::optional<chainerx::Array>> XCVMSequence;
 
+class XCVMOpaque {
+public:
+    virtual ~XCVMOpaque() = default;
+
+    virtual std::string ToString() const { return "???"; }
+    virtual std::string DebugString() const { return "???"; }
+
+protected:
+    XCVMOpaque() = default;
+};
+
 class XCVMVar {
 public:
     enum class Kind {
         kArray,
         kSequence,
+        kOpaque,
     };
 
     explicit XCVMVar(Kind kind);
     explicit XCVMVar(chainerx::Array array);
+    // Takes the ownership of `opaque`.
+    explicit XCVMVar(XCVMOpaque* opaque);
     explicit XCVMVar(const XCVMVar&) = default;
 
     const chainerx::Array& GetArray();
     XCVMSequence* GetSequence();
+    XCVMOpaque* GetOpaque();
 
     Kind kind() const {
         return kind_;
@@ -38,6 +53,7 @@ private:
     Kind kind_;
     nonstd::optional<chainerx::Array> array_;
     XCVMSequence sequence_;
+    std::shared_ptr<XCVMOpaque> opaque_;
 };
 
 }  // namespace runtime

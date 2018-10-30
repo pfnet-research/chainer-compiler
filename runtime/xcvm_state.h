@@ -49,6 +49,9 @@ public:
     XCVMSequence* CreateSequence(int index);
     XCVMSequence* GetSequence(int index);
 
+    const XCVMOpaque& GetOpaque(int index);
+    void SetOpaque(int index, XCVMOpaque* opaque);
+
     XCVMVar* GetXCVMVar(int index);
 
     std::string GetVarString(int index);

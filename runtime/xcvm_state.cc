@@ -59,6 +59,20 @@ std::vector<nonstd::optional<chainerx::Array>>* XCVMState::GetSequence(int index
     return variables_[index]->GetSequence();
 }
 
+const XCVMOpaque& XCVMState::GetOpaque(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get());
+    return *variables_[index]->GetOpaque();
+}
+
+void XCVMState::SetOpaque(int index, XCVMOpaque* opaque) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(!variables_[index].get());
+    variables_[index].reset(new XCVMVar(opaque));
+}
+
 XCVMVar* XCVMState::GetXCVMVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;

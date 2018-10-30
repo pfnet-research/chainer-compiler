@@ -176,6 +176,9 @@ XCVMVar* StageVar(XCVMVar* var) {
             for (const nonstd::optional<chainerx::Array>& a : *var->GetSequence()) out->GetSequence()->push_back(a->ToDevice(chainerx::GetDefaultDevice()));
             return out;
         }
+
+        case XCVMVar::Kind::kOpaque:
+            CHECK(false) << var->DebugString();
     }
     CHECK(false);
 }
@@ -368,6 +371,8 @@ void RunMain(int argc, char** argv) {
                         return array_str(v->GetArray());
                     case XCVMVar::Kind::kSequence:
                         return Join(MapToString(*v->GetSequence(), array_str));
+                    case XCVMVar::Kind::kOpaque:
+                        CHECK(false) << v->DebugString();
                 }
                 CHECK(false);
             };
@@ -421,7 +426,11 @@ void RunMain(int argc, char** argv) {
                         ok = check_array(*expected_seq[i], *actual_seq[i]);
                         if (!ok) break;
                     }
+                    break;
                 }
+
+                case XCVMVar::Kind::kOpaque:
+                    CHECK(false) << expected->DebugString();
             }
 
             if (!ok) continue;

@@ -20,6 +20,8 @@ int64_t GetSize(XCVMVar* var) {
             return var->GetArray().shape()[0];
         case XCVMVar::Kind::kSequence:
             return var->GetSequence()->size();
+        case XCVMVar::Kind::kOpaque:
+            CHECK(false) << var->DebugString();
     }
     CHECK(false);
 }
@@ -50,12 +52,16 @@ void IdentityOp::RunImpl(XCVMState* st) {
             st->SetArray(y, var->GetArray());
             break;
 
-        case XCVMVar::Kind::kSequence:
+        case XCVMVar::Kind::kSequence: {
             const std::vector<nonstd::optional<chainerx::Array>>& s = *var->GetSequence();
             std::vector<nonstd::optional<chainerx::Array>>* d = st->CreateSequence(y);
             CHECK(d->empty());
             *d = s;
             break;
+        }
+
+        case XCVMVar::Kind::kOpaque:
+            CHECK(false) << var->DebugString();
     }
 }
 
@@ -86,11 +92,15 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
             st->SetArray(output, var->GetArray().At({i}));
             break;
 
-        case XCVMVar::Kind::kSequence:
+        case XCVMVar::Kind::kSequence: {
             const std::vector<nonstd::optional<chainerx::Array>>& v = *var->GetSequence();
             CHECK_LT(i, v.size());
             st->SetArray(output, *v[i]);
             break;
+        }
+
+        case XCVMVar::Kind::kOpaque:
+            CHECK(false) << var->DebugString();
     }
 }
 
@@ -131,7 +141,11 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
                 }
             }
             break;
+
         }
+
+        case XCVMVar::Kind::kOpaque:
+            CHECK(false) << var->DebugString();
     }
 }
 
@@ -208,6 +222,9 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
         }
         break;
     }
+
+    case XCVMVar::Kind::kOpaque:
+        CHECK(false) << var0->DebugString();
     }
 }
 
