@@ -11,6 +11,7 @@ add_custom_command(
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
   MAIN_DEPENDENCY gen_node.py
   DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py)
+add_custom_target(gen_node_base_h DEPENDS gen_node_base.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
@@ -39,7 +40,9 @@ add_library(oniku_compiler
   value.cc
   xcvm_emitter.cc
   )
-add_dependencies(oniku_compiler runtime_xcvm_pb_h runtime_xcvm_proto_util_h)
+add_dependencies(
+  oniku_compiler
+  runtime_xcvm_pb_h runtime_xcvm_proto_util_h gen_node_base_h)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(compiler_test

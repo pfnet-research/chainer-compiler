@@ -40,6 +40,7 @@ add_library(oniku_runtime
   xcvm_state.cc
   xcvm_var.cc
   )
+add_dependencies(oniku_runtime runtime_xcvm_pb_h runtime_xcvm_proto_util_h)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(runtime_test
