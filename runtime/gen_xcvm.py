@@ -294,17 +294,10 @@ XC_OPS = [
 ]
 
 XC_SEQ_OPS = [
+    ('SequenceCreate', [], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Array('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
      [Sequence('gx')]),
-]
-
-XC_SEQ_OPS_UNTYPED = [
-    ('SequenceCreate', [], [Sequence('output')]),
-    ('SequenceClear', [Sequence('seq')], []),
-    ('SequenceAppend', [Sequence('seq'), Array('value'), Int('move_aux')],
-     []),
-    ('SequencePop', [Sequence('seq'), Int('move_aux')], ['output']),
     ('SequenceGetSlice',
      [Sequence('seq'), OptionalArray('start'),
       OptionalArray('end'), OptionalArray('step')],
@@ -321,13 +314,21 @@ XC_SEQ_OPS_UNTYPED = [
      ['output']),
     ('SequenceRange',
      [Array('arg0'), OptionalArray('arg1'), OptionalArray('arg2')],
-     ['output']),
+     [Sequence('output')]),
     ('SequenceSplit', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceUnpad', [Array('input'), Sequence('lengths')],
      [Sequence('output')]),
     ('SequenceSize', [Sequence('seq')], ['output']),
     ('SequenceLengths', [Sequence('seq')], [Sequence('output')]),
     ('SequenceCopy', [Sequence('seq')], [Sequence('output')]),
+]
+
+# Ops which modify the input in-place.
+XC_SEQ_OPS_UNTYPED = [
+    ('SequenceClear', [Sequence('seq')], []),
+    ('SequenceAppend', [Sequence('seq'), Array('value'), Int('move_aux')],
+     []),
+    ('SequencePop', [Sequence('seq'), Int('move_aux')], [Sequence('output')]),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 
