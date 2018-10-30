@@ -17,6 +17,7 @@ ARRAY = 'ARRAY'
 OPTIONAL_ARRAY = 'OPTIONAL_ARRAY'
 ARRAY_LIST = 'ARRAY_LIST'
 SEQUENCE = 'SEQUENCE'
+OPAQUE = 'OPAQUE'
 INT = 'INT'
 FLOAT = 'FLOAT'
 INTS = 'INTS'
@@ -25,7 +26,7 @@ LONGS = 'LONGS'
 DOUBLES = 'DOUBLES'
 
 ARG_TYPES = [
-    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE
+    ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, OPAQUE
 ]
 
 FIELD_TYPES = [
@@ -45,7 +46,7 @@ class ValueInfo(_ValueInfo):
         return self.typ in [INTS, ARRAY_LIST, LONGS, DOUBLES]
 
     def c_type(self):
-        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE]:
+        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE]:
             return 'int'
         elif self.typ == FLOAT:
             return 'float'
@@ -89,6 +90,8 @@ class ValueInfo(_ValueInfo):
             return 'doubles'
         elif self.typ == ARRAY_LIST:
             return 'array_list'
+        elif self.typ == OPAQUE:
+            return 'opaque'
         else:
             raise RuntimeError('Unknown type: %s' % self.typ)
 
@@ -107,6 +110,10 @@ def ArrayList(name):
 
 def Sequence(name):
     return ValueInfo(SEQUENCE, name)
+
+
+def Opaque(name):
+    return ValueInfo(OPAQUE, name)
 
 
 def Int(name):
@@ -138,6 +145,8 @@ def sigil(typ):
         return '$'
     elif typ == SEQUENCE:
         return '@'
+    elif typ == OPAQUE:
+        return '*'
     else:
         raise RuntimeError('Not a varaible: %s' % typ)
 
@@ -219,13 +228,13 @@ XC_OPS = [
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('cover_all')],
-     ['y']),
+     ['y', Opaque('ctx')]),
     ('AveragePool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
       Int('count_include_pad')],
-     ['y']),
-    ('MaxPoolGrad', [Array('y'), Array('gy')], ['gx']),
-    ('AveragePoolGrad', [Array('y'), Array('gy')], ['gx']),
+     ['y', Opaque('ctx')]),
+    ('MaxPoolGrad', [Array('gy'), Opaque('ctx')], ['gx']),
+    ('AveragePoolGrad', [Array('gy'), Opaque('ctx')], ['gx']),
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
@@ -389,6 +398,7 @@ def gen_xcvm_proto():
     lines.append('optional int32 sequence = 8;')
     lines.append('repeated int64 longs = 9;')
     lines.append('repeated double doubles = 10;')
+    lines.append('optional int32 opaque = 11;')
     lines.append('}')
 
     lines.append('message XCInstructionProto {')
@@ -439,6 +449,8 @@ def gen_gen_xcvm_ops_h():
                     args.append('const std::vector<chainerx::Array>& %s' % name)
                 elif typ == SEQUENCE:
                     args.append('const XCVMSequence& %s' % name)
+                elif typ == OPAQUE:
+                    args.append('const XCVMOpaque& %s' % name)
                 else:
                     assert typ in FIELD_TYPES, 'Unknown type: %s' % typ
 
@@ -448,6 +460,8 @@ def gen_gen_xcvm_ops_h():
                     output_ctypes.append('std::vector<chainerx::Array>')
                 elif typ == SEQUENCE:
                     args.append('XCVMSequence* %s' % name)
+                elif typ == OPAQUE:
+                    output_ctypes.append('XCVMOpaque*')
                 else:
                     output_ctypes.append('chainerx::Array')
 
@@ -548,7 +562,7 @@ def gen_gen_xcvm_ops_cc():
         for i, (typ, name) in enumerate(op.inputs):
             if i:
                 line += ' << ", "'
-            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE]:
                 line += ' << "%s" << %s' % (sigil(typ), name)
             elif typ in (INT, FLOAT):
                 line += ' << %s' % name
@@ -588,6 +602,8 @@ def gen_gen_xcvm_ops_cc():
                     args.append('st->GetArrayList(%s)' % name)
                 elif typ == SEQUENCE:
                     args.append('*st->GetSequence(%s)' % name)
+                elif typ == OPAQUE:
+                    args.append('st->GetOpaque(%s)' % name)
 
             outputs = []
             for output in op.outputs:
@@ -602,13 +618,20 @@ def gen_gen_xcvm_ops_cc():
                 typ, name = outputs[0]
                 if typ == ARRAY_LIST:
                     lines.append('st->SetArrayList(%s, %s);' % (name, call))
+                elif typ == OPAQUE:
+                    lines.append('st->SetOpaque(%s, %s);' % (name, call))
                 else:
                     lines.append('st->SetArray(%s, %s);' % (name, call))
             elif outputs:
                 lines.append('auto r_ = ' + call + ';')
-                for i, (_, output) in enumerate(outputs):
+                for i, (typ, output) in enumerate(outputs):
                     # TODO(hamaji): Revisit optional outputs.
-                    lines.append('if (%s >= 0) st->SetArray(%s, std::get<%d>(r_));' % (output, output, i))
+                    line = 'if (%s >= 0) ' % output
+                    if typ == OPAQUE:
+                        line += 'st->SetOpaque(%s, std::get<%d>(r_));' % (output, i)
+                    else:
+                        line += 'st->SetArray(%s, std::get<%d>(r_));' % (output, i)
+                    lines.append(line)
             else:
                 lines.append(call + ';')
         else:
@@ -616,7 +639,7 @@ def gen_gen_xcvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.outputs:
-            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE]:
                 line += ' << " %s" << %s << "="' % (sigil(typ), name)
                 line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:

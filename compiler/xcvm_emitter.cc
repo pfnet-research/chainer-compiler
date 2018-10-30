@@ -357,14 +357,27 @@ private:
             EMIT(Pad, out(0), in(0), node.pads(), node.value());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            EMIT(MaxPool, out(0), in(0), node.kernel_shape(), strides(), pads(), node.onikux_cover_all());
+            if (node.outputs().size() == 1) {
+                int tmp_id = next_value_id_++;
+                EMIT(MaxPool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.onikux_cover_all());
+                FREE(tmp_id);
+            } else {
+                CHECK_EQ(3UL, node.outputs().size());
+                CHECK(node.outputs()[1]->IsNull());
+                EMIT(MaxPool, out(0), out(2), in(0), node.kernel_shape(), strides(), pads(), node.onikux_cover_all());
+            }
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(AveragePool, out(0), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+            if (node.outputs().size() == 1) {
+                int tmp_id = next_value_id_++;
+                EMIT(AveragePool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+                FREE(tmp_id);
+            } else {
+                CHECK_EQ(2UL, node.outputs().size());
+                EMIT(AveragePool, out(0), out(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+            }
         } else if (node.op_type() == Node::kSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

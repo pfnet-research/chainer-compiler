@@ -158,15 +158,17 @@ pool_attrs = attr_sets(auto_pad='NOTSET',
                        pads=[int],
                        storage_order=0,
                        strides=[int])
-NodeDef('MaxPool', 1, (1, 2), onikux_cover_all=False, **pool_attrs)
-NodeDef('AveragePool', 1, 1, count_include_pad=False, **pool_attrs)
+# Extension: the third output is for backward context.
+NodeDef('MaxPool', 1, (1, 2, 3), onikux_cover_all=False, **pool_attrs)
+# Extension: the second output is for backward context.
+NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
-# We extend `If` so it takes N+1 inputs.
+# Extension: it takes N+1 inputs.
 NodeDef('If', None, None, else_branch=Graph, then_branch=Graph)
 NodeDef('Loop', None, None, body=Graph, onikux_stack_axis=0)
 NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))

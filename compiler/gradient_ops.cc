@@ -339,11 +339,22 @@ void ConvGradFn(GradientOpContext* gc) {
 }
 
 void MaxPoolGradFn(GradientOpContext* gc) {
-    gc->GradOp(Node::kOnikuxMaxPoolGrad, 0, {gc->y(0), gc->gy(0)});
+    GraphBuilder gb{gc->builder(0)};
+    Node* node = gc->node();
+    if (node->outputs().size() == 1) node->AddOutput(gb.Null());
+    CHECK_EQ(2, node->outputs().size());
+    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
+    node->AddOutput(context);
+    gc->GradOp(Node::kOnikuxMaxPoolGrad, 0, {gc->gy(0), context});
 }
 
 void AveragePoolGradFn(GradientOpContext* gc) {
-    gc->GradOp(Node::kOnikuxAveragePoolGrad, 0, {gc->y(0), gc->gy(0)});
+    GraphBuilder gb{gc->builder(0)};
+    Node* node = gc->node();
+    CHECK_EQ(1, node->outputs().size());
+    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
+    node->AddOutput(context);
+    gc->GradOp(Node::kOnikuxAveragePoolGrad, 0, {gc->gy(0), context});
 }
 
 void LogSoftmaxGradFn(GradientOpContext* gc) {
