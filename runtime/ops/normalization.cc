@@ -148,25 +148,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalization
     return std::forward_as_tuple(gxs[0], gx1, gx2);
 }
 
-namespace {
-
-class LRNBackwardContext : public XCVMState::Auxiliary {
-public:
-    explicit LRNBackwardContext(const chainerx::Array& unit_scale) : unit_scale_(unit_scale) {
-    }
-    virtual ~LRNBackwardContext() = default;
-
-    const chainerx::Array& unit_scale() const {
-        return unit_scale_;
-    }
-
-private:
-    chainerx::Array unit_scale_;
-};
-
-}  // namespace
-
-chainerx::Array LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     int half_n = size / 2;
     chainerx::Array x2 = x * x;
     chainerx::Array sum_part = x2.Copy();
@@ -181,15 +163,12 @@ chainerx::Array LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array unit_scale = bias + (alpha / size) * sum_part;
     // TODO(hamaji): Add `Pow` and use it.
     chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
-    st->SetAux(this->y, std::shared_ptr<XCVMState::Auxiliary>(new LRNBackwardContext(unit_scale)));
-    return x * scale;
+    chainerx::Array out = x * scale;
+    return std::tie(out, unit_scale);
 }
 
-chainerx::Array LRNGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
-    auto ctx = dynamic_cast<LRNBackwardContext*>(st->GetAux(this->y).get());
-    CHECK(ctx);
+chainerx::Array LRNGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy, const chainerx::Array& unit_scale) {
     int half_n = size / 2;
-    chainerx::Array unit_scale = ctx->unit_scale();
     chainerx::Array summand = y * gy / unit_scale;
     chainerx::Array sum_part = summand.Copy();
     std::vector<chainerx::ArrayIndex> indices1(summand.shape().size(), chainerx::Slice());

@@ -344,18 +344,20 @@ private:
             if (node.outputs().size() == 2 || node.outputs().size() == 6) {
                 EMIT(BatchNormalization, out(0), out(node.outputs().size() - 1), in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
             } else {
-                int ctx_id = next_value_id_++;
-                EMIT(BatchNormalization, out(0), ctx_id, in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
-                FREE(ctx_id);
+                int tmp_id = next_value_id_++;
+                EMIT(BatchNormalization, out(0), tmp_id, in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+                FREE(tmp_id);
             }
         } else if (node.op_type() == Node::kLRN) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(LRN, out(0), in(0), node.alpha(), node.beta(), node.bias(), node.size());
+            if (node.outputs().size() == 1) {
+                int tmp_id = next_value_id_++;
+                EMIT(LRN, out(0), tmp_id, in(0), node.alpha(), node.beta(), node.bias(), node.size());
+                FREE(tmp_id);
+            } else {
+                EMIT(LRN, out(0), out(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
+            }
         } else if (node.op_type() == Node::kOnikuxLRNGrad) {
-            CHECK_EQ(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            EMIT(LRNGrad, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.bias(), node.size());
+            EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kPad) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

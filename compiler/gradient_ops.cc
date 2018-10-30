@@ -398,8 +398,11 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
 }
 
 void LRNGradFn(GradientOpContext* gc) {
-    const Node* node = gc->node();
-    gc->GradOp(Node::kOnikuxLRNGrad, 0, {gc->x(0), gc->y(0), gc->gy(0)})
+    GraphBuilder gb{gc->builder(0)};
+    Node* node = gc->node();
+    Value* unit_scale = gb.Temp();
+    node->AddOutput(unit_scale);
+    gc->GradOp(Node::kOnikuxLRNGrad, 0, {gc->x(0), gc->y(0), gc->gy(0), unit_scale})
             ->producer()
             ->set_alpha(node->alpha())
             ->set_beta(node->beta())

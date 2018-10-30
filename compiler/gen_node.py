@@ -152,7 +152,8 @@ NodeDef('ConvTranspose', (2, 3), 1,
 
 # Extension: the second or the sixth output is for backward context.
 NodeDef('BatchNormalization', 5, (1, 2, 5, 6), epsilon=1e-5, momentum=0.9, spatial=1)
-NodeDef('LRN', 1, 1, alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
+# Extension: the second output is for backward context.
+NodeDef('LRN', 1, (1, 2), alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 
 pool_attrs = attr_sets(auto_pad='NOTSET',
                        kernel_shape=Required([int]),
@@ -183,7 +184,7 @@ NodeDef('OnikuxConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 NodeDef('OnikuxSoftmaxCrossEntropy', 2, 1)
 NodeDef('OnikuxSelectItem', 2, 1)
 NodeDef('OnikuxSelectItemGrad', 3, 1)
-NodeDef('OnikuxLRNGrad', 3, 1,
+NodeDef('OnikuxLRNGrad', 4, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 # body_ref is a name of a sub Graph in a sibling Loop node.
