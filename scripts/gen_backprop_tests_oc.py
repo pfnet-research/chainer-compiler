@@ -60,9 +60,7 @@ def get_backprop_tests():
         tests.append(BackpropTest(name, fn, **kwargs))
 
     def aranges(*shape):
-        r = 1
-        for d in shape:
-            r *= d
+        r = np.prod(shape)
         return np.arange(r).reshape(shape).astype(np.float32)
 
     test('add1', lambda m: m.a + m.b, a=[3], b=[7])

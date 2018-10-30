@@ -89,9 +89,7 @@ def get_backprop_tests():
         tests.append(BackpropTest(name, model, inputs, rtol=rtol, fail=fail))
 
     def aranges(*shape):
-        r = 1
-        for d in shape:
-            r *= d
+        r = np.prod(shape)
         return np.arange(r).reshape(shape).astype(np.float32)
 
     class Nop(chainer.Chain):
