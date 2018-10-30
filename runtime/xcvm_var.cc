@@ -8,6 +8,10 @@ namespace runtime {
 
 XCVMVar::XCVMVar(Kind kind) : kind_(kind) {
     CHECK(kind_ != Kind::kArray);
+    CHECK(kind_ != Kind::kOpaque);
+    if (kind_ == Kind::kSequence) {
+        sequence_.reset(new XCVMSequence());
+    }
 }
 
 XCVMVar::XCVMVar(chainerx::Array array)
@@ -25,7 +29,7 @@ const chainerx::Array& XCVMVar::GetArray() {
 
 XCVMSequence* XCVMVar::GetSequence() {
     CHECK(kind_ == Kind::kSequence) << static_cast<int>(kind_);
-    return &sequence_;
+    return sequence_.get();
 }
 
 XCVMOpaque* XCVMVar::GetOpaque() {
@@ -40,7 +44,7 @@ int64_t XCVMVar::GetTotalSize() const {
             size = array_.GetNBytes();
             break;
         case Kind::kSequence:
-            for (const nonstd::optional<chainerx::Array>& a : sequence_) size += a->GetNBytes();
+            for (const nonstd::optional<chainerx::Array>& a : *sequence_) size += a->GetNBytes();
             break;
         case Kind::kOpaque:
         case Kind::kNull:
@@ -68,7 +72,7 @@ std::string XCVMVar::ToString() const {
         case Kind::kArray:
             return array_.shape().ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->shape().ToString() : "(null)"; })), ']');
+            return StrCat('[', Join(MapToString(*sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->shape().ToString() : "(null)"; })), ']');
         case Kind::kOpaque:
             return opaque_->ToString();
         case Kind::kNull:
@@ -82,7 +86,7 @@ std::string XCVMVar::DebugString() const {
         case Kind::kArray:
             return array_.ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->ToString() : "(null)"; })), ']');
+            return StrCat('[', Join(MapToString(*sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->ToString() : "(null)"; })), ']');
         case Kind::kOpaque:
             return opaque_->DebugString();
         case Kind::kNull:

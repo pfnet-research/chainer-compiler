@@ -53,7 +53,7 @@ public:
 private:
     Kind kind_;
     chainerx::Array array_;
-    XCVMSequence sequence_;
+    std::shared_ptr<XCVMSequence> sequence_;
     std::shared_ptr<XCVMOpaque> opaque_;
 };
 
