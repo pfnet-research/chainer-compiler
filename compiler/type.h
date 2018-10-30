@@ -13,6 +13,11 @@ namespace oniku {
 
 class Type {
 public:
+    enum class Kind {
+        kTensor, kSequence, kMap, kOpaque
+    };
+
+    explicit Type(Kind kind);
     explicit Type(const onnx::TypeProto& xtype);
     Type(Dtype dtype, const std::vector<int64_t>& dims);
 
@@ -40,11 +45,8 @@ public:
         return is_known_;
     }
 
-    bool is_sequence() const {
-        return sequence_.get();
-    }
-
 private:
+    Kind kind_{Kind::kTensor};
     Dtype dtype_{Dtype::kUnknown};
     std::vector<int64_t> dims_;
     std::vector<std::string> dim_params_;

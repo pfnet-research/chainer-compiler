@@ -41,6 +41,9 @@ public:
     }
 
     Value* Temp();
+    Value* Temp(const Type& type);
+
+    Value* Null();
 
     std::string GenName();
 

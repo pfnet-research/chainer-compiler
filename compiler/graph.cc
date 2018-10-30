@@ -146,13 +146,12 @@ std::set<Value*> Graph::GetNecessaryValues() const {
     return GetNecessaryValues(output_values_);
 }
 
-Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
+Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind kind) {
     if (name == "" && kind != Value::Kind::kNull) {
         CHECK(kind == Value::Kind::kTemp) << static_cast<int>(kind);
-        ;
         kind = Value::Kind::kNull;
     }
-    Value* value = new Value(name, kind);
+    Value* value = new Value(name, type, kind);
     all_values_.emplace_back(value);
     switch (kind) {
         case Value::Kind::kInput:
@@ -170,6 +169,10 @@ Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
             CHECK(false) << static_cast<int>(kind);
     }
     return value;
+}
+
+Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
+    return AddValue(name, Type(Dtype::kUnknown, {}), kind);
 }
 
 Value* Graph::AddInputValue(const std::string& name, const Type& type) {

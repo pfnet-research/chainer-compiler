@@ -46,6 +46,14 @@ Value* GraphBuilder::Temp() {
     return graph_->AddValue(GenName());
 }
 
+Value* GraphBuilder::Temp(const Type& type) {
+    return graph_->AddValue(GenName(), type);
+}
+
+Value* GraphBuilder::Null() {
+    return graph_->AddNullValue();
+}
+
 std::string GraphBuilder::GenName() {
     int id = id_++;
     return StrCat(category_, '_', target_, '_', id);

@@ -4,10 +4,26 @@
 
 namespace oniku {
 
+Type::Type(Kind kind)
+    : kind_(kind) {
+    is_known_ = false;
+}
+
 Type::Type(const onnx::TypeProto& xtype) {
     if (xtype.has_sequence_type()) {
+        kind_ = Kind::kSequence;
         is_known_ = false;
         sequence_.reset(new Type(xtype.sequence_type().elem_type()));
+        return;
+    }
+
+    if (xtype.has_map_type()) {
+        CHECK(false) << "ONNX map not implemented yet";
+    }
+
+    if (xtype.has_opaque_type()) {
+        kind_ = Kind::kOpaque;
+        is_known_ = false;
         return;
     }
 
@@ -29,11 +45,14 @@ Type::Type(const onnx::TypeProto& xtype) {
     }
 }
 
-Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_(dims) {
+Type::Type(Dtype dtype, const std::vector<int64_t>& dims)
+    : dtype_(dtype),
+      dims_(dims) {
 }
 
 Type::Type(const Type& type)
-    : dtype_(type.dtype_),
+    : kind_(type.kind_),
+      dtype_(type.dtype_),
       dims_(type.dims_),
       dim_params_(type.dim_params_),
       denotations_(type.denotations_),
@@ -42,8 +61,18 @@ Type::Type(const Type& type)
 }
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {
-    if (sequence_.get()) {
+    if (kind_ == Kind::kSequence) {
         sequence_->ToONNX(xtype->mutable_sequence_type()->mutable_elem_type());
+        return;
+    }
+    CHECK(sequence_.get() == nullptr);
+
+    if (kind_ == Kind::kMap) {
+        CHECK(false) << "ONNX map not implemented yet";
+    }
+
+    if (kind_ == Kind::kOpaque) {
+        xtype->mutable_opaque_type();
         return;
     }
 
@@ -64,7 +93,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
 }
 
 int64_t Type::NumElements() const {
-    CHECK(!is_sequence());
+    CHECK(kind_ == Kind::kTensor) << static_cast<int>(kind_);
     if (!is_known_) return -1;
     int64_t num = 1;
     for (int d : dims_) {
