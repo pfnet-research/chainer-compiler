@@ -341,7 +341,13 @@ private:
         } else if (node.op_type() == Node::kBatchNormalization) {
             // TODO(hamaji): Handle running mean and variance for training mode.
             CHECK_EQ(5UL, node.inputs().size());
-            EMIT(BatchNormalization, out(0), in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+            if (node.outputs().size() == 2 || node.outputs().size() == 6) {
+                EMIT(BatchNormalization, out(0), out(node.outputs().size() - 1), in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+            } else {
+                int ctx_id = next_value_id_++;
+                EMIT(BatchNormalization, out(0), ctx_id, in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+                FREE(ctx_id);
+            }
         } else if (node.op_type() == Node::kLRN) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

@@ -383,11 +383,15 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 }
 
 void BatchNormalizationGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Node* node = gc->node();
+    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
+    node->AddOutput(context);
     Value* gx0 = gc->AddGradValue(0);
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
-    gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gc->y(0), gc->gy(0)}, {gx0, gx1, gx2}, __func__);
-    Value* zero = gc->graph()->AddConstValue("grad_tmp_zero@" + gc->x(0)->name(), Type(GetFloatDtype(gc->x(0)), {1}), {0.0});
+    gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gc->gy(0), context}, {gx0, gx1, gx2}, __func__);
+    Value* zero = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {0.0});
     // No gradients since update should have been done for running mean/variance.
     gc->SetGrad(3, zero);
     gc->SetGrad(4, zero);

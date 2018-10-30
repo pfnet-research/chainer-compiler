@@ -11,14 +11,14 @@ namespace runtime {
 
 namespace {
 
-class BatchNormBackwardContext : public XCVMState::Auxiliary {
+class BatchNormBackwardContext : public XCVMOpaque {
 public:
     BatchNormBackwardContext(std::unique_ptr<chainerx::BatchNormForwardBackward>&& fb, chainerx::Shape x1_shape, chainerx::Shape x2_shape)
         : fb_(std::move(fb)), x1_shape_(x1_shape), x2_shape_(x2_shape) {
     }
     virtual ~BatchNormBackwardContext() = default;
 
-    chainerx::BatchNormForwardBackward* fb() {
+    chainerx::BatchNormForwardBackward* fb() const {
         return fb_.get();
     }
 
@@ -107,7 +107,7 @@ PreprocessBatchNormResult PreprocessBatchNorm(
 
 }  // namespace
 
-chainerx::Array BatchNormalizationOp::RunImpl(
+std::tuple<chainerx::Array, XCVMOpaque*> BatchNormalizationOp::RunImpl(
         XCVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& s,
@@ -130,21 +130,21 @@ chainerx::Array BatchNormalizationOp::RunImpl(
         const Array& gamma_reshaped = result.gamma;
         const Array& beta_reshaped = result.beta;
         chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
-        std::shared_ptr<XCVMState::Auxiliary> pfb(new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape()));
-        st->SetAux(this->y, pfb);
-        return out;
+        XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
+        return std::tie(out, ctx);
     } else {
-        return chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+        chainerx::Array out = chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+        XCVMOpaque* ctx = nullptr;
+        return std::tie(out, ctx);
     }
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& y, const chainerx::Array& gy) {
-    auto ctx = dynamic_cast<BatchNormBackwardContext*>(st->GetAux(this->y).get());
-    CHECK(ctx);
-    std::array<chainerx::Array, 3> gxs = ctx->fb()->Backward(gy);
-    chainerx::Array gx1 = chainerx::Reshape(gxs[1], ctx->x1_shape());
-    chainerx::Array gx2 = chainerx::Reshape(gxs[2], ctx->x2_shape());
+        XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
+    auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
+    std::array<chainerx::Array, 3> gxs = context.fb()->Backward(gy);
+    chainerx::Array gx1 = chainerx::Reshape(gxs[1], context.x1_shape());
+    chainerx::Array gx2 = chainerx::Reshape(gxs[2], context.x2_shape());
     return std::forward_as_tuple(gxs[0], gx1, gx2);
 }
 

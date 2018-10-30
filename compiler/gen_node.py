@@ -150,7 +150,8 @@ NodeDef('Conv', (2, 3), 1, **conv_attrs)
 NodeDef('ConvTranspose', (2, 3), 1,
         output_padding=[int], output_shape=[int], **conv_attrs)
 
-NodeDef('BatchNormalization', 5, (1, 5), epsilon=1e-5, momentum=0.9, spatial=1)
+# Extension: the second or the sixth output is for backward context.
+NodeDef('BatchNormalization', 5, (1, 2, 5, 6), epsilon=1e-5, momentum=0.9, spatial=1)
 NodeDef('LRN', 1, 1, alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 
 pool_attrs = attr_sets(auto_pad='NOTSET',
