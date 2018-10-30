@@ -47,7 +47,7 @@ void SequenceAppendOp::RunImpl(XCVMState* st) {
 }
 
 void SequencePopOp::RunImpl(XCVMState* st) {
-    std::vector<nonstd::optional<chainerx::Array>>* v = st->GetSequence(seq);
+    XCVMSequence* v = st->GetSequence(seq);
     CHECK(!v->empty());
     st->SetArray(output, *v->back());
     v->pop_back();
@@ -159,7 +159,7 @@ void SequenceRangeOp::RunImpl(XCVMState* st, const chainerx::Array& arg0, const 
 
 namespace {
 
-void SplitToSequence(chainerx::Array v, int axis, std::vector<nonstd::optional<chainerx::Array>>* seq) {
+void SplitToSequence(chainerx::Array v, int axis, XCVMSequence* seq) {
     std::vector<int64_t> lens(v.shape()[axis], 1);
     for (chainerx::Array a : Split(v, lens, axis)) {
         chainerx::Shape shape{a.shape()};
@@ -202,8 +202,8 @@ void SequenceCopyOp::RunImpl(XCVMState* st, const XCVMSequence& seq, XCVMSequenc
 }
 
 void SequenceMoveOp::RunImpl(XCVMState* st) {
-    std::vector<nonstd::optional<chainerx::Array>>* s = st->GetSequence(seq);
-    std::vector<nonstd::optional<chainerx::Array>>* d = st->CreateSequence(output);
+    XCVMSequence* s = st->GetSequence(seq);
+    XCVMSequence* d = st->CreateSequence(output);
     CHECK(d->empty());
     std::swap(*d, *s);
 }

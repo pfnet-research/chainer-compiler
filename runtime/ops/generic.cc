@@ -54,8 +54,8 @@ void IdentityOp::RunImpl(XCVMState* st) {
             break;
 
         case XCVMVar::Kind::kSequence: {
-            const std::vector<nonstd::optional<chainerx::Array>>& s = *var->GetSequence();
-            std::vector<nonstd::optional<chainerx::Array>>* d = st->CreateSequence(y);
+            const XCVMSequence& s = *var->GetSequence();
+            XCVMSequence* d = st->CreateSequence(y);
             CHECK(d->empty());
             *d = s;
             break;
@@ -95,7 +95,7 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
             break;
 
         case XCVMVar::Kind::kSequence: {
-            const std::vector<nonstd::optional<chainerx::Array>>& v = *var->GetSequence();
+            const XCVMSequence& v = *var->GetSequence();
             CHECK_LT(i, v.size());
             st->SetArray(output, *v[i]);
             break;
@@ -128,8 +128,8 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
         }
 
         case XCVMVar::Kind::kSequence: {
-            const std::vector<nonstd::optional<chainerx::Array>>& v = *var->GetSequence();
-            std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
+            const XCVMSequence& v = *var->GetSequence();
+            XCVMSequence* seq = st->CreateSequence(output);
             if (step > 0) {
                 for (int64_t i = start; i < end; i += step) {
                     CHECK_LE(0, i);
@@ -166,7 +166,7 @@ void GenericAddOp::RunImpl(XCVMState* st) {
         };
         st->SetArray(output, to_a(var0) + to_a(var1));
     } else {
-        std::vector<nonstd::optional<chainerx::Array>>* seq = st->CreateSequence(output);
+        XCVMSequence* seq = st->CreateSequence(output);
         *seq = *var0->GetSequence();
         for (const auto& a : *var1->GetSequence()) seq->push_back(a);
     }
@@ -210,9 +210,9 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
         break;
     }
     case XCVMVar::Kind::kSequence: {
-        const std::vector<nonstd::optional<chainerx::Array>>& seq0 = *var0->GetSequence();
-        const std::vector<nonstd::optional<chainerx::Array>>& seq1 = *var1->GetSequence();
-        std::vector<nonstd::optional<chainerx::Array>>* out = st->CreateSequence(output);
+        const XCVMSequence& seq0 = *var0->GetSequence();
+        const XCVMSequence& seq1 = *var1->GetSequence();
+        XCVMSequence* out = st->CreateSequence(output);
         CHECK(seq0.size() == seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
         out->resize(seq0.size());
         for (size_t i = 0; i < seq0.size(); ++i) {

@@ -57,5 +57,7 @@ private:
     std::shared_ptr<XCVMOpaque> opaque_;
 };
 
+std::vector<chainerx::Array> NonOptional(const XCVMSequence& v);
+
 }  // namespace runtime
 }  // namespace oniku

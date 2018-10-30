@@ -91,5 +91,13 @@ std::string XCVMVar::DebugString() const {
     CHECK(false);
 }
 
+std::vector<chainerx::Array> NonOptional(const XCVMSequence& v) {
+    std::vector<chainerx::Array> r;
+    for (const nonstd::optional<chainerx::Array>& a : v) {
+        r.push_back(*a);
+    }
+    return r;
+}
+
 }  // namespace runtime
 }  // namespace oniku
