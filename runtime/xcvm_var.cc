@@ -43,6 +43,7 @@ int64_t XCVMVar::GetTotalSize() const {
             for (const nonstd::optional<chainerx::Array>& a : sequence_) size += a->GetNBytes();
             break;
         case Kind::kOpaque:
+        case Kind::kNull:
             CHECK(false) << DebugString();
     }
     return size;
@@ -56,6 +57,8 @@ char XCVMVar::Sigil() const {
             return '$';
         case Kind::kOpaque:
             return '*';
+        case Kind::kNull:
+            CHECK(false);
     }
     CHECK(false);
 }
@@ -68,6 +71,8 @@ std::string XCVMVar::ToString() const {
             return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->shape().ToString() : "(null)"; })), ']');
         case Kind::kOpaque:
             return opaque_->ToString();
+        case Kind::kNull:
+            return "(null)";
     }
     CHECK(false);
 }
@@ -80,6 +85,8 @@ std::string XCVMVar::DebugString() const {
             return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->ToString() : "(null)"; })), ']');
         case Kind::kOpaque:
             return opaque_->DebugString();
+        case Kind::kNull:
+            return "(null)";
     }
     CHECK(false);
 }

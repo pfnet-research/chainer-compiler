@@ -21,6 +21,7 @@ int64_t GetSize(XCVMVar* var) {
         case XCVMVar::Kind::kSequence:
             return var->GetSequence()->size();
         case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
@@ -61,6 +62,7 @@ void IdentityOp::RunImpl(XCVMState* st) {
         }
 
         case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
 }
@@ -100,6 +102,7 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
         }
 
         case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
 }
@@ -145,6 +148,7 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
         }
 
         case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
 }
@@ -224,6 +228,7 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
     }
 
     case XCVMVar::Kind::kOpaque:
+    case XCVMVar::Kind::kNull:
         CHECK(false) << var0->DebugString();
     }
 }

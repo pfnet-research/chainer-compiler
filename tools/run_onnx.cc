@@ -178,6 +178,7 @@ XCVMVar* StageVar(XCVMVar* var) {
         }
 
         case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
@@ -372,6 +373,7 @@ void RunMain(int argc, char** argv) {
                     case XCVMVar::Kind::kSequence:
                         return Join(MapToString(*v->GetSequence(), array_str));
                     case XCVMVar::Kind::kOpaque:
+                    case XCVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
                 }
                 CHECK(false);
@@ -430,6 +432,7 @@ void RunMain(int argc, char** argv) {
                 }
 
                 case XCVMVar::Kind::kOpaque:
+                case XCVMVar::Kind::kNull:
                     CHECK(false) << expected->DebugString();
             }
 

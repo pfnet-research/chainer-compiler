@@ -26,6 +26,7 @@ public:
         kArray,
         kSequence,
         kOpaque,
+        kNull,
     };
 
     explicit XCVMVar(Kind kind);
