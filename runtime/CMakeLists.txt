@@ -58,4 +58,8 @@ target_link_libraries(runtime_test
   ${CUDA_CUDART_LIBRARY}
   )
 
-add_test(NAME runtime_test COMMAND runtime_test)
+add_test(
+  NAME runtime_test
+  COMMAND runtime_test
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )

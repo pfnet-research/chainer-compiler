@@ -65,4 +65,8 @@ target_link_libraries(compiler_test
   pthread
   )
 
-add_test(NAME compiler_test COMMAND compiler_test)
+add_test(
+  NAME compiler_test
+  COMMAND compiler_test
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
