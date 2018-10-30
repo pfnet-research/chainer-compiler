@@ -223,7 +223,8 @@ NodeDef('OnikuxSequenceGetSlice', (1, 2, 3, 4), 1)
 NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 
 # Concatenates elements in a sequence: ([T]) -> (T)
-NodeDef('OnikuxSequenceConcat', 1, 1, axis=0)
+# The second output is for backward context.
+NodeDef('OnikuxSequenceConcat', 1, (1, 2), axis=0)
 
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequencePad', 1, 1, length=0, value=0.0)

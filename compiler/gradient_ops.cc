@@ -631,8 +631,11 @@ void SequenceAppendGradFn(GradientOpContext* gc) {
 }
 
 void SequenceConcatGradFn(GradientOpContext* gc) {
-    const Node* node = gc->node();
-    gc->GradOp(Node::kOnikuxSequenceConcatGrad, 0, {gc->y(0), gc->gy(0)})
+    GraphBuilder gb{gc->builder(0)};
+    Node* node = gc->node();
+    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
+    node->AddOutput(context);
+    gc->GradOp(Node::kOnikuxSequenceConcatGrad, 0, {gc->gy(0), context})
         ->producer()->set_axis(node->axis());
 }
 

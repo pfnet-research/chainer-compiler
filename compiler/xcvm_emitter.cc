@@ -545,7 +545,13 @@ private:
         } else if (node.op_type() == Node::kOnikuxSequenceStack) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceConcat) {
-            EMIT(SequenceConcat, out(0), in(0), node.axis());
+            if (node.outputs().size() == 1) {
+                int tmp_id = next_value_id_++;
+                EMIT(SequenceConcat, out(0), tmp_id, in(0), node.axis());
+                FREE(tmp_id);
+            } else {
+                EMIT(SequenceConcat, out(0), out(1), in(0), node.axis());
+            }
         } else if (node.op_type() == Node::kOnikuxSequenceConcatGrad) {
             EMIT(SequenceConcatGrad, out(0), in(0), in(1), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceSplit) {

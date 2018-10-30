@@ -11,13 +11,13 @@ namespace runtime {
 
 namespace {
 
-class ConcatBackwardContext : public XCVMState::Auxiliary {
+class ConcatBackwardContext : public XCVMOpaque {
 public:
     explicit ConcatBackwardContext(const std::vector<int64_t>& split) : split_(split) {
     }
     virtual ~ConcatBackwardContext() = default;
 
-    const std::vector<int64_t>& split() {
+    const std::vector<int64_t>& split() const {
         return split_;
     }
 
@@ -114,20 +114,19 @@ chainerx::Array SequenceStackOp::RunImpl(XCVMState* st, const XCVMSequence& seq)
     return Stack(NonOptional(seq), axis);
 }
 
-chainerx::Array SequenceConcatOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
+std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
     std::vector<int64_t> split;
     for (const XCVMVar& v : seq) {
         split.push_back(v.GetArray().shape()[axis]);
     }
-    st->SetAux(output, std::shared_ptr<XCVMState::Auxiliary>(new ConcatBackwardContext(split)));
-    return Concat(NonOptional(seq), axis);
+    XCVMOpaque* ctx = new ConcatBackwardContext(split);
+    chainerx::Array out = Concat(NonOptional(seq), axis);
+    return std::tie(out, ctx);
 }
 
-void SequenceConcatGradOp::RunImpl(XCVMState* st, const chainerx::Array& y, const chainerx::Array& gy, XCVMSequence* gx) {
-    // TODO(hamaji): Probably better to get rid of auxiliary.
-    auto ctx = dynamic_cast<ConcatBackwardContext*>(st->GetAux(this->y).get());
-    CHECK(ctx);
-    for (const chainerx::Array& a : Split(gy, ctx->split(), axis)) {
+void SequenceConcatGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx, XCVMSequence* gx) {
+    auto& context = dynamic_cast<const ConcatBackwardContext&>(ctx);
+    for (const chainerx::Array& a : Split(gy, context.split(), axis)) {
         gx->emplace_back(a);
     }
 }
