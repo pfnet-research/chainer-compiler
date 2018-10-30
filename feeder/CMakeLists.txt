@@ -30,5 +30,5 @@ target_link_libraries(feeder_test
 add_test(
   NAME feeder_test
   COMMAND feeder_test
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
   )

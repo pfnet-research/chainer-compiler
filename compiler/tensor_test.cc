@@ -11,7 +11,7 @@ namespace oniku {
 namespace {
 
 TEST(TensorTest, LoadMNISTOutput) {
-    std::string path = "../data/mnist/test_data_set_0/output_0.pb";
+    std::string path = "data/mnist/test_data_set_0/output_0.pb";
     onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(path));
     Tensor tensor(xtensor);
     ASSERT_EQ(2, tensor.dims().size());

@@ -15,7 +15,7 @@
 namespace oniku {
 namespace {
 
-const char* kONNXTestDataDir = "../onnx/onnx/backend/test/data";
+const char* kONNXTestDataDir = "onnx/onnx/backend/test/data";
 
 TEST(XCVMTest, Compile) {
     std::string test_path = std::string(kONNXTestDataDir) + "/node/test_add/";

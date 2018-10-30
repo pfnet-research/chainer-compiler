@@ -14,7 +14,7 @@
 namespace oniku {
 namespace {
 
-const char* kONNXTestDataDir = "../onnx/onnx/backend/test/data";
+const char* kONNXTestDataDir = "onnx/onnx/backend/test/data";
 
 // Re-order initializers in the order of inputs so that the model
 // agrees with the expectation of the library.
@@ -66,13 +66,13 @@ TEST(ModelTest, DumpSimpleONNX) {
 }
 
 TEST(ModelTest, LoadMNIST) {
-    std::string path = "../data/mnist/model.onnx";
+    std::string path = "data/mnist/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     Model model(xmodel);
 }
 
 TEST(ModelTest, DumpMNIST) {
-    std::string path = "../data/mnist/model.onnx";
+    std::string path = "data/mnist/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     Model model(xmodel);
     onnx::ModelProto xmodel2;
@@ -92,7 +92,7 @@ TEST(ModelTest, DumpMNIST) {
 }
 
 TEST(ModelTest, LoadResNet50) {
-    std::string path = "../data/resnet50/model.onnx";
+    std::string path = "data/resnet50/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     Model model(xmodel);
 

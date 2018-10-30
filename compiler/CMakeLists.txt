@@ -68,5 +68,5 @@ target_link_libraries(compiler_test
 add_test(
   NAME compiler_test
   COMMAND compiler_test
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
   )

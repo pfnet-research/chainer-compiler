@@ -42,7 +42,7 @@ TEST(TestImageNetIterator, Basic) {
     ASSERT_EQ(2, a.size());
     EXPECT_EQ(chainerx::Shape({5, 3, 192, 192}), a[0].shape());
     EXPECT_EQ(chainerx::Shape({5}), a[1].shape());
-    EXPECT_EQ(0, int(chainerx::AsScalar(a[1].At({2}))));
+    EXPECT_EQ(56, int(chainerx::AsScalar(a[1].At({2}))));
     iter.Terminate();
 }
 
