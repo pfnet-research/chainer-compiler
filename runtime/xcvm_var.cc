@@ -20,7 +20,7 @@ XCVMVar::XCVMVar(XCVMOpaque* opaque)
 
 const chainerx::Array& XCVMVar::GetArray() {
     CHECK(kind_ == Kind::kArray) << static_cast<int>(kind_);
-    return *array_;
+    return array_;
 }
 
 XCVMSequence* XCVMVar::GetSequence() {
@@ -37,7 +37,7 @@ int64_t XCVMVar::GetTotalSize() const {
     int64_t size = 0;
     switch (kind_) {
         case Kind::kArray:
-            size = array_->GetNBytes();
+            size = array_.GetNBytes();
             break;
         case Kind::kSequence:
             for (const nonstd::optional<chainerx::Array>& a : sequence_) size += a->GetNBytes();
@@ -66,7 +66,7 @@ char XCVMVar::Sigil() const {
 std::string XCVMVar::ToString() const {
     switch (kind_) {
         case Kind::kArray:
-            return array_->shape().ToString();
+            return array_.shape().ToString();
         case Kind::kSequence:
             return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->shape().ToString() : "(null)"; })), ']');
         case Kind::kOpaque:
@@ -80,7 +80,7 @@ std::string XCVMVar::ToString() const {
 std::string XCVMVar::DebugString() const {
     switch (kind_) {
         case Kind::kArray:
-            return array_->ToString();
+            return array_.ToString();
         case Kind::kSequence:
             return StrCat('[', Join(MapToString(sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->ToString() : "(null)"; })), ']');
         case Kind::kOpaque:
