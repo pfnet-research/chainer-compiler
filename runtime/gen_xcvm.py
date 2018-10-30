@@ -336,9 +336,9 @@ XC_SEQ_OPS = [
 # Ops which modify the input in-place.
 XC_SEQ_OPS_UNTYPED = [
     ('SequenceClear', [Sequence('seq')], []),
-    ('SequenceAppend', [Sequence('seq'), Array('value'), Int('move_aux')],
+    ('SequenceAppend', [Sequence('seq'), Array('value')],
      []),
-    ('SequencePop', [Sequence('seq'), Int('move_aux')], [Sequence('output')]),
+    ('SequencePop', [Sequence('seq')], [Sequence('output')]),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 

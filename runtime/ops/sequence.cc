@@ -41,9 +41,6 @@ void SequenceClearOp::RunImpl(XCVMState* st) {
 
 void SequenceAppendOp::RunImpl(XCVMState* st) {
     st->GetSequence(seq)->emplace_back(st->GetArray(value));
-    if (move_aux) {
-        st->PushAux(seq, st->GetAux(value));
-    }
 }
 
 void SequencePopOp::RunImpl(XCVMState* st) {
@@ -51,9 +48,6 @@ void SequencePopOp::RunImpl(XCVMState* st) {
     CHECK(!v->empty());
     st->SetArray(output, v->back().GetArray());
     v->pop_back();
-    if (move_aux) {
-        st->SetAux(output, st->PopAux(seq));
-    }
 }
 
 chainerx::Array SequenceLookupOp::RunImpl(XCVMState* st, const XCVMSequence& seq, const chainerx::Array& index) {

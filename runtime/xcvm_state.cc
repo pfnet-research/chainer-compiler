@@ -11,7 +11,6 @@ namespace runtime {
 XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs)
     : pc_(0),
       variables_(num_variables),
-      auxiliaries_(num_variables),
       inputs_(inputs),
       trace_level_(options.trace_level),
       is_training_(options.is_training),
@@ -114,24 +113,6 @@ std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
     return oss.str();
 }
 
-std::shared_ptr<XCVMState::Auxiliary> XCVMState::GetAux(int index) {
-    return auxiliaries_[index];
-}
-
-void XCVMState::SetAux(int index, std::shared_ptr<Auxiliary> aux) {
-    auxiliaries_[index] = aux;
-}
-
-void XCVMState::PushAux(int index, std::shared_ptr<Auxiliary> aux) {
-    auxiliary_stack_[index].push(aux);
-}
-
-std::shared_ptr<XCVMState::Auxiliary> XCVMState::PopAux(int index) {
-    std::shared_ptr<XCVMState::Auxiliary> aux = auxiliary_stack_[index].top();
-    auxiliary_stack_[index].pop();
-    return aux;
-}
-
 void XCVMState::SetArray(int index, const chainerx::Array& value) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
@@ -144,7 +125,6 @@ void XCVMState::FreeVar(int index) {
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get()) << index;
     variables_[index].reset();
-    auxiliaries_[index] = nullptr;
 }
 
 void XCVMState::Input(const std::string& name, int index) {
