@@ -97,7 +97,7 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
         case XCVMVar::Kind::kSequence: {
             const XCVMSequence& v = *var->GetSequence();
             CHECK_LT(i, v.size());
-            st->SetArray(output, *v[i]);
+            st->SetArray(output, v[i].GetArray());
             break;
         }
 
@@ -216,11 +216,11 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
         CHECK(seq0.size() == seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
         out->resize(seq0.size());
         for (size_t i = 0; i < seq0.size(); ++i) {
-            if (seq0[i].has_value() && seq1[i].has_value()) {
-                (*out)[i] = *seq0[i] + *seq1[i];
-            } else if (seq0[i].has_value()) {
+            if (!seq0[i].IsNull() && !seq1[i].IsNull()) {
+                (*out)[i] = XCVMVar(seq0[i].GetArray() + seq1[i].GetArray());
+            } else if (!seq0[i].IsNull()) {
                 (*out)[i] = seq0[i];
-            } else if (seq1[i].has_value()) {
+            } else if (!seq1[i].IsNull()) {
                 (*out)[i] = seq1[i];
             }
         }

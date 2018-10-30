@@ -109,7 +109,7 @@ void ReadTestDir(
                 const std::string& filename = std::get<0>(all_tensors[i]);
                 if (HasPrefix(filename, prefix)) {
                     CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
-                    seq->GetSequence()->push_back(std::get<2>(all_tensors[i]));
+                    seq->GetSequence()->emplace_back(std::get<2>(all_tensors[i]));
                 } else {
                     --i;
                     break;
@@ -173,7 +173,7 @@ XCVMVar* StageVar(XCVMVar* var) {
             return new XCVMVar(var->GetArray().ToDevice(chainerx::GetDefaultDevice()));
         case XCVMVar::Kind::kSequence: {
             XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
-            for (const nonstd::optional<chainerx::Array>& a : *var->GetSequence()) out->GetSequence()->push_back(a->ToDevice(chainerx::GetDefaultDevice()));
+            for (const XCVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(v.GetArray().ToDevice(chainerx::GetDefaultDevice()));
             return out;
         }
 
@@ -331,9 +331,9 @@ void RunMain(int argc, char** argv) {
         if (test_case->outputs.empty()) {
             if (outputs.size() == 1 && outputs.begin()->second->kind() == XCVMVar::Kind::kSequence) {
                 std::string msg;
-                for (auto ch : *outputs.begin()->second->GetSequence()) {
-                    if (ch->GetNBytes() == 1) {
-                        msg += static_cast<uint8_t>(chainerx::AsScalar(*ch));
+                for (auto& ch : *outputs.begin()->second->GetSequence()) {
+                    if (ch.GetArray().GetNBytes() == 1) {
+                        msg += static_cast<uint8_t>(chainerx::AsScalar(ch.GetArray()));
                     } else {
                         msg.clear();
                         break;
@@ -371,7 +371,7 @@ void RunMain(int argc, char** argv) {
                     case XCVMVar::Kind::kArray:
                         return array_str(v->GetArray());
                     case XCVMVar::Kind::kSequence:
-                        return Join(MapToString(*v->GetSequence(), array_str));
+                        return Join(MapToString(NonOptional(*v->GetSequence()), array_str));
                     case XCVMVar::Kind::kOpaque:
                     case XCVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
@@ -425,7 +425,7 @@ void RunMain(int argc, char** argv) {
                     }
 
                     for (size_t i = 0; i < expected_seq.size(); ++i) {
-                        ok = check_array(*expected_seq[i], *actual_seq[i]);
+                        ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
                         if (!ok) break;
                     }
                     break;

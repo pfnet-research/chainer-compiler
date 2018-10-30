@@ -6,6 +6,9 @@
 namespace oniku {
 namespace runtime {
 
+XCVMVar::XCVMVar() : kind_(Kind::kNull) {
+}
+
 XCVMVar::XCVMVar(Kind kind) : kind_(kind) {
     CHECK(kind_ != Kind::kArray);
     CHECK(kind_ != Kind::kOpaque);
@@ -22,17 +25,17 @@ XCVMVar::XCVMVar(XCVMOpaque* opaque)
     : kind_(Kind::kOpaque), opaque_(opaque) {
 }
 
-const chainerx::Array& XCVMVar::GetArray() {
+const chainerx::Array& XCVMVar::GetArray() const {
     CHECK(kind_ == Kind::kArray) << static_cast<int>(kind_);
     return array_;
 }
 
-XCVMSequence* XCVMVar::GetSequence() {
+XCVMSequence* XCVMVar::GetSequence() const {
     CHECK(kind_ == Kind::kSequence) << static_cast<int>(kind_);
     return sequence_.get();
 }
 
-XCVMOpaque* XCVMVar::GetOpaque() {
+XCVMOpaque* XCVMVar::GetOpaque() const {
     CHECK(kind_ == Kind::kOpaque) << static_cast<int>(kind_);
     return opaque_.get();
 }
@@ -44,7 +47,7 @@ int64_t XCVMVar::GetTotalSize() const {
             size = array_.GetNBytes();
             break;
         case Kind::kSequence:
-            for (const nonstd::optional<chainerx::Array>& a : *sequence_) size += a->GetNBytes();
+            for (const XCVMVar& v : *sequence_) size += v.GetArray().GetNBytes();
             break;
         case Kind::kOpaque:
         case Kind::kNull:
@@ -72,7 +75,7 @@ std::string XCVMVar::ToString() const {
         case Kind::kArray:
             return array_.shape().ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(*sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->shape().ToString() : "(null)"; })), ']');
+            return StrCat('[', Join(MapToString(*sequence_, [this](const XCVMVar& v) { return v.ToString(); })), ']');
         case Kind::kOpaque:
             return opaque_->ToString();
         case Kind::kNull:
@@ -86,7 +89,7 @@ std::string XCVMVar::DebugString() const {
         case Kind::kArray:
             return array_.ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(*sequence_, [this](const nonstd::optional<chainerx::Array>& a) { return a.has_value() ? a->ToString() : "(null)"; })), ']');
+            return StrCat('[', Join(MapToString(*sequence_, [this](const XCVMVar& v) { return v.DebugString(); })), ']');
         case Kind::kOpaque:
             return opaque_->DebugString();
         case Kind::kNull:
@@ -95,10 +98,10 @@ std::string XCVMVar::DebugString() const {
     CHECK(false);
 }
 
-std::vector<chainerx::Array> NonOptional(const XCVMSequence& v) {
+std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq) {
     std::vector<chainerx::Array> r;
-    for (const nonstd::optional<chainerx::Array>& a : v) {
-        r.push_back(*a);
+    for (const XCVMVar& v : seq) {
+        r.push_back(v.GetArray());
     }
     return r;
 }

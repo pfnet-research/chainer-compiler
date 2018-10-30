@@ -7,7 +7,9 @@
 namespace oniku {
 namespace runtime {
 
-typedef std::vector<nonstd::optional<chainerx::Array>> XCVMSequence;
+class XCVMVar;
+
+typedef std::vector<XCVMVar> XCVMSequence;
 
 class XCVMOpaque {
 public:
@@ -29,18 +31,22 @@ public:
         kNull,
     };
 
+    XCVMVar();
     explicit XCVMVar(Kind kind);
     explicit XCVMVar(chainerx::Array array);
     // Takes the ownership of `opaque`.
     explicit XCVMVar(XCVMOpaque* opaque);
     explicit XCVMVar(const XCVMVar&) = default;
 
-    const chainerx::Array& GetArray();
-    XCVMSequence* GetSequence();
-    XCVMOpaque* GetOpaque();
+    const chainerx::Array& GetArray() const;
+    XCVMSequence* GetSequence() const;
+    XCVMOpaque* GetOpaque() const;
 
     Kind kind() const {
         return kind_;
+    }
+    bool IsNull() const {
+        return kind_ == Kind::kNull;
     }
 
     int64_t GetTotalSize() const;
@@ -57,7 +63,7 @@ private:
     std::shared_ptr<XCVMOpaque> opaque_;
 };
 
-std::vector<chainerx::Array> NonOptional(const XCVMSequence& v);
+std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq);
 
 }  // namespace runtime
 }  // namespace oniku

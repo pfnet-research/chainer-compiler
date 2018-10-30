@@ -40,7 +40,7 @@ void SequenceClearOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceAppendOp::RunImpl(XCVMState* st) {
-    st->GetSequence(seq)->push_back(st->GetArray(value));
+    st->GetSequence(seq)->emplace_back(st->GetArray(value));
     if (move_aux) {
         st->PushAux(seq, st->GetAux(value));
     }
@@ -49,7 +49,7 @@ void SequenceAppendOp::RunImpl(XCVMState* st) {
 void SequencePopOp::RunImpl(XCVMState* st) {
     XCVMSequence* v = st->GetSequence(seq);
     CHECK(!v->empty());
-    st->SetArray(output, *v->back());
+    st->SetArray(output, v->back().GetArray());
     v->pop_back();
     if (move_aux) {
         st->SetAux(output, st->PopAux(seq));
@@ -60,14 +60,14 @@ chainerx::Array SequenceLookupOp::RunImpl(XCVMState* st, const XCVMSequence& seq
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
     if (i < 0) i += seq.size();
     CHECK_LT(i, seq.size());
-    return *seq[i];
+    return seq[i].GetArray();
 }
 
 void SequenceLookupGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const chainerx::Array& size, const chainerx::Array& index, XCVMSequence* gx) {
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
     int64_t sz = static_cast<int64_t>(chainerx::AsScalar(size));
     gx->resize(sz);
-    (*gx)[i] = gy;
+    (*gx)[i] = XCVMVar(gy);
 }
 
 void SequenceGetSliceOp::RunImpl(XCVMState* st, const XCVMSequence& seq, const nonstd::optional<chainerx::Array>& start_array, const nonstd::optional<chainerx::Array>& end_array, const nonstd::optional<chainerx::Array>& step_array, XCVMSequence* output) {
@@ -116,8 +116,8 @@ chainerx::Array SequenceStackOp::RunImpl(XCVMState* st, const XCVMSequence& seq)
 
 chainerx::Array SequenceConcatOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
     std::vector<int64_t> split;
-    for (const nonstd::optional<chainerx::Array>& a : seq) {
-        split.push_back(a->shape()[axis]);
+    for (const XCVMVar& v : seq) {
+        split.push_back(v.GetArray().shape()[axis]);
     }
     st->SetAux(output, std::shared_ptr<XCVMState::Auxiliary>(new ConcatBackwardContext(split)));
     return Concat(NonOptional(seq), axis);
@@ -128,13 +128,13 @@ void SequenceConcatGradOp::RunImpl(XCVMState* st, const chainerx::Array& y, cons
     auto ctx = dynamic_cast<ConcatBackwardContext*>(st->GetAux(this->y).get());
     CHECK(ctx);
     for (const chainerx::Array& a : Split(gy, ctx->split(), axis)) {
-        gx->push_back(a);
+        gx->emplace_back(a);
     }
 }
 
 chainerx::Array SequencePadOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
     CHECK(!seq.empty());
-    chainerx::Scalar p(value, seq[0]->dtype());
+    chainerx::Scalar p(value, seq[0].GetArray().dtype());
     return PadSequence(NonOptional(seq), length, p);
 }
 
@@ -153,7 +153,7 @@ void SequenceRangeOp::RunImpl(XCVMState* st, const chainerx::Array& arg0, const 
     CHECK_NE(step, 0);
 
     for (int64_t i = start; step > 0 ? (i < stop) : (i > stop); i += step) {
-        output->push_back(MakeArray(chainerx::Dtype::kInt64, {}, &i));
+        output->emplace_back(MakeArray(chainerx::Dtype::kInt64, {}, &i));
     }
 }
 
@@ -164,7 +164,7 @@ void SplitToSequence(chainerx::Array v, int axis, XCVMSequence* seq) {
     for (chainerx::Array a : Split(v, lens, axis)) {
         chainerx::Shape shape{a.shape()};
         shape.erase(shape.begin() + axis);
-        seq->push_back(chainerx::Reshape(a, shape));
+        seq->emplace_back(chainerx::Reshape(a, shape));
     }
 }
 
@@ -177,8 +177,8 @@ void SequenceSplitOp::RunImpl(XCVMState* st, const chainerx::Array& input, XCVMS
 void SequenceUnpadOp::RunImpl(XCVMState* st, const chainerx::Array& input, const XCVMSequence& lengths, XCVMSequence* output) {
     SplitToSequence(input, 0, output);
     for (size_t i = 0; i < output->size(); ++i) {
-        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(*lengths[i])));
-        (*output)[i] = (*output)[i]->At({index});
+        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(lengths[i].GetArray())));
+        (*output)[i] = XCVMVar((*output)[i].GetArray().At({index}));
     }
 }
 
@@ -191,9 +191,9 @@ chainerx::Array SequenceSizeOp::RunImpl(XCVMState* st, const XCVMSequence& seq) 
 }
 
 void SequenceLengthsOp::RunImpl(XCVMState* st, const XCVMSequence& seq, XCVMSequence* output) {
-    for (const nonstd::optional<chainerx::Array>& a : seq) {
-        size_t len = a->shape()[0];
-        output->push_back(MakeHostArray(chainerx::Dtype::kInt64, {}, &len));
+    for (const XCVMVar& v : seq) {
+        size_t len = v.GetArray().shape()[0];
+        output->emplace_back(MakeHostArray(chainerx::Dtype::kInt64, {}, &len));
     }
 }
 
