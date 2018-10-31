@@ -97,6 +97,11 @@ public:
         return r;
     }
 
+    Value* AddOutput(Value* v) {
+        node_->AddOutput(v);
+        return y(node_->outputs().size() - 1);
+    }
+
     GraphBuilder builder(int xi) {
         CHECK_LE(0, xi) << xi;
         CHECK_GT(x_.size(), xi) << xi;
@@ -350,8 +355,7 @@ void MaxPoolGradFn(GradientOpContext* gc) {
     Node* node = gc->node();
     if (node->outputs().size() == 1) node->AddOutput(gb.Null());
     CHECK_EQ(2, node->outputs().size());
-    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
-    node->AddOutput(context);
+    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
     gc->GradOp(Node::kOnikuxMaxPoolGrad, 0, {gc->gy(0), context});
 }
 
@@ -359,8 +363,7 @@ void AveragePoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
     CHECK_EQ(1, node->outputs().size());
-    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
-    node->AddOutput(context);
+    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
     gc->GradOp(Node::kOnikuxAveragePoolGrad, 0, {gc->gy(0), context});
 }
 
@@ -391,9 +394,7 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 
 void BatchNormalizationGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Node* node = gc->node();
-    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
-    node->AddOutput(context);
+    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
     Value* gx0 = gc->AddGradValue(0);
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
@@ -407,8 +408,7 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
 void LRNGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    Value* unit_scale = gb.Temp();
-    node->AddOutput(unit_scale);
+    Value* unit_scale = gc->AddOutput(gb.Temp());
     gc->GradOp(Node::kOnikuxLRNGrad, 0, {gc->x(0), gc->y(0), gc->gy(0), unit_scale})
             ->producer()
             ->set_alpha(node->alpha())
@@ -655,8 +655,7 @@ void SequenceAppendGradFn(GradientOpContext* gc) {
 void SequenceConcatGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    Value* context = gb.Temp(Type(Type::Kind::kOpaque));
-    node->AddOutput(context);
+    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
     gc->GradOp(Node::kOnikuxSequenceConcatGrad, 0, {gc->gy(0), context})
         ->producer()->set_axis(node->axis());
 }
