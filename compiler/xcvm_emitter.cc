@@ -485,9 +485,9 @@ private:
             CHECK_EQ(3UL, node.outputs().size());
             EMIT(BatchNormalizationGrad, out(0), out(1), out(2), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSelectItemGrad) {
-            CHECK_EQ(3UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kOnikuxGatherGrad) {
+            EMIT(GatherGrad, out(0), in(0), in(1), in(2), node.axis());
         } else if (node.op_type() == Node::kOnikuxDynamicSliceGrad) {
             EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4));
         } else if (node.op_type() == Node::kIf) {

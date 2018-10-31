@@ -212,6 +212,8 @@ XC_OPS = [
       OptionalArray('axes')],
      ['gx']),
     ('Gather', [Array('data'), Array('indices'), Int('axis')], ['output']),
+    ('GatherGrad',
+     [Array('gy'), Array('indices'), Array('shape'), Int('axis')], ['gx']),
     ('SelectItem', [Array('data'), Array('indices')], ['output']),
     ('SelectItemGrad', [Array('gy'), Array('indices'), Array('shape')], ['gx']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),

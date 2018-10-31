@@ -222,6 +222,12 @@ void SelectItemGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kOnikuxSelectItemGrad, 0, {gc->gy(0), gc->x(1), t0});
 }
 
+void GatherGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
+    gc->GradOp(Node::kOnikuxGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
+}
+
 void ReduceSumGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     // TODO(hamaji): Need some check for `axes` and `keepdims`.
@@ -724,6 +730,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kSqueeze, &ReshapeGradFn);
         register_grad_fn(Node::kUnsqueeze, &ReshapeGradFn);
         register_grad_fn(Node::kOnikuxSelectItem, &SelectItemGradFn);
+        register_grad_fn(Node::kGather, &GatherGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);

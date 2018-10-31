@@ -413,6 +413,12 @@ chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, co
     return data.Take(Indices(indices), axis);
 }
 
+chainerx::Array GatherGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
+    chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
+    out.device().AddAt(out, Indices(indices), axis, gy, out);
+    return out;
+}
+
 chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
     CHECK_EQ(2UL, data.shape().size()) << "TODO(hamaji): Support SelectItem for non-2D array";
     int64_t batch_size = data.shape()[0];

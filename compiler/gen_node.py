@@ -187,6 +187,7 @@ NodeDef('OnikuxSelectItemGrad', 3, 1)
 NodeDef('OnikuxLRNGrad', 4, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
+NodeDef('OnikuxGatherGrad', 3, 1, axis=0)
 # body_ref is a name of a sub Graph in a sibling Loop node.
 NodeDef('OnikuxLoopRef', None, None,
         body_ref=Required(str),

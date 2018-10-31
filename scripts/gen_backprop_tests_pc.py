@@ -39,6 +39,8 @@ def create_backprop_test(test_name, model, input_values):
 
     ch2o.testcasegen.edit_onnx_protobuf(xmodel, model)
 
+    # TODO(hamaji): Output model.onnx after `dump_test_inputs_outputs`
+    # so shape info will be more accurate.
     with open(os.path.join(test_dir, 'model.onnx'), 'wb') as fp:
         fp.write(xmodel.SerializeToString())
 
@@ -289,6 +291,17 @@ def get_backprop_tests():
             return x
 
     test('for', For(), aranges(3, 4))
+
+    class Embed(chainer.Chain):
+        def __init__(self):
+            super(Embed, self).__init__()
+            with self.init_scope():
+                self.emb = L.EmbedID(7, 4)
+
+        def forward(self, x):
+            return self.emb(x)
+
+    test('embed', Embed(), np.array([3, 4, 5, 5, 5, 2]))
 
     return tests
 

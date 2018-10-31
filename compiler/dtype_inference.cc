@@ -176,6 +176,11 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kOnikuxGatherGrad:
+            // TODO(hamaji): Check for other inputs.
+            set(0, in0);
+            break;
+
         case Node::kRNN:
         case Node::kGRU:
         case Node::kLSTM: {
