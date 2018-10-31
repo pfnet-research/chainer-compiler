@@ -100,7 +100,7 @@ private:
         }
     }
 
-    void EmitNode(const Node& node, XCProgramProto* prog) {
+    void EmitNode(const Graph& graph, const Node& node, XCProgramProto* prog) {
         auto in = [this, &node](int i) {
             CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory";
             Value* input = node.inputs()[i];
@@ -493,11 +493,11 @@ private:
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
         } else if (node.op_type() == Node::kOnikuxIfRef) {
-            EmitIfRef(node, prog);
+            EmitIfRef(graph, node, prog);
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kOnikuxLoopRef) {
-            EmitLoopRef(node, prog);
+            EmitLoopRef(graph, node, prog);
         } else if (node.op_type() == Node::kOnikuxBackpropStackPush) {
             int id = GetStackId(node.id());
             EMIT(SequenceAppend, id, in(0));
@@ -664,7 +664,7 @@ private:
                 }
             }
 
-            EmitNode(*node, prog);
+            EmitNode(graph, *node, prog);
 
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
@@ -746,9 +746,9 @@ private:
 #undef EMIT
     }
 
-    void EmitIfRef(const Node& cond, XCProgramProto* prog) {
-        Graph* then_branch = graph_.GetSubGraph(cond.then_branch_ref());
-        Graph* else_branch = graph_.GetSubGraph(cond.else_branch_ref());
+    void EmitIfRef(const Graph& graph, const Node& cond, XCProgramProto* prog) {
+        Graph* then_branch = graph.GetSubGraph(cond.then_branch_ref());
+        Graph* else_branch = graph.GetSubGraph(cond.else_branch_ref());
         std::vector<Value*> then_input_values;
         std::vector<Value*> then_output_values;
         std::vector<Value*> else_input_values;
@@ -927,11 +927,11 @@ private:
         EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), {}, prog);
     }
 
-    void EmitLoopRef(const Node& loop, XCProgramProto* prog) {
+    void EmitLoopRef(const Graph& graph, const Node& loop, XCProgramProto* prog) {
         std::vector<Value*> input_values;
         std::vector<Value*> output_values;
         std::set<const Value*> protected_values;
-        Graph* body = graph_.GetSubGraph(loop.body_ref());
+        Graph* body = graph.GetSubGraph(loop.body_ref());
         CollectSubGraphValues(body, loop.input_value_names(), loop.output_value_names(),
                               &input_values, &output_values, &protected_values);
         EmitLoopImpl(loop, body, input_values, output_values, protected_values, prog);
