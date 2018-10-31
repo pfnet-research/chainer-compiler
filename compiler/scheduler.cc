@@ -224,7 +224,7 @@ void CheckSanity(
     if (!input_counts.empty()) {
         for (auto p : input_counts) {
             Node* node = p.first;
-            std::cerr << "Failed to schedule: " << node->DebugString() << std::endl;
+            std::cerr << "Failed to schedule (" << graph.name() << "): " << node->DebugString() << std::endl;
             for (Value* value : node->inputs()) {
                 if (!values.count(value) && !value->name().empty()) {
                     std::cerr << " " << value->name() << " cannot be ready\n";
