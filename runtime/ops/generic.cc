@@ -1,6 +1,7 @@
 #include <numeric>
 
 #include <chainerx/array.h>
+#include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
@@ -197,6 +198,26 @@ void GenericIsOp::RunImpl(XCVMState* st) {
         WARN_ONCE("`is` keyword for sequences might be wrong");
     }
     st->SetArray(output, MakeHostArray(chainerx::Dtype::kBool, {}, &result));
+}
+
+void GenericZerosLikeGradOp::RunImpl(XCVMState* st) {
+    XCVMVar* var = st->GetXCVMVar(a);
+    switch (var->kind()) {
+    case XCVMVar::Kind::kArray: {
+        st->SetArray(output, chainerx::ZerosLike(var->GetArray()));
+        break;
+    }
+    case XCVMVar::Kind::kSequence: {
+        const XCVMSequence& seq = *var->GetSequence();
+        XCVMSequence* out = st->CreateSequence(output);
+        out->resize(seq.size());
+        break;
+    }
+
+    case XCVMVar::Kind::kOpaque:
+    case XCVMVar::Kind::kNull:
+        CHECK(false) << var->DebugString();
+    }
 }
 
 void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
