@@ -30,7 +30,7 @@ target_link_libraries(dump
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
 add_executable(run_onnx run_onnx.cc)
-add_dependencies(run_onnx runtime_xcvm_pb_h)
+add_dependencies(run_onnx runtime_xcvm_pb_h onnx_files)
 target_link_libraries(run_onnx
   oniku_tools
   oniku_compiler
@@ -45,6 +45,7 @@ target_link_libraries(run_onnx
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
 add_executable(train_imagenet train_imagenet.cc)
+add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
 target_link_libraries(train_imagenet
   oniku_tools
   oniku_compiler

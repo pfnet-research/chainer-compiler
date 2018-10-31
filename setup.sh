@@ -11,17 +11,6 @@ cd ${BASE_DIR}
 
 git submodule update --init
 
-if [ ! -e onnx/build/libonnx.a -o ! -e onnx/build/onnx/onnx-ml.pb.h ]; then
-    (cd onnx && \
-        ([ -d "build" ] || mkdir -p build) && \
-        cd build && \
-        cmake \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DONNX_ML=ON \
-            .. && \
-        cmake --build . -- -j$(nproc))
-fi
-
 if [ ! -e googletest ]; then
     git clone https://github.com/google/googletest
     (cd googletest && git checkout refs/tags/release-1.8.1)

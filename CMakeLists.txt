@@ -56,6 +56,17 @@ add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 
+add_custom_command(
+  OUTPUT onnx/build/libonnx.a onnx/build/onnx/onnx-ml.pb.h
+  COMMAND scripts/build_onnx.sh
+  MAIN_DEPENDENCY onnx/.git/index
+  )
+add_custom_target(onnx_files
+  DEPENDS
+  onnx/build/libonnx.a
+  onnx/build/onnx/onnx-ml.pb.h
+  )
+
 function(gen_ch2o_test dir ch2o_test all)
 
   set(ch2o_test_py ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/tests/${dir}/${ch2o_test}.py)
