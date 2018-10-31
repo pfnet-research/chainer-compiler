@@ -45,6 +45,7 @@ public:
     void SetOpaque(int index, XCVMOpaque* opaque);
 
     XCVMVar* GetXCVMVar(int index);
+    void SetXCVMVar(int index, const XCVMVar& var);
 
     std::string GetVarString(int index);
     std::string GetVarListString(const std::vector<int>& indices);

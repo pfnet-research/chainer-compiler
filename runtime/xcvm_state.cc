@@ -79,6 +79,13 @@ XCVMVar* XCVMState::GetXCVMVar(int index) {
     return variables_[index].get();
 }
 
+void XCVMState::SetXCVMVar(int index, const XCVMVar& var) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(!variables_[index].get());
+    variables_[index].reset(new XCVMVar(var));
+}
+
 std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
     CHECK_GT(variables_.size(), index) << index;
