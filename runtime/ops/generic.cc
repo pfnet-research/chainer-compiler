@@ -48,24 +48,7 @@ void OutOp::RunImpl(XCVMState* st) {
 }
 
 void IdentityOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetVar(x);
-    switch (var->kind()) {
-        case XCVMVar::Kind::kArray:
-            st->SetArray(y, var->GetArray());
-            break;
-
-        case XCVMVar::Kind::kSequence: {
-            const XCVMSequence& s = *var->GetSequence();
-            XCVMSequence* d = st->CreateSequence(y);
-            CHECK(d->empty());
-            *d = s;
-            break;
-        }
-
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
-            CHECK(false) << var->DebugString();
-    }
+    st->SetVar(y, *st->GetVar(x));
 }
 
 void FreeOp::RunImpl(XCVMState* st) {
