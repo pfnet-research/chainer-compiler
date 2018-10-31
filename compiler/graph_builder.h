@@ -50,8 +50,7 @@ public:
 private:
     Graph* graph_;
     const std::string category_;
-    const std::string target_;
-    int id_{0};
+    Value* target_;
     std::vector<Node*> added_nodes_;
 };
 

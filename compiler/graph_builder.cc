@@ -9,7 +9,7 @@
 namespace oniku {
 
 GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target)
-    : graph_(graph), category_(category), target_(target->name()) {
+    : graph_(graph), category_(category), target_(target) {
 }
 
 GraphBuilder::~GraphBuilder() {
@@ -55,8 +55,7 @@ Value* GraphBuilder::Null() {
 }
 
 std::string GraphBuilder::GenName() {
-    int id = id_++;
-    return StrCat(category_, '_', target_, '_', id);
+    return StrCat(category_, '_', target_->name(), '_', target_->Counter());
 }
 
 }  // namespace oniku
