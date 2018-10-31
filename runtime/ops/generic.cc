@@ -223,6 +223,16 @@ void GenericZerosLikeGradOp::RunImpl(XCVMState* st) {
 void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
     XCVMVar* var0 = st->GetVar(a);
     XCVMVar* var1 = st->GetVar(b);
+
+    // TODO(hamaji): Add testcases which require these checks.
+    if (var0->kind() == XCVMVar::Kind::kNull) {
+        st->SetVar(output, *var1);
+        return;
+    }
+    if (var1->kind() == XCVMVar::Kind::kNull) {
+        st->SetVar(output, *var0);
+        return;
+    }
     CHECK_EQ(var0->kind(), var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
 
     switch (var0->kind()) {
