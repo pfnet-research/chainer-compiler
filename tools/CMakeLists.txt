@@ -37,8 +37,8 @@ target_link_libraries(run_onnx
   oniku_runtime
   oniku_common
   chainerx
-  onnx_proto
   onnx
+  onnx_proto
   protobuf
   ${CUDA_CUDART_LIBRARY}
   )
@@ -53,8 +53,8 @@ target_link_libraries(train_imagenet
   oniku_common
   feeder
   chainerx
-  onnx_proto
   onnx
+  onnx_proto
   protobuf
   pthread
   ${CUDA_CUDART_LIBRARY}
