@@ -62,6 +62,17 @@ def new_sequence(dtype=None, name=None):
     return vi
 
 
+_graph_ids = {}
+
+
+def gen_graph_name(name):
+    if name in _graph_ids:
+        _graph_ids[name] += 1
+    else:
+        _graph_ids[name] = 0
+    return '%s_%d' % (name, _graph_ids[name])
+
+
 def get_dims(tensor):
     dims = tensor.type.tensor_type.shape.dim
     return list(map(lambda x: x.dim_value, dims))

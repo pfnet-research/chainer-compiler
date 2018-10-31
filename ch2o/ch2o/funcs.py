@@ -307,7 +307,7 @@ class Np_Cumsum(Callable):
             outputs=[dummy(), dummy(), res.name],
             body=helper.make_graph(
                 localenv.nodes,
-                "Loop_subgraph",
+                utils.gen_graph_name("Cumsum_subgraph"),
                 [cnt, cond, gtx, s],
                 [cond, gtx, ts, ts]
             )

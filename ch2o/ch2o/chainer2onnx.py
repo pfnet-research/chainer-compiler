@@ -19,7 +19,7 @@ import chainer
 import numpy
 
 from ch2o.test_args import dprint
-from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, Env
+from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, Env, gen_graph_name
 from ch2o.links import Link2NodeClass
 from ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
 from ch2o.builtin_funcs import builtin_functions
@@ -333,14 +333,14 @@ def eval_if(nast, env):
 
     then_graph = helper.make_graph(
         then_env.nodes,
-        "If_then",
+        gen_graph_name("If_then"),
         input_values,
         then_outputs,
     )
 
     else_graph = helper.make_graph(
         else_env.nodes,
-        "If_else",
+        gen_graph_name("If_else"),
         input_values,
         else_outputs,
     )
@@ -421,7 +421,7 @@ def eval_for(nast, env):
     cond = new_tensor(name='loop_cond')
     localgraph = helper.make_graph(
         localenv.nodes,
-        "Loop_subgraph",
+        gen_graph_name("Loop_subgraph"),
         [cnt, cond, gtx] + input_values,
         [cond, gtx] + output_values
     )
@@ -631,7 +631,7 @@ def eval_binary_op(nast, env):
         ))
         loop = helper.make_graph(
             nodes,
-            "SeqPlus",
+            gen_graph_name("SeqPlus"),
             [index, cond, state],
             [cond, out_state],
         )
