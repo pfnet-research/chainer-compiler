@@ -436,7 +436,7 @@ chainerx::Array SelectItemGradOp::RunImpl(
     int64_t num_classes = shape[1];
     int64_t total_size = batch_size * num_classes;
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
-    chainerx::Array take_indices = indices + chainerx::Arange(0, total_size, num_classes);
+    chainerx::Array take_indices = Indices(indices) + chainerx::Arange(0, total_size, num_classes);
     out.device().AddAt(out, take_indices, 0, gy, out);
     return out.Reshape(shape);
 }
