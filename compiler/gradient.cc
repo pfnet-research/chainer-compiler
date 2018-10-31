@@ -42,13 +42,19 @@ public:
     }
 
     void ExposeParamGradsAsOutputs() {
+        bool ok = true;
         for (Value* input : graph_->input_values()) {
             if (!original_input_values_.count(input)) continue;
             if (!input->type().dtype().IsFloat()) continue;
-            CHECK(input->grad()) << input->name();
+            if (!input->grad()) {
+                std::cerr << "No gradient for parameter: " << input->name() << std::endl;
+                ok = false;
+                continue;
+            }
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
         }
+        CHECK(ok);
 
         graph_->ResetGradients();
     }
