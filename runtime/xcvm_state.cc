@@ -72,14 +72,14 @@ void XCVMState::SetOpaque(int index, XCVMOpaque* opaque) {
     variables_[index].reset(new XCVMVar(opaque));
 }
 
-XCVMVar* XCVMState::GetXCVMVar(int index) {
+XCVMVar* XCVMState::GetVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return variables_[index].get();
 }
 
-void XCVMState::SetXCVMVar(int index, const XCVMVar& var) {
+void XCVMState::SetVar(int index, const XCVMVar& var) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
@@ -108,7 +108,7 @@ std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
             oss << "null";
             continue;
         }
-        XCVMVar* var = GetXCVMVar(index);
+        XCVMVar* var = GetVar(index);
         if (!var) {
             oss << "null";
             continue;

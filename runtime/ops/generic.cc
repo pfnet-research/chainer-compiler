@@ -48,7 +48,7 @@ void OutOp::RunImpl(XCVMState* st) {
 }
 
 void IdentityOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetXCVMVar(x);
+    XCVMVar* var = st->GetVar(x);
     switch (var->kind()) {
         case XCVMVar::Kind::kArray:
             st->SetArray(y, var->GetArray());
@@ -74,18 +74,18 @@ void FreeOp::RunImpl(XCVMState* st) {
 
 void PrintOp::RunImpl(XCVMState* st) {
     for (int v : values) {
-        std::cout << st->GetXCVMVar(v)->DebugString() << std::endl;
+        std::cout << st->GetVar(v)->DebugString() << std::endl;
     }
 }
 
 void GenericLenOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetXCVMVar(v);
+    XCVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
     st->SetArray(len, MakeHostArray(chainerx::Dtype::kInt64, {}, &size));
 }
 
 void GenericGetItemOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetXCVMVar(v);
+    XCVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
     if (i < 0) i += size;
@@ -109,7 +109,7 @@ void GenericGetItemOp::RunImpl(XCVMState* st) {
 }
 
 void GenericGetSliceOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetXCVMVar(v);
+    XCVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
     int64_t start = GetOptionalInt(st, this->start, 0);
     if (start < 0) start += size;
@@ -155,8 +155,8 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
 }
 
 void GenericAddOp::RunImpl(XCVMState* st) {
-    XCVMVar* var0 = st->GetXCVMVar(a);
-    XCVMVar* var1 = st->GetXCVMVar(b);
+    XCVMVar* var0 = st->GetVar(a);
+    XCVMVar* var1 = st->GetVar(b);
 
     if (var0->kind() == XCVMVar::Kind::kArray || var1->kind() == XCVMVar::Kind::kArray) {
         auto to_a = [](XCVMVar* v) {
@@ -174,8 +174,8 @@ void GenericAddOp::RunImpl(XCVMState* st) {
 }
 
 void GenericIsOp::RunImpl(XCVMState* st) {
-    XCVMVar* var0 = st->GetXCVMVar(a);
-    XCVMVar* var1 = st->GetXCVMVar(b);
+    XCVMVar* var0 = st->GetVar(a);
+    XCVMVar* var1 = st->GetVar(b);
 
     bool result = false;
     if (var0->kind() != var1->kind()) {
@@ -201,7 +201,7 @@ void GenericIsOp::RunImpl(XCVMState* st) {
 }
 
 void GenericZerosLikeGradOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetXCVMVar(a);
+    XCVMVar* var = st->GetVar(a);
     switch (var->kind()) {
     case XCVMVar::Kind::kArray: {
         st->SetArray(output, chainerx::ZerosLike(var->GetArray()));
@@ -221,8 +221,8 @@ void GenericZerosLikeGradOp::RunImpl(XCVMState* st) {
 }
 
 void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
-    XCVMVar* var0 = st->GetXCVMVar(a);
-    XCVMVar* var1 = st->GetXCVMVar(b);
+    XCVMVar* var0 = st->GetVar(a);
+    XCVMVar* var1 = st->GetVar(b);
     CHECK(var0->kind() == var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
 
     switch (var0->kind()) {

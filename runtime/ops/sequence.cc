@@ -40,13 +40,13 @@ void SequenceClearOp::RunImpl(XCVMState* st) {
 }
 
 void SequenceAppendOp::RunImpl(XCVMState* st) {
-    st->GetSequence(seq)->emplace_back(*st->GetXCVMVar(value));
+    st->GetSequence(seq)->emplace_back(*st->GetVar(value));
 }
 
 void SequencePopOp::RunImpl(XCVMState* st) {
     XCVMSequence* v = st->GetSequence(seq);
     CHECK(!v->empty());
-    st->SetXCVMVar(output, v->back());
+    st->SetVar(output, v->back());
     v->pop_back();
 }
 
