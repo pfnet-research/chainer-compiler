@@ -10,8 +10,8 @@ XCVMVar::XCVMVar() : kind_(Kind::kNull) {
 }
 
 XCVMVar::XCVMVar(Kind kind) : kind_(kind) {
-    CHECK(kind_ != Kind::kArray);
-    CHECK(kind_ != Kind::kOpaque);
+    CHECK_NE(kind_, Kind::kArray);
+    CHECK_NE(kind_, Kind::kOpaque);
     if (kind_ == Kind::kSequence) {
         sequence_.reset(new XCVMSequence());
     }
@@ -26,17 +26,17 @@ XCVMVar::XCVMVar(XCVMOpaque* opaque)
 }
 
 const chainerx::Array& XCVMVar::GetArray() const {
-    CHECK(kind_ == Kind::kArray) << static_cast<int>(kind_);
+    CHECK_EQ(kind_, Kind::kArray);
     return array_;
 }
 
 XCVMSequence* XCVMVar::GetSequence() const {
-    CHECK(kind_ == Kind::kSequence) << static_cast<int>(kind_);
+    CHECK_EQ(kind_, Kind::kSequence);
     return sequence_.get();
 }
 
 XCVMOpaque* XCVMVar::GetOpaque() const {
-    CHECK(kind_ == Kind::kOpaque) << static_cast<int>(kind_);
+    CHECK_EQ(kind_, Kind::kOpaque);
     return opaque_.get();
 }
 
@@ -104,6 +104,17 @@ std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq) {
         r.push_back(v.GetArray());
     }
     return r;
+}
+
+std::ostream& operator<<(std::ostream& os, const XCVMVar::Kind& kind) {
+    static const char* kNames[] = { "Array", "Sequence", "Opaque", "Null" };
+    int k = static_cast<int>(kind);
+    if (k >= 0 && k < sizeof(kNames) / sizeof(kNames[0])) {
+        os << kNames[k];
+    } else {
+        os << "???(" << k << ")";
+    }
+    return os;
 }
 
 }  // namespace runtime

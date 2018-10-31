@@ -188,8 +188,8 @@ void RunMain(int argc, char** argv) {
                 CHECK(found != inputs.end());
                 XCVMVar* param = found->second.get();
                 XCVMVar* grad = p.second.get();
-                CHECK(param->kind() == XCVMVar::Kind::kArray) << "Only an array can be a parameter";
-                CHECK(grad->kind() == XCVMVar::Kind::kArray) << "Only an array can be a parameter";
+                CHECK_EQ(param->kind(), XCVMVar::Kind::kArray) << "Only an array can be a parameter";
+                CHECK_EQ(grad->kind(), XCVMVar::Kind::kArray) << "Only an array can be a parameter";
                 param->GetArray() -= grad->GetArray() * args.get<float>("learning_rate");
             }
         }

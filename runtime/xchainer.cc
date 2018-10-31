@@ -215,7 +215,7 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
 
 chainerx::Array Sigmoid(chainerx::Array a) {
     // TODO(hamaji): Revisit implementation of this function.
-    CHECK(a.dtype() == chainerx::Dtype::kFloat32);
+    CHECK_EQ(a.dtype(), chainerx::Dtype::kFloat32);
     float f = 0.5f;
     chainerx::Array half = MakeArray(a.dtype(), {}, &f);
     return chainerx::Tanh(a * half) * half + half;

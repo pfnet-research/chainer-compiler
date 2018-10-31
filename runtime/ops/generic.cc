@@ -223,7 +223,7 @@ void GenericZerosLikeGradOp::RunImpl(XCVMState* st) {
 void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
     XCVMVar* var0 = st->GetVar(a);
     XCVMVar* var1 = st->GetVar(b);
-    CHECK(var0->kind() == var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
+    CHECK_EQ(var0->kind(), var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
 
     switch (var0->kind()) {
     case XCVMVar::Kind::kArray: {
@@ -234,7 +234,7 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
         const XCVMSequence& seq0 = *var0->GetSequence();
         const XCVMSequence& seq1 = *var1->GetSequence();
         XCVMSequence* out = st->CreateSequence(output);
-        CHECK(seq0.size() == seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
+        CHECK_EQ(seq0.size(), seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
         out->resize(seq0.size());
         for (size_t i = 0; i < seq0.size(); ++i) {
             if (!seq0[i].IsNull() && !seq1[i].IsNull()) {

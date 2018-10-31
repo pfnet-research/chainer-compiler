@@ -65,5 +65,7 @@ private:
 
 std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq);
 
+std::ostream& operator<<(std::ostream& os, const XCVMVar::Kind& kind);
+
 }  // namespace runtime
 }  // namespace oniku
