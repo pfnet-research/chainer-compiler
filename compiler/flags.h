@@ -31,5 +31,6 @@ extern bool g_dump_after_inference;
 extern bool g_dump_after_simplification;
 extern bool g_dump_after_gradient;
 extern bool g_dump_after_scheduling;
+extern bool g_dump_subgraphs;
 
 }  // namespace oniku

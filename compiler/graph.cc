@@ -319,4 +319,14 @@ void Graph::ResetGradients() {
     }
 }
 
+void Graph::DumpSubGraphs(int depth) const {
+    for (int i = 0; i < depth; i++) std::cerr << ' ';
+    std::cerr << name() << std::endl;
+    for (const auto& node : nodes_) {
+        for (Graph* sub_graph : node->GetSubGraphs()) {
+            sub_graph->DumpSubGraphs(depth + 1);
+        }
+    }
+}
+
 }  // namespace oniku

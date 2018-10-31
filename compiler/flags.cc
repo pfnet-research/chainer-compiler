@@ -18,5 +18,6 @@ bool g_dump_after_inference;
 bool g_dump_after_simplification;
 bool g_dump_after_gradient;
 bool g_dump_after_scheduling;
+bool g_dump_subgraphs;
 
 }  // namespace oniku

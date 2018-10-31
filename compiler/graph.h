@@ -100,6 +100,8 @@ public:
 
     void ResetGradients();
 
+    void DumpSubGraphs(int depth = 0) const;
+
 private:
     std::string GenSym(const std::string& base = "");
 

@@ -124,6 +124,10 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     dump_onnx(g_dump_after_gradient, "after gradient generation");
 
+    if (g_dump_subgraphs) {
+        graph->DumpSubGraphs();
+    }
+
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
     Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);
     if (gen_backprop) Recursively(ScheduleBackpropGraphs, graph);

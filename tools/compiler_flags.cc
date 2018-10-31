@@ -15,6 +15,7 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add("dump_after_simplification", '\0', "Dump the ONNX graph after graph simplification");
     args->add("dump_after_gradient", '\0', "Dump the ONNX graph after adding nodes for gradients");
     args->add("dump_after_scheduling", '\0', "Dump the ONNX graph after scheduling");
+    args->add("dump_subgraphs", '\0', "Dump the subgraph tree of the ONNX graph");
 }
 
 void ApplyCompilerFlags(const cmdline::parser& args) {
@@ -27,6 +28,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_dump_after_simplification = args.exist("dump_after_simplification");
     g_dump_after_gradient = args.exist("dump_after_gradient");
     g_dump_after_scheduling = args.exist("dump_after_scheduling");
+    g_dump_subgraphs = args.exist("dump_subgraphs");
 }
 
 }  // namespace runtime
