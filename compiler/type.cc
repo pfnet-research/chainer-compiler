@@ -93,7 +93,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
 }
 
 int64_t Type::NumElements() const {
-    CHECK(kind_ == Kind::kTensor) << kind_;
+    CHECK_EQ(kind_, Kind::kTensor);
     if (!is_known_) return -1;
     int64_t num = 1;
     for (int d : dims_) {
