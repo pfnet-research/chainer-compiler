@@ -570,6 +570,8 @@ private:
             EMIT(GenericGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
         } else if (node.op_type() == Node::kOnikuxGenericAdd) {
             EMIT(GenericAdd, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxGenericZerosLikeGrad) {
+            EMIT(GenericZerosLikeGrad, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxGenericAccumulateGrad) {
             EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
         } else {
@@ -859,7 +861,12 @@ private:
             CHECK_LT(i + 1, body_output_values.size());
             const Value* body_in = body_input_values[i + 2];
             const Value* body_out = body_output_values[i + 1];
-            MOVE(GetValueId(body_in), GetValueId(body_out));
+            if (body_out->IsNull()) {
+                // TODO(hamaji): Better to use a NULL value in XCVM. Or, remove this value altogether.
+                EMIT(IntScalarConstant, GetValueId(body_in), 42, Dtype::kInt8, false);
+            } else {
+                MOVE(GetValueId(body_in), GetValueId(body_out));
+            }
         }
 
         // Push scan outputs.

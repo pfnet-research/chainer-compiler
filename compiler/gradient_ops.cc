@@ -121,7 +121,8 @@ public:
     Value* AddGradValue(int xi) {
         CHECK_LE(0, xi) << xi;
         CHECK_GT(x_.size(), xi) << xi;
-        Value* gv = graph_->AddValue("grad@" + x_[xi]->name());
+        Value* x = x_[xi];
+        Value* gv = graph_->AddValue(StrCat("grad", x->Counter(), "@", x->name()));
         SetGrad(xi, gv);
         return gv;
     }
@@ -456,7 +457,6 @@ void LoopGradFn(GradientOpContext* gc) {
     CHECK_EQ(0, loop->onikux_stack_axis()) << "Not implemented yet";
 
     // Skip gradient calculation when there are no gradients propagated.
-    // TODO(hamaji): Handle cases where gradient values are partially fed.
     bool has_gy = false;
     for (int i = 0; i < num_states - 1; ++i) {
         Value* y = ys[i];
@@ -466,6 +466,15 @@ void LoopGradFn(GradientOpContext* gc) {
         }
     }
     if (!has_gy) return;
+
+    for (int i = 0; i < num_states - 1; ++i) {
+        Value* y = ys[i];
+        if (!y->grad()) {
+            GraphBuilder gb(graph, "LoopGrad", y);
+            Value* gy = gb.Op(Node::kOnikuxGenericZerosLikeGrad, {y});
+            y->set_grad(gy);
+        }
+    }
 
     std::vector<std::string> input_value_names;
     std::vector<std::string> output_value_names;
@@ -490,8 +499,12 @@ void LoopGradFn(GradientOpContext* gc) {
         output_value_names.push_back(output_cond->name());
         for (int i = 0; i < num_states - 1; ++i) {
             Value* x = body->input_values()[i + 2];
-            CHECK(x->grad()) << loop->DebugString();
-            Value* out = gb.Op(Node::kIdentity, {x->grad()});
+            Value* out;
+            if (x->grad()) {
+                out = gb.Op(Node::kIdentity, {x->grad()});
+            } else {
+                out = gb.Null();
+            }
             output_value_names.push_back(out->name());
         }
     }
@@ -506,8 +519,11 @@ void LoopGradFn(GradientOpContext* gc) {
         }
         std::vector<Value*> gxs;
         for (int i = 0; i < num_states - 1; ++i) {
-            CHECK(body->input_values()[i + 2]->grad()) << loop->DebugString();
-            gxs.push_back(gc->AddGradValue(i + 2));
+            if (body->input_values()[i + 2]->grad()) {
+                gxs.push_back(gc->AddGradValue(i + 2));
+            } else {
+                gxs.push_back(gb.Temp());
+            }
         }
 
         std::vector<Value*> backward_inputs;

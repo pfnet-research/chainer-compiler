@@ -71,11 +71,12 @@ void ScheduleBackpropGraphs(Graph* graph) {
         Graph* graph = p.first;
         const SubGraph& sg = p.second;
 
+        std::map<std::string, Value*> values;
+        for (Value* v : graph->temp_values()) {
+            CHECK(values.emplace(v->name(), v).second) << v->name();
+        }
+
         for (const SubGraph::Ref& ref : sg.refs) {
-            std::map<std::string, Value*> values;
-            for (Value* v : graph->temp_values()) {
-                CHECK(values.emplace(v->name(), v).second) << v->name();
-            }
             std::vector<Value*> input_values;
             for (const std::string& name : ref.input_value_names) {
                 if (name.empty()) continue;
