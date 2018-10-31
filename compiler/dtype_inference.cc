@@ -1,6 +1,7 @@
 #include "dtype_inference.h"
 
 #include <common/log.h>
+#include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
@@ -241,11 +242,37 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kIf:
-        case Node::kLoop:
+        case Node::kIf: {
+            // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
+            break;
+        }
+
+        case Node::kLoop: {
+            // TOOD(hamaji): Enable this check.
+#if 0
+            for (size_t i = 2; i < node->inputs().size(); ++i) {
+                Value* input = node->inputs()[i];
+                Value* output = node->outputs()[i - 2];
+                CHECK_EQ(input->type().kind(), output->type().kind());
+            }
+            for (size_t i = 2; i < node->inputs().size(); ++i) {
+                Value* input = node->inputs()[i];
+                Value* body = node->body()->input_values()[i];
+                CHECK_EQ(input->type().kind(), body->type().kind());
+            }
+            for (size_t i = 0; i < node->outputs().size(); ++i) {
+                Value* output = node->inputs()[i];
+                Value* body = node->body()->output_values()[i + 1];
+                CHECK_EQ(output->type().kind(), body->type().kind());
+            }
+#endif
+
+            // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
+            break;
+        }
         case Node::kOnikuxIfRef:
         case Node::kOnikuxLoopRef: {
-            // TODO(hamaji): Dtype inference for Loop is not implemented yet.
+            // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
             break;
         }
 

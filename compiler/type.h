@@ -26,6 +26,10 @@ public:
 
     void ToONNX(onnx::TypeProto* xtype) const;
 
+    Kind kind() const {
+        return kind_;
+    }
+
     Dtype dtype() const {
         return dtype_;
     }
