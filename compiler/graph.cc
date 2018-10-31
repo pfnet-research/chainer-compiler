@@ -301,12 +301,12 @@ Graph* Graph::GetSubGraph(const std::string& name) const {
     for (const auto& node : nodes_) {
         for (Graph* sub_graph : node->GetSubGraphs()) {
             if (sub_graph->name() == name) {
-                CHECK(found == nullptr) << "Two subgraphs found for name=" << name;
+                CHECK(found == nullptr) << "Two subgraphs found for name: " << name;
                 found = sub_graph;
             }
         }
     }
-    CHECK(found != nullptr) << "No subgraph found for name=" << name;
+    CHECK(found != nullptr) << "No subgraph found for name: " << name;
     return found;
 }
 
