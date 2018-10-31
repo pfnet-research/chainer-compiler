@@ -60,6 +60,8 @@ chainerx::Array SequenceLookupOp::RunImpl(XCVMState* st, const XCVMSequence& seq
 void SequenceLookupGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const chainerx::Array& size, const chainerx::Array& index, XCVMSequence* gx) {
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
     int64_t sz = static_cast<int64_t>(chainerx::AsScalar(size));
+    if (i < 0) i += sz;
+    CHECK_LT(i, sz);
     gx->resize(sz);
     (*gx)[i] = XCVMVar(gy);
 }
