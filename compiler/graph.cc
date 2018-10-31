@@ -44,7 +44,7 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         auto found = values_by_name.find(tensor->name());
         CHECK(found != values_by_name.end()) << "Invalid name for an initializer: " << tensor->name();
         CHECK(found->second->kind() == Value::Kind::kInput)
-                << "Only input can have an initializer but " << static_cast<int>(found->second->kind());
+                << "Only input can have an initializer but " << found->second->kind();
         found->second->ResetInitializer(std::move(tensor));
     }
 
@@ -148,7 +148,7 @@ std::set<Value*> Graph::GetNecessaryValues() const {
 
 Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind kind) {
     if (name == "" && kind != Value::Kind::kNull) {
-        CHECK(kind == Value::Kind::kTemp) << static_cast<int>(kind);
+        CHECK(kind == Value::Kind::kTemp) << kind;
         kind = Value::Kind::kNull;
     }
     Value* value = new Value(name, type, kind);
@@ -166,7 +166,7 @@ Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind ki
         case Value::Kind::kNull:
             break;
         default:
-            CHECK(false) << static_cast<int>(kind);
+            CHECK(false) << kind;
     }
     return value;
 }

@@ -93,7 +93,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
 }
 
 int64_t Type::NumElements() const {
-    CHECK(kind_ == Kind::kTensor) << static_cast<int>(kind_);
+    CHECK(kind_ == Kind::kTensor) << kind_;
     if (!is_known_) return -1;
     int64_t num = 1;
     for (int d : dims_) {
@@ -108,6 +108,17 @@ int64_t Type::GetNBytes() const {
     int64_t num_elements = NumElements();
     if (num_elements < 0) return -1;
     return num_elements * dtype_.SizeOf();
+}
+
+std::ostream& operator<<(std::ostream& os, const Type::Kind& kind) {
+    static const char* kNames[] = { "Tensor", "Sequence", "Map", "Opaque" };
+    int k = static_cast<int>(kind);
+    if (k >= 0 && k < sizeof(kNames) / sizeof(kNames[0])) {
+        os << kNames[k];
+    } else {
+        os << "???(" << k << ")";
+    }
+    return os;
 }
 
 }  // namespace oniku

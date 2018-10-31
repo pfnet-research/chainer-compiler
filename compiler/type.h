@@ -55,4 +55,6 @@ private:
     bool is_known_{true};
 };
 
+std::ostream& operator<<(std::ostream& os, const Type::Kind& kind);
+
 }  // namespace oniku

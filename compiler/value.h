@@ -100,4 +100,6 @@ private:
     int counter_ = 0;
 };
 
+std::ostream& operator<<(std::ostream& os, const Value::Kind& kind);
+
 }  // namespace oniku

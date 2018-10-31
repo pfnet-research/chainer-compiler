@@ -51,4 +51,15 @@ void Value::SetProducer(Node* producer) {
     producer_ = producer;
 }
 
+std::ostream& operator<<(std::ostream& os, const Value::Kind& kind) {
+    static const char* kNames[] = { "Input", "Output", "Temp", "Null" };
+    int k = static_cast<int>(kind);
+    if (k >= 0 && k < sizeof(kNames) / sizeof(kNames[0])) {
+        os << kNames[k];
+    } else {
+        os << "???(" << k << ")";
+    }
+    return os;
+}
+
 }  // namespace oniku
