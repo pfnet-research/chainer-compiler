@@ -39,11 +39,6 @@ def create_backprop_test(test_name, model, input_values):
 
     ch2o.testcasegen.edit_onnx_protobuf(xmodel, model)
 
-    # TODO(hamaji): Output model.onnx after `dump_test_inputs_outputs`
-    # so shape info will be more accurate.
-    with open(os.path.join(test_dir, 'model.onnx'), 'wb') as fp:
-        fp.write(xmodel.SerializeToString())
-
     initializer_names = set()
     for initializer in xmodel.graph.initializer:
         initializer_names.add(initializer.name)
@@ -67,6 +62,9 @@ def create_backprop_test(test_name, model, input_values):
         list(zip(input_tensors, input_values)),
         outputs,
         test_data_set_dir)
+
+    with open(os.path.join(test_dir, 'model.onnx'), 'wb') as fp:
+        fp.write(xmodel.SerializeToString())
 
 
 class BackpropTest(object):
