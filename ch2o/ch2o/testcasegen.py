@@ -108,8 +108,24 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 _seen_subnames = set()
 
 
-def generate_testcase(model, xs, subname=None):
-    args = get_test_args()
+def generate_testcase(model, xs, subname=None, output_dir=None):
+    if output_dir is None:
+        args = get_test_args()
+        output_dir = args.output
+
+        if not _seen_subnames:
+            # Remove all related directories to renamed tests.
+            for d in [output_dir] + glob.glob(output_dir + '_*'):
+                if os.path.isdir(d):
+                    shutil.rmtree(d)
+        assert subname not in _seen_subnames
+        _seen_subnames.add(subname)
+        if subname is not None:
+            output_dir = output_dir + '_' + subname
+    else:
+        assert subname is None
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     def get_model():
         if isinstance(model, type) or isinstance(model, types.FunctionType):
@@ -125,22 +141,8 @@ def generate_testcase(model, xs, subname=None):
     chainer.config.train = False
     chainer_out = run_chainer_model(model, xs)
 
-    dprint("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
-
-    output_dir = args.output
-    if not _seen_subnames:
-        # Remove all related directories to renamed tests.
-        for d in [output_dir] + glob.glob(output_dir + '_*'):
-            if os.path.isdir(d):
-                shutil.rmtree(d)
-    assert subname not in _seen_subnames
-    _seen_subnames.add(subname)
-    if subname is not None:
-        output_dir = output_dir + '_' + subname
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
 
     initializer_names = set()
     for initializer in onnxmod.graph.initializer:
