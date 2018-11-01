@@ -4,6 +4,7 @@ import operator
 import numpy as np
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
@@ -212,6 +213,20 @@ class StatelessLSTM(LSTMBase):
         return lstm.lstm(c, lstm_in)
 
 
+class StatelessLSTMBackprop(chainer.Chain):
+
+    def __init__(self, in_size, out_size=None):
+        super(StatelessLSTMBackprop, self).__init__()
+        with self.init_scope():
+            self.l = StatelessLSTM(in_size, out_size)
+
+    def forward(self, c, h, x):
+        c, h = self.l(c, h, x)
+        return c * h
+
+
+
+
 import ch2o
 
 
@@ -225,7 +240,6 @@ if __name__ == '__main__':
 
     def model_fn():
         lstm = StatelessLSTM(in_size, out_size)
-        lstm.initialize_params(in_size)
         return lstm
 
     c = np.random.rand(batch_size, out_size).astype(np.float32)
@@ -240,3 +254,10 @@ if __name__ == '__main__':
         assert np.allclose(e.array, a.array)
 
     ch2o.generate_testcase(model_fn, [c, h, x])
+
+    def model_fn():
+        lstm = StatelessLSTMBackprop(in_size, out_size)
+        return lstm
+
+    # TODO(hamaji): Fix this test.
+    # ch2o.generate_testcase(model_fn, [c, h, x], backprop=True)

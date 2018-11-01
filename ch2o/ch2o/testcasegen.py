@@ -119,8 +119,8 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
             for d in [output_dir] + glob.glob(output_dir + '_*'):
                 if os.path.isdir(d):
                     shutil.rmtree(d)
-        assert subname not in _seen_subnames
-        _seen_subnames.add(subname)
+        assert (backprop, subname) not in _seen_subnames
+        _seen_subnames.add((backprop, subname))
         if subname is not None:
             output_dir = output_dir + '_' + subname
     else:
