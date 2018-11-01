@@ -108,7 +108,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 _seen_subnames = set()
 
 
-def generate_testcase(model, xs, subname=None, has_side_effect=False):
+def generate_testcase(model, xs, subname=None):
     args = get_test_args()
 
     def get_model():
@@ -128,8 +128,6 @@ def generate_testcase(model, xs, subname=None, has_side_effect=False):
     dprint("parameter initialized")  # これより前のoverflowは気にしなくて良いはず
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
-    if not has_side_effect:
-        chainer_out = run_chainer_model(model, xs)
 
     output_dir = args.output
     if not _seen_subnames:

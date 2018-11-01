@@ -97,5 +97,4 @@ if __name__ == '__main__':
                            subname='update_self_literal')
 
     ch2o.generate_testcase(UpdateSelfLiteralInInit, [],
-                           subname='update_self_literal_in_init',
-                           has_side_effect=True)
+                           subname='update_self_literal_in_init')

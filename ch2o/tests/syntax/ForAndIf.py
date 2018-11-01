@@ -37,5 +37,4 @@ import numpy as np
 if __name__ == '__main__':
     ch2o.generate_testcase(LazyInit(), [5], subname='lazy_init')
 
-    ch2o.generate_testcase(LazySelfInit, [5], subname='lazy_self_init',
-                           has_side_effect=True)
+    ch2o.generate_testcase(LazySelfInit, [5], subname='lazy_self_init')
