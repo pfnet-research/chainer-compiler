@@ -44,6 +44,11 @@ void SequenceAppendOp::RunImpl(XCVMState* st) {
 }
 
 void SequencePopOp::RunImpl(XCVMState* st) {
+    // TODO(hamaji): Remove this code by removing null gradients.
+    if (st->GetVar(seq)->IsNull()) {
+        st->SetVar(output, XCVMVar());
+        return;
+    }
     XCVMSequence* v = st->GetSequence(seq);
     CHECK(!v->empty());
     st->SetVar(output, v->back());
@@ -197,6 +202,11 @@ void SequenceCopyOp::RunImpl(XCVMState* st, const XCVMSequence& seq, XCVMSequenc
 }
 
 void SequenceMoveOp::RunImpl(XCVMState* st) {
+    // TODO(hamaji): Remove this code by removing null gradients.
+    if (st->GetVar(seq)->IsNull()) {
+        st->SetVar(output, XCVMVar());
+        return;
+    }
     XCVMSequence* s = st->GetSequence(seq);
     XCVMSequence* d = st->CreateSequence(output);
     CHECK(d->empty());

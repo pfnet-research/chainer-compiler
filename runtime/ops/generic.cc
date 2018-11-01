@@ -61,6 +61,10 @@ void PrintOp::RunImpl(XCVMState* st) {
     }
 }
 
+void NullConstantOp::RunImpl(XCVMState* st) {
+    st->SetVar(output, XCVMVar());
+}
+
 void GenericLenOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);

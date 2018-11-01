@@ -350,6 +350,7 @@ XC_GENERIC_OPS = [
     ('In', [String('name')], ['v']),
     ('Out', [String('name'), Array('v')], []),
     ('Print', [ArrayList('values')], []),
+    ('NullConstant', [], ['output']),
 
     ('GenericLen', [Array('v')], ['len']),
     ('GenericGetItem', [Array('v'), Array('index')], ['output']),
@@ -597,6 +598,22 @@ def gen_gen_xcvm_ops_cc():
 
         if op.typed:
             args = ['st']
+
+            # TODO(hamaji): Remove this code by removing null gradients.
+            conds = []
+            for typ, name in op.inputs:
+                if typ in ARG_TYPES and typ != ARRAY_LIST:
+                    conds.append('(%s >= 0 && st->GetVar(%s)->IsNull())' %
+                                 (name, name))
+            if conds:
+                lines.append('if (%s) {' % (' || '.join(conds)))
+                lines.append('std::cerr << "skipped\\n";')
+                for typ, oname in op.outputs:
+                    if typ in ARG_TYPES and typ != ARRAY_LIST:
+                        lines.append('st->SetVar(%s, XCVMVar());' % oname)
+                lines.append('return;')
+                lines.append('}')
+
             for typ, name in op.inputs:
                 if typ == ARRAY:
                     args.append('st->GetArray(%s)' % name)

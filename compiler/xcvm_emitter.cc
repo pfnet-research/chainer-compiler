@@ -862,8 +862,8 @@ private:
             const Value* body_in = body_input_values[i + 2];
             const Value* body_out = body_output_values[i + 1];
             if (body_out->IsNull()) {
-                // TODO(hamaji): Better to use a NULL value in XCVM. Or, remove this value altogether.
-                EMIT(IntScalarConstant, GetValueId(body_in), 42, Dtype::kInt8, false);
+                // TODO(hamaji): Consider removing this value.
+                EMIT(NullConstant, GetValueId(body_in));
             } else {
                 MOVE(GetValueId(body_in), GetValueId(body_out));
             }
