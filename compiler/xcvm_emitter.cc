@@ -723,7 +723,12 @@ private:
             for (size_t i = 0; i < cond.outputs().size(); ++i) {
                 Value* from = outputs[i];
                 Value* to = cond.outputs()[i];
-                MOVE(GetValueId(to), GetValueId(from));
+                if (from->IsNull()) {
+                    // TODO(hamaji): Consider removing this value.
+                    EMIT(NullConstant, GetValueId(to));
+                } else {
+                    MOVE(GetValueId(to), GetValueId(from));
+                }
             }
         };
 

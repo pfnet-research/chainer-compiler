@@ -443,6 +443,18 @@ void OutputIterationCount(Graph* graph, Node* loop) {
     }
 }
 
+namespace {
+
+Value* GradOut(GraphBuilder* gb, Value* x) {
+    if (x->grad()) {
+        return gb->Op(Node::kIdentity, {x->grad()});
+    } else {
+        return gb->Null();
+    }
+}
+
+}  // namespace
+
 void LoopGradFn(GradientOpContext* gc) {
     Graph* graph = gc->graph();
     Node* loop = gc->node();
@@ -505,12 +517,7 @@ void LoopGradFn(GradientOpContext* gc) {
         output_value_names.push_back(output_cond->name());
         for (int i = 0; i < num_states - 1; ++i) {
             Value* x = body->input_values()[i + 2];
-            Value* out;
-            if (x->grad()) {
-                out = gb.Op(Node::kIdentity, {x->grad()});
-            } else {
-                out = gb.Null();
-            }
+            Value* out = GradOut(&gb, x);
             output_value_names.push_back(out->name());
         }
     }
@@ -565,7 +572,6 @@ void IfGradFn(GradientOpContext* gc) {
     }
     if (gy_indices.empty()) return;
 
-    std::vector<size_t> gx_indices;
     std::vector<std::string> then_input_value_names;
     std::vector<std::string> then_output_value_names;
     std::vector<std::string> else_input_value_names;
@@ -591,20 +597,15 @@ void IfGradFn(GradientOpContext* gc) {
             else_ys.push_back(else_y);
             else_input_value_names.push_back(else_gy->name());
         }
-        AddGradientNodes(then_graph, then_ys, gc->retain_in_stack());
-        AddGradientNodes(else_graph, else_ys, gc->retain_in_stack());
+        AddGradientNodes(then_graph, then_ys, true);
+        AddGradientNodes(else_graph, else_ys, true);
 
         for (size_t i = 0; i < xs.size() - 1; ++i) {
             Value* then_x = then_graph->input_values()[i];
-            Value* else_x = else_graph->input_values()[i];
-            if (then_x->grad() == nullptr || else_x->grad() == nullptr) {
-                continue;
-            }
-
-            gx_indices.push_back(i);
-            Value* then_out = then_gb.Op(Node::kIdentity, {then_x->grad()});
+            Value* then_out = GradOut(&then_gb, then_x);
             then_output_value_names.push_back(then_out->name());
-            Value* else_out = else_gb.Op(Node::kIdentity, {else_x->grad()});
+            Value* else_x = else_graph->input_values()[i];
+            Value* else_out = GradOut(&else_gb, else_x);
             else_output_value_names.push_back(else_out->name());
         }
     }
@@ -612,10 +613,13 @@ void IfGradFn(GradientOpContext* gc) {
     {
         GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
         std::vector<Value*> gxs;
-        for (size_t i : gx_indices) {
-            CHECK(then_graph->input_values()[i]->grad()) << cond->DebugString();
-            CHECK(else_graph->input_values()[i]->grad()) << cond->DebugString();
-            gxs.push_back(gc->AddGradValue(i + 1));
+        for (size_t i = 0; i < xs.size() - 1; ++i) {
+            if (then_graph->input_values()[i]->grad() ||
+                else_graph->input_values()[i]->grad()) {
+                gxs.push_back(gc->AddGradValue(i + 1));
+            } else {
+                gxs.push_back(gb.Temp());
+            }
         }
 
         std::vector<Value*> backward_inputs;

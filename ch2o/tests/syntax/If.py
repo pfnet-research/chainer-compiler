@@ -2,6 +2,7 @@
 
 import chainer
 import chainer.functions as F
+import chainer.links as L
 
 
 class StaticCondTrue(chainer.Chain):
@@ -102,6 +103,18 @@ class LazyInitUse(chainer.Chain):
         return a + b
 
 
+class IfBackprop(chainer.Chain):
+    def __init__(self):
+        super(IfBackprop, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(None, 4)
+
+    def forward(self, x, cond):
+        if cond is not None:
+            x = self.l(x)
+        return x
+
+
 # ======================================
 
 
@@ -150,3 +163,7 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(LazyInitUse, [10],
                            subname='lazy_init_use')
+
+    ch2o.generate_testcase(IfBackprop,
+                           [np.random.rand(3, 5).astype(np.float32), 1],
+                           subname='if_bp', backprop=True)
