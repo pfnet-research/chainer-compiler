@@ -59,7 +59,7 @@ add_subdirectory(tools)
 add_custom_command(
   OUTPUT onnx/build/libonnx.a onnx/build/onnx/onnx-ml.pb.h
   COMMAND scripts/build_onnx.sh
-  MAIN_DEPENDENCY onnx/.git/index
+  MAIN_DEPENDENCY .git/modules/onnx/index
   )
 add_custom_target(onnx_files
   DEPENDS
