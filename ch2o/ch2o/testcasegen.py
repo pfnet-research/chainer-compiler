@@ -55,10 +55,7 @@ def _validate_inout(xs):
     return xs
 
 
-def run_chainer_model(model, xs):
-    # forward 個分のlistとする
-    ys = model(*xs)
-
+def validate_chainer_output(ys):
     # タプルでなければ 1出力と思う
     if isinstance(ys, tuple):
         ys = list(ys)  # ばらしてみる
@@ -108,10 +105,14 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 _seen_subnames = set()
 
 
-def generate_testcase(model, xs, subname=None, output_dir=None):
+def generate_testcase(model, xs, subname=None, output_dir=None,
+                      backprop=False):
     if output_dir is None:
         args = get_test_args()
         output_dir = args.output
+
+        if backprop:
+            output_dir = output_dir + '_backprop'
 
         if not _seen_subnames:
             # Remove all related directories to renamed tests.
@@ -138,8 +139,14 @@ def generate_testcase(model, xs, subname=None, output_dir=None):
     output_tensors = onnxmod.graph.output
 
     model = get_model()
-    chainer.config.train = False
-    chainer_out = run_chainer_model(model, xs)
+    chainer.config.train = backprop
+    model.cleargrads()
+    ys = model(*xs)
+    chainer_out = validate_chainer_output(ys)
+
+    if backprop:
+        ys.grad = np.ones(ys.shape, ys.dtype)
+        ys.backward()
 
     # 1回の実行をもとにinitialize
     edit_onnx_protobuf(onnxmod, model)
@@ -157,11 +164,18 @@ def generate_testcase(model, xs, subname=None, output_dir=None):
         chainer_out = [np.array(chainer_out)]
     assert len(output_tensors) == len(chainer_out)
 
+    outputs = list(zip(output_tensors, chainer_out))
+    if backprop:
+        for name, param in sorted(model.namedparams()):
+            bp_name = onnx.helper.make_tensor_value_info(
+                'grad_out@' + name, onnx.TensorProto.FLOAT, ())
+            outputs.append((bp_name, param.grad))
+
     xs = list(map(lambda x: _validate_inout(x), xs))
 
     dump_test_inputs_outputs(
         list(zip(input_tensors, xs)),
-        list(zip(output_tensors, chainer_out)),
+        outputs,
         os.path.join(output_dir, 'test_data_set_0'))
 
     with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:

@@ -32,4 +32,4 @@ if __name__ == '__main__':
     model = A(n_vocab, n_out)
 
     v = np.random.randint(n_vocab, size=n_batch)
-    ch2o.generate_testcase(model, [v])
+    ch2o.generate_testcase(model, [v], backprop=True)

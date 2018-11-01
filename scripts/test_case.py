@@ -16,7 +16,7 @@ class TestCase(object):
         self.always_retain_in_stack = always_retain_in_stack
         self.test_dir = os.path.join(self.dirname, self.name)
         self.args = None
-        self.is_backprop = 'backprop_' in name
+        self.is_backprop = 'backprop' in name
         self.want_gpu = want_gpu
         self.prepare_func = prepare_func
 
