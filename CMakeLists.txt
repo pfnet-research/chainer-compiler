@@ -131,6 +131,7 @@ foreach(
     Len
     Linear
     MaxPool2d
+    Mean
     NStepBiLSTM
     NStepLSTM
     NpArray

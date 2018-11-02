@@ -434,6 +434,28 @@ class Function_Sum(Callable):
         )
 
 
+class Function_Average(Callable):
+    def call_impl(self, env, x, axis, weights, keepdims):
+        assert weights.is_none()  # TODO(hamaji): Not supported yet.
+        if not axis.is_py:
+            raise TypeError('Expected an int or an int tuple: %s' % v.value)
+        if isinstance(axis.value, collections.Iterable):
+            axes = axis.to_int_list()
+        elif axis.is_none():
+            axes = []
+        else:
+            axes = [axis.to_int()]
+        kwargs = {}
+        if axes:
+            kwargs['axes'] = axes
+        return env.calc(
+            'ReduceMean',
+            inputs=[x.to_tensor(env).name],
+            keepdims=keepdims.to_bool(),
+            **kwargs
+        )
+
+
 class Function_Softmax(Callable):
     def call_impl(self, env, x, axis):
         return env.calc(
@@ -507,6 +529,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.stack, Function_Stack),
                 (F.separate, Function_Separate),
                 (F.sum, Function_Sum),
+                (F.average, Function_Average),
                 (F.softmax, Function_Softmax),
                 (F.squeeze, Function_Squeeze),
                 (chainer.Variable, Function_Chainer_Variable),
