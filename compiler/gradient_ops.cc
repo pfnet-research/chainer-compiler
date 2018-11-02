@@ -395,10 +395,11 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 void BatchNormalizationGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
+    Value* gy = gc->gy(0);
     Value* gx0 = gc->AddGradValue(0);
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
-    gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gc->gy(0), context}, {gx0, gx1, gx2}, __func__);
+    gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2}, __func__);
     Value* zero = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {0.0});
     // No gradients since update should have been done for running mean/variance.
     gc->SetGrad(3, zero);
@@ -572,6 +573,7 @@ void IfGradFn(GradientOpContext* gc) {
     }
     if (gy_indices.empty()) return;
 
+    std::vector<size_t> gx_indices;
     std::vector<std::string> then_input_value_names;
     std::vector<std::string> then_output_value_names;
     std::vector<std::string> else_input_value_names;
@@ -602,24 +604,26 @@ void IfGradFn(GradientOpContext* gc) {
 
         for (size_t i = 0; i < xs.size() - 1; ++i) {
             Value* then_x = then_graph->input_values()[i];
+            Value* else_x = else_graph->input_values()[i];
+            if (then_x->grad() == nullptr && else_x->grad() == nullptr) {
+                continue;
+            }
+            gx_indices.push_back(i);
             Value* then_out = GradOut(&then_gb, then_x);
             then_output_value_names.push_back(then_out->name());
-            Value* else_x = else_graph->input_values()[i];
             Value* else_out = GradOut(&else_gb, else_x);
             else_output_value_names.push_back(else_out->name());
         }
     }
 
+    if (gx_indices.empty())
+        return;
+
     {
         GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
         std::vector<Value*> gxs;
-        for (size_t i = 0; i < xs.size() - 1; ++i) {
-            if (then_graph->input_values()[i]->grad() ||
-                else_graph->input_values()[i]->grad()) {
-                gxs.push_back(gc->AddGradValue(i + 1));
-            } else {
-                gxs.push_back(gb.Temp());
-            }
+        for (size_t i : gx_indices) {
+            gxs.push_back(gc->AddGradValue(i + 1));
         }
 
         std::vector<Value*> backward_inputs;
@@ -649,11 +653,12 @@ void SequenceStackGradFn(GradientOpContext* gc) {
 
 void SequenceAppendGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
+    Value* gy = gc->gy(0);
     std::vector<Value*> gxs;
     for (int i = 0; i < 2; ++i) {
         gxs.push_back(gc->AddGradValue(i));
     }
-    gb.MOp(Node::kOnikuxSequencePop, {gc->gy(0)}, gxs);
+    gb.MOp(Node::kOnikuxSequencePop, {gy}, gxs);
 }
 
 void SequenceConcatGradFn(GradientOpContext* gc) {
@@ -780,6 +785,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     try {
         func.fn(&gc);
     } catch (GradientOpContext::NoGradient) {
+        return false;
     }
     return true;
 }

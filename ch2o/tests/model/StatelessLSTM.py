@@ -259,5 +259,4 @@ if __name__ == '__main__':
         lstm = StatelessLSTMBackprop(in_size, out_size)
         return lstm
 
-    # TODO(hamaji): Fix this test.
-    # ch2o.generate_testcase(model_fn, [c, h, x], backprop=True)
+    ch2o.generate_testcase(model_fn, [c, h, x], backprop=True)
