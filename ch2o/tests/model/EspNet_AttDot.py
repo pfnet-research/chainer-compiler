@@ -140,7 +140,7 @@ class AttDotBackprop(chainer.Chain):
 
     def forward(self, enc_hs, dec_z, att_prev):
         c, w = self.l(enc_hs, dec_z, att_prev)
-        return c * F.sum(w, axis=1)
+        return c * F.broadcast_to(F.sum(w, axis=1), (3, 3))
 
 
 import ch2o
@@ -173,6 +173,7 @@ if __name__ == '__main__':
     ch2o.generate_testcase(model_fn, [xs, None, None])
 
     # TODO(hamaji): Enable this test.
+    # TODO(hamaji): Most gradients are zeros. Fix something for better result.
     # ch2o.generate_testcase(lambda: AttDotBackprop(eprojs, dunits, att_dim),
     #                        [xs, None, None],
     #                        backprop=True)
