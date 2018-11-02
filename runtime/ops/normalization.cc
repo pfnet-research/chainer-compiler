@@ -36,6 +36,15 @@ private:
     chainerx::Shape x2_shape_;
 };
 
+class NoBatchNormContext : public XCVMOpaque {
+public:
+    NoBatchNormContext() = default;
+    virtual ~NoBatchNormContext() = default;
+
+    virtual std::string ToString() const { return "noctx"; }
+    virtual std::string DebugString() const { return "noctx"; }
+};
+
 // TODO(hamaji): Copied from xChainer's code.
 using Array = chainerx::Array;
 using Axes = chainerx::Axes;
@@ -134,7 +143,7 @@ std::tuple<chainerx::Array, XCVMOpaque*> BatchNormalizationOp::RunImpl(
         return std::tie(out, ctx);
     } else {
         chainerx::Array out = chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
-        XCVMOpaque* ctx = nullptr;
+        XCVMOpaque* ctx = new NoBatchNormContext();
         return std::tie(out, ctx);
     }
 }
