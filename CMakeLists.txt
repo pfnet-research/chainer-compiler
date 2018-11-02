@@ -130,6 +130,7 @@ foreach(
     LRN
     Len
     Linear
+    Matmul
     MaxPool2d
     Mean
     NStepBiLSTM

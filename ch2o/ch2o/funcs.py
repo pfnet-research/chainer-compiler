@@ -98,6 +98,15 @@ class Function_Dropout(Callable):
                         inputs=[x.to_tensor(env).name], ratio=ratio.to_float())
 
 
+class Function_Matmul(Callable):
+    def call_impl(self, env, a, b, transa, transb):
+        assert not transa.value  # TODO(hamaji): Not supported yet.
+        assert not transb.value  # TODO(hamaji): Not supported yet.
+        return env.calc("MatMul",
+                        inputs=[a.to_tensor(env).name,
+                                b.to_tensor(env).name])
+
+
 class Function_Concat(Callable):
     def call_impl(self, env, xs, axis):
         if isinstance(xs.value, tuple):
@@ -512,6 +521,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.broadcast_to, Function_BroadcastTo),
                 (F.reshape, Function_Reshape),
                 (F.dropout, Function_Dropout),
+                (F.matmul, Function_Matmul),
                 (F.max_pooling_2d, Function_MaxPool2d),
                 (F.average_pooling_2d, Function_AveragePool2d),
                 (F.local_response_normalization, Function_LocalRespNorm),
