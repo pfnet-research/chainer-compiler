@@ -533,10 +533,11 @@ if not args.all:
 
 
 class TestRunner(object):
-    def __init__(self, test_cases):
+    def __init__(self, test_cases, show_log):
         self.test_cases = test_cases
         self.test_cnt = 0
         self.fail_cnt = 0
+        self.show_log = show_log
 
     def run(self, num_parallel_jobs):
         tests = list(reversed(self.test_cases))
@@ -546,15 +547,9 @@ class TestRunner(object):
                 test_case = tests.pop()
                 if num_parallel_jobs == 1:
                     sys.stdout.write('%s... ' % test_case.name)
-                if args.verbose:
-                    # Discard verbose outputs.
-                    proc = subprocess.Popen(test_case.args,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.DEVNULL)
-                else:
-                    proc = subprocess.Popen(test_case.args,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.STDOUT)
+                proc = subprocess.Popen(test_case.args,
+                                        stdout=subprocess.PIPE,
+                                        stderr=test_case.log_writer())
                 procs[proc.pid] = (test_case, proc)
                 continue
 
@@ -578,7 +573,8 @@ class TestRunner(object):
                 filtered = [a for a in test_case.args if a != '--quiet']
                 sys.stdout.write('%sFAIL%s: %s\n' %
                                  (RED, RESET, ' '.join(filtered)))
-                sys.stdout.buffer.write(proc.stdout.read())
+            if status != 0 or self.show_log:
+                sys.stdout.buffer.write(test_case.log_read())
             sys.stdout.flush()
 
 
@@ -621,8 +617,6 @@ def main():
                 continue
             test_case.args.extend(['-d', 'cuda'])
             is_gpu = True
-        if not args.show_log:
-            test_case.args.append('--quiet')
 
         if is_gpu:
             gpu_tests.append(test_case)
@@ -633,7 +627,7 @@ def main():
         test.prepare()
 
     for tests, num_jobs in [(tests, args.jobs), (gpu_tests, 1)]:
-        runner = TestRunner(tests)
+        runner = TestRunner(tests, args.show_log)
         runner.run(num_jobs)
         test_cnt += runner.test_cnt
         fail_cnt += runner.fail_cnt
