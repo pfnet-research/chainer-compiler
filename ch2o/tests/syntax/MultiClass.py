@@ -24,8 +24,8 @@ class A(chainer.Chain):
         super(A, self).__init__()
         with self.init_scope():
             self.l0 = L.Linear(3)
-            self.l1 = B(10, 3.1)
-            self.l2 = B(20, 4.2)
+            self.l1 = B(5, 3.1)
+            self.l2 = B(4, 4.2)
 
     def forward(self, x):
         x = self.l0(x)
@@ -43,5 +43,5 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    v = np.random.rand(10, 20).astype(np.float32)
+    v = np.random.rand(3, 7).astype(np.float32)
     ch2o.generate_testcase(A, [v])
