@@ -90,6 +90,7 @@ public:
     Value* gy(int i) {
         CHECK_LE(0, i) << i;
         CHECK_GT(y_.size(), i) << i;
+        CHECK(!gradient_added_);
         Value* r = y_[i]->grad();
         if (!r) {
             throw NoGradient();
@@ -126,6 +127,7 @@ public:
     Value* AddGradValue(int xi) {
         CHECK_LE(0, xi) << xi;
         CHECK_GT(x_.size(), xi) << xi;
+        gradient_added_ = true;
         Value* x = x_[xi];
         Value* gv = graph_->AddValue(StrCat("grad", x->Counter(), "@", x->name()));
         SetGrad(xi, gv);
@@ -146,6 +148,7 @@ private:
     std::string name_;
     bool retain_in_stack_;
     static std::atomic<int> id_;
+    bool gradient_added_{false};
 };
 
 std::atomic<int> GradientOpContext::id_;
@@ -161,8 +164,9 @@ void SubGradFn(GradientOpContext* gc) {
 }
 
 void MulGradFn(GradientOpContext* gc) {
-    gc->GradOp(Node::kMul, 0, {gc->x(1), gc->gy(0)});
-    gc->GradOp(Node::kMul, 1, {gc->x(0), gc->gy(0)});
+    Value* gy = gc->gy(0);
+    gc->GradOp(Node::kMul, 0, {gc->x(1), gy});
+    gc->GradOp(Node::kMul, 1, {gc->x(0), gy});
 }
 
 void DivGradFn(GradientOpContext* gc) {
