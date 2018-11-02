@@ -57,9 +57,10 @@ add_subdirectory(scripts)
 add_subdirectory(tools)
 
 add_custom_command(
-  OUTPUT onnx/build/libonnx.a onnx/build/onnx/onnx-ml.pb.h
+  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/onnx/build/libonnx.a onnx/build/onnx/onnx-ml.pb.h
   COMMAND scripts/build_onnx.sh
-  MAIN_DEPENDENCY .git/modules/onnx/index
+  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/.git/modules/onnx/index
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 add_custom_target(onnx_files
   DEPENDS
