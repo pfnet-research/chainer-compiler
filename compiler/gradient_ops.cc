@@ -237,6 +237,12 @@ void GatherGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kOnikuxGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
 }
 
+void ExpandGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
+    gc->GradOp(Node::kOnikuxReduceSumTo, 0, {gc->gy(0), t0});
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -758,6 +764,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kUnsqueeze, &ReshapeGradFn);
         register_grad_fn(Node::kOnikuxSelectItem, &SelectItemGradFn);
         register_grad_fn(Node::kGather, &GatherGradFn);
+        register_grad_fn(Node::kExpand, &ExpandGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
