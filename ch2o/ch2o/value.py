@@ -119,7 +119,7 @@ class Value(object):
                 inputs=[],
             )
             for v in self.value:
-                v = v.to_tensor(env)
+                v = Value(v).to_tensor(env)
                 res = env.calc_seq(
                     "OnikuxSequenceAppend",
                     inputs=[res.name, v.name],
@@ -139,6 +139,17 @@ class Value(object):
         if not self.is_py and self.const_value is not None:
             return self.const_value
         return self
+
+    @property
+    def has_py_value(self):
+        return self.is_py or self.const_value is not None
+
+    def to_py_value(self):
+        if self.is_py:
+            return self
+        if self.const_value is not None:
+            return self.const_value
+        assert False, self
 
     def to_float(self) -> float:
         value = self._const()

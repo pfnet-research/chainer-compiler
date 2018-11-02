@@ -415,8 +415,9 @@ class Function_Squeeze(Callable):
 
 class Function_Sum(Callable):
     def call_impl(self, env, x, axis, keepdims):
-        if not axis.is_py:
-            raise TypeError('Expected an int or an int tuple: %s' % v.value)
+        if not axis.has_py_value:
+            raise TypeError('Expected an int or an int tuple: %s' % axis.value)
+        axis = axis.to_py_value()
         if isinstance(axis.value, collections.Iterable):
             axes = axis.to_int_list()
         elif axis.is_none():
@@ -437,8 +438,9 @@ class Function_Sum(Callable):
 class Function_Average(Callable):
     def call_impl(self, env, x, axis, weights, keepdims):
         assert weights.is_none()  # TODO(hamaji): Not supported yet.
-        if not axis.is_py:
-            raise TypeError('Expected an int or an int tuple: %s' % v.value)
+        if not axis.has_py_value:
+            raise TypeError('Expected an int or an int tuple: %s' % axis.value)
+        axis = axis.to_py_value()
         if isinstance(axis.value, collections.Iterable):
             axes = axis.to_int_list()
         elif axis.is_none():
