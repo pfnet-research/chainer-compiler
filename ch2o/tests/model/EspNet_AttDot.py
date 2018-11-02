@@ -132,6 +132,17 @@ class AttDot(chainer.Chain):
         return c, w
 
 
+class AttDotBackprop(chainer.Chain):
+    def __init__(self, eprojs, dunits, att_dim):
+        super(AttDotBackprop, self).__init__()
+        with self.init_scope():
+            self.l = AttDot(eprojs, dunits, att_dim)
+
+    def forward(self, enc_hs, dec_z, att_prev):
+        c, w = self.l(enc_hs, dec_z, att_prev)
+        return c * F.sum(w, axis=1)
+
+
 import ch2o
 
 
@@ -160,3 +171,8 @@ if __name__ == '__main__':
         assert np.allclose(e.array, a.array)
 
     ch2o.generate_testcase(model_fn, [xs, None, None])
+
+    # TODO(hamaji): Enable this test.
+    # ch2o.generate_testcase(lambda: AttDotBackprop(eprojs, dunits, att_dim),
+    #                        [xs, None, None],
+    #                        backprop=True)
