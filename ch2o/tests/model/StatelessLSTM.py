@@ -225,8 +225,6 @@ class StatelessLSTMBackprop(chainer.Chain):
         return c * h
 
 
-
-
 import ch2o
 
 
