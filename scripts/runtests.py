@@ -578,7 +578,7 @@ class TestRunner(object):
                 filtered = [a for a in test_case.args if a != '--quiet']
                 sys.stdout.write('%sFAIL%s: %s\n' %
                                  (RED, RESET, ' '.join(filtered)))
-            sys.stdout.buffer.write(proc.stdout.read())
+                sys.stdout.buffer.write(proc.stdout.read())
             sys.stdout.flush()
 
 
