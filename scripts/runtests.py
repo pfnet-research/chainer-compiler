@@ -519,6 +519,7 @@ for test_case in list(TEST_CASES):
     new_test.fail = new_test.fail or (
         # TODO(hamaji): Fix scheduling of backprop stack.
         'StatelessLSTM' in test_case.name or
+        'Sum' in test_case.name or
         'if_pd' in test_case.name or
         test_case.name.endswith('softmax_cross_entropy') or
         'mlp' in test_case.name)

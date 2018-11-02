@@ -237,10 +237,25 @@ void GatherGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kOnikuxGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
 }
 
+namespace {
+
+Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
+    if (node->keepdims() || node->axes().empty()) return gy;
+    size_t last_safe_index = 0;
+    while (last_safe_index == node->axes()[last_safe_index]) {
+        ++last_safe_index;
+        if (last_safe_index == node->axes().size()) return gy;
+    }
+    gy = gb->Op(Node::kUnsqueeze, {gy});
+    gy->producer()->set_axes(node->axes());
+    return gy;
+}
+
+}
+
 void ReduceSumGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    // TODO(hamaji): Need some check for `axes` and `keepdims`.
-    Value* gy = gc->gy(0);
+    Value* gy = ReduceGrad(gc->node(), &gb, gc->gy(0));
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
     gc->GradOp(Node::kExpand, 0, {gy, shape});
 }
