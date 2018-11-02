@@ -89,7 +89,7 @@ void XCVMState::SetVar(int index, const XCVMVar& var) {
 std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
     CHECK_GT(variables_.size(), index) << index;
-    CHECK(variables_[index].get());
+    if (!variables_[index].get()) return "UNSET";
     if (trace_level_ > 1)
         return variables_[index]->DebugString();
     else
