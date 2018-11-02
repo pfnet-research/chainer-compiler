@@ -38,6 +38,11 @@ parser.add_argument('--verbose', action='store_true',
 args = parser.parse_args()
 
 
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+RESET = '\033[0m'
+
 ONNX_TEST_DATA = 'onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
 
@@ -564,13 +569,15 @@ class TestRunner(object):
             self.test_cnt += 1
             if status == 0:
                 if test_case.fail:
-                    sys.stdout.write('OK (unexpected)\n')
+                    sys.stdout.write('%sOK (unexpected)%s\n' %
+                                     (YELLOW, RESET))
                 else:
-                    sys.stdout.write('OK\n')
+                    sys.stdout.write('%sOK%s\n' % (GREEN, RESET))
             else:
                 self.fail_cnt += 1
                 filtered = [a for a in test_case.args if a != '--quiet']
-                sys.stdout.write('FAIL: %s\n' % ' '.join(filtered))
+                sys.stdout.write('%sFAIL%s: %s\n' %
+                                 (RED, RESET, ' '.join(filtered)))
             sys.stdout.buffer.write(proc.stdout.read())
             sys.stdout.flush()
 
