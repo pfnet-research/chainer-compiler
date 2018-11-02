@@ -172,8 +172,7 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(model_fn, [xs, None, None])
 
-    # TODO(hamaji): Enable this test.
     # TODO(hamaji): Most gradients are zeros. Fix something for better result.
-    # ch2o.generate_testcase(lambda: AttDotBackprop(eprojs, dunits, att_dim),
-    #                        [xs, None, None],
-    #                        backprop=True)
+    ch2o.generate_testcase(lambda: AttDotBackprop(eprojs, dunits, att_dim),
+                           [xs, None, None],
+                           backprop=True)

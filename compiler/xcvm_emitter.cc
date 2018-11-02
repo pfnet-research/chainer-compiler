@@ -652,7 +652,10 @@ private:
 
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
-            if (todo_outputs.empty()) break;
+            if (todo_outputs.empty()) {
+                if (node->op_type() != Node::kOnikuxBackpropStackPush)
+                    break;
+            }
             if (!emitted_.emplace(node).second) continue;
 
             if (!in_loop) {
