@@ -778,6 +778,11 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
 
         register_grad_fn(Node::kGreater, &DoNothingGradFn);
         register_grad_fn(Node::kConstant, &DoNothingGradFn);
+        register_grad_fn(Node::kConstantFill, &DoNothingGradFn);
+        register_grad_fn(Node::kShape, &DoNothingGradFn);
+        register_grad_fn(Node::kOnikuxGenericIs, &DoNothingGradFn);
+        register_grad_fn(Node::kOnikuxGenericLen, &DoNothingGradFn);
+
         register_grad_fn(Node::kLoop, &LoopGradFn);
         register_grad_fn(Node::kIf, &IfGradFn);
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
