@@ -16,13 +16,18 @@ namespace {
 typedef bool (*SimplifierFn)(Graph*, Node*);
 
 bool ReplaceSum(Graph* graph, Node* node) {
+    CHECK_LT(0UL, node->inputs().size());
     CHECK_EQ(1UL, node->outputs().size());
     GraphBuilder gb(graph, "SimplifySum", node->outputs()[0]);
     Value* v = node->inputs()[0];
-    for (size_t i = 1; i < node->inputs().size(); ++i) {
-        v = gb.Op(Node::kAdd, {v, node->inputs()[i]});
+    if (node->inputs().size() == 1) {
+        gb.Op(Node::kIdentity, {v}, node->outputs()[0]);
+    } else {
+        for (size_t i = 1; i < node->inputs().size() - 1; ++i) {
+            v = gb.Op(Node::kAdd, {v, node->inputs()[i]});
+        }
+        gb.Op(Node::kAdd, {v, node->inputs().back()}, node->outputs()[0]);
     }
-    gb.Op(Node::kIdentity, {v}, node->outputs()[0]);
     return true;
 }
 
