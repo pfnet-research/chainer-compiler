@@ -140,7 +140,7 @@ class AttDotBackprop(chainer.Chain):
 
     def forward(self, enc_hs, dec_z, att_prev):
         c, w = self.l(enc_hs, dec_z, att_prev)
-        return c * F.broadcast_to(F.sum(w, axis=1), (3, 3))
+        return F.matmul(c, w)
 
 
 import ch2o
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         batch_size, sequence_length, num_vocabs)
     xs = []
     for l in ilens:
-        xs.append(np.random.rand(l, eprojs).astype(dtype=np.float32))
+        xs.append(np.random.rand(l, eprojs).astype(np.float32))
 
     # Check if our modification is valid.
     expected = model_fn().original(xs, None, None)
@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(model_fn, [xs, None, None])
 
-    # TODO(hamaji): Most gradients are zeros. Fix something for better result.
+    z = np.random.rand(batch_size, dunits).astype(np.float32)
     ch2o.generate_testcase(lambda: AttDotBackprop(eprojs, dunits, att_dim),
-                           [xs, None, None],
+                           [xs, z, None],
                            backprop=True)
