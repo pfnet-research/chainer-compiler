@@ -1,6 +1,7 @@
 #include "graph.h"
 
 #include <algorithm>
+#include <fstream>
 #include <map>
 #include <queue>
 #include <set>
@@ -327,6 +328,17 @@ void Graph::DumpSubGraphs(int depth) const {
             sub_graph->DumpSubGraphs(depth + 1);
         }
     }
+}
+
+void Graph::DumpONNXOnFailure(const std::string& filename) const {
+    onnx::ModelProto xmodel;
+    xmodel.set_ir_version(3);
+    xmodel.set_producer_name("oniku failed :(");
+    ToONNX(xmodel.mutable_graph());
+    const std::string fn = filename.empty() ? "/tmp/oniku_failure.onnx" : filename;
+    std::ofstream ofs(fn);
+    xmodel.SerializeToOstream(&ofs);
+    std::cerr << "Failed graph is stored in " << fn << std::endl;
 }
 
 }  // namespace oniku

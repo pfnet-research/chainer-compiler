@@ -102,6 +102,8 @@ public:
 
     void DumpSubGraphs(int depth = 0) const;
 
+    void DumpONNXOnFailure(const std::string& filename = "") const;
+
 private:
     std::string GenSym(const std::string& base = "");
 

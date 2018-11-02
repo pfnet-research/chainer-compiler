@@ -54,7 +54,10 @@ public:
             Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
             graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
         }
-        CHECK(ok);
+        if (!ok) {
+            graph_->DumpONNXOnFailure();
+            CHECK(false);
+        }
 
         graph_->ResetGradients();
     }

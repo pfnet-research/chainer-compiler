@@ -231,6 +231,7 @@ void CheckSanity(
                 }
             }
         }
+        graph.DumpONNXOnFailure();
         CHECK(false);
     }
 }
