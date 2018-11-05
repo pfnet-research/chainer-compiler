@@ -520,6 +520,7 @@ for test_case in list(TEST_CASES):
         # TODO(hamaji): Fix scheduling of backprop stack.
         'StatelessLSTM' in test_case.name or
         'Sum' in test_case.name or
+        'EspNet' in test_case.name or
         'BroadcastTo' in test_case.name or
         'AttDot' in test_case.name or
         'if_pd' in test_case.name or

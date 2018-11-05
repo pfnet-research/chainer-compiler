@@ -327,9 +327,13 @@ if __name__ == '__main__':
 
     gen_test(model_fn)
 
+    ch2o.generate_testcase(model_fn, [hs, ys], backprop=True)
+
     def model_fn():
         dec = Decoder(eprojs, odim, dlayers, dunits, sos, eos,
                       att_dim, aconv_chans, aconv_filts)
         return dec
 
     gen_test(model_fn, subname='attloc')
+
+    ch2o.generate_testcase(model_fn, [hs, ys], subname='attloc', backprop=True)
