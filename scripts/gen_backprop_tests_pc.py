@@ -299,6 +299,21 @@ def get_backprop_tests():
 
     test('embed', Embed(), np.array([3, 4, 5, 5, 5, 2]))
 
+    class Pad(chainer.Chain):
+        def __init__(self):
+            super(Pad, self).__init__()
+            with self.init_scope():
+                self.l = L.Linear(None, 4)
+
+        def forward(self, x):
+            xs = F.separate(x)
+            ys = []
+            for x in xs:
+                ys.append(self.l(x))
+            return F.pad_sequence(ys)
+
+    test('pad', Pad(), aranges(5, 4, 3))
+
     return tests
 
 
