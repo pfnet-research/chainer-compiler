@@ -1138,9 +1138,8 @@ def compile_model(model, inputs):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
-    dprint(graph)
-    # checker.check_graph(graph)
     # oniku独自のノードを使うとcheckできなくなる...
+    # checker.check_graph(graph)
     mo = helper.make_model(graph)
 
     # print(mo)
