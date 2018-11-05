@@ -24,6 +24,7 @@ include_directories(${ONIKU_ROOT_DIR})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
 add_library(oniku_runtime
+  backward_context.cc
   chrome_tracing.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   meminfo.cc

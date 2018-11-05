@@ -118,6 +118,5 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(model, [xs, ilens])
 
-    # TODO(hamaji): Fix this.
-    # ch2o.generate_testcase(BLSTMBackprop(idim, elayers, cdim, hdim, 0),
-    #                        [xs, ilens], backprop=True)
+    ch2o.generate_testcase(BLSTMBackprop(idim, elayers, cdim, hdim, 0),
+                           [xs, ilens], backprop=True)

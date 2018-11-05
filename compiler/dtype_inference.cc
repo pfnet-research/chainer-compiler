@@ -192,6 +192,11 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kOnikuxLSTMGrad: {
+            // TODO(hamaji): Implement this.
+            break;
+        }
+
         case Node::kConv:
         case Node::kConvTranspose:
         case Node::kOnikuxConvGradWeight: {

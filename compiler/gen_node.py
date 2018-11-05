@@ -135,7 +135,8 @@ NodeDef('GRU', (3, 4, 5, 6), (0, 1, 2),
         activation_alpha=[float], activation_beta=[float],
         activations=[str], clip=float, direction='forward',
         hidden_size=int, linear_before_reset=0)
-NodeDef('LSTM', (3, 4, 5, 6, 7, 8), (0, 1, 2, 3),
+# Extension: The fouth output is for backward context.
+NodeDef('LSTM', (3, 4, 5, 6, 7, 8), (0, 1, 2, 3, 4),
         activation_alpha=[float], activation_beta=[float],
         activations=[str], clip=float, direction='forward',
         hidden_size=int, input_forget=0)
@@ -186,6 +187,7 @@ NodeDef('OnikuxSelectItem', 2, 1)
 NodeDef('OnikuxSelectItemGrad', 3, 1)
 NodeDef('OnikuxLRNGrad', 4, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
+NodeDef('OnikuxLSTMGrad', 2, 4)
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('OnikuxGatherGrad', 3, 1, axis=0)
 # body_ref is a name of a sub Graph in a sibling Loop node.

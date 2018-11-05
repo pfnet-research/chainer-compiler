@@ -265,7 +265,10 @@ XC_OPS = [
       OptionalArray('p'),
       Int('hidden_size'), Int('direction'),
      ],
-     ['y', 'y_h', 'y_c']),
+     ['y', 'y_h', 'y_c', Opaque('ctx')]),
+    ('LSTMGrad',
+     [Array('gy'), Opaque('ctx')],
+     ['gx', 'gw', 'gr', 'gb']),
 
     ('BatchNormalization',
      [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),

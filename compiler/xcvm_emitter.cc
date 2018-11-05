@@ -295,12 +295,11 @@ private:
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
             CHECK(node.activation_beta().empty()) << "activation_beta not supporte yet";
-            CHECK_LE(3, node.inputs().size());
-            CHECK_GE(3, node.outputs().size());
             EMIT(LSTM,
                  oout(0),
                  oout(1),
                  oout(2),
+                 oout(3),
                  in(0),
                  in(1),
                  in(2),
@@ -311,6 +310,14 @@ private:
                  oin(7),
                  node.hidden_size(),
                  direction());
+        } else if (node.op_type() == Node::kOnikuxLSTMGrad) {
+            EMIT(LSTMGrad,
+                 out(0),
+                 out(1),
+                 out(2),
+                 out(3),
+                 in(0),
+                 in(1));
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

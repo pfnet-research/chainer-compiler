@@ -1,3 +1,4 @@
+#include <chainerx/backprop_mode.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
@@ -5,7 +6,9 @@
 #include <chainerx/routines/math.h>
 
 #include <common/log.h>
+#include <runtime/backward_context.h>
 #include <runtime/gen_xcvm_ops.h>
+#include <runtime/xchainer.h>
 
 namespace oniku {
 namespace runtime {
@@ -45,7 +48,7 @@ public:
 
     void MaskOutput(chainerx::Array* out) const {
         if (!has_mask_) return;
-        *out *= chainerx::Reshape(sequence_mask_, {out->shape()[0], batch_size_, 1});
+        *out = *out * chainerx::Reshape(sequence_mask_, {out->shape()[0], batch_size_, 1});
     }
 
 private:
@@ -211,7 +214,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     }
 }
 
-std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
+std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMOp::RunImpl(
         XCVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& w,
@@ -221,6 +224,10 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         const nonstd::optional<chainerx::Array>& initial_h,
         const nonstd::optional<chainerx::Array>& initial_c,
         const nonstd::optional<chainerx::Array>& p) {
+    std::vector<chainerx::Array> xs = {x, w, r};
+    if (b.has_value()) xs.push_back(*b);
+    std::unique_ptr<BackwardContext> bwd(new BackwardContext("LSTM", xs));
+    chainerx::ForceBackpropModeScope bp_scope{bwd->backprop_id()};
     // X: [seq_length, batch_size, input_size]
     // W: [num_directions, 4 * hidden_size, input_size]
     // R: [num_directions, 4 * hidden_size, hidden_size]
@@ -267,15 +274,14 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
             pf = ps.At({chainerx::Slice(2 * hidden_size, 3 * hidden_size)});
         }
 
-        chainerx::Array output = chainerx::Zeros({seq_length, batch_size, hidden_size}, x.dtype());
-
+        std::vector<chainerx::Array> outs(seq_length);
         for (int64_t t = 0; t < x.shape()[0]; ++t) {
             int64_t time = t;
             if (direction == 1 || d == 1) time = x.shape()[0] - t - 1;
             chainerx::Array cur_x = x.At({time});
             chainerx::Array gates = chainerx::Dot(cur_x, wt) + chainerx::Dot(h, rt);
             if (b.has_value()) {
-                gates += bm;
+                gates = gates + bm;
             }
             indices[1] = chainerx::Slice({0, hidden_size});
             chainerx::Array i = gates.At(indices);
@@ -287,9 +293,9 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
             chainerx::Array nc = gates.At(indices);
 
             if (p.has_value()) {
-                i += pi * c;
-                f += pf * c;
-                o += po * c;
+                i = i + pi * c;
+                f = f + pf * c;
+                o = o + po * c;
             }
             i = Sigmoid(i);
             f = Sigmoid(f);
@@ -299,9 +305,10 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
             chainerx::Array nh = o * chainerx::Tanh(nc);
             mask.UpdateState(time, nc, &c);
             mask.UpdateState(time, nh, &h);
-            output.At({time}) += h;
+            outs[time] = h;
         }
 
+        chainerx::Array output = chainerx::Stack(outs, 0);
         mask.MaskOutput(&output);
         outputs[d] = output;
         hs[d] = h;
@@ -312,13 +319,26 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> LSTMOp::RunImpl(
         chainerx::Array output = chainerx::Reshape(outputs[0], {seq_length, 1, batch_size, hidden_size});
         chainerx::Array h = chainerx::Reshape(hs[0], {1, hs[0].shape()[0], hs[0].shape()[1]});
         chainerx::Array c = chainerx::Reshape(cs[0], {1, cs[0].shape()[0], cs[0].shape()[1]});
-        return std::make_tuple(output, h, c);
+        bwd->SetOutput({output});
+        return std::make_tuple(output, h, c, bwd.release());
     } else {
-        chainerx::Array output = Stack({outputs[0], outputs[1]}, 1);
-        chainerx::Array h = Stack({hs[0], hs[1]}, 1);
-        chainerx::Array c = Stack({cs[0], cs[1]}, 1);
-        return std::make_tuple(output, h, c);
+        chainerx::Array output = chainerx::Stack({outputs[0], outputs[1]}, 1);
+        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 1);
+        chainerx::Array c = chainerx::Stack({cs[0], cs[1]}, 1);
+        bwd->SetOutput({output});
+        return std::make_tuple(output, h, c, bwd.release());
     }
+}
+
+std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> LSTMGradOp::RunImpl(
+        XCVMState* st,
+        const chainerx::Array& gy,
+        const XCVMOpaque& ctx) {
+    auto& context = dynamic_cast<const BackwardContext&>(ctx);
+    chainerx::ForceBackpropModeScope bp_scope{context.backprop_id()};
+    std::vector<chainerx::Array> gxs{context.Backward({gy})};
+    CHECK_EQ(4UL, gxs.size());
+    return std::make_tuple(gxs[0], gxs[1], gxs[2], gxs[3]);
 }
 
 }  // namespace runtime
