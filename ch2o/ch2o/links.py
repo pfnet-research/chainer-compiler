@@ -298,18 +298,18 @@ class Link_NStepBiLSTM(Callable):
         self.n_layers = ch.n_layers
         self.dropout = ch.dropout
 
-        class step(object):
-            def __init__(self):
-                pass
-
-        self.ws = [step() for _ in range(self.n_layers)]
-        for i in range(self.n_layers):
-            self.ws[i].W = helper.make_tensor_value_info(
-                ('/%d_ws0' % i), TensorProto.FLOAT, ["TODO"])
-            self.ws[i].R = helper.make_tensor_value_info(
-                ('/%d_ws1' % i), TensorProto.FLOAT, ["TODO"])
-            self.ws[i].B = helper.make_tensor_value_info(
-                ('/%d_bss' % i), TensorProto.FLOAT, ["TODO"])
+        self.ws = []
+        self.bs = []
+        for i in range(self.n_layers * 2):
+            ws = []
+            bs = []
+            for j in range(8):
+                ws.append(helper.make_tensor_value_info(
+                    ('/%d/w%d' % (i, j)), TensorProto.FLOAT, ["TODO"]))
+                bs.append(helper.make_tensor_value_info(
+                    ('/%d/b%d' % (i, j)), TensorProto.FLOAT, ["TODO"]))
+            self.ws.append(ws)
+            self.bs.append(bs)
 
     def call_impl(self, env, hx, cx, xs):
         assert hx.value is None  # TODO(hamaji): Not implemented yet.
@@ -329,9 +329,41 @@ class Link_NStepBiLSTM(Callable):
 
         v = xs
 
+        def lstm_param(ps):
+            p = env.calc(
+                "Concat",
+                inputs=[v.name for v in ps],
+                axis=0
+            )
+            return env.calc(
+                "Unsqueeze",
+                inputs=[p.name],
+                axes=[0]
+            )
+
+        wst = []
+        rst = []
+        bst = []
+        for w in self.ws:
+            wst.append(lstm_param([w[0], w[3], w[1], w[2]]))
+            rst.append(lstm_param([w[4], w[7], w[5], w[6]]))
+        for b in self.bs:
+            bst.append(lstm_param([b[0], b[3], b[1], b[2],
+                                   b[4], b[7], b[5], b[6]]))
+
+        ws = []
+        rs = []
+        bs = []
+        for i in range(self.n_layers):
+            for s, t in [(ws, wst), (rs, rst), (bs, bst)]:
+                s.append(env.calc(
+                    "Concat",
+                    inputs=[t[i*2].name, t[i*2+1].name],
+                    axis=0
+                ))
+
         hs = []
         cs = []
-
         for i in range(self.n_layers):
             v = Value(v).to_sequence(env)
             v = env.calc(
@@ -350,8 +382,8 @@ class Link_NStepBiLSTM(Callable):
 
             env.addnode(
                 "LSTM",
-                inputs=[v.name, self.ws[i].W.name,
-                        self.ws[i].R.name, self.ws[i].B.name, tilens.name],
+                inputs=[v.name, ws[i].name,
+                        rs[i].name, bs[i].name, tilens.name],
                 outputs=[ys.name, h.name, c.name],
                 direction='bidirectional',
                 hidden_size=self.out_size,
@@ -403,7 +435,12 @@ class Link_NStepBiLSTM(Callable):
         return ths, tcs, tys
 
     def init_tensors(self):
-        return sum([[self.ws[i].W, self.ws[i].B, self.ws[i].R] for i in range(self.n_layers)], [])
+        tensors = []
+        for w in self.ws:
+            tensors += w
+        for b in self.bs:
+            tensors += b
+        return tensors
 
 
 class Link_EmbedID(Callable):
