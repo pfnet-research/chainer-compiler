@@ -23,5 +23,10 @@ fi
 
 for i in out/ch2o_tmp/*; do
     echo "*** Testing $i ***"
-    "${run_onnx}" --test $i "$@"
+    args="$@"
+    if echo $i | grep backprop; then
+        args+=--backprop
+    fi
+    echo "${run_onnx}" --test $i "${args}"
+    "${run_onnx}" --test $i "${args}"
 done
