@@ -92,6 +92,11 @@ private:
                 AddSequenceCreateOp(prog, id);
             }
         }
+        for (const std::unique_ptr<Node>& node : graph.nodes()) {
+            for (Graph* sub_graph : node->GetSubGraphs()) {
+                EmitStackInit(*sub_graph, prog);
+            }
+        }
     }
 
     void EmitStackQuit(XCProgramProto* prog) {
@@ -772,8 +777,6 @@ private:
     void EmitIf(const Node& cond, XCProgramProto* prog) {
         AssignValueIds(*cond.then_branch());
         AssignValueIds(*cond.else_branch());
-        EmitStackInit(*cond.then_branch(), prog);
-        EmitStackInit(*cond.else_branch(), prog);
         EmitIfImpl(cond, cond.then_branch().get(), cond.then_branch()->input_values(), cond.then_branch()->output_values(), cond.else_branch().get(), cond.else_branch()->input_values(), cond.else_branch()->output_values(), {}, prog);
     }
 
@@ -931,7 +934,6 @@ private:
 
     void EmitLoop(const Node& loop, XCProgramProto* prog) {
         AssignValueIds(*loop.body());
-        EmitStackInit(*loop.body(), prog);
         EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), {}, prog);
     }
 
