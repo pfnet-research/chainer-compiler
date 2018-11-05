@@ -708,6 +708,11 @@ void SequencePadGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kOnikuxSequenceUnpad, 0, {gc->gy(0), lengths});
 }
 
+void SequenceUnpadGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    gc->GradOp(Node::kOnikuxSequencePad, 0, {gc->gy(0)});
+}
+
 void SequenceSplitGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     gc->GradOp(Node::kOnikuxSequenceStack, 0, {gc->gy(0)})
@@ -812,6 +817,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
         register_grad_fn(Node::kOnikuxSequenceAppend, &SequenceAppendGradFn);
         register_grad_fn(Node::kOnikuxSequenceConcat, &SequenceConcatGradFn);
         register_grad_fn(Node::kOnikuxSequencePad, &SequencePadGradFn);
+        register_grad_fn(Node::kOnikuxSequenceUnpad, &SequenceUnpadGradFn);
         register_grad_fn(Node::kOnikuxSequenceSplit, &SequenceSplitGradFn);
         register_grad_fn(Node::kOnikuxSequenceLookup, &SequenceLookupGradFn);
         register_grad_fn(Node::kOnikuxSequenceGetSlice, &SequenceGetSliceGradFn);
