@@ -76,6 +76,17 @@ class BLSTM(chainer.Chain):
         return xs, ilens  # x: utt list of frame x dim
 
 
+class BLSTMBackprop(chainer.Chain):
+    def __init__(self, idim, elayers, cdim, hdim, dropout):
+        super(BLSTMBackprop, self).__init__()
+        with self.init_scope():
+            self.blstm = BLSTM(idim, elayers, cdim, hdim, dropout)
+
+    def forward(self, xs, ilens):
+        xs, ilens = self.blstm(xs, ilens)
+        return F.pad_sequence(xs)
+
+
 import ch2o
 
 
@@ -106,3 +117,7 @@ if __name__ == '__main__':
     assert np.allclose(expected[1], actual[1])
 
     ch2o.generate_testcase(model, [xs, ilens])
+
+    # TODO(hamaji): Fix this.
+    # ch2o.generate_testcase(BLSTMBackprop(idim, elayers, cdim, hdim, 0),
+    #                        [xs, ilens], backprop=True)
