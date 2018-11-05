@@ -497,8 +497,15 @@ void LoopGradFn(GradientOpContext* gc) {
     CHECK_EQ(num_body_inputs, num_states + 2);
     CHECK_EQ(num_loop_outputs, num_states + num_scans);
 
-    CHECK_EQ(0, num_scans) << "Not implemented yet";
     CHECK_EQ(0, loop->onikux_stack_axis()) << "Not implemented yet";
+
+    if (num_scans != 0) {
+        // TODO(hamaji): As of Nov. 2018, only `np.cumsum` uses scan
+        // output. Probably, we will never need to support
+        // this. Revisit this and update the comment/warning.
+        WARN_ONCE("Backprop for Loop with scan output is not implemented yet");
+        return;
+    }
 
     // Skip gradient calculation when there are no gradients propagated.
     bool has_gy = false;
