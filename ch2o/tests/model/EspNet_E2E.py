@@ -22,7 +22,15 @@ from tests.utils import sequence_utils
 from tests.model.EspNet_AttDot import AttDot
 from tests.model.EspNet_AttLoc import AttLoc
 from tests.model.EspNet_BLSTM import BLSTM
+from tests.model.EspNet_VGG2L import VGG2L
 from tests.model.EspNet_Decoder import Decoder
+
+
+def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
+    idim = idim / in_channel
+    idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 1st max pooling
+    idim = np.ceil(np.array(idim, dtype=np.float32) / 2)  # 2nd max pooling
+    return int(idim) * out_channel  # numer of channels
 
 
 class Encoder(chainer.Chain):
@@ -41,7 +49,7 @@ class Encoder(chainer.Chain):
 
     '''
 
-    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1):
+    def __init__(self, etype, idim, elayers, eunits, eprojs, subsample, dropout, in_channel=1, nobias=False):
         super(Encoder, self).__init__()
         with self.init_scope():
             if etype == 'blstm':
@@ -52,12 +60,12 @@ class Encoder(chainer.Chain):
                                    eprojs, subsample, dropout)
                 logging.info('BLSTM with every-layer projection for encoder')
             elif etype == 'vggblstmp':
-                self.enc1 = VGG2L(in_channel)
+                self.enc1 = VGG2L(in_channel, nobias=nobias)
                 self.enc2 = BLSTMP(get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, subsample, dropout)
                 logging.info('Use CNN-VGG + BLSTMP for encoder')
             elif etype == 'vggblstm':
-                self.enc1 = VGG2L(in_channel)
+                self.enc1 = VGG2L(in_channel, nobias=nobias)
                 self.enc2 = BLSTM(get_vgg2l_odim(
                     idim, in_channel=in_channel), elayers, eunits, eprojs, dropout)
                 logging.info('Use CNN-VGG + BLSTM for encoder')
@@ -75,8 +83,9 @@ class Encoder(chainer.Chain):
         :param ilens:
         :return:
         '''
-        # EDIT(hamaji): No VGG2L.
+        # EDIT(hamaji): Always use VGG2L.
         xs, ilens = self.enc1(xs, ilens)
+        xs, ilens = self.enc2(xs, ilens)
         return xs, ilens
 
         if self.etype == 'blstm':
@@ -98,7 +107,7 @@ class Encoder(chainer.Chain):
 
 
 class E2E(chainer.Chain):
-    def __init__(self, idim, odim, args):
+    def __init__(self, idim, odim, args, nobias=False):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -136,7 +145,7 @@ class E2E(chainer.Chain):
         with self.init_scope():
             # encoder
             self.enc = Encoder(args.etype, idim, args.elayers, args.eunits, args.eprojs,
-                               self.subsample, args.dropout_rate)
+                               self.subsample, args.dropout_rate, 1, nobias=nobias)
             # ctc
             ctc_type = vars(args).get("ctc_type", "chainer")
             if ctc_type == 'chainer':
@@ -269,7 +278,7 @@ if __name__ == '__main__':
         'dunits': dunits,
         'elayers': elayers,
         'eprojs': eprojs,
-        'etype': 'blstm',
+        'etype': 'vggblstm',
         'eunits': eunits,
         'lsm_type': None,
         'lsm_weight': None,
@@ -301,5 +310,5 @@ if __name__ == '__main__':
 
     gen_test(lambda: E2E(idim, odim, args))
 
-    ch2o.generate_testcase(lambda: E2E(idim, odim, args),
+    ch2o.generate_testcase(lambda: E2E(idim, odim, args, nobias=True),
                            [xs, ilens, ys], backprop=True)

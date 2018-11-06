@@ -71,6 +71,7 @@ EspNet_AttLoc
 EspNet_BLSTM
 EspNet_Decoder
 EspNet_E2E
+EspNet_VGG2L
 MyLSTM
 MLP_with_loss
 StatelessLSTM
