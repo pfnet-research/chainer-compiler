@@ -538,6 +538,10 @@ if not args.all:
     TEST_CASES = [case for case in TEST_CASES if not case.fail]
 
 
+def _start_output(msg):
+    sys.stdout.write('\r' + ' ' * 78 + '\r' + msg)
+
+
 class TestRunner(object):
     def __init__(self, test_cases, show_log):
         self.test_cases = test_cases
@@ -552,7 +556,7 @@ class TestRunner(object):
             if tests and len(procs) < num_parallel_jobs:
                 test_case = tests.pop()
                 if num_parallel_jobs == 1:
-                    sys.stdout.write('%s... ' % test_case.name)
+                    _start_output('%s... ' % test_case.name)
                 proc = subprocess.Popen(test_case.args,
                                         stdout=subprocess.PIPE,
                                         stderr=test_case.log_writer())
@@ -566,14 +570,13 @@ class TestRunner(object):
             del procs[pid]
 
             if num_parallel_jobs != 1:
-                sys.stdout.write('%s... ' % test_case.name)
+                _start_output('%s... ' % test_case.name)
             self.test_cnt += 1
             if status == 0:
                 if test_case.fail:
-                    sys.stdout.write('%sOK (unexpected)%s\n' %
-                                     (YELLOW, RESET))
+                    sys.stdout.write('%sOK (unexpected)%s\n' % (YELLOW, RESET))
                 else:
-                    sys.stdout.write('%sOK%s\n' % (GREEN, RESET))
+                    sys.stdout.write('%sOK%s' % (GREEN, RESET))
             else:
                 self.fail_cnt += 1
                 filtered = [a for a in test_case.args if a != '--quiet']
@@ -581,7 +584,13 @@ class TestRunner(object):
                                  (RED, RESET, ' '.join(filtered)))
             if status != 0 or self.show_log:
                 sys.stdout.buffer.write(test_case.log_read())
+                if status != 0:
+                    sys.stdout.write('%s$%s %s\n' %
+                                     (RED, RESET, ' '.join(filtered)))
+
             sys.stdout.flush()
+        _start_output('')
+        sys.stdout.write('\n')
 
 
 def main():
