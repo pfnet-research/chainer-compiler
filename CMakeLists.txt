@@ -182,6 +182,7 @@ foreach(
     EspNet_AttLoc
     EspNet_BLSTM
     EspNet_Decoder
+    EspNet_E2E
     MLP_with_loss
     MyLSTM
     StatelessLSTM
