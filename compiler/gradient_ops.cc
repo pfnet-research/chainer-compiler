@@ -522,7 +522,7 @@ void LoopGradFn(GradientOpContext* gc) {
         Value* y = ys[i];
         if (!y->grad()) {
             GraphBuilder gb(graph, "LoopGrad", y);
-            Value* gy = gb.Op(Node::kOnikuxGenericZerosLikeGrad, {y});
+            Value* gy = gb.Op(Node::kOnikuxGenericZerosLikeGrad, {gc->y(i)});
             y->set_grad(gy);
         }
     }
@@ -573,7 +573,7 @@ void LoopGradFn(GradientOpContext* gc) {
         }
 
         std::vector<Value*> backward_inputs;
-        backward_inputs.push_back(ys[num_states - 1]);
+        backward_inputs.push_back(gc->y(num_states - 1));
         backward_inputs.push_back(graph->AddNullValue());
         for (Value* gy : gys) backward_inputs.push_back(gy);
 

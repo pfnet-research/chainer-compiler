@@ -523,6 +523,8 @@ for test_case in list(TEST_CASES):
         'EspNet' in test_case.name or
         'BroadcastTo' in test_case.name or
         'AttDot' in test_case.name or
+        'pc_pad' in test_case.name or
+        'pc_for' in test_case.name or
         'if_pd' in test_case.name or
         test_case.name.endswith('softmax_cross_entropy') or
         'mlp' in test_case.name)
