@@ -1,5 +1,7 @@
 # coding: utf-8
 
+# TODO(hamaji): Understand what this is.
+
 import chainer
 import chainer.links as L
 
@@ -195,7 +197,7 @@ if __name__ == '__main__':
             hs = np.concatenate([hs, h])
             cs = np.concatenate([cs, c])
     """
-    onnx :: y_series, last_h, last_C 
+    onnx :: y_series, last_h, last_C
     """
 
     hs = np.array(hs)
