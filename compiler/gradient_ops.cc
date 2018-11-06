@@ -484,7 +484,6 @@ Value* GradOut(GraphBuilder* gb, Value* x) {
 void LoopGradFn(GradientOpContext* gc) {
     Graph* graph = gc->graph();
     Node* loop = gc->node();
-    OutputIterationCount(graph, loop);
     const std::vector<Value*>& xs = loop->inputs();
     const std::vector<Value*>& ys = loop->outputs();
     Graph* body = loop->body().get();
@@ -509,7 +508,7 @@ void LoopGradFn(GradientOpContext* gc) {
 
     // Skip gradient calculation when there are no gradients propagated.
     bool has_gy = false;
-    for (int i = 0; i < num_states - 1; ++i) {
+    for (int i = 0; i < num_states; ++i) {
         Value* y = ys[i];
         if (y->grad()) {
             has_gy = true;
@@ -518,7 +517,9 @@ void LoopGradFn(GradientOpContext* gc) {
     }
     if (!has_gy) return;
 
-    for (int i = 0; i < num_states - 1; ++i) {
+    OutputIterationCount(graph, loop);
+
+    for (int i = 0; i < num_states; ++i) {
         Value* y = ys[i];
         if (!y->grad()) {
             GraphBuilder gb(graph, "LoopGrad", y);
@@ -536,7 +537,7 @@ void LoopGradFn(GradientOpContext* gc) {
             input_value_names.push_back(body->AddValue(gb.GenName())->name());
         }
         std::vector<Value*> ys;
-        for (int i = 0; i < num_states - 1; ++i) {
+        for (int i = 0; i < num_states; ++i) {
             Value* y = body->output_values()[i + 1];
             Value* gy = body->AddValue("loop_grad_in@" + y->name());
             CHECK(y->grad() == nullptr);
@@ -548,7 +549,7 @@ void LoopGradFn(GradientOpContext* gc) {
 
         Value* output_cond = gb.Const(Type(Dtype::kBool, {}), {1});
         output_value_names.push_back(output_cond->name());
-        for (int i = 0; i < num_states - 1; ++i) {
+        for (int i = 0; i < num_states; ++i) {
             Value* x = body->input_values()[i + 2];
             Value* out = GradOut(&gb, x);
             output_value_names.push_back(out->name());
@@ -558,13 +559,13 @@ void LoopGradFn(GradientOpContext* gc) {
     {
         GraphBuilder gb(graph, "LoopGrad", xs[0]);
         std::vector<Value*> gys;
-        for (int i = 0; i < num_states - 1; ++i) {
+        for (int i = 0; i < num_states; ++i) {
             Value* y = ys[i];
             CHECK(y->grad()) << loop->DebugString();
             gys.push_back(y->grad());
         }
         std::vector<Value*> gxs;
-        for (int i = 0; i < num_states - 1; ++i) {
+        for (int i = 0; i < num_states; ++i) {
             if (body->input_values()[i + 2]->grad()) {
                 gxs.push_back(gc->AddGradValue(i + 2));
             } else {
@@ -573,7 +574,7 @@ void LoopGradFn(GradientOpContext* gc) {
         }
 
         std::vector<Value*> backward_inputs;
-        backward_inputs.push_back(gc->y(num_states - 1));
+        backward_inputs.push_back(gc->y(num_states));
         backward_inputs.push_back(graph->AddNullValue());
         for (Value* gy : gys) backward_inputs.push_back(gy);
 
