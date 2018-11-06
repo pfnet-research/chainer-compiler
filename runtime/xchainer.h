@@ -30,7 +30,8 @@ bool HasNan(const chainerx::Array& a);
 
 bool HasInf(const chainerx::Array& a);
 
-std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int64_t>& split, int axis);
+//
+std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int axis, const std::vector<int64_t>& split);
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding);
 

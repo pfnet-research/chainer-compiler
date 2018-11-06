@@ -459,7 +459,7 @@ std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Arr
         CHECK_EQ(0, dim % num_splits) << dim;
         lens = std::vector<int64_t>(num_splits, dim / num_splits);
     }
-    return Split(input, lens, axis);
+    return SplitByLengths(input, axis, lens);
 }
 
 chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {

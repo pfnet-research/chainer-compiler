@@ -127,7 +127,7 @@ std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st
 
 void SequenceConcatGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx, XCVMSequence* gx) {
     auto& context = dynamic_cast<const ConcatBackwardContext&>(ctx);
-    for (const chainerx::Array& a : Split(gy, context.split(), axis)) {
+    for (const chainerx::Array& a : SplitByLengths(gy, axis, context.split())) {
         gx->emplace_back(a);
     }
 }
