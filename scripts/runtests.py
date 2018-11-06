@@ -541,7 +541,10 @@ if not args.all:
 
 
 def _start_output(msg):
-    sys.stdout.write('\r' + ' ' * 78 + '\r' + msg)
+    if sys.stdout.isatty():
+        sys.stdout.write('\r' + ' ' * 78 + '\r' + msg)
+    else:
+        sys.stdout.write(msg)
 
 
 class TestRunner(object):
@@ -579,6 +582,8 @@ class TestRunner(object):
                     sys.stdout.write('%sOK (unexpected)%s\n' % (YELLOW, RESET))
                 else:
                     sys.stdout.write('%sOK%s' % (GREEN, RESET))
+                    if not sys.stdout.isatty():
+                        sys.stdout.write('\n')
             else:
                 self.fail_cnt += 1
                 filtered = [a for a in test_case.args if a != '--quiet']
