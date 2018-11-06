@@ -54,7 +54,7 @@ chainerx::Array ElementwiseMax(chainerx::Array a, chainerx::Array b) {
             chainerx::Array m = chainerx::Maximum(chainerx::AsScalar(av.At({i})), bv.At({i}));
             maxes.push_back(chainerx::Reshape(m, {1}));
         }
-        result = Concat(maxes, 0);
+        result = chainerx::Concatenate(maxes, 0);
         result = chainerx::Reshape(result, a.shape());
     }
     return result;
@@ -448,7 +448,7 @@ chainerx::Array SelectItemGradOp::RunImpl(
 }
 
 chainerx::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
-    return Concat(inputs, axis);
+    return chainerx::Concatenate(inputs, axis);
 }
 
 std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Array& input) {

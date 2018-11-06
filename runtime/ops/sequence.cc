@@ -112,7 +112,7 @@ void SequenceGetSliceGradOp::RunImpl(XCVMState* st, const XCVMSequence& gy, cons
 }
 
 chainerx::Array SequenceStackOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
-    return Stack(NonOptional(seq), axis);
+    return chainerx::Stack(NonOptional(seq), axis);
 }
 
 std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
@@ -121,7 +121,7 @@ std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st
         split.push_back(v.GetArray().shape()[axis]);
     }
     XCVMOpaque* ctx = new ConcatBackwardContext(split);
-    chainerx::Array out = Concat(NonOptional(seq), axis);
+    chainerx::Array out = chainerx::Concatenate(NonOptional(seq), axis);
     return std::tie(out, ctx);
 }
 

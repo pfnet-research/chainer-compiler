@@ -129,45 +129,6 @@ bool HasInf(const chainerx::Array& a) {
     return false;
 }
 
-chainerx::Array Concat(const std::vector<chainerx::Array>& inputs, int axis) {
-    // TODO(hamaji): Move this logic to xChainer.
-    CHECK_LT(0, inputs.size());
-    int64_t axis_dim = 0;
-    for (const chainerx::Array& input : inputs) {
-        CHECK_LT(axis, input.ndim());
-        CHECK_EQ(input.dtype(), inputs[0].dtype());
-        CHECK_EQ(input.ndim(), inputs[0].ndim());
-        for (int i = 0; i < input.ndim(); ++i) {
-            if (i != axis) CHECK_EQ(input.shape()[i], inputs[0].shape()[i]);
-        }
-        axis_dim += input.shape()[axis];
-    }
-
-    chainerx::Shape shape = inputs[0].shape();
-    shape[axis] = axis_dim;
-    chainerx::Array result = chainerx::Empty(shape, inputs[0].dtype(), inputs[0].device());
-    std::vector<chainerx::ArrayIndex> indices(inputs[0].ndim(), chainerx::Slice());
-    axis_dim = 0;
-    for (const chainerx::Array& input : inputs) {
-        int64_t cur_dim = input.shape()[axis];
-        indices[axis] = chainerx::Slice(axis_dim, axis_dim + cur_dim);
-        input.device().Copy(input, result.At(indices));
-        axis_dim += cur_dim;
-    }
-    return result;
-}
-
-chainerx::Array Stack(const std::vector<chainerx::Array>& inputs, int axis) {
-    CHECK(!inputs.empty());
-    std::vector<chainerx::Array> reshaped;
-    for (const chainerx::Array& a : inputs) {
-        chainerx::Shape shape{a.shape()};
-        shape.insert(shape.begin() + axis, 1);
-        reshaped.push_back(chainerx::Reshape(a, shape));
-    }
-    return Concat(reshaped, axis);
-}
-
 std::vector<chainerx::Array> Split(const chainerx::Array& input, const std::vector<int64_t>& split, int axis) {
     CHECK_EQ(std::accumulate(split.begin(), split.end(), 0), input.shape()[axis]);
     std::vector<chainerx::Array> results;

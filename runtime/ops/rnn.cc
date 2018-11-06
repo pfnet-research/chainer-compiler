@@ -208,8 +208,8 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         chainerx::Array h = chainerx::Reshape(hs[0], {1, hs[0].shape()[0], hs[0].shape()[1]});
         return std::make_tuple(output, h);
     } else {
-        chainerx::Array output = Stack({outputs[0], outputs[1]}, 1);
-        chainerx::Array h = Stack({hs[0], hs[1]}, 1);
+        chainerx::Array output = chainerx::Stack({outputs[0], outputs[1]}, 1);
+        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 1);
         return std::make_tuple(output, h);
     }
 }
