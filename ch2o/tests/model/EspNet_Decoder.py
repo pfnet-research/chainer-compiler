@@ -89,10 +89,10 @@ class Decoder(chainer.Chain):
 
         # padding for ys with -1
         # pys: utt x olen
-        # EDIT(hamaji): Use a fixed integer "9" for padding.
+        # EDIT(hamaji): Use a fixed integer "10" for padding.
         # pad_ys_in = F.pad_sequence(ys_in, padding=self.eos)
-        assert self.eos == 9
-        pad_ys_in = F.pad_sequence(ys_in, padding=9)
+        assert self.eos == 10
+        pad_ys_in = F.pad_sequence(ys_in, padding=10)
         pad_ys_out = F.pad_sequence(ys_out, padding=-1)
 
         # get dim, length info
@@ -297,7 +297,7 @@ if __name__ == '__main__':
     dlayers = 3
     odim = 11
     sos = odim - 1
-    eos = odim - 2
+    eos = odim - 1
     aconv_chans = 7
     aconv_filts = 6
 
