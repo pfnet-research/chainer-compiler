@@ -29,6 +29,8 @@ parser.add_argument('--jobs', '-j', type=int,
                     help='Number of parallel jobs')
 parser.add_argument('--show_log', action='store_true',
                     help='Show logs')
+parser.add_argument('--skip_build', action='store_true',
+                    help='Skip the build before running tests')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
@@ -594,10 +596,11 @@ class TestRunner(object):
 
 
 def main():
-    if os.path.exists('Makefile'):
-        subprocess.check_call(['make', '-j4'])
-    elif os.path.exists('build.ninja'):
-        subprocess.check_call('ninja')
+    if not args.skip_build:
+        if os.path.exists('Makefile'):
+            subprocess.check_call(['make', '-j4'])
+        elif os.path.exists('build.ninja'):
+            subprocess.check_call('ninja')
 
     if args.build_dir is None:
         if os.path.exists('build/CMakeCache.txt'):
