@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.4)
 
 execute_process(COMMAND git submodule update --init)
 
+if(DEFINED ENV{ONIKU_BUILD_CUDA})
+    set(DEFAULT_ONIKU_BUILD_CUDA $ENV{ONIKU_BUILD_CUDA})
+else()
+    set(DEFAULT_ONIKU_BUILD_CUDA ON)
+endif()
+option(ONIKU_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_ONIKU_BUILD_CUDA})
+
 option(ONIKU_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
 
 if(${ONIKU_GENERATE_TESTS})
@@ -38,8 +45,16 @@ set(CH2O_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/value.py
   )
 
+# OpenCV
 find_package(OpenCV REQUIRED)
-find_package(CUDA REQUIRED)
+
+# CUDA
+if(${ONIKU_BUILD_CUDA})
+  find_package(CUDA REQUIRED)
+  if(${CUDA_FOUND})
+    add_definitions(-DONIKU_ENABLE_CUDA=1)
+  endif()
+endif()
 
 set(ONNX_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/onnx" "${CMAKE_CURRENT_SOURCE_DIR}/onnx/build")
 include_directories(${ONNX_INCLUDE_DIRS})

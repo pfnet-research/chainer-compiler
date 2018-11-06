@@ -16,6 +16,8 @@ $ cd ..
 $ ./scripts/runtests.py
 ```
 
+You can disable the CUDA support by specifying `-DONIKU_BUILD_CUDA=OFF` for `cmake`.
+
 ### Run ResNet50 with XCVM backend
 
 ```shell-session

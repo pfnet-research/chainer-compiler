@@ -1,9 +1,6 @@
 #include <chrono>
 #include <set>
 
-#include <cuda.h>
-#include <cuda_runtime.h>
-
 #include <onnx/onnx_pb.h>
 #include <onnx/shape_inference/implementation.h>
 
