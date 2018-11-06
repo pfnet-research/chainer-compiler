@@ -2,7 +2,7 @@
 #
 # Example usage:
 #
-# $ ./scripts/nikucheck.sh ch2o/tests/ListComp.py
+# $ ./scripts/nikucheck.sh ch2o/tests/node/Linear.py
 
 set -e
 
