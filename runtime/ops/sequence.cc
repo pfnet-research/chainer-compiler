@@ -160,8 +160,7 @@ void SequenceRangeOp::RunImpl(XCVMState* st, const chainerx::Array& arg0, const 
 namespace {
 
 void SplitToSequence(chainerx::Array v, int axis, XCVMSequence* seq) {
-    std::vector<int64_t> lens(v.shape()[axis], 1);
-    for (chainerx::Array a : Split(v, lens, axis)) {
+    for (chainerx::Array a : chainerx::Split(v, v.shape()[axis], axis)) {
         chainerx::Shape shape{a.shape()};
         shape.erase(shape.begin() + axis);
         seq->emplace_back(chainerx::Reshape(a, shape));
