@@ -240,7 +240,7 @@ chainerx::Array ConvGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array& 
 }
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype())).AsType(x.dtype());
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     return x * (1 - negs * 2);
 }
 
@@ -256,26 +256,26 @@ chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
 
 chainerx::Array SeluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array xn = (alpha * chainerx::Exp(x) - alpha);
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype())).AsType(x.dtype());
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     return gamma * (x * (1 - negs) + xn * negs);
 }
 
 chainerx::Array LeakyReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array xn = alpha * x;
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype())).AsType(x.dtype());
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     return x * (1 - negs) + xn * negs;
 }
 
 chainerx::Array EluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array xn = alpha * (chainerx::Exp(x) - 1);
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype())).AsType(x.dtype());
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     return x * (1 - negs) + xn * negs;
 }
 
 chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     WARN_ONCE("Floor is broken for large floats");
     chainerx::Array out = x.AsType(chainerx::Dtype::kInt64).AsType(x.dtype());
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype())).AsType(x.dtype());
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
     out -= negs * floats;
     return out;
@@ -284,7 +284,7 @@ chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 chainerx::Array CeilOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     WARN_ONCE("Ceil is broken for large values");
     chainerx::Array out = x.AsType(chainerx::Dtype::kInt64).AsType(x.dtype());
-    chainerx::Array poses = (x > chainerx::Zeros({}, x.dtype())).AsType(x.dtype());
+    chainerx::Array poses = (x > chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
     out += poses * floats;
     return out;
