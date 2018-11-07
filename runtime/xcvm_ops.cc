@@ -77,12 +77,26 @@ chainerx::Dtype CoerceDtype(chainerx::Dtype dtype0, chainerx::Dtype dtype1) {
     CHECK(false) << "Unknown type coerce: " << dtype0 << " vs " << dtype1;
 }
 
+chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype) {
+    if (input.dtype() == dtype) return input;
+    chainerx::Array output = input.AsType(dtype);
+    // TODO(hamaji): Stop doing this ad-hoc device assignment.
+    if (input.dtype() == chainerx::Dtype::kInt64 &&
+        output.dtype() != chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetDefaultDevice());
+    } else if (input.dtype() != chainerx::Dtype::kInt64 &&
+               output.dtype() == chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetNativeBackend().GetDevice(0));
+    }
+    return output;
+}
+
 std::tuple<chainerx::Array, chainerx::Array> CoerceBinary(const chainerx::Array& a, const chainerx::Array& b) {
     chainerx::Array ax = a;
     chainerx::Array bx = b;
     chainerx::Dtype dtype = CoerceDtype(a.dtype(), b.dtype());
-    if (ax.dtype() != dtype) ax = ax.AsType(dtype);
-    if (bx.dtype() != dtype) bx = bx.AsType(dtype);
+    ax = CastTo(ax, dtype);
+    bx = CastTo(bx, dtype);
     return std::tie(ax, bx);
 }
 
@@ -551,16 +565,7 @@ chainerx::Array NotOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    chainerx::Array output = input.AsType(static_cast<chainerx::Dtype>(to));
-    // TODO(hamaji): Stop doing this ad-hoc device assignment.
-    if (input.dtype() == chainerx::Dtype::kInt64 &&
-        output.dtype() != chainerx::Dtype::kInt64) {
-        output = output.ToDevice(chainerx::GetDefaultDevice());
-    } else if (input.dtype() != chainerx::Dtype::kInt64 &&
-               output.dtype() == chainerx::Dtype::kInt64) {
-        output = output.ToDevice(chainerx::GetNativeBackend().GetDevice(0));
-    }
-    return output;
+    return CastTo(input, static_cast<chainerx::Dtype>(to));
 }
 
 chainerx::Array IntScalarConstantOp::RunImpl(XCVMState* st) {
