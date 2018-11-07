@@ -247,10 +247,19 @@ class Args(object):
             setattr(self, k, v)
 
 
-if __name__ == '__main__':
-    import numpy as np
-    np.random.seed(43)
+def gen_inputs(batch_size, ilen, idim, olen, odim):
+    labels, ilens = sequence_utils.gen_random_sequence(
+        batch_size, ilen, idim)
+    xs = []
+    for l in ilens:
+        xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
 
+    ys, _ = sequence_utils.gen_random_sequence(
+        batch_size, olen, odim)
+    return xs, ilens, ys
+
+
+def test_recipe():
     aconv_chans = 7
     aconv_filts = 6
     att_dim = 5
@@ -261,9 +270,9 @@ if __name__ == '__main__':
     eprojs = 3
     eunits = 3
     idim = 6
-    num_vocabs = 10
     odim = 11
-    sequence_length = 4
+    ilen = 4
+    olen = 4
 
     args = Args({
         'aconv_chans': aconv_chans,
@@ -290,14 +299,16 @@ if __name__ == '__main__':
         'verbose': False,
     })
 
-    labels, ilens = sequence_utils.gen_random_sequence(
-        batch_size, sequence_length, num_vocabs)
-    xs = []
-    for l in ilens:
-        xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
 
-    ys, _ = sequence_utils.gen_random_sequence(
-        batch_size, sequence_length, odim)
+    return (idim, odim, args), (xs, ilens, ys)
+
+
+if __name__ == '__main__':
+    import numpy as np
+    np.random.seed(43)
+
+    (idim, odim, args), (xs, ilens, ys) = test_recipe()
 
     def gen_test(model_fn, subname=None):
         model = model_fn()
