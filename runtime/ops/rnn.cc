@@ -24,8 +24,9 @@ public:
         CHECK_EQ(1, sequence_lens->ndim());
         CHECK_EQ(batch_size_, sequence_lens->shape()[0]);
         sequence_mask_ = chainerx::Transpose(
-                chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype()), chainerx::Shape({batch_size, seq_length})));
+                chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype(), sequence_lens->device()), chainerx::Shape({batch_size, seq_length})));
         sequence_mask_ = chainerx::Less(sequence_mask_, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(dtype);
+        sequence_mask_ = sequence_mask_.ToDevice(chainerx::GetDefaultDevice());
     }
 
     bool has_mask() const {
