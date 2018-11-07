@@ -56,7 +56,7 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<int>("chrome_tracing_frequency", '\0', "Output chrome tracing every this itearation", false, 100);
-    args.add<int>("iteration", 'I', "Number of iterations to train", false, 100);
+    args.add<int>("iterations", 'I', "Number of iterations to train", false, 100);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");

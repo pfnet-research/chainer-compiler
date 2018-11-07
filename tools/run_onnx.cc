@@ -197,6 +197,7 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
+    args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
@@ -270,6 +271,18 @@ void RunMain(int argc, char** argv) {
         LOG() << "Found " << test_cases.size() << " test cases" << std::endl;
     }
 
+    int iterations = args.get<int>("iterations");
+    CHECK_LT(0, iterations);
+    if (iterations > 1) {
+        std::vector<std::unique_ptr<TestCase>> new_test_cases;
+        for (int i = 0; i < iterations; ++i) {
+            for (auto& test : test_cases) {
+                new_test_cases.emplace_back(new TestCase(*test));
+            }
+        }
+        test_cases.swap(new_test_cases);
+    }
+
     if (args.exist("dump_onnx")) {
         onnx::ModelProto xmodel;
         model.ToONNX(&xmodel);
@@ -311,6 +324,7 @@ void RunMain(int argc, char** argv) {
     xcvm_opts.dump_memory_usage = args.exist("trace");
     xcvm_opts.base_memory_usage = initial_free_bytes;
 
+    double elapsed_total = 0;
     int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
@@ -449,9 +463,17 @@ void RunMain(int argc, char** argv) {
         double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() * 0.001;
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
 
+        // The first iteration is for warm up.
+        if (test_case != test_cases.front()) elapsed_total += elapsed;
+
         CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
     if (test_cnt) LOG() << "OK!" << std::endl;
+
+    if (iterations > 1) {
+        // The first iteration is for warm up.
+        std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
+    }
 }
 
 }  // namespace
