@@ -164,13 +164,20 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
     }
 }
 
+chainerx::Array StageArray(chainerx::Array a) {
+    // TODO(hamaji): Figure out a better way to identify host inputs.
+    if (a.dtype() != chainerx::Dtype::kInt64)
+        return a.ToDevice(chainerx::GetDefaultDevice());
+    return a;
+}
+
 XCVMVar* StageVar(XCVMVar* var) {
     switch (var->kind()) {
         case XCVMVar::Kind::kArray:
-            return new XCVMVar(var->GetArray().ToDevice(chainerx::GetDefaultDevice()));
+            return new XCVMVar(StageArray(var->GetArray()));
         case XCVMVar::Kind::kSequence: {
             XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
-            for (const XCVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(v.GetArray().ToDevice(chainerx::GetDefaultDevice()));
+            for (const XCVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(StageArray(v.GetArray()));
             return out;
         }
 
