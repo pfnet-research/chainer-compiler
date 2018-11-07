@@ -10,7 +10,8 @@ from chainer import functions as F
 import numpy as np
 
 from ch2o import utils
-from ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, Env, clip_head
+from ch2o.env import Env
+from ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, clip_head
 from ch2o.callable import Callable
 from ch2o.value import Value
 

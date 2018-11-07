@@ -6,7 +6,8 @@ from onnx import TensorProto
 from chainer import links as L
 
 from ch2o.callable import Callable
-from ch2o.utils import new_tensor, size2d, totensor, Env, clip_head
+from ch2o.env import Env
+from ch2o.utils import new_tensor, size2d, totensor, clip_head
 from ch2o.value import Value
 
 import ast
