@@ -153,7 +153,7 @@ void SequenceRangeOp::RunImpl(XCVMState* st, const chainerx::Array& arg0, const 
     CHECK_NE(step, 0);
 
     for (int64_t i = start; step > 0 ? (i < stop) : (i > stop); i += step) {
-        output->emplace_back(MakeArray(chainerx::Dtype::kInt64, {}, &i));
+        output->emplace_back(MakeHostArray(chainerx::Dtype::kInt64, {}, &i));
     }
 }
 
