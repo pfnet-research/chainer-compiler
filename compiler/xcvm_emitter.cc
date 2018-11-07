@@ -634,9 +634,9 @@ private:
                 }
             }
             if (shape.empty()) {
-                EMIT(IntScalarConstant, out, v[0], value->dtype(), node.onikux_host());
+                EMIT(IntScalarConstant, out, v[0], value->dtype(), true);
             } else {
-                EMIT(IntConstant, out, v, value->dtype(), shape, node.onikux_host());
+                EMIT(IntConstant, out, v, value->dtype(), shape, true);
             }
         }
     }
@@ -816,9 +816,9 @@ private:
 
         // Initialize loop variables.
         int iter_id = GetValueId(body_input_values[0]);
-        EMIT(IntScalarConstant, iter_id, 0, Dtype::kInt64, false);
+        EMIT(IntScalarConstant, iter_id, 0, Dtype::kInt64, true);
         int cond_id = GetValueId(body_input_values[1]);
-        EMIT(IntScalarConstant, cond_id, 1, Dtype::kBool, false);
+        EMIT(IntScalarConstant, cond_id, 1, Dtype::kBool, true);
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.inputs().size());
             CHECK_LT(i + 2, body_input_values.size());
@@ -840,7 +840,7 @@ private:
         if (!max_trip_count->IsNull()) {
             int zero_id = next_value_id_++;
             skip_loop_cond_id = next_value_id_++;
-            EMIT(IntScalarConstant, zero_id, 0, Dtype::kInt64, false);
+            EMIT(IntScalarConstant, zero_id, 0, Dtype::kInt64, true);
             EMIT(Greater, skip_loop_cond_id, GetValueId(max_trip_count), zero_id);
             FREE(zero_id);
         }
@@ -863,7 +863,7 @@ private:
 
         EmitGraph(*body, prog, true /* in_loop */, body_output_values, protected_values);
         int one_id = next_value_id_++;
-        EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, false);
+        EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, true);
         int tmp_id = next_value_id_++;
         EMIT(Add, tmp_id, iter_id, one_id);
         FREE(one_id);
