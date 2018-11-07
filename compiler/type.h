@@ -25,6 +25,7 @@ public:
     Type& operator=(const Type&) = delete;
 
     void ToONNX(onnx::TypeProto* xtype) const;
+    std::string DebugString() const;
 
     Kind kind() const {
         return kind_;

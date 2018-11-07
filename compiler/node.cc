@@ -46,6 +46,12 @@ void Node::ToONNX(onnx::NodeProto* xnode) const {
     FillONNXAttributes(xnode);
 }
 
+std::string Node::DebugString() const {
+    onnx::NodeProto xnode;
+    ToONNX(&xnode);
+    return xnode.DebugString();
+}
+
 void Node::AddInput(Value* value) {
     inputs_.push_back(value);
     value->AddUser(this);

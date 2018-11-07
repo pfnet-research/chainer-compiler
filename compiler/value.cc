@@ -29,6 +29,12 @@ void Value::ToONNX(onnx::ValueInfoProto* xvalue) const {
     DUMP_STRING(xvalue, doc_string);
 }
 
+std::string Value::DebugString() const {
+    onnx::ValueInfoProto xvalue;
+    ToONNX(&xvalue);
+    return xvalue.DebugString();
+}
+
 void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {
     initializer_.reset(tensor.release());
 }

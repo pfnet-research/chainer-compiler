@@ -92,6 +92,12 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
     }
 }
 
+std::string Type::DebugString() const {
+    onnx::TypeProto xtype;
+    ToONNX(&xtype);
+    return xtype.DebugString();
+}
+
 int64_t Type::NumElements() const {
     CHECK_EQ(kind_, Kind::kTensor);
     if (!is_known_) return -1;

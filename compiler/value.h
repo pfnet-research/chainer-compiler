@@ -30,6 +30,7 @@ public:
     Value& operator=(const Value&) = delete;
 
     void ToONNX(onnx::ValueInfoProto* xvalue) const;
+    std::string DebugString() const;
 
     Kind kind() const {
         return kind_;

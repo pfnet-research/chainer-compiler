@@ -22,6 +22,7 @@ public:
     Node& operator=(const Node&) = delete;
 
     void ToONNX(onnx::NodeProto* xnode) const;
+    std::string DebugString() const;
 
     const std::vector<Value*>& inputs() const {
         return inputs_;
