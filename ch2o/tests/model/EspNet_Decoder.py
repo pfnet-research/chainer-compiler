@@ -25,10 +25,11 @@ from tests.model.StatelessLSTM import StatelessLSTM
 
 
 def _mean(xs):
-    sum_len = 0.0
+    sum_len = 0
     for x in xs:
         sum_len += len(x)
-    return sum_len / len(xs)
+    return (np.array(sum_len, dtype=np.float32) /
+            np.array(len(xs), dtype=np.float32))
 
 
 def _flatten(xs):
@@ -155,7 +156,7 @@ class Decoder(chainer.Chain):
         # -1: eos, which is removed in the loss computation
         # EDIT(hamaji): `np.mean` implemented by a naive loop.
         # self.loss *= (np.mean([len(x) for x in ys_in]) - 1)
-        self.loss *= _mean(ys_in) - 1
+        self.loss *= _mean(ys_in) - 1.0
         # EDIT(hamaji): No need to compute accuracy.
         # acc = F.accuracy(y_all, F.flatten(pad_ys_out), ignore_label=-1)
         # logging.info('att loss:' + str(self.loss.data))
