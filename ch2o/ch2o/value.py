@@ -5,8 +5,8 @@ import onnx
 
 from typing import List, Mapping
 
+from ch2o import env
 from ch2o import utils
-
 
 def _is_float_value(v):
     # The latter is for numpy-like things.

@@ -19,7 +19,8 @@ import chainer
 import numpy
 
 from ch2o.test_args import dprint
-from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, Env, gen_graph_name
+from ch2o.env import Env
+from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, gen_graph_name
 from ch2o.links import Link2NodeClass
 from ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
 from ch2o.builtin_funcs import builtin_functions
