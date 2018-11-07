@@ -551,7 +551,16 @@ chainerx::Array NotOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return input.AsType(static_cast<chainerx::Dtype>(to));
+    chainerx::Array output = input.AsType(static_cast<chainerx::Dtype>(to));
+    // TODO(hamaji): Stop doing this ad-hoc device assignment.
+    if (input.dtype() == chainerx::Dtype::kInt64 &&
+        output.dtype() != chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetDefaultDevice());
+    } else if (input.dtype() != chainerx::Dtype::kInt64 &&
+               output.dtype() == chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetNativeBackend().GetDevice(0));
+    }
+    return output;
 }
 
 chainerx::Array IntScalarConstantOp::RunImpl(XCVMState* st) {
