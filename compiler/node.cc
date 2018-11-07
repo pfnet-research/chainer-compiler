@@ -92,7 +92,7 @@ std::vector<Graph*> Node::GetSubGraphs() const {
     return subgraphs;
 }
 
-std::string Node::DebugString() const {
+std::string Node::ToString() const {
     std::ostringstream oss;
     oss << op_type();
     oss << "(" << Join(MapToString(inputs(), [](const Value* v) { return v->name(); })) << ")";

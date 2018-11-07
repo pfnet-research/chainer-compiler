@@ -88,7 +88,7 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
                 // is moved to just before the second input, but we
                 // want to delay both of them as much as possible.
                 if (nodes[index].size() > 1 || nodes[index][0] != prev) break;
-                LOG() << "Delayed: from " << index << " to " << to << " " << prev->DebugString() << std::endl;
+                LOG() << "Delayed: from " << index << " to " << to << " " << prev->ToString() << std::endl;
                 CHECK_EQ(1, nodes[index].size());
                 nodes[index].clear();
                 nodes[to].push_back(prev);
@@ -167,7 +167,7 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>&
             auto found = input_counts.find(node);
             if (found == input_counts.end()) continue;
             int cnt = --found->second;
-            CHECK_LE(0, cnt) << node->DebugString();
+            CHECK_LE(0, cnt) << node->ToString();
             if (cnt != 0) continue;
             enqueue_node(node);
         }
@@ -224,7 +224,7 @@ void CheckSanity(
     if (!input_counts.empty()) {
         for (auto p : input_counts) {
             Node* node = p.first;
-            std::cerr << "Failed to schedule (" << graph.name() << "): " << node->DebugString() << std::endl;
+            std::cerr << "Failed to schedule (" << graph.name() << "): " << node->ToString() << std::endl;
             for (Value* value : node->inputs()) {
                 if (!values.count(value) && !value->name().empty()) {
                     std::cerr << " " << value->name() << " cannot be ready\n";

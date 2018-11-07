@@ -55,7 +55,7 @@ public:
 
     std::vector<Graph*> GetSubGraphs() const;
 
-    std::string DebugString() const;
+    std::string ToString() const;
 
 private:
     std::vector<Value*> inputs_;

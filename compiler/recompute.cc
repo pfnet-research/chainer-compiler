@@ -23,7 +23,7 @@ std::map<const Node*, int> GetDistancesOfNodes(const Graph& graph) {
             auto found = input_counts.find(node);
             if (found == input_counts.end()) continue;
             int cnt = --found->second;
-            CHECK_LE(0, cnt) << node->DebugString();
+            CHECK_LE(0, cnt) << node->ToString();
             if (cnt != 0) continue;
             q.push(std::make_pair(node, distance));
         }
@@ -43,7 +43,7 @@ std::map<const Node*, int> GetDistancesOfNodes(const Graph& graph) {
         const int distance = q.front().second;
         q.pop();
 
-        CHECK(distances.emplace(node, distance).second) << node->DebugString();
+        CHECK(distances.emplace(node, distance).second) << node->ToString();
         for (Value* output : node->outputs()) {
             make_value_ready(output, distance + 1);
         }
@@ -85,7 +85,7 @@ void GetReluRecompute(Graph* graph, int threshold) {
         if (far_users.empty() || !num_near_users) continue;
 
         LOG() << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB"
-              << " " << node->DebugString() << std::endl;
+              << " " << node->ToString() << std::endl;
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());
         // TODO(hamaji): This should be done by shape inference.

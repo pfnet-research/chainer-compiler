@@ -173,7 +173,7 @@ private:
 #define EMIT(op, ...)                                                                                  \
     do {                                                                                               \
         Add##op##Op(prog, __VA_ARGS__);                                                                \
-        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(node.DebugString()); \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(node.ToString()); \
     } while (0);
 
 #define EMIT_SIMPLE_UNARY_OP(name, sym)           \
@@ -711,7 +711,7 @@ private:
             const std::vector<Value*>& else_output_values,
             const std::set<const Value*>& protected_values,
             XCProgramProto* prog) {
-        const std::string& debug_info = cond.DebugString();
+        const std::string& debug_info = cond.ToString();
 
 #define EMIT(op, ...)                                                   \
     do {                                                                                                               \
@@ -806,7 +806,7 @@ private:
         Value* terminal_condition = loop.inputs()[1];
         CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite loop is detected";
 
-        const std::string& debug_info = loop.DebugString();
+        const std::string& debug_info = loop.ToString();
 
 #define EMIT(op, ...)                                                                                                  \
     do {                                                                                                               \

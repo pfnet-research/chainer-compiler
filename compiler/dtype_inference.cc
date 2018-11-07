@@ -40,7 +40,7 @@ void InferDtype(Node* node) {
         if (odtype == Dtype::kUnknown) {
             node->outputs()[i]->mutable_type()->set_dtype(dtype);
         } else {
-            if (dtype != Dtype::kUnknown) CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->DebugString();
+            if (dtype != Dtype::kUnknown) CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->ToString();
         }
     };
 
@@ -162,7 +162,7 @@ void InferDtype(Node* node) {
         case Node::kReshape:
         case Node::kExpand:
         case Node::kOnikuxReduceSumTo: {
-            CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
+            CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->ToString();
             set(0, in0);
             break;
         }
@@ -171,7 +171,7 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSelectItem: {
             // TODO(hamaji): Need an update for the Python compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
-            // node->DebugString();
+            // node->ToString();
             set(0, in0);
             break;
         }
@@ -216,7 +216,7 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSoftmaxCrossEntropy: {
             // TODO(hamaji): Probably, better to fix the compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
-            // node->DebugString();
+            // node->ToString();
             set(0, in0);
             break;
         }
@@ -238,7 +238,7 @@ void InferDtype(Node* node) {
         }
 
         case Node::kOnikuxConvTransposeWithDynamicOutputShape: {
-            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in1.ToString() << " in " << node->DebugString();
+            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in1.ToString() << " in " << node->ToString();
             set(0, CoerceDtype(in0, in1));
             break;
         }
@@ -246,8 +246,8 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSelectItemGrad: {
             // TODO(hamaji): Probably, better to fix the compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
-            // node->DebugString();
-            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in2.ToString() << " in " << node->DebugString();
+            // node->ToString();
+            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in2.ToString() << " in " << node->ToString();
             set(0, in0);
             break;
         }

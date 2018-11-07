@@ -580,7 +580,7 @@ void LoopGradFn(GradientOpContext* gc) {
         std::vector<Value*> gys;
         for (int i = 0; i < num_states; ++i) {
             Value* y = ys[i];
-            CHECK(y->grad()) << loop->DebugString();
+            CHECK(y->grad()) << loop->ToString();
             gys.push_back(y->grad());
         }
         std::vector<Value*> gxs;
