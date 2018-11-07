@@ -105,7 +105,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     auto dump_onnx = [&graph](bool cond, const char* msg) {
         if (cond) {
             std::cerr << "=== vvv " << msg << " vvv ===\n";
-            std::cerr << graph->ToString();
+            std::cerr << graph->DebugString();
             std::cerr << "=== ^^^ " << msg << " ^^^ ===\n";
         }
     };

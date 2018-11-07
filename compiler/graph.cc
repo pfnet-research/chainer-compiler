@@ -111,7 +111,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     }
 }
 
-std::string Graph::ToString() const {
+std::string Graph::DebugString() const {
     onnx::GraphProto xgraph;
     ToONNX(&xgraph);
     return xgraph.DebugString();
