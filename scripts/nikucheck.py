@@ -21,7 +21,7 @@ def main():
 
     shutil.rmtree(tmpdir)
     os.makedirs(tmpdir)
-    subprocess.check_call(['python3', py, os.path.join(tmpdir, 'tmp')],
+    subprocess.check_call([sys.executable, py, os.path.join(tmpdir, 'tmp')],
                           env={'PYTHONPATH': 'ch2o'})
 
     if os.path.exists('build/CMakeCache.txt'):
