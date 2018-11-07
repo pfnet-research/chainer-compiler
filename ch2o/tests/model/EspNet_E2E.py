@@ -228,7 +228,7 @@ class E2E(chainer.Chain):
         # EDIT(hamaji): Decoder only returns loss.
         return self.dec(hs, ys)
 
-    # 4. attention loss
+        # 4. attention loss
         if self.mtlalpha == 1:
             loss_att = None
             acc = None
