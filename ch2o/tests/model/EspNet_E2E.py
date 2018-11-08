@@ -383,7 +383,7 @@ def run_csj():
     if is_gpu:
         model.to_gpu()
         xs = chainer.cuda.to_gpu(xs)
-        ilen = chainer.cuda.to_gpu(np.array(ilen))
+        ilens = chainer.cuda.to_gpu(np.array(ilens))
         ys = chainer.cuda.to_gpu(ys)
 
     for i in range(10):
