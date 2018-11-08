@@ -388,7 +388,9 @@ def run_csj(bwd=True):
         ilens = chainer.cuda.to_gpu(np.array(ilens))
         ys = chainer.cuda.to_gpu(ys)
 
-    for i in range(10):
+    elapsed_total = 0.0
+    iterations = 10
+    for i in range(iterations):
         st = time.time()
         model.cleargrads()
         loss = model(xs, ilens, ys)
@@ -400,7 +402,11 @@ def run_csj(bwd=True):
             loss.grad = grad
             loss.backward()
 
-        print(time.time() - st)
+        elapsed = time.time() - st
+        print('Elapsed: %s msec' % elapsed)
+        if i: elapsed_total += elapsed
+
+    print('Average elapsed: %s msec' % (elapsed_total / (iterations - 1)))
 
 
 def gen_csj(bwd=True):
