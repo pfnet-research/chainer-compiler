@@ -394,7 +394,7 @@ def run_csj(bwd=True):
         if bwd:
             grad = np.ones(loss.shape, loss.dtype)
             if is_gpu:
-                loss.grad = chainer.cuda.to_gpu(grad)
+                grad = chainer.cuda.to_gpu(grad)
             loss.grad = grad
             loss.backward()
 
