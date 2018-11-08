@@ -39,22 +39,24 @@ class Decoder(chainer.Chain):
     def __init__(self, eprojs, odim, dlayers, dunits, sos, eos, att_dim,
                  aconv_chans=None, aconv_filts=None,
                  verbose=0, char_list=None, labeldist=None,
-                 lsm_weight=0., sampling_probability=0.0):
+                 lsm_weight=0., sampling_probability=0.0,
+                 use_chainer=False):
         super(Decoder, self).__init__()
+        lstm_cls = L.StatelessLSTM if use_chainer else StatelessLSTM
         with self.init_scope():
             # EDIT(hamaji): Use L.Embed instead of DL.EmbedID.
             # self.embed = DL.EmbedID(odim, dunits)
             self.embed = L.EmbedID(odim, dunits)
             # EDIT(hamaji): Use StatelessLSTM instead of Chainer's.
             # self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
-            self.lstm0 = StatelessLSTM(dunits + eprojs, dunits)
+            self.lstm0 = lstm_cls(dunits + eprojs, dunits)
             # EDIT(hamaji): Limit the number of decoder layers.
             # for l in six.moves.range(1, dlayers):
             assert dlayers <= 2
             for l in six.moves.range(1, 2):
                 # EDIT(hamaji): Use StatelessLSTM instead of Chainer's.
                 # setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
-                setattr(self, 'lstm%d' % l, StatelessLSTM(dunits, dunits))
+                setattr(self, 'lstm%d' % l, lstm_cls(dunits, dunits))
             self.output = L.Linear(dunits, odim)
             # EDIT(hamaji): attention parameters are passed instead of `att`.
             if aconv_chans is None:

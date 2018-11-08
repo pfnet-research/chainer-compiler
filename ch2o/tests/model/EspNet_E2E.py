@@ -109,7 +109,7 @@ class Encoder(chainer.Chain):
 
 
 class E2E(chainer.Chain):
-    def __init__(self, idim, odim, args, nobias=False):
+    def __init__(self, idim, odim, args, nobias=False, use_chainer=False):
         super(E2E, self).__init__()
         self.etype = args.etype
         self.verbose = args.verbose
@@ -176,10 +176,12 @@ class E2E(chainer.Chain):
             #                    labeldist, args.lsm_weight, args.sampling_probability)
             if args.atype == 'dot':
                 self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                                   self.sos, self.eos, args.adim)
+                                   self.sos, self.eos, args.adim,
+                                   use_chainer=use_chainer)
             elif args.atype == 'location':
                 self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
-                                   self.sos, self.eos, args.adim)
+                                   self.sos, self.eos, args.adim,
+                                   use_chainer=use_chainer)
             else:
                 raise RuntimeError('Not supported: %s' % args.atype)
 
@@ -377,7 +379,7 @@ def gen_test():
 
 def run_csj(bwd=True):
     (idim, odim, args), (xs, ilens, ys) = csj_recipe()
-    model = E2E(idim, odim, args)
+    model = E2E(idim, odim, args, use_chainer=True)
 
     is_gpu = len(sys.argv) == 3 and sys.argv[2] == '--gpu'
     if is_gpu:
