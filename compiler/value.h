@@ -42,9 +42,7 @@ public:
     const Type& type() const {
         return *type_;
     }
-    void set_type(Type* type) {
-        type_.reset(type);
-    }
+    void set_type(Type* type);
     Type* mutable_type() {
         return type_.get();
     }

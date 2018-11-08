@@ -39,6 +39,10 @@ void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {
     initializer_.reset(tensor.release());
 }
 
+void Value::set_type(Type* type) {
+    type_.reset(type);
+}
+
 int64_t Value::GetNBytes() const {
     return type_->GetNBytes();
 }
