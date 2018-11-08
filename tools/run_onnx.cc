@@ -466,7 +466,7 @@ void RunMain(int argc, char** argv) {
         // The first iteration is for warm up.
         if (test_case != test_cases.front()) elapsed_total += elapsed;
 
-        CHECK_EQ(ok_cnt, test_case->outputs.size());
+        if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
     if (test_cnt) LOG() << "OK!" << std::endl;
 
