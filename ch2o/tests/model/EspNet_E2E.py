@@ -375,7 +375,7 @@ def gen_test():
                            [xs, ilens, ys], backprop=True)
 
 
-def run_csj():
+def run_csj(bwd=True):
     (idim, odim, args), (xs, ilens, ys) = csj_recipe()
     model = E2E(idim, odim, args)
 
@@ -390,15 +390,18 @@ def run_csj():
         st = time.time()
         model.cleargrads()
         loss = model(xs, ilens, ys)
-        if is_gpu:
-            loss.grad = chainer.cuda.to_gpu(np.ones(loss.shape, loss.dtype))
-        else:
-            loss.grad = np.ones(loss.shape, loss.dtype)
-        loss.backward()
+
+        if bwd:
+            grad = np.ones(loss.shape, loss.dtype)
+            if is_gpu:
+                loss.grad = chainer.cuda.to_gpu(grad)
+            loss.grad = grad
+            loss.backward()
+
         print(time.time() - st)
 
 
-def gen_csj():
+def gen_csj(bwd=True):
     sys.argv.pop(1)
 
     from ch2o import test_args
@@ -406,7 +409,7 @@ def gen_csj():
 
     (idim, odim, args), (xs, ilens, ys) = csj_recipe()
     ch2o.generate_testcase(lambda: E2E(idim, odim, args),
-                           [xs, ilens, ys], backprop=True)
+                           [xs, ilens, ys], backprop=bwd)
 
 
 if __name__ == '__main__':
@@ -415,7 +418,11 @@ if __name__ == '__main__':
 
     if sys.argv[1] == '--run_csj':
         run_csj()
+    elif sys.argv[1] == '--run_csj_fwd':
+        run_csj(bwd=False)
     elif sys.argv[1] == '--gen_csj':
         gen_csj()
+    elif sys.argv[1] == '--gen_csj_fwd':
+        gen_csj(bwd=False)
     else:
         gen_test()
