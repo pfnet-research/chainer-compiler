@@ -5,7 +5,9 @@
 #include <set>
 
 #include <compiler/graph.h>
+#include <compiler/log.h>
 #include <compiler/node.h>
+#include <compiler/nvrtc_builder.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -19,7 +21,6 @@ void FindFusionCandidates(Graph* graph) {
         Node::kDiv,
         Node::kTanh,
         Node::kSigmoid,
-        Node::kRelu,
     };
 
     int num_fusion_groups = 0;
@@ -55,6 +56,15 @@ void FindFusionCandidates(Graph* graph) {
         ++num_fusion_groups;
         for (Node* node : cands) {
             node->set_onikux_fusion_group(num_fusion_groups);
+        }
+
+        if (g_compiler_log) {
+            LOG() << "Fusion group #" << num_fusion_groups << std::endl;
+            std::vector<Node*> nodes{cands.begin(), cands.end()};
+            std::string prog;
+            std::vector<Value*> ins, outs;
+            BuildNvrtcProgram(nodes, num_fusion_groups, &prog, &ins, &outs);
+            LOG() << prog;
         }
     }
 }

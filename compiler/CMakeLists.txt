@@ -18,6 +18,7 @@ include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${ONIKU_ROOT_DIR})
 include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/compiler`
 add_library(oniku_compiler
+  code_emitter.cc
   dtype.cc
   dtype_inference.cc
   flags.cc
@@ -30,6 +31,7 @@ add_library(oniku_compiler
   memory_simulator.cc
   model.cc
   node.cc
+  nvrtc_builder.cc
   passes.cc
   recompute.cc
   scheduler.cc
@@ -48,6 +50,7 @@ add_dependencies(
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(compiler_test
+  code_emitter_test.cc
   dtype_inference_test.cc
   gradient_test.cc
   model_test.cc
