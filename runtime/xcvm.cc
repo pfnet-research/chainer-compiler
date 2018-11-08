@@ -2,6 +2,10 @@
 
 #include <numeric>
 
+#ifdef ONIKU_ENABLE_NVTX
+#include <nvToolsExt.h>
+#endif  // ONIKU_ENABLE_NVTX
+
 #include <chainerx/array.h>
 
 #include <runtime/chrome_tracing.h>
@@ -47,7 +51,13 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
 
         {
             ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name());
+#ifdef ONIKU_ENABLE_NVTX
+            nvtxRangePush(op->name().c_str());
+#endif
             op->Run(&state);
+#ifdef ONIKU_ENABLE_NVTX
+            nvtxRangePop();
+#endif
         }
 
         state.set_pc(state.pc() + 1);

@@ -40,7 +40,7 @@ target_link_libraries(run_onnx
   onnx
   onnx_proto
   protobuf
-  ${CUDA_CUDART_LIBRARY}
+  ${ONIKU_CUDA_LIBRARIES}
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
@@ -57,7 +57,7 @@ target_link_libraries(train_imagenet
   onnx_proto
   protobuf
   pthread
-  ${CUDA_CUDART_LIBRARY}
+  ${ONIKU_CUDA_LIBRARIES}
   ${OpenCV_LIBS}
   )
 set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
