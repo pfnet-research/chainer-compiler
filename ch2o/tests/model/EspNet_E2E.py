@@ -17,6 +17,7 @@ import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
+from chainer import function_hooks
 from chainer import training
 from chainer.training import extensions
 
@@ -388,23 +389,26 @@ def run_csj(bwd=True):
         ilens = chainer.cuda.to_gpu(np.array(ilens))
         ys = chainer.cuda.to_gpu(ys)
 
+    cuda_hook = function_hooks.CUDAProfileHook()
+
     elapsed_total = 0.0
     iterations = 10
-    for i in range(iterations):
-        st = time.time()
-        model.cleargrads()
-        loss = model(xs, ilens, ys)
+    with cuda_hook:
+        for i in range(iterations):
+            st = time.time()
+            model.cleargrads()
+            loss = model(xs, ilens, ys)
 
-        if bwd:
-            grad = np.ones(loss.shape, loss.dtype)
-            if is_gpu:
-                grad = chainer.cuda.to_gpu(grad)
-            loss.grad = grad
-            loss.backward()
+            if bwd:
+                grad = np.ones(loss.shape, loss.dtype)
+                if is_gpu:
+                    grad = chainer.cuda.to_gpu(grad)
+                loss.grad = grad
+                loss.backward()
 
-        elapsed = time.time() - st
-        print('Elapsed: %s msec' % elapsed)
-        if i: elapsed_total += elapsed
+            elapsed = (time.time() - st) * 1000
+            print('Elapsed: %s msec' % elapsed)
+            if i: elapsed_total += elapsed
 
     print('Average elapsed: %s msec' % (elapsed_total / (iterations - 1)))
 
