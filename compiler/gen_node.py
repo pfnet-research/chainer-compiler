@@ -35,7 +35,7 @@ class Dtype(object):
     pass
 
 
-ONIKUX_GLOBAL_ATTRS = attr_sets(onikux_order=-1)
+ONIKUX_GLOBAL_ATTRS = attr_sets(onikux_order=-1, onikux_fusion_group=0)
 
 NODES = []
 

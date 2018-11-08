@@ -21,6 +21,7 @@ add_library(oniku_compiler
   dtype.cc
   dtype_inference.cc
   flags.cc
+  fusion.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   gradient.cc
   gradient_ops.cc

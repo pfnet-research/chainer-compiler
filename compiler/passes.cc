@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <compiler/flags.h>
+#include <compiler/fusion.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -129,6 +130,9 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     }
 
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
+
+    Recursively(FindFusionCandidates, graph);
+
     Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);
     if (gen_backprop) Recursively(ScheduleBackpropGraphs, graph);
 
