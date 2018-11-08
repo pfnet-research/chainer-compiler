@@ -177,7 +177,7 @@ class StatelessLSTM(LSTMBase):
             #     c = variable.Variable(
             #         xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
             c = variable.Variable(
-                np.zeros((x.shape[0], self.state_size), dtype=np.float32))
+                self.xp.zeros((x.shape[0], self.state_size), dtype=self.xp.float32))
         # EDIT(hamaji): Use lstm_forward.
         return lstm_forward(c, lstm_in)
         # return lstm.lstm(c, lstm_in)
