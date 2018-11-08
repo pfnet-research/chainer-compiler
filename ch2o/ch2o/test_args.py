@@ -17,6 +17,8 @@ def get_test_args():
                         help='Do not run the check with mxnet.')
     parser.add_argument('--quiet', action='store_true',
                         help='Show less messages.')
+    parser.add_argument('--allow-unused-params', action='store_true',
+                        help='Allow unused parameters.')
     _args_cache = parser.parse_args()
     return _args_cache
 

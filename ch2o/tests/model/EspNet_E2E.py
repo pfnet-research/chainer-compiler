@@ -8,6 +8,8 @@ import datetime
 import logging
 import random
 import six
+import sys
+import time
 
 import numpy as np
 
@@ -264,7 +266,7 @@ def test_recipe():
     aconv_filts = 6
     att_dim = 5
     batch_size = 3
-    dlayers = 3
+    dlayers = 2
     dunits = 4
     elayers = 2
     eprojs = 3
@@ -304,10 +306,58 @@ def test_recipe():
     return (idim, odim, args), (xs, ilens, ys)
 
 
-if __name__ == '__main__':
-    import numpy as np
-    np.random.seed(43)
+def csj_recipe():
+    aconv_chans = 10
+    aconv_filts = 100
+    att_dim = 320
+    batch_size = 32
+    dlayers = 1
+    dunits = 1024
+    elayers = 4
+    eprojs = 320
+    eunits = 1024
 
+    # TODO(hamaji): Figure out sane values.
+    #ilen = 20
+    #olen = 40
+    #idim = 10
+    #odim = 10
+    ilen = 5
+    olen = 4
+    idim = 10
+    odim = 10
+
+    args = Args({
+        'aconv_chans': aconv_chans,
+        'aconv_filts': aconv_filts,
+        'adim': att_dim,
+        #'atype': 'dot',
+        'atype': 'location',
+        'char_list': None,
+        'ctc_type': None,
+        'dlayers': dlayers,
+        'dropout_rate': 0,
+        'dunits': dunits,
+        'elayers': elayers,
+        'eprojs': eprojs,
+        'etype': 'vggblstm',
+        'eunits': eunits,
+        'lsm_type': None,
+        'lsm_weight': None,
+        'mtlalpha': 0,
+        'outdir': None,
+        'sampling_probability': None,
+        'subsample': None,
+        'train_json': None,
+        'verbose': False,
+    })
+
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
+
+    return (idim, odim, args), (xs, ilens, ys)
+
+
+def gen_test():
     (idim, odim, args), (xs, ilens, ys) = test_recipe()
 
     def gen_test(model_fn, subname=None):
@@ -323,3 +373,49 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(lambda: E2E(idim, odim, args, nobias=True),
                            [xs, ilens, ys], backprop=True)
+
+
+def run_csj():
+    (idim, odim, args), (xs, ilens, ys) = csj_recipe()
+    model = E2E(idim, odim, args)
+
+    is_gpu = len(sys.argv) == 3 and sys.argv[2] == '--gpu'
+    if is_gpu:
+        model.to_gpu()
+        xs = chainer.cuda.to_gpu(xs)
+        ilen = chainer.cuda.to_gpu(np.array(ilen))
+        ys = chainer.cuda.to_gpu(ys)
+
+    for i in range(10):
+        st = time.time()
+        model.cleargrads()
+        loss = model(xs, ilens, ys)
+        if is_gpu:
+            loss.grad = chainer.cuda.to_gpu(np.ones(loss.shape, loss.dtype))
+        else:
+            loss.grad = np.ones(loss.shape, loss.dtype)
+        loss.backward()
+        print(time.time() - st)
+
+
+def gen_csj():
+    sys.argv.pop(1)
+
+    from ch2o import test_args
+    test_args.get_test_args().allow_unused_params = True
+
+    (idim, odim, args), (xs, ilens, ys) = csj_recipe()
+    ch2o.generate_testcase(lambda: E2E(idim, odim, args),
+                           [xs, ilens, ys], backprop=True)
+
+
+if __name__ == '__main__':
+    import numpy as np
+    np.random.seed(43)
+
+    if sys.argv[1] == '--run_csj':
+        run_csj()
+    elif sys.argv[1] == '--gen_csj':
+        gen_csj()
+    else:
+        gen_test()

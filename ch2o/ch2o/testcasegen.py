@@ -94,6 +94,8 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                 filename = os.path.join(test_data_dir,
                                         '%s_%d.pb' % (typ, i))
                 if value is None:
+                    if get_test_args().allow_unused_params:
+                        continue
                     raise RuntimeError('Unused parameter: %s' % name)
                 tensor = numpy_helper.from_array(value, name)
                 with open(filename, 'wb') as f:

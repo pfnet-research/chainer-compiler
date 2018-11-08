@@ -48,7 +48,10 @@ class Decoder(chainer.Chain):
             # EDIT(hamaji): Use StatelessLSTM instead of Chainer's.
             # self.lstm0 = L.StatelessLSTM(dunits + eprojs, dunits)
             self.lstm0 = StatelessLSTM(dunits + eprojs, dunits)
-            for l in six.moves.range(1, dlayers):
+            # EDIT(hamaji): Limit the number of decoder layers.
+            # for l in six.moves.range(1, dlayers):
+            assert dlayers <= 2
+            for l in six.moves.range(1, 2):
                 # EDIT(hamaji): Use StatelessLSTM instead of Chainer's.
                 # setattr(self, 'lstm%d' % l, L.StatelessLSTM(dunits, dunits))
                 setattr(self, 'lstm%d' % l, StatelessLSTM(dunits, dunits))
@@ -131,12 +134,10 @@ class Decoder(chainer.Chain):
             c_new, z_new = self.lstm0(c_list[0], z_list[0], ey)
             c_list_new.append(c_new)
             z_list_new.append(z_new)
-            c_new, z_new = self.lstm1(c_list[1], z_list[1], z_list_new[-1])
-            c_list_new.append(c_new)
-            z_list_new.append(z_new)
-            c_new, z_new = self.lstm2(c_list[2], z_list[2], z_list_new[-1])
-            c_list_new.append(c_new)
-            z_list_new.append(z_new)
+            if self.dlayers > 1:
+                c_new, z_new = self.lstm1(c_list[1], z_list[1], z_list_new[-1])
+                c_list_new.append(c_new)
+                z_list_new.append(z_new)
             # for l in six.moves.range(1, self.dlayers):
             #     c_new, z_new = self['lstm%d' % l](c_list[l], z_list[l], z_list_new[-1])
             #     c_list_new.append(c_new)
@@ -291,7 +292,7 @@ if __name__ == '__main__':
     batch_size = 3
     sequence_length = 4
     num_vocabs = 10
-    dlayers = 3
+    dlayers = 2
     odim = 11
     sos = odim - 1
     eos = odim - 1
