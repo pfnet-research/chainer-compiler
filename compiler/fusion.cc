@@ -109,7 +109,7 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_gr
 
 }  // namespace
 
-void FindFusionCandidates(Graph* graph) {
+void FuseOperations(Graph* graph) {
     // TODO(hamaji): Current algorithm is broken in a few ways.
     // 1. It tries to fuse integer operations.
     // 2. It may pick a group which cannot be done at once.

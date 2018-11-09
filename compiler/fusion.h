@@ -4,6 +4,6 @@ namespace oniku {
 
 class Graph;
 
-void FindFusionCandidates(Graph* graph);
+void FuseOperations(Graph* graph);
 
 }  // namespace oniku

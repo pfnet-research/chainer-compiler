@@ -132,7 +132,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
     if (g_fuse_operations) {
-        Recursively(FindFusionCandidates, graph);
+        Recursively(FuseOperations, graph);
         dump_onnx(g_dump_after_fusion, "after fusion");
     }
 
