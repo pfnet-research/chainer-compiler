@@ -4,9 +4,12 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/flags.h>
+#include <compiler/log.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/node.h>
+#include <compiler/nvrtc_builder.h>
 #include <compiler/passes.h>
 #include <compiler/value.h>
 #include <runtime/xcvm.pb.h>
@@ -707,8 +710,6 @@ private:
         const Graph& body = *node.subgraph();
         CHECK_EQ(node.inputs().size(), body.input_values().size());
         CHECK_EQ(node.outputs().size(), body.output_values().size());
-        AssignValueIds(body);
-
         const std::string& debug_info = node.ToString();
 
 #define EMIT(op, ...)                                                   \
@@ -716,6 +717,29 @@ private:
         Add##op##Op(prog, __VA_ARGS__);                                                                                \
         prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
     } while (0)
+
+        if (g_use_nvrtc) {
+            static int id = 0;
+            std::string nvrtc;
+            std::vector<Value*> ins, outs;
+            BuildNvrtcProgram(body.nodes(), ++id, &nvrtc, &ins, &outs);
+            if (g_compiler_log) {
+                LOG() << "Fusion group " << node.ToString() << std::endl;
+                LOG() << nvrtc;
+            }
+
+            std::vector<int> inputs, outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.push_back(GetValueId(value));
+            }
+            EMIT(ElementWiseNvrtc, outputs, inputs, nvrtc);
+            return;
+        }
+
+        AssignValueIds(body);
 
         for (size_t i = 0; i < node.inputs().size(); ++i) {
             Value* from = node.inputs()[i];

@@ -305,6 +305,9 @@ XC_OPS = [
     ('Jmp', [Int('pc')], []),
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
+
+    ('ElementWiseNvrtc', [ArrayList('inputs'), String('nvrtc')],
+     [ArrayList('outputs')]),
 ]
 
 XC_SEQ_OPS = [

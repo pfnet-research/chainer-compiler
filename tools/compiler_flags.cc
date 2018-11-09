@@ -11,6 +11,7 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add<int>("recompute_relu", '\0', "Recompute Relu when the results are used by backprop after this number of steps", false, 0);
     args->add("replace_constant", '\0', "Replace Constant ops");
     args->add("fuse_operations", '\0', "Fuse consecutive operations");
+    args->add("use_nvrtc", '\0', "Use NVRTC");
     args->add("always_retain_in_stack", '\0', "For internal testing only");
     args->add("dump_after_inference", '\0', "Dump the ONNX graph after dtype/shape inference");
     args->add("dump_after_simplification", '\0', "Dump the ONNX graph after graph simplification");
@@ -25,6 +26,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_permissive = args.exist("permissive");
     g_replace_constant = args.exist("replace_constant");
     g_fuse_operations = args.exist("fuse_operations");
+    g_use_nvrtc = args.exist("use_nvrtc");
     g_recompute_relu = args.get<int>("recompute_relu");
     g_always_retain_in_stack = args.exist("always_retain_in_stack");
     g_dump_after_inference = args.exist("dump_after_inference");

@@ -30,6 +30,7 @@ add_library(oniku_runtime
   meminfo.cc
   ops/generic.cc
   ops/normalization.cc
+  ops/nvrtc.cc
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc

@@ -16,6 +16,8 @@ bool g_always_retain_in_stack;
 
 bool g_fuse_operations;
 
+bool g_use_nvrtc;
+
 bool g_dump_after_inference;
 bool g_dump_after_simplification;
 bool g_dump_after_gradient;

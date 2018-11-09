@@ -29,6 +29,9 @@ extern bool g_always_retain_in_stack;
 // Fuse consecutive element-wise operations.
 extern bool g_fuse_operations;
 
+// Use NVRTC to execute fused operations.
+extern bool g_use_nvrtc;
+
 // Dumps the ONNX graph at a specific timing.
 extern bool g_dump_after_inference;
 extern bool g_dump_after_simplification;
