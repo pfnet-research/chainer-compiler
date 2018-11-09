@@ -18,3 +18,4 @@ target_link_libraries(common_test
   gtest_main
   pthread
   )
+add_dependencies(common_test onnx_files)
