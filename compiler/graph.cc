@@ -105,7 +105,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
         }
     }
 
-    for (const auto& node : nodes_) {
+    for (const Node* node : nodes_) {
         onnx::NodeProto* xnode = xgraph->add_node();
         node->ToONNX(xnode);
     }
@@ -119,8 +119,8 @@ std::string Graph::DebugString() const {
 
 std::vector<Node*> Graph::GetLiveNodes() const {
     std::vector<Node*> nodes;
-    for (const std::unique_ptr<Node>& node : nodes_) {
-        if (!node->detached()) nodes.push_back(node.get());
+    for (Node* node : nodes_) {
+        if (!node->detached()) nodes.push_back(node);
     }
     return nodes;
 }
@@ -247,9 +247,9 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
     for (const Value* value : output_values) {
         q.push(value->producer());
     }
-    for (const std::unique_ptr<Node>& node : nodes_) {
+    for (Node* node : nodes_) {
         if (node->op_type() == Node::kOnikuxBackpropStackPush)
-            q.push(node.get());
+            q.push(node);
     }
 
     std::map<Node*, int> input_counts;
@@ -277,8 +277,8 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
 
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
-    for (const auto& node : nodes_) {
-        if (node->onikux_order() >= 0) nodes.push_back(node.get());
+    for (const Node* node : nodes_) {
+        if (node->onikux_order() >= 0) nodes.push_back(node);
     }
     std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->onikux_order() < b->onikux_order(); });
     return nodes;
@@ -294,12 +294,13 @@ std::string Graph::GenSym(const std::string& base) {
 void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
     for (Value* input : inputs) input->AddUser(node.get());
     for (Value* output : outputs) output->SetProducer(node.get());
-    nodes_.emplace_back(std::move(node));
+    nodes_.push_back(node.get());
+    nodes_buf_.emplace_back(std::move(node));
 }
 
 Graph* Graph::GetSubGraph(const std::string& name) const {
     Graph* found = nullptr;
-    for (const auto& node : nodes_) {
+    for (const Node* node : nodes_) {
         for (Graph* sub_graph : node->GetSubGraphs()) {
             if (sub_graph->name() == name) {
                 CHECK(found == nullptr) << "Two subgraphs found for name: " << name;
@@ -323,7 +324,7 @@ void Graph::ResetGradients() {
 void Graph::DumpSubGraphs(int depth) const {
     for (int i = 0; i < depth; i++) std::cerr << ' ';
     std::cerr << name() << std::endl;
-    for (const auto& node : nodes_) {
+    for (const Node* node : nodes_) {
         for (Graph* sub_graph : node->GetSubGraphs()) {
             sub_graph->DumpSubGraphs(depth + 1);
         }

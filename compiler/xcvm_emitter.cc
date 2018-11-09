@@ -85,14 +85,14 @@ private:
     }
 
     void EmitStackInit(const Graph& graph, XCProgramProto* prog) {
-        for (const std::unique_ptr<Node>& node : graph.nodes()) {
+        for (const Node* node : graph.nodes()) {
             if (node->op_type() == Node::kOnikuxBackpropStackPush) {
                 int id = next_value_id_++;
                 CHECK(stack_ids_.emplace(node->id(), id).second);
                 AddSequenceCreateOp(prog, id);
             }
         }
-        for (const std::unique_ptr<Node>& node : graph.nodes()) {
+        for (const Node* node : graph.nodes()) {
             for (Graph* sub_graph : node->GetSubGraphs()) {
                 EmitStackInit(*sub_graph, prog);
             }

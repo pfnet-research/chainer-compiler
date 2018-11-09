@@ -215,8 +215,8 @@ void CheckSanity(
     }
 
     std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(output_values);
-    for (const std::unique_ptr<Node>& node : graph.nodes()) {
-        if (node->onikux_order() > 0) input_counts.erase(node.get());
+    for (Node* node : graph.nodes()) {
+        if (node->onikux_order() > 0) input_counts.erase(node);
     }
     for (Node* node : nodes) {
         input_counts.erase(node);
@@ -304,7 +304,7 @@ void ScheduleComputation(
     CheckSanity(graph, input_values, output_values, nodes);
 
     int max_order = 0;
-    for (const std::unique_ptr<Node>& node : graph.nodes()) {
+    for (const Node* node : graph.nodes()) {
         max_order = std::max(max_order, node->onikux_order());
     }
 

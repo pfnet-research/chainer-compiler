@@ -19,15 +19,15 @@ namespace oniku {
 namespace {
 
 void CollectGarbageNode(Graph* graph) {
-    for (const auto& node : graph->nodes()) {
-        if (node->onikux_order() <= 0) graph->DetachNode(node.get());
+    for (Node* node : graph->nodes()) {
+        if (node->onikux_order() <= 0) graph->DetachNode(node);
     }
 }
 
 template <class Fn>
 void Recursively(Fn fn, Graph* graph) {
     fn(graph);
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
             Recursively(fn, subgraph);
         }
@@ -46,10 +46,10 @@ void ScheduleBackpropGraphs(Graph* graph) {
     };
 
     std::map<Graph*, SubGraph> sub_graphs;
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (Node* node : graph->nodes()) {
         for (Graph* sub_graph : node->GetSubGraphs()) {
             SubGraph sg;
-            sg.node = node.get();
+            sg.node = node;
             CHECK(sub_graphs.emplace(sub_graph, sg).second);
         }
     }
@@ -62,10 +62,10 @@ void ScheduleBackpropGraphs(Graph* graph) {
         found->second.refs.emplace_back(SubGraph::Ref{node, input_value_names, output_value_names});
     };
 
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
-        add_sub_graph_ref(node.get(), node->body_ref(), node->input_value_names(), node->output_value_names());
-        add_sub_graph_ref(node.get(), node->then_branch_ref(), node->then_input_value_names(), node->then_output_value_names());
-        add_sub_graph_ref(node.get(), node->else_branch_ref(), node->else_input_value_names(), node->else_output_value_names());
+    for (Node* node : graph->nodes()) {
+        add_sub_graph_ref(node, node->body_ref(), node->input_value_names(), node->output_value_names());
+        add_sub_graph_ref(node, node->then_branch_ref(), node->then_input_value_names(), node->then_output_value_names());
+        add_sub_graph_ref(node, node->else_branch_ref(), node->else_input_value_names(), node->else_output_value_names());
     }
 
     for (const auto& p : sub_graphs) {

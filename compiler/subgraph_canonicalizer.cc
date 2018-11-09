@@ -14,7 +14,7 @@ std::map<std::string, Value*> GetRequiredValues(Graph* graph) {
     for (Value* value : graph->output_values()) {
         required_values[value->name()] = value;
     }
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (const Node* node : graph->nodes()) {
         for (Value* value : node->inputs()) {
             if (value->IsNull()) continue;
             required_values[value->name()] = value;
@@ -24,7 +24,7 @@ std::map<std::string, Value*> GetRequiredValues(Graph* graph) {
     for (Value* value : graph->input_values()) {
         required_values.erase(value->name());
     }
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (const Node* node : graph->nodes()) {
         for (Value* value : node->outputs()) {
             required_values.erase(value->name());
         }
@@ -37,13 +37,13 @@ void ResolveExternalDependencies(Graph* graph) {
     for (Value* value : graph->input_values()) {
         symtab[value->name()] = value;
     }
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (const Node* node : graph->nodes()) {
         for (Value* value : node->outputs()) {
             symtab[value->name()] = value;
         }
     }
 
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (Node* node : graph->nodes()) {
         if (node->op_type() == Node::kLoop) {
             Graph* body = node->body().get();
             CHECK(body);

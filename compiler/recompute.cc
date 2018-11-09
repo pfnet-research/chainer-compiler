@@ -62,10 +62,10 @@ int GetDistance(const Node* node, const std::map<const Node*, int>& distances) {
 void GetReluRecompute(Graph* graph, int threshold) {
     const std::map<const Node*, int> distances = GetDistancesOfNodes(*graph);
 
-    for (const std::unique_ptr<Node>& node : graph->nodes()) {
+    for (const Node* node : graph->nodes()) {
         if (node->op_type() != Node::kRelu) continue;
 
-        int relu_dist = GetDistance(node.get(), distances);
+        int relu_dist = GetDistance(node, distances);
         if (relu_dist < 0) continue;
         // It's not worth recomputing Relu if this Relu is the only
         // user of the input value.
