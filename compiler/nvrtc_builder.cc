@@ -80,6 +80,37 @@ void EmitNode(const Node* node, CodeEmitter* ce) {
     }
 }
 
+void FindInOuts(const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs) {
+    std::set<Value*> input_set;
+    std::map<Value*, int> output_users;
+    for (Node* node : nodes) {
+        for (Value* value : node->inputs()) {
+            input_set.insert(value);
+        }
+        for (Value* value : node->outputs()) {
+            CHECK(output_users.emplace(value, value->users().size()).second);
+        }
+    }
+
+    for (Node* node : nodes) {
+        for (Value* value : node->inputs()) {
+            auto found = output_users.find(value);
+            if (found != output_users.end()) {
+                --found->second;
+            }
+        }
+        for (const auto& p : output_users) {
+            input_set.erase(p.first);
+        }
+    }
+
+    inputs->assign(input_set.begin(), input_set.end());
+    for (const auto& p : output_users) {
+        CHECK_LE(0, p.second);
+        if (p.second > 0) outputs->push_back(p.first);
+    }
+}
+
 }  // namespace
 
 void BuildNvrtcProgram(const std::vector<Node*>& nodes,
@@ -88,19 +119,10 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
                        std::vector<Value*>* inputs,
                        std::vector<Value*>* outputs) {
     std::set<Node::OpType> seen_ops;
-    std::set<Value*> input_set;
-    std::set<Value*> output_set;
     for (Node* node : nodes) {
         seen_ops.insert(node->op_type());
-        for (Value* value : node->inputs()) input_set.insert(value);
-        for (Value* value : node->outputs()) output_set.insert(value);
     }
-    std::set_difference(input_set.begin(), input_set.end(),
-                        output_set.begin(), output_set.end(),
-                        std::back_inserter(*inputs));
-    std::set_difference(output_set.begin(), output_set.end(),
-                        input_set.begin(), input_set.end(),
-                        std::back_inserter(*outputs));
+    FindInOuts(nodes, inputs, outputs);
 
     std::ostringstream oss;
     CodeEmitter ce(oss);
