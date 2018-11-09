@@ -90,12 +90,24 @@ void Node::ReplaceInput(Value* f, Value* t) {
     *found = t;
 }
 
+void Node::ReplaceOutput(Value* f, Value* t) {
+    auto found = std::find(outputs_.begin(), outputs_.end(), f);
+    CHECK(found != outputs_.end());
+    *found = t;
+}
+
 std::vector<Graph*> Node::GetSubGraphs() const {
     std::vector<Graph*> subgraphs;
     if (body().get()) subgraphs.push_back(body().get());
     if (then_branch().get()) subgraphs.push_back(then_branch().get());
     if (else_branch().get()) subgraphs.push_back(else_branch().get());
+    if (subgraph().get()) subgraphs.push_back(subgraph().get());
     return subgraphs;
+}
+
+bool Node::IsGradNode() const {
+    // TODO(hamaji): Implement this in a better way.
+    return name_.find("Grad") != std::string::npos;
 }
 
 std::string Node::ToString() const {

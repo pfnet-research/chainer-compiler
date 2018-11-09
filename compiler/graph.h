@@ -98,6 +98,8 @@ public:
 
     Graph* GetSubGraph(const std::string& name) const;
 
+    void MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to);
+
     void ResetGradients();
 
     void DumpSubGraphs(int depth = 0) const;

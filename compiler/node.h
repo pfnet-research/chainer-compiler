@@ -53,8 +53,11 @@ public:
     int GetNumActualInputs() const;
 
     void ReplaceInput(Value* f, Value* t);
+    void ReplaceOutput(Value* f, Value* t);
 
     std::vector<Graph*> GetSubGraphs() const;
+
+    bool IsGradNode() const;
 
     std::string ToString() const;
 

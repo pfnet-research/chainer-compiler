@@ -280,6 +280,8 @@ void InferDtype(Node* node) {
             // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
             break;
         }
+
+        case Node::kOnikuxFusionGroup:
         case Node::kOnikuxIfRef:
         case Node::kOnikuxLoopRef: {
             // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.

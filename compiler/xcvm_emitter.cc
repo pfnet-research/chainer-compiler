@@ -502,6 +502,8 @@ private:
             EMIT(GatherGrad, out(0), in(0), in(1), in(2), node.axis());
         } else if (node.op_type() == Node::kOnikuxDynamicSliceGrad) {
             EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4));
+        } else if (node.op_type() == Node::kOnikuxFusionGroup) {
+            EmitFusionGroup(node, prog);
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
         } else if (node.op_type() == Node::kOnikuxIfRef) {
@@ -697,6 +699,45 @@ private:
                 if (--found->second == 0 && !protected_values.count(input)) {
                     FREE(GetValueId(input));
                 }
+            }
+        }
+    }
+
+    void EmitFusionGroup(const Node& node, XCProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+        CHECK_EQ(node.inputs().size(), body.input_values().size());
+        CHECK_EQ(node.outputs().size(), body.output_values().size());
+        AssignValueIds(body);
+
+        const std::string& debug_info = node.ToString();
+
+#define EMIT(op, ...)                                                   \
+    do {                                                                                                               \
+        Add##op##Op(prog, __VA_ARGS__);                                                                                \
+        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
+    } while (0)
+
+        for (size_t i = 0; i < node.inputs().size(); ++i) {
+            Value* from = node.inputs()[i];
+            Value* to = body.input_values()[i];
+            //MOVE(GetValueId(to), GetValueId(from));
+            EMIT(Identity, GetValueId(to), GetValueId(from));
+        }
+
+        EmitGraph(body, prog, true /* in_loop */, body.output_values(), {});
+
+        // TODO(hamaji): Fix `EmitGraph` so it frees inputs automatically.
+        for (size_t i = 0; i < node.inputs().size(); ++i) {
+            FREE(GetValueId(body.input_values()[i]));
+        }
+        for (size_t i = 0; i < node.outputs().size(); ++i) {
+            Value* from = body.output_values()[i];
+            Value* to = node.outputs()[i];
+            if (from->IsNull()) {
+                // TODO(hamaji): Consider removing this value.
+                EMIT(NullConstant, GetValueId(to));
+            } else {
+                MOVE(GetValueId(to), GetValueId(from));
             }
         }
     }

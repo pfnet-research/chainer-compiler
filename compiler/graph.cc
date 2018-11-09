@@ -312,6 +312,21 @@ Graph* Graph::GetSubGraph(const std::string& name) const {
     return found;
 }
 
+void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to) {
+    for (Node* node : nodes) {
+        auto found = std::find(nodes_.begin(), nodes_.end(), node);
+        CHECK(found != nodes_.end()) << node->DebugString();
+        nodes_.erase(found);
+        to->nodes_.push_back(node);
+    }
+    for (Value* value : temps) {
+        auto found = std::find(temp_values_.begin(), temp_values_.end(), value);
+        CHECK(found != temp_values_.end()) << value->DebugString();
+        temp_values_.erase(found);
+        to->temp_values_.push_back(value);
+    }
+}
+
 void Graph::ResetGradients() {
     for (const auto& v : all_values()) {
         if (Value* gv = v->grad()) {

@@ -201,6 +201,7 @@ NodeDef('OnikuxIfRef', None, None,
         then_input_value_names=[str], then_output_value_names=[str],
         else_input_value_names=[str], else_output_value_names=[str])
 NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
+NodeDef('OnikuxFusionGroup', None, None, subgraph=Graph)
 
 NodeDef('OnikuxBackpropStackPush', 1, 0, id=Required(int))
 NodeDef('OnikuxBackpropStackPop', 0, 1, id=Required(int))

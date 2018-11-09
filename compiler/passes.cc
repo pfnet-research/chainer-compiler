@@ -131,7 +131,10 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
-    Recursively(FindFusionCandidates, graph);
+    if (g_fuse_operations) {
+        Recursively(FindFusionCandidates, graph);
+        dump_onnx(g_dump_after_fusion, "after fusion");
+    }
 
     Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);
     if (gen_backprop) Recursively(ScheduleBackpropGraphs, graph);

@@ -26,10 +26,14 @@ extern bool g_modify_pool_with_imbalanced_pads;
 // to complement poor test coverage for backprop in loops.
 extern bool g_always_retain_in_stack;
 
+// Fuse consecutive element-wise operations.
+extern bool g_fuse_operations;
+
 // Dumps the ONNX graph at a specific timing.
 extern bool g_dump_after_inference;
 extern bool g_dump_after_simplification;
 extern bool g_dump_after_gradient;
+extern bool g_dump_after_fusion;
 extern bool g_dump_after_scheduling;
 extern bool g_dump_subgraphs;
 
