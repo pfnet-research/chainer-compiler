@@ -10,8 +10,8 @@ class Value;
 
 void BuildNvrtcProgram(const std::vector<Node*>& nodes,
                        int id,
-                       std::string* prog,
-                       std::vector<Value*>* inputs,
-                       std::vector<Value*>* outputs);
+                       const std::vector<Value*>& inputs,
+                       const std::vector<Value*>& outputs,
+                       std::string* prog);
 
 }

@@ -721,8 +721,7 @@ private:
         if (g_use_nvrtc) {
             static int id = 0;
             std::string nvrtc;
-            std::vector<Value*> ins, outs;
-            BuildNvrtcProgram(body.nodes(), ++id, &nvrtc, &ins, &outs);
+            BuildNvrtcProgram(body.nodes(), ++id, body.input_values(), body.output_values(), &nvrtc);
             if (g_compiler_log) {
                 LOG() << "Fusion group " << node.ToString() << std::endl;
                 LOG() << nvrtc;

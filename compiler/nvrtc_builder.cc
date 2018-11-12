@@ -80,49 +80,17 @@ void EmitNode(const Node* node, CodeEmitter* ce) {
     }
 }
 
-void FindInOuts(const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs) {
-    std::set<Value*> input_set;
-    std::map<Value*, int> output_users;
-    for (Node* node : nodes) {
-        for (Value* value : node->inputs()) {
-            input_set.insert(value);
-        }
-        for (Value* value : node->outputs()) {
-            CHECK(output_users.emplace(value, value->users().size()).second);
-        }
-    }
-
-    for (Node* node : nodes) {
-        for (Value* value : node->inputs()) {
-            auto found = output_users.find(value);
-            if (found != output_users.end()) {
-                --found->second;
-            }
-        }
-        for (const auto& p : output_users) {
-            input_set.erase(p.first);
-        }
-    }
-
-    inputs->assign(input_set.begin(), input_set.end());
-    for (const auto& p : output_users) {
-        CHECK_LE(0, p.second);
-        if (p.second > 0) outputs->push_back(p.first);
-    }
-}
-
 }  // namespace
 
 void BuildNvrtcProgram(const std::vector<Node*>& nodes,
                        int id,
-                       std::string* prog,
-                       std::vector<Value*>* inputs,
-                       std::vector<Value*>* outputs) {
+                       const std::vector<Value*>& inputs,
+                       const std::vector<Value*>& outputs,
+                       std::string* prog) {
     std::set<Node::OpType> seen_ops;
     for (Node* node : nodes) {
         seen_ops.insert(node->op_type());
     }
-    FindInOuts(nodes, inputs, outputs);
 
     std::ostringstream oss;
     CodeEmitter ce(oss);
@@ -136,16 +104,16 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
 
     ce << "extern \"C\" __global__\n";
     ce << "void fusion" << id << "(size_t n";
-    for (Value* value : *inputs) {
+    for (Value* value : inputs) {
         ce << ", T* " << CleanseIdent(value->name(), "i_");
     }
-    for (Value* value : *outputs) {
+    for (Value* value : outputs) {
         ce << ", T* " << CleanseIdent(value->name(), "o_");
     }
     ce << ") {\n";
     ce << "size_t tid = blockIdx.x * blockDim.x + threadIdx.x;\n";
     ce << "if (tid >= n) return;\n";
-    for (Value* value : *inputs) {
+    for (Value* value : inputs) {
         ce << "T " << CleanseIdent(value->name()) << " = " << CleanseIdent(value->name(), "i_") << "[tid];  // input\n";
     }
 
@@ -155,7 +123,7 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
     }
 
     std::queue<Value*> q;
-    for (Value* value : *inputs) {
+    for (Value* value : inputs) {
         q.push(value);
     }
 
@@ -172,7 +140,7 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
         }
     }
 
-    for (Value* value : *outputs) {
+    for (Value* value : outputs) {
         ce << CleanseIdent(value->name(), "o_") << "[tid] = " << CleanseIdent(value->name()) << ";  // output\n";
     }
 
