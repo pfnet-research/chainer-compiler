@@ -307,7 +307,11 @@ void RunMain(int argc, char** argv) {
     xcvm::Emit(model, &xcvm_prog, trace_level > 0);
 
     if (args.exist("dump_xcvm")) {
-        std::cerr << xcvm_prog.DebugString();
+        int pc = 0;
+        for (XCInstructionProto inst : xcvm_prog.instructions()) {
+            std::cerr << '#' << pc << ": " << inst.DebugString();
+            pc++;
+        }
     }
     if (!out_xcvm.empty()) {
         std::ofstream ofs(out_xcvm);
