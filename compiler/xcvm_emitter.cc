@@ -719,9 +719,8 @@ private:
     } while (0)
 
         if (g_use_nvrtc) {
-            static int id = 0;
             std::string nvrtc;
-            BuildNvrtcProgram(body.nodes(), ++id, body.input_values(), body.output_values(), &nvrtc);
+            BuildNvrtcProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
             if (g_compiler_log) {
                 LOG() << "Fusion group " << node.ToString() << std::endl;
                 LOG() << nvrtc;
