@@ -360,6 +360,53 @@ def csj_recipe():
     return (idim, odim, args), (xs, ilens, ys)
 
 
+def cpu_bench_recipe():
+    # An extremely
+    aconv_chans = 4
+    aconv_filts = 4
+    att_dim = 4
+    batch_size = 4
+    dlayers = 2
+    dunits = 4
+    elayers = 4
+    eprojs = 4
+    eunits = 4
+
+    ilen = 100
+    olen = 40
+    idim = 5
+    odim = 5
+
+    args = Args({
+        'aconv_chans': aconv_chans,
+        'aconv_filts': aconv_filts,
+        'adim': att_dim,
+        #'atype': 'dot',
+        'atype': 'location',
+        'char_list': None,
+        'ctc_type': None,
+        'dlayers': dlayers,
+        'dropout_rate': 0,
+        'dunits': dunits,
+        'elayers': elayers,
+        'eprojs': eprojs,
+        'etype': 'vggblstm',
+        'eunits': eunits,
+        'lsm_type': None,
+        'lsm_weight': None,
+        'mtlalpha': 0,
+        'outdir': None,
+        'sampling_probability': None,
+        'subsample': None,
+        'train_json': None,
+        'verbose': False,
+    })
+
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
+
+    return (idim, odim, args), (xs, ilens, ys)
+
+
 def gen_test():
     (idim, odim, args), (xs, ilens, ys) = test_recipe()
 
@@ -433,6 +480,7 @@ def dispatch():
     recipe = {
         'test': test_recipe,
         'csj': csj_recipe,
+        'cpu_bench': cpu_bench_recipe,
     }[args.recipe]()
 
     backward = not args.forward
@@ -447,7 +495,7 @@ def dispatch():
 
 if __name__ == '__main__':
     import numpy as np
-    np.random.seed(43)
+    np.random.seed(42)
 
     if sys.argv[1].startswith('-'):
         dispatch()
