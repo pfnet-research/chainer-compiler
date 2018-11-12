@@ -38,7 +38,7 @@ void EmitNode(const Node* node, CodeEmitter* ce) {
 
     auto out1 = [&outs, node, ce](const std::string& rhs) {
         CHECK_EQ(1UL, outs.size());
-        *ce << "T " << outs[0] << " = " << rhs << ";  // " << node->op_type() << "\n";
+        *ce << "const T " << outs[0] << " = " << rhs << ";  // " << node->op_type() << "\n";
     };
 
     auto binary = [&ins, out1](char op) {
@@ -114,7 +114,7 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
     ce << "size_t tid = blockIdx.x * blockDim.x + threadIdx.x;\n";
     ce << "if (tid >= n) return;\n";
     for (Value* value : inputs) {
-        ce << "T " << CleanseIdent(value->name()) << " = " << CleanseIdent(value->name(), "i_") << "[tid];  // input\n";
+        ce << "const T " << CleanseIdent(value->name()) << " = " << CleanseIdent(value->name(), "i_") << "[tid];  // input\n";
     }
 
     std::map<Node*, int> input_counts;
