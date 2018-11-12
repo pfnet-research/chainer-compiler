@@ -670,8 +670,7 @@ def gen_gen_xcvm_ops_cc():
                 line += ' << " %s" << %s << "="' % (sigil(typ), name)
                 line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:
-                # TODO(hamaji): Show debug outputs of array lists.
-                pass
+                line += ' << st->GetVarListString(%s)' % name
             else:
                 raise RuntimeError('Unknown output type: %s' % typ)
         line += ' << std::endl;'
