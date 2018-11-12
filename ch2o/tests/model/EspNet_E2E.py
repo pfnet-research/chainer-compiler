@@ -378,11 +378,10 @@ def gen_test():
                            [xs, ilens, ys], backprop=True)
 
 
-def run_csj(bwd=True):
-    (idim, odim, args), (xs, ilens, ys) = csj_recipe()
+def run(recipe, bwd=True, is_gpu=False):
+    (idim, odim, args), (xs, ilens, ys) = recipe
     model = E2E(idim, odim, args, use_chainer=True)
 
-    is_gpu = len(sys.argv) == 3 and sys.argv[2] == '--gpu'
     if is_gpu:
         model.to_gpu()
         xs = chainer.cuda.to_gpu(xs)
@@ -413,28 +412,45 @@ def run_csj(bwd=True):
     print('Average elapsed: %s msec' % (elapsed_total / (iterations - 1)))
 
 
-def gen_csj(bwd=True):
-    sys.argv.pop(1)
-
+def gen(output, recipe, bwd=True):
     from ch2o import test_args
-    test_args.get_test_args().allow_unused_params = True
+    test_args.get_test_args([output, '--allow-unused-params'])
 
-    (idim, odim, args), (xs, ilens, ys) = csj_recipe()
+    (idim, odim, args), (xs, ilens, ys) = recipe
     ch2o.generate_testcase(lambda: E2E(idim, odim, args),
                            [xs, ilens, ys], backprop=bwd)
+
+
+def dispatch():
+    parser = argparse.ArgumentParser(description='EspNet E2E')
+    parser.add_argument('--run', action='store_true')
+    parser.add_argument('--gen', default=None)
+    parser.add_argument('--recipe', default='test', type=str)
+    parser.add_argument('--forward', action='store_true')
+    parser.add_argument('--gpu', action='store_true')
+    args = parser.parse_args()
+
+    recipe = {
+        'test': test_recipe,
+        'csj': csj_recipe,
+    }[args.recipe]()
+
+    backward = not args.forward
+
+    if args.gen:
+        gen(args.gen, recipe, backward)
+    elif args.run:
+        run(recipe, backward, is_gpu=args.gpu)
+    else:
+        raise
 
 
 if __name__ == '__main__':
     import numpy as np
     np.random.seed(43)
 
-    if sys.argv[1] == '--run_csj':
-        run_csj()
-    elif sys.argv[1] == '--run_csj_fwd':
-        run_csj(bwd=False)
-    elif sys.argv[1] == '--gen_csj':
-        gen_csj()
-    elif sys.argv[1] == '--gen_csj_fwd':
-        gen_csj(bwd=False)
+    if sys.argv[1].startswith('-'):
+        dispatch()
     else:
         gen_test()
+

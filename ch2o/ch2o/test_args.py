@@ -4,7 +4,7 @@ import argparse
 _args_cache = None
 
 
-def get_test_args():
+def get_test_args(args=None):
     global _args_cache
     if _args_cache is not None:
         return _args_cache
@@ -19,7 +19,7 @@ def get_test_args():
                         help='Show less messages.')
     parser.add_argument('--allow-unused-params', action='store_true',
                         help='Allow unused parameters.')
-    _args_cache = parser.parse_args()
+    _args_cache = parser.parse_args(args=args)
     return _args_cache
 
 
