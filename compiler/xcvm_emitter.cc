@@ -33,6 +33,10 @@ namespace {
 
 using oniku::runtime::XCProgramProto;
 
+std::vector<int> IntVector(const std::vector<int64_t>& ints) {
+    return std::vector<int>{ints.begin(), ints.end()};
+}
+
 class XCVMEmitter {
 public:
     explicit XCVMEmitter(const Graph& graph) : graph_(graph) {
@@ -139,7 +143,7 @@ private:
         };
 
         auto pads = [&node]() {
-            std::vector<int> pads = node.pads();
+            std::vector<int> pads = IntVector(node.pads());
             if (pads.empty()) {
                 pads = {0, 0};
             } else {
@@ -155,7 +159,7 @@ private:
         };
 
         auto strides = [&node]() {
-            std::vector<int> strides = node.strides();
+            std::vector<int> strides = IntVector(node.strides());
             // TODO(hamaji): Infer strides for non-2D convolutions/pools.
             if (strides.empty()) strides = {1, 1};
             return strides;
@@ -261,7 +265,7 @@ private:
             // TODO(xchainer): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
-            std::vector<int> output_shape = node.output_shape();
+            std::vector<int> output_shape(IntVector(node.output_shape()));
             EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), output_shape);
         } else if (node.op_type() == Node::kOnikuxConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
@@ -340,11 +344,11 @@ private:
         } else if (node.op_type() == Node::kSqueeze) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Squeeze, out(0), in(0), node.axes());
+            EMIT(Squeeze, out(0), in(0), IntVector(node.axes()));
         } else if (node.op_type() == Node::kUnsqueeze) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Unsqueeze, out(0), in(0), node.axes());
+            EMIT(Unsqueeze, out(0), in(0), IntVector(node.axes()));
         } else if (node.op_type() == Node::kMatMul) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -377,29 +381,29 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
-            EMIT(Pad, out(0), in(0), node.pads(), node.value());
+            EMIT(Pad, out(0), in(0), IntVector(node.pads()), node.value());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
-                EMIT(MaxPool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.onikux_cover_all());
+                EMIT(MaxPool, out(0), tmp_id, in(0), IntVector(node.kernel_shape()), strides(), pads(), node.onikux_cover_all());
                 FREE(tmp_id);
             } else {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.outputs()[1]->IsNull());
-                EMIT(MaxPool, out(0), out(2), in(0), node.kernel_shape(), strides(), pads(), node.onikux_cover_all());
+                EMIT(MaxPool, out(0), out(2), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.onikux_cover_all());
             }
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
-                EMIT(AveragePool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+                EMIT(AveragePool, out(0), tmp_id, in(0), IntVector(node.kernel_shape()), strides(), pads(), node.count_include_pad());
                 FREE(tmp_id);
             } else {
                 CHECK_EQ(2UL, node.outputs().size());
-                EMIT(AveragePool, out(0), out(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+                EMIT(AveragePool, out(0), out(1), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.count_include_pad());
             }
         } else if (node.op_type() == Node::kSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
@@ -424,15 +428,15 @@ private:
         } else if (node.op_type() == Node::kReduceMax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceMax, out(0), in(0), node.axes(), node.keepdims());
+            EMIT(ReduceMax, out(0), in(0), IntVector(node.axes()), node.keepdims());
         } else if (node.op_type() == Node::kReduceSum) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
+            EMIT(ReduceSum, out(0), in(0), IntVector(node.axes()), node.keepdims());
         } else if (node.op_type() == Node::kReduceSumSquare) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceSumSquare, out(0), in(0), node.axes(), node.keepdims());
+            EMIT(ReduceSumSquare, out(0), in(0), IntVector(node.axes()), node.keepdims());
         } else if (node.op_type() == Node::kOnikuxReduceSumTo) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -440,7 +444,7 @@ private:
         } else if (node.op_type() == Node::kReduceMean) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
+            EMIT(ReduceMean, out(0), in(0), IntVector(node.axes()), node.keepdims());
         } else if (node.op_type() == Node::kCast) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -452,20 +456,20 @@ private:
                 CHECK_EQ(0UL, node.inputs().size());
             }
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConstantFill, out(0), oin(0), node.dtype(), node.extra_shape(), node.shape(), node.value());
+            EMIT(ConstantFill, out(0), oin(0), node.dtype(), IntVector(node.extra_shape()), IntVector(node.shape()), node.value());
         } else if (node.op_type() == Node::kSlice) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             CHECK_NE(0UL, node.starts().size());
             CHECK_NE(0UL, node.ends().size());
             CHECK_EQ(node.starts().size(), node.ends().size());
-            std::vector<int> axes{node.axes()};
+            std::vector<int> axes(IntVector(node.axes()));
             if (axes.empty()) {
                 for (size_t i = 0; i < node.starts().size(); ++i) axes.push_back(i);
             } else {
                 CHECK_EQ(node.starts().size(), axes.size());
             }
-            EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
+            EMIT(Slice, out(0), in(0), axes, IntVector(node.starts()), IntVector(node.ends()));
         } else if (node.op_type() == Node::kDynamicSlice) {
             EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3));
         } else if (node.op_type() == Node::kGather) {
@@ -481,7 +485,7 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             std::vector<int> outs;
             for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
-            EMIT(Split, outs, in(0), node.axis(), node.split());
+            EMIT(Split, outs, in(0), node.axis(), IntVector(node.split()));
         } else if (node.op_type() == Node::kClip) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -494,7 +498,7 @@ private:
         } else if (node.op_type() == Node::kTranspose) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Transpose, out(0), in(0), node.perm());
+            EMIT(Transpose, out(0), in(0), IntVector(node.perm()));
         } else if (node.op_type() == Node::kOnikuxBatchNormalizationGrad) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(3UL, node.outputs().size());

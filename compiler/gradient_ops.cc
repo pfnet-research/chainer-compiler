@@ -345,7 +345,7 @@ void TransposeGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     Value* gx = gc->GradOp(Node::kTranspose, 0, {gy});
     if (!node->perm().empty()) {
-        std::vector<int> perm(node->perm().size());
+        std::vector<int64_t> perm(node->perm().size());
         for (size_t i = 0; i < node->perm().size(); ++i) {
             perm[node->perm()[i]] = i;
         }
@@ -373,7 +373,7 @@ void ConvGradFn(GradientOpContext* gc) {
 #endif
     gc->GradOp(Node::kOnikuxConvGradWeight, 1, {w, gc->x(0), gy})->producer()->set_strides(node->strides())->set_pads(node->pads());
     if (node->inputs().size() == 3) {
-        std::vector<int> axes{{0}};
+        std::vector<int64_t> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
         for (size_t i = 0; i < node->kernel_shape().size(); ++i) {
             axes.push_back(2 + i);

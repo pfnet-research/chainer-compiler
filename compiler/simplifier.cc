@@ -287,7 +287,7 @@ void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const std:
     CHECK_EQ(1, node->inputs().size()) << name;
     CHECK_LT(0, node->inputs()[0]->type().GetNBytes()) << "The input shape of " << name << " must be known";
     CHECK_LT(2, node->inputs()[0]->type().dims().size()) << "The input of " << name << " must have at least 3 dimensions";
-    std::vector<int> kernel_shape(node->inputs()[0]->type().dims().begin() + 2, node->inputs()[0]->type().dims().end());
+    std::vector<int64_t> kernel_shape(node->inputs()[0]->type().dims().begin() + 2, node->inputs()[0]->type().dims().end());
     GraphBuilder gb(graph, "Simplify" + name, node->outputs()[0]);
     gb.Op(new_op, node->inputs(), node->outputs()[0])->producer()->set_kernel_shape(kernel_shape);
 }
@@ -416,7 +416,7 @@ bool ReplaceConv(Graph* graph, Node* node) {
 }
 
 bool HasImbalancedPad(const Node* node) {
-    const std::vector<int>& pads = node->pads();
+    const std::vector<int64_t>& pads = node->pads();
     CHECK_EQ(pads.size() % 2, 0);
     for (size_t i = 0; i < pads.size() / 2; ++i) {
         if (pads[i] != pads[i + pads.size() / 2]) return true;
@@ -430,7 +430,7 @@ bool ReplaceMaxPool(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyMaxPoolPad", node->outputs()[0]);
 
     Value* padded = gb.Op(Node::kPad, node->inputs());
-    std::vector<int> pads = {0, 0, 0, 0};
+    std::vector<int64_t> pads = {0, 0, 0, 0};
     for (int p : node->pads()) pads.push_back(p);
     padded->producer()->set_pads(pads)->set_value(-std::numeric_limits<float>::infinity());
 
@@ -452,7 +452,7 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyAveragePoolPad", node->outputs()[0]);
 
     Value* padded = gb.Op(Node::kPad, node->inputs());
-    std::vector<int> pads = {0, 0, 0, 0};
+    std::vector<int64_t> pads = {0, 0, 0, 0};
     for (int p : node->pads()) pads.push_back(p);
     padded->producer()->set_pads(pads)->set_value(0);
 

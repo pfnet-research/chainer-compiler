@@ -303,7 +303,7 @@ void ScheduleComputation(
 
     CheckSanity(graph, input_values, output_values, nodes);
 
-    int max_order = 0;
+    int64_t max_order = 0;
     for (const Node* node : graph.nodes()) {
         max_order = std::max(max_order, node->onikux_order());
     }

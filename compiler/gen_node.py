@@ -320,7 +320,7 @@ class AttrDef(object):
             return 'std::vector<%s>' % self.c_type(typ[0])
         return {
             bool: 'bool',
-            int: 'int',
+            int: 'int64_t',
             float: 'float',
             str: 'std::string',
             Dtype: 'Dtype',
@@ -590,7 +590,7 @@ def gen_gen_node_base_cc():
         v->ToONNX(xattr->mutable_g());
     };
 
-    auto add_ints_attr = [&xnode](const std::string& name, const std::vector<int>& ints) {
+    auto add_ints_attr = [&xnode](const std::string& name, const std::vector<int64_t>& ints) {
         if (ints.empty()) return;
         onnx::AttributeProto* xattr = xnode->add_attribute();
         xattr->set_name(name);
