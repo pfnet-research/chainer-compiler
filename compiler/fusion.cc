@@ -54,6 +54,12 @@ void FindInOuts(const std::set<Node*>& nodes, std::vector<Value*>* inputs, std::
 
     for (Value* value : *inputs) temps->erase(value);
     for (Value* value : *outputs) temps->erase(value);
+
+    auto by_name = [](const Value* a, const Value* b) {
+        return a->name() < b->name();
+    };
+    std::sort(inputs->begin(), inputs->end(), by_name);
+    std::sort(outputs->begin(), outputs->end(), by_name);
 }
 
 void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_group_id) {
