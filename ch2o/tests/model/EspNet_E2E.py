@@ -372,7 +372,7 @@ def cpu_bench_recipe():
     eprojs = 4
     eunits = 4
 
-    ilen = 100
+    ilen = 10
     olen = 40
     idim = 5
     odim = 5
