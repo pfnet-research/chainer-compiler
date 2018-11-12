@@ -13,18 +13,18 @@ void ChromeTracingEmitter::AddEvent(Event* event) {
     events_.emplace_back(event);
 }
 
-ChromeTracingEmitter::Event::Event(const std::string& c, const std::string& n)
-    : category(c), name(n), start_time(std::chrono::system_clock::now()) {
+ChromeTracingEmitter::Event::Event(const std::string& c, const std::string& n, int p)
+    : category(c), name(n), pc(p), start_time(std::chrono::system_clock::now()) {
 }
 
 void ChromeTracingEmitter::Event::Finish() {
     end_time = std::chrono::system_clock::now();
 }
 
-ChromeTracingEmitter::ScopedEvent::ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name)
+ChromeTracingEmitter::ScopedEvent::ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name, int pc)
     : event_(nullptr) {
     if (chrome_tracing) {
-        event_ = new ChromeTracingEmitter::Event(category, name);
+        event_ = new ChromeTracingEmitter::Event(category, name, pc);
         chrome_tracing->AddEvent(event_);
     }
 }
@@ -54,6 +54,9 @@ void ChromeTracingEmitter::Emit(const std::string& output_filename) const {
         ofs << "\"dur\":" << dur << ",";
         ofs << "\"tid\":1,";
         ofs << "\"pid\":1,";
+        if (event->pc >= 0) {
+            ofs << "\"args\":{\"pc\":" << event->pc << "},";
+        }
         ofs << "\"ph\":\"X\"";
         ofs << "}";
     }

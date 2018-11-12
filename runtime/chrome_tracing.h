@@ -11,17 +11,18 @@ namespace runtime {
 class ChromeTracingEmitter {
 public:
     struct Event {
-        Event(const std::string& c, const std::string& n);
+        Event(const std::string& c, const std::string& n, int p);
         void Finish();
         std::string category;
         std::string name;
+        int pc;
         std::chrono::system_clock::time_point start_time;
         std::chrono::system_clock::time_point end_time;
     };
 
     class ScopedEvent {
     public:
-        explicit ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name);
+        explicit ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name, int pc=-1);
         ~ScopedEvent();
 
     private:

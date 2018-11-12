@@ -50,7 +50,7 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
         XCVMOp* op = program_[pc].get();
 
         {
-            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name());
+            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name(), pc);
 #ifdef ONIKU_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
