@@ -306,7 +306,9 @@ XC_OPS = [
     ('JmpTrue', [Array('cond'), Int('pc')], []),
     ('JmpFalse', [Array('cond'), Int('pc')], []),
 
-    ('ElementWiseNvrtc', [ArrayList('inputs'), String('nvrtc')],
+    ('ElementWiseNvrtc',
+     [ArrayList('inputs'), Int('num_outputs'),
+      String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
 ]
 

@@ -733,7 +733,7 @@ private:
             for (Value* value : node.outputs()) {
                 outputs.push_back(GetValueId(value));
             }
-            EMIT(ElementWiseNvrtc, outputs, inputs, nvrtc);
+            EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.onikux_fusion_group());
             return;
         }
 
