@@ -109,6 +109,7 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_gr
     Node* fused = gb.MOp(Node::kOnikuxFusionGroup, inputs, outputs);
     graph->MigrateNodes({nodes.begin(), nodes.end()}, {temps.begin(), temps.end()}, subgraph);
     fused->set_subgraph(subgraph);
+    fused->set_onikux_fusion_group(fusion_group_id);
 }
 
 }  // namespace
