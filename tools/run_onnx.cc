@@ -32,6 +32,7 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 #include <compiler/xcvm_emitter.h>
+#include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
@@ -192,6 +193,7 @@ void RunMain(int argc, char** argv) {
     g_modify_pool_with_imbalanced_pads = true;
 
     cmdline::parser args;
+    args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
@@ -323,6 +325,9 @@ void RunMain(int argc, char** argv) {
     xcvm_opts.check_infs = args.exist("check_infs");
     xcvm_opts.dump_memory_usage = args.exist("trace");
     xcvm_opts.base_memory_usage = initial_free_bytes;
+    if (!args.get<std::string>("chrome_tracing").empty()) {
+        xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
+    }
 
     double elapsed_total = 0;
     int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
@@ -473,6 +478,10 @@ void RunMain(int argc, char** argv) {
     if (iterations > 1) {
         // The first iteration is for warm up.
         std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
+    }
+
+    if (xcvm_opts.chrome_tracing) {
+        xcvm_opts.chrome_tracing->Emit(args.get<std::string>("chrome_tracing"));
     }
 }
 
