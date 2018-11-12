@@ -1,3 +1,5 @@
+#include <map>
+
 #if ONIKU_ENABLE_NVRTC
 #include <cuda.h>
 #include <nvrtc.h>
@@ -35,6 +37,10 @@ void check_cuda(CUresult status, const char* msg, int lineno) {
 #define CHECK_CUDA(expr) check_cuda(expr, #expr, __LINE__)
 
 char* Compile(const std::string& name, const std::string& code) {
+    static std::map<const std::string, char*> cache;
+    auto found = cache.find(code);
+    if (found != cache.end()) return found->second;
+
     nvrtcProgram prog;
     CHECK_NVRTC(nvrtcCreateProgram(&prog,
                                    code.c_str(),
@@ -58,6 +64,8 @@ char* Compile(const std::string& name, const std::string& code) {
     char* ptx = new char[ptxSize];
     CHECK_NVRTC(nvrtcGetPTX(prog, ptx));
     delete[] log;
+
+    CHECK(cache.emplace(code, ptx).second);
     return ptx;
 }
 
