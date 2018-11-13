@@ -5,8 +5,7 @@
 import chainer
 import numpy as np
 
-from onnx import helper
-from onnx import numpy_helper
+import onnx
 
 from chainer import functions as F
 from chainer import links as L
@@ -27,7 +26,7 @@ def convert_parameter(parameter, name):
     if array.shape == ():
         array = array[None]
     # print('initialize', name, array)
-    return numpy_helper.from_array(array, name)
+    return onnx.numpy_helper.from_array(array, name)
 
 # 入力xから次元を決める
 # モデルにxを流して最初の重みを決める
@@ -63,19 +62,23 @@ import code
 
 
 def edit_onnx_protobuf(onnxmod, chainermod):
-    # code.InteractiveConsole({'ch': chainermod}).interact()
-
     initializers = collect_inits(chainermod, '')
-    # print(initializers)
-    needparams = list(map(lambda x: x.name, onnxmod.graph.input))
-    initializers = list(filter(lambda x: x[0] in needparams, initializers))
-    # 真にあるものだけ初期化する
 
-    # code.InteractiveConsole({'ins': initializers, 'onm': onnxmod}).interact()
-    tis = list(map(lambda nav: convert_parameter(
-        nav[1], nav[0]), initializers))
-    dummygraph = helper.make_graph(
-        [], "hoge", [], [], initializer=tis)
+    onnx_initializers = []
+    for name, param in initializers:
+        found = False
+        for input in onnxmod.graph.input:
+            if input.name == name:
+                onnx_initializers.append(convert_parameter(param, name))
+                vi = onnx.helper.make_tensor_value_info(
+                    'dummy', onnx.TensorProto.FLOAT, param.shape)
+                input.type.CopyFrom(vi.type)
+                found = True
+                break
+        assert found, name
+
+    dummygraph = onnx.helper.make_graph(
+        [], "hoge", [], [], initializer=onnx_initializers)
     dummygraph.ClearField("name")
     # print(dummygraph)
     onnxmod.graph.MergeFrom(dummygraph)
