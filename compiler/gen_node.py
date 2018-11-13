@@ -87,6 +87,7 @@ NodeDef('ConstantLike', (0, 1), 1,
 NodeDef('ConstantFill', (0, 1), 1,
         dtype=Dtype, extra_shape=[int], input_as_shape=int,
         shape=[int], value=0.0)
+NodeDef('OneHot', 3, 1, axis=-1)
 NodeDef('Cast', 1, 1, to=Required(Dtype))
 NodeDef('Shape', 1, 1)
 NodeDef('Size', 1, 1)

@@ -301,6 +301,9 @@ XC_OPS = [
      [OptionalArray('input'), Int('dtype'), Ints('extra_shape'),
       Ints('shape'), Float('value')],
      ['output']),
+    ('OneHot',
+     [Array('indices'), Array('depth'), Array('values'), Int('axis')],
+     ['output']),
 
     ('Jmp', [Int('pc')], []),
     ('JmpTrue', [Array('cond'), Int('pc')], []),

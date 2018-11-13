@@ -449,6 +449,8 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Cast, out(0), in(0), node.to());
+        } else if (node.op_type() == Node::kOneHot) {
+            EMIT(OneHot, out(0), in(0), in(1), in(2), node.axis());
         } else if (node.op_type() == Node::kConstantFill) {
             if (node.input_as_shape()) {
                 CHECK_EQ(1UL, node.inputs().size());

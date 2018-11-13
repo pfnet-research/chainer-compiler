@@ -159,6 +159,11 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kOneHot: {
+            set(0, in2);
+            break;
+        }
+
         case Node::kReshape:
         case Node::kExpand:
         case Node::kOnikuxReduceSumTo: {

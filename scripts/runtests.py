@@ -111,6 +111,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_constantlike_ones_with_input'),
     TestCase(NODE_TEST, 'test_constantlike_threes_with_shape_and_dtype'),
     TestCase(NODE_TEST, 'test_constantlike_zeros_without_input_dtype'),
+    TestCase(NODE_TEST, 'test_onehot_with_axis'),
+    TestCase(NODE_TEST, 'test_onehot_without_axis'),
 
     # TODO(xchainer): Support float16?
     TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),
