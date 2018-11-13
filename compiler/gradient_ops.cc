@@ -357,20 +357,22 @@ void ConvGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     Value* gy = gc->gy(0);
     Value* w = gc->x(1);
-    // TODO(hamaji): Revisit how we handle shapes.
-#if 0
-    gc->GradOp(Node::kConvTranspose, 0, {gy, w})->producer()
-        ->set_strides(node->strides())->set_pads(node->pads());
-#else
     {
         GraphBuilder gb{gc->builder(0)};
-        Value* x_shape = gb.Op(Node::kShape, {gc->x(0)});
-        gc->GradOp(Node::kOnikuxConvTransposeWithDynamicOutputShape, 0, {gy, w, x_shape})
+        Value* x = gc->x(0);
+        if (x->type().is_known() && x->type().dims().size() > 2) {
+            gc->GradOp(Node::kConvTranspose, 0, {gy, w})->producer()
+                ->set_strides(node->strides())
+                ->set_pads(node->pads())
+                ->set_output_shape({x->type().dims().begin() + 2, x->type().dims().end()});
+        } else {
+            Value* x_shape = gb.Op(Node::kShape, {gc->x(0)});
+            gc->GradOp(Node::kOnikuxConvTransposeWithDynamicOutputShape, 0, {gy, w, x_shape})
                 ->producer()
                 ->set_strides(node->strides())
                 ->set_pads(node->pads());
+        }
     }
-#endif
     gc->GradOp(Node::kOnikuxConvGradWeight, 1, {w, gc->x(0), gy})->producer()->set_strides(node->strides())->set_pads(node->pads());
     if (node->inputs().size() == 3) {
         std::vector<int64_t> axes{{0}};
