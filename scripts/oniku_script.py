@@ -88,6 +88,9 @@ def _validate_inout(value):
 
 
 class GraphBuilder(object):
+    # Shared among GraphBuilder instances so value names will be unique.
+    ids = collections.defaultdict(int)
+
     def __init__(self, graph_name):
         self.graph_name = graph_name
         self.nodes = []
@@ -95,7 +98,7 @@ class GraphBuilder(object):
         self.params = []
         self.outputs = []
         self.gradients = []
-        self.ids = collections.defaultdict(int)
+        self.ids = GraphBuilder.ids
 
     def __getattr__(self, name):
         if not name[0].isupper():
