@@ -1,13 +1,13 @@
 #include <map>
 
+#include <chainerx/array.h>
+#include <chainerx/routines/creation.h>
+
 #if ONIKU_ENABLE_NVRTC
 #include <cuda.h>
 #include <nvrtc.h>
-#endif
-
-#include <chainerx/array.h>
 #include <chainerx/cuda/cuda_device.h>
-#include <chainerx/routines/creation.h>
+#endif
 
 #include <common/log.h>
 #include <common/strutil.h>
