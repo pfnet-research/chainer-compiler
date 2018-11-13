@@ -228,6 +228,8 @@ foreach(
     MLP_with_loss
     MyLSTM
     StatelessLSTM
+
+    Resnet_with_loss  # Will not be tested by runtests.py, though.
     )
 
   gen_ch2o_test(model ${ch2o_test} "${ONIKU_TEST_ALL}")
@@ -238,7 +240,6 @@ foreach(
     ch2o_test
     Alex_with_loss
     GoogleNet_with_loss
-    Resnet_with_loss
     )
 
   gen_ch2o_test(model ${ch2o_test} "")
