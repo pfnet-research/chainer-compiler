@@ -13,9 +13,11 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
     SimulatedMemoryUsage usage{};
     int64_t mem = 0;
 
-    auto alloc = [&usage, &mem](int64_t increase) {
+    auto alloc = [&usage, &mem](const Value* value) {
+        const int64_t increase = value->GetNBytes();
         usage.num_values++;
         if (increase < 0) {
+            // std::cerr << "Unknown: " << value->name() << std::endl;
             usage.num_unknowns++;
             return;
         }
@@ -33,7 +35,7 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
                 // We assume parameters will never be freed.
                 nu++;
             }
-            alloc(bytes);
+            alloc(value);
         }
         CHECK(num_users.emplace(value, nu).second);
     }
@@ -41,7 +43,7 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
     std::vector<const Node*> nodes(graph.GetComputationSequence());
     for (const Node* node : nodes) {
         for (const Value* value : node->outputs()) {
-            alloc(value->GetNBytes());
+            alloc(value);
         }
         for (const Value* value : node->inputs()) {
             auto found = num_users.find(value);
