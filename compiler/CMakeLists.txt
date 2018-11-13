@@ -63,6 +63,7 @@ target_link_libraries(compiler_test
   oniku_compiler
   oniku_runtime
   oniku_common
+  onnx
   onnx_proto
   protobuf
   gtest

@@ -9,8 +9,6 @@ include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/
 
 include_directories(${CUDA_INCLUDE_DIRS})
 
-add_definitions(-DONNX_NAMESPACE=onnx)
-
 add_library(oniku_tools
   compiler_flags.cc
   util.cc

@@ -1,15 +1,21 @@
 #include <string>
 
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 
 #include <gtest/gtest.h>
 
+#include <onnx/onnx_pb.h>
+#include <onnx/shape_inference/implementation.h>
+
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <compiler/graph.h>
+#include <compiler/memory_simulator.h>
 #include <compiler/model.h>
+#include <compiler/passes.h>
 
 namespace oniku {
 namespace {
@@ -114,6 +120,32 @@ TEST(ModelTest, LoadResNet50) {
     EXPECT_EQ(1UL, graph.output_values().size());
     EXPECT_EQ(175UL, graph.temp_values().size());
     EXPECT_EQ(176UL, graph.nodes().size());
+}
+
+TEST(ModelTest, CompileCH2OResNet50) {
+    std::string path = "out/ch2o_model_Resnet_with_loss/model.onnx";
+    onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
+    onnx::shape_inference::InferShapes(xmodel);
+    Model model(xmodel);
+    RunDefaultPasses(&model, true);
+
+    std::set<Node::OpType> ops;
+    for (Node* node : model.graph().nodes()) {
+        ops.insert(node->op_type());
+    }
+    EXPECT_TRUE(ops.count(Node::kConv));
+    // Gradients are generated.
+    EXPECT_TRUE(ops.count(Node::kConvTranspose));
+    // No dynamic ConvTranspose.
+    EXPECT_FALSE(ops.count(Node::kOnikuxConvTransposeWithDynamicOutputShape));
+
+    // Check if shape inference is working by simulating memory usage.
+    SimulatedMemoryUsage usage = SimulateMemoryUsage(model.graph());
+    EXPECT_LT(100 * 1000 * 1000, usage.param);
+    EXPECT_GT(110 * 1000 * 1000, usage.param);
+    // Followings could require some tweaks after some optimizations.
+    EXPECT_LT(200 * 1000 * 1000, usage.peak);
+    EXPECT_LT(500 * 1000 * 1000, usage.all);
 }
 
 }  // namespace
