@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.4)
 
 execute_process(COMMAND git submodule update --init)
 
+SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+
 if(DEFINED ENV{ONIKU_BUILD_CUDA})
     set(DEFAULT_ONIKU_BUILD_CUDA $ENV{ONIKU_BUILD_CUDA})
 else()
@@ -79,6 +81,8 @@ if(${ONIKU_BUILD_CUDA})
 
     if(${ONIKU_ENABLE_CUDNN})
       add_definitions(-DONIKU_ENABLE_CUDNN=1)
+      find_package(CuDNN 7 REQUIRED)
+      include_directories(${CUDNN_INCLUDE_DIRS})
       link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
       set(ONIKU_CUDA_LIBRARIES ${ONIKU_CUDA_LIBRARIES} cudnn)
     endif()
