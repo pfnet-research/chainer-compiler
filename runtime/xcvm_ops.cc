@@ -592,7 +592,7 @@ chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
 
 chainerx::Array OneHotOp::RunImpl(XCVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
     int rank = indices.ndim();
-    chainerx::Array depth_range = chainerx::Arange(chainerx::AsScalar(depth));
+    chainerx::Array depth_range = chainerx::Arange(chainerx::AsScalar(depth), indices.device());
     int axis = this->axis;
     if (axis < 0) axis += rank + 1;
 
