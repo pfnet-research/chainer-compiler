@@ -8,6 +8,7 @@
 #include <common/log.h>
 #include <runtime/backward_context.h>
 #include <runtime/gen_xcvm_ops.h>
+#include <runtime/ops/cudnn_rnn.h>
 #include <runtime/xchainer.h>
 
 namespace oniku {
@@ -225,6 +226,18 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
         const nonstd::optional<chainerx::Array>& initial_h,
         const nonstd::optional<chainerx::Array>& initial_c,
         const nonstd::optional<chainerx::Array>& p) {
+#if ONIKU_ENABLE_CUDNN
+    // TODO(hamaji): Handle more cases.
+    if ((direction == 0 || direction == 2) &&
+        b.has_value() &&
+        !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> result;
+        if (CudnnLSTM(x, w, r, b, sequence_lens, initial_h, initial_c, p, hidden_size, direction, &result)) {
+            return result;
+        }
+    }
+#endif  // ONIKU_ENABLE_CUDNN
+
     std::vector<chainerx::Array> xs = {x, w, r};
     if (b.has_value()) xs.push_back(*b);
     std::unique_ptr<BackwardContext> bwd(new BackwardContext("LSTM", xs));
@@ -335,10 +348,18 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> L
         XCVMState* st,
         const chainerx::Array& gy,
         const XCVMOpaque& ctx) {
+#if ONIKU_ENABLE_CUDNN
+    {
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> result;
+        if (CudnnLSTMGrad(gy, ctx, &result)) return result;
+    }
+#endif
+
     auto& context = dynamic_cast<const BackwardContext&>(ctx);
     chainerx::ForceBackpropModeScope bp_scope{context.backprop_id()};
     std::vector<chainerx::Array> gxs{context.Backward({gy})};
     CHECK_EQ(4UL, gxs.size());
+
     return std::make_tuple(gxs[0], gxs[1], gxs[2], gxs[3]);
 }
 

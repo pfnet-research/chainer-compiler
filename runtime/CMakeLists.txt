@@ -28,6 +28,7 @@ add_library(oniku_runtime
   chrome_tracing.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   meminfo.cc
+  ops/cudnn_rnn.cc
   ops/generic.cc
   ops/normalization.cc
   ops/nvrtc.cc
