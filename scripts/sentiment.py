@@ -139,11 +139,13 @@ def gen_rnn_sentiment_test(cell_type,
             rnn_outputs_v, h = gb.LSTM(
                 [x, weight_w_v, weight_r_v, bias_v, lengths_v],
                 outputs=['rnn_outputs', 'last_state'],
+                hidden_size=num_hidden,
                 direction=direction)
         elif cell_type in ['GRU', 'BiGRU']:
             rnn_outputs_v, h = gb.GRU(
                 [x, weight_w_v, weight_r_v, bias_v, lengths_v],
                 outputs=['rnn_outputs', 'last_state'],
+                hidden_size=num_hidden,
                 direction=direction)
         shape_v = gb.const(shape)
         h = gb.Reshape([h, shape_v])
