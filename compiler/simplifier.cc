@@ -499,6 +499,20 @@ bool ReplaceConstantLike(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSelectItem(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySelectItem", node->outputs()[0]);
+    Value* x = node->inputs()[0];
+    Value* values = gb.Const(Type(x->type().dtype(), {2}), {0.0, 1.0});
+    Value* shape = gb.Op(Node::kShape, {x});
+    Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
+    Value* num_classes = gb.Op(Node::kGather, {shape, one});
+    Value* one_hot = gb.Op(Node::kOneHot, {node->inputs()[1], num_classes, values});
+    Value* filtered = gb.Op(Node::kMul, {x, one_hot});
+    gb.Op(Node::kReduceSum, {filtered}, node->outputs()[0])
+        ->producer()->set_axes({1})->set_keepdims(false);
+    return true;
+}
+
 }  // namespace
 
 void Simplify(Graph* graph, bool gen_backprop) {
@@ -522,6 +536,11 @@ void Simplify(Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
     CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
+
+    bool is_for_ngraph = false;
+    if (is_for_ngraph) {
+        CHECK(simplifiers.emplace(Node::kOnikuxSelectItem, ReplaceSelectItem).second);
+    }
 
     // These passes are workarounds for backends such as Chainer which
     // do not support pooling with imbalanced padding.
