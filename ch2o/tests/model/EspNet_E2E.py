@@ -360,6 +360,98 @@ def csj_recipe():
     return (idim, odim, args), (xs, ilens, ys)
 
 
+def csj_small_recipe():
+    aconv_chans = 10
+    aconv_filts = 100
+    att_dim = 320
+    batch_size = 32
+    dlayers = 2
+    dunits = 1024
+    elayers = 4
+    eprojs = 320
+    eunits = 1024
+
+    ilen = 30
+    olen = 10
+    idim = 65
+    odim = 70
+
+    args = Args({
+        'aconv_chans': aconv_chans,
+        'aconv_filts': aconv_filts,
+        'adim': att_dim,
+        #'atype': 'dot',
+        'atype': 'location',
+        'char_list': None,
+        'ctc_type': None,
+        'dlayers': dlayers,
+        'dropout_rate': 0,
+        'dunits': dunits,
+        'elayers': elayers,
+        'eprojs': eprojs,
+        'etype': 'vggblstm',
+        'eunits': eunits,
+        'lsm_type': None,
+        'lsm_weight': None,
+        'mtlalpha': 0,
+        'outdir': None,
+        'sampling_probability': None,
+        'subsample': None,
+        'train_json': None,
+        'verbose': False,
+    })
+
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
+
+    return (idim, odim, args), (xs, ilens, ys)
+
+
+def csj_medium_recipe():
+    aconv_chans = 10
+    aconv_filts = 100
+    att_dim = 320
+    batch_size = 32
+    dlayers = 2
+    dunits = 1024
+    elayers = 4
+    eprojs = 320
+    eunits = 1024
+
+    ilen = 30
+    olen = 10
+    idim = 100
+    odim = 100
+
+    args = Args({
+        'aconv_chans': aconv_chans,
+        'aconv_filts': aconv_filts,
+        'adim': att_dim,
+        #'atype': 'dot',
+        'atype': 'location',
+        'char_list': None,
+        'ctc_type': None,
+        'dlayers': dlayers,
+        'dropout_rate': 0,
+        'dunits': dunits,
+        'elayers': elayers,
+        'eprojs': eprojs,
+        'etype': 'vggblstm',
+        'eunits': eunits,
+        'lsm_type': None,
+        'lsm_weight': None,
+        'mtlalpha': 0,
+        'outdir': None,
+        'sampling_probability': None,
+        'subsample': None,
+        'train_json': None,
+        'verbose': False,
+    })
+
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
+
+    return (idim, odim, args), (xs, ilens, ys)
+
+
 def cpu_bench_recipe():
     # An extremely
     aconv_chans = 4
@@ -480,6 +572,8 @@ def dispatch():
     recipe = {
         'test': test_recipe,
         'csj': csj_recipe,
+        'csj_small': csj_small_recipe,
+        'csj_medium': csj_medium_recipe,
         'cpu_bench': cpu_bench_recipe,
     }[args.recipe]()
 
