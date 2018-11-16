@@ -61,6 +61,7 @@ def gen_rnn_sentiment_test(cell_type,
             labels, lengths = _gen_random_sequence(
                 batch_size, sequence_length, num_vocabs)
             targets = np.random.randint(2, size=batch_size)
+        labels = labels.astype(np.int32)
 
         embed = param_initializer(
             size=(num_vocabs, embed_size)).astype(np.float32)
