@@ -99,12 +99,6 @@ def get():
                 if substr in test_name:
                     kwargs['skip_shape_inference'] = True
                     break
-            if test_name == 'ch2o_node_LRN':
-                kwargs['rtol'] = 1e-3
-            if test_name == 'ch2o_syntax_MultiFunction':
-                kwargs['rtol'] = 1e-3
-            if test_name == 'ch2o_model_EspNet_VGG2L':
-                kwargs['rtol'] = 1e-3
 
             test_dirs = glob.glob('out/%s' % test_name)
             test_dirs += glob.glob('out/%s_*' % test_name)
