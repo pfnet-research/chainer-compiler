@@ -7,6 +7,7 @@
 
 #include <chainerx/array.h>
 
+#include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/xcvm_emitter.h>
@@ -47,6 +48,7 @@ void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, s
     runtime::XCProgramProto program;
     std::vector<int> output_ids;
     xcvm::Emit(nodes, fetches, &program, &output_ids);
+    // LOG() << "Evaluate " << program.DebugString();
 
     runtime::XCVM xcvm(program);
     runtime::XCVMState state(runtime::XCVMOptions{}, xcvm.num_variables(), {});

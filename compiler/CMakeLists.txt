@@ -19,6 +19,7 @@ include_directories(${ONIKU_ROOT_DIR})
 include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/compiler`
 add_library(oniku_compiler
   code_emitter.cc
+  constant_propagation.cc
   dtype.cc
   dtype_inference.cc
   evaluator.cc

@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 
+#include <compiler/constant_propagation.h>
 #include <compiler/flags.h>
 #include <compiler/fusion.h>
 #include <compiler/gradient.h>
@@ -128,6 +129,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     if (g_dump_subgraphs) {
         graph->DumpSubGraphs();
     }
+
+    Recursively(PropagateConstant, graph);
 
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
