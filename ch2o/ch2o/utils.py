@@ -140,7 +140,7 @@ def totensor(x, env, dtype=None):
             value=onnx.helper.make_tensor(
                 name="hoge",
                 data_type=dt,
-                dims=[],
+                dims=x.shape,
                 vals=[x],
             )
         )

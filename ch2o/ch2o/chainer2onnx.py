@@ -867,15 +867,14 @@ def eval_subscript(nast, env):
 
             def f(x, v):
                 if x is None:
-                    return Value(v).to_tensor(env)
+                    return Value(np.array([v])).to_tensor(env)
                 x = eval_ast(x, env)
-                if istensor(x):
-                    return x
+                if x.is_tensor():
+                    return unsqueeze(x.value)
                 else:
-                    return x.to_tensor(env)
-            lower = unsqueeze(f(self.lower, 0))
-            # TODO(satos)　その場しのぎっぽいのでどうにかする(けどこれどうにもならないですよね...?)
-            upper = unsqueeze(f(self.upper, int_max))
+                    return Value(np.array([x.value])).to_tensor(env)
+            lower = f(self.lower, 0)
+            upper = f(self.upper, int_max)
             squeeze = [False]
         elif isinstance(self, gast.Index):
             idx = eval_ast(self.value, env)
@@ -893,9 +892,9 @@ def eval_subscript(nast, env):
                 upper = unsqueeze(upper)
                 squeeze = [True]
             else:
-                lower = unsqueeze(totensor(idx.value, env))
+                lower = totensor(np.array([idx.value]), env)
                 upper_value = idx.value + 1 if idx.value != -1 else int_max
-                upper = unsqueeze(totensor(upper_value, env))
+                upper = totensor(np.array([upper_value]), env)
                 squeeze = [True]
         elif isinstance(self, gast.ExtSlice):
             ds = list(map(slice2list, self.dims))
