@@ -331,6 +331,7 @@ void InferDtype(Node* node) {
         case Node::kOnikuxSequenceLookupGrad:
         case Node::kOnikuxSequenceStack:
         case Node::kOnikuxSequenceConcat:
+        case Node::kOnikuxSequenceSplitAxis:
         case Node::kOnikuxSequenceConcatGrad:
         case Node::kOnikuxSequenceSeparate:
         case Node::kOnikuxSequenceUnpad:

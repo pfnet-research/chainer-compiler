@@ -125,6 +125,21 @@ std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st
     return std::tie(out, ctx);
 }
 
+void SequenceSplitAxisOp::RunImpl(XCVMState* st, const chainerx::Array& seq, const chainerx::Array& indices_or_sections, XCVMSequence* output) {
+    if (indices_or_sections.ndim() == 0) {
+        CHECK(false) << "Not implemented yet";
+    } else {
+        CHECK_EQ(1, indices_or_sections.ndim());
+        std::vector<int64_t> indices;
+        for (int i = 0; i < indices_or_sections.shape()[0]; ++i) {
+            indices.push_back(static_cast<int64_t>(chainerx::AsScalar(indices_or_sections.At({i}))));
+        }
+        for (const chainerx::Array& a : chainerx::Split(seq, indices, axis)) {
+            output->emplace_back(a);
+        }
+    }
+}
+
 void SequenceConcatGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx, XCVMSequence* gx) {
     auto& context = dynamic_cast<const ConcatBackwardContext&>(ctx);
     for (const chainerx::Array& a : SplitByLengths(gy, axis, context.split())) {

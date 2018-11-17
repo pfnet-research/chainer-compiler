@@ -234,10 +234,13 @@ NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
 # The second output is for backward context.
 NodeDef('OnikuxSequenceConcat', 1, (1, 2), axis=0)
 
+# Splits a tensor to a sequence (like F.split_axis): (T, I) -> ([T])
+NodeDef('OnikuxSequenceSplitAxis', 2, 1, axis=0)
+
 # Pads elements in a sequence: ([T]) -> (T)
 NodeDef('OnikuxSequencePad', 1, 1, length=0, value=0.0)
 
-# Splits a tensor to a sequence: (T) -> ([T])
+# Splits a tensor to a sequence (like F.separate): (T) -> ([T])
 NodeDef('OnikuxSequenceSeparate', 1, 1, axis=0)
 
 # Strips paddings in a tensor and returns a sequence: (T, [I]) -> ([T])

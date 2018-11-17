@@ -590,6 +590,8 @@ private:
             } else {
                 EMIT(SequenceConcat, out(0), out(1), in(0), node.axis());
             }
+        } else if (node.op_type() == Node::kOnikuxSequenceSplitAxis) {
+            EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceConcatGrad) {
             EMIT(SequenceConcatGrad, out(0), in(0), in(1), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceSeparate) {
