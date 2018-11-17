@@ -25,6 +25,7 @@ target_link_libraries(feeder_test
   gtest_main
   pthread
   ${OpenCV_LIBS}
+  ${ONIKU_CUDA_LIBRARIES}
   )
 
 add_test(
