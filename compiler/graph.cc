@@ -248,7 +248,7 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         q.push(value->producer());
     }
     for (Node* node : nodes_) {
-        if (node->op_type() == Node::kOnikuxBackpropStackPush)
+        if (node->op_type() == Node::kOnikuxBackpropStackPush && !node->detached())
             q.push(node);
     }
 
