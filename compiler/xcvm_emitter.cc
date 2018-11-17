@@ -77,6 +77,12 @@ public:
         }
     }
 
+    int GetValueId(const Value* v) const {
+        auto found = value_ids_.find(v);
+        CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
+        return found->second;
+    }
+
 private:
     void AssignValueIds(const Graph& graph) {
         for (const Value* v : graph.input_values()) {
@@ -88,12 +94,6 @@ private:
         for (const Value* v : graph.output_values()) {
             CHECK(value_ids_.emplace(v, next_value_id_++).second);
         }
-    }
-
-    int GetValueId(const Value* v) const {
-        auto found = value_ids_.find(v);
-        CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
-        return found->second;
     }
 
     int GetStackId(int i) const {
@@ -1097,7 +1097,7 @@ void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
     CHECK(program.SerializeToOstream(&out));
 }
 
-void Emit(const std::vector<Node*>& nodes, runtime::XCProgramProto* program) {
+void Emit(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, runtime::XCProgramProto* program, std::vector<int>* output_ids) {
     XCVMEmitter emitter;
     std::set<Value*> values;
     for (Node* node : nodes) {
@@ -1105,6 +1105,7 @@ void Emit(const std::vector<Node*>& nodes, runtime::XCProgramProto* program) {
         for (Value* value : node->outputs()) values.insert(value);
     }
     emitter.AssignValueIds(values);
+    for (Value* v : fetches) output_ids->push_back(emitter.GetValueId(v));
     emitter.EmitNodes(nodes, program);
 }
 

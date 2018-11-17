@@ -65,12 +65,14 @@ target_link_libraries(compiler_test
   oniku_compiler
   oniku_runtime
   oniku_common
+  chainerx
   onnx
   onnx_proto
   protobuf
   gtest
   gtest_main
   pthread
+  ${ONIKU_CUDA_LIBRARIES}
   )
 
 add_test(
