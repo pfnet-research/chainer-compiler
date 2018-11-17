@@ -13,6 +13,7 @@ namespace runtime {
 
 class ChromeTracingEmitter;
 class XCVMOp;
+class XCVMState;
 class XCVMVar;
 
 typedef std::map<std::string, std::shared_ptr<XCVMVar>> InOuts;
@@ -42,6 +43,7 @@ public:
     ~XCVM();
 
     InOuts Run(const InOuts& program_inputs, const XCVMOptions& options);
+    void Run(XCVMState* state);
 
 private:
     std::vector<std::unique_ptr<XCVMOp>> program_;

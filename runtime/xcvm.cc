@@ -40,11 +40,17 @@ XCVM::~XCVM() {
 }
 
 InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
-    XCVMState state(options, num_variables_, std::move(program_inputs));
+    XCVMState state(options, num_variables_, program_inputs);
+    Run(&state);
+    return state.GetOutputs();
+}
+
+void XCVM::Run(XCVMState* state) {
+    const XCVMOptions& options = state->options();
     int64_t peak_usage = 0;
 
     while (true) {
-        int pc = state.pc();
+        int pc = state->pc();
         if (pc >= program_.size()) break;
 
         XCVMOp* op = program_[pc].get();
@@ -54,13 +60,13 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
 #ifdef ONIKU_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
-            op->Run(&state);
+            op->Run(state);
 #ifdef ONIKU_ENABLE_NVTX
             nvtxRangePop();
 #endif
         }
 
-        state.set_pc(state.pc() + 1);
+        state->set_pc(state->pc() + 1);
 
         if (options.dump_memory_usage && options.base_memory_usage >= 0) {
             int64_t bytes = options.base_memory_usage - GetMemoryUsageInBytes();
@@ -71,11 +77,9 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
     }
 
     if (options.dump_memory_usage) {
-        state.ShowVariableStatus();
+        state->ShowVariableStatus();
         std::cerr << "Peak memory usage: " << peak_usage << "MB" << std::endl;
     }
-
-    return state.GetOutputs();
 }
 
 }  // namespace runtime
