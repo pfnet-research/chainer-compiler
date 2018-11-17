@@ -542,6 +542,8 @@ private:
             EMIT(SequencePop, out(0), id);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
+        } else if (node.op_type() == Node::kOnikuxSequenceConstants) {
+            EmitConstantSequence(node, prog);
         } else if (node.op_type() == Node::kOnikuxPrint) {
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
@@ -615,10 +617,7 @@ private:
         }
     }
 
-    void EmitConstant(const Node& node, XCProgramProto* prog) {
-        CHECK_EQ(1, node.outputs().size());
-        int out = GetValueId(node.outputs()[0]);
-        Tensor* value = node.tensor_value().get();
+    void EmitConstantImpl(const Node& node, const Tensor* value, int out, bool host, XCProgramProto* prog) {
         Dtype dtype = value->dtype();
         std::vector<int> shape;
         for (int64_t d : value->dims()) {
@@ -638,9 +637,9 @@ private:
                 }
             }
             if (shape.empty()) {
-                EMIT(FloatScalarConstant, out, v[0], value->dtype(), node.onikux_host());
+                EMIT(FloatScalarConstant, out, v[0], value->dtype(), host);
             } else {
-                EMIT(FloatConstant, out, v, value->dtype(), shape, node.onikux_host());
+                EMIT(FloatConstant, out, v, value->dtype(), shape, host);
             }
         } else {
             std::vector<int64_t> v;
@@ -662,6 +661,30 @@ private:
             } else {
                 EMIT(IntConstant, out, v, value->dtype(), shape, true);
             }
+        }
+    }
+
+    void EmitConstant(const Node& node, XCProgramProto* prog) {
+        CHECK_EQ(1, node.outputs().size());
+        int out = GetValueId(node.outputs()[0]);
+        Tensor* value = node.tensor_value().get();
+        EmitConstantImpl(node, value, out, node.onikux_host(), prog);
+    }
+
+    void EmitConstantSequence(const Node& node, XCProgramProto* prog) {
+        CHECK_EQ(1, node.outputs().size());
+        std::vector<int> const_values;
+        for (const auto& tensor : node.tensor_values()) {
+            int id = next_value_id_++;
+            EmitConstantImpl(node, tensor.get(), id, false, prog);
+            const_values.push_back(id);
+        }
+
+        int out = GetValueId(node.outputs()[0]);
+        EMIT(SequenceCreate, out);
+        for (int id : const_values) {
+            EMIT(SequenceAppend, out, id);
+            FREE(id);
         }
     }
 

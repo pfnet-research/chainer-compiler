@@ -676,7 +676,7 @@ def gen_sequence_constants_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     inputs = [4, 2, 3]
     seq_v = gb.const_seq(inputs)
-    gb.output(seq_v, inputs)
+    gb.output(seq_v, Seq(inputs))
     gb.gen_test()
 
 
@@ -930,8 +930,7 @@ def get_tests():
         TestCase('extra_test_sequence_io', gen_sequence_io_test),
         TestCase('extra_test_sequence_range', gen_sequence_range_test),
         TestCase('extra_test_sequence_pop', gen_sequence_pop_test),
-        TestCase('extra_test_sequence_constants', gen_sequence_constants_test,
-                 fail=True),
+        TestCase('extra_test_sequence_constants', gen_sequence_constants_test),
 
         TestCase('extra_test_sentiment_lstm',
                  sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2),
