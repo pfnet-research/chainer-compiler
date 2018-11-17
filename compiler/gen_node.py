@@ -209,6 +209,9 @@ NodeDef('OnikuxBackpropStackPop', 0, 1, id=Required(int))
 
 NodeDef('OnikuxPrint', None, 0)
 
+# Creates a constant sequence: () -> ([T])
+NodeDef('OnikuxSequenceConstants', 0, 1, tensor_values=[Tensor])
+
 # Creates a new sequence: () -> ([T])
 NodeDef('OnikuxSequenceCreate', 0, 1)
 
@@ -340,6 +343,8 @@ class AttrDef(object):
             return 'Tensor*'
         if self.type == Graph:
             return 'Graph*'
+        if self.type == [Tensor]:
+            return 'std::vector<std::unique_ptr<Tensor>>&&'
         return self.c_arg_type()
 
     def onnx_type(self, typ=None):
@@ -509,6 +514,9 @@ def gen_gen_node_base_cc():
                 blines.append('set_%s(xattr.f());' % (attr.c_name))
             elif attr.type == str:
                 blines.append('set_%s(xattr.s());' % (attr.c_name))
+            elif attr.type == [Tensor]:
+                blines.append('for (const auto& t : xattr.tensors()) '
+                              '%s_.emplace_back(new Tensor(t));' % attr.c_name)
             elif isinstance(attr.type, list):
                 fs = attr.onnx_field()
                 blines.append('%s_.assign(xattr.%s().begin(), ' % (attr.c_name, fs) +
@@ -581,6 +589,14 @@ def gen_gen_node_base_cc():
         xattr->set_name(name);
         xattr->set_type(onnx::AttributeProto::TENSOR);
         v->ToONNX(xattr->mutable_t());
+    };
+
+    auto add_tensors_attr = [&xnode](const std::string& name, const std::vector<std::unique_ptr<Tensor>>& vec) {
+        if (vec.empty()) return;
+        onnx::AttributeProto* xattr = xnode->add_attribute();
+        xattr->set_name(name);
+        xattr->set_type(onnx::AttributeProto::TENSORS);
+        for (const std::unique_ptr<Tensor>& t : vec) t->ToONNX(xattr->add_tensors());
     };
 
     auto add_graph_attr = [&xnode](const std::string& name, const std::unique_ptr<Graph>& v) {
@@ -704,6 +720,8 @@ def gen_gen_node_base_cc():
                      '<< OpTypeToString(op_type_);')
         if attr.type in [Tensor, Graph]:
             lines.append('%s_.reset(%s);' % (name, name))
+        elif attr.type == [Tensor]:
+            lines.append('%s_ = std::move(%s);' % (name, name))
         else:
             lines.append('%s_ = %s;' % (name, name))
 

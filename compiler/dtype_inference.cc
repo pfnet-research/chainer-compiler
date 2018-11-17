@@ -323,6 +323,7 @@ void InferDtype(Node* node) {
             break;
 
         case Node::kOnikuxDynamicSliceGrad:
+        case Node::kOnikuxSequenceConstants:
         case Node::kOnikuxSequenceCreate:
         case Node::kOnikuxSequenceAppend:
         case Node::kOnikuxSequencePop:
