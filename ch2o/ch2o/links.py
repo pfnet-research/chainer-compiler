@@ -365,18 +365,22 @@ class Link_NStepBiLSTM(Callable):
 
         hs = []
         cs = []
-        for i in range(self.n_layers):
-            v = Value(v).to_sequence(env)
-            v = env.calc(
-                "OnikuxSequencePad",
-                inputs=[v.name],
-            )
-            v = env.calc(
-                "Transpose",
-                perm=(1, 0, 2),
-                inputs=[v.name]
-            )
+        v = Value(v).to_sequence(env)
+        v = env.calc(
+            "OnikuxSequencePad",
+            inputs=[v.name],
+        )
+        v = env.calc(
+            "Transpose",
+            perm=(1, 0, 2),
+            inputs=[v.name]
+        )
 
+        sequence_length = env.calc("OnikuxGenericLen", inputs=[v.name])
+        out_shape = Value([Value(sequence_length), Value(-1),
+                           Value(self.out_size * 2)]).to_tensor(env)
+
+        for i in range(self.n_layers):
             h = new_tensor()
             c = new_tensor()
             ys = new_tensor()
@@ -393,30 +397,12 @@ class Link_NStepBiLSTM(Callable):
             hs.append(h.name)
             cs.append(c.name)
 
-            # ys :: seqlen * 2 * batchsize * hiddensize
-            v = env.calc("Transpose", perm=(2, 0, 1, 3), inputs=[ys.name])
-            v = env.calc_seq("OnikuxSequenceUnpad", inputs=[v.name, ilens.name])
+            # ys :: [seqlen x 2 x batchsize x hiddensize]
+            v = env.calc("Transpose", perm=(0, 2, 1, 3), inputs=[ys.name])
+            v = env.calc("Reshape", inputs=[v.name, out_shape.name])
 
-            from . chainer2onnx import eval_ast
-            import chainer
-            localenv = Env({})
-            vs = {
-                'v': Value(v),
-                'F': chainer.functions
-            }
-            localenv.update_vars(vs)
-            src = """
-            r = []
-            for d in v:
-                r.append(F.reshape(d,(-1,%d)))
-            v = r
-            """ % (2 * self.out_size)
-            src = clip_head(src)
-            nast = gast.ast_to_gast(ast.parse(src))
-            eval_ast(nast.body, localenv)
-
-            env.nodes += localenv.nodes
-            v = localenv.get_var('v')
+        v = env.calc("Transpose", perm=(1, 0, 2), inputs=[v.name])
+        v = env.calc_seq("OnikuxSequenceUnpad", inputs=[v.name, ilens.name])
 
         ths = env.calc(
             "Concat",
