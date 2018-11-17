@@ -16,7 +16,8 @@ public:
 
     bool is_tensor() const { return tensor_.get(); }
 
-    Tensor* ReleastTensor() { return tensor_.release(); }
+    Tensor* ReleaseTensor();
+    std::vector<std::unique_ptr<Tensor>> ReleaseSequence();
 
 private:
     std::unique_ptr<Tensor> tensor_;

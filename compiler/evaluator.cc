@@ -52,6 +52,17 @@ EvaluatedValue::EvaluatedValue(Tensor* tensor)
 EvaluatedValue::EvaluatedValue(std::vector<std::unique_ptr<Tensor>>&& sequence)
     : sequence_(std::move(sequence)) {}
 
+Tensor* EvaluatedValue::ReleaseTensor() {
+    CHECK(is_tensor());
+    return tensor_.release();
+}
+
+std::vector<std::unique_ptr<Tensor>> EvaluatedValue::ReleaseSequence() {
+    std::vector<std::unique_ptr<Tensor>> ret;
+    std::swap(ret, sequence_);
+    return ret;
+}
+
 void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, std::vector<std::unique_ptr<EvaluatedValue>>* outputs) {
     runtime::XCProgramProto program;
     std::vector<int> output_ids;

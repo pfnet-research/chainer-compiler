@@ -26,7 +26,7 @@ TEST(EvaluatorTest, Eval) {
     Eval(nodes, {r}, &outputs);
     ASSERT_EQ(1UL, outputs.size());
     ASSERT_TRUE(outputs[0]->is_tensor());
-    std::unique_ptr<Tensor> out(outputs[0]->ReleastTensor());
+    std::unique_ptr<Tensor> out(outputs[0]->ReleaseTensor());
     EXPECT_EQ(Dtype::kInt32, out->dtype());
     ASSERT_EQ(1, out->dims().size());
     EXPECT_EQ(2, out->dims()[0]);
