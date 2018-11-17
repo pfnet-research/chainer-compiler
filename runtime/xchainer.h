@@ -28,7 +28,8 @@ bool HasNan(const chainerx::Array& a);
 
 bool HasInf(const chainerx::Array& a);
 
-//
+// This function was renamed from `Split` to clearly tell this is
+// different from chainerx::Split.
 std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int axis, const std::vector<int64_t>& split);
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding);
