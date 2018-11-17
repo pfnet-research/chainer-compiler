@@ -18,8 +18,6 @@ chainerx::Shape ArrayToShape(const chainerx::Array& a);
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s);
 
-chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor);
-
 chainerx::Array MakeArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
 chainerx::Array MakeScalarArray(float f);

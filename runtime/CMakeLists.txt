@@ -54,7 +54,6 @@ add_executable(runtime_test
   )
 target_link_libraries(runtime_test
   oniku_runtime
-  oniku_compiler
   chainerx
   onnx_proto
   protobuf

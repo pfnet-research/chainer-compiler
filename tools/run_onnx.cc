@@ -63,6 +63,34 @@ std::vector<std::string> ListDir(const std::string& dirname) {
     return filenames;
 }
 
+chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
+    Tensor tensor(xtensor);
+    int64_t size = tensor.ElementSize() * tensor.NumElements();
+    std::shared_ptr<void> data(new char[size], std::default_delete<char[]>());
+    std::memcpy(data.get(), tensor.GetRawData(), size);
+    chainerx::Shape shape(tensor.dims());
+    chainerx::Dtype dtype;
+    switch (tensor.dtype()) {
+#define ASSIGN_DTYPE(n)             \
+    case Dtype::n:                  \
+        dtype = chainerx::Dtype::n; \
+        break
+        ASSIGN_DTYPE(kBool);
+        ASSIGN_DTYPE(kInt8);
+        ASSIGN_DTYPE(kInt16);
+        ASSIGN_DTYPE(kInt32);
+        ASSIGN_DTYPE(kInt64);
+        ASSIGN_DTYPE(kUInt8);
+        ASSIGN_DTYPE(kFloat32);
+        ASSIGN_DTYPE(kFloat64);
+        default:
+            CHECK(false) << "Unknown data type: " << static_cast<int>(tensor.dtype());
+    }
+    chainerx::Array array(chainerx::FromData(
+            shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
+    return array;
+}
+
 struct TestCase {
     std::string name;
     InOuts inputs;
