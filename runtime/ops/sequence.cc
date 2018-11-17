@@ -127,7 +127,10 @@ std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st
 
 void SequenceSplitAxisOp::RunImpl(XCVMState* st, const chainerx::Array& seq, const chainerx::Array& indices_or_sections, XCVMSequence* output) {
     if (indices_or_sections.ndim() == 0) {
-        CHECK(false) << "Not implemented yet";
+        int64_t sections = static_cast<int64_t>(chainerx::AsScalar(indices_or_sections));
+        for (const chainerx::Array& a : chainerx::Split(seq, sections, axis)) {
+            output->emplace_back(a);
+        }
     } else {
         CHECK_EQ(1, indices_or_sections.ndim());
         std::vector<int64_t> indices;
