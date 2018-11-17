@@ -330,7 +330,7 @@ XC_SEQ_OPS = [
      [Sequence('gx')]),
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
     ('SequenceConcat', [Sequence('seq'), Int('axis')],
-     ['output', Opaque('ctx')]),
+     ['output', 'ctx']),
     ('SequenceSplitAxis',
      [Array('seq'), Array('indices_or_sections'), Int('axis')],
      [Sequence('output')]),

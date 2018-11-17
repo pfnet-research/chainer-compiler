@@ -115,13 +115,15 @@ chainerx::Array SequenceStackOp::RunImpl(XCVMState* st, const XCVMSequence& seq)
     return chainerx::Stack(NonOptional(seq), axis);
 }
 
-std::tuple<chainerx::Array, XCVMOpaque*> SequenceConcatOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
-    std::vector<int64_t> split;
+std::tuple<chainerx::Array, chainerx::Array> SequenceConcatOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
+    int64_t index = 0;
+    std::vector<int64_t> indices;
     for (const XCVMVar& v : seq) {
-        split.push_back(v.GetArray().shape()[axis]);
+        indices.push_back(index += v.GetArray().shape()[axis]);
     }
-    XCVMOpaque* ctx = new ConcatBackwardContext(split);
+    indices.pop_back();
     chainerx::Array out = chainerx::Concatenate(NonOptional(seq), axis);
+    chainerx::Array ctx = MakeHostArray(chainerx::Dtype::kInt64, chainerx::Shape({static_cast<int64_t>(indices.size())}), &indices[0]);
     return std::tie(out, ctx);
 }
 
