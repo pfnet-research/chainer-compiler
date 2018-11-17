@@ -45,6 +45,8 @@ public:
     InOuts Run(const InOuts& program_inputs, const XCVMOptions& options);
     void Run(XCVMState* state);
 
+    int num_variables() const { return num_variables_; }
+
 private:
     std::vector<std::unique_ptr<XCVMOp>> program_;
     int num_variables_;
