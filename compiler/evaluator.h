@@ -9,6 +9,20 @@ class Node;
 class Tensor;
 class Value;
 
-void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, std::vector<std::unique_ptr<Tensor>>* outputs);
+class EvaluatedValue {
+public:
+    explicit EvaluatedValue(Tensor* tensor);
+    explicit EvaluatedValue(std::vector<std::unique_ptr<Tensor>>&& sequence);
+
+    bool is_tensor() const { return tensor_.get(); }
+
+    Tensor* ReleastTensor() { return tensor_.release(); }
+
+private:
+    std::unique_ptr<Tensor> tensor_;
+    std::vector<std::unique_ptr<Tensor>> sequence_;
+};
+
+void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, std::vector<std::unique_ptr<EvaluatedValue>>* outputs);
 
 }  // namespace oniku

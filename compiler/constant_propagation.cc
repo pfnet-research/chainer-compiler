@@ -30,7 +30,7 @@ void PropagateConstant(Graph* graph) {
             }
             if (!all_constant) continue;
 
-            std::unique_ptr<Tensor> next_value;
+            std::unique_ptr<EvaluatedValue> next_value;
             switch (node->op_type()) {
             // TODO(hamaji): Handle more ops.
             case Node::kAdd:
@@ -44,7 +44,7 @@ void PropagateConstant(Graph* graph) {
                 LOG() << "Propagate " << node->ToString() << std::endl;
                 std::vector<Node*> nodes = inputs;
                 nodes.push_back(node);
-                std::vector<std::unique_ptr<Tensor>> outputs;
+                std::vector<std::unique_ptr<EvaluatedValue>> outputs;
                 Eval(nodes, {node->outputs()[0]}, &outputs);
                 next_value.reset(outputs[0].release());
                 break;
@@ -57,7 +57,11 @@ void PropagateConstant(Graph* graph) {
             if (next_value.get() == nullptr) continue;
 
             GraphBuilder gb(graph, "Const", node->outputs()[0]);
-            gb.Op(Node::kConstant, {}, node->outputs()[0])->producer()->set_tensor_value(next_value.release());
+            if (next_value->is_tensor()) {
+                gb.Op(Node::kConstant, {}, node->outputs()[0])->producer()->set_tensor_value(next_value->ReleastTensor());
+            } else {
+                CHECK(false) << "Not implemented yet";
+            }
 
             graph->DetachNode(node);
             for (Node* input : inputs) {

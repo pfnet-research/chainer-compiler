@@ -22,14 +22,16 @@ TEST(EvaluatorTest, Eval) {
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     const std::vector<Node*> nodes = {a->producer(), b->producer(), r->producer()};
-    std::vector<std::unique_ptr<Tensor>> outputs;
+    std::vector<std::unique_ptr<EvaluatedValue>> outputs;
     Eval(nodes, {r}, &outputs);
     ASSERT_EQ(1UL, outputs.size());
-    EXPECT_EQ(Dtype::kInt32, outputs[0]->dtype());
-    ASSERT_EQ(1, outputs[0]->dims().size());
-    EXPECT_EQ(2, outputs[0]->dims()[0]);
-    EXPECT_EQ(10, outputs[0]->Get<int>(0));
-    EXPECT_EQ(42, outputs[0]->Get<int>(1));
+    ASSERT_TRUE(outputs[0]->is_tensor());
+    std::unique_ptr<Tensor> out(outputs[0]->ReleastTensor());
+    EXPECT_EQ(Dtype::kInt32, out->dtype());
+    ASSERT_EQ(1, out->dims().size());
+    EXPECT_EQ(2, out->dims()[0]);
+    EXPECT_EQ(10, out->Get<int>(0));
+    EXPECT_EQ(42, out->Get<int>(1));
 }
 
 }  // namespace

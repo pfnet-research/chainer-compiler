@@ -7,6 +7,7 @@
 
 #include <chainerx/array.h>
 
+#include <common/strutil.h>
 #include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
@@ -16,6 +17,7 @@
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_state.h>
+#include <runtime/xcvm_var.h>
 
 namespace oniku {
 
@@ -44,7 +46,13 @@ Tensor* ArrayToTensor(const std::string& name, const chainerx::Array& a) {
 
 }  // namespace
 
-void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, std::vector<std::unique_ptr<Tensor>>* outputs) {
+EvaluatedValue::EvaluatedValue(Tensor* tensor)
+    : tensor_(tensor) {}
+
+EvaluatedValue::EvaluatedValue(std::vector<std::unique_ptr<Tensor>>&& sequence)
+    : sequence_(std::move(sequence)) {}
+
+void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, std::vector<std::unique_ptr<EvaluatedValue>>* outputs) {
     runtime::XCProgramProto program;
     std::vector<int> output_ids;
     xcvm::Emit(nodes, fetches, &program, &output_ids);
@@ -55,9 +63,31 @@ void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, s
     xcvm.Run(&state);
 
     for (size_t i = 0; i < fetches.size(); ++i) {
+        const std::string& name = fetches[i]->name();
         int output_id = output_ids[i];
-        // TODO(hamaji): Support other types.
-        outputs->emplace_back(ArrayToTensor(fetches[i]->name(), state.GetArray(output_id)));
+        runtime::XCVMVar* var = state.GetVar(output_id);
+
+        switch (var->kind()) {
+        case runtime::XCVMVar::Kind::kArray: {
+            outputs->emplace_back(new EvaluatedValue(ArrayToTensor(name, state.GetArray(output_id))));
+            break;
+        }
+
+        case runtime::XCVMVar::Kind::kSequence: {
+            const runtime::XCVMSequence& seq = *var->GetSequence();
+            std::vector<std::unique_ptr<Tensor>> tensors;
+            for (size_t j = 0; j < seq.size(); ++j) {
+                // TODO(hamaji): Support nested sequences.
+                tensors.emplace_back(ArrayToTensor(StrCat(name, '_', j), seq[j].GetArray()));
+            }
+            outputs->emplace_back(new EvaluatedValue(std::move(tensors)));
+            break;
+        }
+
+        default:
+            // TODO(hamaji): Support other types.
+            CHECK(false) << "Not supported yet: " << var->DebugString();
+        }
     }
 }
 
