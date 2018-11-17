@@ -328,38 +328,13 @@ class Np_Cumsum(Callable):
 
 class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
-        assert axis.value == 0
-        assert force_tuple.value is True
-        # さらにさらに、入力は1次元のTensorである、と仮定してしまいます
-        # 戻り値はtuple(!!)らしいが、たってきSequenceで返してます。
-        # TODO(satos) さすがに仮定がきつい
-
-        v = x
-        ilens = indices_or_sections
-
-        from . chainer2onnx import eval_ast
-
-        src = """
-        r = []
-        bs = 0
-        for s in ilens:
-            r.append(v[bs:s])
-            bs = s
-        r.append(v[bs:])
-        """
-        src = clip_head(src)
-        nast = gast.ast_to_gast(ast.parse(src))
-
-        localenv = Env({})
-        vs = {
-            'v': v,
-            'ilens': ilens,
-        }
-        localenv.update_vars(vs)
-        eval_ast(nast.body, localenv)
-
-        env.nodes += localenv.nodes
-        return localenv.get_var('r')
+        assert force_tuple.value is True  # TODO(hamaji): Not supported yet.
+        return env.calc_seq(
+            'OnikuxSequenceSplitAxis',
+            inputs=[x.to_tensor(env).name,
+                    indices_or_sections.to_tensor(env).name],
+            axis=axis.to_int()
+        )
 
 
 class Xp_Np_Ceil(Callable):
