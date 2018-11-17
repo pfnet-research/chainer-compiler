@@ -60,10 +60,14 @@ class VGG2L(chainer.Chain):
         xs = F.max_pooling_2d(xs, 2, stride=2)
 
         # change ilens accordingly
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(
-            ilens, dtype=np.float32) / 2), dtype=np.int32)
-        ilens = self.xp.array(self.xp.ceil(self.xp.array(
-            ilens, dtype=np.float32) / 2), dtype=np.int32)
+        # EDIT(hamaji): XCVM puts int32 on GPU and it hurts the performance.
+        # TODO(hamaji): Fix device assignment to get rid of this change.
+        ilens = (ilens + 1) // 2
+        ilens = (ilens + 1) // 2
+        # ilens = self.xp.array(self.xp.ceil(self.xp.array(
+        #     ilens, dtype=np.float32) / 2), dtype=np.int32)
+        # ilens = self.xp.array(self.xp.ceil(self.xp.array(
+        #     ilens, dtype=np.float32) / 2), dtype=np.int32)
 
         # x: utt_list of frame (remove zeropaded frames) x (input channel num x dim)
         xs = F.swapaxes(xs, 1, 2)
