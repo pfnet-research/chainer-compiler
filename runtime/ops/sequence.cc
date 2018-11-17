@@ -11,20 +11,6 @@ namespace runtime {
 
 namespace {
 
-class ConcatBackwardContext : public XCVMOpaque {
-public:
-    explicit ConcatBackwardContext(const std::vector<int64_t>& split) : split_(split) {
-    }
-    virtual ~ConcatBackwardContext() = default;
-
-    const std::vector<int64_t>& split() const {
-        return split_;
-    }
-
-private:
-    const std::vector<int64_t> split_;
-};
-
 int64_t GetOptionalInt(const nonstd::optional<chainerx::Array>& array, int64_t default_value) {
     if (array.has_value()) {
         return static_cast<int64_t>(chainerx::AsScalar(*array));
@@ -142,13 +128,6 @@ void SequenceSplitAxisOp::RunImpl(XCVMState* st, const chainerx::Array& seq, con
         for (const chainerx::Array& a : chainerx::Split(seq, indices, axis)) {
             output->emplace_back(a);
         }
-    }
-}
-
-void SequenceConcatGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx, XCVMSequence* gx) {
-    auto& context = dynamic_cast<const ConcatBackwardContext&>(ctx);
-    for (const chainerx::Array& a : SplitByLengths(gy, axis, context.split())) {
-        gx->emplace_back(a);
     }
 }
 

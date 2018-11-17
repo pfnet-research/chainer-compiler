@@ -334,8 +334,6 @@ XC_SEQ_OPS = [
     ('SequenceSplitAxis',
      [Array('seq'), Array('indices_or_sections'), Int('axis')],
      [Sequence('output')]),
-    ('SequenceConcatGrad', [Array('gy'), Opaque('ctx'), Int('axis')],
-     [Sequence('gx')]),
     ('SequencePad', [Sequence('seq'), Int('length'), Float('value')],
      ['output']),
     ('SequenceRange',
