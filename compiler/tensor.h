@@ -28,6 +28,7 @@ public:
     Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::initializer_list<T>& data)
         : Tensor(name, dtype, dims, std::vector<T>{data}) {
     }
+    Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, UniqueData&& data);
 
     Tensor(const Tensor&) = delete;
     Tensor& operator=(const Tensor&) = delete;
@@ -35,6 +36,7 @@ public:
     Tensor(const std::string& name, const Tensor& t);
 
     void ToONNX(onnx::TensorProto* xtensor) const;
+    std::string DebugString() const;
 
     const std::vector<int64_t> dims() const {
         return dims_;
