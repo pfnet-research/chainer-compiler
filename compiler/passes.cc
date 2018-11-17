@@ -131,7 +131,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
         graph->DumpSubGraphs();
     }
 
-    Recursively(PropagateConstant, graph);
+    Recursively(PropagateConstants, graph);
 
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 

@@ -4,6 +4,6 @@ namespace oniku {
 
 class Graph;
 
-void PropagateConstant(Graph* graph);
+void PropagateConstants(Graph* graph);
 
 }  // namespace oniku
