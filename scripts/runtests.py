@@ -530,6 +530,8 @@ for test_case in list(TEST_CASES):
         'pc_pad' in test_case.name or
         'pc_for' in test_case.name or
         'if_pd' in test_case.name or
+        'separate' in test_case.name or
+        'dynamic_slice' in test_case.name or
         test_case.name.endswith('softmax_cross_entropy') or
         'mlp' in test_case.name)
     TEST_CASES.append(new_test)

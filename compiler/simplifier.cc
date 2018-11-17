@@ -499,6 +499,22 @@ bool ReplaceConstantLike(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceShape(Graph* graph, Node* node) {
+    Value* input = node->inputs()[0];
+    const Type& typ = input->type();
+    if (!typ.is_known() ||
+        typ.kind() != Type::Kind::kTensor ||
+        typ.NumElements() < 0 ||
+        typ.dims().empty()) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "SimplifyShape", node->outputs()[0]);
+    Value* shape = gb.Const(Type(Dtype::kInt64, {static_cast<int64_t>(typ.dims().size())}), typ.dims());
+    gb.Op(Node::kIdentity, {shape}, node->outputs()[0]);
+    return true;
+}
+
 bool ReplaceSelectItem(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySelectItem", node->outputs()[0]);
     Value* x = node->inputs()[0];
@@ -536,6 +552,7 @@ void Simplify(Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
     CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
+    CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
 
     bool is_for_ngraph = false;
     if (is_for_ngraph) {
