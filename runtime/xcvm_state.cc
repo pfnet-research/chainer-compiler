@@ -12,10 +12,7 @@ XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts
     : pc_(0),
       variables_(num_variables),
       inputs_(inputs),
-      trace_level_(options.trace_level),
-      is_training_(options.is_training),
-      check_nans_(options.check_nans),
-      check_infs_(options.check_infs) {
+      options_(options) {
 }
 
 XCVMState::~XCVMState() {
@@ -90,7 +87,7 @@ std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
     CHECK_GT(variables_.size(), index) << index;
     if (!variables_[index].get()) return "UNSET";
-    if (trace_level_ > 1)
+    if (trace_level() > 1)
         return variables_[index]->DebugString();
     else
         return variables_[index]->ToString();

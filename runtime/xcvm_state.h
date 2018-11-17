@@ -60,17 +60,19 @@ public:
     void CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs);
     void CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs);
 
+    const XCVMOptions& options() const { return options_; }
+
     int trace_level() const {
-        return trace_level_;
+        return options_.trace_level;
     }
     bool is_training() const {
-        return is_training_;
+        return options_.is_training;
     }
     bool check_nans() const {
-        return check_nans_;
+        return options_.check_nans;
     }
     bool check_infs() const {
-        return check_infs_;
+        return options_.check_infs;
     }
 
     void ShowVariableStatus() const;
@@ -82,10 +84,7 @@ private:
     std::vector<std::unique_ptr<XCVMVar>> variables_;
     InOuts inputs_;
     InOuts outputs_;
-    int trace_level_ = 0;
-    bool is_training_ = false;
-    bool check_nans_ = false;
-    bool check_infs_ = false;
+    XCVMOptions options_;
 };
 
 }  // namespace runtime
