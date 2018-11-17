@@ -169,7 +169,7 @@ void SplitToSequence(chainerx::Array v, int axis, XCVMSequence* seq) {
 
 }  // namespace
 
-void SequenceSplitOp::RunImpl(XCVMState* st, const chainerx::Array& input, XCVMSequence* output) {
+void SequenceSeparateOp::RunImpl(XCVMState* st, const chainerx::Array& input, XCVMSequence* output) {
     SplitToSequence(input, axis, output);
 }
 

@@ -407,7 +407,7 @@ class Function_Stack(Callable):
 class Function_Separate(Callable):
     def call_impl(self, env, x, axis):
         return env.calc_seq(
-            'OnikuxSequenceSplit',
+            'OnikuxSequenceSeparate',
             inputs=[x.to_tensor(env).name],
             axis=axis.to_int()
         )

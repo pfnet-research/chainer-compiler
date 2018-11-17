@@ -592,8 +592,8 @@ private:
             }
         } else if (node.op_type() == Node::kOnikuxSequenceConcatGrad) {
             EMIT(SequenceConcatGrad, out(0), in(0), in(1), node.axis());
-        } else if (node.op_type() == Node::kOnikuxSequenceSplit) {
-            EMIT(SequenceSplit, out(0), in(0), node.axis());
+        } else if (node.op_type() == Node::kOnikuxSequenceSeparate) {
+            EMIT(SequenceSeparate, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kOnikuxSequenceUnpad) {
             EMIT(SequenceUnpad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxSequencePad) {

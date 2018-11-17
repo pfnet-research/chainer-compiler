@@ -338,7 +338,7 @@ XC_SEQ_OPS = [
     ('SequenceRange',
      [Array('arg0'), OptionalArray('arg1'), OptionalArray('arg2')],
      [Sequence('output')]),
-    ('SequenceSplit', [Array('input'), Int('axis')], [Sequence('output')]),
+    ('SequenceSeparate', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceUnpad', [Array('input'), Sequence('lengths')],
      [Sequence('output')]),
     ('SequenceSize', [Sequence('seq')], ['output']),

@@ -128,7 +128,7 @@ class Value(object):
             self.is_py = False
         elif self.is_tensor():
             self.value = env.calc_seq(
-                'OnikuxSequenceSplit',
+                'OnikuxSequenceSeparate',
                 inputs=[self.value.name]
             )
 
