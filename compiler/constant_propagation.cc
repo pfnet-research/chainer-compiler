@@ -49,7 +49,7 @@ void PropagateConstant(Graph* graph) {
             case Node::kOnikuxSequenceAppend:
             // TODO(hamaji): Handle them, too.
             // case Node::kOnikuxSequenceConcat:
-            // case Node::kOnikuxSequenceStack:
+            case Node::kOnikuxSequenceStack:
             case Node::kOnikuxSequenceRange: {
                 LOG() << "Propagate " << node->ToString() << std::endl;
                 CHECK_EQ(1UL, node->outputs().size());

@@ -637,9 +637,9 @@ private:
                 }
             }
             if (shape.empty()) {
-                EMIT(FloatScalarConstant, out, v[0], value->dtype(), host);
+                EMIT(FloatScalarConstant, out, v[0], dtype, host);
             } else {
-                EMIT(FloatConstant, out, v, value->dtype(), shape, host);
+                EMIT(FloatConstant, out, v, dtype, shape, host);
             }
         } else {
             std::vector<int64_t> v;
@@ -657,9 +657,9 @@ private:
                 }
             }
             if (shape.empty()) {
-                EMIT(IntScalarConstant, out, v[0], value->dtype(), true);
+                EMIT(IntScalarConstant, out, v[0], dtype, true);
             } else {
-                EMIT(IntConstant, out, v, value->dtype(), shape, true);
+                EMIT(IntConstant, out, v, dtype, shape, dtype == Dtype::kInt64);
             }
         }
     }
