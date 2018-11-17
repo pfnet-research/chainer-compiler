@@ -36,6 +36,19 @@ def make_constant_node(name, typ, value):
     return node
 
 
+def make_constant_sequence_node(name, typ, values):
+    tensor_values = []
+    for i, value in enumerate(values):
+        value = np.array(value)
+        tensor = onnx.helper.make_tensor('%s_%d' % (name, i), typ,
+                                         value.shape, value.flat)
+        tensor_values.append(tensor)
+    node = onnx.helper.make_node('OnikuxSequenceConstants',
+                                 inputs=[], outputs=[name],
+                                 tensor_values=tensor_values)
+    return node
+
+
 def gen_test(graph, inputs, outputs, name):
     model = onnx.helper.make_model(graph, producer_name='backend-test')
 
@@ -152,6 +165,17 @@ class GraphBuilder(object):
         if name is None:
             name = self.gen_id('const')
         node = make_constant_node(name, dtype, value)
+        self.nodes.append(node)
+        return name
+
+    def const_seq(self, values, dtype=None, name=None):
+        example = _array(values[0], dtype=dtype)
+        if not isinstance(dtype, int):
+            dtype = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[example.dtype]
+
+        if name is None:
+            name = self.gen_id('const_seq')
+        node = make_constant_sequence_node(name, dtype, values)
         self.nodes.append(node)
         return name
 
