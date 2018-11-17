@@ -23,6 +23,7 @@ void CollectGarbageNode(Graph* graph) {
     for (Node* node : graph->nodes()) {
         if (node->onikux_order() <= 0) graph->DetachNode(node);
     }
+    graph->DeleteDetached();
 }
 
 template <class Fn>

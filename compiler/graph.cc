@@ -336,6 +336,10 @@ void Graph::ResetGradients() {
     }
 }
 
+void Graph::DeleteDetached() {
+    nodes_ = GetLiveNodes();
+}
+
 void Graph::DumpSubGraphs(int depth) const {
     for (int i = 0; i < depth; i++) std::cerr << ' ';
     std::cerr << name() << std::endl;

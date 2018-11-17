@@ -102,6 +102,8 @@ public:
 
     void ResetGradients();
 
+    void DeleteDetached();
+
     void DumpSubGraphs(int depth = 0) const;
 
     void DumpONNXOnFailure(const std::string& filename = "") const;
