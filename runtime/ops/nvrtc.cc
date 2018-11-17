@@ -69,6 +69,29 @@ char* Compile(const std::string& name, const std::string& code) {
     return ptx;
 }
 
+CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
+    static std::map<const std::string, CUfunction> cache;
+    auto found = cache.find(code);
+    if (found != cache.end()) return found->second;
+
+    char* ptx = Compile(name, code);
+
+#if 0
+    std::cerr << "\nname of kernel: " << name << std::endl;
+    std::cerr << "# of inputs: " << inputs.size() << std::endl;
+    std::cerr << "# of outputs: " << outputs.size() << std::endl;
+    std::cerr << "code:\n" << code << std::endl;
+#endif
+
+    CUmodule cu_module;
+    CUfunction cu_kernel;
+    CHECK_CUDA(cuModuleLoadDataEx(&cu_module, ptx, 0, 0, 0));
+    CHECK_CUDA(cuModuleGetFunction(&cu_kernel, cu_module, name.c_str()));
+
+    CHECK(cache.emplace(code, cu_kernel).second);
+    return cu_kernel;
+}
+
 }  // namespace
 
 #endif
@@ -96,21 +119,9 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
         outputs.push_back(chainerx::Empty(shape, dtype, device));
     }
 
-    char* ptx = Compile(name, code);
+    CUfunction cu_kernel = CompileAndLoad(name, code);
 
-#if 0
-    std::cerr << "\nname of kernel: " << name << std::endl;
-    std::cerr << "# of inputs: " << inputs.size() << std::endl;
-    std::cerr << "# of outputs: " << outputs.size() << std::endl;
-    std::cerr << "code:\n" << code << std::endl;
-#endif
-
-    CUmodule cu_module;
-    CUfunction cu_kernel;
-    CHECK_CUDA(cuModuleLoadDataEx(&cu_module, ptx, 0, 0, 0));
-    CHECK_CUDA(cuModuleGetFunction(&cu_kernel, cu_module, name.c_str()));
-
-#define NUM_THREADS 1
+#define NUM_THREADS 128
 #define NUM_BLOCKS 32
     size_t n = NUM_THREADS * NUM_BLOCKS;
     std::vector<void*> ptrs;
