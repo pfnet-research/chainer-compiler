@@ -65,6 +65,18 @@ public:
         EmitStackQuit(program);
     }
 
+    void AssignValueIds(const std::set<Value*>& values) {
+        for (const Value* v : values) {
+            CHECK(value_ids_.emplace(v, next_value_id_++).second);
+        }
+    }
+
+    void EmitNodes(const std::vector<Node*>& nodes, runtime::XCProgramProto* program) {
+        for (Node* node : nodes) {
+            EmitNode(nullptr /* graph */, *node, program);
+        }
+    }
+
 private:
     void AssignValueIds(const Graph& graph) {
         for (const Value* v : graph.input_values()) {
@@ -111,7 +123,7 @@ private:
         }
     }
 
-    void EmitNode(const Graph& graph, const Node& node, XCProgramProto* prog) {
+    void EmitNode(const Graph* graph, const Node& node, XCProgramProto* prog) {
         auto in = [this, &node](int i) {
             CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory";
             Value* input = node.inputs()[i];
@@ -515,11 +527,13 @@ private:
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
         } else if (node.op_type() == Node::kOnikuxIfRef) {
-            EmitIfRef(graph, node, prog);
+            CHECK(graph);
+            EmitIfRef(*graph, node, prog);
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kOnikuxLoopRef) {
-            EmitLoopRef(graph, node, prog);
+            CHECK(graph);
+            EmitLoopRef(*graph, node, prog);
         } else if (node.op_type() == Node::kOnikuxBackpropStackPush) {
             int id = GetStackId(node.id());
             EMIT(SequenceAppend, id, in(0));
@@ -689,7 +703,7 @@ private:
                 }
             }
 
-            EmitNode(graph, *node, prog);
+            EmitNode(&graph, *node, prog);
 
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
@@ -1081,6 +1095,17 @@ void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
     XCProgramProto program;
     Emit(model, &program, dump_value_names);
     CHECK(program.SerializeToOstream(&out));
+}
+
+void Emit(const std::vector<Node*>& nodes, runtime::XCProgramProto* program) {
+    XCVMEmitter emitter;
+    std::set<Value*> values;
+    for (Node* node : nodes) {
+        for (Value* value : node->inputs()) values.insert(value);
+        for (Value* value : node->outputs()) values.insert(value);
+    }
+    emitter.AssignValueIds(values);
+    emitter.EmitNodes(nodes, program);
 }
 
 }  // namespace xcvm

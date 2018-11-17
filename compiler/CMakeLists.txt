@@ -21,6 +21,7 @@ add_library(oniku_compiler
   code_emitter.cc
   dtype.cc
   dtype_inference.cc
+  evaluator.cc
   flags.cc
   fusion.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
@@ -52,6 +53,7 @@ include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(compiler_test
   code_emitter_test.cc
   dtype_inference_test.cc
+  evaluator_test.cc
   gradient_test.cc
   model_test.cc
   scheduler_test.cc
