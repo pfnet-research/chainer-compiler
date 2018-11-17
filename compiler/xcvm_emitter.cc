@@ -39,14 +39,13 @@ std::vector<int> IntVector(const std::vector<int64_t>& ints) {
 
 class XCVMEmitter {
 public:
-    explicit XCVMEmitter(const Graph& graph) : graph_(graph) {
-        AssignValueIds(graph);
-    }
+    XCVMEmitter() {}
 
-    void Emit(XCProgramProto* program, bool dump_value_names) {
-        EmitStackInit(graph_, program);
-        EmitGraph(graph_, program, false /* in_loop */, graph_.output_values(), {});
-        EmitOutputs(program);
+    void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
+        AssignValueIds(graph);
+        EmitStackInit(graph, program);
+        EmitGraph(graph, program, false /* in_loop */, graph.output_values(), {});
+        EmitOutputs(graph.output_values(), program);
         if (dump_value_names) {
             std::map<int, const Value*> values;
             for (auto p : value_ids_) {
@@ -1023,8 +1022,8 @@ private:
         EmitLoopImpl(loop, body, input_values, output_values, protected_values, prog);
     }
 
-    void EmitOutputs(XCProgramProto* prog) {
-        for (const Value* value : graph_.output_values()) {
+    void EmitOutputs(const std::vector<Value*>& output_values, XCProgramProto* prog) {
+        for (const Value* value : output_values) {
             AddOutOp(prog, value->name(), GetValueId(value));
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
             FREE(GetValueId(value));
@@ -1064,7 +1063,6 @@ private:
         for (Value* value : *output_values) protected_values->insert(value);
     }
 
-    const Graph& graph_;
     int next_value_id_{1};
     std::map<const Value*, int> value_ids_;
     std::map<int, int> stack_ids_;
@@ -1075,8 +1073,8 @@ private:
 
 void Emit(const Model& model, XCProgramProto* program, bool dump_value_names) {
     const Graph& graph = model.graph();
-    XCVMEmitter emitter(graph);
-    emitter.Emit(program, dump_value_names);
+    XCVMEmitter emitter;
+    emitter.EmitModel(graph, program, dump_value_names);
 }
 
 void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
