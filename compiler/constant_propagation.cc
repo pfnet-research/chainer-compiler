@@ -33,12 +33,13 @@ void PropagateConstant(Graph* graph) {
             std::unique_ptr<Tensor> next_value;
             switch (node->op_type()) {
             // TODO(hamaji): Handle more ops.
-            // case Node::kAdd:
-            // case Node::kSub:
-            // case Node::kMul:
-            // case Node::kDiv:
-            // case Node::kShape:
-            // case Node::kUnsqueeze:
+            case Node::kAdd:
+            case Node::kSub:
+            case Node::kMul:
+            case Node::kDiv:
+            case Node::kOnikuxGenericIs:
+            case Node::kShape:
+            case Node::kUnsqueeze:
             case Node::kCast: {
                 LOG() << "Propagate " << node->ToString() << std::endl;
                 std::vector<Node*> nodes = inputs;
@@ -60,7 +61,9 @@ void PropagateConstant(Graph* graph) {
 
             graph->DetachNode(node);
             for (Node* input : inputs) {
-                graph->DetachNode(input);
+                if (input->outputs()[0]->users().empty()) {
+                    graph->DetachNode(input);
+                }
             }
 
             replaced = true;
