@@ -33,7 +33,7 @@ void PropagateConstant(Graph* graph) {
             }
             if (!all_constant) continue;
 
-            std::unique_ptr<EvaluatedValue> next_value;
+            std::vector<std::unique_ptr<EvaluatedValue>> next_values;
             switch (node->op_type()) {
             // TODO(hamaji): Handle more ops.
             case Node::kIdentity:
@@ -47,17 +47,13 @@ void PropagateConstant(Graph* graph) {
             case Node::kUnsqueeze:
             case Node::kCast:
             case Node::kOnikuxSequenceAppend:
-            // TODO(hamaji): Handle them, too.
-            // case Node::kOnikuxSequenceConcat:
+            case Node::kOnikuxSequenceConcat:
             case Node::kOnikuxSequenceStack:
             case Node::kOnikuxSequenceRange: {
                 LOG() << "Propagate " << node->ToString() << std::endl;
-                CHECK_EQ(1UL, node->outputs().size());
                 std::vector<Node*> nodes = inputs;
                 nodes.push_back(node);
-                std::vector<std::unique_ptr<EvaluatedValue>> outputs;
-                Eval(nodes, {node->outputs()[0]}, &outputs);
-                next_value.reset(outputs[0].release());
+                Eval(nodes, node->outputs(), &next_values);
                 break;
             }
 
@@ -65,15 +61,18 @@ void PropagateConstant(Graph* graph) {
                 LOG() << "Not propagate " << node->ToString() << std::endl;
             }
 
-            if (next_value.get() == nullptr) continue;
+            if (next_values.empty()) continue;
 
-            GraphBuilder gb(graph, "Const", node->outputs()[0]);
-            if (next_value->is_tensor()) {
-                gb.Op(Node::kConstant, {}, node->outputs()[0])
-                    ->producer()->set_tensor_value(next_value->ReleaseTensor());
-            } else {
-                gb.Op(Node::kOnikuxSequenceConstants, {}, node->outputs()[0])
-                    ->producer()->set_tensor_values(next_value->ReleaseSequence());
+            for (size_t i = 0; i < next_values.size(); ++i) {
+                auto& next_value = next_values[i];
+                GraphBuilder gb(graph, "Const", node->outputs()[i]);
+                if (next_value->is_tensor()) {
+                    gb.Op(Node::kConstant, {}, node->outputs()[i])
+                        ->producer()->set_tensor_value(next_value->ReleaseTensor());
+                } else {
+                    gb.Op(Node::kOnikuxSequenceConstants, {}, node->outputs()[i])
+                        ->producer()->set_tensor_values(next_value->ReleaseSequence());
+                }
             }
 
             graph->DetachNode(node);
