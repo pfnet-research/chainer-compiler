@@ -161,10 +161,23 @@ void FuseOperations(Graph* graph) {
         Node::kSigmoid,
     };
 
+    auto is_fusable = [&fusable_ops](const Node& node) {
+        if (!fusable_ops.count(node.op_type()))
+            return false;
+        for (Value* value : node.inputs()) {
+            Dtype dtype = value->type().dtype();
+            // TODO(hamaji): Fix the dtype inference and do not fuse
+            // unknown dtypes.
+            if (!dtype.IsFloat() && dtype != Dtype::kUnknown)
+                return false;
+        }
+        return true;
+    };
+
     int num_fusion_groups = 0;
     for (Node* base_node : graph->nodes()) {
         if (base_node->onikux_fusion_group()) continue;
-        if (!fusable_ops.count(base_node->op_type())) continue;
+        if (!is_fusable(*base_node)) continue;
 
         std::set<Node*> cands;
         std::stack<Node*> q;
@@ -178,13 +191,13 @@ void FuseOperations(Graph* graph) {
             for (Value* value : node->inputs()) {
                 Node* next_node = value->producer();
                 if (!next_node) continue;
-                if (!fusable_ops.count(next_node->op_type())) continue;
+                if (!is_fusable(*next_node)) continue;
                 if (base_node->IsGradNode() != next_node->IsGradNode()) continue;
                 q.push(next_node);
             }
             for (Value* value : node->outputs()) {
                 for (Node* next_node : value->users()) {
-                    if (!fusable_ops.count(next_node->op_type())) continue;
+                    if (!is_fusable(*next_node)) continue;
                     if (base_node->IsGradNode() != next_node->IsGradNode()) continue;
                     q.push(next_node);
                 }
