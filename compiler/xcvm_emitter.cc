@@ -37,6 +37,12 @@ std::vector<int> IntVector(const std::vector<int64_t>& ints) {
     return std::vector<int>{ints.begin(), ints.end()};
 }
 
+void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto* prog) {
+    runtime::XCInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
+    inst->set_debug_info(debug_info);
+    inst->set_id(node.onikux_order());
+}
+
 class XCVMEmitter {
 public:
     XCVMEmitter() {}
@@ -188,10 +194,10 @@ private:
                 CHECK(false) << "Unknown direction: " << dir;
         };
 
-#define EMIT(op, ...)                                                                                  \
-    do {                                                                                               \
-        Add##op##Op(prog, __VA_ARGS__);                                                                \
-        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(node.ToString()); \
+#define EMIT(op, ...)                                   \
+        do {                                            \
+            Add##op##Op(prog, __VA_ARGS__);             \
+            FillOpInfo(node, node.ToString(), prog);    \
     } while (0);
 
 #define EMIT_SIMPLE_UNARY_OP(name, sym)           \
@@ -755,10 +761,10 @@ private:
         const std::string& debug_info = node.ToString();
 
 #define EMIT(op, ...)                                                   \
-    do {                                                                                                               \
-        Add##op##Op(prog, __VA_ARGS__);                                                                                \
-        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
-    } while (0)
+        do {                                                            \
+            Add##op##Op(prog, __VA_ARGS__);                             \
+            FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
+        } while (0)
 
         if (g_use_nvrtc) {
             std::string nvrtc;
@@ -804,6 +810,8 @@ private:
                 MOVE(GetValueId(to), GetValueId(from));
             }
         }
+
+#undef EMIT
     }
 
     void EmitIfImpl(
@@ -819,10 +827,10 @@ private:
         const std::string& debug_info = cond.ToString();
 
 #define EMIT(op, ...)                                                   \
-    do {                                                                                                               \
-        Add##op##Op(prog, __VA_ARGS__);                                                                                \
-        prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(StrCat(debug_info, " @", __LINE__)); \
-    } while (0)
+        do {                                                            \
+            Add##op##Op(prog, __VA_ARGS__);                             \
+            FillOpInfo(cond, StrCat(debug_info, " @", __LINE__), prog); \
+        } while (0)
 
         CHECK_EQ(cond.inputs().size(), then_input_values.size() + 1);
         CHECK_EQ(cond.inputs().size(), else_input_values.size() + 1);

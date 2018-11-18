@@ -427,6 +427,7 @@ def gen_xcvm_proto():
     lines.append('repeated XCValueProto inputs = 2;')
     lines.append('repeated int32 outputs = 3;')
     lines.append('optional string debug_info = 4;')
+    lines.append('optional int64 id = 5;')
     lines.append('}')
 
     lines.append('message XCProgramProto {')
