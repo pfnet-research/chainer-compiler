@@ -56,6 +56,10 @@ void EmitNode(const Node* node, CodeEmitter* ce) {
         out1("tanh(" + ins[0] + ")");
         break;
 
+    case Node::kExp:
+        out1("exp(" + ins[0] + ")");
+        break;
+
     case Node::kSigmoid:
         out1("sigmoid(" + ins[0] + ")");
         break;

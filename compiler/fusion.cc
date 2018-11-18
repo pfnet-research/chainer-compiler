@@ -110,6 +110,20 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_gr
     graph->MigrateNodes({nodes.begin(), nodes.end()}, {temps.begin(), temps.end()}, subgraph);
     fused->set_subgraph(subgraph);
     fused->set_onikux_fusion_group(fusion_group_id);
+
+#if 0
+    std::cerr << "Neighbors of " << fused->ToString() << ":" << std::endl;
+    for (Value* v : inputs) {
+        if (v->producer()) {
+            std::cerr << v->producer()->ToString() << std::endl;
+        }
+    }
+    for (Value* v : outputs) {
+        for (Node* n : v->users()) {
+            std::cerr << n->ToString() << std::endl;
+        }
+    }
+#endif
 }
 
 void RejectCyclicNodes(std::set<Node*>* cands) {
@@ -159,6 +173,7 @@ void FuseOperations(Graph* graph) {
         // Node::kDiv,
         Node::kTanh,
         Node::kSigmoid,
+        Node::kExp,
     };
 
     auto is_fusable = [&fusable_ops](const Node& node) {
