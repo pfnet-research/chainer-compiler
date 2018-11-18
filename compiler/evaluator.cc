@@ -6,6 +6,8 @@
 #include <set>
 
 #include <chainerx/array.h>
+#include <chainerx/device.h>
+#include <chainerx/native/native_backend.h>
 
 #include <common/strutil.h>
 #include <compiler/log.h>
@@ -68,6 +70,8 @@ void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, s
     std::vector<int> output_ids;
     xcvm::Emit(nodes, fetches, &program, &output_ids);
     // LOG() << "Evaluate " << program.DebugString();
+
+    chainerx::DeviceScope device_scope{chainerx::GetNativeBackend().GetDevice(0)};
 
     runtime::XCVM xcvm(program);
     runtime::XCVMState state(runtime::XCVMOptions{}, xcvm.num_variables(), {});
