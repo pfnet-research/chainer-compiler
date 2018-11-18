@@ -8,6 +8,7 @@
 
 #include <chainerx/array.h>
 
+#include <common/strutil.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
 #include <runtime/xchainer.h>
@@ -30,7 +31,7 @@ XCVM::XCVM(const XCProgramProto& program) {
 
     for (const XCInstructionProto& inst : program.instructions()) {
         XCVMOp* op = MakeXCVMOp(inst);
-        op->set_name(XCInstructionProto_Op_Name(inst.op()));
+        op->set_name(StrCat(XCInstructionProto_Op_Name(inst.op()), inst.id()));
         op->set_debug_info(inst.debug_info());
         program_.emplace_back(op);
     }
