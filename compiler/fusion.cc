@@ -162,6 +162,11 @@ void FuseOperations(Graph* graph) {
     };
 
     auto is_fusable = [&fusable_ops](const Node& node) {
+        if (node.op_type() == Node::kConstant) {
+            Tensor* t = node.tensor_value().get();
+            return t->dtype().IsFloat() && t->NumElements() == 1;
+        }
+
         if (!fusable_ops.count(node.op_type()))
             return false;
         for (Value* value : node.inputs()) {
@@ -208,7 +213,7 @@ void FuseOperations(Graph* graph) {
 
         int num_calculation = 0;
         for (Node* node : cands) {
-            if (node->op_type() != Node::kIdentity)
+            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant)
                 ++num_calculation;
         }
         if (num_calculation <= 1) continue;

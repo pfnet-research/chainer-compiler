@@ -12,6 +12,7 @@
 #include <common/log.h>
 #include <compiler/code_emitter.h>
 #include <compiler/node.h>
+#include <compiler/tensor.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -125,6 +126,23 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
     std::queue<Value*> q;
     for (Value* value : inputs) {
         q.push(value);
+    }
+
+    for (Node* node : nodes) {
+        if (node->op_type() != Node::kConstant) continue;
+        q.push(node->outputs()[0]);
+        Tensor* t = node->tensor_value().get();
+        CHECK_EQ(1, t->NumElements()) << t->dtype();
+        double value;
+        switch (t->dtype()) {
+        case Dtype::kFloat32:
+            value = t->Get<float>(0); break;
+        case Dtype::kFloat64:
+            value = t->Get<double>(0); break;
+        default:
+            CHECK(false) << t->dtype();
+        }
+        ce << "const T " << CleanseIdent(node->outputs()[0]->name()) << " = " << value << ";  // Constant\n";
     }
 
     while (!q.empty()) {
