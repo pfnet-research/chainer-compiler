@@ -2,6 +2,7 @@
 
 #include <chainerx/array.h>
 #include <chainerx/routines/creation.h>
+#include <chainerx/shape.h>
 
 #if ONIKU_ENABLE_NVRTC
 #include <cuda.h>
@@ -108,9 +109,17 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
     std::vector<chainerx::Array> inputs;
     for (chainerx::Array input : orig_inputs) {
         CHECK_EQ(dtype, input.dtype());
-        CHECK_EQ(shape, input.shape());
-        if (!input.IsContiguous())
+        shape = chainerx::internal::BroadcastShapes(shape, input.shape());
+    }
+
+    for (chainerx::Array input : orig_inputs) {
+        if (shape != input.shape()) {
+            // TODO(hamaji): Generate code which works without broadcast.
+            input = input.BroadcastTo(shape);
+        }
+        if (!input.IsContiguous()) {
             input = chainerx::Copy(input);
+        }
         inputs.push_back(input);
     }
 

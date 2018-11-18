@@ -154,7 +154,7 @@ void FuseOperations(Graph* graph) {
     const std::set<Node::OpType> fusable_ops = {
         Node::kIdentity,
         Node::kAdd,
-        // Node::kSub,
+        Node::kSub,
         Node::kMul,
         // Node::kDiv,
         Node::kTanh,
