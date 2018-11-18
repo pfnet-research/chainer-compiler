@@ -36,7 +36,7 @@ void Recursively(Fn fn, Graph* graph) {
     }
 }
 
-void ScheduleBackpropGraphs(Graph* graph) {
+int64_t ScheduleBackpropGraphs(Graph* graph, int64_t order) {
     struct SubGraph {
         Node* node;
         struct Ref {
@@ -94,9 +94,10 @@ void ScheduleBackpropGraphs(Graph* graph) {
                 CHECK(found != values.end()) << name;
                 output_values.push_back(found->second);
             }
-            ScheduleComputation(*graph, input_values, output_values);
+            order = ScheduleComputation(*graph, input_values, output_values, order);
         }
     }
+    return order;
 }
 
 }  //  namespace
@@ -140,8 +141,11 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
         dump_onnx(g_dump_after_fusion, "after fusion");
     }
 
-    Recursively([](Graph* g) { ScheduleComputation(*g); }, graph);
-    if (gen_backprop) Recursively(ScheduleBackpropGraphs, graph);
+    int64_t order = 0;
+    Recursively([&order](Graph* g) { order = ScheduleComputation(*g, order); }, graph);
+    if (gen_backprop) {
+        Recursively([&order](Graph* g) { order = ScheduleBackpropGraphs(g, order); }, graph);
+    }
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 

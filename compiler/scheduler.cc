@@ -284,10 +284,11 @@ std::vector<Node*> ScheduleStackPushPop(const std::vector<Value*>& input_values,
 
 }  // namespace
 
-void ScheduleComputation(
+int64_t ScheduleComputation(
         const Graph& graph,
         const std::vector<Value*>& input_values,
         const std::vector<Value*>& output_values,
+        int64_t order,
         SchedulerType scheduler_type) {
     std::vector<Node*> nodes;
     switch (scheduler_type) {
@@ -303,13 +304,8 @@ void ScheduleComputation(
 
     CheckSanity(graph, input_values, output_values, nodes);
 
-    int64_t max_order = 0;
-    for (const Node* node : graph.nodes()) {
-        max_order = std::max(max_order, node->onikux_order());
-    }
-
     for (Node* node : nodes) {
-        node->set_onikux_order(++max_order);
+        node->set_onikux_order(++order);
     }
 
     if (g_compiler_log) {
@@ -322,10 +318,11 @@ void ScheduleComputation(
         int64_t all_mb = usage.all / 1000 / 1000;
         std::cerr << "Simulated memory usage: param=" << param_mb << "MB peak=" << peak_mb << "MB all=" << all_mb << "MB" << std::endl;
     }
+    return order;
 }
 
-void ScheduleComputation(const Graph& graph, SchedulerType scheduler_type) {
-    ScheduleComputation(graph, graph.input_values(), graph.output_values(), scheduler_type);
+int64_t ScheduleComputation(const Graph& graph, int64_t order, SchedulerType scheduler_type) {
+    return ScheduleComputation(graph, graph.input_values(), graph.output_values(), order, scheduler_type);
 }
 
 }  // namespace oniku

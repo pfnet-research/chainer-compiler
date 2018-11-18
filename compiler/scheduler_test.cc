@@ -35,7 +35,7 @@ TEST_P(SchedulerTest, Basic) {
     Node* n2 = graph.AddNode(Node::kIdentity, {in}, {tmp});
     Node* n3 = graph.AddNode(Node::kIdentity, {unused1}, {unused2});
 
-    ScheduleComputation(graph, GetParam());
+    ScheduleComputation(graph, 0, GetParam());
 
     const std::vector<const Node*> nodes(graph.GetComputationSequence());
     ASSERT_EQ(2UL, nodes.size());
@@ -68,7 +68,7 @@ TEST_P(SchedulerTest, MultipleTimes) {
     Node* n3 = graph.AddNode(Node::kIdentity, {other1}, {other2});
 
     // Run in => tmp.
-    ScheduleComputation(graph, {in}, {tmp}, GetParam());
+    ScheduleComputation(graph, {in}, {tmp}, 0, GetParam());
 
     std::vector<const Node*> nodes(graph.GetComputationSequence());
     ASSERT_EQ(1UL, nodes.size());
@@ -76,9 +76,9 @@ TEST_P(SchedulerTest, MultipleTimes) {
     EXPECT_EQ(1, n2->onikux_order());
 
     // Run other1 => other2.
-    ScheduleComputation(graph, {other1}, {other2}, GetParam());
+    ScheduleComputation(graph, {other1}, {other2}, 0, GetParam());
     // Run in => out (only tmp => out will be scheduled).
-    ScheduleComputation(graph, {in}, {out}, GetParam());
+    ScheduleComputation(graph, {in}, {out}, 0, GetParam());
 
     nodes = graph.GetComputationSequence();
     ASSERT_EQ(3UL, nodes.size());
