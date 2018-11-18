@@ -121,9 +121,11 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
 
     CUfunction cu_kernel = CompileAndLoad(name, code);
 
-#define NUM_THREADS 128
-#define NUM_BLOCKS 32
-    size_t n = NUM_THREADS * NUM_BLOCKS;
+    size_t size = inputs.front().GetTotalSize();
+    CHECK_GT(1 << 31, size);
+    const size_t block_max_size = 128;
+    const size_t grid_x = (size + block_max_size - 1) / block_max_size;
+    const size_t block_x = std::min(block_max_size, size);
     std::vector<void*> ptrs;
     for (chainerx::Array& input : inputs) {
         ptrs.push_back(input.raw_data());
@@ -131,12 +133,12 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
     for (chainerx::Array& output : outputs) {
         ptrs.push_back(output.raw_data());
     }
-    std::vector<void*> args = {&n};
+    std::vector<void*> args = {&size};
     for (void*& p : ptrs) args.push_back(&p);
 
     CHECK_CUDA(cuLaunchKernel(cu_kernel,
-                              NUM_THREADS, 1, 1,   // grid dim
-                              NUM_BLOCKS, 1, 1,    // block dim
+                              grid_x, 1, 1,        // grid dim
+                              block_x, 1, 1,       // block dim
                               0, NULL,             // shared mem and stream
                               args.data(),         // arguments
                               0));
