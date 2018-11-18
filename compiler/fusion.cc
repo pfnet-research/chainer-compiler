@@ -112,6 +112,48 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_gr
     fused->set_onikux_fusion_group(fusion_group_id);
 }
 
+// TODO(hamaji): Enable this code. See 1. of the TODO comment in
+// FuseOperations.
+#if 0
+
+void RejectCyclicNodes(std::set<Node*>* cands) {
+    std::set<Node*> seen;
+    for (Node* node : *cands) {
+        for (Value* output : node->outputs()) {
+            for (Node* n : output->users()) {
+                if (!cands->count(n)) seen.insert(n);
+            }
+        }
+    }
+
+    std::stack<Node*> q;
+    for (Node* node : seen) q.push(node);
+    std::set<Node*> rejected;
+
+    while (!q.empty()) {
+        Node* node = q.top();
+        q.pop();
+        if (!seen.emplace(node).second) continue;
+        if (cands->count(node)) {
+            rejected.insert(node);
+            continue;
+        }
+
+        // TODO(hamaji): Optimize this algorithm by pre-calculating
+        // the max distance from the input for all nodes.
+
+        for (Value* output : node->outputs()) {
+            for (Node* n : output->users()) {
+                q.push(n);
+            }
+        }
+    }
+
+    for (Node* node : rejected) cands->erase(node);
+}
+
+#endif
+
 }  // namespace
 
 void FuseOperations(Graph* graph) {
@@ -135,14 +177,12 @@ void FuseOperations(Graph* graph) {
 
         std::set<Node*> cands;
         std::stack<Node*> q;
-        int num_non_identity = 0;
         q.push(base_node);
         while (!q.empty()) {
             Node* node = q.top();
             CHECK_EQ(0, node->onikux_fusion_group());
             q.pop();
             if (!cands.emplace(node).second) continue;
-            num_non_identity += (node->op_type() != Node::kIdentity);
 
             for (Value* value : node->inputs()) {
                 Node* next_node = value->producer();
@@ -160,7 +200,14 @@ void FuseOperations(Graph* graph) {
             }
         }
 
-        if (num_non_identity <= 1) continue;
+        // RejectCyclicNodes(&cands);
+
+        int num_calculation = 0;
+        for (Node* node : cands) {
+            if (node->op_type() != Node::kIdentity)
+                ++num_calculation;
+        }
+        if (num_calculation <= 1) continue;
 
         ++num_fusion_groups;
         for (Node* node : cands) {
