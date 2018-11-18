@@ -564,6 +564,7 @@ void LoopGradFn(GradientOpContext* gc) {
             CHECK(y->grad() == nullptr);
             y->set_grad(gb.Op(Node::kIdentity, {gy}));
             ys.push_back(y);
+            gy->ChangeKind(Value::Kind::kInput);
             input_value_names.push_back(gy->name());
         }
         AddGradientNodes(body, ys, true /* retain_in_stack */);
@@ -573,6 +574,7 @@ void LoopGradFn(GradientOpContext* gc) {
         for (int i = 0; i < num_states; ++i) {
             Value* x = body->input_values()[i + 2];
             Value* out = GradOut(&gb, x);
+            out->ChangeKind(Value::Kind::kOutput);
             output_value_names.push_back(out->name());
         }
     }
@@ -644,6 +646,7 @@ void IfGradFn(GradientOpContext* gc) {
             CHECK(then_y->grad() == nullptr);
             then_y->set_grad(then_gb.Op(Node::kIdentity, {then_gy}));
             then_ys.push_back(then_y);
+            then_gy->ChangeKind(Value::Kind::kInput);
             then_input_value_names.push_back(then_gy->name());
 
             Value* else_y = else_graph->output_values()[i];
@@ -651,6 +654,7 @@ void IfGradFn(GradientOpContext* gc) {
             CHECK(else_y->grad() == nullptr);
             else_y->set_grad(else_gb.Op(Node::kIdentity, {else_gy}));
             else_ys.push_back(else_y);
+            else_gy->ChangeKind(Value::Kind::kInput);
             else_input_value_names.push_back(else_gy->name());
         }
         AddGradientNodes(then_graph, then_ys, true);
@@ -664,8 +668,10 @@ void IfGradFn(GradientOpContext* gc) {
             }
             gx_indices.push_back(i);
             Value* then_out = GradOut(&then_gb, then_x);
+            then_out->ChangeKind(Value::Kind::kOutput);
             then_output_value_names.push_back(then_out->name());
             Value* else_out = GradOut(&else_gb, else_x);
+            else_out->ChangeKind(Value::Kind::kOutput);
             else_output_value_names.push_back(else_out->name());
         }
     }
