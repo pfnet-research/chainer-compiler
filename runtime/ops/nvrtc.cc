@@ -53,12 +53,13 @@ char* Compile(const std::string& name, const std::string& code) {
     const char* kOpts[] = {
         "--gpu-architecture=compute_50",
     };
-    CHECK_NVRTC(nvrtcCompileProgram(prog, 1, kOpts));
+    nvrtcResult result = nvrtcCompileProgram(prog, 1, kOpts);
     // Obtain compilation log from the program.
-    size_t logSize;
-    CHECK_NVRTC(nvrtcGetProgramLogSize(prog, &logSize));
-    char* log = new char[logSize];
+    size_t log_size;
+    CHECK_NVRTC(nvrtcGetProgramLogSize(prog, &log_size));
+    char* log = new char[log_size];
     CHECK_NVRTC(nvrtcGetProgramLog(prog, log));
+    CHECK_EQ(result, NVRTC_SUCCESS) << code << "\nlog:\n" << log;
     // Obtain PTX from the program.
     size_t ptxSize;
     CHECK_NVRTC(nvrtcGetPTXSize(prog, &ptxSize));
@@ -76,13 +77,6 @@ CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
     if (found != cache.end()) return found->second;
 
     char* ptx = Compile(name, code);
-
-#if 0
-    std::cerr << "\nname of kernel: " << name << std::endl;
-    std::cerr << "# of inputs: " << inputs.size() << std::endl;
-    std::cerr << "# of outputs: " << outputs.size() << std::endl;
-    std::cerr << "code:\n" << code << std::endl;
-#endif
 
     CUmodule cu_module;
     CUfunction cu_kernel;
@@ -128,6 +122,12 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
         outputs.push_back(chainerx::Empty(shape, dtype, device));
     }
 
+#if 0
+    std::cerr << "\nname of kernel: " << name << std::endl;
+    std::cerr << "# of inputs: " << inputs.size() << std::endl;
+    std::cerr << "# of outputs: " << outputs.size() << std::endl;
+    std::cerr << "code:\n" << code << std::endl;
+#endif
     CUfunction cu_kernel = CompileAndLoad(name, code);
 
     size_t size = inputs.front().GetTotalSize();
