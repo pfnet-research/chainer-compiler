@@ -112,23 +112,18 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_gr
     fused->set_onikux_fusion_group(fusion_group_id);
 }
 
-// TODO(hamaji): Enable this code. See 1. of the TODO comment in
-// FuseOperations.
-#if 0
-
 void RejectCyclicNodes(std::set<Node*>* cands) {
-    std::set<Node*> seen;
+    std::stack<Node*> q;
     for (Node* node : *cands) {
         for (Value* output : node->outputs()) {
             for (Node* n : output->users()) {
-                if (!cands->count(n)) seen.insert(n);
+                if (!cands->count(n)) q.push(n);
             }
         }
     }
 
-    std::stack<Node*> q;
-    for (Node* node : seen) q.push(node);
     std::set<Node*> rejected;
+    std::set<Node*> seen;
 
     while (!q.empty()) {
         Node* node = q.top();
@@ -136,7 +131,6 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
         if (!seen.emplace(node).second) continue;
         if (cands->count(node)) {
             rejected.insert(node);
-            continue;
         }
 
         // TODO(hamaji): Optimize this algorithm by pre-calculating
@@ -152,14 +146,11 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
-#endif
-
 }  // namespace
 
 void FuseOperations(Graph* graph) {
     // TODO(hamaji): Current algorithm is broken in a few ways.
     // 1. It tries to fuse integer operations.
-    // 2. It may pick a group which cannot be done at once.
     const std::set<Node::OpType> fusable_ops = {
         Node::kIdentity,
         Node::kAdd,
@@ -200,7 +191,7 @@ void FuseOperations(Graph* graph) {
             }
         }
 
-        // RejectCyclicNodes(&cands);
+        RejectCyclicNodes(&cands);
 
         int num_calculation = 0;
         for (Node* node : cands) {
