@@ -10,6 +10,8 @@
 #include <onnx/onnx_pb.h>
 #include <onnx/shape_inference/implementation.h>
 
+#include <chainerx/context.h>
+
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <compiler/graph.h>
@@ -123,6 +125,9 @@ TEST(ModelTest, LoadResNet50) {
 }
 
 TEST(ModelTest, CompileCH2OResNet50) {
+    chainerx::Context ctx;
+    chainerx::SetGlobalDefaultContext(&ctx);
+
     std::string path = "out/ch2o_model_Resnet_with_loss/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     onnx::shape_inference::InferShapes(xmodel);
