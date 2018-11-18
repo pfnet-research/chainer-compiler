@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <string>
 
 #include <runtime/xchainer.h>
@@ -13,6 +14,13 @@ class XCVMState;
 class XCVMOp {
 public:
     virtual void Run(XCVMState* state) = 0;
+
+    int64_t id() const {
+        return id_;
+    }
+    void set_id(int64_t id) {
+        id_ = id;
+    }
 
     const std::string& name() const {
         return name_;
@@ -29,6 +37,7 @@ public:
     }
 
 protected:
+    int64_t id_;
     std::string name_;
     std::string debug_info_;
 };
