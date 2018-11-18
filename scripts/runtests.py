@@ -35,6 +35,7 @@ parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
                     help='Run all tests with GPU')
+parser.add_argument('--fuse', action='store_true', help='Enable fusion')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -644,6 +645,11 @@ def main():
                 continue
             test_case.args.extend(['-d', 'cuda'])
             is_gpu = True
+
+        if args.fuse:
+            test_case.args.append('--fuse_operations')
+            if is_gpu:
+                test_case.args.append('--use_nvrtc')
 
         if is_gpu:
             gpu_tests.append(test_case)
