@@ -19,8 +19,8 @@ from chainer import functions as F
 
 def _extract_gates(x):
     r = F.reshape(x, (len(x), x.shape[1] // 4, 4) + x.shape[2:])
-    return r[:, :, 0], r[:, :, 1], r[:, :, 2], r[:, :, 3]
-    # return [r[:, :, i] for i in six.moves.range(4)]
+    r = F.separate(r, axis=2)
+    return r[0], r[1], r[2], r[3]
 
 
 def lstm_forward(c_prev, x):
