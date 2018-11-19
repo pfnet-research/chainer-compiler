@@ -19,12 +19,6 @@ using chainerx::cuda::CheckCudnnError;
 using chainerx::cuda::cuda_internal::CudnnHandle;
 using chainerx::cuda::cuda_internal::CudnnTensorDescriptor;
 
-void check_cudnn(cudnnStatus_t status, const char* msg, int lineno) {
-    CHECK_EQ(CUDNN_STATUS_SUCCESS, status) << "CUDNN error: " << cudnnGetErrorString(status) << " at line " << lineno;
-}
-
-#define CHECK_CUDNN(expr) check_cudnn(expr, #expr, __LINE__)
-
 // TODO(hamaji): Use ChainerX's.
 cudnnDataType_t GetCudnnDataType(chainerx::Dtype dtype) {
     switch (dtype) {
