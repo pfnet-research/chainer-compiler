@@ -366,10 +366,10 @@ def csj_small_recipe():
     att_dim = 320
     batch_size = 32
     dlayers = 2
-    dunits = 1024
+    dunits = 768
     elayers = 4
     eprojs = 320
-    eunits = 1024
+    eunits = 768
 
     ilen = 30
     olen = 10
@@ -595,4 +595,3 @@ if __name__ == '__main__':
         dispatch()
     else:
         gen_test()
-
