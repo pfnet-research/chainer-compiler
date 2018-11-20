@@ -39,6 +39,8 @@ inline std::string JoinString(std::initializer_list<std::string> l) {
     return JoinString(std::vector<std::string>(l));
 }
 
+std::vector<std::string> SplitString(const std::string& str, const std::string& sep);
+
 template <class List, class Fn>
 inline std::vector<std::string> MapToString(const List& l, Fn fn) {
     std::vector<std::string> r;
