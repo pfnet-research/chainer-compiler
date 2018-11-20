@@ -44,10 +44,6 @@ public:
 
     int64_t GetNBytes() const;
 
-    bool is_known() const {
-        return is_known_;
-    }
-
 private:
     Kind kind_{Kind::kTensor};
     Dtype dtype_{Dtype::kUnknown};
@@ -55,7 +51,7 @@ private:
     std::vector<std::string> dim_params_;
     std::vector<std::string> denotations_;
     std::unique_ptr<Type> sequence_;
-    bool is_known_{true};
+    bool has_known_shape_{true};
 };
 
 std::ostream& operator<<(std::ostream& os, const Type::Kind& kind);

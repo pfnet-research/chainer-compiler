@@ -361,7 +361,7 @@ void ConvGradFn(GradientOpContext* gc) {
     {
         GraphBuilder gb{gc->builder(0)};
         Value* x = gc->x(0);
-        if (x->type().is_known() && x->type().dims().size() > 2) {
+        if (x->type().dims().size() > 2) {
             gc->GradOp(Node::kConvTranspose, 0, {gy, w})
                     ->producer()
                     ->set_strides(node->strides())

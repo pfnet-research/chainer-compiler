@@ -5,13 +5,13 @@
 namespace oniku {
 
 Type::Type(Kind kind) : kind_(kind) {
-    is_known_ = false;
+    has_known_shape_ = false;
 }
 
 Type::Type(const onnx::TypeProto& xtype) {
     if (xtype.has_sequence_type()) {
         kind_ = Kind::kSequence;
-        is_known_ = false;
+        has_known_shape_ = false;
         sequence_.reset(new Type(xtype.sequence_type().elem_type()));
         return;
     }
@@ -22,13 +22,13 @@ Type::Type(const onnx::TypeProto& xtype) {
 
     if (xtype.has_opaque_type()) {
         kind_ = Kind::kOpaque;
-        is_known_ = false;
+        has_known_shape_ = false;
         return;
     }
 
     CHECK(xtype.has_tensor_type()) << xtype.DebugString();
     dtype_ = Dtype(xtype.tensor_type().elem_type());
-    is_known_ = xtype.tensor_type().has_elem_type();
+    has_known_shape_ = xtype.tensor_type().has_shape();
     for (const auto& dim : xtype.tensor_type().shape().dim()) {
         if (dim.has_denotation()) {
             denotations_.resize(dims_.size());
@@ -54,7 +54,7 @@ Type::Type(const Type& type)
       dim_params_(type.dim_params_),
       denotations_(type.denotations_),
       sequence_(type.sequence_.get() ? new Type(*type.sequence_) : nullptr),
-      is_known_(type.is_known_) {
+      has_known_shape_(type.has_known_shape_) {
 }
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {
@@ -74,7 +74,7 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
     }
 
     xtype->mutable_tensor_type()->set_elem_type(dtype_.ToONNX());
-    if (!is_known_) return;
+    if (!has_known_shape_) return;
     onnx::TensorShapeProto* xshape = xtype->mutable_tensor_type()->mutable_shape();
     for (size_t i = 0; i < dims_.size(); ++i) {
         auto* dim = xshape->add_dim();
@@ -97,7 +97,7 @@ std::string Type::DebugString() const {
 
 int64_t Type::NumElements() const {
     CHECK_EQ(kind_, Kind::kTensor);
-    if (!is_known_) return -1;
+    if (!has_known_shape_) return -1;
     int64_t num = 1;
     for (int d : dims_) {
         if (d < 0) return -1;
