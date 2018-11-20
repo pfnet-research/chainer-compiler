@@ -19,7 +19,11 @@ void Emit(const Model& model, runtime::XCProgramProto* program, bool dump_value_
 
 void Emit(const Model& model, std::ostream& out, bool dump_value_names = false);
 
-void Emit(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, runtime::XCProgramProto* program, std::vector<int>* output_ids);
+void Emit(
+        const std::vector<Node*>& nodes,
+        const std::vector<Value*>& fetches,
+        runtime::XCProgramProto* program,
+        std::vector<int>* output_ids);
 
 }  // namespace xcvm
 }  // namespace oniku

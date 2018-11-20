@@ -195,8 +195,7 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, In
 
 chainerx::Array StageArray(chainerx::Array a) {
     // TODO(hamaji): Figure out a better way to identify host inputs.
-    if (a.dtype() != chainerx::Dtype::kInt64)
-        return a.ToDevice(chainerx::GetDefaultDevice());
+    if (a.dtype() != chainerx::Dtype::kInt64) return a.ToDevice(chainerx::GetDefaultDevice());
     return a;
 }
 

@@ -22,7 +22,7 @@ public:
 
     class ScopedEvent {
     public:
-        explicit ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name, int pc=-1);
+        explicit ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name, int pc = -1);
         ~ScopedEvent();
 
     private:

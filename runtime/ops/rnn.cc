@@ -24,8 +24,8 @@ public:
         if (!has_mask_) return;
         CHECK_EQ(1, sequence_lens->ndim());
         CHECK_EQ(batch_size_, sequence_lens->shape()[0]);
-        sequence_mask_ = chainerx::Transpose(
-                chainerx::BroadcastTo(chainerx::Arange(seq_length, sequence_lens->dtype(), sequence_lens->device()), chainerx::Shape({batch_size, seq_length})));
+        sequence_mask_ = chainerx::Transpose(chainerx::BroadcastTo(
+                chainerx::Arange(seq_length, sequence_lens->dtype(), sequence_lens->device()), chainerx::Shape({batch_size, seq_length})));
         sequence_mask_ = chainerx::Less(sequence_mask_, chainerx::Reshape(*sequence_lens, {1, batch_size})).AsType(dtype);
         sequence_mask_ = sequence_mask_.ToDevice(chainerx::GetDefaultDevice());
     }
@@ -228,9 +228,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
         const nonstd::optional<chainerx::Array>& p) {
 #if ONIKU_ENABLE_CUDNN
     // TODO(hamaji): Handle more cases.
-    if ((direction == 0 || direction == 2) &&
-        b.has_value() &&
-        !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
+    if ((direction == 0 || direction == 2) && b.has_value() && !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> result;
         if (CudnnLSTM(x, w, r, b, sequence_lens, initial_h, initial_c, p, hidden_size, direction, &result)) {
             return result;
@@ -345,9 +343,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> LSTMGradOp::RunImpl(
-        XCVMState* st,
-        const chainerx::Array& gy,
-        const XCVMOpaque& ctx) {
+        XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
 #if ONIKU_ENABLE_CUDNN
     {
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> result;

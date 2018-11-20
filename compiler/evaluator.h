@@ -14,7 +14,9 @@ public:
     explicit EvaluatedValue(Tensor* tensor);
     explicit EvaluatedValue(std::vector<std::unique_ptr<Tensor>>&& sequence);
 
-    bool is_tensor() const { return tensor_.get(); }
+    bool is_tensor() const {
+        return tensor_.get();
+    }
 
     Tensor* ReleaseTensor();
     std::vector<std::unique_ptr<Tensor>> ReleaseSequence();

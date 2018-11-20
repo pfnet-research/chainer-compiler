@@ -132,7 +132,6 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
                 }
             }
             break;
-
         }
 
         case XCVMVar::Kind::kOpaque:
@@ -170,13 +169,9 @@ void GenericIsOp::RunImpl(XCVMState* st) {
     } else if (var0->kind() == XCVMVar::Kind::kArray) {
         chainerx::Array a = var0->GetArray();
         chainerx::Array b = var1->GetArray();
-        if (a.ndim() == 0 && b.ndim() == 0 &&
-            a.dtype() == chainerx::Dtype::kBool &&
-            b.dtype() == chainerx::Dtype::kBool) {
-            result = (static_cast<bool>(chainerx::AsScalar(a)) ==
-                      static_cast<bool>(chainerx::AsScalar(b)));
-        } else if (a.dtype() != b.dtype() || a.shape() != b.shape() ||
-                   a.raw_data() != b.raw_data()) {
+        if (a.ndim() == 0 && b.ndim() == 0 && a.dtype() == chainerx::Dtype::kBool && b.dtype() == chainerx::Dtype::kBool) {
+            result = (static_cast<bool>(chainerx::AsScalar(a)) == static_cast<bool>(chainerx::AsScalar(b)));
+        } else if (a.dtype() != b.dtype() || a.shape() != b.shape() || a.raw_data() != b.raw_data()) {
             // We are sure the return value is false.
         } else {
             WARN_ONCE("`is` keyword for non boolean scalars might be wrong");
@@ -190,20 +185,20 @@ void GenericIsOp::RunImpl(XCVMState* st) {
 void GenericZerosLikeGradOp::RunImpl(XCVMState* st) {
     XCVMVar* var = st->GetVar(a);
     switch (var->kind()) {
-    case XCVMVar::Kind::kArray: {
-        st->SetArray(output, chainerx::ZerosLike(var->GetArray()));
-        break;
-    }
-    case XCVMVar::Kind::kSequence: {
-        const XCVMSequence& seq = *var->GetSequence();
-        XCVMSequence* out = st->CreateSequence(output);
-        out->resize(seq.size());
-        break;
-    }
+        case XCVMVar::Kind::kArray: {
+            st->SetArray(output, chainerx::ZerosLike(var->GetArray()));
+            break;
+        }
+        case XCVMVar::Kind::kSequence: {
+            const XCVMSequence& seq = *var->GetSequence();
+            XCVMSequence* out = st->CreateSequence(output);
+            out->resize(seq.size());
+            break;
+        }
 
-    case XCVMVar::Kind::kOpaque:
-    case XCVMVar::Kind::kNull:
-        CHECK(false) << var->DebugString();
+        case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
+            CHECK(false) << var->DebugString();
     }
 }
 
@@ -223,31 +218,31 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
     CHECK_EQ(var0->kind(), var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
 
     switch (var0->kind()) {
-    case XCVMVar::Kind::kArray: {
-        st->SetArray(output, var0->GetArray() + var1->GetArray());
-        break;
-    }
-    case XCVMVar::Kind::kSequence: {
-        const XCVMSequence& seq0 = *var0->GetSequence();
-        const XCVMSequence& seq1 = *var1->GetSequence();
-        XCVMSequence* out = st->CreateSequence(output);
-        CHECK_EQ(seq0.size(), seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
-        out->resize(seq0.size());
-        for (size_t i = 0; i < seq0.size(); ++i) {
-            if (!seq0[i].IsNull() && !seq1[i].IsNull()) {
-                (*out)[i] = XCVMVar(seq0[i].GetArray() + seq1[i].GetArray());
-            } else if (!seq0[i].IsNull()) {
-                (*out)[i] = seq0[i];
-            } else if (!seq1[i].IsNull()) {
-                (*out)[i] = seq1[i];
-            }
+        case XCVMVar::Kind::kArray: {
+            st->SetArray(output, var0->GetArray() + var1->GetArray());
+            break;
         }
-        break;
-    }
+        case XCVMVar::Kind::kSequence: {
+            const XCVMSequence& seq0 = *var0->GetSequence();
+            const XCVMSequence& seq1 = *var1->GetSequence();
+            XCVMSequence* out = st->CreateSequence(output);
+            CHECK_EQ(seq0.size(), seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
+            out->resize(seq0.size());
+            for (size_t i = 0; i < seq0.size(); ++i) {
+                if (!seq0[i].IsNull() && !seq1[i].IsNull()) {
+                    (*out)[i] = XCVMVar(seq0[i].GetArray() + seq1[i].GetArray());
+                } else if (!seq0[i].IsNull()) {
+                    (*out)[i] = seq0[i];
+                } else if (!seq1[i].IsNull()) {
+                    (*out)[i] = seq1[i];
+                }
+            }
+            break;
+        }
 
-    case XCVMVar::Kind::kOpaque:
-    case XCVMVar::Kind::kNull:
-        CHECK(false) << var0->DebugString();
+        case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
+            CHECK(false) << var0->DebugString();
     }
 }
 

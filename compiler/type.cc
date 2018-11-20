@@ -4,8 +4,7 @@
 
 namespace oniku {
 
-Type::Type(Kind kind)
-    : kind_(kind) {
+Type::Type(Kind kind) : kind_(kind) {
     is_known_ = false;
 }
 
@@ -45,9 +44,7 @@ Type::Type(const onnx::TypeProto& xtype) {
     }
 }
 
-Type::Type(Dtype dtype, const std::vector<int64_t>& dims)
-    : dtype_(dtype),
-      dims_(dims) {
+Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_(dims) {
 }
 
 Type::Type(const Type& type)
@@ -117,7 +114,7 @@ int64_t Type::GetNBytes() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const Type::Kind& kind) {
-    static const char* kNames[] = { "Tensor", "Sequence", "Map", "Opaque" };
+    static const char* kNames[] = {"Tensor", "Sequence", "Map", "Opaque"};
     int k = static_cast<int>(kind);
     if (k >= 0 && k < sizeof(kNames) / sizeof(kNames[0])) {
         os << kNames[k];

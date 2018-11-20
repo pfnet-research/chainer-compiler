@@ -60,7 +60,9 @@ public:
     void CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs);
     void CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs);
 
-    const XCVMOptions& options() const { return options_; }
+    const XCVMOptions& options() const {
+        return options_;
+    }
 
     int trace_level() const {
         return options_.trace_level;

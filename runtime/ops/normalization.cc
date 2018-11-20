@@ -41,8 +41,12 @@ public:
     NoBatchNormContext() = default;
     virtual ~NoBatchNormContext() = default;
 
-    virtual std::string ToString() const { return "noctx"; }
-    virtual std::string DebugString() const { return "noctx"; }
+    virtual std::string ToString() const {
+        return "noctx";
+    }
+    virtual std::string DebugString() const {
+        return "noctx";
+    }
 };
 
 // TODO(hamaji): Copied from xChainer's code.
@@ -176,7 +180,8 @@ std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(XCVMState* st, const
     return std::tie(out, unit_scale);
 }
 
-chainerx::Array LRNGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy, const chainerx::Array& unit_scale) {
+chainerx::Array LRNGradOp::RunImpl(
+        XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy, const chainerx::Array& unit_scale) {
     int half_n = size / 2;
     chainerx::Array summand = y * gy / unit_scale;
     chainerx::Array sum_part = summand.Copy();

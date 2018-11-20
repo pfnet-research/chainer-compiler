@@ -15,8 +15,12 @@ class XCVMOpaque {
 public:
     virtual ~XCVMOpaque() = default;
 
-    virtual std::string ToString() const { return "???"; }
-    virtual std::string DebugString() const { return "???"; }
+    virtual std::string ToString() const {
+        return "???";
+    }
+    virtual std::string DebugString() const {
+        return "???";
+    }
 
 protected:
     XCVMOpaque() = default;

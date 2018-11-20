@@ -81,11 +81,9 @@ chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype) {
     if (input.dtype() == dtype) return input;
     chainerx::Array output = input.AsType(dtype);
     // TODO(hamaji): Stop doing this ad-hoc device assignment.
-    if (input.dtype() == chainerx::Dtype::kInt64 &&
-        output.dtype() != chainerx::Dtype::kInt64) {
+    if (input.dtype() == chainerx::Dtype::kInt64 && output.dtype() != chainerx::Dtype::kInt64) {
         output = output.ToDevice(chainerx::GetDefaultDevice());
-    } else if (input.dtype() != chainerx::Dtype::kInt64 &&
-               output.dtype() == chainerx::Dtype::kInt64) {
+    } else if (input.dtype() != chainerx::Dtype::kInt64 && output.dtype() == chainerx::Dtype::kInt64) {
         output = output.ToDevice(chainerx::GetNativeBackend().GetDevice(0));
     }
     return output;
@@ -375,10 +373,10 @@ chainerx::Array SliceOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
 namespace {
 
 std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
-    const chainerx::Array& data,
-    const chainerx::Array& starts,
-    const chainerx::Array& ends,
-    const nonstd::optional<chainerx::Array>& axes) {
+        const chainerx::Array& data,
+        const chainerx::Array& starts,
+        const chainerx::Array& ends,
+        const nonstd::optional<chainerx::Array>& axes) {
     CHECK_EQ(1, starts.ndim());
     CHECK_EQ(1, ends.ndim());
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
@@ -433,7 +431,8 @@ chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, co
     return data.Take(Indices(indices), axis);
 }
 
-chainerx::Array GatherGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
+chainerx::Array GatherGradOp::RunImpl(
+        XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     out.device().AddAt(out, Indices(indices), axis, gy, out);
     return out;
@@ -444,7 +443,8 @@ chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data
     int64_t batch_size = data.shape()[0];
     int64_t num_classes = data.shape()[1];
     int64_t total_size = batch_size * num_classes;
-    chainerx::Array take_indices = (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(data.device());
+    chainerx::Array take_indices =
+            (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(data.device());
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 
@@ -456,7 +456,8 @@ chainerx::Array SelectItemGradOp::RunImpl(
     int64_t num_classes = shape[1];
     int64_t total_size = batch_size * num_classes;
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
-    chainerx::Array take_indices = (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(out.device());
+    chainerx::Array take_indices =
+            (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(out.device());
     out.device().AddAt(out, take_indices, 0, gy, out);
     return out.Reshape(shape);
 }
@@ -590,7 +591,8 @@ chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
     return a.AsType(static_cast<chainerx::Dtype>(dtype));
 }
 
-chainerx::Array OneHotOp::RunImpl(XCVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
+chainerx::Array OneHotOp::RunImpl(
+        XCVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
     int rank = indices.ndim();
     chainerx::Array depth_range = chainerx::Arange(chainerx::AsScalar(depth), indices.device());
     int axis = this->axis;

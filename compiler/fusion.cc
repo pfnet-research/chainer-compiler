@@ -4,9 +4,9 @@
 
 #include <algorithm>
 #include <iterator>
+#include <set>
 #include <stack>
 #include <vector>
-#include <set>
 
 #include <common/strutil.h>
 #include <compiler/graph.h>
@@ -55,9 +55,7 @@ void FindInOuts(const std::set<Node*>& nodes, std::vector<Value*>* inputs, std::
     for (Value* value : *inputs) temps->erase(value);
     for (Value* value : *outputs) temps->erase(value);
 
-    auto by_name = [](const Value* a, const Value* b) {
-        return a->name() < b->name();
-    };
+    auto by_name = [](const Value* a, const Value* b) { return a->name() < b->name(); };
     std::sort(inputs->begin(), inputs->end(), by_name);
     std::sort(outputs->begin(), outputs->end(), by_name);
 }
@@ -166,14 +164,14 @@ void FuseOperations(Graph* graph) {
     // TODO(hamaji): Current algorithm is broken in a few ways.
     // 1. It tries to fuse integer operations.
     const std::set<Node::OpType> fusable_ops = {
-        Node::kIdentity,
-        Node::kAdd,
-        Node::kSub,
-        Node::kMul,
-        // Node::kDiv,
-        Node::kTanh,
-        Node::kSigmoid,
-        Node::kExp,
+            Node::kIdentity,
+            Node::kAdd,
+            Node::kSub,
+            Node::kMul,
+            // Node::kDiv,
+            Node::kTanh,
+            Node::kSigmoid,
+            Node::kExp,
     };
 
     auto is_fusable = [&fusable_ops](const Node& node) {
@@ -182,14 +180,12 @@ void FuseOperations(Graph* graph) {
             return t->dtype().IsFloat() && t->NumElements() == 1;
         }
 
-        if (!fusable_ops.count(node.op_type()))
-            return false;
+        if (!fusable_ops.count(node.op_type())) return false;
         for (Value* value : node.inputs()) {
             Dtype dtype = value->type().dtype();
             // TODO(hamaji): Fix the dtype inference and do not fuse
             // unknown dtypes.
-            if (!dtype.IsFloat() && dtype != Dtype::kUnknown)
-                return false;
+            if (!dtype.IsFloat() && dtype != Dtype::kUnknown) return false;
         }
         return true;
     };
@@ -228,8 +224,7 @@ void FuseOperations(Graph* graph) {
 
         int num_calculation = 0;
         for (Node* node : cands) {
-            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant)
-                ++num_calculation;
+            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
         }
         if (num_calculation <= 1) continue;
 

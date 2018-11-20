@@ -21,7 +21,8 @@ void ChromeTracingEmitter::Event::Finish() {
     end_time = std::chrono::system_clock::now();
 }
 
-ChromeTracingEmitter::ScopedEvent::ScopedEvent(ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name, int pc)
+ChromeTracingEmitter::ScopedEvent::ScopedEvent(
+        ChromeTracingEmitter* chrome_tracing, const std::string& category, const std::string& name, int pc)
     : event_(nullptr) {
     if (chrome_tracing) {
         event_ = new ChromeTracingEmitter::Event(category, name, pc);

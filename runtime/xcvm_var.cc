@@ -17,12 +17,10 @@ XCVMVar::XCVMVar(Kind kind) : kind_(kind) {
     }
 }
 
-XCVMVar::XCVMVar(chainerx::Array array)
-    : kind_(Kind::kArray), array_(array) {
+XCVMVar::XCVMVar(chainerx::Array array) : kind_(Kind::kArray), array_(array) {
 }
 
-XCVMVar::XCVMVar(XCVMOpaque* opaque)
-    : kind_(Kind::kOpaque), opaque_(opaque) {
+XCVMVar::XCVMVar(XCVMOpaque* opaque) : kind_(Kind::kOpaque), opaque_(opaque) {
 }
 
 const chainerx::Array& XCVMVar::GetArray() const {
@@ -107,7 +105,7 @@ std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq) {
 }
 
 std::ostream& operator<<(std::ostream& os, const XCVMVar::Kind& kind) {
-    static const char* kNames[] = { "Array", "Sequence", "Opaque", "Null" };
+    static const char* kNames[] = {"Array", "Sequence", "Opaque", "Null"};
     int k = static_cast<int>(kind);
     if (k >= 0 && k < sizeof(kNames) / sizeof(kNames[0])) {
         os << kNames[k];

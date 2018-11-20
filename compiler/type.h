@@ -13,9 +13,7 @@ namespace oniku {
 
 class Type {
 public:
-    enum class Kind {
-        kTensor, kSequence, kMap, kOpaque
-    };
+    enum class Kind { kTensor, kSequence, kMap, kOpaque };
 
     explicit Type(Kind kind);
     explicit Type(const onnx::TypeProto& xtype);

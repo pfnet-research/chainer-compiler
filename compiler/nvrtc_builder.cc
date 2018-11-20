@@ -4,8 +4,8 @@
 
 #include <algorithm>
 #include <iterator>
-#include <queue>
 #include <map>
+#include <queue>
 #include <set>
 #include <sstream>
 
@@ -48,50 +48,47 @@ void EmitNode(const Node* node, CodeEmitter* ce) {
     };
 
     switch (node->op_type()) {
-    case Node::kIdentity:
-        out1(ins[0]);
-        break;
+        case Node::kIdentity:
+            out1(ins[0]);
+            break;
 
-    case Node::kTanh:
-        out1("tanh(" + ins[0] + ")");
-        break;
+        case Node::kTanh:
+            out1("tanh(" + ins[0] + ")");
+            break;
 
-    case Node::kExp:
-        out1("exp(" + ins[0] + ")");
-        break;
+        case Node::kExp:
+            out1("exp(" + ins[0] + ")");
+            break;
 
-    case Node::kSigmoid:
-        out1("sigmoid(" + ins[0] + ")");
-        break;
+        case Node::kSigmoid:
+            out1("sigmoid(" + ins[0] + ")");
+            break;
 
-    case Node::kAdd:
-        binary('+');
-        break;
+        case Node::kAdd:
+            binary('+');
+            break;
 
-    case Node::kSub:
-        binary('-');
-        break;
+        case Node::kSub:
+            binary('-');
+            break;
 
-    case Node::kMul:
-        binary('*');
-        break;
+        case Node::kMul:
+            binary('*');
+            break;
 
-    case Node::kDiv:
-        binary('/');
-        break;
+        case Node::kDiv:
+            binary('/');
+            break;
 
-    default:
-        CHECK(false) << "Cannot build NVRTC program for: " << node->ToString();
+        default:
+            CHECK(false) << "Cannot build NVRTC program for: " << node->ToString();
     }
 }
 
 }  // namespace
 
-void BuildNvrtcProgram(const std::vector<Node*>& nodes,
-                       int id,
-                       const std::vector<Value*>& inputs,
-                       const std::vector<Value*>& outputs,
-                       std::string* prog) {
+void BuildNvrtcProgram(
+        const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* prog) {
     std::set<Node::OpType> seen_ops;
     for (Node* node : nodes) {
         seen_ops.insert(node->op_type());
@@ -139,12 +136,14 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
         CHECK_EQ(1, t->NumElements()) << t->dtype();
         double value;
         switch (t->dtype()) {
-        case Dtype::kFloat32:
-            value = t->Get<float>(0); break;
-        case Dtype::kFloat64:
-            value = t->Get<double>(0); break;
-        default:
-            CHECK(false) << t->dtype();
+            case Dtype::kFloat32:
+                value = t->Get<float>(0);
+                break;
+            case Dtype::kFloat64:
+                value = t->Get<double>(0);
+                break;
+            default:
+                CHECK(false) << t->dtype();
         }
         ce << "const T " << CleanseIdent(node->outputs()[0]->name()) << " = " << value << ";  // Constant\n";
     }
@@ -171,4 +170,4 @@ void BuildNvrtcProgram(const std::vector<Node*>& nodes,
     *prog = oss.str();
 }
 
-}
+}  // namespace oniku

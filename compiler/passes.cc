@@ -56,7 +56,11 @@ int64_t ScheduleBackpropGraphs(Graph* graph, int64_t order) {
         }
     }
 
-    auto add_sub_graph_ref = [&sub_graphs, graph](Node* node, const std::string& graph_name, const std::vector<std::string>& input_value_names, const std::vector<std::string>& output_value_names) {
+    auto add_sub_graph_ref = [&sub_graphs, graph](
+                                     Node* node,
+                                     const std::string& graph_name,
+                                     const std::vector<std::string>& input_value_names,
+                                     const std::vector<std::string>& output_value_names) {
         if (graph_name.empty()) return;
         Graph* sub_graph = graph->GetSubGraph(graph_name);
         auto found = sub_graphs.find(sub_graph);
@@ -116,7 +120,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     dump_onnx(g_dump_after_inference, "after inference");
 
-    Recursively([gen_backprop](Graph* g){ Simplify(g, gen_backprop); }, graph);
+    Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
 
     CanonicalizeSubGraphs(graph);
 
@@ -124,7 +128,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     if (gen_backprop) AddGradientNodes(graph, g_always_retain_in_stack);
 
-    Recursively([gen_backprop](Graph* g){ Simplify(g, gen_backprop); }, graph);
+    Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
 
     dump_onnx(g_dump_after_gradient, "after gradient generation");
 

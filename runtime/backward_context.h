@@ -16,7 +16,9 @@ public:
     BackwardContext(const std::string& name, const std::vector<chainerx::Array>& xs);
     virtual ~BackwardContext() = default;
 
-    chainerx::BackpropId backprop_id() const { return backprop_->backprop_id(); }
+    chainerx::BackpropId backprop_id() const {
+        return backprop_->backprop_id();
+    }
 
     void SetOutput(const std::vector<chainerx::Array>& ys);
 

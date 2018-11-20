@@ -5,9 +5,9 @@
 #include <chainerx/shape.h>
 
 #if ONIKU_ENABLE_NVRTC
+#include <chainerx/cuda/cuda_device.h>
 #include <cuda.h>
 #include <nvrtc.h>
-#include <chainerx/cuda/cuda_device.h>
 #endif
 
 #include <common/log.h>
@@ -43,15 +43,10 @@ char* Compile(const std::string& name, const std::string& code) {
     if (found != cache.end()) return found->second;
 
     nvrtcProgram prog;
-    CHECK_NVRTC(nvrtcCreateProgram(&prog,
-                                   code.c_str(),
-                                   (name + ".cu").c_str(),
-                                   0,
-                                   nullptr,
-                                   nullptr));
+    CHECK_NVRTC(nvrtcCreateProgram(&prog, code.c_str(), (name + ".cu").c_str(), 0, nullptr, nullptr));
 
     const char* kOpts[] = {
-        "--gpu-architecture=compute_50",
+            "--gpu-architecture=compute_50",
     };
     nvrtcResult result = nvrtcCompileProgram(prog, 1, kOpts);
     // Obtain compilation log from the program.
@@ -145,12 +140,18 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
     std::vector<void*> args = {&size};
     for (void*& p : ptrs) args.push_back(&p);
 
-    CHECK_CUDA(cuLaunchKernel(cu_kernel,
-                              grid_x, 1, 1,        // grid dim
-                              block_x, 1, 1,       // block dim
-                              0, NULL,             // shared mem and stream
-                              args.data(),         // arguments
-                              0));
+    CHECK_CUDA(cuLaunchKernel(
+            cu_kernel,
+            grid_x,
+            1,
+            1,  // grid dim
+            block_x,
+            1,
+            1,  // block dim
+            0,
+            NULL,  // shared mem and stream
+            args.data(),  // arguments
+            0));
 
     return outputs;
 

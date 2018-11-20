@@ -5,8 +5,8 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
-#include <compiler/log.h>
 #include <compiler/graph.h>
+#include <compiler/log.h>
 #include <compiler/model.h>
 #include <compiler/node.h>
 #include <compiler/nvrtc_builder.h>
@@ -45,7 +45,8 @@ void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto*
 
 class XCVMEmitter {
 public:
-    XCVMEmitter() {}
+    XCVMEmitter() {
+    }
 
     void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
         AssignValueIds(graph);
@@ -194,10 +195,10 @@ private:
                 CHECK(false) << "Unknown direction: " << dir;
         };
 
-#define EMIT(op, ...)                                   \
-        do {                                            \
-            Add##op##Op(prog, __VA_ARGS__);             \
-            FillOpInfo(node, node.ToString(), prog);    \
+#define EMIT(op, ...)                            \
+    do {                                         \
+        Add##op##Op(prog, __VA_ARGS__);          \
+        FillOpInfo(node, node.ToString(), prog); \
     } while (0);
 
 #define EMIT_SIMPLE_UNARY_OP(name, sym)           \
@@ -335,13 +336,7 @@ private:
                  node.hidden_size(),
                  direction());
         } else if (node.op_type() == Node::kOnikuxLSTMGrad) {
-            EMIT(LSTMGrad,
-                 out(0),
-                 out(1),
-                 out(2),
-                 out(3),
-                 in(0),
-                 in(1));
+            EMIT(LSTMGrad, out(0), out(1), out(2), out(3), in(0), in(1));
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -378,10 +373,30 @@ private:
             // TODO(hamaji): Handle running mean and variance for training mode.
             CHECK_EQ(5UL, node.inputs().size());
             if (node.outputs().size() == 2 || node.outputs().size() == 6) {
-                EMIT(BatchNormalization, out(0), out(node.outputs().size() - 1), in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+                EMIT(BatchNormalization,
+                     out(0),
+                     out(node.outputs().size() - 1),
+                     in(0),
+                     in(1),
+                     in(2),
+                     in(3),
+                     in(4),
+                     node.epsilon(),
+                     node.momentum(),
+                     node.spatial());
             } else {
                 int tmp_id = next_value_id_++;
-                EMIT(BatchNormalization, out(0), tmp_id, in(0), in(1), in(2), in(3), in(4), node.epsilon(), node.momentum(), node.spatial());
+                EMIT(BatchNormalization,
+                     out(0),
+                     tmp_id,
+                     in(0),
+                     in(1),
+                     in(2),
+                     in(3),
+                     in(4),
+                     node.epsilon(),
+                     node.momentum(),
+                     node.spatial());
                 FREE(tmp_id);
             }
         } else if (node.op_type() == Node::kLRN) {
@@ -718,8 +733,7 @@ private:
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
             if (todo_outputs.empty()) {
-                if (node->op_type() != Node::kOnikuxBackpropStackPush)
-                    break;
+                if (node->op_type() != Node::kOnikuxBackpropStackPush) break;
             }
             if (!emitted_.emplace(node).second) continue;
 
@@ -760,11 +774,11 @@ private:
         CHECK_EQ(node.outputs().size(), body.output_values().size());
         const std::string& debug_info = node.ToString();
 
-#define EMIT(op, ...)                                                   \
-        do {                                                            \
-            Add##op##Op(prog, __VA_ARGS__);                             \
-            FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
-        } while (0)
+#define EMIT(op, ...)                                               \
+    do {                                                            \
+        Add##op##Op(prog, __VA_ARGS__);                             \
+        FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
+    } while (0)
 
         if (g_use_nvrtc) {
             std::string nvrtc;
@@ -790,7 +804,7 @@ private:
         for (size_t i = 0; i < node.inputs().size(); ++i) {
             Value* from = node.inputs()[i];
             Value* to = body.input_values()[i];
-            //MOVE(GetValueId(to), GetValueId(from));
+            // MOVE(GetValueId(to), GetValueId(from));
             EMIT(Identity, GetValueId(to), GetValueId(from));
         }
 
@@ -826,18 +840,19 @@ private:
             XCProgramProto* prog) {
         const std::string& debug_info = cond.ToString();
 
-#define EMIT(op, ...)                                                   \
-        do {                                                            \
-            Add##op##Op(prog, __VA_ARGS__);                             \
-            FillOpInfo(cond, StrCat(debug_info, " @", __LINE__), prog); \
-        } while (0)
+#define EMIT(op, ...)                                               \
+    do {                                                            \
+        Add##op##Op(prog, __VA_ARGS__);                             \
+        FillOpInfo(cond, StrCat(debug_info, " @", __LINE__), prog); \
+    } while (0)
 
         CHECK_EQ(cond.inputs().size(), then_input_values.size() + 1);
         CHECK_EQ(cond.inputs().size(), else_input_values.size() + 1);
         CHECK_EQ(cond.outputs().size(), then_output_values.size());
         CHECK_EQ(cond.outputs().size(), else_output_values.size());
 
-        auto emit_branch = [this, &cond, prog, &protected_values, &debug_info](Graph* graph, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+        auto emit_branch = [this, &cond, prog, &protected_values, &debug_info](
+                                   Graph* graph, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
             for (size_t i = 0; i < inputs.size(); ++i) {
                 Value* from = cond.inputs()[i + 1];
                 Value* to = inputs[i];
@@ -887,17 +902,45 @@ private:
         std::vector<Value*> else_input_values;
         std::vector<Value*> else_output_values;
         std::set<const Value*> protected_values;
-        CollectSubGraphValues(then_branch, cond.then_input_value_names(), cond.then_output_value_names(),
-                              &then_input_values, &then_output_values, &protected_values);
-        CollectSubGraphValues(else_branch, cond.else_input_value_names(), cond.else_output_value_names(),
-                              &else_input_values, &else_output_values, &protected_values);
-        EmitIfImpl(cond, then_branch, then_input_values, then_output_values, else_branch, else_input_values, else_output_values, protected_values, prog);
+        CollectSubGraphValues(
+                then_branch,
+                cond.then_input_value_names(),
+                cond.then_output_value_names(),
+                &then_input_values,
+                &then_output_values,
+                &protected_values);
+        CollectSubGraphValues(
+                else_branch,
+                cond.else_input_value_names(),
+                cond.else_output_value_names(),
+                &else_input_values,
+                &else_output_values,
+                &protected_values);
+        EmitIfImpl(
+                cond,
+                then_branch,
+                then_input_values,
+                then_output_values,
+                else_branch,
+                else_input_values,
+                else_output_values,
+                protected_values,
+                prog);
     }
 
     void EmitIf(const Node& cond, XCProgramProto* prog) {
         AssignValueIds(*cond.then_branch());
         AssignValueIds(*cond.else_branch());
-        EmitIfImpl(cond, cond.then_branch().get(), cond.then_branch()->input_values(), cond.then_branch()->output_values(), cond.else_branch().get(), cond.else_branch()->input_values(), cond.else_branch()->output_values(), {}, prog);
+        EmitIfImpl(
+                cond,
+                cond.then_branch().get(),
+                cond.then_branch()->input_values(),
+                cond.then_branch()->output_values(),
+                cond.else_branch().get(),
+                cond.else_branch()->input_values(),
+                cond.else_branch()->output_values(),
+                {},
+                prog);
     }
 
     void EmitLoopImpl(
@@ -1062,8 +1105,7 @@ private:
         std::vector<Value*> output_values;
         std::set<const Value*> protected_values;
         Graph* body = graph.GetSubGraph(loop.body_ref());
-        CollectSubGraphValues(body, loop.input_value_names(), loop.output_value_names(),
-                              &input_values, &output_values, &protected_values);
+        CollectSubGraphValues(body, loop.input_value_names(), loop.output_value_names(), &input_values, &output_values, &protected_values);
         EmitLoopImpl(loop, body, input_values, output_values, protected_values, prog);
     }
 
@@ -1075,12 +1117,13 @@ private:
         }
     }
 
-    void CollectSubGraphValues(Graph* body,
-                               const std::vector<std::string>& input_value_names,
-                               const std::vector<std::string>& output_value_names,
-                               std::vector<Value*>* input_values,
-                               std::vector<Value*>* output_values,
-                               std::set<const Value*>* protected_values) {
+    void CollectSubGraphValues(
+            Graph* body,
+            const std::vector<std::string>& input_value_names,
+            const std::vector<std::string>& output_value_names,
+            std::vector<Value*>* input_values,
+            std::vector<Value*>* output_values,
+            std::set<const Value*>* protected_values) {
         std::map<std::string, Value*> values;
         for (Value* v : body->temp_values()) {
             CHECK(values.emplace(v->name(), v).second);
@@ -1128,7 +1171,11 @@ void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
     CHECK(program.SerializeToOstream(&out));
 }
 
-void Emit(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, runtime::XCProgramProto* program, std::vector<int>* output_ids) {
+void Emit(
+        const std::vector<Node*>& nodes,
+        const std::vector<Value*>& fetches,
+        runtime::XCProgramProto* program,
+        std::vector<int>* output_ids) {
     XCVMEmitter emitter;
     std::set<Value*> values;
     for (Node* node : nodes) {

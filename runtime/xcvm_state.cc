@@ -9,10 +9,7 @@ namespace oniku {
 namespace runtime {
 
 XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs)
-    : pc_(0),
-      variables_(num_variables),
-      inputs_(inputs),
-      options_(options) {
+    : pc_(0), variables_(num_variables), inputs_(inputs), options_(options) {
 }
 
 XCVMState::~XCVMState() {

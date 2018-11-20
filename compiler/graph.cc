@@ -44,8 +44,7 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         std::unique_ptr<Tensor> tensor(new Tensor(xtensor));
         auto found = values_by_name.find(tensor->name());
         CHECK(found != values_by_name.end()) << "Invalid name for an initializer: " << tensor->name();
-        CHECK_EQ(found->second->kind(), Value::Kind::kInput)
-                << "Only input can have an initializer but " << found->second->kind();
+        CHECK_EQ(found->second->kind(), Value::Kind::kInput) << "Only input can have an initializer but " << found->second->kind();
         found->second->ResetInitializer(std::move(tensor));
     }
 
@@ -248,8 +247,7 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         q.push(value->producer());
     }
     for (Node* node : nodes_) {
-        if (node->op_type() == Node::kOnikuxBackpropStackPush && !node->detached())
-            q.push(node);
+        if (node->op_type() == Node::kOnikuxBackpropStackPush && !node->detached()) q.push(node);
     }
 
     std::map<Node*, int> input_counts;

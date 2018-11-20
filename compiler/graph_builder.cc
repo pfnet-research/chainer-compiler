@@ -8,8 +8,7 @@
 
 namespace oniku {
 
-GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target)
-    : graph_(graph), category_(category), target_(target) {
+GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target) : graph_(graph), category_(category), target_(target) {
 }
 
 GraphBuilder::~GraphBuilder() {

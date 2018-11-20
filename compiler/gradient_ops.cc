@@ -20,14 +20,14 @@ namespace {
 Dtype GetFloatDtype(const Value* value) {
     Dtype dtype = value->type().dtype();
     switch (dtype) {
-    case Dtype::kFloat32:
-    case Dtype::kFloat64:
-        return dtype;
-    case Dtype::kUnknown:
-        WARN_ONCE("Incomplete float dtype, assuming float32...");
-        return Dtype::kFloat32;
-    default:
-        CHECK(false) << dtype << ' ' << value->name();
+        case Dtype::kFloat32:
+        case Dtype::kFloat64:
+            return dtype;
+        case Dtype::kUnknown:
+            WARN_ONCE("Incomplete float dtype, assuming float32...");
+            return Dtype::kFloat32;
+        default:
+            CHECK(false) << dtype << ' ' << value->name();
     }
 }
 
@@ -52,7 +52,9 @@ public:
         return node_;
     }
 
-    bool retain_in_stack() const { return retain_in_stack_; }
+    bool retain_in_stack() const {
+        return retain_in_stack_;
+    }
 
     Value* Retain(Value* v) {
         if (!retain_in_stack_) return v;
@@ -116,8 +118,7 @@ public:
         if (x->grad()) {
             // Accumulate gradients.
             GraphBuilder gb(graph_, "AccumGrad", x->grad());
-            Value* v = gb.Op(Node::kOnikuxGenericAccumulateGrad,
-                             {x->grad(), gx});
+            Value* v = gb.Op(Node::kOnikuxGenericAccumulateGrad, {x->grad(), gx});
             x->set_grad(v);
         } else {
             x->set_grad(gx);
@@ -264,7 +265,7 @@ Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
     return gy;
 }
 
-}
+}  // namespace
 
 void ReduceSumGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
@@ -361,16 +362,17 @@ void ConvGradFn(GradientOpContext* gc) {
         GraphBuilder gb{gc->builder(0)};
         Value* x = gc->x(0);
         if (x->type().is_known() && x->type().dims().size() > 2) {
-            gc->GradOp(Node::kConvTranspose, 0, {gy, w})->producer()
-                ->set_strides(node->strides())
-                ->set_pads(node->pads())
-                ->set_output_shape({x->type().dims().begin() + 2, x->type().dims().end()});
+            gc->GradOp(Node::kConvTranspose, 0, {gy, w})
+                    ->producer()
+                    ->set_strides(node->strides())
+                    ->set_pads(node->pads())
+                    ->set_output_shape({x->type().dims().begin() + 2, x->type().dims().end()});
         } else {
             Value* x_shape = gb.Op(Node::kShape, {gc->x(0)});
             gc->GradOp(Node::kOnikuxConvTransposeWithDynamicOutputShape, 0, {gy, w, x_shape})
-                ->producer()
-                ->set_strides(node->strides())
-                ->set_pads(node->pads());
+                    ->producer()
+                    ->set_strides(node->strides())
+                    ->set_pads(node->pads());
         }
     }
     gc->GradOp(Node::kOnikuxConvGradWeight, 1, {w, gc->x(0), gy})->producer()->set_strides(node->strides())->set_pads(node->pads());
@@ -460,8 +462,7 @@ void LSTMGradFn(GradientOpContext* gc) {
     CHECK_EQ(5UL, node->inputs().size()) << "Not implemented yet";
     CHECK_EQ(3UL, node->outputs().size()) << "Not implemented yet";
     Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
-    gc->GradMOp(Node::kOnikuxLSTMGrad, {0, 1, 2, 3},
-                {gc->gy(0), context});
+    gc->GradMOp(Node::kOnikuxLSTMGrad, {0, 1, 2, 3}, {gc->gy(0), context});
 }
 
 void DoNothingGradFn(GradientOpContext*) {
@@ -676,8 +677,7 @@ void IfGradFn(GradientOpContext* gc) {
         }
     }
 
-    if (gx_indices.empty())
-        return;
+    if (gx_indices.empty()) return;
 
     {
         GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
@@ -725,15 +725,13 @@ void SequenceConcatGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
     Value* indices = gc->AddOutput(gb.Temp());
-    gc->GradOp(Node::kOnikuxSequenceSplitAxis, 0, {gc->gy(0), indices})
-        ->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kOnikuxSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
 }
 
 void SequenceSplitAxisGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    gc->GradOp(Node::kOnikuxSequenceConcat, 0, {gc->gy(0)})
-        ->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kOnikuxSequenceConcat, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
 }
 
 void SequencePadGradFn(GradientOpContext* gc) {
@@ -749,8 +747,7 @@ void SequenceUnpadGradFn(GradientOpContext* gc) {
 
 void SequenceSeparateGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
-    gc->GradOp(Node::kOnikuxSequenceStack, 0, {gc->gy(0)})
-        ->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kOnikuxSequenceStack, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
 }
 
 void SequenceLookupGradFn(GradientOpContext* gc) {

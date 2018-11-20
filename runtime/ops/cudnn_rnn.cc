@@ -1,11 +1,11 @@
 #if ONIKU_ENABLE_CUDNN
 #include <chainerx/native/native_backend.h>
 
-#include <cudnn.h>
 #include <chainerx/cuda/cuda_device.h>
 #include <chainerx/cuda/cudnn.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
+#include <cudnn.h>
 
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
@@ -38,16 +38,16 @@ class CudnnDropoutDescriptor {
 public:
     explicit CudnnDropoutDescriptor(CudnnHandle& cudnn) {
         CheckCudnnError(cudnnCreateDropoutDescriptor(&desc_));
-        cudnn.Call([this](cudnnHandle_t handle) {
-                return cudnnSetDropoutDescriptor(desc_, handle, 0.0, nullptr, 0, 0);
-            });
+        cudnn.Call([this](cudnnHandle_t handle) { return cudnnSetDropoutDescriptor(desc_, handle, 0.0, nullptr, 0, 0); });
     }
 
     ~CudnnDropoutDescriptor() {
         CheckCudnnError(cudnnDestroyDropoutDescriptor(desc_));
     }
 
-    cudnnDropoutDescriptor_t descriptor() const { return desc_; }
+    cudnnDropoutDescriptor_t descriptor() const {
+        return desc_;
+    }
 
 private:
     cudnnDropoutDescriptor_t desc_{};
@@ -55,7 +55,8 @@ private:
 
 class CudnnRNNDescriptor {
 public:
-    explicit CudnnRNNDescriptor(CudnnHandle& cudnn, cudnnDropoutDescriptor_t dropout_desc, chainerx::Dtype dtype, int hidden_size, int direction) {
+    explicit CudnnRNNDescriptor(
+            CudnnHandle& cudnn, cudnnDropoutDescriptor_t dropout_desc, chainerx::Dtype dtype, int hidden_size, int direction) {
         cudnnDirectionMode_t cudnn_direction;
         if (direction == 2) {
             cudnn_direction = CUDNN_BIDIRECTIONAL;
@@ -65,23 +66,26 @@ public:
         }
 
         CheckCudnnError(cudnnCreateRNNDescriptor(&desc_));
-        cudnn.Call(cudnnSetRNNDescriptor,
-                   desc_,
-                   hidden_size,
-                   1,
-                   dropout_desc,
-                   CUDNN_LINEAR_INPUT,
-                   cudnn_direction,
-                   CUDNN_LSTM,
-                   CUDNN_RNN_ALGO_STANDARD,
-                   GetCudnnDataType(dtype));
+        cudnn.Call(
+                cudnnSetRNNDescriptor,
+                desc_,
+                hidden_size,
+                1,
+                dropout_desc,
+                CUDNN_LINEAR_INPUT,
+                cudnn_direction,
+                CUDNN_LSTM,
+                CUDNN_RNN_ALGO_STANDARD,
+                GetCudnnDataType(dtype));
     }
 
     ~CudnnRNNDescriptor() {
         CheckCudnnError(cudnnDestroyRNNDescriptor(desc_));
     }
 
-    cudnnRNNDescriptor_t descriptor() const { return desc_; }
+    cudnnRNNDescriptor_t descriptor() const {
+        return desc_;
+    }
 
 private:
     cudnnRNNDescriptor_t desc_{};
@@ -89,28 +93,28 @@ private:
 
 class CudnnRNNDataDescriptor {
 public:
-    explicit CudnnRNNDataDescriptor(CudnnHandle& cudnn,
-                                    chainerx::Dtype dtype,
-                                    const chainerx::Shape& shape,
-                                    const std::vector<int>& sequence_lengths)
+    explicit CudnnRNNDataDescriptor(
+            CudnnHandle& cudnn, chainerx::Dtype dtype, const chainerx::Shape& shape, const std::vector<int>& sequence_lengths)
         : sequence_lengths_(sequence_lengths), pad_(0, dtype) {
         CheckCudnnError(cudnnCreateRNNDataDescriptor(&desc_));
         CheckCudnnError(cudnnSetRNNDataDescriptor(
-                            desc_,
-                            GetCudnnDataType(dtype),
-                            CUDNN_RNN_DATA_LAYOUT_SEQ_MAJOR_PACKED,
-                            shape[0],
-                            shape[1],
-                            shape[2],
-                            &sequence_lengths_[0],
-                            &pad_));
+                desc_,
+                GetCudnnDataType(dtype),
+                CUDNN_RNN_DATA_LAYOUT_SEQ_MAJOR_PACKED,
+                shape[0],
+                shape[1],
+                shape[2],
+                &sequence_lengths_[0],
+                &pad_));
     }
 
     ~CudnnRNNDataDescriptor() {
         CheckCudnnError(cudnnDestroyRNNDataDescriptor(desc_));
     }
 
-    cudnnRNNDataDescriptor_t descriptor() const { return desc_; }
+    cudnnRNNDataDescriptor_t descriptor() const {
+        return desc_;
+    }
 
 private:
     cudnnRNNDataDescriptor_t desc_{};
@@ -129,40 +133,39 @@ public:
     }
 
     void SetNd(chainerx::Dtype dtype, const std::vector<int>& dims) {
-        CheckCudnnError(cudnnSetFilterNdDescriptor(
-                            desc_,
-                            GetCudnnDataType(dtype),
-                            CUDNN_TENSOR_NCHW,
-                            dims.size(),
-                            dims.data()));
+        CheckCudnnError(cudnnSetFilterNdDescriptor(desc_, GetCudnnDataType(dtype), CUDNN_TENSOR_NCHW, dims.size(), dims.data()));
     }
 
-    cudnnFilterDescriptor_t descriptor() const { return desc_; }
+    cudnnFilterDescriptor_t descriptor() const {
+        return desc_;
+    }
 
 private:
     cudnnFilterDescriptor_t desc_{};
 };
 
-int64_t GetRNNWeightOffset(CudnnHandle& cudnn_handle,
-                           const CudnnRNNDescriptor& rnn_desc,
-                           const int pseudo_layer,
-                           const CudnnTensorDescriptor& x_desc,
-                           const CudnnFilterDescriptor& w_desc,
-                           const chainerx::Array& dest_w,
-                           const int lin_layer_id,
-                           const bool is_bias,
-                           const chainerx::Array& src_w) {
+int64_t GetRNNWeightOffset(
+        CudnnHandle& cudnn_handle,
+        const CudnnRNNDescriptor& rnn_desc,
+        const int pseudo_layer,
+        const CudnnTensorDescriptor& x_desc,
+        const CudnnFilterDescriptor& w_desc,
+        const chainerx::Array& dest_w,
+        const int lin_layer_id,
+        const bool is_bias,
+        const chainerx::Array& src_w) {
     CudnnFilterDescriptor filter_desc;
     void* mem;
-    cudnn_handle.Call(is_bias ? cudnnGetRNNLinLayerBiasParams : cudnnGetRNNLinLayerMatrixParams,
-                      rnn_desc.descriptor(),
-                      pseudo_layer,
-                      x_desc.descriptor(),
-                      w_desc.descriptor(),
-                      dest_w.raw_data(),
-                      lin_layer_id,
-                      filter_desc.descriptor(),
-                      &mem);
+    cudnn_handle.Call(
+            is_bias ? cudnnGetRNNLinLayerBiasParams : cudnnGetRNNLinLayerMatrixParams,
+            rnn_desc.descriptor(),
+            pseudo_layer,
+            x_desc.descriptor(),
+            w_desc.descriptor(),
+            dest_w.raw_data(),
+            lin_layer_id,
+            filter_desc.descriptor(),
+            &mem);
 
     // An unnecessary extra check.
 #if 0
@@ -207,67 +210,105 @@ void TransposeWeight(const chainerx::Array& w, int pseudo_layer, int hidden_size
 class LSTMBackwardContext : public XCVMOpaque {
 public:
     LSTMBackwardContext(
-        std::unique_ptr<CudnnRNNDescriptor>&& rnn_desc,
-        std::unique_ptr<CudnnDropoutDescriptor>&& dropout_desc,
-        std::unique_ptr<CudnnRNNDataDescriptor>&& y_desc,
-        const chainerx::Array& y,
-        std::unique_ptr<CudnnTensorDescriptor>&& hc_desc,
-        std::unique_ptr<CudnnFilterDescriptor>&& w_desc,
-        const chainerx::Array& w,
-        std::unique_ptr<CudnnRNNDataDescriptor>&& x_desc,
-        const chainerx::Array& x,
-        const chainerx::Array& workspace,
-        const chainerx::Array& reserve,
-        chainerx::Shape x_shape,
-        chainerx::Shape w_shape,
-        chainerx::Shape r_shape,
-        chainerx::Shape b_shape,
-        const std::vector<int64_t>& offsets,
-        int64_t num_inputs,
-        const std::vector<int>& num_batches)
-    : rnn_desc_(std::move(rnn_desc)),
-      dropout_desc_(std::move(dropout_desc)),
-      y_desc_(std::move(y_desc)),
-      y_(y),
-      hc_desc_(std::move(hc_desc)),
-      w_desc_(std::move(w_desc)),
-      w_(w),
-      x_desc_(std::move(x_desc)),
-      x_(x),
-      workspace_(workspace),
-      reserve_(reserve),
-      x_shape_(x_shape),
-      w_shape_(w_shape),
-      r_shape_(r_shape),
-      b_shape_(b_shape),
-      offsets_(offsets),
-      num_inputs_(num_inputs),
-      num_batches_(num_batches) {
+            std::unique_ptr<CudnnRNNDescriptor>&& rnn_desc,
+            std::unique_ptr<CudnnDropoutDescriptor>&& dropout_desc,
+            std::unique_ptr<CudnnRNNDataDescriptor>&& y_desc,
+            const chainerx::Array& y,
+            std::unique_ptr<CudnnTensorDescriptor>&& hc_desc,
+            std::unique_ptr<CudnnFilterDescriptor>&& w_desc,
+            const chainerx::Array& w,
+            std::unique_ptr<CudnnRNNDataDescriptor>&& x_desc,
+            const chainerx::Array& x,
+            const chainerx::Array& workspace,
+            const chainerx::Array& reserve,
+            chainerx::Shape x_shape,
+            chainerx::Shape w_shape,
+            chainerx::Shape r_shape,
+            chainerx::Shape b_shape,
+            const std::vector<int64_t>& offsets,
+            int64_t num_inputs,
+            const std::vector<int>& num_batches)
+        : rnn_desc_(std::move(rnn_desc)),
+          dropout_desc_(std::move(dropout_desc)),
+          y_desc_(std::move(y_desc)),
+          y_(y),
+          hc_desc_(std::move(hc_desc)),
+          w_desc_(std::move(w_desc)),
+          w_(w),
+          x_desc_(std::move(x_desc)),
+          x_(x),
+          workspace_(workspace),
+          reserve_(reserve),
+          x_shape_(x_shape),
+          w_shape_(w_shape),
+          r_shape_(r_shape),
+          b_shape_(b_shape),
+          offsets_(offsets),
+          num_inputs_(num_inputs),
+          num_batches_(num_batches) {
     }
 
     virtual ~LSTMBackwardContext() = default;
 
-    virtual std::string ToString() const { return "lstm"; }
-    virtual std::string DebugString() const { return "lstm"; }
+    virtual std::string ToString() const {
+        return "lstm";
+    }
+    virtual std::string DebugString() const {
+        return "lstm";
+    }
 
-    const CudnnRNNDescriptor& rnn_desc() const { return *rnn_desc_; }
-    const CudnnRNNDataDescriptor& y_desc() const { return *y_desc_; }
-    const chainerx::Array& y() const { return y_; }
-    const CudnnTensorDescriptor& hc_desc() const { return *hc_desc_; }
-    const CudnnFilterDescriptor& w_desc() const { return *w_desc_; }
-    const chainerx::Array& w() const { return w_; }
-    const CudnnRNNDataDescriptor& x_desc() const { return *x_desc_; }
-    const chainerx::Array& x() const { return x_; }
-    const chainerx::Array& workspace() const { return workspace_; }
-    const chainerx::Array& reserve() const { return reserve_; }
+    const CudnnRNNDescriptor& rnn_desc() const {
+        return *rnn_desc_;
+    }
+    const CudnnRNNDataDescriptor& y_desc() const {
+        return *y_desc_;
+    }
+    const chainerx::Array& y() const {
+        return y_;
+    }
+    const CudnnTensorDescriptor& hc_desc() const {
+        return *hc_desc_;
+    }
+    const CudnnFilterDescriptor& w_desc() const {
+        return *w_desc_;
+    }
+    const chainerx::Array& w() const {
+        return w_;
+    }
+    const CudnnRNNDataDescriptor& x_desc() const {
+        return *x_desc_;
+    }
+    const chainerx::Array& x() const {
+        return x_;
+    }
+    const chainerx::Array& workspace() const {
+        return workspace_;
+    }
+    const chainerx::Array& reserve() const {
+        return reserve_;
+    }
 
-    const chainerx::Shape& x_shape() const { return x_shape_; }
-    const chainerx::Shape& w_shape() const { return w_shape_; }
-    const chainerx::Shape& r_shape() const { return r_shape_; }
-    const chainerx::Shape& b_shape() const { return b_shape_; }
-    const std::vector<int64_t>& offsets() const { return offsets_; }
-    int64_t num_inputs() const { return num_inputs_; }
-    const std::vector<int>& num_batches() const { return num_batches_; }
+    const chainerx::Shape& x_shape() const {
+        return x_shape_;
+    }
+    const chainerx::Shape& w_shape() const {
+        return w_shape_;
+    }
+    const chainerx::Shape& r_shape() const {
+        return r_shape_;
+    }
+    const chainerx::Shape& b_shape() const {
+        return b_shape_;
+    }
+    const std::vector<int64_t>& offsets() const {
+        return offsets_;
+    }
+    int64_t num_inputs() const {
+        return num_inputs_;
+    }
+    const std::vector<int>& num_batches() const {
+        return num_batches_;
+    }
 
 private:
     std::unique_ptr<CudnnRNNDescriptor> rnn_desc_;
@@ -293,9 +334,7 @@ private:
     const std::vector<int> num_batches_;
 };
 
-chainerx::Array PackSequence(const chainerx::Array& x,
-                             int64_t num_inputs,
-                             const std::vector<int>& num_batches) {
+chainerx::Array PackSequence(const chainerx::Array& x, int64_t num_inputs, const std::vector<int>& num_batches) {
     int64_t input_size = x.shape()[2];
     chainerx::Array packed = chainerx::Empty({num_inputs, input_size}, x.dtype(), x.device());
     int64_t offset = 0;
@@ -312,10 +351,8 @@ chainerx::Array PackSequence(const chainerx::Array& x,
     return packed;
 }
 
-chainerx::Array UnpackSequence(const chainerx::Array& packed,
-                               int64_t num_inputs,
-                               const std::vector<int>& num_batches,
-                               const chainerx::Shape& x_shape) {
+chainerx::Array UnpackSequence(
+        const chainerx::Array& packed, int64_t num_inputs, const std::vector<int>& num_batches, const chainerx::Shape& x_shape) {
     chainerx::Array x = chainerx::Zeros(x_shape, packed.dtype(), packed.device());
     int64_t offset = 0;
     for (int64_t time = 0; time < x.shape()[0]; ++time) {
@@ -332,17 +369,17 @@ chainerx::Array UnpackSequence(const chainerx::Array& packed,
 }  // namespace
 
 bool CudnnLSTM(
-    const chainerx::Array& x,
-    const chainerx::Array& w,
-    const chainerx::Array& r,
-    const nonstd::optional<chainerx::Array>& b,
-    const nonstd::optional<chainerx::Array>& sequence_lens,
-    const nonstd::optional<chainerx::Array>& initial_h,
-    const nonstd::optional<chainerx::Array>& initial_c,
-    const nonstd::optional<chainerx::Array>& p,
-    int hidden_size,
-    int direction,
-    std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*>* result) {
+        const chainerx::Array& x,
+        const chainerx::Array& w,
+        const chainerx::Array& r,
+        const nonstd::optional<chainerx::Array>& b,
+        const nonstd::optional<chainerx::Array>& sequence_lens,
+        const nonstd::optional<chainerx::Array>& initial_h,
+        const nonstd::optional<chainerx::Array>& initial_c,
+        const nonstd::optional<chainerx::Array>& p,
+        int hidden_size,
+        int direction,
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*>* result) {
     if (!dynamic_cast<chainerx::cuda::CudaDevice*>(&x.device())) return false;
 
     int64_t seq_length = x.shape()[0];
@@ -377,7 +414,7 @@ bool CudnnLSTM(
 
     std::vector<int> num_batches(seq_length);
     {
-        for (int len : sequence_lengths) ++num_batches[len-1];
+        for (int len : sequence_lengths) ++num_batches[len - 1];
         int cum = 0;
         for (int time = seq_length - 1; time >= 0; --time) {
             cum = (num_batches[time] += cum);
@@ -409,11 +446,7 @@ bool CudnnLSTM(
 
     int w_size = w.GetTotalSize() + r.GetTotalSize() + b->GetTotalSize();
     size_t param_size;
-    cudnn_handle.Call(cudnnGetRNNParamsSize,
-                      rnn_desc->descriptor(),
-                      x_desc.descriptor(),
-                      &param_size,
-                      GetCudnnDataType(x.dtype()));
+    cudnn_handle.Call(cudnnGetRNNParamsSize, rnn_desc->descriptor(), x_desc.descriptor(), &param_size, GetCudnnDataType(x.dtype()));
     CHECK_EQ(w_size * 4, param_size);
 
     auto w_concat_desc{std::make_unique<CudnnFilterDescriptor>()};
@@ -433,10 +466,10 @@ bool CudnnLSTM(
             for (int is_bias = 0; is_bias < 2; ++is_bias) {
                 const chainerx::Array& src_w = slices[is_bias][lin_layer_id];
                 int64_t param_size = src_w.GetTotalSize();
-                int offset = GetRNNWeightOffset(cudnn_handle, *rnn_desc, pseudo_layer, x_desc, *w_concat_desc, w_concat, lin_layer_id, is_bias, src_w);
+                int offset = GetRNNWeightOffset(
+                        cudnn_handle, *rnn_desc, pseudo_layer, x_desc, *w_concat_desc, w_concat, lin_layer_id, is_bias, src_w);
                 w_concat.device().Copy(chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
                 offsets.push_back(offset);
-
             }
         }
     }
@@ -444,19 +477,11 @@ bool CudnnLSTM(
     std::vector<cudnnTensorDescriptor_t> x_desc_array(seq_length, x_desc.descriptor());
 
     size_t workspace_size;
-    cudnn_handle.Call(cudnnGetRNNWorkspaceSize,
-                      rnn_desc->descriptor(),
-                      seq_length,
-                      x_desc_array.data(),
-                      &workspace_size);
+    cudnn_handle.Call(cudnnGetRNNWorkspaceSize, rnn_desc->descriptor(), seq_length, x_desc_array.data(), &workspace_size);
     CHECK(workspace_size % 4 == 0) << workspace_size;
 
     size_t reserve_size;
-    cudnn_handle.Call(cudnnGetRNNTrainingReserveSize,
-                      rnn_desc->descriptor(),
-                      seq_length,
-                      x_desc_array.data(),
-                      &reserve_size);
+    cudnn_handle.Call(cudnnGetRNNTrainingReserveSize, rnn_desc->descriptor(), seq_length, x_desc_array.data(), &reserve_size);
     CHECK(reserve_size % 4 == 0) << reserve_size;
 
     chainerx::Array workspace = chainerx::Empty({num_direction * static_cast<int64_t>(workspace_size)}, chainerx::Dtype::kUInt8, device);
@@ -472,54 +497,55 @@ bool CudnnLSTM(
     CHECK(workspace.IsContiguous());
     CHECK(reserve.IsContiguous());
 
-    cudnn_handle.Call(cudnnRNNForwardTrainingEx,
-                      rnn_desc->descriptor(),
-                      x_rnn_desc->descriptor(),
-                      packed.raw_data(),
-                      hc_desc->descriptor(),
-                      nullptr,  // TODO(hamaji): h
-                      hc_desc->descriptor(),
-                      nullptr,  // TODO(hamaji): c
-                      w_concat_desc->descriptor(),
-                      w_concat.raw_data(),
-                      y_desc->descriptor(),
-                      y.raw_data(),
-                      hc_desc->descriptor(),
-                      hy.raw_data(),
-                      hc_desc->descriptor(),
-                      cy.raw_data(),
-                      nullptr,  // kDesc
-                      nullptr,  // keys
-                      nullptr,  // cDesc
-                      nullptr,  // cAttn
-                      nullptr,  // iDesc
-                      nullptr,  // iAttn
-                      nullptr,  // qDesc
-                      nullptr,  // queries
-                      workspace.raw_data(),
-                      workspace_size,
-                      reserve.raw_data(),
-                      reserve_size);
+    cudnn_handle.Call(
+            cudnnRNNForwardTrainingEx,
+            rnn_desc->descriptor(),
+            x_rnn_desc->descriptor(),
+            packed.raw_data(),
+            hc_desc->descriptor(),
+            nullptr,  // TODO(hamaji): h
+            hc_desc->descriptor(),
+            nullptr,  // TODO(hamaji): c
+            w_concat_desc->descriptor(),
+            w_concat.raw_data(),
+            y_desc->descriptor(),
+            y.raw_data(),
+            hc_desc->descriptor(),
+            hy.raw_data(),
+            hc_desc->descriptor(),
+            cy.raw_data(),
+            nullptr,  // kDesc
+            nullptr,  // keys
+            nullptr,  // cDesc
+            nullptr,  // cAttn
+            nullptr,  // iDesc
+            nullptr,  // iAttn
+            nullptr,  // qDesc
+            nullptr,  // queries
+            workspace.raw_data(),
+            workspace_size,
+            reserve.raw_data(),
+            reserve_size);
 
     XCVMOpaque* context = new LSTMBackwardContext(
-        std::move(rnn_desc),
-        std::move(dropout_desc),
-        std::move(y_desc),
-        y,
-        std::move(hc_desc),
-        std::move(w_concat_desc),
-        w_concat,
-        std::move(x_rnn_desc),
-        packed,
-        workspace,
-        reserve,
-        x_shape,
-        w_shape,
-        r_shape,
-        b_shape,
-        offsets,
-        num_inputs,
-        num_batches);
+            std::move(rnn_desc),
+            std::move(dropout_desc),
+            std::move(y_desc),
+            y,
+            std::move(hc_desc),
+            std::move(w_concat_desc),
+            w_concat,
+            std::move(x_rnn_desc),
+            packed,
+            workspace,
+            reserve,
+            x_shape,
+            w_shape,
+            r_shape,
+            b_shape,
+            offsets,
+            num_inputs,
+            num_batches);
 
     y = UnpackSequence(y, num_inputs, num_batches, y_shape);
     y = chainerx::Reshape(y, chainerx::Shape{seq_length, batch_size, num_direction, hidden_size});
@@ -529,9 +555,10 @@ bool CudnnLSTM(
     return true;
 }
 
-bool CudnnLSTMGrad(const chainerx::Array& ogy,
-                   const XCVMOpaque& ctx,
-                   std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array>* result) {
+bool CudnnLSTMGrad(
+        const chainerx::Array& ogy,
+        const XCVMOpaque& ctx,
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array>* result) {
     if (!dynamic_cast<const LSTMBackwardContext*>(&ctx)) return false;
     auto& context = dynamic_cast<const LSTMBackwardContext&>(ctx);
     auto& device = dynamic_cast<chainerx::cuda::CudaDevice&>(ogy.device());
@@ -553,51 +580,53 @@ bool CudnnLSTMGrad(const chainerx::Array& ogy,
     chainerx::Array gx = chainerx::EmptyLike(x, device);
     chainerx::Array gw_concat = chainerx::EmptyLike(w_concat, device);
 
-    cudnn_handle.Call(cudnnRNNBackwardDataEx,
-                      context.rnn_desc().descriptor(),
-                      context.y_desc().descriptor(),
-                      context.y().raw_data(),
-                      context.y_desc().descriptor(),
-                      gy.raw_data(),
-                      nullptr,  // dc_desc
-                      nullptr,  // dc_attn
-                      context.hc_desc().descriptor(),
-                      nullptr,  // dhy
-                      context.hc_desc().descriptor(),
-                      nullptr,  // dcy
-                      context.w_desc().descriptor(),
-                      w_concat.raw_data(),
-                      context.hc_desc().descriptor(),
-                      nullptr,  // hx
-                      context.hc_desc().descriptor(),
-                      nullptr,  // cx
-                      context.x_desc().descriptor(),
-                      gx.raw_data(),
-                      context.hc_desc().descriptor(),
-                      nullptr,  // dhx
-                      context.hc_desc().descriptor(),
-                      nullptr,  // dcx
-                      nullptr,  // dk_desc
-                      nullptr,  // dkeys
-                      context.workspace().raw_data(),
-                      context.workspace().GetNBytes(),
-                      context.reserve().raw_data(),
-                      context.reserve().GetNBytes());
+    cudnn_handle.Call(
+            cudnnRNNBackwardDataEx,
+            context.rnn_desc().descriptor(),
+            context.y_desc().descriptor(),
+            context.y().raw_data(),
+            context.y_desc().descriptor(),
+            gy.raw_data(),
+            nullptr,  // dc_desc
+            nullptr,  // dc_attn
+            context.hc_desc().descriptor(),
+            nullptr,  // dhy
+            context.hc_desc().descriptor(),
+            nullptr,  // dcy
+            context.w_desc().descriptor(),
+            w_concat.raw_data(),
+            context.hc_desc().descriptor(),
+            nullptr,  // hx
+            context.hc_desc().descriptor(),
+            nullptr,  // cx
+            context.x_desc().descriptor(),
+            gx.raw_data(),
+            context.hc_desc().descriptor(),
+            nullptr,  // dhx
+            context.hc_desc().descriptor(),
+            nullptr,  // dcx
+            nullptr,  // dk_desc
+            nullptr,  // dkeys
+            context.workspace().raw_data(),
+            context.workspace().GetNBytes(),
+            context.reserve().raw_data(),
+            context.reserve().GetNBytes());
 
-    cudnn_handle.Call(cudnnRNNBackwardWeightsEx,
-                      context.rnn_desc().descriptor(),
-                      context.x_desc().descriptor(),
-                      context.x().raw_data(),
-                      context.hc_desc().descriptor(),
-                      nullptr,  // hx
-                      context.y_desc().descriptor(),
-                      context.y().raw_data(),
-                      context.workspace().raw_data(),
-                      context.workspace().GetNBytes(),
-                      context.w_desc().descriptor(),
-                      gw_concat.raw_data(),
-                      context.reserve().raw_data(),
-                      context.reserve().GetNBytes());
+    cudnn_handle.Call(
+            cudnnRNNBackwardWeightsEx,
+            context.rnn_desc().descriptor(),
+            context.x_desc().descriptor(),
+            context.x().raw_data(),
+            context.hc_desc().descriptor(),
+            nullptr,  // hx
+            context.y_desc().descriptor(),
+            context.y().raw_data(),
+            context.workspace().raw_data(),
+            context.workspace().GetNBytes(),
+            context.w_desc().descriptor(),
+            gw_concat.raw_data(),
+            context.reserve().raw_data(),
+            context.reserve().GetNBytes());
 
     gx = UnpackSequence(gx, num_inputs, context.num_batches(), context.x_shape());
 
@@ -618,7 +647,8 @@ bool CudnnLSTMGrad(const chainerx::Array& ogy,
             for (int is_bias = 0; is_bias < 2; ++is_bias) {
                 int64_t offset = context.offsets()[offset_index++];
                 chainerx::Array dest = slices[is_bias][lin_layer_id];
-                gw_concat.device().Copy(chainerx::Reshape(gw_concat.At({chainerx::Slice(offset, offset + dest.GetTotalSize())}), dest.shape()), dest);
+                gw_concat.device().Copy(
+                        chainerx::Reshape(gw_concat.At({chainerx::Slice(offset, offset + dest.GetTotalSize())}), dest.shape()), dest);
             }
         }
     }

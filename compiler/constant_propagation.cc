@@ -18,8 +18,7 @@ bool HasConstantInputsOnly(const Node& node) {
     if (node.inputs().empty()) return false;
     for (Value* input : node.inputs()) {
         if (input->producer() &&
-            (input->producer()->op_type() == Node::kConstant ||
-             input->producer()->op_type() == Node::kOnikuxSequenceConstants ||
+            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kOnikuxSequenceConstants ||
              input->producer()->op_type() == Node::kOnikuxSequenceCreate)) {
         } else {
             return false;
@@ -42,11 +41,9 @@ void DoConstantPropagation(Graph* graph, Node* node) {
         auto& next_value = next_values[i];
         GraphBuilder gb(graph, "Const", node->outputs()[i]);
         if (next_value->is_tensor()) {
-            gb.Op(Node::kConstant, {}, node->outputs()[i])
-                ->producer()->set_tensor_value(next_value->ReleaseTensor());
+            gb.Op(Node::kConstant, {}, node->outputs()[i])->producer()->set_tensor_value(next_value->ReleaseTensor());
         } else {
-            gb.Op(Node::kOnikuxSequenceConstants, {}, node->outputs()[i])
-                ->producer()->set_tensor_values(next_value->ReleaseSequence());
+            gb.Op(Node::kOnikuxSequenceConstants, {}, node->outputs()[i])->producer()->set_tensor_values(next_value->ReleaseSequence());
         }
     }
 
@@ -67,8 +64,7 @@ void RemoveStackPushPop(Graph* graph, Node* node, const std::vector<Node*>& stac
     Node* input = node->inputs()[0]->producer();
     if (input->op_type() == Node::kConstant) {
         const Tensor& t = *input->tensor_value();
-        gb.Op(Node::kConstant, {}, pop->outputs()[0])
-            ->producer()->set_tensor_value(new Tensor(t.name() + "_pop", t));
+        gb.Op(Node::kConstant, {}, pop->outputs()[0])->producer()->set_tensor_value(new Tensor(t.name() + "_pop", t));
     } else {
         CHECK(false) << "Not implemented yet";
     }
@@ -79,32 +75,32 @@ void RemoveStackPushPop(Graph* graph, Node* node, const std::vector<Node*>& stac
 
 bool MaybePropagateConstant(Graph* graph, Node* node, const std::vector<Node*>& stack_pops) {
     switch (node->op_type()) {
-    // TODO(hamaji): Handle more ops.
-    case Node::kIdentity:
-    case Node::kAdd:
-    case Node::kSub:
-    case Node::kMul:
-    case Node::kDiv:
-    case Node::kOnikuxGenericIs:
-    case Node::kOnikuxGenericLen:
-    case Node::kShape:
-    case Node::kUnsqueeze:
-    case Node::kCast:
-    case Node::kOnikuxSequenceAppend:
-    case Node::kOnikuxSequenceConcat:
-    case Node::kOnikuxSequenceStack:
-    case Node::kOnikuxSequenceRange: {
-        DoConstantPropagation(graph, node);
-        return true;
-    }
+        // TODO(hamaji): Handle more ops.
+        case Node::kIdentity:
+        case Node::kAdd:
+        case Node::kSub:
+        case Node::kMul:
+        case Node::kDiv:
+        case Node::kOnikuxGenericIs:
+        case Node::kOnikuxGenericLen:
+        case Node::kShape:
+        case Node::kUnsqueeze:
+        case Node::kCast:
+        case Node::kOnikuxSequenceAppend:
+        case Node::kOnikuxSequenceConcat:
+        case Node::kOnikuxSequenceStack:
+        case Node::kOnikuxSequenceRange: {
+            DoConstantPropagation(graph, node);
+            return true;
+        }
 
-    case Node::kOnikuxBackpropStackPush: {
-        RemoveStackPushPop(graph, node, stack_pops);
-        return true;
-    }
+        case Node::kOnikuxBackpropStackPush: {
+            RemoveStackPushPop(graph, node, stack_pops);
+            return true;
+        }
 
-    default:
-        LOG() << "Not propagate " << node->ToString() << std::endl;
+        default:
+            LOG() << "Not propagate " << node->ToString() << std::endl;
     }
     return false;
 }
@@ -133,4 +129,3 @@ void PropagateConstants(Graph* graph) {
 }
 
 }  // namespace oniku
-

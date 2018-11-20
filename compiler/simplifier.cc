@@ -471,8 +471,7 @@ bool ReplaceConcat(Graph* graph, Node* node) {
     for (Value* v : node->inputs()) {
         seq = gb.Op(Node::kOnikuxSequenceAppend, {seq, v});
     }
-    gb.Op(Node::kOnikuxSequenceConcat, {seq}, node->outputs()[0])
-        ->producer()->set_axis(node->axis());
+    gb.Op(Node::kOnikuxSequenceConcat, {seq}, node->outputs()[0])->producer()->set_axis(node->axis());
     return true;
 }
 
@@ -502,10 +501,7 @@ bool ReplaceConstantLike(Graph* graph, Node* node) {
 bool ReplaceShape(Graph* graph, Node* node) {
     Value* input = node->inputs()[0];
     const Type& typ = input->type();
-    if (!typ.is_known() ||
-        typ.kind() != Type::Kind::kTensor ||
-        typ.NumElements() < 0 ||
-        typ.dims().empty()) {
+    if (!typ.is_known() || typ.kind() != Type::Kind::kTensor || typ.NumElements() < 0 || typ.dims().empty()) {
         return false;
     }
 
@@ -524,8 +520,7 @@ bool ReplaceSelectItem(Graph* graph, Node* node) {
     Value* num_classes = gb.Op(Node::kGather, {shape, one});
     Value* one_hot = gb.Op(Node::kOneHot, {node->inputs()[1], num_classes, values});
     Value* filtered = gb.Op(Node::kMul, {x, one_hot});
-    gb.Op(Node::kReduceSum, {filtered}, node->outputs()[0])
-        ->producer()->set_axes({1})->set_keepdims(false);
+    gb.Op(Node::kReduceSum, {filtered}, node->outputs()[0])->producer()->set_axes({1})->set_keepdims(false);
     return true;
 }
 
