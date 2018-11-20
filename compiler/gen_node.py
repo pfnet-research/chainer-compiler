@@ -406,6 +406,7 @@ def gen_gen_node_base_h():
     for node in NODES:
         public_lines.append('k%s,' % (node.op_type))
     public_lines.append('};')
+    public_lines.append('static OpType StringToOpType(const std::string& str);')
     public_lines.append('static const char* OpTypeToString(OpType op_type);')
     public_lines.append('OpType op_type() const {')
     public_lines.append('return op_type_;')
@@ -476,19 +477,23 @@ public:
 
 def gen_gen_node_base_cc():
     lines = []
+
+    lines.append('NodeBase::OpType NodeBase::StringToOpType'
+                 '(const std::string& str) {')
+    conds = []
+    bodies = []
+    for i, node in enumerate(NODES):
+        conds.append('str == "%s"' % node.op_type)
+        bodies.append(['return k%s;' % node.op_type])
+    bodies.append(['CHECK(false) << "Unsupported op_type: " << str;'])
+    lines.extend(codegen_util.cond(conds, bodies))
+    lines.append('}')
+
     lines.append('NodeBase::NodeBase(OpType op_type) : op_type_(op_type) {}')
     lines.append('NodeBase::NodeBase(const onnx::NodeProto& xnode, '
                  'const std::vector<Value*>& inputs, '
                  'const std::vector<Value*>& outputs) {')
-    for i, node in enumerate(NODES):
-        lines.append('if (xnode.op_type() == "%s") ' % (node.op_type) + '{')
-        if i:
-            lines[-1] = '} else ' + lines[-1]
-        lines.append('op_type_ = k%s;' % (node.op_type))
-    lines.append('} else {')
-    lines.append('CHECK(false) << "Unsupported op_type: " '
-                 '<< xnode.op_type();')
-    lines.append('}')
+    lines.append('op_type_ = StringToOpType(xnode.op_type());')
 
     lines.append('SetDefaultAttributeValues();')
     lines.append('ValidateNumInputsOutputs(inputs, outputs);')
@@ -539,7 +544,6 @@ def gen_gen_node_base_cc():
             'unknown_attributes_.push_back(xattr);'])
         lines += codegen_util.cond(conds, bodies)
 
-        lines.append('}')
         lines.append('}')
         lines.append('break;')
         lines.append('}')

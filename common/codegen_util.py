@@ -26,4 +26,5 @@ def cond(conds, bodies):
         lines += bodies[i]
     lines.append('} else {')
     lines += bodies[len(conds)]
+    lines.append('}')
     return lines
