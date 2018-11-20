@@ -45,6 +45,7 @@ Type::Type(const onnx::TypeProto& xtype) {
 }
 
 Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_(dims) {
+    is_known_ = dtype != Dtype::kUnknown;
 }
 
 Type::Type(const Type& type)
