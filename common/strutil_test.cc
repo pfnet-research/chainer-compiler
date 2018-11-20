@@ -11,6 +11,8 @@ TEST(SplitStringTest, SplitString) {
     EXPECT_EQ("foo", toks[0]);
     EXPECT_EQ("bar", toks[1]);
     EXPECT_EQ("baz", toks[2]);
+
+    EXPECT_TRUE(SplitString("", "xx").empty());
 }
 
 TEST(StrUtilTest, StrCat) {

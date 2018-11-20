@@ -4,6 +4,7 @@ namespace oniku {
 
 std::vector<std::string> SplitString(const std::string& str, const std::string& sep) {
     std::vector<std::string> ret;
+    if (str.empty()) return ret;
     size_t index = 0;
     while (true) {
         size_t next = str.find(sep, index);
