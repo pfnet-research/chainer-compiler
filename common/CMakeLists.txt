@@ -19,3 +19,9 @@ target_link_libraries(common_test
   pthread
   )
 add_dependencies(common_test onnx_files)
+
+add_test(
+  NAME common_test
+  COMMAND common_test
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+  )
