@@ -79,6 +79,10 @@ public:
 
     void ShowVariableStatus() const;
 
+    void SetProgram(const std::vector<std::unique_ptr<XCVMOp>>* program) {
+        program_ = program;
+    }
+
 private:
     void ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs);
 
@@ -87,6 +91,7 @@ private:
     InOuts inputs_;
     InOuts outputs_;
     XCVMOptions options_;
+    const std::vector<std::unique_ptr<XCVMOp>>* program_;
 };
 
 }  // namespace runtime

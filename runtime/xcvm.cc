@@ -21,6 +21,14 @@
 namespace oniku {
 namespace runtime {
 
+XCVMOptions::XCVMOptions() {
+    int num_ops = 1;
+    while (XCInstructionProto::Op_IsValid(num_ops)) {
+        ++num_ops;
+    }
+    verbose_ops.resize(num_ops);
+}
+
 XCVM::XCVM(const XCProgramProto& program) {
     num_variables_ = 0;
     for (const XCInstructionProto& inst : program.instructions()) {
@@ -32,6 +40,7 @@ XCVM::XCVM(const XCProgramProto& program) {
     for (const XCInstructionProto& inst : program.instructions()) {
         XCVMOp* op = MakeXCVMOp(inst);
         op->set_id(inst.id());
+        op->set_op(inst.op());
         op->set_name(StrCat(XCInstructionProto_Op_Name(inst.op()), inst.id()));
         op->set_debug_info(inst.debug_info());
         program_.emplace_back(op);
@@ -48,6 +57,7 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
 }
 
 void XCVM::Run(XCVMState* state) {
+    state->SetProgram(&program_);
     const XCVMOptions& options = state->options();
     int64_t peak_usage = 0;
 

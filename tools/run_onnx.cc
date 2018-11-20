@@ -237,6 +237,7 @@ void RunMain(int argc, char** argv) {
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
+    args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
     args.add("quiet", 'q', "Quiet mode");
     AddCompilerFlags(&args);
     args.parse_check(argc, argv);
@@ -350,6 +351,11 @@ void RunMain(int argc, char** argv) {
 
     XCVM xcvm(xcvm_prog);
     XCVMOptions xcvm_opts;
+    for (const std::string& op_name : SplitString(args.get<std::string>("verbose_ops"), ",")) {
+        XCInstructionProto::Op op;
+        CHECK(XCInstructionProto::Op_Parse(op_name, &op)) << "Unknown op: " << op_name;
+        xcvm_opts.verbose_ops[op] = true;
+    }
     xcvm_opts.trace_level = trace_level;
     xcvm_opts.is_training = args.exist("backprop");
     xcvm_opts.check_nans = args.exist("check_nans");

@@ -22,6 +22,13 @@ public:
         id_ = id;
     }
 
+    XCInstructionProto::Op op() const {
+        return op_;
+    }
+    void set_op(XCInstructionProto::Op op) {
+        op_ = op;
+    }
+
     const std::string& name() const {
         return name_;
     }
@@ -38,6 +45,7 @@ public:
 
 protected:
     int64_t id_;
+    XCInstructionProto::Op op_;
     std::string name_;
     std::string debug_info_;
 };

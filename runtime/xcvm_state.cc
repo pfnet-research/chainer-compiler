@@ -3,6 +3,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <runtime/xcvm.h>
+#include <runtime/xcvm_op.h>
 #include <runtime/xcvm_var.h>
 
 namespace oniku {
@@ -84,7 +85,7 @@ std::string XCVMState::GetVarString(int index) {
     if (index < 0) return "null";
     CHECK_GT(variables_.size(), index) << index;
     if (!variables_[index].get()) return "UNSET";
-    if (trace_level() > 1)
+    if (trace_level() > 1 || options_.verbose_ops[(*program_)[pc_]->op()])
         return variables_[index]->DebugString();
     else
         return variables_[index]->ToString();

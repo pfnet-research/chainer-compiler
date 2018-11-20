@@ -20,10 +20,14 @@ typedef std::map<std::string, std::shared_ptr<XCVMVar>> InOuts;
 
 struct XCVMOptions {
 public:
+    XCVMOptions();
+
     // trace_level=0: No trace
     // trace_level=1: Dump shapes
     // trace_level=2: Dump values
     int trace_level{0};
+
+    std::vector<bool> verbose_ops;
 
     bool is_training{false};
 
