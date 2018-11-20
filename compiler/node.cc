@@ -113,8 +113,8 @@ bool Node::IsGradNode() const {
 std::string Node::ToString() const {
     std::ostringstream oss;
     oss << op_type();
-    oss << "(" << Join(MapToString(inputs(), [](const Value* v) { return v->name(); })) << ")";
-    oss << " -> (" << Join(MapToString(outputs(), [](const Value* v) { return v->name(); })) << ")";
+    oss << "(" << JoinString(MapToString(inputs(), [](const Value* v) { return v->name(); })) << ")";
+    oss << " -> (" << JoinString(MapToString(outputs(), [](const Value* v) { return v->name(); })) << ")";
     return oss.str();
 }
 

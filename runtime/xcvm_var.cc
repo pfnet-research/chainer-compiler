@@ -75,7 +75,7 @@ std::string XCVMVar::ToString() const {
         case Kind::kArray:
             return array_.shape().ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(*sequence_, [this](const XCVMVar& v) { return v.ToString(); })), ']');
+            return StrCat('[', JoinString(MapToString(*sequence_, [this](const XCVMVar& v) { return v.ToString(); })), ']');
         case Kind::kOpaque:
             return opaque_->ToString();
         case Kind::kNull:
@@ -89,7 +89,7 @@ std::string XCVMVar::DebugString() const {
         case Kind::kArray:
             return array_.ToString();
         case Kind::kSequence:
-            return StrCat('[', Join(MapToString(*sequence_, [this](const XCVMVar& v) { return v.DebugString(); })), ']');
+            return StrCat('[', JoinString(MapToString(*sequence_, [this](const XCVMVar& v) { return v.DebugString(); })), ']');
         case Kind::kOpaque:
             return opaque_->DebugString();
         case Kind::kNull:

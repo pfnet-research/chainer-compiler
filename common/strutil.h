@@ -24,7 +24,7 @@ inline std::string StrCat(Args... args) {
 }
 
 template <class List>
-inline std::string Join(const List& l) {
+inline std::string JoinString(const List& l) {
     std::ostringstream oss;
     bool is_first = true;
     for (auto& v : l) {
@@ -35,8 +35,8 @@ inline std::string Join(const List& l) {
     return oss.str();
 }
 
-inline std::string Join(std::initializer_list<std::string> l) {
-    return Join(std::vector<std::string>(l));
+inline std::string JoinString(std::initializer_list<std::string> l) {
+    return JoinString(std::vector<std::string>(l));
 }
 
 template <class List, class Fn>
