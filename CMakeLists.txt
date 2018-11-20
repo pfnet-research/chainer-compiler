@@ -40,6 +40,13 @@ else()
   set(ONIKU_TEST_ALL "")
 endif()
 
+set(ONNX_ML ON)
+add_subdirectory(onnx)
+add_custom_target(onnx_files
+  DEPENDS
+  ${CMAKE_CURRENT_BINARY_DIR}/onnx/onnx/onnx-ml.pb.h
+  )
+
 enable_testing()
 
 add_definitions(-DONNX_ML=1)
@@ -102,10 +109,8 @@ if(${ONIKU_BUILD_CUDA})
   endif()
 endif()
 
-set(ONNX_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/onnx" "${CMAKE_CURRENT_SOURCE_DIR}/onnx/build")
-include_directories(${ONNX_INCLUDE_DIRS})
-
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx/build)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/onnx)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest)
 
 add_custom_target(large_tests)
@@ -116,18 +121,6 @@ add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
-
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/onnx/build/libonnx.a ${CMAKE_CURRENT_SOURCE_DIR}/onnx/build/onnx/onnx-ml.pb.h
-  COMMAND scripts/build_onnx.sh
-  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/.git/modules/onnx/index
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-add_custom_target(onnx_files
-  DEPENDS
-  ${CMAKE_CURRENT_SOURCE_DIR}/onnx/build/libonnx.a
-  ${CMAKE_CURRENT_SOURCE_DIR}/onnx/build/onnx/onnx-ml.pb.h
-  )
 
 function(gen_ch2o_test dir ch2o_test all)
 
