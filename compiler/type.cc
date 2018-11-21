@@ -67,7 +67,9 @@ Type::Type(const Type& type)
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {
     if (kind_ == Kind::kSequence) {
-        sequence_->ToONNX(xtype->mutable_sequence_type()->mutable_elem_type());
+        if (sequence_.get()) {
+            sequence_->ToONNX(xtype->mutable_sequence_type()->mutable_elem_type());
+        }
         return;
     }
     CHECK(sequence_.get() == nullptr);
