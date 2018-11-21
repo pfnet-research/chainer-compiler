@@ -118,6 +118,7 @@ int64_t Type::NumElements() const {
 
 int64_t Type::GetNBytes() const {
     if (dtype_ == Dtype::kUnknown) return -1;
+    if (kind_ != Kind::kTensor) return -1;
     int64_t num_elements = NumElements();
     if (num_elements < 0) return -1;
     return num_elements * dtype_.SizeOf();
