@@ -17,6 +17,8 @@ public:
 
     explicit Type(Kind kind);
     explicit Type(const onnx::TypeProto& xtype);
+    Type();
+    explicit Type(Dtype dtype);
     Type(Dtype dtype, const std::vector<int64_t>& dims);
 
     explicit Type(const Type& type);

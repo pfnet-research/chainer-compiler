@@ -44,6 +44,14 @@ Type::Type(const onnx::TypeProto& xtype) {
     }
 }
 
+Type::Type() : Type(Dtype::kUnknown) {
+    has_known_shape_ = false;
+}
+
+Type::Type(Dtype dtype) : dtype_(dtype) {
+    has_known_shape_ = false;
+}
+
 Type::Type(Dtype dtype, const std::vector<int64_t>& dims) : dtype_(dtype), dims_(dims) {
 }
 
