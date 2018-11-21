@@ -526,6 +526,7 @@ for test_case in list(TEST_CASES):
         'StatelessLSTM' in test_case.name or
         'Sum' in test_case.name or
         'EspNet' in test_case.name or
+        'For' in test_case.name or
         'BroadcastTo' in test_case.name or
         'AttDot' in test_case.name or
         'pc_pad' in test_case.name or

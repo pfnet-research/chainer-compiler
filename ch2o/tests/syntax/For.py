@@ -2,6 +2,7 @@
 
 import chainer
 import chainer.functions as F
+import chainer.links as L
 
 
 class A(chainer.Chain):
@@ -65,6 +66,31 @@ class UpdateSelfLiteralInInit(chainer.Chain):
         return self.x
 
 
+class ForBackprop(chainer.Chain):
+    def __init__(self):
+        super(ForBackprop, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(None, 3)
+
+    def forward(self, x, n):
+        for i in range(n):
+            x = self.l(x)
+        return x
+
+
+class DoubleForBackprop(chainer.Chain):
+    def __init__(self):
+        super(DoubleForBackprop, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(None, 3)
+
+    def forward(self, x, n, m):
+        for i in range(n):
+            for j in range(m):
+                x = self.l(x)
+        return x
+
+
 # ======================================
 
 
@@ -98,3 +124,11 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(UpdateSelfLiteralInInit, [],
                            subname='update_self_literal_in_init')
+
+    ch2o.generate_testcase(ForBackprop,
+                           [np.random.rand(4, 3).astype(np.float32), 2],
+                           subname='for', backprop=True)
+
+    ch2o.generate_testcase(DoubleForBackprop,
+                           [np.random.rand(4, 3).astype(np.float32), 2, 5],
+                           subname='double_for', backprop=True)
