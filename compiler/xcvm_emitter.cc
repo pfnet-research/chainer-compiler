@@ -633,6 +633,8 @@ private:
             EMIT(GenericZerosLikeGrad, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxGenericAccumulateGrad) {
             EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kOnikuxNullConstant) {
+            EMIT(NullConstant, out(0));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

@@ -209,6 +209,9 @@ NodeDef('OnikuxBackpropStackPop', 0, 1, id=Required(int))
 
 NodeDef('OnikuxPrint', None, 0)
 
+# Put a null value.
+NodeDef('OnikuxNullConstant', 0, 1)
+
 # Creates a constant sequence: () -> ([T])
 NodeDef('OnikuxSequenceConstants', 0, 1, tensor_values=[Tensor])
 
