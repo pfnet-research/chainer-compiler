@@ -371,7 +371,6 @@ XC_GENERIC_OPS = [
       OptionalArray('end'), OptionalArray('step')], ['output']),
     ('GenericAdd', [Array('a'), Array('b')], ['output']),
     ('GenericIs', [Array('a'), Array('b')], ['output']),
-    ('GenericZerosLikeGrad', [Array('a')], ['output']),
     ('GenericAccumulateGrad', [Array('a'), Array('b')], ['output']),
 ]
 

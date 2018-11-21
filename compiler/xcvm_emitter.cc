@@ -629,8 +629,6 @@ private:
             EMIT(GenericGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
         } else if (node.op_type() == Node::kOnikuxGenericAdd) {
             EMIT(GenericAdd, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxGenericZerosLikeGrad) {
-            EMIT(GenericZerosLikeGrad, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxGenericAccumulateGrad) {
             EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kOnikuxNullConstant) {

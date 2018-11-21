@@ -345,7 +345,6 @@ void InferDtype(Node* node) {
         case Node::kOnikuxGenericGetItem:
         case Node::kOnikuxGenericGetSlice:
         case Node::kOnikuxGenericAdd:
-        case Node::kOnikuxGenericZerosLikeGrad:
         case Node::kOnikuxGenericAccumulateGrad:
         case Node::kOnikuxGenericIs: {
             // TODO(hamaji): Consider implementing dtype inference for sequences.

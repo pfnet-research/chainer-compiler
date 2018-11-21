@@ -291,11 +291,6 @@ NodeDef('OnikuxGenericAdd', 2, 1)
 # the same value.
 NodeDef('OnikuxGenericIs', 2, 1)
 
-# Creates an initialized gradient value.
-# For tensors: ZerosLike(input)
-# For sequence: vector(input.size(), None)
-NodeDef('OnikuxGenericZerosLikeGrad', 1, 1)
-
 # Accumulates two gradient values.
 # For tensors: Add(input0, input1) -> tensor
 # For sequence: Add(i0, i1) for each element in sequences.

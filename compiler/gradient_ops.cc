@@ -545,7 +545,7 @@ void LoopGradFn(GradientOpContext* gc) {
         Value* y = ys[i];
         if (!y->grad()) {
             GraphBuilder gb(graph, "LoopGrad", y);
-            Value* gy = gb.Op(Node::kOnikuxGenericZerosLikeGrad, {gc->y(i)});
+            Value* gy = gb.Op(Node::kOnikuxNullConstant, {});
             y->set_grad(gy);
         }
     }
