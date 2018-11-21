@@ -85,6 +85,7 @@ public:
     }
 
     int GetValueId(const Value* v) const {
+        CHECK(!v->name().empty());
         auto found = value_ids_.find(v);
         CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
         return found->second;
@@ -752,7 +753,7 @@ private:
                 // Do not free output values.
                 if (todo_outputs.erase(output)) continue;
                 if (protected_values.count(output)) continue;
-                if (output->kind() == Value::Kind::kTemp && output->users().empty() &&
+                if (output->kind() == Value::Kind::kTemp && !output->IsNull() && output->users().empty() &&
                     // TODO(hamaji): Figure out how we should handle batch norm.
                     node->op_type() != Node::kBatchNormalization)
                     FREE(GetValueId(output));
@@ -956,8 +957,8 @@ private:
         int num_body_outputs = body_output_values.size();
         int num_states = num_loop_inputs - 2;
         int num_scans = num_body_outputs - 1 - num_states;
-        CHECK_EQ(num_body_inputs, num_states + 2);
-        CHECK_EQ(num_loop_outputs, num_states + num_scans);
+        CHECK_EQ(num_body_inputs, num_states + 2) << body->name();
+        CHECK_EQ(num_loop_outputs, num_states + num_scans) << body->name();
         Value* max_trip_count = loop.inputs()[0];
         Value* terminal_condition = loop.inputs()[1];
         CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite loop is detected";
@@ -1078,7 +1079,11 @@ private:
             CHECK_LT(i, loop.outputs().size());
             const Value* body_in = body_input_values[i + 2];
             const Value* loop_out = loop.outputs()[i];
-            MOVE(GetValueId(loop_out), GetValueId(body_in));
+            if (loop_out->IsNull()) {
+                FREE(GetValueId(body_in));
+            } else {
+                MOVE(GetValueId(loop_out), GetValueId(body_in));
+            }
         }
 
         // Stack and output scan outputs.

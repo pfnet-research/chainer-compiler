@@ -37,7 +37,7 @@ public:
         }
         std::reverse(necessary_nodes.begin(), necessary_nodes.end());
         for (Node* node : necessary_nodes) {
-            AddGradientForNode(graph_, node, retain_in_stack);
+            AddGradientForNode(graph_, graph_, node, retain_in_stack, nullptr);
         }
     }
 
@@ -95,6 +95,20 @@ void AddGradientNodes(Graph* graph, bool retain_in_stack) {
     GradientGenerator gen(graph);
     gen.Run(ys, retain_in_stack);
     gen.ExposeParamGradsAsOutputs();
+}
+
+void AddGradientNodes(Graph* graph, Graph* dest_graph, const std::vector<Value*>& xs, const std::vector<Value*>& ys, std::vector<std::pair<Value*, Value*>>* retained) {
+    std::vector<Node*> necessary_nodes;
+    std::map<Node*, int> node_set = graph->GetNecessaryNodesAndInputCounts(ys);
+    // TODO(hamaji): Filter out unnecessary nodes by `xs`.
+    for (Node* node : graph->GetTopologicallySortedNodes()) {
+        if (node_set.count(node)) necessary_nodes.push_back(node);
+    }
+    std::reverse(necessary_nodes.begin(), necessary_nodes.end());
+
+    for (Node* node : necessary_nodes) {
+        AddGradientForNode(graph, dest_graph, node, false, retained);
+    }
 }
 
 }  // namespace oniku

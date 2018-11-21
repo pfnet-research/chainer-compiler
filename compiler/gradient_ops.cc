@@ -36,8 +36,8 @@ public:
     // Thrown when a necessary `gy` is missing.
     struct NoGradient {};
 
-    GradientOpContext(Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, bool retain_in_stack)
-        : graph_(graph), node_(node), x_(x), y_(y), retain_in_stack_(retain_in_stack) {
+    GradientOpContext(Graph* src_graph, Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, bool retain_in_stack, std::vector<std::pair<Value*, Value*>>* retained)
+        : src_graph_(src_graph), graph_(graph), node_(node), x_(x), y_(y), retain_in_stack_(retain_in_stack), retained_(retained) {
         name_ = Node::OpTypeToString(node->op_type());
         const std::string prefix = "Onikux";
         if (HasPrefix(name_, prefix)) name_ = name_.substr(prefix.size());
@@ -46,6 +46,10 @@ public:
 
     Graph* graph() {
         return graph_;
+    }
+
+    Graph* src_graph() {
+        return src_graph_;
     }
 
     Node* node() {
@@ -57,13 +61,21 @@ public:
     }
 
     Value* Retain(Value* v) {
-        if (!retain_in_stack_) return v;
+        if (retain_in_stack_) {
+            int id = ++id_;
+            GraphBuilder gb(graph_, StrCat(name_, "Retain", id), v);
+            gb.MOp(Node::kOnikuxBackpropStackPush, {v}, {})->set_id(id);
+            Value* retained = gb.Op(Node::kOnikuxBackpropStackPop, {});
+            retained->set_type(new Type(v->type()));
+            retained->producer()->set_id(id);
+            return retained;
+        }
+        if (!retained_) return v;
+
         int id = ++id_;
         GraphBuilder gb(graph_, StrCat(name_, "Retain", id), v);
-        gb.MOp(Node::kOnikuxBackpropStackPush, {v}, {})->set_id(id);
-        Value* retained = gb.Op(Node::kOnikuxBackpropStackPop, {});
-        retained->set_type(new Type(v->type()));
-        retained->producer()->set_id(id);
+        Value* retained = gb.Temp();
+        retained_->push_back(std::make_pair(v, retained));
         return retained;
     }
 
@@ -100,15 +112,29 @@ public:
         return r;
     }
 
-    Value* AddOutput(Value* v) {
+    Value* AddOutput(const Type& typ) {
+        GraphBuilder gb{src_builder(0)};
+        Value* v = gb.Temp(typ);
         node_->AddOutput(v);
         return y(node_->outputs().size() - 1);
+    }
+
+    void AddNullOutput() {
+        GraphBuilder gb{src_builder(0)};
+        Value* v = gb.Null();
+        node_->AddOutput(v);
     }
 
     GraphBuilder builder(int xi) {
         CHECK_LE(0, xi) << xi;
         CHECK_GT(x_.size(), xi) << xi;
         return GraphBuilder(graph_, name_, x_[xi]);
+    }
+
+    GraphBuilder src_builder(int xi) {
+        CHECK_LE(0, xi) << xi;
+        CHECK_GT(x_.size(), xi) << xi;
+        return GraphBuilder(src_graph_, name_, x_[xi]);
     }
 
     void SetGrad(int xi, Value* gx) {
@@ -149,12 +175,14 @@ public:
     }
 
 private:
+    Graph* src_graph_;
     Graph* graph_;
     Node* node_;
     const std::vector<Value*>& x_;
     const std::vector<Value*>& y_;
     std::string name_;
     bool retain_in_stack_;
+    std::vector<std::pair<Value*, Value*>>* retained_;
     static std::atomic<int> id_;
     bool gradient_added_{false};
 };
@@ -389,9 +417,9 @@ void ConvGradFn(GradientOpContext* gc) {
 void MaxPoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    if (node->outputs().size() == 1) node->AddOutput(gb.Null());
+    if (node->outputs().size() == 1) gc->AddNullOutput();
     CHECK_EQ(2, node->outputs().size());
-    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
+    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
     gc->GradOp(Node::kOnikuxMaxPoolGrad, 0, {gc->gy(0), context});
 }
 
@@ -399,7 +427,7 @@ void AveragePoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
     CHECK_EQ(1, node->outputs().size());
-    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
+    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
     gc->GradOp(Node::kOnikuxAveragePoolGrad, 0, {gc->gy(0), context});
 }
 
@@ -430,7 +458,7 @@ void SoftmaxGradFn(GradientOpContext* gc) {
 
 void BatchNormalizationGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
+    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
     Value* gy = gc->gy(0);
     Value* gx0 = gc->AddGradValue(0);
     Value* gx1 = gc->AddGradValue(1);
@@ -445,7 +473,7 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
 void LRNGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    Value* unit_scale = gc->AddOutput(gb.Temp());
+    Value* unit_scale = gc->AddOutput(Type(gc->x(0)->type()));
     gc->GradOp(Node::kOnikuxLRNGrad, 0, {gc->x(0), gc->y(0), gc->gy(0), unit_scale})
             ->producer()
             ->set_alpha(node->alpha())
@@ -461,7 +489,7 @@ void LSTMGradFn(GradientOpContext* gc) {
     // generated by CH2O.
     CHECK_EQ(5UL, node->inputs().size()) << "Not implemented yet";
     CHECK_EQ(3UL, node->outputs().size()) << "Not implemented yet";
-    Value* context = gc->AddOutput(gb.Temp(Type(Type::Kind::kOpaque)));
+    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
     gc->GradMOp(Node::kOnikuxLSTMGrad, {0, 1, 2, 3}, {gc->gy(0), context});
 }
 
@@ -539,7 +567,7 @@ void LoopGradFn(GradientOpContext* gc) {
     }
     if (!has_gy) return;
 
-    OutputIterationCount(graph, loop);
+    OutputIterationCount(gc->src_graph(), loop);
 
     for (int i = 0; i < num_states; ++i) {
         Value* y = ys[i];
@@ -550,38 +578,75 @@ void LoopGradFn(GradientOpContext* gc) {
         }
     }
 
-    std::vector<std::string> input_value_names;
-    std::vector<std::string> output_value_names;
+    auto grad_graph = std::make_unique<Graph>("Grad_" + body->name());
+    std::vector<std::pair<Value*, Value*>> retained;
     {
-        GraphBuilder gb(body, "LoopGradBody", xs[0]);
-        // Two extra inputs for iterator and condition.
-        for (int i = 0; i < 2; ++i) {
-            input_value_names.push_back(body->AddValue(gb.GenName())->name());
-        }
+        GraphBuilder gb(grad_graph.get(), "lg@", ys[0]);
+        grad_graph->AddInputValue(gb.GenName(), Type(Dtype::kInt64, {}));
+        grad_graph->AddInputValue(gb.GenName(), Type(Dtype::kBool, {}));
+
         std::vector<Value*> ys;
         for (int i = 0; i < num_states; ++i) {
             Value* y = body->output_values()[i + 1];
-            Value* gy = body->AddValue("loop_grad_in@" + y->name());
+            Value* gy = grad_graph->AddInputValue("loop_grad_in@" + y->name(), y->type());
             CHECK(y->grad() == nullptr);
+            // TODO(hamaji): Why do we need kIdentity here?
             y->set_grad(gb.Op(Node::kIdentity, {gy}));
             ys.push_back(y);
-            gy->ChangeKind(Value::Kind::kInput);
-            input_value_names.push_back(gy->name());
         }
-        AddGradientNodes(body, ys, true /* retain_in_stack */);
 
-        Value* output_cond = gb.Const(Type(Dtype::kBool, {}), {1});
-        output_value_names.push_back(output_cond->name());
+        std::vector<Value*> input_values(body->input_values().begin() + 2, body->input_values().end());
+        AddGradientNodes(body, grad_graph.get(), input_values, ys, &retained);
+
+        Value* output_cond = grad_graph->AddOutputValue(gb.GenName(), Type(Dtype::kBool, {}));
+        gb.Const(Type(Dtype::kBool, {}), {1}, output_cond);
+
         for (int i = 0; i < num_states; ++i) {
             Value* x = body->input_values()[i + 2];
-            Value* out = GradOut(&gb, x);
-            out->ChangeKind(Value::Kind::kOutput);
-            output_value_names.push_back(out->name());
+            Value* out = grad_graph->AddOutputValue(gb.GenName(), x->type());
+            if (x->grad()) {
+                gb.Op(Node::kIdentity, {x->grad()}, {out});
+            } else {
+                gb.Op(Node::kOnikuxNullConstant, {}, {out});
+            }
+        }
+
+        for (const std::pair<Value*, Value*>& p : retained) {
+            Value* rv = p.second;
+            Value* in = grad_graph->AddInputValue("bp_pop_i@" + rv->name(), Type(Type::Kind::kSequence));
+            Value* out = grad_graph->AddOutputValue("bp_pop_o@" + rv->name(), Type(Type::Kind::kSequence));
+            gb.MOp(Node::kOnikuxSequencePop, {in}, {out, rv});
         }
     }
 
     {
-        GraphBuilder gb(graph, "LoopGrad", xs[0]);
+        GraphBuilder gb(body, "LoopGradBody", ys[0]);
+        for (const std::pair<Value*, Value*>& p : retained) {
+            Value* rv = p.first;
+            Value* in = body->AddInputValue("bp_push_i@" + rv->name(), Type(Type::Kind::kSequence));
+            Value* out = body->AddOutputValue("bp_push_o@" + rv->name(), Type(Type::Kind::kSequence));
+            gb.Op(Node::kOnikuxSequenceAppend, {in, rv}, out);
+        }
+    }
+
+    std::vector<Value*> retained_outs;
+    size_t num_retained = retained.size();
+    {
+        GraphBuilder gb{gc->src_builder(0)};
+        for (size_t i = 0; i < num_retained; ++i) {
+            Value* stack_in = gb.Op(Node::kOnikuxSequenceCreate, {});
+            loop->AddInput(stack_in);
+        }
+        for (size_t i = 0; i < num_retained; ++i) {
+            Value* out = gb.Temp(Type(Type::Kind::kSequence));
+            loop->AddOutput(out);
+            retained_outs.push_back(gc->y(loop->outputs().size() - 1));
+        }
+
+    }
+
+    {
+        GraphBuilder gb{gc->builder(0)};
         std::vector<Value*> gys;
         for (int i = 0; i < num_states; ++i) {
             Value* y = ys[i];
@@ -601,12 +666,13 @@ void LoopGradFn(GradientOpContext* gc) {
         backward_inputs.push_back(gc->y(num_states));
         backward_inputs.push_back(graph->AddNullValue());
         for (Value* gy : gys) backward_inputs.push_back(gy);
+        for (Value* r : retained_outs) backward_inputs.push_back(r);
 
-        Node* backward_loop = gb.MOp(Node::kOnikuxLoopRef, backward_inputs, gxs);
-        CHECK(!body->name().empty()) << "Loop body must have a name";
-        backward_loop->set_body_ref(body->name());
-        backward_loop->set_input_value_names(input_value_names);
-        backward_loop->set_output_value_names(output_value_names);
+        std::vector<Value*> backward_outputs = gxs;
+        for (size_t i = 0; i < num_retained; ++i) backward_outputs.push_back(gb.Null());
+
+        Node* backward_loop = gb.MOp(Node::kLoop, backward_inputs, backward_outputs);
+        backward_loop->set_body(grad_graph.release());
     }
 
     body->ResetGradients();
@@ -616,6 +682,7 @@ void IfGradFn(GradientOpContext* gc) {
     Node* cond = gc->node();
     Graph* then_graph = cond->then_branch().get();
     Graph* else_graph = cond->else_branch().get();
+    Graph* graphs[2] = {then_graph, else_graph};
     const std::vector<Value*>& xs = cond->inputs();
     const std::vector<Value*>& ys = cond->outputs();
 
@@ -630,36 +697,37 @@ void IfGradFn(GradientOpContext* gc) {
     }
     if (gy_indices.empty()) return;
 
+    auto then_grad_graph = std::make_unique<Graph>("ThenGrad_" + then_graph->name());
+    auto else_grad_graph = std::make_unique<Graph>("ElseGrad_" + else_graph->name());
+    Graph* grad_graphs[2] = {then_grad_graph.get(), else_grad_graph.get()};
+    std::vector<std::pair<Value*, Value*>> retained[2];
     std::vector<size_t> gx_indices;
-    std::vector<std::string> then_input_value_names;
-    std::vector<std::string> then_output_value_names;
-    std::vector<std::string> else_input_value_names;
-    std::vector<std::string> else_output_value_names;
     {
-        GraphBuilder then_gb(then_graph, "IfGradThen", xs[0]);
-        GraphBuilder else_gb(else_graph, "IfGradElse", xs[0]);
+        GraphBuilder gbs[2] = {
+            GraphBuilder(then_grad_graph.get(), "tg@", ys[0]),
+            GraphBuilder(else_grad_graph.get(), "eg@", ys[0])
+        };
+        GraphBuilder& then_gb = gbs[0];
+        GraphBuilder& else_gb = gbs[1];
 
         std::vector<Value*> then_ys;
         std::vector<Value*> else_ys;
         for (size_t i : gy_indices) {
             Value* then_y = then_graph->output_values()[i];
-            Value* then_gy = then_graph->AddValue("if_grad_in@" + then_y->name());
+            Value* then_gy = then_grad_graph->AddInputValue("if_grad_in@" + then_y->name(), then_y->type());
             CHECK(then_y->grad() == nullptr);
             then_y->set_grad(then_gb.Op(Node::kIdentity, {then_gy}));
             then_ys.push_back(then_y);
-            then_gy->ChangeKind(Value::Kind::kInput);
-            then_input_value_names.push_back(then_gy->name());
 
             Value* else_y = else_graph->output_values()[i];
-            Value* else_gy = else_graph->AddValue("if_grad_in@" + else_y->name());
+            Value* else_gy = else_grad_graph->AddInputValue("if_grad_in@" + else_y->name(), else_y->type());
             CHECK(else_y->grad() == nullptr);
             else_y->set_grad(else_gb.Op(Node::kIdentity, {else_gy}));
             else_ys.push_back(else_y);
-            else_gy->ChangeKind(Value::Kind::kInput);
-            else_input_value_names.push_back(else_gy->name());
         }
-        AddGradientNodes(then_graph, then_ys, true);
-        AddGradientNodes(else_graph, else_ys, true);
+
+        AddGradientNodes(then_graph, then_grad_graph.get(), then_graph->input_values(), then_ys, &retained[0]);
+        AddGradientNodes(else_graph, else_grad_graph.get(), else_graph->input_values(), else_ys, &retained[1]);
 
         for (size_t i = 0; i < xs.size() - 1; ++i) {
             Value* then_x = then_graph->input_values()[i];
@@ -668,19 +736,71 @@ void IfGradFn(GradientOpContext* gc) {
                 continue;
             }
             gx_indices.push_back(i);
-            Value* then_out = GradOut(&then_gb, then_x);
-            then_out->ChangeKind(Value::Kind::kOutput);
-            then_output_value_names.push_back(then_out->name());
-            Value* else_out = GradOut(&else_gb, else_x);
-            else_out->ChangeKind(Value::Kind::kOutput);
-            else_output_value_names.push_back(else_out->name());
+
+            Value* then_out = then_grad_graph->AddOutputValue(then_gb.GenName(), then_x->type());
+            if (then_x->grad()) {
+                then_gb.Op(Node::kIdentity, {then_x->grad()}, {then_out});
+            } else {
+                then_gb.Op(Node::kOnikuxNullConstant, {}, then_out);
+            }
+
+            Value* else_out = else_grad_graph->AddOutputValue(else_gb.GenName(), else_x->type());
+            if (else_x->grad()) {
+                else_gb.Op(Node::kIdentity, {else_x->grad()}, {else_out});
+            } else {
+                else_gb.Op(Node::kOnikuxNullConstant, {}, else_out);
+            }
+        }
+
+        for (int i = 0; i < 2; ++i) {
+            for (const std::pair<Value*, Value*>& p : retained[i]) {
+                Value* rv = p.second;
+                for (int j = 0; j < 2; ++j) {
+                    Value* in = grad_graphs[j]->AddInputValue("bp_i@" + rv->name(), rv->type());
+                    std::cerr << "hey " << in->name() << std::endl;
+                    if (i == j)
+                        gbs[j].Op(Node::kIdentity, {in}, rv);
+                }
+            }
+        }
+    }
+
+    {
+        GraphBuilder gbs[2] = {
+            GraphBuilder(then_graph, "IfGradThen", xs[0]),
+            GraphBuilder(else_graph, "IfGradElse", xs[0])
+        };
+        for (int i = 0; i < 2; ++i) {
+            for (const std::pair<Value*, Value*>& p : retained[i]) {
+                Value* rv = p.first;
+                for (int j = 0; j < 2; ++j) {
+                    if (i == j) {
+                        Value* out = graphs[j]->AddOutputValue("bp_o@" + rv->name(), rv->type());
+                        gbs[j].Op(Node::kIdentity, {rv}, out);
+                    } else {
+                        Value* out = graphs[j]->AddOutputValue("", rv->type());
+                    }
+                }
+            }
         }
     }
 
     if (gx_indices.empty()) return;
 
+    std::vector<Value*> retained_outs;
     {
-        GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
+        //GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
+        GraphBuilder gb{gc->src_builder(0)};
+        size_t num_retained = retained[0].size() + retained[1].size();
+        for (size_t i = 0; i < num_retained; ++i) {
+            Value* retained_out = gb.Temp();
+            cond->AddOutput(retained_out);
+            retained_outs.push_back(gc->y(cond->outputs().size() - 1));
+        }
+    }
+
+    {
+        GraphBuilder gb{gc->builder(0)};
         std::vector<Value*> gxs;
         for (size_t i : gx_indices) {
             gxs.push_back(gc->AddGradValue(i + 1));
@@ -689,16 +809,11 @@ void IfGradFn(GradientOpContext* gc) {
         std::vector<Value*> backward_inputs;
         backward_inputs.push_back(gc->x(0));
         for (Value* gy : gys) backward_inputs.push_back(gy);
+        for (Value* r : retained_outs) backward_inputs.push_back(r);
 
-        Node* backward_if = gb.MOp(Node::kOnikuxIfRef, backward_inputs, gxs);
-        CHECK(!then_graph->name().empty()) << "If then_branch must have a name";
-        CHECK(!else_graph->name().empty()) << "If else_branch must have a name";
-        backward_if->set_then_branch_ref(then_graph->name());
-        backward_if->set_else_branch_ref(else_graph->name());
-        backward_if->set_then_input_value_names(then_input_value_names);
-        backward_if->set_then_output_value_names(then_output_value_names);
-        backward_if->set_else_input_value_names(else_input_value_names);
-        backward_if->set_else_output_value_names(else_output_value_names);
+        Node* backward_cond = gb.MOp(Node::kIf, backward_inputs, gxs);
+        backward_cond->set_then_branch(then_grad_graph.release());
+        backward_cond->set_else_branch(else_grad_graph.release());
     }
 
     then_graph->ResetGradients();
@@ -724,7 +839,7 @@ void SequenceAppendGradFn(GradientOpContext* gc) {
 void SequenceConcatGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    Value* indices = gc->AddOutput(gb.Temp());
+    Value* indices = gc->AddOutput(Type(Dtype::kInt64));
     gc->GradOp(Node::kOnikuxSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
 }
 
@@ -752,14 +867,16 @@ void SequenceSeparateGradFn(GradientOpContext* gc) {
 
 void SequenceLookupGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* size = gb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
+    GraphBuilder sgb{gc->src_builder(0)};
+    Value* size = sgb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
     size = gc->Retain(size);
     gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->gy(0), size, gc->x(1)});
 }
 
 void SequenceGetSliceGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* size = gb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
+    GraphBuilder sgb{gc->src_builder(0)};
+    Value* size = sgb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
     size = gc->Retain(size);
     std::vector<Value*> inputs = {gc->gy(0), size};
     for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
@@ -786,7 +903,7 @@ struct GradientFunc {
 
 }  // namespace
 
-bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
+bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, bool retain_in_stack, std::vector<std::pair<Value*, Value*>>* retained) {
     static std::map<Node::OpType, GradientFunc>* s_gradient_funcs;
     if (!s_gradient_funcs) {
         // Leak.
@@ -864,7 +981,7 @@ bool AddGradientForNode(Graph* graph, Node* node, bool retain_in_stack) {
     }
     const GradientFunc& func = found->second;
 
-    GradientOpContext gc(graph, node, node->inputs(), node->outputs(), retain_in_stack);
+    GradientOpContext gc(graph, dest_graph, node, node->inputs(), node->outputs(), retain_in_stack, retained);
     // TODO(hamaji): Better to get gradient functions declare which
     // `gy` are necessary by themselves instead of relying on the
     // exception thrown in `gy`.

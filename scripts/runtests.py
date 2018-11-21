@@ -516,6 +516,8 @@ TEST_CASES.extend(ch2o_tests.get())
 TEST_CASES.extend(onnx_real_tests.get())
 
 for test_case in list(TEST_CASES):
+    # TODO(hamaji): Remove --always_retain_in_stack.
+    break
     if not test_case.is_backprop:
         continue
     new_test = copy.copy(test_case)

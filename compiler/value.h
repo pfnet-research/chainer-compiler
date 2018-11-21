@@ -87,7 +87,8 @@ public:
     }
 
     bool IsNull() const {
-        return kind_ == Kind::kNull;
+        // TODO(hamaji): Do not use `name_.empty()` by allowing null outputs.
+        return kind_ == Kind::kNull || name_.empty();
     }
 
 private:
