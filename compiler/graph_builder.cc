@@ -30,16 +30,21 @@ Node* GraphBuilder::MOp(Node::OpType op_type, const std::vector<Value*>& inputs,
 }
 
 template <typename T>
-Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data) {
-    Value* v = Op(Node::kConstant, {});
+Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data, Value* value) {
+    Value* v;
+    if (value == nullptr) {
+        v = Op(Node::kConstant, {});
+    } else {
+        v = Op(Node::kConstant, {}, {value});
+    }
     v->producer()->set_tensor_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
     return v;
 }
 
-template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data, Value* value);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data, Value* value);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data, Value* value);
 
 Value* GraphBuilder::Temp() {
     return graph_->AddValue(GenName());

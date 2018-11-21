@@ -33,11 +33,11 @@ public:
     Node* MOp(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
     template <class T>
-    Value* Const(const Type& type, const std::vector<T>& data);
+    Value* Const(const Type& type, const std::vector<T>& data, Value* value = nullptr);
 
     template <class T>
-    Value* Const(const Type& type, const std::initializer_list<T>& data) {
-        return Const(type, std::vector<T>{data});
+    Value* Const(const Type& type, const std::initializer_list<T>& data, Value* value = nullptr) {
+        return Const(type, std::vector<T>{data}, value);
     }
 
     Value* Temp();
