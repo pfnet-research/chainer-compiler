@@ -79,21 +79,19 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
     DUMP_STRING(xgraph, name);
     DUMP_STRING(xgraph, doc_string);
 
+    // `temp_values_` may contain kInput and kOutput due to `ChangeKind`.
+    // TODO(hamaji): Remove `ChangeKind` by refactoring how gradients
+    // of subgraphs are created.
+    std::set<Value*> input_values{input_values_.begin(), input_values_.end()};
+    std::set<Value*> output_values{output_values_.begin(), output_values_.end()};
     for (const auto& value : all_values_) {
         onnx::ValueInfoProto* xvalue = nullptr;
-        switch (value->kind()) {
-            case Value::Kind::kInput:
-                xvalue = xgraph->add_input();
-                break;
-            case Value::Kind::kOutput:
-                xvalue = xgraph->add_output();
-                break;
-            case Value::Kind::kTemp:
-                xvalue = xgraph->add_value_info();
-                break;
-            case Value::Kind::kNull:
-                xvalue = nullptr;
-                break;
+        if (input_values.count(value.get())) {
+            xvalue = xgraph->add_input();
+        } else if (output_values.count(value.get())) {
+            xvalue = xgraph->add_output();
+        } else if (value->kind() != Value::Kind::kNull) {
+            xvalue = xgraph->add_value_info();
         }
         if (!xvalue) continue;
 
