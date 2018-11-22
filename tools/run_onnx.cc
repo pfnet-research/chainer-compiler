@@ -25,6 +25,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -271,6 +272,7 @@ void RunMain(int argc, char** argv) {
     }
 
     LOG() << "Constructing model..." << std::endl;
+    RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     if (!args.exist("skip_shape_inference")) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
