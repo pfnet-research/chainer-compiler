@@ -35,10 +35,6 @@ public:
     Kind kind() const {
         return kind_;
     }
-    // This is valid only for LoopRef and IfRef.
-    void ChangeKind(Kind kind) {
-        kind_ = kind;
-    }
 
     const std::string& name() const {
         return name_;

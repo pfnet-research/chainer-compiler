@@ -191,16 +191,6 @@ NodeDef('OnikuxLRNGrad', 4, 1,
 NodeDef('OnikuxLSTMGrad', 2, 4)
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('OnikuxGatherGrad', 3, 1, axis=0)
-# body_ref is a name of a sub Graph in a sibling Loop node.
-NodeDef('OnikuxLoopRef', None, None,
-        body_ref=Required(str),
-        input_value_names=[str], output_value_names=[str],
-        onikux_stack_axis=0)
-NodeDef('OnikuxIfRef', None, None,
-        then_branch_ref=Required(str),
-        else_branch_ref=Required(str),
-        then_input_value_names=[str], then_output_value_names=[str],
-        else_input_value_names=[str], else_output_value_names=[str])
 NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
 NodeDef('OnikuxFusionGroup', None, None, subgraph=Graph)
 

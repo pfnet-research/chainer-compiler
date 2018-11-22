@@ -36,74 +36,6 @@ void Recursively(Fn fn, Graph* graph) {
     }
 }
 
-int64_t ScheduleBackpropGraphs(Graph* graph, int64_t order) {
-    struct SubGraph {
-        Node* node;
-        struct Ref {
-            Node* node;
-            const std::vector<std::string> input_value_names;
-            const std::vector<std::string> output_value_names;
-        };
-        std::vector<Ref> refs;
-    };
-
-    std::map<Graph*, SubGraph> sub_graphs;
-    for (Node* node : graph->nodes()) {
-        for (Graph* sub_graph : node->GetSubGraphs()) {
-            SubGraph sg;
-            sg.node = node;
-            CHECK(sub_graphs.emplace(sub_graph, sg).second);
-        }
-    }
-
-    auto add_sub_graph_ref = [&sub_graphs, graph](
-                                     Node* node,
-                                     const std::string& graph_name,
-                                     const std::vector<std::string>& input_value_names,
-                                     const std::vector<std::string>& output_value_names) {
-        if (graph_name.empty()) return;
-        Graph* sub_graph = graph->GetSubGraph(graph_name);
-        auto found = sub_graphs.find(sub_graph);
-        CHECK(found != sub_graphs.end()) << graph_name;
-        found->second.refs.emplace_back(SubGraph::Ref{node, input_value_names, output_value_names});
-    };
-
-    for (Node* node : graph->nodes()) {
-        add_sub_graph_ref(node, node->body_ref(), node->input_value_names(), node->output_value_names());
-        add_sub_graph_ref(node, node->then_branch_ref(), node->then_input_value_names(), node->then_output_value_names());
-        add_sub_graph_ref(node, node->else_branch_ref(), node->else_input_value_names(), node->else_output_value_names());
-    }
-
-    for (const auto& p : sub_graphs) {
-        Graph* graph = p.first;
-        const SubGraph& sg = p.second;
-
-        std::map<std::string, Value*> values;
-        for (Value* v : graph->temp_values()) {
-            CHECK(values.emplace(v->name(), v).second) << v->name();
-        }
-
-        for (const SubGraph::Ref& ref : sg.refs) {
-            std::vector<Value*> input_values;
-            for (const std::string& name : ref.input_value_names) {
-                if (name.empty()) continue;
-                auto found = values.find(name);
-                CHECK(found != values.end()) << name;
-                input_values.push_back(found->second);
-            }
-            std::vector<Value*> output_values;
-            for (const std::string& name : ref.output_value_names) {
-                if (name.empty()) continue;
-                auto found = values.find(name);
-                CHECK(found != values.end()) << name;
-                output_values.push_back(found->second);
-            }
-            order = ScheduleComputation(*graph, input_values, output_values, order);
-        }
-    }
-    return order;
-}
-
 }  //  namespace
 
 void RunDefaultPasses(Model* model, bool gen_backprop) {
@@ -149,9 +81,6 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     int64_t order = 0;
     Recursively([&order](Graph* g) { order = ScheduleComputation(*g, order); }, graph);
-    if (gen_backprop) {
-        Recursively([&order](Graph* g) { order = ScheduleBackpropGraphs(g, order); }, graph);
-    }
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 

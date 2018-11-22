@@ -50,7 +50,7 @@ public:
 
     void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
         AssignValueIds(graph);
-        EmitGraph(graph, program, false /* in_loop */, graph.output_values(), {});
+        EmitGraph(graph, program, false /* in_loop */, graph.output_values());
         EmitOutputs(graph.output_values(), program);
         if (dump_value_names) {
             std::map<int, const Value*> values;
@@ -532,14 +532,8 @@ private:
             EmitFusionGroup(node, prog);
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
-        } else if (node.op_type() == Node::kOnikuxIfRef) {
-            CHECK(graph);
-            EmitIfRef(*graph, node, prog);
         } else if (node.op_type() == Node::kLoop) {
             EmitLoop(node, prog);
-        } else if (node.op_type() == Node::kOnikuxLoopRef) {
-            CHECK(graph);
-            EmitLoopRef(*graph, node, prog);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
         } else if (node.op_type() == Node::kOnikuxSequenceConstants) {
@@ -694,8 +688,7 @@ private:
             const Graph& graph,
             XCProgramProto* prog,
             bool in_loop,
-            const std::vector<Value*>& output_values,
-            const std::set<const Value*>& protected_values) {
+            const std::vector<Value*>& output_values) {
         std::map<const Value*, int> num_users;
         if (!in_loop) {
             for (const Value* value : graph.input_values()) {
@@ -727,7 +720,6 @@ private:
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
                 if (todo_outputs.erase(output)) continue;
-                if (protected_values.count(output)) continue;
                 if (output->kind() == Value::Kind::kTemp && !output->IsNull() && output->users().empty() &&
                     // TODO(hamaji): Figure out how we should handle batch norm.
                     node->op_type() != Node::kBatchNormalization)
@@ -737,7 +729,7 @@ private:
             for (const Value* input : node->inputs()) {
                 auto found = num_users.find(input);
                 if (found == num_users.end()) continue;
-                if (--found->second == 0 && !protected_values.count(input)) {
+                if (--found->second == 0) {
                     FREE(GetValueId(input));
                 }
             }
@@ -784,7 +776,7 @@ private:
             EMIT(Identity, GetValueId(to), GetValueId(from));
         }
 
-        EmitGraph(body, prog, true /* in_loop */, body.output_values(), {});
+        EmitGraph(body, prog, true /* in_loop */, body.output_values());
 
         // TODO(hamaji): Fix `EmitGraph` so it frees inputs automatically.
         for (size_t i = 0; i < node.inputs().size(); ++i) {
@@ -812,7 +804,6 @@ private:
             Graph* else_body,
             const std::vector<Value*>& else_input_values,
             const std::vector<Value*>& else_output_values,
-            const std::set<const Value*>& protected_values,
             XCProgramProto* prog) {
         const std::string& debug_info = cond.ToString();
 
@@ -827,14 +818,14 @@ private:
         CHECK_EQ(cond.outputs().size(), then_output_values.size());
         CHECK_EQ(cond.outputs().size(), else_output_values.size());
 
-        auto emit_branch = [this, &cond, prog, &protected_values, &debug_info](
+        auto emit_branch = [this, &cond, prog, &debug_info](
                                    Graph* graph, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
             for (size_t i = 0; i < inputs.size(); ++i) {
                 Value* from = cond.inputs()[i + 1];
                 Value* to = inputs[i];
                 EMIT(Identity, GetValueId(to), GetValueId(from));
             }
-            EmitGraph(*graph, prog, true /* in_loop */, outputs, protected_values);
+            EmitGraph(*graph, prog, true /* in_loop */, outputs);
             // TODO(hamaji): Fix `EmitGraph` so it frees inputs automatically.
             for (size_t i = 0; i < inputs.size(); ++i) {
                 FREE(GetValueId(inputs[i]));
@@ -870,40 +861,6 @@ private:
 #undef EMIT
     }
 
-    void EmitIfRef(const Graph& graph, const Node& cond, XCProgramProto* prog) {
-        Graph* then_branch = graph.GetSubGraph(cond.then_branch_ref());
-        Graph* else_branch = graph.GetSubGraph(cond.else_branch_ref());
-        std::vector<Value*> then_input_values;
-        std::vector<Value*> then_output_values;
-        std::vector<Value*> else_input_values;
-        std::vector<Value*> else_output_values;
-        std::set<const Value*> protected_values;
-        CollectSubGraphValues(
-                then_branch,
-                cond.then_input_value_names(),
-                cond.then_output_value_names(),
-                &then_input_values,
-                &then_output_values,
-                &protected_values);
-        CollectSubGraphValues(
-                else_branch,
-                cond.else_input_value_names(),
-                cond.else_output_value_names(),
-                &else_input_values,
-                &else_output_values,
-                &protected_values);
-        EmitIfImpl(
-                cond,
-                then_branch,
-                then_input_values,
-                then_output_values,
-                else_branch,
-                else_input_values,
-                else_output_values,
-                protected_values,
-                prog);
-    }
-
     void EmitIf(const Node& cond, XCProgramProto* prog) {
         AssignValueIds(*cond.then_branch());
         AssignValueIds(*cond.else_branch());
@@ -915,7 +872,6 @@ private:
                 cond.else_branch().get(),
                 cond.else_branch()->input_values(),
                 cond.else_branch()->output_values(),
-                {},
                 prog);
     }
 
@@ -924,7 +880,6 @@ private:
             Graph* body,
             const std::vector<Value*>& body_input_values,
             const std::vector<Value*>& body_output_values,
-            const std::set<const Value*>& protected_values,
             XCProgramProto* prog) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
@@ -993,7 +948,7 @@ private:
 
         int loop_begin = prog->instructions_size();
 
-        EmitGraph(*body, prog, true /* in_loop */, body_output_values, protected_values);
+        EmitGraph(*body, prog, true /* in_loop */, body_output_values);
         int one_id = next_value_id_++;
         EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, true);
         int tmp_id = next_value_id_++;
@@ -1077,16 +1032,7 @@ private:
 
     void EmitLoop(const Node& loop, XCProgramProto* prog) {
         AssignValueIds(*loop.body());
-        EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), {}, prog);
-    }
-
-    void EmitLoopRef(const Graph& graph, const Node& loop, XCProgramProto* prog) {
-        std::vector<Value*> input_values;
-        std::vector<Value*> output_values;
-        std::set<const Value*> protected_values;
-        Graph* body = graph.GetSubGraph(loop.body_ref());
-        CollectSubGraphValues(body, loop.input_value_names(), loop.output_value_names(), &input_values, &output_values, &protected_values);
-        EmitLoopImpl(loop, body, input_values, output_values, protected_values, prog);
+        EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), prog);
     }
 
     void EmitOutputs(const std::vector<Value*>& output_values, XCProgramProto* prog) {
@@ -1095,40 +1041,6 @@ private:
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
             FREE(GetValueId(value));
         }
-    }
-
-    void CollectSubGraphValues(
-            Graph* body,
-            const std::vector<std::string>& input_value_names,
-            const std::vector<std::string>& output_value_names,
-            std::vector<Value*>* input_values,
-            std::vector<Value*>* output_values,
-            std::set<const Value*>* protected_values) {
-        std::map<std::string, Value*> values;
-        for (Value* v : body->temp_values()) {
-            CHECK(values.emplace(v->name(), v).second);
-        }
-        for (const std::string& name : input_value_names) {
-            if (name.empty()) {
-                input_values->push_back(body->AddNullValue());
-            } else {
-                auto found = values.find(name);
-                CHECK(found != values.end());
-                input_values->push_back(found->second);
-            }
-        }
-        for (const std::string& name : output_value_names) {
-            if (name.empty()) {
-                output_values->push_back(body->AddNullValue());
-            } else {
-                auto found = values.find(name);
-                CHECK(found != values.end());
-                output_values->push_back(found->second);
-            }
-        }
-
-        for (Value* value : *input_values) protected_values->insert(value);
-        for (Value* value : *output_values) protected_values->insert(value);
     }
 
     int next_value_id_{1};

@@ -108,8 +108,6 @@ void ResolveExternalDependencies(Graph* graph) {
                 }
                 node->AddInput(external);
             }
-        } else if (node->op_type() == Node::kOnikuxLoopRef) {
-            // Do nothing. OnikuxLoopRef must not have external dependencies.
         } else {
             // Note `Scan` must be already removed.
             CHECK(!node->body().get());
