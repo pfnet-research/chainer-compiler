@@ -719,9 +719,7 @@ void IfGradFn(GradientOpContext* gc) {
                 Value* rv = p.second;
                 for (int j = 0; j < 2; ++j) {
                     Value* in = grad_graphs[j]->AddInputValue("bp_i@" + rv->name(), rv->type());
-                    std::cerr << "hey " << in->name() << std::endl;
-                    if (i == j)
-                        gbs[j].Op(Node::kIdentity, {in}, rv);
+                    if (i == j) gbs[j].Op(Node::kIdentity, {in}, rv);
                 }
             }
         }
