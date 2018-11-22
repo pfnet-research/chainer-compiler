@@ -315,37 +315,29 @@ void ReduceMeanGradFn(GradientOpContext* gc) {
 
 void GemmGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
-    // TODO(hamaji): I'm not sure this function is right. I mean I'm
-    // pretty sure something is wrong.
     Value* gy = gc->gy(0);
 
     // Note bias will be ignored thanks to beta=0.
     {
         GraphBuilder gb{gc->builder(0)};
-        Value* gx0 = nullptr;
         if (node->trans_a()) {
-            gx0 = gb.Op(Node::kGemm, {gc->x(1), gy, gc->x(0)});
-            gx0->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(node->trans_b())->set_trans_b(true);
+            gc->GradOp(Node::kGemm, 0, {gc->x(1), gy, gc->x(0)})
+                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(node->trans_b())->set_trans_b(true);
         } else {
-            gx0 = gb.Op(Node::kGemm, {gy, gc->x(1), gc->x(0)});
-            gx0->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(false)->set_trans_b(!node->trans_b());
+            gc->GradOp(Node::kGemm, 0, {gy, gc->x(1), gc->x(0)})
+                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(false)->set_trans_b(!node->trans_b());
         }
-        Value* shape0 = gb.Op(Node::kShape, {gc->x(0)});
-        gc->GradOp(Node::kReshape, 0, {gx0, shape0});
     }
 
     {
         GraphBuilder gb{gc->builder(1)};
-        Value* gx1 = nullptr;
         if (node->trans_b()) {
-            gx1 = gb.Op(Node::kGemm, {gy, gc->x(0), gc->x(1)});
-            gx1->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(true)->set_trans_b(node->trans_a());
+            gc->GradOp(Node::kGemm, 1, {gy, gc->x(0), gc->x(1)})
+                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(true)->set_trans_b(node->trans_a());
         } else {
-            gx1 = gb.Op(Node::kGemm, {gc->x(0), gy, gc->x(1)});
-            gx1->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(!node->trans_a())->set_trans_b(false);
+            gc->GradOp(Node::kGemm, 1, {gc->x(0), gy, gc->x(1)})
+                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(!node->trans_a())->set_trans_b(false);
         }
-        Value* shape1 = gb.Op(Node::kShape, {gc->x(1)});
-        gc->GradOp(Node::kReshape, 1, {gx1, shape1});
     }
 
     gc->GradOp(Node::kReduceSum, 2, {gy})->producer()->set_axes({0})->set_keepdims(false);

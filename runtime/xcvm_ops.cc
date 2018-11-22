@@ -512,6 +512,7 @@ std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, c
 }
 
 chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    // TODO(hamaji): Handle non 2D arrays.
     return chainerx::Dot(a, b);
 }
 
@@ -520,26 +521,6 @@ chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const c
     chainerx::Array xb = b;
     if (trans_a) xa = chainerx::Transpose(xa);
     if (trans_b) xb = chainerx::Transpose(xb);
-
-    // TODO(hamaji): I don't understand the semantics of
-    // "undirectional broadcasting". This implementation handles what
-    // chainer does (e.g., (3, 4, 2, 2) @ (16, 2) => (3, 2)).
-    // https://github.com/onnx/onnx/blob/master/docs/Broadcasting.md
-    if (xa.shape().size() > 2) {
-        int last_dim = 1;
-        for (size_t i = 1; i < xa.shape().size(); ++i) {
-            last_dim *= xa.shape()[i];
-        }
-        xa = chainerx::Reshape(xa, chainerx::Shape{xa.shape()[0], last_dim});
-    }
-    if (xb.shape().size() > 2) {
-        int last_dim = 1;
-        for (size_t i = 1; i < xb.shape().size(); ++i) {
-            last_dim *= xb.shape()[i];
-        }
-        xb = chainerx::Reshape(xb, chainerx::Shape{xb.shape()[0], last_dim});
-    }
-
     chainerx::Array r = chainerx::Dot(xa, xb);
     if (alpha != 1.0) r *= alpha;
     if (beta == 0.0) return r;
