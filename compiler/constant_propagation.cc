@@ -67,6 +67,7 @@ bool MaybePropagateConstant(Graph* graph, Node* node) {
         case Node::kOnikuxGenericLen:
         case Node::kShape:
         case Node::kUnsqueeze:
+        case Node::kGather:
         case Node::kCast:
         case Node::kOnikuxSequenceAppend:
         case Node::kOnikuxSequenceConcat:
