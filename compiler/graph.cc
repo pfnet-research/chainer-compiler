@@ -244,9 +244,6 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
     for (const Value* value : output_values) {
         q.push(value->producer());
     }
-    for (Node* node : nodes_) {
-        if (node->op_type() == Node::kOnikuxBackpropStackPush && !node->detached()) q.push(node);
-    }
 
     // All node in this graph for sanity check.
     std::set<Node*> node_set(nodes_.begin(), nodes_.end());

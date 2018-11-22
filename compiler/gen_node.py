@@ -204,9 +204,6 @@ NodeDef('OnikuxIfRef', None, None,
 NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
 NodeDef('OnikuxFusionGroup', None, None, subgraph=Graph)
 
-NodeDef('OnikuxBackpropStackPush', 1, 0, id=Required(int))
-NodeDef('OnikuxBackpropStackPop', 0, 1, id=Required(int))
-
 NodeDef('OnikuxPrint', None, 0)
 
 # Put a null value.

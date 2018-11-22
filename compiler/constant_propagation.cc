@@ -55,25 +55,7 @@ void DoConstantPropagation(Graph* graph, Node* node) {
     }
 }
 
-void RemoveStackPushPop(Graph* graph, Node* node, const std::vector<Node*>& stack_pops) {
-    LOG() << "Propagate " << node->ToString() << std::endl;
-    Node* pop = stack_pops[node->id()];
-    CHECK(pop);
-
-    GraphBuilder gb(graph, "Const", pop->outputs()[0]);
-    Node* input = node->inputs()[0]->producer();
-    if (input->op_type() == Node::kConstant) {
-        const Tensor& t = *input->tensor_value();
-        gb.Op(Node::kConstant, {}, pop->outputs()[0])->producer()->set_tensor_value(new Tensor(t.name() + "_pop", t));
-    } else {
-        CHECK(false) << "Not implemented yet";
-    }
-
-    graph->DetachNode(node);
-    graph->DetachNode(pop);
-}
-
-bool MaybePropagateConstant(Graph* graph, Node* node, const std::vector<Node*>& stack_pops) {
+bool MaybePropagateConstant(Graph* graph, Node* node) {
     switch (node->op_type()) {
         // TODO(hamaji): Handle more ops.
         case Node::kIdentity:
@@ -94,11 +76,6 @@ bool MaybePropagateConstant(Graph* graph, Node* node, const std::vector<Node*>& 
             return true;
         }
 
-        case Node::kOnikuxBackpropStackPush: {
-            RemoveStackPushPop(graph, node, stack_pops);
-            return true;
-        }
-
         default:
             LOG() << "Not propagate " << node->ToString() << std::endl;
     }
@@ -108,20 +85,12 @@ bool MaybePropagateConstant(Graph* graph, Node* node, const std::vector<Node*>& 
 }  // namespace
 
 void PropagateConstants(Graph* graph) {
-    std::vector<Node*> stack_pops;
-    for (Node* node : graph->GetLiveNodes()) {
-        if (node->op_type() == Node::kOnikuxBackpropStackPop) {
-            stack_pops.resize(std::max<size_t>(stack_pops.size(), node->id() + 1));
-            stack_pops[node->id()] = node;
-        }
-    }
-
     bool replaced = true;
     while (replaced) {
         replaced = false;
         for (Node* node : graph->GetLiveNodes()) {
             if (!HasConstantInputsOnly(*node)) continue;
-            if (MaybePropagateConstant(graph, node, stack_pops)) {
+            if (MaybePropagateConstant(graph, node)) {
                 replaced = true;
             }
         }

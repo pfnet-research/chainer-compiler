@@ -50,7 +50,6 @@ public:
 
     void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
         AssignValueIds(graph);
-        EmitStackInit(graph, program);
         EmitGraph(graph, program, false /* in_loop */, graph.output_values(), {});
         EmitOutputs(graph.output_values(), program);
         if (dump_value_names) {
@@ -108,21 +107,6 @@ private:
         auto found = stack_ids_.find(i);
         CHECK(found != stack_ids_.end()) << "Stack not exist: " << i;
         return found->second;
-    }
-
-    void EmitStackInit(const Graph& graph, XCProgramProto* prog) {
-        for (const Node* node : graph.nodes()) {
-            if (node->op_type() == Node::kOnikuxBackpropStackPush) {
-                int id = next_value_id_++;
-                CHECK(stack_ids_.emplace(node->id(), id).second);
-                AddSequenceCreateOp(prog, id);
-            }
-        }
-        for (const Node* node : graph.nodes()) {
-            for (Graph* sub_graph : node->GetSubGraphs()) {
-                EmitStackInit(*sub_graph, prog);
-            }
-        }
     }
 
     void EmitStackQuit(XCProgramProto* prog) {
@@ -556,12 +540,6 @@ private:
         } else if (node.op_type() == Node::kOnikuxLoopRef) {
             CHECK(graph);
             EmitLoopRef(*graph, node, prog);
-        } else if (node.op_type() == Node::kOnikuxBackpropStackPush) {
-            int id = GetStackId(node.id());
-            EMIT(SequenceAppend, id, in(0));
-        } else if (node.op_type() == Node::kOnikuxBackpropStackPop) {
-            int id = GetStackId(node.id());
-            EMIT(SequencePop, out(0), id);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
         } else if (node.op_type() == Node::kOnikuxSequenceConstants) {
@@ -733,9 +711,6 @@ private:
 
         std::vector<const Node*> nodes(graph.GetComputationSequence());
         for (const Node* node : nodes) {
-            if (todo_outputs.empty()) {
-                if (node->op_type() != Node::kOnikuxBackpropStackPush) break;
-            }
             if (!emitted_.emplace(node).second) continue;
 
             if (!in_loop) {
