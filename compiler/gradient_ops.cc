@@ -36,7 +36,13 @@ public:
     // Thrown when a necessary `gy` is missing.
     struct NoGradient {};
 
-    GradientOpContext(Graph* src_graph, Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, std::vector<std::pair<Value*, Value*>>* retained)
+    GradientOpContext(
+            Graph* src_graph,
+            Graph* graph,
+            Node* node,
+            const std::vector<Value*>& x,
+            const std::vector<Value*>& y,
+            std::vector<std::pair<Value*, Value*>>* retained)
         : src_graph_(src_graph), graph_(graph), node_(node), x_(x), y_(y), retained_(retained) {
         name_ = Node::OpTypeToString(node->op_type());
         const std::string prefix = "Onikux";
@@ -615,7 +621,6 @@ void LoopGradFn(GradientOpContext* gc) {
             loop->AddOutput(out);
             retained_outs.push_back(gc->y(loop->outputs().size() - 1));
         }
-
     }
 
     {
@@ -676,10 +681,7 @@ void IfGradFn(GradientOpContext* gc) {
     std::vector<std::pair<Value*, Value*>> retained[2];
     std::vector<size_t> gx_indices;
     {
-        GraphBuilder gbs[2] = {
-            GraphBuilder(then_grad_graph.get(), "tg@", ys[0]),
-            GraphBuilder(else_grad_graph.get(), "eg@", ys[0])
-        };
+        GraphBuilder gbs[2] = {GraphBuilder(then_grad_graph.get(), "tg@", ys[0]), GraphBuilder(else_grad_graph.get(), "eg@", ys[0])};
 
         std::vector<Value*> ys[2];
         for (int ci = 0; ci < 2; ++ci) {
@@ -728,10 +730,7 @@ void IfGradFn(GradientOpContext* gc) {
     if (gx_indices.empty()) return;
 
     {
-        GraphBuilder gbs[2] = {
-            GraphBuilder(then_graph, "IfGradThen", xs[0]),
-            GraphBuilder(else_graph, "IfGradElse", xs[0])
-        };
+        GraphBuilder gbs[2] = {GraphBuilder(then_graph, "IfGradThen", xs[0]), GraphBuilder(else_graph, "IfGradElse", xs[0])};
         for (int i = 0; i < 2; ++i) {
             for (const std::pair<Value*, Value*>& p : retained[i]) {
                 Value* rv = p.first;

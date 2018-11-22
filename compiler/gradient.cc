@@ -92,7 +92,12 @@ void AddGradientNodes(Graph* graph) {
     gen.ExposeParamGradsAsOutputs();
 }
 
-void AddGradientNodes(Graph* graph, Graph* dest_graph, const std::vector<Value*>& xs, const std::vector<Value*>& ys, std::vector<std::pair<Value*, Value*>>* retained) {
+void AddGradientNodes(
+        Graph* graph,
+        Graph* dest_graph,
+        const std::vector<Value*>& xs,
+        const std::vector<Value*>& ys,
+        std::vector<std::pair<Value*, Value*>>* retained) {
     std::vector<Node*> necessary_nodes;
     std::map<Node*, int> node_set = graph->GetNecessaryNodesAndInputCounts(ys);
     // TODO(hamaji): Filter out unnecessary nodes by `xs`.
