@@ -124,6 +124,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     CanonicalizeSubGraphs(graph);
 
+    Recursively(PropagateConstants, graph);
+
     dump_onnx(g_dump_after_simplification, "after simplification");
 
     if (gen_backprop) AddGradientNodes(graph);
