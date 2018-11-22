@@ -248,12 +248,21 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         if (node->op_type() == Node::kOnikuxBackpropStackPush && !node->detached()) q.push(node);
     }
 
+    // All node in this graph for sanity check.
+    std::set<Node*> node_set(nodes_.begin(), nodes_.end());
+
     std::map<Node*, int> input_counts;
     while (!q.empty()) {
         Node* node = q.front();
         q.pop();
         if (!node) continue;
         if (!input_counts.emplace(node, node->GetNumActualInputs()).second) continue;
+        if (!node_set.count(node)) {
+            std::cerr << "External reference from " << this->name() << ". External node:\n" << node->DebugString();
+            DumpONNXOnFailure();
+            CHECK(false);
+        }
+
         for (const Value* input : node->inputs()) {
             q.push(input->producer());
             for (Node* node : input->users()) {
