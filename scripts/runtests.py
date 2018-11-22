@@ -611,7 +611,7 @@ def main():
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
-            test_case.args.append('--skip_shape_inference')
+            test_case.args.append('--skip_inference')
         if test_case.is_backprop:
             test_case.args.append('--backprop')
         if args.verbose:

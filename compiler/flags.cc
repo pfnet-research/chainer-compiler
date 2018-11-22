@@ -6,6 +6,8 @@ bool g_compiler_log;
 
 bool g_permissive;
 
+bool g_skip_inference;
+
 bool g_replace_constant;
 
 int g_recompute_relu;

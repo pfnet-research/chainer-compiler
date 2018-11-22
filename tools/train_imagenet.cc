@@ -61,7 +61,6 @@ void RunMain(int argc, char** argv) {
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
-    args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
@@ -91,7 +90,7 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
-    if (!args.exist("skip_shape_inference")) onnx::shape_inference::InferShapes(xmodel);
+    if (!g_skip_inference) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
     const bool expects_onehot = ExpectsOnehot(model);
     CHECK_EQ(1, model.graph().output_values().size());

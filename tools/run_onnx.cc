@@ -274,7 +274,7 @@ void RunMain(int argc, char** argv) {
     LOG() << "Constructing model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    if (!args.exist("skip_shape_inference")) onnx::shape_inference::InferShapes(xmodel);
+    if (!g_skip_inference) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
     RunDefaultPasses(&model, args.exist("backprop"));
 
