@@ -147,27 +147,14 @@ std::set<Value*> Graph::GetNecessaryValues() const {
 }
 
 Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind kind) {
-    if (name == "" && kind != Value::Kind::kNull) {
-        CHECK_EQ(kind, Value::Kind::kTemp);
-        kind = Value::Kind::kNull;
+    if (name == "") {
+        kind = static_cast<Value::Kind>(static_cast<int>(kind) | static_cast<int>(Value::Kind::kNull));
     }
     Value* value = new Value(name, type, kind);
     all_values_.emplace_back(value);
-    switch (kind) {
-        case Value::Kind::kInput:
-            input_values_.push_back(value);
-            break;
-        case Value::Kind::kOutput:
-            output_values_.push_back(value);
-            break;
-        case Value::Kind::kTemp:
-            temp_values_.push_back(value);
-            break;
-        case Value::Kind::kNull:
-            break;
-        default:
-            CHECK(false) << kind;
-    }
+    if (value->is_input()) input_values_.push_back(value);
+    if (value->is_output()) output_values_.push_back(value);
+    if (value->is_temp()) temp_values_.push_back(value);
     return value;
 }
 
@@ -176,17 +163,11 @@ Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
 }
 
 Value* Graph::AddInputValue(const std::string& name, const Type& type) {
-    Value* value = new Value(name, type, Value::Kind::kInput);
-    all_values_.emplace_back(value);
-    input_values_.push_back(value);
-    return value;
+    return AddValue(name, type, Value::Kind::kInput);
 }
 
 Value* Graph::AddOutputValue(const std::string& name, const Type& type) {
-    Value* value = new Value(name, type, Value::Kind::kOutput);
-    all_values_.emplace_back(value);
-    output_values_.push_back(value);
-    return value;
+    return AddValue(name, type, Value::Kind::kOutput);
 }
 
 Value* Graph::AddNullValue() {
