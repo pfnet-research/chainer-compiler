@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <map>
-#include <queue>
 #include <set>
+#include <stack>
 
 #include <onnx/onnx_pb.h>
 
@@ -56,6 +56,35 @@ void ExposeParamGradsAsOutputs(Graph* graph, const std::set<Value*>& xs) {
     graph->ResetGradients();
 }
 
+void FilterOutUnnecessaryNode(const std::vector<Value*>& xs, std::map<Node*, int>* node_set) {
+    std::stack<Node*> q;
+    for (Value* x : xs) {
+        for (Node* node : x->users()) q.push(node);
+    }
+
+    std::set<Node*> seen;
+    while (!q.empty()) {
+        Node* node = q.top();
+        q.pop();
+        if (!seen.insert(node).second) continue;
+        for (Value* output : node->outputs()) {
+            for (Node* node : output->users()) {
+                q.push(node);
+            }
+        }
+    }
+
+    std::vector<Node*> unnecessary_nodes;
+    for (const auto& p : *node_set) {
+        Node* node = p.first;
+        if (!seen.count(node)) unnecessary_nodes.push_back(node);
+    }
+
+    for (Node* node : unnecessary_nodes) {
+        node_set->erase(node);
+    }
+}
+
 }  // namespace
 
 void AddGradientNodesForTraining(Graph* graph) {
@@ -80,7 +109,7 @@ void AddGradientNodes(
         std::vector<std::pair<Value*, Value*>>* retained) {
     std::vector<Node*> necessary_nodes;
     std::map<Node*, int> node_set = graph->GetNecessaryNodesAndInputCounts(ys);
-    // TODO(hamaji): Filter out unnecessary nodes by `xs`.
+    FilterOutUnnecessaryNode(xs, &node_set);
     for (Node* node : graph->GetTopologicallySortedNodes()) {
         if (node_set.count(node)) necessary_nodes.push_back(node);
     }
