@@ -708,7 +708,7 @@ private:
 
             if (!in_loop) {
                 for (const Value* value : node->inputs()) {
-                    if (value->kind() != Value::Kind::kInput) continue;
+                    if (!value->is_input()) continue;
                     if (!staged_inputs.emplace(value).second) continue;
                     AddInOp(prog, GetValueId(value), value->name());
                     prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
@@ -720,7 +720,7 @@ private:
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
                 if (todo_outputs.erase(output)) continue;
-                if (output->kind() == Value::Kind::kTemp && !output->IsNull() && output->users().empty() &&
+                if (output->is_temp() && !output->IsNull() && output->users().empty() &&
                     // TODO(hamaji): Figure out how we should handle batch norm.
                     node->op_type() != Node::kBatchNormalization)
                     FREE(GetValueId(output));

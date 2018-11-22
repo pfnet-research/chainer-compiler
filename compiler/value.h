@@ -15,10 +15,10 @@ class Type;
 class Value {
 public:
     enum class Kind {
-        kInput,
-        kOutput,
-        kTemp,
-        kNull,
+        kTemp = 0,
+        kInput = 1,
+        kOutput = 2,
+        kNull = 4,
     };
 
     Value(const onnx::ValueInfoProto& xvalue, Kind kind);
@@ -32,8 +32,17 @@ public:
     void ToONNX(onnx::ValueInfoProto* xvalue) const;
     std::string DebugString() const;
 
-    Kind kind() const {
-        return kind_;
+    bool is_temp() const {
+        return kind_ == Kind::kTemp;
+    }
+    bool is_input() const {
+        return static_cast<int>(kind_) & static_cast<int>(Kind::kInput);
+    }
+    bool is_output() const {
+        return static_cast<int>(kind_) & static_cast<int>(Kind::kOutput);
+    }
+    bool is_null() const {
+        return static_cast<int>(kind_) & static_cast<int>(Kind::kNull);
     }
 
     const std::string& name() const {
@@ -84,11 +93,11 @@ public:
 
     bool IsNull() const {
         // TODO(hamaji): Do not use `name_.empty()` by allowing null outputs.
-        return kind_ == Kind::kNull || name_.empty();
+        return is_null() || name_.empty();
     }
 
 private:
-    Kind kind_;
+    Kind kind_{Kind::kTemp};
     std::string name_;
     std::unique_ptr<Type> type_;
     std::string doc_string_;

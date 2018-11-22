@@ -44,7 +44,7 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         std::unique_ptr<Tensor> tensor(new Tensor(xtensor));
         auto found = values_by_name.find(tensor->name());
         CHECK(found != values_by_name.end()) << "Invalid name for an initializer: " << tensor->name();
-        CHECK_EQ(found->second->kind(), Value::Kind::kInput) << "Only input can have an initializer but " << found->second->kind();
+        CHECK(found->second->is_input()) << "Only input can have an initializer but " << found->second->DebugString();
         found->second->ResetInitializer(std::move(tensor));
     }
 
@@ -90,7 +90,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers) const 
             xvalue = xgraph->add_input();
         } else if (output_values.count(value.get())) {
             xvalue = xgraph->add_output();
-        } else if (value->kind() != Value::Kind::kNull) {
+        } else if (!value->is_null()) {
             xvalue = xgraph->add_value_info();
         }
         if (!xvalue) continue;

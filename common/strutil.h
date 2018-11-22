@@ -24,15 +24,20 @@ inline std::string StrCat(Args... args) {
 }
 
 template <class List>
-inline std::string JoinString(const List& l) {
+inline std::string JoinString(const List& l, const std::string& s) {
     std::ostringstream oss;
     bool is_first = true;
     for (auto& v : l) {
-        if (!is_first) oss << ", ";
+        if (!is_first) oss << s;
         is_first = false;
         oss << v;
     }
     return oss.str();
+}
+
+template <class List>
+inline std::string JoinString(const List& l) {
+    return JoinString(l, ", ");
 }
 
 inline std::string JoinString(std::initializer_list<std::string> l) {

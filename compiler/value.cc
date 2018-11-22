@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
@@ -62,12 +63,18 @@ void Value::SetProducer(Node* producer) {
 }
 
 std::ostream& operator<<(std::ostream& os, const Value::Kind& kind) {
-    static const char* kNames[] = {"Input", "Output", "Temp", "Null"};
+    if (kind == Value::Kind::kTemp) {
+        return os << "Temp";
+    }
     int k = static_cast<int>(kind);
-    if (k >= 0 && k < sizeof(kNames) / sizeof(kNames[0])) {
-        os << kNames[k];
-    } else {
+    std::vector<std::string> out;
+    if (k & static_cast<int>(Value::Kind::kInput)) out.push_back("Input");
+    if (k & static_cast<int>(Value::Kind::kOutput)) out.push_back("Output");
+    if (k & static_cast<int>(Value::Kind::kNull)) out.push_back("Null");
+    if (out.empty()) {
         os << "???(" << k << ")";
+    } else {
+        os << JoinString(out, "|");
     }
     return os;
 }

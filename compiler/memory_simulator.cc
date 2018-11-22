@@ -28,7 +28,7 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
 
     for (const Value* value : graph.GetNecessaryValues()) {
         int nu = value->users().size();
-        if (value->kind() == Value::Kind::kInput) {
+        if (value->is_input()) {
             int64_t bytes = value->GetNBytes();
             if (value->initializer()) {
                 usage.param += bytes >= 0 ? bytes : 0;
