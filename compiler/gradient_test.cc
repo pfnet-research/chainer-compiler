@@ -31,7 +31,7 @@ TEST(GradientTest, Basic) {
     graph.AddNode(Node::kAdd, {in0, in1}, {t0});
     graph.AddNode(Node::kMul, {t0, in2}, {out});
 
-    AddGradientNodes(&graph, false);
+    AddGradientNodes(&graph);
 
     // Now we should have gradients as extra outputs.
     ASSERT_EQ(4UL, graph.output_values().size());

@@ -36,8 +36,8 @@ public:
     // Thrown when a necessary `gy` is missing.
     struct NoGradient {};
 
-    GradientOpContext(Graph* src_graph, Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, bool retain_in_stack, std::vector<std::pair<Value*, Value*>>* retained)
-        : src_graph_(src_graph), graph_(graph), node_(node), x_(x), y_(y), retain_in_stack_(retain_in_stack), retained_(retained) {
+    GradientOpContext(Graph* src_graph, Graph* graph, Node* node, const std::vector<Value*>& x, const std::vector<Value*>& y, std::vector<std::pair<Value*, Value*>>* retained)
+        : src_graph_(src_graph), graph_(graph), node_(node), x_(x), y_(y), retained_(retained) {
         name_ = Node::OpTypeToString(node->op_type());
         const std::string prefix = "Onikux";
         if (HasPrefix(name_, prefix)) name_ = name_.substr(prefix.size());
@@ -56,22 +56,8 @@ public:
         return node_;
     }
 
-    bool retain_in_stack() const {
-        return retain_in_stack_;
-    }
-
     Value* Retain(Value* v) {
-        if (retain_in_stack_) {
-            int id = ++id_;
-            GraphBuilder gb(graph_, StrCat(name_, "Retain", id), v);
-            gb.MOp(Node::kOnikuxBackpropStackPush, {v}, {})->set_id(id);
-            Value* retained = gb.Op(Node::kOnikuxBackpropStackPop, {});
-            retained->set_type(new Type(v->type()));
-            retained->producer()->set_id(id);
-            return retained;
-        }
         if (!retained_) return v;
-
         int id = ++id_;
         GraphBuilder gb(graph_, StrCat(name_, "Retain", id), v);
         Value* retained = gb.Temp();
@@ -181,7 +167,6 @@ private:
     const std::vector<Value*>& x_;
     const std::vector<Value*>& y_;
     std::string name_;
-    bool retain_in_stack_;
     std::vector<std::pair<Value*, Value*>>* retained_;
     static std::atomic<int> id_;
     bool gradient_added_{false};
@@ -879,7 +864,7 @@ struct GradientFunc {
 
 }  // namespace
 
-bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, bool retain_in_stack, std::vector<std::pair<Value*, Value*>>* retained) {
+bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::vector<std::pair<Value*, Value*>>* retained) {
     static std::map<Node::OpType, GradientFunc>* s_gradient_funcs;
     if (!s_gradient_funcs) {
         // Leak.
@@ -957,7 +942,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, bool retain
     }
     const GradientFunc& func = found->second;
 
-    GradientOpContext gc(graph, dest_graph, node, node->inputs(), node->outputs(), retain_in_stack, retained);
+    GradientOpContext gc(graph, dest_graph, node, node->inputs(), node->outputs(), retained);
     // TODO(hamaji): Better to get gradient functions declare which
     // `gy` are necessary by themselves instead of relying on the
     // exception thrown in `gy`.
