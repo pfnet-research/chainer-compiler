@@ -22,10 +22,6 @@ extern int g_recompute_relu;
 // for backends such as Chainer which do not support imbalanced pads.
 extern bool g_modify_pool_with_imbalanced_pads;
 
-// Always use stacks to retain values for backprop. This exists only
-// to complement poor test coverage for backprop in loops.
-extern bool g_always_retain_in_stack;
-
 // Fuse consecutive element-wise operations.
 extern bool g_fuse_operations;
 

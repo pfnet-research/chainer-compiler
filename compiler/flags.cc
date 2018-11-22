@@ -12,8 +12,6 @@ int g_recompute_relu;
 
 bool g_modify_pool_with_imbalanced_pads;
 
-bool g_always_retain_in_stack;
-
 bool g_fuse_operations;
 
 bool g_use_nvrtc;

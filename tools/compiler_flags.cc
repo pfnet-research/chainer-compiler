@@ -12,7 +12,6 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add("replace_constant", '\0', "Replace Constant ops");
     args->add("fuse_operations", '\0', "Fuse consecutive operations");
     args->add("use_nvrtc", '\0', "Use NVRTC");
-    args->add("always_retain_in_stack", '\0', "For internal testing only");
     args->add("dump_after_inference", '\0', "Dump the ONNX graph after dtype/shape inference");
     args->add("dump_after_simplification", '\0', "Dump the ONNX graph after graph simplification");
     args->add("dump_after_gradient", '\0', "Dump the ONNX graph after adding nodes for gradients");
@@ -28,7 +27,6 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_fuse_operations = args.exist("fuse_operations");
     g_use_nvrtc = args.exist("use_nvrtc");
     g_recompute_relu = args.get<int>("recompute_relu");
-    g_always_retain_in_stack = args.exist("always_retain_in_stack");
     g_dump_after_inference = args.exist("dump_after_inference");
     g_dump_after_simplification = args.exist("dump_after_simplification");
     g_dump_after_gradient = args.exist("dump_after_gradient");

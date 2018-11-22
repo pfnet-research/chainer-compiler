@@ -515,31 +515,6 @@ TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(onnx_real_tests.get())
 
-for test_case in list(TEST_CASES):
-    # TODO(hamaji): Remove --always_retain_in_stack.
-    break
-    if not test_case.is_backprop:
-        continue
-    new_test = copy.copy(test_case)
-    new_test.name = test_case.name + '_stack'
-    new_test.always_retain_in_stack = True
-    new_test.fail = new_test.fail or (
-        # TODO(hamaji): Fix scheduling of backprop stack.
-        'StatelessLSTM' in test_case.name or
-        'Sum' in test_case.name or
-        'EspNet' in test_case.name or
-        'For' in test_case.name or
-        'BroadcastTo' in test_case.name or
-        'AttDot' in test_case.name or
-        'pc_pad' in test_case.name or
-        'pc_for' in test_case.name or
-        'if_pd' in test_case.name or
-        'separate' in test_case.name or
-        'dynamic_slice' in test_case.name or
-        test_case.name.endswith('softmax_cross_entropy') or
-        'mlp' in test_case.name)
-    TEST_CASES.append(new_test)
-
 if args.test_filter is not None:
     reg = re.compile(args.test_filter)
     TEST_CASES = [case for case in TEST_CASES if reg.search(case.name)]
@@ -637,8 +612,6 @@ def main():
             test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_shape_inference')
-        if test_case.always_retain_in_stack:
-            test_case.args.append('--always_retain_in_stack')
         if test_case.is_backprop:
             test_case.args.append('--backprop')
         if args.verbose:
