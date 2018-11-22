@@ -66,6 +66,12 @@ public:
         if (!retained_) return v;
         int id = ++id_;
         GraphBuilder gb(graph_, StrCat(name_, "Retain", id), v);
+        if (v->producer() && v->producer()->op_type() == Node::kConstant) {
+            const Tensor& t = *v->producer()->tensor_value();
+            Value* copied = gb.Op(Node::kConstant, {});
+            copied->producer()->set_tensor_value(new Tensor(t.name() + "_retain", t));
+            return copied;
+        }
         Value* retained = gb.Temp();
         retained_->push_back(std::make_pair(v, retained));
         return retained;
