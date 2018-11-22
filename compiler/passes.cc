@@ -128,7 +128,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     dump_onnx(g_dump_after_simplification, "after simplification");
 
-    if (gen_backprop) AddGradientNodes(graph);
+    if (gen_backprop) AddGradientNodesForTraining(graph);
 
     Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
 

@@ -19,60 +19,8 @@ namespace oniku {
 
 namespace {
 
-class GradientGenerator {
-public:
-    explicit GradientGenerator(Graph* graph) : graph_(graph) {
-    }
-
-    void Run(const std::vector<Value*>& ys) {
-        for (Value* value : graph_->GetNecessaryValues(ys)) {
-            if (value->kind() != Value::Kind::kInput || !value->initializer()) continue;
-            CHECK(original_input_values_.emplace(value).second);
-        }
-
-        std::vector<Node*> necessary_nodes;
-        std::map<Node*, int> node_set = graph_->GetNecessaryNodesAndInputCounts(ys);
-        for (Node* node : graph_->GetTopologicallySortedNodes()) {
-            if (node_set.count(node)) necessary_nodes.push_back(node);
-        }
-        std::reverse(necessary_nodes.begin(), necessary_nodes.end());
-        for (Node* node : necessary_nodes) {
-            AddGradientForNode(graph_, graph_, node, nullptr);
-        }
-    }
-
-    void ExposeParamGradsAsOutputs() {
-        bool ok = true;
-        for (Value* input : graph_->input_values()) {
-            if (!original_input_values_.count(input)) continue;
-            if (!input->type().dtype().IsFloat()) continue;
-            if (!input->grad()) {
-                std::cerr << "No gradient for parameter: " << input->name() << std::endl;
-                ok = false;
-                continue;
-            }
-            Value* out_grad = graph_->AddOutputValue("grad_out@" + input->name(), input->type());
-            graph_->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
-        }
-        if (!ok) {
-            graph_->DumpONNXOnFailure();
-            CHECK(false);
-        }
-
-        graph_->ResetGradients();
-    }
-
-private:
-    Graph* graph_;
-    std::queue<Node*> op_queue_;
-    std::set<Value*> original_input_values_;
-};
-
-}  // namespace
-
-void AddGradientNodes(Graph* graph) {
+void SetInitialGradients(Graph* graph) {
     CHECK_EQ(1UL, graph->output_values().size());
-    std::vector<Value*> ys;
     for (Value* value : graph->output_values()) {
         // TODO(hamaji): Refactor code to support non-float values.
         CHECK_EQ(Dtype::kFloat32, value->type().dtype());
@@ -84,12 +32,44 @@ void AddGradientNodes(Graph* graph) {
         graph->AddNode(Node::kExpand, {one, shape}, {grad});
         CHECK(value->grad() == nullptr);
         value->set_grad(grad);
-        ys.push_back(value);
+    }
+}
+
+void ExposeParamGradsAsOutputs(Graph* graph, const std::set<Value*>& xs) {
+    bool ok = true;
+    for (Value* input : graph->input_values()) {
+        if (!xs.count(input)) continue;
+        if (!input->type().dtype().IsFloat()) continue;
+        if (!input->grad()) {
+            std::cerr << "No gradient for parameter: " << input->name() << std::endl;
+            ok = false;
+            continue;
+        }
+        Value* out_grad = graph->AddOutputValue("grad_out@" + input->name(), input->type());
+        graph->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
+    }
+    if (!ok) {
+        graph->DumpONNXOnFailure();
+        CHECK(false);
     }
 
-    GradientGenerator gen(graph);
-    gen.Run(ys);
-    gen.ExposeParamGradsAsOutputs();
+    graph->ResetGradients();
+}
+
+}  // namespace
+
+void AddGradientNodesForTraining(Graph* graph) {
+    SetInitialGradients(graph);
+
+    std::set<Value*> xs;
+    for (Value* value : graph->GetNecessaryValues(graph->output_values())) {
+        if (value->kind() != Value::Kind::kInput || !value->initializer()) continue;
+        CHECK(xs.emplace(value).second);
+    }
+
+    AddGradientNodes(graph, graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), nullptr);
+
+    ExposeParamGradsAsOutputs(graph, xs);
 }
 
 void AddGradientNodes(

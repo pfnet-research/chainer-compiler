@@ -7,7 +7,7 @@ namespace oniku {
 class Graph;
 class Value;
 
-void AddGradientNodes(Graph* graph);
+void AddGradientNodesForTraining(Graph* graph);
 
 void AddGradientNodes(
         Graph* graph,
