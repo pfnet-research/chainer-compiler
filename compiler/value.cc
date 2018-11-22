@@ -13,7 +13,7 @@ Value::Value(const onnx::ValueInfoProto& xvalue, Kind kind)
     : kind_(kind), name_(xvalue.name()), type_(new Type(xvalue.type())), doc_string_(xvalue.doc_string()) {
 }
 
-Value::Value(const std::string& name, Kind kind) : kind_(kind), name_(name), type_(new Type(Dtype::kUnknown, {})) {
+Value::Value(const std::string& name, Kind kind) : kind_(kind), name_(name), type_(new Type()) {
 }
 
 Value::Value(const std::string& name, const Type& type, Kind kind) : kind_(kind), name_(name), type_(new Type(type)) {

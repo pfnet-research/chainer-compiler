@@ -170,7 +170,7 @@ Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind ki
 }
 
 Value* Graph::AddValue(const std::string& name, Value::Kind kind) {
-    return AddValue(name, Type(Dtype::kUnknown, {}), kind);
+    return AddValue(name, Type(), kind);
 }
 
 Value* Graph::AddInputValue(const std::string& name, const Type& type) {
