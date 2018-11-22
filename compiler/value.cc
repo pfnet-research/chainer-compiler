@@ -21,7 +21,7 @@ Value::Value(const std::string& name, Kind kind)
 
 Value::Value(const std::string& name, const Type& type, Kind kind)
     : kind_(kind), name_(name), type_(new Type(type)) {
-    if (name_ == "") kind_ = static_cast<Value::Kind>(static_cast<int>(kind_) | static_cast<int>(Value::Kind::kNull));
+    if (name_ == "") kind_ = static_cast<Value::Kind>(kind_ | Value::Kind::kNull);
 }
 
 Value::~Value() {
@@ -70,13 +70,12 @@ std::ostream& operator<<(std::ostream& os, const Value::Kind& kind) {
     if (kind == Value::Kind::kTemp) {
         return os << "Temp";
     }
-    int k = static_cast<int>(kind);
     std::vector<std::string> out;
-    if (k & static_cast<int>(Value::Kind::kInput)) out.push_back("Input");
-    if (k & static_cast<int>(Value::Kind::kOutput)) out.push_back("Output");
-    if (k & static_cast<int>(Value::Kind::kNull)) out.push_back("Null");
+    if (kind & Value::Kind::kInput) out.push_back("Input");
+    if (kind & Value::Kind::kOutput) out.push_back("Output");
+    if (kind & Value::Kind::kNull) out.push_back("Null");
     if (out.empty()) {
-        os << "???(" << k << ")";
+        os << "???(" << kind << ")";
     } else {
         os << JoinString(out, "|");
     }

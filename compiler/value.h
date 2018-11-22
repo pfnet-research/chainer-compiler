@@ -14,7 +14,7 @@ class Type;
 
 class Value {
 public:
-    enum class Kind {
+    enum Kind {
         kTemp = 0,
         kInput = 1,
         kOutput = 2,
@@ -36,13 +36,13 @@ public:
         return kind_ == Kind::kTemp;
     }
     bool IsInput() const {
-        return static_cast<int>(kind_) & static_cast<int>(Kind::kInput);
+        return kind_ & Kind::kInput;
     }
     bool IsOutput() const {
-        return static_cast<int>(kind_) & static_cast<int>(Kind::kOutput);
+        return kind_ & Kind::kOutput;
     }
     bool IsNull() const {
-        return static_cast<int>(kind_) & static_cast<int>(Kind::kNull);
+        return kind_ & Kind::kNull;
     }
 
     const std::string& name() const {
