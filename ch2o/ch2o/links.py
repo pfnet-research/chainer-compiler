@@ -43,6 +43,20 @@ class Link_Linear(Callable):
         x = x.to_tensor(env)
         res = new_tensor([self.n_out])
 
+        x_shape = env.calc("Shape", inputs=[x.name])
+        batch_size = env.calc("Gather",
+                              inputs=[x_shape.name,
+                                      Value(0).to_tensor(env).name])
+        batch_size = env.calc("Unsqueeze",
+                              inputs=[batch_size.name],
+                              axes=[0])
+        mat_shape = env.calc("Concat",
+                             inputs=[batch_size.name,
+                                     Value([Value(-1)]).to_tensor(env).name],
+                             axis=0)
+        x = env.calc("Reshape",
+                     inputs=[x.name, mat_shape.name])
+
         if self.nobias:
             t = env.calc(
                 "Transpose",
