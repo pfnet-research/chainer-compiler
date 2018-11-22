@@ -519,18 +519,6 @@ void OutputIterationCount(Graph* graph, Node* loop) {
     }
 }
 
-namespace {
-
-Value* GradOut(GraphBuilder* gb, Value* x) {
-    if (x->grad()) {
-        return gb->Op(Node::kIdentity, {x->grad()});
-    } else {
-        return gb->Null();
-    }
-}
-
-}  // namespace
-
 void LoopGradFn(GradientOpContext* gc) {
     Graph* graph = gc->graph();
     Node* loop = gc->node();
@@ -707,48 +695,37 @@ void IfGradFn(GradientOpContext* gc) {
             GraphBuilder(then_grad_graph.get(), "tg@", ys[0]),
             GraphBuilder(else_grad_graph.get(), "eg@", ys[0])
         };
-        GraphBuilder& then_gb = gbs[0];
-        GraphBuilder& else_gb = gbs[1];
 
-        std::vector<Value*> then_ys;
-        std::vector<Value*> else_ys;
-        for (size_t i : gy_indices) {
-            Value* then_y = then_graph->output_values()[i];
-            Value* then_gy = then_grad_graph->AddInputValue("if_grad_in@" + then_y->name(), then_y->type());
-            CHECK(then_y->grad() == nullptr);
-            then_y->set_grad(then_gb.Op(Node::kIdentity, {then_gy}));
-            then_ys.push_back(then_y);
+        std::vector<Value*> ys[2];
+        for (int ci = 0; ci < 2; ++ci) {
+            Graph* graph = graphs[ci];
 
-            Value* else_y = else_graph->output_values()[i];
-            Value* else_gy = else_grad_graph->AddInputValue("if_grad_in@" + else_y->name(), else_y->type());
-            CHECK(else_y->grad() == nullptr);
-            else_y->set_grad(else_gb.Op(Node::kIdentity, {else_gy}));
-            else_ys.push_back(else_y);
+            for (size_t i : gy_indices) {
+                Value* y = graph->output_values()[i];
+                Value* gy = grad_graphs[ci]->AddInputValue("if_grad_in@" + y->name(), y->type());
+                CHECK(y->grad() == nullptr);
+                y->set_grad(gbs[ci].Op(Node::kIdentity, {gy}));
+                ys[ci].push_back(y);
+            }
+
+            AddGradientNodes(graph, grad_graphs[ci], graph->input_values(), ys[ci], &retained[ci]);
         }
 
-        AddGradientNodes(then_graph, then_grad_graph.get(), then_graph->input_values(), then_ys, &retained[0]);
-        AddGradientNodes(else_graph, else_grad_graph.get(), else_graph->input_values(), else_ys, &retained[1]);
-
         for (size_t i = 0; i < xs.size() - 1; ++i) {
-            Value* then_x = then_graph->input_values()[i];
-            Value* else_x = else_graph->input_values()[i];
-            if (then_x->grad() == nullptr && else_x->grad() == nullptr) {
+            Value* x[2];
+            for (int ci = 0; ci < 2; ++ci) x[ci] = graphs[ci]->input_values()[i];
+            if (x[0]->grad() == nullptr && x[1]->grad() == nullptr) {
                 continue;
             }
             gx_indices.push_back(i);
 
-            Value* then_out = then_grad_graph->AddOutputValue(then_gb.GenName(), then_x->type());
-            if (then_x->grad()) {
-                then_gb.Op(Node::kIdentity, {then_x->grad()}, {then_out});
-            } else {
-                then_gb.Op(Node::kOnikuxNullConstant, {}, then_out);
-            }
-
-            Value* else_out = else_grad_graph->AddOutputValue(else_gb.GenName(), else_x->type());
-            if (else_x->grad()) {
-                else_gb.Op(Node::kIdentity, {else_x->grad()}, {else_out});
-            } else {
-                else_gb.Op(Node::kOnikuxNullConstant, {}, else_out);
+            for (int ci = 0; ci < 2; ++ci) {
+                Value* out = grad_graphs[ci]->AddOutputValue(gbs[ci].GenName(), x[ci]->type());
+                if (x[ci]->grad()) {
+                    gbs[ci].Op(Node::kIdentity, {x[ci]->grad()}, {out});
+                } else {
+                    gbs[ci].Op(Node::kOnikuxNullConstant, {}, out);
+                }
             }
         }
 
@@ -765,6 +742,8 @@ void IfGradFn(GradientOpContext* gc) {
         }
     }
 
+    if (gx_indices.empty()) return;
+
     {
         GraphBuilder gbs[2] = {
             GraphBuilder(then_graph, "IfGradThen", xs[0]),
@@ -778,18 +757,15 @@ void IfGradFn(GradientOpContext* gc) {
                         Value* out = graphs[j]->AddOutputValue("bp_o@" + rv->name(), rv->type());
                         gbs[j].Op(Node::kIdentity, {rv}, out);
                     } else {
-                        Value* out = graphs[j]->AddOutputValue("", rv->type());
+                        graphs[j]->AddOutputValue("", rv->type());
                     }
                 }
             }
         }
     }
 
-    if (gx_indices.empty()) return;
-
     std::vector<Value*> retained_outs;
     {
-        //GraphBuilder gb(gc->graph(), "IfGrad", xs[0]);
         GraphBuilder gb{gc->src_builder(0)};
         size_t num_retained = retained[0].size() + retained[1].size();
         for (size_t i = 0; i < num_retained; ++i) {
