@@ -24,7 +24,7 @@ public:
     Graph(const Graph&) = delete;
     Graph& operator=(const Graph&) = delete;
 
-    void ToONNX(onnx::GraphProto* xgraph) const;
+    void ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers = true) const;
     std::string DebugString() const;
 
     const std::vector<Value*>& input_values() const {

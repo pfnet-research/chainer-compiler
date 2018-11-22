@@ -75,7 +75,7 @@ Graph::Graph(const std::string name) : name_(name) {
 Graph::~Graph() {
 }
 
-void Graph::ToONNX(onnx::GraphProto* xgraph) const {
+void Graph::ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers) const {
     DUMP_STRING(xgraph, name);
     DUMP_STRING(xgraph, doc_string);
 
@@ -96,9 +96,11 @@ void Graph::ToONNX(onnx::GraphProto* xgraph) const {
         if (!xvalue) continue;
 
         value->ToONNX(xvalue);
-        if (const Tensor* initializer = value->initializer()) {
-            onnx::TensorProto* xtensor = xgraph->add_initializer();
-            initializer->ToONNX(xtensor);
+        if (serialize_initializers) {
+            if (const Tensor* initializer = value->initializer()) {
+                onnx::TensorProto* xtensor = xgraph->add_initializer();
+                initializer->ToONNX(xtensor);
+            }
         }
     }
 
