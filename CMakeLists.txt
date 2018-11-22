@@ -32,6 +32,13 @@ else()
 endif()
 option(ONIKU_ENABLE_NVRTC "Enable NVRTC" ${DEFAULT_ONIKU_ENABLE_NVRTC})
 
+if(DEFINED ENV{ONIKU_ENABLE_OPENCV})
+    set(DEFAULT_ONIKU_ENABLE_OPENCV $ENV{ONIKU_ENABLE_OPENCV})
+else()
+    set(DEFAULT_ONIKU_ENABLE_OPENCV OFF)
+endif()
+option(ONIKU_ENABLE_OPENCV "Enable OPENCV" ${DEFAULT_ONIKU_ENABLE_OPENCV})
+
 option(ONIKU_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
 
 if(${ONIKU_GENERATE_TESTS})
@@ -81,7 +88,9 @@ set(CH2O_FILES
   )
 
 # OpenCV
-find_package(OpenCV REQUIRED)
+if(${ONIKU_ENABLE_OPENCV})
+  find_package(OpenCV REQUIRED)
+endif()
 
 # CUDA
 if(${ONIKU_BUILD_CUDA})

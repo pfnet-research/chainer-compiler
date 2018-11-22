@@ -42,20 +42,22 @@ target_link_libraries(run_onnx
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
-add_executable(train_imagenet train_imagenet.cc)
-add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
-target_link_libraries(train_imagenet
-  oniku_tools
-  oniku_compiler
-  oniku_runtime
-  oniku_common
-  feeder
-  chainerx
-  onnx
-  onnx_proto
-  protobuf
-  pthread
-  ${ONIKU_CUDA_LIBRARIES}
-  ${OpenCV_LIBS}
-  )
-set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
+if(${ONIKU_ENABLE_OPENCV})
+  add_executable(train_imagenet train_imagenet.cc)
+  add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
+  target_link_libraries(train_imagenet
+    oniku_tools
+    oniku_compiler
+    oniku_runtime
+    oniku_common
+    feeder
+    chainerx
+    onnx
+    onnx_proto
+    protobuf
+    pthread
+    ${ONIKU_CUDA_LIBRARIES}
+    ${OpenCV_LIBS}
+    )
+  set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
+endif()

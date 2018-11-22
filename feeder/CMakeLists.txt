@@ -8,16 +8,17 @@ include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${ONIKU_ROOT_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-add_library(feeder
-  data_iterator.cc
-  imagenet_iterator.cc
-  )
+set(FEEDER_SRCS data_iterator.cc)
+set(FEEDER_TEST_SRCS data_iterator_test.cc)
+if(${ONIKU_ENABLE_OPENCV})
+  set(FEEDER_SRCS ${FEEDER_SRCS} imagenet_iterator.cc)
+  set(FEEDER_TEST_SRCS ${FEEDER_TEST_SRCS} imagenet_iterator_test.cc)
+endif()
+
+add_library(feeder ${FEEDER_SRCS})
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
-add_executable(feeder_test
-  data_iterator_test.cc
-  imagenet_iterator_test.cc
-  )
+add_executable(feeder_test ${FEEDER_TEST_SRCS})
 target_link_libraries(feeder_test
   feeder
   chainerx
