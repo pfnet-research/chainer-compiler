@@ -344,7 +344,7 @@ void Graph::DeleteDetached() {
 
 void Graph::DumpSubGraphs(int depth) const {
     for (int i = 0; i < depth; i++) std::cerr << ' ';
-    std::cerr << name() << std::endl;
+    std::cerr << name() << ' ' << input_values().size() << " inputs " << output_values().size() << " outputs" << std::endl;
     for (const Node* node : nodes_) {
         for (Graph* sub_graph : node->GetSubGraphs()) {
             sub_graph->DumpSubGraphs(depth + 1);
