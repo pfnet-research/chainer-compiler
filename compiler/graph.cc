@@ -300,20 +300,6 @@ void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& i
     nodes_buf_.emplace_back(std::move(node));
 }
 
-Graph* Graph::GetSubGraph(const std::string& name) const {
-    Graph* found = nullptr;
-    for (const Node* node : nodes_) {
-        for (Graph* sub_graph : node->GetSubGraphs()) {
-            if (sub_graph->name() == name) {
-                CHECK(found == nullptr) << "Two subgraphs found for name: " << name;
-                found = sub_graph;
-            }
-        }
-    }
-    CHECK(found != nullptr) << "No subgraph found for name: " << name;
-    return found;
-}
-
 void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to) {
     for (Node* node : nodes) {
         auto found = std::find(nodes_.begin(), nodes_.end(), node);

@@ -96,8 +96,6 @@ public:
         return &output_values_;
     }
 
-    Graph* GetSubGraph(const std::string& name) const;
-
     void MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to);
 
     void ResetGradients();
