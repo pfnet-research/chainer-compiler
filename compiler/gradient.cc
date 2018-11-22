@@ -92,7 +92,7 @@ void AddGradientNodesForTraining(Graph* graph) {
 
     std::set<Value*> xs;
     for (Value* value : graph->GetNecessaryValues(graph->output_values())) {
-        if (!value->is_input() || !value->initializer()) continue;
+        if (!value->IsInput() || !value->initializer()) continue;
         CHECK(xs.emplace(value).second);
     }
 

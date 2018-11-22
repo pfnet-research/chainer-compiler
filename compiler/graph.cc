@@ -44,7 +44,7 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         std::unique_ptr<Tensor> tensor(new Tensor(xtensor));
         auto found = values_by_name.find(tensor->name());
         CHECK(found != values_by_name.end()) << "Invalid name for an initializer: " << tensor->name();
-        CHECK(found->second->is_input()) << "Only input can have an initializer but " << found->second->DebugString();
+        CHECK(found->second->IsInput()) << "Only input can have an initializer but " << found->second->DebugString();
         found->second->ResetInitializer(std::move(tensor));
     }
 
@@ -90,7 +90,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers) const 
             xvalue = xgraph->add_input();
         } else if (output_values.count(value.get())) {
             xvalue = xgraph->add_output();
-        } else if (!value->is_null()) {
+        } else if (!value->IsNull()) {
             xvalue = xgraph->add_value_info();
         }
         if (!xvalue) continue;
@@ -147,14 +147,11 @@ std::set<Value*> Graph::GetNecessaryValues() const {
 }
 
 Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind kind) {
-    if (name == "") {
-        kind = static_cast<Value::Kind>(static_cast<int>(kind) | static_cast<int>(Value::Kind::kNull));
-    }
     Value* value = new Value(name, type, kind);
     all_values_.emplace_back(value);
-    if (value->is_input()) input_values_.push_back(value);
-    if (value->is_output()) output_values_.push_back(value);
-    if (value->is_temp()) temp_values_.push_back(value);
+    if (value->IsInput()) input_values_.push_back(value);
+    if (value->IsOutput()) output_values_.push_back(value);
+    if (value->IsTemp()) temp_values_.push_back(value);
     return value;
 }
 

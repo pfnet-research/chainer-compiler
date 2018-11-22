@@ -79,7 +79,7 @@ void Node::Detach() {
 int Node::GetNumActualInputs() const {
     int count = 0;
     for (const Value* input : inputs_) {
-        if (!input->is_null()) count++;
+        if (!input->IsNull()) count++;
     }
     return count;
 }

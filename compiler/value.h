@@ -32,16 +32,16 @@ public:
     void ToONNX(onnx::ValueInfoProto* xvalue) const;
     std::string DebugString() const;
 
-    bool is_temp() const {
+    bool IsTemp() const {
         return kind_ == Kind::kTemp;
     }
-    bool is_input() const {
+    bool IsInput() const {
         return static_cast<int>(kind_) & static_cast<int>(Kind::kInput);
     }
-    bool is_output() const {
+    bool IsOutput() const {
         return static_cast<int>(kind_) & static_cast<int>(Kind::kOutput);
     }
-    bool is_null() const {
+    bool IsNull() const {
         return static_cast<int>(kind_) & static_cast<int>(Kind::kNull);
     }
 
@@ -89,11 +89,6 @@ public:
     // Generate a unique ID for other values associated with this object.
     int Counter() {
         return counter_++;
-    }
-
-    bool IsNull() const {
-        // TODO(hamaji): Do not use `name_.empty()` by allowing null outputs.
-        return is_null() || name_.empty();
     }
 
 private:

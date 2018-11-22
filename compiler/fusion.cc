@@ -28,7 +28,7 @@ void FindInOuts(const std::set<Node*>& nodes, std::vector<Value*>* inputs, std::
         }
         for (Value* value : node->outputs()) {
             size_t num_users = value->users().size();
-            if (value->is_output()) num_users = INT_MAX;
+            if (value->IsOutput()) num_users = INT_MAX;
             CHECK(output_users.emplace(value, num_users).second);
             temps->insert(value);
         }
