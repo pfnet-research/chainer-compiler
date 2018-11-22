@@ -920,6 +920,8 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::vector
         register_grad_fn(Node::kConstant, &DoNothingGradFn);
         register_grad_fn(Node::kConstantFill, &DoNothingGradFn);
         register_grad_fn(Node::kShape, &DoNothingGradFn);
+        register_grad_fn(Node::kNot, &DoNothingGradFn);
+        register_grad_fn(Node::kOnikuxSequenceLengths, &DoNothingGradFn);
         register_grad_fn(Node::kOnikuxGenericIs, &DoNothingGradFn);
         register_grad_fn(Node::kOnikuxGenericLen, &DoNothingGradFn);
 
