@@ -307,6 +307,7 @@ class Np_Cumsum(Callable):
             "Add",
             inputs=[tx.name, s.name],
         )
+        ts2 = localenv.calc("Identity", inputs=[ts.name])
 
         zero = totensor(0, env)
 
@@ -315,11 +316,11 @@ class Np_Cumsum(Callable):
             'Loop',
             inputs=[ls.name, "", v.name, zero.name],
             outputs=[dummy(), dummy(), res.name],
-            body=helper.make_graph(
+            body=utils.make_graph(
                 localenv.nodes,
-                utils.gen_graph_name("Cumsum_subgraph"),
+                "Cumsum_subgraph",
                 [cnt, cond, gtx, s],
-                [cond, gtx, ts, ts]
+                [cond, gtx, ts, ts2]
             )
         )
 

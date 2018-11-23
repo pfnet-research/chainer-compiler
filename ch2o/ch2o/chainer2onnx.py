@@ -20,7 +20,7 @@ import numpy
 
 from ch2o.test_args import dprint
 from ch2o.env import Env
-from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, gen_graph_name
+from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, make_graph
 from ch2o.links import Link2NodeClass
 from ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
 from ch2o.builtin_funcs import builtin_functions
@@ -332,16 +332,16 @@ def eval_if(nast, env):
             else_outputs.append(else_ov.to_value_info(else_env))
             set_final_output(key, then_ov)
 
-    then_graph = helper.make_graph(
+    then_graph = make_graph(
         then_env.nodes,
-        gen_graph_name("If_then"),
+        "If_then",
         input_values,
         then_outputs,
     )
 
-    else_graph = helper.make_graph(
+    else_graph = make_graph(
         else_env.nodes,
-        gen_graph_name("If_else"),
+        "If_else",
         input_values,
         else_outputs,
     )
@@ -420,9 +420,9 @@ def eval_for(nast, env):
         output_values.append(ov.to_value_info(env))
 
     cond = new_tensor(name='loop_cond')
-    localgraph = helper.make_graph(
+    localgraph = make_graph(
         localenv.nodes,
-        gen_graph_name("Loop_subgraph"),
+        "Loop_subgraph",
         [cnt, cond, gtx] + input_values,
         [cond, gtx] + output_values
     )
@@ -630,9 +630,9 @@ def eval_binary_op(nast, env):
             inputs=[state.name, elem.name],
             outputs=[out_state.name]
         ))
-        loop = helper.make_graph(
+        loop = make_graph(
             nodes,
-            gen_graph_name("SeqPlus"),
+            "SeqPlus",
             [index, cond, state],
             [cond, out_state],
         )
@@ -1130,10 +1130,10 @@ def compile_model(model, inputs):
     #    print(ch)
 
     outputs_vi = [o.to_value_info(env) for o in output_tensors]
-    graph = helper.make_graph(env.nodes,
-                              'name_is_unknown_now', input_tensors,
-                              outputs_vi,
-                              )
+    graph = make_graph(env.nodes,
+                       'name_is_unknown_now',
+                       input_tensors,
+                       outputs_vi)
 
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで

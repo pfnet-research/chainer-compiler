@@ -152,3 +152,25 @@ def onnx_dtype(dtype):
     a = np.zeros((), dtype=dtype)
     dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
     return dt
+
+
+def make_graph(nodes, graph_name, inputs, outputs):
+    input_dict = {}
+    for input in inputs:
+        input_dict[input.name] = (input, None)
+    outputs_fixed = []
+    for output in outputs:
+        if output.name in input_dict:
+            input, new_output = input_dict[output.name]
+            if new_output is None:
+                new_output = new_tensor(name=graph_name + '_out')
+                nodes.append(helper.make_node('Identity',
+                                              inputs=[input.name],
+                                              outputs=[new_output.name]))
+                input_dict[output.name] = (input, new_output)
+        else:
+            new_output = output
+        outputs_fixed.append(new_output)
+
+    graph_name = gen_graph_name(graph_name)
+    return helper.make_graph(nodes, graph_name, inputs, outputs_fixed)

@@ -112,12 +112,13 @@ def gen_scan_sum_test(test_name):
     inputs_vi = [_extract_value_info(inputs1[0][0], n)
                  for n in ['s', 'a', 'b']]
     outputs_vi = [_extract_value_info(outputs[0][0], n)
-                  for n in ['r', 'ab', 's']]
+                  for n in ['r', 'ab', 'so']]
 
     sub = onnx.helper.make_node('Sub', inputs=['a', 'b'], outputs=['ab'])
     add = onnx.helper.make_node('Add', inputs=['ab', 's'], outputs=['r'])
+    ident = onnx.helper.make_node('Identity', inputs=['s'], outputs=['so'])
     body = onnx.helper.make_graph(
-        nodes=[sub, add],
+        nodes=[sub, add, ident],
         name='body',
         inputs=inputs_vi,
         outputs=outputs_vi)
@@ -240,9 +241,13 @@ def gen_loop_test(max_trip_count=7,
         outputs_vi = [_extract_value_info(output, 'out')]
         nodes = []
         if has_scan_outputs:
-            outputs_vi.append(_extract_value_info(output, 'out'))
+            outputs_vi.append(_extract_value_info(output, 'out2'))
             outputs_vi.append(_extract_value_info(output, 'square'))
-            outputs_vi.append(_extract_value_info(output, 'iter'))
+            outputs_vi.append(_extract_value_info(output, 'iter2'))
+            nodes.append(onnx.helper.make_node('Identity', inputs=['out'],
+                                               outputs=['out2']))
+            nodes.append(onnx.helper.make_node('Identity', inputs=['iter'],
+                                               outputs=['iter2']))
             nodes.append(onnx.helper.make_node('Mul', inputs=['iter', 'iter'],
                                                outputs=['square']))
 
@@ -384,12 +389,13 @@ def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
         one_v = bb.const(1.0)
         ni_v = bb.Add([bi_v, bj_v])
         nj_v = bb.Add([bj_v, one_v])
+        nk_v = bb.Identity([bk_v])
         ten_v = bb.const(10.0)
         cond_v = bb.Less([ni_v, ten_v])
         bb.output(cond_v, np.array(True))
         bb.output(ni_v, i)
         bb.output(nj_v, j)
-        bb.output(bk_v, k)
+        bb.output(nk_v, k)
 
         true_v = gb.const(True)
         oi_v, oj_v, ok_v = gb.Loop(['', true_v, i_v, j_v, k_v],
@@ -618,8 +624,8 @@ def gen_sequence_io_test(test_name):
     split_v = gb.OnikuxSequenceSeparate([input_v])
     stack_v = gb.OnikuxSequenceStack([input_seq_v])
 
-    gb.output(input_v, input)
-    gb.output(input_seq_v, Seq(input_seq))
+    gb.output(gb.Identity([input_v]), input)
+    gb.output(gb.Identity([input_seq_v]), Seq(input_seq))
     gb.output(split_v, Seq(list(map(np.squeeze, np.split(input, len(input))))))
     gb.output(stack_v, np.stack(input_seq))
 

@@ -28,10 +28,7 @@ Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_
         Value* value = new Value(output, Value::Kind::kOutput);
         all_values_.emplace_back(value);
         output_values_.push_back(value);
-        auto p = values_by_name.emplace(value->name(), value);
-        if (!p.second) {
-            AddNode(Node::kIdentity, {p.first->second}, {value});
-        }
+        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& temp : xgraph.value_info()) {
         Value* value = new Value(temp, Value::Kind::kTemp);
