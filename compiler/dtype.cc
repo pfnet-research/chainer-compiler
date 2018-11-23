@@ -25,6 +25,8 @@ Dtype::DataType FromONNX(onnx::TensorProto::DataType xtype) {
             return Dtype::DataType::kFloat32;
         case onnx::TensorProto::DOUBLE:
             return Dtype::DataType::kFloat64;
+        case onnx::TensorProto::UNDEFINED:
+            return Dtype::DataType::kUnknown;
         default:
             CHECK(false) << "Unsupported ONNX data type: " << xtype;
     }
