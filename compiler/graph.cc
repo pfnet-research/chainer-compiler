@@ -7,6 +7,7 @@
 #include <set>
 
 #include <onnx/onnx_pb.h>
+#include <onnx/shape_inference/implementation.h>
 
 #include <common/log.h>
 #include <compiler/node.h>
@@ -16,7 +17,13 @@
 
 namespace oniku {
 
-Graph::Graph(const onnx::GraphProto& xgraph) : name_(xgraph.name()), doc_string_(xgraph.doc_string()) {
+Graph::Graph(const onnx::GraphProto& xgraph) {
+    Construct(xgraph);
+}
+
+void Graph::Construct(const onnx::GraphProto& xgraph) {
+    name_ = xgraph.name();
+    doc_string_ = xgraph.doc_string();
     std::map<std::string, Value*> values_by_name;
     for (const onnx::ValueInfoProto& input : xgraph.input()) {
         Value* value = new Value(input, Value::Kind::kInput);
@@ -290,6 +297,21 @@ void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Valu
         temp_values_.erase(found);
         to->temp_values_.push_back(value);
     }
+}
+
+void Graph::InferShapes() {
+    onnx::GraphProto xgraph;
+    ToONNX(&xgraph);
+    output_values_.clear();
+    input_values_.clear();
+    temp_values_.clear();
+    all_values_.clear();
+    nodes_.clear();
+    nodes_buf_.clear();
+    std::unordered_map<std::string, int> opset_imports;
+    opset_imports[""] = 9;
+    onnx::shape_inference::InferShapes(&xgraph, opset_imports);
+    Construct(xgraph);
 }
 
 void Graph::ResetGradients() {

@@ -62,15 +62,18 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     if (gen_backprop) AddGradientNodesForTraining(graph);
 
+    // TODO(hamaji): Make it possible to infer shapes here.
+    // if (!g_skip_inference) graph->InferShapes();
+
     Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
+
+    Recursively(PropagateConstants, graph);
 
     dump_onnx(g_dump_after_gradient, "after gradient generation");
 
     if (g_dump_subgraphs) {
         graph->DumpSubGraphs();
     }
-
-    Recursively(PropagateConstants, graph);
 
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 

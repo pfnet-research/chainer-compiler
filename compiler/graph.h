@@ -98,6 +98,8 @@ public:
 
     void MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to);
 
+    void InferShapes();
+
     void ResetGradients();
 
     void DeleteDetached();
@@ -111,13 +113,14 @@ private:
 
     void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
+    void Construct(const onnx::GraphProto& xgraph);
+
     std::vector<Value*> output_values_;
     std::vector<Value*> input_values_;
     std::vector<Value*> temp_values_;
     std::vector<std::unique_ptr<Value>> all_values_;
     std::vector<Node*> nodes_;
     std::vector<std::unique_ptr<Node>> nodes_buf_;
-    Value* null_value_;
     std::string name_;
     std::string doc_string_;
 
