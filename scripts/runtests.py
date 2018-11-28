@@ -226,8 +226,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_simple_rnn_defaults'),
     TestCase(NODE_TEST, 'test_simple_rnn_with_initial_bias'),
     TestCase(NODE_TEST, 'test_gru_defaults'),
-    # TODO(hamaji): Implement sequence_lens.
-    # TestCase(NODE_TEST, 'test_gru_seq_length'),
+    TestCase(NODE_TEST, 'test_gru_seq_length'),
     TestCase(NODE_TEST, 'test_gru_with_initial_bias'),
     TestCase(NODE_TEST, 'test_lstm_defaults'),
     TestCase(NODE_TEST, 'test_lstm_with_initial_bias'),
