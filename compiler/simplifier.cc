@@ -154,6 +154,9 @@ bool ReplaceBatchNormalization(Graph* graph, Node* node) {
 
 #endif
 
+// TODO(hamaji): Revive Scan.
+#if 0
+
 bool ReplaceScan(Graph* graph, Node* scan) {
     // Scan(seq_lens?, states..., inputs...) -> (states.. outputs...)
     //  body(states..., ins...) -> (states..., outs...)
@@ -282,6 +285,8 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
     return true;
 }
+
+#endif
 
 void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const std::string& name) {
     CHECK_EQ(1, node->inputs().size()) << name;
@@ -534,7 +539,8 @@ void Simplify(Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
     CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
-    CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
+    // TODO(hamaji): Revive Scan.
+    // CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
     CHECK(simplifiers.emplace(Node::kGlobalMaxPool, ReplaceGlobalMaxPool).second);
     CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
     CHECK(simplifiers.emplace(Node::kFlatten, ReplaceFlatten).second);

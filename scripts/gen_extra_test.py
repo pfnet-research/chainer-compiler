@@ -928,7 +928,7 @@ def get_tests():
         TestCase('extra_backprop_test_need_stack_loop',
                  gen_loop_backprop_need_stack_test()),
 
-        TestCase('extra_test_scan_sum', gen_scan_sum_test),
+        TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
 
         TestCase('extra_test_sequence', gen_sequence_test),
         TestCase('extra_test_sequence_pad', gen_sequence_pad_test),

@@ -175,7 +175,8 @@ NodeDef('LogSoftmax', 1, 1, axis=1)
 # Extension: it takes N+1 inputs.
 NodeDef('If', None, None, else_branch=Graph, then_branch=Graph)
 NodeDef('Loop', None, None, body=Graph, onikux_stack_axis=0)
-NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
+# TODO(hamaji): Fix Scan to handle the new semantics.
+# NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
 NodeDef('OnikuxReluGrad', 2, 1)
 NodeDef('OnikuxReduceSumTo', 2, 1)
