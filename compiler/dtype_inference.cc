@@ -291,6 +291,8 @@ void InferDtype(Node* node) {
             break;
         }
 
+#if 0
+        // TODO(hamaji): Revive Scan.
         case Node::kScan: {
             // TODO(hamaji): We assume when all inputs have the smae
             // dtypes, the outputs will be the same.
@@ -305,6 +307,7 @@ void InferDtype(Node* node) {
             }
             break;
         }
+#endif
 
         case Node::kSplit: {
             for (size_t i = 0; i < node->outputs().size(); ++i) {
