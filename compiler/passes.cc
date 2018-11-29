@@ -48,8 +48,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
             std::cerr << graph->DebugString();
             std::cerr << "=== ^^^ " << msg << " ^^^ ===\n";
         }
-        // TODO(hamaji): Enable this check.
-        // Recursively([msg](Graph* g) { g->CheckSanity(msg); }, graph);
+        Recursively([msg](Graph* g) { g->CheckSanity(msg); }, graph);
     };
 
     dump_onnx(g_dump_after_inference, "after inference");

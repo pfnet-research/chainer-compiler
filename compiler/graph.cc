@@ -10,6 +10,7 @@
 #include <onnx/shape_inference/implementation.h>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/node.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
@@ -151,7 +152,7 @@ std::set<Value*> Graph::GetNecessaryValues() const {
 }
 
 Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind kind) {
-    Value* value = new Value(name, type, kind);
+    Value* value = new Value(MakeUnique(name), type, kind);
     all_values_.emplace_back(value);
     if (value->IsInput()) input_values_.push_back(value);
     if (value->IsOutput()) output_values_.push_back(value);
@@ -177,7 +178,6 @@ Value* Graph::AddNullValue() {
 
 Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base) {
     Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs);
-    // Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
@@ -273,8 +273,15 @@ std::vector<const Node*> Graph::GetComputationSequence() const {
 std::string Graph::GenSym(const std::string& base) {
     std::ostringstream oss;
     if (!base.empty()) oss << base << "_";
-    oss << "oniku_gensym_" << ++gen_id_;
-    return oss.str();
+    oss << "oniku_gensym";
+    return MakeUnique(oss.str());
+}
+
+std::string Graph::MakeUnique(const std::string& name) {
+    if (name.empty()) return name;
+    int id = ids_[name]++;
+    if (id == 0) return name;
+    return StrCat(name, '_', id);
 }
 
 void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
