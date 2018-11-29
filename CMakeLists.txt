@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.4)
 
 execute_process(COMMAND git submodule update --init)
 
+include(cmake/third-party.cmake)
+
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 if(DEFINED ENV{ONIKU_BUILD_CUDA})
@@ -125,6 +127,22 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/onnx)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest)
+
+# gsl-lite
+# gsl-lite is a header-only library, we do not need to build and run tests
+get_third_party(gsl-lite)
+include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
+# ref. https://github.com/martinmoene/gsl-lite#api-macro
+# As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform.
+# We want to stop it because we get many warnings with nvcc.
+add_definitions(-Dgsl_api=)
+if(${CUDA_FOUND})
+  list(APPEND CUDA_NVCC_FLAGS "-Dgsl_api=")
+endif()
+
+# optional-lite
+get_third_party(optional-lite)
+include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
 
 add_custom_target(large_tests)
 
