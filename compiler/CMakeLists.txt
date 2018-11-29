@@ -43,6 +43,7 @@ add_library(oniku_compiler
   tensor.cc
   type.cc
   type_inference.cc
+  util.cc
   value.cc
   xcvm_emitter.cc
   )

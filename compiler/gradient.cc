@@ -41,6 +41,7 @@ void ExposeParamGradsAsOutputs(Graph* graph, const std::set<Value*>& xs) {
         if (!xs.count(input)) continue;
         if (!input->type().dtype().IsFloat()) continue;
         if (!input->grad()) {
+            if (input->users().size() == 1 && input->users()[0]->op_type() == Node::kBatchNormalization) continue;
             std::cerr << "No gradient for parameter: " << input->name() << std::endl;
             ok = false;
             continue;
@@ -106,7 +107,7 @@ void AddGradientNodes(
         Graph* dest_graph,
         const std::vector<Value*>& xs,
         const std::vector<Value*>& ys,
-        std::vector<std::pair<Value*, Value*>>* retained) {
+        std::map<Value*, Value*>* retained) {
     std::vector<Node*> necessary_nodes;
     std::map<Node*, int> node_set = graph->GetNecessaryNodesAndInputCounts(ys);
     FilterOutUnnecessaryNode(xs, &node_set);

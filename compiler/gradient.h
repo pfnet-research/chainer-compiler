@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <vector>
 
 namespace oniku {
@@ -14,6 +15,6 @@ void AddGradientNodes(
         Graph* dest_graph,
         const std::vector<Value*>& xs,
         const std::vector<Value*>& ys,
-        std::vector<std::pair<Value*, Value*>>* retained);
+        std::map<Value*, Value*>* retained);
 
 }  // namespace oniku

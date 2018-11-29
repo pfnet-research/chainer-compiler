@@ -104,12 +104,15 @@ public:
 
     void DeleteDetached();
 
+    void CheckSanity(const std::string& msg) const;
+
     void DumpSubGraphs(int depth = 0) const;
 
     void DumpONNXOnFailure(const std::string& filename = "") const;
 
 private:
     std::string GenSym(const std::string& base = "");
+    std::string MakeUnique(const std::string& name);
 
     void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
@@ -125,7 +128,7 @@ private:
     std::string doc_string_;
 
     // A monotonically increasing ID to generate unique symbols.
-    int gen_id_ = 0;
+    std::map<std::string, int> ids_;
 };
 
 }  // namespace oniku

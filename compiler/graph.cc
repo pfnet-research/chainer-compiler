@@ -10,9 +10,11 @@
 #include <onnx/shape_inference/implementation.h>
 
 #include <common/log.h>
+#include <common/strutil.h>
 #include <compiler/node.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
+#include <compiler/util.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -32,10 +34,19 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
         CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& output : xgraph.output()) {
-        Value* value = new Value(output, Value::Kind::kOutput);
-        all_values_.emplace_back(value);
-        output_values_.push_back(value);
-        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
+        std::unique_ptr<Value> value(new Value(output, Value::Kind::kOutput));
+        auto p = values_by_name.emplace(value->name(), value.get());
+        if (p.second) {
+            output_values_.push_back(value.get());
+            all_values_.emplace_back(std::move(value));
+        } else {
+            // We allow graph output to be null.
+            // TODO(hamaji): Revisit this design. Probably, it would
+            // be better to mark outputs are unnecessary instead of
+            // using null values.
+            CHECK(value->name().empty()) << "Duplicated value name: " << value->name();
+            output_values_.push_back(p.first->second);
+        }
     }
     for (const onnx::ValueInfoProto& temp : xgraph.value_info()) {
         Value* value = new Value(temp, Value::Kind::kTemp);
@@ -117,6 +128,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers) const 
 std::string Graph::DebugString() const {
     onnx::GraphProto xgraph;
     ToONNX(&xgraph);
+    StripONNXGraph(&xgraph);
     return xgraph.DebugString();
 }
 
@@ -151,7 +163,7 @@ std::set<Value*> Graph::GetNecessaryValues() const {
 }
 
 Value* Graph::AddValue(const std::string& name, const Type& type, Value::Kind kind) {
-    Value* value = new Value(name, type, kind);
+    Value* value = new Value(MakeUnique(name), type, kind);
     all_values_.emplace_back(value);
     if (value->IsInput()) input_values_.push_back(value);
     if (value->IsOutput()) output_values_.push_back(value);
@@ -177,7 +189,6 @@ Value* Graph::AddNullValue() {
 
 Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base) {
     Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs);
-    // Node* node = new Node(GenSym(op_type), op_type, inputs, outputs);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
@@ -273,8 +284,15 @@ std::vector<const Node*> Graph::GetComputationSequence() const {
 std::string Graph::GenSym(const std::string& base) {
     std::ostringstream oss;
     if (!base.empty()) oss << base << "_";
-    oss << "oniku_gensym_" << ++gen_id_;
-    return oss.str();
+    oss << "oniku_gensym";
+    return MakeUnique(oss.str());
+}
+
+std::string Graph::MakeUnique(const std::string& name) {
+    if (name.empty()) return name;
+    int id = ids_[name]++;
+    if (id == 0) return name;
+    return StrCat(name, '_', id);
 }
 
 void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
@@ -325,6 +343,28 @@ void Graph::ResetGradients() {
 
 void Graph::DeleteDetached() {
     nodes_ = GetLiveNodes();
+}
+
+void Graph::CheckSanity(const std::string& msg) const {
+    // Check if names of values are distinct.
+    std::set<std::string> value_names;
+    std::set<Value*> value_set;
+    for (const auto& value : all_values_) {
+        if (value->name().empty()) continue;
+        if (!value_names.emplace(value->name()).second) {
+            std::cerr << "Duplicated name: " << value->name() << std::endl;
+            DumpONNXOnFailure();
+            CHECK(false) << msg;
+        }
+        CHECK(value_set.emplace(value.get()).second);
+    }
+
+    std::set<Node*> node_set;
+    for (const auto& node : nodes_buf_) {
+        CHECK(node_set.emplace(node.get()).second);
+    }
+
+    // TODO(hamaji): No cycle and no links to nodes outside the graph.
 }
 
 void Graph::DumpSubGraphs(int depth) const {

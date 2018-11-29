@@ -33,11 +33,3 @@ if [ ! -e data/resnet50/model.onnx ]; then
          wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz && \
          tar -xvzf resnet50.tar.gz)
 fi
-
-if [ ! -e gsl-lite/include/gsl/gsl ]; then
-    git clone https://github.com/martinmoene/gsl-lite
-fi
-
-if [ ! -e optional-lite/include/nonstd/optional.hpp ]; then
-    git clone https://github.com/martinmoene/optional-lite
-fi
