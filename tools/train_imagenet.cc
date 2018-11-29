@@ -18,6 +18,7 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/tensor.h>
+#include <compiler/util.h>
 #include <compiler/value.h>
 #include <compiler/xcvm_emitter.h>
 #include <feeder/imagenet_iterator.h>
