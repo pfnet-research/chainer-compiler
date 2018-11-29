@@ -41,6 +41,13 @@ else()
 endif()
 option(ONIKU_ENABLE_OPENCV "Enable OPENCV" ${DEFAULT_ONIKU_ENABLE_OPENCV})
 
+if(DEFINED ENV{ONIKU_ENABLE_PYTHON})
+    set(DEFAULT_ONIKU_ENABLE_PYTHON $ENV{ONIKU_ENABLE_PYTHON})
+else()
+    set(DEFAULT_ONIKU_ENABLE_PYTHON OFF)
+endif()
+option(ONIKU_ENABLE_PYTHON "Enable PYTHON" ${DEFAULT_ONIKU_ENABLE_PYTHON})
+
 option(ONIKU_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
 
 if(${ONIKU_GENERATE_TESTS})
@@ -152,6 +159,13 @@ add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
+
+if (${ONIKU_ENABLE_PYTHON})
+  get_third_party(pybind11)
+  include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
+  add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
+add_subdirectory(python)
+endif()
 
 function(gen_ch2o_test dir ch2o_test all)
 
