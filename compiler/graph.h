@@ -104,6 +104,8 @@ public:
 
     void DeleteDetached();
 
+    void CheckSanity() const;
+
     void DumpSubGraphs(int depth = 0) const;
 
     void DumpONNXOnFailure(const std::string& filename = "") const;

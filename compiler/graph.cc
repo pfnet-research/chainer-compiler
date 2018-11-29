@@ -327,6 +327,28 @@ void Graph::DeleteDetached() {
     nodes_ = GetLiveNodes();
 }
 
+void Graph::CheckSanity() const {
+    // Check if names of values are distinct.
+    std::set<std::string> value_names;
+    std::set<Value*> value_set;
+    for (const auto& value : all_values_) {
+        if (value->name().empty()) continue;
+        if (!value_names.emplace(value->name()).second) {
+            std::cerr << "Duplicated name: " << value->name() << std::endl;
+            DumpONNXOnFailure();
+            CHECK(false);
+        }
+        CHECK(value_set.emplace(value.get()).second);
+    }
+
+    std::set<Node*> node_set;
+    for (const auto& node : nodes_buf_) {
+        CHECK(node_set.emplace(node.get()).second);
+    }
+
+    // TODO(hamaji): No cycle and no links to nodes outside the graph.
+}
+
 void Graph::DumpSubGraphs(int depth) const {
     for (int i = 0; i < depth; i++) std::cerr << ' ';
     std::cerr << name() << ' ' << input_values().size() << " inputs " << output_values().size() << " outputs" << std::endl;
