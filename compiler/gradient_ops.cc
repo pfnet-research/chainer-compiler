@@ -42,7 +42,7 @@ public:
             Node* node,
             const std::vector<Value*>& x,
             const std::vector<Value*>& y,
-            std::vector<std::pair<Value*, Value*>>* retained)
+            std::map<Value*, Value*>* retained)
         : src_graph_(src_graph), graph_(graph), node_(node), x_(x), y_(y), retained_(retained) {
         name_ = Node::OpTypeToString(node->op_type());
         const std::string prefix = "Onikux";
@@ -72,8 +72,12 @@ public:
             copied->producer()->set_tensor_value(new Tensor(t.name() + "_retain", t));
             return copied;
         }
+        auto p = retained_->emplace(v, nullptr);
+        if (!p.second) {
+            return p.first->second;
+        }
         Value* retained = gb.Temp();
-        retained_->push_back(std::make_pair(v, retained));
+        p.first->second = retained;
         return retained;
     }
 
@@ -179,7 +183,7 @@ private:
     const std::vector<Value*>& x_;
     const std::vector<Value*>& y_;
     std::string name_;
-    std::vector<std::pair<Value*, Value*>>* retained_;
+    std::map<Value*, Value*>* retained_;
     static std::atomic<int> id_;
     bool gradient_added_{false};
 };
@@ -556,7 +560,7 @@ void LoopGradFn(GradientOpContext* gc) {
     }
 
     auto grad_graph = std::make_unique<Graph>("Grad_" + body->name());
-    std::vector<std::pair<Value*, Value*>> retained;
+    std::map<Value*, Value*> retained;
     {
         GraphBuilder gb(grad_graph.get(), "lg@", ys[0]);
         grad_graph->AddInputValue(gb.GenName(), Type(Dtype::kInt64, {}));
@@ -676,7 +680,7 @@ void IfGradFn(GradientOpContext* gc) {
     auto then_grad_graph = std::make_unique<Graph>("ThenGrad_" + then_graph->name());
     auto else_grad_graph = std::make_unique<Graph>("ElseGrad_" + else_graph->name());
     Graph* grad_graphs[2] = {then_grad_graph.get(), else_grad_graph.get()};
-    std::vector<std::pair<Value*, Value*>> retained[2];
+    std::map<Value*, Value*> retained[2];
     std::vector<size_t> gx_indices;
     {
         GraphBuilder gbs[2] = {GraphBuilder(then_grad_graph.get(), "tg@", ys[0]), GraphBuilder(else_grad_graph.get(), "eg@", ys[0])};
@@ -859,7 +863,7 @@ struct GradientFunc {
 
 }  // namespace
 
-bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::vector<std::pair<Value*, Value*>>* retained) {
+bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Value*, Value*>* retained) {
     static std::map<Node::OpType, GradientFunc>* s_gradient_funcs;
     if (!s_gradient_funcs) {
         // Leak.
