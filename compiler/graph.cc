@@ -33,10 +33,19 @@ void Graph::Construct(const onnx::GraphProto& xgraph) {
         CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
     }
     for (const onnx::ValueInfoProto& output : xgraph.output()) {
-        Value* value = new Value(output, Value::Kind::kOutput);
-        all_values_.emplace_back(value);
-        output_values_.push_back(value);
-        CHECK(values_by_name.emplace(value->name(), value).second) << "Duplicated value name: " << value->name();
+        std::unique_ptr<Value> value(new Value(output, Value::Kind::kOutput));
+        auto p = values_by_name.emplace(value->name(), value.get());
+        if (p.second) {
+            output_values_.push_back(value.get());
+            all_values_.emplace_back(std::move(value));
+        } else {
+            // We allow graph output to be null.
+            // TODO(hamaji): Revisit this design. Probably, it would
+            // be better to mark outputs are unnecessary instead of
+            // using null values.
+            CHECK(value->name().empty()) << "Duplicated value name: " << value->name();
+            output_values_.push_back(p.first->second);
+        }
     }
     for (const onnx::ValueInfoProto& temp : xgraph.value_info()) {
         Value* value = new Value(temp, Value::Kind::kTemp);

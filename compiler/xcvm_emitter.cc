@@ -93,13 +93,17 @@ public:
 private:
     void AssignValueIds(const Graph& graph) {
         for (const Value* v : graph.input_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->DebugString();
         }
         for (const Value* v : graph.temp_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->DebugString();
         }
         for (const Value* v : graph.output_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second);
+            // We allow graph output to be null.
+            // TODO(hamaji): Revisit this design. Probably, it would
+            // be better to mark outputs are unnecessary instead of
+            // using null values.
+            CHECK(value_ids_.emplace(v, next_value_id_++).second || v->name().empty()) << v->DebugString();
         }
     }
 
