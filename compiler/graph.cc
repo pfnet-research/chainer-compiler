@@ -327,7 +327,7 @@ void Graph::DeleteDetached() {
     nodes_ = GetLiveNodes();
 }
 
-void Graph::CheckSanity() const {
+void Graph::CheckSanity(const std::string& msg) const {
     // Check if names of values are distinct.
     std::set<std::string> value_names;
     std::set<Value*> value_set;
@@ -336,7 +336,7 @@ void Graph::CheckSanity() const {
         if (!value_names.emplace(value->name()).second) {
             std::cerr << "Duplicated name: " << value->name() << std::endl;
             DumpONNXOnFailure();
-            CHECK(false);
+            CHECK(false) << msg;
         }
         CHECK(value_set.emplace(value.get()).second);
     }

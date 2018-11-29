@@ -104,7 +104,7 @@ public:
 
     void DeleteDetached();
 
-    void CheckSanity() const;
+    void CheckSanity(const std::string& msg) const;
 
     void DumpSubGraphs(int depth = 0) const;
 
