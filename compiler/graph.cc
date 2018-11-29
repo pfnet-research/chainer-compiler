@@ -14,6 +14,7 @@
 #include <compiler/node.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
+#include <compiler/util.h>
 #include <compiler/value.h>
 
 namespace oniku {
@@ -127,6 +128,7 @@ void Graph::ToONNX(onnx::GraphProto* xgraph, bool serialize_initializers) const 
 std::string Graph::DebugString() const {
     onnx::GraphProto xgraph;
     ToONNX(&xgraph);
+    StripONNXGraph(&xgraph);
     return xgraph.DebugString();
 }
 

@@ -16,6 +16,7 @@
 #include <common/protoutil.h>
 #include <common/strutil.h>
 #include <compiler/tensor.h>
+#include <compiler/util.h>
 #include <tools/cmdline.h>
 #include <tools/util.h>
 
