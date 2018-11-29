@@ -457,10 +457,6 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
     gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2}, __func__);
-    Value* zero = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {0.0});
-    // No gradients since update should have been done for running mean/variance.
-    gc->SetGrad(3, zero);
-    gc->SetGrad(4, zero);
 }
 
 void LRNGradFn(GradientOpContext* gc) {

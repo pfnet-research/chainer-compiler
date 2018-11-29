@@ -41,6 +41,7 @@ void ExposeParamGradsAsOutputs(Graph* graph, const std::set<Value*>& xs) {
         if (!xs.count(input)) continue;
         if (!input->type().dtype().IsFloat()) continue;
         if (!input->grad()) {
+            if (input->users().size() == 1 && input->users()[0]->op_type() == Node::kBatchNormalization) continue;
             std::cerr << "No gradient for parameter: " << input->name() << std::endl;
             ok = false;
             continue;
