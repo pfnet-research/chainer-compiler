@@ -59,6 +59,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     Recursively(PropagateConstants, graph);
 
+    Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+
     dump_onnx(g_dump_after_simplification, "after simplification");
 
     if (gen_backprop) AddGradientNodesForTraining(graph);
@@ -69,6 +71,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
+
+    Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 
     dump_onnx(g_dump_after_gradient, "after gradient generation");
 
