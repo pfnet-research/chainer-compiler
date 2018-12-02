@@ -516,6 +516,17 @@ bool ReplaceShape(Graph* graph, Node* node) {
     return true;
 }
 
+bool RemoveIdentity(Graph* graph, Node* node) {
+    Value* input = node->inputs()[0];
+    Value* output = node->outputs()[0];
+    if (!input->IsTemp() || !output->IsTemp()) return false;
+    for (Node* user : output->users()) {
+        input->AddUser(user);
+        user->ReplaceInput(output, input);
+    }
+    return true;
+}
+
 bool ReplaceSelectItem(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySelectItem", node->outputs()[0]);
     Value* x = node->inputs()[0];
@@ -554,6 +565,7 @@ void Simplify(Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
+    CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
 
     bool is_for_ngraph = false;
     if (is_for_ngraph) {

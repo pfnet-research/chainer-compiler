@@ -53,9 +53,9 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 
     dump_onnx(g_dump_after_inference, "after inference");
 
-    Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
-
     CanonicalizeSubGraphs(graph);
+
+    Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
 
