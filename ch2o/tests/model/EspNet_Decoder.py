@@ -25,7 +25,7 @@ from tests.model.StatelessLSTM import StatelessLSTM
 
 
 def _mean(xs):
-    sum_len = 0.0
+    sum_len = 0
     for x in xs:
         sum_len += len(x)
     return sum_len / len(xs)
