@@ -182,6 +182,7 @@ class E2E(chainer.Chain):
             elif args.atype == 'location':
                 self.dec = Decoder(args.eprojs, odim, args.dlayers, args.dunits,
                                    self.sos, self.eos, args.adim,
+                                   args.aconv_chans, args.aconv_filts,
                                    use_chainer=use_chainer)
             else:
                 raise RuntimeError('Not supported: %s' % args.atype)
