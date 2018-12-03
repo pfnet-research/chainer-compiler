@@ -108,7 +108,7 @@ void InitXCVM(py::module& m) {
 
 }  // namespace
 
-PYBIND11_MODULE(oniku, m) {  // NOLINT
+PYBIND11_MODULE(oniku_core, m) {  // NOLINT
     m.doc() = "oniku";
 
     InitGraph(m);

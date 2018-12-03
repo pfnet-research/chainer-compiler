@@ -3,8 +3,8 @@ include_directories(${ONIKU_ROOT_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR})
 
-add_library(oniku.so MODULE oniku.cc)
-target_link_libraries(oniku.so
+add_library(oniku_core.so MODULE oniku.cc)
+target_link_libraries(oniku_core.so
   PRIVATE
   oniku_tools
   oniku_compiler
@@ -17,7 +17,7 @@ target_link_libraries(oniku.so
   pthread
   ${ONIKU_CUDA_LIBRARIES}
   )
-set_target_properties(oniku.so
+set_target_properties(oniku_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_SUFFIX}")

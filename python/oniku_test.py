@@ -6,7 +6,7 @@ sys.path.append(os.path.join(oniku_root, 'build/python'))
 
 import chainerx
 import numpy as np
-import oniku
+import oniku_core as oniku
 
 
 def aranges(*shape):
