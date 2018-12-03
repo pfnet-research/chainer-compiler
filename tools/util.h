@@ -8,13 +8,13 @@
 
 namespace oniku {
 
-class Model;
+class Graph;
 
 namespace runtime {
 
 chainerx::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype);
 
-InOuts LoadParams(const Model& model);
+InOuts LoadParams(const Graph& graph);
 
 }  // namespace runtime
 }  // namespace oniku

@@ -281,7 +281,7 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Loading data..." << std::endl;
 
-    InOuts params(LoadParams(model));
+    InOuts params(LoadParams(model.graph()));
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
     for (const Value* input : model.graph().input_values()) {

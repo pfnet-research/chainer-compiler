@@ -32,9 +32,9 @@ chainerx::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
     }
 }
 
-InOuts LoadParams(const Model& model) {
+InOuts LoadParams(const Graph& graph) {
     InOuts params;
-    for (const Value* input : model.graph().input_values()) {
+    for (const Value* input : graph.input_values()) {
         if (input->users().empty()) continue;
         if (const Tensor* initializer = input->initializer()) {
             chainerx::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());

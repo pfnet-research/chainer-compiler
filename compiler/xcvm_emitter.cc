@@ -1056,7 +1056,10 @@ private:
 }  // namespace
 
 void Emit(const Model& model, XCProgramProto* program, bool dump_value_names) {
-    const Graph& graph = model.graph();
+    Emit(model.graph(), program, dump_value_names);
+}
+
+void Emit(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
     XCVMEmitter emitter;
     emitter.EmitModel(graph, program, dump_value_names);
 }

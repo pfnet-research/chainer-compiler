@@ -10,6 +10,8 @@ class Node;
 
 void RunDefaultPasses(Model* model, bool gen_backprop = false);
 
+void RunDefaultPasses(Graph* graph, bool gen_backprop = false);
+
 void RunLoopBodyPasses(Node* loop, const std::vector<Node*>& refs);
 
 }  // namespace oniku

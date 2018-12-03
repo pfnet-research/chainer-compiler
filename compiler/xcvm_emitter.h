@@ -5,6 +5,7 @@
 
 namespace oniku {
 
+class Graph;
 class Model;
 class Node;
 class Value;
@@ -16,6 +17,8 @@ class XCProgramProto;
 namespace xcvm {
 
 void Emit(const Model& model, runtime::XCProgramProto* program, bool dump_value_names = false);
+
+void Emit(const Graph& graph, runtime::XCProgramProto* program, bool dump_value_names = false);
 
 void Emit(const Model& model, std::ostream& out, bool dump_value_names = false);
 

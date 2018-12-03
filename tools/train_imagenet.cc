@@ -100,7 +100,7 @@ void RunMain(int argc, char** argv) {
 
     LOG() << "Loading data..." << std::endl;
 
-    InOuts params(LoadParams(model));
+    InOuts params(LoadParams(model.graph()));
 
     chainerx::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(chainerx::GetDefaultDevice());
 

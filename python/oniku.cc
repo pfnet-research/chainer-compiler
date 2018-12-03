@@ -26,47 +26,47 @@ namespace {
 
 typedef std::shared_ptr<chainerx::internal::ArrayBody> ArrayBodyPtr;
 
-std::shared_ptr<Model> LoadModel(const std::string& onnx_path) {
+std::shared_ptr<Graph> LoadGraph(const std::string& onnx_path) {
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    return std::make_shared<Model>(xmodel);
+    return std::make_shared<Graph>(xmodel.graph());
 }
 
-std::map<std::string, ArrayBodyPtr> LoadParams(const std::shared_ptr<Model>& model) {
+std::map<std::string, ArrayBodyPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
     std::map<std::string, ArrayBodyPtr> params;
-    for (auto& p : runtime::LoadParams(*model)) {
+    for (auto& p : runtime::LoadParams(*graph)) {
         chainerx::Array array = p.second->GetArray();
         CHECK(params.emplace(p.first, chainerx::internal::MoveArrayBody(std::move(array))).second);
     }
     return params;
 }
 
-std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Model>& model) {
+std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Graph>& graph) {
     constexpr bool kBackprop = false;
-    RunDefaultPasses(model.get(), kBackprop);
+    RunDefaultPasses(graph.get(), kBackprop);
     runtime::XCProgramProto xcvm_prog;
-    constexpr int kTraceLevel = 0;
-    xcvm::Emit(*model, &xcvm_prog, kTraceLevel);
+    constexpr bool kDumpValueNames = false;
+    xcvm::Emit(*graph, &xcvm_prog, kDumpValueNames);
     return std::make_shared<runtime::XCVM>(xcvm_prog);
 }
 
-std::vector<std::string> GetInputNames(const std::shared_ptr<Model>& model) {
+std::vector<std::string> GetInputNames(const std::shared_ptr<Graph>& graph) {
     std::vector<std::string> names;
-    for (Value* value : model->graph().input_values()) {
+    for (Value* value : graph->input_values()) {
         if (!value->initializer()) names.push_back(value->name());
     }
     return names;
 }
 
-std::vector<std::string> GetOutputNames(const std::shared_ptr<Model>& model) {
+std::vector<std::string> GetOutputNames(const std::shared_ptr<Graph>& graph) {
     std::vector<std::string> names;
-    for (Value* value : model->graph().output_values()) {
+    for (Value* value : graph->output_values()) {
         names.push_back(value->name());
     }
     return names;
 }
 
-void InitModel(py::module& m) {
-    py::class_<Model, std::shared_ptr<Model>> c{m, "Model"};
+void InitGraph(py::module& m) {
+    py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
     c.def("compile", &Compile, "Compile a model");
     c.def("input_names", &GetInputNames, "Names of inputs");
@@ -102,11 +102,11 @@ void InitXCVM(py::module& m) {
 PYBIND11_MODULE(oniku, m) {  // NOLINT
     m.doc() = "oniku";
 
-    InitModel(m);
+    InitGraph(m);
 
     InitXCVM(m);
 
-    m.def("load", &LoadModel, "Load an ONNX model");
+    m.def("load", &LoadGraph, "Load an ONNX model");
 }
 
 }  // namespace oniku

@@ -8,20 +8,21 @@ import chainerx
 import numpy as np
 import oniku
 
+
 def aranges(*shape):
     r = np.prod(shape)
     return np.arange(r).reshape(shape).astype(np.float32)
 
 
 def test_inference():
-    model = oniku.load('out/ch2o_node_Linear/model.onnx')
-    params = model.params()
-    input_names = model.input_names()
-    output_names = model.output_names()
+    graph = oniku.load('out/ch2o_node_Linear/model.onnx')
+    params = graph.params()
+    input_names = graph.input_names()
+    output_names = graph.output_names()
     assert len(input_names) == 1
     assert len(output_names) == 2
 
-    xcvm = model.compile()
+    xcvm = graph.compile()
 
     inputs = dict(params)
     t1 = chainerx.array(aranges(5, 7))

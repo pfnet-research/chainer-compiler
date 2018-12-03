@@ -39,7 +39,10 @@ void Recursively(Fn fn, Graph* graph) {
 }  //  namespace
 
 void RunDefaultPasses(Model* model, bool gen_backprop) {
-    Graph* graph = model->mutable_graph();
+    RunDefaultPasses(model->mutable_graph(), gen_backprop);
+}
+
+void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     InferAllDtypeAndShape(graph);
 
     auto dump_onnx = [&graph](bool cond, const char* msg) {
