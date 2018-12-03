@@ -33,8 +33,8 @@ class MLP(chainer.Chain):
 
 def test_run():
     batch_size = 3
-    in_size = 12
-    n_units = 13
+    in_size = 5
+    n_units = 4
     n_out = 10
 
     mlp = MLP(n_units, n_out)
@@ -45,12 +45,29 @@ def test_run():
 
     input = np.random.rand(batch_size, in_size).astype(np.float32)
     target = np.random.randint(n_out, size=batch_size)
-    expected = model(input, target).array
+
+    def run_model(model):
+        model.cleargrads()
+        loss = model(input, target)
+        loss.grad = chainerx.ones(loss.shape, loss.dtype)
+        loss.backward()
+        grads = []
+        for name, param in sorted(model.namedparams()):
+            grads.append((name, param.grad))
+        return loss.array, grads
+
+    expected_loss, expected_grads = run_model(model)
 
     mlp_compiled = oniku.compile(mlp, [input])
     model = L.Classifier(mlp_compiled)
     # TODO(hamaji): Investigate why accuracy does not work.
     model.compute_accuracy = False
-    actual = model(input, target).array
+    actual_loss, actual_grads = run_model(model)
 
-    chainerx.testing.assert_allclose(expected, actual)
+    chainerx.testing.assert_allclose(expected_loss, actual_loss)
+
+    assert len(expected_grads) == len(actual_grads)
+
+    for (e_name, e_grad), (a_name, a_grad) in zip(expected_grads, actual_grads):
+        assert e_name == a_name
+        chainerx.testing.assert_allclose(e_grad, a_grad)
