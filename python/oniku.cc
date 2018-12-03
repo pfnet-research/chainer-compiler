@@ -10,6 +10,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/xcvm_emitter.h>
@@ -48,10 +49,28 @@ std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Model>& model) {
     return std::make_shared<runtime::XCVM>(xcvm_prog);
 }
 
+std::vector<std::string> GetInputNames(const std::shared_ptr<Model>& model) {
+    std::vector<std::string> names;
+    for (Value* value : model->graph().input_values()) {
+        if (!value->initializer()) names.push_back(value->name());
+    }
+    return names;
+}
+
+std::vector<std::string> GetOutputNames(const std::shared_ptr<Model>& model) {
+    std::vector<std::string> names;
+    for (Value* value : model->graph().output_values()) {
+        names.push_back(value->name());
+    }
+    return names;
+}
+
 void InitModel(py::module& m) {
     py::class_<Model, std::shared_ptr<Model>> c{m, "Model"};
     c.def("params", &LoadParams, "Load parameters of a model");
     c.def("compile", &Compile, "Compile a model");
+    c.def("input_names", &GetInputNames, "Names of inputs");
+    c.def("output_names", &GetOutputNames, "Names of outputs");
 }
 
 // TODO(hamaji): Support Python sequence types as values of `inputs`.
