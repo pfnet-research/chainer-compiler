@@ -6,7 +6,7 @@
 #include <queue>
 #include <set>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 #include <onnx/shape_inference/implementation.h>
 
 #include <common/log.h>

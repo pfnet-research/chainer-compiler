@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 #include <onnx/shape_inference/implementation.h>
 
 #include <chainerx/context.h>

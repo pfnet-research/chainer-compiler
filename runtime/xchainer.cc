@@ -4,7 +4,7 @@
 #include <limits>
 #include <numeric>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 
 #include <chainerx/array.h>
 #include <chainerx/context.h>

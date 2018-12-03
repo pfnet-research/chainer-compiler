@@ -3,7 +3,7 @@
 #include <map>
 #include <string>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 
 #include <chainerx/array.h>
 

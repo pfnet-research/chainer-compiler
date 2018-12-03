@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 
 #include <compiler/node.h>
 #include <compiler/tensor.h>

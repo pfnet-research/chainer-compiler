@@ -1,6 +1,6 @@
 #include <memory>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 
 #include <common/log.h>
 #include <compiler/dtype.h>

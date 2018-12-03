@@ -57,6 +57,7 @@ else()
 endif()
 
 set(ONNX_ML ON)
+set(ONNX_NAMESPACE "oniku_onnx")
 add_subdirectory(onnx)
 add_custom_target(onnx_files
   DEPENDS
@@ -70,7 +71,7 @@ target_compile_options(onnx PRIVATE -w)
 enable_testing()
 
 add_definitions(-DONNX_ML=1)
-add_definitions(-DONNX_NAMESPACE=onnx)
+add_definitions(-DONNX_NAMESPACE=${ONNX_NAMESPACE})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")

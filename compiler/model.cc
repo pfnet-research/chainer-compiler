@@ -1,6 +1,6 @@
 #include "model.h"
 
-#include <onnx/onnx_pb.h>
+#include <compiler/onnx.h>
 
 #include <common/log.h>
 #include <compiler/graph.h>

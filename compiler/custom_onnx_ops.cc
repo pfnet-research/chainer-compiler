@@ -1,6 +1,6 @@
 #include "onnx/defs/schema.h"
 
-namespace onnx {
+namespace ONNX_NAMESPACE {
 
 ONNX_OPERATOR_SET_SCHEMA(
     OnikuxSoftmaxCrossEntropy,
@@ -35,12 +35,12 @@ class Custom_OpSet_Onnx_ver9 {
   }
 };
 
-}  // namespace onnx
+}  // namespace ONNX_NAMESPACE
 
 namespace oniku {
 
 void RegisterCustomOnnxOperatorSetSchema() {
-    onnx::RegisterOpSetSchema<onnx::Custom_OpSet_Onnx_ver9>();
+    ONNX_NAMESPACE::RegisterOpSetSchema<ONNX_NAMESPACE::Custom_OpSet_Onnx_ver9>();
 }
 
 }  // namespace oniku
