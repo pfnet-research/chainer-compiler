@@ -10,6 +10,7 @@
 #include <common/log.h>
 #include <compiler/gradient_ops.h>
 #include <compiler/graph.h>
+#include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
@@ -35,7 +36,7 @@ void SetInitialGradients(Graph* graph) {
     }
 }
 
-void ExposeParamGradsAsOutputs(Graph* graph, const std::set<Value*>& xs) {
+void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<Value*>& xs) {
     bool ok = true;
     for (Value* input : graph->input_values()) {
         if (!xs.count(input)) continue;
@@ -46,8 +47,8 @@ void ExposeParamGradsAsOutputs(Graph* graph, const std::set<Value*>& xs) {
             ok = false;
             continue;
         }
-        Value* out_grad = graph->AddOutputValue("grad_out@" + input->name(), input->type());
-        graph->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
+        Value* out_grad = dest_graph->AddOutputValue("grad_out@" + input->name(), input->type());
+        dest_graph->AddNode(Node::kIdentity, {input->grad()}, {out_grad});
     }
     if (!ok) {
         graph->DumpONNXOnFailure();
@@ -86,23 +87,50 @@ void FilterOutUnnecessaryNode(const std::vector<Value*>& xs, std::map<Node*, int
     }
 }
 
-}  // namespace
-
-void AddGradientNodesForTraining(Graph* graph) {
-    SetInitialGradients(graph);
-
+std::set<Value*> GetParamValues(Graph* graph) {
     std::set<Value*> xs;
     for (Value* value : graph->GetNecessaryValues(graph->output_values())) {
         if (!value->IsInput() || !value->initializer()) continue;
         CHECK(xs.emplace(value).second);
     }
-
-    AddGradientNodes(graph, graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), nullptr);
-
-    ExposeParamGradsAsOutputs(graph, xs);
+    return xs;
 }
 
-void AddGradientNodes(
+}  // namespace
+
+void AddGradientNodesForTraining(Graph* graph) {
+    SetInitialGradients(graph);
+
+    std::set<Value*> xs = GetParamValues(graph);
+    GenerateGradientNodes(graph, graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), nullptr);
+
+    ExposeParamGradsAsOutputs(graph, graph, xs);
+}
+
+void GenerateGradientNodes(Graph* graph, Graph* dest_graph) {
+    for (Value* value : graph->output_values()) {
+        Value* grad = dest_graph->AddInputValue("grad_in@" + value->name(), value->type());
+        value->set_grad(grad);
+    }
+
+    std::set<Value*> xs = GetParamValues(graph);
+    std::map<Value*, Value*> retained;
+    GenerateGradientNodes(graph, dest_graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), &retained);
+
+    for (const auto& p : retained) {
+        GraphBuilder gbs(graph, "retain", p.first);
+        GraphBuilder gbd(dest_graph, "retain", p.second);
+        const std::string& name = "retained_" + p.first->name();
+        Value* o = graph->AddOutputValue(name, p.first->type());
+        gbs.Op(Node::kIdentity, {p.first}, o);
+        Value* i = dest_graph->AddInputValue(name, p.second->type());
+        gbd.Op(Node::kIdentity, {i}, p.second);
+    }
+
+    ExposeParamGradsAsOutputs(graph, dest_graph, xs);
+}
+
+void GenerateGradientNodes(
         Graph* graph,
         Graph* dest_graph,
         const std::vector<Value*>& xs,

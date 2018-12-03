@@ -10,7 +10,11 @@ class Value;
 
 void AddGradientNodesForTraining(Graph* graph);
 
-void AddGradientNodes(
+void GenerateGradientNodes(
+        Graph* graph,
+        Graph* dest_graph);
+
+void GenerateGradientNodes(
         Graph* graph,
         Graph* dest_graph,
         const std::vector<Value*>& xs,

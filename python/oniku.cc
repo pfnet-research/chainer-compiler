@@ -13,6 +13,7 @@
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
+#include <compiler/subgraph_canonicalizer.h>
 #include <compiler/xcvm_emitter.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
@@ -65,12 +66,20 @@ std::vector<std::string> GetOutputNames(const std::shared_ptr<Graph>& graph) {
     return names;
 }
 
+std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackward(const std::shared_ptr<Graph>& graph) {
+    auto backprop = std::make_shared<Graph>(graph->name() + "_backprop");
+    GenerateBackpropGraph(graph.get(), backprop.get());
+    return std::make_pair(graph, backprop);
+}
+
 void InitGraph(py::module& m) {
     py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
     c.def("compile", &Compile, "Compile a model");
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("output_names", &GetOutputNames, "Names of outputs");
+    c.def("backward", &GenerateBackward,
+          "Generate a pair of graphs for forward and back propagation.");
 }
 
 // TODO(hamaji): Support Python sequence types as values of `inputs`.

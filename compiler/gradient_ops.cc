@@ -573,7 +573,7 @@ void LoopGradFn(GradientOpContext* gc) {
         }
 
         std::vector<Value*> input_values(body->input_values().begin() + 2, body->input_values().end());
-        AddGradientNodes(body, grad_graph.get(), input_values, ys, &retained);
+        GenerateGradientNodes(body, grad_graph.get(), input_values, ys, &retained);
 
         Value* output_cond = grad_graph->AddOutputValue(gb.GenName(), Type(Dtype::kBool, {}));
         gb.Const(Type(Dtype::kBool, {}), {1}, output_cond);
@@ -693,7 +693,7 @@ void IfGradFn(GradientOpContext* gc) {
                 ys[ci].push_back(y);
             }
 
-            AddGradientNodes(graph, grad_graphs[ci], graph->input_values(), ys[ci], &retained[ci]);
+            GenerateGradientNodes(graph, grad_graphs[ci], graph->input_values(), ys[ci], &retained[ci]);
         }
 
         for (size_t i = 0; i < xs.size() - 1; ++i) {

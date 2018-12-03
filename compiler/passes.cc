@@ -98,4 +98,13 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     Recursively(CollectGarbageNode, graph);
 }
 
+void GenerateBackpropGraph(Graph* graph, Graph* dest_graph) {
+    graph->InferShapes();
+    CanonicalizeSubGraphs(graph);
+    Recursively([](Graph* g) { Simplify(g, true); }, graph);
+    Recursively(PropagateConstants, graph);
+    Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+    GenerateGradientNodes(graph, dest_graph);
+}
+
 }  // namespace oniku
