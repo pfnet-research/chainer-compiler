@@ -61,7 +61,7 @@ set(ONNX_NAMESPACE "oniku_onnx")
 add_subdirectory(onnx)
 add_custom_target(onnx_files
   DEPENDS
-  ${CMAKE_CURRENT_BINARY_DIR}/onnx/onnx/onnx-ml.pb.h
+  ${CMAKE_CURRENT_BINARY_DIR}/onnx/onnx/onnx_oniku_onnx-ml.pb.h
   )
 # It seems `onnx` target compiles onnx*.pb.cc. As this will let other
 # files produce warnings, we suppress all warnings from ONNX by -w.
