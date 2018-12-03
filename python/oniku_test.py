@@ -32,6 +32,13 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
+# TODO(hamaji): Figure out why this is necessary.
+def _accuracy(y, t):
+    y = chainer.backend.from_chainerx(y.array)
+    result = chainer.functions.evaluation.accuracy.accuracy(y, t)
+    return result
+
+
 @pytest.mark.parametrize('device_name', ['native:0', 'cuda:0'])
 def test_run(device_name):
     batch_size = 3
@@ -64,11 +71,9 @@ def test_run(device_name):
     expected_loss, expected_grads = run_model(model)
 
     mlp_compiled = oniku.compile(mlp, [input])
-    model = L.Classifier(mlp_compiled)
+    model = L.Classifier(mlp_compiled, accfun=_accuracy)
     model.to_device(device)
 
-    # TODO(hamaji): Investigate why accuracy does not work.
-    model.compute_accuracy = False
     actual_loss, actual_grads = run_model(model)
 
     chainerx.testing.assert_allclose(expected_loss, actual_loss)
