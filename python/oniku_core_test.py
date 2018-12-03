@@ -1,11 +1,13 @@
 import os
 import sys
 
+import chainerx
+import chainerx.testing
+import numpy as np
+
 oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(oniku_root, 'build/python'))
 
-import chainerx
-import numpy as np
 import oniku_core as oniku
 
 
