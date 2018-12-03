@@ -24,5 +24,5 @@ def get_test_args(args=None):
 
 
 def dprint(*v):
-    if not get_test_args().quiet:
+    if _args_cache is not None and not get_test_args().quiet:
         print(*v)
