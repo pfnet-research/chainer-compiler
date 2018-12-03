@@ -1,4 +1,5 @@
 import os
+import pytest
 import sys
 
 import chainer
@@ -31,25 +32,29 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-def test_run():
+@pytest.mark.parametrize('device_name', ['native:0', 'cuda:0'])
+def test_run(device_name):
     batch_size = 3
     in_size = 5
     n_units = 4
     n_out = 10
 
-    mlp = MLP(n_units, n_out)
-    model = L.Classifier(mlp)
-    device = chainer.get_device('native')
-    model.to_device(device)
+    device = chainer.get_device(device_name)
     device.use()
 
+    mlp = MLP(n_units, n_out)
+    model = L.Classifier(mlp)
+    model.to_device(device)
+
     input = np.random.rand(batch_size, in_size).astype(np.float32)
+    input = chainerx.array(input, device=device_name)
     target = np.random.randint(n_out, size=batch_size)
+    target = chainerx.array(target, device=device_name)
 
     def run_model(model):
         model.cleargrads()
         loss = model(input, target)
-        loss.grad = chainerx.ones(loss.shape, loss.dtype)
+        loss.grad = chainerx.ones(loss.shape, loss.dtype, device=device_name)
         loss.backward()
         grads = []
         for name, param in sorted(model.namedparams()):
@@ -60,6 +65,8 @@ def test_run():
 
     mlp_compiled = oniku.compile(mlp, [input])
     model = L.Classifier(mlp_compiled)
+    model.to_device(device)
+
     # TODO(hamaji): Investigate why accuracy does not work.
     model.compute_accuracy = False
     actual_loss, actual_grads = run_model(model)

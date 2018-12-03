@@ -23,7 +23,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
     def forward(self, args):
         inputs = {}
         for name, value in zip(self.fwd_input_names, args):
-            inputs[name] = chainerx.array(value)
+            inputs[name] = chainer.backend.to_chainerx(value)
 
         outputs_and_retained = self.fwd.run(inputs)
         outputs = []
@@ -83,7 +83,7 @@ class CompiledModel(chainer.Chain):
             self.param_values.append(params[name])
 
     def forward(self, *args):
-        inputs = [chainer.Variable(a) for a in args]
+        inputs = list(args)
         outputs = RunCompiledModel(self).apply(inputs + self.param_values)
         outputs = outputs[:len(self.orig_output_names)]
         if len(outputs) == 1:
