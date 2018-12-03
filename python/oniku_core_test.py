@@ -7,6 +7,7 @@ import numpy as np
 
 oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(oniku_root, 'build/python'))
+sys.path.append(os.path.join(oniku_root, 'python'))
 
 import oniku_core as oniku
 
@@ -38,6 +39,8 @@ def test_inference():
 
     chainerx.testing.assert_allclose(y1, outputs[output_names[0]])
     chainerx.testing.assert_allclose(y2, outputs[output_names[1]])
+
+    assert 'op_type: "Gemm"' in graph.dump()
 
 
 def test_backprop():

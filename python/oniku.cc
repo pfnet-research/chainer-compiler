@@ -72,6 +72,10 @@ std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackward(const
     return std::make_pair(graph, backprop);
 }
 
+std::string Dump(const std::shared_ptr<Graph>& graph) {
+    return graph->DebugString();
+}
+
 void InitGraph(py::module& m) {
     py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
@@ -79,7 +83,8 @@ void InitGraph(py::module& m) {
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward,
-          "Generate a pair of graphs for forward and back propagation.");
+          "Generate a pair of graphs for forward and back propagation");
+    c.def("dump", &Dump, "Dump a model to a string");
 }
 
 // TODO(hamaji): Support Python sequence types as values of `inputs`.
