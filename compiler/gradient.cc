@@ -96,24 +96,12 @@ std::set<Value*> GetParamValues(Graph* graph) {
     return xs;
 }
 
-}  // namespace
-
-void AddGradientNodesForTraining(Graph* graph) {
-    SetInitialGradients(graph);
-
-    std::set<Value*> xs = GetParamValues(graph);
-    GenerateGradientNodes(graph, graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), nullptr);
-
-    ExposeParamGradsAsOutputs(graph, graph, xs);
-}
-
-void GenerateGradientNodes(Graph* graph, Graph* dest_graph) {
+void GenerateGradientNodesImpl(Graph* graph, Graph* dest_graph, const std::set<Value*>& xs) {
     for (Value* value : graph->output_values()) {
         Value* grad = dest_graph->AddInputValue("grad_in@" + value->name(), value->type());
         value->set_grad(grad);
     }
 
-    std::set<Value*> xs = GetParamValues(graph);
     std::map<Value*, Value*> retained;
     GenerateGradientNodes(graph, dest_graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), &retained);
 
@@ -128,6 +116,33 @@ void GenerateGradientNodes(Graph* graph, Graph* dest_graph) {
     }
 
     ExposeParamGradsAsOutputs(graph, dest_graph, xs);
+}
+
+}  // namespace
+
+void AddGradientNodesForTraining(Graph* graph) {
+    SetInitialGradients(graph);
+
+    std::set<Value*> xs = GetParamValues(graph);
+    GenerateGradientNodes(graph, graph, std::vector<Value*>(xs.begin(), xs.end()), graph->output_values(), nullptr);
+
+    ExposeParamGradsAsOutputs(graph, graph, xs);
+}
+
+void GenerateGradientNodes(Graph* graph, Graph* dest_graph) {
+    std::set<Value*> xs = GetParamValues(graph);
+    GenerateGradientNodesImpl(graph, dest_graph, xs);
+}
+
+void GenerateGradientNodesTo(Graph* graph, Graph* dest_graph, const std::vector<std::string>& param_names) {
+    std::set<std::string> param_name_set{param_names.begin(), param_names.end()};
+    std::set<Value*> xs;
+    for (Value* value : graph->GetNecessaryValues(graph->output_values())) {
+        if (!param_name_set.count(value->name())) continue;
+        CHECK(xs.emplace(value).second);
+    }
+    CHECK_EQ(param_name_set.size(), xs.size());
+    GenerateGradientNodesImpl(graph, dest_graph, xs);
 }
 
 void GenerateGradientNodes(

@@ -10,6 +10,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
@@ -68,7 +69,15 @@ std::vector<std::string> GetOutputNames(const std::shared_ptr<Graph>& graph) {
 
 std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackward(const std::shared_ptr<Graph>& graph) {
     auto backprop = std::make_shared<Graph>(graph->name() + "_backprop");
-    GenerateBackpropGraph(graph.get(), backprop.get());
+    RunDefaultPassesBeforeGradient(graph.get());
+    GenerateGradientNodes(graph.get(), backprop.get());
+    return std::make_pair(graph, backprop);
+}
+
+std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardTo(const std::shared_ptr<Graph>& graph, const std::vector<std::string>& param_names) {
+    auto backprop = std::make_shared<Graph>(graph->name() + "_backprop");
+    RunDefaultPassesBeforeGradient(graph.get());
+    GenerateGradientNodesTo(graph.get(), backprop.get(), param_names);
     return std::make_pair(graph, backprop);
 }
 
@@ -83,6 +92,8 @@ void InitGraph(py::module& m) {
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward,
+          "Generate a pair of graphs for forward and back propagation");
+    c.def("backward_to", &GenerateBackwardTo,
           "Generate a pair of graphs for forward and back propagation");
     c.def("dump", &Dump, "Dump a model to a string");
 }

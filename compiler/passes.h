@@ -14,6 +14,6 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop = false);
 
 void RunLoopBodyPasses(Node* loop, const std::vector<Node*>& refs);
 
-void GenerateBackpropGraph(Graph* graph, Graph* dest_graph);
+void RunDefaultPassesBeforeGradient(Graph* graph);
 
 }  // namespace oniku

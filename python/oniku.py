@@ -16,8 +16,8 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.fwd = compiled_model.fwd
         self.bwd = compiled_model.bwd
         self.params = compiled_model.params
-        self.retain_tuple = tuple(range(len(compiled_model.fwd_output_names) -
-                                        len(compiled_model.orig_output_names)))
+        self.retain_tuple = tuple(range(len(compiled_model.orig_output_names),
+                                        len(compiled_model.fwd_output_names)))
 
     def forward(self, *args):
         inputs = dict(self.params)
@@ -49,20 +49,22 @@ class CompiledModel(chainer.Chain):
         graph = oniku_core.load(f.name)
         os.unlink(f.name)
 
-        fwd_graph, bwd_graph = graph.backward()
-
         self.orig_output_names = graph.output_names()
-        self.fwd_input_names = graph.input_names()
-        self.fwd_output_names = fwd_graph.output_names()
-        self.fwd = fwd_graph.compile()
-        self.bwd = bwd_graph.compile()
         self.params = {}
         for name, param in model.namedparams():
             self.params[name] = param.array
 
+        fwd_graph, bwd_graph = graph.backward_to(list(self.params.keys()))
+
+        self.fwd_input_names = graph.input_names()
+        self.fwd_output_names = fwd_graph.output_names()
+        self.fwd = fwd_graph.compile()
+        self.bwd = bwd_graph.compile()
+
     def forward(self, *args):
         inputs = [chainer.Variable(chainerx.array(a)) for a in args]
         outputs = RunCompiledModel(self).apply(*inputs)
+        outputs = outputs[:len(self.orig_output_names)]
         if len(outputs) == 1:
             outputs = outputs[0]
         return outputs
