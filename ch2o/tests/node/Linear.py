@@ -20,6 +20,17 @@ class A(chainer.Chain):
         return (y1, y2)
 
 
+class B(chainer.Chain):
+
+    def __init__(self, n_out):
+        super(B, self).__init__()
+        with self.init_scope():
+            self.l1 = L.Linear(None, n_out)
+
+    def forward(self, x):
+        return self.l1(x)
+
+
 # ======================================
 
 import ch2o
@@ -28,8 +39,8 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    model = A(3)
+    x = np.random.rand(5, 7).astype(np.float32)
+    ch2o.generate_testcase(A(3), [x])
 
     x = np.random.rand(5, 7).astype(np.float32)
-    x = [x]
-    ch2o.generate_testcase(model, x)
+    ch2o.generate_testcase(B(3), [x], backprop=True)
