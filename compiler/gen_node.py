@@ -428,9 +428,8 @@ def gen_gen_node_base_h():
 #include <string>
 #include <vector>
 
-#include <onnx/onnx_pb.h>
-
 #include <compiler/dtype.h>
+#include <compiler/onnx.h>
 
 namespace oniku {
 
@@ -730,11 +729,10 @@ def gen_gen_node_base_cc():
 #include <string>
 #include <vector>
 
-#include <onnx/onnx_pb.h>
-
 #include <common/log.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
+#include <compiler/onnx.h>
 #include <compiler/tensor.h>
 
 namespace oniku {

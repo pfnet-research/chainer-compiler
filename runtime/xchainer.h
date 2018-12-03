@@ -3,8 +3,6 @@
 #include <map>
 #include <string>
 
-#include <compiler/onnx.h>
-
 #include <chainerx/array.h>
 
 namespace oniku {

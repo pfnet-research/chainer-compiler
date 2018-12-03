@@ -4,8 +4,6 @@
 #include <limits>
 #include <numeric>
 
-#include <compiler/onnx.h>
-
 #include <chainerx/array.h>
 #include <chainerx/context.h>
 #include <chainerx/native/native_backend.h>
