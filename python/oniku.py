@@ -1,6 +1,7 @@
 import chainer
 import chainerx
 import os
+import sys
 import tempfile
 
 import ch2o
@@ -68,12 +69,12 @@ class CompiledModel(chainer.Chain):
 
         fwd_graph, bwd_graph = graph.backward_to(graph.input_names())
         if dump_onnx:
-            print('=== vvv forward vvv ===\n',
-                  fwd_graph.dump(),
-                  '\n=== ^^^ forward ^^^ ===\n')
-            print('=== vvv backward vvv ===\n',
-                  bwd_graph.dump(),
-                  '\n=== ^^^ backward ^^^ ===\n')
+            sys.stderr.write('=== vvv forward vvv ===\n' +
+                             fwd_graph.dump() +
+                             '\n=== ^^^ forward ^^^ ===\n')
+            sys.stderr.write('=== vvv backward vvv ===\n' +
+                             bwd_graph.dump() +
+                             '\n=== ^^^ backward ^^^ ===\n')
 
         assert graph.input_names() == fwd_graph.input_names()
         self.fwd_input_names = fwd_graph.input_names()
