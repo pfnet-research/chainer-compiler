@@ -11,15 +11,6 @@ cd ${BASE_DIR}
 
 git submodule update --init
 
-if [ ! -e googletest ]; then
-    git clone https://github.com/google/googletest
-    (cd googletest && git checkout refs/tags/release-1.8.1)
-fi
-
-if [ ! -e googletest/googletest/libgtest.a ]; then
-    (cd googletest/googletest && cmake . && make)
-fi
-
 if [ ! -e data/mnist/model.onnx ]; then
     rm -rf data/mnist*
     (mkdir -p data && cd data && \

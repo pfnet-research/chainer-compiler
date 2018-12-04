@@ -133,7 +133,6 @@ if(${ONIKU_BUILD_CUDA})
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest)
 
 # gsl-lite
 # gsl-lite is a header-only library, we do not need to build and run tests
@@ -150,6 +149,16 @@ endif()
 # optional-lite
 get_third_party(optional-lite)
 include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
+
+# Test
+get_third_party(gtest)
+add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+    ${CMAKE_BINARY_DIR}/googletest-build
+    EXCLUDE_FROM_ALL)
+include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
+if(${CHAINERX_BUILD_TEST})
+    enable_testing()
+endif()
 
 add_custom_target(large_tests)
 
