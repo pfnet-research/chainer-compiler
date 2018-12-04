@@ -1105,7 +1105,9 @@ def compile_model(model, inputs):
         elif i is None:
             x = new_tensor()
         else:
-            if hasattr(i, 'shape'):
+            # N.B., `dot` is chosen not to create `Variable` for
+            # numpy's scalar types such as `np.int64`.
+            if hasattr(i, 'dot'):
                 # Convert all kinds of ndarrays to np.array.
                 i = chainer.Variable(i, requires_grad=False)
                 i.to_cpu()
