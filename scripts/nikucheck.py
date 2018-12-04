@@ -16,13 +16,13 @@ def main():
         sys.stderr.write('Usage: %s test.py\n' % sys.argv[0])
         sys.exit(1)
 
+    os.environ['PYTHONPATH'] = 'ch2o'
     py = sys.argv[1]
     tmpdir = 'out/ch2o_tmp'
 
     shutil.rmtree(tmpdir)
     os.makedirs(tmpdir)
-    subprocess.check_call([sys.executable, py, os.path.join(tmpdir, 'tmp')],
-                          env={'PYTHONPATH': 'ch2o'})
+    subprocess.check_call([sys.executable, py, os.path.join(tmpdir, 'tmp')])
 
     if os.path.exists('build/CMakeCache.txt'):
         build_dir = 'build'
