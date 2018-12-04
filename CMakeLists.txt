@@ -133,7 +133,6 @@ if(${ONIKU_BUILD_CUDA})
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/onnx)
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/googletest/googletest)
 
 # gsl-lite
