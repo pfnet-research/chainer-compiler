@@ -75,8 +75,6 @@ def main():
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
                         'negative integer, NumPy arrays are used')
-    parser.add_argument('--oniku', action='store_true',
-                        help='Compile the model')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
@@ -88,6 +86,10 @@ def main():
     group = parser.add_argument_group('deprecated arguments')
     group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--oniku', action='store_true',
+                        help='Compile the model')
+    parser.add_argument('--dump_onnx', action='store_true',
+                        help='Dump ONNX model after optimization')
     args = parser.parse_args()
 
     device = parse_device(args)
@@ -105,7 +107,7 @@ def main():
     if args.oniku:
         x = numpy.zeros((args.batchsize, 784), dtype=numpy.float32)
         mlp(x)
-        mlp = oniku.compile(mlp, [x])
+        mlp = oniku.compile(mlp, [x], dump_onnx=args.dump_onnx)
         model = L.Classifier(mlp, accfun=_accuracy)
     else:
         model = L.Classifier(mlp)
