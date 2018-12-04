@@ -1102,8 +1102,11 @@ def compile_model(model, inputs):
         # TODO(hamaji): Set valid type info.
         if isinstance(i, (list, tuple)):
             x = new_sequence()
-        else:
+        elif i is None:
             x = new_tensor()
+        else:
+            i = np.array(i)
+            x = new_tensor(dims=i.shape, dtype=i.dtype)
         input_tensors.append(x)
 
     input_values = [Value(i) for i in input_tensors]
