@@ -40,7 +40,7 @@ def gen_id(name, prefix):
     return r
 
 
-def new_tensor(dims=['Undefined'], dtype=None, name=None):
+def new_tensor(dims=None, dtype=None, name=None):
     if dtype is not None:
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
     else:
