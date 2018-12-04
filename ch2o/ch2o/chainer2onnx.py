@@ -1105,7 +1105,13 @@ def compile_model(model, inputs):
         elif i is None:
             x = new_tensor()
         else:
-            i = np.array(i)
+            if hasattr(i, 'shape'):
+                # Convert all kinds of ndarrays to np.array.
+                i = chainer.Variable(i, requires_grad=False)
+                i.to_cpu()
+                i = i.array
+            else:
+                i = np.array(i)
             x = new_tensor(dims=i.shape, dtype=i.dtype)
         input_tensors.append(x)
 
