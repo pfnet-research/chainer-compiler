@@ -56,7 +56,14 @@ class CompiledModel(chainer.Chain):
             for name in model._children:
                 setattr(self, name, model[name])
 
-        xmodel = ch2o.compile_model(model, inputs)
+        self.model = model
+        self.dump_onnx = dump_onnx
+        self.compiled = False
+        if inputs is not None:
+            self.compile(inputs)
+
+    def compile(self, inputs):
+        xmodel = ch2o.compile_model(self.model, inputs)
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(xmodel.SerializeToString())
         f.close()
@@ -68,7 +75,7 @@ class CompiledModel(chainer.Chain):
         self.orig_output_names = graph.output_names()
 
         fwd_graph, bwd_graph = graph.backward_to(graph.input_names())
-        if dump_onnx:
+        if self.dump_onnx:
             sys.stderr.write('=== vvv forward vvv ===\n' +
                              fwd_graph.dump() +
                              '\n=== ^^^ forward ^^^ ===\n')
@@ -84,13 +91,20 @@ class CompiledModel(chainer.Chain):
         self.fwd = fwd_graph.compile()
         self.bwd = bwd_graph.compile()
 
-        params = dict(model.namedparams())
+        params = dict(self.model.namedparams())
         self.param_values = []
         for name in self.fwd_input_names[len(inputs):]:
             assert name in params
             self.param_values.append(params[name])
 
+        self.compiled = True
+
     def forward(self, *args):
+        if not self.compiled:
+            outputs = self.model(*args)
+            self.compile(args)
+            return outputs
+
         inputs = list(args)
         outputs = RunCompiledModel(self).apply(inputs + self.param_values)
         outputs = outputs[:len(self.orig_output_names)]
@@ -99,5 +113,5 @@ class CompiledModel(chainer.Chain):
         return outputs
 
 
-def compile(model, inputs, **kwargs):
+def compile(model, inputs=None, **kwargs):
     return CompiledModel(model, inputs, **kwargs)

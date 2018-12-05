@@ -105,9 +105,7 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     mlp = MLP(args.unit, 10)
     if args.oniku:
-        x = numpy.zeros((args.batchsize, 784), dtype=numpy.float32)
-        mlp(x)
-        mlp = oniku.compile(mlp, [x], dump_onnx=args.dump_onnx)
+        mlp = oniku.compile(mlp, dump_onnx=args.dump_onnx)
         model = L.Classifier(mlp, accfun=_accuracy)
     else:
         model = L.Classifier(mlp)
