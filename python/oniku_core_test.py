@@ -40,7 +40,7 @@ def test_inference():
     chainerx.testing.assert_allclose(y1, outputs[output_names[0]])
     chainerx.testing.assert_allclose(y2, outputs[output_names[1]])
 
-    assert 'op_type: "Gemm"' in graph.dump()
+    assert 'op_type: "OnikuxLinear"' in graph.dump()
 
 
 def test_backprop():
