@@ -11,7 +11,8 @@ class TestCase(object):
     def __init__(self, dirname, name, rtol=None, fail=False,
                  skip_shape_inference=False,
                  want_gpu=False,
-                 prepare_func=None):
+                 prepare_func=None,
+                 backend=None):
         self.dirname = dirname
         self.name = name
         self.rtol = rtol
@@ -22,6 +23,7 @@ class TestCase(object):
         self.is_backprop = 'backprop' in name
         self.want_gpu = want_gpu
         self.prepare_func = prepare_func
+        self.backend = backend
 
         self.log_dirname = os.path.join(self.dirname, self.name)
         if not self.log_dirname.startswith('out'):

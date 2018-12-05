@@ -868,100 +868,107 @@ class TestCase(test_case.TestCase):
 
 
 def get_tests():
-    return [
-        TestCase('extra_test_negative_reshape', gen_negative_reshape_test),
+    tests = []
+    def test(name, func, diversed=False, **kwargs):
+        tests.append(TestCase(name, func, **kwargs))
+        if diversed:
+            tests.append(TestCase(name + '_diversed', func,
+                                  backend='xcvm_test', **kwargs))
 
-        TestCase('extra_test_inf_nan', gen_inf_nan_test),
+    test('extra_test_negative_reshape', gen_negative_reshape_test),
 
-        TestCase('extra_test_select_item', gen_select_item_test),
+    test('extra_test_inf_nan', gen_inf_nan_test),
 
-        TestCase('extra_test_if_true', gen_if_test(True)),
-        TestCase('extra_test_if_false', gen_if_test(False)),
-        TestCase('extra_test_if_with_input_true',
-                 gen_if_with_input_test(True)),
-        TestCase('extra_test_if_with_input_false',
-                 gen_if_with_input_test(False)),
-        TestCase('extra_test_if_with_external_true',
-                 gen_if_with_external_test(True)),
-        TestCase('extra_test_if_with_external_false',
-                 gen_if_with_external_test(False)),
+    test('extra_test_select_item', gen_select_item_test, diversed=True),
 
-        TestCase('extra_test_loop_basic', gen_loop_test()),
-        TestCase('extra_test_loop_max_trip_count',
-                 gen_loop_test(max_trip_count=4)),
-        TestCase('extra_test_loop_no_max_trip_count',
-                 gen_loop_test(max_trip_count=None)),
-        TestCase('extra_test_loop_false_cond',
-                 gen_loop_test(terminal_condition=False)),
-        TestCase('extra_test_loop_no_cond',
-                 gen_loop_test(terminal_condition=None)),
-        TestCase('extra_test_loop_scan_out',
-                 gen_loop_test(has_scan_outputs=True)),
-        TestCase('extra_test_loop_zero_max_trip_count',
-                 gen_loop_test(max_trip_count=0)),
-        TestCase('extra_test_loop_zero_trip_count',
-                 gen_loop_test(cond_trip_count=0)),
-        # TODO(hamaji): Probably, we do not care loops with zero
-        # iterations and scan outputs.
-        #
-        # TestCase('extra_test_loop_zero_max_trip_count_scan',
-        #          gen_loop_test(max_trip_count=0,
-        #                        has_scan_outputs=True)),
-        # TestCase('extra_test_loop_zero_trip_count_scan',
-        #          gen_loop_test(cond_trip_count=0,
-        #                        has_scan_outputs=True)),
+    test('extra_test_if_true', gen_if_test(True)),
+    test('extra_test_if_false', gen_if_test(False)),
+    test('extra_test_if_with_input_true',
+         gen_if_with_input_test(True)),
+    test('extra_test_if_with_input_false',
+         gen_if_with_input_test(False)),
+    test('extra_test_if_with_external_true',
+         gen_if_with_external_test(True)),
+    test('extra_test_if_with_external_false',
+         gen_if_with_external_test(False)),
 
-        TestCase('extra_test_loop_use_enclosing',
+    test('extra_test_loop_basic', gen_loop_test()),
+    test('extra_test_loop_max_trip_count',
+         gen_loop_test(max_trip_count=4)),
+    test('extra_test_loop_no_max_trip_count',
+         gen_loop_test(max_trip_count=None)),
+    test('extra_test_loop_false_cond',
+         gen_loop_test(terminal_condition=False)),
+    test('extra_test_loop_no_cond',
+         gen_loop_test(terminal_condition=None)),
+    test('extra_test_loop_scan_out',
+         gen_loop_test(has_scan_outputs=True)),
+    test('extra_test_loop_zero_max_trip_count',
+         gen_loop_test(max_trip_count=0)),
+    test('extra_test_loop_zero_trip_count',
+         gen_loop_test(cond_trip_count=0)),
+    # TODO(hamaji): Probably, we do not care loops with zero
+    # iterations and scan outputs.
+    #
+    # TestCase('extra_test_loop_zero_max_trip_count_scan',
+    #          gen_loop_test(max_trip_count=0,
+    #                        has_scan_outputs=True)),
+    # TestCase('extra_test_loop_zero_trip_count_scan',
+    #          gen_loop_test(cond_trip_count=0,
+    #                        has_scan_outputs=True)),
+
+    test('extra_test_loop_use_enclosing',
                  gen_loop_use_enclosing_test()),
 
-        TestCase('extra_backprop_test', gen_backprop_test),
+    test('extra_backprop_test', gen_backprop_test),
 
-        TestCase('extra_backprop_test_concat', gen_concat_backprop_test),
+    test('extra_backprop_test_concat', gen_concat_backprop_test),
 
-        TestCase('extra_backprop_test_loop_012',
-                 gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
-        TestCase('extra_backprop_test_loop_000',
-                 gen_loop_backprop_test(0, 0, 0, 1, 6, 1)),
-        TestCase('extra_backprop_test_need_stack_loop',
-                 gen_loop_backprop_need_stack_test()),
+    test('extra_backprop_test_loop_012',
+         gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
+    test('extra_backprop_test_loop_000',
+         gen_loop_backprop_test(0, 0, 0, 1, 6, 1)),
+    test('extra_backprop_test_need_stack_loop',
+         gen_loop_backprop_need_stack_test()),
 
-        TestCase('extra_test_scan_sum', gen_scan_sum_test, fail=True),
+    test('extra_test_scan_sum', gen_scan_sum_test, fail=True),
 
-        TestCase('extra_test_sequence', gen_sequence_test),
-        TestCase('extra_test_sequence_pad', gen_sequence_pad_test),
-        TestCase('extra_test_sequence_split', gen_sequence_split_test),
-        TestCase('extra_test_sequence_io', gen_sequence_io_test),
-        TestCase('extra_test_sequence_range', gen_sequence_range_test),
-        TestCase('extra_test_sequence_pop', gen_sequence_pop_test),
-        TestCase('extra_test_sequence_constants', gen_sequence_constants_test),
+    test('extra_test_sequence', gen_sequence_test),
+    test('extra_test_sequence_pad', gen_sequence_pad_test),
+    test('extra_test_sequence_split', gen_sequence_split_test),
+    test('extra_test_sequence_io', gen_sequence_io_test),
+    test('extra_test_sequence_range', gen_sequence_range_test),
+    test('extra_test_sequence_pop', gen_sequence_pop_test),
+    test('extra_test_sequence_constants', gen_sequence_constants_test),
 
-        TestCase('extra_test_sentiment_lstm',
-                 sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2),
-        TestCase('extra_test_sentiment_bilstm',
-                 sentiment.gen_rnn_sentiment_test('BiLSTM'),
-                 rtol=0.5),
-        TestCase('extra_test_sentiment_gru',
-                 sentiment.gen_rnn_sentiment_test('GRU'), rtol=0.4),
-        # TODO(hamaji): Investigate why there is a huge error.
-        TestCase('extra_test_sentiment_bigru',
-                 sentiment.gen_rnn_sentiment_test('BiGRU'), rtol=2.5),
+    test('extra_test_sentiment_lstm',
+         sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2),
+    test('extra_test_sentiment_bilstm',
+         sentiment.gen_rnn_sentiment_test('BiLSTM'),
+         rtol=0.5),
+    test('extra_test_sentiment_gru',
+         sentiment.gen_rnn_sentiment_test('GRU'), rtol=0.4),
+    # TODO(hamaji): Investigate why there is a huge error.
+    test('extra_test_sentiment_bigru',
+         sentiment.gen_rnn_sentiment_test('BiGRU'), rtol=2.5),
 
-        TestCase('extra_test_generic_len', gen_generic_len_test),
-        TestCase('extra_test_generic_getitem', gen_generic_getitem_test),
-        TestCase('extra_test_generic_getslice', gen_generic_getslice_test),
-        TestCase('extra_test_generic_add', gen_generic_add_test),
+    test('extra_test_generic_len', gen_generic_len_test),
+    test('extra_test_generic_getitem', gen_generic_getitem_test),
+    test('extra_test_generic_getslice', gen_generic_getslice_test),
+    test('extra_test_generic_add', gen_generic_add_test),
 
-        TestCase('extra_test_print', gen_print_test),
-        TestCase('extra_test_hello_world', gen_hello_world_test),
+    test('extra_test_print', gen_print_test),
+    test('extra_test_hello_world', gen_hello_world_test),
 
-        TestCase('extra_test_type_coersion', gen_type_coersion_test,
-                 skip_shape_inference=True),
-        TestCase('extra_test_incomplete_transpose',
-                 gen_incomplete_transpose_test,
-                 skip_shape_inference=True),
-        TestCase('extra_test_maxpool_cover_all', gen_maxpool_cover_all_test,
-                 skip_shape_inference=True),
-    ]
+    test('extra_test_type_coersion', gen_type_coersion_test,
+         skip_shape_inference=True),
+    test('extra_test_incomplete_transpose',
+         gen_incomplete_transpose_test,
+         skip_shape_inference=True),
+    test('extra_test_maxpool_cover_all', gen_maxpool_cover_all_test,
+         skip_shape_inference=True),
+
+    return tests
 
 
 def main():

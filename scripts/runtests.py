@@ -610,6 +610,9 @@ def main():
             test_case.args.append('--skip_inference')
         if test_case.is_backprop:
             test_case.args.append('--backprop')
+        if test_case.backend is not None:
+            test_case.args.append('--backend')
+            test_case.args.append(test_case.backend)
         if args.verbose:
             test_case.args.append('--verbose')
         if test_case.want_gpu or args.use_gpu_all:
