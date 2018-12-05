@@ -15,7 +15,7 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
-#include <compiler/xcvm_emitter.h>
+#include <compiler/xcvm/emitter.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>

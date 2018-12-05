@@ -14,7 +14,7 @@
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
-#include <compiler/xcvm_emitter.h>
+#include <compiler/xcvm/emitter.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_state.h>

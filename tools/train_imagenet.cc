@@ -20,7 +20,7 @@
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
-#include <compiler/xcvm_emitter.h>
+#include <compiler/xcvm/emitter.h>
 #include <feeder/imagenet_iterator.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
