@@ -17,7 +17,7 @@ import gast
 
 class Link_Linear(Callable):
     def __init__(self, ch):
-        super(Link_Linear, self).__init__(L.Linear(None))
+        super(Link_Linear, self).__init__(lambda x, n_batch_axes=1: x)
 
         if ch.b is None:
             self.n_out = 'output_size'
@@ -39,7 +39,7 @@ class Link_Linear(Callable):
             self.b = helper.make_tensor_value_info(
                 '/b', TensorProto.FLOAT, [self.n_out])
 
-    def call_impl(self, env, x):
+    def call_impl(self, env, x, n_batch_axes):
         x = x.to_tensor(env)
         res = new_tensor([self.n_out])
 
@@ -50,7 +50,8 @@ class Link_Linear(Callable):
                 inputs.append(self.b.name)
             return env.calc(
                 "OnikuxLinear",
-                inputs=inputs
+                inputs=inputs,
+                n_batch_axes=n_batch_axes.to_int()
             )
 
         x_shape = env.calc("Shape", inputs=[x.name])
