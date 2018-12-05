@@ -6,6 +6,7 @@ import numpy as np
 import onnx
 
 import oniku_script
+import test_case
 
 import sentiment
 
@@ -860,14 +861,10 @@ def gen_maxpool_cover_all_test(test_name):
     gb.gen_test()
 
 
-class TestCase(object):
-    def __init__(self, name, func, rtol=None, fail=False,
-                 skip_shape_inference=False):
-        self.name = name
+class TestCase(test_case.TestCase):
+    def __init__(self, name, func, **kwargs):
+        super(TestCase, self).__init__('out', name, **kwargs)
         self.func = func
-        self.rtol = rtol
-        self.fail = fail
-        self.skip_shape_inference = skip_shape_inference
 
 
 def get_tests():
