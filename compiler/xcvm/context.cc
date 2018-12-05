@@ -75,8 +75,6 @@ public:
         CHECK(op_set_.emplace(Node::kOnikuxPrint).second);
         CHECK(op_set_.emplace(Node::kOnikuxReduceSumTo).second);
         CHECK(op_set_.emplace(Node::kOnikuxReluGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSelectItem).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSelectItemGrad).second);
         CHECK(op_set_.emplace(Node::kOnikuxSequenceAppend).second);
         CHECK(op_set_.emplace(Node::kOnikuxSequenceConcat).second);
         CHECK(op_set_.emplace(Node::kOnikuxSequenceConstants).second);
@@ -118,9 +116,11 @@ public:
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
 
-        if (diversed) {
-            CHECK(op_set_.erase(Node::kOnikuxSelectItem));
-            CHECK(op_set_.erase(Node::kOnikuxSelectItemGrad));
+        if (!diversed) {
+            // TODO(hamaji): Implement Linear natively.
+            // CHECK(op_set_.emplace(Node::kOnikuxLinear).second);
+            CHECK(op_set_.emplace(Node::kOnikuxSelectItem).second);
+            CHECK(op_set_.emplace(Node::kOnikuxSelectItemGrad).second);
         }
     }
 

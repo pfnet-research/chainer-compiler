@@ -8,24 +8,31 @@ def makedirs(d):
 
 class TestCase(object):
 
-    def __init__(self, dirname, name, rtol=None, fail=False,
+    def __init__(self, basedir=None, name=None, test_dir=None,
+                 rtol=None, fail=False,
                  skip_shape_inference=False,
                  want_gpu=False,
                  prepare_func=None,
                  backend=None):
-        self.dirname = dirname
+        assert name is not None
         self.name = name
+        if basedir is None:
+            assert test_dir is not None
+            self.test_dir = test_dir
+        else:
+            assert test_dir is None
+            self.test_dir = os.path.join(basedir, self.name)
+
         self.rtol = rtol
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
-        self.test_dir = os.path.join(self.dirname, self.name)
         self.args = None
         self.is_backprop = 'backprop' in name
         self.want_gpu = want_gpu
         self.prepare_func = prepare_func
         self.backend = backend
 
-        self.log_dirname = os.path.join(self.dirname, self.name)
+        self.log_dirname = self.test_dir
         if not self.log_dirname.startswith('out'):
             self.log_dirname = os.path.join('out', name)
             makedirs(self.log_dirname)

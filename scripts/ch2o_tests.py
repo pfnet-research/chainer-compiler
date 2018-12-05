@@ -89,6 +89,10 @@ def get():
         'node_SwapAxes',
     ]
 
+    diversed_whitelist = [
+        'node_Linear'
+    ]
+
     for category, names in [('model', MODEL_TESTS),
                             ('node', NODE_TESTS),
                             ('syntax', SYNTAX_TESTS)]:
@@ -100,9 +104,22 @@ def get():
                     kwargs['skip_shape_inference'] = True
                     break
 
+            diversed = False
+            for substr in diversed_whitelist:
+                if substr in test_name:
+                    diversed = True
+                    break
+
             test_dirs = glob.glob('out/%s' % test_name)
             test_dirs += glob.glob('out/%s_*' % test_name)
             for d in test_dirs:
-                tests.append(TestCase('out', os.path.basename(d), **kwargs))
+                name = os.path.basename(d)
+                test_dir = os.path.join('out', name)
+                tests.append(TestCase(name=name, test_dir=test_dir, **kwargs))
+                if diversed:
+                    tests.append(TestCase(name=name + '_diversed',
+                                          test_dir=test_dir,
+                                          backend='xcvm_test',
+                                          **kwargs))
 
     return tests

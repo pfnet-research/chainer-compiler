@@ -500,7 +500,7 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
                                skip_shape_inference=skip_shape_inference))
 
 for test in gen_extra_test.get_tests():
-    assert os.path.exists(os.path.join(test.dirname, test.name))
+    assert os.path.exists(test.test_dir)
     TEST_CASES.append(test)
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
