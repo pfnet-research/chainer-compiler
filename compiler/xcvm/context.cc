@@ -12,6 +12,8 @@ namespace {
 class XCVMCompilerContext : public CompilerContext {
 public:
     explicit XCVMCompilerContext(bool diversed) {
+        name_ = diversed ? "xcvm_test" : "xcvm";
+
         CHECK(op_set_.emplace(Node::kAbs).second);
         CHECK(op_set_.emplace(Node::kAdd).second);
         CHECK(op_set_.emplace(Node::kArgMax).second);
@@ -115,15 +117,25 @@ public:
         CHECK(op_set_.emplace(Node::kTanh).second);
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
+
+        if (diversed) {
+            CHECK(op_set_.erase(Node::kOnikuxSelectItem));
+            CHECK(op_set_.erase(Node::kOnikuxSelectItemGrad));
+        }
     }
 
     virtual ~XCVMCompilerContext() = default;
 
-    virtual bool HasOp(Node::OpType op) {
+    virtual bool HasOp(Node::OpType op) const {
         return op_set_.count(op);
     }
 
+    virtual std::string name() const {
+        return name_;
+    }
+
 protected:
+    std::string name_;
     std::set<Node::OpType> op_set_;
 };
 

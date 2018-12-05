@@ -27,6 +27,12 @@ void CollectGarbageNode(Graph* graph) {
     graph->DeleteDetached();
 }
 
+void CheckAllOpsSupported(const CompilerContext& cctx, Graph* graph) {
+    for (Node* node : graph->nodes()) {
+        CHECK(cctx.HasOp(node->op_type())) << "Op not supported by backend (" << cctx.name() << ")\n" << node->DebugString();
+    }
+}
+
 template <class Fn>
 void Recursively(Fn fn, Graph* graph) {
     fn(graph);
@@ -99,6 +105,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 
     Recursively(CollectGarbageNode, graph);
+
+    Recursively([&cctx](Graph* g) { CheckAllOpsSupported(*cctx, g); }, graph);
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
@@ -108,6 +116,7 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     Recursively([&cctx](Graph* g) { Simplify(*cctx, g, true); }, graph);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+    Recursively([&cctx](Graph* g) { CheckAllOpsSupported(*cctx, g); }, graph);
 }
 
 }  // namespace oniku

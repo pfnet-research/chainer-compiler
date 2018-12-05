@@ -568,8 +568,7 @@ void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
 
-    bool is_for_ngraph = false;
-    if (is_for_ngraph) {
+    if (!cctx.HasOp(Node::kOnikuxSelectItem)) {
         CHECK(simplifiers.emplace(Node::kOnikuxSelectItem, ReplaceSelectItem).second);
     }
 

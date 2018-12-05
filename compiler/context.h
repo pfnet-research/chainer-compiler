@@ -11,7 +11,9 @@ class CompilerContext {
 public:
     virtual ~CompilerContext() = default;
 
-    virtual bool HasOp(Node::OpType op) = 0;
+    virtual bool HasOp(Node::OpType op) const = 0;
+
+    virtual std::string name() const = 0;
 
 protected:
     CompilerContext() = default;
