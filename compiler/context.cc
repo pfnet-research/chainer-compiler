@@ -6,7 +6,7 @@
 namespace oniku {
 
 std::unique_ptr<CompilerContext> GetCompilerContext(const std::string& backend_name) {
-    if (backend_name == "xcvm") {
+    if (backend_name == "xcvm" || backend_name.empty()) {
         return xcvm::GetCompilerContext();
     } else if (backend_name == "xcvm_test") {
         return xcvm::GetCompilerContext(true /* diversed */);
