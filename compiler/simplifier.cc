@@ -541,6 +541,30 @@ bool ReplaceSelectItem(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceLinear(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyLinear", node->outputs()[0]);
+    Value* x = node->inputs()[0];
+    Value* x_shape = gb.Op(Node::kShape, {x});
+    Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
+    Value* batch_size = gb.Op(Node::kGather, {x_shape, zero});
+    batch_size = gb.Op(Node::kUnsqueeze, {batch_size});
+    batch_size->producer()->set_axes({0});
+    Value* neg_one = gb.Const(Type(Dtype::kInt64, {1}), {-1});
+    Value* mat_shape = gb.Op(Node::kConcat, {batch_size, neg_one});
+    mat_shape->producer()->set_axis(0);
+    x = gb.Op(Node::kReshape, {x, mat_shape});
+
+    Value* w = node->inputs()[1];
+    if (node->inputs().size() == 2) {
+        Value* wt = gb.Op(Node::kTranspose, {w});
+        gb.Op(Node::kMatMul, {x, wt}, node->outputs()[0]);
+    } else {
+        gb.Op(Node::kGemm, {x, w, node->inputs()[2]}, node->outputs()[0])
+            ->producer()->set_trans_a(false)->set_trans_b(true);
+    }
+    return true;
+}
+
 }  // namespace
 
 void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop) {
@@ -568,9 +592,14 @@ void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
 
-    if (!cctx.HasOp(Node::kOnikuxSelectItem)) {
-        CHECK(simplifiers.emplace(Node::kOnikuxSelectItem, ReplaceSelectItem).second);
-    }
+    auto replace_if_not_supported = [&cctx, &simplifiers](Node::OpType op, SimplifierFn fn) {
+        if (!cctx.HasOp(op)) {
+            CHECK(simplifiers.emplace(op, fn).second) << op;
+        }
+    };
+
+    replace_if_not_supported(Node::kOnikuxLinear, ReplaceLinear);
+    replace_if_not_supported(Node::kOnikuxSelectItem, ReplaceSelectItem);
 
     // These passes are workarounds for backends such as Chainer which
     // do not support pooling with imbalanced padding.

@@ -178,6 +178,7 @@ NodeDef('Loop', None, None, body=Graph, onikux_stack_axis=0)
 # TODO(hamaji): Fix Scan to handle the new semantics.
 # NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
+NodeDef('OnikuxLinear', (2, 3), 1)
 NodeDef('OnikuxReluGrad', 2, 1)
 NodeDef('OnikuxReduceSumTo', 2, 1)
 NodeDef('OnikuxMaxPoolGrad', 2, 1)

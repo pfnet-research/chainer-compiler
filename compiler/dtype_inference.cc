@@ -133,7 +133,8 @@ void InferDtype(Node* node) {
         case Node::kMin:
         case Node::kConcat:
         case Node::kMatMul:
-        case Node::kGemm: {
+        case Node::kGemm:
+        case Node::kOnikuxLinear: {
             set(0, coerce());
             break;
         }

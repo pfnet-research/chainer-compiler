@@ -43,6 +43,16 @@ class Link_Linear(Callable):
         x = x.to_tensor(env)
         res = new_tensor([self.n_out])
 
+        use_onikux_linear = True
+        if use_onikux_linear:
+            inputs = [x.name, self.W.name]
+            if not self.nobias:
+                inputs.append(self.b.name)
+            return env.calc(
+                "OnikuxLinear",
+                inputs=inputs
+            )
+
         x_shape = env.calc("Shape", inputs=[x.name])
         batch_size = env.calc("Gather",
                               inputs=[x_shape.name,
