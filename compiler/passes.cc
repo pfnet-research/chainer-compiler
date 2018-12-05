@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <compiler/constant_propagation.h>
+#include <compiler/context.h>
 #include <compiler/flags.h>
 #include <compiler/fusion.h>
 #include <compiler/gradient.h>
@@ -43,6 +44,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 }
 
 void RunDefaultPasses(Graph* graph, bool gen_backprop) {
+    std::unique_ptr<CompilerContext> cctx{GetCompilerContext(g_backend_name)};
+
     InferAllDtypeAndShape(graph);
 
     auto dump_onnx = [&graph](bool cond, const char* msg) {
@@ -58,7 +61,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     CanonicalizeSubGraphs(graph);
 
-    Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
+    Recursively([&cctx, gen_backprop](Graph* g) { Simplify(*cctx, g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
 
@@ -71,7 +74,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     // TODO(hamaji): Make it possible to infer shapes here.
     // if (!g_skip_inference) graph->InferShapes();
 
-    Recursively([gen_backprop](Graph* g) { Simplify(g, gen_backprop); }, graph);
+    Recursively([&cctx, gen_backprop](Graph* g) { Simplify(*cctx, g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
 
@@ -99,9 +102,10 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
+    std::unique_ptr<CompilerContext> cctx{GetCompilerContext(g_backend_name)};
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively([](Graph* g) { Simplify(g, true); }, graph);
+    Recursively([&cctx](Graph* g) { Simplify(*cctx, g, true); }, graph);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 }

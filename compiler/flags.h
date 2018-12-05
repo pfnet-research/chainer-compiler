@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace oniku {
 
 // Enables logging.
@@ -30,6 +32,9 @@ extern bool g_fuse_operations;
 
 // Use NVRTC to execute fused operations.
 extern bool g_use_nvrtc;
+
+// The name of backend.
+extern std::string g_backend_name;
 
 // Dumps the ONNX graph at a specific timing.
 extern bool g_dump_after_inference;

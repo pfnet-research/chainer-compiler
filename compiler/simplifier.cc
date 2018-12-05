@@ -4,6 +4,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/context.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -542,7 +543,7 @@ bool ReplaceSelectItem(Graph* graph, Node* node) {
 
 }  // namespace
 
-void Simplify(Graph* graph, bool gen_backprop) {
+void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);

@@ -18,6 +18,8 @@ bool g_fuse_operations;
 
 bool g_use_nvrtc;
 
+std::string g_backend_name;
+
 bool g_dump_after_inference;
 bool g_dump_after_simplification;
 bool g_dump_after_gradient;

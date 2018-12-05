@@ -2,8 +2,9 @@
 
 namespace oniku {
 
+class CompilerContext;
 class Graph;
 
-void Simplify(Graph* graph, bool gen_backprop);
+void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop);
 
 }  // namespace oniku

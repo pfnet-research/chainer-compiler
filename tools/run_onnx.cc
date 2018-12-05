@@ -223,6 +223,7 @@ void RunMain(int argc, char** argv) {
 
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
+    args.add<std::string>("backend", '\0', "The name of the backend", false, "xcvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "xChainer device to be used", false);
@@ -245,6 +246,7 @@ void RunMain(int argc, char** argv) {
     args.parse_check(argc, argv);
     ApplyCompilerFlags(args);
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
+    g_backend_name = args.get<std::string>("backend");
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
