@@ -13,10 +13,10 @@ chainerx::Array LinearOp::RunImpl(XCVMState* st, const chainerx::Array& x, const
 }
 
 chainerx::Array LinearGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
-    CHECK_EQ(2, gy.ndim());
-    const int batch_size = gy.shape()[0];
-    chainerx::Array xm = x.Reshape({batch_size, -1});
-    return chainerx::Dot(chainerx::Transpose(gy), xm);
+    chainerx::Array gym = gy.Reshape({-1, gy.shape().back()});
+    const int64_t batch_size = gym.shape()[0];
+    chainerx::Array xm = x.Reshape({batch_size, x.GetTotalSize() / batch_size});
+    return chainerx::Dot(chainerx::Transpose(gym), xm);
 }
 
 chainerx::Array ConvOp::RunImpl(
