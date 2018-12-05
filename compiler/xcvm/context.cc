@@ -117,8 +117,8 @@ public:
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
 
         if (!diversed) {
-            // TODO(hamaji): Implement Linear natively.
-            // CHECK(op_set_.emplace(Node::kOnikuxLinear).second);
+            CHECK(op_set_.emplace(Node::kOnikuxLinear).second);
+            CHECK(op_set_.emplace(Node::kOnikuxLinearGradWeight).second);
             CHECK(op_set_.emplace(Node::kOnikuxSelectItem).second);
             CHECK(op_set_.emplace(Node::kOnikuxSelectItemGrad).second);
         }

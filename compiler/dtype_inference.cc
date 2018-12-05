@@ -134,7 +134,8 @@ void InferDtype(Node* node) {
         case Node::kConcat:
         case Node::kMatMul:
         case Node::kGemm:
-        case Node::kOnikuxLinear: {
+        case Node::kOnikuxLinear:
+        case Node::kOnikuxLinearGradWeight: {
             set(0, coerce());
             break;
         }

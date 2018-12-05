@@ -258,6 +258,10 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
             EMIT(Elu, out(0), in(0), node.alpha());
+        } else if (node.op_type() == Node::kOnikuxLinear) {
+            EMIT(Linear, out(0), in(0), in(1), oin(2), node.n_batch_axes());
+        } else if (node.op_type() == Node::kOnikuxLinearGradWeight) {
+            EMIT(LinearGradWeight, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kConv) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());

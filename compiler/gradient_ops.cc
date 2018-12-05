@@ -471,6 +471,31 @@ void LRNGradFn(GradientOpContext* gc) {
             ->set_size(node->size());
 }
 
+void LinearGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    const Node* node = gc->node();
+    Value* gy = gc->gy(0);
+
+    {
+        GraphBuilder gb{gc->builder(0)};
+        Value* gx = gb.Op(Node::kMatMul, {gy, gc->x(1)});
+        Value* shape = gb.Op(Node::kShape, {gc->x(0)});
+        gc->GradOp(Node::kReshape, 0, {gx, shape});
+    }
+
+    {
+        GraphBuilder gb{gc->builder(1)};
+        gc->GradOp(Node::kOnikuxLinearGradWeight, 1, {gc->x(0), gy});
+    }
+
+    if (node->inputs().size() == 3) {
+        std::vector<int64_t> batch_axes;
+        for (int i = 0; i < node->n_batch_axes(); ++i) batch_axes.push_back(i);
+        gc->GradOp(Node::kReduceSum, 2, {gy})
+            ->producer()->set_axes(batch_axes)->set_keepdims(false);
+    }
+}
+
 void LSTMGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
@@ -903,6 +928,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kBatchNormalization, &BatchNormalizationGradFn);
         register_grad_fn(Node::kLRN, &LRNGradFn);
 
+        register_grad_fn(Node::kOnikuxLinear, &LinearGradFn);
         register_grad_fn(Node::kLSTM, &LSTMGradFn);
 
         // TODO(hamaji): Implement dropout.

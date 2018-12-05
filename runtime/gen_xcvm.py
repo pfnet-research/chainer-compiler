@@ -177,6 +177,12 @@ XC_OPS = [
      ['reduced']),
     ('ReduceSumTo', [Array('data'), Array('shape')], ['reduced']),
     ('ReduceMean', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
+
+    ('Linear',
+     [Array('x'), Array('w'), OptionalArray('b'), Int('n_batch_axes')],
+     ['y']),
+    ('LinearGradWeight', [Array('x'), Array('gy')], ['gw']),
+
     ('Conv',
      [Array('x'), Array('w'), OptionalArray('b'),
       Ints('strides'), Ints('pads')], ['y']),
@@ -189,6 +195,7 @@ XC_OPS = [
     ('ConvGradWeight',
      [Array('w'), Array('x'), Array('gy'), Ints('strides'), Ints('pads')],
      ['y']),
+
     ('Relu', [Array('x')], ['y']),
     ('ReluGrad', [Array('x'), Array('gy')], ['gx']),
     ('Selu', [Array('x'), Float('alpha'), Float('gamma')], ['y']),
