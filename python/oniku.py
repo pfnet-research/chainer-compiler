@@ -1,5 +1,4 @@
 import chainer
-import chainerx
 import os
 import sys
 import tempfile

@@ -83,6 +83,7 @@ def test_run(device_name):
 
     assert len(expected_grads) == len(actual_grads)
 
-    for (e_name, e_grad), (a_name, a_grad) in zip(expected_grads, actual_grads):
+    for (e_name, e_grad), (a_name, a_grad) in zip(
+            expected_grads, actual_grads):
         assert e_name == a_name
         chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-5)
