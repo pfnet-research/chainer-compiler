@@ -148,6 +148,7 @@ void InitXCVMVar(py::module& m) {
     c.def("is_sequence", &IsSequence, "Check if the XCVMVar is a sequence");
     c.def("array", &GetArray, "Get an array from a XCVMVar");
     c.def("sequence", &GetSequence, "Get a array from a XCVMVar");
+    c.def("__str__", [](const VarPtr& v) { return "var(" + v->DebugString() + ")"; });
 }
 
 VarPtr CreateValueFromArray(ArrayBodyPtr a) {
