@@ -116,11 +116,13 @@ public:
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
 
-        if (!diversed) {
-            CHECK(op_set_.emplace(Node::kOnikuxLinear).second);
-            CHECK(op_set_.emplace(Node::kOnikuxLinearGradWeight).second);
+        if (diversed) {
+            // SelectItem seemed to be slow on GPU.
             CHECK(op_set_.emplace(Node::kOnikuxSelectItem).second);
             CHECK(op_set_.emplace(Node::kOnikuxSelectItemGrad).second);
+        } else {
+            CHECK(op_set_.emplace(Node::kOnikuxLinear).second);
+            CHECK(op_set_.emplace(Node::kOnikuxLinearGradWeight).second);
         }
     }
 
