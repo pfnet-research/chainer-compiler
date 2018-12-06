@@ -146,11 +146,7 @@ void GenerateGradientNodesTo(Graph* graph, Graph* dest_graph, const std::vector<
 }
 
 void GenerateGradientNodes(
-        Graph* graph,
-        Graph* dest_graph,
-        const std::vector<Value*>& xs,
-        const std::vector<Value*>& ys,
-        std::map<Value*, Value*>* retained) {
+        Graph* graph, Graph* dest_graph, const std::vector<Value*>& xs, const std::vector<Value*>& ys, std::map<Value*, Value*>* retained) {
     std::vector<Node*> necessary_nodes;
     std::map<Node*, int> node_set = graph->GetNecessaryNodesAndInputCounts(ys);
     FilterOutUnnecessaryNode(xs, &node_set);

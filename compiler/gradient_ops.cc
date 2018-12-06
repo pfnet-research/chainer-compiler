@@ -326,10 +326,18 @@ void GemmGradFn(GradientOpContext* gc) {
         GraphBuilder gb{gc->builder(0)};
         if (node->trans_a()) {
             gc->GradOp(Node::kGemm, 0, {gc->x(1), gy, gc->x(0)})
-                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(node->trans_b())->set_trans_b(true);
+                    ->producer()
+                    ->set_alpha(node->alpha())
+                    ->set_beta(0)
+                    ->set_trans_a(node->trans_b())
+                    ->set_trans_b(true);
         } else {
             gc->GradOp(Node::kGemm, 0, {gy, gc->x(1), gc->x(0)})
-                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(false)->set_trans_b(!node->trans_b());
+                    ->producer()
+                    ->set_alpha(node->alpha())
+                    ->set_beta(0)
+                    ->set_trans_a(false)
+                    ->set_trans_b(!node->trans_b());
         }
     }
 
@@ -337,10 +345,18 @@ void GemmGradFn(GradientOpContext* gc) {
         GraphBuilder gb{gc->builder(1)};
         if (node->trans_b()) {
             gc->GradOp(Node::kGemm, 1, {gy, gc->x(0), gc->x(1)})
-                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(true)->set_trans_b(node->trans_a());
+                    ->producer()
+                    ->set_alpha(node->alpha())
+                    ->set_beta(0)
+                    ->set_trans_a(true)
+                    ->set_trans_b(node->trans_a());
         } else {
             gc->GradOp(Node::kGemm, 1, {gc->x(0), gy, gc->x(1)})
-                ->producer()->set_alpha(node->alpha())->set_beta(0)->set_trans_a(!node->trans_a())->set_trans_b(false);
+                    ->producer()
+                    ->set_alpha(node->alpha())
+                    ->set_beta(0)
+                    ->set_trans_a(!node->trans_a())
+                    ->set_trans_b(false);
         }
     }
 
@@ -491,8 +507,7 @@ void LinearGradFn(GradientOpContext* gc) {
     if (node->inputs().size() == 3) {
         std::vector<int64_t> batch_axes;
         for (int i = 0; i < node->n_batch_axes(); ++i) batch_axes.push_back(i);
-        gc->GradOp(Node::kReduceSum, 2, {gy})
-            ->producer()->set_axes(batch_axes)->set_keepdims(false);
+        gc->GradOp(Node::kReduceSum, 2, {gy})->producer()->set_axes(batch_axes)->set_keepdims(false);
     }
 }
 

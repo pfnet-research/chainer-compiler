@@ -7,6 +7,7 @@ import chainer.functions as F
 import chainer.links as L
 import chainerx.testing
 import numpy as np
+import cupy
 
 oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(oniku_root, 'ch2o'))
@@ -39,8 +40,10 @@ def _accuracy(y, t):
     return result
 
 
-@pytest.mark.parametrize('device_name', ['native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_run(device_name):
+    np.random.seed(40)
+
     batch_size = 3
     in_size = 5
     n_units = 4
@@ -54,19 +57,19 @@ def test_run(device_name):
     model.to_device(device)
 
     input = np.random.rand(batch_size, in_size).astype(np.float32)
-    input = chainerx.array(input, device=device_name)
-    target = np.random.randint(n_out, size=batch_size)
-    target = chainerx.array(target, device=device_name)
+    input = device.xp.array(input)
+    target = device.xp.array(np.random.randint(n_out, size=batch_size))
 
     def run_model(model):
         model.cleargrads()
         loss = model(input, target)
-        loss.grad = chainerx.ones(loss.shape, loss.dtype, device=device_name)
+        loss.grad = device.xp.ones(loss.shape, loss.dtype)
         loss.backward()
         grads = []
         for name, param in sorted(model.namedparams()):
-            grads.append((name, param.grad))
-        return loss.array, grads
+            grads.append((name, chainer.backend.to_chainerx(param.grad)))
+        loss = chainer.backend.to_chainerx(loss.array)
+        return loss, grads
 
     expected_loss, expected_grads = run_model(model)
 
@@ -82,4 +85,4 @@ def test_run(device_name):
 
     for (e_name, e_grad), (a_name, a_grad) in zip(expected_grads, actual_grads):
         assert e_name == a_name
-        chainerx.testing.assert_allclose(e_grad, a_grad)
+        chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-5)

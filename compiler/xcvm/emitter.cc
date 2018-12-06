@@ -692,11 +692,7 @@ private:
 
 #undef EMIT
 
-    void EmitGraph(
-            const Graph& graph,
-            XCProgramProto* prog,
-            bool in_loop,
-            const std::vector<Value*>& output_values) {
+    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values) {
         std::map<const Value*, int> num_users;
         if (!in_loop) {
             for (const Value* value : graph.input_values()) {

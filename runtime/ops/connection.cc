@@ -8,7 +8,8 @@
 namespace oniku {
 namespace runtime {
 
-chainerx::Array LinearOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& w, const nonstd::optional<chainerx::Array>& b) {
+chainerx::Array LinearOp::RunImpl(
+        XCVMState* st, const chainerx::Array& x, const chainerx::Array& w, const nonstd::optional<chainerx::Array>& b) {
     return chainerx::Linear(x, w, b, n_batch_axes);
 }
 
