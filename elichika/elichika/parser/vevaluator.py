@@ -232,17 +232,71 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
     graph.add_node(node_aug_assign)
 
 def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    """
+    eval binary operation.
+    Ex. a + b, b // c, etc
+    """
     assert(isinstance(astc.nast, gast.gast.BinOp))
 
     left = veval_ast(astc.c(astc.nast.left), local_field, graph)
     right = veval_ast(astc.c(astc.nast.right), local_field, graph)
-    node_bin_op = nodes.NodeBinOp(left.get_value(), right.get_value(), astc.lineno)
 
-    ret_value = values.Value()
+    binop = nodes.BinOpType.Unknown
+    if isinstance(astc.nast.op, gast.Add):
+        binop = nodes.BinOpType.Add
+    if isinstance(astc.nast.op, gast.Sub):
+        binop = nodes.BinOpType.Sub
+
+    node_bin_op = nodes.NodeBinOp(left.get_value(), right.get_value(), binop, astc.lineno)
+
+    ret_value = functions.generateValueWithSameType(left.get_value())
+
+    # TODO fixme
+    if ret_value is None:
+        ret_value = values.Value()
+
     node_bin_op.set_outputs([ret_value])
     graph.add_node(node_bin_op)
 
     return ret_value
+
+
+def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    """
+    eval Compare.
+    Ex. a >= b, a != b, a is b, etc
+    """
+    assert(isinstance(astc.nast, gast.gast.Compare))
+
+    left = veval_ast(astc.c(astc.nast.left), local_field, graph)
+    right = veval_ast(astc.c(astc.nast.comparators[0]), local_field, graph)
+
+    compare = nodes.CompareType.unknown
+    if isinstance(astc.nast.ops[0], gast.Eq):
+        compare = nodes.CompareType.Eq
+    if isinstance(astc.nast.ops[0], gast.NotEq):
+        compare = nodes.CompareType.NotEq
+    if isinstance(astc.nast.ops[0], gast.Is):
+        compare = nodes.CompareType.Is
+    if isinstance(astc.nast.ops[0], gast.IsNot):
+        compare = nodes.CompareType.IsNot
+    if isinstance(astc.nast.ops[0], gast.Gt):
+        compare = nodes.CompareType.Gt
+    if isinstance(astc.nast.ops[0], gast.GtE):
+        compare = nodes.CompareType.GtE
+    if isinstance(astc.nast.ops[0], gast.Lt):
+        compare = nodes.CompareType.Lt
+    if isinstance(astc.nast.ops[0], gast.LtE):
+        compare = nodes.CompareType.LtE
+
+    node_compare = nodes.NodeCompare(left.get_value(), right.get_value(), compare, astc.lineno)
+
+    ret_value = values.BoolValue(None)
+    node_compare.set_outputs([ret_value])
+    graph.add_node(node_compare)
+
+    return ret_value
+
 
 def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.Num))
@@ -337,6 +391,10 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     elif isinstance(astc.nast, gast.gast.BinOp):
         ret = veval_ast_bin_op(astc, local_field, graph)
+        return ret
+
+    elif isinstance(astc.nast, gast.gast.Compare):
+        ret = veval_ast_compare(astc, local_field, graph)
         return ret
 
     elif isinstance(astc.nast, gast.gast.Return):

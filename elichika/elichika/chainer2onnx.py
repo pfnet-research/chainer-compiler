@@ -270,6 +270,53 @@ class ONNXGenerator:
                     tensor = onnx_graph.new_empty_tensor_with_value(output)
                     self.onnx_tensors[output.onnx_name] = tensor
 
+            if isinstance(node, nodes.NodeBinOp):
+                node_ = node # type: nodes.NodeBinOp
+                binops = {}
+                binops[nodes.BinOpType.Add] = 'Add'
+                binops[nodes.BinOpType.Sub] = 'Sub'
+                binops[nodes.BinOpType.Unknown] = 'Add'
+                
+                onnx_node = oh.make_node(binops[node_.binop], [node_.left.onnx_name, node_.right.onnx_name], [node.outputs[0].onnx_name])
+                onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeCompare):
+                node_ = node # type: nodes.NodeCompare
+
+                op_str = None
+                op_not = False
+
+                if node_.compare == nodes.CompareType.Eq:
+                    op_str = 'Equal'
+                if node_.compare == nodes.CompareType.NotEq:
+                    op_str = 'Equal'
+                    op_not = True
+                if node_.compare == nodes.CompareType.Gt:
+                    op_str = 'Greater'
+                if node_.compare == nodes.CompareType.GtE:
+                    op_str = 'Less'
+                    op_not = True
+                if node_.compare == nodes.CompareType.Lt:
+                    op_str = 'Less'
+                if node_.compare == nodes.CompareType.LtE:
+                    op_str = 'Greater'
+                    op_not = True
+                if node_.compare == nodes.CompareType.Is:
+                    op_str = 'OnikuxGenericIs'
+                if node_.compare == nodes.CompareType.IsNot:
+                    op_str = 'OnikuxGenericIs'
+                    op_not = True
+
+                if op_not:
+                    op_not_temp = onnx_graph.new_empty_tensor(['TODO'], np.bool, node.outputs[0].onnx_name + '/NotTemp')
+                    onnx_node1 = oh.make_node(op_str, [node_.left.onnx_name, node_.right.onnx_name], [op_not_temp.name])
+                    onnx_node2 = oh.make_node('Not', [op_not_temp.name], [node.outputs[0].onnx_name])
+                    onnx_graph.nodes.append(onnx_node1)
+                    onnx_graph.nodes.append(onnx_node2)
+                else:
+                    onnx_node = oh.make_node(op_str, [node_.left.onnx_name, node_.right.onnx_name], [node.outputs[0].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
+
             if isinstance(node, nodes.NodeCall):
 
                 if isinstance(node.func, functions_builtin.ReluFunction):

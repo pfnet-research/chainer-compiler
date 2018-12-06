@@ -3,12 +3,29 @@ import chainer.functions as F
 import chainer.links as L
 import inspect
 import ast, gast
+from enum import Enum
 
 from elichika.parser import core
 from elichika.parser import nodes
 from elichika.parser import values
 from elichika.parser import functions
 from elichika.parser import utils
+
+class BinOpType(Enum):
+    Add = 0,
+    Sub = 1,
+    Unknown = 255,
+
+class CompareType(Enum):
+    Eq = 0,
+    NotEq = 1,
+    Gt = 2,
+    GtE = 3,
+    Lt = 4,
+    LtE = 5,
+    Is = 6,
+    IsNot = 7,
+    unknown = 255,
 
 class Node:
     def __init__(self, line):
@@ -56,16 +73,30 @@ class NodeAugAssign(Node):
         return 'AugAssign({})'.format(self.lineprop)
 
 class NodeBinOp(Node):
-    def __init__(self, left : 'values.Value', right : 'values.Value', line = -1):
+    def __init__(self, left : 'values.Value', right : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
         self.left = left 
         self.right = right
+        self.binop = binop
 
         self.inputs.append(left)
         self.inputs.append(right)
 
     def __str__(self):
-        return 'BinOp({})'.format(self.lineprop)
+        return 'BinOp({},{})'.format(self.lineprop, self.binop)
+
+class NodeCompare(Node):
+    def __init__(self, left : 'values.Value', right : 'values.Value', compare : 'CompareType', line = -1):
+        super().__init__(line)
+        self.left = left 
+        self.right = right
+        self.compare = compare
+
+        self.inputs.append(left)
+        self.inputs.append(right)
+
+    def __str__(self):
+        return 'Compare({},{})'.format(self.lineprop, self.compare)
 
 class NodeCall(Node):
     def __init__(self, func : 'Function', args, line = -1):

@@ -64,6 +64,11 @@ class Conv(chainer.Chain):
         y1 = self.l1(x)
         return y1
 
+class IsNot(chainer.Chain):
+    def forward(self, x, y):
+        return x is not y
+
+
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
         print(node)
@@ -82,14 +87,14 @@ if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
     #resnet50 = chainer.links.ResNet50Layers()
-    m = Conv()
-    export(m, [np.zeros((2, 20, 15, 17))], 'result/Conv')
+    m = IsNot()
+    export(m, [[42],[42]], 'result/Conv')
 
     #onnx_model = elichika.compile_model(m, [np.zeros((10))])
     #elichika.save_model('result/MLP_model.onnx', onnx_model.model)
     #elichika.save_model_as_text('result/MLP_model.txt', onnx_model.model)
     
-    all = True
+    all = False
     if all:
         m = SimpleFunc()
         export(m, [], 'result/SimpleFunc')
