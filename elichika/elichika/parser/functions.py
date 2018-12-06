@@ -71,7 +71,7 @@ class FunctionBase():
         for k, v in sig.parameters.items():
             fa = FunctionArg()
             fa.name = v.name
-            fa.value = core.parse_instance(None, v.default)
+            fa.value = core.parse_instance(None, v.name, v.default)
             self.funcArgs.append(fa)
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):

@@ -251,10 +251,13 @@ class FuncValue(Value):
 class ListValue(Value):
     def __init__(self):
         super().__init__()
-        self.attributes = Field(None, None)
+        self.attributes = Field(None, None)        
 
     def get_field(self) -> 'Field':
         return self.attributes
+
+    def __str__(self):
+        return self.name + '(L)'
 
 class DictValue(Value):
     def __init__(self):
@@ -263,6 +266,9 @@ class DictValue(Value):
 
     def get_field(self) -> 'Field':
         return self.attributes
+
+    def __str__(self):
+        return self.name + '(D)'
 
 class TensorValue(Value):
     def __init__(self):

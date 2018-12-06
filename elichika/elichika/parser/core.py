@@ -2,8 +2,8 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import inspect
-import ast, gast
 import weakref
+from elichika.parser import config
 from elichika.parser import nodes
 from elichika.parser import vevaluator
 from elichika.parser import values
@@ -15,7 +15,7 @@ from elichika.parser.graphs import Graph
 import numpy as np
 
 
-def parse_instance(default_module, instance):
+def parse_instance(default_module, name, instance):
 
     if values_builtin.is_builtin_chainer_link(instance):
         return values_builtin.ChainerLinkInstance(default_module, instance)
@@ -31,8 +31,13 @@ def parse_instance(default_module, instance):
         return values.StrValue(instance)
 
     if isinstance(instance, list):
-        # TODO correct
-        return values.ListValue()
+        ret = values.ListValue()
+        ind = 0
+        for e in instance:
+            element_value = parse_instance(default_module, '', e)
+            ret.get_field().get_attribute(str(ind)).revise(element_value)
+            ind += 1
+        return ret
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
@@ -47,14 +52,18 @@ def parse_instance(default_module, instance):
         tensorValue.shape = instance.shape
         return tensorValue
 
+    if instance is None:
+        return values.NoneValue()
+
     if not isinstance(instance, chainer.Link):
-        # unsupported
+        if config.show_warnings:
+            print('Warning unsupported format is found : {}, {}'.format(name, instance))
         return values.NoneValue()
 
     model_inst = values.UserDefinedInstance(default_module, instance)
 
     for attr_k, attr_v in instance.__dict__.items():
-        attr_inst = parse_instance(default_module, attr_v)
+        attr_inst = parse_instance(default_module, attr_k, attr_v)
         model_inst.get_field().get_attribute(attr_k).revise(attr_inst)
 
     return model_inst
@@ -75,14 +84,14 @@ def convert_model(model : 'chainer.Chain', args = []):
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     default_module.get_attribute('range').revise(m_range)
 
-    model_inst = parse_instance(default_module, model)
+    model_inst = parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_func('forward')
 
     # convert args
     value_args = []
     function_args = []
     for arg in args:
-        varg = parse_instance(default_module, arg)
+        varg = parse_instance(default_module, '', arg)
         farg = functions.FunctionArg()
         farg.value = varg
         value_args.append(varg)
