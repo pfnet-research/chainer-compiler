@@ -22,6 +22,8 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
                                         len(compiled_model.fwd_output_names)))
 
     def forward(self, args):
+        device = chainer.backend.get_device_from_array(*args)
+
         inputs = {}
         for name, value in zip(self.fwd_input_names, args):
             inputs[name] = chainer.backend.to_chainerx(value)
@@ -29,22 +31,29 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         outputs_and_retained = self.fwd.run(inputs)
         outputs = []
         for name in self.fwd_output_names:
-            outputs.append(outputs_and_retained[name])
+            output = outputs_and_retained[name]
+            outputs.append(device.send(output))
 
         self.retain_outputs(self.retain_tuple)
         return tuple(outputs)
 
     def backward(self, indexes, gys):
+        gys = gys[:len(self.orig_output_names)]
+        device = chainer.backend.get_device_from_array(gys[0].array)
+
+        values = gys + self.get_retained_outputs()
+        values = [chainer.backend.to_chainerx(v.array) for v in values]
+
         inputs = {}
-        values = gys[:len(self.orig_output_names)] + self.get_retained_outputs()
         assert len(self.bwd_input_names) == len(values)
         for name, value in zip(self.bwd_input_names, values):
-            inputs[name] = value.array
+            inputs[name] = value
 
         outputs = self.bwd.run(inputs)
         gxs = []
         for name in self.bwd_output_names:
-            gxs.append(chainer.Variable(outputs[name]))
+            gx = device.send(outputs[name])
+            gxs.append(chainer.Variable(gx))
         return tuple(gxs)
 
 
