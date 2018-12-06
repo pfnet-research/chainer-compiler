@@ -122,8 +122,32 @@ void InitXCVM(py::module& m) {
     c.def("run", &Run, "Run the model");
 }
 
+bool IsArray(const VarPtr& v) {
+    return v->kind() == runtime::XCVMVar::Kind::kArray;
+}
+
+bool IsSequence(const VarPtr& v) {
+    return v->kind() == runtime::XCVMVar::Kind::kSequence;
+}
+
+ArrayBodyPtr GetArray(const VarPtr& v) {
+    return chainerx::internal::GetArrayBody(v->GetArray());
+}
+
+std::vector<VarPtr> GetSequence(const VarPtr& v) {
+    std::vector<VarPtr> out;
+    for (const runtime::XCVMVar& var : *v->GetSequence()) {
+        out.emplace_back(std::make_shared<runtime::XCVMVar>(var));
+    }
+    return out;
+}
+
 void InitXCVMVar(py::module& m) {
     py::class_<runtime::XCVMVar, VarPtr> c{m, "XCVMVar"};
+    c.def("is_array", &IsArray, "Check if the XCVMVar is an array");
+    c.def("is_sequence", &IsSequence, "Check if the XCVMVar is a sequence");
+    c.def("array", &GetArray, "Get an array from a XCVMVar");
+    c.def("sequence", &GetSequence, "Get a array from a XCVMVar");
 }
 
 VarPtr CreateValueFromArray(ArrayBodyPtr a) {
