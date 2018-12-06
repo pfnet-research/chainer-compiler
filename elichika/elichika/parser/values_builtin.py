@@ -29,6 +29,9 @@ class ChainerLinkFunction(functions.FunctionBase):
             if isinstance(args[0].value, values.TensorValue) and len(args[0].value.shape) >= 2:
                 value.shape = (args[0].value.shape[0], cn.out_size)
 
+        if(isinstance(self.owner.inst, chainer.links.Convolution2D)):
+            value = functions.generate_tensor_value_with_undefined_shape_size(args[0].value)
+            
         node.set_outputs([value])
         return value
 

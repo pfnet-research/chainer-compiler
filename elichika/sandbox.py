@@ -52,6 +52,18 @@ class SimpleFunc(chainer.Chain):
     def get_value(self):
         return 1.0, 2.0
 
+class Conv(chainer.Chain):
+
+    def __init__(self):
+        super(Conv, self).__init__()
+        with self.init_scope():
+            # TODO Add more tests
+            self.l1 = L.Convolution2D(None, 6, (5, 7), stride=(2, 3))
+
+    def forward(self, x):
+        y1 = self.l1(x)
+        return y1
+
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
         print(node)
@@ -70,12 +82,12 @@ if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
     #resnet50 = chainer.links.ResNet50Layers()
-    m = MultiLayerPerceptron(10, 10, 10)
-    export(m, [np.zeros((10))], 'result/MLP')
+    m = Conv()
+    export(m, [np.zeros((2, 20, 15, 17))], 'result/Conv')
 
-    onnx_model = elichika.compile_model(m, [np.zeros((10))])
-    elichika.save_model('result/MLP_model.onnx', onnx_model.model)
-    elichika.save_model_as_text('result/MLP_model.txt', onnx_model.model)
+    #onnx_model = elichika.compile_model(m, [np.zeros((10))])
+    #elichika.save_model('result/MLP_model.onnx', onnx_model.model)
+    #elichika.save_model_as_text('result/MLP_model.txt', onnx_model.model)
     
     all = True
     if all:

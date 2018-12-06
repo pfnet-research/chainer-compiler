@@ -13,6 +13,12 @@ import elichika.parser.functions_builtin as functions_builtin
 import elichika.parser.values_builtin as values_builtin
 
 import numpy as np
+import collections
+
+def size2d(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return (x, x)
 
 assigned_names = []
 
@@ -147,15 +153,27 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
     chainer_inst = node.func.owner.inst # type: chainer.links.Convolution2D
     onnx_name = node.onnx_name
 
+    ksize = size2d(chainer_inst.ksize)
+    stride = size2d(chainer_inst.stride)
+    ps = size2d(chainer_inst.pad)
+    pads = ps + ps
+
     x = onnx_graph.tensors[node.inputs[0].onnx_name]
     o = onnx_graph.tensors[node.outputs[0].onnx_name]
     w = onnx_graph.new_tensor_with_np(chainer_inst.W.data, onnx_name + '/W')
-    
+    b = None
+
+    if chainer_inst.b is not None:
+        b = onnx_graph.new_tensor_with_np(chainer_inst.b.data, onnx_name + '/b')
+
     onnx_graph.add_node(
         'Conv', 
-        [x.name, w.name], 
+        [x.name, w.name] + ([] if b is None else [b.name]), 
         [o.name],
-        str(node.lineprop))
+        str(node.lineprop),
+        kernel_shape=ksize,
+        pads=pads,
+        strides=stride)
 
 
 class ONNXInitrializer:

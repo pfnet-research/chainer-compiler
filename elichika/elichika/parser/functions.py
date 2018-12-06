@@ -13,6 +13,13 @@ from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser import core
 
+def generate_tensor_value_with_undefined_shape_size(value : 'values.TensorValue'):
+    assert(isinstance(value, values.TensorValue))
+    ret = values.TensorValue()
+    ret.shape = tuple([-1 for v in value.shape])
+    return ret
+    
+
 def generateValueWithSameType(value : 'values.Value'):
     if isinstance(value, values.TensorValue):
         ret = values.TensorValue()
