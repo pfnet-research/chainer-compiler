@@ -7,6 +7,14 @@ import ch2o
 import oniku_core
 
 
+def _to_var(v):
+    return oniku_core.value(chainer.backend.to_chainerx(v))
+
+
+def _from_var(v, device):
+    return device.send(v.array())
+
+
 class RunCompiledModel(chainer.function_node.FunctionNode):
 
     def __init__(self, compiled_model):
@@ -25,13 +33,13 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
 
         inputs = {}
         for name, value in zip(self.fwd_input_names, args):
-            inputs[name] = chainer.backend.to_chainerx(value)
+            inputs[name] = _to_var(value)
 
         outputs_and_retained = self.fwd.run(inputs)
         outputs = []
         for name in self.fwd_output_names:
             output = outputs_and_retained[name]
-            outputs.append(device.send(output))
+            outputs.append(_from_var(output, device))
 
         self.retain_outputs(self.retain_tuple)
         return tuple(outputs)
@@ -41,7 +49,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         device = chainer.backend.get_device_from_array(gys[0].array)
 
         values = gys + self.get_retained_outputs()
-        values = [chainer.backend.to_chainerx(v.array) for v in values]
+        values = [_to_var(v.array) for v in values]
 
         inputs = {}
         assert len(self.bwd_input_names) == len(values)
@@ -51,7 +59,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         outputs = self.bwd.run(inputs)
         gxs = []
         for name in self.bwd_output_names:
-            gx = device.send(outputs[name])
+            gx = _from_var(outputs[name], device)
             gxs.append(chainer.Variable(gx))
         return tuple(gxs)
 

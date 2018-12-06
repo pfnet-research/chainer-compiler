@@ -29,16 +29,16 @@ def test_inference():
 
     inputs = dict(params)
     t1 = aranges(5, 7)
-    inputs[input_names[0]] = t1
+    inputs[input_names[0]] = oniku.value(t1)
 
-    y1 = chainerx.dot(t1, params['/l1/W'].T) + params['/l1/b']
-    y2 = chainerx.dot(t1, params['/l2/W'].T)
+    y1 = chainerx.dot(t1, params['/l1/W'].array().T) + params['/l1/b'].array()
+    y2 = chainerx.dot(t1, params['/l2/W'].array().T)
 
     outputs = xcvm.run(inputs)
     assert len(outputs) == 2
 
-    chainerx.testing.assert_allclose(y1, outputs[output_names[0]])
-    chainerx.testing.assert_allclose(y2, outputs[output_names[1]])
+    chainerx.testing.assert_allclose(y1, outputs[output_names[0]].array())
+    chainerx.testing.assert_allclose(y2, outputs[output_names[1]].array())
 
     assert 'op_type: "OnikuxLinear"' in graph.dump()
 
@@ -62,14 +62,16 @@ def test_backprop():
 
     fwd_inputs = dict(params)
     t1 = aranges(5, 7)
-    fwd_inputs[input_names[0]] = t1
+    fwd_inputs[input_names[0]] = oniku.value(t1)
 
-    loss = chainerx.dot(t1, params['/l1/W'].T) + params['/l1/b']
+    loss = (chainerx.dot(t1, params['/l1/W'].array().T) +
+            params['/l1/b'].array())
 
     fwd_outputs = fwd.run(fwd_inputs)
     assert len(fwd_outputs) == 3
 
-    chainerx.testing.assert_allclose(loss, fwd_outputs[output_names[0]])
+    chainerx.testing.assert_allclose(
+        loss, fwd_outputs[output_names[0]].array())
 
     grad_loss = aranges(*loss.shape) + 4.2
 
@@ -79,12 +81,14 @@ def test_backprop():
         value = fwd_outputs[name]
         if name in output_names:
             iname = 'grad_in@' + name
-            value = grad_loss
+            value = oniku.value(grad_loss)
         bwd_inputs[iname] = value
 
     bwd_outputs = bwd.run(bwd_inputs)
 
     grad_w = chainerx.dot(grad_loss.T, t1)
-    chainerx.testing.assert_allclose(grad_w, bwd_outputs['grad_out@/l1/W'])
+    chainerx.testing.assert_allclose(
+        grad_w, bwd_outputs['grad_out@/l1/W'].array())
     grad_b = chainerx.sum(grad_loss, axis=0)
-    chainerx.testing.assert_allclose(grad_b, bwd_outputs['grad_out@/l1/b'])
+    chainerx.testing.assert_allclose(
+        grad_b, bwd_outputs['grad_out@/l1/b'].array())

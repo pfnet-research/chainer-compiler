@@ -34,11 +34,11 @@ std::shared_ptr<Graph> LoadGraph(const std::string& onnx_path) {
     return std::make_shared<Graph>(xmodel.graph());
 }
 
-std::map<std::string, ArrayBodyPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
-    std::map<std::string, ArrayBodyPtr> params;
+std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
+    std::map<std::string, VarPtr> params;
     for (auto& p : runtime::LoadParams(*graph)) {
         chainerx::Array array = p.second->GetArray();
-        CHECK(params.emplace(p.first, chainerx::internal::MoveArrayBody(std::move(array))).second);
+        CHECK(params.emplace(p.first, std::make_shared<runtime::XCVMVar>(array)).second);
     }
     return params;
 }
@@ -98,22 +98,10 @@ void InitGraph(py::module& m) {
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
-// TODO(hamaji): Support Python sequence types as values of `inputs`.
 // TODO(hamaji): Take XCVM options as an argument.
-std::map<std::string, ArrayBodyPtr> Run(const std::shared_ptr<runtime::XCVM>& xcvm, const std::map<std::string, ArrayBodyPtr>& inputs) {
-    runtime::InOuts input_vars;
-    for (const auto& p : inputs) {
-        input_vars.emplace(p.first, std::make_shared<runtime::XCVMVar>(chainerx::Array(p.second)));
-    }
-
+std::map<std::string, VarPtr> Run(const std::shared_ptr<runtime::XCVM>& xcvm, const std::map<std::string, VarPtr>& inputs) {
     runtime::XCVMOptions xcvm_opts;
-    runtime::InOuts output_vars(xcvm->Run(input_vars, xcvm_opts));
-
-    std::map<std::string, ArrayBodyPtr> outputs;
-    for (const auto& p : output_vars) {
-        chainerx::Array array = p.second->GetArray();
-        outputs.emplace(p.first, chainerx::internal::MoveArrayBody(std::move(array)));
-    }
+    runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
     return outputs;
 }
 
