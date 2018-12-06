@@ -17,6 +17,12 @@ sys.path.append(os.path.join(oniku_root, 'build/python'))
 import oniku
 
 
+def test_flatten():
+    e = [np.array(x) for x in [0, 1, 2, 3, 4]]
+    i = [e[0], [e[1]], [(e[2], [e[3], e[4]])]]
+    assert e == oniku._flatten(i)
+
+
 class MLP(chainer.Chain):
 
     def __init__(self, n_units, n_out):

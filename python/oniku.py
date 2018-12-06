@@ -7,6 +7,20 @@ import ch2o
 import oniku_core
 
 
+def _is_array(v):
+    return hasattr(v, 'dot')
+
+
+def _flatten(xs):
+    o = []
+    for x in xs:
+        if _is_array(x):
+            o.append(x)
+        else:
+            o.extend(_flatten(x))
+    return o
+
+
 def _to_var(v):
     return oniku_core.value(chainer.backend.to_chainerx(v))
 
