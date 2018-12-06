@@ -559,8 +559,7 @@ bool ReplaceLinear(Graph* graph, Node* node) {
         Value* wt = gb.Op(Node::kTranspose, {w});
         gb.Op(Node::kMatMul, {x, wt}, node->outputs()[0]);
     } else {
-        gb.Op(Node::kGemm, {x, w, node->inputs()[2]}, node->outputs()[0])
-            ->producer()->set_trans_a(false)->set_trans_b(true);
+        gb.Op(Node::kGemm, {x, w, node->inputs()[2]}, node->outputs()[0])->producer()->set_trans_a(false)->set_trans_b(true);
     }
     return true;
 }
