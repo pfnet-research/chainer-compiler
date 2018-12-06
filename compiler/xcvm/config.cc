@@ -1,17 +1,17 @@
-#include <compiler/xcvm/context.h>
+#include <compiler/xcvm/config.h>
 
 #include <set>
 
 #include <common/log.h>
-#include <compiler/context.h>
+#include <compiler/config.h>
 
 namespace oniku {
 namespace xcvm {
 namespace {
 
-class XCVMCompilerContext : public CompilerContext {
+class XCVMCompilerConfig : public CompilerConfig {
 public:
-    explicit XCVMCompilerContext(bool diversed) {
+    explicit XCVMCompilerConfig(bool diversed) {
         name_ = diversed ? "xcvm_test" : "xcvm";
 
         CHECK(op_set_.emplace(Node::kAbs).second);
@@ -126,7 +126,7 @@ public:
         }
     }
 
-    virtual ~XCVMCompilerContext() = default;
+    virtual ~XCVMCompilerConfig() = default;
 
     virtual bool HasOp(Node::OpType op) const {
         return op_set_.count(op);
@@ -143,8 +143,8 @@ protected:
 
 }  // namespace
 
-std::unique_ptr<CompilerContext> GetCompilerContext(bool diversed) {
-    return std::unique_ptr<CompilerContext>(new XCVMCompilerContext(diversed));
+std::unique_ptr<CompilerConfig> GetCompilerConfig(bool diversed) {
+    return std::unique_ptr<CompilerConfig>(new XCVMCompilerConfig(diversed));
 }
 
 }  // namespace xcvm

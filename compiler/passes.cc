@@ -3,8 +3,8 @@
 #include <map>
 #include <memory>
 
+#include <compiler/config.h>
 #include <compiler/constant_propagation.h>
-#include <compiler/context.h>
 #include <compiler/flags.h>
 #include <compiler/fusion.h>
 #include <compiler/gradient.h>
@@ -27,9 +27,9 @@ void CollectGarbageNode(Graph* graph) {
     graph->DeleteDetached();
 }
 
-void CheckAllOpsSupported(const CompilerContext& cctx, Graph* graph) {
+void CheckAllOpsSupported(const CompilerConfig& ccfg, Graph* graph) {
     for (Node* node : graph->nodes()) {
-        CHECK(cctx.HasOp(node->op_type())) << "Op not supported by backend (" << cctx.name() << ")\n" << node->DebugString();
+        CHECK(ccfg.HasOp(node->op_type())) << "Op not supported by backend (" << ccfg.name() << ")\n" << node->DebugString();
     }
 }
 
@@ -50,7 +50,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 }
 
 void RunDefaultPasses(Graph* graph, bool gen_backprop) {
-    std::unique_ptr<CompilerContext> cctx{GetCompilerContext(g_backend_name)};
+    std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
 
     InferAllDtypeAndShape(graph);
 
@@ -67,7 +67,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     CanonicalizeSubGraphs(graph);
 
-    Recursively([&cctx, gen_backprop](Graph* g) { Simplify(*cctx, g, gen_backprop); }, graph);
+    Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
 
@@ -80,7 +80,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     // TODO(hamaji): Make it possible to infer shapes here.
     // if (!g_skip_inference) graph->InferShapes();
 
-    Recursively([&cctx, gen_backprop](Graph* g) { Simplify(*cctx, g, gen_backprop); }, graph);
+    Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
 
@@ -106,17 +106,17 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     Recursively(CollectGarbageNode, graph);
 
-    Recursively([&cctx](Graph* g) { CheckAllOpsSupported(*cctx, g); }, graph);
+    Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
-    std::unique_ptr<CompilerContext> cctx{GetCompilerContext(g_backend_name)};
+    std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively([&cctx](Graph* g) { Simplify(*cctx, g, true); }, graph);
+    Recursively([&ccfg](Graph* g) { Simplify(*ccfg, g, true); }, graph);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
-    Recursively([&cctx](Graph* g) { CheckAllOpsSupported(*cctx, g); }, graph);
+    Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
 }
 
 }  // namespace oniku

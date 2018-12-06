@@ -7,18 +7,18 @@
 
 namespace oniku {
 
-class CompilerContext {
+class CompilerConfig {
 public:
-    virtual ~CompilerContext() = default;
+    virtual ~CompilerConfig() = default;
 
     virtual bool HasOp(Node::OpType op) const = 0;
 
     virtual std::string name() const = 0;
 
 protected:
-    CompilerContext() = default;
+    CompilerConfig() = default;
 };
 
-std::unique_ptr<CompilerContext> GetCompilerContext(const std::string& backend_name);
+std::unique_ptr<CompilerConfig> GetCompilerConfig(const std::string& backend_name);
 
 }  // namespace oniku

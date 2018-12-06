@@ -4,7 +4,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
-#include <compiler/context.h>
+#include <compiler/config.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -567,7 +567,7 @@ bool ReplaceLinear(Graph* graph, Node* node) {
 
 }  // namespace
 
-void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop) {
+void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     std::map<Node::OpType, SimplifierFn> simplifiers;
     CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
     CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
@@ -592,8 +592,8 @@ void Simplify(const CompilerContext& cctx, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
 
-    auto replace_if_not_supported = [&cctx, &simplifiers](Node::OpType op, SimplifierFn fn) {
-        if (!cctx.HasOp(op)) {
+    auto replace_if_not_supported = [&ccfg, &simplifiers](Node::OpType op, SimplifierFn fn) {
+        if (!ccfg.HasOp(op)) {
             CHECK(simplifiers.emplace(op, fn).second) << op;
         }
     };
