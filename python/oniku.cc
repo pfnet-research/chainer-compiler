@@ -27,6 +27,7 @@ namespace oniku {
 namespace {
 
 typedef std::shared_ptr<chainerx::internal::ArrayBody> ArrayBodyPtr;
+typedef std::shared_ptr<runtime::XCVMVar> VarPtr;
 
 std::shared_ptr<Graph> LoadGraph(const std::string& onnx_path) {
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
@@ -121,6 +122,21 @@ void InitXCVM(py::module& m) {
     c.def("run", &Run, "Run the model");
 }
 
+void InitXCVMVar(py::module& m) {
+    py::class_<runtime::XCVMVar, VarPtr> c{m, "XCVMVar"};
+}
+
+VarPtr CreateValueFromArray(ArrayBodyPtr a) {
+    return std::make_shared<runtime::XCVMVar>(chainerx::Array(a));
+}
+
+VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
+    auto var = std::make_shared<runtime::XCVMVar>(runtime::XCVMVar::Kind::kSequence);
+    runtime::XCVMSequence* out = var->GetSequence();
+    for (const VarPtr& var : seq) out->push_back(*var);
+    return var;
+}
+
 }  // namespace
 
 PYBIND11_MODULE(oniku_core, m) {  // NOLINT
@@ -128,9 +144,15 @@ PYBIND11_MODULE(oniku_core, m) {  // NOLINT
 
     InitGraph(m);
 
+    InitXCVMVar(m);
+
     InitXCVM(m);
 
     m.def("load", &LoadGraph, "Load an ONNX model");
+    m.def("value", &CreateValueFromArray,
+          "Create an XCVMVar from a ChainerX Array");
+    m.def("value", &CreateValueFromSequence,
+          "Create an XCVMVar from a sequence of XCVMVars");
 }
 
 }  // namespace oniku
