@@ -83,6 +83,13 @@ def _accuracy(y, t):
     return result
 
 
+def _assert_allclose(e, a, **kwargs):
+    if isinstance(e, cupy.ndarray):
+        e = chainer.cuda.to_cpu(e)
+        a = chainer.cuda.to_cpu(a)
+    return chainerx.testing.assert_allclose(e, a)
+
+
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_run(device_name):
     return
@@ -133,9 +140,7 @@ def test_run(device_name):
         chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
 
 
-# TODO(hamaji): Fix for cupy.
-#@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
-@pytest.mark.parametrize('device_name', [np, 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_sequence(device_name):
     np.random.seed(40)
 
@@ -156,4 +161,7 @@ def test_sequence(device_name):
 
     assert len(expected) == len(actual)
     for e, a in zip(expected, actual):
-        chainerx.testing.assert_allclose(e, a)
+        ed = chainer.backend.get_device_from_array(e)
+        ad = chainer.backend.get_device_from_array(a)
+        assert ed == ad
+        _assert_allclose(e, a)

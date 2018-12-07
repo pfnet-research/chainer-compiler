@@ -59,9 +59,9 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.input_tmpl = input_tmpl
 
     def forward(self, flat_args):
+        device = chainer.backend.get_device_from_array(*flat_args)
         args, i = _unflatten(flat_args, self.input_tmpl)
         args += flat_args[i:]
-        device = chainer.backend.get_device_from_array(*args)
 
         inputs = {}
         assert len(self.fwd_input_names) == len(args)
