@@ -173,7 +173,9 @@ class CompiledModel(chainer.Chain):
         outputs = outputs[:len(self.orig_output_names)]
         if len(outputs) == 1:
             outputs = outputs[0]
-        return [o.array for o in outputs]
+        else:
+            raise RuntimeError('test this path')
+        return outputs
 
 
 def compile(model, inputs=None, **kwargs):

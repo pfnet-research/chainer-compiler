@@ -55,7 +55,7 @@ class Sequence(chainer.Chain):
         s = xs[0]
         ys = [s]
         for x in xs[1:]:
-            s = s * x
+            s = F.relu(s) * x
             ys.append(s)
         return ys
 
@@ -90,9 +90,19 @@ def _assert_allclose(e, a, **kwargs):
     return chainerx.testing.assert_allclose(e, a)
 
 
+
+def _array(v):
+    if isinstance(v, chainer.Variable):
+        return v.array
+    return v
+
+
+def _get_device(v):
+    return chainer.backend.get_device_from_array(_array(v))
+
+
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
-def test_run(device_name):
-    return
+def test_mnist(device_name):
     np.random.seed(40)
 
     batch_size = 3
@@ -161,7 +171,7 @@ def test_sequence(device_name):
 
     assert len(expected) == len(actual)
     for e, a in zip(expected, actual):
-        ed = chainer.backend.get_device_from_array(e)
-        ad = chainer.backend.get_device_from_array(a)
-        assert ed == ad
+        e = _array(e)
+        a = _array(a)
+        assert _get_device(e) == _get_device(a)
         _assert_allclose(e, a)
