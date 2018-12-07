@@ -182,8 +182,6 @@ class CompiledModel(chainer.Chain):
         outputs = outputs[:len(self.orig_output_names)]
         if len(outputs) == 1:
             outputs = outputs[0]
-        else:
-            raise RuntimeError('test this path')
         return outputs
 
 

@@ -60,6 +60,12 @@ class Sequence(chainer.Chain):
         return ys
 
 
+class MultiInOuts(chainer.Chain):
+
+    def forward(self, x, y):
+        return x + y, x * y
+
+
 class SequenceGrad(chainer.Chain):
 
     def __init__(self, n_units):
@@ -151,9 +157,32 @@ def test_mnist(device_name):
 
 
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
-def test_sequence(device_name):
-    np.random.seed(40)
+def test_multi_in_outs(device_name):
+    device = chainer.get_device(device_name)
+    device.use()
 
+    model = MultiInOuts()
+    model.to_device(device)
+
+    inputs = [np.array(3, dtype=np.float32), np.array(39, dtype=np.float32)]
+
+    expected = model(*inputs)
+
+    model = oniku.compile(model, inputs)
+    model.to_device(device)
+
+    actual = model(*inputs)
+
+    assert len(expected) == len(actual)
+    for e, a in zip(expected, actual):
+        e = _array(e)
+        a = _array(a)
+        assert _get_device(e) == _get_device(a)
+        _assert_allclose(e, a)
+
+
+@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+def test_sequence(device_name):
     device = chainer.get_device(device_name)
     device.use()
 
