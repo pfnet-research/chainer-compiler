@@ -72,7 +72,12 @@ void XCVM::Run(XCVMState* state) {
 #ifdef ONIKU_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
-            op->Run(state);
+            try {
+                op->Run(state);
+            } catch (...) {
+                std::cerr << "Exception in " << op->debug_info() << std::endl;
+                throw;
+            }
 #ifdef ONIKU_ENABLE_NVTX
             nvtxRangePop();
 #endif
