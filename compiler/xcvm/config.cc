@@ -16,6 +16,7 @@ public:
 
         CHECK(op_set_.emplace(Node::kAbs).second);
         CHECK(op_set_.emplace(Node::kAdd).second);
+        CHECK(op_set_.emplace(Node::kAnd).second);
         CHECK(op_set_.emplace(Node::kArgMax).second);
         CHECK(op_set_.emplace(Node::kAveragePool).second);
         CHECK(op_set_.emplace(Node::kBatchNormalization).second);
@@ -92,6 +93,7 @@ public:
         CHECK(op_set_.emplace(Node::kOnikuxSequenceSplitAxis).second);
         CHECK(op_set_.emplace(Node::kOnikuxSequenceStack).second);
         CHECK(op_set_.emplace(Node::kOnikuxSequenceUnpad).second);
+        CHECK(op_set_.emplace(Node::kOr).second);
         CHECK(op_set_.emplace(Node::kPad).second);
         CHECK(op_set_.emplace(Node::kPow).second);
         CHECK(op_set_.emplace(Node::kRNN).second);
@@ -115,6 +117,7 @@ public:
         CHECK(op_set_.emplace(Node::kTanh).second);
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
+        CHECK(op_set_.emplace(Node::kXor).second);
 
         if (diversed) {
             // SelectItem seemed to be slow on GPU.

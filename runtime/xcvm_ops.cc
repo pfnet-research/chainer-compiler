@@ -133,6 +133,24 @@ chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
+chainerx::Array AndOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    CHECK_EQ(a.dtype(), chainerx::Dtype::kBool);
+    CHECK_EQ(b.dtype(), chainerx::Dtype::kBool);
+    return a * b;
+}
+
+chainerx::Array OrOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    CHECK_EQ(a.dtype(), chainerx::Dtype::kBool);
+    CHECK_EQ(b.dtype(), chainerx::Dtype::kBool);
+    return a + b;
+}
+
+chainerx::Array XorOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    CHECK_EQ(a.dtype(), chainerx::Dtype::kBool);
+    CHECK_EQ(b.dtype(), chainerx::Dtype::kBool);
+    return chainerx::NotEqual(a, b);
+}
+
 chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Reciprocal(a);
 }

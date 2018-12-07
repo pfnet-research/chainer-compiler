@@ -232,6 +232,9 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
         EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxGenericIs, GenericIs);
+        EMIT_SIMPLE_BINARY_OP(Node::kAnd, And);
+        EMIT_SIMPLE_BINARY_OP(Node::kOr, Or);
+        EMIT_SIMPLE_BINARY_OP(Node::kXor, Xor);
 
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxReluGrad, ReluGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kOnikuxMaxPoolGrad, MaxPoolGrad);

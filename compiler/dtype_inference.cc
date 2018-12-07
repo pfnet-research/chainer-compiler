@@ -143,7 +143,10 @@ void InferDtype(Node* node) {
         case Node::kNot:
         case Node::kEqual:
         case Node::kGreater:
-        case Node::kLess: {
+        case Node::kLess:
+        case Node::kAnd:
+        case Node::kOr:
+        case Node::kXor: {
             set(0, Dtype::kBool);
             break;
         }

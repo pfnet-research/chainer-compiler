@@ -80,6 +80,9 @@ NodeDef('Pow', 2, 1)
 NodeDef('Equal', 2, 1)
 NodeDef('Greater', 2, 1)
 NodeDef('Less', 2, 1)
+NodeDef('And', 2, 1)
+NodeDef('Or', 2, 1)
+NodeDef('Xor', 2, 1)
 
 NodeDef('Constant', 0, 1, tensor_value=Required(Tensor), onikux_host=False)
 NodeDef('ConstantLike', (0, 1), 1,

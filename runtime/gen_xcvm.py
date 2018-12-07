@@ -158,6 +158,10 @@ XC_OPS = [
     ('Div', [Array('a'), Array('b')], ['c']),
     ('Pow', [Array('a'), Array('b')], ['c']),
     ('Neg', [Array('x')], ['y']),
+    ('And', [Array('a'), Array('b')], ['c']),
+    ('Or', [Array('a'), Array('b')], ['c']),
+    ('Xor', [Array('a'), Array('b')], ['c']),
+
     ('Reciprocal', [Array('x')], ['y']),
     ('Exp', [Array('x')], ['y']),
     ('Log', [Array('x')], ['y']),
