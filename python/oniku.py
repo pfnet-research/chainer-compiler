@@ -21,6 +21,22 @@ def _flatten(xs):
     return o
 
 
+def _unflatten(xs, tmpl):
+    def _impl(xs, tmpl, i):
+        o = []
+        for t in tmpl:
+            if _is_array(t):
+                o.append(xs[i])
+                i += 1
+            else:
+                no, i = _impl(xs, t, i)
+                o.append(no)
+        return type(tmpl)(o), i
+
+    o, _ = _impl(xs, tmpl, 0)
+    return o
+
+
 def _to_var(v):
     return oniku_core.value(chainer.backend.to_chainerx(v))
 

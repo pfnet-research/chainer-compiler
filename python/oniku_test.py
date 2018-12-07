@@ -18,9 +18,17 @@ import oniku
 
 
 def test_flatten():
-    e = [np.array(x) for x in [0, 1, 2, 3, 4]]
-    i = [e[0], [e[1]], [(e[2], [e[3], e[4]])]]
-    assert e == oniku._flatten(i)
+    flat = [np.array(x) for x in [0, 1, 2, 3, 4]]
+    nested = [flat[0], [flat[1]], [(flat[2], [flat[3], flat[4]])]]
+    assert flat == oniku._flatten(nested)
+
+
+def test_unflatten():
+    flat = [np.array(x) for x in [0, 1, 2, 3, 4]]
+    expected = [flat[0], [flat[1]], [(flat[2], [flat[3], flat[4]])]]
+    zero = np.array(0)
+    tmpl = [zero, [zero], [(zero, [[zero], zero])]]
+    assert expected == oniku._unflatten(flat, tmpl)
 
 
 class MLP(chainer.Chain):
