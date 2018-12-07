@@ -179,8 +179,14 @@ Value* Graph::AddInputValue(const std::string& name, const Type& type) {
     return AddValue(name, type, Value::Kind::kInput);
 }
 
-Value* Graph::AddOutputValue(const std::string& name, const Type& type) {
-    return AddValue(name, type, Value::Kind::kOutput);
+Value* Graph::AddOutputValue(const std::string& name, const Type& type, int index) {
+    Value* value = AddValue(name, type, Value::Kind::kOutput);
+    if (index >= 0) {
+        output_values_.pop_back();
+        CHECK_LE(index, output_values_.size());
+        output_values_.insert(output_values_.begin() + index, value);
+    }
+    return value;
 }
 
 Value* Graph::AddNullValue() {

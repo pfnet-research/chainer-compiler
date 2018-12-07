@@ -60,7 +60,7 @@ public:
     Value* AddValue(const std::string& name, Value::Kind kind = Value::Kind::kTemp);
     Value* AddValue(const std::string& name, const Type& type, Value::Kind kind = Value::Kind::kTemp);
     Value* AddInputValue(const std::string& name, const Type& type);
-    Value* AddOutputValue(const std::string& name, const Type& type);
+    Value* AddOutputValue(const std::string& name, const Type& type, int index = -1);
     Value* AddNullValue();
 
     template <class T>

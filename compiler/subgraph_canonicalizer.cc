@@ -48,12 +48,13 @@ void ResolveExternalDependencies(Graph* graph) {
             Graph* body = node->body().get();
             CHECK(body);
             ResolveExternalDependencies(body);
+            int index = body->input_values().size() - 2;
 
             for (auto& p : GetRequiredValues(node->body().get())) {
                 Value* required = p.second;
                 Value* new_input = body->AddInputValue("CanonicalizeLoopBodyIn@" + required->name(), required->type());
                 body->AddNode(Node::kIdentity, {new_input}, {required}, "CanonicalizeLoop");
-                Value* new_output = body->AddOutputValue("CanonicalizeLoopBodyOut@" + required->name(), required->type());
+                Value* new_output = body->AddOutputValue("CanonicalizeLoopBodyOut@" + required->name(), required->type(), index + 1);
                 body->AddNode(Node::kIdentity, {new_input}, {new_output}, "CanonicalizeLoop");
 
                 auto found = symtab.find(required->name());
@@ -66,7 +67,8 @@ void ResolveExternalDependencies(Graph* graph) {
                 }
                 node->AddInput(external);
                 Value* dummy = graph->AddValue("CanonicalizeLoopUnusedOut@" + required->name());
-                node->AddOutput(dummy);
+                node->AddOutput(dummy, index);
+                index++;
             }
         } else if (node->op_type() == Node::kIf) {
             Graph* then_branch = node->then_branch().get();
