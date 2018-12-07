@@ -17,6 +17,11 @@ sys.path.append(os.path.join(oniku_root, 'build/python'))
 import oniku
 
 
+def aranges(xp, *shape):
+    r = np.prod(shape)
+    return np.arange(r).reshape(shape).astype(np.float32)
+
+
 def test_flatten():
     flat = [np.array(x) for x in [0, 1, 2, 3, 4]]
     nested = [flat[0], [flat[1]], [(flat[2], [flat[3], flat[4]])]]
@@ -69,15 +74,15 @@ class MultiInOuts(chainer.Chain):
 class SequenceGrad(chainer.Chain):
 
     def __init__(self, n_units):
-        super(Sequence, self).__init__()
+        super(SequenceGrad, self).__init__()
         with self.init_scope():
             self.l = L.Linear(n_units, n_units)
 
     def forward(self, xs):
         s = xs[0]
-        ys = [s]
+        ys = [chainer.Variable(s)]
         for x in xs[1:]:
-            s *= x
+            s = self.l(s) + x
             ys.append(s)
         return ys
 
@@ -149,7 +154,6 @@ def test_mnist(device_name):
     chainerx.testing.assert_allclose(expected_loss, actual_loss)
 
     assert len(expected_grads) == len(actual_grads)
-
     for (e_name, e_grad), (a_name, a_grad) in zip(
             expected_grads, actual_grads):
         assert e_name == a_name
@@ -204,3 +208,49 @@ def test_sequence(device_name):
         a = _array(a)
         assert _get_device(e) == _get_device(a)
         _assert_allclose(e, a)
+
+
+@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+def test_sequence_grad(device_name):
+    device = chainer.get_device(device_name)
+    device.use()
+
+    seq_length = 4
+    batch_size = 2
+    n_units = 3
+    model = SequenceGrad(n_units)
+    model.to_device(device)
+
+    xs = aranges(device.xp, seq_length, batch_size, n_units)
+    xs = [device.xp.array(x) for x in xs]
+
+    def run_model(model):
+        model.cleargrads()
+        ys = model(xs)
+        loss = F.sum(F.stack(ys))
+        loss.grad = device.xp.ones(loss.shape, loss.dtype)
+        loss.backward()
+        grads = []
+        for name, param in sorted(model.namedparams()):
+            grads.append((name, chainer.backend.to_chainerx(param.grad)))
+        loss = chainer.backend.to_chainerx(loss.array)
+        return ys, grads
+
+    expected_ys, expected_grads = run_model(model)
+
+    model = oniku.compile(model, [xs])
+    model.to_device(device)
+    actual_ys, actual_grads = run_model(model)
+
+    assert len(expected_ys) == len(actual_ys)
+    for e, a in zip(expected_ys, actual_ys):
+        e = _array(e)
+        a = _array(a)
+        assert _get_device(e) == _get_device(a)
+        _assert_allclose(e, a)
+
+    assert len(expected_grads) == len(actual_grads)
+    for (e_name, e_grad), (a_name, a_grad) in zip(
+            expected_grads, actual_grads):
+        assert e_name == a_name
+        chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
