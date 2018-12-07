@@ -8,7 +8,7 @@ import oniku_core
 
 
 def _is_array(v):
-    return hasattr(v, 'dot')
+    return not isinstance(v, (list, tuple, range, dict))
 
 
 def _flatten(xs):
@@ -21,33 +21,33 @@ def _flatten(xs):
     return o
 
 
-def _unflatten(xs, tmpl):
-    def _impl(xs, tmpl, i):
-        o = []
-        for t in tmpl:
-            if _is_array(t):
-                o.append(xs[i])
-                i += 1
-            else:
-                no, i = _impl(xs, t, i)
-                o.append(no)
-        return type(tmpl)(o), i
-
-    o, _ = _impl(xs, tmpl, 0)
-    return o
+def _unflatten(xs, tmpl, i=0):
+    o = []
+    for t in tmpl:
+        if _is_array(t):
+            o.append(xs[i])
+            i += 1
+        else:
+            no, i = _unflatten(xs, t, i)
+            o.append(no)
+    return type(tmpl)(o), i
 
 
 def _to_var(v):
-    return oniku_core.value(chainer.backend.to_chainerx(v))
+    if _is_array(v):
+        return oniku_core.value(chainer.backend.to_chainerx(v))
+    return oniku_core.value([_to_var(a) for a in v])
 
 
 def _from_var(v, device):
-    return device.send(v.array())
+    if v.is_array():
+        return device.send(v.array())
+    return [_from_var(x, device) for x in v.sequence()]
 
 
 class RunCompiledModel(chainer.function_node.FunctionNode):
 
-    def __init__(self, compiled_model):
+    def __init__(self, compiled_model, input_tmpl):
         self.orig_output_names = compiled_model.orig_output_names
         self.fwd_input_names = compiled_model.fwd_input_names
         self.fwd_output_names = compiled_model.fwd_output_names
@@ -55,24 +55,38 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.bwd_output_names = compiled_model.bwd_output_names
         self.fwd = compiled_model.fwd
         self.bwd = compiled_model.bwd
-        self.retain_tuple = tuple(range(len(compiled_model.orig_output_names),
-                                        len(compiled_model.fwd_output_names)))
+        self.num_outputs = len(compiled_model.orig_output_names)
+        self.input_tmpl = input_tmpl
 
-    def forward(self, args):
+    def forward(self, flat_args):
+        args, i = _unflatten(flat_args, self.input_tmpl)
+        args += flat_args[i:]
         device = chainer.backend.get_device_from_array(*args)
 
         inputs = {}
+        assert len(self.fwd_input_names) == len(args)
         for name, value in zip(self.fwd_input_names, args):
             inputs[name] = _to_var(value)
 
-        outputs_and_retained = self.fwd.run(inputs)
-        outputs = []
+        outputs = self.fwd.run(inputs)
+        outputs_and_retained = []
         for name in self.fwd_output_names:
-            output = outputs_and_retained[name]
-            outputs.append(_from_var(output, device))
+            output = outputs[name]
+            outputs_and_retained.append(_from_var(output, device))
 
-        self.retain_outputs(self.retain_tuple)
+        self.nested_outputs = outputs_and_retained[:self.num_outputs]
+        self.nested_retained = outputs_and_retained[self.num_outputs:]
+        flat_outputs = _flatten(self.nested_outputs)
+        flat_retained = _flatten(self.nested_retained)
+        self.retain_outputs(tuple(
+            range(len(flat_outputs), len(flat_outputs) + len(flat_retained))))
+        outputs = flat_outputs + flat_retained
         return tuple(outputs)
+
+    def unflatten_outputs(self, flat_outputs):
+        outputs, _ = _unflatten(flat_outputs, self.nested_outputs)
+        del self.nested_outputs  # Forget outputs.
+        return outputs
 
     def backward(self, indexes, gys):
         gys = gys[:len(self.orig_output_names)]
@@ -152,11 +166,14 @@ class CompiledModel(chainer.Chain):
             return outputs
 
         inputs = list(args)
-        outputs = RunCompiledModel(self).apply(inputs + self.param_values)
+        flat_inputs = _flatten(inputs)
+        runner = RunCompiledModel(self, inputs)
+        outputs = runner.apply(flat_inputs + self.param_values)
+        outputs = runner.unflatten_outputs(outputs)
         outputs = outputs[:len(self.orig_output_names)]
         if len(outputs) == 1:
             outputs = outputs[0]
-        return outputs
+        return [o.array for o in outputs]
 
 
 def compile(model, inputs=None, **kwargs):

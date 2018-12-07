@@ -28,7 +28,9 @@ def test_unflatten():
     expected = [flat[0], [flat[1]], [(flat[2], [flat[3], flat[4]])]]
     zero = np.array(0)
     tmpl = [zero, [zero], [(zero, [[zero], zero])]]
-    assert expected == oniku._unflatten(flat, tmpl)
+    nested, i = oniku._unflatten(flat, tmpl)
+    assert expected == nested
+    assert i == len(flat)
 
 
 class MLP(chainer.Chain):
@@ -47,6 +49,33 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
+class Sequence(chainer.Chain):
+
+    def forward(self, xs):
+        s = xs[0]
+        ys = [s]
+        for x in xs[1:]:
+            s = s * x
+            ys.append(s)
+        return ys
+
+
+class SequenceGrad(chainer.Chain):
+
+    def __init__(self, n_units):
+        super(Sequence, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(n_units, n_units)
+
+    def forward(self, xs):
+        s = xs[0]
+        ys = [s]
+        for x in xs[1:]:
+            s *= x
+            ys.append(s)
+        return ys
+
+
 # TODO(hamaji): Figure out why this is necessary.
 def _accuracy(y, t):
     y = chainer.backend.from_chainerx(y.array)
@@ -56,6 +85,7 @@ def _accuracy(y, t):
 
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_run(device_name):
+    return
     np.random.seed(40)
 
     batch_size = 3
@@ -100,4 +130,30 @@ def test_run(device_name):
     for (e_name, e_grad), (a_name, a_grad) in zip(
             expected_grads, actual_grads):
         assert e_name == a_name
-        chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-5)
+        chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
+
+
+# TODO(hamaji): Fix for cupy.
+#@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', [np, 'native:0', 'cuda:0'])
+def test_sequence(device_name):
+    np.random.seed(40)
+
+    device = chainer.get_device(device_name)
+    device.use()
+
+    model = Sequence()
+    model.to_device(device)
+
+    xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
+    expected = model(xs)
+
+    model = oniku.compile(model, [xs])
+    model.to_device(device)
+
+    xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
+    actual = model(xs)
+
+    assert len(expected) == len(actual)
+    for e, a in zip(expected, actual):
+        chainerx.testing.assert_allclose(e, a)
