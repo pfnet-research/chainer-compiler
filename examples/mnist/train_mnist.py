@@ -55,13 +55,6 @@ def parse_device(args):
     return chainer.get_device(args.device)
 
 
-# TODO(hamaji): Figure out why this is necessary.
-def _accuracy(y, t):
-    y = chainer.backend.from_chainerx(y.array)
-    result = chainer.functions.evaluation.accuracy.accuracy(y, t)
-    return result
-
-
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
@@ -106,9 +99,7 @@ def main():
     mlp = MLP(args.unit, 10)
     if args.oniku:
         mlp = oniku.compile(mlp, dump_onnx=args.dump_onnx)
-        model = L.Classifier(mlp, accfun=_accuracy)
-    else:
-        model = L.Classifier(mlp)
+    model = L.Classifier(mlp)
     model.to_device(device)
     device.use()
 
