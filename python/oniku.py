@@ -117,6 +117,7 @@ class CompiledModel(chainer.Chain):
         # TODO(hamaji): Probably this is not a great idea. Revisit
         # this implementation.
         self.model = model
+        self.model_on_device = self.model
         with self.init_scope():
             for name in model._children:
                 setattr(self, name, model[name])
@@ -126,8 +127,8 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def _to_device(self, *args, **kwargs):
-        self.model._to_device(*args, **kwargs)
-        self._device = self.model._device
+        self.model_on_device = self.model.copy()
+        self.model_on_device._to_device(*args, **kwargs)
         return self
 
     def compile(self, inputs):
@@ -169,7 +170,7 @@ class CompiledModel(chainer.Chain):
 
     def forward(self, *args):
         if not self.compiled:
-            outputs = self.model(*args)
+            outputs = self.model_on_device(*args)
             self.compile(args)
             return outputs
 
