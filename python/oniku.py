@@ -112,15 +112,23 @@ class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, dump_onnx=False):
         super(CompiledModel, self).__init__()
+        # `model` is set outside the scope so the compiled model will
+        # not create an extra namespace.
+        # TODO(hamaji): Probably this is not a great idea. Revisit
+        # this implementation.
+        self.model = model
         with self.init_scope():
             for name in model._children:
                 setattr(self, name, model[name])
-
-        self.model = model
         self.dump_onnx = dump_onnx
         self.compiled = False
         if inputs is not None:
             self.compile(inputs)
+
+    def _to_device(self, *args, **kwargs):
+        self.model._to_device(*args, **kwargs)
+        self._device = self.model._device
+        return self
 
     def compile(self, inputs):
         xmodel = ch2o.compile_model(self.model, inputs)
