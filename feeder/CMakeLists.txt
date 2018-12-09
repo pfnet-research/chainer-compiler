@@ -21,6 +21,7 @@ include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(feeder_test ${FEEDER_TEST_SRCS})
 target_link_libraries(feeder_test
   feeder
+  oniku_common
   chainerx
   gtest
   gtest_main

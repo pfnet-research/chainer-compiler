@@ -3,6 +3,7 @@ set(GOOGLETEST_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/googletest/googletest/include)
 
 include_directories(${ONIKU_ROOT_DIR})
 add_library(oniku_common
+  log.cc
   strutil.cc
   )
 
