@@ -84,7 +84,7 @@ public:
     }
 
     int GetValueId(const Value* v) const {
-        CHECK(!v->name().empty());
+        CHECK(!v->name().empty()) << v->DebugString();
         auto found = value_ids_.find(v);
         CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
         return found->second;
