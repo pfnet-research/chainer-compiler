@@ -1,6 +1,7 @@
 #include "gradient.h"
 
 #include <algorithm>
+#include <iostream>
 #include <map>
 #include <set>
 #include <stack>

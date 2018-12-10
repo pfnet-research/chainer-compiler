@@ -1,5 +1,6 @@
 #include "simplifier.h"
 
+#include <iostream>
 #include <limits>
 
 #include <common/log.h>
