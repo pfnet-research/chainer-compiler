@@ -211,9 +211,7 @@ def test_sequence(device_name):
         _assert_allclose(e, a)
 
 
-# TODO(hamaji): Fix for cuda.
-#@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
-@pytest.mark.parametrize('device_name', [np, 'native:0'])
+@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_sequence_grad(device_name):
     device = chainer.get_device(device_name)
     device.use()

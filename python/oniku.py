@@ -72,18 +72,15 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         outputs = self.fwd.run(inputs)
         outputs_and_retained = []
         for name in self.fwd_output_names:
-            output = outputs[name]
-            outputs_and_retained.append(_from_var(output, device))
+            outputs_and_retained.append(outputs[name])
 
+        self.retained = outputs_and_retained[self.num_outputs:]
         # TODO(hamaji): Do not hold actual arrays.
-        self.nested_outputs = outputs_and_retained[:self.num_outputs]
-        self.nested_retained = outputs_and_retained[self.num_outputs:]
+        self.nested_outputs = []
+        for output in outputs_and_retained[:self.num_outputs]:
+            self.nested_outputs.append(_from_var(output, device))
         flat_outputs = _flatten(self.nested_outputs)
-        flat_retained = _flatten(self.nested_retained)
-        self.retain_outputs(tuple(
-            range(len(flat_outputs), len(flat_outputs) + len(flat_retained))))
-        outputs = flat_outputs + flat_retained
-        return tuple(outputs)
+        return tuple(flat_outputs)
 
     def unflatten_outputs(self, flat_outputs):
         outputs, _ = _unflatten(flat_outputs, self.nested_outputs)
@@ -92,12 +89,12 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
     def backward(self, indexes, flat_gys):
         device = chainer.backend.get_device_from_array(flat_gys[0].array)
         gys, _ = _unflatten(flat_gys, self.nested_outputs)
-        flat_retained = self.get_retained_outputs()
-        retained, i = _unflatten(flat_retained, self.nested_retained)
-        assert len(flat_retained) == i
-
+        retained = self.retained
+        gys = [_to_var(gy) for gy in gys]
         values = gys + retained
-        values = [_to_var(v) for v in values]
+
+        del self.retained
+        del self.nested_outputs
 
         inputs = {}
         assert len(self.bwd_input_names) == len(values)
