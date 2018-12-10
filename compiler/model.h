@@ -15,6 +15,8 @@ class Graph;
 class Model {
 public:
     explicit Model(const onnx::ModelProto& xmodel);
+    // `graph_` will not be copied to the new model.
+    Model(const Model& model, const std::string& graph_name);
     ~Model();
 
     Model& operator=(const Model&) = delete;
@@ -55,13 +57,7 @@ public:
 
     void ResetGraph(Graph* graph);
 
-    // `graph_` will not be copied to the new model.
-    Model NewModel() const;
-
 private:
-    // `graph_` will not be copied to the new model.
-    explicit Model(const Model& model);
-    Model(Model&& model) = default;
 
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;
@@ -70,8 +66,8 @@ private:
     std::string domain_;
     int64_t model_version_;
     std::string doc_string_;
-    std::unique_ptr<Graph> graph_;
     std::map<std::string, std::string> metadata_props_;
+    std::unique_ptr<Graph> graph_;
 };
 
 }  // namespace oniku

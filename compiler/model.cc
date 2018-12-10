@@ -22,6 +22,18 @@ Model::Model(const onnx::ModelProto& xmodel)
     }
 }
 
+Model::Model(const Model& model, const std::string& graph_name)
+    : ir_version_(model.ir_version_),
+      opset_import_(model.opset_import_),
+      producer_name_(model.producer_name_),
+      producer_version_(model.producer_version_),
+      domain_(model.domain_),
+      model_version_(model.model_version_),
+      doc_string_(model.doc_string_),
+      metadata_props_(model.metadata_props_),
+      graph_(new Graph(graph_name)) {
+}
+
 Model::~Model() {
 }
 
@@ -45,21 +57,6 @@ void Model::ToONNX(onnx::ModelProto* xmodel) const {
 
 void Model::ResetGraph(Graph* graph) {
     graph_.reset(graph);
-}
-
-Model Model::NewModel() const {
-    return Model(*this);
-}
-
-Model::Model(const Model& model)
-    : ir_version_(model.ir_version_),
-      opset_import_(model.opset_import_),
-      producer_name_(model.producer_name_),
-      producer_version_(model.producer_version_),
-      domain_(model.domain_),
-      model_version_(model.model_version_),
-      doc_string_(model.doc_string_),
-      metadata_props_(model.metadata_props_) {
 }
 
 }  // namespace oniku
