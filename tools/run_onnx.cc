@@ -182,9 +182,9 @@ chainerx::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
     return shape;
 }
 
-void GenerateFixedInput(const onnx::ModelProto& xmodel, const InOuts& params, InOuts* inputs) {
+void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::string>& initializer_names, InOuts* inputs) {
     for (const onnx::ValueInfoProto& input : xmodel.graph().input()) {
-        if (params.count(input.name())) continue;
+        if (initializer_names.count(input.name())) continue;
         CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
         const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
         chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
@@ -365,13 +365,12 @@ void RunMain(int argc, char** argv) {
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     if (!g_skip_inference) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
-    RunDefaultPasses(&model, args.exist("backprop"));
 
     LOG() << "Loading data..." << std::endl;
 
-    InOuts params(LoadParams(model.graph()));
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
+    std::set<std::string> initializer_names;
     for (const Value* input : model.graph().input_values()) {
         if (!input->initializer()) {
             input_names.push_back(input->name());
@@ -385,7 +384,7 @@ void RunMain(int argc, char** argv) {
     if (test_path.empty()) {
         std::unique_ptr<TestCase> test_case(new TestCase());
         test_case->name = "generated data by chainerx::Ones";
-        GenerateFixedInput(xmodel, params, &test_case->inputs);
+        GenerateFixedInput(xmodel, initializer_names, &test_case->inputs);
         test_cases.emplace_back(std::move(test_case));
     } else {
         ReadTestDir(test_path, input_names, output_names, &test_cases);
@@ -403,6 +402,9 @@ void RunMain(int argc, char** argv) {
         }
         test_cases.swap(new_test_cases);
     }
+
+    RunDefaultPasses(&model, args.exist("backprop"));
+    InOuts params(LoadParams(model.graph()));
 
     int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
     ModelRunner model_runner(args, initial_free_bytes, param_bytes, &model);
