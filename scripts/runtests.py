@@ -542,7 +542,6 @@ for test in TEST_CASES:
         continue
 
     if ('pc_if_' in test.name or
-        'oc_batch_normalization' in test.name or
         'EspNet_' in test.name or
         'StatelessLSTM_' in test.name or
         'If_' in test.name):

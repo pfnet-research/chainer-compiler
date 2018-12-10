@@ -251,7 +251,7 @@ public:
             xcvm_opts_.verbose_ops[op] = true;
         }
         xcvm_opts_.trace_level = trace_level();
-        xcvm_opts_.is_training = args_.exist("backprop");
+        xcvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
         xcvm_opts_.check_nans = args_.exist("check_nans");
         xcvm_opts_.check_infs = args_.exist("check_infs");
         xcvm_opts_.dump_memory_usage = args_.exist("trace");
