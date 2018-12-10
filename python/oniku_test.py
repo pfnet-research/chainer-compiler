@@ -115,6 +115,7 @@ def _get_device(v):
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_mnist(device_name):
     np.random.seed(40)
+    cupy.random.seed(40)
 
     batch_size = 3
     in_size = 5
