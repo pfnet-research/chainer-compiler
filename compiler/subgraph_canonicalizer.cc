@@ -12,6 +12,7 @@ namespace {
 std::map<std::string, Value*> GetRequiredValues(Graph* graph) {
     std::map<std::string, Value*> required_values;
     for (Value* value : graph->output_values()) {
+        if (value->IsNull()) continue;
         required_values[value->name()] = value;
     }
     for (const Node* node : graph->nodes()) {

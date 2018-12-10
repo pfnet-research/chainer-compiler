@@ -541,12 +541,6 @@ for test in TEST_CASES:
     if not test.is_backprop:
         continue
 
-    if ('pc_if_' in test.name or
-        'EspNet_' in test.name or
-        'StatelessLSTM_' in test.name or
-        'If_' in test.name):
-        continue
-
     new_test = copy.copy(test)
     new_test.name = test.name + '_two_phase'
     new_test.is_backprop_two_phase = True
