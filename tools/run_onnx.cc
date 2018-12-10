@@ -234,8 +234,11 @@ public:
             RunDefaultPasses(model->mutable_graph());
             CompileModel(model, &xcvm_);
             LOG() << "Constructing model (backward)..." << std::endl;
-            RunDefaultPasses(model->mutable_graph());
+            RunDefaultPasses(backprop_model.mutable_graph());
             CompileModel(&backprop_model, &xcvm_bp_, "bp");
+            for (Value* value : backprop_model.graph().input_values()) {
+                backprop_ins_.push_back(value->name());
+            }
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
@@ -310,13 +313,33 @@ public:
     }
 
     InOuts Run(const InOuts& inputs) {
-        const InOuts& outputs = xcvm_->Run(inputs, xcvm_opts_);
-        if (initial_free_bytes_ >= 0) {
-            int64_t free_bytes = GetMemoryUsageInBytes();
-            size_t used_bytes = initial_free_bytes_ - free_bytes;
-            size_t param_mbs = param_bytes_ / 1000 / 1000;
-            size_t used_mbs = used_bytes / 1000 / 1000;
-            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
+        if (trace_level()) std::cerr << "Running XCVM..." << std::endl;
+        InOuts outputs = xcvm_->Run(inputs, xcvm_opts_);
+        MaybeShowGPUMemory();
+        if (xcvm_bp_.get()) {
+            if (trace_level()) std::cerr << "Running XCVM for backward..." << std::endl;
+            InOuts bp_inputs;
+            for (const std::string& input_name : backprop_ins_) {
+                const std::string kGradPrefix = "grad_in@";
+                std::string name = input_name;
+                if (input_name.find(kGradPrefix) == 0) {
+                    name = name.substr(kGradPrefix.size());
+                }
+
+                auto found = outputs.find(name);
+                CHECK(found != outputs.end()) << input_name;
+                std::shared_ptr<XCVMVar> value = found->second;
+                if (name != input_name) {
+                    const chainerx::Array& a = value->GetArray();
+                    value = std::make_shared<XCVMVar>(chainerx::OnesLike(a, a.device()));
+                }
+                CHECK(bp_inputs.emplace(input_name, value).second) << name;
+            }
+            InOuts bp_outputs = xcvm_bp_->Run(bp_inputs, xcvm_opts_);
+            MaybeShowGPUMemory();
+            for (auto& p : bp_outputs) {
+                outputs.emplace(p);
+            }
         }
         return outputs;
     }
@@ -330,14 +353,26 @@ private:
         return args_.exist("verbose") ? 2 : args_.exist("trace") ? 1 : 0;
     }
 
+    void MaybeShowGPUMemory() const {
+        if (initial_free_bytes_ >= 0) {
+            int64_t free_bytes = GetMemoryUsageInBytes();
+            size_t used_bytes = initial_free_bytes_ - free_bytes;
+            size_t param_mbs = param_bytes_ / 1000 / 1000;
+            size_t used_mbs = used_bytes / 1000 / 1000;
+            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
+        }
+    }
+
     Model* model_;
     const cmdline::parser& args_;
     std::unique_ptr<XCVM> xcvm_;
-    std::unique_ptr<XCVM> xcvm_bp_;
     XCVMOptions xcvm_opts_;
     InOuts params_;
     const int64_t initial_free_bytes_;
     int64_t param_bytes_;
+
+    std::unique_ptr<XCVM> xcvm_bp_;
+    std::vector<std::string> backprop_ins_;
 };
 
 void RunMain(int argc, char** argv) {
