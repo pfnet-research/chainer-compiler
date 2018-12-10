@@ -218,6 +218,94 @@ XCVMVar* StageVar(XCVMVar* var) {
     CHECK(false);
 }
 
+class ModelRunner {
+public:
+    ModelRunner(const cmdline::parser& args, int64_t initial_free_bytes, int64_t param_bytes, Model* model)
+        : model_(model),
+          args_(args),
+          initial_free_bytes_(initial_free_bytes),
+          param_bytes_(param_bytes) {
+        LOG() << "Constructing model..." << std::endl;
+        if (args.exist("dump_onnx")) {
+            onnx::ModelProto xmodel;
+            model->ToONNX(&xmodel);
+            StripONNXModel(&xmodel);
+            std::cerr << xmodel.DebugString();
+        }
+
+        const std::string out_onnx = args.get<std::string>("out_onnx");
+        if (!out_onnx.empty()) {
+            onnx::ModelProto xmodel;
+            model->ToONNX(&xmodel);
+            StripONNXModel(&xmodel);
+            std::ofstream ofs(out_onnx);
+            CHECK(ofs) << "Failed to open output ONNX: " << out_onnx;
+            CHECK(xmodel.SerializeToOstream(&ofs));
+        }
+
+        LOG() << "Generate code..." << std::endl;
+        int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+        XCProgramProto xcvm_prog;
+        xcvm::Emit(*model, &xcvm_prog, trace_level > 0);
+
+        if (args.exist("dump_xcvm")) {
+            int pc = 0;
+            for (XCInstructionProto inst : xcvm_prog.instructions()) {
+                std::cerr << '#' << pc << ": " << inst.DebugString();
+                pc++;
+            }
+        }
+        const std::string out_xcvm = args.get<std::string>("out_xcvm");
+        if (!out_xcvm.empty()) {
+            std::ofstream ofs(out_xcvm);
+            CHECK(ofs) << "Failed to open output XCVM: " << out_xcvm;
+            CHECK(xcvm_prog.SerializeToOstream(&ofs));
+        }
+
+        xcvm_.reset(new XCVM(xcvm_prog));
+        for (const std::string& op_name : SplitString(args.get<std::string>("verbose_ops"), ",")) {
+            XCInstructionProto::Op op;
+            CHECK(XCInstructionProto::Op_Parse(op_name, &op)) << "Unknown op: " << op_name;
+            xcvm_opts_.verbose_ops[op] = true;
+        }
+        xcvm_opts_.trace_level = trace_level;
+        xcvm_opts_.is_training = args.exist("backprop");
+        xcvm_opts_.check_nans = args.exist("check_nans");
+        xcvm_opts_.check_infs = args.exist("check_infs");
+        xcvm_opts_.dump_memory_usage = args.exist("trace");
+        xcvm_opts_.base_memory_usage = initial_free_bytes;
+        if (!args.get<std::string>("chrome_tracing").empty()) {
+            xcvm_opts_.chrome_tracing = new ChromeTracingEmitter();
+        }
+    }
+
+    ~ModelRunner() {
+        if (xcvm_opts_.chrome_tracing) {
+            xcvm_opts_.chrome_tracing->Emit(args_.get<std::string>("chrome_tracing"));
+        }
+    }
+
+    InOuts Run(const InOuts& inputs) {
+        const InOuts& outputs = xcvm_->Run(inputs, xcvm_opts_);
+        if (initial_free_bytes_ >= 0) {
+            int64_t free_bytes = GetMemoryUsageInBytes();
+            size_t used_bytes = initial_free_bytes_ - free_bytes;
+            size_t param_mbs = param_bytes_ / 1000 / 1000;
+            size_t used_mbs = used_bytes / 1000 / 1000;
+            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
+        }
+        return outputs;
+    }
+
+private:
+    Model* model_;
+    const cmdline::parser& args_;
+    std::unique_ptr<XCVM> xcvm_;
+    XCVMOptions xcvm_opts_;
+    const int64_t initial_free_bytes_;
+    const int64_t param_bytes_;
+};
+
 void RunMain(int argc, char** argv) {
     g_modify_pool_with_imbalanced_pads = true;
 
@@ -250,8 +338,6 @@ void RunMain(int argc, char** argv) {
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
-    const std::string out_onnx = args.get<std::string>("out_onnx");
-    const std::string out_xcvm = args.get<std::string>("out_xcvm");
 
     g_quiet = args.exist("quiet");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
@@ -274,7 +360,7 @@ void RunMain(int argc, char** argv) {
         onnx_path = test_path + "/model.onnx";
     }
 
-    LOG() << "Constructing model..." << std::endl;
+    LOG() << "Loading model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     if (!g_skip_inference) onnx::shape_inference::InferShapes(xmodel);
@@ -318,61 +404,12 @@ void RunMain(int argc, char** argv) {
         test_cases.swap(new_test_cases);
     }
 
-    if (args.exist("dump_onnx")) {
-        onnx::ModelProto xmodel;
-        model.ToONNX(&xmodel);
-        StripONNXModel(&xmodel);
-        std::cerr << xmodel.DebugString();
-    }
-    if (!out_onnx.empty()) {
-        onnx::ModelProto xmodel;
-        model.ToONNX(&xmodel);
-        StripONNXModel(&xmodel);
-        std::ofstream ofs(out_onnx);
-        CHECK(ofs) << "Failed to open output ONNX: " << out_onnx;
-        CHECK(xmodel.SerializeToOstream(&ofs));
-    }
-
-    int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
-
-    LOG() << "Generate code..." << std::endl;
-    XCProgramProto xcvm_prog;
-    xcvm::Emit(model, &xcvm_prog, trace_level > 0);
-
-    if (args.exist("dump_xcvm")) {
-        int pc = 0;
-        for (XCInstructionProto inst : xcvm_prog.instructions()) {
-            std::cerr << '#' << pc << ": " << inst.DebugString();
-            pc++;
-        }
-    }
-    if (!out_xcvm.empty()) {
-        std::ofstream ofs(out_xcvm);
-        CHECK(ofs) << "Failed to open output XCVM: " << out_xcvm;
-        CHECK(xcvm_prog.SerializeToOstream(&ofs));
-    }
+    int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
+    ModelRunner model_runner(args, initial_free_bytes, param_bytes, &model);
 
     if (args.exist("compile_only")) return;
 
-    XCVM xcvm(xcvm_prog);
-    XCVMOptions xcvm_opts;
-    for (const std::string& op_name : SplitString(args.get<std::string>("verbose_ops"), ",")) {
-        XCInstructionProto::Op op;
-        CHECK(XCInstructionProto::Op_Parse(op_name, &op)) << "Unknown op: " << op_name;
-        xcvm_opts.verbose_ops[op] = true;
-    }
-    xcvm_opts.trace_level = trace_level;
-    xcvm_opts.is_training = args.exist("backprop");
-    xcvm_opts.check_nans = args.exist("check_nans");
-    xcvm_opts.check_infs = args.exist("check_infs");
-    xcvm_opts.dump_memory_usage = args.exist("trace");
-    xcvm_opts.base_memory_usage = initial_free_bytes;
-    if (!args.get<std::string>("chrome_tracing").empty()) {
-        xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
-    }
-
     double elapsed_total = 0;
-    int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
@@ -383,15 +420,7 @@ void RunMain(int argc, char** argv) {
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-        InOuts outputs(xcvm.Run(inputs, xcvm_opts));
-
-        if (initial_free_bytes >= 0) {
-            int64_t free_bytes = GetMemoryUsageInBytes();
-            size_t used_bytes = initial_free_bytes - free_bytes;
-            size_t param_mbs = param_bytes / 1000 / 1000;
-            size_t used_mbs = used_bytes / 1000 / 1000;
-            LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
-        }
+        InOuts outputs(model_runner.Run(inputs));
 
         if (test_case->outputs.empty()) {
             if (outputs.size() == 1 && outputs.begin()->second->kind() == XCVMVar::Kind::kSequence) {
@@ -524,10 +553,6 @@ void RunMain(int argc, char** argv) {
     if (iterations > 1) {
         // The first iteration is for warm up.
         std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
-    }
-
-    if (xcvm_opts.chrome_tracing) {
-        xcvm_opts.chrome_tracing->Emit(args.get<std::string>("chrome_tracing"));
     }
 }
 
