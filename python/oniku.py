@@ -33,14 +33,6 @@ def _unflatten(xs, tmpl, i=0):
     return type(tmpl)(o), i
 
 
-def _to_var(v):
-    if _is_array(v):
-        if isinstance(v, chainer.Variable):
-            v = v.array
-        return oniku_core.value(chainer.backend.to_chainerx(v))
-    return oniku_core.value([_to_var(a) for a in v])
-
-
 def _from_var(v, device):
     if v.is_array():
         return device.send(v.array())
@@ -58,18 +50,32 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.bwd = compiled_model.bwd
         self.num_outputs = len(compiled_model.orig_output_names)
         self.input_tmpl = input_tmpl
+        self.chainerx_device = None
+
+    def _to_var(self, v):
+        if _is_array(v):
+            if isinstance(v, chainer.Variable):
+                v = v.array
+            v = chainer.backend.to_chainerx(v)
+            if self.chainerx_device is None:
+                self.chainerx_device = v.device
+            else:
+                assert self.chainerx_device == v.device
+            return oniku_core.value(v)
+        return oniku_core.value([self._to_var(a) for a in v])
 
     def forward(self, flat_args):
         device = chainer.backend.get_device_from_array(*flat_args)
         args, i = _unflatten(flat_args, self.input_tmpl)
-        args += flat_args[i:]
+        args += flat_args[i:]  # For params.
 
         inputs = {}
         assert len(self.fwd_input_names) == len(args)
         for name, value in zip(self.fwd_input_names, args):
-            inputs[name] = _to_var(value)
+            inputs[name] = self._to_var(value)
 
-        outputs = self.fwd.run(inputs)
+        with chainer.using_device(self.chainerx_device):
+            outputs = self.fwd.run(inputs)
         outputs_and_retained = []
         for name in self.fwd_output_names:
             outputs_and_retained.append(outputs[name])
@@ -90,7 +96,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         device = chainer.backend.get_device_from_array(flat_gys[0].array)
         gys, _ = _unflatten(flat_gys, self.nested_outputs)
         retained = self.retained
-        gys = [_to_var(gy) for gy in gys]
+        gys = [self._to_var(gy) for gy in gys]
         values = gys + retained
 
         del self.retained
@@ -101,7 +107,8 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         for name, value in zip(self.bwd_input_names, values):
             inputs[name] = value
 
-        outputs = self.bwd.run(inputs)
+        with chainer.using_device(self.chainerx_device):
+            outputs = self.bwd.run(inputs)
         gxs = []
         for name in self.bwd_output_names:
             gx = _from_var(outputs[name], device)

@@ -71,6 +71,12 @@ class MultiInOuts(chainer.Chain):
         return x + y, x * y
 
 
+class ConstMul(chainer.Chain):
+
+    def forward(self, x):
+        return x * np.array(42.0, dtype=np.float32)
+
+
 class SequenceGrad(chainer.Chain):
 
     def __init__(self, n_units):
@@ -186,6 +192,31 @@ def test_multi_in_outs(device_name):
         a = _array(a)
         assert _get_device(e) == _get_device(a)
         _assert_allclose(e, a)
+
+
+@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+def test_const_mul(device_name):
+    device = chainer.get_device(device_name)
+    device.use()
+
+    # This checks if the default ChainerX device is set properly by
+    # Constant op, whose result will be placed on the default device.
+    model = ConstMul()
+    model.to_device(device)
+
+    inputs = [np.array(3, dtype=np.float32)]
+
+    expected = model(*inputs)
+
+    model = oniku.compile(model, inputs)
+    model.to_device(device)
+
+    actual = model(*inputs)
+
+    e = _array(expected)
+    a = _array(actual)
+    assert _get_device(e) == _get_device(a)
+    _assert_allclose(e, a)
 
 
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
