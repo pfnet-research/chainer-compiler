@@ -220,11 +220,14 @@ XCVMVar* StageVar(XCVMVar* var) {
 
 class ModelRunner {
 public:
-    ModelRunner(const cmdline::parser& args, int64_t initial_free_bytes, int64_t param_bytes, Model* model)
+    ModelRunner(const cmdline::parser& args, int64_t initial_free_bytes, Model* model)
         : model_(model),
           args_(args),
-          initial_free_bytes_(initial_free_bytes),
-          param_bytes_(param_bytes) {
+          initial_free_bytes_(initial_free_bytes) {
+        RunDefaultPasses(model, args.exist("backprop"));
+        params_ = LoadParams(model->graph());
+        param_bytes_ = initial_free_bytes - GetMemoryUsageInBytes();
+
         LOG() << "Constructing model..." << std::endl;
         if (args.exist("dump_onnx")) {
             onnx::ModelProto xmodel;
@@ -297,13 +300,18 @@ public:
         return outputs;
     }
 
+    const InOuts& params() const {
+        return params_;
+    }
+
 private:
     Model* model_;
     const cmdline::parser& args_;
     std::unique_ptr<XCVM> xcvm_;
     XCVMOptions xcvm_opts_;
+    InOuts params_;
     const int64_t initial_free_bytes_;
-    const int64_t param_bytes_;
+    int64_t param_bytes_;
 };
 
 void RunMain(int argc, char** argv) {
@@ -403,11 +411,7 @@ void RunMain(int argc, char** argv) {
         test_cases.swap(new_test_cases);
     }
 
-    RunDefaultPasses(&model, args.exist("backprop"));
-    InOuts params(LoadParams(model.graph()));
-
-    int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
-    ModelRunner model_runner(args, initial_free_bytes, param_bytes, &model);
+    ModelRunner model_runner(args, initial_free_bytes, &model);
 
     if (args.exist("compile_only")) return;
 
@@ -415,7 +419,7 @@ void RunMain(int argc, char** argv) {
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
-        InOuts inputs(params);
+        InOuts inputs(model_runner.params());
         for (const auto& p : test_case->inputs) {
             XCVMVar* v = StageVar(p.second.get());
             CHECK(inputs.emplace(p.first, std::shared_ptr<XCVMVar>(v)).second) << "Duplicated input parameter: " << p.first;
