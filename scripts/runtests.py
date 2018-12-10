@@ -536,6 +536,26 @@ TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(onnx_real_tests.get())
 
+new_tests = []
+for test in TEST_CASES:
+    if not test.is_backprop:
+        continue
+
+    if ('pc_if_' in test.name or
+        'oc_batch_normalization' in test.name or
+        'EspNet_' in test.name or
+        'StatelessLSTM_' in test.name or
+        'If_' in test.name):
+        continue
+
+    new_test = copy.copy(test)
+    new_test.name = test.name + '_two_phase'
+    new_test.is_backprop_two_phase = True
+    new_tests.append(new_test)
+
+for test in new_tests:
+    TEST_CASES.append(test)
+
 if args.test_filter is not None:
     reg = re.compile(args.test_filter)
     TEST_CASES = [case for case in TEST_CASES if reg.search(case.name)]
@@ -633,7 +653,9 @@ def main():
             test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
-        if test_case.is_backprop:
+        if test_case.is_backprop_two_phase:
+            test_case.args.append('--backprop_two_phase')
+        elif test_case.is_backprop:
             test_case.args.append('--backprop')
         if test_case.backend is not None:
             test_case.args.append('--backend')
