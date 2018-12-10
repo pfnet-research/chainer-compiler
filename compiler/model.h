@@ -17,7 +17,6 @@ public:
     explicit Model(const onnx::ModelProto& xmodel);
     ~Model();
 
-    Model(const Model&) = delete;
     Model& operator=(const Model&) = delete;
 
     void ToONNX(onnx::ModelProto* xmodel) const;
@@ -56,7 +55,14 @@ public:
 
     void ResetGraph(Graph* graph);
 
+    // `graph_` will not be copied to the new model.
+    Model NewModel() const;
+
 private:
+    // `graph_` will not be copied to the new model.
+    explicit Model(const Model& model);
+    Model(Model&& model) = default;
+
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;
     std::string producer_name_;

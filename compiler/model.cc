@@ -47,4 +47,19 @@ void Model::ResetGraph(Graph* graph) {
     graph_.reset(graph);
 }
 
+Model Model::NewModel() const {
+    return Model(*this);
+}
+
+Model::Model(const Model& model)
+    : ir_version_(model.ir_version_),
+      opset_import_(model.opset_import_),
+      producer_name_(model.producer_name_),
+      producer_version_(model.producer_version_),
+      domain_(model.domain_),
+      model_version_(model.model_version_),
+      doc_string_(model.doc_string_),
+      metadata_props_(model.metadata_props_) {
+}
+
 }  // namespace oniku
