@@ -123,24 +123,19 @@ class CompiledModel(chainer.Chain):
             for name in model._children:
                 setattr(self, name, model[name])
         self.dump_onnx = dump_onnx
+
         self.compiled = False
+        self.param_names = None
+        self.param_values = None
         if inputs is not None:
             self.compile(inputs)
 
     def _to_device(self, *args, **kwargs):
         self.model_on_device = self.model.copy()
         self.model_on_device._to_device(*args, **kwargs)
-        self._update_params()
-        return self
-
-    def _update_params(self):
-        params = dict(self.model_on_device.namedparams())
-        self.param_values = []
-        for name in self.param_names:
-            assert name in params
-            self.param_values.append(params[name])
         for name in self.model_on_device._children:
             setattr(self, name, self.model_on_device[name])
+        return self
 
     def compile(self, inputs):
         xmodel = ch2o.compile_model(self.model, inputs)
@@ -170,9 +165,7 @@ class CompiledModel(chainer.Chain):
         self.bwd_output_names = bwd_graph.output_names()
         self.fwd = fwd_graph.compile()
         self.bwd = bwd_graph.compile()
-
         self.param_names = self.fwd_input_names[len(inputs):]
-        self._update_params()
 
         self.compiled = True
 
@@ -181,6 +174,14 @@ class CompiledModel(chainer.Chain):
             outputs = self.model_on_device(*args)
             self.compile(args)
             return outputs
+
+        if self.param_values is None:
+            assert self.param_names is not None
+            params = dict(self.model_on_device.namedparams())
+            self.param_values = []
+            for name in self.param_names:
+                assert name in params
+                self.param_values.append(params[name])
 
         inputs = list(args)
         flat_inputs = _flatten(inputs)
