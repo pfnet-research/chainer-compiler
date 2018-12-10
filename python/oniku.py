@@ -130,7 +130,17 @@ class CompiledModel(chainer.Chain):
     def _to_device(self, *args, **kwargs):
         self.model_on_device = self.model.copy()
         self.model_on_device._to_device(*args, **kwargs)
+        self._update_params()
         return self
+
+    def _update_params(self):
+        params = dict(self.model_on_device.namedparams())
+        self.param_values = []
+        for name in self.param_names:
+            assert name in params
+            self.param_values.append(params[name])
+        for name in self.model_on_device._children:
+            setattr(self, name, self.model_on_device[name])
 
     def compile(self, inputs):
         xmodel = ch2o.compile_model(self.model, inputs)
@@ -161,11 +171,8 @@ class CompiledModel(chainer.Chain):
         self.fwd = fwd_graph.compile()
         self.bwd = bwd_graph.compile()
 
-        params = dict(self.model.namedparams())
-        self.param_values = []
-        for name in self.fwd_input_names[len(inputs):]:
-            assert name in params
-            self.param_values.append(params[name])
+        self.param_names = self.fwd_input_names[len(inputs):]
+        self._update_params()
 
         self.compiled = True
 
