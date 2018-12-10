@@ -21,6 +21,23 @@ def _flatten(xs):
     return o
 
 
+def _flatten_structured(xs, tmpl):
+    o = []
+    for x, t in zip(xs, tmpl):
+        if _is_array(t):
+            assert _is_array(x)
+            o.append(x)
+        else:
+            assert not _is_array(x), '%s vs %s' % (x, t)
+            if len(x) == len(t):
+                o.extend(_flatten_structured(x, t))
+            elif len(x) == 0:
+                o.extend([None] * len(t))
+            else:
+                raise RuntimeError('%s vs %s' % (x, t))
+    return o
+
+
 def _unflatten(xs, tmpl, i=0):
     o = []
     for t in tmpl:
@@ -67,7 +84,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
     def forward(self, flat_args):
         device = chainer.backend.get_device_from_array(*flat_args)
         args, i = _unflatten(flat_args, self.input_tmpl)
-        args += flat_args[i:]  # For params.
+        assert i == len(flat_args)
 
         inputs = {}
         assert len(self.fwd_input_names) == len(args)
@@ -110,10 +127,21 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         with chainer.using_device(self.chainerx_device):
             outputs = self.bwd.run(inputs)
         gxs = []
-        for name in self.bwd_output_names:
-            gx = _from_var(outputs[name], device)
-            gxs.append(chainer.Variable(gx))
-        return tuple(_flatten(gxs))
+        assert len(self.input_tmpl) == len(self.fwd_input_names)
+        for name, tmpl in zip(self.fwd_input_names, self.input_tmpl):
+            grad_name = 'grad_out@' + name
+            if grad_name in outputs:
+                gx = _from_var(outputs[grad_name], device)
+                if _is_array(tmpl):
+                    gxs.append(gx)
+                else:
+                    assert len(gx) == len(tmpl)
+                    gxs.extend(_flatten_structured(gx, tmpl))
+            else:
+                gxs.extend([None] * len(_flatten(tmpl)))
+
+        gxs = tuple(None if gx is None else chainer.Variable(gx) for gx in gxs)
+        return gxs
 
 
 class CompiledModel(chainer.Chain):
@@ -192,7 +220,7 @@ class CompiledModel(chainer.Chain):
 
         inputs = list(args)
         flat_inputs = _flatten(inputs)
-        runner = RunCompiledModel(self, inputs)
+        runner = RunCompiledModel(self, inputs + self.param_values)
         outputs = runner.apply(flat_inputs + self.param_values)
         outputs = runner.unflatten_outputs(outputs)
         outputs = outputs[:len(self.orig_output_names)]
