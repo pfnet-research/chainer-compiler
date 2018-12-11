@@ -148,15 +148,8 @@ class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, dump_onnx=False):
         super(CompiledModel, self).__init__()
-        # `model` is set outside the scope so the compiled model will
-        # not create an extra namespace.
-        # TODO(hamaji): Probably this is not a great idea. Revisit
-        # this implementation.
-        self.model = model
-        self.model_on_device = self.model
         with self.init_scope():
-            for name in model._children:
-                setattr(self, name, model[name])
+            self.mc = model
         self.dump_onnx = dump_onnx
 
         self.compiled = False
@@ -165,15 +158,8 @@ class CompiledModel(chainer.Chain):
         if inputs is not None:
             self.compile(inputs)
 
-    def _to_device(self, *args, **kwargs):
-        self.model_on_device = self.model.copy()
-        self.model_on_device._to_device(*args, **kwargs)
-        for name in self.model_on_device._children:
-            setattr(self, name, self.model_on_device[name])
-        return self
-
     def compile(self, inputs):
-        xmodel = ch2o.compile_model(self.model, inputs)
+        xmodel = ch2o.compile_model(self.mc, inputs)
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(xmodel.SerializeToString())
         f.close()
@@ -206,13 +192,13 @@ class CompiledModel(chainer.Chain):
 
     def forward(self, *args):
         if not self.compiled:
-            outputs = self.model_on_device(*args)
+            outputs = self.mc(*args)
             self.compile(args)
             return outputs
 
         if self.param_values is None:
             assert self.param_names is not None
-            params = dict(self.model_on_device.namedparams())
+            params = dict(self.mc.namedparams())
             self.param_values = []
             for name in self.param_names:
                 assert name in params

@@ -99,6 +99,7 @@ def test_mnist(device_name):
         loss.backward()
         grads = []
         for name, param in sorted(model.namedparams()):
+            name = name.replace('/mc', '')
             grads.append((name, chainer.backend.to_chainerx(param.grad)))
         loss = chainer.backend.to_chainerx(loss.array)
         return loss, grads
@@ -258,6 +259,7 @@ def test_sequence_grad(device_name):
         loss.backward()
         grads = []
         for name, param in sorted(model.namedparams()):
+            name = name.replace('/mc', '')
             grads.append((name, chainer.backend.to_chainerx(param.grad)))
         loss = chainer.backend.to_chainerx(loss.array)
         return ys, grads
@@ -323,6 +325,7 @@ def test_partially_differentiable(device_name):
         loss.backward()
         grads = []
         for name, param in sorted(model.namedparams()):
+            name = name.replace('/mc', '')
             grads.append((name, chainer.backend.to_chainerx(param.grad)))
         loss = chainer.backend.to_chainerx(loss.array)
         return loss, grads
