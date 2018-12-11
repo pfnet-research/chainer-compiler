@@ -507,12 +507,6 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.pad_sequence, Function_PadSequence),
                 (F.swapaxes, Function_SwapAxes),
                 (F.split_axis, Function_SplitAxis),
-                (np.array, Np_Array),
-                (np.int32, Np_Int32),
-                (np.ceil, Xp_Np_Ceil),
-                (np.zeros, Np_Zeros),
-                (np.full, Np_Full),
-                (np.cumsum, Np_Cumsum),
                 (F.vstack, Function_Vstack),
                 (F.hstack, Function_Hstack),
                 (F.stack, Function_Stack),
@@ -524,6 +518,33 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (chainer.Variable, Function_Chainer_Variable),
 ]:
     Func2NodeClass[fn] = cls(fn)
+
+xps = [np]
+
+try:
+    import cupy
+    xps.append(cupy)
+except:
+    pass
+
+try:
+    import chainerx
+    xps.append(chainerx)
+except:
+    pass
+
+for name, cls in [('array', Np_Array),
+                  ('int32', Np_Int32),
+                  ('ceil', Xp_Np_Ceil),
+                  ('zeros', Np_Zeros),
+                  ('full', Np_Full),
+                  ('cumsum', Np_Cumsum),
+]:
+    np_fn = getattr(np, name)
+    for xp in xps:
+        if hasattr(xp, name):
+            fn = getattr(xp, name)
+            Func2NodeClass[fn] = cls(np_fn)
 
 for fn, name in [(F.relu, 'Relu'),
                  (F.sigmoid, 'Sigmoid'),
