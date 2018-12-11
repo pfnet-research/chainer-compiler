@@ -324,10 +324,15 @@ def test_partially_differentiable(device_name):
     model.to_device(device)
 
     expected_loss, expected_grads = _run_fwd_bwd(model, [xs, indices])
+    expected_gxs = [x.grad for x in xs]
+
+    xs = aranges(device.xp, seq_length, batch_size, n_units)
+    xs = [chainer.Variable(device.xp.array(x)) for x in xs]
 
     model = oniku.compile(model, [xs, indices])
     model.to_device(device)
     actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
+    actual_gxs = [x.grad for x in xs]
 
     chainerx.testing.assert_allclose(expected_loss, actual_loss, rtol=1e-5)
 
@@ -338,3 +343,9 @@ def test_partially_differentiable(device_name):
         assert e_grad is not None, e_name
         assert a_grad is not None, a_name
         _assert_allclose(e_grad, a_grad, rtol=1e-4)
+
+    # TODO(hamaji): Fix this test.
+    # for e, a in zip(expected_gxs, actual_gxs):
+    #     assert e is not None
+    #     assert a is not None
+    #     _assert_allclose(e, a)
