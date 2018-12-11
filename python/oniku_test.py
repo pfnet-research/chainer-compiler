@@ -107,7 +107,6 @@ def _assert_allclose(e, a, **kwargs):
     return chainerx.testing.assert_allclose(e, a, **kwargs)
 
 
-
 def _array(v):
     if isinstance(v, chainer.Variable):
         return v.array
@@ -282,6 +281,66 @@ def test_sequence_grad(device_name):
         a = _array(a)
         assert _get_device(e) == _get_device(a)
         _assert_allclose(e, a, rtol=1e-4)
+
+    assert len(expected_grads) == len(actual_grads)
+    for (e_name, e_grad), (a_name, a_grad) in zip(
+            expected_grads, actual_grads):
+        assert e_name == a_name
+        assert e_grad is not None, e_name
+        assert a_grad is not None, a_name
+        _assert_allclose(e_grad, a_grad, rtol=1e-4)
+
+
+class PartiallyDifferentiable(chainer.Chain):
+
+    def __init__(self, n_units):
+        super(PartiallyDifferentiable, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(n_units, n_units)
+
+    def forward(self, xs, indices):
+        r = xs[0]
+        for i in indices:
+            x = xs[i]
+            r = self.l(r) * x
+        return r
+
+
+@pytest.mark.parametrize('device_name', [np])
+def test_partially_differentiable(device_name):
+    np.random.seed(40)
+    device = chainer.get_device(device_name)
+    device.use()
+
+    n_units = 3
+    batch_size = 2
+    seq_length = 7
+
+    xs = aranges(device.xp, seq_length, batch_size, n_units)
+    xs = [chainer.Variable(device.xp.array(x)) for x in xs]
+    indices = [np.array(i, dtype=np.int32) for i in [2, 3, 5, 1]]
+
+    model = PartiallyDifferentiable(n_units)
+    model.to_device(device)
+
+    def run_model(model):
+        model.cleargrads()
+        loss = model(xs, indices)
+        loss.grad = device.xp.ones(loss.shape, loss.dtype)
+        loss.backward()
+        grads = []
+        for name, param in sorted(model.namedparams()):
+            grads.append((name, chainer.backend.to_chainerx(param.grad)))
+        loss = chainer.backend.to_chainerx(loss.array)
+        return loss, grads
+
+    expected_loss, expected_grads = run_model(model)
+
+    model = oniku.compile(model, [xs, indices])
+    model.to_device(device)
+    actual_loss, actual_grads = run_model(model)
+
+    chainerx.testing.assert_allclose(expected_loss, actual_loss, rtol=1e-5)
 
     assert len(expected_grads) == len(actual_grads)
     for (e_name, e_grad), (a_name, a_grad) in zip(
