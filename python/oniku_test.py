@@ -38,22 +38,6 @@ def test_unflatten():
     assert i == len(flat)
 
 
-class MLP(chainer.Chain):
-
-    def __init__(self, n_units, n_out):
-        super(MLP, self).__init__()
-        with self.init_scope():
-            # the size of the inputs to each layer will be inferred
-            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
-            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
-            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
-
-    def forward(self, x):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
-        return self.l3(h2)
-
-
 def _assert_allclose(e, a, **kwargs):
     if isinstance(e, cupy.ndarray):
         e = chainer.cuda.to_cpu(e)
@@ -69,6 +53,40 @@ def _array(v):
 
 def _get_device(v):
     return chainer.backend.get_device_from_array(_array(v))
+
+
+def _run_fwd_bwd(model, inputs):
+    model.cleargrads()
+    y = model(*inputs)
+    if isinstance(y, (list, tuple)):
+        loss = F.sum(F.stack(y))
+        y = [chainer.backend.to_chainerx(x.array) for x in y]
+    else:
+        loss = y
+        y = y.array
+    loss.grad = model.xp.ones(loss.shape, loss.dtype)
+    loss.backward()
+    grads = []
+    for name, param in sorted(model.namedparams()):
+        name = name.replace('/mc', '')
+        grads.append((name, chainer.backend.to_chainerx(param.grad)))
+    return y, grads
+
+
+class MLP(chainer.Chain):
+
+    def __init__(self, n_units, n_out):
+        super(MLP, self).__init__()
+        with self.init_scope():
+            # the size of the inputs to each layer will be inferred
+            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
+
+    def forward(self, x):
+        h1 = F.relu(self.l1(x))
+        h2 = F.relu(self.l2(h1))
+        return self.l3(h2)
 
 
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
@@ -104,15 +122,15 @@ def test_mnist(device_name):
         loss = chainer.backend.to_chainerx(loss.array)
         return loss, grads
 
-    expected_loss, expected_grads = run_model(model)
+    expected_loss, expected_grads = _run_fwd_bwd(model, [input, target])
 
     mlp_compiled = oniku.compile(mlp, [input])
     model = L.Classifier(mlp_compiled)
     model.to_device(device)
 
-    actual_loss, actual_grads = run_model(model)
+    actual_loss, actual_grads = _run_fwd_bwd(model, [input, target])
 
-    chainerx.testing.assert_allclose(expected_loss, actual_loss)
+    _assert_allclose(expected_loss, actual_loss)
 
     assert len(expected_grads) == len(actual_grads)
     for (e_name, e_grad), (a_name, a_grad) in zip(
@@ -251,24 +269,11 @@ def test_sequence_grad(device_name):
     xs = aranges(device.xp, seq_length, batch_size, n_units)
     xs = [device.xp.array(x) for x in xs]
 
-    def run_model(model):
-        model.cleargrads()
-        ys = model(xs)
-        loss = F.sum(F.stack(ys))
-        loss.grad = device.xp.ones(loss.shape, loss.dtype)
-        loss.backward()
-        grads = []
-        for name, param in sorted(model.namedparams()):
-            name = name.replace('/mc', '')
-            grads.append((name, chainer.backend.to_chainerx(param.grad)))
-        loss = chainer.backend.to_chainerx(loss.array)
-        return ys, grads
-
-    expected_ys, expected_grads = run_model(model)
+    expected_ys, expected_grads = _run_fwd_bwd(model, [xs])
 
     model = oniku.compile(model, [xs])
     model.to_device(device)
-    actual_ys, actual_grads = run_model(model)
+    actual_ys, actual_grads = _run_fwd_bwd(model, [xs])
 
     assert len(expected_ys) == len(actual_ys)
     for e, a in zip(expected_ys, actual_ys):
@@ -318,23 +323,11 @@ def test_partially_differentiable(device_name):
     model = PartiallyDifferentiable(n_units)
     model.to_device(device)
 
-    def run_model(model):
-        model.cleargrads()
-        loss = model(xs, indices)
-        loss.grad = device.xp.ones(loss.shape, loss.dtype)
-        loss.backward()
-        grads = []
-        for name, param in sorted(model.namedparams()):
-            name = name.replace('/mc', '')
-            grads.append((name, chainer.backend.to_chainerx(param.grad)))
-        loss = chainer.backend.to_chainerx(loss.array)
-        return loss, grads
-
-    expected_loss, expected_grads = run_model(model)
+    expected_loss, expected_grads = _run_fwd_bwd(model, [xs, indices])
 
     model = oniku.compile(model, [xs, indices])
     model.to_device(device)
-    actual_loss, actual_grads = run_model(model)
+    actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
 
     chainerx.testing.assert_allclose(expected_loss, actual_loss, rtol=1e-5)
 
