@@ -54,45 +54,6 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-class Sequence(chainer.Chain):
-
-    def forward(self, xs):
-        s = xs[0]
-        ys = [s]
-        for x in xs[1:]:
-            s = F.relu(s) * x
-            ys.append(s)
-        return ys
-
-
-class MultiInOuts(chainer.Chain):
-
-    def forward(self, x, y):
-        return x + y, x * y
-
-
-class ConstMul(chainer.Chain):
-
-    def forward(self, x):
-        return x * np.array(42.0, dtype=np.float32)
-
-
-class SequenceGrad(chainer.Chain):
-
-    def __init__(self, n_units):
-        super(SequenceGrad, self).__init__()
-        with self.init_scope():
-            self.l = L.Linear(n_units, n_units)
-
-    def forward(self, xs):
-        s = xs[0]
-        ys = [chainer.Variable(s)]
-        for x in xs[1:]:
-            s = self.l(s) + x
-            ys.append(s)
-        return ys
-
-
 def _assert_allclose(e, a, **kwargs):
     if isinstance(e, cupy.ndarray):
         e = chainer.cuda.to_cpu(e)
@@ -161,6 +122,12 @@ def test_mnist(device_name):
         chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
 
 
+class MultiInOuts(chainer.Chain):
+
+    def forward(self, x, y):
+        return x + y, x * y
+
+
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_multi_in_outs(device_name):
     device = chainer.get_device(device_name)
@@ -184,6 +151,12 @@ def test_multi_in_outs(device_name):
         a = _array(a)
         assert _get_device(e) == _get_device(a)
         _assert_allclose(e, a)
+
+
+class ConstMul(chainer.Chain):
+
+    def forward(self, x):
+        return x * np.array(42.0, dtype=np.float32)
 
 
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
@@ -211,6 +184,17 @@ def test_const_mul(device_name):
     _assert_allclose(e, a)
 
 
+class Sequence(chainer.Chain):
+
+    def forward(self, xs):
+        s = xs[0]
+        ys = [s]
+        for x in xs[1:]:
+            s = F.relu(s) * x
+            ys.append(s)
+        return ys
+
+
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
 def test_sequence(device_name):
     device = chainer.get_device(device_name)
@@ -234,6 +218,22 @@ def test_sequence(device_name):
         a = _array(a)
         assert _get_device(e) == _get_device(a)
         _assert_allclose(e, a)
+
+
+class SequenceGrad(chainer.Chain):
+
+    def __init__(self, n_units):
+        super(SequenceGrad, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(n_units, n_units)
+
+    def forward(self, xs):
+        s = xs[0]
+        ys = [chainer.Variable(s)]
+        for x in xs[1:]:
+            s = self.l(s) + x
+            ys.append(s)
+        return ys
 
 
 @pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
