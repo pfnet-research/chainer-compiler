@@ -93,13 +93,6 @@ class SequenceGrad(chainer.Chain):
         return ys
 
 
-# TODO(hamaji): Figure out why this is necessary.
-def _accuracy(y, t):
-    y = chainer.backend.from_chainerx(y.array)
-    result = chainer.functions.evaluation.accuracy.accuracy(y, t)
-    return result
-
-
 def _assert_allclose(e, a, **kwargs):
     if isinstance(e, cupy.ndarray):
         e = chainer.cuda.to_cpu(e)
@@ -152,7 +145,7 @@ def test_mnist(device_name):
     expected_loss, expected_grads = run_model(model)
 
     mlp_compiled = oniku.compile(mlp, [input])
-    model = L.Classifier(mlp_compiled, accfun=_accuracy)
+    model = L.Classifier(mlp_compiled)
     model.to_device(device)
 
     actual_loss, actual_grads = run_model(model)
