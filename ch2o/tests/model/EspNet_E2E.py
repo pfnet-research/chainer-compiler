@@ -453,6 +453,52 @@ def csj_medium_recipe():
     return (idim, odim, args), (xs, ilens, ys)
 
 
+def librispeech_recipe():
+    aconv_chans = 10
+    aconv_filts = 100
+    att_dim = 1024
+    batch_size = 20
+    dlayers = 2
+    dunits = 1024
+    elayers = 5
+    eprojs = 1024
+    eunits = 1024
+
+    ilen = 1500
+    olen = 50
+    idim = 83
+    odim = 5002
+
+    args = Args({
+        'aconv_chans': aconv_chans,
+        'aconv_filts': aconv_filts,
+        'adim': att_dim,
+        #'atype': 'dot',
+        'atype': 'location',
+        'char_list': None,
+        'ctc_type': None,
+        'dlayers': dlayers,
+        'dropout_rate': 0,
+        'dunits': dunits,
+        'elayers': elayers,
+        'eprojs': eprojs,
+        'etype': 'vggblstm',
+        'eunits': eunits,
+        'lsm_type': None,
+        'lsm_weight': None,
+        'mtlalpha': 0,
+        'outdir': None,
+        'sampling_probability': None,
+        'subsample': None,
+        'train_json': None,
+        'verbose': False,
+    })
+
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
+
+    return (idim, odim, args), (xs, ilens, ys)
+
+
 def cpu_bench_recipe():
     # An extremely
     aconv_chans = 4
@@ -576,6 +622,7 @@ def dispatch():
         'csj_small': csj_small_recipe,
         'csj_medium': csj_medium_recipe,
         'cpu_bench': cpu_bench_recipe,
+        'librispeech': librispeech_recipe,
     }[args.recipe]()
 
     backward = not args.forward
