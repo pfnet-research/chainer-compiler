@@ -453,21 +453,15 @@ def csj_medium_recipe():
     return (idim, odim, args), (xs, ilens, ys)
 
 
-def librispeech_recipe():
+def librispeech_args():
     aconv_chans = 10
     aconv_filts = 100
     att_dim = 1024
-    batch_size = 20
     dlayers = 2
     dunits = 1024
     elayers = 5
     eprojs = 1024
     eunits = 1024
-
-    ilen = 1500
-    olen = 50
-    idim = 83
-    odim = 5002
 
     args = Args({
         'aconv_chans': aconv_chans,
@@ -493,7 +487,32 @@ def librispeech_recipe():
         'train_json': None,
         'verbose': False,
     })
+    return args
 
+
+def librispeech_small_recipe():
+    batch_size = 3
+    ilen = 1500
+    olen = 50
+    idim = 83
+    odim = 5002
+    args = librispeech_args()
+    args.att_dim = 512
+    args.dunits = 512
+    args.eprojs = 512
+    args.eunits = 512
+    xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
+
+    return (idim, odim, args), (xs, ilens, ys)
+
+
+def librispeech_recipe():
+    batch_size = 20
+    ilen = 1500
+    olen = 50
+    idim = 83
+    odim = 5002
+    args = librispeech_args()
     xs, ilens, ys = gen_inputs(batch_size, ilen, idim, olen, odim)
 
     return (idim, odim, args), (xs, ilens, ys)
@@ -623,6 +642,7 @@ def dispatch():
         'csj_medium': csj_medium_recipe,
         'cpu_bench': cpu_bench_recipe,
         'librispeech': librispeech_recipe,
+        'librispeech_small': librispeech_small_recipe,
     }[args.recipe]()
 
     backward = not args.forward
