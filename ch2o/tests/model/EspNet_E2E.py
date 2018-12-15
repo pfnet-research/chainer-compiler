@@ -583,7 +583,7 @@ def gen_test():
                            [xs, ilens, ys], backprop=True)
 
 
-def run(recipe, bwd=True, is_gpu=False):
+def run(recipe, num_iterations, bwd=True, is_gpu=False):
     (idim, odim, args), (xs, ilens, ys) = recipe
     model = E2E(idim, odim, args, use_chainer=True)
 
@@ -596,9 +596,8 @@ def run(recipe, bwd=True, is_gpu=False):
     cuda_hook = function_hooks.CUDAProfileHook()
 
     elapsed_total = 0.0
-    iterations = 10
     with cuda_hook:
-        for i in range(iterations):
+        for i in range(num_iterations):
             st = time.time()
             model.cleargrads()
             loss = model(xs, ilens, ys)
@@ -614,7 +613,7 @@ def run(recipe, bwd=True, is_gpu=False):
             print('Elapsed: %s msec' % elapsed)
             if i: elapsed_total += elapsed
 
-    print('Average elapsed: %s msec' % (elapsed_total / (iterations - 1)))
+    print('Average elapsed: %s msec' % (elapsed_total / (num_iterations - 1)))
 
 
 def gen(output, recipe, bwd=True, use_gpu=False):
@@ -633,6 +632,7 @@ def dispatch():
     parser.add_argument('--recipe', default='test', type=str)
     parser.add_argument('--forward', action='store_true')
     parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--iterations', '-I', type=int, default=10)
     args = parser.parse_args()
 
     recipe = {
@@ -650,7 +650,7 @@ def dispatch():
     if args.gen:
         gen(args.gen, recipe, backward, args.gpu)
     elif args.run:
-        run(recipe, backward, is_gpu=args.gpu)
+        run(recipe, args.iterations, backward, is_gpu=args.gpu)
     else:
         raise
 
