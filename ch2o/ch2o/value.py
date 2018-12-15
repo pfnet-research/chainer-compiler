@@ -1,5 +1,6 @@
 import collections
 
+import chainer
 import numpy as np
 import onnx
 
@@ -41,6 +42,9 @@ class Value(object):
         if (value.is_py and
             (value.value is None or
              not isinstance(value.value, type) and
+             # TODO(hamaji): We probably need to create a ValueInfo
+             # for Variable.
+             not isinstance(value.value, chainer.Variable) and
              np.array(value.value).dtype != np.object)):
             value.to_value_info(env.root())
             setattr(self.value, key, value)
