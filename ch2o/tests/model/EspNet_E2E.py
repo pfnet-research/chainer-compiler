@@ -598,13 +598,13 @@ def run(recipe, bwd=True, is_gpu=False):
     print('Average elapsed: %s msec' % (elapsed_total / (iterations - 1)))
 
 
-def gen(output, recipe, bwd=True):
+def gen(output, recipe, bwd=True, use_gpu=False):
     from ch2o import test_args
     test_args.get_test_args([output, '--allow-unused-params'])
 
     (idim, odim, args), (xs, ilens, ys) = recipe
     ch2o.generate_testcase(lambda: E2E(idim, odim, args),
-                           [xs, ilens, ys], backprop=bwd)
+                           [xs, ilens, ys], backprop=bwd, use_gpu=use_gpu)
 
 
 def dispatch():
@@ -628,7 +628,7 @@ def dispatch():
     backward = not args.forward
 
     if args.gen:
-        gen(args.gen, recipe, backward)
+        gen(args.gen, recipe, backward, args.gpu)
     elif args.run:
         run(recipe, backward, is_gpu=args.gpu)
     else:

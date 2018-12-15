@@ -9,7 +9,7 @@ import shutil
 import types
 
 import numpy as np
-
+import cupy
 import chainer
 
 from ch2o.chainer2onnx import compile_model
@@ -20,7 +20,7 @@ import onnx
 from onnx import numpy_helper
 from onnx import TensorProto
 
-from ch2o.initializer import edit_onnx_protobuf
+from ch2o.initializer import edit_onnx_protobuf, tensor_from_array
 
 # variableを消す
 
@@ -35,7 +35,7 @@ def _validate_inout(xs):
 
     if isinstance(xs, chainer.Variable):
         xs = xs.array
-    elif isinstance(xs, np.ndarray):
+    elif isinstance(xs, (np.ndarray, cupy.ndarray)):
         pass
     elif isinstance(xs, bool):
         xs = np.array(xs, dtype=np.bool)
@@ -82,7 +82,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                     filename = os.path.join(
                         test_data_dir,
                         '%s_%d_%s.pb' % (typ, i, str(j).zfill(digits)))
-                    tensor = numpy_helper.from_array(v, name)
+                    tensor = tensor_from_array(v, name)
                     with open(filename, 'wb') as f:
                         f.write(tensor.SerializeToString())
 
@@ -97,7 +97,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
                     if get_test_args().allow_unused_params:
                         continue
                     raise RuntimeError('Unused parameter: %s' % name)
-                tensor = numpy_helper.from_array(value, name)
+                tensor = tensor_from_array(value, name)
                 with open(filename, 'wb') as f:
                     f.write(tensor.SerializeToString())
 
@@ -110,7 +110,7 @@ _seen_subnames = set()
 
 
 def generate_testcase(model, xs, subname=None, output_dir=None,
-                      backprop=False):
+                      backprop=False, use_gpu=False):
     if output_dir is None:
         args = get_test_args()
         output_dir = args.output
@@ -143,13 +143,23 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
     output_tensors = onnxmod.graph.output
 
     model = get_model()
+    if use_gpu:
+        model.to_gpu()
+        xs_gpu = []
+        for x in xs:
+            if isinstance(x, (list, tuple)):
+                x = [cupy.array(a) for a in x]
+            else:
+                x = cupy.array(x)
+            xs_gpu.append(x)
+        xs = xs_gpu
     chainer.config.train = backprop
     model.cleargrads()
     ys = model(*xs)
     chainer_out = validate_chainer_output(ys)
 
     if backprop:
-        ys.grad = np.ones(ys.shape, ys.dtype)
+        ys.grad = model.xp.ones(ys.shape, ys.dtype)
         ys.backward()
 
     # 1回の実行をもとにinitialize

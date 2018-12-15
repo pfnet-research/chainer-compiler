@@ -3,12 +3,19 @@
 # からもらっってきました
 
 import chainer
+import cupy
 import numpy as np
 
 import onnx
 
 from chainer import functions as F
 from chainer import links as L
+
+
+def tensor_from_array(array, name):
+    if isinstance(array, cupy.ndarray):
+        array = chainer.cuda.to_cpu(array)
+    return onnx.numpy_helper.from_array(array, name)
 
 
 def convert_parameter(parameter, name):
@@ -26,7 +33,7 @@ def convert_parameter(parameter, name):
     if array.shape == ():
         array = array[None]
     # print('initialize', name, array)
-    return onnx.numpy_helper.from_array(array, name)
+    return tensor_from_array(array, name)
 
 # 入力xから次元を決める
 # モデルにxを流して最初の重みを決める
