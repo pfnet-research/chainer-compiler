@@ -27,4 +27,29 @@ def test_dropout_inference():
     outputs = xcvm.run(inputs)
     output = outputs[output_names[0]].array()
 
-    chainerx.testing.assert_allclose(input, output)
+    assert bool(chainerx.sum(input != output) == 0)
+
+
+def test_dropout_training():
+    graph = oniku_core.load(
+        'onnx/onnx/backend/test/data/node/test_dropout_random/model.onnx')
+    input_names = graph.input_names()
+    output_names = graph.output_names()
+    assert len(input_names) == 1
+    assert len(output_names) == 1
+
+    xcvm = graph.compile()
+    input = chainerx.array(np.random.normal(size=(3, 4, 5)))
+    inputs = {input_names[0]: oniku_core.value(input)}
+
+    # TODO(hamaji): Enable this test.
+    return
+
+    num_retries = 3
+    for i in range(num_retries):
+        outputs = xcvm.run(inputs, training=True)
+        output = outputs[output_names[0]].array()
+        ok = bool(chainerx.sum(input != output) > 0)
+        if ok: break
+    else:
+        assert False, 'No dropout was observed in %d attempts' % num_retries
