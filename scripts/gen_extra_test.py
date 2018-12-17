@@ -905,8 +905,11 @@ def gen_batchnorm_training_test(save_mean_var=False):
         gb.output(var_out_v, bn.avg_var)
         if saved:
             mean_out_v, var_out_v = saved
-            gb.output(mean_out_v, input.mean())
-            gb.output(var_out_v, input.var())
+            mean_out = input.mean(axis=(0, 2, 3))
+            var_out = input.var(axis=(0, 2, 3))
+            np.testing.assert_allclose(output.creator.mean, mean_out)
+            gb.output(mean_out_v, mean_out)
+            gb.output(var_out_v, var_out)
 
         gb.gen_test()
 
