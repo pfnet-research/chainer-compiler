@@ -9,7 +9,7 @@ oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(oniku_root, 'build/python'))
 sys.path.append(os.path.join(oniku_root, 'python'))
 
-import oniku_core as oniku
+import oniku_core
 
 
 def aranges(*shape):
@@ -18,7 +18,7 @@ def aranges(*shape):
 
 
 def test_inference():
-    graph = oniku.load('out/ch2o_node_Linear/model.onnx')
+    graph = oniku_core.load('out/ch2o_node_Linear/model.onnx')
     params = graph.params()
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -29,7 +29,7 @@ def test_inference():
 
     inputs = dict(params)
     t1 = aranges(5, 7)
-    inputs[input_names[0]] = oniku.value(t1)
+    inputs[input_names[0]] = oniku_core.value(t1)
 
     y1 = chainerx.dot(t1, params['/l1/W'].array().T) + params['/l1/b'].array()
     y2 = chainerx.dot(t1, params['/l2/W'].array().T)
@@ -44,7 +44,7 @@ def test_inference():
 
 
 def test_backprop():
-    graph = oniku.load('out/ch2o_node_Linear_backprop/model.onnx')
+    graph = oniku_core.load('out/ch2o_node_Linear_backprop/model.onnx')
     params = graph.params()
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -62,7 +62,7 @@ def test_backprop():
 
     fwd_inputs = dict(params)
     t1 = aranges(5, 7)
-    fwd_inputs[input_names[0]] = oniku.value(t1)
+    fwd_inputs[input_names[0]] = oniku_core.value(t1)
 
     loss = (chainerx.dot(t1, params['/l1/W'].array().T) +
             params['/l1/b'].array())
@@ -81,7 +81,7 @@ def test_backprop():
         value = fwd_outputs[name]
         if name in output_names:
             iname = 'grad_in@' + name
-            value = oniku.value(grad_loss)
+            value = oniku_core.value(grad_loss)
         bwd_inputs[iname] = value
 
     bwd_outputs = bwd.run(bwd_inputs)
