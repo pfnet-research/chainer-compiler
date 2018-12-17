@@ -1,6 +1,7 @@
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 #include <chainerx/routines/normalization.h>
+#include <chainerx/routines/statistics.h>
 
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
@@ -147,6 +148,18 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
         XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
         chainerx::Array saved_mean, saved_var;
+        if (this->saved_mean >= 0) {
+            WARN_ONCE("saved_mean is implemented by re-calculation");
+            chainerx::Axes axes = {0};
+            for (int i = 2; i < x.ndim(); ++i) axes.push_back(i);
+            saved_mean = chainerx::Mean(x, axes);
+        }
+        if (this->saved_var >= 0) {
+            WARN_ONCE("saved_var is implemented by re-calculation");
+            chainerx::Axes axes = {0};
+            for (int i = 2; i < x.ndim(); ++i) axes.push_back(i);
+            saved_var = chainerx::Var(x, axes);
+        }
         return std::tie(out, ctx, mean, var, saved_mean, saved_var);
     } else {
         chainerx::Array out = chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);

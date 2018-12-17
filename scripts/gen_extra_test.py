@@ -1025,8 +1025,7 @@ def get_tests():
 
     test('extra_test_batchnorm_training', gen_batchnorm_training_test(False))
     test('extra_test_batchnorm_training_saved',
-         gen_batchnorm_training_test(True),
-         fail=True)
+         gen_batchnorm_training_test(True))
 
     return tests
 
