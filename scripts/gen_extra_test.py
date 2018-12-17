@@ -2,6 +2,8 @@
 
 
 import chainer
+import chainer.functions as F
+import chainer.links as L
 import numpy as np
 import onnx
 
@@ -10,8 +12,6 @@ import test_case
 
 import sentiment
 
-
-F = chainer.functions
 
 _extract_value_info = oniku_script._extract_value_info
 make_constant_node = oniku_script.make_constant_node
@@ -861,6 +861,58 @@ def gen_maxpool_cover_all_test(test_name):
     gb.gen_test()
 
 
+def gen_batchnorm_training_test(save_mean_var=False):
+    def fn(test_name):
+        gb = oniku_script.GraphBuilder(test_name)
+
+        batch_size = 2
+        chan = 3
+        wh = 5
+        epsilon = 1e-4
+        momentum = 0.95
+        chainer.config.train = True
+
+        input = np.random.random((batch_size, chan, wh, wh)).astype(np.float32)
+        bn = L.BatchNormalization(chan, decay=momentum, eps=epsilon)
+        # Initialize.
+        bn(np.random.random((batch_size, chan, wh, wh)).astype(np.float32))
+
+        scale = bn.gamma.array.copy()
+        bias = bn.beta.array.copy()
+        running_mean = bn.avg_mean.copy()
+        running_var = bn.avg_var.copy()
+
+        output = bn(input)
+
+        input_v = gb.input('input', input)
+        scale_v = gb.input('scale', scale)
+        bias_v = gb.input('bias', bias)
+        mean_in_v = gb.input('mean_in', running_mean)
+        var_in_v = gb.input('var_in', running_var)
+
+        output_names = ['output', 'mean_out', 'var_out']
+        if save_mean_var:
+            output_names.extend(['saved_mean', 'saved_var'])
+
+        output_v, mean_out_v, var_out_v, *saved = gb.BatchNormalization(
+            inputs=[input_v, scale_v, bias_v, mean_in_v, var_in_v],
+            epsilon=epsilon, momentum=momentum,
+            outputs=output_names
+        )
+
+        gb.output(output_v, output)
+        gb.output(mean_out_v, bn.avg_mean)
+        gb.output(var_out_v, bn.avg_var)
+        if saved:
+            mean_out_v, var_out_v = saved
+            gb.output(mean_out_v, input.mean())
+            gb.output(var_out_v, input.var())
+
+        gb.gen_test()
+
+    return fn
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -875,38 +927,38 @@ def get_tests():
             tests.append(TestCase(name + '_diversed', func,
                                   backend='xcvm_test', **kwargs))
 
-    test('extra_test_negative_reshape', gen_negative_reshape_test),
+    test('extra_test_negative_reshape', gen_negative_reshape_test)
 
-    test('extra_test_inf_nan', gen_inf_nan_test),
+    test('extra_test_inf_nan', gen_inf_nan_test)
 
-    test('extra_test_select_item', gen_select_item_test, diversed=True),
+    test('extra_test_select_item', gen_select_item_test, diversed=True)
 
-    test('extra_test_if_true', gen_if_test(True)),
-    test('extra_test_if_false', gen_if_test(False)),
+    test('extra_test_if_true', gen_if_test(True))
+    test('extra_test_if_false', gen_if_test(False))
     test('extra_test_if_with_input_true',
-         gen_if_with_input_test(True)),
+         gen_if_with_input_test(True))
     test('extra_test_if_with_input_false',
-         gen_if_with_input_test(False)),
+         gen_if_with_input_test(False))
     test('extra_test_if_with_external_true',
-         gen_if_with_external_test(True)),
+         gen_if_with_external_test(True))
     test('extra_test_if_with_external_false',
-         gen_if_with_external_test(False)),
+         gen_if_with_external_test(False))
 
-    test('extra_test_loop_basic', gen_loop_test()),
+    test('extra_test_loop_basic', gen_loop_test())
     test('extra_test_loop_max_trip_count',
-         gen_loop_test(max_trip_count=4)),
+         gen_loop_test(max_trip_count=4))
     test('extra_test_loop_no_max_trip_count',
-         gen_loop_test(max_trip_count=None)),
+         gen_loop_test(max_trip_count=None))
     test('extra_test_loop_false_cond',
-         gen_loop_test(terminal_condition=False)),
+         gen_loop_test(terminal_condition=False))
     test('extra_test_loop_no_cond',
-         gen_loop_test(terminal_condition=None)),
+         gen_loop_test(terminal_condition=None))
     test('extra_test_loop_scan_out',
-         gen_loop_test(has_scan_outputs=True)),
+         gen_loop_test(has_scan_outputs=True))
     test('extra_test_loop_zero_max_trip_count',
-         gen_loop_test(max_trip_count=0)),
+         gen_loop_test(max_trip_count=0))
     test('extra_test_loop_zero_trip_count',
-         gen_loop_test(cond_trip_count=0)),
+         gen_loop_test(cond_trip_count=0))
     # TODO(hamaji): Probably, we do not care loops with zero
     # iterations and scan outputs.
     #
@@ -918,55 +970,61 @@ def get_tests():
     #                        has_scan_outputs=True)),
 
     test('extra_test_loop_use_enclosing',
-                 gen_loop_use_enclosing_test()),
+                 gen_loop_use_enclosing_test())
 
-    test('extra_backprop_test', gen_backprop_test),
+    test('extra_backprop_test', gen_backprop_test)
 
-    test('extra_backprop_test_concat', gen_concat_backprop_test),
+    test('extra_backprop_test_concat', gen_concat_backprop_test)
 
     test('extra_backprop_test_loop_012',
-         gen_loop_backprop_test(0, 1, 2, 1, 5, 1)),
+         gen_loop_backprop_test(0, 1, 2, 1, 5, 1))
     test('extra_backprop_test_loop_000',
-         gen_loop_backprop_test(0, 0, 0, 1, 6, 1)),
+         gen_loop_backprop_test(0, 0, 0, 1, 6, 1))
     test('extra_backprop_test_need_stack_loop',
-         gen_loop_backprop_need_stack_test()),
+         gen_loop_backprop_need_stack_test())
 
-    test('extra_test_scan_sum', gen_scan_sum_test, fail=True),
+    test('extra_test_scan_sum', gen_scan_sum_test, fail=True)
 
-    test('extra_test_sequence', gen_sequence_test),
-    test('extra_test_sequence_pad', gen_sequence_pad_test),
-    test('extra_test_sequence_split', gen_sequence_split_test),
-    test('extra_test_sequence_io', gen_sequence_io_test),
-    test('extra_test_sequence_range', gen_sequence_range_test),
-    test('extra_test_sequence_pop', gen_sequence_pop_test),
-    test('extra_test_sequence_constants', gen_sequence_constants_test),
+    test('extra_test_sequence', gen_sequence_test)
+    test('extra_test_sequence_pad', gen_sequence_pad_test)
+    test('extra_test_sequence_split', gen_sequence_split_test)
+    test('extra_test_sequence_io', gen_sequence_io_test)
+    test('extra_test_sequence_range', gen_sequence_range_test)
+    test('extra_test_sequence_pop', gen_sequence_pop_test)
+    test('extra_test_sequence_constants', gen_sequence_constants_test)
 
     test('extra_test_sentiment_lstm',
-         sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2),
+         sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2)
     test('extra_test_sentiment_bilstm',
          sentiment.gen_rnn_sentiment_test('BiLSTM'),
-         rtol=0.5),
+         rtol=0.5)
     test('extra_test_sentiment_gru',
-         sentiment.gen_rnn_sentiment_test('GRU'), rtol=0.4),
+         sentiment.gen_rnn_sentiment_test('GRU'), rtol=0.4)
     # TODO(hamaji): Investigate why there is a huge error.
     test('extra_test_sentiment_bigru',
-         sentiment.gen_rnn_sentiment_test('BiGRU'), rtol=2.5),
+         sentiment.gen_rnn_sentiment_test('BiGRU'), rtol=2.5)
 
-    test('extra_test_generic_len', gen_generic_len_test),
-    test('extra_test_generic_getitem', gen_generic_getitem_test),
-    test('extra_test_generic_getslice', gen_generic_getslice_test),
-    test('extra_test_generic_add', gen_generic_add_test),
+    test('extra_test_generic_len', gen_generic_len_test)
+    test('extra_test_generic_getitem', gen_generic_getitem_test)
+    test('extra_test_generic_getslice', gen_generic_getslice_test)
+    test('extra_test_generic_add', gen_generic_add_test)
 
-    test('extra_test_print', gen_print_test),
-    test('extra_test_hello_world', gen_hello_world_test),
+    test('extra_test_print', gen_print_test)
+    test('extra_test_hello_world', gen_hello_world_test)
 
     test('extra_test_type_coersion', gen_type_coersion_test,
-         skip_shape_inference=True),
+         skip_shape_inference=True)
     test('extra_test_incomplete_transpose',
          gen_incomplete_transpose_test,
-         skip_shape_inference=True),
+         skip_shape_inference=True)
     test('extra_test_maxpool_cover_all', gen_maxpool_cover_all_test,
-         skip_shape_inference=True),
+         skip_shape_inference=True)
+
+    test('extra_test_batchnorm_training', gen_batchnorm_training_test(False),
+         fail=True)
+    test('extra_test_batchnorm_training_saved',
+         gen_batchnorm_training_test(True),
+         fail=True)
 
     return tests
 
