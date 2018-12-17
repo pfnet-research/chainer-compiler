@@ -98,16 +98,35 @@ void InitGraph(py::module& m) {
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
-// TODO(hamaji): Take XCVM options as an argument.
-std::map<std::string, VarPtr> Run(const std::shared_ptr<runtime::XCVM>& xcvm, const std::map<std::string, VarPtr>& inputs) {
+std::map<std::string, VarPtr> Run(const std::shared_ptr<runtime::XCVM>& xcvm,
+                                  const std::map<std::string, VarPtr>& inputs,
+                                  bool trace,
+                                  bool verbose,
+                                  bool training,
+                                  bool check_nans,
+                                  bool check_infs,
+                                  bool dump_memory_usage) {
     runtime::XCVMOptions xcvm_opts;
+    if (trace) xcvm_opts.trace_level = 1;
+    if (verbose) xcvm_opts.trace_level = 2;
+    xcvm_opts.is_training = training;
+    xcvm_opts.check_nans = check_nans;
+    xcvm_opts.check_infs = check_infs;
+    xcvm_opts.dump_memory_usage = dump_memory_usage;
     runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
     return outputs;
 }
 
 void InitXCVM(py::module& m) {
     py::class_<runtime::XCVM, std::shared_ptr<runtime::XCVM>> c{m, "XCVM"};
-    c.def("run", &Run, "Run the model");
+    c.def("run", &Run, "Run the model",
+          py::arg("inputs"),
+          py::arg("trace") = false,
+          py::arg("verbose") = false,
+          py::arg("training") = false,
+          py::arg("check_nans") = false,
+          py::arg("check_infs") = false,
+          py::arg("dump_memory_usage") = false);
 }
 
 bool IsArray(const VarPtr& v) {
