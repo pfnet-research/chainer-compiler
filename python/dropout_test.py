@@ -42,9 +42,6 @@ def test_dropout_training():
     input = chainerx.array(np.random.normal(size=(3, 4, 5)))
     inputs = {input_names[0]: oniku_core.value(input)}
 
-    # TODO(hamaji): Enable this test.
-    return
-
     num_retries = 3
     for i in range(num_retries):
         outputs = xcvm.run(inputs, training=True)
@@ -53,3 +50,6 @@ def test_dropout_training():
         if ok: break
     else:
         assert False, 'No dropout was observed in %d attempts' % num_retries
+
+
+# TODO(hamaji): Implement and test the backprop of Dropout.

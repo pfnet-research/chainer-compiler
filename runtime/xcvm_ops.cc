@@ -499,8 +499,16 @@ chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& inpu
 }
 
 std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
-    chainerx::Array mask = chainerx::OnesLike(data);
-    return std::tuple<chainerx::Array, chainerx::Array>{data, mask};
+    if (st->is_training()) {
+        WARN_ONCE("Dropout for training is slow.");
+        chainerx::Array rnd = SlowRandom(data.shape());
+        chainerx::Array mask = CastTo(rnd > MakeScalarArray(ratio), data.dtype());
+        chainerx::Array out = data * mask;
+        return std::tuple<chainerx::Array, chainerx::Array>{out, mask};
+    } else {
+        chainerx::Array mask = chainerx::OnesLike(data);
+        return std::tuple<chainerx::Array, chainerx::Array>{data, mask};
+    }
 }
 
 chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {

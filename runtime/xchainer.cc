@@ -149,5 +149,25 @@ chainerx::Array Sigmoid(chainerx::Array a) {
     return chainerx::Tanh(a * half) * half + half;
 }
 
+namespace {
+
+uint32_t xorshift() {
+    static uint32_t y = 2463534242;
+    y = y ^ (y << 13); y = y ^ (y >> 17);
+    return y = y ^ (y << 15);
+}
+
+}
+
+chainerx::Array SlowRandom(chainerx::Shape shape) {
+    int64_t size = shape.GetTotalSize();
+    double denominator = 1.0 / std::pow(2.0, 32);
+    std::vector<float> values(size);
+    for (int64_t i = 0; i < size; ++i) {
+        values[i] = xorshift() * denominator;
+    }
+    return MakeArray(chainerx::Dtype::kFloat32, shape, values.data());
+}
+
 }  // namespace runtime
 }  // namespace oniku

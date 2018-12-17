@@ -34,5 +34,7 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
 
 chainerx::Array Sigmoid(chainerx::Array a);
 
+chainerx::Array SlowRandom(chainerx::Shape shape);
+
 }  // namespace runtime
 }  // namespace oniku
