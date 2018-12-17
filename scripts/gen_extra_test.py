@@ -1023,8 +1023,7 @@ def get_tests():
     test('extra_test_maxpool_cover_all', gen_maxpool_cover_all_test,
          skip_shape_inference=True)
 
-    test('extra_test_batchnorm_training', gen_batchnorm_training_test(False),
-         fail=True)
+    test('extra_test_batchnorm_training', gen_batchnorm_training_test(False))
     test('extra_test_batchnorm_training_saved',
          gen_batchnorm_training_test(True),
          fail=True)

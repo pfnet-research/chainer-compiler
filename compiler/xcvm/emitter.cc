@@ -366,35 +366,37 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
         } else if (node.op_type() == Node::kBatchNormalization) {
-            // TODO(hamaji): Handle running mean and variance for training mode.
             CHECK_EQ(5UL, node.inputs().size());
-            if (node.outputs().size() == 2 || node.outputs().size() == 6) {
-                EMIT(BatchNormalization,
-                     out(0),
-                     out(node.outputs().size() - 1),
-                     in(0),
-                     in(1),
-                     in(2),
-                     in(3),
-                     in(4),
-                     node.epsilon(),
-                     node.momentum(),
-                     node.spatial());
+            size_t num_onnx_outputs = node.outputs().size();
+            std::vector<int> outs = {out(0)};
+            if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
+                num_onnx_outputs--;
+                outs.push_back(out(num_onnx_outputs));
             } else {
-                int tmp_id = next_value_id_++;
-                EMIT(BatchNormalization,
-                     out(0),
-                     tmp_id,
-                     in(0),
-                     in(1),
-                     in(2),
-                     in(3),
-                     in(4),
-                     node.epsilon(),
-                     node.momentum(),
-                     node.spatial());
-                FREE(tmp_id);
+                outs.push_back(-1);
             }
+            for (size_t i = 1; i < num_onnx_outputs; ++i) {
+                outs.push_back(out(i));
+            }
+            for (size_t i = num_onnx_outputs; i < 6; ++i) {
+                outs.push_back(-1);
+            }
+
+            EMIT(BatchNormalization,
+                 outs[0],
+                 outs[1],
+                 outs[2],
+                 outs[3],
+                 outs[4],
+                 outs[5],
+                 in(0),
+                 in(1),
+                 in(2),
+                 in(3),
+                 in(4),
+                 node.epsilon(),
+                 node.momentum(),
+                 node.spatial());
         } else if (node.op_type() == Node::kLRN) {
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;

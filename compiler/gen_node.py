@@ -156,7 +156,8 @@ NodeDef('ConvTranspose', (2, 3), 1,
         output_padding=[int], output_shape=[int], **conv_attrs)
 
 # Extension: the second or the sixth output is for backward context.
-NodeDef('BatchNormalization', 5, (1, 2, 5, 6), epsilon=1e-5, momentum=0.9, spatial=1)
+NodeDef('BatchNormalization', 5, (1, 2, 3, 4, 5, 6),
+        epsilon=1e-5, momentum=0.9, spatial=1)
 # Extension: the second output is for backward context.
 NodeDef('LRN', 1, (1, 2), alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
 

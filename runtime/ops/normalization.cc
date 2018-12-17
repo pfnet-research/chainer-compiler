@@ -120,7 +120,7 @@ PreprocessBatchNormResult PreprocessBatchNorm(
 
 }  // namespace
 
-std::tuple<chainerx::Array, XCVMOpaque*> BatchNormalizationOp::RunImpl(
+std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationOp::RunImpl(
         XCVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& s,
@@ -135,8 +135,10 @@ std::tuple<chainerx::Array, XCVMOpaque*> BatchNormalizationOp::RunImpl(
     for (int i = 0; i < x.shape().size(); ++i) {
         if (i != 1) axes.push_back(i);
     }
-    // TODO(hamaji): Test the training mode.
-    if (st->is_training()) {
+
+    const bool is_training = this->running_mean >= 0;
+    if (is_training) {
+        CHECK_LE(0, this->running_var);
         PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
         std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
                 x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
@@ -144,11 +146,18 @@ std::tuple<chainerx::Array, XCVMOpaque*> BatchNormalizationOp::RunImpl(
         const Array& beta_reshaped = result.beta;
         chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
         XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
-        return std::tie(out, ctx);
+        chainerx::Array saved_mean, saved_var;
+        return std::tie(out, ctx, mean, var, saved_mean, saved_var);
     } else {
         chainerx::Array out = chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
-        XCVMOpaque* ctx = new NoBatchNormContext();
-        return std::tie(out, ctx);
+        CHECK_GT(0, this->ctx);
+        CHECK_GT(0, this->running_mean);
+        CHECK_GT(0, this->running_var);
+        CHECK_GT(0, this->saved_mean);
+        CHECK_GT(0, this->saved_var);
+        XCVMOpaque* noctx = nullptr;
+        chainerx::Array mean_out, var_out, saved_mean, saved_var;
+        return std::tie(out, noctx, mean_out, var_out, saved_mean, saved_var);
     }
 }
 
