@@ -207,7 +207,8 @@ def main():
     trainer = training.Trainer(updater, stop_trigger, args.out)
 
     val_interval = (1 if args.test else 100000), 'iteration'
-    log_interval = (1 if args.test else 1000), 'iteration'
+    log_interval = ((1 if args.test else 10 if args.iterations else 1000),
+                    'iteration')
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
