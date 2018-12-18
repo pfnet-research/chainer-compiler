@@ -9,6 +9,7 @@ ImageDataLayer).
 
 """
 import argparse
+import json
 import random
 import re
 
@@ -234,6 +235,17 @@ def main():
     cuda_hook = function_hooks.CUDAProfileHook()
     with cuda_hook:
         trainer.run()
+
+    with open('%s/log' % args.out) as f:
+        logs = json.load(f)
+    elapsed_times = []
+    for prev, cur in zip(logs, logs[1:]):
+        iters = cur['iteration'] - prev['iteration']
+        elapsed = cur['elapsed_time'] - prev['elapsed_time']
+        elapsed_times.append(elapsed / iters)
+    sec_per_iter = sum(elapsed_times) / len(elapsed_times)
+    print(sec_per_iter * 1000, 'msec/iter')
+    print(args.batchsize / sec_per_iter, 'images/sec')
 
 
 if __name__ == '__main__':
