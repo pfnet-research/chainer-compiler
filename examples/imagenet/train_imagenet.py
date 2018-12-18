@@ -16,6 +16,7 @@ import numpy as np
 
 import chainer
 from chainer import dataset
+from chainer import function_hooks
 from chainer import training
 from chainer.training import extensions
 import chainerx
@@ -220,7 +221,9 @@ def main():
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
-    trainer.run()
+    cuda_hook = function_hooks.CUDAProfileHook()
+    with cuda_hook:
+        trainer.run()
 
 
 if __name__ == '__main__':
