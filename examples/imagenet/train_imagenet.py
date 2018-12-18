@@ -111,6 +111,8 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
+    parser.add_argument('--iterations', '-I', type=int, default=0,
+                        help='Number of iterations to train')
     parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
@@ -143,7 +145,10 @@ def main():
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
-    print('# epoch: {}'.format(args.epoch))
+    if args.iterations:
+        print('# iterations: {}'.format(args.iterations))
+    else:
+        print('# epoch: {}'.format(args.epoch))
     print('')
 
     # Initialize the model to train
@@ -195,7 +200,11 @@ def main():
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=converter, device=device)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
+    if args.iterations:
+        stop_trigger = (args.iterations, 'iteration')
+    else:
+        stop_trigger = (args.epoch, 'epoch')
+    trainer = training.Trainer(updater, stop_trigger, args.out)
 
     val_interval = (1 if args.test else 100000), 'iteration'
     log_interval = (1 if args.test else 1000), 'iteration'
