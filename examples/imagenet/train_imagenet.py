@@ -142,6 +142,9 @@ def main():
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
+    chainer.config.autotune = True
+    chainer.config.cudnn_fast_batch_normalization = True
+
     device = parse_device(args)
 
     print('Device: {}'.format(device))
