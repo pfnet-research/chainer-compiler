@@ -9,7 +9,7 @@
 namespace oniku {
 namespace runtime {
 
-chainerx::Dtype XChainerTypeFromONNX(onnx::TensorProto::DataType xtype) {
+chainerx::Dtype XChainerTypeFromONNX(int xtype) {
     switch (xtype) {
         case onnx::TensorProto::BOOL:
             return chainerx::Dtype::kBool;

@@ -7,7 +7,7 @@ namespace oniku {
 
 namespace {
 
-Dtype::DataType FromONNX(onnx::TensorProto::DataType xtype) {
+Dtype::DataType FromONNX(int xtype) {
     switch (xtype) {
         case onnx::TensorProto::BOOL:
             return Dtype::DataType::kBool;
@@ -34,7 +34,7 @@ Dtype::DataType FromONNX(onnx::TensorProto::DataType xtype) {
 
 }  // namespace
 
-Dtype::Dtype(const onnx::TensorProto::DataType& xtype) : type_(FromONNX(xtype)) {
+Dtype::Dtype(int xtype) : type_(FromONNX(xtype)) {
 }
 
 Dtype::Dtype(DataType type) : type_(type) {
