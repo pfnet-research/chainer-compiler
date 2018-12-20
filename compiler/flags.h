@@ -33,6 +33,9 @@ extern bool g_fuse_operations;
 // Use NVRTC to execute fused operations.
 extern bool g_use_nvrtc;
 
+// Use TVM to execute fused operations.
+extern bool g_use_tvm;
+
 // The name of backend.
 extern std::string g_backend_name;
 

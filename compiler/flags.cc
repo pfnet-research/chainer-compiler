@@ -18,6 +18,8 @@ bool g_fuse_operations;
 
 bool g_use_nvrtc;
 
+bool g_use_tvm;
+
 std::string g_backend_name;
 
 bool g_dump_after_inference;
