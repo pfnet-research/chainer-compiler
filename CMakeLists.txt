@@ -48,6 +48,13 @@ else()
 endif()
 option(ONIKU_ENABLE_PYTHON "Enable PYTHON" ${DEFAULT_ONIKU_ENABLE_PYTHON})
 
+if(DEFINED ENV{ONIKU_ENABLE_TVM})
+    set(DEFAULT_ONIKU_ENABLE_TVM $ENV{ONIKU_ENABLE_TVM})
+else()
+    set(DEFAULT_ONIKU_ENABLE_TVM OFF)
+endif()
+option(ONIKU_ENABLE_TVM "Enable TVM" ${DEFAULT_ONIKU_ENABLE_TVM})
+
 option(ONIKU_BUILD_TESTS "Build C++ tests" ON)
 option(ONIKU_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
 
