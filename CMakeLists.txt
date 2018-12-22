@@ -48,6 +48,7 @@ else()
 endif()
 option(ONIKU_ENABLE_PYTHON "Enable PYTHON" ${DEFAULT_ONIKU_ENABLE_PYTHON})
 
+option(ONIKU_BUILD_TESTS "Build C++ tests" ON)
 option(ONIKU_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
 
 if(${ONIKU_GENERATE_TESTS})
@@ -156,7 +157,7 @@ add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
     ${CMAKE_BINARY_DIR}/googletest-build
     EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
-if(${CHAINERX_BUILD_TEST})
+if(${ONIKU_BUILD_TEST})
     enable_testing()
 endif()
 
