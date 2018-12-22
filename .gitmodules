@@ -2,3 +2,6 @@
 	path = onnx
 	url = https://github.com/onnx/onnx
 	ignore = dirty
+[submodule "chainer"]
+	path = chainer
+	url = https://github.com/chainer/chainer
