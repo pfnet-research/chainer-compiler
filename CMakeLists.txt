@@ -76,6 +76,12 @@ add_custom_target(onnx_files
 target_compile_definitions(onnx PRIVATE ONNX_API=)
 target_compile_options(onnx PRIVATE -w)
 
+add_subdirectory(chainer/chainerx_cc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/chainer/chainerx_cc)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/gsl-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/optional-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/googletest-src/googletest/include)
+
 enable_testing()
 
 add_definitions(-DONNX_ML=1)
@@ -142,32 +148,6 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
 
-# gsl-lite
-# gsl-lite is a header-only library, we do not need to build and run tests
-get_third_party(gsl-lite)
-include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
-# ref. https://github.com/martinmoene/gsl-lite#api-macro
-# As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform.
-# We want to stop it because we get many warnings with nvcc.
-add_definitions(-Dgsl_api=)
-if(${CUDA_FOUND})
-  list(APPEND CUDA_NVCC_FLAGS "-Dgsl_api=")
-endif()
-
-# optional-lite
-get_third_party(optional-lite)
-include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
-
-# Test
-get_third_party(gtest)
-add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
-    ${CMAKE_BINARY_DIR}/googletest-build
-    EXCLUDE_FROM_ALL)
-include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
-if(${ONIKU_BUILD_TEST})
-    enable_testing()
-endif()
-
 add_custom_target(large_tests)
 
 add_subdirectory(compiler)
@@ -181,7 +161,7 @@ if (${ONIKU_ENABLE_PYTHON})
   get_third_party(pybind11)
   include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
   add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
-add_subdirectory(python)
+  add_subdirectory(python)
 endif()
 
 function(gen_ch2o_test dir ch2o_test all)
