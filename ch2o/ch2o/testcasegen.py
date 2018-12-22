@@ -9,7 +9,6 @@ import shutil
 import types
 
 import numpy as np
-import cupy
 import chainer
 
 from ch2o.chainer2onnx import compile_model
@@ -35,8 +34,8 @@ def _validate_inout(xs):
 
     if isinstance(xs, chainer.Variable):
         xs = xs.array
-    elif isinstance(xs, (np.ndarray, cupy.ndarray)):
-        pass
+    elif isinstance(xs, chainer.get_array_types()):
+        xs = chainer.cuda.to_cpu(xs)
     elif isinstance(xs, bool):
         xs = np.array(xs, dtype=np.bool)
     elif isinstance(xs, int):

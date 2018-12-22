@@ -3,7 +3,6 @@
 # からもらっってきました
 
 import chainer
-import cupy
 import numpy as np
 
 import onnx
@@ -13,8 +12,7 @@ from chainer import links as L
 
 
 def tensor_from_array(array, name):
-    if isinstance(array, cupy.ndarray):
-        array = chainer.cuda.to_cpu(array)
+    array = chainer.cuda.to_cpu(array)
     return onnx.numpy_helper.from_array(array, name)
 
 

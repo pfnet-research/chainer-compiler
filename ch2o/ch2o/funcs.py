@@ -9,6 +9,7 @@ import chainer
 from chainer import functions as F
 import numpy as np
 
+from ch2o import array_devices
 from ch2o import utils
 from ch2o.env import Env
 from ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, clip_head
@@ -519,20 +520,6 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
 ]:
     Func2NodeClass[fn] = cls(fn)
 
-xps = [np]
-
-try:
-    import cupy
-    xps.append(cupy)
-except:
-    pass
-
-try:
-    import chainerx
-    xps.append(chainerx)
-except:
-    pass
-
 for name, cls in [('array', Np_Array),
                   ('int32', Np_Int32),
                   ('ceil', Xp_Np_Ceil),
@@ -541,7 +528,7 @@ for name, cls in [('array', Np_Array),
                   ('cumsum', Np_Cumsum),
 ]:
     np_fn = getattr(np, name)
-    for xp in xps:
+    for xp in array_devices.get_array_devices():
         if hasattr(xp, name):
             fn = getattr(xp, name)
             Func2NodeClass[fn] = cls(np_fn)
