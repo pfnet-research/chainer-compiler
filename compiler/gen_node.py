@@ -199,7 +199,7 @@ NodeDef('OnikuxLSTMGrad', 2, 4)
 NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('OnikuxGatherGrad', 3, 1, axis=0)
 NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
-NodeDef('OnikuxFusionGroup', None, None, subgraph=Graph)
+NodeDef('OnikuxFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 
 NodeDef('OnikuxPrint', None, 0)
 

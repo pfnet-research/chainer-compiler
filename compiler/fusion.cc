@@ -60,7 +60,7 @@ void FindInOuts(const std::set<Node*>& nodes, std::vector<Value*>* inputs, std::
     std::sort(outputs->begin(), outputs->end(), by_name);
 }
 
-void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_group_id) {
+void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id) {
     std::vector<Value*> inputs;
     std::vector<Value*> outputs;
     std::set<Value*> temps;
@@ -107,6 +107,7 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, int fusion_gr
     Node* fused = gb.MOp(Node::kOnikuxFusionGroup, inputs, outputs);
     graph->MigrateNodes({nodes.begin(), nodes.end()}, {temps.begin(), temps.end()}, subgraph);
     fused->set_subgraph(subgraph);
+    fused->set_fusion_type(fusion_type);
     fused->set_onikux_fusion_group(fusion_group_id);
 
 #if 0
@@ -158,9 +159,19 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
-}  // namespace
+void FuseTvmOperations(Graph* graph) {
+    int num_fusion_groups = 0;
+    for (Node* node : graph->nodes()) {
+        if (node->op_type() != Node::kRelu) {
+            continue;
+        }
 
-void FuseOperations(Graph* graph) {
+        ++num_fusion_groups;
+        node->set_onikux_fusion_group(num_fusion_groups);
+        CreateFusionGroup(graph, {node}, "tvm", num_fusion_groups);
+    }
+}
+void FuseElementwiseOperations(Graph* graph) {
     // TODO(hamaji): Do not try fusing integer ops.
     const std::set<Node::OpType> fusable_ops = {
             Node::kIdentity,
@@ -232,7 +243,24 @@ void FuseOperations(Graph* graph) {
             node->set_onikux_fusion_group(num_fusion_groups);
         }
 
-        CreateFusionGroup(graph, cands, num_fusion_groups);
+        CreateFusionGroup(graph, cands, "nvrtc", num_fusion_groups);
+    }
+}
+
+}  // namespace
+
+void FuseOperations(Graph* graph, bool use_tvm) {
+    // Fuse ops in subgraphs first to avoid infinite loop.
+    for (const Node* node : graph->nodes()) {
+        for (Graph* subgraph : node->GetSubGraphs()) {
+            FuseOperations(subgraph, use_tvm);
+        }
+    }
+
+    if (use_tvm) {
+        FuseTvmOperations(graph);
+    } else {
+        FuseElementwiseOperations(graph);
     }
 }
 
