@@ -161,8 +161,7 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
 }  // namespace
 
 void FuseOperations(Graph* graph) {
-    // TODO(hamaji): Current algorithm is broken in a few ways.
-    // 1. It tries to fuse integer operations.
+    // TODO(hamaji): Do not try fusing integer ops.
     const std::set<Node::OpType> fusable_ops = {
             Node::kIdentity,
             Node::kAdd,
