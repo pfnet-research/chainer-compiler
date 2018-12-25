@@ -326,6 +326,10 @@ XC_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
+    ('Tvm',
+     [ArrayList('inputs'), Int('num_outputs'),
+      String('dso_filename')],
+     [ArrayList('outputs')]),
 ]
 
 XC_SEQ_OPS = [

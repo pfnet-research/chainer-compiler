@@ -36,6 +36,7 @@ add_library(oniku_runtime
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/tvm.cc
   xchainer.cc
   xcvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
@@ -62,6 +63,7 @@ target_link_libraries(runtime_test
   gtest
   gtest_main
   pthread
+  ${ONIKU_TVM_RUNTIME_LIBRARIES}
   ${ONIKU_CUDA_LIBRARIES}
   )
 

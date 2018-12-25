@@ -13,6 +13,7 @@
 #include <topi/elemwise.h>
 #include <topi/nn.h>
 #include <topi/cuda/injective.h>
+#include <topi/generic/injective.h>
 #include <tvm/build_module.h>
 #endif
 
@@ -76,19 +77,28 @@ void BuildTvmProgramImpl(
     tvm::Tensor in{GetPlaceholder(input, "relu_in")};
     tvm::Tensor out{topi::relu(in, 0, "relu_out")};
 
+#if 0
     tvm::Target target{tvm::target::cuda()};
+#else
+    tvm::Target target{tvm::Target::create("llvm")};
+#endif
     tvm::Target host{tvm::Target::create("llvm")};
 
+#if 0
     tvm::Schedule schedule = topi::cuda::schedule_injective(target, {out});
+#else
+    tvm::Schedule schedule = topi::generic::schedule_injective(target, {out});
+#endif
     tvm::BuildConfig config{tvm::build_config()};
-    tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, {in}, "relu", {}, config)};
+    tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, {out, in}, "tvm_op", {}, config)};
 
     tvm::runtime::Module module = tvm::build(funcs, target, host, config);
-
-    tvm::runtime::Module& cuda_module = const_cast<tvm::runtime::Module&>(module->imports()[0]);
-
     std::cerr << module->type_key() << ": " << module->GetSource() << std::endl;
+
+#if 0
+    tvm::runtime::Module& cuda_module = const_cast<tvm::runtime::Module&>(module->imports()[0]);
     std::cerr << "cuda: " << cuda_module->GetSource() << std::endl;
+#endif
 
     const std::string& dso_name = StrCat("/tmp/liboniku_tvm_op_", id);
 
