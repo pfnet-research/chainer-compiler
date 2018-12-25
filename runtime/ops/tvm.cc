@@ -1,6 +1,4 @@
 #if ONIKU_ENABLE_TVM
-#include <map>
-
 #include <chainerx/array.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/shape.h>
@@ -13,8 +11,14 @@
 #include <tvm/runtime/packed_func.h>
 
 #include <common/strutil.h>
-#include <runtime/gen_xcvm_ops.h>
+
+#else
+
+#include <common/log.h>
+
 #endif
+
+#include <runtime/gen_xcvm_ops.h>
 
 namespace oniku {
 namespace runtime {
@@ -170,7 +174,7 @@ std::vector<chainerx::Array> TvmOp::RunImpl(oniku::runtime::XCVMState* st, const
     return outputs;
 
 #else
-    CHECK(false) << "Set -DONIKU_ENABLE_TVM=ON: filename=" << filename;
+    CHECK(false) << "Set -DONIKU_ENABLE_TVM=ON: filename=" << dso_filename;
 #endif
 }
 

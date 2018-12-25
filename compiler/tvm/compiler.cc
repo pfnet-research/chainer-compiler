@@ -1,20 +1,22 @@
 #include "compiler.h"
 
+#include <common/log.h>
+
 #if ONIKU_ENABLE_TVM
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <common/strutil.h>
-#include <compiler/node.h>
-#include <compiler/type.h>
-#include <compiler/value.h>
 
 #include <topi/elemwise.h>
 #include <topi/nn.h>
 #include <topi/cuda/injective.h>
 #include <topi/generic/injective.h>
 #include <tvm/build_module.h>
+
+#include <common/strutil.h>
+#include <compiler/node.h>
+#include <compiler/type.h>
+#include <compiler/value.h>
 #endif
 
 namespace oniku {
