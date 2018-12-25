@@ -1,4 +1,6 @@
 #if ONIKU_ENABLE_TVM
+#include <map>
+
 #include <chainerx/array.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/shape.h>
@@ -26,55 +28,6 @@ namespace runtime {
 #if ONIKU_ENABLE_TVM
 
 namespace {
-
-#if 0
-
-char* Compile(const std::string& name, const std::string& code) {
-    static std::map<const std::string, char*> cache;
-    auto found = cache.find(code);
-    if (found != cache.end()) return found->second;
-
-    nvrtcProgram prog;
-    CHECK_NVRTC(nvrtcCreateProgram(&prog, code.c_str(), (name + ".cu").c_str(), 0, nullptr, nullptr));
-
-    const char* kOpts[] = {
-            "--gpu-architecture=compute_50",
-    };
-    nvrtcResult result = nvrtcCompileProgram(prog, 1, kOpts);
-    // Obtain compilation log from the program.
-    size_t log_size;
-    CHECK_NVRTC(nvrtcGetProgramLogSize(prog, &log_size));
-    char* log = new char[log_size];
-    CHECK_NVRTC(nvrtcGetProgramLog(prog, log));
-    CHECK_EQ(result, NVRTC_SUCCESS) << code << "\nlog:\n" << log;
-    // Obtain PTX from the program.
-    size_t ptxSize;
-    CHECK_NVRTC(nvrtcGetPTXSize(prog, &ptxSize));
-    char* ptx = new char[ptxSize];
-    CHECK_NVRTC(nvrtcGetPTX(prog, ptx));
-    delete[] log;
-
-    CHECK(cache.emplace(code, ptx).second);
-    return ptx;
-}
-
-CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
-    static std::map<const std::string, CUfunction> cache;
-    auto found = cache.find(code);
-    if (found != cache.end()) return found->second;
-
-    char* ptx = Compile(name, code);
-
-    CUmodule cu_module;
-    CUfunction cu_kernel;
-    CHECK_CUDA(cuModuleLoadDataEx(&cu_module, ptx, 0, 0, 0));
-    CHECK_CUDA(cuModuleGetFunction(&cu_kernel, cu_module, name.c_str()));
-
-    CHECK(cache.emplace(code, cu_kernel).second);
-    return cu_kernel;
-}
-
-#endif
 
 DLContext GetDLContext(const chainerx::Array& array) {
     const int index = array.device().index();
@@ -123,6 +76,20 @@ void FillDLTensor(const chainerx::Array& array, DLTensor* tensor) {
     tensor->byte_offset = 0;
 }
 
+tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename) {
+    static std::map<std::string, tvm::runtime::PackedFunc> cache;
+    auto found = cache.find(dso_filename);
+    if (found != cache.end()) {
+        return found->second;
+    }
+
+    tvm::runtime::Module dso = tvm::runtime::Module::LoadFromFile(dso_filename);
+    tvm::runtime::PackedFunc fn = dso.GetFunction("tvm_op");
+    CHECK(fn != nullptr) << dso_filename;
+    CHECK(cache.emplace(dso_filename, fn).second);
+    return fn;
+}
+
 }  // namespace
 
 #endif
@@ -157,9 +124,7 @@ std::vector<chainerx::Array> TvmOp::RunImpl(oniku::runtime::XCVMState* st, const
         outputs.push_back(chainerx::Empty(shape, dtype, device));
     }
 
-    tvm::runtime::Module dso = tvm::runtime::Module::LoadFromFile(dso_filename);
-    tvm::runtime::PackedFunc fn = dso.GetFunction("tvm_op");
-    CHECK(fn != nullptr) << dso_filename;
+    tvm::runtime::PackedFunc fn = LoadPackedFunc(dso_filename);
 
     CHECK_EQ(1, inputs.size());
     CHECK_EQ(1, outputs.size());
