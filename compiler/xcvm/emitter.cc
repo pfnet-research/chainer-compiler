@@ -763,8 +763,8 @@ private:
             BuildTvmProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename);
             if (g_compiler_log) {
                 // TODO(hamaji): Show more code.
-                LOG() << "Fusion group (TVM) " << node.ToString() << std::endl;
-                LOG() << dso_filename;
+                CLOG() << "Fusion group (TVM) " << node.ToString() << std::endl;
+                CLOG() << dso_filename;
             }
 
             std::vector<int> inputs, outputs;
@@ -782,8 +782,8 @@ private:
             std::string nvrtc;
             BuildNvrtcProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
             if (g_compiler_log) {
-                LOG() << "Fusion group (NVRTC) " << node.ToString() << std::endl;
-                LOG() << nvrtc;
+                CLOG() << "Fusion group (NVRTC) " << node.ToString() << std::endl;
+                CLOG() << nvrtc;
             }
 
             std::vector<int> inputs, outputs;

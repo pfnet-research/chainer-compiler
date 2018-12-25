@@ -88,7 +88,7 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
                 // is moved to just before the second input, but we
                 // want to delay both of them as much as possible.
                 if (nodes[index].size() > 1 || nodes[index][0] != prev) break;
-                LOG() << "Delayed: from " << index << " to " << to << " " << prev->ToString() << std::endl;
+                CLOG() << "Delayed: from " << index << " to " << to << " " << prev->ToString() << std::endl;
                 CHECK_EQ(1, nodes[index].size());
                 nodes[index].clear();
                 nodes[to].push_back(prev);

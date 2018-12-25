@@ -28,7 +28,7 @@ bool HasConstantInputsOnly(const Node& node) {
 }
 
 void DoConstantPropagation(Graph* graph, Node* node) {
-    LOG() << "Propagate " << node->ToString() << std::endl;
+    CLOG() << "Propagate " << node->ToString() << std::endl;
     std::vector<Node*> inputs;
     for (Value* input : node->inputs()) inputs.push_back(input->producer());
 
@@ -78,7 +78,7 @@ bool MaybePropagateConstant(Graph* graph, Node* node) {
         }
 
         default:
-            LOG() << "Not propagate " << node->ToString() << std::endl;
+            CLOG() << "Not propagate " << node->ToString() << std::endl;
     }
     return false;
 }

@@ -84,7 +84,7 @@ void GetReluRecompute(Graph* graph, int threshold) {
         }
         if (far_users.empty() || !num_near_users) continue;
 
-        LOG() << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB"
+        CLOG() << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB"
               << " " << node->ToString() << std::endl;
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());

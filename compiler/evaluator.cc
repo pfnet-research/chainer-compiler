@@ -76,7 +76,7 @@ void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, s
     runtime::XCProgramProto program;
     std::vector<int> output_ids;
     xcvm::Emit(nodes, fetches, &program, &output_ids);
-    // LOG() << "Evaluate " << program.DebugString();
+    // CLOG() << "Evaluate " << program.DebugString();
 
     chainerx::DeviceScope device_scope{chainerx::GetNativeBackend().GetDevice(0)};
 
