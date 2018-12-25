@@ -760,7 +760,7 @@ private:
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
-            tvm::BuildTvmProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename);
+            BuildTvmProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename);
             CHECK(false) << "TODO";
         }
 

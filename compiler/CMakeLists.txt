@@ -81,6 +81,7 @@ target_link_libraries(compiler_test
   gtest
   gtest_main
   pthread
+  ${ONIKU_TVM_LIBRARIES}
   ${ONIKU_CUDA_LIBRARIES}
   )
 

@@ -38,6 +38,7 @@ target_link_libraries(run_onnx
   onnx
   onnx_proto
   protobuf
+  ${ONIKU_TVM_LIBRARIES}
   ${ONIKU_CUDA_LIBRARIES}
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
@@ -56,6 +57,7 @@ if(${ONIKU_ENABLE_OPENCV})
     onnx_proto
     protobuf
     pthread
+    ${ONIKU_TVM_LIBRARIES}
     ${ONIKU_CUDA_LIBRARIES}
     ${OpenCV_LIBS}
     )

@@ -149,6 +149,8 @@ endif()
 if(${ONIKU_ENABLE_TVM})
   add_definitions(-DONIKU_ENABLE_TVM=1)
   set(ONIKU_TVM_INCLUDE_DIRS ${ONIKU_TVM_INCLUDE_DIRS} /usr/local/include/HalideIR)
+  set(ONIKU_TVM_LIBRARIES tvm)
+  set(ONIKU_TVM_RUNTIME_LIBRARIES tvm)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
