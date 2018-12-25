@@ -27,6 +27,9 @@ extern int g_recompute_relu;
 // for backends such as Chainer which do not support imbalanced pads.
 extern bool g_modify_pool_with_imbalanced_pads;
 
+// Use CUDA specific ops.
+extern bool g_use_cuda;
+
 // Fuse consecutive element-wise operations.
 extern bool g_fuse_operations;
 

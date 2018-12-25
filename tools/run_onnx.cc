@@ -16,6 +16,7 @@
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
+#include <chainerx/cuda/cuda_device.h>
 #include <chainerx/native/native_backend.h>
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
@@ -420,10 +421,14 @@ void RunMain(int argc, char** argv) {
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     chainerx::NoBackpropModeScope no_backprop;
-    const std::string device = args.get<std::string>("device");
-    if (!device.empty()) {
-        chainerx::SetDefaultDevice(&chainerx::GetDefaultContext().GetDevice(device));
-        g_meminfo_enabled = true;
+    const std::string device_spec = args.get<std::string>("device");
+    if (!device_spec.empty()) {
+        chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
+        chainerx::SetDefaultDevice(device);
+        if (dynamic_cast<chainerx::cuda::CudaDevice*>(device)) {
+            g_use_cuda = true;
+            g_meminfo_enabled = true;
+        }
     }
     int64_t initial_free_bytes = GetMemoryUsageInBytes();
 

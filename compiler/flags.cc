@@ -14,6 +14,8 @@ int g_recompute_relu;
 
 bool g_modify_pool_with_imbalanced_pads;
 
+bool g_use_cuda;
+
 bool g_fuse_operations;
 
 bool g_use_nvrtc;
