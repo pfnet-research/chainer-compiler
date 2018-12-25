@@ -11,6 +11,7 @@
 #include <compiler/node.h>
 #include <compiler/nvrtc_builder.h>
 #include <compiler/passes.h>
+#include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_proto_util.h>
@@ -757,7 +758,13 @@ private:
         FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
     } while (0)
 
-        if (g_use_nvrtc) {
+        if (g_use_tvm && node.fusion_type() == "tvm") {
+            std::string dso_filename;
+            tvm::BuildTvmProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename);
+            CHECK(false) << "TODO";
+        }
+
+        if (g_use_nvrtc && node.fusion_type() == "nvrtc") {
             std::string nvrtc;
             BuildNvrtcProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
             if (g_compiler_log) {

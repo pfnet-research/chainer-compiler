@@ -17,6 +17,8 @@ include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${ONIKU_ROOT_DIR})
 include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/compiler`
+include_directories(${ONIKU_TVM_INCLUDE_DIRS})
+
 add_library(oniku_compiler
   code_emitter.cc
   constant_propagation.cc
@@ -42,6 +44,7 @@ add_library(oniku_compiler
   simplifier.cc
   subgraph_canonicalizer.cc
   tensor.cc
+  tvm/compiler.cc
   type.cc
   type_inference.cc
   util.cc
