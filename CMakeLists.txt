@@ -146,6 +146,11 @@ if(${ONIKU_BUILD_CUDA})
   endif()
 endif()
 
+if(${ONIKU_ENABLE_TVM})
+  add_definitions(-DONIKU_ENABLE_TVM=1)
+  set(ONIKU_TVM_INCLUDE_DIRS ${ONIKU_TVM_INCLUDE_DIRS} /usr/local/include/HalideIR)
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
 
 add_custom_target(large_tests)
