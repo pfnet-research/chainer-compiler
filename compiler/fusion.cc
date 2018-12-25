@@ -160,9 +160,20 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
 }
 
 void FuseTvmOperations(Graph* graph) {
+    auto is_fusable = [](Node* node) {
+        for (Value* value : node->inputs()) {
+            if (value->type().dtype() == Dtype::kInt64) return false;
+            if (value->type().NumElements() <= 1) return false;
+        }
+        return true;
+    };
+
     int num_fusion_groups = 0;
     for (Node* node : graph->nodes()) {
         if (node->op_type() != Node::kRelu) {
+            continue;
+        }
+        if (!is_fusable(node)) {
             continue;
         }
 
