@@ -7,11 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fstream>
+#include <string>
+#include <vector>
+
 #include <topi/elemwise.h>
 #include <topi/nn.h>
 #include <topi/cuda/injective.h>
 #include <topi/generic/injective.h>
 #include <tvm/build_module.h>
+#include <tvm/codegen.h>
 
 #include <common/strutil.h>
 #include <compiler/flags.h>
@@ -99,20 +104,33 @@ void BuildTvmProgramImpl(
     tvm::BuildConfig config{tvm::build_config()};
     tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, {out, in}, "tvm_op", {}, config)};
 
+    const std::string& dso_name = StrCat("/tmp/liboniku_tvm_op_", id);
+
     tvm::runtime::Module module = tvm::build(funcs, target, host, config);
     CLOG() << module->type_key() << ": " << module->GetSource() << std::endl;
 
+    std::vector<std::string> input_files;
+
+    const std::string& obj_filename = dso_name + ".o";
+    input_files.push_back(obj_filename);
+    module->SaveToFile(obj_filename, "o");
+
     if (g_use_cuda) {
         tvm::runtime::Module& cuda_module = const_cast<tvm::runtime::Module&>(module->imports()[0]);
-        CLOG() << "cuda: " << cuda_module->GetSource() << std::endl;
+        CLOG() << cuda_module->type_key() << ": " << cuda_module->GetSource() << std::endl;
+        const std::string& dev_filename = dso_name + "_dev.c";
+        const std::string& c_code = tvm::codegen::PackImportsToC(module, false /* system_lib */);
+        std::ofstream ofs(dev_filename);
+        ofs << c_code;
+        ofs.close();
+        input_files.push_back(dev_filename);
     }
 
-    const std::string& dso_name = StrCat("/tmp/liboniku_tvm_op_", id);
-
-    module->SaveToFile(dso_name + ".o", "o");
-
-    const std::string cmd = StrCat("gcc -shared -fPIC ",
-                                   dso_name, ".o -o ", dso_name, ".so");
+    std::string cmd = StrCat("gcc -shared -fPIC -o ", dso_name, ".so");
+    for (const std::string& input_file : input_files) {
+        cmd += " " + input_file;
+    }
+    CLOG() << "Compile: " << cmd << std::endl;
     if (system(cmd.c_str()) != 0) {
         CHECK(false) << strerror(errno) << ": cmd=" << cmd;
     }
