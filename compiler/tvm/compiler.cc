@@ -82,17 +82,7 @@ public:
     }
 
     void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
-        CHECK_EQ(1, nodes.size());
-        const Node& node = *nodes[0];
-
-        CHECK_EQ(node.op_type(), Node::kRelu);
-        const Value* input = node.inputs()[0];
-        // const Value* output = node.outputs()[0];
-
-        tvm::Array<tvm::Expr> tvm_shape{GetShape(input->type())};
-
-        tvm::Tensor in{GetPlaceholder(input, "relu_in")};
-        tvm::Tensor out{topi::relu(in, 0, "relu_out")};
+        PrepareInputs(inputs);
 
         tvm::Target host{tvm::Target::create("llvm")};
         tvm::Target target;
@@ -102,15 +92,52 @@ public:
             target = host;
         }
 
+        for (Node* node : nodes) {
+            std::vector<tvm::Tensor> input_tensors;
+            for (Value* input : node->inputs()) {
+                auto found = tensors_.find(input);
+                CHECK(found != tensors_.end()) << input->DebugString();
+                input_tensors.push_back(found->second);
+            }
+
+            std::vector<tvm::Tensor> output_tensors;
+            if (node->op_type() == Node::kRelu) {
+                CHECK_EQ(1, input_tensors.size());
+                tvm::Tensor out{topi::relu(input_tensors[0], 0, node->outputs()[0]->name())};
+                output_tensors.push_back(out);
+            } else if (node->op_type() == Node::kConv) {
+                output_tensors.push_back(BuildConv(*node, input_tensors));
+            }
+
+            CHECK_EQ(node->outputs().size(), output_tensors.size());
+            for (size_t i = 0; i < node->outputs().size(); ++i) {
+                CHECK(tensors_.emplace(node->outputs()[i], output_tensors[i]).second);
+            }
+        }
+
+        std::vector<tvm::Tensor> args;
+        std::vector<tvm::Tensor> output_tensors;
+        for (Value* output : outputs) {
+            auto found = tensors_.find(output);
+            CHECK(found != tensors_.end()) << output->DebugString();
+            args.push_back(found->second);
+            output_tensors.push_back(found->second);
+        }
+        for (Value* input : inputs) {
+            auto found = tensors_.find(input);
+            CHECK(found != tensors_.end()) << input->DebugString();
+            args.push_back(found->second);
+        }
+
         tvm::Schedule schedule;
         if (g_use_cuda) {
-            schedule = topi::cuda::schedule_injective(target, {out});
+            schedule = topi::cuda::schedule_injective(target, output_tensors);
         } else {
-            schedule = topi::generic::schedule_injective(target, {out});
+            schedule = topi::generic::schedule_injective(target, output_tensors);
         }
 
         tvm::BuildConfig config{tvm::build_config()};
-        tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, {out, in}, "tvm_op", {}, config)};
+        tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, args, "tvm_op", {}, config)};
 
         const std::string& dso_name = StrCat("/tmp/liboniku_tvm_op_", id);
 
@@ -145,6 +172,37 @@ public:
 
         *filename = dso_name + ".so";
     }
+
+private:
+    void PrepareInputs(const std::vector<Value*>& inputs) {
+        for (Value* input : inputs) {
+            tvm::Tensor in{GetPlaceholder(input, input->name())};
+            CHECK(tensors_.emplace(input, in).second);
+        }
+    }
+
+    tvm::Tensor BuildConv(const Node& node, const std::vector<tvm::Tensor>& inputs) {
+        CHECK_EQ(2, inputs.size());
+        int pad_h = 0, pad_w = 0;
+        if (!node.pads().empty()) {
+            CHECK_EQ(4, node.pads().size());
+            CHECK_EQ(node.pads()[0], node.pads()[2]);
+            CHECK_EQ(node.pads()[1], node.pads()[3]);
+            pad_w = node.pads()[0];
+            pad_h = node.pads()[1];
+        }
+
+        int stride_h = 1, stride_w = 1;
+        if (!node.strides().empty()) {
+            CHECK_EQ(2, node.pads().size());
+            stride_w = node.strides()[0];
+            stride_h = node.strides()[1];
+        }
+        tvm::Tensor out{topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, node.outputs()[0]->name())};
+        return out;
+    }
+
+    std::map<Value*, tvm::Tensor> tensors_;
 };
 
 }  // namespace

@@ -170,7 +170,7 @@ void FuseTvmOperations(Graph* graph) {
 
     int num_fusion_groups = 0;
     for (Node* node : graph->nodes()) {
-        if (node->op_type() != Node::kRelu) {
+        if (node->op_type() != Node::kRelu && node->op_type() != Node::kConv) {
             continue;
         }
         if (!is_fusable(node)) {
