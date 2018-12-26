@@ -118,30 +118,25 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
 
     tvm::runtime::PackedFunc fn = LoadPackedFunc(dso_filename);
 
-    // TODO(hamaji): Handle multiple inputs/outputs.
-    if (inputs.size() == 1) {
-        CHECK_EQ(1, inputs.size());
-        CHECK_EQ(1, outputs.size());
-
-        DLTensor input;
-        DLTensor output;
-        FillDLTensor(inputs[0], &input);
-        FillDLTensor(outputs[0], &output);
-
-        fn(&output, &input);
-    } else if (inputs.size() == 2) {
-        CHECK_EQ(2, inputs.size());
-        CHECK_EQ(1, outputs.size());
-
-        DLTensor input0;
-        DLTensor input1;
-        DLTensor output;
-        FillDLTensor(inputs[0], &input0);
-        FillDLTensor(inputs[1], &input1);
-        FillDLTensor(outputs[0], &output);
-
-        fn(&output, &input0, &input1);
+    size_t num_args = outputs.size() + inputs.size();
+    std::vector<DLTensor> tensors(num_args);
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        FillDLTensor(outputs[i], &tensors[i]);
     }
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        FillDLTensor(inputs[i], &tensors[outputs.size() + i]);
+    }
+
+    TVMValue tvm_values[num_args];
+    int tvm_type_codes[num_args];
+    auto args_setter = tvm::runtime::TVMArgsSetter(tvm_values, tvm_type_codes);
+    for (size_t i = 0; i < tensors.size(); ++i) {
+        args_setter(i, &tensors[i]);
+    }
+
+    tvm::runtime::TVMArgs tvm_args(tvm_values, tvm_type_codes, num_args);
+    tvm::runtime::TVMRetValue tvm_ret;
+    fn.CallPacked(tvm_args, &tvm_ret);
 
     return outputs;
 
