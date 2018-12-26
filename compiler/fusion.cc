@@ -165,6 +165,10 @@ void FuseTvmOperations(Graph* graph) {
             if (value->type().dtype() == Dtype::kInt64) return false;
             if (value->type().NumElements() <= 1) return false;
         }
+        for (Value* value : node->outputs()) {
+            if (value->type().dtype() == Dtype::kInt64) return false;
+            if (value->type().NumElements() <= 1) return false;
+        }
         return true;
     };
 
