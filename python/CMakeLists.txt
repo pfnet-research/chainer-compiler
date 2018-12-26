@@ -15,6 +15,7 @@ target_link_libraries(oniku_core.so
   onnx_proto
   protobuf
   pthread
+  ${ONIKU_TVM_LIBRARIES}
   ${ONIKU_CUDA_LIBRARIES}
   )
 set_target_properties(oniku_core.so
