@@ -633,7 +633,7 @@ def main():
             args.build_dir = 'build'
 
     run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
-    print('Testing %s \U0001f356' % run_onnx)
+    print('Testing %s' % run_onnx)
 
     test_cnt = 0
     fail_cnt = 0
