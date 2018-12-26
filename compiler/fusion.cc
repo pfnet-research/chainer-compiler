@@ -174,29 +174,42 @@ void FuseTVMOperations(Graph* graph) {
 
     int num_fusion_groups = 0;
     std::set<Node*> handled;
-    for (Node* node : graph->GetTopologicallySortedNodes()) {
-        if (node->op_type() != Node::kRelu &&
-            node->op_type() != Node::kTanh &&
-            node->op_type() != Node::kConv) {
+    for (Node* base_node : graph->GetTopologicallySortedNodes()) {
+        if (base_node->op_type() != Node::kRelu &&
+            base_node->op_type() != Node::kTanh &&
+            base_node->op_type() != Node::kConv) {
             continue;
         }
-        if (!handled.emplace(node).second) {
+        if (!handled.emplace(base_node).second) {
             continue;
         }
-        if (!is_fusable(node)) {
+        if (!is_fusable(base_node)) {
             continue;
         }
 
-        std::set<Node*> fused_nodes = {node};
+        std::set<Node*> fused_nodes = {base_node};
 
-        CHECK_EQ(1, node->outputs().size());
-        Value* output = node->outputs()[0];
-        if (output->users().size() == 1) {
-            Node* user = output->users()[0];
-            if (user->op_type() == Node::kRelu) {
-                CHECK(handled.emplace(user).second);
-                CHECK(fused_nodes.emplace(user).second);
+        Node* node = base_node;
+        while (true) {
+            CHECK_EQ(1, node->outputs().size());
+            Value* output = node->outputs()[0];
+            if (output->users().size() != 1) {
+                break;
             }
+
+            Node* user = output->users()[0];
+            if ((user->op_type() != Node::kRelu &&
+                 user->op_type() != Node::kReduceSum)) {
+                break;
+            }
+            if (!handled.emplace(user).second) {
+                break;
+            }
+            if (!is_fusable(user)) {
+                break;
+            }
+            CHECK(fused_nodes.emplace(user).second);
+            node = user;
         }
 
         ++num_fusion_groups;

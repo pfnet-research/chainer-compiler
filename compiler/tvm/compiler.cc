@@ -11,9 +11,11 @@
 #include <string>
 #include <vector>
 
+#include <topi/cuda/injective.h>
+#include <topi/cuda/reduction.h>
 #include <topi/elemwise.h>
 #include <topi/nn.h>
-#include <topi/cuda/injective.h>
+#include <topi/reduction.h>
 #include <topi/generic/injective.h>
 #include <tvm/build_module.h>
 #include <tvm/codegen.h>
@@ -109,6 +111,12 @@ public:
                 CHECK_EQ(1, input_tensors.size());
                 tvm::Tensor out{topi::tanh(input_tensors[0], node->outputs()[0]->name())};
                 output_tensors.push_back(out);
+            } else if (node->op_type() == Node::kReduceSum) {
+                CHECK_EQ(1, input_tensors.size());
+                tvm::Array<tvm::Integer> axes;
+                for (int64_t axis : node->axes()) axes.push_back(axis);
+                tvm::Tensor out{topi::sum(input_tensors[0], axes, node->keepdims())};
+                output_tensors.push_back(out);
             } else if (node->op_type() == Node::kConv) {
                 output_tensors.push_back(BuildConv(*node, input_tensors));
             } else {
@@ -135,9 +143,15 @@ public:
             args.push_back(found->second);
         }
 
+        bool is_reduction = nodes.back()->op_type() == Node::kReduceSum;
+
         tvm::Schedule schedule;
         if (g_use_cuda) {
-            schedule = topi::cuda::schedule_injective(target, output_tensors);
+            if (is_reduction) {
+                schedule = topi::cuda::schedule_reduce(target, output_tensors);
+            } else {
+                schedule = topi::cuda::schedule_injective(target, output_tensors);
+            }
         } else {
             schedule = topi::generic::schedule_injective(target, output_tensors);
         }
