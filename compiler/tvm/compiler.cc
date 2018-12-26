@@ -73,12 +73,12 @@ tvm::Tensor GetPlaceholder(const Value* value, const std::string& name) {
                             name);
 }
 
-class TvmCompiler {
+class TVMCompiler {
 public:
-    TvmCompiler() {
+    TVMCompiler() {
     }
 
-    ~TvmCompiler() {
+    ~TVMCompiler() {
     }
 
     void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
@@ -209,10 +209,10 @@ private:
 
 #endif
 
-void BuildTvmProgram(
+void BuildTVMProgram(
     const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
 #if ONIKU_ENABLE_TVM
-    TvmCompiler compiler;
+    TVMCompiler compiler;
     compiler.Build(nodes, id, inputs, outputs, filename);
 #else
     CHECK(false) << "Enable -DONIKU_ENABLE_TVM=ON";

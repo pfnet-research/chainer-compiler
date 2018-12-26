@@ -159,7 +159,7 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
-void FuseTvmOperations(Graph* graph) {
+void FuseTVMOperations(Graph* graph) {
     auto is_fusable = [](Node* node) {
         for (Value* value : node->inputs()) {
             if (value->type().dtype() == Dtype::kInt64) return false;
@@ -273,7 +273,7 @@ void FuseOperations(Graph* graph, bool use_tvm) {
     }
 
     if (use_tvm) {
-        FuseTvmOperations(graph);
+        FuseTVMOperations(graph);
     } else {
         FuseElementwiseOperations(graph);
     }

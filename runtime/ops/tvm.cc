@@ -94,12 +94,12 @@ tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename) {
 
 #endif
 
-std::vector<chainerx::Array> TvmOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if ONIKU_ENABLE_TVM
     CHECK(!inputs.empty());
     auto& device = orig_inputs[0].device();
 
-    // TODO(hamaji): Set output_dtype in TvmOp.
+    // TODO(hamaji): Set output_dtype in TVMOp.
     chainerx::Dtype dtype = orig_inputs[0].dtype();
 
     // Validate inputs.

@@ -326,7 +326,7 @@ XC_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
-    ('Tvm',
+    ('TVM',
      [ArrayList('inputs'), Int('num_outputs'),
       String('dso_filename'), Ints('output_shape')],
      [ArrayList('outputs')]),
