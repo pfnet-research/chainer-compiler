@@ -99,20 +99,12 @@ std::vector<chainerx::Array> TvmOp::RunImpl(oniku::runtime::XCVMState* st, const
     CHECK(!inputs.empty());
     auto& device = orig_inputs[0].device();
 
-    // Validate inputs.
+    // TODO(hamaji): Set output_dtype in TvmOp.
     chainerx::Dtype dtype = orig_inputs[0].dtype();
-    chainerx::Shape shape = orig_inputs[0].shape();
+
+    // Validate inputs.
     std::vector<chainerx::Array> inputs;
     for (chainerx::Array input : orig_inputs) {
-        CHECK_EQ(dtype, input.dtype());
-        shape = chainerx::internal::BroadcastShapes(shape, input.shape());
-    }
-
-    for (chainerx::Array input : orig_inputs) {
-        if (shape != input.shape()) {
-            // TODO(hamaji): Generate code which works without broadcast.
-            input = input.BroadcastTo(shape);
-        }
         if (!input.IsContiguous()) {
             input = chainerx::Copy(input);
         }
@@ -121,20 +113,35 @@ std::vector<chainerx::Array> TvmOp::RunImpl(oniku::runtime::XCVMState* st, const
 
     std::vector<chainerx::Array> outputs;
     for (int i = 0; i < num_outputs; ++i) {
-        outputs.push_back(chainerx::Empty(shape, dtype, device));
+        outputs.push_back(chainerx::Empty(chainerx::Shape(output_shape), dtype, device));
     }
 
     tvm::runtime::PackedFunc fn = LoadPackedFunc(dso_filename);
 
-    CHECK_EQ(1, inputs.size());
-    CHECK_EQ(1, outputs.size());
+    // TODO(hamaji): Handle multiple inputs/outputs.
+    if (inputs.size() == 1) {
+        CHECK_EQ(1, inputs.size());
+        CHECK_EQ(1, outputs.size());
 
-    DLTensor input;
-    DLTensor output;
-    FillDLTensor(inputs[0], &input);
-    FillDLTensor(outputs[0], &output);
+        DLTensor input;
+        DLTensor output;
+        FillDLTensor(inputs[0], &input);
+        FillDLTensor(outputs[0], &output);
 
-    fn(&output, &input);
+        fn(&output, &input);
+    } else if (inputs.size() == 2) {
+        CHECK_EQ(2, inputs.size());
+        CHECK_EQ(1, outputs.size());
+
+        DLTensor input0;
+        DLTensor input1;
+        DLTensor output;
+        FillDLTensor(inputs[0], &input0);
+        FillDLTensor(inputs[1], &input1);
+        FillDLTensor(outputs[0], &output);
+
+        fn(&output, &input0, &input1);
+    }
 
     return outputs;
 
