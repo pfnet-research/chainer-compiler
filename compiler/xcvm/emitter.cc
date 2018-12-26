@@ -774,7 +774,13 @@ private:
             for (Value* value : node.outputs()) {
                 outputs.push_back(GetValueId(value));
             }
-            EMIT(Tvm, outputs, inputs, outputs.size(), dso_filename);
+            // TODO(hamaji): Handle multiple outputs.
+            CHECK_EQ(1, node.outputs().size());
+            std::vector<int> shape;
+            for (int64_t dim : node.outputs()[0]->type().dims()) {
+                shape.push_back(dim);
+            }
+            EMIT(Tvm, outputs, inputs, outputs.size(), dso_filename, shape);
             return;
         }
 

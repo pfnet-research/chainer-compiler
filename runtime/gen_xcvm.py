@@ -328,7 +328,7 @@ XC_OPS = [
      [ArrayList('outputs')]),
     ('Tvm',
      [ArrayList('inputs'), Int('num_outputs'),
-      String('dso_filename')],
+      String('dso_filename'), Ints('output_shape')],
      [ArrayList('outputs')]),
 ]
 
