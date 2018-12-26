@@ -194,7 +194,7 @@ private:
 
         int stride_h = 1, stride_w = 1;
         if (!node.strides().empty()) {
-            CHECK_EQ(2, node.pads().size());
+            CHECK_EQ(2, node.strides().size());
             stride_w = node.strides()[0];
             stride_h = node.strides()[1];
         }
