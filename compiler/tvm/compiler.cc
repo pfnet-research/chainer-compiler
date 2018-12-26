@@ -105,8 +105,14 @@ public:
                 CHECK_EQ(1, input_tensors.size());
                 tvm::Tensor out{topi::relu(input_tensors[0], 0, node->outputs()[0]->name())};
                 output_tensors.push_back(out);
+            } else if (node->op_type() == Node::kTanh) {
+                CHECK_EQ(1, input_tensors.size());
+                tvm::Tensor out{topi::tanh(input_tensors[0], node->outputs()[0]->name())};
+                output_tensors.push_back(out);
             } else if (node->op_type() == Node::kConv) {
                 output_tensors.push_back(BuildConv(*node, input_tensors));
+            } else {
+                CHECK(false) << "Not supported: " << node->op_type();
             }
 
             CHECK_EQ(node->outputs().size(), output_tensors.size());

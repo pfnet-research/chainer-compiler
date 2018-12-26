@@ -173,17 +173,37 @@ void FuseTVMOperations(Graph* graph) {
     };
 
     int num_fusion_groups = 0;
-    for (Node* node : graph->nodes()) {
-        if (node->op_type() != Node::kRelu && node->op_type() != Node::kConv) {
+    std::set<Node*> handled;
+    for (Node* node : graph->GetTopologicallySortedNodes()) {
+        if (node->op_type() != Node::kRelu &&
+            node->op_type() != Node::kTanh &&
+            node->op_type() != Node::kConv) {
+            continue;
+        }
+        if (!handled.emplace(node).second) {
             continue;
         }
         if (!is_fusable(node)) {
             continue;
         }
 
+        std::set<Node*> fused_nodes = {node};
+
+        CHECK_EQ(1, node->outputs().size());
+        Value* output = node->outputs()[0];
+        if (output->users().size() == 1) {
+            Node* user = output->users()[0];
+            if (user->op_type() == Node::kRelu) {
+                CHECK(handled.emplace(user).second);
+                CHECK(fused_nodes.emplace(user).second);
+            }
+        }
+
         ++num_fusion_groups;
-        node->set_onikux_fusion_group(num_fusion_groups);
-        CreateFusionGroup(graph, {node}, "tvm", num_fusion_groups);
+        for (Node* node : fused_nodes) {
+            node->set_onikux_fusion_group(num_fusion_groups);
+        }
+        CreateFusionGroup(graph, fused_nodes, "tvm", num_fusion_groups);
     }
 }
 void FuseElementwiseOperations(Graph* graph) {
