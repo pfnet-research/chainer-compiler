@@ -92,6 +92,7 @@ public:
     void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
         PrepareInputs(inputs);
 
+        const char* scheduler_name = nullptr;
         for (Node* node : nodes) {
             tvm::Array<tvm::Tensor> input_tensors;
             for (Value* input : node->inputs()) {
@@ -118,6 +119,7 @@ public:
             } else if (node->op_type() == Node::kConv) {
                 tvm::Tensor out{BuildConv(*node, input_tensors)};
                 output_tensors.push_back(out);
+                scheduler_name = "oniku.tvm.schedule_conv2d";
             } else {
                 CHECK(false) << "Not supported: " << node->op_type();
             }
@@ -145,9 +147,8 @@ public:
         const bool is_reduction = nodes.back()->op_type() == Node::kReduceSum;
 
         tvm::Schedule schedule;
-
-        if (const tvm::PackedFunc* schedule_fn = Py("oniku.tvm.schedule")) {
-            (*schedule_fn)(target_, output_tensors);
+        if (const tvm::PackedFunc* schedule_fn = Py(scheduler_name)) {
+            schedule = (*schedule_fn)(target_, output_tensors);
         }
 
         if (!schedule.get()) {
@@ -236,6 +237,9 @@ private:
 
 #if ONIKU_ENABLE_PYTHON
     const tvm::PackedFunc* Py(const char* func_name) {
+        if (func_name == nullptr) {
+            return nullptr;
+        }
         const tvm::PackedFunc* fn = tvm::runtime::Registry::Get(func_name);
         CHECK(fn) << fn << " is not registered";
         return fn;
