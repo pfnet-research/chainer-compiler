@@ -68,3 +68,29 @@ if(${ONIKU_ENABLE_OPENCV})
     )
   set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
 endif()
+
+if (${ONIKU_ENABLE_PYTHON})
+  include_directories(${PYTHON_INCLUDE_DIRS})
+
+  add_library(run_onnx_core.so MODULE run_onnx_core.cc)
+
+  target_link_libraries(run_onnx_core.so
+    PRIVATE
+    run_onnx_lib
+    oniku_tools
+    oniku_compiler
+    oniku_runtime
+    oniku_common
+    chainerx
+    onnx
+    onnx_proto
+    protobuf
+    pthread
+    ${ONIKU_TVM_LIBRARIES}
+    ${ONIKU_CUDA_LIBRARIES}
+    )
+  set_target_properties(run_onnx_core.so
+    PROPERTIES
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_SUFFIX}")
+endif()
