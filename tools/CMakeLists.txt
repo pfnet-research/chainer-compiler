@@ -27,9 +27,14 @@ target_link_libraries(dump
   )
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
-add_executable(run_onnx run_onnx.cc)
-add_dependencies(run_onnx runtime_xcvm_pb_h onnx_files)
+add_library(run_onnx_lib
+  run_onnx.cc
+  )
+add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
+
+add_executable(run_onnx run_onnx_main.cc)
 target_link_libraries(run_onnx
+  run_onnx_lib
   oniku_tools
   oniku_compiler
   oniku_runtime

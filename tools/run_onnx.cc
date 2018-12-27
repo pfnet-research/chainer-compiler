@@ -376,7 +376,7 @@ private:
     std::vector<std::string> backprop_ins_;
 };
 
-void RunMain(int argc, char** argv) {
+void RunMain(const std::vector<std::string>& argv) {
     g_modify_pool_with_imbalanced_pads = true;
 
     cmdline::parser args;
@@ -403,7 +403,7 @@ void RunMain(int argc, char** argv) {
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
     args.add("quiet", 'q', "Quiet mode");
     AddCompilerFlags(&args);
-    args.parse_check(argc, argv);
+    args.parse_check(argv);
     ApplyCompilerFlags(args);
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
     g_backend_name = args.get<std::string>("backend");
@@ -631,9 +631,10 @@ void RunMain(int argc, char** argv) {
 }
 
 }  // namespace
+
+void RunONNX(const std::vector<std::string>& argv) {
+    RunMain(argv);
+}
+
 }  // namespace runtime
 }  // namespace oniku
-
-int main(int argc, char** argv) {
-    oniku::runtime::RunMain(argc, argv);
-}
