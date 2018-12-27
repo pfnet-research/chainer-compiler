@@ -78,6 +78,12 @@ tvm::Tensor GetPlaceholder(const Value* value, const std::string& name) {
 class TVMCompiler {
 public:
     TVMCompiler() {
+        host_ = tvm::target::llvm();
+        if (g_use_cuda) {
+            target_ = tvm::target::cuda();
+        } else {
+            target_ = host_;
+        }
     }
 
     ~TVMCompiler() {
@@ -86,23 +92,15 @@ public:
     void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
         PrepareInputs(inputs);
 
-        tvm::Target host{tvm::Target::create("llvm")};
-        tvm::Target target;
-        if (g_use_cuda) {
-            target = tvm::Target{tvm::target::cuda()};
-        } else {
-            target = host;
-        }
-
         for (Node* node : nodes) {
-            std::vector<tvm::Tensor> input_tensors;
+            tvm::Array<tvm::Tensor> input_tensors;
             for (Value* input : node->inputs()) {
                 auto found = tensors_.find(input);
                 CHECK(found != tensors_.end()) << input->DebugString();
                 input_tensors.push_back(found->second);
             }
 
-            std::vector<tvm::Tensor> output_tensors;
+            tvm::Array<tvm::Tensor> output_tensors;
             if (node->op_type() == Node::kRelu) {
                 CHECK_EQ(1, input_tensors.size());
                 tvm::Tensor out{topi::relu(input_tensors[0], 0, node->outputs()[0]->name())};
@@ -118,7 +116,8 @@ public:
                 tvm::Tensor out{topi::sum(input_tensors[0], axes, node->keepdims())};
                 output_tensors.push_back(out);
             } else if (node->op_type() == Node::kConv) {
-                output_tensors.push_back(BuildConv(*node, input_tensors));
+                tvm::Tensor out{BuildConv(*node, input_tensors)};
+                output_tensors.push_back(out);
             } else {
                 CHECK(false) << "Not supported: " << node->op_type();
             }
@@ -129,8 +128,8 @@ public:
             }
         }
 
-        std::vector<tvm::Tensor> args;
-        std::vector<tvm::Tensor> output_tensors;
+        tvm::Array <tvm::Tensor> args;
+        tvm::Array<tvm::Tensor> output_tensors;
         for (Value* output : outputs) {
             auto found = tensors_.find(output);
             CHECK(found != tensors_.end()) << output->DebugString();
@@ -143,17 +142,24 @@ public:
             args.push_back(found->second);
         }
 
-        bool is_reduction = nodes.back()->op_type() == Node::kReduceSum;
+        const bool is_reduction = nodes.back()->op_type() == Node::kReduceSum;
 
         tvm::Schedule schedule;
-        if (g_use_cuda) {
-            if (is_reduction) {
-                schedule = topi::cuda::schedule_reduce(target, output_tensors);
+
+        if (const tvm::PackedFunc* schedule_fn = Py("oniku.tvm.schedule")) {
+            (*schedule_fn)(target_, output_tensors);
+        }
+
+        if (!schedule.get()) {
+            if (g_use_cuda) {
+                if (is_reduction) {
+                    schedule = topi::cuda::schedule_reduce(target_, output_tensors);
+                } else {
+                    schedule = topi::cuda::schedule_injective(target_, output_tensors);
+                }
             } else {
-                schedule = topi::cuda::schedule_injective(target, output_tensors);
+                schedule = topi::generic::schedule_injective(target_, output_tensors);
             }
-        } else {
-            schedule = topi::generic::schedule_injective(target, output_tensors);
         }
 
         tvm::BuildConfig config{tvm::build_config()};
@@ -161,7 +167,7 @@ public:
 
         const std::string& dso_name = StrCat("/tmp/liboniku_tvm_op_", id);
 
-        tvm::runtime::Module module = tvm::build(funcs, target, host, config);
+        tvm::runtime::Module module = tvm::build(funcs, target_, host_, config);
         CLOG() << module->type_key() << ": " << module->GetSource() << std::endl;
 
         std::vector<std::string> input_files;
@@ -201,7 +207,7 @@ private:
         }
     }
 
-    tvm::Tensor BuildConv(const Node& node, const std::vector<tvm::Tensor>& inputs) {
+    tvm::Tensor BuildConv(const Node& node, const tvm::Array<tvm::Tensor>& inputs) {
         CHECK_EQ(2, inputs.size());
         int pad_h = 0, pad_w = 0;
         if (!node.pads().empty()) {
@@ -218,11 +224,31 @@ private:
             stride_w = node.strides()[0];
             stride_h = node.strides()[1];
         }
+
+        if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d")) {
+            tvm::Tensor out = (*conv2d_fn)(target_, inputs, pad_h, pad_w, stride_h, stride_w);
+            if (out.get()) return out;
+        }
+
         tvm::Tensor out{topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, node.outputs()[0]->name())};
         return out;
     }
 
+#if ONIKU_ENABLE_PYTHON
+    const tvm::PackedFunc* Py(const char* func_name) {
+        const tvm::PackedFunc* fn = tvm::runtime::Registry::Get(func_name);
+        CHECK(fn) << fn << " is not registered";
+        return fn;
+    }
+#else
+    const tvm::PackedFunc* Py(const char* func_name) {
+        return nullptr;
+    }
+#endif
+
     std::map<Value*, tvm::Tensor> tensors_;
+    tvm::Target host_;
+    tvm::Target target_;
 };
 
 }  // namespace
