@@ -105,11 +105,11 @@ public:
             tvm::Array<tvm::Tensor> output_tensors;
             if (node->op_type() == Node::kRelu) {
                 CHECK_EQ(1, input_tensors.size());
-                tvm::Tensor out{topi::relu(input_tensors[0], 0, node->outputs()[0]->name())};
+                tvm::Tensor out{topi::relu(input_tensors[0], 0, GetIdent(node->outputs()[0]))};
                 output_tensors.push_back(out);
             } else if (node->op_type() == Node::kTanh) {
                 CHECK_EQ(1, input_tensors.size());
-                tvm::Tensor out{topi::tanh(input_tensors[0], node->outputs()[0]->name())};
+                tvm::Tensor out{topi::tanh(input_tensors[0], GetIdent(node->outputs()[0]))};
                 output_tensors.push_back(out);
             } else if (node->op_type() == Node::kReduceSum) {
                 CHECK_EQ(1, input_tensors.size());
@@ -202,9 +202,25 @@ public:
     }
 
 private:
+    std::string CleanseIdent(const std::string& s) {
+        std::string o;
+        for (char c : s) {
+            if (std::isalnum(c)) {
+                o += c;
+            } else {
+                o += '_';
+            }
+        }
+        return o;
+    }
+
+    std::string GetIdent(const Value* v) {
+        return CleanseIdent(v->name());
+    }
+
     void PrepareInputs(const std::vector<Value*>& inputs) {
         for (Value* input : inputs) {
-            tvm::Tensor in{GetPlaceholder(input, input->name())};
+            tvm::Tensor in{GetPlaceholder(input, GetIdent(input))};
             CHECK(tensors_.emplace(input, in).second);
         }
     }
@@ -231,7 +247,7 @@ private:
             out = (*conv2d_fn)(target_, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {
-            out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, node.outputs()[0]->name());
+            out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, GetIdent(node.outputs()[0]));
         }
 
         if (inputs.size() == 3) {
