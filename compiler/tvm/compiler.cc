@@ -14,9 +14,10 @@
 #include <topi/cuda/injective.h>
 #include <topi/cuda/reduction.h>
 #include <topi/elemwise.h>
+#include <topi/generic/injective.h>
 #include <topi/nn.h>
 #include <topi/reduction.h>
-#include <topi/generic/injective.h>
+#include <topi/transform.h>
 #include <tvm/build_module.h>
 #include <tvm/codegen.h>
 
@@ -209,7 +210,6 @@ private:
     }
 
     tvm::Tensor BuildConv(const Node& node, const tvm::Array<tvm::Tensor>& inputs) {
-        CHECK_EQ(2, inputs.size());
         int pad_h = 0, pad_w = 0;
         if (!node.pads().empty()) {
             CHECK_EQ(4, node.pads().size());
@@ -226,12 +226,19 @@ private:
             stride_h = node.strides()[1];
         }
 
+        tvm::Tensor out;
         if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d")) {
-            tvm::Tensor out = (*conv2d_fn)(target_, inputs, pad_h, pad_w, stride_h, stride_w);
-            if (out.get()) return out;
+            out = (*conv2d_fn)(target_, inputs, pad_h, pad_w, stride_h, stride_w);
+        }
+        if (!out.get()) {
+            out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, node.outputs()[0]->name());
         }
 
-        tvm::Tensor out{topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, node.outputs()[0]->name())};
+        if (inputs.size() == 3) {
+            const int num_newaxis = node.inputs()[0]->type().dims().size() - 2;
+            tvm::Tensor bias = topi::expand_dims(inputs[2], 1 /* axis */, num_newaxis);
+            out = topi::add(out, bias);
+        }
         return out;
     }
 
