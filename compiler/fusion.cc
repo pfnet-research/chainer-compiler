@@ -212,6 +212,14 @@ void FuseTVMOperations(Graph* graph) {
             node = user;
         }
 
+        int num_calculation = 0;
+        for (Node* node : fused_nodes) {
+            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
+        }
+        if (num_calculation <= 1 && base_node->op_type() != Node::kConv) {
+            continue;
+        }
+
         ++num_fusion_groups;
         for (Node* node : fused_nodes) {
             node->set_onikux_fusion_group(num_fusion_groups);
