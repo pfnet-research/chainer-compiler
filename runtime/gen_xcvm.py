@@ -331,7 +331,7 @@ XC_OPS = [
 XC_CUSTOM_FIELD_OPS = [
     ('TVM',
      [ArrayList('inputs'), Int('num_outputs'),
-      String('dso_filename'), Ints('output_shape')],
+      String('dso_filename'), String('func_name'), Ints('output_shape')],
      [ArrayList('outputs')]),
 ]
 

@@ -76,9 +76,9 @@ void FillDLTensor(const chainerx::Array& array, DLTensor* tensor) {
     tensor->byte_offset = 0;
 }
 
-tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename) {
+tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename, const std::string& func_name) {
     tvm::runtime::Module dso = tvm::runtime::Module::LoadFromFile(dso_filename);
-    tvm::runtime::PackedFunc fn = dso.GetFunction("tvm_op");
+    tvm::runtime::PackedFunc fn = dso.GetFunction(func_name);
     CHECK(fn != nullptr) << dso_filename;
     return fn;
 }
@@ -96,7 +96,7 @@ public:
 void TVMOp::InitImpl() {
 #if ONIKU_ENABLE_TVM
     impl_ = new TVMImpl();
-    impl_->fn = LoadPackedFunc(dso_filename);
+    impl_->fn = LoadPackedFunc(dso_filename, func_name);
 #endif
 }
 

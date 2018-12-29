@@ -90,7 +90,7 @@ public:
     ~TVMCompiler() {
     }
 
-    void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
+    void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
         PrepareInputs(inputs);
 
         const char* scheduler_name = nullptr;
@@ -169,9 +169,10 @@ public:
         }
 
         tvm::BuildConfig config{tvm::build_config()};
-        tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, args, "tvm_op", {}, config)};
+        *func_name = StrCat("tvm_op_", id);
+        tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, args, *func_name, {}, config)};
 
-        const std::string& dso_name = StrCat("/tmp/liboniku_tvm_op_", id);
+        const std::string& dso_name = StrCat("/tmp/liboniku_", *func_name);
 
         tvm::runtime::Module module = tvm::build(funcs, target_, host_, config);
         CLOG() << module->type_key() << ": " << module->GetSource() << std::endl;
@@ -287,10 +288,10 @@ private:
 #endif
 
 void BuildTVMProgram(
-    const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename) {
+    const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
 #if ONIKU_ENABLE_TVM
     TVMCompiler compiler;
-    compiler.Build(nodes, id, inputs, outputs, filename);
+    compiler.Build(nodes, id, inputs, outputs, filename, func_name);
 #else
     CHECK(false) << "Enable -DONIKU_ENABLE_TVM=ON";
 #endif

@@ -768,7 +768,8 @@ private:
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
-            BuildTVMProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename);
+            std::string func_name;
+            BuildTVMProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
             if (g_compiler_log) {
                 // TODO(hamaji): Show more code.
                 CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << std::endl;
@@ -788,7 +789,7 @@ private:
             for (int64_t dim : node.outputs()[0]->type().dims()) {
                 shape.push_back(dim);
             }
-            EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, shape);
+            EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, func_name, shape);
             return;
         }
 
