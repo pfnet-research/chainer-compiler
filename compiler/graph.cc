@@ -240,6 +240,18 @@ std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
     return sorted_nodes;
 }
 
+void Graph::SortTopologically() {
+    std::set<Node*> node_set{nodes_.begin(), nodes_.end()};
+    std::vector<Node*> next_nodes = GetTopologicallySortedNodes();
+    for (Node* node : next_nodes) {
+        CHECK(node_set.erase(node));
+    }
+    for (Node* node : node_set) {
+        next_nodes.push_back(node);
+    }
+    nodes_.swap(next_nodes);
+}
+
 std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Value*>& output_values) const {
     std::queue<Node*> q;
     for (const Value* value : output_values) {
@@ -321,6 +333,7 @@ void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Valu
         temp_values_.erase(found);
         to->temp_values_.push_back(value);
     }
+    to->SortTopologically();
 }
 
 void Graph::InferShapes() {

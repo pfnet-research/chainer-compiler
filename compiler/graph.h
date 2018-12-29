@@ -81,6 +81,7 @@ public:
     void DetachNode(Node* node);
 
     std::vector<Node*> GetTopologicallySortedNodes() const;
+    void SortTopologically();
 
     // Returns a map from nodes to the number of their users.
     std::map<Node*, int> GetNecessaryNodesAndInputCounts(const std::vector<Value*>& output_values) const;
