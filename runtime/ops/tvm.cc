@@ -88,6 +88,7 @@ tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename) {
 class TVMOp::TVMImpl {
 public:
     tvm::runtime::PackedFunc fn;
+    std::vector<chainerx::Array> outputs;
 };
 
 #endif
@@ -116,10 +117,12 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
         inputs.push_back(input);
     }
 
-    std::vector<chainerx::Array> outputs;
-    for (int i = 0; i < num_outputs; ++i) {
-        outputs.push_back(chainerx::Empty(chainerx::Shape(output_shape), dtype, device));
+    if (impl_->outputs.empty()) {
+        for (int i = 0; i < num_outputs; ++i) {
+            impl_->outputs.push_back(chainerx::Empty(chainerx::Shape(output_shape), dtype, device));
+        }
     }
+    const std::vector<chainerx::Array> outputs = impl_->outputs;
 
     size_t num_args = outputs.size() + inputs.size();
     std::vector<DLTensor> tensors(num_args);
