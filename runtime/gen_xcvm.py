@@ -326,6 +326,9 @@ XC_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
+]
+
+XC_CUSTOM_FIELD_OPS = [
     ('TVM',
      [ArrayList('inputs'), Int('num_outputs'),
       String('dso_filename'), Ints('output_shape')],
@@ -393,7 +396,9 @@ XC_GENERIC_OPS = [
 
 
 class Op(object):
-    def __init__(self, name, inputs, outputs, typed=True):
+    def __init__(self, name, inputs, outputs,
+                 typed=True,
+                 has_custom_field=False):
         self.name = name
         self.inputs = inputs
         self.outputs = []
@@ -406,9 +411,11 @@ class Op(object):
                 self.outputs.append(Array(output))
                 self.output_names.append(output)
         self.typed = typed
+        self.has_custom_field = has_custom_field
 
 
 XC_ALL_OPS = [Op(*op) for op in XC_OPS]
+XC_ALL_OPS += [Op(*op, has_custom_field=True) for op in XC_CUSTOM_FIELD_OPS]
 XC_ALL_OPS += [Op(*op) for op in XC_SEQ_OPS]
 XC_ALL_OPS += [Op(*op, typed=False) for op in XC_SEQ_OPS_UNTYPED]
 XC_ALL_OPS += [Op(*op, typed=False) for op in XC_GENERIC_OPS]
@@ -519,6 +526,12 @@ def gen_gen_xcvm_ops_h():
             ctype = out.c_storage_type()
             lines.append('%s %s;' % (ctype, out.name))
 
+        if op.has_custom_field:
+            lines.append('~%sOp() override;' % op.name)
+            lines.append('void InitImpl();')
+            lines.append('class %sImpl;' % op.name)
+            lines.append('%sImpl* impl_{nullptr};' % op.name)
+
         lines.append('};')
 
     with open(output_dir + '/gen_xcvm_ops.h', 'w') as f:
@@ -526,6 +539,7 @@ def gen_gen_xcvm_ops_h():
 
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <chainerx/stack_vector.h>
@@ -576,7 +590,15 @@ def gen_gen_xcvm_ops_cc():
             else:
                 lines.append('%s = inst.outputs(%d);' % (name, i))
 
+        if op.has_custom_field:
+            lines.append('InitImpl();')
+
         lines.append('}')
+
+        if op.has_custom_field:
+            lines.append('%sOp::~%sOp() {' % (op.name, op.name))
+            lines.append('delete impl_;')
+            lines.append('}')
 
         # Emit Run.
         lines.append('void %sOp::Run(XCVMState* st) {' % op.name)

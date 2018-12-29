@@ -77,22 +77,27 @@ void FillDLTensor(const chainerx::Array& array, DLTensor* tensor) {
 }
 
 tvm::runtime::PackedFunc LoadPackedFunc(const std::string& dso_filename) {
-    static std::map<std::string, tvm::runtime::PackedFunc> cache;
-    auto found = cache.find(dso_filename);
-    if (found != cache.end()) {
-        return found->second;
-    }
-
     tvm::runtime::Module dso = tvm::runtime::Module::LoadFromFile(dso_filename);
     tvm::runtime::PackedFunc fn = dso.GetFunction("tvm_op");
     CHECK(fn != nullptr) << dso_filename;
-    CHECK(cache.emplace(dso_filename, fn).second);
     return fn;
 }
 
 }  // namespace
 
+class TVMOp::TVMImpl {
+public:
+    tvm::runtime::PackedFunc fn;
+};
+
 #endif
+
+void TVMOp::InitImpl() {
+#if ONIKU_ENABLE_TVM
+    impl_ = new TVMImpl();
+    impl_->fn = LoadPackedFunc(dso_filename);
+#endif
+}
 
 std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if ONIKU_ENABLE_TVM
@@ -116,8 +121,6 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
         outputs.push_back(chainerx::Empty(chainerx::Shape(output_shape), dtype, device));
     }
 
-    tvm::runtime::PackedFunc fn = LoadPackedFunc(dso_filename);
-
     size_t num_args = outputs.size() + inputs.size();
     std::vector<DLTensor> tensors(num_args);
     for (size_t i = 0; i < outputs.size(); ++i) {
@@ -136,7 +139,7 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
 
     tvm::runtime::TVMArgs tvm_args(tvm_values, tvm_type_codes, num_args);
     tvm::runtime::TVMRetValue tvm_ret;
-    fn.CallPacked(tvm_args, &tvm_ret);
+    impl_->fn.CallPacked(tvm_args, &tvm_ret);
 
     return outputs;
 

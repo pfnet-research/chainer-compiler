@@ -13,6 +13,8 @@ class XCVMState;
 
 class XCVMOp {
 public:
+    virtual ~XCVMOp() = default;
+
     virtual void Run(XCVMState* state) = 0;
 
     int64_t id() const {
