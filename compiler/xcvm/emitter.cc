@@ -746,6 +746,14 @@ private:
         }
     }
 
+    std::string GetFusionGroupSummary(const Node& node) {
+        std::string ret = node.ToString();
+        ret += " (";
+        ret += JoinString(MapToString(node.subgraph()->nodes(), [](const Node* n) { return Node::OpTypeToString(n->op_type()); }), "+");
+        ret += ")";
+        return ret;
+    }
+
     void EmitFusionGroup(const Node& node, XCProgramProto* prog) {
         const Graph& body = *node.subgraph();
         CHECK_EQ(node.inputs().size(), body.input_values().size());
@@ -763,7 +771,7 @@ private:
             BuildTVMProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename);
             if (g_compiler_log) {
                 // TODO(hamaji): Show more code.
-                CLOG() << "Fusion group (TVM) " << node.ToString() << std::endl;
+                CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << std::endl;
                 CLOG() << dso_filename;
             }
 
@@ -788,7 +796,7 @@ private:
             std::string nvrtc;
             BuildNvrtcProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
             if (g_compiler_log) {
-                CLOG() << "Fusion group (NVRTC) " << node.ToString() << std::endl;
+                CLOG() << "Fusion group (NVRTC) " << GetFusionGroupSummary(node) << std::endl;
                 CLOG() << nvrtc;
             }
 
