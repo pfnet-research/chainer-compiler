@@ -595,11 +595,6 @@ def gen_gen_xcvm_ops_cc():
 
         lines.append('}')
 
-        if op.has_custom_field:
-            lines.append('%sOp::~%sOp() {' % (op.name, op.name))
-            lines.append('delete impl_;')
-            lines.append('}')
-
         # Emit Run.
         lines.append('void %sOp::Run(XCVMState* st) {' % op.name)
 

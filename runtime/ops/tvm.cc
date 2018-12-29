@@ -100,6 +100,10 @@ void TVMOp::InitImpl() {
 #endif
 }
 
+TVMOp::~TVMOp() {
+    delete impl_;
+}
+
 std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if ONIKU_ENABLE_TVM
     CHECK(!inputs.empty());
