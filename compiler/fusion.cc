@@ -199,7 +199,8 @@ void FuseTVMOperations(Graph* graph) {
 
             Node* user = output->users()[0];
             if ((user->op_type() != Node::kRelu &&
-                 user->op_type() != Node::kReduceSum)) {
+                 user->op_type() != Node::kReduceSum &&
+                 user->op_type() != Node::kAdd)) {
                 break;
             }
             if (!handled.emplace(user).second) {

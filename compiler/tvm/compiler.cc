@@ -111,6 +111,10 @@ public:
                 CHECK_EQ(1, input_tensors.size());
                 tvm::Tensor out{topi::tanh(input_tensors[0], GetIdent(node->outputs()[0]))};
                 output_tensors.push_back(out);
+            } else if (node->op_type() == Node::kAdd) {
+                CHECK_EQ(2, input_tensors.size());
+                tvm::Tensor out{topi::add(input_tensors[0], input_tensors[1], GetIdent(node->outputs()[0]))};
+                output_tensors.push_back(out);
             } else if (node->op_type() == Node::kReduceSum) {
                 CHECK_EQ(1, input_tensors.size());
                 tvm::Array<tvm::Integer> axes;
