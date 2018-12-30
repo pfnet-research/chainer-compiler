@@ -177,6 +177,10 @@ public:
         tvm::runtime::Module module = tvm::build(funcs, target_, host_, config);
         CLOG() << module->type_key() << ": " << module->GetSource() << std::endl;
 
+        for (const tvm::runtime::Module& sub_module : module->imports()) {
+            CLOG() << sub_module->type_key() << ": " << const_cast<tvm::runtime::Module&>(sub_module)->GetSource() << std::endl;
+        }
+
         std::vector<std::string> input_files;
 
         const std::string& obj_filename = dso_name + ".o";
@@ -184,8 +188,6 @@ public:
         module->SaveToFile(obj_filename, "o");
 
         if (g_use_cuda) {
-            tvm::runtime::Module& cuda_module = const_cast<tvm::runtime::Module&>(module->imports()[0]);
-            CLOG() << cuda_module->type_key() << ": " << cuda_module->GetSource() << std::endl;
             const std::string& dev_filename = dso_name + "_dev.c";
             const std::string& c_code = tvm::codegen::PackImportsToC(module, false /* system_lib */);
             std::ofstream ofs(dev_filename);
