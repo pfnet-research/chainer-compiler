@@ -269,7 +269,7 @@ private:
             return nullptr;
         }
         const tvm::PackedFunc* fn = tvm::runtime::Registry::Get(func_name);
-        CHECK(fn) << fn << " is not registered";
+        CHECK(fn) << func_name << " is not registered";
         return fn;
     }
 #else
