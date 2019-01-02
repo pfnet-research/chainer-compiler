@@ -79,8 +79,19 @@ def autotvm_key_from_task(task):
     key.append(dtype)
     return key
 
+def deserialize_args(args):
+    ret = []
+    for t in args:
+        if isinstance(t, tuple) and t[0] == 'TENSOR':
+            ret.append(tvm.placeholder(shape=t[1], dtype=t[2]))
+        else:
+            ret.append(t)
+    return ret
+
+
 @autotvm.task.register('topi_nn_conv2d')
-def _topi_nn_conv2d(input, weight, *args, **kwargs):
+def _topi_nn_conv2d(*args, **kwargs):
+    input, weight, *args = deserialize_args(args)
     c = topi.nn.conv2d(input, weight, *args, **kwargs)
     s = topi.generic.schedule_conv2d_nchw([c])
     return s, [input, weight, c]
@@ -102,8 +113,8 @@ def autotvm_task(task, target):
     dtype = task['dtype'].lower()
 
     args = (
-        tvm.placeholder((bsize, ichan, height, width), dtype),
-        tvm.placeholder((ochan, ichan, kernel_h, kernel_w), dtype),
+        ('TENSOR', (bsize, ichan, height, width), dtype),
+        ('TENSOR', (ochan, ichan, kernel_h, kernel_w), dtype),
         (stride_h, stride_w),
         (pad_h, pad_w),
         (1, 1),
@@ -115,22 +126,6 @@ def autotvm_task(task, target):
                                args,
                                target,
                                template_key='direct')
-
-    tvm_task = autotvm.task.Task('topi_nn_conv2d', args)
-    tvm_task.workload = (
-        'conv2d',
-        (bsize, ichan, height, width, dtype),
-        (ochan, ichan, kernel_h, kernel_w, dtype),
-        (stride_h, stride_w),
-        (pad_h, pad_w),
-        (1, 1),
-        'NCHW',
-        dtype
-    )
-    oh = (height + pad_h * 2 - kernel_h + stride_h) // stride_h
-    ow = (width + pad_w * 2 - kernel_w + stride_w) // stride_w
-    tvm_task.flop = bsize * ichan * ochan * oh * ow * kernel_h * kernel_w
-    return tvm_task
 
 
 # From https://github.com/dmlc/tvm/blob/master/tutorials/autotvm/tune_nnvm_cuda.py
