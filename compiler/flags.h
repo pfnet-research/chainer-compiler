@@ -39,6 +39,9 @@ extern bool g_use_nvrtc;
 // Use TVM to execute fused operations.
 extern bool g_use_tvm;
 
+// Output AutoTVM tasks in this directory.
+extern std::string g_dump_autotvm_task_dir;
+
 // The name of backend.
 extern std::string g_backend_name;
 
