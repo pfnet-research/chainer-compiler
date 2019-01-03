@@ -90,7 +90,7 @@ def deserialize_args(args):
 
 
 @autotvm.task.register('topi_nn_conv2d')
-def _topi_nn_conv2d(*args, **kwargs):
+def topi_nn_conv2d(*args, **kwargs):
     input, weight, *args = deserialize_args(args)
     c = topi.nn.conv2d(input, weight, *args, **kwargs)
     s = topi.generic.schedule_conv2d_nchw([c])
