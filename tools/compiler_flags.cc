@@ -14,6 +14,7 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add("fuse_operations", '\0', "Fuse consecutive operations");
     args->add("use_nvrtc", '\0', "Use NVRTC");
     args->add("use_tvm", '\0', "Use TVM");
+    args->add("reuse_tvm_code", '\0', "Reuse TVM code (unsafe)");
     args->add<std::string>("dump_autotvm_task_dir", '\0', "Output AutoTVM tasks in this directory", false);
     args->add("dump_after_inference", '\0', "Dump the ONNX graph after dtype/shape inference");
     args->add("dump_after_simplification", '\0', "Dump the ONNX graph after graph simplification");
@@ -31,6 +32,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_fuse_operations = args.exist("fuse_operations");
     g_use_nvrtc = args.exist("use_nvrtc");
     g_use_tvm = args.exist("use_tvm");
+    g_reuse_tvm_code = args.exist("reuse_tvm_code");
     g_dump_autotvm_task_dir = args.get<std::string>("dump_autotvm_task_dir");
     g_recompute_relu = args.get<int>("recompute_relu");
     g_dump_after_inference = args.exist("dump_after_inference");

@@ -39,6 +39,9 @@ extern bool g_use_nvrtc;
 // Use TVM to execute fused operations.
 extern bool g_use_tvm;
 
+// Reuse existing TVM code. Unsafe.
+extern bool g_reuse_tvm_code;
+
 // Output AutoTVM tasks in this directory.
 extern std::string g_dump_autotvm_task_dir;
 

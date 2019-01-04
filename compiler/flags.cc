@@ -22,6 +22,8 @@ bool g_use_nvrtc;
 
 bool g_use_tvm;
 
+bool g_reuse_tvm_code;
+
 std::string g_dump_autotvm_task_dir;
 
 std::string g_backend_name;
