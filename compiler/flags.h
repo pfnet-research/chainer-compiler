@@ -45,6 +45,9 @@ extern bool g_reuse_tvm_code;
 // Output AutoTVM tasks in this directory.
 extern std::string g_dump_autotvm_task_dir;
 
+// A tuning log of AutoTVM which contains best scheduling parameters.
+extern std::string g_autotvm_log;
+
 // The name of backend.
 extern std::string g_backend_name;
 

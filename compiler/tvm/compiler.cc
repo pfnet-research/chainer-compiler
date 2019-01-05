@@ -167,7 +167,7 @@ public:
 
         tvm::Schedule schedule;
         if (const tvm::PackedFunc* schedule_fn = Py(scheduler_name)) {
-            schedule = (*schedule_fn)(target_, output_tensors);
+            schedule = (*schedule_fn)(target_, g_autotvm_log, output_tensors);
         }
 
         if (!schedule.get()) {
@@ -288,7 +288,7 @@ private:
 
         tvm::Tensor out;
         if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d")) {
-            out = (*conv2d_fn)(target_, inputs, pad_h, pad_w, stride_h, stride_w);
+            out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {
             out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, GetIdent(node.outputs()[0]));

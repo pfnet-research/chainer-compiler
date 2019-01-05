@@ -26,6 +26,8 @@ bool g_reuse_tvm_code;
 
 std::string g_dump_autotvm_task_dir;
 
+std::string g_autotvm_log;
+
 std::string g_backend_name;
 
 bool g_dump_after_inference;
