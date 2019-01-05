@@ -113,12 +113,14 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
     chainerx::Dtype dtype = orig_inputs[0].dtype();
 
     // Validate inputs.
-    std::vector<chainerx::Array> inputs;
-    for (chainerx::Array input : orig_inputs) {
-        if (!input.IsContiguous()) {
-            input = chainerx::Copy(input);
+    chainerx::Array inputs[orig_inputs.size()];
+    for (size_t i = 0; i < orig_inputs.size(); ++i) {
+        const chainerx::Array& input = orig_inputs[i];
+        if (input.IsContiguous()) {
+            inputs[i] = input;
+        } else {
+            inputs[i] = chainerx::Copy(input);
         }
-        inputs.push_back(input);
     }
 
     if (impl_->outputs.empty()) {
@@ -126,21 +128,21 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
             impl_->outputs.push_back(chainerx::Empty(chainerx::Shape(output_shape), dtype, device));
         }
     }
-    const std::vector<chainerx::Array> outputs = impl_->outputs;
+    const std::vector<chainerx::Array>& outputs = impl_->outputs;
 
-    size_t num_args = outputs.size() + inputs.size();
-    std::vector<DLTensor> tensors(num_args);
+    size_t num_args = outputs.size() + orig_inputs.size();
+    DLTensor tensors[num_args];
     for (size_t i = 0; i < outputs.size(); ++i) {
         FillDLTensor(outputs[i], &tensors[i]);
     }
-    for (size_t i = 0; i < inputs.size(); ++i) {
+    for (size_t i = 0; i < orig_inputs.size(); ++i) {
         FillDLTensor(inputs[i], &tensors[outputs.size() + i]);
     }
 
     TVMValue tvm_values[num_args];
     int tvm_type_codes[num_args];
     auto args_setter = tvm::runtime::TVMArgsSetter(tvm_values, tvm_type_codes);
-    for (size_t i = 0; i < tensors.size(); ++i) {
+    for (size_t i = 0; i < num_args; ++i) {
         args_setter(i, &tensors[i]);
     }
 
