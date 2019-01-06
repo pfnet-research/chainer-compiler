@@ -122,7 +122,7 @@ def autotvm_task(task, target):
         dtype
     )
 
-    return autotvm.task.create(_topi_nn_conv2d,
+    return autotvm.task.create(topi_nn_conv2d,
                                args,
                                target,
                                template_key='direct')
