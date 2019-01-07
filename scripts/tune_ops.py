@@ -41,11 +41,13 @@ class TVMConfig(object):
         return True
 
 
-def read_tasks(op_filenames):
+def read_tasks(op_filenames, batchsize):
     tasks = {}
     for op_filename in op_filenames:
         with open(op_filename) as f:
             task = json.load(f)
+            if batchsize:
+                task['bsize'] = batchsize
             task_key = tuple(sorted(task.items()))
             if task_key not in tasks:
                 tasks[task_key] = (op_filename, task)
@@ -189,11 +191,13 @@ def main():
     parser = argparse.ArgumentParser(description='Tune ops')
     parser.add_argument('output', type=str)
     parser.add_argument('ops', type=str, nargs='+')
+    parser.add_argument('--batchsize', type=int)
     parser.add_argument('--base', type=str)
     parser.add_argument('--target', type=str, default='cuda')
     args = parser.parse_args()
 
-    tasks = read_tasks(args.ops)
+    tasks = read_tasks(args.ops, args.batchsize)
+
     print('Read %d tasks from %d files' % (len(tasks), len(args.ops)))
 
     if args.base:
