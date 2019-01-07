@@ -168,13 +168,13 @@ void RunMain(int argc, char** argv) {
 
             inputs = params;
             if (expects_onehot) {
-                CHECK_EQ(3, data.size());
+                CHECK_EQ(2, data.size());
                 CHECK_EQ(3, infeed_value_names.size());
-                inputs.emplace(infeed_value_names[0], std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                inputs.emplace("Input_0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
-                inputs.emplace(infeed_value_names[1], std::shared_ptr<XCVMVar>(new XCVMVar(onehot)));
-                inputs.emplace(infeed_value_names[2], std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
+                inputs.emplace("Input_1", std::shared_ptr<XCVMVar>(new XCVMVar(onehot)));
+                inputs.emplace("Input_2", std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
             } else {
                 CHECK_EQ(2, data.size());
                 CHECK_EQ(2, infeed_value_names.size());
