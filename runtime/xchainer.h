@@ -22,10 +22,6 @@ chainerx::Array MakeScalarArray(float f);
 
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
-bool HasNan(const chainerx::Array& a);
-
-bool HasInf(const chainerx::Array& a);
-
 // This function was renamed from `Split` to clearly tell this is
 // different from chainerx::Split.
 std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int axis, const std::vector<int64_t>& split);

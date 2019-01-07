@@ -1,5 +1,8 @@
 #include "xcvm_state.h"
 
+#include <chainerx/routines/manipulation.h>
+#include <chainerx/routines/math.h>
+
 #include <common/log.h>
 #include <common/strutil.h>
 #include <runtime/xcvm.h>
@@ -158,9 +161,36 @@ void XCVMState::ReportInvalidInOuts(const std::vector<int>& inputs, const std::v
     CHECK(false);
 }
 
+namespace {
+
+bool HasElemInArray(chainerx::Array (*pred_fn)(const chainerx::Array&), const chainerx::Array& a) {
+    chainerx::Array matched = pred_fn(a);
+    int result = static_cast<int>(chainerx::AsScalar(chainerx::Sum(matched)));
+    if (result) return true;
+    return false;
+}
+
+bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const XCVMVar& var) {
+    switch (var.kind()) {
+    case XCVMVar::Kind::kArray:
+        return HasElemInArray(pred_fn, var.GetArray());
+    case XCVMVar::Kind::kSequence:
+        for (const XCVMVar& v : *var. GetSequence()) {
+            if (HasElemInVar(pred_fn, v)) return true;
+        }
+        return false;
+    case XCVMVar::Kind::kOpaque:
+    case XCVMVar::Kind::kNull:
+        return false;
+    }
+    CHECK(false);
+}
+
+}  // namespace
+
 void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
-        if (!HasNan(GetArray(output))) continue;
+        if (!HasElemInVar(chainerx::IsNan, *GetVar(output))) continue;
 
         std::cerr << "NaN detected!\n";
         ReportInvalidInOuts(inputs, outputs);
@@ -169,7 +199,7 @@ void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>
 
 void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
-        if (!HasInf(GetArray(output))) continue;
+        if (!HasElemInVar(chainerx::IsInf, *GetVar(output))) continue;
 
         std::cerr << "Inf detected!\n";
         ReportInvalidInOuts(inputs, outputs);

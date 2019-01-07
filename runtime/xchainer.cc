@@ -81,22 +81,6 @@ chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, cons
     return array;
 }
 
-bool HasNan(const chainerx::Array& a) {
-    if (a.dtype() != chainerx::Dtype::kFloat32 && a.dtype() != chainerx::Dtype::kFloat64) return false;
-    chainerx::Array isinf = chainerx::IsNan(a);
-    int result = static_cast<int>(chainerx::AsScalar(chainerx::Sum(isinf)));
-    if (result) return true;
-    return false;
-}
-
-bool HasInf(const chainerx::Array& a) {
-    if (a.dtype() != chainerx::Dtype::kFloat32 && a.dtype() != chainerx::Dtype::kFloat64) return false;
-    chainerx::Array isinf = chainerx::IsInf(a);
-    int result = static_cast<int>(chainerx::AsScalar(chainerx::Sum(isinf)));
-    if (result) return true;
-    return false;
-}
-
 std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int axis, const std::vector<int64_t>& split) {
     CHECK_EQ(std::accumulate(split.begin(), split.end(), 0), input.shape()[axis]);
     std::vector<chainerx::Array> results;
