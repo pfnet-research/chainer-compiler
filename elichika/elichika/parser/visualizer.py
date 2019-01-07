@@ -3,6 +3,9 @@ from graphviz import Digraph
 from elichika.parser.core import convert_model, Graph
 from elichika.parser.nodes import Node
 
+def get_valids(list_):
+    return [l for l in list_ if l is not None]
+
 node_id = 0
 node2id = {}
 node_ref_count = {}
@@ -52,7 +55,7 @@ def count_ref(graph : 'Graph'):
     global node_ref_count
 
     for node in graph.nodes:
-        for input in node.inputs:
+        for input in get_valids(node.inputs):
             if input.generator is not None:
                 if input.generator in node_ref_count:
                     node_ref_count[input.generator] += 1

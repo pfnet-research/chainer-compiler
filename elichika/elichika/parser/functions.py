@@ -12,6 +12,17 @@ from elichika.parser import values
 from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser import core
+from elichika.parser import config
+
+def generate_copied_value(value : 'values.Value'):
+    if isinstance(value, values.NumberValue):
+        copied = values.NumberValue(value.internal_value)
+        return copied
+
+    if config.show_warnings:
+        print('Warning : Unimplemented copied_value')
+
+    return values.Value()    
 
 def generate_tensor_value_with_undefined_shape_size(value : 'values.TensorValue'):
     assert(isinstance(value, values.TensorValue))
@@ -71,7 +82,7 @@ class FunctionBase():
         for k, v in sig.parameters.items():
             fa = FunctionArg()
             fa.name = v.name
-            fa.value = core.parse_instance(None, v.name, v.default)
+            fa.value = values.parse_instance(None, v.name, v.default)
             self.funcArgs.append(fa)
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):

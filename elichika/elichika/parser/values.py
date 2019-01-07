@@ -1,33 +1,43 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
+
+import numpy as np
+
 import inspect
 import ast, gast
 import weakref
 from elichika.parser import vevaluator
 from elichika.parser import core
 from elichika.parser import nodes
-from elichika.parser import values
 from elichika.parser import functions
 from elichika.parser import utils
+from elichika.parser import config
+from elichika.parser import functions_builtin
 
 from elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
 attributes = []
+registered_values = []
 
 def reset_field_and_attributes():
     global fields
     global attributes
+    global modified_values
     fields = []
     attributes = []
+    modified_values = []
 
 def register_field(field : 'Field'):
     fields.append(weakref.ref(field))
 
 def register_attribute(attribute : 'Attribute'):
     attributes.append(weakref.ref(attribute))
-    
+
+def register_value(value : 'Value'):
+    registered_values.append(weakref.ref(value))
+
 def commit(commit_id : 'str'):
     for field in fields:
         o = field()
@@ -36,6 +46,11 @@ def commit(commit_id : 'str'):
 
     for attribute in attributes:
         o = attribute()
+        if o is not None:
+            o.commit(commit_id)
+
+    for registered_value in registered_values:
+        o = registered_value()
         if o is not None:
             o.commit(commit_id)
 
@@ -50,6 +65,68 @@ def checkout(commit_id : 'str'):
         if o is not None:
             o.checkout(commit_id)
 
+    for registered_value in registered_values:
+        o = registered_value()
+        if o is not None:
+            o.checkout(commit_id)
+
+def parse_instance(default_module, name, instance, self_instance = None):
+    from elichika.parser import values_builtin
+
+    if values_builtin.is_builtin_chainer_link(instance):
+        return values_builtin.ChainerLinkInstance(default_module, instance)
+
+    # need to check whether is value bool before check whether is value int
+    if isinstance(instance, bool):
+        return BoolValue(instance)
+
+    if isinstance(instance, int) or isinstance(instance, float):
+        return NumberValue(instance)
+
+    if isinstance(instance, str):
+        return StrValue(instance)
+
+    if isinstance(instance, list):
+        ret = ListValue()
+        ind = 0
+        for e in instance:
+            element_value = parse_instance(default_module, '', e)
+            ret.get_field().get_attribute(str(ind)).revise(element_value)
+            ind += 1
+        return ret
+
+    if inspect.ismethod(instance):
+        func = UserDefinedFunction(instance)
+        return FuncValue(func, self_instance)
+
+    if isinstance(instance, tuple) and 'Undefined' in instance:
+        shape = list(instance)
+        shape = -1 if shape == 'Undefined' else shape
+        tensorValue = TensorValue()
+        tensorValue.shape = tuple(shape)
+        return tensorValue
+
+    if isinstance(instance, np.ndarray):
+        tensorValue = TensorValue()
+        tensorValue.value = instance
+        tensorValue.shape = instance.shape
+        return tensorValue
+
+    if instance == inspect._empty:
+        return NoneValue()
+
+    if instance is None:
+        return NoneValue()
+
+    if not isinstance(instance, chainer.Link):
+        if config.show_warnings:
+            print('Warning unsupported format is found : {}, {}'.format(name, instance))
+        return NoneValue()
+
+    model_inst = UserDefinedInstance(default_module, instance)
+
+    return model_inst
+
 class Field():
     def __init__(self, module : 'Field', parent : 'Field'):
         self.attributes = {}
@@ -59,14 +136,18 @@ class Field():
 
         self.rev_attributes = {}
         self.rev_attributes_from_parent = {}
-        
+
         register_field(self)
 
     def get_field(self) -> 'Field':
         return self
 
     def has_attribute(self, key) -> 'Boolean':
-        return key in self.attributes.keys()
+
+        if key in self.attributes.keys():
+            return True
+        
+        return False
 
     def get_attribute(self, key : 'str') -> 'Attribute':
         if key in self.attributes.keys():
@@ -118,8 +199,8 @@ class AttributeHistory:
         self.value = value
 
 class Attribute:
-    def __init__(self, name : str):
-        self.name : str = name
+    def __init__(self, name : 'str'):
+        self.name = name
         self.history = []
         self.rev_history = {}
         self.access_num = 0
@@ -137,9 +218,10 @@ class Attribute:
     def has_value(self):
         return len(self.history) > 0
 
-    def get_value(self):
+    def get_value(self, inc_access = True):
         assert len(self.history) > 0
-        self.access_num += 1
+        if inc_access:
+            self.access_num += 1
         return self.history[-1].value
 
     def commit(self, commit_id : 'str'):
@@ -169,11 +251,20 @@ class Attribute:
     def __str__(self):
         return self.name
 
+class ValueHistory():
+    def __init__(self, value, id):
+        self.value = value
+        self.id = id
+
 class Value():
     def __init__(self):
-        self.name : str = ""
-        self.generator : nodes.Node = None
-        self.onnx_name : str = ""
+        self.name = ""
+        self.generator = None
+        self.modifiers = []
+        self.internal_value = None
+        self.histories = {}
+        self.history_id = utils.get_guid()
+        register_value(self)
 
     def get_value(self) -> 'Value':
         return self
@@ -184,12 +275,32 @@ class Value():
     def has_value(self) -> 'bool':
         return True
 
-    def try_get_func(self, name : 'str') -> 'FuncValue':
+    def try_get_and_store_value(self, name : 'str') -> 'Value':
         return None
+
+    def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
+        if not commit_id1 in self.histories and not commit_id2 in self.histories:
+            return False
+        if not commit_id1 in self.histories and commit_id2 in self.histories:
+            return True
+        if commit_id1 in self.histories and not commit_id2 in self.histories:
+            return True
+        return self.histories[commit_id1].id != self.histories[commit_id2].id
+
+    def commit(self, commit_id : 'str'):
+        self.histories[commit_id] = ValueHistory(self.internal_value, self.history_id)
+
+    def checkout(self, commit_id : 'str'):
+        if commit_id in self.histories:
+            self.internal_value = self.histories[commit_id].value
+
+    def modify(self, modifier, new_value):
+        self.modifiers.append(modifier)
+        self.history_id = utils.get_guid()
 
     def __str__(self):
         return self.name
-
+            
 class NoneValue(Value):
     def __init__(self):
         super().__init__()
@@ -200,32 +311,32 @@ class NoneValue(Value):
 class NumberValue(Value):
     def __init__(self, number):
         super().__init__()
-        self.number = number
+        self.internal_value = number
 
     def __str__(self):
-        if self.number == None:
+        if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
-        return self.name + '(N.{})'.format(self.number)
+        return self.name + '(N.{})'.format(self.internal_value)
 
 class StrValue(Value):
     def __init__(self, string):
         super().__init__()
-        self.string = string
+        self.internal_value = string
 
     def __str__(self):
-        if self.string == None:
+        if self.internal_value == None:
             return self.name + '(S.{})'.format('Any')
-        return self.name + '(S.{})'.format(self.string)
+        return self.name + '(S.{})'.format(self.internal_value)
 
 class BoolValue(Value):
     def __init__(self, b):
         super().__init__()
-        self.b = b
+        self.internal_value = b
 
     def __str__(self):
-        if self.b == None:
+        if self.internal_value == None:
             return self.name + '(B.{})'.format('Any')
-        return self.name + '(B.{})'.format(self.b)
+        return self.name + '(B.{})'.format(self.internal_value)
 
 class RangeValue(Value):
     def __init__(self):
@@ -251,7 +362,9 @@ class FuncValue(Value):
 class ListValue(Value):
     def __init__(self):
         super().__init__()
-        self.attributes = Field(None, None)        
+        self.attributes = Field(None, None)
+        self.append_func = FuncValue(functions_builtin.AppendFunction(self), self)
+        self.attributes.get_attribute('append').revise(self.append_func)
 
     def get_field(self) -> 'Field':
         return self.attributes
@@ -298,8 +411,7 @@ class UserDefinedInstance(Instance):
     def __init__(self, module : 'Field', inst):
         super().__init__(module, inst)
 
-    def try_get_func(self, name : 'str') -> 'FuncValue':
-        
+    def try_get_and_store_value(self, name : 'str') -> 'Value':
         attribute = self.attributes.get_attribute(name)
         if attribute.has_value():
             return attribute.get_value()
@@ -307,13 +419,9 @@ class UserDefinedInstance(Instance):
         if not hasattr(self.inst, name):
             return None
 
-        attr_func = getattr(self.inst, name)
-        if attr_func is None:
-            return None
-
-        func = UserDefinedFunction(attr_func)
-        func_value = FuncValue(func, self)
-        attribute.revise(func_value)
-
-        return func_value
+        attr_v = getattr(self.inst, name)
         
+        v = parse_instance(self.attributes.module, name, attr_v, self)
+        attribute.revise(v)
+
+        return v

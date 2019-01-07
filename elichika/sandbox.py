@@ -68,6 +68,24 @@ class IsNot(chainer.Chain):
     def forward(self, x, y):
         return x is not y
 
+class ListGen(chainer.Chain):
+    def forward(self, x):
+        self.z = -x
+        self.y = []
+        self.y.append(1)
+        self.y.append(2)
+        self.y.append(3)
+        self.z3 = [int(w) for w in self.y]
+        self.z2 = self.y[1]
+        self.z = self.y[1:2]
+
+class StaticCondTrue(chainer.Chain):
+    def forward(self, x):
+        if True:
+            x += 3
+        else:
+            x += 10
+        return x
 
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
@@ -87,12 +105,12 @@ if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
     #resnet50 = chainer.links.ResNet50Layers()
-    m = IsNot()
-    export(m, [[42],[42]], 'result/Conv')
+    m = StaticCondTrue()
+    export(m, [1], 'result/StaticCondTrue')
 
-    #onnx_model = elichika.compile_model(m, [np.zeros((10))])
-    #elichika.save_model('result/MLP_model.onnx', onnx_model.model)
-    #elichika.save_model_as_text('result/MLP_model.txt', onnx_model.model)
+    onnx_model = elichika.compile_model(m, [1])
+    elichika.save_model('result/StaticCondTrue.onnx', onnx_model.model)
+    elichika.save_model_as_text('result/StaticCondTrue.txt', onnx_model.model)
     
     all = False
     if all:

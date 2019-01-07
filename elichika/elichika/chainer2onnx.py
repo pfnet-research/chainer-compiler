@@ -6,9 +6,10 @@ from onnx import TensorProto
 from onnx import ModelProto
 
 import elichika.parser.core as core
-import elichika.parser.graphs as graph
+import elichika.parser.graphs as graphs
 import elichika.parser.values as values
 import elichika.parser.nodes as nodes
+import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
 import elichika.parser.values_builtin as values_builtin
 
@@ -21,6 +22,24 @@ def size2d(x):
     return (x, x)
 
 assigned_names = []
+node2onnx_parameter = {}
+value2onnx_parameter = {}
+
+class NodeONNXParameter:
+    def __init__(self, onnx_name, value):
+        self.onnx_name = onnx_name
+        self.original_value = value
+
+class ValueONNXParameter:
+    def __init__(self, onnx_name, value):
+        self.onnx_name = onnx_name
+        self.original_value = value
+
+def onnx_name(value):
+    if isinstance(value, values.Value):
+        return value2onnx_parameter[value].onnx_name
+    if isinstance(value, nodes.Node):
+        return node2onnx_parameter[value].onnx_name
 
 def generate_onnx_value_name(value : 'values.Value', none_name = ''):
     base_name = ''
@@ -34,6 +53,10 @@ def generate_onnx_value_name(value : 'values.Value', none_name = ''):
 
     ind = 0
     name = base_name
+
+    if name == '':
+        name = 'noname'
+
     while (name in assigned_names):
         ind+=1
         name = base_name + '_' + str(ind)
@@ -53,17 +76,26 @@ def generate_onnx_node_name(node : 'nodes.Node'):
     assigned_names.append(name)
     return name
 
+
+
 def assign_onnx_name_to_value(value : 'values.Value', none_name = ''):
-    if value.onnx_name == '':
-        value.onnx_name = generate_onnx_value_name(value, none_name)
+    if not value in value2onnx_parameter:
+        value2onnx_parameter[value] = ValueONNXParameter(generate_onnx_value_name(value, none_name), value)
 
     if isinstance(value, values.TupleValue):
         tupleValue = value # type : values.TupleValue
         for value_ in tupleValue.values:
-            assign_onnx_name_to_value(value_.get_value(), tupleValue.onnx_name)
+            assign_onnx_name_to_value(value_.get_value(), value2onnx_parameter[tupleValue].onnx_name)
 
 
 def assign_onnx_name(graph : 'graphs.Graph'):
+
+    for v in graph.input_values:
+        assign_onnx_name_to_value(v)
+
+    for v in graph.output_values:
+        assign_onnx_name_to_value(v)
+
     for node in graph.nodes:
         for input in node.inputs:
             assign_onnx_name_to_value(input)
@@ -71,17 +103,38 @@ def assign_onnx_name(graph : 'graphs.Graph'):
         for output in node.outputs:
             assign_onnx_name_to_value(output)
 
-        node.onnx_name = generate_onnx_node_name(node)
+        if not node in node2onnx_parameter:
+            node2onnx_parameter[node] = NodeONNXParameter(generate_onnx_node_name(node), node)
 
         for subgraph in node.subgraphs:
             assign_onnx_name(subgraph)
 
+def preprocess(graph : 'graphs.Graph', is_if = False):
+    
+    if is_if:
+        replacing = {}
+        for value in graph.output_values:
+            if value in graph.input_values:
+                copied_value = functions.generate_copied_value(value)
+                replacing[value] = copied_value
+                node = nodes.NodeCopy(value)
+                node.set_outputs([copied_value])
+                graph.add_node(node)
+
+        for i in range(len(graph.output_values)):
+            if graph.output_values[i] in replacing.keys():
+                graph.output_values[i] = replacing[graph.output_values[i]]
+
+    for node in graph.nodes:
+        for subgraph in node.subgraphs:
+            preprocess(subgraph, is_if=isinstance(node, nodes.NodeIf))
+
 def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     chainer_inst = node.func.owner.inst # type: chainer.links.Linear
-    onnx_name = node.onnx_name
+    onnx_name = node2onnx_parameter[node].onnx_name
 
-    x = onnx_graph.tensors[node.inputs[0].onnx_name]
-    o = onnx_graph.tensors[node.outputs[0].onnx_name]
+    x = onnx_graph.tensors[value2onnx_parameter[node.inputs[0]].onnx_name]
+    o = onnx_graph.tensors[value2onnx_parameter[node.outputs[0]].onnx_name]
     w = onnx_graph.new_tensor_with_np(chainer_inst.W.data, onnx_name + '/W')
 
     x_shape = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/x_shape')
@@ -158,8 +211,8 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
     ps = size2d(chainer_inst.pad)
     pads = ps + ps
 
-    x = onnx_graph.tensors[node.inputs[0].onnx_name]
-    o = onnx_graph.tensors[node.outputs[0].onnx_name]
+    x = onnx_graph.tensors[value2onnx_parameter[node.inputs[0]].onnx_name]
+    o = onnx_graph.tensors[value2onnx_parameter[node.outputs[0]].onnx_name]
     w = onnx_graph.new_tensor_with_np(chainer_inst.W.data, onnx_name + '/W')
     b = None
 
@@ -184,28 +237,53 @@ class ONNXInitrializer:
         self.shape = ()
 
 class ONNXGraph:
-    def __init__(self):
+    def __init__(self, generator : 'ONNXGenerator'):
+        self.generator = generator
         self.nodes = []
         self.input_tensor = []
         self.output_tensor = []
         self.tensors = {}
-        self.initializers = {}
+        self.onnx_tensors = {}
+
+    def try_get_attribute(self, value):
+        if isinstance(value, values.NumberValue):
+            value_ = value  # type: values.NumberValue
+            return value_.internal_value
+
+        if isinstance(value, values.BoolValue):
+            value_ = value  # type: values.BoolValue
+            return value_.internal_value
+
+        # error
+        print("Cannot convert a value into an attribute")
+        return -1
 
     def new_empty_tensor(self, dims, dtype, name):
+        '''
+        generate a tensor for connecting between nodes
+        '''
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
         tensor = oh.make_tensor_value_info(name, dt, dims)
         self.tensors[name] = tensor
         return tensor
 
     def new_empty_tensor_with_value(self, value):
+        '''
+        generate a tensor with Value to indicate shape
+        it is for inputting and outputting
+        '''
         if isinstance(value, values.TensorValue) and len(value.shape) > 0:
             shape = list(value.shape)
             shape = [x if x != -1 else 'Undefined' for x in shape]
-            return self.new_empty_tensor(shape, np.float32, value.onnx_name)
+            return self.new_empty_tensor(shape, np.float32, value2onnx_parameter[value].onnx_name)
 
-        return self.new_empty_tensor(['Undefined'], np.float32, value.onnx_name)
+        return self.new_empty_tensor(['Undefined'], np.float32, value2onnx_parameter[value].onnx_name)
 
     def new_tensor_with_np(self, ndarray_, name):
+        '''
+        generate a tensor which contains np data
+        it is for constant input
+        '''
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(ndarray_.dtype)]
         tensor = oh.make_tensor(name, dt, ndarray_.shape, ndarray_.flat)
         initializer = ONNXInitrializer()
@@ -214,8 +292,28 @@ class ONNXGraph:
         initializer.dt = dt
         initializer.shape = ndarray_.shape
 
-        self.initializers[name] = initializer
+        assert(not (name in self.generator.initializers.keys()))
+        self.generator.initializers[name] = initializer
+
         return tensor
+
+    def new_tensor_with_value(self, value):
+        '''
+        generate a tensor which value
+        it is for constant input
+        '''
+        name = value2onnx_parameter[value].onnx_name
+
+        if isinstance(value, values.NumberValue):
+            arr = np.array(value.internal_value)
+            return self.new_tensor_with_np(arr, name)
+
+        if isinstance(value, values.BoolValue):
+            arr = np.array(value.internal_value)
+            return self.new_tensor_with_np(arr, name)
+
+        print('Warning : Uknown type')
+        return self.new_empty_tensor_with_value(value)        
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):
         # check types
@@ -226,49 +324,94 @@ class ONNXGraph:
         self.nodes.append(node)
 
     def set_input(self, input):
-        self.input_tensor = [self.tensors[x.onnx_name] for x in input]
+        self.input_tensor = [self.tensors[value2onnx_parameter[x].onnx_name] for x in input]
 
     def set_output(self, output):
-        self.output_tensor = [self.tensors[x.onnx_name] for x in output]
+        self.output_tensor = [self.tensors[value2onnx_parameter[x].onnx_name] for x in output]
 
-    def generate_graph(self, name : 'str'):
+    def generate_graph(self, name : 'str', isMain = False):
 
         input_tensor_and_initializer = self.input_tensor.copy()
         initializers = []
 
-        # add constants
-        for v in self.initializers.values():
-            if v.node in self.input_tensor:
-                continue
-            if v.node in self.output_tensor:
-                continue
+        # add initializers
+        if isMain:
+            for v in self.generator.initializers.values():
+                if v.node in self.input_tensor:
+                    continue
+                if v.node in self.output_tensor:
+                    continue
             
-            initializers.append(v.node)
+                initializers.append(v.node)
 
-            tensor = oh.make_tensor_value_info(v.name, v.dt, v.shape)
-            input_tensor_and_initializer.append(tensor)
+                tensor = oh.make_tensor_value_info(v.name, v.dt, v.shape)
+                input_tensor_and_initializer.append(tensor)
 
         return oh.make_graph(self.nodes, name, input_tensor_and_initializer, self.output_tensor, initializer=initializers)
 
 class ONNXGenerator:
     def __init__(self):
         self.onnx_graphs = []
-        self.onnx_tensors = {}
+        self.initializers = {}
 
-    def generate_graph(self, inputs, outputs, graph : 'graphs.Graph'):
-        onnx_graph = ONNXGraph()
+    def generate_graph(self, inputs, outputs, graph : 'graphs.Graph', isMain = False):
+        onnx_graph = ONNXGraph(self)
         
         for node in graph.nodes:
             
             for input in node.inputs:
-                if not (input.onnx_name in self.onnx_tensors.keys()):
-                    tensor = onnx_graph.new_empty_tensor_with_value(input)
-                    self.onnx_tensors[input.onnx_name] = tensor
+                if not (value2onnx_parameter[input].onnx_name in onnx_graph.onnx_tensors.keys()):
+
+                    if input.generator is None and not (input in inputs):
+                        tensor = onnx_graph.new_tensor_with_value(input)
+                        onnx_graph.onnx_tensors[value2onnx_parameter[input].onnx_name] = tensor
+                    else:
+                        tensor = onnx_graph.new_empty_tensor_with_value(input)
+                        onnx_graph.onnx_tensors[value2onnx_parameter[input].onnx_name] = tensor
 
             for output in node.outputs:
-                if not (output.onnx_name in self.onnx_tensors.keys()):
+                if not (value2onnx_parameter[output].onnx_name in onnx_graph.onnx_tensors.keys()):
                     tensor = onnx_graph.new_empty_tensor_with_value(output)
-                    self.onnx_tensors[output.onnx_name] = tensor
+                    onnx_graph.onnx_tensors[value2onnx_parameter[output].onnx_name] = tensor
+
+            if isinstance(node, nodes.NodeCopy):
+                node_ = node # type: nodes.Copy
+                onnx_node = oh.make_node(
+                    'Identity',
+                    [value2onnx_parameter[node_.value].onnx_name],
+                    [value2onnx_parameter[node.outputs[0]].onnx_name])
+
+                onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeAugAssign):
+                node_ = node # type: nodes.AugAssign
+                binops = {}
+                binops[nodes.BinOpType.Add] = 'Add'
+                binops[nodes.BinOpType.Sub] = 'Sub'
+                binops[nodes.BinOpType.Unknown] = 'Add'
+                
+                # TODO: fix for reference types
+
+                onnx_node = oh.make_node(
+                    binops[node_.binop], 
+                    [value2onnx_parameter[node_.target].onnx_name, 
+                    value2onnx_parameter[node_.value].onnx_name], 
+                    [value2onnx_parameter[node.target].onnx_name])
+                onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeValueAugAssign):
+                node_ = node # type: nodes.ValueAugAssign
+                binops = {}
+                binops[nodes.BinOpType.Add] = 'Add'
+                binops[nodes.BinOpType.Sub] = 'Sub'
+                binops[nodes.BinOpType.Unknown] = 'Add'
+
+                onnx_node = oh.make_node(
+                    binops[node_.binop], 
+                    [value2onnx_parameter[node_.target].onnx_name, 
+                    value2onnx_parameter[node_.value].onnx_name], 
+                    [value2onnx_parameter[node_.outputs[0]].onnx_name])
+                onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeBinOp):
                 node_ = node # type: nodes.NodeBinOp
@@ -277,9 +420,35 @@ class ONNXGenerator:
                 binops[nodes.BinOpType.Sub] = 'Sub'
                 binops[nodes.BinOpType.Unknown] = 'Add'
                 
-                onnx_node = oh.make_node(binops[node_.binop], [node_.left.onnx_name, node_.right.onnx_name], [node.outputs[0].onnx_name])
+                onnx_node = oh.make_node(binops[node_.binop], [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
                 onnx_graph.nodes.append(onnx_node)
 
+            if isinstance(node, nodes.NodeUnaryOp):
+                node_ = node # type: nodes.NodeUnaryOp
+                
+                if node_.unaryop == nodes.UnaryOpType.UAdd:
+                    zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node_].onnx_name + '/Zero')
+                    onnx_node = oh.make_node(
+                        'Add',
+                        [zero_.name, value2onnx_parameter[node_.right].onnx_name], 
+                        [value2onnx_parameter[node.outputs[0]].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
+
+                if node_.unaryop == nodes.UnaryOpType.USub:
+                    zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node_].onnx_name + '/Zero')
+                    onnx_node = oh.make_node(
+                        'Sub',
+                        [zero_.name, value2onnx_parameter[node_.right].onnx_name], 
+                        [value2onnx_parameter[node.outputs[0]].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
+                    
+                if node_.unaryop == nodes.UnaryOpType.Not:
+                    onnx_node = oh.make_node(
+                        'Not',
+                        [value2onnx_parameter[node_.right].onnx_name], 
+                        [value2onnx_parameter[node.outputs[0]].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
+                    
             if isinstance(node, nodes.NodeCompare):
                 node_ = node # type: nodes.NodeCompare
 
@@ -308,30 +477,41 @@ class ONNXGenerator:
                     op_not = True
 
                 if op_not:
-                    op_not_temp = onnx_graph.new_empty_tensor(['TODO'], np.bool, node.outputs[0].onnx_name + '/NotTemp')
-                    onnx_node1 = oh.make_node(op_str, [node_.left.onnx_name, node_.right.onnx_name], [op_not_temp.name])
-                    onnx_node2 = oh.make_node('Not', [op_not_temp.name], [node.outputs[0].onnx_name])
+                    op_not_temp = onnx_graph.new_empty_tensor(['TODO'], np.bool, value2onnx_parameter[node.outputs[0]].onnx_name + '/NotTemp')
+                    onnx_node1 = oh.make_node(op_str, [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [op_not_temp.name])
+                    onnx_node2 = oh.make_node('Not', [op_not_temp.name], [value2onnx_parameter[node.outputs[0]].onnx_name])
                     onnx_graph.nodes.append(onnx_node1)
                     onnx_graph.nodes.append(onnx_node2)
                 else:
-                    onnx_node = oh.make_node(op_str, [node_.left.onnx_name, node_.right.onnx_name], [node.outputs[0].onnx_name])
+                    onnx_node = oh.make_node(op_str, [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
                     onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeGetItem):
+                node_ = node # type: nodes.NodeGetItem
+                onnx_node = oh.make_node(
+                    'OnikuxGenericGetItem',
+                    [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.index].onnx_name], 
+                    [value2onnx_parameter[node.outputs[0]].onnx_name])
+                onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeSlice):
+                node_ = node # type: nodes.NodeSlice
 
             if isinstance(node, nodes.NodeCall):
 
                 if isinstance(node.func, functions_builtin.ReluFunction):
                     # relu
-                    onnx_node = oh.make_node("Relu", [node.inputs[0].onnx_name], [node.outputs[0].onnx_name])
+                    onnx_node = oh.make_node("Relu", [value2onnx_parameter[node.inputs[0]].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
                     onnx_graph.nodes.append(onnx_node)
 
                 if isinstance(node.func, functions_builtin.SoftmaxFunction):
                     # softmax
                     onnx_node = oh.make_node(
                         "Softmax", 
-                        [node.inputs[0].onnx_name], 
-                        [node.outputs[0].onnx_name],
+                        [value2onnx_parameter[node.inputs[0]].onnx_name], 
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop),
-                        axis = node.inputs[1].number)
+                        axis = onnx_graph.try_get_attribute(node.inputs[1]))
 
                     onnx_graph.nodes.append(onnx_node)
 
@@ -344,17 +524,77 @@ class ONNXGenerator:
                     if isinstance(original_inst, chainer.links.Convolution2D):
                         convert_onnx_chainer_convolution2d(onnx_graph, node)
 
+            if isinstance(node, nodes.NodeIf):
+                node_ = node # type: nodes.NodeIf
+
+                true_graph = self.generate_graph(node_.true_graph.input_values, node_.true_graph.output_values, node_.true_graph)
+                false_graph = self.generate_graph(node_.false_graph.input_values, node_.false_graph.output_values, node_.false_graph)
+                
+                onnx_node = oh.make_node(
+                    'If', 
+                    [value2onnx_parameter[node_.cond].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values], 
+                    [value2onnx_parameter[x].onnx_name for x in node.outputs],
+                    then_branch=true_graph,
+                    else_branch=false_graph)
+
+                onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeFor):
+                node_ = node # type: nodes.NodeFor
+                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph)
+
+                onnx_node = oh.make_node(
+                    'Loop', 
+                    [value2onnx_parameter[node_.iter_value].onnx_name] + [""] + [value2onnx_parameter[x].onnx_name for x in node.input_values], 
+                    [value2onnx_parameter[x].onnx_name for x in node.outputs],
+                    body=body_graph)
+
+
+            if isinstance(node, nodes.NodeListcomp):
+                node_ = node # type: nodes.NodeListcomp
+
+                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph)
+
+                onnx_node = oh.make_node(
+                    'Loop', 
+                    [value2onnx_parameter[node_.iter_value].onnx_name] + [""] + [value2onnx_parameter[x].onnx_name for x in node.input_values], 
+                    [value2onnx_parameter[x].onnx_name for x in node.outputs],
+                    body=body_graph)
+
+            if isinstance(node, nodes.NodeGenerate):
+                node_ = node # type: nodes.NodeGenerate
+                if node_.classtype == 'range':
+                    onnx_node = oh.make_node(
+                        "OnikuxSequenceRange", 
+                        [value2onnx_parameter[input].onnx_name for input in node.inputs[0]], 
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        str(node.lineprop))
+
+                    onnx_graph.nodes.append(onnx_node)
+
+                if node_.classtype == 'List':
+                    onnx_node = oh.make_node(
+                        "Identity", 
+                        [], 
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        str(node.lineprop))
+
+                    onnx_graph.nodes.append(onnx_node)
+
         onnx_graph.set_input(inputs)
         onnx_graph.set_output(outputs)
 
-        return onnx_graph.generate_graph('main')
+        return onnx_graph.generate_graph('main', isMain=isMain)
 
     def generate_model(self, inputs, outputs, graph)-> 'ModelProto':
         # assign names
         assigned_names.clear()
+        node2onnx_parameter.clear()
+        value2onnx_parameter.clear()
+
         assign_onnx_name(graph)
 
-        graph_ = self.generate_graph(inputs, outputs, graph)
+        graph_ = self.generate_graph(inputs, outputs, graph, True)
         model = oh.make_model(graph_, producer_name="elichika", producer_version="0.1")
         return model
 
@@ -367,8 +607,16 @@ class ONNXModel:
 def compile_model(model, inputs) -> 'ONNXModel':
     inputs_, outputs_, graph_ = core.convert_model(model, inputs)
 
+    if graph_ is None:
+        return None
+
+    preprocess(graph_)
+
     generator = ONNXGenerator()
     model = generator.generate_model(inputs_, outputs_, graph_)
+
+    # check inputs
+    
 
     onnx_model = ONNXModel()
     onnx_model.model = model

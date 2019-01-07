@@ -16,6 +16,12 @@ class BinOpType(Enum):
     Sub = 1,
     Unknown = 255,
 
+class UnaryOpType(Enum):
+    UAdd = 0,
+    USub = 1,
+    Not = 2,
+    Unknown = 255,
+
 class CompareType(Enum):
     Eq = 0,
     NotEq = 1,
@@ -33,7 +39,6 @@ class Node:
         self.outputs = []
         self.subgraphs = []
         self.lineprop = utils.LineProperty()
-        self.onnx_name : str = ""
 
         if isinstance(line, int):
             self.lineprop.lineno = line
@@ -48,6 +53,15 @@ class Node:
         for output in self.outputs:
             output.generator = self
 
+class NodeCopy(Node):
+    def __init__(self, value : 'values.Value', line = -1):
+        super().__init__(line)
+        self.value = value
+        self.inputs.append(value)
+
+    def __str__(self):
+        return 'Copy({})'.format(self.lineprop)
+
 class NodeAssign(Node):
     def __init__(self, attr : 'values.Attribute', value : 'values.Value', line = -1):
         super().__init__(line)
@@ -61,16 +75,31 @@ class NodeAssign(Node):
         return 'Assign({})'.format(self.lineprop)
 
 class NodeAugAssign(Node):
-    def __init__(self, target : 'values.Value', value : 'values.Value', line = -1):
+    def __init__(self, target : 'values.Value', value : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
         self.target = target 
         self.value = value
+        self.binop = binop
 
         self.inputs.append(target)
         self.inputs.append(value)
 
     def __str__(self):
         return 'AugAssign({})'.format(self.lineprop)
+
+class NodeValueAugAssign(Node):
+    def __init__(self, target : 'values.Value', value : 'values.Value', binop : 'BinOp', line = -1):
+        super().__init__(line)
+        self.target = target 
+        self.value = value
+        self.binop = binop
+
+        self.inputs.append(target)
+        self.inputs.append(value)
+
+    def __str__(self):
+        return 'ValueAugAssign({})'.format(self.lineprop)
+
 
 class NodeBinOp(Node):
     def __init__(self, left : 'values.Value', right : 'values.Value', binop : 'BinOp', line = -1):
@@ -85,6 +114,16 @@ class NodeBinOp(Node):
     def __str__(self):
         return 'BinOp({},{})'.format(self.lineprop, self.binop)
 
+class NodeUnaryOp(Node):
+    def __init__(self, operand : 'values.Value', unaryop : 'UnaryOpType', line = -1):
+        super().__init__(line)
+        self.operand = operand
+        self.unaryop = unaryop
+
+        self.inputs.append(operand)
+    def __str__(self):
+        return 'UnaryOp({},{})'.format(self.lineprop, self.unaryop)
+
 class NodeCompare(Node):
     def __init__(self, left : 'values.Value', right : 'values.Value', compare : 'CompareType', line = -1):
         super().__init__(line)
@@ -97,6 +136,32 @@ class NodeCompare(Node):
 
     def __str__(self):
         return 'Compare({},{})'.format(self.lineprop, self.compare)
+
+class NodeGetItem(Node):
+    def __init__(self, target : "values.Value", index : 'values.Value', line = -1):
+        super().__init__(line)
+        self.target = target
+        self.index = index 
+
+        self.inputs.append(target)
+        self.inputs.append(index)
+
+    def __str__(self):
+        return 'GetItem({})'.format(self.lineprop)
+
+class NodeSlice(Node):
+    def __init__(self, target : "values.Value", left : 'values.Value', right : 'values.Value', line = -1):
+        super().__init__(line)
+        self.target = target
+        self.left = left 
+        self.right = right
+
+        self.inputs.append(target)
+        self.inputs.append(left)
+        self.inputs.append(right)
+
+    def __str__(self):
+        return 'Slice({})'.format(self.lineprop)
 
 class NodeCall(Node):
     def __init__(self, func : 'Function', args, line = -1):
@@ -163,6 +228,20 @@ class NodeFor(Node):
     def __str__(self):
         return 'For({})'.format(self.lineprop)
 
+class NodeListcomp(Node):
+    def __init__(self, iter_value, input_values, body_graph, line = -1):
+        super().__init__(line)
+        self.iter_value = iter_value
+        self.input_values = input_values
+        self.inputs.append(iter_value)
+        self.inputs.extend(self.input_values)
+        
+        self.body_graph = body_graph
+        self.subgraphs.append(self.body_graph)
+        
+    def __str__(self):
+        return 'Listcomp({})'.format(self.lineprop)
+
 class NodeForOutput(Node):
     def __init__(self, input_value, line = -1):
         super().__init__(line)
@@ -171,3 +250,13 @@ class NodeForOutput(Node):
 
     def __str__(self):
         return 'ForOutput({})'.format(self.lineprop)
+
+class NodeGenerate(Node):
+    def __init__(self, classtype, args, line = -1):
+        super().__init__(line)
+        self.classtype = classtype
+        self.args = args
+        self.inputs.extend(self.args)
+
+    def __str__(self):
+        return 'Generate({},{})'.format(self.classtype, self.lineprop)

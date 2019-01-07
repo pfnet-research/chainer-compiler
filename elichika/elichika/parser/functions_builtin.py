@@ -40,8 +40,23 @@ class RangeFunction(functions.FunctionBase):
         self.name = 'range'
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
-        node = nodes.NodeCall(self, [v.value for v in args], line)
+        node = nodes.NodeGenerate('range', [v.value for v in args], line)
         graph.add_node(node)
-        value = values.Value()
+        value = values.RangeValue()
         node.set_outputs([value])
         return value
+
+class AppendFunction(functions.FunctionBase):
+    def __init__(self, owner):
+        super().__init__()
+        self.name = 'append'
+        self.owner = owner
+        
+    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Value', args = [], line = -1):
+        assert(len(args) == 1)
+        
+        node = nodes.NodeCall(self, [v.value for v in args], line)
+        inst.modify(node, None)
+        graph.add_node(node)
+        return values.NoneValue()
+

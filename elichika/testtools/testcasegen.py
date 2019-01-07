@@ -11,7 +11,7 @@ import numpy as np
 
 import chainer
 
-from elichika.chainer2onnx import compile_model
+from elichika.chainer2onnx import compile_model, onnx_name
 from testtools.test_args import get_test_args
 from testtools.test_args import dprint
 
@@ -70,7 +70,7 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (value_info, value) in enumerate(values):
-            name = value_info.onnx_name
+            name = onnx_name(value_info)
             if isinstance(value, list):
                 assert value
                 digits = len(str(len(value)))
