@@ -98,6 +98,13 @@ void RunMain(int argc, char** argv) {
     const std::string loss_value_name = model.graph().output_values()[0]->name();
     RunDefaultPasses(&model, true /* gen_backprop */);
 
+    std::vector<std::string> infeed_value_names;
+    for (Value* value : model.graph().input_values()) {
+        if (value->initializer() == nullptr) {
+            infeed_value_names.push_back(value->name());
+        }
+    }
+
     LOG() << "Loading data..." << std::endl;
 
     InOuts params(LoadParams(model.graph()));
@@ -161,15 +168,19 @@ void RunMain(int argc, char** argv) {
 
             inputs = params;
             if (expects_onehot) {
-                inputs.emplace("Input_0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                CHECK_EQ(3, data.size());
+                CHECK_EQ(3, infeed_value_names.size());
+                inputs.emplace(infeed_value_names[0], std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
-                inputs.emplace("Input_1", std::shared_ptr<XCVMVar>(new XCVMVar(onehot)));
-                inputs.emplace("Input_2", std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
+                inputs.emplace(infeed_value_names[1], std::shared_ptr<XCVMVar>(new XCVMVar(onehot)));
+                inputs.emplace(infeed_value_names[2], std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
             } else {
-                inputs.emplace("T0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                CHECK_EQ(2, data.size());
+                CHECK_EQ(2, infeed_value_names.size());
+                inputs.emplace(infeed_value_names[0], std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
-                inputs.emplace("T1", std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
+                inputs.emplace(infeed_value_names[1], std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
             }
         }
 
