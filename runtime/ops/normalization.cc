@@ -137,9 +137,10 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         if (i != 1) axes.push_back(i);
     }
 
-    const bool is_training = this->running_mean >= 0;
+    // TODO(hamaji): Split BatchNormalization to two ops. One is for
+    // inference and the other is for training.
+    const bool is_training = st->is_training() || this->running_mean >= 0;
     if (is_training) {
-        CHECK_LE(0, this->running_var);
         PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
         std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
                 x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
