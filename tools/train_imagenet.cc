@@ -1,3 +1,5 @@
+#include "tools/train_imagenet.h"
+
 #include <chrono>
 #include <set>
 
@@ -48,7 +50,7 @@ bool ExpectsOnehot(const Model& model) {
     return (input_names.count("Input_0") && input_names.count("Input_1") && input_names.count("Input_2"));
 }
 
-void RunMain(int argc, char** argv) {
+void RunMain(const std::vector<std::string>& argv) {
     g_modify_pool_with_imbalanced_pads = true;
 
     cmdline::parser args;
@@ -66,7 +68,7 @@ void RunMain(int argc, char** argv) {
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
     AddCompilerFlags(&args);
-    args.parse_check(argc, argv);
+    args.parse_check(argv);
     ApplyCompilerFlags(args);
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
 
@@ -241,9 +243,10 @@ void RunMain(int argc, char** argv) {
 }
 
 }  // namespace
+
+void TrainImagenet(const std::vector<std::string>& argv) {
+    RunMain(argv);
+}
+
 }  // namespace runtime
 }  // namespace oniku
-
-int main(int argc, char** argv) {
-    oniku::runtime::RunMain(argc, argv);
-}

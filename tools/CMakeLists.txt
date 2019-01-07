@@ -49,9 +49,15 @@ target_link_libraries(run_onnx
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
 if(${ONIKU_ENABLE_OPENCV})
-  add_executable(train_imagenet train_imagenet.cc)
+  add_library(train_imagenet_lib
+    train_imagenet.cc
+    )
+  add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
+
+  add_executable(train_imagenet train_imagenet_main.cc)
   add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
   target_link_libraries(train_imagenet
+    train_imagenet_lib
     oniku_tools
     oniku_compiler
     oniku_runtime
