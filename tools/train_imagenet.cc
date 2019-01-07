@@ -98,10 +98,10 @@ void RunMain(int argc, char** argv) {
     const std::string loss_value_name = model.graph().output_values()[0]->name();
     RunDefaultPasses(&model, true /* gen_backprop */);
 
-    std::vector<std::string> infeed_value_names;
+    std::vector<Value*> infeed_values;
     for (Value* value : model.graph().input_values()) {
         if (value->initializer() == nullptr) {
-            infeed_value_names.push_back(value->name());
+            infeed_values.push_back(value);
         }
     }
 
@@ -143,11 +143,16 @@ void RunMain(int argc, char** argv) {
 
     int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
 
-    // TODO(hamaji): Stop using the fixed width/height.
-    const int kHeight = 227;
-    const int kWidth = 227;
-    const std::vector<float>& mean = LoadMean(args.rest()[2], kHeight, kWidth);
-    ImageNetIterator train_iter(args.rest()[1], 3, batch_size, mean, kHeight, kWidth);
+    int height = 0, width = 0;
+    for (Value* value : infeed_values) {
+        const std::vector<int64_t>& dims = value->type().dims();
+        if (dims.size() == 4) {
+            height = dims[2];
+            width = dims[3];
+        }
+    }
+    const std::vector<float>& mean = LoadMean(args.rest()[2], height, width);
+    ImageNetIterator train_iter(args.rest()[1], 3, batch_size, mean, height, width);
     train_iter.Start();
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -169,7 +174,7 @@ void RunMain(int argc, char** argv) {
             inputs = params;
             if (expects_onehot) {
                 CHECK_EQ(2, data.size());
-                CHECK_EQ(3, infeed_value_names.size());
+                CHECK_EQ(3, infeed_values.size());
                 inputs.emplace("Input_0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
@@ -177,10 +182,10 @@ void RunMain(int argc, char** argv) {
                 inputs.emplace("Input_2", std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
             } else {
                 CHECK_EQ(2, data.size());
-                CHECK_EQ(2, infeed_value_names.size());
-                inputs.emplace(infeed_value_names[0], std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                CHECK_EQ(2, infeed_values.size());
+                inputs.emplace(infeed_values[0]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
-                inputs.emplace(infeed_value_names[1], std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
+                inputs.emplace(infeed_values[1]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
             }
         }
 
