@@ -99,4 +99,31 @@ if (${ONIKU_ENABLE_PYTHON})
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_SUFFIX}")
+
+  if(${ONIKU_ENABLE_OPENCV})
+    add_library(train_imagenet_core.so MODULE train_imagenet_core.cc)
+
+    target_link_libraries(train_imagenet_core.so
+      PRIVATE
+      train_imagenet_lib
+      oniku_tools
+      oniku_compiler
+      oniku_runtime
+      oniku_common
+      feeder
+      chainerx
+      onnx
+      onnx_proto
+      protobuf
+      pthread
+      ${ONIKU_TVM_LIBRARIES}
+      ${ONIKU_CUDA_LIBRARIES}
+      ${OpenCV_LIBS}
+      )
+    set_target_properties(train_imagenet_core.so
+      PROPERTIES
+      PREFIX "${PYTHON_MODULE_PREFIX}"
+      SUFFIX "${PYTHON_MODULE_SUFFIX}")
+  endif()
+
 endif()
