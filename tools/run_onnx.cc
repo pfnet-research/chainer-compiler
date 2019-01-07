@@ -439,8 +439,8 @@ void RunMain(const std::vector<std::string>& argv) {
     LOG() << "Loading model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    if (!g_skip_inference) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
+    if (!g_skip_inference) model.mutable_graph()->InferShapes();
 
     LOG() << "Loading data..." << std::endl;
 

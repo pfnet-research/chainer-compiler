@@ -98,8 +98,8 @@ void RunMain(const std::vector<std::string>& argv) {
 
     LOG() << "Constructing model..." << std::endl;
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
-    if (!g_skip_inference) onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
+    if (!g_skip_inference) model.mutable_graph()->InferShapes();
     const bool expects_onehot = ExpectsOnehot(model);
     CHECK_EQ(1, model.graph().output_values().size());
     const std::string loss_value_name = model.graph().output_values()[0]->name();
