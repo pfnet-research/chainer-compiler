@@ -4,7 +4,6 @@
 #include <set>
 
 #include <compiler/onnx.h>
-#include <onnx/shape_inference/implementation.h>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
@@ -16,6 +15,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -97,6 +97,7 @@ void RunMain(const std::vector<std::string>& argv) {
     int64_t initial_free_bytes = GetMemoryUsageInBytes();
 
     LOG() << "Constructing model..." << std::endl;
+    RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
     Model model(xmodel);
     if (!g_skip_inference) model.mutable_graph()->InferShapes();

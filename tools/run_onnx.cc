@@ -11,7 +11,6 @@
 #include <string>
 
 #include <compiler/onnx.h>
-#include <onnx/shape_inference/implementation.h>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
