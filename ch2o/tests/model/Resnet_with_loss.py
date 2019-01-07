@@ -120,7 +120,7 @@ if __name__ == '__main__':
 
     # batch * channel * H * W
     # 195 ~ 226 までがOKっぽい
-    v = np.random.rand(2, 3, 210, 210).astype(np.float32)
+    v = np.random.rand(2, 3, 224, 224).astype(np.float32)
     t = np.random.randint(1000, size=2).astype(np.int32)
 
     import ch2o
