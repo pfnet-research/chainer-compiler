@@ -146,7 +146,7 @@ void RunMain(int argc, char** argv) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
     LOG() << "Start training!" << std::endl;
     int iter_count = 0;
-    int max_iterations = args.get<int>("iteration");
+    int max_iterations = args.get<int>("iterations");
     for (; !max_iterations || iter_count < max_iterations; ++iter_count) {
         if (!args.get<std::string>("chrome_tracing").empty() && iter_count % args.get<int>("chrome_tracing_frequency") == 1) {
             xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
