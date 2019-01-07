@@ -157,19 +157,19 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}
 
 add_custom_target(large_tests)
 
-add_subdirectory(compiler)
-add_subdirectory(common)
-add_subdirectory(feeder)
-add_subdirectory(runtime)
-add_subdirectory(scripts)
-add_subdirectory(tools)
-
 if (${ONIKU_ENABLE_PYTHON})
   get_third_party(pybind11)
   include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
   add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
   add_subdirectory(python)
 endif()
+
+add_subdirectory(compiler)
+add_subdirectory(common)
+add_subdirectory(feeder)
+add_subdirectory(runtime)
+add_subdirectory(scripts)
+add_subdirectory(tools)
 
 function(gen_ch2o_test dir ch2o_test all)
 
