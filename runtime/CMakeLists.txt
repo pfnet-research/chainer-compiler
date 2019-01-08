@@ -12,9 +12,11 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.h
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.h
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py --output-dir ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
+    --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
+    --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
-  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py)
+  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl)
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
 add_custom_target(runtime_xcvm_proto_util_h DEPENDS xcvm_proto_util.h)
 

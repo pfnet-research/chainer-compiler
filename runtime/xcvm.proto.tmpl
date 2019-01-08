@@ -1,0 +1,47 @@
+syntax = "proto2";
+
+package oniku.runtime;
+
+message XCValueProto {
+    enum Type {
+        ARRAY = 1;
+        OPTIONAL_ARRAY = 2;
+        ARRAY_LIST = 3;
+        SEQUENCE = 4;
+        OPAQUE = 5;
+        INT = 6;
+        FLOAT = 7;
+        INTS = 8;
+        STRING = 9;
+        LONGS = 10;
+        DOUBLES = 11;
+    }
+
+    required Type type = 1;
+    optional int32 array = 2;
+    optional int64 i = 3;
+    optional double f = 4;
+    repeated int32 ints = 5;
+    optional string s = 6;
+    repeated int32 array_list = 7;
+    optional int32 sequence = 8;
+    repeated int64 longs = 9;
+    repeated double doubles = 10;
+    optional int32 opaque = 11;
+}
+
+message XCInstructionProto {
+    enum Op {
+%XCVM_OPS%
+    }
+
+    required Op op = 1;
+    repeated XCValueProto inputs = 2;
+    repeated int32 outputs = 3;
+    optional string debug_info = 4;
+    optional int64 id = 5;
+}
+
+message XCProgramProto {
+    repeated XCInstructionProto instructions = 1;
+}
