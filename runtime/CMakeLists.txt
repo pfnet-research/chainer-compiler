@@ -9,16 +9,16 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.h
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.h
-    ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.h
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
   DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl)
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
-add_custom_target(runtime_xcvm_proto_util_h DEPENDS xcvm_proto_util.h)
+add_custom_target(runtime_xcvm_codegen_h DEPENDS gen_xcvm_codegen.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
@@ -43,13 +43,13 @@ add_library(oniku_runtime
   xcvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
   xcvm_ops.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
   xcvm_state.cc
   xcvm_var.cc
   )
 add_dependencies(
   oniku_runtime
-  runtime_xcvm_pb_h runtime_xcvm_proto_util_h onnx_files
+  runtime_xcvm_pb_h runtime_xcvm_codegen_h onnx_files
   )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})

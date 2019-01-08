@@ -58,7 +58,7 @@ add_library(oniku_compiler
   )
 add_dependencies(
   oniku_compiler
-  runtime_xcvm_pb_h runtime_xcvm_proto_util_h gen_node_base_h onnx_files
+  runtime_xcvm_pb_h runtime_xcvm_codegen_h gen_node_base_h onnx_files
   )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})

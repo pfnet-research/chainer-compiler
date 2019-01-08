@@ -13,8 +13,8 @@
 #include <compiler/passes.h>
 #include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
+#include <runtime/gen_xcvm_codegen.h>
 #include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_proto_util.h>
 
 namespace oniku {
 namespace xcvm {

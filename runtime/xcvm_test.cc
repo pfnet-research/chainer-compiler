@@ -8,9 +8,9 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/testing/array.h>
 
+#include <runtime/gen_xcvm_codegen.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_proto_util.h>
 #include <runtime/xcvm_var.h>
 
 namespace oniku {
@@ -22,10 +22,10 @@ TEST(XCVMTest, Run) {
     chainerx::SetGlobalDefaultContext(&ctx);
 
     XCProgramProto program;
-    AddInOp(&program, 0, "in1");
-    AddInOp(&program, 1, "in2");
-    AddAddOp(&program, 2, 0, 1);
-    AddOutOp(&program, "out", 2);
+    xcvm::AddInOp(&program, 0, "in1");
+    xcvm::AddInOp(&program, 1, "in2");
+    xcvm::AddAddOp(&program, 2, 0, 1);
+    xcvm::AddOutOp(&program, "out", 2);
     // std::cerr << program.DebugString() << std::endl;
 
     XCVM xcvm(program);
