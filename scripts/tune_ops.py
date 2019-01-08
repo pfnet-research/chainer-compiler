@@ -57,7 +57,7 @@ def read_tasks(op_filenames, batchsize):
 
 
 def autotvm_key_from_task(task):
-    assert task['op'] == 'Conv'
+    assert task['op'] in ('Conv', 'ConvTranspose')
     bsize = task['bsize']
     ichan = task['ichan']
     ochan = task['ochan']
@@ -71,7 +71,11 @@ def autotvm_key_from_task(task):
     pad_w = task['pad_w']
     dtype = task['dtype'].lower()
 
-    key = ['conv2d']
+    workload_op = {
+        'Conv': 'conv2d',
+        'ConvTranspose': 'conv2d_transpose_nchw',
+    }[task['op']]
+    key = [workload_op]
     key.append([bsize, ichan, height, width, dtype])
     key.append([ochan, ichan, kernel_h, kernel_w, dtype])
     key.append([stride_h, stride_w])
@@ -99,8 +103,16 @@ def topi_nn_conv2d(*args, **kwargs):
     return s, [input, weight, c]
 
 
+@autotvm.task.register('topi_nn_conv2d_transpose_nchw')
+def topi_nn_conv2d_transpose_nchw(*args, **kwargs):
+    input, weight, *args = deserialize_args(args)
+    c = topi.nn.conv2d_transpose_nchw(input, weight, *args, **kwargs)
+    s = topi.generic.schedule_conv2d_transpose_nchw([c])
+    return s, [input, weight, c]
+
+
 def autotvm_task(task, target):
-    assert task['op'] == 'Conv'
+    assert task['op'] in ('Conv', 'ConvTranspose')
     bsize = task['bsize']
     ichan = task['ichan']
     ochan = task['ochan']
@@ -114,20 +126,32 @@ def autotvm_task(task, target):
     pad_w = task['pad_w']
     dtype = task['dtype'].lower()
 
-    args = (
-        ('TENSOR', (bsize, ichan, height, width), dtype),
-        ('TENSOR', (ochan, ichan, kernel_h, kernel_w), dtype),
-        (stride_h, stride_w),
-        (pad_h, pad_w),
-        (1, 1),
-        'NCHW',
-        dtype
-    )
-
-    return autotvm.task.create(topi_nn_conv2d,
-                               args,
-                               target,
-                               template_key='direct')
+    if task['op'] == 'Conv':
+        args = (
+            ('TENSOR', (bsize, ichan, height, width), dtype),
+            ('TENSOR', (ochan, ichan, kernel_h, kernel_w), dtype),
+            (stride_h, stride_w),
+            (pad_h, pad_w),
+            (1, 1),
+            'NCHW',
+            dtype
+        )
+        return autotvm.task.create(topi_nn_conv2d,
+                                   args,
+                                   target,
+                                   template_key='direct')
+    elif task['op'] == 'ConvTranspose':
+        args = (
+            ('TENSOR', (bsize, ichan, height, width), dtype),
+            ('TENSOR', (ochan, ichan, kernel_h, kernel_w), dtype),
+            (stride_h, stride_w),
+            (pad_h, pad_w),
+            dtype
+        )
+        return autotvm.task.create(topi_nn_conv2d_transpose_nchw,
+                                   args,
+                                   target,
+                                   template_key='direct')
 
 
 # From https://github.com/dmlc/tvm/blob/master/tutorials/autotvm/tune_nnvm_cuda.py
