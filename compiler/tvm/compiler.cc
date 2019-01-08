@@ -139,6 +139,10 @@ public:
                 tvm::Tensor out{BuildConv(*node, input_tensors)};
                 output_tensors.push_back(out);
                 scheduler_name = "oniku.tvm.schedule_conv2d";
+            } else if (node->op_type() == Node::kConvTranspose) {
+                tvm::Tensor out{BuildConvTranspose(*node, input_tensors)};
+                output_tensors.push_back(out);
+                scheduler_name = "oniku.tvm.schedule_conv2d_transpose";
             } else {
                 CHECK(false) << "Not supported: " << node->op_type();
             }
@@ -249,7 +253,7 @@ private:
         CHECK(ofs) << filename;
         dmlc::JSONWriter writer(&ofs);
         writer.BeginObject();
-        writer.WriteObjectKeyValue("op", std::string("Conv"));
+        writer.WriteObjectKeyValue("op", std::string(Node::OpTypeToString(node.op_type())));
         writer.WriteObjectKeyValue("dtype", input.dtype().ToString());
         writer.WriteObjectKeyValue("bsize", input.dims()[0]);
         writer.WriteObjectKeyValue("ichan", input.dims()[1]);
@@ -292,6 +296,43 @@ private:
         }
         if (!out.get()) {
             out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, GetIdent(node.outputs()[0]));
+        }
+
+        if (inputs.size() == 3) {
+            const int num_newaxis = node.inputs()[0]->type().dims().size() - 2;
+            tvm::Tensor bias = topi::expand_dims(inputs[2], 1 /* axis */, num_newaxis);
+            out = topi::add(out, bias);
+        }
+        return out;
+    }
+
+    tvm::Tensor BuildConvTranspose(const Node& node, const tvm::Array<tvm::Tensor>& inputs) {
+        int pad_h = 0, pad_w = 0;
+        if (!node.pads().empty()) {
+            CHECK_EQ(4, node.pads().size());
+            CHECK_EQ(node.pads()[0], node.pads()[2]);
+            CHECK_EQ(node.pads()[1], node.pads()[3]);
+            pad_w = node.pads()[0];
+            pad_h = node.pads()[1];
+        }
+
+        int stride_h = 1, stride_w = 1;
+        if (!node.strides().empty()) {
+            CHECK_EQ(2, node.strides().size());
+            stride_w = node.strides()[0];
+            stride_h = node.strides()[1];
+        }
+
+        if (!g_dump_autotvm_task_dir.empty()) {
+            DumpConvTask(node, pad_h, pad_w, stride_h, stride_w);
+        }
+
+        tvm::Tensor out;
+        if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d_transpose")) {
+            out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
+        }
+        if (!out.get()) {
+            CHECK(false) << "C++ TOPI does not have ConvTranspose";
         }
 
         if (inputs.size() == 3) {

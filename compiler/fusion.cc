@@ -177,7 +177,8 @@ void FuseTVMOperations(Graph* graph) {
     for (Node* base_node : graph->GetTopologicallySortedNodes()) {
         if (base_node->op_type() != Node::kRelu &&
             base_node->op_type() != Node::kTanh &&
-            base_node->op_type() != Node::kConv) {
+            base_node->op_type() != Node::kConv &&
+            base_node->op_type() != Node::kConvTranspose) {
             continue;
         }
         if (!handled.emplace(base_node).second) {
@@ -217,7 +218,8 @@ void FuseTVMOperations(Graph* graph) {
         for (Node* node : fused_nodes) {
             if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
         }
-        if (num_calculation <= 1 && base_node->op_type() != Node::kConv) {
+        if (num_calculation <= 1 &&
+            base_node->op_type() != Node::kConv && base_node->op_type() != Node::kConvTranspose) {
             continue;
         }
 
