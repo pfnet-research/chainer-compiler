@@ -43,7 +43,6 @@ add_library(oniku_runtime
   xcvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
   xcvm_ops.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
   xcvm_state.cc
   xcvm_var.cc
   )
@@ -58,6 +57,7 @@ add_executable(runtime_test
   )
 target_link_libraries(runtime_test
   oniku_runtime
+  oniku_compiler
   oniku_common
   chainerx
   onnx_proto

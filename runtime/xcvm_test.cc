@@ -8,7 +8,7 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/testing/array.h>
 
-#include <runtime/gen_xcvm_codegen.h>
+#include <compiler/gen_xcvm_codegen.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>

@@ -34,6 +34,7 @@ add_library(oniku_compiler
   flags.cc
   fusion.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
   gradient.cc
   gradient_ops.cc
   graph.cc

@@ -5,6 +5,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
+#include <compiler/gen_xcvm_codegen.h>
 #include <compiler/graph.h>
 #include <compiler/log.h>
 #include <compiler/model.h>
@@ -13,7 +14,6 @@
 #include <compiler/passes.h>
 #include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
-#include <runtime/gen_xcvm_codegen.h>
 #include <runtime/xcvm.pb.h>
 
 namespace oniku {
