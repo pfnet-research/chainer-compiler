@@ -22,7 +22,9 @@ public:
         : id_(id), value_(value) {
     }
 
-    void AddOutput(runtime::XCInstructionProto* inst);
+    int id() const { return id_; }
+
+    void AddOutput(runtime::XCInstructionProto* inst) const;
 
 private:
     int id_;

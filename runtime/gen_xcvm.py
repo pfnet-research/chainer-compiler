@@ -75,6 +75,8 @@ class ValueInfo(_ValueInfo):
     def c_codegen_type(self):
         if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE):
             return 'XCVMValue'
+        elif self.typ == ARRAY_LIST:
+            return 'std::vector<XCVMValue>'
         else:
             return self.c_type()
 
@@ -813,7 +815,7 @@ def gen_xcvm_codegen_cc():
 
         for typ, name in op.outputs:
             if typ == ARRAY_LIST:
-                lines.append('for (int a : %s) inst->add_outputs(a);' % name)
+                lines.append('for (const XCVMValue& v : %s) v.AddOutput(inst);' % name)
             else:
                 lines.append('%s.AddOutput(inst);' % name)
 
