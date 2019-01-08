@@ -30,6 +30,12 @@ message XCValueProto {
     optional int32 opaque = 11;
 }
 
+message XCTypeProto {
+    // ChainerX's. Non-positive indicates the type is not known.
+    optional int32 dtype = 1;
+    repeated int32 shape = 2;
+}
+
 message XCInstructionProto {
     enum Op {
 %XCVM_OPS%
@@ -40,6 +46,7 @@ message XCInstructionProto {
     repeated int32 outputs = 3;
     optional string debug_info = 4;
     optional int64 id = 5;
+    repeated XCTypeProto output_types = 6;
 }
 
 message XCProgramProto {

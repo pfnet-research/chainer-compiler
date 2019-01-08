@@ -56,6 +56,7 @@ add_library(oniku_compiler
   value.cc
   xcvm/config.cc
   xcvm/emitter.cc
+  xcvm/xcvm_value.cc
   )
 add_dependencies(
   oniku_compiler
