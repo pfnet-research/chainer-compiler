@@ -6,9 +6,18 @@
 namespace oniku {
 namespace runtime {
 
+namespace {
+
+void TrainImagenetFromPython(const std::vector<std::string>& argv) {
+    pybind11::gil_scoped_release gsr;
+    TrainImagenet(argv);
+}
+
+}  // namespace
+
 PYBIND11_MODULE(train_imagenet_core, m) {  // NOLINT
     m.doc() = "train_imagenet";
-    m.def("train_imagenet", &TrainImagenet, "Run train_imagenet");
+    m.def("train_imagenet", &TrainImagenetFromPython, "Run train_imagenet");
 }
 
 }  // namespace runtime
