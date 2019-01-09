@@ -136,6 +136,7 @@ class Field():
 
         self.rev_attributes = {}
         self.rev_attributes_from_parent = {}
+        self.id = utils.get_guid()
 
         register_field(self)
 
@@ -171,6 +172,7 @@ class Field():
                 return attribute
 
             attribute = Attribute(key)
+            attribute.parent = self
             self.attributes[key] = attribute
             return attribute
 
@@ -205,6 +207,7 @@ class Attribute:
         self.rev_history = {}
         self.access_num = 0
         self.rev_access_num = {}
+        self.parent = None
         register_field(self)
 
     def revise(self, value : 'Value'):
@@ -237,6 +240,15 @@ class Attribute:
             self.access_num = 0
 
     def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
+        if not commit_id1 in self.rev_history.keys() and not commit_id2 in self.rev_history.keys():
+            return False
+
+        if commit_id1 in self.rev_history.keys() and not commit_id2 in self.rev_history.keys():
+            return True
+
+        if not commit_id1 in self.rev_history.keys() and commit_id2 in self.rev_history.keys():
+            return True
+
         if len(self.rev_history[commit_id1]) != len(self.rev_history[commit_id2]):
             return True
         for i in range(len(self.rev_history[commit_id1])):
@@ -246,6 +258,15 @@ class Attribute:
         return False
 
     def has_accessed(self, commit_id1 : 'str', commit_id2 : 'str'):
+        if not commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
+            return False
+
+        if commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
+            return True
+
+        if not commit_id1 in self.rev_access_num.keys() and commit_id2 in self.rev_access_num.keys():
+            return True
+
         return self.rev_access_num[commit_id1] != self.rev_access_num[commit_id2]
 
     def __str__(self):

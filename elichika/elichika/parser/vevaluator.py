@@ -36,22 +36,22 @@ def get_ast_name_forcibly(ast):
         return ast.id
     return ''
 
-def get_input_attritubtes(target, commit_id1 : 'str', commit_id2 : 'str'):
-    ret = [v for v in target if v.has_accessed(commit_id1, commit_id2) and v.get_value(False).get_field() is None]
-    dicts = [v.get_value(False) for v in target if v.get_value(False).get_field() is not None]
+def get_input_attritubtes(target : 'values.Field', commit_id1 : 'str', commit_id2 : 'str'):
+    ret = [v for v in target.attributes.values() if v.has_accessed(commit_id1, commit_id2) and v.get_value(False).get_field() is None]
+    dicts = [v.get_value(False) for v in target.attributes.values() if v.get_value(False).get_field() is not None]
 
     for d in dicts:
-        ret_ = get_input_attritubtes(d.get_field().attributes.values(), commit_id1, commit_id2)
+        ret_ = get_input_attritubtes(d.get_field(), commit_id1, commit_id2)
         ret.extend(ret_)
 
     return ret
 
-def get_output_attritubtes(target, commit_id1 : 'str', commit_id2 : 'str'):
-    ret = [v for v in target if v.has_diff(commit_id1, commit_id2) or v.get_value(False).has_diff(commit_id1, commit_id2)]
-    dicts = [v.get_value(False) for v in target if v.get_value(False).get_field() is not None]
+def get_output_attritubtes(target : 'values.Field', commit_id1 : 'str', commit_id2 : 'str'):
+    ret = [v for v in target.attributes.values() if v.has_diff(commit_id1, commit_id2) or v.get_value(False).has_diff(commit_id1, commit_id2)]
+    dicts = [v.get_value(False) for v in target.attributes.values() if v.get_value(False).get_field() is not None]
 
     for d in dicts:
-        ret_ = get_output_attritubtes(d.get_field().attributes.values(), commit_id1, commit_id2)
+        ret_ = get_output_attritubtes(d.get_field(), commit_id1, commit_id2)
         ret.extend(ret_)
 
     return ret
@@ -191,14 +191,13 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
     # True condition
     values.checkout(if_id)
-    true_field = values.Field(local_field.module, local_field)
     true_graph = Graph()
     true_graph.name = 'True'
-    body = veval_ast(astc.c(astc.nast.body), true_field, true_graph)
+    body = veval_ast(astc.c(astc.nast.body), local_field, true_graph)
 
     values.commit(true_id)
-    true_input_attributes = get_input_attritubtes(true_field.attributes_from_parent, if_id, true_id)
-    true_output_attributes = get_output_attritubtes(true_field.attributes_from_parent, if_id, true_id)
+    true_input_attributes = get_input_attritubtes(local_field, if_id, true_id)
+    true_output_attributes = get_output_attritubtes(local_field, if_id, true_id)
 
     true_output_attributes_2_values = {}
 
@@ -207,14 +206,13 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
     # False condition
     values.checkout(if_id)
-    false_field = values.Field(local_field.module, local_field)
     false_graph = Graph()
     false_graph.name = 'False'
-    orelse = veval_ast(astc.c(astc.nast.orelse), false_field, false_graph)
+    orelse = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
 
     values.commit(false_id)
-    false_input_attributes = get_input_attritubtes(false_field.attributes_from_parent, if_id, false_id)
-    false_output_attributes = get_output_attritubtes(false_field.attributes_from_parent, if_id, false_id)
+    false_input_attributes = get_input_attritubtes(local_field, if_id, false_id)
+    false_output_attributes = get_output_attritubtes(local_field, if_id, false_id)
 
     false_output_attributes_2_values = {}
 
@@ -226,6 +224,9 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
     # Input
     input_attributes = set(true_input_attributes) | set(false_input_attributes)
+
+    # remove unexisting values
+    input_attributes = [v for v in input_attributes if v.has_value()]
     input_values = [i.get_value() for i in input_attributes]
 
     for input_value in input_values:
@@ -233,44 +234,78 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         false_graph.add_input_value(input_value)
 
     # Output
+    name2output_attributes = {}
+
+    # generate attribute pairs
+    for attribute in true_output_attributes:
+        key = str(attribute.parent.id) + '_' + attribute.name
+
+        if key in name2output_attributes.keys():
+            name2output_attributes[key][0] = attribute
+        else:
+            name2output_attributes[key] = [attribute, None]
+
+    for attribute in false_output_attributes:
+        key = str(attribute.parent.id) + '_' + attribute.name
+
+        if key in name2output_attributes.keys():
+            name2output_attributes[key][1] = attribute
+        else:
+            name2output_attributes[key] = [None, attribute]
+
     output_attributes = set(true_output_attributes) | set(false_output_attributes)
     output_values = []
 
-    for attribute in output_attributes:
+    for attribute_pair in name2output_attributes.values():
+        true_attribute, false_attribute = attribute_pair
+        name = ''
 
-        if attribute in true_output_attributes:
-            true_value = true_output_attributes_2_values[attribute]
+        if true_attribute is not None:
+            name = true_attribute.name
+
+        if false_attribute is not None:
+            name = false_attribute.name
+
+        if true_attribute is not None:
+            true_value = true_output_attributes_2_values[true_attribute]
         else:
-            if attribute in input_attributes:
-                true_value = attribute.get_value()
+            if false_attribute in input_attributes:
+                true_value = false_attribute.get_value()
             else:
-                true_value = false_output_attributes_2_values[attribute]
+                # TODO : it should be better
+                true_value = false_output_attributes_2_values[false_attribute]
 
-        if attribute in false_output_attributes:
-            false_value = false_output_attributes_2_values[attribute]
+        if false_attribute in false_output_attributes:
+            false_value = false_output_attributes_2_values[false_attribute]
         else:
-            if attribute in input_attributes:
-                false_value = attribute.get_value()
+            if false_attribute in input_attributes:
+                false_value = false_attribute.get_value()
             else:
-                false_value = true_output_attributes_2_values[attribute]
-
-        #true_ifoutput_node = nodes.NodeIfOutput(true_value, astc.lineno)
-        #true_graph.add_node(true_ifoutput_node)
-
-        #false_ifoutput_node = nodes.NodeIfOutput(false_value, astc.lineno)
-        #false_graph.add_node(false_ifoutput_node)
+                # TODO : it should be better
+                false_value = true_output_attributes_2_values[true_attribute]
 
         true_graph.add_output_value(true_value)
         false_graph.add_output_value(false_value)
 
-        if attribute in input_attributes:
-            value = values.Value()
+        if true_attribute is not None and false_attribute is not None and true_attribute != false_attribute:
+            # dynamic
+            value = functions.generateValueWithSameType(true_value)
             output_values.append(value)
-            attribute.revise(value)
+            local_field.get_attribute(name).revise(value)
+
+        elif true_attribute is not None and false_attribute is not None:
+            # change both
+            value = functions.generateValueWithSameType(true_value)
+            output_values.append(value)
+            local_field.get_attribute(name).revise(value)
+
+        elif true_attribute in input_attributes:
+            value = functions.generateValueWithSameType(true_value)
+            output_values.append(value)
+            local_field.get_attribute(name).revise(value)
         else:
-            value = values.Value()
+            value = functions.generateValueWithSameType(false_value)
             output_values.append(value)
-            name = attribute.name
             local_field.get_attribute(name).revise(value)
 
     node = nodes.NodeIf(test.get_value(), input_values, true_graph, false_graph, astc.lineno)
@@ -382,8 +417,8 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         
     values.commit(listcomp_id)
 
-    body_output_attributes = get_input_attritubtes(body_field.attributes_from_parent, listcomp_id, body_id)
-    body_intput_attributes = get_output_attritubtes(body_field.attributes_from_parent, listcomp_id, body_id)
+    body_output_attributes = get_input_attritubtes(body_field, listcomp_id, body_id)
+    body_intput_attributes = get_output_attritubtes(body_field, listcomp_id, body_id)
 
     for attribute in body_output_attributes:
         ifoutput_node = nodes.NodeForOutput(attribute.get_value(), astc.lineno)
@@ -580,8 +615,8 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     values.commit(body_id)
 
-    body_output_attributes = get_input_attritubtes(body_field.attributes_from_parent, for_id, body_id)
-    body_intput_attributes = get_output_attritubtes(body_field.attributes_from_parent, for_id, body_id)
+    body_output_attributes = get_input_attritubtes(body_field, for_id, body_id)
+    body_intput_attributes = get_output_attritubtes(body_field, for_id, body_id)
 
     for attribute in body_output_attributes:
         ifoutput_node = nodes.NodeForOutput(attribute.get_value(), astc.lineno)
