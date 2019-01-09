@@ -432,16 +432,13 @@ class Link_NStepBiLSTM(Callable):
         ths = env.calc(
             "Concat",
             inputs=hs,
-            axis=1,
+            axis=0,
         )
         tcs = env.calc(
             "Concat",
             inputs=cs,
-            axis=1,
+            axis=0,
         )
-
-        ths = env.calc("Transpose", inputs=[ths.name], perm=(1, 0, 2))
-        tcs = env.calc("Transpose", inputs=[tcs.name], perm=(1, 0, 2))
 
         tys = v
         return ths, tcs, tys
