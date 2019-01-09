@@ -41,6 +41,7 @@ add_library(oniku_runtime
   xchainer.cc
   xcvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
+  xcvm_op.cc
   xcvm_ops.cc
   xcvm_state.cc
   xcvm_var.cc

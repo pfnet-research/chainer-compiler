@@ -13,6 +13,7 @@ class XCVMState;
 
 class XCVMOp {
 public:
+    explicit XCVMOp(const XCInstructionProto& inst);
     virtual ~XCVMOp() = default;
 
     virtual void Run(XCVMState* state) = 0;
@@ -20,36 +21,24 @@ public:
     int64_t id() const {
         return id_;
     }
-    void set_id(int64_t id) {
-        id_ = id;
-    }
 
     XCInstructionProto::Op op() const {
         return op_;
-    }
-    void set_op(XCInstructionProto::Op op) {
-        op_ = op;
     }
 
     const std::string& name() const {
         return name_;
     }
-    void set_name(const std::string& name) {
-        name_ = name;
-    }
 
     const std::string& debug_info() const {
-        return debug_info_;
-    }
-    void set_debug_info(const std::string& debug_info) {
-        debug_info_ = debug_info;
+        return inst_.debug_info();
     }
 
 protected:
-    int64_t id_;
-    XCInstructionProto::Op op_;
-    std::string name_;
-    std::string debug_info_;
+    XCInstructionProto inst_;
+    const int64_t id_;
+    const XCInstructionProto::Op op_;
+    const std::string name_;
 };
 
 XCVMOp* MakeXCVMOp(const XCInstructionProto& inst);

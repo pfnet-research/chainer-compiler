@@ -541,7 +541,8 @@ def gen_gen_xcvm_ops_cc():
 
     for op in XC_ALL_OPS:
         # Emit constructor.
-        lines.append('%sOp::%sOp(const XCInstructionProto& inst) {' %
+        lines.append('%sOp::%sOp(const XCInstructionProto& inst)'
+                     ': XCVMOp(inst) {' %
                      (op.name, op.name))
         for i, inp in enumerate(op.inputs):
             enum = inp.typ.replace('OPTIONAL_', '')
@@ -575,8 +576,8 @@ def gen_gen_xcvm_ops_cc():
         # Emit Run.
         lines.append('void %sOp::Run(XCVMState* st) {' % op.name)
 
-        lines.append('if (st->trace_level() && !debug_info_.empty()) '
-                     'std::cerr << "# " << debug_info_ << std::endl;')
+        lines.append('if (st->trace_level() && !debug_info().empty()) '
+                     'std::cerr << "# " << debug_info() << std::endl;')
 
         line = 'if (st->trace_level()) std::cerr'
         if op.outputs:
