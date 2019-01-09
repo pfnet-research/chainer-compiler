@@ -383,7 +383,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("backend", '\0', "The name of the backend", false, "xcvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
-    args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
@@ -416,7 +416,7 @@ void RunMain(const std::vector<std::string>& argv) {
         QFAIL() << "Either --onnx or --test must be specified!";
     }
 
-    LOG() << "Initializing xChainer..." << std::endl;
+    LOG() << "Initializing ChainerX..." << std::endl;
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     chainerx::NoBackpropModeScope no_backprop;

@@ -80,7 +80,7 @@ std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int ax
 }
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding) {
-    // TODO(hamaji): Move this logic to xChainer.
+    // TODO(hamaji): Move this logic to ChainerX.
     CHECK_LT(0, inputs.size());
     int64_t max_length = 0;
     for (const chainerx::Array& input : inputs) {

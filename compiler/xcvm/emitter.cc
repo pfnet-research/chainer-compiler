@@ -155,7 +155,7 @@ private:
             if (pads.empty()) {
                 pads = {0, 0};
             } else {
-                // Both Chainer and xChainer expect paddings for beginning
+                // Both Chainer and ChainerX expect paddings for beginning
                 // and end are the same.
                 CHECK_EQ(pads.size() % 2, 0);
                 for (size_t i = 0; i < pads.size() / 2; ++i) {
@@ -270,14 +270,14 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(xchainer): Support dilation.
+            // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads());
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(xchainer): Support dilation.
+            // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
             std::vector<int> output_shape(IntVector(node.output_shape()));
@@ -289,7 +289,7 @@ private:
         } else if (node.op_type() == Node::kOnikuxConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(xchainer): Support dilation.
+            // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kRNN) {

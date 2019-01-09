@@ -57,7 +57,7 @@ void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
     args.add<float>("learning_rate", '\0', "Learning rate", false, 0.01);
-    args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<int>("chrome_tracing_frequency", '\0', "Output chrome tracing every this itearation", false, 100);
     args.add<int>("iterations", 'I', "Number of iterations to train", false, 100);
@@ -81,7 +81,7 @@ void RunMain(const std::vector<std::string>& argv) {
     g_quiet = args.exist("quiet");
     int batch_size = args.get<int>("batchsize");
 
-    LOG() << "Initializing xChainer..." << std::endl;
+    LOG() << "Initializing ChainerX..." << std::endl;
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     chainerx::NoBackpropModeScope no_backprop;

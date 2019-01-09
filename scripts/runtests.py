@@ -140,7 +140,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_onehot_with_axis'),
     TestCase(NODE_TEST, 'test_onehot_without_axis'),
 
-    # TODO(xchainer): Support float16?
+    # TODO(ChainerX): Support float16?
     TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),
     # TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
     # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_DOUBLE'),
@@ -148,7 +148,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_DOUBLE'),
     # TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
 
-    # TODO(xchainer): Support non-2D dot.
+    # TODO(ChainerX): Support non-2D dot.
     # terminate called after throwing an instance of 'chainerx::NotImplementedError'
     #   what():  dot does not support rhs operand with ndim > 2
     TestCase(NODE_TEST, 'test_matmul_2d'),
@@ -200,7 +200,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_reshape_reduced_dims'),
     TestCase(NODE_TEST, 'test_reshape_reordered_dims'),
     # Broadcast from (3, 1) to (2, 1, 6).
-    # TODO(xchainer): Do we really want to support this?
+    # TODO(ChainerX): Do we really want to support this?
     # TestCase(NODE_TEST, 'test_expand_dim_changed'),
     TestCase(NODE_TEST, 'test_expand_dim_unchanged'),
     TestCase(NODE_TEST, 'test_squeeze'),
@@ -258,7 +258,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_lstm_with_peepholes', rtol=5e-2),
 
     # TODO(hamaji): Investigate 3D softmax ops do not agree (though
-    # xChainer agrees with Chainer).
+    # ChainerX agrees with Chainer).
     # TODO(hamaji): Relax equality check for "large_number" tests.
     TestCase(NODE_TEST, 'test_softmax_example'),
     TestCase(NODE_TEST, 'test_softmax_axis_2'),
