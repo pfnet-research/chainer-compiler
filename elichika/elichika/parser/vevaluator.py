@@ -278,8 +278,8 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         if false_attribute in false_output_attributes:
             false_value = false_output_attributes_2_values[false_attribute]
         else:
-            if false_attribute in input_attributes:
-                false_value = false_attribute.get_value()
+            if true_attribute in input_attributes:
+                false_value = true_attribute.get_value()
             else:
                 # TODO : it should be better
                 false_value = true_output_attributes_2_values[true_attribute]
