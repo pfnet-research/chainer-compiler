@@ -8,7 +8,6 @@
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
-#include <chainerx/cuda/cuda_device.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
@@ -89,7 +88,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (!device_spec.empty()) {
         chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
         chainerx::SetDefaultDevice(device);
-        if (dynamic_cast<chainerx::cuda::CudaDevice*>(device)) {
+        if (IsCudaDevice(device)) {
             g_use_cuda = true;
             g_meminfo_enabled = true;
         }

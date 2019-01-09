@@ -5,7 +5,6 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/shape.h>
 
-#include <chainerx/cuda/cuda_device.h>
 #include <chainerx/native/native_device.h>
 
 #include <dlpack/dlpack.h>
@@ -13,6 +12,7 @@
 #include <tvm/runtime/packed_func.h>
 
 #include <common/strutil.h>
+#include <runtime/chainerx_util.h>
 
 #else
 
@@ -31,7 +31,7 @@ namespace {
 
 DLContext GetDLContext(const chainerx::Array& array) {
     const int index = array.device().index();
-    if (dynamic_cast<const chainerx::cuda::CudaDevice*>(&array.device())) {
+    if (IsCudaDevice(&array.device())) {
         return DLContext{kDLGPU, index};
     } else if (dynamic_cast<const chainerx::native::NativeDevice*>(&array.device())) {
         return DLContext{kDLCPU, index};

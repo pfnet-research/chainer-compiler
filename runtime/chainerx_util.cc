@@ -11,6 +11,10 @@
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
+#ifdef ONIKU_ENABLE_CUDA
+#include <chainerx/cuda/cuda_device.h>
+#endif
+
 #include <common/log.h>
 
 namespace oniku {
@@ -154,6 +158,14 @@ chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::
     if (axes.empty()) return nonstd::nullopt;
     chainerx::Axes xc_axes{axes.begin(), axes.end()};
     return xc_axes;
+}
+
+bool IsCudaDevice(const chainerx::Device* device) {
+#ifdef ONIKU_ENABLE_CUDA
+    return dynamic_cast<const chainerx::cuda::CudaDevice*>(device) != nullptr;
+#else
+    return false;
+#endif
 }
 
 }  // namespace runtime

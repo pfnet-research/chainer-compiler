@@ -32,5 +32,7 @@ chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
 
 chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes);
 
+bool IsCudaDevice(const chainerx::Device* device);
+
 }  // namespace runtime
 }  // namespace oniku
