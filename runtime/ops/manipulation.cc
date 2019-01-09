@@ -1,3 +1,4 @@
+#include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
@@ -85,6 +86,19 @@ chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data)
         axes->push_back(axes->size());
     }
     return chainerx::Transpose(data, axes);
+}
+
+chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+    CHECK_EQ(data.ndim() * 2, pads.size());
+    chainerx::Shape shape = data.shape();
+    std::vector<chainerx::ArrayIndex> indices;
+    for (int i = 0; i < shape.size(); ++i) {
+        indices.push_back(chainerx::Slice(pads[i], pads[i] + shape[i]));
+        shape[i] += pads[i] + pads[i + shape.size()];
+    }
+    chainerx::Array result = chainerx::Full(shape, value, data.dtype(), data.device());
+    result.device().Copy(data, result.At(indices));
+    return result;
 }
 
 }  // namespace runtime

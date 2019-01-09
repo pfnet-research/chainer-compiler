@@ -118,19 +118,6 @@ chainerx::Array ReduceMeanOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Mean(a, GetXchainerAxes(axes), keepdims != 0);
 }
 
-chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
-    CHECK_EQ(data.ndim() * 2, pads.size());
-    chainerx::Shape shape = data.shape();
-    std::vector<chainerx::ArrayIndex> indices;
-    for (int i = 0; i < shape.size(); ++i) {
-        indices.push_back(chainerx::Slice(pads[i], pads[i] + shape[i]));
-        shape[i] += pads[i] + pads[i + shape.size()];
-    }
-    chainerx::Array result = chainerx::Full(shape, value, data.dtype(), data.device());
-    result.device().Copy(data, result.At(indices));
-    return result;
-}
-
 chainerx::Array SoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
     return chainerx::Exp(chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)}));
 }
