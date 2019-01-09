@@ -1,4 +1,5 @@
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
@@ -115,6 +116,28 @@ chainerx::Array CeilOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
     out += poses * floats;
     return out;
+}
+
+chainerx::Array ClipOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+    return -chainerx::Maximum(-chainerx::Maximum(x, min), -max);
+}
+
+chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    // TODO(hamaji): Handle non 2D arrays.
+    return chainerx::Dot(a, b);
+}
+
+chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
+    chainerx::Array xa = a;
+    chainerx::Array xb = b;
+    if (trans_a) xa = chainerx::Transpose(xa);
+    if (trans_b) xb = chainerx::Transpose(xb);
+    chainerx::Array r = chainerx::Dot(xa, xb);
+    if (alpha != 1.0) r *= alpha;
+    if (beta == 0.0) return r;
+    chainerx::Array xc = c;
+    if (beta != 1.0) xc = xc * beta;
+    return r + xc;
 }
 
 }  // namespace runtime
