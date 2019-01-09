@@ -39,6 +39,7 @@ add_library(oniku_runtime
   ops/cudnn_rnn.cc
   ops/generic.cc
   ops/logic.cc
+  ops/manipulation.cc
   ops/math.cc
   ops/normalization.cc
   ops/nvrtc.cc

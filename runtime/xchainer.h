@@ -34,5 +34,7 @@ chainerx::Array SlowRandom(chainerx::Shape shape);
 
 chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
 
+chainerx::OptionalAxes GetXchainerAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes);
+
 }  // namespace runtime
 }  // namespace oniku
