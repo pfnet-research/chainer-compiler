@@ -16,7 +16,11 @@ add_custom_command(
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
-  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl)
+  DEPENDS
+    ${ONIKU_COMMON_DIR}/codegen_util.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/xcvm_defs.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl
+    )
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})

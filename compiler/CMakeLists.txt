@@ -22,10 +22,9 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/xcvm/gen_xcvm_codegen.py
-    --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY xcvm/gen_xcvm_codegen.py
-  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${ONIKU_ROOT_DIR}/runtime/gen_xcvm.py)
+  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${ONIKU_ROOT_DIR}/runtime/xcvm_defs.py)
 add_custom_target(
   compiler_xcvm_codegen_h
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
