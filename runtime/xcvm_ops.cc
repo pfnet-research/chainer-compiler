@@ -75,18 +75,6 @@ chainerx::Array XorOp::RunImpl(XCVMState* st, const chainerx::Array& a, const ch
     return chainerx::NotEqual(a, b);
 }
 
-chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Reciprocal(a);
-}
-
-chainerx::Array TanhOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Tanh(a);
-}
-
-chainerx::Array SigmoidOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return Sigmoid(a);
-}
-
 chainerx::Array ClipOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     return -chainerx::Maximum(-chainerx::Maximum(x, min), -max);
 }
@@ -158,34 +146,6 @@ chainerx::Array ReduceMeanOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     return x * (1 - negs * 2);
-}
-
-chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    return chainerx::Maximum(x, 0);
-}
-
-chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
-    chainerx::Array out = chainerx::EmptyLike(x, x.device());
-    x.device().IfLessElseASSA(x, 0, chainerx::Scalar{0, gy.dtype()}, gy, out);
-    return out;
-}
-
-chainerx::Array SeluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = (alpha * chainerx::Exp(x) - alpha);
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return gamma * (x * (1 - negs) + xn * negs);
-}
-
-chainerx::Array LeakyReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = alpha * x;
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs) + xn * negs;
-}
-
-chainerx::Array EluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = alpha * (chainerx::Exp(x) - 1);
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs) + xn * negs;
 }
 
 chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {

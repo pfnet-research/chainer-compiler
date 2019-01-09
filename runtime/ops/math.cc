@@ -87,5 +87,9 @@ chainerx::Array SqrtOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Sqrt(a);
 }
 
+chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+    return chainerx::Reciprocal(a);
+}
+
 }  // namespace runtime
 }  // namespace oniku

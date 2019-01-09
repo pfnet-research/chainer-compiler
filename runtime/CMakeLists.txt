@@ -34,6 +34,7 @@ add_library(oniku_runtime
   backward_context.cc
   chrome_tracing.cc
   meminfo.cc
+  ops/activation.cc
   ops/connection.cc
   ops/cudnn_rnn.cc
   ops/generic.cc
