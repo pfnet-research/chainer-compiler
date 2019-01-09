@@ -44,6 +44,7 @@ add_library(oniku_runtime
   ops/logic.cc
   ops/manipulation.cc
   ops/math.cc
+  ops/noise.cc
   ops/normalization.cc
   ops/nvrtc.cc
   ops/pooling.cc
@@ -55,7 +56,6 @@ add_library(oniku_runtime
   xchainer.cc
   xcvm.cc
   xcvm_op.cc
-  xcvm_ops.cc
   xcvm_state.cc
   xcvm_var.cc
   )
