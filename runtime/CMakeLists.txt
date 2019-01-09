@@ -49,6 +49,7 @@ add_library(oniku_runtime
   ops/rnn.cc
   ops/sequence.cc
   ops/slice.cc
+  ops/sorting.cc
   ops/tvm.cc
   xchainer.cc
   xcvm.cc
