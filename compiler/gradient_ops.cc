@@ -361,7 +361,14 @@ void GemmGradFn(GradientOpContext* gc) {
         }
     }
 
-    gc->GradOp(Node::kReduceSum, 2, {gy})->producer()->set_axes({0})->set_keepdims(false);
+    {
+        GraphBuilder gb{gc->builder(2)};
+        Value* shape = gb.Op(Node::kShape, {gc->x(2)});
+        Value* gx = gb.Op(Node::kReduceSum, {gy});
+        gx->producer()->set_axes({0})->set_keepdims(false);
+        // TODO(hamaji): Optimize this expand away.
+        gc->GradOp(Node::kExpand, 2, {gx, shape});
+    }
 }
 
 void MatMulGradFn(GradientOpContext* gc) {
