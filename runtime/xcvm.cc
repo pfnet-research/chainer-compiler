@@ -34,6 +34,12 @@ void CheckType(XCVMState* st, const XCVMOp* op) {
 
         int id = inst.outputs(i);
         CHECK_LT(0, id);
+        XCVMVar* var = st->GetVar(id);
+        // Null values are OK as they can be used to accumulate gradients.
+        if (var->kind() == XCVMVar::Kind::kNull) {
+            continue;
+        }
+
         const chainerx::Array& a = st->GetArray(id);
         CHECK_EQ(static_cast<chainerx::Dtype>(type.dtype()), a.dtype())
             << "Dtype check failed in " << op->debug_info();
