@@ -37,6 +37,7 @@ add_library(oniku_runtime
   ops/activation.cc
   ops/connection.cc
   ops/constant.cc
+  ops/controlflow.cc
   ops/cudnn_rnn.cc
   ops/generic.cc
   ops/logic.cc
