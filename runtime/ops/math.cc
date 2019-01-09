@@ -140,5 +140,45 @@ chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const c
     return r + xc;
 }
 
+namespace {
+
+chainerx::Array ElementwiseMax(chainerx::Array a, chainerx::Array b) {
+    // TODO(hamaji): Implement this in ChainerX.
+    CHECK_EQ(a.dtype(), b.dtype());
+    int64_t an = a.GetTotalSize();
+    int64_t bn = b.GetTotalSize();
+    chainerx::Array result;
+    if (an == 1) {
+        result = chainerx::Maximum(chainerx::AsScalar(a), b);
+    } else if (bn == 1) {
+        result = chainerx::Maximum(a, chainerx::AsScalar(b));
+    } else {
+        CHECK_EQ(an, bn) << "Max with broadcast not supported yet";
+        WARN_ONCE("Slow element-wise Max");
+        // Flatten views.
+        chainerx::Array av = chainerx::Reshape(a, {an});
+        chainerx::Array bv = chainerx::Reshape(b, {an});
+        std::vector<chainerx::Array> maxes;
+        for (int i = 0; i < an; ++i) {
+            chainerx::Array m = chainerx::Maximum(chainerx::AsScalar(av.At({i})), bv.At({i}));
+            maxes.push_back(chainerx::Reshape(m, {1}));
+        }
+        result = chainerx::Concatenate(maxes, 0);
+        result = chainerx::Reshape(result, a.shape());
+    }
+    return result;
+}
+
+}  // namespace
+
+chainerx::Array MaxOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+    CHECK_LT(0, inputs.size());
+    chainerx::Array result = inputs[0];
+    for (size_t i = 1; i < inputs.size(); ++i) {
+        result = ElementwiseMax(result, inputs[i]);
+    }
+    return result;
+}
+
 }  // namespace runtime
 }  // namespace oniku
