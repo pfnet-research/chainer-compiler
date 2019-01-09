@@ -170,7 +170,7 @@ void ReadTestDir(
     CHECK(!test_cases->empty()) << "No test found in " << test_path;
 }
 
-chainerx::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
+chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
     chainerx::Shape shape;
     for (const auto& dim : xshape.dim()) {
         if (dim.has_dim_value()) {
@@ -188,8 +188,8 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::stri
         if (initializer_names.count(input.name())) continue;
         CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
         const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
-        chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
-        chainerx::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
+        chainerx::Dtype dtype = ChainerXTypeFromONNX(tensor_type.elem_type());
+        chainerx::Shape shape = ChainerXShapeFromONNX(tensor_type.shape());
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
         CHECK(inputs->emplace(input.name(), std::shared_ptr<XCVMVar>(new XCVMVar(array))).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;

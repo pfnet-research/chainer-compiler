@@ -10,7 +10,7 @@
 namespace oniku {
 namespace runtime {
 
-chainerx::Dtype XChainerTypeFromONNX(int xtype) {
+chainerx::Dtype ChainerXTypeFromONNX(int xtype) {
     switch (xtype) {
         case onnx::TensorProto::BOOL:
             return chainerx::Dtype::kBool;
@@ -38,7 +38,7 @@ InOuts LoadParams(const Graph& graph) {
     for (const Value* input : graph.input_values()) {
         if (input->users().empty()) continue;
         if (const Tensor* initializer = input->initializer()) {
-            chainerx::Dtype dtype = XChainerTypeFromONNX(initializer->dtype().ToONNX());
+            chainerx::Dtype dtype = ChainerXTypeFromONNX(initializer->dtype().ToONNX());
             chainerx::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();
             chainerx::Array tensor;
