@@ -150,7 +150,7 @@ chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype) {
     return output;
 }
 
-chainerx::OptionalAxes GetXchainerAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes) {
+chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes) {
     if (axes.empty()) return nonstd::nullopt;
     chainerx::Axes xc_axes{axes.begin(), axes.end()};
     return xc_axes;

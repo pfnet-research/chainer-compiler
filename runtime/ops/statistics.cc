@@ -10,15 +10,15 @@ namespace oniku {
 namespace runtime {
 
 chainerx::Array ReduceMaxOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::AMax(a, GetXchainerAxes(axes), keepdims != 0);
+    return chainerx::AMax(a, GetChainerXAxes(axes), keepdims != 0);
 }
 
 chainerx::Array ReduceSumOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Sum(a, GetXchainerAxes(axes), keepdims != 0);
+    return chainerx::Sum(a, GetChainerXAxes(axes), keepdims != 0);
 }
 
 chainerx::Array ReduceSumSquareOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Sum(a * a, GetXchainerAxes(axes), keepdims != 0);
+    return chainerx::Sum(a * a, GetChainerXAxes(axes), keepdims != 0);
 }
 
 chainerx::Array ReduceSumToOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
@@ -41,7 +41,7 @@ chainerx::Array ReduceSumToOp::RunImpl(XCVMState* st, const chainerx::Array& dat
 }
 
 chainerx::Array ReduceMeanOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Mean(a, GetXchainerAxes(axes), keepdims != 0);
+    return chainerx::Mean(a, GetChainerXAxes(axes), keepdims != 0);
 }
 
 }  // namespace runtime
