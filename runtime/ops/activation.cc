@@ -42,5 +42,13 @@ chainerx::Array SigmoidOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return Sigmoid(a);
 }
 
+chainerx::Array SoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+    return chainerx::Exp(chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)}));
+}
+
+chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+    return chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
+}
+
 }  // namespace runtime
 }  // namespace oniku

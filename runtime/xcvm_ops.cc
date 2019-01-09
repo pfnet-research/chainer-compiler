@@ -118,14 +118,6 @@ chainerx::Array ReduceMeanOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Mean(a, GetXchainerAxes(axes), keepdims != 0);
 }
 
-chainerx::Array SoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return chainerx::Exp(chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)}));
-}
-
-chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
-}
-
 std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     if (st->is_training()) {
         WARN_ONCE("Dropout for training is slow.");
