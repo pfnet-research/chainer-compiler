@@ -35,9 +35,9 @@
 #include <compiler/util.h>
 #include <compiler/value.h>
 #include <compiler/xcvm/emitter.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
-#include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>

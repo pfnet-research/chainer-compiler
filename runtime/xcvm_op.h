@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <string>
 
-#include <runtime/xchainer.h>
 #include <runtime/xcvm.pb.h>
 
 namespace oniku {

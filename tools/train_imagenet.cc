@@ -25,9 +25,9 @@
 #include <compiler/value.h>
 #include <compiler/xcvm/emitter.h>
 #include <feeder/imagenet_iterator.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
-#include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm_var.h>
 #include <tools/cmdline.h>

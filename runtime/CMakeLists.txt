@@ -32,6 +32,7 @@ add_library(oniku_runtime
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
   backward_context.cc
+  chainerx_util.cc
   chrome_tracing.cc
   meminfo.cc
   ops/activation.cc
@@ -53,7 +54,6 @@ add_library(oniku_runtime
   ops/sorting.cc
   ops/statistics.cc
   ops/tvm.cc
-  xchainer.cc
   xcvm.cc
   xcvm_op.cc
   xcvm_state.cc

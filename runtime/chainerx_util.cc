@@ -1,4 +1,4 @@
-#include "xchainer.h"
+#include "runtime/chainerx_util.h"
 
 #include <cstring>
 #include <limits>

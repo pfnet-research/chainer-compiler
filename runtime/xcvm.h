@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "runtime/xchainer.h"
 #include "runtime/xcvm.pb.h"
 
 namespace oniku {

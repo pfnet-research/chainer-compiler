@@ -1,6 +1,7 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/math.h>
 
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
 namespace oniku {

@@ -7,9 +7,9 @@
 
 #include <common/log.h>
 #include <runtime/backward_context.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/ops/cudnn_rnn.h>
-#include <runtime/xchainer.h>
 
 namespace oniku {
 namespace runtime {

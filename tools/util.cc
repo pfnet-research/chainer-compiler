@@ -4,6 +4,7 @@
 
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/xcvm_var.h>
 
 namespace oniku {

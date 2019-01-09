@@ -11,7 +11,6 @@
 #include <common/strutil.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
-#include <runtime/xchainer.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_op.h>
 #include <runtime/xcvm_state.h>
