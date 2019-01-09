@@ -8,10 +8,6 @@
 namespace oniku {
 namespace runtime {
 
-// TODO(hamaji): Investigate xChainer's BatchNorm.
-chainerx::Array BatchNormONNX(
-        chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon);
-
 chainerx::Shape ArrayToShape(const chainerx::Array& a);
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s);

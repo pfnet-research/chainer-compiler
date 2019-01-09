@@ -16,21 +16,6 @@
 namespace oniku {
 namespace runtime {
 
-chainerx::Array BatchNormONNX(
-        chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon) {
-    int64_t size = s.GetTotalSize();
-    CHECK_EQ(size, bias.GetTotalSize());
-    CHECK_EQ(size, mean.GetTotalSize());
-    CHECK_EQ(size, var.GetTotalSize());
-    chainerx::Shape shape{size};
-    for (int i = 0; i < x.ndim() - 2; ++i) shape.push_back(1);
-    s = chainerx::Reshape(s, shape);
-    bias = chainerx::Reshape(bias, shape);
-    mean = chainerx::Reshape(mean, shape);
-    var = chainerx::Reshape(var, shape);
-    return s * (x - mean) / chainerx::Sqrt(var + epsilon) + bias;
-}
-
 chainerx::Array ShapeToArray(const chainerx::Shape& s) {
     chainerx::Shape shape{s.ndim()};
     return MakeHostArray(chainerx::Dtype::kInt64, shape, s.data());
