@@ -47,6 +47,7 @@ add_library(oniku_runtime
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/slice.cc
   ops/tvm.cc
   xchainer.cc
   xcvm.cc
