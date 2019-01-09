@@ -18,7 +18,6 @@ add_custom_command(
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
   DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl)
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
-add_custom_target(runtime_xcvm_codegen_h DEPENDS gen_xcvm_codegen.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
@@ -48,7 +47,7 @@ add_library(oniku_runtime
   )
 add_dependencies(
   oniku_runtime
-  runtime_xcvm_pb_h runtime_xcvm_codegen_h onnx_files
+  runtime_xcvm_pb_h onnx_files
   )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
