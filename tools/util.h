@@ -12,7 +12,7 @@ class Graph;
 
 namespace runtime {
 
-chainerx::Dtype XChainerTypeFromONNX(int xtype);
+chainerx::Dtype ChainerXTypeFromONNX(int xtype);
 
 InOuts LoadParams(const Graph& graph);
 

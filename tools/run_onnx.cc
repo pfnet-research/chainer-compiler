@@ -11,12 +11,10 @@
 #include <string>
 
 #include <compiler/onnx.h>
-#include <onnx/shape_inference/implementation.h>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
-#include <chainerx/cuda/cuda_device.h>
 #include <chainerx/native/native_backend.h>
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
@@ -36,9 +34,9 @@
 #include <compiler/util.h>
 #include <compiler/value.h>
 #include <compiler/xcvm/emitter.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
-#include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>
@@ -171,7 +169,7 @@ void ReadTestDir(
     CHECK(!test_cases->empty()) << "No test found in " << test_path;
 }
 
-chainerx::Shape XChainerShapeFromONNX(const onnx::TensorShapeProto& xshape) {
+chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
     chainerx::Shape shape;
     for (const auto& dim : xshape.dim()) {
         if (dim.has_dim_value()) {
@@ -189,8 +187,8 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::stri
         if (initializer_names.count(input.name())) continue;
         CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
         const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
-        chainerx::Dtype dtype = XChainerTypeFromONNX(tensor_type.elem_type());
-        chainerx::Shape shape = XChainerShapeFromONNX(tensor_type.shape());
+        chainerx::Dtype dtype = ChainerXTypeFromONNX(tensor_type.elem_type());
+        chainerx::Shape shape = ChainerXShapeFromONNX(tensor_type.shape());
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
         CHECK(inputs->emplace(input.name(), std::shared_ptr<XCVMVar>(new XCVMVar(array))).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
@@ -253,6 +251,7 @@ public:
         }
         xcvm_opts_.trace_level = trace_level();
         xcvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
+        xcvm_opts_.check_types = true;
         xcvm_opts_.check_nans = args_.exist("check_nans");
         xcvm_opts_.check_infs = args_.exist("check_infs");
         xcvm_opts_.dump_memory_usage = args_.exist("trace");
@@ -342,6 +341,9 @@ public:
                 outputs.emplace(p);
             }
         }
+
+        // Turn off type check from the next run.
+        xcvm_opts_.check_types = false;
         return outputs;
     }
 
@@ -384,7 +386,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("backend", '\0', "The name of the backend", false, "xcvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
-    args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
@@ -417,7 +419,7 @@ void RunMain(const std::vector<std::string>& argv) {
         QFAIL() << "Either --onnx or --test must be specified!";
     }
 
-    LOG() << "Initializing xChainer..." << std::endl;
+    LOG() << "Initializing ChainerX..." << std::endl;
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     chainerx::NoBackpropModeScope no_backprop;
@@ -425,7 +427,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (!device_spec.empty()) {
         chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
         chainerx::SetDefaultDevice(device);
-        if (dynamic_cast<chainerx::cuda::CudaDevice*>(device)) {
+        if (IsCudaDevice(device)) {
             g_use_cuda = true;
             g_meminfo_enabled = true;
         }

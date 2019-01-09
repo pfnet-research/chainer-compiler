@@ -9,14 +9,19 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.h
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.h
-    ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.h
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py --output-dir ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
+    --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
+    --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
-  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py)
+  DEPENDS
+    ${ONIKU_COMMON_DIR}/codegen_util.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/xcvm_defs.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl
+    )
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
-add_custom_target(runtime_xcvm_proto_util_h DEPENDS xcvm_proto_util.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
@@ -24,30 +29,39 @@ include_directories(${ONIKU_ROOT_DIR})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
 add_library(oniku_runtime
-  backward_context.cc
-  chrome_tracing.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
+  backward_context.cc
+  chainerx_util.cc
+  chrome_tracing.cc
   meminfo.cc
+  ops/activation.cc
   ops/connection.cc
+  ops/constant.cc
+  ops/controlflow.cc
   ops/cudnn_rnn.cc
   ops/generic.cc
+  ops/indexing.cc
+  ops/logic.cc
+  ops/manipulation.cc
+  ops/math.cc
+  ops/noise.cc
   ops/normalization.cc
   ops/nvrtc.cc
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/sorting.cc
+  ops/statistics.cc
   ops/tvm.cc
-  xchainer.cc
   xcvm.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
-  xcvm_ops.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/xcvm_proto_util.cc
+  xcvm_op.cc
   xcvm_state.cc
   xcvm_var.cc
   )
 add_dependencies(
   oniku_runtime
-  runtime_xcvm_pb_h runtime_xcvm_proto_util_h onnx_files
+  runtime_xcvm_pb_h onnx_files
   )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
@@ -56,6 +70,7 @@ add_executable(runtime_test
   )
 target_link_libraries(runtime_test
   oniku_runtime
+  oniku_compiler
   oniku_common
   chainerx
   onnx_proto

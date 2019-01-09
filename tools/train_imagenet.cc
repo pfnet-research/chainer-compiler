@@ -4,18 +4,17 @@
 #include <set>
 
 #include <compiler/onnx.h>
-#include <onnx/shape_inference/implementation.h>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
-#include <chainerx/cuda/cuda_device.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -25,9 +24,9 @@
 #include <compiler/value.h>
 #include <compiler/xcvm/emitter.h>
 #include <feeder/imagenet_iterator.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
-#include <runtime/xchainer.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm_var.h>
 #include <tools/cmdline.h>
@@ -57,7 +56,7 @@ void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
     args.add<float>("learning_rate", '\0', "Learning rate", false, 0.01);
-    args.add<std::string>("device", 'd', "xChainer device to be used", false);
+    args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<int>("chrome_tracing_frequency", '\0', "Output chrome tracing every this itearation", false, 100);
     args.add<int>("iterations", 'I', "Number of iterations to train", false, 100);
@@ -81,7 +80,7 @@ void RunMain(const std::vector<std::string>& argv) {
     g_quiet = args.exist("quiet");
     int batch_size = args.get<int>("batchsize");
 
-    LOG() << "Initializing xChainer..." << std::endl;
+    LOG() << "Initializing ChainerX..." << std::endl;
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     chainerx::NoBackpropModeScope no_backprop;
@@ -89,7 +88,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (!device_spec.empty()) {
         chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
         chainerx::SetDefaultDevice(device);
-        if (dynamic_cast<chainerx::cuda::CudaDevice*>(device)) {
+        if (IsCudaDevice(device)) {
             g_use_cuda = true;
             g_meminfo_enabled = true;
         }
@@ -97,6 +96,7 @@ void RunMain(const std::vector<std::string>& argv) {
     int64_t initial_free_bytes = GetMemoryUsageInBytes();
 
     LOG() << "Constructing model..." << std::endl;
+    RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
     Model model(xmodel);
     if (!g_skip_inference) model.mutable_graph()->InferShapes();

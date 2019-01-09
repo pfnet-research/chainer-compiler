@@ -5,6 +5,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
+#include <compiler/gen_xcvm_codegen.h>
 #include <compiler/graph.h>
 #include <compiler/log.h>
 #include <compiler/model.h>
@@ -14,7 +15,6 @@
 #include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
 #include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_proto_util.h>
 
 namespace oniku {
 namespace xcvm {
@@ -140,13 +140,13 @@ private:
             ;
             Value* output = node.outputs()[i];
             CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
-            return GetValueId(output);
+            return XCVMValue(GetValueId(output), output);
         };
 
         // Optional output.
         auto oout = [this, out, &node](int i) {
-            if (i >= static_cast<int>(node.outputs().size())) return -1;
-            if (node.outputs()[i]->IsNull()) return -1;
+            if (i >= static_cast<int>(node.outputs().size())) return XCVMValue(-1);
+            if (node.outputs()[i]->IsNull()) return XCVMValue(-1);
             return out(i);
         };
 
@@ -155,7 +155,7 @@ private:
             if (pads.empty()) {
                 pads = {0, 0};
             } else {
-                // Both Chainer and xChainer expect paddings for beginning
+                // Both Chainer and ChainerX expect paddings for beginning
                 // and end are the same.
                 CHECK_EQ(pads.size() % 2, 0);
                 for (size_t i = 0; i < pads.size() / 2; ++i) {
@@ -270,14 +270,14 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(xchainer): Support dilation.
+            // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads());
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(xchainer): Support dilation.
+            // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
             std::vector<int> output_shape(IntVector(node.output_shape()));
@@ -289,7 +289,7 @@ private:
         } else if (node.op_type() == Node::kOnikuxConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(xchainer): Support dilation.
+            // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kRNN) {
@@ -369,7 +369,7 @@ private:
         } else if (node.op_type() == Node::kBatchNormalization) {
             CHECK_EQ(5UL, node.inputs().size());
             size_t num_onnx_outputs = node.outputs().size();
-            std::vector<int> outs = {out(0)};
+            std::vector<XCVMValue> outs = {out(0)};
             if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
                 num_onnx_outputs--;
                 outs.push_back(out(num_onnx_outputs));
@@ -516,7 +516,7 @@ private:
             EMIT(Concat, out(0), ins, node.axis());
         } else if (node.op_type() == Node::kSplit) {
             CHECK_EQ(1UL, node.inputs().size());
-            std::vector<int> outs;
+            std::vector<XCVMValue> outs;
             for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
             EMIT(Split, outs, in(0), node.axis(), IntVector(node.split()));
         } else if (node.op_type() == Node::kClip) {
@@ -563,22 +563,24 @@ private:
         } else if (node.op_type() == Node::kOnikuxSequenceLengths) {
             EMIT(SequenceLengths, out(0), in(0));
         } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
+            XCVMValue o(out(0));
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
-                EMIT(SequenceMove, out(0), in(0));
-                EMIT(SequenceAppend, out(0), in(1));
+                EMIT(SequenceMove, o, in(0));
+                EMIT(SequenceAppend, o.id(), in(1));
             } else {
-                EMIT(SequenceCopy, out(0), in(0));
-                EMIT(SequenceAppend, out(0), in(1));
+                EMIT(SequenceCopy, o, in(0));
+                EMIT(SequenceAppend, o.id(), in(1));
             }
         } else if (node.op_type() == Node::kOnikuxSequencePop) {
+            XCVMValue o0(out(0));
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
-                EMIT(SequenceMove, out(0), in(0));
-                EMIT(SequencePop, out(1), out(0));
+                EMIT(SequenceMove, o0, in(0));
+                EMIT(SequencePop, out(1), o0.id());
             } else {
-                EMIT(SequenceCopy, out(0), in(0));
-                EMIT(SequencePop, out(1), out(0));
+                EMIT(SequenceCopy, o0, in(0));
+                EMIT(SequencePop, out(1), o0.id());
             }
         } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
@@ -775,12 +777,13 @@ private:
                 CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << " => " << dso_filename << std::endl;
             }
 
-            std::vector<int> inputs, outputs;
+            std::vector<int> inputs;
+            std::vector<XCVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
             }
             for (Value* value : node.outputs()) {
-                outputs.push_back(GetValueId(value));
+                outputs.emplace_back(GetValueId(value), value);
             }
             // TODO(hamaji): Handle multiple outputs.
             CHECK_EQ(1, node.outputs().size());
@@ -800,12 +803,13 @@ private:
                 CLOG() << nvrtc;
             }
 
-            std::vector<int> inputs, outputs;
+            std::vector<int> inputs;
+            std::vector<XCVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
             }
             for (Value* value : node.outputs()) {
-                outputs.push_back(GetValueId(value));
+                outputs.emplace_back(GetValueId(value), value);
             }
             EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.onikux_fusion_group());
             return;

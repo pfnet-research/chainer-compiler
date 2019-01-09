@@ -8,10 +8,6 @@
 namespace oniku {
 namespace runtime {
 
-// TODO(hamaji): Investigate xChainer's BatchNorm.
-chainerx::Array BatchNormONNX(
-        chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon);
-
 chainerx::Shape ArrayToShape(const chainerx::Array& a);
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s);
@@ -31,6 +27,12 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
 chainerx::Array Sigmoid(chainerx::Array a);
 
 chainerx::Array SlowRandom(chainerx::Shape shape);
+
+chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
+
+chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes);
+
+bool IsCudaDevice(const chainerx::Device* device);
 
 }  // namespace runtime
 }  // namespace oniku

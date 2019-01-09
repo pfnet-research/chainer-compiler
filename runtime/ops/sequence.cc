@@ -2,8 +2,8 @@
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
-#include <runtime/xchainer.h>
 #include <runtime/xcvm_state.h>
 
 namespace oniku {

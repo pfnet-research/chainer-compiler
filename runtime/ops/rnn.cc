@@ -7,9 +7,9 @@
 
 #include <common/log.h>
 #include <runtime/backward_context.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/ops/cudnn_rnn.h>
-#include <runtime/xchainer.h>
 
 namespace oniku {
 namespace runtime {
@@ -211,7 +211,7 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         return std::make_tuple(output, h);
     } else {
         chainerx::Array output = chainerx::Stack({outputs[0], outputs[1]}, 1);
-        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 1);
+        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 0);
         return std::make_tuple(output, h);
     }
 }
@@ -335,8 +335,8 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
         return std::make_tuple(output, h, c, bwd.release());
     } else {
         chainerx::Array output = chainerx::Stack({outputs[0], outputs[1]}, 1);
-        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 1);
-        chainerx::Array c = chainerx::Stack({cs[0], cs[1]}, 1);
+        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 0);
+        chainerx::Array c = chainerx::Stack({cs[0], cs[1]}, 0);
         bwd->SetOutput({output});
         return std::make_tuple(output, h, c, bwd.release());
     }

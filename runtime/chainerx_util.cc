@@ -1,4 +1,4 @@
-#include "xchainer.h"
+#include "runtime/chainerx_util.h"
 
 #include <cstring>
 #include <limits>
@@ -11,25 +11,14 @@
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
+#ifdef ONIKU_ENABLE_CUDA
+#include <chainerx/cuda/cuda_device.h>
+#endif
+
 #include <common/log.h>
 
 namespace oniku {
 namespace runtime {
-
-chainerx::Array BatchNormONNX(
-        chainerx::Array x, chainerx::Array s, chainerx::Array bias, chainerx::Array mean, chainerx::Array var, float epsilon) {
-    int64_t size = s.GetTotalSize();
-    CHECK_EQ(size, bias.GetTotalSize());
-    CHECK_EQ(size, mean.GetTotalSize());
-    CHECK_EQ(size, var.GetTotalSize());
-    chainerx::Shape shape{size};
-    for (int i = 0; i < x.ndim() - 2; ++i) shape.push_back(1);
-    s = chainerx::Reshape(s, shape);
-    bias = chainerx::Reshape(bias, shape);
-    mean = chainerx::Reshape(mean, shape);
-    var = chainerx::Reshape(var, shape);
-    return s * (x - mean) / chainerx::Sqrt(var + epsilon) + bias;
-}
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s) {
     chainerx::Shape shape{s.ndim()};
@@ -95,7 +84,7 @@ std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int ax
 }
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding) {
-    // TODO(hamaji): Move this logic to xChainer.
+    // TODO(hamaji): Move this logic to ChainerX.
     CHECK_LT(0, inputs.size());
     int64_t max_length = 0;
     for (const chainerx::Array& input : inputs) {
@@ -151,6 +140,32 @@ chainerx::Array SlowRandom(chainerx::Shape shape) {
         values[i] = xorshift() * denominator;
     }
     return MakeArray(chainerx::Dtype::kFloat32, shape, values.data());
+}
+
+chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype) {
+    if (input.dtype() == dtype) return input;
+    chainerx::Array output = input.AsType(dtype);
+    // TODO(hamaji): Stop doing this ad-hoc device assignment.
+    if (input.dtype() == chainerx::Dtype::kInt64 && output.dtype() != chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetDefaultDevice());
+    } else if (input.dtype() != chainerx::Dtype::kInt64 && output.dtype() == chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetNativeBackend().GetDevice(0));
+    }
+    return output;
+}
+
+chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes) {
+    if (axes.empty()) return nonstd::nullopt;
+    chainerx::Axes xc_axes{axes.begin(), axes.end()};
+    return xc_axes;
+}
+
+bool IsCudaDevice(const chainerx::Device* device) {
+#ifdef ONIKU_ENABLE_CUDA
+    return dynamic_cast<const chainerx::cuda::CudaDevice*>(device) != nullptr;
+#else
+    return false;
+#endif
 }
 
 }  // namespace runtime

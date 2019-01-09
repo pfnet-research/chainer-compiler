@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "runtime/xchainer.h"
 #include "runtime/xcvm.pb.h"
 
 namespace oniku {
@@ -30,6 +29,8 @@ public:
     std::vector<bool> verbose_ops;
 
     bool is_training{false};
+
+    bool check_types{false};
 
     bool check_nans{false};
 

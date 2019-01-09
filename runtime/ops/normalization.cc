@@ -50,7 +50,7 @@ public:
     }
 };
 
-// TODO(hamaji): Copied from xChainer's code.
+// TODO(hamaji): Copied from ChainerX's code.
 using Array = chainerx::Array;
 using Axes = chainerx::Axes;
 using Dtype = chainerx::Dtype;

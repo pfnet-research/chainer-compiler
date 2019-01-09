@@ -85,6 +85,7 @@ NodeDef('Or', 2, 1)
 NodeDef('Xor', 2, 1)
 
 NodeDef('Constant', 0, 1, tensor_value=Required(Tensor), onikux_host=False)
+# TODO(hamaji): Remove this operator since this op was deprecated.
 NodeDef('ConstantLike', (0, 1), 1,
         dtype=Dtype, shape=[int], value=0.0)
 NodeDef('ConstantFill', (0, 1), 1,
