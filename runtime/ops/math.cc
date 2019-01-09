@@ -1,3 +1,5 @@
+#include <chainerx/routines/creation.h>
+#include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
@@ -89,6 +91,30 @@ chainerx::Array SqrtOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
 
 chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Reciprocal(a);
+}
+
+
+chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
+    return x * (1 - negs * 2);
+}
+
+chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+    WARN_ONCE("Floor is broken for large floats");
+    chainerx::Array out = x.AsType(chainerx::Dtype::kInt64).AsType(x.dtype());
+    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
+    chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
+    out -= negs * floats;
+    return out;
+}
+
+chainerx::Array CeilOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+    WARN_ONCE("Ceil is broken for large values");
+    chainerx::Array out = x.AsType(chainerx::Dtype::kInt64).AsType(x.dtype());
+    chainerx::Array poses = (x > chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
+    chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
+    out += poses * floats;
+    return out;
 }
 
 }  // namespace runtime
