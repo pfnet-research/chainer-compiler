@@ -149,10 +149,6 @@ chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const c
     return r + xc;
 }
 
-chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return CastTo(input, static_cast<chainerx::Dtype>(to));
-}
-
 void JmpOp::RunImpl(XCVMState* st) {
     st->set_pc(pc - 1);
 }

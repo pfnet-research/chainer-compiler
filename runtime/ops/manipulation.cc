@@ -7,7 +7,6 @@
 namespace oniku {
 namespace runtime {
 
-
 chainerx::Array ShapeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     return ShapeToArray(data.shape());
 }
@@ -99,6 +98,10 @@ chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     chainerx::Array result = chainerx::Full(shape, value, data.dtype(), data.device());
     result.device().Copy(data, result.At(indices));
     return result;
+}
+
+chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+    return CastTo(input, static_cast<chainerx::Dtype>(to));
 }
 
 }  // namespace runtime
