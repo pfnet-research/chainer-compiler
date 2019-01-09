@@ -252,6 +252,8 @@ public:
         }
         xcvm_opts_.trace_level = trace_level();
         xcvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
+        // TODO(hamaji): Enable runtime type check.
+        xcvm_opts_.check_types = false;
         xcvm_opts_.check_nans = args_.exist("check_nans");
         xcvm_opts_.check_infs = args_.exist("check_infs");
         xcvm_opts_.dump_memory_usage = args_.exist("trace");
@@ -341,6 +343,9 @@ public:
                 outputs.emplace(p);
             }
         }
+
+        // Turn off type check from the next run.
+        xcvm_opts_.check_types = false;
         return outputs;
     }
 

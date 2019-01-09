@@ -30,6 +30,8 @@ public:
 
     bool is_training{false};
 
+    bool check_types{false};
+
     bool check_nans{false};
 
     bool check_infs{false};

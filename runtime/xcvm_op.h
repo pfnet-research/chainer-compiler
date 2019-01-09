@@ -17,6 +17,10 @@ public:
 
     virtual void Run(XCVMState* state) = 0;
 
+    const XCInstructionProto& instruction() const {
+        return inst_;
+    }
+
     int64_t id() const {
         return id_;
     }

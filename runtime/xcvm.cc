@@ -8,6 +8,7 @@
 
 #include <chainerx/array.h>
 
+#include <common/log.h>
 #include <common/strutil.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
@@ -19,6 +20,29 @@
 
 namespace oniku {
 namespace runtime {
+
+namespace {
+
+void CheckType(XCVMState* st, const XCVMOp* op) {
+    const XCInstructionProto& inst = op->instruction();
+    CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
+    for (size_t i = 0; i < inst.outputs().size(); ++i) {
+        const XCTypeProto& type = inst.output_types(i);
+        if (type.dtype() == 0) {
+            continue;
+        }
+
+        int id = inst.outputs(i);
+        CHECK_LT(0, id);
+        const chainerx::Array& a = st->GetArray(id);
+        CHECK_EQ(static_cast<chainerx::Dtype>(type.dtype()), a.dtype())
+            << "Dtype check failed in " << op->debug_info();
+        CHECK_EQ(chainerx::Shape(type.shape().begin(), type.shape().end()), a.shape())
+            << "Shape check failed in " << op->debug_info();
+    }
+}
+
+}
 
 XCVMOptions::XCVMOptions() {
     int num_ops = 1;
@@ -79,6 +103,10 @@ void XCVM::Run(XCVMState* state) {
         }
 
         state->set_pc(state->pc() + 1);
+
+        if (options.check_types) {
+            CheckType(state, op);
+        }
 
         if (options.dump_memory_usage && options.base_memory_usage >= 0) {
             int64_t bytes = options.base_memory_usage - GetMemoryUsageInBytes();
