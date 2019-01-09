@@ -40,6 +40,7 @@ add_library(oniku_runtime
   ops/controlflow.cc
   ops/cudnn_rnn.cc
   ops/generic.cc
+  ops/indexing.cc
   ops/logic.cc
   ops/manipulation.cc
   ops/math.cc
@@ -48,7 +49,6 @@ add_library(oniku_runtime
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc
-  ops/slice.cc
   ops/sorting.cc
   ops/tvm.cc
   xchainer.cc
