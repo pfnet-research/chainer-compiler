@@ -32,5 +32,7 @@ chainerx::Array Sigmoid(chainerx::Array a);
 
 chainerx::Array SlowRandom(chainerx::Shape shape);
 
+chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
+
 }  // namespace runtime
 }  // namespace oniku

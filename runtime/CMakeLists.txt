@@ -29,13 +29,15 @@ include_directories(${ONIKU_ROOT_DIR})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
 add_library(oniku_runtime
+  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
   backward_context.cc
   chrome_tracing.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   meminfo.cc
   ops/connection.cc
   ops/cudnn_rnn.cc
   ops/generic.cc
+  ops/math.cc
   ops/normalization.cc
   ops/nvrtc.cc
   ops/pooling.cc
@@ -44,7 +46,6 @@ add_library(oniku_runtime
   ops/tvm.cc
   xchainer.cc
   xcvm.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
   xcvm_op.cc
   xcvm_ops.cc
   xcvm_state.cc

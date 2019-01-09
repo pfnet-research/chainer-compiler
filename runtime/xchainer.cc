@@ -153,5 +153,17 @@ chainerx::Array SlowRandom(chainerx::Shape shape) {
     return MakeArray(chainerx::Dtype::kFloat32, shape, values.data());
 }
 
+chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype) {
+    if (input.dtype() == dtype) return input;
+    chainerx::Array output = input.AsType(dtype);
+    // TODO(hamaji): Stop doing this ad-hoc device assignment.
+    if (input.dtype() == chainerx::Dtype::kInt64 && output.dtype() != chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetDefaultDevice());
+    } else if (input.dtype() != chainerx::Dtype::kInt64 && output.dtype() == chainerx::Dtype::kInt64) {
+        output = output.ToDevice(chainerx::GetNativeBackend().GetDevice(0));
+    }
+    return output;
+}
+
 }  // namespace runtime
 }  // namespace oniku
