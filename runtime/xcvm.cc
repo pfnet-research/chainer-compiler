@@ -42,9 +42,9 @@ void CheckType(XCVMState* st, const XCVMOp* op) {
 
         const chainerx::Array& a = st->GetArray(id);
         CHECK_EQ(static_cast<chainerx::Dtype>(type.dtype()), a.dtype())
-            << "Dtype check failed in " << op->debug_info();
+            << "Dtype check failed in output #" << i << ": " << op->debug_info();
         CHECK_EQ(chainerx::Shape(type.shape().begin(), type.shape().end()), a.shape())
-            << "Shape check failed in " << op->debug_info();
+            << "Shape check failed in output #" << i << ": " << op->debug_info();
     }
 }
 
