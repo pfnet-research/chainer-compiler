@@ -82,9 +82,7 @@ public:
     Value* grad() const {
         return grad_;
     }
-    void set_grad(Value* grad) {
-        grad_ = grad;
-    }
+    void set_grad(Value* grad);
 
     // Generate a unique ID for other values associated with this object.
     int Counter() {

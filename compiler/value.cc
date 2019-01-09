@@ -63,6 +63,13 @@ void Value::SetProducer(Node* producer) {
     producer_ = producer;
 }
 
+void Value::set_grad(Value* grad) {
+    grad_ = grad;
+    if (grad_ && (type_->kind() != Type::Kind::kTensor || type_->NumElements() > 0)) {
+        grad_->set_type(new Type(*type_));
+    }
+}
+
 std::ostream& operator<<(std::ostream& os, const Value::Kind& kind) {
     if (kind == Value::Kind::kTemp) {
         return os << "Temp";
