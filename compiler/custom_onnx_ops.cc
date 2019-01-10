@@ -3,12 +3,41 @@
 namespace ONNX_NAMESPACE {
 
 ONNX_OPERATOR_SET_SCHEMA(
+        OnikuxLinear,
+        9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Input(1, "W", "Weight tensor", "T")
+                .Input(2, "B", "Bias tensor", "T", OpSchema::Optional)
+                .Output(0, "Y", "Output tensor", "T")
+                .Attr(
+                    "n_batch_axes",
+                    "The number of batch axes.",
+                    AttributeProto::INT,
+                    static_cast<int64_t>(1))
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
+                    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+                    auto& first_input_shape = getInputShape(ctx, 0);
+                    auto& second_input_shape = getInputShape(ctx, 1);
+                    updateOutputShape(
+                        ctx,
+                        0,
+                        {first_input_shape.dim(0),
+                         second_input_shape.dim(0)});
+                    }));
+
+ONNX_OPERATOR_SET_SCHEMA(
         OnikuxSoftmaxCrossEntropy,
         9,
         OpSchema()
                 .SetDoc("TBD")
                 .Input(0, "X", "Input tensor", "T")
-                .Input(0, "T", "Target labels", "I")
+                .Input(1, "T", "Target labels", "I")
                 .Output(0, "Y", "Output tensor", "T")
                 .TypeConstraint(
                         "T",
@@ -188,6 +217,7 @@ ONNX_OPERATOR_SET_SCHEMA(
 class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxLinear)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxSoftmaxCrossEntropy)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, MaxPool)>());
     }
