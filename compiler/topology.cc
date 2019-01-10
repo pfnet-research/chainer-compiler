@@ -1,6 +1,8 @@
 #include "compiler/topology.h"
 
 #include <algorithm>
+#include <queue>
+#include <map>
 #include <set>
 
 #include <common/log.h>
@@ -52,6 +54,44 @@ void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs
     std::sort(inputs->begin(), inputs->end(), by_name);
     std::sort(outputs->begin(), outputs->end(), by_name);
     std::sort(temps->begin(), temps->end(), by_name);
+}
+
+std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs) {
+    // TODO(hamaji): Add a test for this function.
+    std::queue<Value*> q;
+    for (Value* value : inputs) {
+        q.push(value);
+    }
+    std::map<Node*, int> input_counts;
+    for (Node* node : nodes) {
+        input_counts[node] = node->GetNumActualInputs();
+    }
+
+    for (const auto& p : input_counts) {
+        if (p.second == 0) {
+            for (Value* v : p.first->outputs()) {
+                q.push(v);
+            }
+        }
+    }
+
+    std::vector<Node*> sorted_nodes;
+    while (!q.empty()) {
+        Value* v = q.front();
+        q.pop();
+        for (Node* node : v->users()) {
+            auto found = input_counts.find(node);
+            CHECK(found != input_counts.end());
+            if (--found->second == 0) {
+                sorted_nodes.push_back(node);
+                for (Value* n : node->outputs()) {
+                    q.push(n);
+                }
+            }
+        }
+    }
+    CHECK_GE(nodes.size(), sorted_nodes.size());
+    return sorted_nodes;
 }
 
 }

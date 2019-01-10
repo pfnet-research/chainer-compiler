@@ -14,6 +14,7 @@
 #include <compiler/node.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
+#include <compiler/topology.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
 
@@ -204,43 +205,10 @@ void Graph::DetachNode(Node* node) {
 }
 
 std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
-    // TODO(hamaji): Add a test for this function.
-    std::queue<Value*> q;
-    for (Value* value : input_values()) {
-        q.push(value);
-    }
-    std::map<Node*, int> input_counts;
-    for (Node* node : GetLiveNodes()) {
-        input_counts[node] = node->GetNumActualInputs();
-    }
-
-    for (const auto& p : input_counts) {
-        if (p.second == 0) {
-            for (Value* v : p.first->outputs()) {
-                q.push(v);
-            }
-        }
-    }
-
-    std::vector<Node*> sorted_nodes;
-    while (!q.empty()) {
-        Value* v = q.front();
-        q.pop();
-        for (Node* node : v->users()) {
-            auto found = input_counts.find(node);
-            CHECK(found != input_counts.end());
-            if (--found->second == 0) {
-                sorted_nodes.push_back(node);
-                for (Value* n : node->outputs()) {
-                    q.push(n);
-                }
-            }
-        }
-    }
-    return sorted_nodes;
+    return SortTopologically(GetLiveNodes(), input_values());
 }
 
-void Graph::SortTopologically() {
+void Graph::SortNodesTopologically() {
     std::set<Node*> node_set{nodes_.begin(), nodes_.end()};
     std::vector<Node*> next_nodes = GetTopologicallySortedNodes();
     for (Node* node : next_nodes) {
@@ -333,7 +301,7 @@ void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Valu
         temp_values_.erase(found);
         to->temp_values_.push_back(value);
     }
-    to->SortTopologically();
+    to->SortNodesTopologically();
 }
 
 void Graph::InferShapes() {

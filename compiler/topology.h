@@ -16,4 +16,8 @@ class Value;
 // 3. A value is temporary otherwise.
 void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs, std::vector<Value*>* temps);
 
+// Returns `nodes` after sorting it topologically. Nodes which is
+// unreachable from `inputs` will be discarded.
+std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs);
+
 }  // namespace oniku
