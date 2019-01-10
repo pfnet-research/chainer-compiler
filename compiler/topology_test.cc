@@ -22,8 +22,10 @@ TEST(TopologyTest, ClassifyValues) {
     Node* op1 = temp1->producer();
     Value* temp2 = gb.Op(Node::kTanh, {temp0});
     Node* op2 = temp2->producer();
-    gb.Op(Node::kTanh, {temp1});
-    gb.Op(Node::kTanh, {temp2});
+    Value* temp3 = gb.Op(Node::kTanh, {temp1});
+    Node* op3 = temp3->producer();
+    Value* temp4 = gb.Op(Node::kTanh, {temp2}, output);
+    Node* op4 = temp4->producer();
 
     {
         std::vector<Value*> inputs, outputs, temps;
@@ -46,6 +48,20 @@ TEST(TopologyTest, ClassifyValues) {
         EXPECT_EQ(temp0, outputs[0]);
         EXPECT_EQ(temp1, outputs[1]);
         ASSERT_EQ(0, temps.size());
+    }
+
+    {
+        std::vector<Value*> inputs, outputs, temps;
+        ClassifyValues({op3, op4}, &inputs, &outputs, &temps);
+        ASSERT_EQ(2, inputs.size());
+        EXPECT_EQ(temp1, inputs[0]);
+        EXPECT_EQ(temp2, inputs[1]);
+        // `temp4` is `output`.
+        ASSERT_EQ(1, outputs.size());
+        EXPECT_EQ(temp4, outputs[0]);
+        // Unused value is considered to be a temporary value.
+        ASSERT_EQ(1, temps.size());
+        EXPECT_EQ(temp3, temps[0]);
     }
 }
 
