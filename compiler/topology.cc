@@ -67,15 +67,20 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
         input_counts[node] = node->GetNumActualInputs();
     }
 
+    std::vector<Node*> sorted_nodes;
+    auto add_sorted_node = [&sorted_nodes, &q](Node* node) {
+        sorted_nodes.push_back(node);
+        for (Value* n : node->outputs()) {
+            q.push(n);
+        }
+    };
+
     for (const auto& p : input_counts) {
         if (p.second == 0) {
-            for (Value* v : p.first->outputs()) {
-                q.push(v);
-            }
+            add_sorted_node(p.first);
         }
     }
 
-    std::vector<Node*> sorted_nodes;
     while (!q.empty()) {
         Value* v = q.front();
         q.pop();
@@ -83,10 +88,7 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
             auto found = input_counts.find(node);
             CHECK(found != input_counts.end());
             if (--found->second == 0) {
-                sorted_nodes.push_back(node);
-                for (Value* n : node->outputs()) {
-                    q.push(n);
-                }
+                add_sorted_node(node);
             }
         }
     }
