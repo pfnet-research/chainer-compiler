@@ -1,8 +1,13 @@
 #include "graph_builder.h"
 
+#include <compiler/onnx.h>
+#include <onnx/shape_inference/implementation.h>
+
 #include <common/strutil.h>
+#include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
+#include <compiler/topology.h>
 #include <compiler/type_inference.h>
 #include <compiler/value.h>
 
@@ -12,7 +17,48 @@ GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* tar
 }
 
 GraphBuilder::~GraphBuilder() {
-    for (Node* node : added_nodes_) InferDtypeAndShape(node);
+    if (!g_skip_inference) {
+        std::vector<Value*> inputs, outputs, temps;
+        ClassifyValues(added_nodes_, &inputs, &outputs, &temps);
+        std::vector<Node*> nodes = SortTopologically(added_nodes_, inputs, false /* is_full_graph */);
+        // TODO(hamaji): Introduce a better way to stringify multiple nodes.
+        if (added_nodes_.size() != nodes.size()) {
+            for (Node* node : added_nodes_) {
+                fprintf(stderr, "=== %s\n", node->DebugString().c_str());
+            }
+        }
+        CHECK_EQ(added_nodes_.size(), nodes.size());
+
+        onnx::GraphProto xgraph;
+        for (Node* node : nodes) {
+            node->ToONNX(xgraph.add_node());
+        }
+        for (Value* value : inputs) {
+            value->ToONNX(xgraph.add_input());
+        }
+        for (Value* value : outputs) {
+            value->ToONNX(xgraph.add_output());
+        }
+        for (Value* value : temps) {
+            value->ToONNX(xgraph.add_value_info());
+        }
+        std::unordered_map<std::string, int> opset_imports;
+        opset_imports[""] = 9;
+        onnx::shape_inference::InferShapes(&xgraph, opset_imports);
+
+        for (size_t i = 0; i < outputs.size(); ++i) {
+            if (xgraph.output(i).type().has_tensor_type())
+                outputs[i]->set_type(new Type(xgraph.output(i).type()));
+        }
+        for (size_t i = 0; i < temps.size(); ++i) {
+            if (xgraph.value_info(i).type().has_tensor_type())
+                temps[i]->set_type(new Type(xgraph.value_info(i).type()));
+        }
+    }
+
+    for (Node* node : added_nodes_) {
+        InferDtypeAndShape(node);
+    }
 }
 
 Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output) {

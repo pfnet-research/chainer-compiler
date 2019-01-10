@@ -56,7 +56,7 @@ void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs
     std::sort(temps->begin(), temps->end(), by_name);
 }
 
-std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs) {
+std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph) {
     // TODO(hamaji): Add a test for this function.
     std::queue<Value*> q;
     for (Value* value : inputs) {
@@ -86,7 +86,13 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
         q.pop();
         for (Node* node : v->users()) {
             auto found = input_counts.find(node);
-            CHECK(found != input_counts.end());
+            if (found == input_counts.end()) {
+                if (is_full_graph) {
+                    CHECK(false);
+                } else {
+                    continue;
+                }
+            }
             if (--found->second == 0) {
                 add_sorted_node(node);
             }

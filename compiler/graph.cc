@@ -205,7 +205,7 @@ void Graph::DetachNode(Node* node) {
 }
 
 std::vector<Node*> Graph::GetTopologicallySortedNodes() const {
-    return SortTopologically(GetLiveNodes(), input_values());
+    return SortTopologically(GetLiveNodes(), input_values(), true);
 }
 
 void Graph::SortNodesTopologically() {
