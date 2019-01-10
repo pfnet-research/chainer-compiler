@@ -87,6 +87,7 @@ add_executable(compiler_test
   model_test.cc
   scheduler_test.cc
   tensor_test.cc
+  topology_test.cc
   xcvm/emitter_test.cc
   )
 add_dependencies(compiler_test runtime_xcvm_pb_h)
