@@ -1,0 +1,19 @@
+#pragma once
+
+#include <vector>
+
+namespace oniku {
+
+class Node;
+class Value;
+
+// Classifies input and output values of all `nodes` to one of three
+// kinds, i.e., `inputs`, `outputs`, and `temps`.
+//
+// 1. A value is an input when no `nodes` output the value.
+// 2. A value is an output when there is a consumer of the value
+//    outside `nodes`.
+// 3. A value is temporary otherwise.
+void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs, std::vector<Value*>* temps);
+
+}  // namespace oniku

@@ -320,7 +320,7 @@ void Graph::AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& i
     nodes_buf_.emplace_back(std::move(node));
 }
 
-void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to) {
+void Graph::MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*>& temps, Graph* to) {
     for (Node* node : nodes) {
         auto found = std::find(nodes_.begin(), nodes_.end(), node);
         CHECK(found != nodes_.end()) << node->DebugString();

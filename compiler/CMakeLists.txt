@@ -62,6 +62,7 @@ add_library(oniku_compiler
   simplifier.cc
   subgraph_canonicalizer.cc
   tensor.cc
+  topology.cc
   tvm/compiler.cc
   type.cc
   type_inference.cc

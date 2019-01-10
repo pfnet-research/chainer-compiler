@@ -97,7 +97,7 @@ public:
         return &output_values_;
     }
 
-    void MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*> temps, Graph* to);
+    void MigrateNodes(const std::vector<Node*>& nodes, const std::vector<Value*>& temps, Graph* to);
 
     void InferShapes();
 

@@ -1,4 +1,4 @@
-#include "fusion.h"
+#include "compiler/fusion.h"
 
 #include <limits.h>
 
@@ -12,65 +12,22 @@
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
+#include <compiler/topology.h>
 #include <compiler/value.h>
 
 namespace oniku {
 
 namespace {
 
-void FindInOuts(const std::set<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs, std::set<Value*>* temps) {
-    std::set<Value*> input_set;
-    std::map<Value*, int> output_users;
-    for (Node* node : nodes) {
-        for (Value* value : node->inputs()) {
-            input_set.insert(value);
-            temps->insert(value);
-        }
-        for (Value* value : node->outputs()) {
-            size_t num_users = value->users().size();
-            if (value->IsOutput()) num_users = INT_MAX;
-            CHECK(output_users.emplace(value, num_users).second);
-            temps->insert(value);
-        }
-    }
-
-    for (Node* node : nodes) {
-        for (Value* value : node->inputs()) {
-            auto found = output_users.find(value);
-            if (found != output_users.end()) {
-                --found->second;
-            }
-        }
-        for (const auto& p : output_users) {
-            input_set.erase(p.first);
-        }
-    }
-
-    inputs->assign(input_set.begin(), input_set.end());
-    for (const auto& p : output_users) {
-        CHECK_LE(0, p.second);
-        if (p.second > 0) outputs->push_back(p.first);
-    }
-
-    for (Value* value : *inputs) temps->erase(value);
-    for (Value* value : *outputs) temps->erase(value);
-
-    auto by_name = [](const Value* a, const Value* b) { return a->name() < b->name(); };
-    std::sort(inputs->begin(), inputs->end(), by_name);
-    std::sort(outputs->begin(), outputs->end(), by_name);
-}
-
 void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id) {
     std::vector<Value*> inputs;
     std::vector<Value*> outputs;
-    std::set<Value*> temps;
-    FindInOuts(nodes, &inputs, &outputs, &temps);
+    std::vector<Value*> temps;
+    ClassifyValues(std::vector<Node*>(nodes.begin(), nodes.end()), &inputs, &outputs, &temps);
     CHECK(!inputs.empty());
     if (outputs.empty()) {
         return;
     }
-
-    std::set<Node*> node_set{nodes.begin(), nodes.end()};
 
     GraphBuilder gb(graph, StrCat("Fusion", fusion_group_id), outputs.front());
 
@@ -105,7 +62,7 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
         replace_value(value, new_value);
     }
     Node* fused = gb.MOp(Node::kOnikuxFusionGroup, inputs, outputs);
-    graph->MigrateNodes({nodes.begin(), nodes.end()}, {temps.begin(), temps.end()}, subgraph);
+    graph->MigrateNodes({nodes.begin(), nodes.end()}, temps, subgraph);
     fused->set_subgraph(subgraph);
     fused->set_fusion_type(fusion_type);
     fused->set_onikux_fusion_group(fusion_group_id);
