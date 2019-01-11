@@ -9,8 +9,6 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
     ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.h
-    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.h
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
