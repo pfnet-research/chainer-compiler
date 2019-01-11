@@ -536,6 +536,8 @@ bool ReplaceSelectItem(Graph* graph, Node* node) {
     Value* shape = gb.Op(Node::kShape, {x});
     Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
     Value* num_classes = gb.Op(Node::kGather, {shape, one});
+    num_classes = gb.Op(Node::kUnsqueeze, {num_classes});
+    num_classes->producer()->set_axes({0});
     Value* one_hot = gb.Op(Node::kOneHot, {node->inputs()[1], num_classes, values});
     Value* filtered = gb.Op(Node::kMul, {x, one_hot});
     gb.Op(Node::kReduceSum, {filtered}, node->outputs()[0])->producer()->set_axes({1})->set_keepdims(false);
