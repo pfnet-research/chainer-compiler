@@ -5,6 +5,7 @@
 
 #include <common/log.h>
 #include <compiler/graph.h>
+#include <compiler/log.h>
 
 namespace oniku {
 
@@ -17,7 +18,7 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
         const int64_t increase = value->GetNBytes();
         usage.num_values++;
         if (increase < 0) {
-            // std::cerr << "Unknown: " << value->name() << std::endl;
+            CLOG() << "Unknown shape: " << value->name() << " producer=" << (value->producer() ? Node::OpTypeToString(value->producer()->op_type()) : "") << std::endl;
             usage.num_unknowns++;
             return;
         }
