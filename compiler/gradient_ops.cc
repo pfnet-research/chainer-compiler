@@ -548,11 +548,9 @@ void OutputIterationCount(Graph* graph, Node* loop) {
         Graph* body = loop->body().get();
         GraphBuilder gb(body, "LoopGradIterCntBody", loop->outputs()[0]);
         Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
-        Value* input_cnt = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kInput);
-        Value* output_cnt = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kOutput);
+        Value* input_cnt = body->AddInputValue(gb.GenName(), Type(Dtype::kInt64, {}));
+        Value* output_cnt = body->AddOutputValue(gb.GenName(), Type(Dtype::kInt64, {}));
         gb.Op(Node::kAdd, {input_cnt, one}, {output_cnt});
-        body->mutable_input_values()->push_back(input_cnt);
-        body->mutable_output_values()->push_back(output_cnt);
     }
 }
 
