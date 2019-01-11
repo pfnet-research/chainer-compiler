@@ -257,11 +257,11 @@ def gen_gen_xcvm_ops_cc():
                 lines.append('auto r_ = ' + call + ';')
                 for i, (typ, output) in enumerate(outputs):
                     # TODO(hamaji): Revisit optional outputs.
-                    line = 'if (%s >= 0) ' % output
                     if typ == OPAQUE:
-                        line += 'st->SetOpaque(%s, std::get<%d>(r_));' % (output, i)
+                        lines.append('if (%s >= 0) st->SetOpaque(%s, std::get<%d>(r_));' % (output, output, i))
+                        lines.append('else delete std::get<%d>(r_);' % i)
                     else:
-                        line += 'st->SetArray(%s, std::get<%d>(r_));' % (output, i)
+                        lines.append('if (%s >= 0) st->SetArray(%s, std::get<%d>(r_));' % (output, output, i))
                     lines.append(line)
             else:
                 lines.append(call + ';')
