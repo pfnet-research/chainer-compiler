@@ -508,7 +508,7 @@ bool ReplaceConstantLike(Graph* graph, Node* node) {
 bool ReplaceShape(Graph* graph, Node* node) {
     Value* input = node->inputs()[0];
     const Type& typ = input->type();
-    if (typ.kind() != Type::Kind::kTensor || typ.NumElements() < 0 || typ.dims().empty()) {
+    if (typ.kind() != Type::Kind::kTensor || typ.NumElements() < 0) {
         return false;
     }
 
