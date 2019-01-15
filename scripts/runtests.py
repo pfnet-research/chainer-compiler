@@ -33,6 +33,8 @@ parser.add_argument('--skip_build', action='store_true',
                     help='Skip the build before running tests')
 parser.add_argument('--use_gpu', '-g', action='store_true',
                     help='Run heavy tests with GPU')
+parser.add_argument('--device', '-d', default=None,
+                    help='ChainerX device to be used')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
                     help='Run all tests with GPU')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
@@ -655,11 +657,15 @@ def main():
             test_case.args.append(test_case.backend)
         if args.verbose:
             test_case.args.append('--verbose')
+        device = args.device
         if test_case.want_gpu or args.use_gpu_all:
             if not args.use_gpu and not args.use_gpu_all:
                 continue
-            test_case.args.extend(['-d', 'cuda'])
+            if device is None:
+                device = 'cuda'
             is_gpu = True
+        if device is not None:
+            test_case.args.extend(['-d', device])
 
         if args.fuse:
             test_case.args.append('--fuse_operations')
