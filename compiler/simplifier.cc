@@ -505,6 +505,23 @@ bool ReplaceConstantLike(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceConstantOfShape(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyConstantOfShape", node->outputs()[0]);
+    Node* op = gb.Op(Node::kConstantFill, {node->inputs()[0]}, node->outputs()[0])->producer();
+    op->set_input_as_shape(true);
+    if (node->tensor_value()) {
+        Tensor* tensor = node->tensor_value().get();
+        CHECK_EQ(1, tensor->dims().size());
+        CHECK_EQ(1, tensor->dims()[0]);
+        op->set_dtype(tensor->dtype());
+        op->set_value(tensor->Get<float>(0));
+    } else {
+        op->set_dtype(Dtype::kFloat32);
+        op->set_value(0.0);
+    }
+    return true;
+}
+
 bool ReplaceShape(Graph* graph, Node* node) {
     Value* input = node->inputs()[0];
     const Type& typ = input->type();
@@ -590,6 +607,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
     CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
+    CHECK(simplifiers.emplace(Node::kConstantOfShape, ReplaceConstantOfShape).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);

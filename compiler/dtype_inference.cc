@@ -164,6 +164,11 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kConstantOfShape: {
+            set(0, node->tensor_value() ? node->tensor_value()->dtype(): default_float);
+            break;
+        }
+
         case Node::kOneHot: {
             set(0, in2);
             break;
