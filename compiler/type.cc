@@ -8,7 +8,8 @@ Type::Type(Kind kind) : kind_(kind) {
     has_known_shape_ = false;
 }
 
-Type::Type(const onnx::TypeProto& xtype) {
+Type::Type(const onnx::TypeProto& xtype)
+    : denotation_(xtype.denotation()) {
     if (xtype.has_sequence_type()) {
         kind_ = Kind::kSequence;
         has_known_shape_ = false;
@@ -31,8 +32,8 @@ Type::Type(const onnx::TypeProto& xtype) {
     has_known_shape_ = xtype.tensor_type().has_shape();
     for (const auto& dim : xtype.tensor_type().shape().dim()) {
         if (dim.has_denotation()) {
-            denotations_.resize(dims_.size());
-            denotations_.push_back(dim.denotation());
+            dim_denotations_.resize(dims_.size());
+            dim_denotations_.push_back(dim.denotation());
         }
         if (dim.has_dim_value()) {
             dims_.push_back(dim.dim_value());
@@ -60,12 +61,17 @@ Type::Type(const Type& type)
       dtype_(type.dtype_),
       dims_(type.dims_),
       dim_params_(type.dim_params_),
-      denotations_(type.denotations_),
+      dim_denotations_(type.dim_denotations_),
       sequence_(type.sequence_.get() ? new Type(*type.sequence_) : nullptr),
+      denotation_(type.denotation()),
       has_known_shape_(type.has_known_shape_) {
 }
 
 void Type::ToONNX(onnx::TypeProto* xtype) const {
+    if (!denotation_.empty()) {
+        xtype->set_denotation(denotation_);
+    }
+
     if (kind_ == Kind::kSequence) {
         if (sequence_.get()) {
             sequence_->ToONNX(xtype->mutable_sequence_type()->mutable_elem_type());
@@ -93,8 +99,8 @@ void Type::ToONNX(onnx::TypeProto* xtype) const {
         } else if (i < dim_params_.size() && !dim_params_[i].empty()) {
             dim->set_dim_param(dim_params_[i]);
         }
-        if (i < denotations_.size() && !denotations_[i].empty()) {
-            dim->set_denotation(denotations_[i]);
+        if (i < dim_denotations_.size() && !dim_denotations_[i].empty()) {
+            dim->set_denotation(dim_denotations_[i]);
         }
     }
 }

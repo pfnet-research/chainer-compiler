@@ -42,6 +42,13 @@ public:
         return dims_;
     }
 
+    const std::string& denotation() const {
+        return denotation_;
+    }
+    void set_denotation(const std::string& denotation) {
+        denotation_ = denotation;
+    }
+
     int64_t NumElements() const;
 
     int64_t GetNBytes() const;
@@ -51,8 +58,9 @@ private:
     Dtype dtype_{Dtype::kUnknown};
     std::vector<int64_t> dims_;
     std::vector<std::string> dim_params_;
-    std::vector<std::string> denotations_;
+    std::vector<std::string> dim_denotations_;
     std::unique_ptr<Type> sequence_;
+    std::string denotation_;
     bool has_known_shape_{true};
 };
 
