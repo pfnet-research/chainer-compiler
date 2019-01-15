@@ -135,7 +135,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_constant'),
     TestCase(NODE_TEST, 'test_constantofshape_float_ones'),
-    TestCase(NODE_TEST, 'test_constantofshape_int_zeros'),
+    # TODO(tanakad): test case sets 1 to value attribute, onnx/onnx Issue#1738
+    # TestCase(NODE_TEST, 'test_constantofshape_int_zeros'),
     TestCase(NODE_TEST, 'test_onehot_with_axis'),
     TestCase(NODE_TEST, 'test_onehot_without_axis'),
 
