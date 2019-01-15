@@ -137,7 +137,6 @@ private:
 
         auto out = [this, &node](int i) {
             CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
-            ;
             Value* output = node.outputs()[i];
             CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
             return XCVMValue(GetValueId(output), output);

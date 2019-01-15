@@ -353,7 +353,6 @@ bool ReplaceReduceLogSumExp(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyReduceLogSumExp", node->outputs()[0]);
     Value* v = gb.Op(Node::kExp, node->inputs());
     gb.Op(Node::kReduceLogSum, {v}, node->outputs()[0])->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
-    ;
     return true;
 }
 
