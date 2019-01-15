@@ -513,8 +513,33 @@ bool ReplaceConstantOfShape(Graph* graph, Node* node) {
         Tensor* tensor = node->tensor_value().get();
         CHECK_EQ(1, tensor->dims().size());
         CHECK_EQ(1, tensor->dims()[0]);
-        op->set_dtype(tensor->dtype());
-        op->set_value(tensor->Get<float>(0));
+        Dtype dtype = tensor->dtype();
+        op->set_dtype(dtype);
+        switch (dtype) {
+            case Dtype::kInt8:
+                op->set_value(tensor->Get<int8_t>(0));
+                break;
+            case Dtype::kInt16:
+                op->set_value(tensor->Get<int16_t>(0));
+                break;
+            case Dtype::kInt32:
+                op->set_value(tensor->Get<int32_t>(0));
+                break;
+            case Dtype::kInt64:
+                op->set_value(tensor->Get<int64_t>(0));
+                break;
+            case Dtype::kUInt8:
+                op->set_value(tensor->Get<uint8_t>(0));
+                break;
+            case Dtype::kFloat32:
+                op->set_value(tensor->Get<float>(0));
+                break;
+            case Dtype::kFloat64:
+                op->set_value(tensor->Get<double>(0));
+                break;
+            default:
+                CHECK(false) << "Unknown type: " << dtype;
+        }
     } else {
         op->set_dtype(Dtype::kFloat32);
         op->set_value(0.0);
