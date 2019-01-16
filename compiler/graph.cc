@@ -367,9 +367,9 @@ void Graph::DumpSubGraphs(int depth) const {
 void Graph::DumpONNXOnFailure(const std::string& filename) const {
     onnx::ModelProto xmodel;
     xmodel.set_ir_version(3);
-    xmodel.set_producer_name("oniku failed :(");
+    xmodel.set_producer_name("chainer compiler failed :(");
     ToONNX(xmodel.mutable_graph());
-    const std::string fn = filename.empty() ? "/tmp/oniku_failure.onnx" : filename;
+    const std::string fn = filename.empty() ? "/tmp/chainer_compiler_failure.onnx" : filename;
     std::ofstream ofs(fn);
     xmodel.SerializeToOstream(&ofs);
     std::cerr << "Failed graph is stored in " << fn << std::endl;
