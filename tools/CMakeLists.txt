@@ -9,19 +9,19 @@ include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/
 
 include_directories(${CUDA_INCLUDE_DIRS})
 
-add_library(oniku_tools
+add_library(chainer_compiler_tools
   compiler_flags.cc
   util.cc
   )
-add_dependencies(oniku_tools runtime_xcvm_pb_h)
+add_dependencies(chainer_compiler_tools runtime_xcvm_pb_h)
 
 add_executable(dump dump.cc)
 target_link_libraries(dump
   onnx_proto
-  oniku_tools
-  oniku_compiler
-  oniku_runtime
-  oniku_common
+  chainer_compiler_tools
+  chainer_compiler_compiler
+  chainer_compiler_runtime
+  chainer_compiler_common
   chainerx
   protobuf
   )
@@ -35,10 +35,10 @@ add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
 add_executable(run_onnx run_onnx_main.cc)
 target_link_libraries(run_onnx
   run_onnx_lib
-  oniku_tools
-  oniku_compiler
-  oniku_runtime
-  oniku_common
+  chainer_compiler_tools
+  chainer_compiler_compiler
+  chainer_compiler_runtime
+  chainer_compiler_common
   chainerx
   onnx
   onnx_proto
@@ -58,10 +58,10 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
   add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
   target_link_libraries(train_imagenet
     train_imagenet_lib
-    oniku_tools
-    oniku_compiler
-    oniku_runtime
-    oniku_common
+    chainer_compiler_tools
+    chainer_compiler_compiler
+    chainer_compiler_runtime
+    chainer_compiler_common
     feeder
     chainerx
     onnx
@@ -83,10 +83,10 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   target_link_libraries(run_onnx_core.so
     PRIVATE
     run_onnx_lib
-    oniku_tools
-    oniku_compiler
-    oniku_runtime
-    oniku_common
+    chainer_compiler_tools
+    chainer_compiler_compiler
+    chainer_compiler_runtime
+    chainer_compiler_common
     chainerx
     onnx
     onnx_proto
@@ -106,10 +106,10 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     target_link_libraries(train_imagenet_core.so
       PRIVATE
       train_imagenet_lib
-      oniku_tools
-      oniku_compiler
-      oniku_runtime
-      oniku_common
+      chainer_compiler_tools
+      chainer_compiler_compiler
+      chainer_compiler_runtime
+      chainer_compiler_common
       feeder
       chainerx
       onnx

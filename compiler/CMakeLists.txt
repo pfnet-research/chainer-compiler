@@ -36,7 +36,7 @@ include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/compiler`
 include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 
-add_library(oniku_compiler
+add_library(chainer_compiler_compiler
   code_emitter.cc
   constant_propagation.cc
   config.cc
@@ -73,7 +73,7 @@ add_library(oniku_compiler
   xcvm/xcvm_value.cc
   )
 add_dependencies(
-  oniku_compiler
+  chainer_compiler_compiler
   runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h onnx_files
   )
 
@@ -92,9 +92,9 @@ add_executable(compiler_test
   )
 add_dependencies(compiler_test runtime_xcvm_pb_h)
 target_link_libraries(compiler_test
-  oniku_compiler
-  oniku_runtime
-  oniku_common
+  chainer_compiler_compiler
+  chainer_compiler_runtime
+  chainer_compiler_common
   chainerx
   onnx
   onnx_proto

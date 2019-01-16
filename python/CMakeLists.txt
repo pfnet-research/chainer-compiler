@@ -3,13 +3,13 @@ include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR})
 
-add_library(oniku_core.so MODULE oniku.cc)
-target_link_libraries(oniku_core.so
+add_library(chainer_compiler_core.so MODULE oniku.cc)
+target_link_libraries(chainer_compiler_core.so
   PRIVATE
-  oniku_tools
-  oniku_compiler
-  oniku_runtime
-  oniku_common
+  chainer_compiler_tools
+  chainer_compiler_compiler
+  chainer_compiler_runtime
+  chainer_compiler_common
   chainerx
   onnx
   onnx_proto
@@ -18,7 +18,7 @@ target_link_libraries(oniku_core.so
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
-set_target_properties(oniku_core.so
+set_target_properties(chainer_compiler_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_SUFFIX}")

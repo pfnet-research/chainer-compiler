@@ -26,7 +26,7 @@ include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
-add_library(oniku_runtime
+add_library(chainer_compiler_runtime
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
   backward_context.cc
@@ -58,7 +58,7 @@ add_library(oniku_runtime
   xcvm_var.cc
   )
 add_dependencies(
-  oniku_runtime
+  chainer_compiler_runtime
   runtime_xcvm_pb_h onnx_files
   )
 
@@ -67,9 +67,9 @@ add_executable(runtime_test
   xcvm_test.cc
   )
 target_link_libraries(runtime_test
-  oniku_runtime
-  oniku_compiler
-  oniku_common
+  chainer_compiler_runtime
+  chainer_compiler_compiler
+  chainer_compiler_common
   chainerx
   onnx_proto
   protobuf
