@@ -7,16 +7,16 @@ import chainer.links as L
 import numpy as np
 import onnx
 
-import oniku_script
+import onnx_script
 import test_case
 
 import sentiment
 
 
-_extract_value_info = oniku_script._extract_value_info
-make_constant_node = oniku_script.make_constant_node
-gen_test = oniku_script.gen_test
-Seq = oniku_script.Seq
+_extract_value_info = onnx_script._extract_value_info
+make_constant_node = onnx_script.make_constant_node
+gen_test = onnx_script.gen_test
+Seq = onnx_script.Seq
 
 
 def V(a):
@@ -52,7 +52,7 @@ def expect(node, inputs, outputs, name):
 
 
 def gen_negative_reshape_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     v = np.array([2, 3, 4])
     v_v = gb.const(v)
     shape_v = gb.const([-1, 3])
@@ -62,7 +62,7 @@ def gen_negative_reshape_test(test_name):
 
 
 def gen_inf_nan_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     one_v = gb.const(1.0)
     none_v = gb.const(-1.0)
     zero_v = gb.const(0.0)
@@ -88,7 +88,7 @@ def gen_select_item_test(test_name):
 
 
 def gen_scan_sum_test(test_name):
-    # TODO(hamaji): Rewrite with oniku_script.
+    # TODO(hamaji): Rewrite with onnx_script.
     inputs1 = np.array([[4, 5, 6], [-4, -6, -5]])
     inputs2 = np.array([[1, 2, 3], [-3, -2, -1]])
     state = np.array(0)
@@ -138,17 +138,17 @@ def gen_scan_sum_test(test_name):
 
 def gen_if_test(cond):
     def fn(test_name):
-        tb = oniku_script.GraphBuilder(test_name + '_true')
+        tb = onnx_script.GraphBuilder(test_name + '_true')
         for i in [42, 99]:
             true_value_v = tb.const(i)
             tb.output(true_value_v, i)
 
-        fb = oniku_script.GraphBuilder(test_name + '_false')
+        fb = onnx_script.GraphBuilder(test_name + '_false')
         for i in [-42, -99]:
             false_value_v = fb.const(i)
             fb.output(false_value_v, i)
 
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         cond_v = gb.input('cond', cond)
         out1_v, out2_v = gb.If([cond_v],
                                then_branch=tb.make_graph(),
@@ -163,15 +163,15 @@ def gen_if_test(cond):
 
 def gen_if_with_input_test(cond):
     def fn(test_name):
-        tb = oniku_script.GraphBuilder(test_name + '_true')
+        tb = onnx_script.GraphBuilder(test_name + '_true')
         input_v = tb.input('input', 42)
         tb.output(tb.Identity([input_v]), 42)
 
-        fb = oniku_script.GraphBuilder(test_name + '_false')
+        fb = onnx_script.GraphBuilder(test_name + '_false')
         input_v = fb.input('input', 42)
         fb.output(fb.Neg([input_v]), 42)
 
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         cond_v = gb.input('cond', cond)
         in_v = gb.input('in', 42)
         out_v = gb.If([cond_v, in_v],
@@ -185,15 +185,15 @@ def gen_if_with_input_test(cond):
 
 def gen_if_with_external_test(cond):
     def fn(test_name):
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         in0_v = gb.input('in0', 42)
         in1_v = gb.input('in1', 99)
         in2_v = gb.input('in2', 100)
 
-        tb = oniku_script.GraphBuilder(test_name + '_true')
+        tb = onnx_script.GraphBuilder(test_name + '_true')
         tb.output(tb.Add([in0_v, in1_v]), 42)
 
-        fb = oniku_script.GraphBuilder(test_name + '_false')
+        fb = onnx_script.GraphBuilder(test_name + '_false')
         fb.output(fb.Sub([in1_v, in2_v]), 42)
 
         cond_v = gb.input('cond', cond)
@@ -210,7 +210,7 @@ def gen_loop_test(max_trip_count=7,
                   cond_trip_count=6,
                   terminal_condition=True,
                   has_scan_outputs=False):
-    # TODO(hamaji): Rewrite with oniku_script.
+    # TODO(hamaji): Rewrite with onnx_script.
     def fn(test_name):
         input_state = np.array(42)
         state = input_state
@@ -300,13 +300,13 @@ def gen_loop_test(max_trip_count=7,
 
 def gen_loop_use_enclosing_test():
     def fn(test_name):
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         init = np.array(10, np.float32)
         init_v = gb.param('init', init)
         external = np.array(42, np.float32)
         external_v = gb.param('external', external)
 
-        bb = oniku_script.GraphBuilder(test_name + '_body')
+        bb = onnx_script.GraphBuilder(test_name + '_body')
         iter_v = bb.input('iter', np.array(0))
         cond_v = bb.input('cond', np.array(True))
 
@@ -330,7 +330,7 @@ def gen_loop_use_enclosing_test():
 
 
 def gen_backprop_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     i = np.array(42, np.float32)
     j = np.array(99, np.float32)
 
@@ -346,7 +346,7 @@ def gen_backprop_test(test_name):
 
 
 def gen_concat_backprop_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     i = np.array([42], np.float32)
     j = np.array([99], np.float32)
 
@@ -373,7 +373,7 @@ def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
     expected = np.array(i + j + k, np.float32)
 
     def fn(test_name):
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         i = np.array(ii, np.float32)
         j = np.array(ji, np.float32)
         k = np.array(ki, np.float32)
@@ -381,7 +381,7 @@ def gen_loop_backprop_test(ii, ji, ki, gi, gj, gk):
         j_v = gb.param('j', j)
         k_v = gb.param('k', k)
 
-        bb = oniku_script.GraphBuilder(test_name + '_body')
+        bb = onnx_script.GraphBuilder(test_name + '_body')
         iter_v = bb.input('iter', np.array(0))
         cond_v = bb.input('cond', np.array(True))
         bi_v = bb.input('bi', i)
@@ -429,7 +429,7 @@ def gen_loop_backprop_need_stack_test():
     expected = i + j + k
 
     def fn(test_name):
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         i = np.array(ii, np.float32)
         j = np.array(ji, np.float32)
         k = np.array(ki, np.float32)
@@ -437,7 +437,7 @@ def gen_loop_backprop_need_stack_test():
         j_v = gb.param('j', j)
         k_v = gb.param('k', k)
 
-        bb = oniku_script.GraphBuilder(test_name + '_body')
+        bb = onnx_script.GraphBuilder(test_name + '_body')
         iter_v = bb.input('iter', np.array(0))
         cond_v = bb.input('cond', np.array(True))
         bi_v = bb.input('bi', i)
@@ -471,7 +471,7 @@ def gen_loop_backprop_need_stack_test():
 
 
 def gen_sequence_test(test_name):
-    # TODO(hamaji): Rewrite with oniku_script.
+    # TODO(hamaji): Rewrite with onnx_script.
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
     nodes = []
     nodes.append(onnx.helper.make_node(
@@ -534,7 +534,7 @@ def gen_sequence_test(test_name):
 
 def gen_sequence_pad_test(test_name):
     # TODO(hamaji): Rewrite with GraphBuilder's input/output.
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     inputs = [np.array(a) for a in [[1, 2, 3], [4], [5, 6]]]
     gb.ChainerSequenceCreate(inputs=[], outputs=['seq0'])
 
@@ -582,7 +582,7 @@ def gen_sequence_pad_test(test_name):
 
 
 def gen_sequence_split_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     inputs = np.array([[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]])
     lengths = np.array([3, 1, 2])
 
@@ -615,7 +615,7 @@ def gen_sequence_split_test(test_name):
 
 
 def gen_sequence_io_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     input = aranges(3, 2, 4)
     input_seq = [[1, 2, 3, -42], [4, -42, -42, -42], [5, 6, -42, -42]]
 
@@ -634,7 +634,7 @@ def gen_sequence_io_test(test_name):
 
 
 def gen_sequence_range_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     num_inputs = 0
     for args in [(4,), (-4,), (3, 8), (5, 2),
                  (1, 16, 3), (1, 17, 3), (5, -2, -1), (9, 15, -1)]:
@@ -652,7 +652,7 @@ def gen_sequence_range_test(test_name):
 
 
 def gen_sequence_pop_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     inputs = np.array([10, 3, 4, 7, 2, 5])
 
     inputs_v = gb.input('input', inputs)
@@ -680,7 +680,7 @@ def gen_sequence_pop_test(test_name):
 
 
 def gen_sequence_constants_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     inputs = [4, 2, 3]
     seq_v = gb.const_seq(inputs)
     gb.output(seq_v, Seq(inputs))
@@ -688,7 +688,7 @@ def gen_sequence_constants_test(test_name):
 
 
 def gen_generic_len_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
 
     input_v = gb.input('input', input)
@@ -706,7 +706,7 @@ def gen_generic_len_test(test_name):
 
 
 def gen_generic_getitem_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 5, 3)
     reduced = np.sum(input, 0)
 
@@ -724,7 +724,7 @@ def gen_generic_getitem_test(test_name):
 
 
 def gen_generic_getslice_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 5, 3)
     reduced = np.sum(input, 0)
 
@@ -769,7 +769,7 @@ def gen_generic_getslice_test(test_name):
 
 
 def gen_generic_add_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     input1 = aranges(3, 4)
     input2 = aranges(3, 1) * 2
     seq1 = [np.squeeze(i, 0) for i in np.split(input1, 3)]
@@ -790,7 +790,7 @@ def gen_generic_add_test(test_name):
 
 # TODO(hamaji): Test actual output.
 def gen_print_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     in1_v = gb.const(21)
     in2_v = gb.const(2)
     result_v = gb.Mul([in1_v, in2_v])
@@ -800,7 +800,7 @@ def gen_print_test(test_name):
 
 
 def gen_hello_world_test(test_name):
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     hello = 'Hello, world!\n'
     out_v = gb.ChainerSequenceCreate([])
     for ch in hello:
@@ -813,7 +813,7 @@ def gen_hello_world_test(test_name):
 def gen_type_coersion_test(test_name):
     # Probably, ONNX expects no type coersion happens and this test is
     # not valid ONNX, but we relax the restriction.
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
     iv = 42
     fv = 2.3
     int_v = gb.const(iv)
@@ -834,7 +834,7 @@ def gen_type_coersion_test(test_name):
 def gen_incomplete_transpose_test(test_name):
     # ONNX does not allow transposition with incomplete permutations,
     # but this is necessary to realize things like np.swapaxes.
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
 
     input = aranges(3, 2, 4, 5, 6)
     input_v = gb.input('input', input)
@@ -846,7 +846,7 @@ def gen_incomplete_transpose_test(test_name):
 
 def gen_maxpool_cover_all_test(test_name):
     # A custom attribute for Chainer/ChainerX's `cover_all` parameter.
-    gb = oniku_script.GraphBuilder(test_name)
+    gb = onnx_script.GraphBuilder(test_name)
 
     input = np.random.random((1, 3, 7, 7))
     input_v = gb.input('input', input)
@@ -863,7 +863,7 @@ def gen_maxpool_cover_all_test(test_name):
 
 def gen_batchnorm_training_test(save_mean_var=False):
     def fn(test_name):
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
 
         batch_size = 2
         chan = 3

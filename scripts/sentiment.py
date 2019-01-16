@@ -4,7 +4,7 @@ import chainer
 import numpy as np
 import onnx
 
-import oniku_script
+import onnx_script
 
 F = chainer.functions
 
@@ -28,7 +28,7 @@ def gen_rnn_sentiment_test(cell_type,
                            output_loss_only=False,
                            param_initializer=np.random.random):
     def fn(test_name):
-        gb = oniku_script.GraphBuilder(test_name)
+        gb = onnx_script.GraphBuilder(test_name)
         if cell_type == 'LSTM':
             wr = 8
             perm = [0, 2, 1, 3, 4, 6, 5, 7]
