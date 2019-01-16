@@ -98,7 +98,7 @@ public:
 
     void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
         *func_name = StrCat("tvm_op_", id);
-        const std::string& dso_name = StrCat("/tmp/liboniku_", *func_name);
+        const std::string& dso_name = StrCat("/tmp/libchainer_compiler_op_", *func_name);
         *filename = dso_name + ".so";
         if (g_reuse_tvm_code && Exists(*filename)) {
             CLOG() << "Reuse existing " << *filename << std::endl;
@@ -138,11 +138,11 @@ public:
             } else if (node->op_type() == Node::kConv) {
                 tvm::Tensor out{BuildConv(*node, input_tensors)};
                 output_tensors.push_back(out);
-                scheduler_name = "oniku.tvm.schedule_conv2d";
+                scheduler_name = "chainer_compiler.tvm.schedule_conv2d";
             } else if (node->op_type() == Node::kConvTranspose) {
                 tvm::Tensor out{BuildConvTranspose(*node, input_tensors)};
                 output_tensors.push_back(out);
-                scheduler_name = "oniku.tvm.schedule_conv2d_transpose";
+                scheduler_name = "chainer_compiler.tvm.schedule_conv2d_transpose";
             } else {
                 CHECK(false) << "Not supported: " << node->op_type();
             }
@@ -291,7 +291,7 @@ private:
         }
 
         tvm::Tensor out;
-        if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d")) {
+        if (const tvm::PackedFunc* conv2d_fn = Py("chainer_compiler.tvm.conv2d")) {
             out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {
@@ -328,7 +328,7 @@ private:
         }
 
         tvm::Tensor out;
-        if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d_transpose")) {
+        if (const tvm::PackedFunc* conv2d_fn = Py("chainer_compiler.tvm.conv2d_transpose")) {
             out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {

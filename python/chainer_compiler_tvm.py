@@ -16,7 +16,7 @@ def autotvm_context(target, autotvm_log):
                 yield
 
 
-@tvm.api.register_func('oniku.tvm.conv2d')
+@tvm.api.register_func('chainer_compiler.tvm.conv2d')
 def _conv2d(target, autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w):
     with autotvm_context(target, autotvm_log):
         return topi.nn.conv2d(inputs[0],
@@ -27,7 +27,7 @@ def _conv2d(target, autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w):
                               out_dtype=inputs[0].dtype)
 
 
-@tvm.api.register_func('oniku.tvm.conv2d_transpose')
+@tvm.api.register_func('chainer_compiler.tvm.conv2d_transpose')
 def _conv2d_transpose(target, autotvm_log,
                       inputs, pad_h, pad_w, stride_h, stride_w):
     with autotvm_context(target, autotvm_log):
@@ -38,14 +38,14 @@ def _conv2d_transpose(target, autotvm_log,
                                              out_dtype=inputs[0].dtype)
 
 
-@tvm.api.register_func('oniku.tvm.schedule_conv2d')
+@tvm.api.register_func('chainer_compiler.tvm.schedule_conv2d')
 def _schedule_conv2d(target, autotvm_log, outputs):
     with autotvm_context(target, autotvm_log):
         schedule = topi.generic.schedule_conv2d_nchw(outputs)
         return schedule
 
 
-@tvm.api.register_func('oniku.tvm.schedule_conv2d_transpose')
+@tvm.api.register_func('chainer_compiler.tvm.schedule_conv2d_transpose')
 def _schedule_conv2d_transpose(target, autotvm_log, outputs):
     with autotvm_context(target, autotvm_log):
         schedule = topi.generic.schedule_conv2d_transpose_nchw(outputs)
