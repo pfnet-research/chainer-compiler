@@ -270,7 +270,7 @@ std::vector<const Node*> Graph::GetComputationSequence() const {
 std::string Graph::GenSym(const std::string& base) {
     std::ostringstream oss;
     if (!base.empty()) oss << base << "_";
-    oss << "oniku_gensym";
+    oss << "gensym";
     return MakeUnique(oss.str());
 }
 
