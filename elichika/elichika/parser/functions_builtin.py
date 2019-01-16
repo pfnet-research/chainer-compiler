@@ -16,7 +16,7 @@ class ReluFunction(functions.FunctionBase):
         funcArgs = self.parse_args(args)
         node = nodes.NodeCall(self, [v.value for v in funcArgs], line)
         graph.add_node(node)
-        value = functions.generateValueWithSameType(funcArgs[0].value)
+        value = functions.generate_value_with_same_type(funcArgs[0].value)
         node.set_outputs([value])
         return value
 
@@ -30,7 +30,7 @@ class SoftmaxFunction(functions.FunctionBase):
         funcArgs = self.parse_args(args)
         node = nodes.NodeCall(self, [v.value for v in funcArgs], line)
         graph.add_node(node)
-        value = functions.generateValueWithSameType(funcArgs[0].value)
+        value = functions.generate_value_with_same_type(funcArgs[0].value)
         node.set_outputs([value])
         return value
 

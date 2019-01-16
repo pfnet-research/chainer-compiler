@@ -311,7 +311,11 @@ class ONNXGraph:
             arr = np.array(value.internal_value)
             return self.new_tensor_with_np(arr, name)
 
-        print('Warning : Uknown type')
+        if isinstance(value, values.NoneValue):
+            arr = np.array(False)
+            return self.new_tensor_with_np(arr, name)
+
+        print('Warning : Found uknown type in new_tensor_with_value {}'.format(value))
         return self.new_empty_tensor_with_value(value)        
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):

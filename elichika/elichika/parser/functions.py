@@ -31,7 +31,7 @@ def generate_tensor_value_with_undefined_shape_size(value : 'values.TensorValue'
     return ret
     
 
-def generateValueWithSameType(value : 'values.Value'):
+def generate_value_with_same_type(value : 'values.Value'):
     if isinstance(value, values.TensorValue):
         ret = values.TensorValue()
         ret.shape = value.shape
@@ -51,6 +51,10 @@ def generateValueWithSameType(value : 'values.Value'):
 
     if isinstance(value, values.ListValue):
         ret = values.ListValue(None)
+        return ret
+
+    if isinstance(value, values.NoneValue):
+        ret = values.NoneValue()
         return ret
 
     return None

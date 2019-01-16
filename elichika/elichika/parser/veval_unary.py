@@ -5,10 +5,10 @@ from elichika.parser import functions
 def veval(op : 'nodes.UnaryOpType', value : 'values.Value'):
     
     if isinstance(value, values.NumberValue):
-        return functions.generateValueWithSameType(value)
+        return functions.generate_value_with_same_type(value)
 
     if isinstance(value, values.BoolValue):
-        return functions.generateValueWithSameType(value)
+        return functions.generate_value_with_same_type(value)
 
     if op == nodes.UnaryOpType.Not and isinstance(value, values.ListValue):
         return values.BoolValue(None)

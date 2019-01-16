@@ -280,7 +280,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
                 # TODO : it should be better
                 true_value = false_output_attributes_2_values[false_attribute]
 
-        if false_attribute in false_output_attributes:
+        if false_attribute is not None:
             false_value = false_output_attributes_2_values[false_attribute]
         else:
             if true_attribute in input_attributes:
@@ -294,22 +294,22 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
         if true_attribute is not None and false_attribute is not None and true_attribute != false_attribute:
             # dynamic
-            value = functions.generateValueWithSameType(true_value)
+            value = functions.generate_value_with_same_type(true_value)
             output_values.append(value)
             parent.get_attribute(name).revise(value)
 
         elif true_attribute is not None and false_attribute is not None:
             # change both
-            value = functions.generateValueWithSameType(true_value)
+            value = functions.generate_value_with_same_type(true_value)
             output_values.append(value)
             parent.get_attribute(name).revise(value)
 
         elif true_attribute in input_attributes:
-            value = functions.generateValueWithSameType(true_value)
+            value = functions.generate_value_with_same_type(true_value)
             output_values.append(value)
             parent.get_attribute(name).revise(value)
         else:
-            value = functions.generateValueWithSameType(false_value)
+            value = functions.generate_value_with_same_type(false_value)
             output_values.append(value)
             parent.get_attribute(name).revise(value)
 
@@ -335,7 +335,7 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
     target_value = target.get_value()
     if isinstance(target_value, values.NumberValue):
         node_aug_assign = nodes.NodeValueAugAssign(target_value, value.get_value(), binop, astc.lineno)
-        new_value = functions.generateValueWithSameType(target_value)
+        new_value = functions.generate_value_with_same_type(target_value)
         target.revise(new_value)
         node_aug_assign.set_outputs([new_value])
         graph.add_node(node_aug_assign)
@@ -560,6 +560,8 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     if astc.nast.value == True:
         return values.BoolValue(True)
     if astc.nast.value == False:
+        return values.BoolValue(False)
+    if astc.nast.value is None:
         return values.BoolValue(False)
     return None
 
