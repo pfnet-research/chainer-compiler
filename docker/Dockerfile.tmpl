@@ -54,10 +54,10 @@ RUN mkdir -p /usr/tvm/3rdparty/dmlc-core/build && \
     cd /usr/tvm/3rdparty/dmlc-core/build && \
     cmake .. && make && make install
 
-RUN git clone https://%GITHUB_AUTH_TOKEN%:x-oauth-basic@github.com/pfnet/oniku.git
-RUN cd /oniku && git submodule update --init
-RUN mkdir -p oniku/build && \
-    cd oniku/build && \
+RUN git clone https://%GITHUB_AUTH_TOKEN%:x-oauth-basic@github.com/pfnet-research/chainer-compiler.git
+RUN cd /chainer-compiler && git submodule update --init
+RUN mkdir -p chainer-compiler/build && \
+    cd chainer-compiler/build && \
     cmake .. \
     -G Ninja \
     -DCHAINER_COMPILER_ENABLE_NVTX=ON \
