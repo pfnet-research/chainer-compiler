@@ -2,7 +2,6 @@
 
 import chainer
 import numpy as np
-import onnx
 
 import onnx_script
 

@@ -3,7 +3,6 @@
 import argparse
 import json
 import os
-import sys
 
 import topi
 import tvm
@@ -180,7 +179,7 @@ def tune_tasks(tasks,
         os.remove(tmp_log_file)
 
     for i, tsk in enumerate(reversed(tasks)):
-        prefix = "[Task %2d/%2d] " %(i+1, len(tasks))
+        prefix = "[Task %2d/%2d] " % (i+1, len(tasks))
 
         # create tuner
         if tuner == 'xgb' or tuner == 'xgb-rank':

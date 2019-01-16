@@ -186,7 +186,8 @@ class GraphBuilder(object):
         initializer = []
         for name, value in self.params:
             typ = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
-            tensor = onnx.helper.make_tensor(name, typ, value.shape, value.flat)
+            tensor = onnx.helper.make_tensor(
+                name, typ, value.shape, value.flat)
             initializer.append(tensor)
         graph = onnx.helper.make_graph(self.nodes, self.graph_name,
                                        inputs=inputs_vi, outputs=outputs_vi,

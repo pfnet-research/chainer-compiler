@@ -3,8 +3,6 @@
 """An MNIST trainer which is exportable by ONNX-chainer."""
 
 import argparse
-import os
-import sys
 
 import numpy as np
 
@@ -16,7 +14,6 @@ from chainer import reporter
 from chainer import training
 from chainer.functions.evaluation import accuracy
 from chainer.training import extensions
-import onnx_chainer
 
 import onnx_chainer_util
 
@@ -122,7 +119,7 @@ def main():
 
 def create_trainer(args, model):
     # Setup an optimizer
-    #optimizer = chainer.optimizers.Adam()
+    # optimizer = chainer.optimizers.Adam()
     optimizer = chainer.optimizers.SGD()
     optimizer.setup(model)
 
