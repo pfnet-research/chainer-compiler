@@ -5,9 +5,9 @@
 import os
 import sys
 
-oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(oniku_root, 'python'))
-sys.path.append(os.path.join(oniku_root, 'build/tools'))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'python'))
+sys.path.append(os.path.join(project_root, 'build/tools'))
 
 import oniku_tvm
 

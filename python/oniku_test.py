@@ -9,10 +9,10 @@ import chainerx.testing
 import numpy as np
 import cupy
 
-oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(oniku_root, 'ch2o'))
-sys.path.append(os.path.join(oniku_root, 'python'))
-sys.path.append(os.path.join(oniku_root, 'build/python'))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'ch2o'))
+sys.path.append(os.path.join(project_root, 'python'))
+sys.path.append(os.path.join(project_root, 'build/python'))
 
 import oniku
 

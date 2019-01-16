@@ -5,9 +5,9 @@ import chainerx
 import chainerx.testing
 import numpy as np
 
-oniku_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(oniku_root, 'build/python'))
-sys.path.append(os.path.join(oniku_root, 'python'))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'build/python'))
+sys.path.append(os.path.join(project_root, 'python'))
 
 import oniku_core
 
