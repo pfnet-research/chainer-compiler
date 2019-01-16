@@ -37,6 +37,8 @@ parser.add_argument('--device', '-d', default=None,
                     help='ChainerX device to be used')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
                     help='Run all tests with GPU')
+parser.add_argument('--failure_log', default='out/failed_tests.log',
+                    help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
@@ -569,8 +571,8 @@ def _start_output(msg):
 class TestRunner(object):
     def __init__(self, test_cases, show_log):
         self.test_cases = test_cases
-        self.test_cnt = 0
-        self.fail_cnt = 0
+        self.tested = []
+        self.failed = []
         self.show_log = show_log
 
     def run(self, num_parallel_jobs):
@@ -595,7 +597,7 @@ class TestRunner(object):
 
             if num_parallel_jobs != 1:
                 _start_output('%s... ' % test_case.name)
-            self.test_cnt += 1
+            self.tested.append(test_case)
             if status == 0:
                 if test_case.fail:
                     sys.stdout.write('%sOK (unexpected)%s\n' % (YELLOW, RESET))
@@ -604,15 +606,14 @@ class TestRunner(object):
                     if not sys.stdout.isatty():
                         sys.stdout.write('\n')
             else:
-                self.fail_cnt += 1
-                filtered = [a for a in test_case.args if a != '--quiet']
+                self.failed.append(test_case)
                 sys.stdout.write('%sFAIL%s: %s\n' %
-                                 (RED, RESET, ' '.join(filtered)))
+                                 (RED, RESET, test_case.repro_cmdline()))
             if status != 0 or self.show_log:
                 sys.stdout.buffer.write(test_case.log_read())
                 if status != 0:
                     sys.stdout.write('%s$%s %s\n' %
-                                     (RED, RESET, ' '.join(filtered)))
+                                     (RED, RESET, test_case.repro_cmdline()))
 
             sys.stdout.flush()
         _start_output('')
@@ -637,8 +638,8 @@ def main():
     run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
     print('Testing %s' % run_onnx)
 
-    test_cnt = 0
-    fail_cnt = 0
+    tested = []
+    failed = []
     tests = []
     gpu_tests = []
     for test_case in TEST_CASES:
@@ -683,14 +684,21 @@ def main():
     for tests, num_jobs in [(tests, args.jobs), (gpu_tests, 1)]:
         runner = TestRunner(tests, args.show_log)
         runner.run(num_jobs)
-        test_cnt += runner.test_cnt
-        fail_cnt += runner.fail_cnt
+        tested += runner.tested
+        failed += runner.failed
 
-    if fail_cnt:
-        print('%d/%d tests failed!' % (fail_cnt, test_cnt))
+    if failed:
+        with open(args.failure_log, 'wb') as f:
+            for test in failed:
+                f.write(('=== %s ===\n' % test.name).encode())
+                f.write(('$ %s\n' % test.repro_cmdline()).encode())
+                f.write(test.log_read())
+                f.write('\n'.encode())
+        print('%d/%d tests failed! (see %s)' %
+              (len(failed), len(tested), args.failure_log))
     else:
         print('ALL %d tests OK! (%d from ONNX)' %
-              (test_cnt, num_official_onnx_tests))
+              (len(tested), num_official_onnx_tests))
 
 
 main()

@@ -47,6 +47,10 @@ class TestCase(object):
         self.log_file = open(self.log_filename, 'wb')
         return self.log_file
 
+    def repro_cmdline(self):
+        filtered = [a for a in self.args if a != '--quiet']
+        return ' '.join(filtered)
+
     def log_read(self):
         self.log_file.close()
         with open(self.log_filename, 'rb') as f:
