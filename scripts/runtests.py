@@ -37,6 +37,8 @@ parser.add_argument('--device', '-d', default=None,
                     help='ChainerX device to be used')
 parser.add_argument('--use_gpu_all', '-G', action='store_true',
                     help='Run all tests with GPU')
+parser.add_argument('--failed', action='store_true',
+                    help='Run tests which failed last time')
 parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
@@ -552,6 +554,19 @@ for test in TEST_CASES:
 
 for test in new_tests:
     TEST_CASES.append(test)
+
+if args.failed:
+    if not os.path.exists(args.failure_log):
+        raise RuntimeError('No failure log in %s' % args.failure_log)
+    failed_test_names = set()
+    with open(args.failure_log, 'rb') as f:
+        for line in f:
+            if line.startswith(b'=== '):
+                matched = re.match(r'=== (\S+) ===', line.decode())
+                if matched:
+                    failed_test_names.add(matched.group(1))
+    TEST_CASES = [case for case in TEST_CASES
+                  if case.name in failed_test_names]
 
 if args.test_filter is not None:
     reg = re.compile(args.test_filter)
