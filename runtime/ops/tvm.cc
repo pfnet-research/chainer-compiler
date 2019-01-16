@@ -101,7 +101,9 @@ void TVMOp::InitImpl() {
 }
 
 TVMOp::~TVMOp() {
+#if CHAINER_COMPILER_ENABLE_TVM
     delete impl_;
+#endif
 }
 
 std::vector<chainerx::Array> TVMOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
