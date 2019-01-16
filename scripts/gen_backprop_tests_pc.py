@@ -10,8 +10,8 @@ from onnx import onnx_pb
 
 import onnx_chainer_util
 
-my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(my_path, 'ch2o'))
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'ch2o'))
 import ch2o
 
 F = chainer.functions
