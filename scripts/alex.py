@@ -37,7 +37,8 @@ class Alex(chainer.Chain):
         h = F.dropout(F.relu(self.fc7(h)))
         h = self.fc8(h)
 
-        #loss = F.softmax_cross_entropy(h, t)
+        # EDIT(hamaji): ONNX-chainer cannot output SoftmaxCrossEntropy.
+        # loss = F.softmax_cross_entropy(h, t)
         loss = self.softmax_cross_entropy(h, t)
         if self.compute_accuracy:
             chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)
