@@ -18,7 +18,7 @@ sys.path.append(os.path.join(project_root, 'ch2o'))
 sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'build/python'))
 
-import oniku
+import chainer_compiler
 
 
 # Network definition
@@ -79,7 +79,7 @@ def main():
     group = parser.add_argument_group('deprecated arguments')
     group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--oniku', action='store_true',
+    parser.add_argument('--compile', action='store_true',
                         help='Compile the model')
     parser.add_argument('--dump_onnx', action='store_true',
                         help='Dump ONNX model after optimization')
@@ -97,8 +97,8 @@ def main():
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
     mlp = MLP(args.unit, 10)
-    if args.oniku:
-        mlp = oniku.compile(mlp, dump_onnx=args.dump_onnx)
+    if args.compile:
+        mlp = chainer_compiler.compile(mlp, dump_onnx=args.dump_onnx)
     model = L.Classifier(mlp)
     model.to_device(device)
     device.use()
