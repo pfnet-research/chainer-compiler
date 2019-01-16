@@ -7,9 +7,7 @@ import numpy as np
 
 import onnx_chainer
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from oniku.tools import npz_to_onnx
+import npz_to_onnx
 
 
 @contextlib.contextmanager

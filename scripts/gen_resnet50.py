@@ -22,8 +22,7 @@ import alex
 import nin
 import resnet50
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.scripts import onnx_chainer_util
+import onnx_chainer_util
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):

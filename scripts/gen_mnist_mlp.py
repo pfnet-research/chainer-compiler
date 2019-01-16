@@ -18,8 +18,7 @@ from chainer.functions.evaluation import accuracy
 from chainer.training import extensions
 import onnx_chainer
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.scripts import onnx_chainer_util
+import onnx_chainer_util
 
 
 class MyClassifier(chainer.link.Chain):
