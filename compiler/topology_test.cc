@@ -3,8 +3,8 @@
 #include <common/log.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
-#include <compiler/type.h>
 #include <compiler/topology.h>
+#include <compiler/type.h>
 
 namespace chainer_compiler {
 namespace {

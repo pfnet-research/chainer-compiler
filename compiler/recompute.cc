@@ -85,7 +85,7 @@ void GetReluRecompute(Graph* graph, int threshold) {
         if (far_users.empty() || !num_near_users) continue;
 
         CLOG() << "RecomputeRelu: " << relu_output->GetNBytes() / 1000 << "kB"
-              << " " << node->ToString() << std::endl;
+               << " " << node->ToString() << std::endl;
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());
         // TODO(hamaji): This should be done by shape inference.

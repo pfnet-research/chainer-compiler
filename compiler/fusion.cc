@@ -132,9 +132,7 @@ void FuseTVMOperations(Graph* graph) {
     int num_fusion_groups = 0;
     std::set<Node*> handled;
     for (Node* base_node : graph->GetTopologicallySortedNodes()) {
-        if (base_node->op_type() != Node::kRelu &&
-            base_node->op_type() != Node::kTanh &&
-            base_node->op_type() != Node::kConv &&
+        if (base_node->op_type() != Node::kRelu && base_node->op_type() != Node::kTanh && base_node->op_type() != Node::kConv &&
             base_node->op_type() != Node::kConvTranspose) {
             continue;
         }
@@ -156,9 +154,7 @@ void FuseTVMOperations(Graph* graph) {
             }
 
             Node* user = output->users()[0];
-            if ((user->op_type() != Node::kRelu &&
-                 user->op_type() != Node::kReduceSum &&
-                 user->op_type() != Node::kAdd)) {
+            if ((user->op_type() != Node::kRelu && user->op_type() != Node::kReduceSum && user->op_type() != Node::kAdd)) {
                 break;
             }
             if (!handled.emplace(user).second) {
@@ -175,8 +171,7 @@ void FuseTVMOperations(Graph* graph) {
         for (Node* node : fused_nodes) {
             if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
         }
-        if (num_calculation <= 1 &&
-            base_node->op_type() != Node::kConv && base_node->op_type() != Node::kConvTranspose) {
+        if (num_calculation <= 1 && base_node->op_type() != Node::kConv && base_node->op_type() != Node::kConvTranspose) {
             continue;
         }
 

@@ -8,8 +8,7 @@ Type::Type(Kind kind) : kind_(kind) {
     has_known_shape_ = false;
 }
 
-Type::Type(const onnx::TypeProto& xtype)
-    : denotation_(xtype.denotation()) {
+Type::Type(const onnx::TypeProto& xtype) : denotation_(xtype.denotation()) {
     if (xtype.has_sequence_type()) {
         kind_ = Kind::kSequence;
         has_known_shape_ = false;

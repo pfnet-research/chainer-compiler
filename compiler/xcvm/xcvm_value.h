@@ -6,7 +6,7 @@ namespace runtime {
 
 class XCInstructionProto;
 
-}  // namespace
+}  // namespace runtime
 
 class Value;
 
@@ -14,15 +14,15 @@ namespace xcvm {
 
 class XCVMValue {
 public:
-    XCVMValue(int id)
-        : id_(id) {
+    XCVMValue(int id) : id_(id) {
     }
 
-    XCVMValue(int id, const Value* value)
-        : id_(id), value_(value) {
+    XCVMValue(int id, const Value* value) : id_(id), value_(value) {
     }
 
-    int id() const { return id_; }
+    int id() const {
+        return id_;
+    }
 
     void AddOutput(runtime::XCInstructionProto* inst) const;
 

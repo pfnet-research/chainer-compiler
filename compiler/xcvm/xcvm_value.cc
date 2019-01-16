@@ -21,4 +21,3 @@ void XCVMValue::AddOutput(runtime::XCInstructionProto* inst) const {
 
 }  // namespace xcvm
 }  // namespace chainer_compiler
-

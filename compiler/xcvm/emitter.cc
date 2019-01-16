@@ -770,7 +770,8 @@ private:
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
             std::string func_name;
-            BuildTVMProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
+            BuildTVMProgram(
+                    body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
             if (g_compiler_log) {
                 // TODO(hamaji): Show more code.
                 CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << " => " << dso_filename << std::endl;

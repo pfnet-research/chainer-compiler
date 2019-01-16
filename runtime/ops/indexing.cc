@@ -8,7 +8,6 @@
 namespace chainer_compiler {
 namespace runtime {
 
-
 chainerx::Array SliceOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
     for (size_t i = 0; i < axes.size(); ++i) {

@@ -126,11 +126,12 @@ namespace {
 
 uint32_t xorshift() {
     static uint32_t y = 2463534242;
-    y = y ^ (y << 13); y = y ^ (y >> 17);
+    y = y ^ (y << 13);
+    y = y ^ (y >> 17);
     return y = y ^ (y << 15);
 }
 
-}
+}  // namespace
 
 chainerx::Array SlowRandom(chainerx::Shape shape) {
     int64_t size = shape.GetTotalSize();

@@ -47,12 +47,10 @@ GraphBuilder::~GraphBuilder() {
         onnx::shape_inference::InferShapes(&xgraph, opset_imports);
 
         for (size_t i = 0; i < outputs.size(); ++i) {
-            if (xgraph.output(i).type().has_tensor_type())
-                outputs[i]->set_type(new Type(xgraph.output(i).type()));
+            if (xgraph.output(i).type().has_tensor_type()) outputs[i]->set_type(new Type(xgraph.output(i).type()));
         }
         for (size_t i = 0; i < temps.size(); ++i) {
-            if (xgraph.value_info(i).type().has_tensor_type())
-                temps[i]->set_type(new Type(xgraph.value_info(i).type()));
+            if (xgraph.value_info(i).type().has_tensor_type()) temps[i]->set_type(new Type(xgraph.value_info(i).type()));
         }
     }
 

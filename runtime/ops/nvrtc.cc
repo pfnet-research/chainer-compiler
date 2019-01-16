@@ -86,7 +86,8 @@ CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
 
 #endif
 
-std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(
+        chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_NVRTC
     CHECK(!inputs.empty());
     const std::string& name = StrCat("fusion", fusion_id);

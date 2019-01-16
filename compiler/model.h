@@ -58,7 +58,6 @@ public:
     void ResetGraph(Graph* graph);
 
 private:
-
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;
     std::string producer_name_;

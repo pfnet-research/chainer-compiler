@@ -98,14 +98,15 @@ void InitGraph(py::module& m) {
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
-std::map<std::string, VarPtr> Run(const std::shared_ptr<runtime::XCVM>& xcvm,
-                                  const std::map<std::string, VarPtr>& inputs,
-                                  bool trace,
-                                  bool verbose,
-                                  bool training,
-                                  bool check_nans,
-                                  bool check_infs,
-                                  bool dump_memory_usage) {
+std::map<std::string, VarPtr> Run(
+        const std::shared_ptr<runtime::XCVM>& xcvm,
+        const std::map<std::string, VarPtr>& inputs,
+        bool trace,
+        bool verbose,
+        bool training,
+        bool check_nans,
+        bool check_infs,
+        bool dump_memory_usage) {
     runtime::XCVMOptions xcvm_opts;
     if (trace) xcvm_opts.trace_level = 1;
     if (verbose) xcvm_opts.trace_level = 2;
@@ -119,7 +120,9 @@ std::map<std::string, VarPtr> Run(const std::shared_ptr<runtime::XCVM>& xcvm,
 
 void InitXCVM(py::module& m) {
     py::class_<runtime::XCVM, std::shared_ptr<runtime::XCVM>> c{m, "XCVM"};
-    c.def("run", &Run, "Run the model",
+    c.def("run",
+          &Run,
+          "Run the model",
           py::arg("inputs"),
           py::arg("trace") = false,
           py::arg("verbose") = false,
@@ -181,10 +184,8 @@ PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
     InitXCVM(m);
 
     m.def("load", &LoadGraph, "Load an ONNX model");
-    m.def("value", &CreateValueFromArray,
-          "Create an XCVMVar from a ChainerX Array");
-    m.def("value", &CreateValueFromSequence,
-          "Create an XCVMVar from a sequence of XCVMVars");
+    m.def("value", &CreateValueFromArray, "Create an XCVMVar from a ChainerX Array");
+    m.def("value", &CreateValueFromSequence, "Create an XCVMVar from a sequence of XCVMVars");
 }
 
 }  // namespace chainer_compiler

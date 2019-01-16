@@ -43,24 +43,24 @@ DLContext GetDLContext(const chainerx::Array& array) {
 
 DLDataType GetDLDataType(const chainerx::Array& array) {
     switch (array.dtype()) {
-    case chainerx::Dtype::kBool:
-        return DLDataType{kDLUInt, 1, 1};
-    case chainerx::Dtype::kInt8:
-        return DLDataType{kDLInt, 8, 1};
-    case chainerx::Dtype::kInt16:
-        return DLDataType{kDLInt, 16, 1};
-    case chainerx::Dtype::kInt32:
-        return DLDataType{kDLInt, 32, 1};
-    case chainerx::Dtype::kInt64:
-        return DLDataType{kDLInt, 64, 1};
-    case chainerx::Dtype::kUInt8:
-        return DLDataType{kDLUInt, 8, 1};
-    case chainerx::Dtype::kFloat32:
-        return DLDataType{kDLFloat, 32, 1};
-    case chainerx::Dtype::kFloat64:
-        return DLDataType{kDLFloat, 64, 1};
-    default:
-        CHECK(false) << array.dtype();
+        case chainerx::Dtype::kBool:
+            return DLDataType{kDLUInt, 1, 1};
+        case chainerx::Dtype::kInt8:
+            return DLDataType{kDLInt, 8, 1};
+        case chainerx::Dtype::kInt16:
+            return DLDataType{kDLInt, 16, 1};
+        case chainerx::Dtype::kInt32:
+            return DLDataType{kDLInt, 32, 1};
+        case chainerx::Dtype::kInt64:
+            return DLDataType{kDLInt, 64, 1};
+        case chainerx::Dtype::kUInt8:
+            return DLDataType{kDLUInt, 8, 1};
+        case chainerx::Dtype::kFloat32:
+            return DLDataType{kDLFloat, 32, 1};
+        case chainerx::Dtype::kFloat64:
+            return DLDataType{kDLFloat, 64, 1};
+        default:
+            CHECK(false) << array.dtype();
     }
     return DLDataType{};
 }

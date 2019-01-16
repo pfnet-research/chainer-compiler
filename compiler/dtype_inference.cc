@@ -165,7 +165,7 @@ void InferDtype(Node* node) {
         }
 
         case Node::kConstantOfShape: {
-            set(0, node->tensor_value() ? node->tensor_value()->dtype(): default_float);
+            set(0, node->tensor_value() ? node->tensor_value()->dtype() : default_float);
             break;
         }
 

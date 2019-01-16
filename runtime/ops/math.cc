@@ -95,7 +95,6 @@ chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Reciprocal(a);
 }
 
-
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
     return x * (1 - negs * 2);

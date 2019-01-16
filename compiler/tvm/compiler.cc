@@ -43,26 +43,26 @@ bool Exists(const std::string& filename) {
 
 tvm::Type GetType(Dtype dtype) {
     switch (dtype) {
-    case Dtype::kUnknown:
-        CHECK(false);
-    case Dtype::kBool:
-        return tvm::UInt(1);
-    case Dtype::kInt8:
-        return tvm::Int(8);
-    case Dtype::kInt16:
-        return tvm::Int(16);
-    case Dtype::kInt32:
-        return tvm::Int(32);
-    case Dtype::kInt64:
-        return tvm::Int(64);
-    case Dtype::kUInt8:
-        return tvm::UInt(8);
-    case Dtype::kFloat32:
-        return tvm::Float(32);
-    case Dtype::kFloat64:
-        return tvm::Float(64);
-    default:
-        CHECK(false) << dtype;
+        case Dtype::kUnknown:
+            CHECK(false);
+        case Dtype::kBool:
+            return tvm::UInt(1);
+        case Dtype::kInt8:
+            return tvm::Int(8);
+        case Dtype::kInt16:
+            return tvm::Int(16);
+        case Dtype::kInt32:
+            return tvm::Int(32);
+        case Dtype::kInt64:
+            return tvm::Int(64);
+        case Dtype::kUInt8:
+            return tvm::UInt(8);
+        case Dtype::kFloat32:
+            return tvm::Float(32);
+        case Dtype::kFloat64:
+            return tvm::Float(64);
+        default:
+            CHECK(false) << dtype;
     }
     return tvm::Type();
 }
@@ -77,9 +77,7 @@ tvm::Array<tvm::Expr> GetShape(const Type& type) {
 }
 
 tvm::Tensor GetPlaceholder(const Value* value, const std::string& name) {
-    return tvm::placeholder(GetShape(value->type()),
-                            GetType(value->type().dtype()),
-                            name);
+    return tvm::placeholder(GetShape(value->type()), GetType(value->type().dtype()), name);
 }
 
 class TVMCompiler {
@@ -96,7 +94,13 @@ public:
     ~TVMCompiler() {
     }
 
-    void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
+    void Build(
+            const std::vector<Node*>& nodes,
+            int id,
+            const std::vector<Value*>& inputs,
+            const std::vector<Value*>& outputs,
+            std::string* filename,
+            std::string* func_name) {
         *func_name = StrCat("tvm_op_", id);
         const std::string& dso_name = StrCat("/tmp/libchainer_compiler_op_", *func_name);
         *filename = dso_name + ".so";
@@ -153,7 +157,7 @@ public:
             }
         }
 
-        tvm::Array <tvm::Tensor> args;
+        tvm::Array<tvm::Tensor> args;
         tvm::Array<tvm::Tensor> output_tensors;
         for (Value* output : outputs) {
             auto found = tensors_.find(output);
@@ -368,7 +372,12 @@ private:
 #endif
 
 void BuildTVMProgram(
-    const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
+        const std::vector<Node*>& nodes,
+        int id,
+        const std::vector<Value*>& inputs,
+        const std::vector<Value*>& outputs,
+        std::string* filename,
+        std::string* func_name) {
 #if CHAINER_COMPILER_ENABLE_TVM
     TVMCompiler compiler;
     compiler.Build(nodes, id, inputs, outputs, filename, func_name);

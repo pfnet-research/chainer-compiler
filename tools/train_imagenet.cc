@@ -190,7 +190,8 @@ void RunMain(const std::vector<std::string>& argv) {
             } else {
                 CHECK_EQ(2, data.size());
                 CHECK_EQ(2, infeed_values.size());
-                inputs.emplace(infeed_values[0]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                inputs.emplace(
+                        infeed_values[0]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 inputs.emplace(infeed_values[1]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
             }

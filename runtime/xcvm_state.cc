@@ -172,16 +172,16 @@ bool HasElemInArray(chainerx::Array (*pred_fn)(const chainerx::Array&), const ch
 
 bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const XCVMVar& var) {
     switch (var.kind()) {
-    case XCVMVar::Kind::kArray:
-        return HasElemInArray(pred_fn, var.GetArray());
-    case XCVMVar::Kind::kSequence:
-        for (const XCVMVar& v : *var. GetSequence()) {
-            if (HasElemInVar(pred_fn, v)) return true;
-        }
-        return false;
-    case XCVMVar::Kind::kOpaque:
-    case XCVMVar::Kind::kNull:
-        return false;
+        case XCVMVar::Kind::kArray:
+            return HasElemInArray(pred_fn, var.GetArray());
+        case XCVMVar::Kind::kSequence:
+            for (const XCVMVar& v : *var.GetSequence()) {
+                if (HasElemInVar(pred_fn, v)) return true;
+            }
+            return false;
+        case XCVMVar::Kind::kOpaque:
+        case XCVMVar::Kind::kNull:
+            return false;
     }
     CHECK(false);
 }

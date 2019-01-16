@@ -31,9 +31,10 @@ private:
 #define CHECK(cond) \
     while (!(cond)) chainer_compiler::FailMessageStream("Check `" #cond "' failed!", __func__, __FILE__, __LINE__)
 
-#define CHECK_CMP(a, b, op) \
-    while (!((a)op(b)))     \
-    chainer_compiler::FailMessageStream("Check `" #a "' " #op " `" #b "' failed!", __func__, __FILE__, __LINE__) << "(" << (a) << " vs " << (b) << ") "
+#define CHECK_CMP(a, b, op)                                                                                      \
+    while (!((a)op(b)))                                                                                          \
+    chainer_compiler::FailMessageStream("Check `" #a "' " #op " `" #b "' failed!", __func__, __FILE__, __LINE__) \
+            << "(" << (a) << " vs " << (b) << ") "
 
 #define CHECK_EQ(a, b) CHECK_CMP(a, b, ==)
 #define CHECK_NE(a, b) CHECK_CMP(a, b, !=)

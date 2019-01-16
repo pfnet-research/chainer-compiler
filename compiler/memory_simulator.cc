@@ -18,7 +18,8 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
         const int64_t increase = value->GetNBytes();
         usage.num_values++;
         if (increase < 0) {
-            CLOG() << "Unknown " << value->type().kind() << " shape: " << value->name() << " producer=" << (value->producer() ? Node::OpTypeToString(value->producer()->op_type()) : "") << std::endl;
+            CLOG() << "Unknown " << value->type().kind() << " shape: " << value->name()
+                   << " producer=" << (value->producer() ? Node::OpTypeToString(value->producer()->op_type()) : "") << std::endl;
             usage.num_unknowns++;
             return;
         }
