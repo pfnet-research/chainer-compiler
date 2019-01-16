@@ -818,7 +818,7 @@ def _concat(xs, axis, env):
 def eval_subscript(nast, env):
     # Subscriptの実装は以下の感じではだめで、
     # コンパイラはシリアライズするだけにして
-    # あとはOnikuのほうにお願いすることになりそう
+    # あとはミドルエンドのほうにお願いすることになりそう
 
     vs = eval_ast(nast.value, env)
     if isinstance(vs, tuple):
@@ -1141,7 +1141,7 @@ def compile_model(model, inputs):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
-    # oniku独自のノードを使うとcheckできなくなる...
+    # Chainer compiler 独自のノードを使うとcheckできなくなる...
     # checker.check_graph(graph)
     mo = helper.make_model(graph)
 
