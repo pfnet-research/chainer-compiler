@@ -10,8 +10,9 @@ import os
 import re
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.common import codegen_util
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'common'))
+import codegen_util
 
 
 def attr_sets(**kwargs):

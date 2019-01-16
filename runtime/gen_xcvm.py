@@ -3,9 +3,10 @@ import os
 import subprocess
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.common import codegen_util
-from oniku.runtime.xcvm_defs import *
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'common'))
+import codegen_util
+from xcvm_defs import *
 
 
 parser = argparse.ArgumentParser()
