@@ -49,6 +49,10 @@ def generateValueWithSameType(value : 'values.Value'):
         ret = values.BoolValue(None)
         return ret
 
+    if isinstance(value, values.ListValue):
+        ret = values.ListValue(None)
+        return ret
+
     return None
     
 class FunctionArg():

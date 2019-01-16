@@ -11,6 +11,8 @@ from elichika.parser import values
 from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser.graphs import Graph
+from elichika.parser import veval_bin
+from elichika.parser import veval_unary
 
 def try_get_value(value, name, lineprop, is_none_allowed = False):
     if value is None:
@@ -466,11 +468,7 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     node_bin_op = nodes.NodeBinOp(left.get_value(), right.get_value(), binop, astc.lineno)
 
-    ret_value = functions.generateValueWithSameType(left.get_value())
-
-    # TODO fixme
-    if ret_value is None:
-        ret_value = values.Value()
+    ret_value = veval_bin_op.veval(binop, left, right)
 
     node_bin_op.set_outputs([ret_value])
     graph.add_node(node_bin_op)
@@ -496,8 +494,7 @@ def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph 
 
     node = nodes.NodeUnaryOp(operand.get_value(), unaryop)
 
-    # TODO : FIXME
-    ret_value = values.Value()
+    ret_value = veval_unary.veval(unaryop, operand.get_value())
 
     node.set_outputs([ret_value])
     graph.add_node(node)

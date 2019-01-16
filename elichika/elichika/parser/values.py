@@ -381,8 +381,9 @@ class FuncValue(Value):
         return self.name + '(F)'
 
 class ListValue(Value):
-    def __init__(self):
+    def __init__(self, values = None):
         super().__init__()
+        self.is_any = values is None
         self.attributes = Field(None, None)
         self.append_func = FuncValue(functions_builtin.AppendFunction(self), self)
         self.attributes.get_attribute('append').revise(self.append_func)
