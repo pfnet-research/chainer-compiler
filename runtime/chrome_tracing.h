@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 class ChromeTracingEmitter {
@@ -42,4 +42,4 @@ private:
 };
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

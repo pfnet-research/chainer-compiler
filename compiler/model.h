@@ -8,7 +8,7 @@
 
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
@@ -58,7 +58,6 @@ public:
     void ResetGraph(Graph* graph);
 
 private:
-
     int64_t ir_version_;
     std::vector<onnx::OperatorSetIdProto> opset_import_;
     std::string producer_name_;
@@ -70,4 +69,4 @@ private:
     std::unique_ptr<Graph> graph_;
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler

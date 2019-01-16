@@ -5,9 +5,8 @@
 #include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
-
 
 chainerx::Array SliceOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
@@ -113,4 +112,4 @@ chainerx::Array SelectItemGradOp::RunImpl(
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

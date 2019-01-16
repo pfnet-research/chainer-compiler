@@ -1,6 +1,6 @@
 #include "strutil.h"
 
-namespace oniku {
+namespace chainer_compiler {
 
 std::vector<std::string> SplitString(const std::string& str, const std::string& sep) {
     std::vector<std::string> ret;
@@ -31,4 +31,4 @@ std::string Basename(const std::string& str) {
     return str.substr(found + 1);
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

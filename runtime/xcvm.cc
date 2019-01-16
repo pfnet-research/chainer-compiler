@@ -2,9 +2,9 @@
 
 #include <numeric>
 
-#ifdef ONIKU_ENABLE_NVTX
+#ifdef CHAINER_COMPILER_ENABLE_NVTX
 #include <nvToolsExt.h>
-#endif  // ONIKU_ENABLE_NVTX
+#endif  // CHAINER_COMPILER_ENABLE_NVTX
 
 #include <chainerx/array.h>
 
@@ -18,7 +18,7 @@
 
 #define RANGE(x) (x).begin(), (x).end()
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -42,13 +42,13 @@ void CheckType(XCVMState* st, const XCVMOp* op) {
 
         const chainerx::Array& a = st->GetArray(id);
         CHECK_EQ(static_cast<chainerx::Dtype>(type.dtype()), a.dtype())
-            << "Dtype check failed in output #" << i << ": " << op->debug_info();
+                << "Dtype check failed in output #" << i << ": " << op->debug_info();
         CHECK_EQ(chainerx::Shape(type.shape().begin(), type.shape().end()), a.shape())
-            << "Shape check failed in output #" << i << ": " << op->debug_info();
+                << "Shape check failed in output #" << i << ": " << op->debug_info();
     }
 }
 
-}
+}  // namespace
 
 XCVMOptions::XCVMOptions() {
     int num_ops = 1;
@@ -94,7 +94,7 @@ void XCVM::Run(XCVMState* state) {
 
         {
             ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name(), pc);
-#ifdef ONIKU_ENABLE_NVTX
+#ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
             try {
@@ -103,7 +103,7 @@ void XCVM::Run(XCVMState* state) {
                 std::cerr << "Exception in " << op->debug_info() << std::endl;
                 throw;
             }
-#ifdef ONIKU_ENABLE_NVTX
+#ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePop();
 #endif
         }
@@ -129,4 +129,4 @@ void XCVM::Run(XCVMState* state) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

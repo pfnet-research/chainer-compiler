@@ -1,6 +1,6 @@
 #include "flags.h"
 
-namespace oniku {
+namespace chainer_compiler {
 
 bool g_compiler_log;
 
@@ -37,4 +37,4 @@ bool g_dump_after_fusion;
 bool g_dump_after_scheduling;
 bool g_dump_subgraphs;
 
-}  // namespace oniku
+}  // namespace chainer_compiler

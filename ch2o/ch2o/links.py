@@ -43,13 +43,13 @@ class Link_Linear(Callable):
         x = x.to_tensor(env)
         res = new_tensor([self.n_out])
 
-        use_onikux_linear = True
-        if use_onikux_linear:
+        use_chainer_linear = True
+        if use_chainer_linear:
             inputs = [x.name, self.W.name]
             if not self.nobias:
                 inputs.append(self.b.name)
             return env.calc(
-                "OnikuxLinear",
+                "ChainerLinear",
                 inputs=inputs,
                 n_batch_axes=n_batch_axes.to_int()
             )
@@ -208,17 +208,17 @@ class Link_NStepLSTM(Callable):
 
         # とりあえずnstep を 1step ずつに分解する
         ilens = env.calc(
-            "OnikuxSequenceLengths",
+            "ChainerSequenceLengths",
             inputs=[xs.name],
         )
 
         tilens = env.calc(
-            "OnikuxSequenceStack",
+            "ChainerSequenceStack",
             inputs=[ilens.name],
         )
 
         v = env.calc(
-            "OnikuxSequencePad",
+            "ChainerSequencePad",
             inputs=[xs.name],
         )
         v = env.calc(
@@ -295,7 +295,7 @@ class Link_NStepLSTM(Callable):
         v = tv
 
         tys = env.calc(
-            "OnikuxSequenceUnpad",
+            "ChainerSequenceUnpad",
             inputs=[v.name, ilens.name],
         )
         return ths, tcs, tys
@@ -344,12 +344,12 @@ class Link_NStepBiLSTM(Callable):
 
         # とりあえずnstep を 1step ずつに分解する
         ilens = env.calc(
-            "OnikuxSequenceLengths",
+            "ChainerSequenceLengths",
             inputs=[xs.name],
         )
 
         tilens = env.calc(
-            "OnikuxSequenceStack",
+            "ChainerSequenceStack",
             inputs=[ilens.name],
         )
 
@@ -392,7 +392,7 @@ class Link_NStepBiLSTM(Callable):
         cs = []
         v = Value(v).to_sequence(env)
         v = env.calc(
-            "OnikuxSequencePad",
+            "ChainerSequencePad",
             inputs=[v.name],
         )
         v = env.calc(
@@ -401,7 +401,7 @@ class Link_NStepBiLSTM(Callable):
             inputs=[v.name]
         )
 
-        sequence_length = env.calc("OnikuxGenericLen", inputs=[v.name])
+        sequence_length = env.calc("ChainerGenericLen", inputs=[v.name])
         out_shape = Value([Value(sequence_length), Value(-1),
                            Value(self.out_size * 2)]).to_tensor(env)
 
@@ -427,7 +427,7 @@ class Link_NStepBiLSTM(Callable):
             v = env.calc("Reshape", inputs=[v.name, out_shape.name])
 
         v = env.calc("Transpose", perm=(1, 0, 2), inputs=[v.name])
-        v = env.calc_seq("OnikuxSequenceUnpad", inputs=[v.name, ilens.name])
+        v = env.calc_seq("ChainerSequenceUnpad", inputs=[v.name, ilens.name])
 
         ths = env.calc(
             "Concat",

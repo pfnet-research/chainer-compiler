@@ -8,7 +8,7 @@
 #include <common/log.h>
 #include <compiler/serializer_util.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -242,4 +242,4 @@ Tensor::Tensor(const std::string& name, const Tensor& t)
     std::memcpy(data_.get(), t.data_.get(), t.ElementSize() * t.NumElements());
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

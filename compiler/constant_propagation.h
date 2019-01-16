@@ -1,9 +1,9 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
 void PropagateConstants(Graph* graph);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

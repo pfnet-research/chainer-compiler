@@ -3,7 +3,7 @@
 
 #include <tools/train_imagenet.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -21,4 +21,4 @@ PYBIND11_MODULE(train_imagenet_core, m) {  // NOLINT
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

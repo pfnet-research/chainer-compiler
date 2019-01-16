@@ -1,9 +1,9 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
 void GetReluRecompute(Graph* graph, int threshold);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

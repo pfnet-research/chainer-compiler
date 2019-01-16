@@ -19,7 +19,7 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 const char* kONNXTestDataDir = "onnx/onnx/backend/test/data";
@@ -142,7 +142,7 @@ TEST(ModelTest, CompileCH2OResNet50) {
     // Gradients are generated.
     EXPECT_TRUE(ops.count(Node::kConvTranspose));
     // No dynamic ConvTranspose.
-    EXPECT_FALSE(ops.count(Node::kOnikuxConvTransposeWithDynamicOutputShape));
+    EXPECT_FALSE(ops.count(Node::kChainerConvTransposeWithDynamicOutputShape));
 
     // Check if shape inference is working by simulating memory usage.
     SimulatedMemoryUsage usage = SimulateMemoryUsage(model.graph());
@@ -154,4 +154,4 @@ TEST(ModelTest, CompileCH2OResNet50) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

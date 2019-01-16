@@ -17,13 +17,13 @@
 #include <compiler/subgraph_canonicalizer.h>
 #include <compiler/type_inference.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
 void CollectGarbageNode(Graph* graph) {
     for (Node* node : graph->nodes()) {
-        if (node->onikux_order() <= 0) graph->DetachNode(node);
+        if (node->chainer_order() <= 0) graph->DetachNode(node);
     }
     graph->DeleteDetached();
 }
@@ -120,4 +120,4 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

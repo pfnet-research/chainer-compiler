@@ -3,7 +3,7 @@
 #include <compiler/dtype_inference.h>
 #include <compiler/graph.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 void InferDtypeAndShape(Node* node) {
     InferDtype(node);
@@ -15,4 +15,4 @@ void InferAllDtypeAndShape(Graph* graph) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

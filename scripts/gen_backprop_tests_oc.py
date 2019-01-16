@@ -1,16 +1,9 @@
 #!/usr/bin/python3
 
-import os
-import sys
-
 import chainer
 import numpy as np
-from onnx import onnx_pb
-import onnx_chainer
 
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.scripts import onnx_chainer_util
+import onnx_chainer_util
 
 
 class AnyModel(chainer.Chain):
@@ -92,7 +85,8 @@ def get_backprop_tests():
     test('matmul_tb', lambda m: F.matmul(m.a, m.b, transb=True),
          a=[[3, 5], [7, 4], [2, 6]],
          b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]))
-    test('matmul_ta_tb', lambda m: F.matmul(m.a, m.b, transa=True, transb=True),
+    test('matmul_ta_tb',
+         lambda m: F.matmul(m.a, m.b, transa=True, transb=True),
          a=np.transpose([[3, 5], [7, 4], [2, 6]]),
          b=np.transpose([[2, 4, 8, 9], [4, 2, 12, 6]]))
     test('gemm', lambda m: F.linear(m.a, m.b, b=m.c),

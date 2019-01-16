@@ -3,7 +3,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 XCVMVar::XCVMVar() : kind_(Kind::kNull) {
@@ -116,4 +116,4 @@ std::ostream& operator<<(std::ostream& os, const XCVMVar::Kind& kind) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

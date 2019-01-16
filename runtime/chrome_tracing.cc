@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <fstream>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 ChromeTracingEmitter::ChromeTracingEmitter() : base_time_(std::chrono::system_clock::now()) {
@@ -65,4 +65,4 @@ void ChromeTracingEmitter::Emit(const std::string& output_filename) const {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

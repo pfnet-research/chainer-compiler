@@ -26,8 +26,8 @@ Oniku can be built on the non-GPU environment because it just requires a few met
 
 There are two ways to build Oniku without CUDA.
 
-##### Specifying `ONIKU_BUILD_CUDA`
-You can exclude CUDA dependency from Oniku by specifying `ONIKU_BUILD_CUDA=OFF`.
+##### Specifying `CHAINER_COMPILER_BUILD_CUDA`
+You can exclude CUDA dependency from Oniku by specifying `CHAINER_COMPILER_BUILD_CUDA=OFF`.
 
 ##### Using stub driver
 NVIDIA provides [external package repositories](https://developer.download.nvidia.com/compute/cuda/repos/) for many Linux distributions, and you can introduce the specific package for non-GPU environment via the package manager instead of installing all components including the non-stub driver.
@@ -104,7 +104,7 @@ $ cd build
 
 $ cmake -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
 or
-$ cmake -DONIKU_BUILD_CUDA=OFF ..
+$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF ..
 
 $ make
 ```
@@ -118,7 +118,7 @@ $ apt-get install libopencv-dev
 ```
 
 You can enable `tools/train_imagenet` by adding
-`-DONIKU_ENABLE_OPENCV=ON`.
+`-DCHAINER_COMPILER_ENABLE_OPENCV=ON`.
 
 ### Other CMake variables
 
@@ -132,9 +132,9 @@ to see the list of supported options.
 
 TODO(hamaji): Document some of them. Notably,
 
-1. `ONIKU_ENABLE_CUDNN` is important for EspNet.
-1. `ONIKU_ENABLE_NVTX` and `ONIKU_ENABLE_NVRTC` are important for tuning CUDA performance.
-1. `ONIKU_ENABLE_PYTHON` is necessary for [Python interface](python/oniku.py).
+1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
+1. `CHAINER_COMPILER_ENABLE_NVTX` and `CHAINER_COMPILER_ENABLE_NVRTC` are important for tuning CUDA performance.
+1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](python/oniku.py).
 
 ## Usage
 
@@ -146,7 +146,7 @@ $ make
 $ make test
 $ cd ..
 $ ./scripts/runtests.py
-$ pytest python  # If you set -DONIKU_ENABLE_PYTHON=ON
+$ pytest python  # If you set -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 ```
 
 ### Run ResNet50 with XCVM backend

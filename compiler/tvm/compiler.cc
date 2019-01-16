@@ -2,7 +2,7 @@
 
 #include <common/log.h>
 
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,9 +30,9 @@
 #include <compiler/value.h>
 #endif
 
-namespace oniku {
+namespace chainer_compiler {
 
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 
 namespace {
 
@@ -43,26 +43,26 @@ bool Exists(const std::string& filename) {
 
 tvm::Type GetType(Dtype dtype) {
     switch (dtype) {
-    case Dtype::kUnknown:
-        CHECK(false);
-    case Dtype::kBool:
-        return tvm::UInt(1);
-    case Dtype::kInt8:
-        return tvm::Int(8);
-    case Dtype::kInt16:
-        return tvm::Int(16);
-    case Dtype::kInt32:
-        return tvm::Int(32);
-    case Dtype::kInt64:
-        return tvm::Int(64);
-    case Dtype::kUInt8:
-        return tvm::UInt(8);
-    case Dtype::kFloat32:
-        return tvm::Float(32);
-    case Dtype::kFloat64:
-        return tvm::Float(64);
-    default:
-        CHECK(false) << dtype;
+        case Dtype::kUnknown:
+            CHECK(false);
+        case Dtype::kBool:
+            return tvm::UInt(1);
+        case Dtype::kInt8:
+            return tvm::Int(8);
+        case Dtype::kInt16:
+            return tvm::Int(16);
+        case Dtype::kInt32:
+            return tvm::Int(32);
+        case Dtype::kInt64:
+            return tvm::Int(64);
+        case Dtype::kUInt8:
+            return tvm::UInt(8);
+        case Dtype::kFloat32:
+            return tvm::Float(32);
+        case Dtype::kFloat64:
+            return tvm::Float(64);
+        default:
+            CHECK(false) << dtype;
     }
     return tvm::Type();
 }
@@ -77,9 +77,7 @@ tvm::Array<tvm::Expr> GetShape(const Type& type) {
 }
 
 tvm::Tensor GetPlaceholder(const Value* value, const std::string& name) {
-    return tvm::placeholder(GetShape(value->type()),
-                            GetType(value->type().dtype()),
-                            name);
+    return tvm::placeholder(GetShape(value->type()), GetType(value->type().dtype()), name);
 }
 
 class TVMCompiler {
@@ -96,9 +94,15 @@ public:
     ~TVMCompiler() {
     }
 
-    void Build(const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
+    void Build(
+            const std::vector<Node*>& nodes,
+            int id,
+            const std::vector<Value*>& inputs,
+            const std::vector<Value*>& outputs,
+            std::string* filename,
+            std::string* func_name) {
         *func_name = StrCat("tvm_op_", id);
-        const std::string& dso_name = StrCat("/tmp/liboniku_", *func_name);
+        const std::string& dso_name = StrCat("/tmp/libchainer_compiler_op_", *func_name);
         *filename = dso_name + ".so";
         if (g_reuse_tvm_code && Exists(*filename)) {
             CLOG() << "Reuse existing " << *filename << std::endl;
@@ -138,11 +142,11 @@ public:
             } else if (node->op_type() == Node::kConv) {
                 tvm::Tensor out{BuildConv(*node, input_tensors)};
                 output_tensors.push_back(out);
-                scheduler_name = "oniku.tvm.schedule_conv2d";
+                scheduler_name = "chainer_compiler.tvm.schedule_conv2d";
             } else if (node->op_type() == Node::kConvTranspose) {
                 tvm::Tensor out{BuildConvTranspose(*node, input_tensors)};
                 output_tensors.push_back(out);
-                scheduler_name = "oniku.tvm.schedule_conv2d_transpose";
+                scheduler_name = "chainer_compiler.tvm.schedule_conv2d_transpose";
             } else {
                 CHECK(false) << "Not supported: " << node->op_type();
             }
@@ -153,7 +157,7 @@ public:
             }
         }
 
-        tvm::Array <tvm::Tensor> args;
+        tvm::Array<tvm::Tensor> args;
         tvm::Array<tvm::Tensor> output_tensors;
         for (Value* output : outputs) {
             auto found = tensors_.find(output);
@@ -291,7 +295,7 @@ private:
         }
 
         tvm::Tensor out;
-        if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d")) {
+        if (const tvm::PackedFunc* conv2d_fn = Py("chainer_compiler.tvm.conv2d")) {
             out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {
@@ -328,7 +332,7 @@ private:
         }
 
         tvm::Tensor out;
-        if (const tvm::PackedFunc* conv2d_fn = Py("oniku.tvm.conv2d_transpose")) {
+        if (const tvm::PackedFunc* conv2d_fn = Py("chainer_compiler.tvm.conv2d_transpose")) {
             out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {
@@ -343,7 +347,7 @@ private:
         return out;
     }
 
-#if ONIKU_ENABLE_PYTHON
+#if CHAINER_COMPILER_ENABLE_PYTHON
     const tvm::PackedFunc* Py(const char* func_name) {
         if (func_name == nullptr) {
             return nullptr;
@@ -368,13 +372,18 @@ private:
 #endif
 
 void BuildTVMProgram(
-    const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
-#if ONIKU_ENABLE_TVM
+        const std::vector<Node*>& nodes,
+        int id,
+        const std::vector<Value*>& inputs,
+        const std::vector<Value*>& outputs,
+        std::string* filename,
+        std::string* func_name) {
+#if CHAINER_COMPILER_ENABLE_TVM
     TVMCompiler compiler;
     compiler.Build(nodes, id, inputs, outputs, filename, func_name);
 #else
-    CHECK(false) << "Enable -DONIKU_ENABLE_TVM=ON";
+    CHECK(false) << "Enable -DCHAINER_COMPILER_ENABLE_TVM=ON";
 #endif
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

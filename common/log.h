@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class FailMessageStream {
 public:
@@ -26,14 +26,15 @@ private:
     const bool is_check_;
 };
 
-#define QFAIL() oniku::FailMessageStream("", __func__, __FILE__, __LINE__, false)
+#define QFAIL() chainer_compiler::FailMessageStream("", __func__, __FILE__, __LINE__, false)
 
 #define CHECK(cond) \
-    while (!(cond)) oniku::FailMessageStream("Check `" #cond "' failed!", __func__, __FILE__, __LINE__)
+    while (!(cond)) chainer_compiler::FailMessageStream("Check `" #cond "' failed!", __func__, __FILE__, __LINE__)
 
-#define CHECK_CMP(a, b, op) \
-    while (!((a)op(b)))     \
-    oniku::FailMessageStream("Check `" #a "' " #op " `" #b "' failed!", __func__, __FILE__, __LINE__) << "(" << (a) << " vs " << (b) << ") "
+#define CHECK_CMP(a, b, op)                                                                                      \
+    while (!((a)op(b)))                                                                                          \
+    chainer_compiler::FailMessageStream("Check `" #a "' " #op " `" #b "' failed!", __func__, __FILE__, __LINE__) \
+            << "(" << (a) << " vs " << (b) << ") "
 
 #define CHECK_EQ(a, b) CHECK_CMP(a, b, ==)
 #define CHECK_NE(a, b) CHECK_CMP(a, b, !=)
@@ -67,4 +68,4 @@ private:
         logged_##__LINE__ = true;                                             \
     } while (0)
 
-}  // namespace oniku
+}  // namespace chainer_compiler

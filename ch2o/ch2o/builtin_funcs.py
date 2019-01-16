@@ -14,7 +14,7 @@ class Builtin_Len(Callable):
     def call_impl(self, env, x):
         x = x.to_value_info(env)
         return env.calc(
-            "OnikuxGenericLen",
+            "ChainerGenericLen",
             inputs=[x.name],
         )
 
@@ -36,7 +36,7 @@ def builtin_range(args, _, env):
         return range(*(a.value for a in args))
 
     return env.calc_seq(
-        'OnikuxSequenceRange',
+        'ChainerSequenceRange',
         inputs=[a.to_tensor(env).name for a in args]
     )
 

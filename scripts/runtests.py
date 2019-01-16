@@ -17,7 +17,7 @@ import onnx_real_tests
 from test_case import TestCase
 
 
-parser = argparse.ArgumentParser(description='Run tests for oniku')
+parser = argparse.ArgumentParser(description='Run tests for chainer_compiler')
 parser.add_argument('test_filter', default=None, nargs='?',
                     help='A regular expression to filter tests')
 parser.add_argument('--all', '-a', action='store_true',

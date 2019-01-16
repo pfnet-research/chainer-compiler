@@ -1,10 +1,10 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 class CompilerConfig;
 class Graph;
 
 void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

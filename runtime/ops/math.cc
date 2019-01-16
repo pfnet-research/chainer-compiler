@@ -8,7 +8,7 @@
 #include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -94,7 +94,6 @@ chainerx::Array SqrtOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
 chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return chainerx::Reciprocal(a);
 }
-
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
@@ -182,4 +181,4 @@ chainerx::Array MaxOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -3,10 +3,11 @@ import os
 import sys
 
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-
-from oniku.common import codegen_util
-from oniku.runtime.xcvm_defs import *
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(project_root, 'common'))
+sys.path.append(os.path.join(project_root, 'runtime'))
+import codegen_util
+from xcvm_defs import *
 
 
 parser = argparse.ArgumentParser()
@@ -38,14 +39,14 @@ def gen_xcvm_codegen_h():
 #include <compiler/xcvm/xcvm_value.h>
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 
 ''')
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 
@@ -86,7 +87,7 @@ def gen_xcvm_codegen_cc():
 #include <compiler/gen_xcvm_codegen.h>
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 
 using runtime::XCInstructionProto;
@@ -96,7 +97,7 @@ using runtime::XCValueProto;
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 

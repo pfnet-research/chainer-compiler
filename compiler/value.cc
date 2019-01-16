@@ -8,7 +8,7 @@
 #include <compiler/tensor.h>
 #include <compiler/type.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Value::Value(const onnx::ValueInfoProto& xvalue, Kind kind) : Value(xvalue.name(), Type(xvalue.type()), kind) {
     doc_string_ = xvalue.doc_string();
@@ -86,4 +86,4 @@ std::ostream& operator<<(std::ostream& os, const Value::Kind& kind) {
     return os;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

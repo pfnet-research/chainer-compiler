@@ -2,14 +2,13 @@
 
 #include <common/log.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Type::Type(Kind kind) : kind_(kind) {
     has_known_shape_ = false;
 }
 
-Type::Type(const onnx::TypeProto& xtype)
-    : denotation_(xtype.denotation()) {
+Type::Type(const onnx::TypeProto& xtype) : denotation_(xtype.denotation()) {
     if (xtype.has_sequence_type()) {
         kind_ = Kind::kSequence;
         has_known_shape_ = false;
@@ -141,4 +140,4 @@ std::ostream& operator<<(std::ostream& os, const Type::Kind& kind) {
     return os;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

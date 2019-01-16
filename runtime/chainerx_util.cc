@@ -11,13 +11,13 @@
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
-#ifdef ONIKU_ENABLE_CUDA
+#ifdef CHAINER_COMPILER_ENABLE_CUDA
 #include <chainerx/cuda/cuda_device.h>
 #endif
 
 #include <common/log.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s) {
@@ -126,11 +126,12 @@ namespace {
 
 uint32_t xorshift() {
     static uint32_t y = 2463534242;
-    y = y ^ (y << 13); y = y ^ (y >> 17);
+    y = y ^ (y << 13);
+    y = y ^ (y >> 17);
     return y = y ^ (y << 15);
 }
 
-}
+}  // namespace
 
 chainerx::Array SlowRandom(chainerx::Shape shape) {
     int64_t size = shape.GetTotalSize();
@@ -161,7 +162,7 @@ chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::
 }
 
 bool IsCudaDevice(const chainerx::Device* device) {
-#ifdef ONIKU_ENABLE_CUDA
+#ifdef CHAINER_COMPILER_ENABLE_CUDA
     return dynamic_cast<const chainerx::cuda::CudaDevice*>(device) != nullptr;
 #else
     return false;
@@ -169,4 +170,4 @@ bool IsCudaDevice(const chainerx::Device* device) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

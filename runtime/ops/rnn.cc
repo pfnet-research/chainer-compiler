@@ -11,7 +11,7 @@
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/ops/cudnn_rnn.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -226,7 +226,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
         const nonstd::optional<chainerx::Array>& initial_h,
         const nonstd::optional<chainerx::Array>& initial_c,
         const nonstd::optional<chainerx::Array>& p) {
-#if ONIKU_ENABLE_CUDNN
+#if CHAINER_COMPILER_ENABLE_CUDNN
     // TODO(hamaji): Handle more cases.
     if ((direction == 0 || direction == 2) && b.has_value() && !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> result;
@@ -234,7 +234,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
             return result;
         }
     }
-#endif  // ONIKU_ENABLE_CUDNN
+#endif  // CHAINER_COMPILER_ENABLE_CUDNN
 
     std::vector<chainerx::Array> xs = {x, w, r};
     if (b.has_value()) xs.push_back(*b);
@@ -344,7 +344,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> LSTMGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
-#if ONIKU_ENABLE_CUDNN
+#if CHAINER_COMPILER_ENABLE_CUDNN
     {
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> result;
         if (CudnnLSTMGrad(gy, ctx, &result)) return result;
@@ -360,4 +360,4 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> L
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

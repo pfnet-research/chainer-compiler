@@ -6,13 +6,12 @@ import sys
 import chainer
 import numpy as np
 import onnx
-from onnx import onnx_pb
 
-my_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.dirname(my_path))
-sys.path.append(os.path.join(my_path, 'ch2o'))
+import onnx_chainer_util
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'ch2o'))
 import ch2o
-from oniku.scripts import onnx_chainer_util
 
 F = chainer.functions
 L = chainer.links
@@ -303,13 +302,13 @@ def get_backprop_tests():
         def __init__(self):
             super(Pad, self).__init__()
             with self.init_scope():
-                self.l = L.Linear(None, 4)
+                self.linear = L.Linear(None, 4)
 
         def forward(self, x):
             xs = F.separate(x)
             ys = []
             for x in xs:
-                ys.append(self.l(x))
+                ys.append(self.linear(x))
             return F.pad_sequence(ys)
 
     test('pad', Pad(), aranges(5, 4, 3))

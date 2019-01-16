@@ -5,7 +5,7 @@
 
 #include <chainerx/array.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Shape ArrayToShape(const chainerx::Array& a);
@@ -35,4 +35,4 @@ chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::
 bool IsCudaDevice(const chainerx::Device* device);
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

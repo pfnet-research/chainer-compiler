@@ -15,7 +15,7 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -170,4 +170,4 @@ void BuildNvrtcProgram(
     *prog = oss.str();
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

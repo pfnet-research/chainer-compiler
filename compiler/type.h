@@ -9,7 +9,7 @@
 
 #include <compiler/dtype.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Type {
 public:
@@ -66,4 +66,4 @@ private:
 
 std::ostream& operator<<(std::ostream& os, const Type::Kind& kind);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

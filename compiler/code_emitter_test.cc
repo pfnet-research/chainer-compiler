@@ -4,7 +4,7 @@
 
 #include <compiler/code_emitter.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(CodeEmitterTest, Basic) {
@@ -31,4 +31,4 @@ TEST(CodeEmitterTest, Basic) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

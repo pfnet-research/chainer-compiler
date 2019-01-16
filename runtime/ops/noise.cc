@@ -4,7 +4,7 @@
 #include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
@@ -21,4 +21,4 @@ std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, c
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

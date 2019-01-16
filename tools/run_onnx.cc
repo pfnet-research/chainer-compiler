@@ -44,7 +44,7 @@
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 namespace {
 
@@ -221,9 +221,7 @@ XCVMVar* StageVar(XCVMVar* var) {
 class ModelRunner {
 public:
     ModelRunner(const cmdline::parser& args, int64_t initial_free_bytes, Model* model)
-        : model_(model),
-          args_(args),
-          initial_free_bytes_(initial_free_bytes) {
+        : model_(model), args_(args), initial_free_bytes_(initial_free_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
@@ -397,8 +395,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
     args.add("dump_xcvm", '\0', "Dump XCVM program");
     args.add("backprop", 'b', "Add backprop outputs");
-    args.add("backprop_two_phase", '\0',
-             "Backprop using different graphs for forward and backward");
+    args.add("backprop_two_phase", '\0', "Backprop using different graphs for forward and backward");
     args.add("skip_shape_inference", '\0', "Skip shape inference");
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
@@ -639,4 +636,4 @@ void RunONNX(const std::vector<std::string>& argv) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

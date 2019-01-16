@@ -6,7 +6,7 @@
 
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Node;
 class Tensor;
@@ -105,4 +105,4 @@ private:
 
 std::ostream& operator<<(std::ostream& os, const Value::Kind& kind);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -5,7 +5,7 @@
 #include <compiler/type.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -126,4 +126,4 @@ void CanonicalizeSubGraphs(Graph* graph) {
     ResolveExternalDependencies(graph);
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

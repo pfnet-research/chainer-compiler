@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Model;
@@ -29,4 +29,4 @@ void Emit(
         std::vector<int>* output_ids);
 
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler

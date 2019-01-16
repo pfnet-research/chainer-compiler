@@ -1,4 +1,4 @@
-#if ONIKU_ENABLE_CUDNN
+#if CHAINER_COMPILER_ENABLE_CUDNN
 #include <chainerx/native/native_backend.h>
 
 #include <chainerx/cuda/cuda_device.h>
@@ -10,7 +10,7 @@
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -659,6 +659,6 @@ bool CudnnLSTMGrad(
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler
 
-#endif  // ONIKU_ENABLE_CUDNN
+#endif  // CHAINER_COMPILER_ENABLE_CUDNN

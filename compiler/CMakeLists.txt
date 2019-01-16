@@ -1,11 +1,11 @@
-get_filename_component(ONIKU_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
-set(ONIKU_COMMON_DIR ${ONIKU_ROOT_DIR}/common)
-set(GOOGLETEST_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/googletest/googletest/include)
-set(GSLLITE_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/gsl-lite/include)
-set(OPTIONALLITE_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/optional-lite/include)
+get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
+set(CHAINER_COMPILER_COMMON_DIR ${CHAINER_COMPILER_ROOT_DIR}/common)
+set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
+set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
+set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include)
 
-if (${ONIKU_ENABLE_PYTHON})
-  add_definitions(-DONIKU_ENABLE_PYTHON=1)
+if (${CHAINER_COMPILER_ENABLE_PYTHON})
+  add_definitions(-DCHAINER_COMPILER_ENABLE_PYTHON=1)
 endif()
 
 add_custom_command(
@@ -14,7 +14,7 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
   MAIN_DEPENDENCY gen_node.py
-  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py)
+  DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py)
 add_custom_target(gen_node_base_h DEPENDS gen_node_base.h)
 
 add_custom_command(
@@ -24,7 +24,7 @@ add_custom_command(
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/xcvm/gen_xcvm_codegen.py
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY xcvm/gen_xcvm_codegen.py
-  DEPENDS ${ONIKU_COMMON_DIR}/codegen_util.py ${ONIKU_ROOT_DIR}/runtime/xcvm_defs.py)
+  DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py ${CHAINER_COMPILER_ROOT_DIR}/runtime/xcvm_defs.py)
 add_custom_target(
   compiler_xcvm_codegen_h
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
@@ -32,11 +32,11 @@ add_custom_target(
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
-include_directories(${ONIKU_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_BINARY_DIR}) # the root directory instead of `build/compiler`
-include_directories(${ONIKU_TVM_INCLUDE_DIRS})
+include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 
-add_library(oniku_compiler
+add_library(chainer_compiler_compiler
   code_emitter.cc
   constant_propagation.cc
   config.cc
@@ -73,7 +73,7 @@ add_library(oniku_compiler
   xcvm/xcvm_value.cc
   )
 add_dependencies(
-  oniku_compiler
+  chainer_compiler_compiler
   runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h onnx_files
   )
 
@@ -92,9 +92,9 @@ add_executable(compiler_test
   )
 add_dependencies(compiler_test runtime_xcvm_pb_h)
 target_link_libraries(compiler_test
-  oniku_compiler
-  oniku_runtime
-  oniku_common
+  chainer_compiler_compiler
+  chainer_compiler_runtime
+  chainer_compiler_common
   chainerx
   onnx
   onnx_proto
@@ -102,8 +102,8 @@ target_link_libraries(compiler_test
   gtest
   gtest_main
   pthread
-  ${ONIKU_TVM_LIBRARIES}
-  ${ONIKU_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_TVM_LIBRARIES}
+  ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
 
 add_test(

@@ -2,7 +2,7 @@
 
 #include <compiler/flags.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 void AddCompilerFlags(cmdline::parser* args) {
@@ -46,4 +46,4 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

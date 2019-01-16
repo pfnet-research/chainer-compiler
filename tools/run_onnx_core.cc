@@ -3,7 +3,7 @@
 
 #include <tools/run_onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -21,4 +21,4 @@ PYBIND11_MODULE(run_onnx_core, m) {  // NOLINT
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

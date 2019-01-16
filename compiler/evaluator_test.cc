@@ -8,7 +8,7 @@
 #include <compiler/graph_builder.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(EvaluatorTest, Eval) {
@@ -35,4 +35,4 @@ TEST(EvaluatorTest, Eval) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -3,7 +3,7 @@
 #include <common/log.h>
 #include <runtime/backward_context.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 BackwardContext::BackwardContext(const std::string& name, const std::vector<chainerx::Array>& xs)
@@ -34,4 +34,4 @@ std::vector<chainerx::Array> BackwardContext::Backward(const std::vector<chainer
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

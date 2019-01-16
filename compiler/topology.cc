@@ -1,17 +1,18 @@
 #include "compiler/topology.h"
 
 #include <algorithm>
-#include <queue>
 #include <map>
+#include <queue>
 #include <set>
 
 #include <common/log.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
-void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs, std::vector<Value*>* temps) {
+void ClassifyValues(
+        const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs, std::vector<Value*>* temps) {
     std::set<Value*> temp_set;
     std::set<Value*> input_set;
     std::map<Value*, int> output_users;
@@ -102,4 +103,4 @@ std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std:
     return sorted_nodes;
 }
 
-}
+}  // namespace chainer_compiler

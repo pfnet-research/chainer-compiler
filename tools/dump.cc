@@ -20,7 +20,7 @@
 #include <tools/cmdline.h>
 #include <tools/util.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 namespace {
 
@@ -39,7 +39,7 @@ void DumpONNX(const std::string& filename, const cmdline::parser& args) {
 
 void DumpTensor(const std::string& filename) {
     onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(filename));
-    oniku::Tensor tensor(xtensor);
+    chainer_compiler::Tensor tensor(xtensor);
     onnx::TensorProto xtensor_normalized;
     tensor.ToONNX(&xtensor_normalized);
     std::cout << xtensor_normalized.DebugString();
@@ -83,8 +83,8 @@ void RunMain(int argc, char** argv) {
 
 }  // namespace
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler
 
 int main(int argc, char** argv) {
-    oniku::runtime::RunMain(argc, argv);
+    chainer_compiler::runtime::RunMain(argc, argv);
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Node;
 class Graph;
@@ -9,4 +9,4 @@ void InferDtypeAndShape(Node* node);
 
 void InferAllDtypeAndShape(Graph* graph);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

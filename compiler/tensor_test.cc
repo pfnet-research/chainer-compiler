@@ -7,7 +7,7 @@
 #include <compiler/dtype.h>
 #include <compiler/tensor.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(TensorTest, LoadMNISTOutput) {
@@ -44,4 +44,4 @@ TEST(TensorTest, Constructor) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

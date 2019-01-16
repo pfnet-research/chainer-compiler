@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Value;
@@ -18,4 +18,4 @@ void GenerateGradientNodesTo(Graph* graph, Graph* dest_graph, const std::vector<
 void GenerateGradientNodes(
         Graph* graph, Graph* dest_graph, const std::vector<Value*>& xs, const std::vector<Value*>& ys, std::map<Value*, Value*>* retained);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

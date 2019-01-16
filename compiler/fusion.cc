@@ -15,7 +15,7 @@
 #include <compiler/topology.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -61,11 +61,11 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
         Value* new_value = subgraph->AddOutputValue("fo_" + value->name(), value->type());
         replace_value(value, new_value);
     }
-    Node* fused = gb.MOp(Node::kOnikuxFusionGroup, inputs, outputs);
+    Node* fused = gb.MOp(Node::kChainerFusionGroup, inputs, outputs);
     graph->MigrateNodes({nodes.begin(), nodes.end()}, temps, subgraph);
     fused->set_subgraph(subgraph);
     fused->set_fusion_type(fusion_type);
-    fused->set_onikux_fusion_group(fusion_group_id);
+    fused->set_chainer_fusion_group(fusion_group_id);
 
 #if 0
     std::cerr << "Neighbors of " << fused->ToString() << ":" << std::endl;
@@ -132,9 +132,7 @@ void FuseTVMOperations(Graph* graph) {
     int num_fusion_groups = 0;
     std::set<Node*> handled;
     for (Node* base_node : graph->GetTopologicallySortedNodes()) {
-        if (base_node->op_type() != Node::kRelu &&
-            base_node->op_type() != Node::kTanh &&
-            base_node->op_type() != Node::kConv &&
+        if (base_node->op_type() != Node::kRelu && base_node->op_type() != Node::kTanh && base_node->op_type() != Node::kConv &&
             base_node->op_type() != Node::kConvTranspose) {
             continue;
         }
@@ -156,9 +154,7 @@ void FuseTVMOperations(Graph* graph) {
             }
 
             Node* user = output->users()[0];
-            if ((user->op_type() != Node::kRelu &&
-                 user->op_type() != Node::kReduceSum &&
-                 user->op_type() != Node::kAdd)) {
+            if ((user->op_type() != Node::kRelu && user->op_type() != Node::kReduceSum && user->op_type() != Node::kAdd)) {
                 break;
             }
             if (!handled.emplace(user).second) {
@@ -175,14 +171,13 @@ void FuseTVMOperations(Graph* graph) {
         for (Node* node : fused_nodes) {
             if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
         }
-        if (num_calculation <= 1 &&
-            base_node->op_type() != Node::kConv && base_node->op_type() != Node::kConvTranspose) {
+        if (num_calculation <= 1 && base_node->op_type() != Node::kConv && base_node->op_type() != Node::kConvTranspose) {
             continue;
         }
 
         ++num_fusion_groups;
         for (Node* node : fused_nodes) {
-            node->set_onikux_fusion_group(num_fusion_groups);
+            node->set_chainer_fusion_group(num_fusion_groups);
         }
         CreateFusionGroup(graph, fused_nodes, "tvm", num_fusion_groups);
     }
@@ -218,7 +213,7 @@ void FuseElementwiseOperations(Graph* graph) {
 
     int num_fusion_groups = 0;
     for (Node* base_node : graph->nodes()) {
-        if (base_node->onikux_fusion_group()) continue;
+        if (base_node->chainer_fusion_group()) continue;
         if (!is_fusable(*base_node)) continue;
 
         std::set<Node*> cands;
@@ -226,7 +221,7 @@ void FuseElementwiseOperations(Graph* graph) {
         q.push(base_node);
         while (!q.empty()) {
             Node* node = q.top();
-            CHECK_EQ(0, node->onikux_fusion_group());
+            CHECK_EQ(0, node->chainer_fusion_group());
             q.pop();
             if (!cands.emplace(node).second) continue;
 
@@ -256,7 +251,7 @@ void FuseElementwiseOperations(Graph* graph) {
 
         ++num_fusion_groups;
         for (Node* node : cands) {
-            node->set_onikux_fusion_group(num_fusion_groups);
+            node->set_chainer_fusion_group(num_fusion_groups);
         }
 
         CreateFusionGroup(graph, cands, "nvrtc", num_fusion_groups);
@@ -280,4 +275,4 @@ void FuseOperations(Graph* graph, bool use_tvm) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

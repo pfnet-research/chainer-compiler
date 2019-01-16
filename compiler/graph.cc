@@ -18,7 +18,7 @@
 #include <compiler/util.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Graph::Graph(const onnx::GraphProto& xgraph) {
     Construct(xgraph);
@@ -248,7 +248,7 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
             }
         }
 
-        // Nodes without any outputs are always necessary (e.g., OnikuxPrint).
+        // Nodes without any outputs are always necessary (e.g., ChainerPrint).
         for (const Value* output : node->outputs()) {
             for (Node* node : output->users()) {
                 if (node->outputs().empty()) q.push(node);
@@ -261,16 +261,16 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
     for (const Node* node : nodes_) {
-        if (node->onikux_order() >= 0) nodes.push_back(node);
+        if (node->chainer_order() >= 0) nodes.push_back(node);
     }
-    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->onikux_order() < b->onikux_order(); });
+    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->chainer_order() < b->chainer_order(); });
     return nodes;
 }
 
 std::string Graph::GenSym(const std::string& base) {
     std::ostringstream oss;
     if (!base.empty()) oss << base << "_";
-    oss << "oniku_gensym";
+    oss << "gensym";
     return MakeUnique(oss.str());
 }
 
@@ -367,12 +367,12 @@ void Graph::DumpSubGraphs(int depth) const {
 void Graph::DumpONNXOnFailure(const std::string& filename) const {
     onnx::ModelProto xmodel;
     xmodel.set_ir_version(3);
-    xmodel.set_producer_name("oniku failed :(");
+    xmodel.set_producer_name("chainer compiler failed :(");
     ToONNX(xmodel.mutable_graph());
-    const std::string fn = filename.empty() ? "/tmp/oniku_failure.onnx" : filename;
+    const std::string fn = filename.empty() ? "/tmp/chainer_compiler_failure.onnx" : filename;
     std::ofstream ofs(fn);
     xmodel.SerializeToOstream(&ofs);
     std::cerr << "Failed graph is stored in " << fn << std::endl;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

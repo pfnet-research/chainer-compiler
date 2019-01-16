@@ -54,19 +54,19 @@ RUN mkdir -p /usr/tvm/3rdparty/dmlc-core/build && \
     cd /usr/tvm/3rdparty/dmlc-core/build && \
     cmake .. && make && make install
 
-RUN git clone https://%GITHUB_AUTH_TOKEN%:x-oauth-basic@github.com/pfnet/oniku.git
-RUN cd /oniku && git submodule update --init
-RUN mkdir -p oniku/build && \
-    cd oniku/build && \
+RUN git clone https://%GITHUB_AUTH_TOKEN%:x-oauth-basic@github.com/pfnet-research/chainer-compiler.git
+RUN cd /chainer-compiler && git submodule update --init
+RUN mkdir -p chainer-compiler/build && \
+    cd chainer-compiler/build && \
     cmake .. \
     -G Ninja \
-    -DONIKU_ENABLE_NVTX=ON \
-    -DONIKU_ENABLE_NVRTC=ON \
-    -DONIKU_ENABLE_CUDNN=ON \
-    -DONIKU_ENABLE_OPENCV=ON \
-    -DONIKU_ENABLE_PYTHON=ON \
+    -DCHAINER_COMPILER_ENABLE_NVTX=ON \
+    -DCHAINER_COMPILER_ENABLE_NVRTC=ON \
+    -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
+    -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
+    -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
     -DPYTHON_EXECUTABLE=/usr/bin/python3 \
-    -DONIKU_ENABLE_TVM=ON \
+    -DCHAINER_COMPILER_ENABLE_TVM=ON \
     -DCHAINERX_BUILD_CUDA=ON \
     && \
     ninja

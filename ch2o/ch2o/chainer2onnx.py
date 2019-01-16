@@ -395,7 +395,7 @@ def eval_for(nast, env):
     cnt = new_tensor()
     gtx = new_sequence()
     localenv.set_var(x, _value(localenv.calc(
-        "OnikuxSequenceLookup",
+        "ChainerSequenceLookup",
         inputs=[gtx.name, cnt.name],
     )))
     ty = eval_ast(nast.body, localenv)
@@ -428,7 +428,7 @@ def eval_for(nast, env):
     )
 
     mtc = env.calc(
-        "OnikuxGenericLen",
+        "ChainerGenericLen",
         inputs=[ite.to_sequence(env).name],
     )
 
@@ -499,7 +499,7 @@ def eval_call(nast, env):
     fn = fn.value
 
     # TODO(hamaji): Merge this logic with is_print_logging. Also,
-    # maybe it's better to try emitting OnikuxPrint.
+    # maybe it's better to try emitting ChainerPrint.
     if fn in (logging.debug, logging.info,
               logging.warn, logging.warning, logging.error):
         return None
@@ -621,12 +621,12 @@ def eval_binary_op(nast, env):
         out_state = new_tensor(name='seq_plus_out_state')
         nodes = []
         nodes.append(helper.make_node(
-            'OnikuxSequenceLookup',
+            'ChainerSequenceLookup',
             inputs=[rv.name, index.name],
             outputs=[elem.name]
         ))
         nodes.append(helper.make_node(
-            'OnikuxSequenceAppend',
+            'ChainerSequenceAppend',
             inputs=[state.name, elem.name],
             outputs=[out_state.name]
         ))
@@ -637,7 +637,7 @@ def eval_binary_op(nast, env):
             [cond, out_state],
         )
 
-        length = env.calc('OnikuxGenericLen', inputs=[rv.name])
+        length = env.calc('ChainerGenericLen', inputs=[rv.name])
         res = new_sequence(name='seq_plus')
         env.addnode(
             'Loop',
@@ -673,7 +673,7 @@ def eval_attribute(nast, env):
                 npdtype=np.int64,
             )
             res = env.calc_seq(
-                'OnikuxSequenceSeparate',
+                'ChainerSequenceSeparate',
                 inputs=[res.name],
             )
             return res
@@ -702,7 +702,7 @@ def eval_attribute(nast, env):
                 assert len(args) == 1
                 v = args[0].to_tensor(env)
                 env.set_var(na, _value(env.calc_seq(
-                    'OnikuxSequenceAppend',
+                    'ChainerSequenceAppend',
                     inputs=[body.to_sequence(env).name, v.name],
                 )))
                 return None
@@ -754,10 +754,10 @@ def eval_compare(nast, env):
             needs_not = True
             optype = 'Equal'
         elif isinstance(op, gast.Is):
-            optype = 'OnikuxGenericIs'
+            optype = 'ChainerGenericIs'
         elif isinstance(op, gast.IsNot):
             needs_not = True
-            optype = 'OnikuxGenericIs'
+            optype = 'ChainerGenericIs'
         elif isinstance(op, gast.Gt):
             optype = 'Greater'
         elif isinstance(op, gast.GtE):
@@ -818,7 +818,7 @@ def _concat(xs, axis, env):
 def eval_subscript(nast, env):
     # Subscriptの実装は以下の感じではだめで、
     # コンパイラはシリアライズするだけにして
-    # あとはOnikuのほうにお願いすることになりそう
+    # あとはミドルエンドのほうにお願いすることになりそう
 
     vs = eval_ast(nast.value, env)
     if isinstance(vs, tuple):
@@ -854,7 +854,7 @@ def eval_subscript(nast, env):
             # TODO(satos) スライドのためのごまかしのごまかし
             idx = unsqueeze(idx.to_tensor(env))
             res = env.calc(
-                'OnikuxGenericGetItem',
+                'ChainerGenericGetItem',
                 inputs=[vs.name, idx.name],
             )
             return res
@@ -917,12 +917,12 @@ def eval_subscript(nast, env):
         assert len(squeeze) == 1
         if any(squeeze):
             res = env.calc(
-                'OnikuxSequenceLookup',
+                'ChainerSequenceLookup',
                 inputs=[vs.name, lower.name],
             )
         else:
             res = env.calc_seq(
-                'OnikuxSequenceGetSlice',
+                'ChainerSequenceGetSlice',
                 inputs=[vs.name, lower.name, upper.name],
             )
     else:
@@ -949,13 +949,13 @@ def eval_list(nast, env):
     # Sequenceにする
     vs = list(map(lambda x: eval_ast(x, env), nast.elts))
     res = env.calc_seq(
-        "OnikuxSequenceCreate",
+        "ChainerSequenceCreate",
         inputs=[],
     )
     for v in vs:
         v = v.to_tensor(env)
         res = env.calc_seq(
-            "OnikuxSequenceAppend",
+            "ChainerSequenceAppend",
             inputs=[res.name, v.name],
         )
     return res
@@ -1141,7 +1141,7 @@ def compile_model(model, inputs):
     # inputのうち、重みであるものにはinitializerをつける
     # batch_sizeやinput_sizeなどの可変なものはできる限りのそのままで
 
-    # oniku独自のノードを使うとcheckできなくなる...
+    # Chainer compiler 独自のノードを使うとcheckできなくなる...
     # checker.check_graph(graph)
     mo = helper.make_model(graph)
 

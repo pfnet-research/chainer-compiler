@@ -1,4 +1,4 @@
-"""Generates boilerplate code for Oniku's Node class.
+"""Generates boilerplate code for chainer_compiler::Node class.
 
 Nodes in ONNX are very flexible. They allow arbitrary strings as their
 operation type (e.g., "Conv") and attribute keys (e.g., "pads"). As we
@@ -10,8 +10,9 @@ import os
 import re
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.common import codegen_util
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'common'))
+import codegen_util
 
 
 def attr_sets(**kwargs):
@@ -35,7 +36,7 @@ class Dtype(object):
     pass
 
 
-ONIKUX_GLOBAL_ATTRS = attr_sets(onikux_order=-1, onikux_fusion_group=0)
+CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0)
 
 NODES = []
 
@@ -47,7 +48,7 @@ class NodeDef(object):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.attributes = kwargs
-        self.attributes.update(ONIKUX_GLOBAL_ATTRS)
+        self.attributes.update(CHAINER_COMPILERX_GLOBAL_ATTRS)
         self.attr_defs = {}  # To be filled after parsed.
         NODES.append(self)
 
@@ -84,7 +85,7 @@ NodeDef('And', 2, 1)
 NodeDef('Or', 2, 1)
 NodeDef('Xor', 2, 1)
 
-NodeDef('Constant', 0, 1, tensor_value=Required(Tensor), onikux_host=False)
+NodeDef('Constant', 0, 1, tensor_value=Required(Tensor), chainer_host=False)
 NodeDef('ConstantOfShape', 1, 1, tensor_value=Tensor)
 # TODO(hamaji): Remove this operator since this op was deprecated.
 NodeDef('ConstantLike', (0, 1), 1,
@@ -169,7 +170,7 @@ pool_attrs = attr_sets(auto_pad='NOTSET',
                        storage_order=0,
                        strides=[int])
 # Extension: the third output is for backward context.
-NodeDef('MaxPool', 1, (1, 2, 3), onikux_cover_all=False, **pool_attrs)
+NodeDef('MaxPool', 1, (1, 2, 3), chainer_cover_all=False, **pool_attrs)
 # Extension: the second output is for backward context.
 NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
@@ -180,117 +181,117 @@ NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
 # Extension: it takes N+1 inputs.
 NodeDef('If', None, None, else_branch=Graph, then_branch=Graph)
-NodeDef('Loop', None, None, body=Graph, onikux_stack_axis=0)
+NodeDef('Loop', None, None, body=Graph, chainer_stack_axis=0)
 # TODO(hamaji): Fix Scan to handle the new semantics.
 # NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
-NodeDef('OnikuxLinear', (2, 3), 1, n_batch_axes=1)
-NodeDef('OnikuxLinearGradWeight', 2, 1)
-NodeDef('OnikuxReluGrad', 2, 1)
-NodeDef('OnikuxReduceSumTo', 2, 1)
-NodeDef('OnikuxMaxPoolGrad', 2, 1)
-NodeDef('OnikuxAveragePoolGrad', 2, 1)
-NodeDef('OnikuxBatchNormalizationGrad', 2, 3)
-NodeDef('OnikuxConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
-NodeDef('OnikuxSoftmaxCrossEntropy', 2, 1)
-NodeDef('OnikuxSelectItem', 2, 1)
-NodeDef('OnikuxSelectItemGrad', 3, 1)
-NodeDef('OnikuxLRNGrad', 4, 1,
+NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
+NodeDef('ChainerLinearGradWeight', 2, 1)
+NodeDef('ChainerReluGrad', 2, 1)
+NodeDef('ChainerReduceSumTo', 2, 1)
+NodeDef('ChainerMaxPoolGrad', 2, 1)
+NodeDef('ChainerAveragePoolGrad', 2, 1)
+NodeDef('ChainerBatchNormalizationGrad', 2, 3)
+NodeDef('ChainerConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
+NodeDef('ChainerSoftmaxCrossEntropy', 2, 1)
+NodeDef('ChainerSelectItem', 2, 1)
+NodeDef('ChainerSelectItemGrad', 3, 1)
+NodeDef('ChainerLRNGrad', 4, 1,
         alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
-NodeDef('OnikuxLSTMGrad', 2, 4)
-NodeDef('OnikuxConvGradWeight', 3, 1, **conv_attrs)
-NodeDef('OnikuxGatherGrad', 3, 1, axis=0)
-NodeDef('OnikuxDynamicSliceGrad', (4, 5), 1)
-NodeDef('OnikuxFusionGroup', None, None, subgraph=Graph, fusion_type=str)
+NodeDef('ChainerLSTMGrad', 2, 4)
+NodeDef('ChainerConvGradWeight', 3, 1, **conv_attrs)
+NodeDef('ChainerGatherGrad', 3, 1, axis=0)
+NodeDef('ChainerDynamicSliceGrad', (4, 5), 1)
+NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 
-NodeDef('OnikuxPrint', None, 0)
+NodeDef('ChainerPrint', None, 0)
 
 # Put a null value.
-NodeDef('OnikuxNullConstant', 0, 1)
+NodeDef('ChainerNullConstant', 0, 1)
 
 # Creates a constant sequence: () -> ([T])
-NodeDef('OnikuxSequenceConstants', 0, 1, tensor_values=[Tensor])
+NodeDef('ChainerSequenceConstants', 0, 1, tensor_values=[Tensor])
 
 # Creates a new sequence: () -> ([T])
-NodeDef('OnikuxSequenceCreate', 0, 1)
+NodeDef('ChainerSequenceCreate', 0, 1)
 
 # Appends an element to a sequence: ([T], T) -> ([T])
-NodeDef('OnikuxSequenceAppend', 2, 1)
+NodeDef('ChainerSequenceAppend', 2, 1)
 
 # Pops an element from a sequence: ([T]) -> ([T], T)
-NodeDef('OnikuxSequencePop', 1, 2)
+NodeDef('ChainerSequencePop', 1, 2)
 
 # Looks up an element in a sequence: ([T], I) -> (T)
-NodeDef('OnikuxSequenceLookup', 2, 1)
+NodeDef('ChainerSequenceLookup', 2, 1)
 
 # Equivalent to Python's __getitem__ for a slice: ([T], I, I, I) -> ([T])
-NodeDef('OnikuxSequenceGetSlice', (1, 2, 3, 4), 1)
+NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
 
 # Stacks elements in a sequence: ([T]) -> (T)
-NodeDef('OnikuxSequenceStack', 1, 1, axis=0)
+NodeDef('ChainerSequenceStack', 1, 1, axis=0)
 
 # Concatenates elements in a sequence: ([T]) -> (T)
 # The second output is for backward context.
-NodeDef('OnikuxSequenceConcat', 1, (1, 2), axis=0)
+NodeDef('ChainerSequenceConcat', 1, (1, 2), axis=0)
 
 # Splits a tensor to a sequence (like F.split_axis): (T, I) -> ([T])
-NodeDef('OnikuxSequenceSplitAxis', 2, 1, axis=0)
+NodeDef('ChainerSequenceSplitAxis', 2, 1, axis=0)
 
 # Pads elements in a sequence: ([T]) -> (T)
-NodeDef('OnikuxSequencePad', 1, 1, length=0, value=0.0)
+NodeDef('ChainerSequencePad', 1, 1, length=0, value=0.0)
 
 # Splits a tensor to a sequence (like F.separate): (T) -> ([T])
-NodeDef('OnikuxSequenceSeparate', 1, 1, axis=0)
+NodeDef('ChainerSequenceSeparate', 1, 1, axis=0)
 
 # Strips paddings in a tensor and returns a sequence: (T, [I]) -> ([T])
 # Note the result of SequenceLengths can be used as the second argument.
-NodeDef('OnikuxSequenceUnpad', 2, 1)
+NodeDef('ChainerSequenceUnpad', 2, 1)
 
 # Returns the number of elements in a sequence: ([T]) -> (I)
-NodeDef('OnikuxSequenceSize', 1, 1)
+NodeDef('ChainerSequenceSize', 1, 1)
 
 # Returns lengths of elements in a sequence: ([T]) -> ([I])
-NodeDef('OnikuxSequenceLengths', 1, 1)
+NodeDef('ChainerSequenceLengths', 1, 1)
 
 # Equivalent to Python's range.
-NodeDef('OnikuxSequenceRange', (1, 2, 3), 1)
+NodeDef('ChainerSequenceRange', (1, 2, 3), 1)
 
 # The gradients of sequence related ops.
-NodeDef('OnikuxSequenceLookupGrad', 3, 1)
-NodeDef('OnikuxSequenceGetSliceGrad', (2, 3, 4, 5), 1)
+NodeDef('ChainerSequenceLookupGrad', 3, 1)
+NodeDef('ChainerSequenceGetSliceGrad', (2, 3, 4, 5), 1)
 
 # Equivalent to Python's __len__.
 # For tensors: Gather(Shape(input0), 0)
-# For sequences: OnikuxSequenceSize(input0)
-NodeDef('OnikuxGenericLen', 1, 1)
+# For sequences: ChainerSequenceSize(input0)
+NodeDef('ChainerGenericLen', 1, 1)
 
 # Equivalent to Python's __getitem__ for a scalar index.
 # For tensors: Gather(input0, input1)
-# For sequences: OnikuxSequenceLookup(input0, input1)
+# For sequences: ChainerSequenceLookup(input0, input1)
 # TODO(hamaji): Deprecate this op.
-NodeDef('OnikuxGenericGetItem', 2, 1)
+NodeDef('ChainerGenericGetItem', 2, 1)
 
 # Equivalent to Python's __getitem__ for a slice.
 # For tensors: DynamicSlice(input0, [input1], [input2]) -> tensor
 # For sequences: input0[input1:input2:input3] in Python -> sequence
 # TODO(hamaji): Deprecate this op.
-NodeDef('OnikuxGenericGetSlice', (1, 2, 3, 4), 1)
+NodeDef('ChainerGenericGetSlice', (1, 2, 3, 4), 1)
 
 # Equivalent to Python's __add__.
 # For tensors: Add(input0, input1) -> tensor
 # For sequences: input0 + input1 in Python -> sequence
 # TODO(hamaji): Deprecate this op.
-NodeDef('OnikuxGenericAdd', 2, 1)
+NodeDef('ChainerGenericAdd', 2, 1)
 
 # Similar to Python's `is` keyword.
 # This returns true only when both inputs are bool scalars and have
 # the same value.
-NodeDef('OnikuxGenericIs', 2, 1)
+NodeDef('ChainerGenericIs', 2, 1)
 
 # Accumulates two gradient values.
 # For tensors: Add(input0, input1) -> tensor
 # For sequence: Add(i0, i1) for each element in sequences.
-NodeDef('OnikuxGenericAccumulateGrad', 2, 1)
+NodeDef('ChainerGenericAccumulateGrad', 2, 1)
 
 
 class AttrDef(object):
@@ -439,7 +440,7 @@ def gen_gen_node_base_h():
 #include <compiler/dtype.h>
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Tensor;
@@ -464,7 +465,7 @@ public:
     NodeBase(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 
@@ -743,13 +744,13 @@ def gen_gen_node_base_cc():
 #include <compiler/onnx.h>
 #include <compiler/tensor.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 ''')
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 

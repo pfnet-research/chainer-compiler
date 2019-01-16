@@ -5,7 +5,7 @@
 
 #include <compiler/node.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Type;
@@ -54,4 +54,4 @@ private:
     std::vector<Node*> added_nodes_;
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler

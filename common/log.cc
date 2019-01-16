@@ -6,11 +6,11 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 void MaybeWait() {
-    if (!std::getenv("ONIKU_WAIT_ON_CRASH")) return;
+    if (!std::getenv("CHAINER_COMPILER_WAIT_ON_CRASH")) return;
     std::cout << "Waiting before crash. You can attach gdb by\n"
               << "$ gdb -p " << getpid() << std::endl;
     std::string line;
@@ -35,4 +35,4 @@ FailMessageStream::~FailMessageStream() {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

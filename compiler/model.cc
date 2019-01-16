@@ -6,7 +6,7 @@
 #include <compiler/graph.h>
 #include <compiler/serializer_util.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Model::Model(const onnx::ModelProto& xmodel)
     : ir_version_(xmodel.ir_version()),
@@ -59,4 +59,4 @@ void Model::ResetGraph(Graph* graph) {
     graph_.reset(graph);
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

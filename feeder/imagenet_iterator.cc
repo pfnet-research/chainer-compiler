@@ -81,7 +81,7 @@ std::vector<chainerx::Array> ImageNetIterator::GetNextImpl() {
 }
 
 std::string ImageNetIterator::GetStatus() const {
-    return oniku::StrCat(iter_, "/", dataset_.size());
+    return chainer_compiler::StrCat(iter_, "/", dataset_.size());
 }
 
 std::vector<float> LoadMean(const std::string& filename, int height, int width) {

@@ -6,7 +6,7 @@
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ArgMaxOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
@@ -30,4 +30,4 @@ chainerx::Array HardmaxOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

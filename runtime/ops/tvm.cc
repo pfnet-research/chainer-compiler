@@ -1,4 +1,4 @@
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 #include <map>
 
 #include <chainerx/array.h>
@@ -22,10 +22,10 @@
 
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 
 namespace {
 
@@ -43,24 +43,24 @@ DLContext GetDLContext(const chainerx::Array& array) {
 
 DLDataType GetDLDataType(const chainerx::Array& array) {
     switch (array.dtype()) {
-    case chainerx::Dtype::kBool:
-        return DLDataType{kDLUInt, 1, 1};
-    case chainerx::Dtype::kInt8:
-        return DLDataType{kDLInt, 8, 1};
-    case chainerx::Dtype::kInt16:
-        return DLDataType{kDLInt, 16, 1};
-    case chainerx::Dtype::kInt32:
-        return DLDataType{kDLInt, 32, 1};
-    case chainerx::Dtype::kInt64:
-        return DLDataType{kDLInt, 64, 1};
-    case chainerx::Dtype::kUInt8:
-        return DLDataType{kDLUInt, 8, 1};
-    case chainerx::Dtype::kFloat32:
-        return DLDataType{kDLFloat, 32, 1};
-    case chainerx::Dtype::kFloat64:
-        return DLDataType{kDLFloat, 64, 1};
-    default:
-        CHECK(false) << array.dtype();
+        case chainerx::Dtype::kBool:
+            return DLDataType{kDLUInt, 1, 1};
+        case chainerx::Dtype::kInt8:
+            return DLDataType{kDLInt, 8, 1};
+        case chainerx::Dtype::kInt16:
+            return DLDataType{kDLInt, 16, 1};
+        case chainerx::Dtype::kInt32:
+            return DLDataType{kDLInt, 32, 1};
+        case chainerx::Dtype::kInt64:
+            return DLDataType{kDLInt, 64, 1};
+        case chainerx::Dtype::kUInt8:
+            return DLDataType{kDLUInt, 8, 1};
+        case chainerx::Dtype::kFloat32:
+            return DLDataType{kDLFloat, 32, 1};
+        case chainerx::Dtype::kFloat64:
+            return DLDataType{kDLFloat, 64, 1};
+        default:
+            CHECK(false) << array.dtype();
     }
     return DLDataType{};
 }
@@ -94,18 +94,20 @@ public:
 #endif
 
 void TVMOp::InitImpl() {
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
     impl_ = new TVMImpl();
     impl_->fn = LoadPackedFunc(dso_filename, func_name);
 #endif
 }
 
 TVMOp::~TVMOp() {
+#if CHAINER_COMPILER_ENABLE_TVM
     delete impl_;
+#endif
 }
 
-std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
-#if ONIKU_ENABLE_TVM
+std::vector<chainerx::Array> TVMOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+#if CHAINER_COMPILER_ENABLE_TVM
     CHECK(!inputs.empty());
     auto& device = orig_inputs[0].device();
 
@@ -153,9 +155,9 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
     return outputs;
 
 #else
-    CHECK(false) << "Set -DONIKU_ENABLE_TVM=ON: filename=" << dso_filename;
+    CHECK(false) << "Set -DCHAINER_COMPILER_ENABLE_TVM=ON: filename=" << dso_filename;
 #endif
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

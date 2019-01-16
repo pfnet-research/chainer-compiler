@@ -5,7 +5,7 @@
 #include <compiler/type.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 
 void XCVMValue::AddOutput(runtime::XCInstructionProto* inst) const {
@@ -20,5 +20,4 @@ void XCVMValue::AddOutput(runtime::XCInstructionProto* inst) const {
 }
 
 }  // namespace xcvm
-}  // namespace oniku
-
+}  // namespace chainer_compiler

@@ -4,7 +4,7 @@
 
 #include <compiler/tensor.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 void MakeHumanReadableValue(onnx::TensorProto* tensor) {
     if (tensor->raw_data().empty()) return;
@@ -42,4 +42,4 @@ void StripONNXModel(onnx::ModelProto* model) {
     StripONNXGraph(model->mutable_graph());
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

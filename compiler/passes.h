@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Model;
@@ -16,4 +16,4 @@ void RunLoopBodyPasses(Node* loop, const std::vector<Node*>& refs);
 
 void RunDefaultPassesBeforeGradient(Graph* graph);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

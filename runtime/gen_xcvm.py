@@ -3,9 +3,10 @@ import os
 import subprocess
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from oniku.common import codegen_util
-from oniku.runtime.xcvm_defs import *
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(project_root, 'common'))
+import codegen_util
+from xcvm_defs import *
 
 
 parser = argparse.ArgumentParser()
@@ -111,14 +112,14 @@ def gen_gen_xcvm_ops_h():
 #include <runtime/xcvm_state.h>
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 ''')
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 
@@ -311,7 +312,7 @@ def gen_gen_xcvm_ops_cc():
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 std::string StackVectorToString(const chainerx::StackVector<int64_t, chainerx::kMaxNdim>& s) {
@@ -338,7 +339,7 @@ std::string ArrayListToString(const std::vector<int>& s) {
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 

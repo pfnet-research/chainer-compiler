@@ -2,7 +2,7 @@
 
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 void MakeHumanReadableValue(onnx::TensorProto* tensor);
 
@@ -12,4 +12,4 @@ void StripONNXGraph(onnx::GraphProto* graph);
 
 void StripONNXModel(onnx::ModelProto* model);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

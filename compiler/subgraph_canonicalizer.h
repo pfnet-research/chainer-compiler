@@ -1,10 +1,10 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
 // Resolve references to values in enclosing scopes.
 void CanonicalizeSubGraphs(Graph* graph);
 
-}  // namespace oniku
+}  // namespace chainer_compiler
