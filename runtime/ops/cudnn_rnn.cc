@@ -1,4 +1,4 @@
-#if ONIKU_ENABLE_CUDNN
+#if CHAINER_COMPILER_ENABLE_CUDNN
 #include <chainerx/native/native_backend.h>
 
 #include <chainerx/cuda/cuda_device.h>
@@ -661,4 +661,4 @@ bool CudnnLSTMGrad(
 }  // namespace runtime
 }  // namespace oniku
 
-#endif  // ONIKU_ENABLE_CUDNN
+#endif  // CHAINER_COMPILER_ENABLE_CUDNN

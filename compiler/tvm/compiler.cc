@@ -2,7 +2,7 @@
 
 #include <common/log.h>
 
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +32,7 @@
 
 namespace oniku {
 
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 
 namespace {
 
@@ -343,7 +343,7 @@ private:
         return out;
     }
 
-#if ONIKU_ENABLE_PYTHON
+#if CHAINER_COMPILER_ENABLE_PYTHON
     const tvm::PackedFunc* Py(const char* func_name) {
         if (func_name == nullptr) {
             return nullptr;
@@ -369,11 +369,11 @@ private:
 
 void BuildTVMProgram(
     const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name) {
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
     TVMCompiler compiler;
     compiler.Build(nodes, id, inputs, outputs, filename, func_name);
 #else
-    CHECK(false) << "Enable -DONIKU_ENABLE_TVM=ON";
+    CHECK(false) << "Enable -DCHAINER_COMPILER_ENABLE_TVM=ON";
 #endif
 }
 

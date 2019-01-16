@@ -1,7 +1,7 @@
-get_filename_component(ONIKU_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
-set(GOOGLETEST_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/googletest/googletest/include)
+get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
+set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
 
-include_directories(${ONIKU_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_ROOT_DIR})
 add_library(oniku_common
   log.cc
   strutil.cc

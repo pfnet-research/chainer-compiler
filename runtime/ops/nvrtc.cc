@@ -4,7 +4,7 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/shape.h>
 
-#if ONIKU_ENABLE_NVRTC
+#if CHAINER_COMPILER_ENABLE_NVRTC
 #include <chainerx/cuda/cuda_device.h>
 #include <cuda.h>
 #include <nvrtc.h>
@@ -17,7 +17,7 @@
 namespace oniku {
 namespace runtime {
 
-#if ONIKU_ENABLE_NVRTC
+#if CHAINER_COMPILER_ENABLE_NVRTC
 
 namespace {
 
@@ -87,7 +87,7 @@ CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
 #endif
 
 std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
-#if ONIKU_ENABLE_NVRTC
+#if CHAINER_COMPILER_ENABLE_NVRTC
     CHECK(!inputs.empty());
     const std::string& name = StrCat("fusion", fusion_id);
     auto& device = dynamic_cast<chainerx::cuda::CudaDevice&>(orig_inputs[0].device());
@@ -156,7 +156,7 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
     return outputs;
 
 #else
-    CHECK(false) << "Set -DONIKU_ENABLE_NVRTC=ON: code=" << code;
+    CHECK(false) << "Set -DCHAINER_COMPILER_ENABLE_NVRTC=ON: code=" << code;
 #endif
 }
 

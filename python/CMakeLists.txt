@@ -1,5 +1,5 @@
-get_filename_component(ONIKU_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
-include_directories(${ONIKU_ROOT_DIR})
+get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
+include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR})
 
@@ -15,8 +15,8 @@ target_link_libraries(oniku_core.so
   onnx_proto
   protobuf
   pthread
-  ${ONIKU_TVM_LIBRARIES}
-  ${ONIKU_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_TVM_LIBRARIES}
+  ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
 set_target_properties(oniku_core.so
     PROPERTIES

@@ -1,4 +1,4 @@
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 #include <map>
 
 #include <chainerx/array.h>
@@ -25,7 +25,7 @@
 namespace oniku {
 namespace runtime {
 
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
 
 namespace {
 
@@ -94,7 +94,7 @@ public:
 #endif
 
 void TVMOp::InitImpl() {
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
     impl_ = new TVMImpl();
     impl_->fn = LoadPackedFunc(dso_filename, func_name);
 #endif
@@ -105,7 +105,7 @@ TVMOp::~TVMOp() {
 }
 
 std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
-#if ONIKU_ENABLE_TVM
+#if CHAINER_COMPILER_ENABLE_TVM
     CHECK(!inputs.empty());
     auto& device = orig_inputs[0].device();
 
@@ -153,7 +153,7 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
     return outputs;
 
 #else
-    CHECK(false) << "Set -DONIKU_ENABLE_TVM=ON: filename=" << dso_filename;
+    CHECK(false) << "Set -DCHAINER_COMPILER_ENABLE_TVM=ON: filename=" << dso_filename;
 #endif
 }
 

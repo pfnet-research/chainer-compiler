@@ -35,7 +35,7 @@ class Dtype(object):
     pass
 
 
-ONIKUX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0)
+CHAINER_COMPILERX_GLOBAL_ATTRS = attr_sets(chainer_order=-1, chainer_fusion_group=0)
 
 NODES = []
 
@@ -47,7 +47,7 @@ class NodeDef(object):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.attributes = kwargs
-        self.attributes.update(ONIKUX_GLOBAL_ATTRS)
+        self.attributes.update(CHAINER_COMPILERX_GLOBAL_ATTRS)
         self.attr_defs = {}  # To be filled after parsed.
         NODES.append(self)
 

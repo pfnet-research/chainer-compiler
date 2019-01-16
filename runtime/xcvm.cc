@@ -2,9 +2,9 @@
 
 #include <numeric>
 
-#ifdef ONIKU_ENABLE_NVTX
+#ifdef CHAINER_COMPILER_ENABLE_NVTX
 #include <nvToolsExt.h>
-#endif  // ONIKU_ENABLE_NVTX
+#endif  // CHAINER_COMPILER_ENABLE_NVTX
 
 #include <chainerx/array.h>
 
@@ -94,7 +94,7 @@ void XCVM::Run(XCVMState* state) {
 
         {
             ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name(), pc);
-#ifdef ONIKU_ENABLE_NVTX
+#ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
             try {
@@ -103,7 +103,7 @@ void XCVM::Run(XCVMState* state) {
                 std::cerr << "Exception in " << op->debug_info() << std::endl;
                 throw;
             }
-#ifdef ONIKU_ENABLE_NVTX
+#ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePop();
 #endif
         }

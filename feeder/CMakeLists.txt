@@ -1,16 +1,16 @@
-get_filename_component(ONIKU_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
-set(GOOGLETEST_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/googletest/googletest/include)
-set(GSLLITE_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/gsl-lite/include)
-set(OPTIONALLITE_INCLUDE_DIRS ${ONIKU_ROOT_DIR}/optional-lite/include)
+get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
+set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
+set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
+set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
-include_directories(${ONIKU_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 set(FEEDER_SRCS data_iterator.cc)
 set(FEEDER_TEST_SRCS data_iterator_test.cc)
-if(${ONIKU_ENABLE_OPENCV})
+if(${CHAINER_COMPILER_ENABLE_OPENCV})
   set(FEEDER_SRCS ${FEEDER_SRCS} imagenet_iterator.cc)
   set(FEEDER_TEST_SRCS ${FEEDER_TEST_SRCS} imagenet_iterator_test.cc)
 endif()
@@ -27,7 +27,7 @@ target_link_libraries(feeder_test
   gtest_main
   pthread
   ${OpenCV_LIBS}
-  ${ONIKU_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
 
 add_test(

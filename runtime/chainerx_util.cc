@@ -11,7 +11,7 @@
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
-#ifdef ONIKU_ENABLE_CUDA
+#ifdef CHAINER_COMPILER_ENABLE_CUDA
 #include <chainerx/cuda/cuda_device.h>
 #endif
 
@@ -161,7 +161,7 @@ chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::
 }
 
 bool IsCudaDevice(const chainerx::Device* device) {
-#ifdef ONIKU_ENABLE_CUDA
+#ifdef CHAINER_COMPILER_ENABLE_CUDA
     return dynamic_cast<const chainerx::cuda::CudaDevice*>(device) != nullptr;
 #else
     return false;
