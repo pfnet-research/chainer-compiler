@@ -171,8 +171,8 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
 
 }  // namespace
 
-PYBIND11_MODULE(oniku_core, m) {  // NOLINT
-    m.doc() = "oniku";
+PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
+    m.doc() = "chainer_compiler";
 
     InitGraph(m);
 

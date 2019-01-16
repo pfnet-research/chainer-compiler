@@ -14,7 +14,7 @@ sys.path.append(os.path.join(project_root, 'ch2o'))
 sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'build/python'))
 
-import oniku
+import chainer_compiler
 
 
 def aranges(xp, *shape):
@@ -25,7 +25,7 @@ def aranges(xp, *shape):
 def test_flatten():
     flat = [np.array(x) for x in [0, 1, 2, 3, 4]]
     nested = [flat[0], [flat[1]], [(flat[2], [flat[3], flat[4]])]]
-    assert flat == oniku._flatten(nested)
+    assert flat == chainer_compiler._flatten(nested)
 
 
 def test_unflatten():
@@ -33,7 +33,7 @@ def test_unflatten():
     expected = [flat[0], [flat[1]], [(flat[2], [flat[3], flat[4]])]]
     zero = np.array(0)
     tmpl = [zero, [zero], [(zero, [[zero], zero])]]
-    nested, i = oniku._unflatten(flat, tmpl)
+    nested, i = chainer_compiler._unflatten(flat, tmpl)
     assert expected == nested
     assert i == len(flat)
 
@@ -124,7 +124,7 @@ def test_mnist(device_name):
 
     expected_loss, expected_grads = _run_fwd_bwd(model, [input, target])
 
-    mlp_compiled = oniku.compile(mlp, [input])
+    mlp_compiled = chainer_compiler.compile(mlp, [input])
     model = L.Classifier(mlp_compiled)
     model.to_device(device)
 
@@ -159,7 +159,7 @@ def test_multi_in_outs(device_name):
 
     expected = model(*inputs)
 
-    model = oniku.compile(model, inputs)
+    model = chainer_compiler.compile(model, inputs)
     model.to_device(device)
 
     actual = model(*inputs)
@@ -192,7 +192,7 @@ def test_const_mul(device_name):
 
     expected = model(*inputs)
 
-    model = oniku.compile(model, inputs)
+    model = chainer_compiler.compile(model, inputs)
     model.to_device(device)
 
     actual = model(*inputs)
@@ -225,7 +225,7 @@ def test_sequence(device_name):
     xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
     expected = model(xs)
 
-    model = oniku.compile(model, [xs])
+    model = chainer_compiler.compile(model, [xs])
     model.to_device(device)
 
     xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
@@ -271,7 +271,7 @@ def test_sequence_grad(device_name):
 
     expected_ys, expected_grads = _run_fwd_bwd(model, [xs])
 
-    model = oniku.compile(model, [xs])
+    model = chainer_compiler.compile(model, [xs])
     model.to_device(device)
     actual_ys, actual_grads = _run_fwd_bwd(model, [xs])
 
@@ -329,7 +329,7 @@ def test_partially_differentiable(device_name):
     xs = aranges(device.xp, seq_length, batch_size, n_units)
     xs = [chainer.Variable(device.xp.array(x)) for x in xs]
 
-    model = oniku.compile(model, [xs, indices])
+    model = chainer_compiler.compile(model, [xs, indices])
     model.to_device(device)
     actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
     actual_gxs = [x.grad for x in xs]

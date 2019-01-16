@@ -4,7 +4,7 @@ import sys
 import tempfile
 
 import ch2o
-import oniku_core
+import chainer_compiler_core
 
 
 def _is_array(v):
@@ -78,8 +78,8 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
                 self.chainerx_device = v.device
             else:
                 assert self.chainerx_device == v.device
-            return oniku_core.value(v)
-        return oniku_core.value([self._to_var(a) for a in v])
+            return chainer_compiler_core.value(v)
+        return chainer_compiler_core.value([self._to_var(a) for a in v])
 
     def forward(self, flat_args):
         device = chainer.backend.get_device_from_array(*flat_args)
@@ -165,7 +165,7 @@ class CompiledModel(chainer.Chain):
         f.close()
         del xmodel
 
-        graph = oniku_core.load(f.name)
+        graph = chainer_compiler_core.load(f.name)
         os.unlink(f.name)
 
         self.orig_output_names = graph.output_names()
