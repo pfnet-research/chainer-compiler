@@ -4,10 +4,8 @@ import os
 import sys
 
 import numpy as np
-
 import onnx_chainer
-
-import npz_to_onnx
+from onnx import numpy_helper
 
 
 @contextlib.contextmanager
@@ -64,7 +62,7 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     makedirs(test_data_dir)
     for i, var in enumerate(list(inputs) + list(onnx_extra_inputs)):
         with open(os.path.join(test_data_dir, 'input_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx('Input_%d' % i, var.data)
+            t = numpy_helper.from_array(var.data, 'Input_%d' % i)
             f.write(t.SerializeToString())
 
     chainer.config.train = True
@@ -78,5 +76,5 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
         outputs.append(('grad_out@' + name, param.grad))
     for i, (name, value) in enumerate(outputs):
         with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
-            t = npz_to_onnx.np_array_to_onnx(name, value)
+            t = numpy_helper.from_array(value, name)
             f.write(t.SerializeToString())

@@ -5,7 +5,7 @@ add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/backprop_test_oc_stamp
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_backprop_tests_oc.py && touch ${CMAKE_CURRENT_BINARY_DIR}/backprop_test_oc_stamp
   MAIN_DEPENDENCY gen_backprop_tests_oc.py
-  DEPENDS onnx_chainer_util.py npz_to_onnx.py
+  DEPENDS onnx_chainer_util.py
   WORKING_DIRECTORY ${CHAINER_COMPILER_ROOT_DIR}
   )
 
@@ -29,7 +29,7 @@ add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mnist_mlp_stamp
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_mnist_mlp.py && touch ${CMAKE_CURRENT_BINARY_DIR}/mnist_mlp_stamp
   MAIN_DEPENDENCY gen_mnist_mlp.py
-  DEPENDS onnx_chainer_util.py npz_to_onnx.py
+  DEPENDS onnx_chainer_util.py
   WORKING_DIRECTORY ${CHAINER_COMPILER_ROOT_DIR}
   )
 
