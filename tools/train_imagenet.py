@@ -9,7 +9,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'build/tools'))
 
-import oniku_tvm
+import chainer_compiler_tvm
 
 import train_imagenet_core
 
@@ -23,7 +23,7 @@ def _get_args():
 
 
 def main():
-    oniku_tvm.init()
+    chainer_compiler_tvm.init()
     train_imagenet_core.train_imagenet(_get_args())
 
 
