@@ -55,4 +55,10 @@ def convert_model(model : 'chainer.Chain', args = []):
     else:
         ret_ = ret
 
+    for v in value_args:
+        graph.add_input_value(v)
+
+    for v in ret_:
+        graph.add_output_value(v)
+
     return (value_args, ret_, graph)

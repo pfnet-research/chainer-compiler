@@ -109,25 +109,24 @@ def assign_onnx_name(graph : 'graphs.Graph'):
         for subgraph in node.subgraphs:
             assign_onnx_name(subgraph)
 
-def preprocess(graph : 'graphs.Graph', is_if = False):
+def preprocess(graph : 'graphs.Graph'):
     
-    if is_if:
-        replacing = {}
-        for value in graph.output_values:
-            if value in graph.input_values:
-                copied_value = functions.generate_copied_value(value)
-                replacing[value] = copied_value
-                node = nodes.NodeCopy(value)
-                node.set_outputs([copied_value])
-                graph.add_node(node)
+    replacing = {}
+    for value in graph.output_values:
+        if value in graph.input_values:
+            copied_value = functions.generate_copied_value(value)
+            replacing[value] = copied_value
+            node = nodes.NodeCopy(value)
+            node.set_outputs([copied_value])
+            graph.add_node(node)
 
-        for i in range(len(graph.output_values)):
-            if graph.output_values[i] in replacing.keys():
-                graph.output_values[i] = replacing[graph.output_values[i]]
+    for i in range(len(graph.output_values)):
+        if graph.output_values[i] in replacing.keys():
+            graph.output_values[i] = replacing[graph.output_values[i]]
 
     for node in graph.nodes:
         for subgraph in node.subgraphs:
-            preprocess(subgraph, is_if=isinstance(node, nodes.NodeIf))
+            preprocess(subgraph)
 
 def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     chainer_inst = node.func.owner.inst # type: chainer.links.Linear
@@ -584,7 +583,7 @@ class ONNXGenerator:
         onnx_graph.set_input(inputs)
         onnx_graph.set_output(outputs)
 
-        return onnx_graph.generate_graph('main', isMain=isMain)
+        return onnx_graph.generate_graph(graph.name, isMain=isMain)
 
     def generate_model(self, inputs, outputs, graph)-> 'ModelProto':
         # assign names
@@ -613,15 +612,15 @@ def compile_model(model, inputs) -> 'ONNXModel':
     preprocess(graph_)
 
     generator = ONNXGenerator()
-    model = generator.generate_model(inputs_, outputs_, graph_)
+    model = generator.generate_model(graph_.input_values, graph_.output_values, graph_)
 
     # check inputs
     
 
     onnx_model = ONNXModel()
     onnx_model.model = model
-    onnx_model.inputs = inputs_
-    onnx_model.outputs = outputs_
+    onnx_model.inputs = graph_.input_values
+    onnx_model.outputs = graph_.output_values
     return onnx_model
 
 def save_model(path : 'str', model : 'ModelProto'):

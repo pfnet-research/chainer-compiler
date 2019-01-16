@@ -37,13 +37,6 @@ class D(chainer.Chain):
             o = i
         return o
 
-class UpdateSelf(chainer.Chain):
-    def forward(self, x):
-        self.x = x
-        for i in range(5):
-            self.x = self.x + i
-        return self.x
-
 class SimpleFunc(chainer.Chain):
     def forward(self):
         a,b = self.get_value()
@@ -87,6 +80,13 @@ class StaticCondTrue(chainer.Chain):
             x += 10
         return x
 
+class UpdateSelf(chainer.Chain):
+    def forward(self, x, cond):
+        self.x = x
+        if cond:
+            self.x += 10
+        return self.x
+
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
         print(node)
@@ -101,17 +101,16 @@ def export(model, args, path):
     # require graphviz
     visualizer.visualize(path, g)
     
+    onnx_model = elichika.compile_model(model, args)
+    elichika.save_model(path + '.onnx', onnx_model.model)
+    elichika.save_model_as_text(path + '.txt', onnx_model.model)
+
 if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
     #resnet50 = chainer.links.ResNet50Layers()
-    m = StaticCondTrue()
-    export(m, [1], 'result/StaticCondTrue')
+    export(UpdateSelf(), [42, True], 'result/UpdateSelf')
 
-    onnx_model = elichika.compile_model(m, [1])
-    elichika.save_model('result/StaticCondTrue.onnx', onnx_model.model)
-    elichika.save_model_as_text('result/StaticCondTrue.txt', onnx_model.model)
-    
     all = False
     if all:
         m = SimpleFunc()

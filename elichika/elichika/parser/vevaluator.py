@@ -261,12 +261,15 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     for attribute_pair in name2output_attributes.values():
         true_attribute, false_attribute = attribute_pair
         name = ''
+        parent = None # type: values.Field
 
         if true_attribute is not None:
             name = true_attribute.name
+            parent = true_attribute.parent
 
         if false_attribute is not None:
             name = false_attribute.name
+            parent = false_attribute.parent
 
         if true_attribute is not None:
             true_value = true_output_attributes_2_values[true_attribute]
@@ -293,22 +296,22 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             # dynamic
             value = functions.generateValueWithSameType(true_value)
             output_values.append(value)
-            local_field.get_attribute(name).revise(value)
+            parent.get_attribute(name).revise(value)
 
         elif true_attribute is not None and false_attribute is not None:
             # change both
             value = functions.generateValueWithSameType(true_value)
             output_values.append(value)
-            local_field.get_attribute(name).revise(value)
+            parent.get_attribute(name).revise(value)
 
         elif true_attribute in input_attributes:
             value = functions.generateValueWithSameType(true_value)
             output_values.append(value)
-            local_field.get_attribute(name).revise(value)
+            parent.get_attribute(name).revise(value)
         else:
             value = functions.generateValueWithSameType(false_value)
             output_values.append(value)
-            local_field.get_attribute(name).revise(value)
+            parent.get_attribute(name).revise(value)
 
     node = nodes.NodeIf(test.get_value(), input_values, true_graph, false_graph, astc.lineno)
     node.set_outputs(output_values)
@@ -468,7 +471,7 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     node_bin_op = nodes.NodeBinOp(left.get_value(), right.get_value(), binop, astc.lineno)
 
-    ret_value = veval_bin_op.veval(binop, left, right)
+    ret_value = veval_bin.veval(binop, left.get_value(), right.get_value())
 
     node_bin_op.set_outputs([ret_value])
     graph.add_node(node_bin_op)
