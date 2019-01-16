@@ -150,7 +150,7 @@ def gen_rnn_sentiment_test(cell_type,
         shape_v = gb.const(shape)
         h = gb.Reshape([h, shape_v])
         result_v = gb.Gemm([h, linear_w_v, linear_b_v])
-        loss_v = gb.OnikuxSoftmaxCrossEntropy([result_v, targets_v])
+        loss_v = gb.ChainerSoftmaxCrossEntropy([result_v, targets_v])
 
         if not output_loss_only:
             gb.output(rnn_outputs_v, rnn_outputs.array)

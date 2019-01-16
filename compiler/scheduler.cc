@@ -117,7 +117,7 @@ std::vector<Node*> ScheduleNaively(const Graph& graph, const std::vector<Value*>
     std::vector<Node*> nodes;
 
     auto schedule_node = [&nodes, &q](Node* node) {
-        if (node->onikux_order() < 0) nodes.push_back(node);
+        if (node->chainer_order() < 0) nodes.push_back(node);
         for (const Value* output : node->outputs()) {
             q.push(output);
         }
@@ -188,7 +188,7 @@ std::vector<Node*> ScheduleGreedy(const Graph& graph, const std::vector<Value*>&
     while (!q.empty()) {
         Node* node = q.begin()->second;
         q.erase(q.begin());
-        if (node->onikux_order() < 0) {
+        if (node->chainer_order() < 0) {
             nodes.push_back(node);
             has_already_scheduled_nodes = true;
         }
@@ -216,7 +216,7 @@ void CheckSanity(
 
     std::map<Node*, int> input_counts = graph.GetNecessaryNodesAndInputCounts(output_values);
     for (Node* node : graph.nodes()) {
-        if (node->onikux_order() > 0) input_counts.erase(node);
+        if (node->chainer_order() > 0) input_counts.erase(node);
     }
     for (Node* node : nodes) {
         input_counts.erase(node);
@@ -257,7 +257,7 @@ int64_t ScheduleComputation(
     CheckSanity(graph, input_values, output_values, nodes);
 
     for (Node* node : nodes) {
-        node->set_onikux_order(++order);
+        node->set_chainer_order(++order);
     }
 
     if (g_compiler_log) {

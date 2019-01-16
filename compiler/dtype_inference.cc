@@ -134,8 +134,8 @@ void InferDtype(Node* node) {
         case Node::kConcat:
         case Node::kMatMul:
         case Node::kGemm:
-        case Node::kOnikuxLinear:
-        case Node::kOnikuxLinearGradWeight: {
+        case Node::kChainerLinear:
+        case Node::kChainerLinearGradWeight: {
             set(0, coerce());
             break;
         }
@@ -176,14 +176,14 @@ void InferDtype(Node* node) {
 
         case Node::kReshape:
         case Node::kExpand:
-        case Node::kOnikuxReduceSumTo: {
+        case Node::kChainerReduceSumTo: {
             CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->ToString();
             set(0, in0);
             break;
         }
 
         case Node::kGather:
-        case Node::kOnikuxSelectItem: {
+        case Node::kChainerSelectItem: {
             // TODO(hamaji): Need an update for the Python compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
             // node->ToString();
@@ -191,7 +191,7 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxGatherGrad:
+        case Node::kChainerGatherGrad:
             // TODO(hamaji): Check for other inputs.
             set(0, in0);
             break;
@@ -207,14 +207,14 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxLSTMGrad: {
+        case Node::kChainerLSTMGrad: {
             // TODO(hamaji): Implement this.
             break;
         }
 
         case Node::kConv:
         case Node::kConvTranspose:
-        case Node::kOnikuxConvGradWeight: {
+        case Node::kChainerConvGradWeight: {
             Dtype dtype = CoerceDtype(in0, in1);
             if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
             oset(0, dtype);
@@ -228,7 +228,7 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxSoftmaxCrossEntropy: {
+        case Node::kChainerSoftmaxCrossEntropy: {
             // TODO(hamaji): Probably, better to fix the compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
             // node->ToString();
@@ -236,15 +236,15 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxMaxPoolGrad:
-        case Node::kOnikuxAveragePoolGrad:
-        case Node::kOnikuxReluGrad:
-        case Node::kOnikuxLRNGrad: {
+        case Node::kChainerMaxPoolGrad:
+        case Node::kChainerAveragePoolGrad:
+        case Node::kChainerReluGrad:
+        case Node::kChainerLRNGrad: {
             set(0, coerce());
             break;
         }
 
-        case Node::kOnikuxBatchNormalizationGrad: {
+        case Node::kChainerBatchNormalizationGrad: {
             Dtype dtype = coerce();
             set(0, dtype);
             set(1, dtype);
@@ -252,13 +252,13 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxConvTransposeWithDynamicOutputShape: {
+        case Node::kChainerConvTransposeWithDynamicOutputShape: {
             CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in1.ToString() << " in " << node->ToString();
             set(0, CoerceDtype(in0, in1));
             break;
         }
 
-        case Node::kOnikuxSelectItemGrad: {
+        case Node::kChainerSelectItemGrad: {
             // TODO(hamaji): Probably, better to fix the compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
             // node->ToString();
@@ -296,7 +296,7 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxFusionGroup: {
+        case Node::kChainerFusionGroup: {
             // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
             break;
         }
@@ -326,34 +326,34 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOnikuxPrint:
+        case Node::kChainerPrint:
             break;
 
-        case Node::kOnikuxNullConstant:
-        case Node::kOnikuxDynamicSliceGrad:
-        case Node::kOnikuxSequenceConstants:
-        case Node::kOnikuxSequenceCreate:
-        case Node::kOnikuxSequenceAppend:
-        case Node::kOnikuxSequencePop:
-        case Node::kOnikuxSequenceLookup:
-        case Node::kOnikuxSequenceLookupGrad:
-        case Node::kOnikuxSequenceStack:
-        case Node::kOnikuxSequenceConcat:
-        case Node::kOnikuxSequenceSplitAxis:
-        case Node::kOnikuxSequenceSeparate:
-        case Node::kOnikuxSequenceUnpad:
-        case Node::kOnikuxSequenceLengths:
-        case Node::kOnikuxSequenceSize:
-        case Node::kOnikuxSequencePad:
-        case Node::kOnikuxSequenceRange:
-        case Node::kOnikuxSequenceGetSlice:
-        case Node::kOnikuxSequenceGetSliceGrad:
-        case Node::kOnikuxGenericLen:
-        case Node::kOnikuxGenericGetItem:
-        case Node::kOnikuxGenericGetSlice:
-        case Node::kOnikuxGenericAdd:
-        case Node::kOnikuxGenericAccumulateGrad:
-        case Node::kOnikuxGenericIs: {
+        case Node::kChainerNullConstant:
+        case Node::kChainerDynamicSliceGrad:
+        case Node::kChainerSequenceConstants:
+        case Node::kChainerSequenceCreate:
+        case Node::kChainerSequenceAppend:
+        case Node::kChainerSequencePop:
+        case Node::kChainerSequenceLookup:
+        case Node::kChainerSequenceLookupGrad:
+        case Node::kChainerSequenceStack:
+        case Node::kChainerSequenceConcat:
+        case Node::kChainerSequenceSplitAxis:
+        case Node::kChainerSequenceSeparate:
+        case Node::kChainerSequenceUnpad:
+        case Node::kChainerSequenceLengths:
+        case Node::kChainerSequenceSize:
+        case Node::kChainerSequencePad:
+        case Node::kChainerSequenceRange:
+        case Node::kChainerSequenceGetSlice:
+        case Node::kChainerSequenceGetSliceGrad:
+        case Node::kChainerGenericLen:
+        case Node::kChainerGenericGetItem:
+        case Node::kChainerGenericGetSlice:
+        case Node::kChainerGenericAdd:
+        case Node::kChainerGenericAccumulateGrad:
+        case Node::kChainerGenericIs: {
             // TODO(hamaji): Consider implementing dtype inference for sequences.
             break;
         }

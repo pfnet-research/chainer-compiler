@@ -83,7 +83,7 @@ bool ReplaceReduceMin(Graph* graph, Node* node) {
 bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftmaxCrossEntropy", node->outputs()[0]);
     Value* log_softmax = gb.Op(Node::kLogSoftmax, {node->inputs()[0]});
-    Value* log_prob = gb.Op(Node::kOnikuxSelectItem, {log_softmax, node->inputs()[1]});
+    Value* log_prob = gb.Op(Node::kChainerSelectItem, {log_softmax, node->inputs()[1]});
     // TODO(hamaji): Just use ReduceSum for all axes and then divide
     // the result by the batch_size.
     Value* t0 = gb.Op(Node::kReduceMean, {log_prob});
@@ -97,7 +97,7 @@ bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
 bool ReplaceConstant(Graph* graph, Node* node) {
     // Do not move host Constant to initializer. They should be small
     // and cheap to initialize.
-    if (node->onikux_host()) return false;
+    if (node->chainer_host()) return false;
     // TODO(hamaji): Use GraphBuilder.
     const std::string& name = StrCat("SimplifyConstant_", node->outputs()[0]->name());
     Tensor* tensor = node->tensor_value().get();
@@ -282,7 +282,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
         Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);
         loop->set_body(scan->release_body());
-        loop->set_onikux_stack_axis(1);
+        loop->set_chainer_stack_axis(1);
     }
 
     return true;
@@ -442,7 +442,7 @@ bool ReplaceMaxPool(Graph* graph, Node* node) {
 
     gb.Op(Node::kMaxPool, {padded}, node->outputs()[0])
             ->producer()
-            ->set_onikux_cover_all(node->onikux_cover_all())
+            ->set_chainer_cover_all(node->chainer_cover_all())
             ->set_auto_pad(node->auto_pad())
             ->set_kernel_shape(node->kernel_shape())
             ->set_storage_order(node->storage_order())
@@ -473,11 +473,11 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
 
 bool ReplaceConcat(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyConcat", node->outputs()[0]);
-    Value* seq = gb.Op(Node::kOnikuxSequenceCreate, {});
+    Value* seq = gb.Op(Node::kChainerSequenceCreate, {});
     for (Value* v : node->inputs()) {
-        seq = gb.Op(Node::kOnikuxSequenceAppend, {seq, v});
+        seq = gb.Op(Node::kChainerSequenceAppend, {seq, v});
     }
-    gb.Op(Node::kOnikuxSequenceConcat, {seq}, node->outputs()[0])->producer()->set_axis(node->axis());
+    gb.Op(Node::kChainerSequenceConcat, {seq}, node->outputs()[0])->producer()->set_axis(node->axis());
     return true;
 }
 
@@ -617,7 +617,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kMin, ReplaceMin).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
-    CHECK(simplifiers.emplace(Node::kOnikuxSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
+    CHECK(simplifiers.emplace(Node::kChainerSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
     // TODO(hamaji): Revive Scan.
     // CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
     CHECK(simplifiers.emplace(Node::kGlobalMaxPool, ReplaceGlobalMaxPool).second);
@@ -642,8 +642,8 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
         }
     };
 
-    replace_if_not_supported(Node::kOnikuxLinear, ReplaceLinear);
-    replace_if_not_supported(Node::kOnikuxSelectItem, ReplaceSelectItem);
+    replace_if_not_supported(Node::kChainerLinear, ReplaceLinear);
+    replace_if_not_supported(Node::kChainerSelectItem, ReplaceSelectItem);
 
     // These passes are workarounds for backends such as Chainer which
     // do not support pooling with imbalanced padding.

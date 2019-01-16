@@ -56,43 +56,43 @@ public:
         CHECK(op_set_.emplace(Node::kNeg).second);
         CHECK(op_set_.emplace(Node::kNot).second);
         CHECK(op_set_.emplace(Node::kOneHot).second);
-        CHECK(op_set_.emplace(Node::kOnikuxAveragePoolGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxBatchNormalizationGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxConvGradWeight).second);
-        CHECK(op_set_.emplace(Node::kOnikuxConvTransposeWithDynamicOutputShape).second);
-        CHECK(op_set_.emplace(Node::kOnikuxDynamicSliceGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxFusionGroup).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGatherGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGenericAccumulateGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGenericAdd).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGenericGetItem).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGenericGetSlice).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGenericIs).second);
-        CHECK(op_set_.emplace(Node::kOnikuxGenericLen).second);
-        CHECK(op_set_.emplace(Node::kOnikuxLRNGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxLSTMGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxMaxPoolGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxNullConstant).second);
-        CHECK(op_set_.emplace(Node::kOnikuxPrint).second);
-        CHECK(op_set_.emplace(Node::kOnikuxReduceSumTo).second);
-        CHECK(op_set_.emplace(Node::kOnikuxReluGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceAppend).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceConcat).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceConstants).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceCreate).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceGetSlice).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceGetSliceGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceLengths).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceLookup).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceLookupGrad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequencePad).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequencePop).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceRange).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceSeparate).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceSize).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceSplitAxis).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceStack).second);
-        CHECK(op_set_.emplace(Node::kOnikuxSequenceUnpad).second);
+        CHECK(op_set_.emplace(Node::kChainerAveragePoolGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerBatchNormalizationGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerConvGradWeight).second);
+        CHECK(op_set_.emplace(Node::kChainerConvTransposeWithDynamicOutputShape).second);
+        CHECK(op_set_.emplace(Node::kChainerDynamicSliceGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerFusionGroup).second);
+        CHECK(op_set_.emplace(Node::kChainerGatherGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerGenericAccumulateGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerGenericAdd).second);
+        CHECK(op_set_.emplace(Node::kChainerGenericGetItem).second);
+        CHECK(op_set_.emplace(Node::kChainerGenericGetSlice).second);
+        CHECK(op_set_.emplace(Node::kChainerGenericIs).second);
+        CHECK(op_set_.emplace(Node::kChainerGenericLen).second);
+        CHECK(op_set_.emplace(Node::kChainerLRNGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerLSTMGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerMaxPoolGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerNullConstant).second);
+        CHECK(op_set_.emplace(Node::kChainerPrint).second);
+        CHECK(op_set_.emplace(Node::kChainerReduceSumTo).second);
+        CHECK(op_set_.emplace(Node::kChainerReluGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceAppend).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceConcat).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceConstants).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceCreate).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceGetSlice).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceGetSliceGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceLengths).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceLookup).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceLookupGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerSequencePad).second);
+        CHECK(op_set_.emplace(Node::kChainerSequencePop).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceRange).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceSeparate).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceSize).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceSplitAxis).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceStack).second);
+        CHECK(op_set_.emplace(Node::kChainerSequenceUnpad).second);
         CHECK(op_set_.emplace(Node::kOr).second);
         CHECK(op_set_.emplace(Node::kPad).second);
         CHECK(op_set_.emplace(Node::kPow).second);
@@ -121,11 +121,11 @@ public:
 
         if (diversed) {
             // SelectItem seemed to be slow on GPU.
-            CHECK(op_set_.emplace(Node::kOnikuxSelectItem).second);
-            CHECK(op_set_.emplace(Node::kOnikuxSelectItemGrad).second);
+            CHECK(op_set_.emplace(Node::kChainerSelectItem).second);
+            CHECK(op_set_.emplace(Node::kChainerSelectItemGrad).second);
         } else {
-            CHECK(op_set_.emplace(Node::kOnikuxLinear).second);
-            CHECK(op_set_.emplace(Node::kOnikuxLinearGradWeight).second);
+            CHECK(op_set_.emplace(Node::kChainerLinear).second);
+            CHECK(op_set_.emplace(Node::kChainerLinearGradWeight).second);
         }
     }
 

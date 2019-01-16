@@ -18,8 +18,8 @@ bool HasConstantInputsOnly(const Node& node) {
     if (node.inputs().empty()) return false;
     for (Value* input : node.inputs()) {
         if (input->producer() &&
-            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kOnikuxSequenceConstants ||
-             input->producer()->op_type() == Node::kOnikuxSequenceCreate)) {
+            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kChainerSequenceConstants ||
+             input->producer()->op_type() == Node::kChainerSequenceCreate)) {
         } else {
             return false;
         }
@@ -43,7 +43,7 @@ void DoConstantPropagation(Graph* graph, Node* node) {
         if (next_value->is_tensor()) {
             gb.Op(Node::kConstant, {}, node->outputs()[i])->producer()->set_tensor_value(next_value->ReleaseTensor());
         } else {
-            gb.Op(Node::kOnikuxSequenceConstants, {}, node->outputs()[i])->producer()->set_tensor_values(next_value->ReleaseSequence());
+            gb.Op(Node::kChainerSequenceConstants, {}, node->outputs()[i])->producer()->set_tensor_values(next_value->ReleaseSequence());
         }
     }
 
@@ -63,16 +63,16 @@ bool MaybePropagateConstant(Graph* graph, Node* node) {
         case Node::kSub:
         case Node::kMul:
         case Node::kDiv:
-        case Node::kOnikuxGenericIs:
-        case Node::kOnikuxGenericLen:
+        case Node::kChainerGenericIs:
+        case Node::kChainerGenericLen:
         case Node::kShape:
         case Node::kUnsqueeze:
         case Node::kGather:
         case Node::kCast:
-        case Node::kOnikuxSequenceAppend:
-        case Node::kOnikuxSequenceConcat:
-        case Node::kOnikuxSequenceStack:
-        case Node::kOnikuxSequenceRange: {
+        case Node::kChainerSequenceAppend:
+        case Node::kChainerSequenceConcat:
+        case Node::kChainerSequenceStack:
+        case Node::kChainerSequenceRange: {
             DoConstantPropagation(graph, node);
             return true;
         }

@@ -248,7 +248,7 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
             }
         }
 
-        // Nodes without any outputs are always necessary (e.g., OnikuxPrint).
+        // Nodes without any outputs are always necessary (e.g., ChainerPrint).
         for (const Value* output : node->outputs()) {
             for (Node* node : output->users()) {
                 if (node->outputs().empty()) q.push(node);
@@ -261,9 +261,9 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
 std::vector<const Node*> Graph::GetComputationSequence() const {
     std::vector<const Node*> nodes;
     for (const Node* node : nodes_) {
-        if (node->onikux_order() >= 0) nodes.push_back(node);
+        if (node->chainer_order() >= 0) nodes.push_back(node);
     }
-    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->onikux_order() < b->onikux_order(); });
+    std::sort(nodes.begin(), nodes.end(), [](const Node* a, const Node* b) { return a->chainer_order() < b->chainer_order(); });
     return nodes;
 }
 

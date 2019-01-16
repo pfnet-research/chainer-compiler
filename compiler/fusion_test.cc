@@ -19,7 +19,7 @@ TEST(FusionTest, Basic) {
     FuseOperations(&graph);
     ASSERT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kOnikuxFusionGroup, node.op_type());
+    ASSERT_EQ(Node::kChainerFusionGroup, node.op_type());
     ASSERT_TRUE(node.subgraph());
     EXPECT_EQ(2, node.subgraph()->nodes().size());
     graph.CheckSanity("fused");

@@ -23,7 +23,7 @@ namespace {
 
 void CollectGarbageNode(Graph* graph) {
     for (Node* node : graph->nodes()) {
-        if (node->onikux_order() <= 0) graph->DetachNode(node);
+        if (node->chainer_order() <= 0) graph->DetachNode(node);
     }
     graph->DeleteDetached();
 }

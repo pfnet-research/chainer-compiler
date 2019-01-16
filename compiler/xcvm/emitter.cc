@@ -41,7 +41,7 @@ std::vector<int> IntVector(const std::vector<int64_t>& ints) {
 void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto* prog) {
     runtime::XCInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
     inst->set_debug_info(debug_info);
-    inst->set_id(node.onikux_order());
+    inst->set_id(node.chainer_order());
 }
 
 class XCVMEmitter {
@@ -231,15 +231,15 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kPow, Pow);
         EMIT_SIMPLE_BINARY_OP(Node::kEqual, Equal);
         EMIT_SIMPLE_BINARY_OP(Node::kGreater, Greater);
-        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxGenericIs, GenericIs);
+        EMIT_SIMPLE_BINARY_OP(Node::kChainerGenericIs, GenericIs);
         EMIT_SIMPLE_BINARY_OP(Node::kAnd, And);
         EMIT_SIMPLE_BINARY_OP(Node::kOr, Or);
         EMIT_SIMPLE_BINARY_OP(Node::kXor, Xor);
 
-        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxReluGrad, ReluGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxMaxPoolGrad, MaxPoolGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxAveragePoolGrad, AveragePoolGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kOnikuxSelectItem, SelectItem);
+        EMIT_SIMPLE_BINARY_OP(Node::kChainerReluGrad, ReluGrad);
+        EMIT_SIMPLE_BINARY_OP(Node::kChainerMaxPoolGrad, MaxPoolGrad);
+        EMIT_SIMPLE_BINARY_OP(Node::kChainerAveragePoolGrad, AveragePoolGrad);
+        EMIT_SIMPLE_BINARY_OP(Node::kChainerSelectItem, SelectItem);
 
         if (node.op_type() == Node::kDropout) {
             CHECK_EQ(1UL, node.inputs().size());
@@ -261,9 +261,9 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
             EMIT(Elu, out(0), in(0), node.alpha());
-        } else if (node.op_type() == Node::kOnikuxLinear) {
+        } else if (node.op_type() == Node::kChainerLinear) {
             EMIT(Linear, out(0), in(0), in(1), oin(2), node.n_batch_axes());
-        } else if (node.op_type() == Node::kOnikuxLinearGradWeight) {
+        } else if (node.op_type() == Node::kChainerLinearGradWeight) {
             EMIT(LinearGradWeight, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kConv) {
             CHECK_LE(2UL, node.inputs().size());
@@ -281,11 +281,11 @@ private:
             // TODO(hamaji): Handle output_padding and output_shape.
             std::vector<int> output_shape(IntVector(node.output_shape()));
             EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), output_shape);
-        } else if (node.op_type() == Node::kOnikuxConvTransposeWithDynamicOutputShape) {
+        } else if (node.op_type() == Node::kChainerConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads());
-        } else if (node.op_type() == Node::kOnikuxConvGradWeight) {
+        } else if (node.op_type() == Node::kChainerConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(ChainerX): Support dilation.
@@ -331,7 +331,7 @@ private:
                  oin(7),
                  node.hidden_size(),
                  direction());
-        } else if (node.op_type() == Node::kOnikuxLSTMGrad) {
+        } else if (node.op_type() == Node::kChainerLSTMGrad) {
             EMIT(LSTMGrad, out(0), out(1), out(2), out(3), in(0), in(1));
         } else if (node.op_type() == Node::kShape) {
             CHECK_EQ(1UL, node.inputs().size());
@@ -405,7 +405,7 @@ private:
             } else {
                 EMIT(LRN, out(0), out(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
             }
-        } else if (node.op_type() == Node::kOnikuxLRNGrad) {
+        } else if (node.op_type() == Node::kChainerLRNGrad) {
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kPad) {
             CHECK_EQ(1UL, node.inputs().size());
@@ -417,12 +417,12 @@ private:
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
-                EMIT(MaxPool, out(0), tmp_id, in(0), IntVector(node.kernel_shape()), strides(), pads(), node.onikux_cover_all());
+                EMIT(MaxPool, out(0), tmp_id, in(0), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
                 FREE(tmp_id);
             } else {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.outputs()[1]->IsNull());
-                EMIT(MaxPool, out(0), out(2), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.onikux_cover_all());
+                EMIT(MaxPool, out(0), out(2), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
             }
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
@@ -467,7 +467,7 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumSquare, out(0), in(0), IntVector(node.axes()), node.keepdims());
-        } else if (node.op_type() == Node::kOnikuxReduceSumTo) {
+        } else if (node.op_type() == Node::kChainerReduceSumTo) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumTo, out(0), in(0), in(1));
@@ -531,17 +531,17 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Transpose, out(0), in(0), IntVector(node.perm()));
-        } else if (node.op_type() == Node::kOnikuxBatchNormalizationGrad) {
+        } else if (node.op_type() == Node::kChainerBatchNormalizationGrad) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(3UL, node.outputs().size());
             EMIT(BatchNormalizationGrad, out(0), out(1), out(2), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxSelectItemGrad) {
+        } else if (node.op_type() == Node::kChainerSelectItemGrad) {
             EMIT(SelectItemGrad, out(0), in(0), in(1), in(2));
-        } else if (node.op_type() == Node::kOnikuxGatherGrad) {
+        } else if (node.op_type() == Node::kChainerGatherGrad) {
             EMIT(GatherGrad, out(0), in(0), in(1), in(2), node.axis());
-        } else if (node.op_type() == Node::kOnikuxDynamicSliceGrad) {
+        } else if (node.op_type() == Node::kChainerDynamicSliceGrad) {
             EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4));
-        } else if (node.op_type() == Node::kOnikuxFusionGroup) {
+        } else if (node.op_type() == Node::kChainerFusionGroup) {
             EmitFusionGroup(node, prog);
         } else if (node.op_type() == Node::kIf) {
             EmitIf(node, prog);
@@ -549,19 +549,19 @@ private:
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
-        } else if (node.op_type() == Node::kOnikuxSequenceConstants) {
+        } else if (node.op_type() == Node::kChainerSequenceConstants) {
             EmitConstantSequence(node, prog);
-        } else if (node.op_type() == Node::kOnikuxPrint) {
+        } else if (node.op_type() == Node::kChainerPrint) {
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Print, ins);
-        } else if (node.op_type() == Node::kOnikuxSequenceCreate) {
+        } else if (node.op_type() == Node::kChainerSequenceCreate) {
             EMIT(SequenceCreate, out(0));
-        } else if (node.op_type() == Node::kOnikuxSequenceSize) {
+        } else if (node.op_type() == Node::kChainerSequenceSize) {
             EMIT(SequenceSize, out(0), in(0));
-        } else if (node.op_type() == Node::kOnikuxSequenceLengths) {
+        } else if (node.op_type() == Node::kChainerSequenceLengths) {
             EMIT(SequenceLengths, out(0), in(0));
-        } else if (node.op_type() == Node::kOnikuxSequenceAppend) {
+        } else if (node.op_type() == Node::kChainerSequenceAppend) {
             XCVMValue o(out(0));
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
@@ -571,7 +571,7 @@ private:
                 EMIT(SequenceCopy, o, in(0));
                 EMIT(SequenceAppend, o.id(), in(1));
             }
-        } else if (node.op_type() == Node::kOnikuxSequencePop) {
+        } else if (node.op_type() == Node::kChainerSequencePop) {
             XCVMValue o0(out(0));
             if (node.inputs()[0]->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
@@ -581,17 +581,17 @@ private:
                 EMIT(SequenceCopy, o0, in(0));
                 EMIT(SequencePop, out(1), o0.id());
             }
-        } else if (node.op_type() == Node::kOnikuxSequenceLookup) {
+        } else if (node.op_type() == Node::kChainerSequenceLookup) {
             EMIT(SequenceLookup, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxSequenceGetSlice) {
+        } else if (node.op_type() == Node::kChainerSequenceGetSlice) {
             EMIT(SequenceGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
-        } else if (node.op_type() == Node::kOnikuxSequenceLookupGrad) {
+        } else if (node.op_type() == Node::kChainerSequenceLookupGrad) {
             EMIT(SequenceLookupGrad, out(0), in(0), in(1), in(2));
-        } else if (node.op_type() == Node::kOnikuxSequenceGetSliceGrad) {
+        } else if (node.op_type() == Node::kChainerSequenceGetSliceGrad) {
             EMIT(SequenceGetSliceGrad, out(0), in(0), in(1), oin(2), oin(3), oin(4));
-        } else if (node.op_type() == Node::kOnikuxSequenceStack) {
+        } else if (node.op_type() == Node::kChainerSequenceStack) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
-        } else if (node.op_type() == Node::kOnikuxSequenceConcat) {
+        } else if (node.op_type() == Node::kChainerSequenceConcat) {
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
                 EMIT(SequenceConcat, out(0), tmp_id, in(0), node.axis());
@@ -599,27 +599,27 @@ private:
             } else {
                 EMIT(SequenceConcat, out(0), out(1), in(0), node.axis());
             }
-        } else if (node.op_type() == Node::kOnikuxSequenceSplitAxis) {
+        } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
             EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
-        } else if (node.op_type() == Node::kOnikuxSequenceSeparate) {
+        } else if (node.op_type() == Node::kChainerSequenceSeparate) {
             EMIT(SequenceSeparate, out(0), in(0), node.axis());
-        } else if (node.op_type() == Node::kOnikuxSequenceUnpad) {
+        } else if (node.op_type() == Node::kChainerSequenceUnpad) {
             EMIT(SequenceUnpad, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxSequencePad) {
+        } else if (node.op_type() == Node::kChainerSequencePad) {
             EMIT(SequencePad, out(0), in(0), node.length(), node.value());
-        } else if (node.op_type() == Node::kOnikuxSequenceRange) {
+        } else if (node.op_type() == Node::kChainerSequenceRange) {
             EMIT(SequenceRange, out(0), in(0), oin(1), oin(2));
-        } else if (node.op_type() == Node::kOnikuxGenericLen) {
+        } else if (node.op_type() == Node::kChainerGenericLen) {
             EMIT(GenericLen, out(0), in(0));
-        } else if (node.op_type() == Node::kOnikuxGenericGetItem) {
+        } else if (node.op_type() == Node::kChainerGenericGetItem) {
             EMIT(GenericGetItem, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxGenericGetSlice) {
+        } else if (node.op_type() == Node::kChainerGenericGetSlice) {
             EMIT(GenericGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
-        } else if (node.op_type() == Node::kOnikuxGenericAdd) {
+        } else if (node.op_type() == Node::kChainerGenericAdd) {
             EMIT(GenericAdd, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxGenericAccumulateGrad) {
+        } else if (node.op_type() == Node::kChainerGenericAccumulateGrad) {
             EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
-        } else if (node.op_type() == Node::kOnikuxNullConstant) {
+        } else if (node.op_type() == Node::kChainerNullConstant) {
             EMIT(NullConstant, out(0));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
@@ -677,7 +677,7 @@ private:
         CHECK_EQ(1, node.outputs().size());
         int out = GetValueId(node.outputs()[0]);
         Tensor* value = node.tensor_value().get();
-        EmitConstantImpl(node, value, out, node.onikux_host(), prog);
+        EmitConstantImpl(node, value, out, node.chainer_host(), prog);
     }
 
     void EmitConstantSequence(const Node& node, XCProgramProto* prog) {
@@ -770,7 +770,7 @@ private:
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
             std::string func_name;
-            BuildTVMProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
+            BuildTVMProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
             if (g_compiler_log) {
                 // TODO(hamaji): Show more code.
                 CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << " => " << dso_filename << std::endl;
@@ -796,7 +796,7 @@ private:
 
         if (g_use_nvrtc && node.fusion_type() == "nvrtc") {
             std::string nvrtc;
-            BuildNvrtcProgram(body.nodes(), node.onikux_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
+            BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
             if (g_compiler_log) {
                 CLOG() << "Fusion group (NVRTC) " << GetFusionGroupSummary(node) << std::endl;
                 CLOG() << nvrtc;
@@ -810,7 +810,7 @@ private:
             for (Value* value : node.outputs()) {
                 outputs.emplace_back(GetValueId(value), value);
             }
-            EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.onikux_fusion_group());
+            EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.chainer_fusion_group());
             return;
         }
 
@@ -1067,7 +1067,7 @@ private:
         for (int i = 0; i < num_scans; ++i) {
             CHECK_LT(i + num_states, loop.outputs().size());
             const Value* loop_out = loop.outputs()[i + num_states];
-            EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.onikux_stack_axis());
+            EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.chainer_stack_axis());
             FREE(scan_out_ids[i]);
         }
 

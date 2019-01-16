@@ -97,7 +97,7 @@ class Value(object):
             self.is_py = False
         else:
             if self.is_sequence():
-                self.value = env.calc('OnikuxSequenceStack',
+                self.value = env.calc('ChainerSequenceStack',
                                       inputs=[self.value.name])
                 self.is_py = False
 
@@ -119,20 +119,20 @@ class Value(object):
             if not isinstance(self.value, collections.Iterable):
                 raise TypeError('Expected a sequence: %s' % self.value)
             res = env.calc_seq(
-                "OnikuxSequenceCreate",
+                "ChainerSequenceCreate",
                 inputs=[],
             )
             for v in self.value:
                 v = Value(v).to_tensor(env)
                 res = env.calc_seq(
-                    "OnikuxSequenceAppend",
+                    "ChainerSequenceAppend",
                     inputs=[res.name, v.name],
                 )
             self.value = res
             self.is_py = False
         elif self.is_tensor():
             self.value = env.calc_seq(
-                'OnikuxSequenceSeparate',
+                'ChainerSequenceSeparate',
                 inputs=[self.value.name]
             )
 

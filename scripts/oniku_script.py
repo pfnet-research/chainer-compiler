@@ -43,7 +43,7 @@ def make_constant_sequence_node(name, typ, values):
         tensor = onnx.helper.make_tensor('%s_%d' % (name, i), typ,
                                          value.shape, value.flat)
         tensor_values.append(tensor)
-    node = onnx.helper.make_node('OnikuxSequenceConstants',
+    node = onnx.helper.make_node('ChainerSequenceConstants',
                                  inputs=[], outputs=[name],
                                  tensor_values=tensor_values)
     return node

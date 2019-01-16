@@ -471,9 +471,9 @@ class ONNXGenerator:
                     op_str = 'Greater'
                     op_not = True
                 if node_.compare == nodes.CompareType.Is:
-                    op_str = 'OnikuxGenericIs'
+                    op_str = 'ChainerGenericIs'
                 if node_.compare == nodes.CompareType.IsNot:
-                    op_str = 'OnikuxGenericIs'
+                    op_str = 'ChainerGenericIs'
                     op_not = True
 
                 if op_not:
@@ -489,7 +489,7 @@ class ONNXGenerator:
             if isinstance(node, nodes.NodeGetItem):
                 node_ = node # type: nodes.NodeGetItem
                 onnx_node = oh.make_node(
-                    'OnikuxGenericGetItem',
+                    'ChainerGenericGetItem',
                     [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.index].onnx_name], 
                     [value2onnx_parameter[node.outputs[0]].onnx_name])
                 onnx_graph.nodes.append(onnx_node)
@@ -565,7 +565,7 @@ class ONNXGenerator:
                 node_ = node # type: nodes.NodeGenerate
                 if node_.classtype == 'range':
                     onnx_node = oh.make_node(
-                        "OnikuxSequenceRange", 
+                        "ChainerSequenceRange", 
                         [value2onnx_parameter[input].onnx_name for input in node.inputs[0]], 
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))

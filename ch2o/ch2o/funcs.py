@@ -62,7 +62,7 @@ class Function_MaxPool2d(Callable):
             'MaxPool',
             inputs=[x.to_tensor(env).name],
             kernel_shape=_pair(ksize),
-            onikux_cover_all=cover_all.to_bool(),
+            chainer_cover_all=cover_all.to_bool(),
             **kwargs)
 
 
@@ -119,7 +119,7 @@ class Function_Concat(Callable):
             )
         else:
             return env.calc(
-                "OnikuxSequenceConcat",
+                "ChainerSequenceConcat",
                 inputs=[xs.to_sequence(env).name],
                 axis=axis.to_int(),
             )
@@ -134,7 +134,7 @@ class Function_SoftmaxCrossEntropy(Callable):
         assert reduce.value == 'mean'  # TODO(hamaji): Not supported yet.
         assert not enable_double_backprop.value  # TODO(hamaji): Not supported yet.
         return env.calc(
-            "OnikuxSoftmaxCrossEntropy",
+            "ChainerSoftmaxCrossEntropy",
             inputs=[x.to_tensor(env).name, t.to_tensor(env).name],
         )
 
@@ -147,7 +147,7 @@ class Function_PadSequence(Callable):
         if not padding.is_none():
             kwargs['value'] = padding.to_float()
         return env.calc(
-            "OnikuxSequencePad",
+            "ChainerSequencePad",
             inputs=[xs.to_sequence(env).name],
             **kwargs
         )
@@ -288,7 +288,7 @@ class Np_Cumsum(Callable):
         )
         """
         ls = env.calc(
-            'OnikuxGenericLen',
+            'ChainerGenericLen',
             inputs=[v.name],
         )
 
@@ -301,7 +301,7 @@ class Np_Cumsum(Callable):
         s = new_tensor()
         gtx = new_tensor()
         tx = localenv.calc(
-            "OnikuxGenericGetItem",
+            "ChainerGenericGetItem",
             inputs=[gtx.name, cnt.name],
         )
         ts = localenv.calc(
@@ -332,7 +332,7 @@ class Function_SplitAxis(Callable):
     def call_impl(self, env, x, indices_or_sections, axis, force_tuple):
         assert force_tuple.value is True  # TODO(hamaji): Not supported yet.
         return env.calc_seq(
-            'OnikuxSequenceSplitAxis',
+            'ChainerSequenceSplitAxis',
             inputs=[x.to_tensor(env).name,
                     indices_or_sections.to_tensor(env).name],
             axis=axis.to_int()
@@ -357,7 +357,7 @@ class Cuda_ToCpu(object):
 class Function_Vstack(Callable):
     def call_impl(self, env, xs):
         return env.calc(
-            'OnikuxSequenceConcat',
+            'ChainerSequenceConcat',
             inputs=[xs.to_sequence(env).name],
             axis=0
         )
@@ -366,7 +366,7 @@ class Function_Vstack(Callable):
 class Function_Hstack(Callable):
     def call_impl(self, env, xs):
         return env.calc(
-            'OnikuxSequenceConcat',
+            'ChainerSequenceConcat',
             inputs=[xs.to_sequence(env).name],
             axis=1
         )
@@ -375,7 +375,7 @@ class Function_Hstack(Callable):
 class Function_Stack(Callable):
     def call_impl(self, env, xs, axis):
         return env.calc(
-            'OnikuxSequenceStack',
+            'ChainerSequenceStack',
             inputs=[xs.to_sequence(env).name],
             axis=axis.to_int()
         )
@@ -384,7 +384,7 @@ class Function_Stack(Callable):
 class Function_Separate(Callable):
     def call_impl(self, env, x, axis):
         return env.calc_seq(
-            'OnikuxSequenceSeparate',
+            'ChainerSequenceSeparate',
             inputs=[x.to_tensor(env).name],
             axis=axis.to_int()
         )

@@ -40,7 +40,7 @@ def test_inference():
     chainerx.testing.assert_allclose(y1, outputs[output_names[0]].array())
     chainerx.testing.assert_allclose(y2, outputs[output_names[1]].array())
 
-    assert 'op_type: "OnikuxLinear"' in graph.dump()
+    assert 'op_type: "ChainerLinear"' in graph.dump()
 
 
 def test_backprop():

@@ -36,24 +36,24 @@ end
 
 def categorize(ops)
   supported_ops = []
-  onikux_ops = []
+  chainer_ops = []
   ops.each do |op|
-    if op =~ /^Onikux/
-      onikux_ops << op
+    if op =~ /^Chainer/
+      chainer_ops << op
     else
       supported_ops << op
     end
   end
-  [supported_ops, onikux_ops]
+  [supported_ops, chainer_ops]
 end
 
-supported_ops, onikux_ops = categorize(ops)
+supported_ops, chainer_ops = categorize(ops)
 grad_onnx_ops, _ = categorize(grad_ops)
 
 puts "Failing node tests:"
 puts (node_tests - passing_node_tests).sort * "\n"
 puts "Missing ops: #{onnx_ops - supported_ops}"
 puts "Node tests: #{passing_node_tests.size}/#{node_tests.size}"
-puts "Custom ops: #{onikux_ops.size}"
+puts "Custom ops: #{chainer_ops.size}"
 puts "Differentiable ops: #{grad_onnx_ops.size}"
 puts "Supported ops: #{supported_ops.size}/#{onnx_ops.size}"

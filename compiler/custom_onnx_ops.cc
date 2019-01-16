@@ -3,7 +3,7 @@
 namespace ONNX_NAMESPACE {
 
 ONNX_OPERATOR_SET_SCHEMA(
-        OnikuxLinear,
+        ChainerLinear,
         9,
         OpSchema()
                 .SetDoc("TBD")
@@ -32,7 +32,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                     }));
 
 ONNX_OPERATOR_SET_SCHEMA(
-        OnikuxSoftmaxCrossEntropy,
+        ChainerSoftmaxCrossEntropy,
         9,
         OpSchema()
                 .SetDoc("TBD")
@@ -50,7 +50,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 }));
 
 ONNX_OPERATOR_SET_SCHEMA(
-        OnikuxSelectItem,
+        ChainerSelectItem,
  9,
         OpSchema()
                 .SetDoc("TBD")
@@ -178,8 +178,8 @@ void convPoolTypeAndShapeInference(
     *output_shape->add_dim() = second_input_shape.dim(0);
   }
 
-  // EDIT(hamaji): Check if `onikux_cover_all` is set.
-  const bool cover_all = getAttribute(ctx, "onikux_cover_all", 0);
+  // EDIT(hamaji): Check if `chainer_cover_all` is set.
+  const bool cover_all = getAttribute(ctx, "chainer_cover_all", 0);
 
   int kernel_shape_size = static_cast<int>(kernel_shape.size());
   for (int i = 0; i < kernel_shape_size; ++i) {
@@ -200,7 +200,7 @@ void convPoolTypeAndShapeInference(
     // on the stride
     int64_t strided_kernel_positions =
         (effective_input_size - effective_kernel_size) / strides[i];
-    // EDIT(hamaji): Adjustment for `onikux_cover_all`.
+    // EDIT(hamaji): Adjustment for `chainer_cover_all`.
     if (cover_all && (effective_input_size - effective_kernel_size) % strides[i]) {
         ++strided_kernel_positions;
     }
@@ -242,9 +242,9 @@ ONNX_OPERATOR_SET_SCHEMA(
 class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxLinear)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxSoftmaxCrossEntropy)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxSelectItem)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerLinear)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSoftmaxCrossEntropy)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSelectItem)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, MaxPool)>());
     }
 };

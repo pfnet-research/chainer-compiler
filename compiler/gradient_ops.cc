@@ -46,7 +46,7 @@ public:
             std::map<Value*, Value*>* retained)
         : src_graph_(src_graph), graph_(graph), node_(node), x_(x), y_(y), retained_(retained) {
         name_ = Node::OpTypeToString(node->op_type());
-        const std::string prefix = "Onikux";
+        const std::string prefix = "Chainer";
         if (HasPrefix(name_, prefix)) name_ = name_.substr(prefix.size());
         name_ += "Grad";
     }
@@ -147,7 +147,7 @@ public:
         if (x->grad()) {
             // Accumulate gradients.
             GraphBuilder gb(graph_, "AccumGrad", x->grad());
-            Value* v = gb.Op(Node::kOnikuxGenericAccumulateGrad, {x->grad(), gx});
+            Value* v = gb.Op(Node::kChainerGenericAccumulateGrad, {x->grad(), gx});
             x->set_grad(v);
         } else {
             x->set_grad(gx);
@@ -235,7 +235,7 @@ void SigmoidGradFn(GradientOpContext* gc) {
 }
 
 void ReluGradFn(GradientOpContext* gc) {
-    gc->GradOp(Node::kOnikuxReluGrad, 0, {gc->x(0), gc->gy(0)});
+    gc->GradOp(Node::kChainerReluGrad, 0, {gc->x(0), gc->gy(0)});
 }
 
 void SqrtGradFn(GradientOpContext* gc) {
@@ -266,19 +266,19 @@ void ReshapeGradFn(GradientOpContext* gc) {
 void SelectItemGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
-    gc->GradOp(Node::kOnikuxSelectItemGrad, 0, {gc->gy(0), gc->x(1), t0});
+    gc->GradOp(Node::kChainerSelectItemGrad, 0, {gc->gy(0), gc->x(1), t0});
 }
 
 void GatherGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
-    gc->GradOp(Node::kOnikuxGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
+    gc->GradOp(Node::kChainerGatherGrad, 0, {gc->gy(0), gc->x(1), t0});
 }
 
 void ExpandGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* t0 = gb.Op(Node::kShape, {gc->x(0)});
-    gc->GradOp(Node::kOnikuxReduceSumTo, 0, {gc->gy(0), t0});
+    gc->GradOp(Node::kChainerReduceSumTo, 0, {gc->gy(0), t0});
 }
 
 namespace {
@@ -310,7 +310,7 @@ void ReduceMeanGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     Value* shape = gb.Op(Node::kShape, {gc->x(0)});
     Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
-    zero->producer()->set_onikux_host(true);
+    zero->producer()->set_chainer_host(true);
     Value* batch_size_int = gb.Op(Node::kGather, {shape, zero});
     Value* batch_size = gb.Op(Node::kCast, {batch_size_int});
     batch_size->producer()->set_to(Dtype::kFloat32);
@@ -414,13 +414,13 @@ void ConvGradFn(GradientOpContext* gc) {
                     ->set_output_shape({x->type().dims().begin() + 2, x->type().dims().end()});
         } else {
             Value* x_shape = gb.Op(Node::kShape, {gc->x(0)});
-            gc->GradOp(Node::kOnikuxConvTransposeWithDynamicOutputShape, 0, {gy, w, x_shape})
+            gc->GradOp(Node::kChainerConvTransposeWithDynamicOutputShape, 0, {gy, w, x_shape})
                     ->producer()
                     ->set_strides(node->strides())
                     ->set_pads(node->pads());
         }
     }
-    gc->GradOp(Node::kOnikuxConvGradWeight, 1, {w, gc->x(0), gy})->producer()->set_strides(node->strides())->set_pads(node->pads());
+    gc->GradOp(Node::kChainerConvGradWeight, 1, {w, gc->x(0), gy})->producer()->set_strides(node->strides())->set_pads(node->pads());
     if (node->inputs().size() == 3) {
         std::vector<int64_t> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
@@ -437,7 +437,7 @@ void MaxPoolGradFn(GradientOpContext* gc) {
     if (node->outputs().size() == 1) gc->AddNullOutput();
     CHECK_EQ(2, node->outputs().size());
     Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-    gc->GradOp(Node::kOnikuxMaxPoolGrad, 0, {gc->gy(0), context});
+    gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context});
 }
 
 void AveragePoolGradFn(GradientOpContext* gc) {
@@ -445,7 +445,7 @@ void AveragePoolGradFn(GradientOpContext* gc) {
     Node* node = gc->node();
     CHECK_EQ(1, node->outputs().size());
     Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-    gc->GradOp(Node::kOnikuxAveragePoolGrad, 0, {gc->gy(0), context});
+    gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context});
 }
 
 void LogSoftmaxGradFn(GradientOpContext* gc) {
@@ -480,14 +480,14 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
     Value* gx0 = gc->AddGradValue(0);
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
-    gc->graph()->AddNode(Node::kOnikuxBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2}, __func__);
+    gc->graph()->AddNode(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2}, __func__);
 }
 
 void LRNGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
     Value* unit_scale = gc->AddOutput(Type(gc->x(0)->type()));
-    gc->GradOp(Node::kOnikuxLRNGrad, 0, {gc->x(0), gc->y(0), gc->gy(0), unit_scale})
+    gc->GradOp(Node::kChainerLRNGrad, 0, {gc->x(0), gc->y(0), gc->gy(0), unit_scale})
             ->producer()
             ->set_alpha(node->alpha())
             ->set_beta(node->beta())
@@ -509,7 +509,7 @@ void LinearGradFn(GradientOpContext* gc) {
 
     {
         GraphBuilder gb{gc->builder(1)};
-        gc->GradOp(Node::kOnikuxLinearGradWeight, 1, {gc->x(0), gy});
+        gc->GradOp(Node::kChainerLinearGradWeight, 1, {gc->x(0), gy});
     }
 
     if (node->inputs().size() == 3) {
@@ -527,7 +527,7 @@ void LSTMGradFn(GradientOpContext* gc) {
     CHECK_EQ(5UL, node->inputs().size()) << "Not implemented yet";
     CHECK_EQ(3UL, node->outputs().size()) << "Not implemented yet";
     Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-    gc->GradMOp(Node::kOnikuxLSTMGrad, {0, 1, 2, 3}, {gc->gy(0), context});
+    gc->GradMOp(Node::kChainerLSTMGrad, {0, 1, 2, 3}, {gc->gy(0), context});
 }
 
 void DoNothingGradFn(GradientOpContext*) {
@@ -569,7 +569,7 @@ void LoopGradFn(GradientOpContext* gc) {
     CHECK_EQ(num_body_inputs, num_states + 2);
     CHECK_EQ(num_loop_outputs, num_states + num_scans);
 
-    CHECK_EQ(0, loop->onikux_stack_axis()) << "Not implemented yet";
+    CHECK_EQ(0, loop->chainer_stack_axis()) << "Not implemented yet";
 
     if (num_scans != 0) {
         // TODO(hamaji): As of Nov. 2018, only `np.cumsum` uses scan
@@ -596,7 +596,7 @@ void LoopGradFn(GradientOpContext* gc) {
         Value* y = ys[i];
         if (!y->grad()) {
             GraphBuilder gb(graph, "LoopGrad", y);
-            Value* gy = gb.Op(Node::kOnikuxNullConstant, {});
+            Value* gy = gb.Op(Node::kChainerNullConstant, {});
             y->set_grad(gy);
         }
     }
@@ -630,7 +630,7 @@ void LoopGradFn(GradientOpContext* gc) {
             if (x->grad()) {
                 gb.Op(Node::kIdentity, {x->grad()}, {out});
             } else {
-                gb.Op(Node::kOnikuxNullConstant, {}, {out});
+                gb.Op(Node::kChainerNullConstant, {}, {out});
             }
         }
 
@@ -638,7 +638,7 @@ void LoopGradFn(GradientOpContext* gc) {
             Value* rv = p.second;
             Value* in = grad_graph->AddInputValue("bp_pop_i@" + rv->name(), Type(Type::Kind::kSequence));
             Value* out = grad_graph->AddOutputValue("bp_pop_o@" + rv->name(), Type(Type::Kind::kSequence));
-            gb.MOp(Node::kOnikuxSequencePop, {in}, {out, rv});
+            gb.MOp(Node::kChainerSequencePop, {in}, {out, rv});
         }
     }
 
@@ -648,7 +648,7 @@ void LoopGradFn(GradientOpContext* gc) {
             Value* rv = p.first;
             Value* in = body->AddInputValue("bp_push_i@" + rv->name(), Type(Type::Kind::kSequence));
             Value* out = body->AddOutputValue("bp_push_o@" + rv->name(), Type(Type::Kind::kSequence));
-            gb.Op(Node::kOnikuxSequenceAppend, {in, rv}, out);
+            gb.Op(Node::kChainerSequenceAppend, {in, rv}, out);
         }
     }
 
@@ -657,7 +657,7 @@ void LoopGradFn(GradientOpContext* gc) {
     {
         GraphBuilder gb{gc->src_builder(0)};
         for (size_t i = 0; i < num_retained; ++i) {
-            Value* stack_in = gb.Op(Node::kOnikuxSequenceCreate, {});
+            Value* stack_in = gb.Op(Node::kChainerSequenceCreate, {});
             loop->AddInput(stack_in);
         }
         for (size_t i = 0; i < num_retained; ++i) {
@@ -755,7 +755,7 @@ void IfGradFn(GradientOpContext* gc) {
                 if (x[ci]->grad()) {
                     gbs[ci].Op(Node::kIdentity, {x[ci]->grad()}, {out});
                 } else {
-                    gbs[ci].Op(Node::kOnikuxNullConstant, {}, out);
+                    gbs[ci].Op(Node::kChainerNullConstant, {}, out);
                 }
             }
         }
@@ -825,7 +825,7 @@ void IfGradFn(GradientOpContext* gc) {
 void SequenceStackGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     Value* gy = gc->gy(0);
-    gc->GradOp(Node::kOnikuxSequenceSeparate, 0, {gy})->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kChainerSequenceSeparate, 0, {gy})->producer()->set_axis(node->axis());
 }
 
 void SequenceAppendGradFn(GradientOpContext* gc) {
@@ -835,56 +835,56 @@ void SequenceAppendGradFn(GradientOpContext* gc) {
     for (int i = 0; i < 2; ++i) {
         gxs.push_back(gc->AddGradValue(i));
     }
-    gb.MOp(Node::kOnikuxSequencePop, {gy}, gxs);
+    gb.MOp(Node::kChainerSequencePop, {gy}, gxs);
 }
 
 void SequenceConcatGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
     Value* indices = gc->AddOutput(Type(Dtype::kInt64));
-    gc->GradOp(Node::kOnikuxSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kChainerSequenceSplitAxis, 0, {gc->gy(0), indices})->producer()->set_axis(node->axis());
 }
 
 void SequenceSplitAxisGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    gc->GradOp(Node::kOnikuxSequenceConcat, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kChainerSequenceConcat, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
 }
 
 void SequencePadGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* lengths = gb.Op(Node::kOnikuxSequenceLengths, {gc->x(0)});
-    gc->GradOp(Node::kOnikuxSequenceUnpad, 0, {gc->gy(0), lengths});
+    Value* lengths = gb.Op(Node::kChainerSequenceLengths, {gc->x(0)});
+    gc->GradOp(Node::kChainerSequenceUnpad, 0, {gc->gy(0), lengths});
 }
 
 void SequenceUnpadGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    gc->GradOp(Node::kOnikuxSequencePad, 0, {gc->gy(0)});
+    gc->GradOp(Node::kChainerSequencePad, 0, {gc->gy(0)});
 }
 
 void SequenceSeparateGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
-    gc->GradOp(Node::kOnikuxSequenceStack, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
+    gc->GradOp(Node::kChainerSequenceStack, 0, {gc->gy(0)})->producer()->set_axis(node->axis());
 }
 
 void SequenceLookupGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     GraphBuilder sgb{gc->src_builder(0)};
-    Value* size = sgb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
+    Value* size = sgb.Op(Node::kChainerSequenceSize, {gc->NoRetainX(0)});
     size = gc->Retain(size);
-    gc->GradOp(Node::kOnikuxSequenceLookupGrad, 0, {gc->gy(0), size, gc->x(1)});
+    gc->GradOp(Node::kChainerSequenceLookupGrad, 0, {gc->gy(0), size, gc->x(1)});
 }
 
 void SequenceGetSliceGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     GraphBuilder sgb{gc->src_builder(0)};
-    Value* size = sgb.Op(Node::kOnikuxSequenceSize, {gc->NoRetainX(0)});
+    Value* size = sgb.Op(Node::kChainerSequenceSize, {gc->NoRetainX(0)});
     size = gc->Retain(size);
     std::vector<Value*> inputs = {gc->gy(0), size};
     for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
         inputs.push_back(gc->x(i));
     }
-    gc->GradOp(Node::kOnikuxSequenceGetSliceGrad, 0, inputs);
+    gc->GradOp(Node::kChainerSequenceGetSliceGrad, 0, inputs);
 }
 
 void DynamicSliceGradFn(GradientOpContext* gc) {
@@ -894,7 +894,7 @@ void DynamicSliceGradFn(GradientOpContext* gc) {
     for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
         inputs.push_back(gc->x(i));
     }
-    gc->GradOp(Node::kOnikuxDynamicSliceGrad, 0, inputs);
+    gc->GradOp(Node::kChainerDynamicSliceGrad, 0, inputs);
 }
 
 typedef void (*GradFn)(GradientOpContext*);
@@ -931,7 +931,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kReshape, &ReshapeGradFn);
         register_grad_fn(Node::kSqueeze, &ReshapeGradFn);
         register_grad_fn(Node::kUnsqueeze, &ReshapeGradFn);
-        register_grad_fn(Node::kOnikuxSelectItem, &SelectItemGradFn);
+        register_grad_fn(Node::kChainerSelectItem, &SelectItemGradFn);
         register_grad_fn(Node::kGather, &GatherGradFn);
         register_grad_fn(Node::kExpand, &ExpandGradFn);
 
@@ -949,7 +949,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kBatchNormalization, &BatchNormalizationGradFn);
         register_grad_fn(Node::kLRN, &LRNGradFn);
 
-        register_grad_fn(Node::kOnikuxLinear, &LinearGradFn);
+        register_grad_fn(Node::kChainerLinear, &LinearGradFn);
         register_grad_fn(Node::kLSTM, &LSTMGradFn);
 
         // TODO(hamaji): Implement dropout.
@@ -960,23 +960,23 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kConstantFill, &DoNothingGradFn);
         register_grad_fn(Node::kShape, &DoNothingGradFn);
         register_grad_fn(Node::kNot, &DoNothingGradFn);
-        register_grad_fn(Node::kOnikuxSequenceLengths, &DoNothingGradFn);
-        register_grad_fn(Node::kOnikuxGenericIs, &DoNothingGradFn);
-        register_grad_fn(Node::kOnikuxGenericLen, &DoNothingGradFn);
+        register_grad_fn(Node::kChainerSequenceLengths, &DoNothingGradFn);
+        register_grad_fn(Node::kChainerGenericIs, &DoNothingGradFn);
+        register_grad_fn(Node::kChainerGenericLen, &DoNothingGradFn);
 
         register_grad_fn(Node::kLoop, &LoopGradFn);
         register_grad_fn(Node::kIf, &IfGradFn);
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
 
-        register_grad_fn(Node::kOnikuxSequenceStack, &SequenceStackGradFn);
-        register_grad_fn(Node::kOnikuxSequenceAppend, &SequenceAppendGradFn);
-        register_grad_fn(Node::kOnikuxSequenceConcat, &SequenceConcatGradFn);
-        register_grad_fn(Node::kOnikuxSequenceSplitAxis, &SequenceSplitAxisGradFn);
-        register_grad_fn(Node::kOnikuxSequencePad, &SequencePadGradFn);
-        register_grad_fn(Node::kOnikuxSequenceUnpad, &SequenceUnpadGradFn);
-        register_grad_fn(Node::kOnikuxSequenceSeparate, &SequenceSeparateGradFn);
-        register_grad_fn(Node::kOnikuxSequenceLookup, &SequenceLookupGradFn);
-        register_grad_fn(Node::kOnikuxSequenceGetSlice, &SequenceGetSliceGradFn);
+        register_grad_fn(Node::kChainerSequenceStack, &SequenceStackGradFn);
+        register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);
+        register_grad_fn(Node::kChainerSequenceConcat, &SequenceConcatGradFn);
+        register_grad_fn(Node::kChainerSequenceSplitAxis, &SequenceSplitAxisGradFn);
+        register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
+        register_grad_fn(Node::kChainerSequenceUnpad, &SequenceUnpadGradFn);
+        register_grad_fn(Node::kChainerSequenceSeparate, &SequenceSeparateGradFn);
+        register_grad_fn(Node::kChainerSequenceLookup, &SequenceLookupGradFn);
+        register_grad_fn(Node::kChainerSequenceGetSlice, &SequenceGetSliceGradFn);
     }
 
     auto found = s_gradient_funcs->find(node->op_type());

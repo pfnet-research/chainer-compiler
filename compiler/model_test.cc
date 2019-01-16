@@ -142,7 +142,7 @@ TEST(ModelTest, CompileCH2OResNet50) {
     // Gradients are generated.
     EXPECT_TRUE(ops.count(Node::kConvTranspose));
     // No dynamic ConvTranspose.
-    EXPECT_FALSE(ops.count(Node::kOnikuxConvTransposeWithDynamicOutputShape));
+    EXPECT_FALSE(ops.count(Node::kChainerConvTransposeWithDynamicOutputShape));
 
     // Check if shape inference is working by simulating memory usage.
     SimulatedMemoryUsage usage = SimulateMemoryUsage(model.graph());

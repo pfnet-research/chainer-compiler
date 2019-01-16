@@ -81,7 +81,7 @@ def gen_select_item_test(test_name):
     output = F.select_item(input, indices)
 
     node = onnx.helper.make_node(
-        'OnikuxSelectItem',
+        'ChainerSelectItem',
         inputs=['input', 'indices'],
         outputs=['output'])
     expect(node, inputs=[input, indices], outputs=[output], name=test_name)
@@ -475,13 +475,13 @@ def gen_sequence_test(test_name):
     inputs = [np.array(a) for a in [[1, 2], [3, 4], [5, 6]]]
     nodes = []
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceCreate',
+        'ChainerSequenceCreate',
         inputs=[],
         outputs=['seq0']))
 
     for i, input in enumerate(inputs):
         nodes.append(onnx.helper.make_node(
-            'OnikuxSequenceAppend',
+            'ChainerSequenceAppend',
             inputs=['seq%d' % i, 'in%d' % i],
             outputs=['seq%d' % (i + 1)]))
 
@@ -489,27 +489,27 @@ def gen_sequence_test(test_name):
     nodes.append(make_constant_node(
         'index', onnx.TensorProto.INT64, [index_value]))
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceLookup',
+        'ChainerSequenceLookup',
         inputs=['seq3', 'index'],
         outputs=['lookup_result']))
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceStack',
+        'ChainerSequenceStack',
         inputs=['seq3'],
         outputs=['stack3_result']))
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceStack',
+        'ChainerSequenceStack',
         inputs=['seq2'],
         outputs=['stack2_result']))
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceConcat',
+        'ChainerSequenceConcat',
         inputs=['seq3'],
         outputs=['concat3_result']))
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceConcat',
+        'ChainerSequenceConcat',
         inputs=['seq2'],
         outputs=['concat2_result']))
     nodes.append(onnx.helper.make_node(
-        'OnikuxSequenceSize',
+        'ChainerSequenceSize',
         inputs=['seq3'],
         outputs=['stack3_size']))
 
@@ -536,30 +536,30 @@ def gen_sequence_pad_test(test_name):
     # TODO(hamaji): Rewrite with GraphBuilder's input/output.
     gb = oniku_script.GraphBuilder(test_name)
     inputs = [np.array(a) for a in [[1, 2, 3], [4], [5, 6]]]
-    gb.OnikuxSequenceCreate(inputs=[], outputs=['seq0'])
+    gb.ChainerSequenceCreate(inputs=[], outputs=['seq0'])
 
     for i, input in enumerate(inputs):
-        gb.OnikuxSequenceAppend(inputs=['seq%d' % i, 'in%d' % i],
+        gb.ChainerSequenceAppend(inputs=['seq%d' % i, 'in%d' % i],
                                 outputs=['seq%d' % (i + 1)])
 
     index_value = 1
     index_v = gb.const([index_value])
-    gb.OnikuxSequenceLookup(
+    gb.ChainerSequenceLookup(
         inputs=['seq3', index_v],
         outputs=['lookup_result'])
-    gb.OnikuxSequencePad(
+    gb.ChainerSequencePad(
         value=-42.0,
         length=4,
         inputs=['seq3'],
         outputs=['pad3_result'])
-    gb.OnikuxSequencePad(
+    gb.ChainerSequencePad(
         value=-42.0,
         inputs=['seq2'],
         outputs=['pad2_result'])
-    gb.OnikuxSequenceLengths(
+    gb.ChainerSequenceLengths(
         inputs=['seq3'],
         outputs=['seq3_lengths_seq'])
-    gb.OnikuxSequenceStack(
+    gb.ChainerSequenceStack(
         inputs=['seq3_lengths_seq'],
         outputs=['seq3_lengths'])
 
@@ -589,25 +589,25 @@ def gen_sequence_split_test(test_name):
     inputs_v = gb.input('input', inputs)
     lengths_v = gb.input('lengths', lengths)
 
-    seq_v = gb.OnikuxSequenceSeparate(inputs=[inputs_v], outputs=['seq'])
-    lengths_seq_v = gb.OnikuxSequenceSeparate(inputs=[lengths_v],
+    seq_v = gb.ChainerSequenceSeparate(inputs=[inputs_v], outputs=['seq'])
+    lengths_seq_v = gb.ChainerSequenceSeparate(inputs=[lengths_v],
                                            outputs=['lengths_seq'])
-    unpadded_v = gb.OnikuxSequenceUnpad(inputs=[inputs_v, lengths_seq_v],
+    unpadded_v = gb.ChainerSequenceUnpad(inputs=[inputs_v, lengths_seq_v],
                                         outputs=['unpadded'])
-    seq_a1_v = gb.OnikuxSequenceSeparate(inputs=[inputs_v],
+    seq_a1_v = gb.ChainerSequenceSeparate(inputs=[inputs_v],
                                       outputs=['seq_a1'],
                                       axis=1)
 
     for i in range(4):
         index_v = gb.const([i], name='index_%d' % i)
         if i < 3:
-            gb.output(gb.OnikuxSequenceLookup(
+            gb.output(gb.ChainerSequenceLookup(
                 inputs=[seq_v, index_v],
                 outputs=['split_result_%d' % i]), inputs[i])
-            gb.output(gb.OnikuxSequenceLookup(
+            gb.output(gb.ChainerSequenceLookup(
                 inputs=[unpadded_v, index_v],
                 outputs=['unpad_result_%d' % i]), inputs[i][:lengths[i]])
-        gb.output(gb.OnikuxSequenceLookup(
+        gb.output(gb.ChainerSequenceLookup(
             inputs=[seq_a1_v, index_v],
             outputs=['split_a1_result_%d' % i]), inputs[:, i])
 
@@ -622,8 +622,8 @@ def gen_sequence_io_test(test_name):
     input_v = gb.input('input', input)
     input_seq_v = gb.input('input_seq', Seq(input_seq))
 
-    split_v = gb.OnikuxSequenceSeparate([input_v])
-    stack_v = gb.OnikuxSequenceStack([input_seq_v])
+    split_v = gb.ChainerSequenceSeparate([input_v])
+    stack_v = gb.ChainerSequenceStack([input_seq_v])
 
     gb.output(gb.Identity([input_v]), input)
     gb.output(gb.Identity([input_seq_v]), Seq(input_seq))
@@ -642,8 +642,8 @@ def gen_sequence_range_test(test_name):
         for arg in args:
             input_vs.append(gb.input('input_%d' % num_inputs, arg))
             num_inputs += 1
-        output_v = gb.OnikuxSequenceRange(input_vs)
-        len_v = gb.OnikuxSequenceSize([output_v])
+        output_v = gb.ChainerSequenceRange(input_vs)
+        len_v = gb.ChainerSequenceSize([output_v])
         expected = list(range(*args))
         gb.output(len_v, len(expected))
         if expected:
@@ -657,22 +657,22 @@ def gen_sequence_pop_test(test_name):
 
     inputs_v = gb.input('input', inputs)
 
-    seq_v = gb.OnikuxSequenceSeparate(inputs=[inputs_v])
+    seq_v = gb.ChainerSequenceSeparate(inputs=[inputs_v])
     pop_count = 3
     for i in range(pop_count):
-        seq_v, pop_v = gb.OnikuxSequencePop(
+        seq_v, pop_v = gb.ChainerSequencePop(
             inputs=[seq_v],
             outputs=['seq_%d' % i, 'pop_%d' % i]
         )
         gb.output(pop_v, inputs[-1-i])
 
     # This `seq_v` is used twice, so not-optimized pass will be tested.
-    len1_v = gb.OnikuxSequenceSize(inputs=[seq_v])
-    seq_v, _ = gb.OnikuxSequencePop(
+    len1_v = gb.ChainerSequenceSize(inputs=[seq_v])
+    seq_v, _ = gb.ChainerSequencePop(
         inputs=[seq_v],
         outputs=['seq_final', 'pop_final'],
     )
-    len2_v = gb.OnikuxSequenceSize(inputs=[seq_v])
+    len2_v = gb.ChainerSequenceSize(inputs=[seq_v])
     gb.output(gb.Add(inputs=[len1_v, len2_v]),
               (len(inputs) - pop_count) * 2 - 1)
 
@@ -692,11 +692,11 @@ def gen_generic_len_test(test_name):
     input = aranges(4, 2, 3)
 
     input_v = gb.input('input', input)
-    len0_v = gb.OnikuxGenericLen([input_v])
+    len0_v = gb.ChainerGenericLen([input_v])
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
-    len1_v = gb.OnikuxGenericLen([reduced_v])
-    seq_v = gb.OnikuxSequenceSeparate(inputs=[input_v])
-    len_seq_v = gb.OnikuxGenericLen([seq_v])
+    len1_v = gb.ChainerGenericLen([reduced_v])
+    seq_v = gb.ChainerSequenceSeparate(inputs=[input_v])
+    len_seq_v = gb.ChainerGenericLen([seq_v])
 
     gb.output(len0_v, input.shape[0])
     gb.output(len1_v, input.shape[1])
@@ -712,13 +712,13 @@ def gen_generic_getitem_test(test_name):
 
     input_v = gb.input('input', input)
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
-    seq_v = gb.OnikuxSequenceSeparate(inputs=[input_v])
+    seq_v = gb.ChainerSequenceSeparate(inputs=[input_v])
 
     for i in range(-2, 4):
         index_v = gb.const([i])
-        gb.output(gb.OnikuxGenericGetItem([input_v, index_v]), input[i])
-        gb.output(gb.OnikuxGenericGetItem([reduced_v, index_v]), reduced[i])
-        gb.output(gb.OnikuxGenericGetItem([seq_v, index_v]), input[i])
+        gb.output(gb.ChainerGenericGetItem([input_v, index_v]), input[i])
+        gb.output(gb.ChainerGenericGetItem([reduced_v, index_v]), reduced[i])
+        gb.output(gb.ChainerGenericGetItem([seq_v, index_v]), input[i])
 
     gb.gen_test()
 
@@ -730,7 +730,7 @@ def gen_generic_getslice_test(test_name):
 
     input_v = gb.input('input', input)
     reduced_v = gb.ReduceSum([input_v], axes=[0], keepdims=False)
-    seq_v = gb.OnikuxSequenceSeparate(inputs=[input_v])
+    seq_v = gb.ChainerSequenceSeparate(inputs=[input_v])
 
     def get_slice(input_v, s):
         ins = [input_v]
@@ -743,7 +743,7 @@ def gen_generic_getslice_test(test_name):
         if s.step is not None:
             v = gb.const([s.step])
             ins.append(v)
-        return gb.OnikuxGenericGetSlice(ins)
+        return gb.ChainerGenericGetSlice(ins)
 
     def add_test(s):
         expected = input[s]
@@ -751,9 +751,9 @@ def gen_generic_getslice_test(test_name):
         gb.output(get_slice(reduced_v, s), reduced[s])
         actual_v = get_slice(seq_v, s)
         if len(expected):
-            gb.output(gb.OnikuxSequenceStack([actual_v]), expected)
+            gb.output(gb.ChainerSequenceStack([actual_v]), expected)
         else:
-            gb.output(gb.OnikuxSequenceSize([actual_v]), 0)
+            gb.output(gb.ChainerSequenceSize([actual_v]), 0)
 
     add_test(slice(None))
     for i in range(4):
@@ -777,13 +777,13 @@ def gen_generic_add_test(test_name):
 
     input1_v = gb.input('input1', input1)
     input2_v = gb.input('input2', input2)
-    seq1_v = gb.OnikuxSequenceSeparate([input1_v])
-    seq2_v = gb.OnikuxSequenceSeparate([input2_v])
+    seq1_v = gb.ChainerSequenceSeparate([input1_v])
+    seq2_v = gb.ChainerSequenceSeparate([input2_v])
 
-    gb.output(gb.OnikuxGenericAdd([input1_v, input2_v]), input1 + input2)
-    gb.output(gb.OnikuxGenericAdd([seq1_v, seq2_v]), Seq(seq1 + seq2))
-    gb.output(gb.OnikuxGenericAdd([input1_v, seq2_v]), input1 + input2)
-    gb.output(gb.OnikuxGenericAdd([seq1_v, input2_v]), input1 + input2)
+    gb.output(gb.ChainerGenericAdd([input1_v, input2_v]), input1 + input2)
+    gb.output(gb.ChainerGenericAdd([seq1_v, seq2_v]), Seq(seq1 + seq2))
+    gb.output(gb.ChainerGenericAdd([input1_v, seq2_v]), input1 + input2)
+    gb.output(gb.ChainerGenericAdd([seq1_v, input2_v]), input1 + input2)
 
     gb.gen_test()
 
@@ -794,7 +794,7 @@ def gen_print_test(test_name):
     in1_v = gb.const(21)
     in2_v = gb.const(2)
     result_v = gb.Mul([in1_v, in2_v])
-    gb.OnikuxPrint([result_v], outputs=[])
+    gb.ChainerPrint([result_v], outputs=[])
     gb.output(gb.Identity([result_v]), 42)
     gb.gen_test()
 
@@ -802,10 +802,10 @@ def gen_print_test(test_name):
 def gen_hello_world_test(test_name):
     gb = oniku_script.GraphBuilder(test_name)
     hello = 'Hello, world!\n'
-    out_v = gb.OnikuxSequenceCreate([])
+    out_v = gb.ChainerSequenceCreate([])
     for ch in hello:
         ch_v = gb.const(ord(ch), dtype=np.uint8)
-        out_v = gb.OnikuxSequenceAppend([out_v, ch_v])
+        out_v = gb.ChainerSequenceAppend([out_v, ch_v])
     gb.output(out_v, Seq(list(np.array(ord(ch), np.uint8) for ch in hello)))
     gb.gen_test()
 
@@ -854,7 +854,7 @@ def gen_maxpool_cover_all_test(test_name):
                          outputs=['not_cover_all']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
     gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
-                         onikux_cover_all=True,
+                         chainer_cover_all=True,
                          outputs=['cover_all']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
 
