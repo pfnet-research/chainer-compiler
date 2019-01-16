@@ -49,6 +49,31 @@ ONNX_OPERATOR_SET_SCHEMA(
                     ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
                 }));
 
+ONNX_OPERATOR_SET_SCHEMA(
+        OnikuxSelectItem,
+ 9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Input(1, "indices", "Tensors of int32/int64 indices", "I")
+                .Output(0, "Y", "Output tensor", "T")
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .TypeConstraint("I", {"tensor(int32)", "tensor(int64)"}, "Constrain input and output types to signed numeric tensors.")
+                .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
+                    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+                    if (!hasNInputShapes(ctx, 2)) {
+                        return;
+                    }
+                    const TensorShapeProto& data_shape = ctx.getInputType(0)->tensor_type().shape();
+                    if (data_shape.dim_size() != 2) {
+                        fail_shape_inference("data tensor must be rank == 2");
+                    }
+                    ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape()->add_dim()->CopyFrom(data_shape.dim(0));
+                }));
+
 namespace {
 
 // From onnx/onnx/defs/nn/defs.cc
@@ -219,6 +244,7 @@ public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxLinear)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxSoftmaxCrossEntropy)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, OnikuxSelectItem)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, MaxPool)>());
     }
 };
