@@ -1,4 +1,4 @@
-"""Generates boilerplate code for Oniku's Node class.
+"""Generates boilerplate code for chainer_compiler::Node class.
 
 Nodes in ONNX are very flexible. They allow arbitrary strings as their
 operation type (e.g., "Conv") and attribute keys (e.g., "pads"). As we
