@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Node;
 class Value;
@@ -11,4 +11,4 @@ class Value;
 void BuildTVMProgram(
         const std::vector<Node*>& nodes, int id, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, std::string* filename, std::string* func_name);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

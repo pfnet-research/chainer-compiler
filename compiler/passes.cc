@@ -17,7 +17,7 @@
 #include <compiler/subgraph_canonicalizer.h>
 #include <compiler/type_inference.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -120,4 +120,4 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

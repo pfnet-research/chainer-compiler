@@ -22,7 +22,7 @@
 
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 #if CHAINER_COMPILER_ENABLE_TVM
@@ -104,7 +104,7 @@ TVMOp::~TVMOp() {
     delete impl_;
 }
 
-std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+std::vector<chainerx::Array> TVMOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_TVM
     CHECK(!inputs.empty());
     auto& device = orig_inputs[0].device();
@@ -158,4 +158,4 @@ std::vector<chainerx::Array> TVMOp::RunImpl(oniku::runtime::XCVMState* st, const
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

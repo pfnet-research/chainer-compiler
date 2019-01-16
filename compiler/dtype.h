@@ -4,7 +4,7 @@
 
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Dtype {
 public:
@@ -45,4 +45,4 @@ private:
 
 std::ostream& operator<<(std::ostream& os, const Dtype& dtype);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

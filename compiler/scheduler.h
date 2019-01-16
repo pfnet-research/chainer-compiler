@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Value;
@@ -20,4 +20,4 @@ int64_t ScheduleComputation(
 
 int64_t ScheduleComputation(const Graph& graph, int64_t order, SchedulerType scheduler_type = SchedulerType::kGreedy);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -3,7 +3,7 @@
 #include <common/log.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array AndOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
@@ -42,4 +42,4 @@ chainerx::Array NotOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

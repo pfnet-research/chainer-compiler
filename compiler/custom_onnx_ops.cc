@@ -251,10 +251,10 @@ public:
 
 }  // namespace ONNX_NAMESPACE
 
-namespace oniku {
+namespace chainer_compiler {
 
 void RegisterCustomOnnxOperatorSetSchema() {
     ONNX_NAMESPACE::RegisterOpSetSchema<ONNX_NAMESPACE::Custom_OpSet_Onnx_ver9>();
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 #endif  // CHAINER_COMPILER_ENABLE_CUDA
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 bool g_meminfo_enabled = false;
@@ -23,4 +23,4 @@ int64_t GetMemoryUsageInBytes() {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -6,7 +6,7 @@
 #include <compiler/type.h>
 #include <compiler/topology.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(TopologyTest, ClassifyValues) {
@@ -66,4 +66,4 @@ TEST(TopologyTest, ClassifyValues) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

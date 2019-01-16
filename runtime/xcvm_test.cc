@@ -13,7 +13,7 @@
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 namespace {
 
@@ -42,4 +42,4 @@ TEST(XCVMTest, Run) {
 
 }  // namespace
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

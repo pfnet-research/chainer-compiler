@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Node;
 class Tensor;
@@ -28,4 +28,4 @@ private:
 
 void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, std::vector<std::unique_ptr<EvaluatedValue>>* outputs);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

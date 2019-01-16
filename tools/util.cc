@@ -7,7 +7,7 @@
 #include <runtime/chainerx_util.h>
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Dtype ChainerXTypeFromONNX(int xtype) {
@@ -61,4 +61,4 @@ InOuts LoadParams(const Graph& graph) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

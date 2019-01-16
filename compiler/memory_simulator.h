@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
@@ -16,4 +16,4 @@ struct SimulatedMemoryUsage {
 
 SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

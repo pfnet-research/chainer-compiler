@@ -4,8 +4,8 @@
 
 #include <compiler/flags.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 #define CLOG() if (g_compiler_log) std::cerr
 
-}  // namespace oniku
+}  // namespace chainer_compiler

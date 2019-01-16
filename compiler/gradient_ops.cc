@@ -15,7 +15,7 @@
 #include <compiler/tensor.h>
 #include <compiler/type.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 Dtype GetFloatDtype(const Value* value) {
@@ -998,4 +998,4 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
     return true;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

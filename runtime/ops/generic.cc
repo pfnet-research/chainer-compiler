@@ -10,7 +10,7 @@
 #include <runtime/xcvm_state.h>
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -227,4 +227,4 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

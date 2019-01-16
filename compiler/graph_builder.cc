@@ -11,7 +11,7 @@
 #include <compiler/type_inference.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* target) : graph_(graph), category_(category), target_(target) {
 }
@@ -108,4 +108,4 @@ std::string GraphBuilder::GenName() {
     return StrCat(category_, '_', target_->name(), '_', target_->Counter());
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

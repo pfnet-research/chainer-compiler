@@ -17,7 +17,7 @@
 
 #include <common/log.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s) {
@@ -169,4 +169,4 @@ bool IsCudaDevice(const chainerx::Device* device) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

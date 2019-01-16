@@ -20,7 +20,7 @@
 #include <runtime/xcvm_state.h>
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -113,4 +113,4 @@ void Eval(const std::vector<Node*>& nodes, const std::vector<Value*>& fetches, s
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -2,7 +2,7 @@
 
 #include <common/strutil.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 XCVMOp::XCVMOp(const XCInstructionProto& inst)
@@ -13,4 +13,4 @@ XCVMOp::XCVMOp(const XCInstructionProto& inst)
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

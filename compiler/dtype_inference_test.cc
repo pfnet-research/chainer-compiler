@@ -4,7 +4,7 @@
 #include <compiler/dtype.h>
 #include <compiler/dtype_inference.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(ShapeInferenceTest, CoerceDtype) {
@@ -46,4 +46,4 @@ TEST(ShapeInferenceTest, CoerceDtypeAll) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

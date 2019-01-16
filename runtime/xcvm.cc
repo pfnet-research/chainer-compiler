@@ -18,7 +18,7 @@
 
 #define RANGE(x) (x).begin(), (x).end()
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -129,4 +129,4 @@ void XCVM::Run(XCVMState* state) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

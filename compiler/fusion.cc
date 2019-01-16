@@ -15,7 +15,7 @@
 #include <compiler/topology.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -280,4 +280,4 @@ void FuseOperations(Graph* graph, bool use_tvm) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

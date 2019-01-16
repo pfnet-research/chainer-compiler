@@ -11,7 +11,7 @@
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/ops/cudnn_rnn.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -360,4 +360,4 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> L
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

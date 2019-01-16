@@ -7,7 +7,7 @@
 #include <compiler/graph.h>
 #include <compiler/log.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
     std::map<const Value*, int> num_users;
@@ -58,4 +58,4 @@ SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph) {
     return usage;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

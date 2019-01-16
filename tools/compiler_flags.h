@@ -2,7 +2,7 @@
 
 #include <tools/cmdline.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 // Adds compiler-related flags to be parsed.
@@ -12,4 +12,4 @@ void AddCompilerFlags(cmdline::parser* args);
 void ApplyCompilerFlags(const cmdline::parser& args);
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

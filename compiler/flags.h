@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace oniku {
+namespace chainer_compiler {
 
 // Enables logging.
 extern bool g_compiler_log;
@@ -59,4 +59,4 @@ extern bool g_dump_after_fusion;
 extern bool g_dump_after_scheduling;
 extern bool g_dump_subgraphs;
 
-}  // namespace oniku
+}  // namespace chainer_compiler

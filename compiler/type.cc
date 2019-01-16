@@ -2,7 +2,7 @@
 
 #include <common/log.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Type::Type(Kind kind) : kind_(kind) {
     has_known_shape_ = false;
@@ -141,4 +141,4 @@ std::ostream& operator<<(std::ostream& os, const Type::Kind& kind) {
     return os;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

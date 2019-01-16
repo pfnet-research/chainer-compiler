@@ -8,7 +8,7 @@
 
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 class BackwardContext : public XCVMOpaque {
@@ -31,4 +31,4 @@ private:
 };
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -9,7 +9,7 @@
 #include <runtime/xcvm_op.h>
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs)
@@ -220,4 +220,4 @@ void XCVMState::ShowVariableStatus() const {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

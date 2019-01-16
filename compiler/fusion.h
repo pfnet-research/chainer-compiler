@@ -1,9 +1,9 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
 void FuseOperations(Graph* graph, bool use_tvm = false);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -11,7 +11,7 @@
 #include <compiler/type.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Type;
 
@@ -132,4 +132,4 @@ private:
     std::map<std::string, int> ids_;
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -18,7 +18,7 @@
 #include <compiler/util.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Graph::Graph(const onnx::GraphProto& xgraph) {
     Construct(xgraph);
@@ -375,4 +375,4 @@ void Graph::DumpONNXOnFailure(const std::string& filename) const {
     std::cerr << "Failed graph is stored in " << fn << std::endl;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

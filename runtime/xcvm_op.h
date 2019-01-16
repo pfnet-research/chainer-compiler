@@ -5,7 +5,7 @@
 
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 class XCVMState;
@@ -47,4 +47,4 @@ protected:
 XCVMOp* MakeXCVMOp(const XCInstructionProto& inst);
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

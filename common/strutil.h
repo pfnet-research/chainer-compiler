@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 template <class Stream>
 inline void StrCatToStream(Stream& oss) {
@@ -54,4 +54,4 @@ bool HasSuffix(const std::string& str, const std::string& suffix);
 
 std::string Basename(const std::string& str);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

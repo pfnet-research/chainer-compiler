@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 void MaybeWait() {
@@ -35,4 +35,4 @@ FailMessageStream::~FailMessageStream() {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

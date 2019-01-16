@@ -30,7 +30,7 @@
 #include <compiler/value.h>
 #endif
 
-namespace oniku {
+namespace chainer_compiler {
 
 #if CHAINER_COMPILER_ENABLE_TVM
 
@@ -377,4 +377,4 @@ void BuildTVMProgram(
 #endif
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

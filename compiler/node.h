@@ -8,7 +8,7 @@
 
 #include <compiler/gen_node_base.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Value;
 
@@ -73,4 +73,4 @@ private:
 
 std::ostream& operator<<(std::ostream& os, Node::OpType op_type);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

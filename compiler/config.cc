@@ -3,7 +3,7 @@
 #include <common/log.h>
 #include <compiler/xcvm/config.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 std::unique_ptr<CompilerConfig> GetCompilerConfig(const std::string& backend_name) {
     if (backend_name == "xcvm" || backend_name.empty()) {
@@ -15,4 +15,4 @@ std::unique_ptr<CompilerConfig> GetCompilerConfig(const std::string& backend_nam
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

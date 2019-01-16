@@ -5,7 +5,7 @@
 #include <common/log.h>
 #include <compiler/config.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 namespace {
 
@@ -151,4 +151,4 @@ std::unique_ptr<CompilerConfig> GetCompilerConfig(bool diversed) {
 }
 
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler

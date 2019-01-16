@@ -4,7 +4,7 @@
 #include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
@@ -52,4 +52,4 @@ chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& inpu
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

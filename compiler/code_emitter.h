@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class CodeEmitter {
 public:
@@ -28,4 +28,4 @@ private:
     int num_indent_ = 0;
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler

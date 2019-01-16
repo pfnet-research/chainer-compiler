@@ -44,7 +44,7 @@
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 namespace {
 
@@ -639,4 +639,4 @@ void RunONNX(const std::vector<std::string>& argv) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

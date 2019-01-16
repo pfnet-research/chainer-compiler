@@ -4,7 +4,7 @@
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(FusionTest, Basic) {
@@ -26,4 +26,4 @@ TEST(FusionTest, Basic) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

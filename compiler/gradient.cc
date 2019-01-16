@@ -17,7 +17,7 @@
 #include <compiler/type.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -161,4 +161,4 @@ void GenerateGradientNodes(
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class CompilerConfig;
 
@@ -13,4 +13,4 @@ namespace xcvm {
 std::unique_ptr<CompilerConfig> GetCompilerConfig(bool diversed = false);
 
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler

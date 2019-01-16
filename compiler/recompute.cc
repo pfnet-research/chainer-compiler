@@ -9,7 +9,7 @@
 #include <compiler/log.h>
 #include <compiler/node.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -99,4 +99,4 @@ void GetReluRecompute(Graph* graph, int threshold) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

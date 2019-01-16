@@ -16,7 +16,7 @@
 #include <compiler/value.h>
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 namespace {
 
@@ -32,7 +32,7 @@ namespace {
         FREE(src);                \
     } while (0)
 
-using oniku::runtime::XCProgramProto;
+using chainer_compiler::runtime::XCProgramProto;
 
 std::vector<int> IntVector(const std::vector<int64_t>& ints) {
     return std::vector<int>{ints.begin(), ints.end()};
@@ -1130,4 +1130,4 @@ void Emit(
 }
 
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler

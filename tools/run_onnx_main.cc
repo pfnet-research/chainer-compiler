@@ -5,5 +5,5 @@ int main(int argc, char** argv) {
     for (int i = 0; i < argc; ++i) {
         args.push_back(argv[i]);
     }
-    oniku::runtime::RunONNX(args);
+    chainer_compiler::runtime::RunONNX(args);
 }

@@ -38,14 +38,14 @@ def gen_xcvm_codegen_h():
 #include <compiler/xcvm/xcvm_value.h>
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 
 ''')
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 
@@ -86,7 +86,7 @@ def gen_xcvm_codegen_cc():
 #include <compiler/gen_xcvm_codegen.h>
 #include <runtime/xcvm.pb.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace xcvm {
 
 using runtime::XCInstructionProto;
@@ -96,7 +96,7 @@ using runtime::XCValueProto;
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 

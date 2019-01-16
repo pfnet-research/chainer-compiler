@@ -2,7 +2,7 @@
 
 #include <common/strutil.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(SplitStringTest, SplitString) {
@@ -22,4 +22,4 @@ TEST(StrUtilTest, StrCat) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

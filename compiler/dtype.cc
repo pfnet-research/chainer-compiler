@@ -3,7 +3,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -118,4 +118,4 @@ std::ostream& operator<<(std::ostream& os, const Dtype& dtype) {
     return os;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

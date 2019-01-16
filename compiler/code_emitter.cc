@@ -2,7 +2,7 @@
 
 #include <common/log.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 CodeEmitter::CodeEmitter(std::ostream& out) : out_(out) {
 }
@@ -29,4 +29,4 @@ void CodeEmitter::Emit(const std::string& code) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

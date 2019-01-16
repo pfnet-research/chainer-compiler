@@ -9,7 +9,7 @@
 #include <compiler/tensor.h>
 #include <compiler/type.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 TEST(GradientTest, Basic) {
@@ -45,4 +45,4 @@ TEST(GradientTest, Basic) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

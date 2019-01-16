@@ -1,7 +1,7 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 void RegisterCustomOnnxOperatorSetSchema();
 
-}  // namespace oniku
+}  // namespace chainer_compiler

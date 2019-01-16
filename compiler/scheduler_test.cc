@@ -7,7 +7,7 @@
 #include <compiler/node.h>
 #include <compiler/scheduler.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 class SchedulerTest : public ::testing::TestWithParam<SchedulerType> {};
@@ -97,4 +97,4 @@ TEST_P(SchedulerTest, MultipleTimes) {
 INSTANTIATE_TEST_CASE_P(ForEachScheduler, SchedulerTest, ::testing::Values(SchedulerType::kNaive, SchedulerType::kGreedy));
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

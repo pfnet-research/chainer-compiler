@@ -9,7 +9,7 @@
 #include <compiler/node.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs, std::vector<Value*>* outputs, std::vector<Value*>* temps) {
     std::set<Value*> temp_set;

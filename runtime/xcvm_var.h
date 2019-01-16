@@ -4,7 +4,7 @@
 
 #include <chainerx/array.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 class XCVMVar;
@@ -72,4 +72,4 @@ std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq);
 std::ostream& operator<<(std::ostream& os, const XCVMVar::Kind& kind);
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

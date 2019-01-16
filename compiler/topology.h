@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Node;
 class Value;
@@ -20,4 +20,4 @@ void ClassifyValues(const std::vector<Node*>& nodes, std::vector<Value*>* inputs
 // unreachable from `inputs` will be discarded.
 std::vector<Node*> SortTopologically(const std::vector<Node*>& nodes, const std::vector<Value*>& inputs, bool is_full_graph);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

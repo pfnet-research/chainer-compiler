@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 extern bool g_meminfo_enabled;
@@ -11,4 +11,4 @@ extern bool g_meminfo_enabled;
 int64_t GetMemoryUsageInBytes();
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -14,7 +14,7 @@
 #include <common/strutil.h>
 #include <runtime/gen_xcvm_ops.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 #if CHAINER_COMPILER_ENABLE_NVRTC
@@ -86,7 +86,7 @@ CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
 
 #endif
 
-std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_NVRTC
     CHECK(!inputs.empty());
     const std::string& name = StrCat("fusion", fusion_id);
@@ -161,4 +161,4 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(oniku::runtime::XCVMSta
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

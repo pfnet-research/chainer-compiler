@@ -1,6 +1,6 @@
 #include <chainerx/array.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 bool CudnnLSTM(
@@ -22,4 +22,4 @@ bool CudnnLSTMGrad(
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array>* result);
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -439,7 +439,7 @@ def gen_gen_node_base_h():
 #include <compiler/dtype.h>
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 class Tensor;
@@ -464,7 +464,7 @@ public:
     NodeBase(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 
@@ -743,13 +743,13 @@ def gen_gen_node_base_cc():
 #include <compiler/onnx.h>
 #include <compiler/tensor.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 ''')
         f.writelines(codegen_util.format_code(lines))
         f.write(r'''
 
-}  // namespace oniku
+}  // namespace chainer_compiler
 ''')
 
 

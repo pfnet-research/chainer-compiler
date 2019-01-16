@@ -12,7 +12,7 @@
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 class XCVMOptions;
@@ -95,4 +95,4 @@ private:
 };
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler

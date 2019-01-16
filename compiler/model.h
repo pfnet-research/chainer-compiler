@@ -8,7 +8,7 @@
 
 #include <compiler/onnx.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Graph;
 
@@ -70,4 +70,4 @@ private:
     std::unique_ptr<Graph> graph_;
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler

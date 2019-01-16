@@ -23,7 +23,7 @@
 
 namespace py = pybind11;
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 typedef std::shared_ptr<chainerx::internal::ArrayBody> ArrayBodyPtr;
@@ -187,4 +187,4 @@ PYBIND11_MODULE(oniku_core, m) {  // NOLINT
           "Create an XCVMVar from a sequence of XCVMVars");
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -7,7 +7,7 @@
 #include <compiler/type.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Dtype CoerceDtype(Dtype dtype0, Dtype dtype1) {
     if (dtype0 == dtype1) return dtype0;
@@ -360,4 +360,4 @@ void InferDtype(Node* node) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

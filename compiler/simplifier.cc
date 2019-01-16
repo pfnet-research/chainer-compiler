@@ -12,7 +12,7 @@
 #include <compiler/node.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 typedef bool (*SimplifierFn)(Graph*, Node*);
@@ -676,4 +676,4 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

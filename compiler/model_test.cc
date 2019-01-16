@@ -19,7 +19,7 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace {
 
 const char* kONNXTestDataDir = "onnx/onnx/backend/test/data";
@@ -154,4 +154,4 @@ TEST(ModelTest, CompileCH2OResNet50) {
 }
 
 }  // namespace
-}  // namespace oniku
+}  // namespace chainer_compiler

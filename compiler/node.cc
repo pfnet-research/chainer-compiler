@@ -10,7 +10,7 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs)
     : NodeBase(xnode, inputs, outputs),
@@ -123,4 +123,4 @@ std::ostream& operator<<(std::ostream& os, Node::OpType op_type) {
     return os;
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

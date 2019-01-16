@@ -5,7 +5,7 @@
 
 #include <compiler/node.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class CompilerConfig {
 public:
@@ -21,4 +21,4 @@ protected:
 
 std::unique_ptr<CompilerConfig> GetCompilerConfig(const std::string& backend_name);
 
-}  // namespace oniku
+}  // namespace chainer_compiler

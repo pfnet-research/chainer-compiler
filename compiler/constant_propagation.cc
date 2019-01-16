@@ -10,7 +10,7 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -98,4 +98,4 @@ void PropagateConstants(Graph* graph) {
     }
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace runtime {
 
@@ -32,4 +32,4 @@ private:
 };
 
 }  // namespace xcvm
-}  // namespace oniku
+}  // namespace chainer_compiler

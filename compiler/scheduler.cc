@@ -14,7 +14,7 @@
 #include <compiler/node.h>
 #include <compiler/value.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 namespace {
 
@@ -277,4 +277,4 @@ int64_t ScheduleComputation(const Graph& graph, int64_t order, SchedulerType sch
     return ScheduleComputation(graph, graph.input_values(), graph.output_values(), order, scheduler_type);
 }
 
-}  // namespace oniku
+}  // namespace chainer_compiler

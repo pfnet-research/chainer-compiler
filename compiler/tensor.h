@@ -10,7 +10,7 @@
 #include <common/log.h>
 #include <compiler/dtype.h>
 
-namespace oniku {
+namespace chainer_compiler {
 
 class Node;
 
@@ -72,4 +72,4 @@ private:
     std::string doc_string_;
 };
 
-}  // namespace oniku
+}  // namespace chainer_compiler

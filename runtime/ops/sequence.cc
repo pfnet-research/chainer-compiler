@@ -6,7 +6,7 @@
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/xcvm_state.h>
 
-namespace oniku {
+namespace chainer_compiler {
 namespace runtime {
 
 namespace {
@@ -232,4 +232,4 @@ void SequenceMoveOp::RunImpl(XCVMState* st) {
 }
 
 }  // namespace runtime
-}  // namespace oniku
+}  // namespace chainer_compiler
