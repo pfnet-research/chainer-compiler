@@ -20,4 +20,5 @@ This project is still in the early stage and is not expected to be used by end-u
 ## Documentation
 
 - [Set up guide](docs/setup.md)
+- [Overview of components](docs/overview.md)
 - [Example usage](docs/usage.md)
