@@ -122,6 +122,15 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kEyeLike: {
+            if (node->dtype()) {
+                set(0, node->dtype());
+            } else {
+                set(0, in0 == Dtype::kUnknown ? default_float : in0);
+            }
+            break;
+        }
+
         case Node::kAdd:
         case Node::kSub:
         case Node::kMul:
