@@ -130,12 +130,10 @@ def parse_instance(default_module, name, instance, self_instance = None):
 class Field():
     def __init__(self, module : 'Field', parent : 'Field'):
         self.attributes = {}
-        self.attributes_from_parent = []
         self.module = module
         self.parent = parent
 
         self.rev_attributes = {}
-        self.rev_attributes_from_parent = {}
         self.id = utils.get_guid()
 
         register_field(self)
@@ -158,8 +156,6 @@ class Field():
             attribute = None
             if self.parent is not None:
                 attribute = self.parent.__get_attribute_from_child(key)
-                if attribute is not None and not attribute in self.attributes_from_parent:
-                    self.attributes_from_parent.append(attribute)
 
             if attribute is not None:
                 return attribute
@@ -178,15 +174,12 @@ class Field():
 
     def commit(self, commit_id : 'str'):
         self.rev_attributes[commit_id] = self.attributes.copy()
-        self.rev_attributes_from_parent[commit_id] = self.attributes_from_parent.copy()
 
     def checkout(self, commit_id : 'str'):
         if commit_id in self.rev_attributes:
             self.attributes = self.rev_attributes[commit_id].copy()
-            self.attributes_from_parent = self.rev_attributes_from_parent[commit_id].copy()
         else:
             self.attributes = {}
-            self.attributes_from_parent = []
 
     def __get_attribute_from_child(self, key : 'str') -> 'Attribute':
         if key in self.attributes.keys():
@@ -208,12 +201,22 @@ class Attribute:
         self.access_num = 0
         self.rev_access_num = {}
         self.parent = None
+        
+        # a value which is contained in this attribute at first
+        self.initial_value = None
+
+        # if it is non-volatile, a value in this attribute is saved after running
+        self.is_non_volatile = False
+
         register_field(self)
 
     def revise(self, value : 'Value'):
         # assgin name to the value
         if value.name == "":
             value.name = self.name
+            
+        if self.initial_value is None:
+            self.initial_value = value
             
         hist = AttributeHistory(value)
         self.history.append(hist)
@@ -285,6 +288,7 @@ class Value():
         self.internal_value = None
         self.histories = {}
         self.history_id = utils.get_guid()
+        self.id = utils.get_guid()
         register_value(self)
 
     def get_value(self) -> 'Value':
@@ -443,6 +447,7 @@ class UserDefinedInstance(Instance):
 
         attr_v = getattr(self.inst, name)
         
+        attribute.is_non_volatile = True
         v = parse_instance(self.attributes.module, name, attr_v, self)
         attribute.revise(v)
 

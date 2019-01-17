@@ -19,8 +19,12 @@ def generate_copied_value(value : 'values.Value'):
         copied = values.NumberValue(value.internal_value)
         return copied
 
+    if isinstance(value, values.NoneValue):
+        copied = values.NoneValue()
+        return copied
+
     if config.show_warnings:
-        print('Warning : Unimplemented copied_value')
+        print('Warning : Unimplemented copied_value {}'.format(value))
 
     return values.Value()    
 

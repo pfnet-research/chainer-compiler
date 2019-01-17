@@ -236,8 +236,9 @@ class ONNXInitrializer:
         self.shape = ()
 
 class ONNXGraph:
-    def __init__(self, generator : 'ONNXGenerator'):
+    def __init__(self, generator : 'ONNXGenerator', parent : 'ONNXGraph'):
         self.generator = generator
+        self.parent = parent
         self.nodes = []
         self.input_tensor = []
         self.output_tensor = []
@@ -326,9 +327,24 @@ class ONNXGraph:
         node = oh.make_node(optype, inputs, outputs, name, **kwargs)
         self.nodes.append(node)
 
-    def set_input(self, input):
-        self.input_tensor = [self.tensors[value2onnx_parameter[x].onnx_name] for x in input]
+    def try_get_tensor(self, onnx_name : 'str'):
+        if onnx_name in self.tensors.keys():
+            return self.tensors[onnx_name]
 
+        #if self.parent is not None:
+        #    return self.parent.try_get_tensor(onnx_name) 
+
+        return None
+
+    def set_input(self, input):
+        self.input_tensor = []
+
+        for input_ in input:
+            onnx_name = value2onnx_parameter[input_].onnx_name
+            value = self.try_get_tensor(onnx_name)
+            assert(value is not None)
+            self.input_tensor.append(value)
+                
     def set_output(self, output):
         self.output_tensor = [self.tensors[value2onnx_parameter[x].onnx_name] for x in output]
 
@@ -357,12 +373,11 @@ class ONNXGenerator:
         self.onnx_graphs = []
         self.initializers = {}
 
-    def generate_graph(self, inputs, outputs, graph : 'graphs.Graph', isMain = False):
-        onnx_graph = ONNXGraph(self)
+    def generate_graph(self, inputs, outputs, graph : 'graphs.Graph', parent : 'ONNXGraph', isMain = False):
+        onnx_graph = ONNXGraph(self, parent)
         
-        for node in graph.nodes:
-            
-            for input in node.inputs:
+        def generate_input_tensors(inputs_):
+            for input in inputs_:
                 if not (value2onnx_parameter[input].onnx_name in onnx_graph.onnx_tensors.keys()):
 
                     if input.generator is None and not (input in inputs):
@@ -372,11 +387,22 @@ class ONNXGenerator:
                         tensor = onnx_graph.new_empty_tensor_with_value(input)
                         onnx_graph.onnx_tensors[value2onnx_parameter[input].onnx_name] = tensor
 
-            for output in node.outputs:
+
+        def generate_output_tensors(outputs_):
+            for output in outputs_:
                 if not (value2onnx_parameter[output].onnx_name in onnx_graph.onnx_tensors.keys()):
                     tensor = onnx_graph.new_empty_tensor_with_value(output)
                     onnx_graph.onnx_tensors[value2onnx_parameter[output].onnx_name] = tensor
 
+        generate_input_tensors(inputs)
+
+        for node in graph.nodes:
+            generate_input_tensors(node.inputs)
+            generate_output_tensors(node.outputs)
+
+        generate_output_tensors(outputs)
+
+        for node in graph.nodes:
             if isinstance(node, nodes.NodeCopy):
                 node_ = node # type: nodes.Copy
                 onnx_node = oh.make_node(
@@ -385,6 +411,16 @@ class ONNXGenerator:
                     [value2onnx_parameter[node.outputs[0]].onnx_name])
 
                 onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeNonVolatileAssign):
+                node_ = node # type: nodes.NodeNonVolatileAssign
+                onnx_node = oh.make_node(
+                    'Identity',
+                    [value2onnx_parameter[node_.target_value].onnx_name],
+                    [value2onnx_parameter[node_.value].onnx_name])
+
+                onnx_graph.nodes.append(onnx_node)
+
 
             if isinstance(node, nodes.NodeAugAssign):
                 node_ = node # type: nodes.AugAssign
@@ -530,8 +566,8 @@ class ONNXGenerator:
             if isinstance(node, nodes.NodeIf):
                 node_ = node # type: nodes.NodeIf
 
-                true_graph = self.generate_graph(node_.true_graph.input_values, node_.true_graph.output_values, node_.true_graph)
-                false_graph = self.generate_graph(node_.false_graph.input_values, node_.false_graph.output_values, node_.false_graph)
+                true_graph = self.generate_graph(node_.true_graph.input_values, node_.true_graph.output_values, node_.true_graph, onnx_graph)
+                false_graph = self.generate_graph(node_.false_graph.input_values, node_.false_graph.output_values, node_.false_graph, onnx_graph)
                 
                 onnx_node = oh.make_node(
                     'If', 
@@ -544,7 +580,7 @@ class ONNXGenerator:
 
             if isinstance(node, nodes.NodeFor):
                 node_ = node # type: nodes.NodeFor
-                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph)
+                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph, onnx_graph)
 
                 onnx_node = oh.make_node(
                     'Loop', 
@@ -556,7 +592,7 @@ class ONNXGenerator:
             if isinstance(node, nodes.NodeListcomp):
                 node_ = node # type: nodes.NodeListcomp
 
-                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph)
+                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph, onnx_graph)
 
                 onnx_node = oh.make_node(
                     'Loop', 
@@ -597,7 +633,7 @@ class ONNXGenerator:
 
         assign_onnx_name(graph)
 
-        graph_ = self.generate_graph(inputs, outputs, graph, True)
+        graph_ = self.generate_graph(inputs, outputs, graph, None, True)
         model = oh.make_model(graph_, producer_name="elichika", producer_version="0.1")
         return model
 

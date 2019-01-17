@@ -231,10 +231,6 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     input_attributes = [v for v in input_attributes if v.has_value()]
     input_values = [i.get_value() for i in input_attributes]
 
-    for input_value in input_values:
-        true_graph.add_input_value(input_value)
-        false_graph.add_input_value(input_value)
-
     # Output
     name2output_attributes = {}
 
@@ -258,6 +254,8 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     output_attributes = set(true_output_attributes) | set(false_output_attributes)
     output_values = []
 
+    non_volatiles = []
+
     for attribute_pair in name2output_attributes.values():
         true_attribute, false_attribute = attribute_pair
         name = ''
@@ -274,19 +272,34 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         if true_attribute is not None:
             true_value = true_output_attributes_2_values[true_attribute]
         else:
-            if false_attribute in input_attributes:
-                true_value = false_attribute.get_value()
+            if parent.has_attribute(name):
+                true_value = parent.get_attribute(name).get_value()
+
+                if not true_value in input_values:
+                    input_values.append(true_value)
             else:
                 # TODO : it should be better
+                # case
+                # if xxx:
+                #     y = 10
+                # print(y)
                 true_value = false_output_attributes_2_values[false_attribute]
 
         if false_attribute is not None:
             false_value = false_output_attributes_2_values[false_attribute]
         else:
-            if true_attribute in input_attributes:
-                false_value = true_attribute.get_value()
+            if parent.has_attribute(name):
+                false_value = parent.get_attribute(name).get_value()
+
+                if not false_value in input_values:
+                    input_values.append(false_value)
+
             else:
                 # TODO : it should be better
+                # case
+                # if xxx:
+                #     y = 10
+                # print(y)
                 false_value = true_output_attributes_2_values[true_attribute]
 
         true_graph.add_output_value(true_value)
@@ -302,21 +315,41 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             # change both
             value = functions.generate_value_with_same_type(true_value)
             output_values.append(value)
+
+            if parent.get_attribute(name).is_non_volatile:
+                non_volatiles.append((parent.get_attribute(name).get_value(), value))
+
             parent.get_attribute(name).revise(value)
 
         elif true_attribute in input_attributes:
             value = functions.generate_value_with_same_type(true_value)
+            
+            if parent.get_attribute(name).is_non_volatile:
+                non_volatiles.append((parent.get_attribute(name).get_value(), value))
+
             output_values.append(value)
             parent.get_attribute(name).revise(value)
         else:
             value = functions.generate_value_with_same_type(false_value)
+            
+            if parent.get_attribute(name).is_non_volatile:
+                non_volatiles.append((parent.get_attribute(name).get_value(), value))
+
             output_values.append(value)
             parent.get_attribute(name).revise(value)
+
+    for input_value in input_values:
+        true_graph.add_input_value(input_value)
+        false_graph.add_input_value(input_value)
 
     node = nodes.NodeIf(test.get_value(), input_values, true_graph, false_graph, astc.lineno)
     node.set_outputs(output_values)
 
     graph.add_node(node)
+
+    for tv, v in non_volatiles:
+        node_nv = nodes.NodeNonVolatileAssign(tv, v)
+        graph.add_node(node_nv)
 
     return None
 

@@ -62,6 +62,17 @@ class NodeCopy(Node):
     def __str__(self):
         return 'Copy({})'.format(self.lineprop)
 
+class NodeNonVolatileAssign(Node):
+    def __init__(self, target_value : 'values.Value', value : 'values.Value', line = -1):
+        super().__init__(line)
+        self.target_value = target_value
+        self.value = value
+        self.inputs.append(target_value)
+        self.inputs.append(value)        
+
+    def __str__(self):
+        return 'NodeNonVolatileAssign({})'.format(self.lineprop)
+
 class NodeAssign(Node):
     def __init__(self, attr : 'values.Attribute', value : 'values.Value', line = -1):
         super().__init__(line)
