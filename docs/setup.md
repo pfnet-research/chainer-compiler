@@ -1,8 +1,10 @@
 # Set up guide
 
-Currently, Chainer compiler does not provide any install scripts. You need to try it at the top of chainer-compiler repository or manually set up paths by yourself.
+Currently, Chainer compiler does not provide any install scripts. You need to try it at the top of the chainer-compiler repository or manually set up paths by yourself.
 
 ## Prerequisites
+
+If you feel lucky, you can proceed to [building chainer compiler](#building-chainer-compiler) and come back to this section if your build fails.
 
 ### Setting up toolchains
 
@@ -18,13 +20,13 @@ Download and install the latest CUDA Toolkit from NVIDIA's website.
 
 #### Non-GPU environment
 
-Oniku can be built on the non-GPU environment because it just requires a few methods in CUDA Runtime API (`cuda_runtime.h`), and CMake's `FindCUDA` only requires NVCC.
+Chainer compiler can be built on the non-GPU environment because it just requires a few methods in CUDA Runtime API (`cuda_runtime.h`), and CMake's `FindCUDA` only requires NVCC.
 
-There are two ways to build Oniku without CUDA.
+There are two ways to build Chainer compiler without CUDA.
 
 ##### Specifying `CHAINER_COMPILER_BUILD_CUDA`
 
-You can exclude CUDA dependency from Oniku by specifying `CHAINER_COMPILER_BUILD_CUDA=OFF`.
+You can exclude CUDA dependency from Chainer compiler by specifying `CHAINER_COMPILER_BUILD_CUDA=OFF`.
 
 ##### Using stub driver
 
@@ -65,36 +67,37 @@ Note: `cuda-driver-dev-*` only installs a stub driver (`/usr/local/cuda-10.0/lib
 
 ### Setting up Protocol Buffers
 
-ONNX library used by Oniku requires `libprotobuf.so` and `protoc` command at build time. You can install them by using the package manager or [building yourself](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md).
+Chainer compiler requires `libprotobuf.so` and `protoc` command at build time. You can install them by using the package manager or [building yourself](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md).
 
 ```shell-session
 $ apt-get install libprotobuf-dev protobuf-compiler
 ```
 
 ### Setting up Python and the dependent Python packages
-Oniku requires Python and some libraries to build *(Should we use the same ONNX version used inside Oniku?)*.
+
+Chainer compiler requires Python and some libraries to build.
 
 ```shell-session
 $ apt-get install python3 python3-pip
 $ pip3 install gast numpy chainer onnx==1.3.0 onnx_chainer
 ```
 
-## Building Oniku
+## Building Chainer compiler
 
-1. Check out Oniku repository to your local environment:
+1. Check out Chainer compiler repository to your local environment:
 
 ```shell-session
-$ git clone https://github.com/pfnet/oniku.git
+$ git clone https://github.com/pfnet-research/chainer-compiler.git
 ```
 
 2. Run `setup.sh` (You may need to add `-DPYTHON_EXECUTABLE=python3` manually to `cmake` for ONNX):
 
 ```shell-session
-$ cd oniku
+$ cd chainer-compiler
 $ ./setup.sh
 ```
 
-3. Build Oniku
+3. Build Chainer compiler
 
 ```bash
 $ mkdir -p build
@@ -115,8 +118,7 @@ Install OpenCV via the package manager or by building the source code.
 $ apt-get install libopencv-dev
 ```
 
-You can enable `tools/train_imagenet` by adding
-`-DCHAINER_COMPILER_ENABLE_OPENCV=ON`.
+You can enable `tools/train_imagenet` by adding `-DCHAINER_COMPILER_ENABLE_OPENCV=ON`.
 
 ### Other CMake variables
 
@@ -132,72 +134,16 @@ TODO(hamaji): Document some of them. Notably,
 
 1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
 1. `CHAINER_COMPILER_ENABLE_NVTX` and `CHAINER_COMPILER_ENABLE_NVRTC` are important for tuning CUDA performance.
-1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](python/oniku.py).
+1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](python/chainer_compiler.py).
 
-## Usage
+## Run tests
 
 ```shell-session
-$ mkdir build
 $ cd build
-$ cmake ..
-$ make
 $ make test
 $ cd ..
 $ ./scripts/runtests.py
 $ pytest python  # If you set -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 ```
 
-### Run ResNet50 with XCVM backend
-
-```shell-session
-$ ./setup.sh
-$ ./build/tools/run_onnx --dump_xcvm --device cuda --test data/resnet50 --trace
-
-```
-
-VGG19 works, too:
-
-```shell-session
-$ wget https://s3.amazonaws.com/download.onnx/models/opset_8/vgg19.tar.gz
-$ tar -xvzf vgg19.tar.gz
-$ ./build/tools/run_onnx --dump_xcvm --device cuda --test vgg19 --trace
-```
-
-You can run more models defined in [ONNX's tests](https://github.com/onnx/onnx/tree/master/onnx/backend/test/data/real):
-
-```shell-session
-$ ./scripts/runtests.py onnx_real -g
-```
-
-### Generate a training graph from your Chainer model
-
-First prepare a model which outputs a loss value as a single float. Here we use `ch2o/tests/model/Resnet_with_loss.py` as a sample.
-
-You can generate an ONNX graph for inference by
-
-```shell-session
-$ PYTHONPATH=ch2o python3 ch2o/tests/model/Resnet_with_loss.py resnet50
-```
-
-Your ONNX file should be stored as `resnet50/model.onnx`. Then, you can generate a training graph by
-
-```shell-session
-$ ./build/tools/run_onnx --onnx resnet50/model.onnx --out_onnx resnet50/backprop.onnx --backprop --compile_only
-```
-
-There would be a bunch of ways to analyze `resnet50/backprop.onnx`. For example, if you want a text dump, run
-
-```shell-session
-$ ./build/tools/dump resnet50/backprop.onnx
-```
-
-Or investigate it programmatically by Python:
-
-```shell-session
->>> import onnx
->>> model = onnx.ModelProto()
->>> model.ParseFromString(open('resnet50/backprop.onnx', 'rb').read())
->>> [o.name for o in model.graph.output]
-```
-
-You can also use visualizers for ONNX such as [netron](https://github.com/lutzroeder/netron).
+Now you can proceed to [example usage](usage.md).
