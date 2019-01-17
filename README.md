@@ -22,3 +22,4 @@ This project is still in the early stage and is not expected to be used by end-u
 - [Set up guide](docs/setup.md)
 - [Overview of components](docs/overview.md)
 - [Example usage](docs/usage.md)
+- We realize we need more documents. Just file a bug to ask your questions so we can add documents.
