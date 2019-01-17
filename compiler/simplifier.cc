@@ -629,7 +629,11 @@ bool ReplaceEyeLike(Graph* graph, Node* node) {
     }
     std::vector<int> arr = {};
     for (int i = 0; i < row; ++i) {
-        arr.push_back(std::min(std::max(i+k, -1), col-1));
+        auto v = std::max(i+k, -1);
+        if (v >= col) {
+            v = -1;
+        }
+        arr.push_back(v);
     }
     Value* indices = gb.Const(Type(Dtype::kInt64, {row}), arr);
     Value* depth = gb.Const(Type(Dtype::kInt64, {}), {col});
