@@ -141,8 +141,7 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_constant'),
     TestCase(NODE_TEST, 'test_constantofshape_float_ones'),
-    # TODO(tanakad): test case sets 1 to value attribute, onnx/onnx Issue#1738
-    # TestCase(NODE_TEST, 'test_constantofshape_int_zeros'),
+    TestCase(NODE_TEST, 'test_constantofshape_int_zeros'),
     TestCase(NODE_TEST, 'test_onehot_with_axis'),
     TestCase(NODE_TEST, 'test_onehot_without_axis'),
 
@@ -164,10 +163,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_conv_with_strides_no_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_and_asymmetric_padding'),
-    # TODO(hamaji): Revisit parameters of ConvTranspose.
     TestCase(NODE_TEST, 'test_convtranspose'),
-    # TestCase(NODE_TEST, 'test_convtranspose_1d'),
-    # TestCase(NODE_TEST, 'test_convtranspose_3d'),
+    TestCase(NODE_TEST, 'test_convtranspose_1d'),
+    TestCase(NODE_TEST, 'test_convtranspose_3d'),
     TestCase(NODE_TEST, 'test_convtranspose_kernel_shape'),
     TestCase(NODE_TEST, 'test_convtranspose_output_shape'),
     # TODO(hamaji): output_pads is not handled yet.
@@ -177,12 +175,14 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
-    # TODO(hamaji): Support non-2D pools.
+    TestCase(NODE_TEST, 'test_maxpool_1d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
+    TestCase(NODE_TEST, 'test_maxpool_3d_default'),
+    TestCase(NODE_TEST, 'test_averagepool_1d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads_count_include_pad'),
@@ -190,6 +190,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_averagepool_2d_strides'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads_count_include_pad'),
+    TestCase(NODE_TEST, 'test_averagepool_3d_default'),
     TestCase(NODE_TEST, 'test_globalmaxpool'),
     TestCase(NODE_TEST, 'test_globalmaxpool_precomputed'),
     TestCase(NODE_TEST, 'test_globalaveragepool'),

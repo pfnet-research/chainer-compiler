@@ -292,7 +292,7 @@ bool ReplaceScan(Graph* graph, Node* scan) {
 
 void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const std::string& name) {
     CHECK_EQ(1, node->inputs().size()) << name;
-    CHECK_LT(0, node->inputs()[0]->type().GetNBytes()) << "The input shape of " << name << " must be known";
+    CHECK(node->inputs()[0]->type().HasKnownShape()) << "The input shape of " << name << " must be known";
     CHECK_LT(2, node->inputs()[0]->type().dims().size()) << "The input of " << name << " must have at least 3 dimensions";
     std::vector<int64_t> kernel_shape(node->inputs()[0]->type().dims().begin() + 2, node->inputs()[0]->type().dims().end());
     GraphBuilder gb(graph, "Simplify" + name, node->outputs()[0]);
@@ -312,7 +312,7 @@ bool ReplaceGlobalAveragePool(Graph* graph, Node* node) {
 bool ReplaceFlatten(Graph* graph, Node* node) {
     CHECK_EQ(1, node->inputs().size());
     const Type& type = node->inputs()[0]->type();
-    CHECK_LT(0, type.GetNBytes()) << "The input shape of Flatten must be known";
+    CHECK(type.HasKnownShape()) << "The input shape of Flatten must be known";
     CHECK_LT(1, type.dims().size()) << "The input of Flatten must have at least 2 dimensions";
     GraphBuilder gb(graph, "SimplifyFlatten", node->outputs()[0]);
     int64_t d0 = 1;

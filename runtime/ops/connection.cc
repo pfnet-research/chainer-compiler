@@ -23,7 +23,7 @@ chainerx::Array LinearGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array
 
 chainerx::Array ConvOp::RunImpl(
         XCVMState* st, const chainerx::Array& x, const chainerx::Array& w, const nonstd::optional<chainerx::Array>& b) {
-    return chainerx::Conv(x, w, b, strides, pads);
+    return chainerx::Conv(x, w, b, ComplementStride(strides, x), ComplementPad(pads, x));
 }
 
 chainerx::Array ConvTransposeOp::RunImpl(
@@ -32,18 +32,18 @@ chainerx::Array ConvTransposeOp::RunImpl(
     if (!output_shape.empty()) {
         out_size = output_shape;
     }
-    return chainerx::ConvTranspose(x, w, b, strides, pads, out_size);
+    return chainerx::ConvTranspose(x, w, b, ComplementStride(strides, x), ComplementPad(pads, x), out_size);
 }
 
 chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
         XCVMState* st, const chainerx::Array& x, const chainerx::Array& w, const chainerx::Array& output_shape) {
     chainerx::Shape shape = ArrayToShape(output_shape);
     chainerx::StackVector<int64_t, chainerx::kMaxNdim> out_size(shape.begin() + 2, shape.end());
-    return chainerx::ConvTranspose(x, w, nonstd::nullopt, strides, pads, out_size);
+    return chainerx::ConvTranspose(x, w, nonstd::nullopt, ComplementStride(strides, x), ComplementPad(pads, x), out_size);
 }
 
 chainerx::Array ConvGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array& w, const chainerx::Array& x, const chainerx::Array& gy) {
-    return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, strides, pads, false /* cover_all */);
+    return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, ComplementStride(strides, x), ComplementPad(pads, x), false /* cover_all */);
 }
 
 }  // namespace runtime

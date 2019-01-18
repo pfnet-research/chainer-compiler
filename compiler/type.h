@@ -53,6 +53,8 @@ public:
 
     int64_t GetNBytes() const;
 
+    bool HasKnownShape() const;
+
 private:
     Kind kind_{Kind::kTensor};
     Dtype dtype_{Dtype::kUnknown};

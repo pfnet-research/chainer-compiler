@@ -65,7 +65,7 @@ void Value::SetProducer(Node* producer) {
 
 void Value::set_grad(Value* grad) {
     grad_ = grad;
-    if (grad_ && (type_->kind() != Type::Kind::kTensor || type_->NumElements() > 0)) {
+    if (grad_ && (type_->kind() != Type::Kind::kTensor || type_->HasKnownShape())) {
         grad_->set_type(new Type(*type_));
     }
 }
