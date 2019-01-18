@@ -93,6 +93,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerSequenceSplitAxis).second);
         CHECK(op_set_.emplace(Node::kChainerSequenceStack).second);
         CHECK(op_set_.emplace(Node::kChainerSequenceUnpad).second);
+        CHECK(op_set_.emplace(Node::kEyeLike).second);
         CHECK(op_set_.emplace(Node::kOr).second);
         CHECK(op_set_.emplace(Node::kPad).second);
         CHECK(op_set_.emplace(Node::kPow).second);

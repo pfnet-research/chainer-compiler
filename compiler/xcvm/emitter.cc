@@ -498,6 +498,10 @@ private:
             }
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ConstantFill, out(0), oin(0), node.dtype(), IntVector(node.extra_shape()), IntVector(node.shape()), node.value());
+        } else if (node.op_type() == Node::kEyeLike) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(EyeLike, out(0), in(0), node.dtype(), node.k());
         } else if (node.op_type() == Node::kSlice) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
