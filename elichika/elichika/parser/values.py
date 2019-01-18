@@ -118,13 +118,7 @@ def parse_instance(default_module, name, instance, self_instance = None):
     if instance is None:
         return NoneValue()
 
-    if not isinstance(instance, chainer.Link):
-        if config.show_warnings:
-            print('Warning unsupported format is found : {}, {}'.format(name, instance))
-        return NoneValue()
-
-    model_inst = UserDefinedInstance(default_module, instance)
-
+    model_inst = UserDefinedInstance(default_module, instance, isinstance(instance, chainer.Link))
     return model_inst
 
 class Field():
@@ -434,8 +428,13 @@ class Instance(Value):
         return self.attributes
 
 class UserDefinedInstance(Instance):
-    def __init__(self, module : 'Field', inst):
+    def __init__(self, module : 'Field', inst, is_chainer_link = False):
         super().__init__(module, inst)
+        self.is_chainer_link = is_chainer_link
+
+        if self.is_chainer_link:
+            self.callable = True
+            self.func = self.try_get_and_store_value('forward')
 
     def try_get_and_store_value(self, name : 'str') -> 'Value':
         attribute = self.attributes.get_attribute(name)
