@@ -72,5 +72,10 @@ chainerx::Array ConstantFillOp::RunImpl(XCVMState* st, const nonstd::optional<ch
     return chainerx::Full(shape, value, dtype);
 }
 
+chainerx::Array EyeLikeOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+    chainerx::Dtype dtype = this->dtype ? static_cast<chainerx::Dtype>(this->dtype) : input.dtype();
+    return chainerx::Eye(input.shape()[0], input.shape()[1], this->k, dtype, input.device());
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

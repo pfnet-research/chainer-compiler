@@ -313,6 +313,7 @@ XC_OPS = [
     ('OneHot',
      [Array('indices'), Array('depth'), Array('values'), Int('axis')],
      ['output']),
+    ('EyeLike', [Array('input'), Int('dtype'), Int('k')], ['output']),
 
     ('Jmp', [Int('pc')], []),
     ('JmpTrue', [Array('cond'), Int('pc')], []),

@@ -608,40 +608,6 @@ bool ReplaceLinear(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceEyeLike(Graph* graph, Node* node) {
-    CHECK_EQ(2, node->inputs()[0]->type().dims().size());
-    Value* input = node->inputs()[0];
-    const int row = input->type().dims()[0];
-    const int col = input->type().dims()[1];
-    GraphBuilder gb(graph, "SimplifyEyeLike", node->outputs()[0]);
-    Dtype dtype = node->dtype();
-    if (!dtype) {
-        dtype = input->type().dtype() == Dtype(Dtype::kUnknown) ? Dtype(Dtype::kFloat32) : input->type().dtype();
-    }
-    const int k = node->k();
-    if ((k > 0 && k >= col) || (k < 0 && -k >= row)) {
-        Value* shape = gb.Op(Node::kShape, {input});
-        gb.Op(Node::kConstantFill, {shape}, node->outputs()[0])->producer()
-            ->set_input_as_shape(true)
-            ->set_value(0.0)
-            ->set_dtype(dtype);
-        return true;
-    }
-    std::vector<int> arr = {};
-    for (int i = 0; i < row; ++i) {
-        auto v = std::max(i+k, -1);
-        if (v >= col) {
-            v = -1;
-        }
-        arr.push_back(v);
-    }
-    Value* indices = gb.Const(Type(Dtype::kInt64, {row}), arr);
-    Value* depth = gb.Const(Type(Dtype::kInt64, {}), {col});
-    Value* values = gb.Const(Type(dtype, {2}), {0.0, 1.0});
-    gb.Op(Node::kOneHot, {indices, depth, values}, node->outputs()[0]);
-    return true;
-}
-
 }  // namespace
 
 void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
@@ -668,7 +634,6 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kConstantOfShape, ReplaceConstantOfShape).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
-    CHECK(simplifiers.emplace(Node::kEyeLike, ReplaceEyeLike).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
 
     auto replace_if_not_supported = [&ccfg, &simplifiers](Node::OpType op, SimplifierFn fn) {
