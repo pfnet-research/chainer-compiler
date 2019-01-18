@@ -605,7 +605,7 @@ class ONNXGenerator:
                 if node_.classtype == 'range':
                     onnx_node = oh.make_node(
                         "ChainerSequenceRange", 
-                        [value2onnx_parameter[input].onnx_name for input in node.inputs[0]], 
+                        [value2onnx_parameter[input].onnx_name for input in node.inputs], 
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))
 
