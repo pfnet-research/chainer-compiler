@@ -47,7 +47,7 @@ InOuts LoadParams(const Graph& graph) {
             // TODO(hamaji): Introduce more sophisticated approach to
             // decide the device to be used.
             if (std::find_if(input->users().begin(), input->users().end(), [input](const Node* node) {
-                    return node->op_type() != Node::kReshape || node->inputs()[1] != input;
+                    return node->op_type() != Node::kReshape || node->input(1) != input;
                 }) == input->users().end()) {
                 tensor = MakeHostArray(dtype, shape, data);
             } else {

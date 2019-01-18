@@ -24,11 +24,13 @@ public:
     void ToONNX(onnx::NodeProto* xnode) const;
     std::string DebugString() const;
 
+    Value* input(int index) const;
     const std::vector<Value*>& inputs() const {
         return inputs_;
     }
     void AddInput(Value* value);
 
+    Value* output(int index) const;
     const std::vector<Value*>& outputs() const {
         return outputs_;
     }
