@@ -176,12 +176,14 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
-    # TODO(hamaji): Support non-2D pools.
+    TestCase(NODE_TEST, 'test_maxpool_1d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
+    TestCase(NODE_TEST, 'test_maxpool_3d_default'),
+    TestCase(NODE_TEST, 'test_averagepool_1d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads_count_include_pad'),
@@ -189,6 +191,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_averagepool_2d_strides'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_pads_count_include_pad'),
+    TestCase(NODE_TEST, 'test_averagepool_3d_default'),
     TestCase(NODE_TEST, 'test_globalmaxpool'),
     TestCase(NODE_TEST, 'test_globalmaxpool_precomputed'),
     TestCase(NODE_TEST, 'test_globalaveragepool'),

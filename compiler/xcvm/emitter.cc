@@ -167,8 +167,6 @@ private:
 
         auto strides = [&node]() {
             std::vector<int> strides = IntVector(node.strides());
-            // TODO(hamaji): Infer strides for non-2D convolutions/pools.
-            if (strides.empty()) strides = {1, 1};
             return strides;
         };
 
