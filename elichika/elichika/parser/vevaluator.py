@@ -58,6 +58,20 @@ def get_output_attritubtes(target : 'values.Field', commit_id1 : 'str', commit_i
 
     return ret
 
+def filter_attributes(attributes):
+    ret = []
+
+    for attribute in attributes:
+        if attribute.has_value() and isinstance(attribute.get_value(False), values.Instance):
+            continue
+
+        if attribute.has_value() and isinstance(attribute.get_value(False), values.FuncValue):
+            continue
+
+        ret.append(attribute)
+
+    return ret
+
 class AstContext:
     def __init__(self, nast, lineno_offset : 'int'):
         self.nast = nast
@@ -201,6 +215,10 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     true_input_attributes = get_input_attritubtes(local_field, if_id, true_id)
     true_output_attributes = get_output_attritubtes(local_field, if_id, true_id)
 
+    #TODO(durswd): improve
+    true_input_attributes = filter_attributes(true_input_attributes)
+    true_output_attributes = filter_attributes(true_output_attributes)
+
     true_output_attributes_2_values = {}
 
     for attribute in true_output_attributes:
@@ -215,6 +233,10 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     values.commit(false_id)
     false_input_attributes = get_input_attritubtes(local_field, if_id, false_id)
     false_output_attributes = get_output_attritubtes(local_field, if_id, false_id)
+
+    #TODO(durswd): improve
+    false_input_attributes = filter_attributes(false_input_attributes)
+    false_output_attributes = filter_attributes(false_output_attributes)
 
     false_output_attributes_2_values = {}
 

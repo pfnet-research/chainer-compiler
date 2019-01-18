@@ -162,6 +162,9 @@ if __name__ == '__main__':
     testtools.generate_testcase(LazyInitUse, [10],
                            subname='lazy_init_use')
 
-    testtools.generate_testcase(IfBackprop,
+
+    model_IfBackprop = IfBackprop()
+    model_IfBackprop(np.random.rand(3, 5).astype(np.float32), 1)
+    testtools.generate_testcase(model_IfBackprop,
                            [np.random.rand(3, 5).astype(np.float32), 1],
                            subname='if_bp', backprop=True)

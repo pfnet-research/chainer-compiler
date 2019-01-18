@@ -19,6 +19,11 @@ def generate_copied_value(value : 'values.Value'):
         copied = values.NumberValue(value.internal_value)
         return copied
 
+    if isinstance(value, values.TensorValue):
+        copied = values.TensorValue()
+        copied.shape = value.shape
+        return copied
+
     if isinstance(value, values.NoneValue):
         copied = values.NoneValue()
         return copied
