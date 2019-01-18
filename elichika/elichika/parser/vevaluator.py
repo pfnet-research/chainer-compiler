@@ -317,7 +317,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             output_values.append(value)
 
             if parent.get_attribute(name).is_non_volatile:
-                non_volatiles.append((parent.get_attribute(name).get_value(), value))
+                non_volatiles.append((parent.get_attribute(name).initial_value, value))
 
             parent.get_attribute(name).revise(value)
 
@@ -325,7 +325,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             value = functions.generate_value_with_same_type(true_value)
             
             if parent.get_attribute(name).is_non_volatile:
-                non_volatiles.append((parent.get_attribute(name).get_value(), value))
+                non_volatiles.append((parent.get_attribute(name).initial_value, value))
 
             output_values.append(value)
             parent.get_attribute(name).revise(value)
@@ -333,7 +333,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             value = functions.generate_value_with_same_type(false_value)
             
             if parent.get_attribute(name).is_non_volatile:
-                non_volatiles.append((parent.get_attribute(name).get_value(), value))
+                non_volatiles.append((parent.get_attribute(name).initial_value, value))
 
             output_values.append(value)
             parent.get_attribute(name).revise(value)
@@ -347,6 +347,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
     graph.add_node(node)
 
+    # add non-volatiles
     for tv, v in non_volatiles:
         node_nv = nodes.NodeNonVolatileAssign(tv, v)
         graph.add_node(node_nv)
@@ -622,6 +623,10 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     return value
 
 def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    '''
+    for target in iter:
+        ...
+    '''
     assert(isinstance(astc.nast, gast.gast.For))
 
     # for target in iter:
@@ -642,20 +647,15 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # Body
     target = values.Value()
-    body_field = values.Field(local_field.module, local_field)
-    body_field.get_attribute(target_name).revise(target)
+    local_field.get_attribute(target_name).revise(target)
     body_graph = Graph()
     body_graph.name = 'Body'
-    body = veval_ast(astc.c(astc.nast.body), body_field, body_graph)
+    body = veval_ast(astc.c(astc.nast.body), local_field, body_graph)
 
     values.commit(body_id)
 
-    body_output_attributes = get_input_attritubtes(body_field, for_id, body_id)
-    body_intput_attributes = get_output_attritubtes(body_field, for_id, body_id)
-
-    for attribute in body_output_attributes:
-        ifoutput_node = nodes.NodeForOutput(attribute.get_value(), astc.lineno)
-        body_graph.add_node(ifoutput_node)
+    body_output_attributes = get_input_attritubtes(local_field, for_id, body_id)
+    body_intput_attributes = get_output_attritubtes(local_field, for_id, body_id)
 
     # Exports
     values.checkout(for_id)
@@ -666,15 +666,26 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     output_attributes = set(body_output_attributes)
     outputs = []
 
+    non_volatiles = []
+
     for attribute in output_attributes:
+        # FIXME
         value = values.Value()
         outputs.append(value)
+
+        if attribute.is_non_volatile:
+            non_volatiles.append((attribute.initial_value,value))
         attribute.revise(value)
 
     node = nodes.NodeFor(iter_, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
     
     graph.add_node(node)
+
+    # add non-volatiles
+    for tv, v in non_volatiles:
+        node_nv = nodes.NodeNonVolatileAssign(tv, v)
+        graph.add_node(node_nv)
 
     return None
 
