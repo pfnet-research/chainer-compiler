@@ -35,8 +35,8 @@ add_library(chainer_compiler_runtime
   meminfo.cc
   ops/activation.cc
   ops/connection.cc
-  ops/constant.cc
   ops/controlflow.cc
+  ops/creation.cc
   ops/cudnn_rnn.cc
   ops/generic.cc
   ops/indexing.cc
