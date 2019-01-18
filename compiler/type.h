@@ -38,6 +38,10 @@ public:
         dtype_ = dtype;
     }
 
+    size_t ndim() const {
+        return dims_.size();
+    }
+
     const std::vector<int64_t>& dims() const {
         return dims_;
     }

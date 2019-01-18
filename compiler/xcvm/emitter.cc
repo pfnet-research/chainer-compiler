@@ -38,6 +38,21 @@ std::vector<int> IntVector(const std::vector<int64_t>& ints) {
     return std::vector<int>{ints.begin(), ints.end()};
 }
 
+// TODO(hamaji): Move this to the middle end, not codegen.
+std::vector<int> ComplementStrideOrPad(const std::vector<int>& orig, const Value* input, int default_value) {
+    const Type& type = input->type();
+    // Fill strides or pads for statically known input shape.
+    if (!orig.empty() || !type.HasKnownShape()) {
+        return orig;
+    }
+    std::vector<int> filled;
+    CHECK_LT(2, type.ndim()) << type.DebugString();
+    for (int i = 0; i < type.ndim() - 2; ++i) {
+        filled.push_back(default_value);
+    }
+    return filled;
+}
+
 void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto* prog) {
     runtime::XCInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
     inst->set_debug_info(debug_info);
@@ -158,12 +173,12 @@ private:
                 CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
             }
             pads.resize(pads.size() / 2);
-            return pads;
+            return ComplementStrideOrPad(pads, node.inputs()[0], 0);
         };
 
         auto strides = [&node]() {
             std::vector<int> strides = IntVector(node.strides());
-            return strides;
+            return ComplementStrideOrPad(strides, node.inputs()[0], 1);
         };
 
         auto direction = [&node]() {
