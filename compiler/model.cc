@@ -1,4 +1,4 @@
-#include "model.h"
+#include "compiler/model.h"
 
 #include <compiler/onnx.h>
 

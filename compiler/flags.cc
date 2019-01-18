@@ -1,4 +1,4 @@
-#include "flags.h"
+#include "compiler/flags.h"
 
 namespace chainer_compiler {
 

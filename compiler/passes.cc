@@ -1,4 +1,4 @@
-#include "passes.h"
+#include "compiler/passes.h"
 
 #include <iostream>
 #include <map>

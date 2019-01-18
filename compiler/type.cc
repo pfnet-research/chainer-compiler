@@ -1,4 +1,4 @@
-#include "type.h"
+#include "compiler/type.h"
 
 #include <common/log.h>
 

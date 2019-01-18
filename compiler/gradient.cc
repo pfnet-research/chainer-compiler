@@ -1,4 +1,4 @@
-#include "gradient.h"
+#include "compiler/gradient.h"
 
 #include <algorithm>
 #include <iostream>

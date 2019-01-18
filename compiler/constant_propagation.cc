@@ -1,4 +1,4 @@
-#include "constant_propagation.h"
+#include "compiler/constant_propagation.h"
 
 #include <vector>
 

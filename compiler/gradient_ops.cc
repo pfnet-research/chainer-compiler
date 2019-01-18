@@ -1,4 +1,4 @@
-#include "gradient_ops.h"
+#include "compiler/gradient_ops.h"
 
 #include <atomic>
 #include <iostream>

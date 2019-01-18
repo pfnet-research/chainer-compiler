@@ -1,4 +1,4 @@
-#include "nvrtc_builder.h"
+#include "compiler/nvrtc_builder.h"
 
 #include <ctype.h>
 

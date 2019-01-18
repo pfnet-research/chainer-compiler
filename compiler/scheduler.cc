@@ -1,4 +1,4 @@
-#include "scheduler.h"
+#include "compiler/scheduler.h"
 
 #include <algorithm>
 #include <iostream>

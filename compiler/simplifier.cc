@@ -1,4 +1,4 @@
-#include "simplifier.h"
+#include "compiler/simplifier.h"
 
 #include <iostream>
 #include <limits>

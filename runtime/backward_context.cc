@@ -1,7 +1,8 @@
+#include "runtime/backward_context.h"
+
 #include <chainerx/backward.h>
 
 #include <common/log.h>
-#include <runtime/backward_context.h>
 
 namespace chainer_compiler {
 namespace runtime {

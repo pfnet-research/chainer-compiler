@@ -1,4 +1,4 @@
-#include "graph_builder.h"
+#include "compiler/graph_builder.h"
 
 #include <compiler/onnx.h>
 #include <onnx/shape_inference/implementation.h>

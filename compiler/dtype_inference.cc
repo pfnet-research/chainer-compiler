@@ -1,4 +1,4 @@
-#include "dtype_inference.h"
+#include "compiler/dtype_inference.h"
 
 #include <common/log.h>
 #include <compiler/graph.h>

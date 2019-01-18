@@ -1,4 +1,4 @@
-#include <compiler/xcvm/config.h>
+#include "compiler/xcvm/config.h"
 
 #include <set>
 

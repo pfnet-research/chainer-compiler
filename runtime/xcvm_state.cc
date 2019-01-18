@@ -1,4 +1,4 @@
-#include "xcvm_state.h"
+#include "runtime/xcvm_state.h"
 
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>

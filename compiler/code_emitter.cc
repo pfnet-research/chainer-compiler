@@ -1,4 +1,4 @@
-#include "code_emitter.h"
+#include "compiler/code_emitter.h"
 
 #include <common/log.h>
 
