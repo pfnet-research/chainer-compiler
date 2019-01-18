@@ -1,4 +1,4 @@
-#include "gradient_ops.h"
+#include "compiler/gradient_ops.h"
 
 #include <atomic>
 #include <iostream>
@@ -537,7 +537,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
     int num_states = loop->inputs().size() - 2;
 
     {
-        GraphBuilder gb(graph, "LoopGradIterCnt", loop->outputs()[0]);
+        GraphBuilder gb(graph, "LoopGradIterCnt", loop->output(0));
         Value* input_iter = gb.Const(Type(Dtype::kInt64, {}), {0});
         loop->AddInput(input_iter);
         Value* output_iter = graph->AddValue(gb.GenName());
@@ -546,7 +546,7 @@ void OutputIterationCount(Graph* graph, Node* loop) {
 
     {
         Graph* body = loop->body().get();
-        GraphBuilder gb(body, "LoopGradIterCntBody", loop->outputs()[0]);
+        GraphBuilder gb(body, "LoopGradIterCntBody", loop->output(0));
         Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
         Value* input_cnt = body->AddInputValue(gb.GenName(), Type(Dtype::kInt64, {}));
         Value* output_cnt = body->AddOutputValue(gb.GenName(), Type(Dtype::kInt64, {}));

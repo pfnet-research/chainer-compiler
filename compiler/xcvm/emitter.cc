@@ -38,6 +38,21 @@ std::vector<int> IntVector(const std::vector<int64_t>& ints) {
     return std::vector<int>{ints.begin(), ints.end()};
 }
 
+// TODO(hamaji): Move this to the middle end, not codegen.
+std::vector<int> ComplementStrideOrPad(const std::vector<int>& orig, const Value* input, int default_value) {
+    const Type& type = input->type();
+    // Fill strides or pads for statically known input shape.
+    if (!orig.empty() || !type.HasKnownShape()) {
+        return orig;
+    }
+    std::vector<int> filled;
+    CHECK_LT(2, type.ndim()) << type.DebugString();
+    for (int i = 0; i < type.ndim() - 2; ++i) {
+        filled.push_back(default_value);
+    }
+    return filled;
+}
+
 void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto* prog) {
     runtime::XCInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
     inst->set_debug_info(debug_info);
@@ -123,7 +138,7 @@ private:
     void EmitNode(const Graph* graph, const Node& node, XCProgramProto* prog) {
         auto in = [this, &node](int i) {
             CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory";
-            Value* input = node.inputs()[i];
+            Value* input = node.input(i);
             CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory";
             return GetValueId(input);
         };
@@ -131,13 +146,13 @@ private:
         // Optional input.
         auto oin = [this, in, &node](int i) {
             if (i >= static_cast<int>(node.inputs().size())) return -1;
-            if (node.inputs()[i]->IsNull()) return -1;
+            if (node.input(i)->IsNull()) return -1;
             return in(i);
         };
 
         auto out = [this, &node](int i) {
             CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
-            Value* output = node.outputs()[i];
+            Value* output = node.output(i);
             CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
             return XCVMValue(GetValueId(output), output);
         };
@@ -145,7 +160,7 @@ private:
         // Optional output.
         auto oout = [this, out, &node](int i) {
             if (i >= static_cast<int>(node.outputs().size())) return XCVMValue(-1);
-            if (node.outputs()[i]->IsNull()) return XCVMValue(-1);
+            if (node.output(i)->IsNull()) return XCVMValue(-1);
             return out(i);
         };
 
@@ -158,12 +173,12 @@ private:
                 CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
             }
             pads.resize(pads.size() / 2);
-            return pads;
+            return ComplementStrideOrPad(pads, node.input(0), 0);
         };
 
         auto strides = [&node]() {
             std::vector<int> strides = IntVector(node.strides());
-            return strides;
+            return ComplementStrideOrPad(strides, node.input(0), 1);
         };
 
         auto direction = [&node]() {
@@ -415,7 +430,7 @@ private:
                 FREE(tmp_id);
             } else {
                 CHECK_EQ(3UL, node.outputs().size());
-                CHECK(node.outputs()[1]->IsNull());
+                CHECK(node.output(1)->IsNull());
                 EMIT(MaxPool, out(0), out(2), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
             }
         } else if (node.op_type() == Node::kAveragePool) {
@@ -483,6 +498,10 @@ private:
             }
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ConstantFill, out(0), oin(0), node.dtype(), IntVector(node.extra_shape()), IntVector(node.shape()), node.value());
+        } else if (node.op_type() == Node::kEyeLike) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(EyeLike, out(0), in(0), node.dtype(), node.k());
         } else if (node.op_type() == Node::kSlice) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -557,7 +576,7 @@ private:
             EMIT(SequenceLengths, out(0), in(0));
         } else if (node.op_type() == Node::kChainerSequenceAppend) {
             XCVMValue o(out(0));
-            if (node.inputs()[0]->users().size() == 1) {
+            if (node.input(0)->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
                 EMIT(SequenceMove, o, in(0));
                 EMIT(SequenceAppend, o.id(), in(1));
@@ -567,7 +586,7 @@ private:
             }
         } else if (node.op_type() == Node::kChainerSequencePop) {
             XCVMValue o0(out(0));
-            if (node.inputs()[0]->users().size() == 1) {
+            if (node.input(0)->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
                 EMIT(SequenceMove, o0, in(0));
                 EMIT(SequencePop, out(1), o0.id());
@@ -669,7 +688,7 @@ private:
 
     void EmitConstant(const Node& node, XCProgramProto* prog) {
         CHECK_EQ(1, node.outputs().size());
-        int out = GetValueId(node.outputs()[0]);
+        int out = GetValueId(node.output(0));
         Tensor* value = node.tensor_value().get();
         EmitConstantImpl(node, value, out, node.chainer_host(), prog);
     }
@@ -683,7 +702,7 @@ private:
             const_values.push_back(id);
         }
 
-        int out = GetValueId(node.outputs()[0]);
+        int out = GetValueId(node.output(0));
         EMIT(SequenceCreate, out);
         for (int id : const_values) {
             EMIT(SequenceAppend, out, id);
@@ -782,7 +801,7 @@ private:
             // TODO(hamaji): Handle multiple outputs.
             CHECK_EQ(1, node.outputs().size());
             std::vector<int> shape;
-            for (int64_t dim : node.outputs()[0]->type().dims()) {
+            for (int64_t dim : node.output(0)->type().dims()) {
                 shape.push_back(dim);
             }
             EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, func_name, shape);
@@ -812,7 +831,7 @@ private:
         AssignValueIds(body);
 
         for (size_t i = 0; i < node.inputs().size(); ++i) {
-            Value* from = node.inputs()[i];
+            Value* from = node.input(i);
             Value* to = body.input_values()[i];
             // MOVE(GetValueId(to), GetValueId(from));
             EMIT(Identity, GetValueId(to), GetValueId(from));
@@ -826,7 +845,7 @@ private:
         }
         for (size_t i = 0; i < node.outputs().size(); ++i) {
             Value* from = body.output_values()[i];
-            Value* to = node.outputs()[i];
+            Value* to = node.output(i);
             if (from->IsNull()) {
                 // TODO(hamaji): Consider removing this value.
                 EMIT(NullConstant, GetValueId(to));
@@ -863,7 +882,7 @@ private:
         auto emit_branch = [this, &cond, prog, &debug_info](
                                    Graph* graph, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
             for (size_t i = 0; i < inputs.size(); ++i) {
-                Value* from = cond.inputs()[i + 1];
+                Value* from = cond.input(i + 1);
                 Value* to = inputs[i];
                 EMIT(Identity, GetValueId(to), GetValueId(from));
             }
@@ -874,7 +893,7 @@ private:
             }
             for (size_t i = 0; i < cond.outputs().size(); ++i) {
                 Value* from = outputs[i];
-                Value* to = cond.outputs()[i];
+                Value* to = cond.output(i);
                 if (from->IsNull()) {
                     // TODO(hamaji): Consider removing this value.
                     EMIT(NullConstant, GetValueId(to));
@@ -885,7 +904,7 @@ private:
         };
 
         int branch_jmp = prog->instructions_size();
-        EMIT(JmpTrue, GetValueId(cond.inputs()[0]), -1);
+        EMIT(JmpTrue, GetValueId(cond.input(0)), -1);
 
         emit_branch(else_body, else_input_values, else_output_values);
 
@@ -931,8 +950,8 @@ private:
         int num_scans = num_body_outputs - 1 - num_states;
         CHECK_EQ(num_body_inputs, num_states + 2) << body->name();
         CHECK_EQ(num_loop_outputs, num_states + num_scans) << body->name();
-        Value* max_trip_count = loop.inputs()[0];
-        Value* terminal_condition = loop.inputs()[1];
+        Value* max_trip_count = loop.input(0);
+        Value* terminal_condition = loop.input(1);
         CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite loop is detected";
 
         const std::string& debug_info = loop.ToString();
@@ -951,7 +970,7 @@ private:
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.inputs().size());
             CHECK_LT(i + 2, body_input_values.size());
-            const Value* loop_in = loop.inputs()[i + 2];
+            const Value* loop_in = loop.input(i + 2);
             const Value* body_in = body_input_values[i + 2];
             EMIT(Identity, GetValueId(body_in), GetValueId(loop_in));
         }
@@ -1028,9 +1047,9 @@ private:
         if (terminal_condition->IsNull()) {
             CHECK(!max_trip_count->IsNull());
             FREE(cond_id);
-            EMIT(Greater, cond_id, GetValueId(loop.inputs()[0]), iter_id);
+            EMIT(Greater, cond_id, GetValueId(loop.input(0)), iter_id);
         } else if (!max_trip_count->IsNull()) {
-            EMIT(Greater, tmp_id, GetValueId(loop.inputs()[0]), iter_id);
+            EMIT(Greater, tmp_id, GetValueId(loop.input(0)), iter_id);
             int tmp2_id = next_value_id_++;
             EMIT(Mul, tmp2_id, cond_id, tmp_id);
             FREE(cond_id);
@@ -1050,7 +1069,7 @@ private:
             CHECK_LT(i + 2, body_input_values.size());
             CHECK_LT(i, loop.outputs().size());
             const Value* body_in = body_input_values[i + 2];
-            const Value* loop_out = loop.outputs()[i];
+            const Value* loop_out = loop.output(i);
             if (loop_out->IsNull()) {
                 FREE(GetValueId(body_in));
             } else {
@@ -1061,7 +1080,7 @@ private:
         // Stack and output scan outputs.
         for (int i = 0; i < num_scans; ++i) {
             CHECK_LT(i + num_states, loop.outputs().size());
-            const Value* loop_out = loop.outputs()[i + num_states];
+            const Value* loop_out = loop.output(i + num_states);
             EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.chainer_stack_axis());
             FREE(scan_out_ids[i]);
         }

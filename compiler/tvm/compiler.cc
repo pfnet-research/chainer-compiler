@@ -123,15 +123,15 @@ public:
             tvm::Array<tvm::Tensor> output_tensors;
             if (node->op_type() == Node::kRelu) {
                 CHECK_EQ(1, input_tensors.size());
-                tvm::Tensor out{topi::relu(input_tensors[0], 0, GetIdent(node->outputs()[0]))};
+                tvm::Tensor out{topi::relu(input_tensors[0], 0, GetIdent(node->output(0)))};
                 output_tensors.push_back(out);
             } else if (node->op_type() == Node::kTanh) {
                 CHECK_EQ(1, input_tensors.size());
-                tvm::Tensor out{topi::tanh(input_tensors[0], GetIdent(node->outputs()[0]))};
+                tvm::Tensor out{topi::tanh(input_tensors[0], GetIdent(node->output(0)))};
                 output_tensors.push_back(out);
             } else if (node->op_type() == Node::kAdd) {
                 CHECK_EQ(2, input_tensors.size());
-                tvm::Tensor out{topi::add(input_tensors[0], input_tensors[1], GetIdent(node->outputs()[0]))};
+                tvm::Tensor out{topi::add(input_tensors[0], input_tensors[1], GetIdent(node->output(0)))};
                 output_tensors.push_back(out);
             } else if (node->op_type() == Node::kReduceSum) {
                 CHECK_EQ(1, input_tensors.size());
@@ -153,7 +153,7 @@ public:
 
             CHECK_EQ(node->outputs().size(), output_tensors.size());
             for (size_t i = 0; i < node->outputs().size(); ++i) {
-                CHECK(tensors_.emplace(node->outputs()[i], output_tensors[i]).second);
+                CHECK(tensors_.emplace(node->output(i), output_tensors[i]).second);
             }
         }
 
@@ -250,9 +250,9 @@ private:
     }
 
     void DumpConvTask(const Node& node, int pad_h, int pad_w, int stride_h, int stride_w) {
-        const Type& input = node.inputs()[0]->type();
-        const Type& weight = node.inputs()[1]->type();
-        const std::string& filename = g_dump_autotvm_task_dir + "/" + CleanseIdent(node.outputs()[0]->name()) + ".json";
+        const Type& input = node.input(0)->type();
+        const Type& weight = node.input(1)->type();
+        const std::string& filename = g_dump_autotvm_task_dir + "/" + CleanseIdent(node.output(0)->name()) + ".json";
         std::ofstream ofs(filename);
         CHECK(ofs) << filename;
         dmlc::JSONWriter writer(&ofs);
@@ -299,11 +299,11 @@ private:
             out = (*conv2d_fn)(target_, g_autotvm_log, inputs, pad_h, pad_w, stride_h, stride_w);
         }
         if (!out.get()) {
-            out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, GetIdent(node.outputs()[0]));
+            out = topi::conv2d_nchw(inputs[0], inputs[1], pad_h, pad_w, stride_h, stride_w, GetIdent(node.output(0)));
         }
 
         if (inputs.size() == 3) {
-            const int num_newaxis = node.inputs()[0]->type().dims().size() - 2;
+            const int num_newaxis = node.input(0)->type().dims().size() - 2;
             tvm::Tensor bias = topi::expand_dims(inputs[2], 1 /* axis */, num_newaxis);
             out = topi::add(out, bias);
         }
@@ -340,7 +340,7 @@ private:
         }
 
         if (inputs.size() == 3) {
-            const int num_newaxis = node.inputs()[0]->type().dims().size() - 2;
+            const int num_newaxis = node.input(0)->type().dims().size() - 2;
             tvm::Tensor bias = topi::expand_dims(inputs[2], 1 /* axis */, num_newaxis);
             out = topi::add(out, bias);
         }

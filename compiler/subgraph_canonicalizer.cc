@@ -1,4 +1,4 @@
-#include "subgraph_canonicalizer.h"
+#include "compiler/subgraph_canonicalizer.h"
 
 #include <compiler/graph.h>
 #include <compiler/node.h>

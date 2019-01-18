@@ -1,4 +1,4 @@
-#include "type_inference.h"
+#include "compiler/type_inference.h"
 
 #include <compiler/dtype_inference.h>
 #include <compiler/graph.h>

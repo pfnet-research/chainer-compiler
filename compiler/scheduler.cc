@@ -1,4 +1,4 @@
-#include "scheduler.h"
+#include "compiler/scheduler.h"
 
 #include <algorithm>
 #include <iostream>
@@ -92,7 +92,7 @@ std::vector<Node*> DelaySimpleNodes(const std::vector<Node*>& nodes_in) {
                 CHECK_EQ(1, nodes[index].size());
                 nodes[index].clear();
                 nodes[to].push_back(prev);
-                input = prev->inputs()[0];
+                input = prev->input(0);
             }
         }
     }

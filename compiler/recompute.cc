@@ -1,4 +1,4 @@
-#include "recompute.h"
+#include "compiler/recompute.h"
 
 #include <map>
 #include <memory>
@@ -69,8 +69,8 @@ void GetReluRecompute(Graph* graph, int threshold) {
         if (relu_dist < 0) continue;
         // It's not worth recomputing Relu if this Relu is the only
         // user of the input value.
-        if (node->inputs()[0]->users().size() == 1) continue;
-        Value* relu_output = node->outputs()[0];
+        if (node->input(0)->users().size() == 1) continue;
+        Value* relu_output = node->output(0);
         int num_near_users = 0;
         std::multimap<int, Node*> far_users;
         for (Node* user : relu_output->users()) {
@@ -89,7 +89,7 @@ void GetReluRecompute(Graph* graph, int threshold) {
         GraphBuilder gb(graph, "RecomputeRelu", relu_output);
         Value* recomputed = gb.Op(Node::kRelu, node->inputs());
         // TODO(hamaji): This should be done by shape inference.
-        recomputed->set_type(new Type(node->inputs()[0]->type()));
+        recomputed->set_type(new Type(node->input(0)->type()));
         for (const auto& p : far_users) {
             Node* user = p.second;
             relu_output->DetachUser(user);

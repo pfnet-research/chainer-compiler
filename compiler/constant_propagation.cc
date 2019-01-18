@@ -1,4 +1,4 @@
-#include "constant_propagation.h"
+#include "compiler/constant_propagation.h"
 
 #include <vector>
 
@@ -39,17 +39,17 @@ void DoConstantPropagation(Graph* graph, Node* node) {
 
     for (size_t i = 0; i < next_values.size(); ++i) {
         auto& next_value = next_values[i];
-        GraphBuilder gb(graph, "Const", node->outputs()[i]);
+        GraphBuilder gb(graph, "Const", node->output(i));
         if (next_value->is_tensor()) {
-            gb.Op(Node::kConstant, {}, node->outputs()[i])->producer()->set_tensor_value(next_value->ReleaseTensor());
+            gb.Op(Node::kConstant, {}, node->output(i))->producer()->set_tensor_value(next_value->ReleaseTensor());
         } else {
-            gb.Op(Node::kChainerSequenceConstants, {}, node->outputs()[i])->producer()->set_tensor_values(next_value->ReleaseSequence());
+            gb.Op(Node::kChainerSequenceConstants, {}, node->output(i))->producer()->set_tensor_values(next_value->ReleaseSequence());
         }
     }
 
     graph->DetachNode(node);
     for (Node* input : inputs) {
-        if (input->outputs()[0]->users().empty()) {
+        if (input->output(0)->users().empty()) {
             graph->DetachNode(input);
         }
     }

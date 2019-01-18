@@ -1,4 +1,4 @@
-#include "xcvm_var.h"
+#include "runtime/xcvm_var.h"
 
 #include <common/log.h>
 #include <common/strutil.h>

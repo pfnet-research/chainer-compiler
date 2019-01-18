@@ -148,7 +148,7 @@ void FuseTVMOperations(Graph* graph) {
         Node* node = base_node;
         while (true) {
             CHECK_EQ(1, node->outputs().size());
-            Value* output = node->outputs()[0];
+            Value* output = node->output(0);
             if (output->users().size() != 1) {
                 break;
             }

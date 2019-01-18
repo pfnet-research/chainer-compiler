@@ -1,4 +1,4 @@
-#include "meminfo.h"
+#include "runtime/meminfo.h"
 
 #ifdef CHAINER_COMPILER_ENABLE_CUDA
 #include <cuda_runtime.h>

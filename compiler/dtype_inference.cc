@@ -1,4 +1,4 @@
-#include "dtype_inference.h"
+#include "compiler/dtype_inference.h"
 
 #include <common/log.h>
 #include <compiler/graph.h>
@@ -36,9 +36,9 @@ void InferDtype(Node* node) {
 
     auto set = [node](int i, Dtype dtype) {
         CHECK_LT(i, node->outputs().size());
-        Dtype odtype = node->outputs()[i]->type().dtype();
+        Dtype odtype = node->output(i)->type().dtype();
         if (odtype == Dtype::kUnknown) {
-            node->outputs()[i]->mutable_type()->set_dtype(dtype);
+            node->output(i)->mutable_type()->set_dtype(dtype);
         } else {
             if (dtype != Dtype::kUnknown) CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->ToString();
         }
@@ -49,11 +49,11 @@ void InferDtype(Node* node) {
     };
 
     Dtype in0 = Dtype::kUnknown;
-    if (node->inputs().size() >= 1) in0 = node->inputs()[0]->type().dtype();
+    if (node->inputs().size() >= 1) in0 = node->input(0)->type().dtype();
     Dtype in1 = Dtype::kUnknown;
-    if (node->inputs().size() >= 2) in1 = node->inputs()[1]->type().dtype();
+    if (node->inputs().size() >= 2) in1 = node->input(1)->type().dtype();
     Dtype in2 = Dtype::kUnknown;
-    if (node->inputs().size() >= 3) in2 = node->inputs()[2]->type().dtype();
+    if (node->inputs().size() >= 3) in2 = node->input(2)->type().dtype();
 
     switch (node->op_type()) {
         case Node::kIdentity:
@@ -119,6 +119,15 @@ void InferDtype(Node* node) {
 
         case Node::kCast: {
             set(0, node->to());
+            break;
+        }
+
+        case Node::kEyeLike: {
+            if (node->dtype()) {
+                set(0, node->dtype());
+            } else {
+                set(0, in0 == Dtype::kUnknown ? default_float : in0);
+            }
             break;
         }
 
@@ -200,7 +209,7 @@ void InferDtype(Node* node) {
         case Node::kGRU:
         case Node::kLSTM: {
             Dtype dtype = CoerceDtype(in0, in1);
-            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
+            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->input(2)->type().dtype());
             oset(0, dtype);
             oset(1, dtype);
             oset(2, dtype);
@@ -216,7 +225,7 @@ void InferDtype(Node* node) {
         case Node::kConvTranspose:
         case Node::kChainerConvGradWeight: {
             Dtype dtype = CoerceDtype(in0, in1);
-            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->inputs()[2]->type().dtype());
+            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->input(2)->type().dtype());
             oset(0, dtype);
             break;
         }
@@ -276,17 +285,17 @@ void InferDtype(Node* node) {
             // TOOD(hamaji): Enable this check.
 #if 0
             for (size_t i = 2; i < node->inputs().size(); ++i) {
-                Value* input = node->inputs()[i];
-                Value* output = node->outputs()[i - 2];
+                Value* input = node->input(i);
+                Value* output = node->output(i - 2);
                 CHECK_EQ(input->type().kind(), output->type().kind());
             }
             for (size_t i = 2; i < node->inputs().size(); ++i) {
-                Value* input = node->inputs()[i];
+                Value* input = node->input(i);
                 Value* body = node->body()->input_values()[i];
                 CHECK_EQ(input->type().kind(), body->type().kind());
             }
             for (size_t i = 0; i < node->outputs().size(); ++i) {
-                Value* output = node->inputs()[i];
+                Value* output = node->input(i);
                 Value* body = node->body()->output_values()[i + 1];
                 CHECK_EQ(output->type().kind(), body->type().kind());
             }

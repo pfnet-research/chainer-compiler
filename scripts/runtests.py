@@ -144,6 +144,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_constantofshape_int_zeros'),
     TestCase(NODE_TEST, 'test_onehot_with_axis'),
     TestCase(NODE_TEST, 'test_onehot_without_axis'),
+    TestCase(NODE_TEST, 'test_eyelike_populate_off_main_diagonal'),
+    TestCase(NODE_TEST, 'test_eyelike_with_dtype'),
+    TestCase(NODE_TEST, 'test_eyelike_without_dtype'),
 
     # TODO(ChainerX): Support float16?
     TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),

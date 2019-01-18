@@ -1,4 +1,4 @@
-#include "node.h"
+#include "compiler/node.h"
 
 #include <algorithm>
 
@@ -52,9 +52,19 @@ std::string Node::DebugString() const {
     return xnode.DebugString();
 }
 
+Value* Node::input(int index) const {
+    CHECK_LT(index, inputs_.size());
+    return inputs_[index];
+}
+
 void Node::AddInput(Value* value) {
     inputs_.push_back(value);
     value->AddUser(this);
+}
+
+Value* Node::output(int index) const {
+    CHECK_LT(index, outputs_.size());
+    return outputs_[index];
 }
 
 void Node::AddOutput(Value* value, size_t index) {

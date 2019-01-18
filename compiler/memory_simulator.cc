@@ -1,4 +1,4 @@
-#include "memory_simulator.h"
+#include "compiler/memory_simulator.h"
 
 #include <map>
 #include <numeric>
