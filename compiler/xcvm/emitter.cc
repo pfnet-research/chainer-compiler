@@ -151,17 +151,13 @@ private:
 
         auto pads = [&node]() {
             std::vector<int> pads = IntVector(node.pads());
-            if (pads.empty()) {
-                pads = {0, 0};
-            } else {
-                // Both Chainer and ChainerX expect paddings for beginning
-                // and end are the same.
-                CHECK_EQ(pads.size() % 2, 0);
-                for (size_t i = 0; i < pads.size() / 2; ++i) {
-                    CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
-                }
-                pads.resize(pads.size() / 2);
+            // Both Chainer and ChainerX expect paddings for beginning
+            // and end are the same.
+            CHECK_EQ(pads.size() % 2, 0);
+            for (size_t i = 0; i < pads.size() / 2; ++i) {
+                CHECK_EQ(pads[i], pads[i + pads.size() / 2]);
             }
+            pads.resize(pads.size() / 2);
             return pads;
         };
 

@@ -169,5 +169,29 @@ bool IsCudaDevice(const chainerx::Device* device) {
 #endif
 }
 
+namespace {
+
+Int64StackVector ComplementStrideOrPad(const Int64StackVector& orig, const chainerx::Array& input, int default_value) {
+    if (!orig.empty()) {
+        return orig;
+    }
+    Int64StackVector filled;
+    CHECK_LE(2, input.ndim()) << input.shape();
+    for (int i = 0; i < input.ndim() - 2; ++i) {
+        filled.push_back(default_value);
+    }
+    return filled;
+}
+
+}  // namespace
+
+Int64StackVector ComplementStride(const Int64StackVector& strides, const chainerx::Array& input) {
+    return ComplementStrideOrPad(strides, input, 1);
+}
+
+Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Array& input) {
+    return ComplementStrideOrPad(pads, input, 0);
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

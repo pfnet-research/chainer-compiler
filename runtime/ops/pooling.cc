@@ -1,6 +1,7 @@
 #include <chainerx/routines/pooling.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 #include <runtime/xcvm_state.h>
 
@@ -28,17 +29,7 @@ private:
 
 std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
-    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb;
-    if (strides.empty()) {
-        chainerx::StackVector<int64_t, chainerx::kMaxNdim> strides;
-        for (int i = 0; i < x.ndim() - 2; ++i) {
-            strides.push_back(1);
-            strides.push_back(1);
-        }
-        fb.reset(x.device().GetMaxPoolForwardBackward(kernel_shape, strides, pads, cover_all).release());
-    } else {
-        fb.reset(x.device().GetMaxPoolForwardBackward(kernel_shape, strides, pads, cover_all).release());
-    }
+    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
     chainerx::Array out = fb->Forward(x);
     XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolForwardBackward>(std::move(fb));
     return std::tie(out, ctx);
@@ -47,17 +38,7 @@ std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const
 std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
-    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb;
-    if (strides.empty()) {
-        chainerx::StackVector<int64_t, chainerx::kMaxNdim> strides;
-        for (int i = 0; i < x.ndim() - 2; ++i) {
-            strides.push_back(1);
-            strides.push_back(1);
-        }
-        fb.reset(x.device().GetAveragePoolForwardBackward(kernel_shape, strides, pads, pad_mode).release());
-    } else {
-        fb.reset(x.device().GetAveragePoolForwardBackward(kernel_shape, strides, pads, pad_mode).release());
-    }
+    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
     chainerx::Array out = fb->Forward(x);
     XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolForwardBackward>(std::move(fb));
     return std::tie(out, ctx);

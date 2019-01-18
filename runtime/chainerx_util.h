@@ -8,6 +8,8 @@
 namespace chainer_compiler {
 namespace runtime {
 
+typedef chainerx::StackVector<int64_t, chainerx::kMaxNdim> Int64StackVector;
+
 chainerx::Shape ArrayToShape(const chainerx::Array& a);
 
 chainerx::Array ShapeToArray(const chainerx::Shape& s);
@@ -33,6 +35,10 @@ chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
 chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes);
 
 bool IsCudaDevice(const chainerx::Device* device);
+
+Int64StackVector ComplementStride(const Int64StackVector& strides, const chainerx::Array& input);
+
+Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Array& input);
 
 }  // namespace runtime
 }  // namespace chainer_compiler
