@@ -129,6 +129,15 @@ int64_t Type::GetNBytes() const {
     return num_elements * dtype_.SizeOf();
 }
 
+bool Type::HasKnownShape() const {
+    if (!has_known_shape_) return false;
+    CHECK_EQ(kind_, Kind::kTensor);
+    for (int d : dims_) {
+        if (d < 0) return false;
+    }
+    return true;
+}
+
 std::ostream& operator<<(std::ostream& os, const Type::Kind& kind) {
     static const char* kNames[] = {"Tensor", "Sequence", "Map", "Opaque"};
     int k = static_cast<int>(kind);

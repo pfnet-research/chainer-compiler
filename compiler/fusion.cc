@@ -120,11 +120,11 @@ void FuseTVMOperations(Graph* graph) {
     auto is_fusable = [](Node* node) {
         for (Value* value : node->inputs()) {
             if (value->type().dtype() == Dtype::kInt64) return false;
-            if (value->type().NumElements() <= 1) return false;
+            if (value->type().HasKnownShape()) return false;
         }
         for (Value* value : node->outputs()) {
             if (value->type().dtype() == Dtype::kInt64) return false;
-            if (value->type().NumElements() <= 1) return false;
+            if (value->type().HasKnownShape()) return false;
         }
         return true;
     };
