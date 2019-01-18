@@ -1105,7 +1105,12 @@ def compile_model(model, inputs):
         elif i is None:
             x = new_tensor()
         else:
-            i = chainer.cuda.to_cpu(i)
+            if isinstance(i, int):
+                i = np.array(i)
+            else:
+                # TODO(durswd): This code requires chainer6.x
+                i = chainer.cuda.to_cpu(i)
+
             x = new_tensor(dims=i.shape, dtype=i.dtype)
         input_tensors.append(x)
 
