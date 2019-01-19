@@ -82,8 +82,6 @@ def get():
     tests = []
 
     skip_shape_inference_blacklist = [
-        # ONNX's does now know cover_all.
-        'node_MaxPool2d',
         # A bug of ONNX's shape inference?
         # TODO(hamaji): Investigate.
         'node_SwapAxes',
