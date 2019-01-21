@@ -36,6 +36,8 @@ def try_get_value(value, name, lineprop, is_none_allowed = False):
 def get_ast_name_forcibly(ast):
     if isinstance(ast, gast.gast.Name):
         return ast.id
+    if isinstance(ast, gast.gast.Attribute):
+        return ast.attr
     return ''
 
 def get_input_attritubtes(target : 'values.Field', commit_id1 : 'str', commit_id2 : 'str'):

@@ -97,6 +97,13 @@ class FunctionBase():
     def analyze_args(self, func):
         sig = inspect.signature(func)
         for k, v in sig.parameters.items():
+
+            # TODO:(durswd) improve it
+            # bounding method doesn't contains self
+            # but unbounded function contains self
+            if inspect.isfunction(func) and k == 'self':
+                continue
+
             fa = FunctionArg()
             fa.name = v.name
             fa.value = values.parse_instance(None, v.name, v.default)
@@ -104,6 +111,48 @@ class FunctionBase():
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
         return None
+
+class UserDefinedClassConstructorFunction(FunctionBase):
+    def __init__(self, classinfo):
+        super().__init__()
+
+        members = inspect.getmembers(classinfo)
+        init_func = [m[1] for m in members if m[0] == '__init__']
+        assert(len(init_func) == 1)
+
+        func = init_func[0]
+        self.inst = func
+        self.name = func.__name__
+        self.lineno = inspect.getsourcelines(func)[1]
+        self.classinfo = classinfo
+
+        code = utils.clip_head(inspect.getsource(func))
+
+        self.analyze_args(func)
+
+        self.ast = gast.ast_to_gast(ast.parse(code)).body[0] 
+
+    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
+        ret = values.UserDefinedInstance(module, None, self.classinfo)
+        inst = ret
+
+        func_field = values.Field()
+        func_field.set_module(module)
+
+        # add self
+        if inst is not None:
+            func_field.get_field().get_attribute('self').revise(ret)
+
+        # add args
+        funcArgs = self.parse_args(args)
+
+        for fa in funcArgs:
+            func_field.get_field().get_attribute(fa.name).revise(fa.value)
+
+        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1)
+        vevaluator.veval_ast(astc, func_field, graph)
+
+        return ret
 
 class UserDefinedFunction(FunctionBase):
     def __init__(self, func):
@@ -120,8 +169,9 @@ class UserDefinedFunction(FunctionBase):
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0] 
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
-        func_field = values.Field(module, None)
-        
+        func_field = values.Field()
+        func_field.set_module(module)
+
         # add self
         if inst is not None:
             func_field.get_field().get_attribute('self').revise(inst)

@@ -10,4 +10,7 @@ def veval(op : 'nodes.BinOpType', left : 'values.Value', right : 'values.Value')
     if isinstance(left, values.ListValue) and isinstance(right, values.ListValue):
         return functions.generate_value_with_same_type(left)
 
+    if isinstance(left, values.TensorValue) and isinstance(right, values.TensorValue):
+        return functions.generate_value_with_same_type(left)
+
     return values.Value()

@@ -95,9 +95,20 @@ def parse_instance(default_module, name, instance, self_instance = None):
             ind += 1
         return ret
 
+    if instance is inspect._empty:
+        return None
+
+    if inspect.isfunction(instance):
+        func = UserDefinedFunction(instance)
+        return FuncValue(func, self_instance)
+
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
         return FuncValue(func, self_instance)
+
+    if inspect.isclass(instance):
+        func = functions.UserDefinedClassConstructorFunction(instance)
+        return FuncValue(func, None)
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
@@ -118,19 +129,25 @@ def parse_instance(default_module, name, instance, self_instance = None):
     if instance is None:
         return NoneValue()
 
-    model_inst = UserDefinedInstance(default_module, instance, isinstance(instance, chainer.Link))
+    model_inst = UserDefinedInstance(default_module, instance, None, isinstance(instance, chainer.Link))
     return model_inst
 
 class Field():
-    def __init__(self, module : 'Field', parent : 'Field'):
+    def __init__(self):
         self.attributes = {}
-        self.module = module
-        self.parent = parent
+        self.module = None
+        self.parent = None
 
         self.rev_attributes = {}
         self.id = utils.get_guid()
 
         register_field(self)
+
+    def set_module(self, module):
+        self.module = module
+
+    def set_parent(self, parent):
+        self.parent = parent
 
     def get_field(self) -> 'Field':
         return self
@@ -148,15 +165,15 @@ class Field():
         else:
             # search an attribute from parents
             attribute = None
-            if self.parent is not None:
-                attribute = self.parent.__get_attribute_from_child(key)
+            if self.parent is not None and self.parent.has_attribute(key):
+                attribute = self.parent.get_attribute(key)
 
             if attribute is not None:
                 return attribute
 
             # search an attribute from a module
-            if self.module is not None:
-                attribute = self.module.__get_attribute_from_child(key)
+            if self.module is not None and self.module.has_attribute(key):
+                attribute = self.module.get_attribute(key)
 
             if attribute is not None:
                 return attribute
@@ -175,13 +192,50 @@ class Field():
         else:
             self.attributes = {}
 
-    def __get_attribute_from_child(self, key : 'str') -> 'Attribute':
-        if key in self.attributes.keys():
-            return self.attributes[key]
-        else:
-            if self.parent is not None:
-                return self.parent.__get_attribute_from_child(key)
-            return None
+    def set_default_value(self, key, value):
+        attribute = self.get_attribute(key)
+        attribute.revise(value)
+
+class Module(Field):
+    def __init__(self, module):
+        super().__init__()
+        self.internal_module = module
+
+    def has_attribute(self, key) -> 'Boolean':
+        members = inspect.getmembers(self.internal_module)
+        members_dict = {}
+        for member in members:
+            members_dict[member[0]] = member[1]
+
+        if (key in members_dict.keys()):
+            return True
+
+        return super().has_attribute(key)
+
+    def get_attribute(self, key):
+        attribute = super().get_attribute(key)
+        if attribute is not None and attribute.has_value():
+            return attribute
+
+        members = inspect.getmembers(self.internal_module)
+        members_dict = {}
+        for member in members:
+            members_dict[member[0]] = member[1]
+
+        if not (key in members_dict.keys()):
+            return attribute
+
+        attr_v = members_dict[key]
+        
+        attribute.is_non_volatile = True
+        v = parse_instance(self, key, attr_v, None)
+        attribute.revise(v)
+
+        return attribute
+
+    def set_default_value(self, key, value):
+        attribute = super().get_attribute(key)
+        attribute.revise(value)
 
 class AttributeHistory:
     def __init__(self, value : 'Value'):
@@ -382,7 +436,7 @@ class ListValue(Value):
     def __init__(self, values = None):
         super().__init__()
         self.is_any = values is None
-        self.attributes = Field(None, None)
+        self.attributes = Field()
         self.append_func = FuncValue(functions_builtin.AppendFunction(self), self)
         self.attributes.get_attribute('append').revise(self.append_func)
 
@@ -395,7 +449,7 @@ class ListValue(Value):
 class DictValue(Value):
     def __init__(self):
         super().__init__()
-        self.attributes = Field(None, None)
+        self.attributes = Field()
 
     def get_field(self) -> 'Field':
         return self.attributes
@@ -417,19 +471,21 @@ class Type(Value):
         self.name = name
 
 class Instance(Value):
-    def __init__(self, module : 'Field', inst):
+    def __init__(self, module : 'Field', inst, classinfo):
         super().__init__()
-        self.attributes = Field(module, None)
+        self.attributes = Field()
         self.inst = inst
         self.callable = False
         self.func = None
+        self.module = module
+        self.classinfo = classinfo
 
     def get_field(self) -> 'Field':
         return self.attributes
 
 class UserDefinedInstance(Instance):
-    def __init__(self, module : 'Field', inst, is_chainer_link = False):
-        super().__init__(module, inst)
+    def __init__(self, module : 'Field', inst, classinfo, is_chainer_link = False):
+        super().__init__(module, inst, classinfo)
         self.is_chainer_link = is_chainer_link
 
         if self.is_chainer_link:
@@ -437,17 +493,34 @@ class UserDefinedInstance(Instance):
             self.func = self.try_get_and_store_value('forward')
 
     def try_get_and_store_value(self, name : 'str') -> 'Value':
+
         attribute = self.attributes.get_attribute(name)
         if attribute.has_value():
             return attribute.get_value()
 
-        if not hasattr(self.inst, name):
-            return None
+        if self.inst is not None:
+            if not hasattr(self.inst, name):
+                return None
 
-        attr_v = getattr(self.inst, name)
+            attr_v = getattr(self.inst, name)
         
-        attribute.is_non_volatile = True
-        v = parse_instance(self.attributes.module, name, attr_v, self)
-        attribute.revise(v)
+            attribute.is_non_volatile = True
+            v = parse_instance(self.attributes.module, name, attr_v, self)
+            attribute.revise(v)
 
-        return v
+            return v
+        else:
+            members = inspect.getmembers(self.classinfo)
+            members_dict = {}
+            for member in members:
+                members_dict[member[0]] = member[1]
+
+            if not (name in members_dict.keys()):
+                return None
+
+
+            attribute.is_non_volatile = True
+            v = parse_instance(self.attributes.module, name, members_dict[name], self)
+            attribute.revise(v)
+
+            return v

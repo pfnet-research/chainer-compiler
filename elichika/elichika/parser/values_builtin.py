@@ -37,7 +37,7 @@ class ChainerLinkFunction(functions.FunctionBase):
 
 class ChainerLinkInstance(values.Instance):
     def __init__(self, module : 'Field', inst):
-        super().__init__(module, inst)
+        super().__init__(module, inst, None)
         self.callable = True
         self.func = values.FuncValue(ChainerLinkFunction(self), self)
         self.get_field().get_attribute('forward').revise(self.func)
