@@ -227,6 +227,8 @@ XC_OPS = [
     ('Split', [Array('input'), Int('axis'), Ints('split')],
      [ArrayList('outputs')]),
     ('Transpose', [Array('data'), Ints('perm')], ['transposed']),
+    ('DepthToSpace', [Array('input'), Int('blocksize')], ['output']),
+    ('SpaceToDepth', [Array('input'), Int('blocksize')], ['output']),
 
     ('Softmax', [Array('input'), Int('axis')], ['output']),
     ('LogSoftmax', [Array('input'), Int('axis')], ['output']),

@@ -79,7 +79,9 @@ void InferDtype(Node* node) {
         case Node::kPad:
         case Node::kMaxPool:
         case Node::kGlobalMaxPool:
-        case Node::kTranspose: {
+        case Node::kTranspose:
+        case Node::kDepthToSpace:
+        case Node::kSpaceToDepth: {
             set(0, in0);
             break;
         }
