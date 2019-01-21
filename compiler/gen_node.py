@@ -109,6 +109,8 @@ NodeDef('Concat', None, 1, axis=Required(int))
 NodeDef('Split', 1, None, axis=0, split=[int])
 NodeDef('Transpose', 1, 1, perm=[int])
 NodeDef('EyeLike', 1, 1, dtype=Dtype, k=0)
+NodeDef('DepthToSpace', 1, 1, blocksize=Required(int))
+NodeDef('SpaceToDepth', 1, 1, blocksize=Required(int))
 
 NodeDef('Sum', None, 1)
 NodeDef('Mean', None, 1)

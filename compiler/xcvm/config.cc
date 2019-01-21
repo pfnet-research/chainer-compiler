@@ -93,6 +93,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerSequenceSplitAxis).second);
         CHECK(op_set_.emplace(Node::kChainerSequenceStack).second);
         CHECK(op_set_.emplace(Node::kChainerSequenceUnpad).second);
+        CHECK(op_set_.emplace(Node::kDepthToSpace).second);
         CHECK(op_set_.emplace(Node::kEyeLike).second);
         CHECK(op_set_.emplace(Node::kOr).second);
         CHECK(op_set_.emplace(Node::kPad).second);
@@ -111,6 +112,7 @@ public:
         CHECK(op_set_.emplace(Node::kSize).second);
         CHECK(op_set_.emplace(Node::kSlice).second);
         CHECK(op_set_.emplace(Node::kSoftmax).second);
+        CHECK(op_set_.emplace(Node::kSpaceToDepth).second);
         CHECK(op_set_.emplace(Node::kSplit).second);
         CHECK(op_set_.emplace(Node::kSqrt).second);
         CHECK(op_set_.emplace(Node::kSqueeze).second);
