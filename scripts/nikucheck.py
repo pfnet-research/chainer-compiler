@@ -20,7 +20,9 @@ def main():
     py = sys.argv[1]
     tmpdir = 'out/ch2o_tmp'
 
-    shutil.rmtree(tmpdir)
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
+        
     os.makedirs(tmpdir)
     subprocess.check_call([sys.executable, py, os.path.join(tmpdir, 'tmp')])
 
