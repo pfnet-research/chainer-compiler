@@ -254,6 +254,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_transpose_all_permutations_5'),
     TestCase(NODE_TEST, 'test_transpose_default'),
 
+    TestCase(NODE_TEST, 'test_depthtospace'),
+    TestCase(NODE_TEST, 'test_depthtospace_example'),
+
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
     TestCase(NODE_TEST, 'test_gemm_broadcast'),
 

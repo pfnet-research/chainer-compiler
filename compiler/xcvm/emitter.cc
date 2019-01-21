@@ -544,6 +544,14 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Transpose, out(0), in(0), IntVector(node.perm()));
+        } else if (node.op_type() == Node::kDepthToSpace) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(DepthToSpace, out(0), in(0), node.blocksize());
+        } else if (node.op_type() == Node::kSpaceToDepth) {
+            CHECK_EQ(1UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(SpaceToDepth, out(0), in(0), node.blocksize());
         } else if (node.op_type() == Node::kChainerBatchNormalizationGrad) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(3UL, node.outputs().size());
