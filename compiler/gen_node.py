@@ -305,7 +305,7 @@ class AttrDef(object):
         self.onnx_name = self.name
         if self.onnx_name == 'tensor_value':
             self.onnx_name = 'value'
-        if self.onnx_name == 'bias_list':
+        elif self.onnx_name == 'bias_list':
             self.onnx_name = 'bias'
         self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m.group(0).lower(), name)
         self.required = False
