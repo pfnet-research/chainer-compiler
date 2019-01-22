@@ -952,6 +952,22 @@ def gen_spacetodepth_test(test_name):
     gb.gen_test()
 
 
+def gen_imagescaler_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    test_data = np.ones([2, 3, 4, 5], dtype=np.float32)
+    gb.input('input', test_data)
+    scale = 2.0
+    bias = [1., 2., 3.]
+    expected = test_data * scale + np.array(
+        bias, dtype=np.float32)[None, :, None, None]
+
+    gb.output(gb.ImageScaler(
+        inputs=['input'], scale=scale, bias=bias, outputs=['output']),
+        expected)
+
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1064,6 +1080,8 @@ def get_tests():
          gen_batchnorm_training_test(True))
 
     test('extra_test_spacetodepth', gen_spacetodepth_test)
+
+    test('extra_test_imagescaler', gen_imagescaler_test)
 
     return tests
 
