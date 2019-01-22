@@ -26,12 +26,17 @@ class A(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+
+def main():
     np.random.seed(314)
 
     model = A(3)
     x = np.random.rand(5, 7).astype(np.float32)
-    
+
     model(x)
 
     testtools.generate_testcase(model, [x])
+
+
+if __name__ == '__main__':
+    main()

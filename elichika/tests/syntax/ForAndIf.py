@@ -34,7 +34,11 @@ import testtools
 import numpy as np
 
 
-if __name__ == '__main__':
+def main():
     testtools.generate_testcase(LazyInit(), [5], subname='lazy_init')
 
     testtools.generate_testcase(LazySelfInit, [5], subname='lazy_self_init')
+
+
+if __name__ == '__main__':
+    main()

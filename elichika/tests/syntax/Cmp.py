@@ -51,7 +51,7 @@ import testtools
 import numpy as np
 
 
-if __name__ == '__main__':
+def main():
     for name, cls in [('eq', Equal),
                       ('neq', NotEqual),
                       ('gt', GreaterThan),
@@ -76,3 +76,6 @@ if __name__ == '__main__':
             testtools.generate_testcase(cls(), [x, y],
                                    subname='%s_%s_%s' % (x, name, y))
 
+
+if __name__ == '__main__':
+    main()

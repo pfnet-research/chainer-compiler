@@ -120,7 +120,8 @@ class IfBackprop(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+
+def main():
     testtools.generate_testcase(StaticCondTrue(), [42], subname='static_true')
 
     testtools.generate_testcase(StaticCondFalse(), [42], subname='static_false')
@@ -168,3 +169,7 @@ if __name__ == '__main__':
     testtools.generate_testcase(model_IfBackprop,
                            [np.random.rand(3, 5).astype(np.float32), 1],
                            subname='if_bp', backprop=True)
+
+
+if __name__ == '__main__':
+    main()

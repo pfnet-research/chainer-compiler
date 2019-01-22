@@ -31,7 +31,8 @@ class RangeListComp(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+
+def main():
     testtools.generate_testcase(Range, [5])
 
     testtools.generate_testcase(RangeStop(), [5, 8], subname='stop')
@@ -43,3 +44,7 @@ if __name__ == '__main__':
     w = np.random.randint(0, 5, size=wn)
     p = np.int64(wn)
     testtools.generate_testcase(RangeListComp, [v, w, p], subname='list_comp')
+
+
+if __name__ == '__main__':
+    main()

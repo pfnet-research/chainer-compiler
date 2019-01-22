@@ -98,7 +98,7 @@ import testtools
 import numpy as np
 
 
-if __name__ == '__main__':
+def main():
     model = A()
 
     v = np.random.rand(10).astype(np.float32)
@@ -132,3 +132,7 @@ if __name__ == '__main__':
     testtools.generate_testcase(DoubleForBackprop,
                            [np.random.rand(4, 3).astype(np.float32), 2, 5],
                            subname='double_for', backprop=True)
+
+
+if __name__ == '__main__':
+    main()

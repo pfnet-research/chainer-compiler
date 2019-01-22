@@ -31,8 +31,8 @@ class A(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
-    import numpy as np
+
+def main():
     np.random.seed(314)
 
     model = A()
@@ -42,3 +42,7 @@ if __name__ == '__main__':
     qs = np.array([1, 2, 3, 4, 5])
     p = np.int64(5)
     testtools.generate_testcase(model, [v, ps, p, qs])
+
+
+if __name__ == '__main__':
+    main()

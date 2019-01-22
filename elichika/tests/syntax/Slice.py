@@ -36,7 +36,8 @@ class ListSlice(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+
+def main():
     n_maxlen = 10
 
     model = A()
@@ -49,3 +50,7 @@ if __name__ == '__main__':
 
     x = np.random.rand(4, 3, 5, 7)
     testtools.generate_testcase(ListSlice(), [x], subname='list')
+
+
+if __name__ == '__main__':
+    main()

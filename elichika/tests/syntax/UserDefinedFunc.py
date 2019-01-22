@@ -30,10 +30,15 @@ class A(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+
+def main():
     model = A()
 
     a = np.random.rand(3, 4).astype(np.float32)
     b = np.random.rand(3, 4).astype(np.float32)
     c = np.random.rand(3, 4).astype(np.float32)
     testtools.generate_testcase(model, [a, b, c])
+
+
+if __name__ == '__main__':
+    main()

@@ -23,9 +23,10 @@ class LinkInFor(chainer.Chain):
 
 
 import testtools
+import numpy as np
 
-if __name__ == '__main__':
-    import numpy as np
+
+def main():
     np.random.seed(314)
 
     batch_size = 3
@@ -41,3 +42,7 @@ if __name__ == '__main__':
     args = [x, h, np.arange(sequence_length)]
     #dprint(model(*args))
     testtools.generate_testcase(model, args)
+
+
+if __name__ == '__main__':
+    main()

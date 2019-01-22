@@ -20,10 +20,15 @@ class SoftmaxAxis(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+
+def main():
     np.random.seed(314)
     a = np.random.rand(3, 5, 4).astype(np.float32)
 
     testtools.generate_testcase(Softmax(), [a])
 
     testtools.generate_testcase(SoftmaxAxis(), [a], subname='axis')
+
+
+if __name__ == '__main__':
+    main()
