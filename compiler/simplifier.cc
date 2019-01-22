@@ -608,6 +608,17 @@ bool ReplaceLinear(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceImageScaler(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyImageScaler", node->output(0));
+    Value* scale = gb.Const(Type(Dtype::kFloat32, {}), {node->scale()});
+    Value* scaled = gb.Op(Node::kMul, {node->input(0), scale});
+    Value* biases = gb.Const(Type(Dtype::kFloat32, {node->bias_list().size()}), node->bias_list());
+    biases = gb.Op(Node::kUnsqueeze, {biases});
+    biases->producer()->set_axes({0, 2, 3});
+    gb.Op(Node::kAdd, {scaled, biases}, node->output(0));
+    return true;
+}
+
 }  // namespace
 
 void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
@@ -634,6 +645,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kConstantOfShape, ReplaceConstantOfShape).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
+    CHECK(simplifiers.emplace(Node::kImageScaler, ReplaceImageScaler).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
 
     auto replace_if_not_supported = [&ccfg, &simplifiers](Node::OpType op, SimplifierFn fn) {
