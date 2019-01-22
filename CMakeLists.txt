@@ -97,20 +97,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
-set(CH2O_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/callable.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/chainer2onnx.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/funcs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/initializer.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/links.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/test_args.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/testcasegen.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/utils.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/value.py
-  )
-
 # OpenCV
 if(${CHAINER_COMPILER_ENABLE_OPENCV})
   find_package(OpenCV REQUIRED)
@@ -172,6 +158,20 @@ add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
+
+set(CH2O_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/callable.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/initializer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/links.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/test_args.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/testcasegen.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/utils.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/value.py
+  )
 
 function(gen_ch2o_test dir ch2o_test all)
 
@@ -294,3 +294,61 @@ foreach(
   gen_ch2o_test(model ${ch2o_test} "")
 
 endforeach()
+
+set(ELICHIKA_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/config.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/core.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/graphs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/nodes.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/utils.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_bin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_unary.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/vevaluator.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/visualizer.py
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/initializer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/test_args.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/testcasegen.py
+  )
+
+function(gen_elichika_test dir all)
+  #set(elichika_test_py ${CMAKE_CURRENT_SOURCE_DIR}/elichika/tests/${dir}/${elichika_test}.py)
+  #set(out_dir ${CMAKE_CURRENT_SOURCE_DIR}/out/elichika_${dir}_${elichika_test}) # TODO: move to build/ directory
+  set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
+  set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${dir})
+
+  execute_process(
+    COMMAND ${elichika_tests_py} --list ${dir}
+    OUTPUT_VARIABLE test_files
+    )
+
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stamp_out)
+
+  add_custom_command(
+    OUTPUT ${out_stamp}
+    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/elichika python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    MAIN_DEPENDENCY ${elichika_tests_py}
+    DEPENDS "${test_files}"
+    )
+
+  message(${out_stamp})
+
+  add_custom_target(
+    gen_elichika_${dir}
+    ${all}
+    DEPENDS ${out_stamp})
+
+  add_dependencies(large_tests gen_elichika_${dir})
+
+endfunction()
+
+gen_elichika_test(node "${CHAINER_COMPILER_TEST_ALL}")
+gen_elichika_test(syntax "${CHAINER_COMPILER_TEST_ALL}")

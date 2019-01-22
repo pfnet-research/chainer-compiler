@@ -105,6 +105,11 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 _seen_subnames = set()
 
 
+def reset_test_generator(args):
+    _seen_subnames.clear()
+    get_test_args(args)
+
+
 def generate_testcase(model, xs, subname=None, output_dir=None,
                       backprop=False):
     if output_dir is None:
