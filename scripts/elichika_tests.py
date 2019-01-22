@@ -50,6 +50,10 @@ def print_test_generators(dirname):
     print(';'.join(tests))
 
 
+def get_source_dir():
+    return os.path.dirname(os.path.dirname(sys.argv[0]))
+
+
 def generate_tests(dirname):
     from testtools import testcasegen
 
@@ -58,19 +62,52 @@ def generate_tests(dirname):
     # TODO(hamaji): Come up with a better way to tell CMake the need
     # of re-generation.
     myname = sys.argv[0]
-    cmake_list = os.path.join(os.path.dirname(os.path.dirname(myname)),
-                         'CMakeLists.txt')
+    cmake_list = os.path.join(get_source_dir(), 'CMakeLists.txt')
     if os.stat(cmake_list).st_mtime < os.stat(myname).st_mtime:
         os.utime(cmake_list)
 
     for gen in get_test_generators(dirname):
         py = os.path.join('tests', gen.dirname, gen.filename)
-        out_dir = os.path.join('out', 'elichika_%s_%s' %
+        out_dir = os.path.join(get_source_dir(), 'out', 'elichika_%s_%s' %
                                (gen.dirname, gen.filename))
         print('Running %s' % py)
         module = importlib.import_module(py.replace('/', '.'))
         testcasegen.reset_test_generator([out_dir])
         module.main()
+
+
+def get():
+    tests = []
+
+    diversed_whitelist = [
+        'node_Linear'
+    ]
+
+    for gen in TESTS:
+        category = gen.dirname
+        name = gen.filename
+        test_name = 'elichika_%s_%s' % (category, name)
+        kwargs = {}
+
+        diversed = False
+        for substr in diversed_whitelist:
+            if substr in test_name:
+                diversed = True
+                break
+
+        test_dirs = glob.glob('out/%s' % test_name)
+        test_dirs += glob.glob('out/%s_*' % test_name)
+        for d in test_dirs:
+            name = os.path.basename(d)
+            test_dir = os.path.join('out', name)
+            tests.append(TestCase(name=name, test_dir=test_dir, **kwargs))
+            if diversed:
+                tests.append(TestCase(name=name + '_diversed',
+                                      test_dir=test_dir,
+                                      backend='xcvm_test',
+                                      **kwargs))
+
+    return tests
 
 
 if __name__ == '__main__':

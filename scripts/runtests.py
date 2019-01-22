@@ -10,6 +10,7 @@ import sys
 import subprocess
 
 import ch2o_tests
+import elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
@@ -546,6 +547,8 @@ TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
 
 TEST_CASES.extend(ch2o_tests.get())
+
+TEST_CASES.extend(elichika_tests.get())
 
 TEST_CASES.extend(onnx_real_tests.get())
 
