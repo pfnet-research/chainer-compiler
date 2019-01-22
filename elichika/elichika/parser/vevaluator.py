@@ -423,17 +423,19 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
     if isinstance(astc.nast.slice, gast.gast.Index):
         slice_value = veval_ast(astc.c(astc.nast.slice.value), local_field, graph)
-        node = nodes.NodeGetItem(value, slice_value)
+        node = nodes.NodeGetItem(value.get_value(), slice_value.get_value())
         ret_value = values.Value()
         node.set_outputs([ret_value])
+        graph.add_node(node)
         return ret_value
 
     elif isinstance(astc.nast.slice, gast.gast.Slice):
         lower = veval_ast(astc.c(astc.nast.slice.lower), local_field, graph)
         upper = veval_ast(astc.c(astc.nast.slice.upper), local_field, graph)
-        node = nodes.NodeSlice(value, value, lower, upper)
+        node = nodes.NodeSlice(value.get_value(), lower.get_value(), upper.get_value())
         ret_value = values.Value()
         node.set_outputs([ret_value])
+        graph.add_node(node)
         return ret_value
 
     return None
@@ -640,9 +642,17 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     '''
     lineprop = utils.LineProperty(astc.lineno)
 
-    node = nodes.NodeGenerate('List', [], lineprop)
+    elts = []
+    for elt in astc.nast.elts:
+        elt_ = veval_ast(astc.c(elt), local_field, graph)
+        elt_value = elt_.get_value()
+        elts.append(elt_value)
+
+    node = nodes.NodeGenerate('List', elts, lineprop)
     graph.add_node(node)
     value = values.ListValue()
+    value.values.extend(elts)
+
     node.set_outputs([value])
     return value
 

@@ -437,6 +437,7 @@ class ListValue(Value):
         super().__init__()
         self.is_any = values is None
         self.attributes = Field()
+        self.values = []
         self.append_func = FuncValue(functions_builtin.AppendFunction(self), self)
         self.attributes.get_attribute('append').revise(self.append_func)
 

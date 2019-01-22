@@ -535,6 +535,11 @@ class ONNXGenerator:
 
             if isinstance(node, nodes.NodeSlice):
                 node_ = node # type: nodes.NodeSlice
+                onnx_node = oh.make_node(
+                    'ChainerSequenceGetSlice',
+                    [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], 
+                    [value2onnx_parameter[node.outputs[0]].onnx_name])
+                onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeCall):
 
@@ -612,13 +617,33 @@ class ONNXGenerator:
                     onnx_graph.nodes.append(onnx_node)
 
                 if node_.classtype == 'List':
-                    onnx_node = oh.make_node(
-                        "Identity", 
-                        [], 
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        str(node.lineprop))
+                    last_name = value2onnx_parameter[node.outputs[0]].onnx_name
+                    name = last_name
+                    count = 0
+                    if(len(node_.args) > 0):
+                        name += '_gen_' + str(count)
 
+                    onnx_node = oh.make_node(
+                        "ChainerSequenceCreate", 
+                        [], 
+                        [name],
+                        str(node.lineprop))
                     onnx_graph.nodes.append(onnx_node)
+
+                    for i in range(len(node_.args)):
+                        next_name = last_name + '_gen_' + str(count + 1)
+
+                        if i == len(node_.args) - 1:
+                            next_name = last_name
+
+                        onnx_node = oh.make_node(
+                            "ChainerSequenceAppend", 
+                            [name, value2onnx_parameter[node.args[i]].onnx_name], 
+                            [next_name],
+                            str(node.lineprop))
+                        onnx_graph.nodes.append(onnx_node)
+                        name = next_name
+                        count += 1
 
         onnx_graph.set_input(inputs)
         onnx_graph.set_output(outputs)

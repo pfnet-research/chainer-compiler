@@ -2,6 +2,30 @@
 
 import chainer
 
+class Basic(chainer.Chain):
+    def __init__(self):
+        super(Basic, self).__init__()
+
+    def forward(self, v):
+        x = [v]
+        return x
+
+
+class Index(chainer.Chain):
+    def __init__(self):
+        super(Index, self).__init__()
+
+    def forward(self, v):
+        x = [v,v+1,v+2,v+3]
+        return x[1]
+
+class Slice(chainer.Chain):
+    def __init__(self):
+        super(Slice, self).__init__()
+
+    def forward(self, v):
+        x = [v,v+1,v+2,v+3]
+        return x[1:2]
 
 class A(chainer.Chain):
 
@@ -23,6 +47,12 @@ import testtools
 import numpy as np
 
 if __name__ == '__main__':
+    testtools.generate_testcase(Basic(), [10], subname='Basic')
+
+    testtools.generate_testcase(Index(), [10], subname='Index')
+
+    testtools.generate_testcase(Slice(), [10], subname='Slice')
+
     model = A()
 
     wn = 1
