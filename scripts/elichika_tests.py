@@ -53,6 +53,16 @@ def print_test_generators(dirname):
 def generate_tests(dirname):
     from testtools import testcasegen
 
+    # Force re-run cmake as the dependency must be updated when the
+    # list of test names changes.
+    # TODO(hamaji): Come up with a better way to tell CMake the need
+    # of re-generation.
+    myname = sys.argv[0]
+    cmake_list = os.path.join(os.path.dirname(os.path.dirname(myname)),
+                         'CMakeLists.txt')
+    if os.stat(cmake_list).st_mtime < os.stat(myname).st_mtime:
+        os.utime(cmake_list)
+
     for gen in get_test_generators(dirname):
         py = os.path.join('tests', gen.dirname, gen.filename)
         out_dir = os.path.join('out', 'elichika_%s_%s' %
