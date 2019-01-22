@@ -612,7 +612,7 @@ bool ReplaceImageScaler(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyImageScaler", node->output(0));
     Value* scale = gb.Const(Type(Dtype::kFloat32, {}), {node->scale()});
     Value* scaled = gb.Op(Node::kMul, {node->input(0), scale});
-    Value* biases = gb.Const(Type(Dtype::kFloat32, {node->bias_list().size()}), node->bias_list());
+    Value* biases = gb.Const(Type(Dtype::kFloat32, {static_cast<int64_t>(node->bias_list().size())}), node->bias_list());
     biases = gb.Op(Node::kUnsqueeze, {biases});
     biases->producer()->set_axes({0, 2, 3});
     gb.Op(Node::kAdd, {scaled, biases}, node->output(0));
