@@ -96,13 +96,17 @@ class FunctionBase():
 
     def analyze_args(self, func):
         sig = inspect.signature(func)
-        for k, v in sig.parameters.items():
+        argspec = inspect.getargspec(func)
 
-            # TODO:(durswd) improve it
-            # bounding method doesn't contains self
-            # but unbounded function contains self
-            if inspect.isfunction(func) and k == 'self':
-                continue
+        isSelfRemoved = len(sig.parameters.keys()) != (argspec[0])
+
+        if isSelfRemoved:
+            fa = FunctionArg()
+            fa.name = argspec[0][0]
+            fa.value = None
+            self.funcArgs.append(fa)
+
+        for k, v in sig.parameters.items():
 
             fa = FunctionArg()
             fa.name = v.name
@@ -141,7 +145,9 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         # add self
         if inst is not None:
-            func_field.get_field().get_attribute('self').revise(ret)
+            self_func_arg = FunctionArg()
+            self_func_arg.value = inst
+            args = [self_func_arg] + args
 
         # add args
         funcArgs = self.parse_args(args)
@@ -174,7 +180,9 @@ class UserDefinedFunction(FunctionBase):
 
         # add self
         if inst is not None:
-            func_field.get_field().get_attribute('self').revise(inst)
+            self_func_arg = FunctionArg()
+            self_func_arg.value = inst
+            args = [self_func_arg] + args
 
         # add args
         funcArgs = self.parse_args(args)

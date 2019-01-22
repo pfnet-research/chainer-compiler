@@ -44,4 +44,7 @@ if __name__ == '__main__':
     np.random.seed(314)
 
     v = np.random.rand(3, 7).astype(np.float32)
-    testtools.generate_testcase(A, [v])
+    model = A()
+    result = model(v)
+
+    testtools.generate_testcase(model, [v])

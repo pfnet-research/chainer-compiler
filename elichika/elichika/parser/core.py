@@ -19,7 +19,7 @@ def get_module_name(target_module, parent_module):
     members = inspect.getmembers(parent_module)
 
     for member in members:
-        if member[1] == target_module:
+        if member[1] is target_module:
             return member[0]
 
     return ''

@@ -35,4 +35,7 @@ if __name__ == '__main__':
     model = A()
 
     v = np.random.rand(10, 20).astype(np.float32)
+
+    result = model(v)
+
     testtools.generate_testcase(model, [v])

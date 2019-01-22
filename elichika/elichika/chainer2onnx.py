@@ -134,6 +134,10 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
 
     x = onnx_graph.tensors[value2onnx_parameter[node.inputs[0]].onnx_name]
     o = onnx_graph.tensors[value2onnx_parameter[node.outputs[0]].onnx_name]
+
+    if chainer_inst.W.data is None:
+        print("W is unknown. Please infer this model.")
+
     w = onnx_graph.new_tensor_with_np(chainer_inst.W.data, onnx_name + '/W')
 
     x_shape = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/x_shape')
