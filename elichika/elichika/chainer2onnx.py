@@ -207,7 +207,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
 
 def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     chainer_inst = node.func.owner.inst # type: chainer.links.Convolution2D
-    onnx_name = node.onnx_name
+    onnx_name = node2onnx_parameter[node].onnx_name
 
     ksize = size2d(chainer_inst.ksize)
     stride = size2d(chainer_inst.stride)
