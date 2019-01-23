@@ -11,11 +11,11 @@ without sacrificing flexibility and coverage of [Chainer](https://github.com/cha
 
 To achieve these goals, this toolchain
 
-- Translates Python code to extended [ONNX](https://github.com/onnx/onnx/). As this is a compiler rather than an execution tracer, it can export Python code with controlflows (e.g., LSTM with attention written by Python's loop)
+- Translates Python AST to extended [ONNX](https://github.com/onnx/onnx/). As this is a compiler rather than an execution tracer, it can export Python code with control-flows (e.g., LSTM with attention written by Python's loop)
 - Modifies the graph for optimization, auto-differentiation, etc. It then generates deployable code.
-- Currently, the only backend it supports is a simple virtual machine implemented by [ChainerX](https://github.com/chainer/chainer/blob/master/chainerx.md).
+- Runs the exported code with [ChainerX](https://github.com/chainer/chainer/blob/master/chainerx.md)'s C++ API. Currently, the only backend it supports is a simple virtual machine implemented by ChainerX.
 
-This project is still in the early stage and is not expected to be used by end-users. Interfaces can be changed quickly and some features may be abandoned. That said, it will be appreciated if you try this a bit and give us any feedbacks!
+This project is still in the early stage and is not expected to be used by end-users. Interfaces can be changed quickly and some features may be abandoned. That said, it will be appreciated if you try this a bit and give us any feedbacks. Also, importantly, we are hiring! If you are interested in working on deep learning frameworks, please consider applying for Preferred Networks.
 
 ## Documentation
 
