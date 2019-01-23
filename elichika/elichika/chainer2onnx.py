@@ -589,14 +589,32 @@ class ONNXGenerator:
 
             if isinstance(node, nodes.NodeFor):
                 node_ = node # type: nodes.NodeFor
-                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph, onnx_graph)
+
+                # get length of sequence
+                op_len = onnx_graph.new_empty_tensor(['TODO'], np.int, value2onnx_parameter[node_.iter_value].onnx_name + '/Len')
 
                 onnx_node = oh.make_node(
+                    'ChainerGenericLen', 
+                    [value2onnx_parameter[node_.iter_value].onnx_name], 
+                    [op_len.name])
+
+                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph, onnx_graph)
+
+                # for
+                onnx_node = oh.make_node(
                     'Loop', 
-                    [value2onnx_parameter[node_.iter_value].onnx_name] + [""] + [value2onnx_parameter[x].onnx_name for x in node.input_values], 
+                    [op_len.name] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values], 
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     body=body_graph)
 
+            if isinstance(node, nodes.NodeForGenerator):
+                node_ = node # type: nodes.NodeForGenerator
+
+                # get value from sequence with index
+                onnx_node = oh.make_node(
+                    'ChainerSequenceLookup', 
+                    [value2onnx_parameter[node_.iter_value].onnx_name, value2onnx_parameter[node_.counter_value].onnx_name], 
+                    [value2onnx_parameter[node_.outputs[0]].onnx_name])
 
             if isinstance(node, nodes.NodeListcomp):
                 node_ = node # type: nodes.NodeListcomp
