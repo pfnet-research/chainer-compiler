@@ -15,7 +15,7 @@ To achieve these goals, this toolchain
 - Modifies the graph for optimization, auto-differentiation, etc. It then generates deployable code.
 - Runs the exported code with [ChainerX](https://github.com/chainer/chainer/blob/master/chainerx.md)'s C++ API. Currently, the only backend it supports is a simple virtual machine implemented by ChainerX.
 
-This project is still in the early stage and is not expected to be used by end-users. Interfaces can be changed quickly and some features may be abandoned. That said, it will be appreciated if you try this a bit and give us any feedbacks. Also, importantly, we are hiring! If you are interested in working on deep learning frameworks, please consider applying for Preferred Networks.
+This project is still in the early stage and is not expected to be used by end-users. Interfaces can be changed quickly and some features may be abandoned. That said, it will be appreciated if you try this a bit and give us any feedbacks. Also, importantly, we are hiring! If you are interested in working on deep learning frameworks, please consider applying to Preferred Networks.
 
 ## Documentation
 
