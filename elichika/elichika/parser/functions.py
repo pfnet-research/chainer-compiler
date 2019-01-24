@@ -1,4 +1,4 @@
-        
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -31,21 +31,21 @@ def generate_copied_value(value : 'values.Value'):
     if config.show_warnings:
         print('Warning : Unimplemented copied_value {}'.format(value))
 
-    return values.Value()    
+    return values.Value()
 
 def generate_tensor_value_with_undefined_shape_size(value : 'values.TensorValue'):
     assert(isinstance(value, values.TensorValue))
     ret = values.TensorValue()
     ret.shape = tuple([-1 for v in value.shape])
     return ret
-    
+
 
 def generate_value_with_same_type(value : 'values.Value'):
     if isinstance(value, values.TensorValue):
         ret = values.TensorValue()
         ret.shape = value.shape
         return ret
-    
+
     if isinstance(value, values.NumberValue):
         ret = values.NumberValue(None)
         return ret
@@ -67,7 +67,7 @@ def generate_value_with_same_type(value : 'values.Value'):
         return ret
 
     return None
-    
+
 class FunctionArg():
     def __init__(self):
         self.name = ''
@@ -80,7 +80,7 @@ class FunctionBase():
 
     def parse_args(self, args):
         funcArgs = self.funcArgs.copy()
-        
+
         for i in range(min(len(funcArgs), len(args))):
             if(args[i].name == ''):
                 funcArgs[i].value = args[i].value
@@ -134,7 +134,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         self.analyze_args(func)
 
-        self.ast = gast.ast_to_gast(ast.parse(code)).body[0] 
+        self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
         ret = values.UserDefinedInstance(module, None, self.classinfo)
@@ -172,7 +172,7 @@ class UserDefinedFunction(FunctionBase):
 
         self.analyze_args(func)
 
-        self.ast = gast.ast_to_gast(ast.parse(code)).body[0] 
+        self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
         func_field = values.Field()
@@ -192,4 +192,3 @@ class UserDefinedFunction(FunctionBase):
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1)
         return vevaluator.veval_ast(astc, func_field, graph)
-
