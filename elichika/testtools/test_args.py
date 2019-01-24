@@ -6,7 +6,7 @@ _args_cache = None
 
 def get_test_args(args=None):
     global _args_cache
-    if _args_cache is not None:
+    if _args_cache is not None and args is None:
         return _args_cache
 
     parser = argparse.ArgumentParser(
