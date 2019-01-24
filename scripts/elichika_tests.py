@@ -29,7 +29,7 @@ TESTS = [
     # Generator('syntax', 'If'),
     # Generator('syntax', 'LinkInFor'),
     # Generator('syntax', 'ListComp'),
-    Generator('syntax', 'MultiClass'),
+    # Generator('syntax', 'MultiClass'),
     Generator('syntax', 'MultiFunction'),
     # Generator('syntax', 'Range'),
     # Generator('syntax', 'Sequence'),
