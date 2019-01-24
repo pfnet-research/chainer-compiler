@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import numpy as np
 import chainer
 import chainer.links as L
 
@@ -24,8 +25,8 @@ class A(chainer.Chain):
         super(A, self).__init__()
         with self.init_scope():
             self.l0 = L.Linear(3)
-            self.l1 = B(5, 3.1)
-            self.l2 = B(4, 4.2)
+            self.l1 = B(5, np.float32(3.1))
+            self.l2 = B(4, np.float32(4.2))
 
     def forward(self, x):
         x = self.l0(x)
