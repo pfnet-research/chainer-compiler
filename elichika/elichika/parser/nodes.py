@@ -216,15 +216,6 @@ class NodeIf(Node):
     def __str__(self):
         return 'If({})'.format(self.lineprop)
 
-class NodeIfOutput(Node):
-    def __init__(self, input_value, line = -1):
-        super().__init__(line)
-        self.input_value = input_value
-        self.inputs.append(input_value)
-
-    def __str__(self):
-        return 'IfOutput({})'.format(self.lineprop)
-
 class NodeFor(Node):
     def __init__(self, iter_value, input_values, body_graph, line = -1):
         super().__init__(line)
@@ -239,6 +230,18 @@ class NodeFor(Node):
     def __str__(self):
         return 'For({})'.format(self.lineprop)
 
+class NodeForGenerator(Node):
+    def __init__(self, counter_value, iter_value, line = -1):
+        super().__init__(line)
+        self.counter_value = counter_value
+        self.iter_value = iter_value
+        self.inputs.append(counter_value)
+        self.inputs.append(iter_value)
+
+    def __str__(self):
+        return 'ForGen({})'.format(self.lineprop)
+
+
 class NodeListcomp(Node):
     def __init__(self, iter_value, input_values, body_graph, line = -1):
         super().__init__(line)
@@ -252,15 +255,6 @@ class NodeListcomp(Node):
         
     def __str__(self):
         return 'Listcomp({})'.format(self.lineprop)
-
-class NodeForOutput(Node):
-    def __init__(self, input_value, line = -1):
-        super().__init__(line)
-        self.input_value = input_value
-        self.inputs.append(input_value)
-
-    def __str__(self):
-        return 'ForOutput({})'.format(self.lineprop)
 
 class NodeGenerate(Node):
     def __init__(self, classtype, args, line = -1):

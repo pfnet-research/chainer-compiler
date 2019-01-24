@@ -66,6 +66,10 @@ def generate_value_with_same_type(value : 'values.Value'):
         ret = values.NoneValue()
         return ret
 
+    if isinstance(value, values.Value):
+        ret = values.Value()
+        return ret
+
     return None
 
 class FunctionArg():
