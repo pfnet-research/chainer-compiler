@@ -98,7 +98,7 @@ class FunctionBase():
         sig = inspect.signature(func)
         argspec = inspect.getargspec(func)
 
-        isSelfRemoved = len(sig.parameters.keys()) != (argspec[0])
+        isSelfRemoved = len(sig.parameters.keys()) != len(argspec[0])
 
         if isSelfRemoved:
             fa = FunctionArg()

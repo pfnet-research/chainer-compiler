@@ -19,8 +19,8 @@ class Generator(object):
 TESTS = [
     Generator('node', 'Convolution2D'),
     Generator('node', 'Linear'),
-    # Generator('node', 'Relu'),
-    # Generator('node', 'Softmax'),
+    Generator('node', 'Relu'),
+    Generator('node', 'Softmax'),
 
     # Generator('syntax', 'ChinerFunctionNode'),
     # Generator('syntax', 'Cmp'),
