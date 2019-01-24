@@ -28,7 +28,7 @@ def convert_model(model : 'chainer.Chain', args = []):
     # reset values
     values.reset_field_and_attributes()
     utils.reset_guid()
-    
+
     # generate default module
     default_module = values.Module(sys.modules[model.__module__])
 
@@ -57,7 +57,7 @@ def convert_model(model : 'chainer.Chain', args = []):
         farg = functions.FunctionArg()
         farg.value = varg
         value_args.append(varg)
-        function_args.append(farg)    
+        function_args.append(farg)
 
     graph = Graph()
 

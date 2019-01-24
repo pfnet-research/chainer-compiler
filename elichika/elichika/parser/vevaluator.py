@@ -19,7 +19,7 @@ def try_get_value(value, name, lineprop, is_none_allowed = False):
         if config.show_warnings:
             print('Failed to get value {}. in L.{}'.format(name, lineprop))
         return None
-    
+
     if isinstance(value, values.NoneValue) and not is_none_allowed:
         if config.show_warnings:
             print('Value {} is none. in L.{}'.format(name, lineprop))
@@ -81,7 +81,7 @@ class AstContext:
         self.lineno = self.lineno_offset
         if hasattr(self.nast, 'lineno'):
             self.lineno = self.nast.lineno + self.lineno_offset
-    
+
     def c(self, value) -> 'AstContext':
         """
         get AstContext including value
@@ -111,14 +111,14 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     isTuple = False
     if isinstance(targets, values.TupleValue):
-        targets = targets.values 
+        targets = targets.values
         isTuple = True
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
 
     if value is None:
         if config.show_warnings:
-            print('It is possible that assiging value is invalid in L.{}'.format(astc.lineno))    
+            print('It is possible that assiging value is invalid in L.{}'.format(astc.lineno))
         return None
 
     if isTuple:
@@ -143,7 +143,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     func = veval_ast(astc.c(astc.nast.func), local_field, graph)
     if func == None or not func.has_value():
         if config.show_warnings:
-            print('Unknown function {} is called in L.{}'.format(get_ast_name_forcibly(astc.nast.func) ,astc.lineno)) 
+            print('Unknown function {} is called in L.{}'.format(get_ast_name_forcibly(astc.nast.func) ,astc.lineno))
         return None
 
     func_value = func.get_value()
@@ -153,7 +153,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     for arg in astc.nast.args:
         arg_ = veval_ast(astc.c(arg), local_field, graph)
         farg = functions.FunctionArg()
-        farg.value = arg_.get_value() 
+        farg.value = arg_.get_value()
         args.append(farg.value)
         fargs.append(farg)
 
@@ -161,7 +161,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         arg_ = veval_ast(astc.c(keyword.value), local_field, graph)
         farg = functions.FunctionArg()
         farg.name = keyword.arg
-        farg.value = arg_.get_value() 
+        farg.value = arg_.get_value()
         args.append(farg.value)
         fargs.append(farg)
 
@@ -177,7 +177,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     else:
         if config.show_warnings:
-            print('Unknown function is called in L.{}'.format(astc.lineno)) 
+            print('Unknown function is called in L.{}'.format(astc.lineno))
         return None
 
     return ret
@@ -189,7 +189,7 @@ def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     if not value.has_value():
         if config.show_warnings:
-            print('Returned values are not found. in L.{}'.format(astc.lineno))    
+            print('Returned values are not found. in L.{}'.format(astc.lineno))
         return None
 
     node = nodes.NodeReturn(value.get_value(),astc.lineno)
@@ -347,7 +347,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
         elif true_attribute in input_attributes:
             value = functions.generate_value_with_same_type(true_value)
-            
+
             if parent.get_attribute(name).is_non_volatile:
                 non_volatiles.append((parent.get_attribute(name).initial_value, value))
 
@@ -355,7 +355,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             parent.get_attribute(name).revise(value)
         else:
             value = functions.generate_value_with_same_type(false_value)
-            
+
             if parent.get_attribute(name).is_non_volatile:
                 non_volatiles.append((parent.get_attribute(name).initial_value, value))
 
@@ -401,7 +401,7 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
 
     else:
         node_aug_assign = nodes.NodeAugAssign(target_value, value.get_value(), binop, astc.lineno)
-        target_value.modify(node_aug_assign, None)   
+        target_value.modify(node_aug_assign, None)
         graph.add_node(node_aug_assign)
         return values.NoneValue()
 
@@ -450,7 +450,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     listcomp_id = 'listcomp_' + str(utils.get_guid())
     body_id = 'listcomp_body_' + str(utils.get_guid())
-    
+
     values.commit(listcomp_id)
 
     generator = astc.nast.generators[0]
@@ -467,7 +467,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         target_name = generator.target.id
     else:
         if config.show_warnings:
-            print('This for is not supported. in L.{}'.format(astc.lineno))    
+            print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
 
     counter_value = values.NumberValue(0)
@@ -491,7 +491,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     farg.name = ''
     farg.value = elt
     list_value.append_func.func.vcall(local_field.module, body_graph, list_value, [farg], lineprop)
-        
+
     values.commit(body_id)
 
     body_output_attributes = get_input_attritubtes(body_field, listcomp_id, body_id)
@@ -513,7 +513,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     node = nodes.NodeListcomp(iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
-    
+
     graph.add_node(node)
 
 
@@ -680,7 +680,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         target_name = astc.nast.target.id
     else:
         if config.show_warnings:
-            print('This for is not supported. in L.{}'.format(astc.lineno))    
+            print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
 
     for_id = 'for_' + str(utils.get_guid())
@@ -749,7 +749,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
         if attribute.is_non_volatile:
             non_volatiles.append((attribute.initial_value,value))
-        
+
         attribute.parent.get_attribute(name).revise(value)
 
     # default input
@@ -757,7 +757,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     body_graph.add_input_value(counter_value)
     body_graph.add_input_value(cond_value)
     body_graph.add_input_value(iter_value)
-    
+
     inputs.remove(counter_value)
     inputs.remove(cond_value)
     inputs.remove(iter_value)
@@ -768,7 +768,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     node = nodes.NodeFor(iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
-    
+
     graph.add_node(node)
 
     # add non-volatiles
@@ -856,4 +856,4 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         return None
     else:
         if config.show_warnings:
-            print('Unknown ast is found : {} in L.{}'.format(type(astc.nast),astc.lineno))    
+            print('Unknown ast is found : {} in L.{}'.format(type(astc.nast),astc.lineno))

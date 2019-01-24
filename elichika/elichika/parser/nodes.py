@@ -68,7 +68,7 @@ class NodeNonVolatileAssign(Node):
         self.target_value = target_value
         self.value = value
         self.inputs.append(target_value)
-        self.inputs.append(value)        
+        self.inputs.append(value)
 
     def __str__(self):
         return 'NodeNonVolatileAssign({})'.format(self.lineprop)
@@ -88,7 +88,7 @@ class NodeAssign(Node):
 class NodeAugAssign(Node):
     def __init__(self, target : 'values.Value', value : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
-        self.target = target 
+        self.target = target
         self.value = value
         self.binop = binop
 
@@ -101,7 +101,7 @@ class NodeAugAssign(Node):
 class NodeValueAugAssign(Node):
     def __init__(self, target : 'values.Value', value : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
-        self.target = target 
+        self.target = target
         self.value = value
         self.binop = binop
 
@@ -115,7 +115,7 @@ class NodeValueAugAssign(Node):
 class NodeBinOp(Node):
     def __init__(self, left : 'values.Value', right : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
-        self.left = left 
+        self.left = left
         self.right = right
         self.binop = binop
 
@@ -138,7 +138,7 @@ class NodeUnaryOp(Node):
 class NodeCompare(Node):
     def __init__(self, left : 'values.Value', right : 'values.Value', compare : 'CompareType', line = -1):
         super().__init__(line)
-        self.left = left 
+        self.left = left
         self.right = right
         self.compare = compare
 
@@ -152,7 +152,7 @@ class NodeGetItem(Node):
     def __init__(self, target : "values.Value", index : 'values.Value', line = -1):
         super().__init__(line)
         self.target = target
-        self.index = index 
+        self.index = index
 
         self.inputs.append(target)
         self.inputs.append(index)
@@ -164,7 +164,7 @@ class NodeSlice(Node):
     def __init__(self, target : "values.Value", left : 'values.Value', right : 'values.Value', line = -1):
         super().__init__(line)
         self.target = target
-        self.left = left 
+        self.left = left
         self.right = right
 
         self.inputs.append(target)
@@ -203,16 +203,16 @@ class NodeIf(Node):
         super().__init__(line)
         self.cond = cond
         self.input_values = input_values
-        
+
         self.inputs.append(self.cond)
         self.inputs.extend(self.input_values)
-        
+
         self.true_graph = true_graph
         self.false_graph = false_graph
 
         self.subgraphs.append(self.true_graph)
         self.subgraphs.append(self.false_graph)
-        
+
     def __str__(self):
         return 'If({})'.format(self.lineprop)
 
@@ -223,10 +223,10 @@ class NodeFor(Node):
         self.input_values = input_values
         self.inputs.append(iter_value)
         self.inputs.extend(self.input_values)
-        
+
         self.body_graph = body_graph
         self.subgraphs.append(self.body_graph)
-        
+
     def __str__(self):
         return 'For({})'.format(self.lineprop)
 
@@ -249,10 +249,10 @@ class NodeListcomp(Node):
         self.input_values = input_values
         self.inputs.append(iter_value)
         self.inputs.extend(self.input_values)
-        
+
         self.body_graph = body_graph
         self.subgraphs.append(self.body_graph)
-        
+
     def __str__(self):
         return 'Listcomp({})'.format(self.lineprop)
 

@@ -51,12 +51,11 @@ class AppendFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'append'
         self.owner = owner
-        
+
     def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Value', args = [], line = -1):
         assert(len(args) == 1)
-        
+
         node = nodes.NodeCall(self, [v.value for v in args], line)
         inst.modify(node, None)
         graph.add_node(node)
         return values.NoneValue()
-

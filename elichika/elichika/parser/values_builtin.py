@@ -31,7 +31,7 @@ class ChainerLinkFunction(functions.FunctionBase):
 
         if(isinstance(self.owner.inst, chainer.links.Convolution2D)):
             value = functions.generate_tensor_value_with_undefined_shape_size(args[0].value)
-            
+
         node.set_outputs([value])
         return value
 

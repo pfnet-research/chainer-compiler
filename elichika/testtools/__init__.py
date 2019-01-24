@@ -1,1 +1,1 @@
-from testtools.testcasegen import generate_testcase 
+from testtools.testcasegen import generate_testcase

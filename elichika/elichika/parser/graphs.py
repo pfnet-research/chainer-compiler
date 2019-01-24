@@ -13,6 +13,6 @@ class Graph:
 
     def add_output_value(self, value):
         self.output_values.append(value)
-        
+
     def add_node(self, node : 'nodes.Node'):
         self.nodes.append(node)

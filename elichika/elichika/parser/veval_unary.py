@@ -3,7 +3,7 @@ from elichika.parser import values
 from elichika.parser import functions
 
 def veval(op : 'nodes.UnaryOpType', value : 'values.Value'):
-    
+
     if isinstance(value, values.NumberValue):
         return functions.generate_value_with_same_type(value)
 

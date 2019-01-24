@@ -73,7 +73,7 @@ def visit_edge(parent_dot, graph : 'Graph', is_unused_node_ignored):
         dot.attr(label=graph.name)
 
         for node in graph.nodes:
-        
+
             # ignore
             if is_unused_node_ignored:
                 if len(node.inputs) == 0 and  not (node in node_ref_count):
@@ -90,7 +90,7 @@ def visit_edge(parent_dot, graph : 'Graph', is_unused_node_ignored):
                 else:
                     if input.generator is not None:
                         dot.edge(node2id[input.generator], node2id[node])
-                    
+
             for subgraph in node.subgraphs:
                 visit_edge(parent_dot, subgraph, is_unused_node_ignored)
 
@@ -100,7 +100,7 @@ def visualize(path : 'str', graph : 'Graph', is_unused_node_ignored = True):
     global value_id
     global value2id
     global graph_id
-    
+
     reset()
 
     dot = Digraph(comment='Graph')
@@ -110,14 +110,14 @@ def visualize(path : 'str', graph : 'Graph', is_unused_node_ignored = True):
     node2id = {}
 
     assign_id(graph)
-    
+
     count_ref(graph)
-    
+
     for k, v in value2id.items():
         if str(k) != "":
             dot.node(v, str(k), shape='diamond')
 
     visit_edge(dot, graph, is_unused_node_ignored)
-    
+
     dot.render(path)
 

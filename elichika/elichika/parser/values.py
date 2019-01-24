@@ -156,7 +156,7 @@ class Field():
 
         if key in self.attributes.keys():
             return True
-        
+
         return False
 
     def get_attribute(self, key : 'str') -> 'Attribute':
@@ -226,7 +226,7 @@ class Module(Field):
             return attribute
 
         attr_v = members_dict[key]
-        
+
         attribute.is_non_volatile = True
         v = parse_instance(self, key, attr_v, None)
         attribute.revise(v)
@@ -249,7 +249,7 @@ class Attribute:
         self.access_num = 0
         self.rev_access_num = {}
         self.parent = None
-        
+
         # a value which is contained in this attribute at first
         self.initial_value = None
 
@@ -262,10 +262,10 @@ class Attribute:
         # assgin name to the value
         if value.name == "":
             value.name = self.name
-            
+
         if self.initial_value is None:
             self.initial_value = value
-            
+
         hist = AttributeHistory(value)
         self.history.append(hist)
 
@@ -373,7 +373,7 @@ class Value():
 
     def __str__(self):
         return self.name
-            
+
 class NoneValue(Value):
     def __init__(self):
         super().__init__()
@@ -504,7 +504,7 @@ class UserDefinedInstance(Instance):
                 return None
 
             attr_v = getattr(self.inst, name)
-        
+
             attribute.is_non_volatile = True
             v = parse_instance(self.attributes.module, name, attr_v, self)
             attribute.revise(v)

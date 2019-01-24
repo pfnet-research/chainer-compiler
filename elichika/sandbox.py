@@ -100,7 +100,7 @@ def export(model, args, path):
 
     # require graphviz
     visualizer.visualize(path, g)
-    
+
     onnx_model = elichika.compile_model(model, args)
     elichika.save_model(path + '.onnx', onnx_model.model)
     elichika.save_model_as_text(path + '.txt', onnx_model.model)
