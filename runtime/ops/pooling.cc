@@ -29,7 +29,8 @@ private:
 
 std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
-    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
+    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(
+            x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
     chainerx::Array out = fb->Forward(x);
     XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolForwardBackward>(std::move(fb));
     return std::tie(out, ctx);
@@ -38,7 +39,8 @@ std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const
 std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
-    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
+    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(
+            x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
     chainerx::Array out = fb->Forward(x);
     XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolForwardBackward>(std::move(fb));
     return std::tie(out, ctx);

@@ -1,10 +1,10 @@
 #include "compiler/topology.h"
 
 #include <algorithm>
+#include <climits>
 #include <map>
 #include <queue>
 #include <set>
-#include <climits>
 
 #include <common/log.h>
 #include <compiler/node.h>

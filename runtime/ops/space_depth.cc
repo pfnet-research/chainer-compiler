@@ -12,11 +12,10 @@ chainerx::Array DepthToSpaceOp::RunImpl(XCVMState* st, const chainerx::Array& in
     const int64_t width = input.shape()[3];
     const int blocksize = this->blocksize;
 
-    chainerx::Array temp = chainerx::Reshape(input, chainerx::Shape(
-        {batch, blocksize, blocksize, depth / blocksize / blocksize, height, width}));
+    chainerx::Array temp =
+            chainerx::Reshape(input, chainerx::Shape({batch, blocksize, blocksize, depth / blocksize / blocksize, height, width}));
     temp = chainerx::Transpose(temp, chainerx::Axes({0, 3, 4, 1, 5, 2}));
-    return chainerx::Reshape(temp, chainerx::Shape(
-        {batch, depth / blocksize / blocksize, height * blocksize, width * blocksize}));
+    return chainerx::Reshape(temp, chainerx::Shape({batch, depth / blocksize / blocksize, height * blocksize, width * blocksize}));
 }
 
 chainerx::Array SpaceToDepthOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
@@ -26,11 +25,10 @@ chainerx::Array SpaceToDepthOp::RunImpl(XCVMState* st, const chainerx::Array& in
     const int64_t width = input.shape()[3];
     const int blocksize = this->blocksize;
 
-    chainerx::Array temp = chainerx::Reshape(input, chainerx::Shape(
-        {batch, depth, height / blocksize, blocksize, width / blocksize, blocksize}));
+    chainerx::Array temp =
+            chainerx::Reshape(input, chainerx::Shape({batch, depth, height / blocksize, blocksize, width / blocksize, blocksize}));
     temp = chainerx::Transpose(temp, chainerx::Axes({0, 3, 5, 1, 2, 4}));
-    return chainerx::Reshape(temp, chainerx::Shape(
-        {batch, depth * blocksize * blocksize, height / blocksize, width / blocksize}));
+    return chainerx::Reshape(temp, chainerx::Shape({batch, depth * blocksize * blocksize, height / blocksize, width / blocksize}));
 }
 
 }  // namespace runtime

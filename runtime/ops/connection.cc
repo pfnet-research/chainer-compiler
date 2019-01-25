@@ -43,7 +43,8 @@ chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
 }
 
 chainerx::Array ConvGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array& w, const chainerx::Array& x, const chainerx::Array& gy) {
-    return x.device().ConvGradWeight(w.dtype(), w.shape(), x, gy, ComplementStride(strides, x), ComplementPad(pads, x), false /* cover_all */);
+    return x.device().ConvGradWeight(
+            w.dtype(), w.shape(), x, gy, ComplementStride(strides, x), ComplementPad(pads, x), false /* cover_all */);
 }
 
 }  // namespace runtime
