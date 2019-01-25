@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euc
+set -eux
 
 bash setup.sh
 
@@ -10,5 +10,7 @@ cmake .. -DCHAINER_COMPILER_BUILD_CUDA=OFF -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 make -j2
 
 make test
+
+cd ..
 ./scripts/runtests.py
 pytest python
