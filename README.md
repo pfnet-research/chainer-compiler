@@ -1,5 +1,7 @@
 # Chainer compiler: experimental toolchain to compile and run Chainer models
 
+[![Build Status](https://travis-ci.org/pfnet-research/chainer-compiler.svg?branch=master)](http://travis-ci.org/pfnet-research/chainer-compiler)
+
 This is an **experimental** toolchain expected to be used with [Chainer](https://github.com/chainer/chainer). This project aims to achieve a bunch of correlated goals such as
 
 - Make Python Chainer model deployable without Python runtime
