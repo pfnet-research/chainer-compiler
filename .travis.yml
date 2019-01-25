@@ -1,0 +1,14 @@
+language: cpp
+
+dist: xenial
+
+cache:
+  - pip
+  - ccache
+
+script:
+  - bash ./scripts/run-travis-tests.sh
+
+addons:
+  apt:
+    update: true
