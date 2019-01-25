@@ -4,6 +4,7 @@ dist: xenial
 
 cache:
   - ccache
+  - pip
 
 before_install:
   - sudo apt-get install -y --no-install-recommends libprotobuf-dev protobuf-compiler libopencv-dev python3-pip python3-setuptools
