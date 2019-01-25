@@ -16,3 +16,7 @@ script:
 addons:
   apt:
     update: true
+
+env:
+  - CHAINER_BUILD_CHAINERX=1
+  - CHAINERX_BUILD_CUDA=1
