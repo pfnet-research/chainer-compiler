@@ -71,6 +71,7 @@ void Node::AddOutput(Value* value, size_t index) {
     if (index == static_cast<size_t>(-1)) {
         outputs_.push_back(value);
     } else {
+        CHECK_LE(index, outputs_.size()) << "index=" << index << "\n" << DebugString();
         outputs_.insert(outputs_.begin() + index, value);
     }
     CHECK(!value->producer());
