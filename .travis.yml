@@ -7,7 +7,7 @@ cache:
   - pip
 
 before_install:
-  - sudo apt-get install -y --no-install-recommends libprotobuf-dev protobuf-compiler libopencv-dev python3-pip python3-setuptools
+  - sudo apt-get install -y --no-install-recommends libprotobuf-dev protobuf-compiler libopencv-dev python3-pip python3-setuptools cmake
   - sudo pip3 install gast numpy chainer==6.0.0b2 onnx==1.3.0 onnx_chainer pytest
 
 script:
