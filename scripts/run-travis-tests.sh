@@ -8,8 +8,7 @@ mkdir build
 cd build
 cmake .. \
       -DCHAINER_COMPILER_BUILD_CUDA=OFF \
-      -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
-      -DCMAKE_CXX_COMPILER=/usr/lib/ccache/g++
+      -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 make -j2
 
 make test
