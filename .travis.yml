@@ -17,5 +17,7 @@ addons:
   apt:
     update: true
 
-env:
-  - CHAINER_BUILD_CHAINERX=1 MAKEFLAGS=-j2
+# TODO(hamaji): ChainerX build is disabled for now.
+# https://github.com/pfnet-research/chainer-compiler/issues/2
+# env:
+#   - CHAINER_BUILD_CHAINERX=1 MAKEFLAGS=-j2

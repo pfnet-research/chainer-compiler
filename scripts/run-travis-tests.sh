@@ -15,4 +15,6 @@ make test
 
 cd ..
 ./scripts/runtests.py
-pytest python
+# TODO(hamaji): Enable Python test.
+# https://github.com/pfnet-research/chainer-compiler/issues/2
+# pytest python
