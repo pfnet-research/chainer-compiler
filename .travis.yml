@@ -3,7 +3,6 @@ language: cpp
 dist: xenial
 
 cache:
-  - pip
   - ccache
 
 before_install:
