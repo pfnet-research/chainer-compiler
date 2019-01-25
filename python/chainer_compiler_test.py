@@ -7,7 +7,15 @@ import chainer.functions as F
 import chainer.links as L
 import chainerx.testing
 import numpy as np
-import cupy
+
+
+all_device_names = [np, 'native:0']
+
+try:
+    import cupy
+    all_device_names.extend([np, (cupy, 0), 'native:0', 'cuda:0'])
+except:
+    pass
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
@@ -89,7 +97,7 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', all_device_names)
 def test_mnist(device_name):
     np.random.seed(40)
     cupy.random.seed(40)
@@ -147,7 +155,7 @@ class MultiInOuts(chainer.Chain):
         return x + y, x * y
 
 
-@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', all_device_names)
 def test_multi_in_outs(device_name):
     device = chainer.get_device(device_name)
     device.use()
@@ -178,7 +186,7 @@ class ConstMul(chainer.Chain):
         return x * np.array(42.0, dtype=np.float32)
 
 
-@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', all_device_names)
 def test_const_mul(device_name):
     device = chainer.get_device(device_name)
     device.use()
@@ -214,7 +222,7 @@ class Sequence(chainer.Chain):
         return ys
 
 
-@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', all_device_names)
 def test_sequence(device_name):
     device = chainer.get_device(device_name)
     device.use()
@@ -255,7 +263,7 @@ class SequenceGrad(chainer.Chain):
         return ys
 
 
-@pytest.mark.parametrize('device_name', [np, (cupy, 0), 'native:0', 'cuda:0'])
+@pytest.mark.parametrize('device_name', all_device_names)
 def test_sequence_grad(device_name):
     device = chainer.get_device(device_name)
     device.use()
