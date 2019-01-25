@@ -11,6 +11,8 @@ cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 make -j2
 
+make large_tests
+
 make test
 
 cd ..
@@ -18,3 +20,6 @@ cd ..
 # TODO(hamaji): Enable Python test.
 # https://github.com/pfnet-research/chainer-compiler/issues/2
 # pytest python
+
+./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
+./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
