@@ -24,6 +24,8 @@ public:
     void ToONNX(onnx::NodeProto* xnode) const;
     std::string DebugString() const;
 
+    void Validate() const;
+
     Value* input(int index) const;
     const std::vector<Value*>& inputs() const {
         return inputs_;

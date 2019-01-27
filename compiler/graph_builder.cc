@@ -17,6 +17,10 @@ GraphBuilder::GraphBuilder(Graph* graph, const std::string& category, Value* tar
 }
 
 GraphBuilder::~GraphBuilder() {
+    for (Node* node : added_nodes_) {
+        node->Validate();
+    }
+
     if (!g_skip_inference) {
         std::vector<Value*> inputs, outputs, temps;
         ClassifyValues(added_nodes_, &inputs, &outputs, &temps);

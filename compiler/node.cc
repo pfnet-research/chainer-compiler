@@ -19,6 +19,7 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
       name_(xnode.name()),
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
+    Validate();
 }
 
 Node::Node(const std::string& name, OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs)
@@ -50,6 +51,30 @@ std::string Node::DebugString() const {
     onnx::NodeProto xnode;
     ToONNX(&xnode);
     return xnode.DebugString();
+}
+
+void Node::Validate() const {
+    ValidateNumInputsOutputs(inputs_, outputs_);
+    ValidateAttributes();
+
+    if (op_type_ == Node::kLoop) {
+        CHECK(body_.get()) << "Loop without body:\n" << DebugString();
+        int num_loop_inputs = inputs_.size();
+        int num_loop_outputs = outputs_.size();
+        int num_body_inputs = body_->input_values().size();
+        int num_body_outputs = body_->output_values().size();
+        int num_states = num_loop_inputs - 2;
+        int num_scans = num_body_outputs - 1 - num_states;
+        CHECK_LT(2, num_loop_inputs) << "Loop should have at least 3 inputs:\n" << DebugString();
+        CHECK_LT(0, num_loop_outputs) << "Loop should have at least 1 outputs:\n" << DebugString();
+        CHECK_EQ(num_body_inputs, num_states + 2) << "Inconsistent numbers of inputs:\n" << DebugString();
+        CHECK_EQ(num_loop_outputs, num_states + num_scans) << "Inconsistent numbers of outputs:\n" << DebugString();
+        Value* max_trip_count = input(0);
+        Value* terminal_condition = input(1);
+        CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite Loop:\n" << DebugString();
+
+    }
+    // TODO(hamaji): Add more custom validations for other ops.
 }
 
 Value* Node::input(int index) const {
