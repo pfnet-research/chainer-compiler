@@ -67,12 +67,18 @@ void Node::Validate() const {
         int num_scans = num_body_outputs - 1 - num_states;
         CHECK_LT(2, num_loop_inputs) << "Loop should have at least 3 inputs:\n" << DebugString();
         CHECK_LT(0, num_loop_outputs) << "Loop should have at least 1 outputs:\n" << DebugString();
-        CHECK_EQ(num_body_inputs, num_states + 2) << "Inconsistent numbers of inputs:\n" << DebugString();
-        CHECK_EQ(num_loop_outputs, num_states + num_scans) << "Inconsistent numbers of outputs:\n" << DebugString();
+        CHECK_EQ(num_body_inputs, num_states + 2) << "Inconsistent numbers of inputs for Loop:\n" << DebugString();
+        CHECK_EQ(num_loop_outputs, num_states + num_scans) << "Inconsistent numbers of outputs for LOop:\n" << DebugString();
         Value* max_trip_count = input(0);
         Value* terminal_condition = input(1);
         CHECK(!max_trip_count->IsNull() || !terminal_condition->IsNull()) << "Inifinite Loop:\n" << DebugString();
 
+    } else if (op_type_ == Node::kIf) {
+        CHECK_LT(0, inputs_.size()) << "If should have at least 1 inputs:\n" << DebugString();
+        CHECK_EQ(inputs_.size(), then_branch_->input_values().size() + 1) << "Inconsistent number of inputs for If:\n" << DebugString();
+        CHECK_EQ(inputs_.size(), else_branch_->input_values().size() +1) << "Inconsistent number of inputs for If:\n" << DebugString();
+        CHECK_EQ(outputs_.size(), then_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
+        CHECK_EQ(outputs_.size(), else_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
     }
     // TODO(hamaji): Add more custom validations for other ops.
 }
