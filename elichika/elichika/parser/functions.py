@@ -28,8 +28,24 @@ def generate_copied_value(value : 'values.Value'):
         copied = values.NoneValue()
         return copied
 
+    if isinstance(value, values.BoolValue):
+        copied = values.BoolValue(value.internal_value)
+        return copied
+
+    if isinstance(value, values.StrValue):
+        copied = values.StrValue(value.internal_value)
+        return copied
+
+    if isinstance(value, values.RangeValue):
+        copied = values.RangeValue()
+        return copied
+
+    if isinstance(value, values.TupleValue):
+        copied = values.TupleValue(value.values)
+        return copied
+
     if config.show_warnings:
-        print('Warning : Unimplemented copied_value {}'.format(value))
+        print('Unknown type {} is copied'.format(value))
 
     return values.Value()
 
