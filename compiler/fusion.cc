@@ -212,7 +212,8 @@ void FuseElementwiseOperations(Graph* graph) {
     };
 
     int num_fusion_groups = 0;
-    for (Node* base_node : graph->nodes()) {
+    const std::vector<Node*> all_nodes(graph->nodes());
+    for (Node* base_node : all_nodes) {
         if (base_node->chainer_fusion_group()) continue;
         if (!is_fusable(*base_node)) continue;
 
