@@ -19,9 +19,7 @@ make test
 
 cd ..
 ./scripts/runtests.py
-# TODO(hamaji): Enable Python test.
-# https://github.com/pfnet-research/chainer-compiler/issues/2
-# pytest python
+pytest python
 
 ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
 ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
