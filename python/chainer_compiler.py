@@ -67,17 +67,17 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.bwd = compiled_model.bwd
         self.num_outputs = len(compiled_model.orig_output_names)
         self.input_tmpl = input_tmpl
-        self.chainerx_device = None
+        self.chainerx_device_name = None
 
     def _to_var(self, v):
         if _is_array(v):
             if isinstance(v, chainer.Variable):
                 v = v.array
             v = chainer.backend.to_chainerx(v)
-            if self.chainerx_device is None:
-                self.chainerx_device = v.device
+            if self.chainerx_device_name is None:
+                self.chainerx_device_name = v.device
             else:
-                assert self.chainerx_device == v.device
+                assert self.chainerx_device_name == v.device
             return chainer_compiler_core.value(v)
         return chainer_compiler_core.value([self._to_var(a) for a in v])
 
@@ -91,7 +91,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         for name, value in zip(self.fwd_input_names, args):
             inputs[name] = self._to_var(value)
 
-        with chainer.using_device(self.chainerx_device):
+        with chainer.using_device(self.chainerx_device_name):
             outputs = self.fwd.run(inputs)
         outputs_and_retained = []
         for name in self.fwd_output_names:
@@ -124,7 +124,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         for name, value in zip(self.bwd_input_names, values):
             inputs[name] = value
 
-        with chainer.using_device(self.chainerx_device):
+        with chainer.using_device(self.chainerx_device_name):
             outputs = self.bwd.run(inputs)
         gxs = []
         assert len(self.input_tmpl) == len(self.fwd_input_names)
