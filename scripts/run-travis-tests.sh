@@ -25,9 +25,3 @@ cd ..
 
 ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
 ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
-
-ABC 01
-BAC 12
-BCA 02
-ACB 12
-ABC
