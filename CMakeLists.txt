@@ -319,9 +319,11 @@ set(ELICHIKA_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/testcasegen.py
   )
 
+# Include elichika_tests so the build file will be regenerated when a
+# new test is added.
+include(scripts/elichika_tests.py)
+
 function(gen_elichika_test dir all)
-  #set(elichika_test_py ${CMAKE_CURRENT_SOURCE_DIR}/elichika/tests/${dir}/${elichika_test}.py)
-  #set(out_dir ${CMAKE_CURRENT_SOURCE_DIR}/out/elichika_${dir}_${elichika_test}) # TODO: move to build/ directory
   set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${dir})
 

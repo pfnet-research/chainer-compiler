@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# This file is included by CMakeLists.txt.
+#[[
+
 import importlib
 import glob
 import os
@@ -57,15 +60,6 @@ def get_source_dir():
 def generate_tests(dirname):
     from testtools import testcasegen
 
-    # Force re-run cmake as the dependency must be updated when the
-    # list of test names changes.
-    # TODO(hamaji): Come up with a better way to tell CMake the need
-    # of re-generation.
-    myname = sys.argv[0]
-    cmake_list = os.path.join(get_source_dir(), 'CMakeLists.txt')
-    if os.stat(cmake_list).st_mtime < os.stat(myname).st_mtime:
-        os.utime(cmake_list)
-
     for gen in get_test_generators(dirname):
         py = os.path.join('tests', gen.dirname, gen.filename)
         out_dir = os.path.join(get_source_dir(), 'out', 'elichika_%s_%s' %
@@ -117,3 +111,5 @@ if __name__ == '__main__':
         generate_tests(sys.argv[2])
     else:
         raise RuntimeError('See %s for the usage' % sys.argv[0])
+
+#]]
