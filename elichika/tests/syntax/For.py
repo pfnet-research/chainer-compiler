@@ -4,6 +4,12 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
+class Basic1(chainer.Chain):
+    def forward(self):
+        x = 0
+        for i in range(2):
+            x = i + 1
+        return x
 
 class A(chainer.Chain):
     def forward(self, xs, p):
@@ -99,6 +105,8 @@ import numpy as np
 
 
 def main():
+    testtools.generate_testcase(Basic1(), [], subname='basic1')
+
     model = A()
 
     v = np.random.rand(10).astype(np.float32)

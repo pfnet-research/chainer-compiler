@@ -320,8 +320,10 @@ class ONNXGraph:
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
 
-        print('Warning : Found uknown type in new_tensor_with_value {}'.format(value))
-        return self.new_empty_tensor_with_value(value)
+
+        print('Warning : Found uknown type {} in new_tensor_with_value. Float is stored.'.format(type(value)))
+        arr = np.array(0.0, dtype=np.float32)
+        return self.new_tensor_with_np(arr, name)
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):
         # check types
@@ -597,8 +599,9 @@ class ONNXGenerator:
                     'ChainerGenericLen',
                     [value2onnx_parameter[node_.iter_value].onnx_name],
                     [op_len.name])
+                onnx_graph.nodes.append(onnx_node)
 
-                body_graph = self.generate_graph(node.input_values, node.outputs, node_.body_graph, onnx_graph)
+                body_graph = self.generate_graph(node_.body_graph.input_values, node_.body_graph.output_values, node_.body_graph, onnx_graph)
 
                 # for
                 onnx_node = oh.make_node(
@@ -606,6 +609,7 @@ class ONNXGenerator:
                     [op_len.name] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values],
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     body=body_graph)
+                onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeForGenerator):
                 node_ = node # type: nodes.NodeForGenerator
@@ -615,6 +619,7 @@ class ONNXGenerator:
                     'ChainerSequenceLookup',
                     [value2onnx_parameter[node_.iter_value].onnx_name, value2onnx_parameter[node_.counter_value].onnx_name],
                     [value2onnx_parameter[node_.outputs[0]].onnx_name])
+                onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeListcomp):
                 node_ = node # type: nodes.NodeListcomp

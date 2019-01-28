@@ -313,10 +313,10 @@ class Attribute:
             return False
 
         if commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
-            return True
+            return False
 
         if not commit_id1 in self.rev_access_num.keys() and commit_id2 in self.rev_access_num.keys():
-            return True
+            return False
 
         return self.rev_access_num[commit_id1] != self.rev_access_num[commit_id2]
 

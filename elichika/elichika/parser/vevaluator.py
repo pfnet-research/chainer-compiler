@@ -699,6 +699,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     iter_value = iter_.get_value()
 
+    # node to lookup a value from sequence
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
     target_value = values.Value()
     node_forgen.set_outputs([target_value])
@@ -711,12 +712,12 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     values.commit(body_id)
 
-    body_output_attributes = get_input_attritubtes(local_field, for_id, body_id)
-    body_intput_attributes = get_output_attritubtes(local_field, for_id, body_id)
+    body_input_attributes = get_input_attritubtes(local_field, for_id, body_id)
+    body_output_attributes = get_output_attritubtes(local_field, for_id, body_id)
 
     input_attributes_2_values = {}
 
-    for attribute in body_intput_attributes:
+    for attribute in body_input_attributes:
         input_attributes_2_values[attribute] = attribute.get_value()
 
     output_attributes_2_values = {}
@@ -727,44 +728,93 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     # Exports
     values.checkout(for_id)
 
-    input_attributes = set(body_intput_attributes)
-    inputs = [i.get_value() for i in input_attributes if i.has_value()]
+    # generate attribute pairs
+    name2attributes = {}
 
-    output_attributes = body_output_attributes
-    output_attributes.remove(target_attribute)
-    output_attributes = [target_attribute] + output_attributes
+    for attribute in body_input_attributes:
+        key = str(attribute.parent.id) + '_' + attribute.name
+
+        if key in name2attributes.keys():
+            name2attributes[key][0] = attribute
+        else:
+            name2attributes[key] = [attribute, None]
+
+    for attribute in body_output_attributes:
+        key = str(attribute.parent.id) + '_' + attribute.name
+
+        if key in name2attributes.keys():
+            name2attributes[key][1] = attribute
+        else:
+            name2attributes[key] = [None, attribute]
+
+    # remove defaule values
+    name_removing = []
+    defaule_values = [counter_value, cond_value, iter_value]
+    for k, v in name2attributes.items():
+        if v[0] in defaule_values:
+            name_removing.append(k)
+
+        if v[1] in defaule_values:
+            name_removing.append(k)
+
+    for nr in name_removing:
+        if nr in name2attributes.keys():
+            name2attributes.pop(nr)
+
+    #
+    inputs = []
     outputs = []
-
     non_volatiles = []
 
-    # default output
-    body_graph.add_output_value(cond_value)
-    body_graph.add_output_value(iter_value)
-
-    for attribute in output_attributes:
-        name = attribute.name
-        body_graph.add_output_value(output_attributes_2_values[attribute])
-        value = functions.generate_value_with_same_type(output_attributes_2_values[attribute])
-        outputs.append(value)
-
-        if attribute.is_non_volatile:
-            non_volatiles.append((attribute.initial_value,value))
-
-        attribute.parent.get_attribute(name).revise(value)
-
-    # default input
-    '''
+    # default input for subgraph's input
     body_graph.add_input_value(counter_value)
     body_graph.add_input_value(cond_value)
     body_graph.add_input_value(iter_value)
 
-    inputs.remove(counter_value)
-    inputs.remove(cond_value)
-    inputs.remove(iter_value)
-    '''
+    # default output for subgrap's output
+    body_graph.add_output_value(cond_value)
+    body_graph.add_output_value(iter_value)
 
-    for input in inputs:
-        body_graph.add_input_value(input)
+    # default output
+    outputs.append(functions.generate_value_with_same_type(iter_value))
+    
+    for attributes in name2attributes.values():
+        name = ''
+        parent = None
+        input_value = None
+        output_value = None
+
+        if attributes[0] is not None:
+            name = attributes[0].name
+            parent = attributes[0].parent
+
+        if attributes[1] is not None:
+            name = attributes[1].name
+            parent = attributes[1].parent
+
+        if attributes[0] is not None:
+            input_value = input_attributes_2_values[attributes[0]]
+        else:
+            # value with same type
+            input_value = functions.generate_value_with_same_type(output_attributes_2_values[attributes[1]])
+
+        if attributes[1] is not None:
+            output_value = output_attributes_2_values[attributes[1]]
+        else:
+            # copy value
+            output_value = input_attributes_2_values[attributes[0]]
+
+        output_value_in_node = functions.generate_value_with_same_type(output_value)
+
+        inputs.append(input_value)
+        outputs.append(output_value_in_node)
+        body_graph.add_input_value(input_value)
+        body_graph.add_output_value(output_value)
+
+        if attributes[1].is_non_volatile:
+            non_volatiles.append((attribute[1].initial_value,output_value_in_node))
+
+        attributes[1].parent.get_attribute(name).revise(output_value_in_node)
 
     node = nodes.NodeFor(iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
