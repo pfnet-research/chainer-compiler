@@ -10,7 +10,7 @@ cmake .. \
       -DCHAINER_COMPILER_BUILD_CUDA=OFF \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
       -DCHAINERX_BUILD_PYTHON=ON \
-      -DPYTHON_EXECUTABLE=python3
+      -DPYTHON_EXECUTABLE=/usr/bin/python3
 make -j2
 
 make large_tests
