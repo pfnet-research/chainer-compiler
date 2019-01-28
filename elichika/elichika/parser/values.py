@@ -333,6 +333,7 @@ class Value():
         self.name = ""
         self.generator = None
         self.modifiers = []
+        
         self.internal_value = None
         self.histories = {}
         self.history_id = utils.get_guid()

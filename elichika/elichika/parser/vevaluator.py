@@ -3,7 +3,6 @@ import chainer.functions as F
 import chainer.links as L
 import inspect
 import ast, gast
-import weakref
 
 from elichika.parser import config
 from elichika.parser import nodes
@@ -107,19 +106,19 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
 def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.Assign))
 
-    targets = veval_ast(astc.c(astc.nast.targets[0]), local_field, graph)
-
-    isTuple = False
-    if isinstance(targets, values.TupleValue):
-        targets = targets.values
-        isTuple = True
-
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
 
     if value is None:
         if config.show_warnings:
             print('It is possible that assiging value is invalid in L.{}'.format(astc.lineno))
         return None
+
+    targets = veval_ast(astc.c(astc.nast.targets[0]), local_field, graph)
+
+    isTuple = False
+    if isinstance(targets, values.TupleValue):
+        targets = targets.values
+        isTuple = True
 
     if isTuple:
         for i in range(len(targets)):
@@ -448,9 +447,10 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     assert(isinstance(astc.nast, gast.gast.ListComp))
     lineprop = utils.LineProperty(astc.lineno)
 
-    listcomp_id = 'listcomp_' + str(utils.get_guid())
-    body_id = 'listcomp_body_' + str(utils.get_guid())
-
+    listcomp_guid = str(utils.get_guid())
+    listcomp_id = 'listcomp_' + listcomp_guid
+    body_id = 'listcomp_body_' + listcomp_guid
+    internal_iter_id = '@internal/iter_' + listcomp_guid
     values.commit(listcomp_id)
 
     generator = astc.nast.generators[0]
@@ -458,8 +458,8 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     list_value = values.ListValue()
 
     node_generate_list = nodes.NodeGenerate('List', [], lineprop)
-    graph.add_node(node_generate_list)
     node_generate_list.set_outputs([list_value])
+    graph.add_node(node_generate_list)
 
     # body
     target_name = ''
@@ -471,7 +471,10 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         return None
 
     counter_value = values.NumberValue(0)
-    counter_value.name = 'for_counter'
+    counter_value.name = 'listcomp_counter_' + listcomp_guid
+
+    cond_value = values.BoolValue(True)
+    cond_value.name = 'listcomp_cond_' + listcomp_guid
 
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
     target_value = values.Value()
@@ -481,6 +484,10 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     body_field.set_module(local_field.module)
     body_field.set_parent(local_field)
     body_field.get_attribute(target_name).revise(target_value)
+
+    # set iter with internal name
+    body_field.get_attribute(internal_iter_id).revise(list_value)
+
     body_graph = Graph()
     body_graph.name = 'Body'
 
@@ -489,37 +496,129 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     elt = veval_ast(astc.c(astc.nast.elt), body_field, body_graph)
     farg = functions.FunctionArg()
     farg.name = ''
-    farg.value = elt
+    farg.value = elt.get_value()
     list_value.append_func.func.vcall(local_field.module, body_graph, list_value, [farg], lineprop)
 
     values.commit(body_id)
 
-    body_output_attributes = get_input_attritubtes(body_field, listcomp_id, body_id)
-    body_intput_attributes = get_output_attritubtes(body_field, listcomp_id, body_id)
+    body_input_attributes = get_input_attritubtes(body_field, listcomp_id, body_id) + get_input_attritubtes(local_field, listcomp_id, body_id)
+    body_output_attributes = get_output_attritubtes(body_field, listcomp_id, body_id) + get_output_attritubtes(local_field, listcomp_id, body_id)
+
+    input_attributes_2_values = {}
+
+    for attribute in body_input_attributes:
+        input_attributes_2_values[attribute] = attribute.get_value()
+
+    output_attributes_2_values = {}
+
+    for attribute in body_output_attributes:
+        output_attributes_2_values[attribute] = attribute.get_value()
 
     # Exports
     values.checkout(listcomp_id)
 
-    input_attributes = set(body_intput_attributes)
-    inputs = [i.get_value() for i in input_attributes]
+    # generate attribute pairs
+    name2attributes = {}
 
-    output_attributes = set(body_output_attributes)
+    for attribute in body_input_attributes:
+        key = str(attribute.parent.id) + '_' + attribute.name
+
+        if key in name2attributes.keys():
+            name2attributes[key][0] = attribute
+        else:
+            name2attributes[key] = [attribute, None]
+
+    for attribute in body_output_attributes:
+        key = str(attribute.parent.id) + '_' + attribute.name
+
+        if key in name2attributes.keys():
+            name2attributes[key][1] = attribute
+        else:
+            name2attributes[key] = [None, attribute]
+
+    # remove defaule values
+    name_removing = []
+    defaule_values = [counter_value, cond_value, iter_value]
+    for k, v in name2attributes.items():
+        if v[0] is not None and input_attributes_2_values[v[0]] in defaule_values:
+            name_removing.append(k)
+
+        if v[1] is not None and output_attributes_2_values[v[1]] in defaule_values:
+            name_removing.append(k)
+
+    for nr in name_removing:
+        if nr in name2attributes.keys():
+            name2attributes.pop(nr)
+
+    #
+    inputs = []
     outputs = []
+    non_volatiles = []
 
-    for attribute in output_attributes:
-        value = values.Value()
-        outputs.append(value)
-        attribute.revise(value)
+    # default input for subgraph's input
+    body_graph.add_input_value(counter_value)
+    body_graph.add_input_value(cond_value)
+    body_graph.add_input_value(iter_value)
+
+    # default output for subgrap's output
+    body_graph.add_output_value(cond_value)
+    body_graph.add_output_value(iter_value)
+
+    # default output
+    outputs.append(functions.generate_value_with_same_type(iter_value))
+    
+    for attributes in name2attributes.values():
+        name = ''
+        parent = None
+        input_value = None
+        output_value = None
+
+        if attributes[0] is not None:
+            name = attributes[0].name
+            parent = attributes[0].parent
+
+        if attributes[1] is not None:
+            name = attributes[1].name
+            parent = attributes[1].parent
+
+        if attributes[0] is not None:
+            input_value = input_attributes_2_values[attributes[0]]
+        else:
+            # value with same type
+            input_value = functions.generate_value_with_same_type(output_attributes_2_values[attributes[1]])
+
+        if attributes[1] is not None:
+            output_value = output_attributes_2_values[attributes[1]]
+        else:
+            # copy value
+            output_value = input_attributes_2_values[attributes[0]]
+
+        output_value_in_node = functions.generate_value_with_same_type(output_value)
+
+        inputs.append(input_value)
+        outputs.append(output_value_in_node)
+        body_graph.add_input_value(input_value)
+        body_graph.add_output_value(output_value)
+
+        if attributes[1] is not None and attributes[1].is_non_volatile:
+            non_volatiles.append((attribute[1].initial_value,output_value_in_node))
+
+        parent.get_attribute(name).revise(output_value_in_node)
 
     node = nodes.NodeListcomp(iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
 
     graph.add_node(node)
 
+    # add non-volatiles
+    for tv, v in non_volatiles:
+        node_nv = nodes.NodeNonVolatileAssign(tv, v)
+        graph.add_node(node_nv)
 
-    # compare
-
-    return list_value
+    if body_field.get_attribute(internal_iter_id).has_value():
+        return body_field.get_attribute(internal_iter_id).get_value()
+    else:
+        return list_value
 
 def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     """
@@ -879,7 +978,7 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         return veval_ast_subscript(astc, local_field, graph)
 
     elif isinstance(astc.nast, gast.gast.ListComp):
-        veval_ast_listcomp(astc, local_field, graph)
+        return veval_ast_listcomp(astc, local_field, graph)
 
     elif isinstance(astc.nast, gast.gast.If):
         veval_ast_if(astc, local_field, graph)
