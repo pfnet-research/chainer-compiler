@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.4)
 
+if(POLICY ${CMP0077})
+  cmake_policy(SET ${CMP0077} NEW)
+endif()
+
 execute_process(COMMAND git submodule update --init)
 
 include(cmake/third-party.cmake)
@@ -76,6 +80,10 @@ add_custom_target(onnx_files
 target_compile_definitions(onnx PRIVATE ONNX_API=)
 target_compile_options(onnx PRIVATE -w)
 
+if (${CHAINER_COMPILER_ENABLE_PYTHON})
+  set(CHAINERX_BUILD_PYTHON ON)
+endif()
+
 add_subdirectory(chainer/chainerx_cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/chainer/chainerx_cc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/gsl-lite/include)
@@ -146,9 +154,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}
 add_custom_target(large_tests)
 
 if (${CHAINER_COMPILER_ENABLE_PYTHON})
-  get_third_party(pybind11)
-  include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
-  add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
+  include_directories(${CMAKE_BINARY_DIR}/chainer/chainerx_cc/pybind11/include)
   add_subdirectory(python)
 endif()
 
