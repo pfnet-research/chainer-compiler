@@ -161,7 +161,7 @@ void InitXCVMVar(py::module& m) {
     c.def("__str__", [](const VarPtr& v) { return "var(" + v->DebugString() + ")"; });
 }
 
-VarPtr CreateValueFromArray(ArrayBodyPtr a) {
+VarPtr CreateValueFromArray(const ArrayBodyPtr& a) {
     return std::make_shared<runtime::XCVMVar>(chainerx::Array(a));
 }
 
