@@ -14,8 +14,9 @@ all_device_names = [np, 'native:0']
 try:
     import cupy
     all_device_names.extend([np, (cupy, 0), 'native:0', 'cuda:0'])
+    has_cupy = True
 except:
-    pass
+    has_cupy = False
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
@@ -47,7 +48,7 @@ def test_unflatten():
 
 
 def _assert_allclose(e, a, **kwargs):
-    if isinstance(e, cupy.ndarray):
+    if has_cupy and isinstance(e, cupy.ndarray):
         e = chainer.cuda.to_cpu(e)
         a = chainer.cuda.to_cpu(a)
     return chainerx.testing.assert_allclose(e, a, **kwargs)
@@ -100,7 +101,8 @@ class MLP(chainer.Chain):
 @pytest.mark.parametrize('device_name', all_device_names)
 def test_mnist(device_name):
     np.random.seed(40)
-    cupy.random.seed(40)
+    if has_cupy:
+        cupy.random.seed(40)
 
     batch_size = 3
     in_size = 5
