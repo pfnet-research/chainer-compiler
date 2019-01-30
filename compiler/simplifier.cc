@@ -580,6 +580,11 @@ bool ReplaceSelectItem(Graph* graph, Node* node) {
     num_classes = gb.Op(Node::kUnsqueeze, {num_classes});
     num_classes->producer()->set_axes({0});
     Value* one_hot = gb.Op(Node::kOneHot, {node->input(1), num_classes, values});
+    // Fill the shape of `one_hot`. ONNX cannot infer the shape
+    // because OneHot depends on input values.
+    if (x->type().HasKnownShape()) {
+        one_hot->set_type(new Type(x->type()));
+    }
     Value* filtered = gb.Op(Node::kMul, {x, one_hot});
     gb.Op(Node::kReduceSum, {filtered}, node->output(0))->producer()->set_axes({1})->set_keepdims(false);
     return true;
