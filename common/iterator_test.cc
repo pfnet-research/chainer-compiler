@@ -24,5 +24,20 @@ TEST(IteratorTest, Zip) {
     EXPECT_EQ("c", std::get<1>(results[2]));
 }
 
+TEST(IteratorTest, Enumerator) {
+    std::vector<std::string> strs = { "a", "b", "c" };
+    std::vector<std::pair<size_t, std::string>> results;
+    for (const auto& e : Enumerate(strs)) {
+        results.emplace_back(e.index, e.value);
+    }
+    ASSERT_EQ(3, results.size());
+    EXPECT_EQ(0, results[0].first);
+    EXPECT_EQ("a", results[0].second);
+    EXPECT_EQ(1, results[1].first);
+    EXPECT_EQ("b", results[1].second);
+    EXPECT_EQ(2, results[2].first);
+    EXPECT_EQ("c", results[2].second);
+}
+
 }  // namespace
 }  // namespace chainer_compiler
