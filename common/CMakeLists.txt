@@ -9,6 +9,7 @@ add_library(chainer_compiler_common
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(common_test
+  iterator_test.cc
   strutil_test.cc
   )
 target_link_libraries(common_test
