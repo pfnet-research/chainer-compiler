@@ -277,7 +277,6 @@ public:
             }
             onnx::ModelProto xmodel;
             model->ToONNX(&xmodel);
-            StripONNXModel(&xmodel);
             std::ofstream ofs(out_onnx);
             CHECK(ofs) << "Failed to open output ONNX: " << out_onnx;
             CHECK(xmodel.SerializeToOstream(&ofs));
