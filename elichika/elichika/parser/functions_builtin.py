@@ -1,6 +1,7 @@
 from elichika.parser import nodes
 from elichika.parser import values
 from elichika.parser import functions
+from elichika.parser import graphs
 
 import chainer
 import chainer.functions as F
@@ -12,13 +13,15 @@ class ReluFunction(functions.FunctionBase):
         self.name = 'relu'
         self.analyze_args(F.relu)
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
+    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
-        node = nodes.NodeCall(self, [v.value for v in funcArgs], line)
+        vargs = self.get_values(funcArgs)
+
+        node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
-        value = functions.generate_value_with_same_type(funcArgs[0].value)
+        value = functions.generate_value_with_same_type(vargs[0])
         node.set_outputs([value])
-        return value
+        return values.Object(value)
 
 class SoftmaxFunction(functions.FunctionBase):
     def __init__(self):
@@ -26,25 +29,27 @@ class SoftmaxFunction(functions.FunctionBase):
         self.name = 'softmax'
         self.analyze_args(F.softmax)
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
+    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
-        node = nodes.NodeCall(self, [v.value for v in funcArgs], line)
+        vargs = self.get_values(funcArgs)
+
+        node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
-        value = functions.generate_value_with_same_type(funcArgs[0].value)
+        value = functions.generate_value_with_same_type(vargs[0])
         node.set_outputs([value])
-        return value
+        return values.Object(value)
 
 class RangeFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
         self.name = 'range'
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'Value', args = [], line = -1):
-        node = nodes.NodeGenerate('range', [v.value for v in args], line)
+    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
+        node = nodes.NodeGenerate('range', [v.obj.get_value() for v in args], line)
         graph.add_node(node)
         value = values.RangeValue()
         node.set_outputs([value])
-        return value
+        return values.Object(value)
 
 class AppendFunction(functions.FunctionBase):
     def __init__(self, owner):
@@ -52,10 +57,16 @@ class AppendFunction(functions.FunctionBase):
         self.name = 'append'
         self.owner = owner
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Value', args = [], line = -1):
+    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         assert(len(args) == 1)
 
-        node = nodes.NodeCall(self, [v.value for v in args], line)
-        inst.modify(node, None)
+        node = nodes.NodeCall(self, [inst.get_value()] + [v.obj.get_value() for v in args], line)
+
+        old_v = inst.get_value()
+        new_v = functions.generate_value_with_same_type(old_v)
+        inst.revise(new_v)
+
+        node.set_outputs([new_v])
+
         graph.add_node(node)
         return values.NoneValue()
