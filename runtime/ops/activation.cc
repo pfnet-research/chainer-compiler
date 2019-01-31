@@ -1,3 +1,5 @@
+#include <limits>
+
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/math.h>
 
@@ -13,7 +15,8 @@ chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 
 chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
     chainerx::Array out = chainerx::EmptyLike(x, x.device());
-    x.device().IfLessElseASSA(x, 0, chainerx::Scalar{0, gy.dtype()}, gy, out);
+    const float eps = std::numeric_limits<float>::epsilon();
+    x.device().IfLessElseASSA(x, eps, chainerx::Scalar{0, gy.dtype()}, gy, out);
     return out;
 }
 

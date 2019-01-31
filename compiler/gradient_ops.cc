@@ -235,7 +235,7 @@ void SigmoidGradFn(GradientOpContext* gc) {
 }
 
 void ReluGradFn(GradientOpContext* gc) {
-    gc->GradOp(Node::kChainerReluGrad, 0, {gc->x(0), gc->gy(0)});
+    gc->GradOp(Node::kChainerReluGrad, 0, {gc->y(0), gc->gy(0)});
 }
 
 void SqrtGradFn(GradientOpContext* gc) {
