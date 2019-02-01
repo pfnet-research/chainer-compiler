@@ -37,19 +37,6 @@ private:
     chainerx::Shape x2_shape_;
 };
 
-class NoBatchNormContext : public XCVMOpaque {
-public:
-    NoBatchNormContext() = default;
-    virtual ~NoBatchNormContext() = default;
-
-    virtual std::string ToString() const {
-        return "noctx";
-    }
-    virtual std::string DebugString() const {
-        return "noctx";
-    }
-};
-
 // TODO(hamaji): Copied from ChainerX's code.
 using Array = chainerx::Array;
 using Axes = chainerx::Axes;
@@ -135,42 +122,27 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         if (i != 1) axes.push_back(i);
     }
 
-    // TODO(hamaji): Split BatchNormalization to two ops. One is for
-    // inference and the other is for training.
-    const bool is_training = st->is_training() || this->running_mean >= 0;
-    if (is_training) {
-        PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
-        std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
-                x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
-        const Array& gamma_reshaped = result.gamma;
-        const Array& beta_reshaped = result.beta;
-        chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
-        XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
-        chainerx::Array saved_mean, saved_var;
-        if (this->saved_mean >= 0) {
-            WARN_ONCE("saved_mean is implemented by re-calculation");
-            chainerx::Axes axes = {0};
-            for (int i = 2; i < x.ndim(); ++i) axes.push_back(i);
-            saved_mean = chainerx::Mean(x, axes);
-        }
-        if (this->saved_var >= 0) {
-            WARN_ONCE("saved_var is implemented by re-calculation");
-            chainerx::Axes axes = {0};
-            for (int i = 2; i < x.ndim(); ++i) axes.push_back(i);
-            saved_var = chainerx::Var(x, axes);
-        }
-        return std::tie(out, ctx, mean, var, saved_mean, saved_var);
-    } else {
-        chainerx::Array out = chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
-        CHECK_GT(0, this->ctx);
-        CHECK_GT(0, this->running_mean);
-        CHECK_GT(0, this->running_var);
-        CHECK_GT(0, this->saved_mean);
-        CHECK_GT(0, this->saved_var);
-        XCVMOpaque* noctx = nullptr;
-        chainerx::Array mean_out, var_out, saved_mean, saved_var;
-        return std::tie(out, noctx, mean_out, var_out, saved_mean, saved_var);
+    PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
+    std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
+        x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
+    const Array& gamma_reshaped = result.gamma;
+    const Array& beta_reshaped = result.beta;
+    chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
+    XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
+    chainerx::Array saved_mean, saved_var;
+    if (this->saved_mean >= 0) {
+        WARN_ONCE("saved_mean is implemented by re-calculation");
+        chainerx::Axes axes = {0};
+        for (int i = 2; i < x.ndim(); ++i) axes.push_back(i);
+        saved_mean = chainerx::Mean(x, axes);
     }
+    if (this->saved_var >= 0) {
+        WARN_ONCE("saved_var is implemented by re-calculation");
+        chainerx::Axes axes = {0};
+        for (int i = 2; i < x.ndim(); ++i) axes.push_back(i);
+        saved_var = chainerx::Var(x, axes);
+    }
+    return std::tie(out, ctx, mean, var, saved_mean, saved_var);
 }
 
 chainerx::Array FixedBatchNormalizationOp::RunImpl(
