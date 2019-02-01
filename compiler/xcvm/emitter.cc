@@ -376,6 +376,7 @@ private:
             EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
         } else if (node.op_type() == Node::kBatchNormalization) {
             CHECK_EQ(5UL, node.inputs().size());
+            CHECK_EQ(1, node.spatial()) << "`spatial` for BatchNormalization was removed from ONNX";
             size_t num_onnx_outputs = node.outputs().size();
             std::vector<XCVMValue> outs = {out(0)};
             if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
@@ -404,8 +405,7 @@ private:
                  in(3),
                  in(4),
                  node.epsilon(),
-                 node.momentum(),
-                 node.spatial());
+                 node.momentum());
         } else if (node.op_type() == Node::kLRN) {
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;

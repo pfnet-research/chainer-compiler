@@ -128,8 +128,6 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         const chainerx::Array& bias,
         const chainerx::Array& mean,
         const chainerx::Array& var) {
-    // TODO(hamaji): Support spatial=false.
-    CHECK(spatial) << "BatchNormalization with spatial=false is not supported yet";
     // To workaround the limitation of CuDNN.
     if (epsilon <= 1e-5) epsilon = 1e-5 + 1e-12;
     chainerx::Axes axes;

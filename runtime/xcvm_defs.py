@@ -281,7 +281,7 @@ XC_OPS = [
 
     ('BatchNormalization',
      [Array('x'), Array('s'), Array('bias'), Array('mean'), Array('var'),
-      Float('epsilon'), Float('decay'), Int('spatial')],
+      Float('epsilon'), Float('decay')],
      ['y', Opaque('ctx'),
       OptionalArray('running_mean'), OptionalArray('running_var'),
       OptionalArray('saved_mean'), OptionalArray('saved_var')]),
