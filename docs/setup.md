@@ -26,7 +26,7 @@ There are two ways to build Chainer compiler without CUDA.
 
 ##### Specifying `CHAINER_COMPILER_BUILD_CUDA`
 
-You can exclude CUDA dependency from Chainer compiler by specifying `CHAINER_COMPILER_BUILD_CUDA=OFF`.
+You can enable CUDA by specifying `CHAINER_COMPILER_BUILD_CUDA=ON`.
 
 ##### Using stub driver
 
@@ -103,9 +103,9 @@ $ ./setup.sh
 $ mkdir -p build
 $ cd build
 
-$ cmake -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
+$ cmake -DCHAINER_COMPILER_BUILD_CUDA=ON -DCHAINERX_BUILD_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
 or
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF ..
+$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF -DCHAINERX_BUILD_CUDA=OFF ..
 
 $ make
 ```
