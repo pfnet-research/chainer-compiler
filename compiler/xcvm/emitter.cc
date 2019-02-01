@@ -375,37 +375,7 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Gemm, out(0), in(0), in(1), in(2), node.alpha(), node.beta(), node.trans_a(), node.trans_b());
         } else if (node.op_type() == Node::kBatchNormalization) {
-            CHECK_EQ(5UL, node.inputs().size());
-            CHECK_EQ(1, node.spatial()) << "`spatial` for BatchNormalization was removed from ONNX";
-            size_t num_onnx_outputs = node.outputs().size();
-            std::vector<XCVMValue> outs = {out(0)};
-            if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
-                num_onnx_outputs--;
-                outs.push_back(out(num_onnx_outputs));
-            } else {
-                outs.push_back(-1);
-            }
-            for (size_t i = 1; i < num_onnx_outputs; ++i) {
-                outs.push_back(out(i));
-            }
-            for (size_t i = num_onnx_outputs; i < 6; ++i) {
-                outs.push_back(-1);
-            }
-
-            EMIT(BatchNormalization,
-                 outs[0],
-                 outs[1],
-                 outs[2],
-                 outs[3],
-                 outs[4],
-                 outs[5],
-                 in(0),
-                 in(1),
-                 in(2),
-                 in(3),
-                 in(4),
-                 node.epsilon(),
-                 node.momentum());
+            EmitBatchNormalization(node, prog);
         } else if (node.op_type() == Node::kLRN) {
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
@@ -716,6 +686,52 @@ private:
             EMIT(SequenceAppend, out, id);
             FREE(id);
         }
+    }
+
+    void EmitBatchNormalization(const Node& node, XCProgramProto* prog) {
+        CHECK_EQ(5UL, node.inputs().size());
+        CHECK_EQ(1, node.spatial()) << "`spatial` for BatchNormalization was removed from ONNX";
+        size_t num_onnx_outputs = node.outputs().size();
+        if (num_onnx_outputs == 1) {
+            EMIT(FixedBatchNormalization,
+                 GetValueId(node.output(0)),
+                 GetValueId(node.input(0)),
+                 GetValueId(node.input(1)),
+                 GetValueId(node.input(2)),
+                 GetValueId(node.input(3)),
+                 GetValueId(node.input(4)),
+                 node.epsilon());
+            return;
+        }
+
+        std::vector<XCVMValue> outs = {GetValueId(node.output(0))};
+        if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
+            num_onnx_outputs--;
+            outs.push_back(GetValueId(node.output(num_onnx_outputs)));
+        } else {
+            outs.push_back(-1);
+        }
+        for (size_t i = 1; i < num_onnx_outputs; ++i) {
+            outs.push_back(GetValueId(node.output(i)));
+        }
+        for (size_t i = num_onnx_outputs; i < 6; ++i) {
+            outs.push_back(-1);
+        }
+
+        EMIT(BatchNormalization,
+             outs[0],
+             outs[1],
+             outs[2],
+             outs[3],
+             outs[4],
+             outs[5],
+             GetValueId(node.input(0)),
+             GetValueId(node.input(1)),
+             GetValueId(node.input(2)),
+             GetValueId(node.input(3)),
+             GetValueId(node.input(4)),
+             node.epsilon(),
+             node.momentum());
     }
 
 #undef EMIT

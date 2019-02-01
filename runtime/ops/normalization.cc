@@ -173,6 +173,22 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
     }
 }
 
+chainerx::Array FixedBatchNormalizationOp::RunImpl(
+        XCVMState* st,
+        const chainerx::Array& x,
+        const chainerx::Array& s,
+        const chainerx::Array& bias,
+        const chainerx::Array& mean,
+        const chainerx::Array& var) {
+    // To workaround the limitation of CuDNN.
+    if (epsilon <= 1e-5) epsilon = 1e-5 + 1e-12;
+    chainerx::Axes axes;
+    for (int i = 0; i < x.shape().size(); ++i) {
+        if (i != 1) axes.push_back(i);
+    }
+    return chainerx::FixedBatchNorm(x, s, bias, mean, var, epsilon, axes);
+}
+
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
     auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
