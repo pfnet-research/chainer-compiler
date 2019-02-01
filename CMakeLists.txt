@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
 
-if(POLICY ${CMP0077})
-  cmake_policy(SET ${CMP0077} NEW)
+if(POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
 endif()
 
 execute_process(COMMAND git submodule update --init)
@@ -13,7 +13,7 @@ SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 if(DEFINED ENV{CHAINER_COMPILER_BUILD_CUDA})
     set(DEFAULT_CHAINER_COMPILER_BUILD_CUDA $ENV{CHAINER_COMPILER_BUILD_CUDA})
 else()
-    set(DEFAULT_CHAINER_COMPILER_BUILD_CUDA ON)
+    set(DEFAULT_CHAINER_COMPILER_BUILD_CUDA OFF)
 endif()
 option(CHAINER_COMPILER_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_CHAINER_COMPILER_BUILD_CUDA})
 
@@ -110,12 +110,25 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
   find_package(OpenCV REQUIRED)
 endif()
 
+if(POLICY ${CMP0077})
+  # Make both chainer-compiler and ChainerX consistent.
+  set(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_BUILD_CUDA})
+else()
+  if(${CHAINER_COMPILER_BUILD_CUDA})
+    if(NOT ${CHAINERX_BUILD_CUDA})
+      message(FATAL_ERROR "Please set -DCHAINERX_BUILD_CUDA=ON when -DCHAINER_COMPILER_ENABLE_CUDA is ON")
+    endif()
+  else()
+    if(${CHAINERX_BUILD_CUDA})
+      message(FATAL_ERROR "Please set -DCHAINERX_BUILD_CUDA=OFF when -DCHAINER_COMPILER_ENABLE_CUDA is OFF")
+    endif()
+  endif()
+endif()
+
 # CUDA
 if(${CHAINER_COMPILER_BUILD_CUDA})
   find_package(CUDA REQUIRED)
   if(${CUDA_FOUND})
-    set(CHAINERX_BUILD_CUDA ON)
-
     add_definitions(-DCHAINER_COMPILER_ENABLE_CUDA=1)
     set(CHAINER_COMPILER_CUDA_LIBRARIES ${CUDA_CUDART_LIBRARY})
 
