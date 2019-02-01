@@ -250,6 +250,8 @@ void InferDtype(Node* node) {
 
         case Node::kChainerMaxPoolGrad:
         case Node::kChainerAveragePoolGrad:
+        case Node::kChainerMaxPoolGradNoCtx:
+        case Node::kChainerAveragePoolGradNoCtx:
         case Node::kChainerReluGrad:
         case Node::kChainerLRNGrad: {
             set(0, coerce());

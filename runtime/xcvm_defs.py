@@ -246,6 +246,15 @@ XC_OPS = [
      ['y', Opaque('ctx')]),
     ('MaxPoolGrad', [Array('gy'), Opaque('ctx')], ['gx']),
     ('AveragePoolGrad', [Array('gy'), Opaque('ctx')], ['gx']),
+    ('MaxPoolGradNoCtx',
+     [Array('x'), Array('y'), Array('gy'),
+      Ints('kernel_shape'), Ints('strides'), Ints('pads'), Int('cover_all')],
+     ['gx']),
+    ('AveragePoolGradNoCtx',
+     [Array('x'), Array('y'), Array('gy'),
+      Ints('kernel_shape'), Ints('strides'), Ints('pads'),
+      Int('count_include_pad')],
+     ['gx']),
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
@@ -291,6 +300,7 @@ XC_OPS = [
      ['y']),
     ('BatchNormalizationGrad', [Array('gy'), Opaque('ctx')],
      ['gx0', 'gx1', 'gx2']),
+
     ('LRN',
      [Array('x'), Float('alpha'), Float('beta'), Float('bias'), Int('size')],
      ['y', 'unit_scale']),

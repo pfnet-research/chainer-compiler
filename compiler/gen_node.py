@@ -196,6 +196,10 @@ NodeDef('ChainerReluGrad', 2, 1)
 NodeDef('ChainerReduceSumTo', 2, 1)
 NodeDef('ChainerMaxPoolGrad', 2, 1)
 NodeDef('ChainerAveragePoolGrad', 2, 1)
+NodeDef('ChainerMaxPoolGradNoCtx',
+        3, 1, chainer_cover_all=False, **pool_attrs)
+NodeDef('ChainerAveragePoolGradNoCtx',
+        3, 1, count_include_pad=False, **pool_attrs)
 NodeDef('ChainerBatchNormalizationGrad', 2, 3)
 NodeDef('ChainerConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 NodeDef('ChainerSoftmaxCrossEntropy', 2, 1)

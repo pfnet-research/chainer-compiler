@@ -56,5 +56,20 @@ chainerx::Array AveragePoolGradOp::RunImpl(XCVMState* st, const chainerx::Array&
     return context.fb()->Backward(gy);
 }
 
+chainerx::Array MaxPoolGradNoCtxOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
+    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(
+            x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
+    fb->Forward(x);
+    return fb->Backward(gy);
+}
+
+chainerx::Array AveragePoolGradNoCtxOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
+    chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
+    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(
+            x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
+    fb->Forward(x);
+    return fb->Backward(gy);
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
