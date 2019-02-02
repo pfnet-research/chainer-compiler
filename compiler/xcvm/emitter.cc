@@ -403,6 +403,9 @@ private:
                 CHECK(node.output(1)->IsNull());
                 EMIT(MaxPool, out(0), out(2), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
             }
+        } else if (node.op_type() == Node::kChainerMaxPoolGradNoCtx) {
+            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
+            EMIT(MaxPoolGradNoCtx, out(0), in(0), in(1), in(2), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
@@ -414,6 +417,9 @@ private:
                 CHECK_EQ(2UL, node.outputs().size());
                 EMIT(AveragePool, out(0), out(1), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.count_include_pad());
             }
+        } else if (node.op_type() == Node::kChainerAveragePoolGradNoCtx) {
+            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
+            EMIT(AveragePoolGradNoCtx, out(0), in(0), in(1), in(2), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

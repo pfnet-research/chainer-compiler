@@ -433,19 +433,43 @@ void ConvGradFn(GradientOpContext* gc) {
 
 void MaxPoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Node* node = gc->node();
-    if (node->outputs().size() == 1) gc->AddNullOutput();
-    CHECK_EQ(2, node->outputs().size());
-    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-    gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context});
+    // TODO(hamaji): Enable this code path using CompilerConfig.
+    if (false) {
+        Node* node = gc->node();
+        gc->GradOp(Node::kChainerMaxPoolGradNoCtx, 0, {gc->x(0), gc->y(0), gc->gy(0)})
+            ->producer()
+            ->set_kernel_shape(node->kernel_shape())
+            ->set_pads(node->pads())
+            ->set_storage_order(node->storage_order())
+            ->set_strides(node->strides())
+            ->set_chainer_cover_all(node->chainer_cover_all());
+    } else {
+        Node* node = gc->node();
+        if (node->outputs().size() == 1) gc->AddNullOutput();
+        CHECK_EQ(2, node->outputs().size());
+        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+        gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context});
+    }
 }
 
 void AveragePoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Node* node = gc->node();
-    CHECK_EQ(1, node->outputs().size());
-    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-    gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context});
+    // TODO(hamaji): Enable this code path using CompilerConfig.
+    if (false) {
+        Node* node = gc->node();
+        gc->GradOp(Node::kChainerAveragePoolGradNoCtx, 0, {gc->x(0), gc->y(0), gc->gy(0)})
+            ->producer()
+            ->set_kernel_shape(node->kernel_shape())
+            ->set_pads(node->pads())
+            ->set_storage_order(node->storage_order())
+            ->set_strides(node->strides())
+            ->set_count_include_pad(node->count_include_pad());
+    } else {
+        Node* node = gc->node();
+        CHECK_EQ(1, node->outputs().size());
+        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+        gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context});
+    }
 }
 
 void LogSoftmaxGradFn(GradientOpContext* gc) {
