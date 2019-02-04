@@ -3,6 +3,7 @@ set -e
 cd /usr
 git clone https://github.com/dmlc/tvm --recursive
 cd /usr/tvm
+git checkout 5cb729ec48e5e78e9a6a3b78ededa89017817fcd
 echo set\(USE_LLVM llvm-config-6.0\) >> config.cmake
 echo set\(USE_CUDA ON\) >> config.cmake
 echo set\(USE_CUDNN ON\) >> config.cmake
