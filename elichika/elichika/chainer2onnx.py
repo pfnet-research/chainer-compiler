@@ -85,7 +85,7 @@ def assign_onnx_name_to_value(value : 'values.Value', none_name = ''):
     if isinstance(value, values.TupleValue):
         tupleValue = value # type : values.TupleValue
         for value_ in tupleValue.values:
-            assign_onnx_name_to_value(value_.get_value(), value2onnx_parameter[tupleValue].onnx_name)
+            assign_onnx_name_to_value(value_.get_obj().get_value(), value2onnx_parameter[tupleValue].onnx_name)
 
 
 def assign_onnx_name(graph : 'graphs.Graph'):
@@ -441,21 +441,7 @@ class ONNXGenerator:
                     binops[node_.binop],
                     [value2onnx_parameter[node_.target].onnx_name,
                     value2onnx_parameter[node_.value].onnx_name],
-                    [value2onnx_parameter[node.target].onnx_name])
-                onnx_graph.nodes.append(onnx_node)
-
-            if isinstance(node, nodes.NodeValueAugAssign):
-                node_ = node # type: nodes.ValueAugAssign
-                binops = {}
-                binops[nodes.BinOpType.Add] = 'Add'
-                binops[nodes.BinOpType.Sub] = 'Sub'
-                binops[nodes.BinOpType.Unknown] = 'Add'
-
-                onnx_node = oh.make_node(
-                    binops[node_.binop],
-                    [value2onnx_parameter[node_.target].onnx_name,
-                    value2onnx_parameter[node_.value].onnx_name],
-                    [value2onnx_parameter[node_.outputs[0]].onnx_name])
+                    [value2onnx_parameter[node.outputs[0]].onnx_name])
                 onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeBinOp):
@@ -463,6 +449,7 @@ class ONNXGenerator:
                 binops = {}
                 binops[nodes.BinOpType.Add] = 'Add'
                 binops[nodes.BinOpType.Sub] = 'Sub'
+                binops[nodes.BinOpType.Mul] = 'Mul'
                 binops[nodes.BinOpType.Unknown] = 'Add'
 
                 onnx_node = oh.make_node(binops[node_.binop], [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
@@ -548,6 +535,15 @@ class ONNXGenerator:
                 onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeCall):
+
+                if isinstance(node.func, functions_builtin.AppendFunction):
+                    # append
+                    onnx_node = oh.make_node(
+                        "ChainerSequenceAppend",
+                        [value2onnx_parameter[node.inputs[0]].onnx_name, value2onnx_parameter[node.inputs[1]].onnx_name],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        str(node.lineprop))
+                    onnx_graph.nodes.append(onnx_node)
 
                 if isinstance(node.func, functions_builtin.ReluFunction):
                     # relu

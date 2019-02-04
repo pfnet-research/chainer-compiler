@@ -2,6 +2,11 @@
 
 import chainer
 
+class Basic1(chainer.Chain):
+    def forward(self):
+        r = range(2)
+        x = [y for y in r]
+        return x
 
 class A(chainer.Chain):
 
@@ -34,6 +39,8 @@ import numpy as np
 
 def main():
     np.random.seed(314)
+
+    testtools.generate_testcase(Basic1(), [])
 
     model = A()
 

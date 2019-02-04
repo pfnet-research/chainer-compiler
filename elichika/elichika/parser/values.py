@@ -19,15 +19,15 @@ from elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
 attributes = []
-registered_values = []
+registered_objects = []
 
 def reset_field_and_attributes():
     global fields
     global attributes
-    global modified_values
+    global registered_objects
     fields = []
     attributes = []
-    modified_values = []
+    registered_objects = []
 
 def register_field(field : 'Field'):
     fields.append(weakref.ref(field))
@@ -35,8 +35,8 @@ def register_field(field : 'Field'):
 def register_attribute(attribute : 'Attribute'):
     attributes.append(weakref.ref(attribute))
 
-def register_value(value : 'Value'):
-    registered_values.append(weakref.ref(value))
+def register_object(value : 'Object'):
+    registered_objects.append(weakref.ref(value))
 
 def commit(commit_id : 'str'):
     for field in fields:
@@ -49,8 +49,8 @@ def commit(commit_id : 'str'):
         if o is not None:
             o.commit(commit_id)
 
-    for registered_value in registered_values:
-        o = registered_value()
+    for registered_object in registered_objects:
+        o = registered_object()
         if o is not None:
             o.commit(commit_id)
 
@@ -65,72 +65,70 @@ def checkout(commit_id : 'str'):
         if o is not None:
             o.checkout(commit_id)
 
-    for registered_value in registered_values:
-        o = registered_value()
+    for registered_object in registered_objects:
+        o = registered_object()
         if o is not None:
             o.checkout(commit_id)
 
-def parse_instance(default_module, name, instance, self_instance = None):
+def parse_instance(default_module, name, instance, self_instance = None) -> "Object":
     from elichika.parser import values_builtin
 
     if values_builtin.is_builtin_chainer_link(instance):
-        return values_builtin.ChainerLinkInstance(default_module, instance)
+        return Object(values_builtin.ChainerLinkInstance(default_module, instance))
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
-        return BoolValue(instance)
+        return Object(BoolValue(instance))
 
     if isinstance(instance, int) or isinstance(instance, float):
-        return NumberValue(instance)
+        return Object(NumberValue(instance))
 
     if isinstance(instance, str):
-        return StrValue(instance)
+        return Object(StrValue(instance))
 
     if isinstance(instance, list):
-        ret = ListValue()
-        ind = 0
-        for e in instance:
-            element_value = parse_instance(default_module, '', e)
-            ret.get_field().get_attribute(str(ind)).revise(element_value)
-            ind += 1
-        return ret
+        print('List is not supported now!!!')
+        return Object(NumberValue(0.0))
 
     if instance is inspect._empty:
         return None
 
     if inspect.isfunction(instance):
         func = UserDefinedFunction(instance)
-        return FuncValue(func, self_instance)
+        return Object(FuncValue(func, self_instance))
 
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
-        return FuncValue(func, self_instance)
+        return Object(FuncValue(func, self_instance))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
-        return FuncValue(func, None)
+        return Object(FuncValue(func, None))
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
         shape = -1 if shape == 'Undefined' else shape
         tensorValue = TensorValue()
         tensorValue.shape = tuple(shape)
-        return tensorValue
+        return Object(tensorValue)
 
     if isinstance(instance, np.ndarray):
         tensorValue = TensorValue()
         tensorValue.value = instance
         tensorValue.shape = instance.shape
-        return tensorValue
+        return Object(tensorValue)
+
+    if isinstance(instance, np.float32):
+        return Object(NumberValue(float(instance)))
 
     if instance == inspect._empty:
-        return NoneValue()
+        return Object(NoneValue())
 
     if instance is None:
-        return NoneValue()
+        return Object(NoneValue())
 
     model_inst = UserDefinedInstance(default_module, instance, None, isinstance(instance, chainer.Link))
-    return model_inst
+    return Object(model_inst)
 
 class Field():
     def __init__(self):
@@ -214,7 +212,7 @@ class Module(Field):
 
     def get_attribute(self, key):
         attribute = super().get_attribute(key)
-        if attribute is not None and attribute.has_value():
+        if attribute is not None and attribute.has_obj():
             return attribute
 
         members = inspect.getmembers(self.internal_module)
@@ -238,8 +236,8 @@ class Module(Field):
         attribute.revise(value)
 
 class AttributeHistory:
-    def __init__(self, value : 'Value'):
-        self.value = value
+    def __init__(self, obj : 'Object'):
+        self.obj = obj
 
 class Attribute:
     def __init__(self, name : 'str'):
@@ -250,33 +248,38 @@ class Attribute:
         self.rev_access_num = {}
         self.parent = None
 
-        # a value which is contained in this attribute at first
-        self.initial_value = None
+        # a obj which is contained in this attribute at first
+        self.initial_obj = None
 
-        # if it is non-volatile, a value in this attribute is saved after running
+        # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
 
         register_field(self)
 
-    def revise(self, value : 'Value'):
-        # assgin name to the value
-        if value.name == "":
-            value.name = self.name
+    def revise(self, obj : 'Object'):
+        assert(isinstance(obj, Object))
+        
+        # assgin name to the object
+        if obj.name == "":
+            obj.name = self.name
 
-        if self.initial_value is None:
-            self.initial_value = value
+        if obj.get_value().name == '':
+            obj.get_value().name = self.name
 
-        hist = AttributeHistory(value)
+        if self.initial_obj is None:
+            self.initial_obj = obj
+
+        hist = AttributeHistory(obj)
         self.history.append(hist)
 
-    def has_value(self):
+    def has_obj(self):
         return len(self.history) > 0
 
-    def get_value(self, inc_access = True):
+    def get_obj(self, inc_access = True):
         assert len(self.history) > 0
         if inc_access:
             self.access_num += 1
-        return self.history[-1].value
+        return self.history[-1].obj
 
     def commit(self, commit_id : 'str'):
         self.rev_history[commit_id] = self.history.copy()
@@ -323,34 +326,31 @@ class Attribute:
     def __str__(self):
         return self.name
 
-class ValueHistory():
-    def __init__(self, value, id):
+class ObjectHistory():
+    def __init__(self, value):
         self.value = value
-        self.id = id
 
-class Value():
-    def __init__(self):
+class Object():
+    def __init__(self, value : 'Value'):
         self.name = ""
-        self.generator = None
-        self.modifiers = []
-        
-        self.internal_value = None
-        self.histories = {}
-        self.history_id = utils.get_guid()
+        self.value = value
         self.id = utils.get_guid()
-        register_value(self)
+        self.histories = {}
+        self.attributes = Field()
+        self.value.apply_to_object(self)
+        register_object(self)
 
-    def get_value(self) -> 'Value':
-        return self
+    def revise(self, value):
+        self.value = value
 
-    def get_field(self) -> 'Field':
-        return None
+    def commit(self, commit_id : 'str'):
+        self.histories[commit_id] = ObjectHistory(self.value)
 
-    def has_value(self) -> 'bool':
-        return True
-
-    def try_get_and_store_value(self, name : 'str') -> 'Value':
-        return None
+    def checkout(self, commit_id : 'str'):
+        if commit_id in self.histories:
+            self.value = self.histories[commit_id].value
+        else:
+            self.value = None
 
     def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
         if not commit_id1 in self.histories and not commit_id2 in self.histories:
@@ -359,18 +359,51 @@ class Value():
             return True
         if commit_id1 in self.histories and not commit_id2 in self.histories:
             return True
-        return self.histories[commit_id1].id != self.histories[commit_id2].id
+        return self.histories[commit_id1].value != self.histories[commit_id2].value
 
-    def commit(self, commit_id : 'str'):
-        self.histories[commit_id] = ValueHistory(self.internal_value, self.history_id)
+    def get_field(self) -> 'Field':
+        return self.attributes
 
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.histories:
-            self.internal_value = self.histories[commit_id].value
+    def get_value(self) -> 'Value':
+        return self.value
 
-    def modify(self, modifier, new_value):
-        self.modifiers.append(modifier)
-        self.history_id = utils.get_guid()
+    def get_value_log(self, commit_id):
+        if commit_id in self.histories.keys():
+            return self.histories[commit_id].value
+        return None
+
+    def try_get_and_store_obj(self, name : 'str') -> 'Object':
+
+        attribute = self.attributes.get_attribute(name)
+        if attribute.has_obj():
+            return attribute.get_obj()
+
+        obj = self.value.try_get_obj(name, self)
+        
+        if obj is None:
+            return None
+
+        attribute.is_non_volatile = True
+        attribute.revise(obj)
+
+        return obj
+
+class Value():
+    def __init__(self):
+        self.name = ""
+        self.generator = None
+        self.internal_value = None
+        self.id = utils.get_guid()
+
+    def apply_to_object(self, obj : 'Object'):
+        '''
+        register functions to an object
+        this function is only called when an object is generated
+        '''
+        return None
+
+    def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
+        return None
 
     def __str__(self):
         return self.name
@@ -426,10 +459,10 @@ class TupleValue(Value):
         return self.name + '({})'.format(",".join([str(x) for x in self.values]))
 
 class FuncValue(Value):
-    def __init__(self, func : 'functions.FunctionBase', value : 'Value'):
+    def __init__(self, func : 'functions.FunctionBase', obj : 'Object'):
         super().__init__()
         self.func = func
-        self.value = value
+        self.obj = obj
     def __str__(self):
         return self.name + '(F)'
 
@@ -437,24 +470,25 @@ class ListValue(Value):
     def __init__(self, values = None):
         super().__init__()
         self.is_any = values is None
-        self.attributes = Field()
         self.values = []
-        self.append_func = FuncValue(functions_builtin.AppendFunction(self), self)
-        self.attributes.get_attribute('append').revise(self.append_func)
 
-    def get_field(self) -> 'Field':
-        return self.attributes
+    def apply_to_object(self, obj : 'Object'):
+        append_func = Object(FuncValue(functions_builtin.AppendFunction(self), obj))
+        obj.attributes.get_attribute('append').revise(append_func)
 
     def __str__(self):
         return self.name + '(L)'
 
+class ModuleValue(Value):
+    def __init__(self):
+        super().__init__()
+
+    def __str__(self):
+        return self.name + '(M)'
+
 class DictValue(Value):
     def __init__(self):
         super().__init__()
-        self.attributes = Field()
-
-    def get_field(self) -> 'Field':
-        return self.attributes
 
     def __str__(self):
         return self.name + '(D)'
@@ -475,42 +509,31 @@ class Type(Value):
 class Instance(Value):
     def __init__(self, module : 'Field', inst, classinfo):
         super().__init__()
-        self.attributes = Field()
         self.inst = inst
         self.callable = False
         self.func = None
         self.module = module
         self.classinfo = classinfo
 
-    def get_field(self) -> 'Field':
-        return self.attributes
-
 class UserDefinedInstance(Instance):
     def __init__(self, module : 'Field', inst, classinfo, is_chainer_link = False):
         super().__init__(module, inst, classinfo)
         self.is_chainer_link = is_chainer_link
-
         if self.is_chainer_link:
             self.callable = True
-            self.func = self.try_get_and_store_value('forward')
 
-    def try_get_and_store_value(self, name : 'str') -> 'Value':
+    def apply_to_object(self, obj : 'Object'):
+        if self.is_chainer_link:
+            self.func = obj.try_get_and_store_obj('forward')
 
-        attribute = self.attributes.get_attribute(name)
-        if attribute.has_value():
-            return attribute.get_value()
-
+    def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
         if self.inst is not None:
             if not hasattr(self.inst, name):
                 return None
 
             attr_v = getattr(self.inst, name)
+            return parse_instance(self.module, name, attr_v, inst)
 
-            attribute.is_non_volatile = True
-            v = parse_instance(self.attributes.module, name, attr_v, self)
-            attribute.revise(v)
-
-            return v
         else:
             members = inspect.getmembers(self.classinfo)
             members_dict = {}
@@ -520,9 +543,4 @@ class UserDefinedInstance(Instance):
             if not (name in members_dict.keys()):
                 return None
 
-
-            attribute.is_non_volatile = True
-            v = parse_instance(self.attributes.module, name, members_dict[name], self)
-            attribute.revise(v)
-
-            return v
+            return parse_instance(self.module, name, members_dict[name], inst)

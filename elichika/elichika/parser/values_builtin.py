@@ -18,26 +18,28 @@ class ChainerLinkFunction(functions.FunctionBase):
         self.name = '__call__'
         self.owner = owner
 
-    def vcall(self, module : 'values.Field', graph : 'Graph', inst : 'Value', args = [], line = -1):
-        node = nodes.NodeCall(self, [v.value for v in args], line)
+    def vcall(self, module : 'values.Field', graph : 'Graph', inst : 'Object', args = [], line = -1):
+        node = nodes.NodeCall(self, [v.obj.get_value() for v in args], line)
         graph.add_node(node)
         value = values.TensorValue()
 
         # TODO refactor
         if(isinstance(self.owner.inst, chainer.links.Linear)):
             cn = self.owner.inst # type: chainer.links.Linear
-            if isinstance(args[0].value, values.TensorValue) and len(args[0].value.shape) >= 2:
-                value.shape = (args[0].value.shape[0], cn.out_size)
+            if isinstance(args[0].obj.get_value(), values.TensorValue) and len(args[0].obj.get_value().shape) >= 2:
+                value.shape = (args[0].obj.get_value().shape[0], cn.out_size)
 
         if(isinstance(self.owner.inst, chainer.links.Convolution2D)):
-            value = functions.generate_tensor_value_with_undefined_shape_size(args[0].value)
+            value = functions.generate_tensor_value_with_undefined_shape_size(args[0].obj.get_value())
 
         node.set_outputs([value])
-        return value
+        return values.Object(value)
 
 class ChainerLinkInstance(values.Instance):
     def __init__(self, module : 'Field', inst):
         super().__init__(module, inst, None)
         self.callable = True
-        self.func = values.FuncValue(ChainerLinkFunction(self), self)
-        self.get_field().get_attribute('forward').revise(self.func)
+
+    def apply_to_object(self, obj : 'values.Object'):
+        self.func = values.Object(values.FuncValue(ChainerLinkFunction(self), obj))
+        obj.get_field().get_attribute('forward').revise(self.func)
