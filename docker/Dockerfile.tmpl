@@ -60,6 +60,7 @@ RUN mkdir -p chainer-compiler/build && \
     cd chainer-compiler/build && \
     cmake .. \
     -G Ninja \
+    -DCHAINER_COMPILER_BUILD_CUDA=ON \
     -DCHAINER_COMPILER_ENABLE_NVTX=ON \
     -DCHAINER_COMPILER_ENABLE_NVRTC=ON \
     -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
@@ -68,6 +69,7 @@ RUN mkdir -p chainer-compiler/build && \
     -DPYTHON_EXECUTABLE=/usr/bin/python3 \
     -DCHAINER_COMPILER_ENABLE_TVM=ON \
     -DCHAINERX_BUILD_CUDA=ON \
+    -DCHAINERX_BUILD_PYTHON=ON \
     && \
     ninja
 
