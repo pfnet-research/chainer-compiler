@@ -54,7 +54,7 @@ def convert_model(model : 'chainer.Chain', args = []):
     function_args = []
     ind = 0
     for arg in args:
-        varg = values.parse_instance(default_module, '', arg)
+        varg = values.parse_instance(default_module, '', arg, None, True)
         varg.name = 'in_' + str(ind)
         varg.get_value().name = 'in_' + str(ind)
         farg = functions.FunctionArg()
