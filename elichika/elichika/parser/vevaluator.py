@@ -552,7 +552,6 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     listcomp_id = 'listcomp_' + listcomp_guid
     body_id = 'listcomp_body_' + listcomp_guid
     internal_iter_id = '@internal/iter_' + listcomp_guid
-    values.commit(listcomp_id)
 
     generator = astc.nast.generators[0]
     iter_value = try_get_value(veval_ast(astc.c(generator.iter), local_field, graph), 'generator', lineprop)
@@ -578,21 +577,24 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     cond_value = values.BoolValue(True)
     cond_value.name = 'listcomp_cond_' + listcomp_guid
 
-    node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
-    target_value = values.Value()
-    target_obj = values.Object(target_value)
-    node_forgen.set_outputs([target_value])
-
     body_field = values.Field()
     body_field.set_module(local_field.module)
     body_field.set_parent(local_field)
-    body_field.get_attribute(target_name).revise(target_obj)
 
     # set iter with internal name
     body_field.get_attribute(internal_iter_id).revise(list_obj)
 
+    values.commit(listcomp_id)
+
     body_graph = Graph()
     body_graph.name = 'Body'
+
+    node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
+    target_value = values.Value()
+    target_obj = values.Object(target_value)
+    node_forgen.set_outputs([target_value])
+    
+    body_field.get_attribute(target_name).revise(target_obj)
 
     body_graph.add_node(node_forgen)
 
@@ -612,7 +614,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     body_input_attributes = filter_attributes(body_input_attributes)
     body_output_attributes = filter_attributes(body_output_attributes)
 
-    output_objs = get_output_objs(local_field, listcomp_id, body_id)
+    output_objs = get_output_objs(local_field, listcomp_id, body_id) + get_output_objs(body_field, listcomp_id, body_id)
 
     output_attributes_2_values = {}
 
@@ -722,6 +724,8 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     for obj in output_objs:
         if obj.get_value() is None:
             continue
+        inputs.append(obj.get_value())
+        body_graph.add_input_value(obj.get_value())
         value = obj.get_value_log(body_id)
         body_graph.add_output_value(value)
         value = functions.generate_value_with_same_type(value)
