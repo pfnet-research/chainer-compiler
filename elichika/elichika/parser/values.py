@@ -70,7 +70,7 @@ def checkout(commit_id : 'str'):
         if o is not None:
             o.checkout(commit_id)
 
-def parse_instance(default_module, name, instance, self_instance = None) -> "Object":
+def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "Object":
     from elichika.parser import values_builtin
 
     if values_builtin.is_builtin_chainer_link(instance):
@@ -87,8 +87,11 @@ def parse_instance(default_module, name, instance, self_instance = None) -> "Obj
         return Object(StrValue(instance))
 
     if isinstance(instance, list):
-        print('List is not supported now!!!')
-        return Object(NumberValue(0.0))
+        if parse_shape:
+            return Object(ListValue())
+        else:
+            print('List is not supported now!!!')
+            return Object(NumberValue(0.0))
 
     if instance is inspect._empty:
         return None

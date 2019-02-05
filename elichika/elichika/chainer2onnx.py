@@ -281,6 +281,16 @@ class ONNXGraph:
             shape = [x if x != -1 else 'Undefined' for x in shape]
             return self.new_empty_tensor(shape, np.float32, value2onnx_parameter[value].onnx_name)
 
+        if isinstance(value, values.BoolValue):
+            return self.new_empty_tensor(None, np.bool, value2onnx_parameter[value].onnx_name)
+
+        if isinstance(value, values.ListValue):
+            vi = onnx.ValueInfoProto()
+            vi.name = value2onnx_parameter[value].onnx_name
+            vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.FLOAT
+            self.tensors[vi.name] = vi
+            return vi
+
         return self.new_empty_tensor(['Undefined'], np.float32, value2onnx_parameter[value].onnx_name)
 
     def new_tensor_with_np(self, ndarray_, name):
