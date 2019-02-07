@@ -98,7 +98,7 @@ std::vector<chainerx::ArrayIndex> GetIndicesForGetItem(
             break;
         }
     }
-    CHECK_EQ(i, indices.size());
+    CHECK_EQ(i, index_arrays.size());
     return indices;
 }
 
