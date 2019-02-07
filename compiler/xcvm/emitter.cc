@@ -493,6 +493,10 @@ private:
             EMIT(Slice, out(0), in(0), axes, IntVector(node.starts()), IntVector(node.ends()));
         } else if (node.op_type() == Node::kDynamicSlice) {
             EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3));
+        } else if (node.op_type() == Node::kChainerGetItem) {
+            std::vector<int> ins;
+            for (size_t i = 1; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            EMIT(GetItem, out(0), in(0), ins, IntVector(node.slice_specs()));
         } else if (node.op_type() == Node::kGather) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
