@@ -83,7 +83,7 @@ void Node::Validate() const {
     } else if (op_type_ == Node::kChainerGetItem) {
         CHECK_LT(0, inputs_.size()) << "ChainerGetItem should have at least 1 inputs:\n" << DebugString();
         CHECK_LT(0, slice_specs().size()) << "ChainerGetItem should have at least 1 slice_specs:\n" << DebugString();
-        std::vector<bool> must_be_tensor;
+        std::vector<bool> must_be_tensor = {true};
         for (int slice_spec : slice_specs()) {
             CHECK_LE(0, slice_spec) << "Negative slice_specs for ChainerGetItem:\n" << DebugString();
             CHECK_GE(4, slice_spec) << "Wrong slice_specs for ChainerGetItem:\n" << DebugString();
@@ -96,11 +96,12 @@ void Node::Validate() const {
             }
         }
         CHECK_EQ(must_be_tensor.size(), inputs_.size()) << "Wrong number of inputs for ChainerGetItem:\n" << DebugString();
-        for (const auto& e : Enumerate(Zip(must_be_tensor, inputs_))) {
-            if (std::get<0>(e.value)) {
-                CHECK_EQ(Type::Kind::kTensor, std::get<1>(e.value)->type().kind()) << e.index << "th input must be a tensor:\n" << DebugString();
+        for (size_t i = 0; i < inputs_.size(); ++i) {
+            const Value* value = inputs_[i];
+            if (must_be_tensor[i]) {
+                CHECK_EQ(Type::Kind::kTensor, value->type().kind()) << i << "th input must be a tensor:\n" << DebugString();
             } else {
-                CHECK_EQ(Type::Kind::kSequence, std::get<1>(e.value)->type().kind()) << e.index << "th input must be a sequence:\n" << DebugString();
+                CHECK_EQ(Type::Kind::kSequence, value->type().kind()) << i << "th input must be a sequence:\n" << DebugString();
             }
         }
     }
