@@ -16,12 +16,12 @@ from elichika.parser import veval_unary
 def try_get_obj(value, name, lineprop) -> 'values.Object':
     if value is None:
         if config.show_warnings:
-            print('Failed to get object {}. in L.{}'.format(name, lineprop))
+            print('Failed to get object {}. in {}'.format(name, lineprop))
         return None
 
     if isinstance(value, values.Value):
         if config.show_warnings:
-            print('Failed to get object {}. in L.{}. value is Value.'.format(name, lineprop))
+            print('Failed to get object {}. in {}. value is Value.'.format(name, lineprop))
         return None
 
     if isinstance(value, values.Attribute):
@@ -521,7 +521,14 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
     if isinstance(astc.nast.slice, gast.gast.Index):
         slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph)
         slice_value = try_get_value(slice_, 'subscript', lineprop)
-        node = nodes.NodeGetItem(value_value, slice_value)
+
+        if isinstance(slice_value, values.TupleValue):
+            # ex. x[1,2]
+            values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.values]
+            node = nodes.NodeGetItem(value_value, values_)
+        else:
+            # ex. x[1]
+            node = nodes.NodeGetItem(value_value, [slice_value])
         ret_value = values.Value()
         node.set_outputs([ret_value])
         graph.add_node(node)
@@ -532,11 +539,22 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         upper = veval_ast(astc.c(astc.nast.slice.upper), local_field, graph)
         lower_value = try_get_value(lower, 'subscript', lineprop)
         upper_value = try_get_value(upper, 'subscript', lineprop)
+
+        step = None
+        step_value = None
+        if astc.nast.slice.step is not None:
+            step = veval_ast(astc.c(astc.nast.slice.step), local_field, graph)
+            step_value = try_get_value(step_value, 'subscript', lineprop)
+            print('Ext step is not implemented')
+
         node = nodes.NodeSlice(value_value, lower_value, upper_value)
         ret_value = values.Value()
         node.set_outputs([ret_value])
         graph.add_node(node)
         return values.Object(ret_value)
+
+    elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
+        print('Ext slice is not implemented')
 
     return None
 
@@ -587,7 +605,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     values.commit(listcomp_id)
 
     body_graph = Graph()
-    body_graph.name = 'Body'
+    body_graph.name = 'Body_' + listcomp_guid
 
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
     target_value = values.Value()

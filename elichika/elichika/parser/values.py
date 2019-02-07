@@ -80,7 +80,16 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
     if isinstance(instance, bool):
         return Object(BoolValue(instance))
 
-    if isinstance(instance, int) or isinstance(instance, float):
+    if isinstance(instance, int):
+        return Object(NumberValue(instance))
+
+    if isinstance(instance, float):
+        return Object(NumberValue(instance))
+
+    if isinstance(instance, np.float32):
+        return Object(NumberValue(instance))
+
+    if isinstance(instance, np.float64):
         return Object(NumberValue(instance))
 
     if isinstance(instance, str):
@@ -120,9 +129,6 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
         tensorValue.value = instance
         tensorValue.shape = instance.shape
         return Object(tensorValue)
-
-    if isinstance(instance, np.float32):
-        return Object(NumberValue(float(instance)))
 
     if instance == inspect._empty:
         return Object(NoneValue())
