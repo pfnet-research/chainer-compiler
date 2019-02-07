@@ -219,15 +219,15 @@ NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 # The number of slices must be as same as the number of slice_specs.
 #
 # for slice_spec in slice_specs:
-#   slice_spec = 0: the next input must be a Sequence, i.e., `arr[[1,2,3]]`
+#   slice_spec = 0: no input is consumed, i.e., `arr[:]`
 #   slice_spec = 1: the next input must be a Tensor, i.e., `arr[2]`
 #   slice_spec = 2: the next input must be two Tensors, i.e., `arr[2:3]`
 #   slice_spec = 3: the next input must be three Tensor, i.e., `arr[2:10:2]`
-# assert len(inputs) == 1 + sum(max(slice_spec, 1))
+#   slice_spec = 4: the next input must be a Sequence, i.e., `arr[[1,2,3]]`
 #
-# For example, T[Seq, I1, I2:I3, I4:I5:I6] must be encoded as
+# For example, T[:, Seq, I1, I2:I3, I4:I5:I6] must be encoded as
 #
-# ChainerGetItem(T, Seq, I1, I2, I3, I4, I5, I6, slice_specs=[0, 1, 2, 3])
+# ChainerGetItem(T, Seq, I1, I2, I3, I4, I5, I6, slice_specs=[0, 4, 1, 2, 3])
 NodeDef('ChainerGetItem', None, 1, slice_specs=[int])
 
 NodeDef('ChainerPrint', None, 0)
