@@ -80,10 +80,13 @@ void Node::Validate() const {
         CHECK_EQ(inputs_.size(), else_branch_->input_values().size() +1) << "Inconsistent number of inputs for If:\n" << DebugString();
         CHECK_EQ(outputs_.size(), then_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
         CHECK_EQ(outputs_.size(), else_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
-    } else if (op_type_ == Node::kChainerGetItem) {
+    } else if (op_type_ == Node::kChainerGetItem || op_type_ == Node::kChainerGetItemGrad) {
         CHECK_LT(0, inputs_.size()) << "ChainerGetItem should have at least 1 inputs:\n" << DebugString();
         CHECK_LT(0, slice_specs().size()) << "ChainerGetItem should have at least 1 slice_specs:\n" << DebugString();
         std::vector<bool> must_be_tensor = {true};
+        if (op_type_ == Node::kChainerGetItemGrad) {
+            must_be_tensor.push_back(true);
+        }
         for (int slice_spec : slice_specs()) {
             CHECK_LE(0, slice_spec) << "Negative slice_specs for ChainerGetItem:\n" << DebugString();
             CHECK_GE(4, slice_spec) << "Wrong slice_specs for ChainerGetItem:\n" << DebugString();
