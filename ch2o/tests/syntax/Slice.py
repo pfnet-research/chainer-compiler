@@ -30,6 +30,16 @@ class ListSlice(chainer.Chain):
         return y1, y2, y3, y4
 
 
+class SliceStep(chainer.Chain):
+    def forward(self, xs):
+        return xs[1:6:2]
+
+
+class SliceStepSecond(chainer.Chain):
+    def forward(self, xs):
+        return xs[:, 1:-2:2]
+
+
 # ======================================
 
 
@@ -48,5 +58,8 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(model, [u, v, w])
 
-    x = np.random.rand(4, 3, 5, 7)
+    x = np.random.rand(7, 5, 3, 4)
     ch2o.generate_testcase(ListSlice(), [x], subname='list')
+
+    ch2o.generate_testcase(SliceStep(), [x], subname='step')
+    ch2o.generate_testcase(SliceStepSecond(), [x], subname='step_second')

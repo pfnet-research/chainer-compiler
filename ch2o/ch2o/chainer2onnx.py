@@ -853,19 +853,27 @@ def eval_subscript(nast, env):
                 slice_specs=[1]
             )
 
+    def get_slice_indices(slice):
+        if slice.lower is None and slice.upper is None and slice.step is None:
+            return []
+        indices = [eval_with_default(slice.lower, 0).name,
+                   eval_with_default(slice.upper, int_max).name]
+        if slice.step is not None:
+            indices.append(eval_with_default(slice.step, 1).name)
+        return indices
+
     if isinstance(nast.slice, gast.Slice):
-        lower = eval_with_default(nast.slice.lower, 0)
-        upper = eval_with_default(nast.slice.upper, int_max)
+        indices = get_slice_indices(nast.slice)
         if vs.is_sequence():
             return env.calc_seq(
                 'ChainerSequenceGetSlice',
-                inputs=[vs.to_sequence(env).name, lower.name, upper.name]
+                inputs=[vs.to_sequence(env).name] + indices
             )
         else:
             return env.calc(
                 'ChainerGetItem',
-                inputs=[vs.to_tensor(env).name, lower.name, upper.name],
-                slice_specs=[2]
+                inputs=[vs.to_tensor(env).name] + indices,
+                slice_specs=[len(indices)]
             )
 
     if isinstance(nast.slice, gast.ExtSlice):
@@ -874,16 +882,15 @@ def eval_subscript(nast, env):
         slice_specs = []
         for dim in nast.slice.dims:
             if isinstance(dim, gast.Index):
-                indices.append(eval_ast(dim.value, env).to_tensor(env))
+                indices.append(eval_ast(dim.value, env).to_tensor(env).name)
                 slice_specs.append(1)
             elif isinstance(dim, gast.Slice):
-                indices.append(eval_with_default(dim.lower, 0))
-                indices.append(eval_with_default(dim.upper, int_max))
-                slice_specs.append(2)
+                ni = get_slice_indices(dim)
+                indices.extend(ni)
+                slice_specs.append(len(ni))
             else:
                 assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
 
-        indices = [i.name for i in indices]
         return env.calc(
             'ChainerGetItem',
             inputs=[vs.to_tensor(env).name] + indices,
