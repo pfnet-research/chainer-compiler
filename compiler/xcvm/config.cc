@@ -70,6 +70,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerGenericGetSlice).second);
         CHECK(op_set_.emplace(Node::kChainerGenericIs).second);
         CHECK(op_set_.emplace(Node::kChainerGenericLen).second);
+        CHECK(op_set_.emplace(Node::kChainerGetItem).second);
         CHECK(op_set_.emplace(Node::kChainerLRNGrad).second);
         CHECK(op_set_.emplace(Node::kChainerLSTMGrad).second);
         CHECK(op_set_.emplace(Node::kChainerMaxPoolGrad).second);
