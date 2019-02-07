@@ -816,132 +816,81 @@ def _concat(xs, axis, env):
 
 
 def eval_subscript(nast, env):
-    # Subscriptの実装は以下の感じではだめで、
-    # コンパイラはシリアライズするだけにして
-    # あとはミドルエンドのほうにお願いすることになりそう
-
     vs = eval_ast(nast.value, env)
-    if isinstance(vs, tuple):
-        assert isinstance(nast.slice, gast.Index)
-        idx = eval_ast(nast.slice.value, env)
-        assert isinstance(idx, int)
-        return vs[idx]
-    elif isinstance(vs, list):
-        raise Exception("unimplemented")
 
-    def unsqueeze(x):
-        tx = env.calc(
-            'Unsqueeze',
-            inputs=[x.name],
-            axes=[0]
-        )
-        return tx
+    # TODO(hamaji): Use 2**63-1 instead.
+    int_max = 2 ** 31 - 1
 
-    # sliceがIdxの場合は、Idxのexprにlistが来うる可能性があるのでGatherする
-    # Numpyのsliceは闇では...???
-    # TODO(satos) Sliceの実装を"ちゃんと"したものにする(現在だと v[0:1,[2,3]] みたいなのは動かない)
-    # あと、これだとIndexに副作用が存在する場合にやばい
+    def eval_with_default(nast, default_value):
+        if nast is None:
+            return Value(np.array(default_value)).to_tensor(env)
+        return eval_ast(nast, env).to_tensor(env)
+
     if isinstance(nast.slice, gast.Index):
-        idx = eval_ast(nast.slice.value, env)
-        if istensor(idx):
-            res = env.calc(
-                'Gather',
-                inputs=[vs.name, idx.name],
+        if isinstance(nast.slice.value, gast.Tuple):
+            assert vs.is_tensor(), 'Advanced indexing for Python list'
+            indices = []
+            slice_specs = []
+            for index in nast.slice.value.elts:
+                indices.append(eval_ast(index, env).to_tensor(env).name)
+                slice_specs.append(1)
+            return env.calc(
+                'ChainerGetItem',
+                inputs=[vs.to_tensor(env).name] + indices,
+                slice_specs=slice_specs
             )
-            return res
-        elif isinstance(idx, int):
-            raise  # TODO(hamaji): Check if this code is still useful.
-            # TODO(satos) スライドのためのごまかしのごまかし
-            idx = unsqueeze(idx.to_tensor(env))
-            res = env.calc(
-                'ChainerGenericGetItem',
-                inputs=[vs.name, idx.name],
-            )
-            return res
 
-    def slice2list(self):
-        # TODO(hamaji): Use 2**63-1 instead.
-        int_max = 2 ** 31 - 1
-        if isinstance(self, gast.Slice):
-            assert self.step is None
-
-            def f(x, v):
-                if x is None:
-                    return Value(np.array([v])).to_tensor(env)
-                x = eval_ast(x, env)
-                if x.is_tensor():
-                    return unsqueeze(x.value)
-                else:
-                    return Value(np.array([x.value])).to_tensor(env)
-            lower = f(self.lower, 0)
-            upper = f(self.upper, int_max)
-            squeeze = [False]
-        elif isinstance(self, gast.Index):
-            idx = eval_ast(self.value, env)
-            if isinstance(idx.value, tuple):  # ここにTupleが来うる
-                # TODO(satos) もっとうまくやったほうがいいかも
-                vs = [gast.Index(gast.NameConstant(value=v)) for v in idx.value]
-                lower, upper, squeeze = slice2list(gast.ExtSlice(dims=vs))
-            elif not idx.is_py:
-                lower = unsqueeze(idx.value)
-                ot = totensor(1, env)
-                upper = env.calc(
-                    "Add",
-                    inputs=[idx.to_tensor(env).name, ot.name],
-                )
-                upper = unsqueeze(upper)
-                squeeze = [True]
-            else:
-                lower = totensor(np.array([idx.value]), env)
-                upper_value = idx.value + 1 if idx.value != -1 else int_max
-                upper = totensor(np.array([upper_value]), env)
-                squeeze = [True]
-        elif isinstance(self, gast.ExtSlice):
-            ds = list(map(slice2list, self.dims))
-            lower = _concat(
-                tuple(map(lambda x: castto(x[0], TensorProto.INT64, env), ds)), 0, env)
-            upper = _concat(
-                tuple(map(lambda x: castto(x[1], TensorProto.INT64, env), ds)), 0, env)
-            squeeze = sum(map(lambda x: x[2], ds), [])
-        else:
-            raise Exception(self, " is not Python slice")
-
-        return lower, upper, squeeze
-    # print('slice',nast.slice)
-    lower, upper, squeeze = slice2list(nast.slice)
-    res = new_tensor()
-    if vs.is_sequence():
-        vs = Value(vs).to_sequence(env)
-        lower = Value(lower).to_tensor(env)
-        upper = Value(upper).to_tensor(env)
-        assert len(squeeze) == 1
-        if any(squeeze):
-            res = env.calc(
+        index = eval_ast(nast.slice.value, env).to_tensor(env)
+        if vs.is_sequence():
+            return env.calc(
                 'ChainerSequenceLookup',
-                inputs=[vs.name, lower.name],
+                inputs=[vs.to_sequence(env).name, index.name]
             )
         else:
-            res = env.calc_seq(
-                'ChainerSequenceGetSlice',
-                inputs=[vs.name, lower.name, upper.name],
+            return env.calc(
+                'ChainerGetItem',
+                inputs=[vs.to_tensor(env).name, index.name],
+                slice_specs=[1]
             )
-    else:
-        vs = Value(vs).to_tensor(env)
-        lower = Value(lower).to_tensor(env)
-        upper = Value(upper).to_tensor(env)
-        res = env.calc(
-            'DynamicSlice',
-            inputs=[vs.name, lower.name, upper.name],
+
+    if isinstance(nast.slice, gast.Slice):
+        lower = eval_with_default(nast.slice.lower, 0)
+        upper = eval_with_default(nast.slice.upper, int_max)
+        if vs.is_sequence():
+            return env.calc_seq(
+                'ChainerSequenceGetSlice',
+                inputs=[vs.to_sequence(env).name, lower.name, upper.name]
+            )
+        else:
+            return env.calc(
+                'ChainerGetItem',
+                inputs=[vs.to_tensor(env).name, lower.name, upper.name],
+                slice_specs=[2]
+            )
+
+    if isinstance(nast.slice, gast.ExtSlice):
+        assert vs.is_tensor(), 'Advanced indexing for Python list'
+        indices = []
+        slice_specs = []
+        for dim in nast.slice.dims:
+            if isinstance(dim, gast.Index):
+                indices.append(eval_ast(dim.value, env).to_tensor(env))
+                slice_specs.append(1)
+            elif isinstance(dim, gast.Slice):
+                indices.append(eval_with_default(dim.lower, 0))
+                indices.append(eval_with_default(dim.upper, int_max))
+                slice_specs.append(2)
+            else:
+                assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
+
+        indices = [i.name for i in indices]
+        return env.calc(
+            'ChainerGetItem',
+            inputs=[vs.to_tensor(env).name] + indices,
+            slice_specs=slice_specs
         )
 
-        if any(squeeze):
-            res = env.calc(
-                'Squeeze',
-                inputs=[res.name],
-                axes=list(filter(lambda i: squeeze[i], range(len(squeeze))))
-            )
-
-    return res
+    assert False, 'Unknown slice: %s' % nast.slice
 
 
 def eval_list(nast, env):
