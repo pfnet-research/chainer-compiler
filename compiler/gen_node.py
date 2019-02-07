@@ -533,8 +533,10 @@ def gen_gen_node_base_cc():
         for _, attr in sorted(node.attr_defs.items()):
             conds.append('xattr.name() == "%s"' % (attr.onnx_name))
             blines = []
-            blines.append('if (!g_permissive) '
-                          'CHECK_EQ(xattr.type(), %s) << "in %s";' % (attr.onnx_type(),node.op_type))
+            blines.append(
+                'if (!g_permissive) '
+                'CHECK_EQ(xattr.type(), %s) << xnode.DebugString();' %
+                attr.onnx_type())
             if attr.type == int:
                 blines.append('set_%s(xattr.i());' % (attr.c_name))
             elif attr.type == bool:
