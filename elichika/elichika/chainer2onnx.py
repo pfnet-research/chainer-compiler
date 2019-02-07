@@ -530,11 +530,72 @@ class ONNXGenerator:
 
             if isinstance(node, nodes.NodeGetItem):
                 node_ = node # type: nodes.NodeGetItem
-                onnx_node = oh.make_node(
-                    'ChainerGenericGetItem',
-                    [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.index].onnx_name],
-                    [value2onnx_parameter[node.outputs[0]].onnx_name])
-                onnx_graph.nodes.append(onnx_node)
+                if len(node_.indexes) == 1:
+                    onnx_node = oh.make_node(
+                        'ChainerGenericGetItem',
+                        [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.indexes[0]].onnx_name],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
+                else:
+                    elements1 = []
+
+                    for index in node_.indexes:
+                        op_elm = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[index].onnx_name + '/GetItem1')
+                        node_elm = oh.make_node('Unsqueeze', [value2onnx_parameter[index].onnx_name], [op_elm.name], axes=[0])
+                        onnx_graph.nodes.append(node_elm)
+                        elements1.append(op_elm)
+
+                    elements2 = []
+                    tensor = onnx_graph.new_tensor_with_np(np.array(1, dtype=np.int32),  value2onnx_parameter[node_.indexes[0]].onnx_name + '/One')
+
+                    for index in node_.indexes:
+                        op_constant = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[index].onnx_name + '/GetItem2_Constant')
+                        node_constant = oh.make_node('Constant', [], [op_constant.name], value=tensor)
+                        onnx_graph.nodes.append(node_constant)
+                        
+                        op_elm1 = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[index].onnx_name + '/GetItem2_1')                        
+                        node_add = oh.make_node('Add', [value2onnx_parameter[index].onnx_name, op_constant.name], [op_elm1.name])
+                        onnx_graph.nodes.append(node_add)
+                        
+                        op_elm2 = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[index].onnx_name + '/GetItem2_2')
+                        node_elm = oh.make_node('Unsqueeze', [op_elm1.name], [op_elm2.name], axes=[0])
+                        onnx_graph.nodes.append(node_elm)
+                        elements2.append(op_elm2)
+
+                    tensor_indexes1 = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[node_.indexes[0]].onnx_name + '/Index1')
+                    tensor_indexes2 = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[node_.indexes[0]].onnx_name + '/Index2')
+
+                    onnx_node_indexes1 = oh.make_node(
+                        'Concat',
+                        [v.name for v in elements1],
+                        [tensor_indexes1.name],
+                        axis=0,
+                        )
+                    onnx_graph.nodes.append(onnx_node_indexes1)
+
+                    onnx_node_indexes2 = oh.make_node(
+                        'Concat',
+                        [v.name for v in elements2],
+                        [tensor_indexes2.name],
+                        axis=0,
+                        )
+                    onnx_graph.nodes.append(onnx_node_indexes2)
+
+                    op_sliced = onnx_graph.new_empty_tensor(['TODO'], np.float32, value2onnx_parameter[node_.indexes[0]].onnx_name + '/op_sliced')
+
+                    onnx_node = oh.make_node(
+                        'DynamicSlice',
+                        [value2onnx_parameter[node_.target].onnx_name, tensor_indexes1.name, tensor_indexes2.name],
+                        [op_sliced.name])
+                    onnx_graph.nodes.append(onnx_node)
+
+                    onnx_node = oh.make_node(
+                        'Squeeze',
+                        [op_sliced.name],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        axes=[0])
+                    onnx_graph.nodes.append(onnx_node)
+                    print('chainer-compiler-bug')
 
             if isinstance(node, nodes.NodeSlice):
                 node_ = node # type: nodes.NodeSlice

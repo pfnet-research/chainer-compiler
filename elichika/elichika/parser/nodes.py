@@ -149,13 +149,13 @@ class NodeCompare(Node):
         return 'Compare({},{})'.format(self.lineprop, self.compare)
 
 class NodeGetItem(Node):
-    def __init__(self, target : "values.Value", index : 'values.Value', line = -1):
+    def __init__(self, target : "values.Value", indexes, line = -1):
         super().__init__(line)
         self.target = target
-        self.index = index
+        self.indexes = indexes
 
         self.append_inputs(target)
-        self.append_inputs(index)
+        self.extend_inputs(indexes)
 
     def __str__(self):
         return 'GetItem({})'.format(self.lineprop)
