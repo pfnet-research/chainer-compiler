@@ -195,6 +195,7 @@ void InferDtype(Node* node) {
         }
 
         case Node::kGather:
+        case Node::kChainerGetItem:
         case Node::kChainerSelectItem: {
             // TODO(hamaji): Need an update for the Python compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<

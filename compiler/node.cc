@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <common/iterator.h>
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/dtype.h>
@@ -79,6 +80,29 @@ void Node::Validate() const {
         CHECK_EQ(inputs_.size(), else_branch_->input_values().size() +1) << "Inconsistent number of inputs for If:\n" << DebugString();
         CHECK_EQ(outputs_.size(), then_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
         CHECK_EQ(outputs_.size(), else_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
+    } else if (op_type_ == Node::kChainerGetItem) {
+        CHECK_LT(1, inputs_.size()) << "ChainerGetItem should have at least 2 inputs:\n" << DebugString();
+        CHECK_LT(0, slice_specs().size()) << "ChainerGetItem should have at least 1 slice_specs:\n" << DebugString();
+        std::vector<bool> must_be_tensor;
+        for (int slice_spec : slice_specs()) {
+            CHECK_LE(0, slice_spec) << "Negative slice_specs for ChainerGetItem:\n" << DebugString();
+            CHECK_GE(3, slice_spec) << "Wrong slice_specs for ChainerGetItem:\n" << DebugString();
+            if (slice_spec > 0) {
+                for (int i = 0; i < slice_spec; ++i) {
+                    must_be_tensor.push_back(true);
+                }
+            } else {
+                must_be_tensor.push_back(false);
+            }
+        }
+        CHECK_EQ(must_be_tensor.size(), inputs_.size()) << "Wrong number of inputs for ChainerGetItem:\n" << DebugString();
+        for (const auto& e : Enumerate(Zip(must_be_tensor, inputs_))) {
+            if (std::get<0>(e.value)) {
+                CHECK_EQ(Type::Kind::kTensor, std::get<1>(e.value)->type().kind()) << e.index << "th input must be a tensor:\n" << DebugString();
+            } else {
+                CHECK_EQ(Type::Kind::kSequence, std::get<1>(e.value)->type().kind()) << e.index << "th input must be a sequence:\n" << DebugString();
+            }
+        }
     }
     // TODO(hamaji): Add more custom validations for other ops.
 }
