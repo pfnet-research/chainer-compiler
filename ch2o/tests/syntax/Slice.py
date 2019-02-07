@@ -40,6 +40,16 @@ class SliceStepSecond(chainer.Chain):
         return xs[:, 1:-2:2]
 
 
+class SliceAll(chainer.Chain):
+    def forward(self, xs):
+        return xs[:]
+
+
+class SliceAllSecond(chainer.Chain):
+    def forward(self, xs):
+        return xs[:, :]
+
+
 # ======================================
 
 
@@ -63,3 +73,6 @@ if __name__ == '__main__':
 
     ch2o.generate_testcase(SliceStep(), [x], subname='step')
     ch2o.generate_testcase(SliceStepSecond(), [x], subname='step_second')
+
+    ch2o.generate_testcase(SliceAll(), [x], subname='all')
+    ch2o.generate_testcase(SliceAllSecond(), [x], subname='all_second')
