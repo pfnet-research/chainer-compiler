@@ -27,7 +27,8 @@ class ListSlice(chainer.Chain):
         y2 = np.array(xs[-2])
         y3 = np.array(xs[:2])
         y4 = np.array(xs[1:3])
-        return y1, y2, y3, y4
+        y5 = np.array(xs[1::2])
+        return y1, y2, y3, y4, y5
 
 
 class SliceStep(chainer.Chain):
