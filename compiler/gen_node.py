@@ -229,6 +229,8 @@ NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 #
 # ChainerGetItem(T, Seq, I1, I2, I3, I4, I5, I6, slice_specs=[0, 4, 1, 2, 3])
 NodeDef('ChainerGetItem', None, 1, slice_specs=[int])
+# One more inputs for the shape info.
+NodeDef('ChainerGetItemGrad', None, 1, slice_specs=[int])
 
 NodeDef('ChainerPrint', None, 0)
 

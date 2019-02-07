@@ -67,6 +67,7 @@ void InferDtype(Node* node) {
         case Node::kFlatten:
         case Node::kSlice:
         case Node::kDynamicSlice:
+        case Node::kChainerDynamicSliceGrad:
         case Node::kReduceSum:
         case Node::kReduceSumSquare:
         case Node::kReduceL1:
@@ -196,6 +197,7 @@ void InferDtype(Node* node) {
 
         case Node::kGather:
         case Node::kChainerGetItem:
+        case Node::kChainerGetItemGrad:
         case Node::kChainerSelectItem: {
             // TODO(hamaji): Need an update for the Python compiler.
             // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
@@ -345,7 +347,6 @@ void InferDtype(Node* node) {
             break;
 
         case Node::kChainerNullConstant:
-        case Node::kChainerDynamicSliceGrad:
         case Node::kChainerSequenceConstants:
         case Node::kChainerSequenceCreate:
         case Node::kChainerSequenceAppend:

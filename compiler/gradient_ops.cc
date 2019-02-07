@@ -921,6 +921,17 @@ void DynamicSliceGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerDynamicSliceGrad, 0, inputs);
 }
 
+void GetItemGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Value* shape = gb.Op(Node::kShape, {gc->x(0)});
+    std::vector<Value*> inputs = {gc->gy(0), shape};
+    for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
+        inputs.push_back(gc->x(i));
+    }
+    gc->GradOp(Node::kChainerGetItemGrad, 0, inputs)
+        ->producer()->set_slice_specs(gc->node()->slice_specs());
+}
+
 typedef void (*GradFn)(GradientOpContext*);
 
 struct GradientFunc {
@@ -991,6 +1002,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kLoop, &LoopGradFn);
         register_grad_fn(Node::kIf, &IfGradFn);
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
+        register_grad_fn(Node::kChainerGetItem, &GetItemGradFn);
 
         register_grad_fn(Node::kChainerSequenceStack, &SequenceStackGradFn);
         register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);

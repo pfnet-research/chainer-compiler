@@ -497,6 +497,10 @@ private:
             std::vector<int> ins;
             for (size_t i = 1; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(GetItem, out(0), in(0), ins, IntVector(node.slice_specs()));
+        } else if (node.op_type() == Node::kChainerGetItemGrad) {
+            std::vector<int> ins;
+            for (size_t i = 2; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            EMIT(GetItemGrad, out(0), in(0), in(1), ins, IntVector(node.slice_specs()));
         } else if (node.op_type() == Node::kGather) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
