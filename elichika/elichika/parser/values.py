@@ -83,6 +83,12 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
     if isinstance(instance, int):
         return Object(NumberValue(instance))
 
+    if isinstance(instance, np.int32):
+        return Object(NumberValue(instance))
+
+    if isinstance(instance, np.int64):
+        return Object(NumberValue(instance))
+
     if isinstance(instance, float):
         return Object(NumberValue(instance))
 

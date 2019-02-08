@@ -161,15 +161,14 @@ class NodeGetItem(Node):
         return 'GetItem({})'.format(self.lineprop)
 
 class NodeSlice(Node):
-    def __init__(self, target : "values.Value", left : 'values.Value', right : 'values.Value', line = -1):
+    def __init__(self, target : "values.Value", indices, slice_specs, line = -1):
         super().__init__(line)
         self.target = target
-        self.left = left
-        self.right = right
+        self.indices = indices
+        self.slice_specs = slice_specs
 
         self.append_inputs(target)
-        self.append_inputs(left)
-        self.append_inputs(right)
+        self.extend_inputs(indices)
 
     def __str__(self):
         return 'Slice({})'.format(self.lineprop)

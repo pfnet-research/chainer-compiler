@@ -515,6 +515,21 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
     assert(isinstance(astc.nast, gast.gast.Subscript))
     lineprop = utils.LineProperty(astc.lineno)
 
+    def veval_with_default(nast, default_value):
+        if nast is None:
+            return values.NumberValue(default_value)
+        obj = veval_ast(astc.c(nast), local_field, graph)
+        return try_get_value(obj, 'subscript', lineprop)
+
+    def get_slice_indices(slice):
+        if slice.lower is None and slice.upper is None and slice.step is None:
+            return []
+        indices = [veval_with_default(slice.lower, 0),
+                   veval_with_default(slice.upper, utils.slice_int_max)]
+        if slice.step is not None:
+            indices.append(veval_with_default(slice.step, 1))
+        return indices
+
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
     value_value = try_get_value(value, 'subscript', lineprop)
 
@@ -535,26 +550,34 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         return values.Object(ret_value)
 
     elif isinstance(astc.nast.slice, gast.gast.Slice):
-        lower = veval_ast(astc.c(astc.nast.slice.lower), local_field, graph)
-        upper = veval_ast(astc.c(astc.nast.slice.upper), local_field, graph)
-        lower_value = try_get_value(lower, 'subscript', lineprop)
-        upper_value = try_get_value(upper, 'subscript', lineprop)
 
-        step = None
-        step_value = None
-        if astc.nast.slice.step is not None:
-            step = veval_ast(astc.c(astc.nast.slice.step), local_field, graph)
-            step_value = try_get_value(step_value, 'subscript', lineprop)
-            print('Ext step is not implemented')
+        indices = get_slice_indices(astc.nast.slice)
 
-        node = nodes.NodeSlice(value_value, lower_value, upper_value)
+        node = nodes.NodeSlice(value_value, indices, [len(indices)])
         ret_value = values.Value()
         node.set_outputs([ret_value])
         graph.add_node(node)
         return values.Object(ret_value)
 
     elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
-        print('Ext slice is not implemented')
+        indices = []
+        slice_specs = []
+        for dim in astc.nast.slice.dims:
+            if isinstance(dim, gast.gast.Index):
+                indices.append(try_get_value(veval_ast(astc.c(dim.value), local_field, graph), 'subscript', lineprop))
+                slice_specs.append(1)
+            elif isinstance(dim, gast.gast.Slice):
+                ni = get_slice_indices(dim)
+                indices.extend(ni)
+                slice_specs.append(len(ni))
+            else:
+                assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
+
+        node = nodes.NodeSlice(value_value, indices, slice_specs)
+        ret_value = values.Value()
+        node.set_outputs([ret_value])
+        graph.add_node(node)
+        return values.Object(ret_value)
 
     return None
 
