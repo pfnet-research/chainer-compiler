@@ -2,6 +2,8 @@ import os
 
 current_id = 0
 
+slice_int_max = 2 ** 31 - 1
+
 def get_guid():
     global current_id
     id = current_id
