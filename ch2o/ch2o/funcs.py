@@ -80,6 +80,54 @@ class Function_AveragePool2d(Callable):
             **kwargs)
 
 
+class Function_ROIMaxPool2d(Callable):
+    def call_impl(self, env, x, rois, roi_indices, outsize, spatial_scale):
+        return env.calc(
+            'ChainerROIMaxPool2D',
+            inputs=[x.to_tensor(env).name,
+                    rois.to_tensor(env).name,
+                    roi_indices.to_tensor(env).name],
+            output_shape=_pair(outsize),
+            spatial_scale=spatial_scale.to_float())
+
+
+class Function_ROIAveragePool2d(Callable):
+    def call_impl(self, env, x, rois, roi_indices, outsize, spatial_scale):
+        return env.calc(
+            'ChainerROIAveragePool2D',
+            inputs=[x.to_tensor(env).name,
+                    rois.to_tensor(env).name,
+                    roi_indices.to_tensor(env).name],
+            output_shape=_pair(outsize),
+            spatial_scale=spatial_scale.to_float())
+
+
+class Function_ROIMaxAlign2d(Callable):
+    def call_impl(self, env, x, rois, roi_indices, outsize, spatial_scale,
+                  sampling_ratio):
+        return env.calc(
+            'ChainerROIMaxAlign2D',
+            inputs=[x.to_tensor(env).name,
+                    rois.to_tensor(env).name,
+                    roi_indices.to_tensor(env).name],
+            output_shape=_pair(outsize),
+            spatial_scale=spatial_scale.to_float(),
+            sampling_ratio=_pair(sampling_ratio))
+
+
+class Function_ROIAverageAlign2d(Callable):
+    def call_impl(self, env, x, rois, roi_indices, outsize, spatial_scale,
+                  sampling_ratio):
+        return env.calc(
+            'ChainerROIAverageAlign2D',
+            inputs=[x.to_tensor(env).name,
+                    rois.to_tensor(env).name,
+                    roi_indices.to_tensor(env).name],
+            output_shape=_pair(outsize),
+            spatial_scale=spatial_scale.to_float(),
+            sampling_ratio=_pair(sampling_ratio))
+
+
 class Function_LocalRespNorm(Callable):
     def call_impl(self, env, x, n, k, alpha, beta):
         n = n.to_int()
@@ -502,6 +550,10 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.matmul, Function_Matmul),
                 (F.max_pooling_2d, Function_MaxPool2d),
                 (F.average_pooling_2d, Function_AveragePool2d),
+                (F.roi_max_pooling_2d, Function_ROIMaxPool2d),
+                (F.roi_average_pooling_2d, Function_ROIAveragePool2d),
+                (F.roi_max_align_2d, Function_ROIMaxAlign2d),
+                (F.roi_average_align_2d, Function_ROIAverageAlign2d),
                 (F.local_response_normalization, Function_LocalRespNorm),
                 (F.concat, Function_Concat),
                 (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),
