@@ -27,6 +27,16 @@ class Slice(chainer.Chain):
         x = [v,v+1,v+2,v+3]
         return x[1:2]
 
+class Append(chainer.Chain):
+    def __init__(self):
+        super(Append, self).__init__()
+
+    def forward(self, v):
+        x = []
+        x.append(v)
+        x.append(v)
+        return x
+
 class A(chainer.Chain):
 
     def __init__(self):
@@ -54,13 +64,15 @@ def main():
 
     testtools.generate_testcase(Slice(), [10], subname='Slice')
 
+    testtools.generate_testcase(Append(), [10], subname='Append')
+
     model = A()
 
     wn = 1
     v = np.random.rand(10).astype(np.float32)
     w = np.random.randint(0, 5, size=wn)
     p = np.int64(wn)
-    testtools.generate_testcase(model, [v, w, p])
+    testtools.generate_testcase(model, [v, w, p], subname='A')
 
 
 if __name__ == '__main__':

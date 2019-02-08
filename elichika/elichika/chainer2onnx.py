@@ -533,13 +533,21 @@ class ONNXGenerator:
             if isinstance(node, nodes.NodeGetItem):
                 node_ = node # type: nodes.NodeGetItem
                 if len(node_.indexes) == 1:
-                    # TODO: Sequence
-                    onnx_node = oh.make_node(
-                        'ChainerGetItem',
-                        [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.indexes[0]].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        slice_specs=[1])
-                    onnx_graph.nodes.append(onnx_node)
+
+                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.RangeValue): 
+                        onnx_node = oh.make_node(
+                            'ChainerSequenceLookup',
+                            [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.indexes[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name])
+                        onnx_graph.nodes.append(onnx_node)
+
+                    else:
+                        onnx_node = oh.make_node(
+                            'ChainerGetItem',
+                            [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.indexes[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            slice_specs=[1])
+                        onnx_graph.nodes.append(onnx_node)
                 else:
                     indices = []
                     slice_specs = []
@@ -655,11 +663,19 @@ class ONNXGenerator:
                 node_ = node # type: nodes.NodeForGenerator
 
                 # get value from sequence with index
-                onnx_node = oh.make_node(
-                    'ChainerSequenceLookup',
-                    [value2onnx_parameter[node_.iter_value].onnx_name, value2onnx_parameter[node_.counter_value].onnx_name],
-                    [value2onnx_parameter[node_.outputs[0]].onnx_name])
-                onnx_graph.nodes.append(onnx_node)
+                if isinstance(node_.iter_value, values.ListValue) or isinstance(node_.iter_value, values.RangeValue):
+                    onnx_node = oh.make_node(
+                        'ChainerSequenceLookup',
+                        [value2onnx_parameter[node_.iter_value].onnx_name, value2onnx_parameter[node_.counter_value].onnx_name],
+                        [value2onnx_parameter[node_.outputs[0]].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
+                else:
+                    onnx_node = oh.make_node(
+                        'ChainerGetItem',
+                        [value2onnx_parameter[node_.iter_value].onnx_name, value2onnx_parameter[node_.counter_value].onnx_name],
+                        [value2onnx_parameter[node_.outputs[0]].onnx_name],
+                        slice_specs=[1])
+                    onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeListcomp):
                 node_ = node # type: nodes.NodeListcomp

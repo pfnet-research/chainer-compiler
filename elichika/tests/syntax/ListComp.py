@@ -40,7 +40,7 @@ import numpy as np
 def main():
     np.random.seed(314)
 
-    testtools.generate_testcase(Basic1(), [])
+    testtools.generate_testcase(Basic1(), [], subname='Basic1')
 
     model = A()
 
@@ -48,8 +48,7 @@ def main():
     ps = np.array([3, 4])
     qs = np.array([1, 2, 3, 4, 5])
     p = np.int64(5)
-    testtools.generate_testcase(model, [v, ps, p, qs])
-
+    testtools.generate_testcase(model, [v, ps, p, qs], subname='A')
 
 if __name__ == '__main__':
     main()
