@@ -27,7 +27,28 @@ class ListSlice(chainer.Chain):
         y2 = np.array(xs[-2])
         y3 = np.array(xs[:2])
         y4 = np.array(xs[1:3])
-        return y1, y2, y3, y4
+        y5 = np.array(xs[1::2])
+        return y1, y2, y3, y4, y5
+
+
+class SliceStep(chainer.Chain):
+    def forward(self, xs):
+        return xs[1:6:2]
+
+
+class SliceStepSecond(chainer.Chain):
+    def forward(self, xs):
+        return xs[:, 1:-2:2]
+
+
+class SliceAll(chainer.Chain):
+    def forward(self, xs):
+        return xs[:]
+
+
+class SliceAllSecond(chainer.Chain):
+    def forward(self, xs):
+        return xs[:, :]
 
 
 # ======================================
@@ -48,9 +69,14 @@ def main():
 
     testtools.generate_testcase(model, [u, v, w])
 
-    x = np.random.rand(4, 3, 5, 7)
+    x = np.random.rand(7, 5, 3, 4)
     testtools.generate_testcase(ListSlice(), [x], subname='list')
 
+    testtools.generate_testcase(SliceStep(), [x], subname='step')
+    testtools.generate_testcase(SliceStepSecond(), [x], subname='step_second')
+
+    testtools.generate_testcase(SliceAll(), [x], subname='all')
+    testtools.generate_testcase(SliceAllSecond(), [x], subname='all_second')
 
 if __name__ == '__main__':
     main()

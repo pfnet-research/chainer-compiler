@@ -898,6 +898,15 @@ def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     value = values.NumberValue(astc.nast.n)
     return values.Object(value)
 
+def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    '''
+    Ex. "str"
+    '''
+    assert(isinstance(astc.nast, gast.gast.Str))
+    lineprop = utils.LineProperty(astc.lineno)
+    value = values.StrValue(astc.nast.s)
+    return values.Object(value)
+
 def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     '''
     Ex. True
@@ -1186,6 +1195,10 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     elif isinstance(astc.nast, gast.gast.Num):
         ret = veval_ast_num(astc, local_field, graph)
+        return ret
+
+    elif isinstance(astc.nast, gast.gast.Str):
+        ret = veval_ast_str(astc, local_field, graph)
         return ret
 
     elif isinstance(astc.nast, gast.gast.NameConstant):
