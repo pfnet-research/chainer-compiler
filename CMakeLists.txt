@@ -265,6 +265,7 @@ foreach(
     PadSequence
     Relu
     Reshape
+    Roi
     Separate
     Shape
     Sigmoid
