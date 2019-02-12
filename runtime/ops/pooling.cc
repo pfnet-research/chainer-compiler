@@ -71,5 +71,21 @@ chainerx::Array AveragePoolGradNoCtxOp::RunImpl(XCVMState* st, const chainerx::A
     return fb->Backward(gy);
 }
 
+chainerx::Array ROIMaxPool2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+    CHECK(false) << "Not implemented";
+}
+
+chainerx::Array ROIAveragePool2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+    CHECK(false) << "Not implemented";
+}
+
+chainerx::Array ROIMaxAlign2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+    CHECK(false) << "Not implemented";
+}
+
+chainerx::Array ROIAverageAlign2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+    CHECK(false) << "Not implemented";
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
