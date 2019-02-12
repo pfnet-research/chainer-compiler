@@ -194,6 +194,16 @@ NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
 NodeDef('ChainerReluGrad', 2, 1)
 NodeDef('ChainerReduceSumTo', 2, 1)
+
+NodeDef('ChainerROIMaxPool2D', 3, 1,
+        output_shape=[int], spatial_scale=Required(float))
+NodeDef('ChainerROIAveragePool2D', 3, 1,
+        output_shape=[int], spatial_scale=Required(float))
+NodeDef('ChainerROIMaxAlign2D', 3, 1,
+        output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
+NodeDef('ChainerROIAverageAlign2D', 3, 1,
+        output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
+
 NodeDef('ChainerMaxPoolGrad', 2, 1)
 NodeDef('ChainerAveragePoolGrad', 2, 1)
 NodeDef('ChainerMaxPoolGradNoCtx',

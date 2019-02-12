@@ -251,6 +251,10 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kChainerROIMaxPool2D:
+        case Node::kChainerROIAveragePool2D:
+        case Node::kChainerROIMaxAlign2D:
+        case Node::kChainerROIAverageAlign2D:
         case Node::kChainerMaxPoolGrad:
         case Node::kChainerAveragePoolGrad:
         case Node::kChainerMaxPoolGradNoCtx:
