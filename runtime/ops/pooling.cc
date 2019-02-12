@@ -135,6 +135,132 @@ chainerx::Array ROIPool2D(const chainerx::Array& bottom_data, const chainerx::Ar
     return top_data;
 }
 
+nonstd::optional<std::tuple<int64_t, int64_t, int64_t, int64_t, double, double, double, double>>
+get_bilinear_interp_params(double y, double x, int64_t height, int64_t width) {
+    if(y < -1 || y > height || x < -1 || x > width) {
+        return nonstd::nullopt;
+    }
+    auto calc_a_low_a_high_la_ha = [](double a, int64_t len) {
+        if(a <= 0.0) {
+            a = 0.0;
+        }
+        int64_t a_low = static_cast<int64_t>(a);
+        int64_t a_high;
+        if(a_low >= len - 1) {
+            a_high = a_low = len - 1;
+            a = static_cast<double>(a_low);
+        }
+        else {
+            a_high = a_low + 1;
+        }
+        double la = a - a_low;
+        double ha = 1.0 - la;
+        return std::make_tuple(a_low, a_high, la, ha);
+    };
+    int64_t y_low, y_high;
+    double ly, hy;
+    std::tie(y_low, y_high, ly, hy) = calc_a_low_a_high_la_ha(y, height);
+    int64_t x_low, x_high;
+    double lx, hx;
+    std::tie(x_low, x_high, lx, hx) = calc_a_low_a_high_la_ha(x, width);
+    double w1 = hy * hx;
+    double w2 = hy * lx;
+    double w3 = ly * hx;
+    double w4 = ly * lx;
+    return std::make_tuple(y_low, x_low, y_high, x_high, w1, w2, w3, w4);
+}
+
+template<class ReduceMode>
+chainerx::Array ROIAlign2D(const chainerx::Array& bottom_data, const chainerx::Array& bottom_rois, const chainerx::Array& bottom_roi_indices, const Int64StackVector& output_shape, const float spatial_scale, const chainerx::StackVector<int64_t, chainerx::kMaxNdim>& sampling_ratio) {
+    CHECK_EQ(4, bottom_data.ndim());
+    CHECK_EQ(2, output_shape.size());
+    CHECK_EQ(2, sampling_ratio.size());
+
+    const int64_t channels = bottom_data.shape()[1];
+    const int64_t height = bottom_data.shape()[2];
+    const int64_t width = bottom_data.shape()[3];
+    const int64_t n_rois = bottom_rois.shape()[0];
+    const int64_t pooled_height = output_shape[0];
+    const int64_t pooled_width = output_shape[1];
+    chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_rois.dtype());
+
+    for(int64_t n = 0; n < n_rois; ++n) {
+        int64_t roi_batch_ind = int64_t(chainerx::AsScalar(bottom_roi_indices.At({n})));
+        double roi_start_h = double(chainerx::AsScalar(bottom_rois.At({n, 0})) * spatial_scale);
+        double roi_start_w = double(chainerx::AsScalar(bottom_rois.At({n, 1})) * spatial_scale);
+        double roi_end_h = double(chainerx::AsScalar(bottom_rois.At({n, 2})) * spatial_scale);
+        double roi_end_w = double(chainerx::AsScalar(bottom_rois.At({n, 3})) * spatial_scale);
+        double roi_height = std::max<double>(roi_end_h - roi_start_h, 1.);
+        double roi_width = std::max<double>(roi_end_w - roi_start_w, 1.);
+        double bin_size_h = roi_height / pooled_height;
+        double bin_size_w = roi_width / pooled_width;
+
+        int64_t roi_bin_grid_h = sampling_ratio[0];
+        int64_t roi_bin_grid_w = sampling_ratio[1];
+
+        for(int64_t c = 0; c < channels; ++c) {
+            for (int64_t ph = 0; ph < pooled_height; ++ph) {
+                for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                    ReduceMode reduce;
+                    int64_t iy = 0;
+                    while(iy < roi_bin_grid_h) {
+                        auto y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                        int64_t ix = 0;
+                        while(ix < roi_bin_grid_w) {
+                            auto x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+
+                            // bilinear interpolation {{
+                            auto params = get_bilinear_interp_params(y, x, height, width);
+                            if(!params) {
+                                continue;
+                            }
+                            int64_t y_low, x_low, y_high, x_high;
+                            double w1, w2, w3, w4;
+                            std::tie(y_low, x_low, y_high, x_high, w1, w2, w3, w4) = *params;
+                            auto v1 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_low})));
+                            auto v2 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_high})));
+                            auto v3 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_low})));
+                            auto v4 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_high})));
+                            reduce.Reduce(v1, v2, v3, v4, w1, w2, w3, w4);
+                            ++ix;
+                        }
+                        ++iy;
+                    }
+                    top_data.At({n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
+                }
+            }
+        }
+    }
+    return top_data;
+}
+
+class ReduceByMax {
+public:
+    void Reduce(float v1, float v2, float v3, float v4, double w1, double w2, double w3, double w4) {
+        float tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+        if(max_val_ < tmp_val) {
+            max_val_ = tmp_val;
+        }
+    }
+    auto Finish(int64_t /*roi_bin_grid_h*/, int64_t /*roi_bin_grid_w*/) const {
+        return max_val_;
+    }
+private:
+    double max_val_ = std::numeric_limits<double>::lowest();
+};
+
+class ReduceByAverage {
+public:
+    void Reduce(float v1, float v2, float v3, float v4, double w1, double w2, double w3, double w4) {
+        sum_ += w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+    }
+    auto Finish(int64_t roi_bin_grid_h, int64_t roi_bin_grid_w) const {
+        return sum_ / (roi_bin_grid_h*roi_bin_grid_w);
+    }
+private:
+    double sum_ = 0.0;
+};
+
 }  // namespace
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
@@ -148,11 +274,13 @@ chainerx::Array ROIAveragePool2DOp::RunImpl(XCVMState* st, const chainerx::Array
 }
 
 chainerx::Array ROIMaxAlign2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(false) << "Not implemented";
+    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
+    return ROIAlign2D<ReduceByMax>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
 chainerx::Array ROIAverageAlign2DOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(false) << "Not implemented";
+    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
+    return ROIAlign2D<ReduceByAverage>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
 }  // namespace runtime
