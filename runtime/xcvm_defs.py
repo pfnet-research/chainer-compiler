@@ -10,7 +10,6 @@ INT = 'INT'
 FLOAT = 'FLOAT'
 INTS = 'INTS'
 STRING = 'STRING'
-LONGS = 'LONGS'
 DOUBLES = 'DOUBLES'
 
 ARG_TYPES = [
@@ -18,7 +17,7 @@ ARG_TYPES = [
 ]
 
 FIELD_TYPES = [
-    INT, FLOAT, INTS, STRING, LONGS, DOUBLES
+    INT, FLOAT, INTS, STRING, DOUBLES
 ]
 
 XC_TYPES = ARG_TYPES + FIELD_TYPES
@@ -31,7 +30,7 @@ _ValueInfo = collections.namedtuple('_ValueInfo', ('typ', 'name'))
 
 class ValueInfo(_ValueInfo):
     def is_repeated(self):
-        return self.typ in [INTS, ARRAY_LIST, LONGS, DOUBLES]
+        return self.typ in [INTS, ARRAY_LIST, DOUBLES]
 
     def c_type(self):
         if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE]:
@@ -40,9 +39,9 @@ class ValueInfo(_ValueInfo):
             return 'float'
         elif self.typ == STRING:
             return 'std::string'
-        elif self.typ in [INTS, ARRAY_LIST]:
+        elif self.typ == ARRAY_LIST:
             return 'std::vector<int>'
-        elif self.typ == LONGS:
+        elif self.typ == INTS:
             return 'std::vector<int64_t>'
         elif self.typ == DOUBLES:
             return 'std::vector<double>'
@@ -80,8 +79,6 @@ class ValueInfo(_ValueInfo):
             return 's'
         elif self.typ == INTS:
             return 'ints'
-        elif self.typ == LONGS:
-            return 'longs'
         elif self.typ == DOUBLES:
             return 'doubles'
         elif self.typ == ARRAY_LIST:
@@ -126,10 +123,6 @@ def Ints(name):
 
 def String(name):
     return ValueInfo(STRING, name)
-
-
-def Longs(name):
-    return ValueInfo(LONGS, name)
 
 
 def Doubles(name):
@@ -341,7 +334,7 @@ XC_OPS = [
     ('FloatScalarConstant',
      [Float('value'), Int('dtype'), Int('host')], ['output']),
     ('IntConstant',
-     [Longs('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
+     [Ints('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('FloatConstant',
      [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('ConstantFill',

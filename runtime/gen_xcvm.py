@@ -182,7 +182,7 @@ def gen_gen_xcvm_ops_cc():
                 line += ' << "%s" << %s' % (sigil(typ), name)
             elif typ in (INT, FLOAT):
                 line += ' << %s' % name
-            elif typ in [STRING, LONGS, DOUBLES]:
+            elif typ in [STRING, DOUBLES]:
                 line += ' << "%s"' % name
             elif typ == INTS:
                 line += ' << StackVectorToString(%s)' % name
