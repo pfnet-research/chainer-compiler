@@ -34,18 +34,14 @@ namespace {
 
 using chainer_compiler::runtime::XCProgramProto;
 
-std::vector<int> IntVector(const std::vector<int64_t>& ints) {
-    return std::vector<int>{ints.begin(), ints.end()};
-}
-
 // TODO(hamaji): Move this to the middle end, not codegen.
-std::vector<int> ComplementStrideOrPad(const std::vector<int>& orig, const Value* input, int default_value) {
+std::vector<int64_t> ComplementStrideOrPad(const std::vector<int64_t>& orig, const Value* input, int64_t default_value) {
     const Type& type = input->type();
     // Fill strides or pads for statically known input shape.
     if (!orig.empty() || !type.HasKnownShape()) {
         return orig;
     }
-    std::vector<int> filled;
+    std::vector<int64_t> filled;
     CHECK_LT(2, type.ndim()) << type.DebugString();
     for (int i = 0; i < type.ndim() - 2; ++i) {
         filled.push_back(default_value);
@@ -165,7 +161,7 @@ private:
         };
 
         auto pads = [&node]() {
-            std::vector<int> pads = IntVector(node.pads());
+            std::vector<int64_t> pads = node.pads();
             // Both Chainer and ChainerX expect paddings for beginning
             // and end are the same.
             CHECK_EQ(pads.size() % 2, 0);
@@ -177,7 +173,7 @@ private:
         };
 
         auto strides = [&node]() {
-            std::vector<int> strides = IntVector(node.strides());
+            std::vector<int64_t> strides = node.strides();
             return ComplementStrideOrPad(strides, node.input(0), 1);
         };
 
@@ -288,7 +284,7 @@ private:
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
-            std::vector<int> output_shape(IntVector(node.output_shape()));
+            std::vector<int64_t> output_shape(node.output_shape());
             EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), output_shape);
         } else if (node.op_type() == Node::kChainerConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
@@ -361,11 +357,11 @@ private:
         } else if (node.op_type() == Node::kSqueeze) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Squeeze, out(0), in(0), IntVector(node.axes()));
+            EMIT(Squeeze, out(0), in(0), node.axes());
         } else if (node.op_type() == Node::kUnsqueeze) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Unsqueeze, out(0), in(0), IntVector(node.axes()));
+            EMIT(Unsqueeze, out(0), in(0), node.axes());
         } else if (node.op_type() == Node::kMatMul) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -390,40 +386,40 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             CHECK_EQ("constant", node.mode()) << "Only constant padding is supported";
-            EMIT(Pad, out(0), in(0), IntVector(node.pads()), node.value());
+            EMIT(Pad, out(0), in(0), node.pads(), node.value());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
-                EMIT(MaxPool, out(0), tmp_id, in(0), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
+                EMIT(MaxPool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
                 FREE(tmp_id);
             } else {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.output(1)->IsNull());
-                EMIT(MaxPool, out(0), out(2), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
+                EMIT(MaxPool, out(0), out(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
             }
         } else if (node.op_type() == Node::kChainerROIMaxPool2D) {
-            EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), IntVector(node.output_shape()), node.spatial_scale());
+            EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
-            EMIT(ROIAveragePool2D, out(0), in(0), in(1), in(2), IntVector(node.output_shape()), node.spatial_scale());
+            EMIT(ROIAveragePool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerMaxPoolGradNoCtx) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            EMIT(MaxPoolGradNoCtx, out(0), in(0), in(1), in(2), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
+            EMIT(MaxPoolGradNoCtx, out(0), in(0), in(1), in(2), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
             if (node.outputs().size() == 1) {
                 int tmp_id = next_value_id_++;
-                EMIT(AveragePool, out(0), tmp_id, in(0), IntVector(node.kernel_shape()), strides(), pads(), node.count_include_pad());
+                EMIT(AveragePool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
                 FREE(tmp_id);
             } else {
                 CHECK_EQ(2UL, node.outputs().size());
-                EMIT(AveragePool, out(0), out(1), in(0), IntVector(node.kernel_shape()), strides(), pads(), node.count_include_pad());
+                EMIT(AveragePool, out(0), out(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
             }
         } else if (node.op_type() == Node::kChainerAveragePoolGradNoCtx) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            EMIT(AveragePoolGradNoCtx, out(0), in(0), in(1), in(2), IntVector(node.kernel_shape()), strides(), pads(), node.chainer_cover_all());
+            EMIT(AveragePoolGradNoCtx, out(0), in(0), in(1), in(2), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -447,15 +443,15 @@ private:
         } else if (node.op_type() == Node::kReduceMax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceMax, out(0), in(0), IntVector(node.axes()), node.keepdims());
+            EMIT(ReduceMax, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSum) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceSum, out(0), in(0), IntVector(node.axes()), node.keepdims());
+            EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSumSquare) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceSumSquare, out(0), in(0), IntVector(node.axes()), node.keepdims());
+            EMIT(ReduceSumSquare, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kChainerReduceSumTo) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -463,7 +459,7 @@ private:
         } else if (node.op_type() == Node::kReduceMean) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ReduceMean, out(0), in(0), IntVector(node.axes()), node.keepdims());
+            EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kCast) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -477,7 +473,7 @@ private:
                 CHECK_EQ(0UL, node.inputs().size());
             }
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConstantFill, out(0), oin(0), node.dtype(), IntVector(node.extra_shape()), IntVector(node.shape()), node.value());
+            EMIT(ConstantFill, out(0), oin(0), node.dtype(), node.extra_shape(), node.shape(), node.value());
         } else if (node.op_type() == Node::kEyeLike) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -488,23 +484,23 @@ private:
             CHECK_NE(0UL, node.starts().size());
             CHECK_NE(0UL, node.ends().size());
             CHECK_EQ(node.starts().size(), node.ends().size());
-            std::vector<int> axes(IntVector(node.axes()));
+            std::vector<int64_t> axes(node.axes());
             if (axes.empty()) {
                 for (size_t i = 0; i < node.starts().size(); ++i) axes.push_back(i);
             } else {
                 CHECK_EQ(node.starts().size(), axes.size());
             }
-            EMIT(Slice, out(0), in(0), axes, IntVector(node.starts()), IntVector(node.ends()));
+            EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
         } else if (node.op_type() == Node::kDynamicSlice) {
             EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3));
         } else if (node.op_type() == Node::kChainerGetItem) {
             std::vector<int> ins;
             for (size_t i = 1; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(GetItem, out(0), in(0), ins, IntVector(node.slice_specs()));
+            EMIT(GetItem, out(0), in(0), ins, node.slice_specs());
         } else if (node.op_type() == Node::kChainerGetItemGrad) {
             std::vector<int> ins;
             for (size_t i = 2; i < node.inputs().size(); ++i) ins.push_back(in(i));
-            EMIT(GetItemGrad, out(0), in(0), in(1), ins, IntVector(node.slice_specs()));
+            EMIT(GetItemGrad, out(0), in(0), in(1), ins, node.slice_specs());
         } else if (node.op_type() == Node::kGather) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -518,7 +514,7 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             std::vector<XCVMValue> outs;
             for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
-            EMIT(Split, outs, in(0), node.axis(), IntVector(node.split()));
+            EMIT(Split, outs, in(0), node.axis(), node.split());
         } else if (node.op_type() == Node::kClip) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -531,7 +527,7 @@ private:
         } else if (node.op_type() == Node::kTranspose) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(Transpose, out(0), in(0), IntVector(node.perm()));
+            EMIT(Transpose, out(0), in(0), node.perm());
         } else if (node.op_type() == Node::kDepthToSpace) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -637,7 +633,7 @@ private:
 
     void EmitConstantImpl(const Node& node, const Tensor* value, int out, bool host, XCProgramProto* prog) {
         Dtype dtype = value->dtype();
-        std::vector<int> shape;
+        std::vector<int64_t> shape;
         for (int64_t d : value->dims()) {
             CHECK_LE(0, d);
             CHECK_GT(1ULL << 32ULL, d);
@@ -818,7 +814,7 @@ private:
 
 #define EMIT(op, ...)                                               \
     do {                                                            \
-        Add##op##Op(prog, __VA_ARGS__);                             \
+ Add##op##Op(prog, __VA_ARGS__);                             \
         FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
     } while (0)
 
@@ -842,7 +838,7 @@ private:
             }
             // TODO(hamaji): Handle multiple outputs.
             CHECK_EQ(1, node.outputs().size());
-            std::vector<int> shape;
+            std::vector<int64_t> shape;
             for (int64_t dim : node.output(0)->type().dims()) {
                 shape.push_back(dim);
             }
