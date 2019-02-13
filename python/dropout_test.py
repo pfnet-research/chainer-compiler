@@ -12,10 +12,12 @@ sys.path.append(os.path.join(project_root, 'python'))
 
 import chainer_compiler_core
 
+ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
+
 
 def test_dropout_inference():
     graph = chainer_compiler_core.load(
-        'onnx/onnx/backend/test/data/node/test_dropout_random/model.onnx')
+        os.path.join(ONNX_TEST_DATA, 'node/test_dropout_random/model.onnx'))
     input_names = graph.input_names()
     output_names = graph.output_names()
     assert len(input_names) == 1
@@ -32,7 +34,7 @@ def test_dropout_inference():
 
 def test_dropout_training():
     graph = chainer_compiler_core.load(
-        'onnx/onnx/backend/test/data/node/test_dropout_random/model.onnx')
+        os.path.join(ONNX_TEST_DATA, 'node/test_dropout_random/model.onnx'))
     input_names = graph.input_names()
     output_names = graph.output_names()
     assert len(input_names) == 1
