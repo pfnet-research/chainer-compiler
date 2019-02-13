@@ -79,7 +79,7 @@ Chainer compiler requires Python and some libraries to build.
 
 ```shell-session
 $ apt-get install python3 python3-pip
-$ pip3 install gast numpy chainer onnx==1.3.0 onnx_chainer pytest
+$ ONNX_ML=1 pip3 install gast numpy chainer onnx==1.3.0 onnx_chainer pytest
 ```
 
 ## Building Chainer compiler
