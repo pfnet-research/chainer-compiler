@@ -38,7 +38,8 @@ class _Downloader(object):
 
 def get():
     tests = []
-    for data_json in glob.glob('onnx/onnx/backend/test/data/real/*/data.json'):
+    for data_json in glob.glob(
+            'third_party/onnx/onnx/backend/test/data/real/*/data.json'):
         with open(data_json) as f:
             json_content = f.read()
             json_data = json.loads(json_content)

@@ -70,10 +70,10 @@ endif()
 
 set(ONNX_ML ON)
 set(ONNX_NAMESPACE "chainer_compiler_onnx")
-add_subdirectory(onnx)
+add_subdirectory(third_party/onnx)
 add_custom_target(onnx_files
   DEPENDS
-  ${CMAKE_CURRENT_BINARY_DIR}/onnx/onnx/onnx_chainer_compiler_onnx-ml.pb.h
+  ${CMAKE_CURRENT_BINARY_DIR}/third_party/onnx/onnx/onnx_chainer_compiler_onnx-ml.pb.h
   )
 # It seems `onnx` target compiles onnx*.pb.cc. As this will let other
 # files produce warnings, we suppress all warnings from ONNX by -w.
@@ -84,11 +84,11 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   set(CHAINERX_BUILD_PYTHON ON)
 endif()
 
-add_subdirectory(chainer/chainerx_cc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/chainer/chainerx_cc)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/gsl-lite/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/optional-lite/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/chainer/chainerx_cc/googletest-src/googletest/include)
+add_subdirectory(third_party/chainer/chainerx_cc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/chainerx_cc)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/gsl-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/optional-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/googletest-src/googletest/include)
 
 enable_testing()
 
@@ -162,12 +162,12 @@ if(${CHAINER_COMPILER_ENABLE_TVM})
   set(CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES tvm_runtime)
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnx ${CMAKE_CURRENT_BINARY_DIR}/onnx)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx ${CMAKE_CURRENT_BINARY_DIR}/third_party/onnx)
 
 add_custom_target(large_tests)
 
 if (${CHAINER_COMPILER_ENABLE_PYTHON})
-  include_directories(${CMAKE_BINARY_DIR}/chainer/chainerx_cc/pybind11/include)
+  include_directories(${CMAKE_BINARY_DIR}/third_party/chainer/chainerx_cc/pybind11/include)
   add_subdirectory(python)
 endif()
 

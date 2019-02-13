@@ -53,7 +53,7 @@ YELLOW = '\033[93m'
 RED = '\033[91m'
 RESET = '\033[0m'
 
-ONNX_TEST_DATA = 'onnx/onnx/backend/test/data'
+ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
 
 TEST_CASES = [
