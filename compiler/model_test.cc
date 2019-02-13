@@ -22,7 +22,7 @@
 namespace chainer_compiler {
 namespace {
 
-const char* kONNXTestDataDir = "onnx/onnx/backend/test/data";
+const char* kONNXTestDataDir = "third_party/onnx/onnx/backend/test/data";
 
 // Re-order initializers in the order of inputs so that the model
 // agrees with the expectation of the library.

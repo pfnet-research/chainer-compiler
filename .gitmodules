@@ -1,7 +1,7 @@
 [submodule "onnx"]
-	path = onnx
+	path = third_party/onnx
 	url = https://github.com/onnx/onnx
 	ignore = dirty
 [submodule "chainer"]
-	path = chainer
+	path = third_party/chainer
 	url = https://github.com/chainer/chainer

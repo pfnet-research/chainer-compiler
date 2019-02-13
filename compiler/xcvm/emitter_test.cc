@@ -15,7 +15,7 @@
 namespace chainer_compiler {
 namespace {
 
-const char* kONNXTestDataDir = "onnx/onnx/backend/test/data";
+const char* kONNXTestDataDir = "third_party/onnx/onnx/backend/test/data";
 
 TEST(XCVMTest, Compile) {
     std::string test_path = std::string(kONNXTestDataDir) + "/node/test_add/";
