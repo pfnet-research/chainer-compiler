@@ -1109,11 +1109,11 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         body_graph.add_input_value(input_value)
         body_graph.add_output_value(output_value)
 
-        if attributes[1].is_non_volatile:
+        if attributes[1] is not None and attributes[1].is_non_volatile:
             non_volatiles.append((attributes[1].initial_obj.get_value(),output_value_in_node))
 
         output_obj_in_node = values.Object(output_value_in_node)
-        attributes[1].parent.get_attribute(name).revise(output_obj_in_node)
+        parent.get_attribute(name).revise(output_obj_in_node)
 
     for obj in output_objs:
         if obj.get_value() is None:
