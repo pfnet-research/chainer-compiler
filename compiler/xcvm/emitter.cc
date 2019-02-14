@@ -403,6 +403,10 @@ private:
             EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
             EMIT(ROIAveragePool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
+        } else if (node.op_type() == Node::kChainerROIMaxAlign2D) {
+            EMIT(ROIMaxAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio());
+        } else if (node.op_type() == Node::kChainerROIAverageAlign2D) {
+            EMIT(ROIAverageAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio());
         } else if (node.op_type() == Node::kChainerMaxPoolGradNoCtx) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             EMIT(MaxPoolGradNoCtx, out(0), in(0), in(1), in(2), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
