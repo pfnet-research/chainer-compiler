@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <algorithm>
+#include <numeric>
 
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
@@ -179,6 +180,27 @@ std::tuple<double, double, double, double> get_bilinear_interp_params(
     return std::make_tuple(w1, w2, w3, w4);
 }
 
+using ArrayIndices = chainerx::StackVector<int64_t, chainerx::kMaxNdim>;
+template <typename T>
+T& ContiguousArrayAt(chainerx::Array& a, const ArrayIndices& indices) {
+    assert(a.IsContiguous());
+    assert(a.shape().size() == indices.size());
+    assert(a.dtype() == chainerx::PrimitiveType<T>::kDtype);
+    int64_t index = indices.back();
+    int64_t stride = 1;
+    for (int64_t i = indices.size() - 2; i >= 0; --i) {
+        stride *= a.shape()[i + 1];
+        index += indices[i] * stride;
+    }
+    assert(index < a.GetTotalSize());
+    return *(static_cast<T*>(a.raw_data()) + index);
+}
+
+template <typename T>
+T ContiguousArrayAt(const chainerx::Array& a, const ArrayIndices& indices) {
+    return ContiguousArrayAt<T>(const_cast<chainerx::Array&>(a), indices);
+}
+
 template <class ReduceMode>
 chainerx::Array ROIAlign2D(
         const chainerx::Array& bottom_data,
@@ -191,6 +213,13 @@ chainerx::Array ROIAlign2D(
     CHECK_EQ(2, output_shape.size());
     CHECK_EQ(2, sampling_ratio.size());
 
+    chainerx::Array contiguous_bottom_data;
+    if (bottom_data.IsContiguous()) {
+        contiguous_bottom_data = bottom_data;
+    } else {
+        contiguous_bottom_data = chainerx::Copy(bottom_data);
+    }
+
     const int64_t channels = bottom_data.shape()[1];
     const int64_t height = bottom_data.shape()[2];
     const int64_t width = bottom_data.shape()[3];
@@ -200,11 +229,12 @@ chainerx::Array ROIAlign2D(
     chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
     for (int64_t n = 0; n < n_rois; ++n) {
-        int64_t roi_batch_ind = int64_t(chainerx::AsScalar(bottom_roi_indices.At({n})));
-        double roi_start_h = double(chainerx::AsScalar(bottom_rois.At({n, 0})) * spatial_scale);
-        double roi_start_w = double(chainerx::AsScalar(bottom_rois.At({n, 1})) * spatial_scale);
-        double roi_end_h = double(chainerx::AsScalar(bottom_rois.At({n, 2})) * spatial_scale);
-        double roi_end_w = double(chainerx::AsScalar(bottom_rois.At({n, 3})) * spatial_scale);
+        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(bottom_roi_indices, {n});
+        double roi_start_h = ContiguousArrayAt<float>(bottom_rois, {n, 0}) * spatial_scale;
+        double roi_start_w = ContiguousArrayAt<float>(bottom_rois, {n, 1}) * spatial_scale;
+        double roi_end_h = ContiguousArrayAt<float>(bottom_rois, {n, 2}) * spatial_scale;
+        double roi_end_w = ContiguousArrayAt<float>(bottom_rois, {n, 3}) * spatial_scale;
+
         double roi_height = std::max<double>(roi_end_h - roi_start_h, 1.);
         double roi_width = std::max<double>(roi_end_w - roi_start_w, 1.);
         double bin_size_h = roi_height / pooled_height;
@@ -237,16 +267,17 @@ chainerx::Array ROIAlign2D(
                             // bilinear interpolation {{
                             double w1, w2, w3, w4;
                             std::tie(w1, w2, w3, w4) = get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high);
-                            auto v1 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_low})));
-                            auto v2 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_high})));
-                            auto v3 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_low})));
-                            auto v4 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_high})));
+                            float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
+                            float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
+                            float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
+                            float v4 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_high});
+
                             double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                             reduce.Reduce(weighted_average);
                             // }}
                         }
                     }
-                    top_data.At({n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
+                    ContiguousArrayAt<float>(top_data, {n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
                 }
             }
         }
