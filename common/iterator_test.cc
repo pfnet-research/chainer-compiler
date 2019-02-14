@@ -9,8 +9,8 @@ namespace chainer_compiler {
 namespace {
 
 TEST(IteratorTest, Zip) {
-    std::set<int> ints = { 3, 4, 5 };
-    std::vector<std::string> strs = { "a", "b", "c" };
+    std::set<int> ints = {3, 4, 5};
+    std::vector<std::string> strs = {"a", "b", "c"};
     std::vector<std::tuple<int, std::string>> results;
     for (const auto& p : Zip(ints, strs)) {
         results.push_back(p);
@@ -25,7 +25,7 @@ TEST(IteratorTest, Zip) {
 }
 
 TEST(IteratorTest, Enumerator) {
-    std::vector<std::string> strs = { "a", "b", "c" };
+    std::vector<std::string> strs = {"a", "b", "c"};
     std::vector<std::pair<size_t, std::string>> results;
     for (const auto& e : Enumerate(strs)) {
         results.emplace_back(e.index, e.value);

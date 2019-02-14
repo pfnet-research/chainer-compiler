@@ -437,12 +437,12 @@ void MaxPoolGradFn(GradientOpContext* gc) {
     if (false) {
         Node* node = gc->node();
         gc->GradOp(Node::kChainerMaxPoolGradNoCtx, 0, {gc->x(0), gc->y(0), gc->gy(0)})
-            ->producer()
-            ->set_kernel_shape(node->kernel_shape())
-            ->set_pads(node->pads())
-            ->set_storage_order(node->storage_order())
-            ->set_strides(node->strides())
-            ->set_chainer_cover_all(node->chainer_cover_all());
+                ->producer()
+                ->set_kernel_shape(node->kernel_shape())
+                ->set_pads(node->pads())
+                ->set_storage_order(node->storage_order())
+                ->set_strides(node->strides())
+                ->set_chainer_cover_all(node->chainer_cover_all());
     } else {
         Node* node = gc->node();
         if (node->outputs().size() == 1) gc->AddNullOutput();
@@ -458,12 +458,12 @@ void AveragePoolGradFn(GradientOpContext* gc) {
     if (false) {
         Node* node = gc->node();
         gc->GradOp(Node::kChainerAveragePoolGradNoCtx, 0, {gc->x(0), gc->y(0), gc->gy(0)})
-            ->producer()
-            ->set_kernel_shape(node->kernel_shape())
-            ->set_pads(node->pads())
-            ->set_storage_order(node->storage_order())
-            ->set_strides(node->strides())
-            ->set_count_include_pad(node->count_include_pad());
+                ->producer()
+                ->set_kernel_shape(node->kernel_shape())
+                ->set_pads(node->pads())
+                ->set_storage_order(node->storage_order())
+                ->set_strides(node->strides())
+                ->set_count_include_pad(node->count_include_pad());
     } else {
         Node* node = gc->node();
         CHECK_EQ(1, node->outputs().size());
@@ -928,8 +928,7 @@ void GetItemGradFn(GradientOpContext* gc) {
     for (size_t i = 1; i < gc->node()->inputs().size(); ++i) {
         inputs.push_back(gc->x(i));
     }
-    gc->GradOp(Node::kChainerGetItemGrad, 0, inputs)
-        ->producer()->set_slice_specs(gc->node()->slice_specs());
+    gc->GradOp(Node::kChainerGetItemGrad, 0, inputs)->producer()->set_slice_specs(gc->node()->slice_specs());
 }
 
 typedef void (*GradFn)(GradientOpContext*);

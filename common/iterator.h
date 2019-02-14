@@ -26,8 +26,7 @@ template <class C>
 class Enumerator {
 public:
     struct Entry {
-        Entry(const typename C::value_type& v, size_t i)
-            : value(v), index(i) {
+        Entry(const typename C::value_type& v, size_t i) : value(v), index(i) {
         }
 
         const typename C::value_type& value;
@@ -36,8 +35,7 @@ public:
 
     class Iterator {
     public:
-        Iterator(const C& c, bool end)
-            : c_(c) {
+        Iterator(const C& c, bool end) : c_(c) {
             if (end) {
                 iter_ = c.end();
                 index_ = c.size();
@@ -68,8 +66,7 @@ public:
         size_t index_;
     };
 
-    Enumerator(const C& c)
-        : c_(c) {
+    Enumerator(const C& c) : c_(c) {
     }
 
     Iterator begin() const {
@@ -90,4 +87,4 @@ Enumerator<C> Enumerate(const C& c) {
     return Enumerator<C>(c);
 }
 
-}  // namespace
+}  // namespace chainer_compiler

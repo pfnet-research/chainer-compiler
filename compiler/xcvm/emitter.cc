@@ -818,7 +818,7 @@ private:
 
 #define EMIT(op, ...)                                               \
     do {                                                            \
- Add##op##Op(prog, __VA_ARGS__);                             \
+        Add##op##Op(prog, __VA_ARGS__);                             \
         FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
     } while (0)
 

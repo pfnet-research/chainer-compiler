@@ -66,36 +66,35 @@ chainerx::Array DynamicSliceGradOp::RunImpl(
 namespace {
 
 std::vector<chainerx::ArrayIndex> GetIndicesForGetItem(
-        const std::vector<chainerx::Array>& index_arrays,
-        const Int64StackVector& slice_specs) {
+        const std::vector<chainerx::Array>& index_arrays, const Int64StackVector& slice_specs) {
     std::vector<chainerx::ArrayIndex> indices;
     size_t i = 0;
     for (int slice_spec : slice_specs) {
         switch (slice_spec) {
-        case 0:
-            indices.emplace_back(chainerx::Slice());
-            break;
-        case 1: {
-            int64_t index = int64_t(chainerx::AsScalar(index_arrays[i++]));
-            indices.emplace_back(index);
-            break;
-        }
-        case 2: {
-            int64_t start = int64_t(chainerx::AsScalar(index_arrays[i++]));
-            int64_t stop = int64_t(chainerx::AsScalar(index_arrays[i++]));
-            indices.emplace_back(chainerx::Slice(start, stop));
-            break;
-        }
-        case 3: {
-            int64_t start = int64_t(chainerx::AsScalar(index_arrays[i++]));
-            int64_t stop = int64_t(chainerx::AsScalar(index_arrays[i++]));
-            int64_t step = int64_t(chainerx::AsScalar(index_arrays[i++]));
-            indices.emplace_back(chainerx::Slice(start, stop, step));
-            break;
-        }
-        case 4:
-            CHECK(false) << "Not implemented";
-            break;
+            case 0:
+                indices.emplace_back(chainerx::Slice());
+                break;
+            case 1: {
+                int64_t index = int64_t(chainerx::AsScalar(index_arrays[i++]));
+                indices.emplace_back(index);
+                break;
+            }
+            case 2: {
+                int64_t start = int64_t(chainerx::AsScalar(index_arrays[i++]));
+                int64_t stop = int64_t(chainerx::AsScalar(index_arrays[i++]));
+                indices.emplace_back(chainerx::Slice(start, stop));
+                break;
+            }
+            case 3: {
+                int64_t start = int64_t(chainerx::AsScalar(index_arrays[i++]));
+                int64_t stop = int64_t(chainerx::AsScalar(index_arrays[i++]));
+                int64_t step = int64_t(chainerx::AsScalar(index_arrays[i++]));
+                indices.emplace_back(chainerx::Slice(start, stop, step));
+                break;
+            }
+            case 4:
+                CHECK(false) << "Not implemented";
+                break;
         }
     }
     CHECK_EQ(i, index_arrays.size());
@@ -104,19 +103,13 @@ std::vector<chainerx::ArrayIndex> GetIndicesForGetItem(
 
 }  // namespace
 
-chainerx::Array GetItemOp::RunImpl(
-        XCVMState* st,
-        const chainerx::Array& data,
-        const std::vector<chainerx::Array>& index_arrays) {
+chainerx::Array GetItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const std::vector<chainerx::Array>& index_arrays) {
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
     return data.At(indices);
 }
 
 chainerx::Array GetItemGradOp::RunImpl(
-        XCVMState* st,
-        const chainerx::Array& gy,
-        const chainerx::Array& shape,
-        const std::vector<chainerx::Array>& index_arrays) {
+        XCVMState* st, const chainerx::Array& gy, const chainerx::Array& shape, const std::vector<chainerx::Array>& index_arrays) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
     out.device().Copy(gy, out.At(indices));

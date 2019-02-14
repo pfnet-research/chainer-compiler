@@ -124,7 +124,7 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
 
     PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
     std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
-        x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
+            x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
     const Array& gamma_reshaped = result.gamma;
     const Array& beta_reshaped = result.beta;
     chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);

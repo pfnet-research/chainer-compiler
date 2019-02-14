@@ -77,7 +77,7 @@ void Node::Validate() const {
     } else if (op_type_ == Node::kIf) {
         CHECK_LT(0, inputs_.size()) << "If should have at least 1 inputs:\n" << DebugString();
         CHECK_EQ(inputs_.size(), then_branch_->input_values().size() + 1) << "Inconsistent number of inputs for If:\n" << DebugString();
-        CHECK_EQ(inputs_.size(), else_branch_->input_values().size() +1) << "Inconsistent number of inputs for If:\n" << DebugString();
+        CHECK_EQ(inputs_.size(), else_branch_->input_values().size() + 1) << "Inconsistent number of inputs for If:\n" << DebugString();
         CHECK_EQ(outputs_.size(), then_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
         CHECK_EQ(outputs_.size(), else_branch_->output_values().size()) << "Inconsistent number of outputs for If:\n" << DebugString();
     } else if (op_type_ == Node::kChainerGetItem || op_type_ == Node::kChainerGetItemGrad) {
