@@ -77,6 +77,7 @@ class Function_AveragePool2d(Callable):
             'AveragePool',
             inputs=[x.to_tensor(env).name],
             kernel_shape=_pair(ksize),
+            count_include_pad=1,
             **kwargs)
 
 
