@@ -20,6 +20,7 @@ class ReluFunction(functions.FunctionBase):
         node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
         value = functions.generate_value_with_same_type(vargs[0])
+        value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
 
@@ -36,6 +37,7 @@ class SoftmaxFunction(functions.FunctionBase):
         node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
         value = functions.generate_value_with_same_type(vargs[0])
+        value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
 
@@ -48,6 +50,7 @@ class RangeFunction(functions.FunctionBase):
         node = nodes.NodeGenerate('range', [v.obj.get_value() for v in args], line)
         graph.add_node(node)
         value = values.RangeValue()
+        value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
 
@@ -66,6 +69,7 @@ class AppendFunction(functions.FunctionBase):
         new_v = functions.generate_value_with_same_type(old_v)
         inst.revise(new_v)
 
+        new_v.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([new_v])
 
         graph.add_node(node)

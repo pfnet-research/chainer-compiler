@@ -65,11 +65,21 @@ class Node:
         for output in self.outputs:
             output.generator = self
 
+    def replace_inputs(self, old, new):
+        for i in range(len(self.inputs)):
+            if self.inputs[i] == old:
+                self.inputs[i] = new
+
 class NodeCopy(Node):
     def __init__(self, value : 'values.Value', line = -1):
         super().__init__(line)
         self.value = value
         self.append_inputs(value)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.value == old:
+            self.value = new
 
     def __str__(self):
         return 'Copy({})'.format(self.lineprop)
@@ -81,6 +91,15 @@ class NodeNonVolatileAssign(Node):
         self.value = value
         self.append_inputs(target_value)
         self.append_inputs(value)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.value == old:
+            self.value = new
+
+        if self.target_value == old:
+            self.target_value = new
+
 
     def __str__(self):
         return 'NodeNonVolatileAssign({})'.format(self.lineprop)
@@ -96,6 +115,12 @@ class NodeAssign(Node):
         self.targets.append(attr)
         self.objects.append(obj)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        for i in range(len(self.objects)):
+            if self.objects[i] == old:
+                self.objects[i] = new
+
     def __str__(self):
         return 'Assign({})'.format(self.lineprop)
 
@@ -108,6 +133,14 @@ class NodeAugAssign(Node):
 
         self.append_inputs(target)
         self.append_inputs(value)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.value == old:
+            self.value = new
+
+        if self.target == old:
+            self.target = new
 
     def __str__(self):
         return 'AugAssign({})'.format(self.lineprop)
@@ -122,6 +155,14 @@ class NodeBinOp(Node):
         self.append_inputs(left)
         self.append_inputs(right)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.left == old:
+            self.left = new
+
+        if self.right == old:
+            self.right = new
+
     def __str__(self):
         return 'BinOp({},{})'.format(self.lineprop, self.binop)
 
@@ -132,6 +173,12 @@ class NodeUnaryOp(Node):
         self.unaryop = unaryop
 
         self.inputs.append(operand)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.operand == old:
+            self.operand = new
+
     def __str__(self):
         return 'UnaryOp({},{})'.format(self.lineprop, self.unaryop)
 
@@ -145,6 +192,14 @@ class NodeCompare(Node):
         self.append_inputs(left)
         self.append_inputs(right)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.left == old:
+            self.left = new
+
+        if self.right == old:
+            self.right = new
+
     def __str__(self):
         return 'Compare({},{})'.format(self.lineprop, self.compare)
 
@@ -156,6 +211,11 @@ class NodeGetItem(Node):
 
         self.append_inputs(target)
         self.extend_inputs(indexes)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.target == old:
+            self.target = new
 
     def __str__(self):
         return 'GetItem({})'.format(self.lineprop)
@@ -170,6 +230,15 @@ class NodeSlice(Node):
         self.append_inputs(target)
         self.extend_inputs(indices)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.target == old:
+            self.target = new
+
+        for i in range(len(self.indices)):
+            if self.indices[i] == old:
+                self.indices[i] = new
+
     def __str__(self):
         return 'Slice({})'.format(self.lineprop)
 
@@ -179,6 +248,13 @@ class NodeCall(Node):
         self.func = func
         self.args = args
         self.inputs.extend(self.args)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+
+        for i in range(len(self.args)):
+            if self.args[i] == old:
+                self.args[i] = new
 
     def __str__(self):
         if self.func is not None and isinstance(self.func, values.FuncValue):
@@ -193,6 +269,11 @@ class NodeReturn(Node):
         super().__init__(line)
         self.value = value
         self.append_inputs(value)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.value == old:
+            self.value = new
 
     def __str__(self):
         return 'Return({})'.format(self.lineprop)
@@ -212,6 +293,15 @@ class NodeIf(Node):
         self.subgraphs.append(self.true_graph)
         self.subgraphs.append(self.false_graph)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.cond == old:
+            self.cond = new
+
+        for i in range(len(self.input_values)):
+            if self.input_values[i] == old:
+                self.input_values[i] = new
+
     def __str__(self):
         return 'If({})'.format(self.lineprop)
 
@@ -226,6 +316,15 @@ class NodeFor(Node):
         self.body_graph = body_graph
         self.subgraphs.append(self.body_graph)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.iter_value == old:
+            self.iter_value = new
+
+        for i in range(len(self.input_values)):
+            if self.input_values[i] == old:
+                self.input_values[i] = new
+
     def __str__(self):
         return 'For({})'.format(self.lineprop)
 
@@ -236,6 +335,14 @@ class NodeForGenerator(Node):
         self.iter_value = iter_value
         self.append_inputs(counter_value)
         self.append_inputs(iter_value)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.counter_value == old:
+            self.counter_value = new
+
+        if self.iter_value == old:
+            self.iter_value = new
 
     def __str__(self):
         return 'ForGen({})'.format(self.lineprop)
@@ -252,6 +359,15 @@ class NodeListcomp(Node):
         self.body_graph = body_graph
         self.subgraphs.append(self.body_graph)
 
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+        if self.iter_value == old:
+            self.iter_value = new
+
+        for i in range(len(self.input_values)):
+            if self.input_values[i] == old:
+                self.input_values[i] = new
+
     def __str__(self):
         return 'Listcomp({})'.format(self.lineprop)
 
@@ -261,6 +377,13 @@ class NodeGenerate(Node):
         self.classtype = classtype
         self.args = args
         self.extend_inputs(self.args)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+
+        for i in range(len(self.args)):
+            if self.args[i] == old:
+                self.args[i] = new
 
     def __str__(self):
         return 'Generate({},{})'.format(self.classtype, self.lineprop)
