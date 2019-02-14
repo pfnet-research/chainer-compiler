@@ -112,10 +112,6 @@ def get():
             test_dirs = glob.glob('out/%s' % test_name)
             test_dirs += glob.glob('out/%s_*' % test_name)
             for d in test_dirs:
-                # TODO(hamaji): Implement them at laest for CPU.
-                if 'Roi_avg_align' in d or 'Roi_max_align' in d:
-                    continue
-
                 name = os.path.basename(d)
                 test_dir = os.path.join('out', name)
                 tests.append(TestCase(name=name, test_dir=test_dir, **kwargs))
