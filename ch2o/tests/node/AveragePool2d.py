@@ -16,6 +16,12 @@ class AvgPoolPad(chainer.Chain):
         return y1
 
 
+class AvgPoolNoStride(chainer.Chain):
+    def forward(self, x):
+        y1 = F.average_pooling_2d(x, (3, 4))
+        return y1
+
+
 # ======================================
 
 import ch2o
@@ -27,3 +33,5 @@ if __name__ == '__main__':
     ch2o.generate_testcase(AvgPool, [x])
 
     ch2o.generate_testcase(AvgPoolPad, [x], subname='pad')
+
+    ch2o.generate_testcase(AvgPoolNoStride, [x], subname='no_stride')

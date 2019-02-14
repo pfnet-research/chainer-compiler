@@ -4,15 +4,21 @@ import chainer
 import chainer.functions as F
 
 
-class A(chainer.Chain):
+class MaxPool(chainer.Chain):
     def forward(self, x):
         y1 = F.max_pooling_2d(x, (1, 3), stride=(1, 4))
         return y1
 
 
-class B(chainer.Chain):
+class MaxPoolPad(chainer.Chain):
     def forward(self, x):
         y1 = F.max_pooling_2d(x, (1, 3), stride=(1, 4), pad=(0, 1))
+        return y1
+
+
+class MaxPoolNoStride(chainer.Chain):
+    def forward(self, x):
+        y1 = F.max_pooling_2d(x, (3, 4))
         return y1
 
 
@@ -22,6 +28,9 @@ import ch2o
 import numpy as np
 
 if __name__ == '__main__':
-    x = np.random.rand(2, 3, 1, 13).astype(np.float32)
-    ch2o.generate_testcase(A(), [x])
-    ch2o.generate_testcase(B(), [x], subname='pad')
+    x = np.random.rand(2, 3, 19, 13).astype(np.float32)
+    ch2o.generate_testcase(MaxPool, [x])
+
+    ch2o.generate_testcase(MaxPoolPad, [x], subname='pad')
+
+    ch2o.generate_testcase(MaxPoolNoStride, [x], subname='no_stride')

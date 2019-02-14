@@ -53,30 +53,36 @@ def _pair(v: Value) -> List[int]:
 class Function_MaxPool2d(Callable):
     def call_impl(self, env, x, ksize, stride, pad, cover_all, return_indices):
         assert not return_indices.value  # TODO(hamaji): Not implemented yet.
+        kernel_shape = _pair(ksize)
         kwargs = {}
-        if not stride.is_none():
+        if stride.is_none():
+            kwargs['strides'] = kernel_shape
+        else:
             kwargs['strides'] = _pair(stride)
         if pad.value:
             kwargs['pads'] = _pair(pad) * 2
         return env.calc(
             'MaxPool',
             inputs=[x.to_tensor(env).name],
-            kernel_shape=_pair(ksize),
+            kernel_shape=kernel_shape,
             chainer_cover_all=cover_all.to_bool(),
             **kwargs)
 
 
 class Function_AveragePool2d(Callable):
     def call_impl(self, env, x, ksize, stride, pad):
+        kernel_shape = _pair(ksize)
         kwargs = {}
-        if not stride.is_none():
+        if stride.is_none():
+            kwargs['strides'] = kernel_shape
+        else:
             kwargs['strides'] = _pair(stride)
         if pad.value:
             kwargs['pads'] = _pair(pad) * 2
         return env.calc(
             'AveragePool',
             inputs=[x.to_tensor(env).name],
-            kernel_shape=_pair(ksize),
+            kernel_shape=kernel_shape,
             count_include_pad=1,
             **kwargs)
 
