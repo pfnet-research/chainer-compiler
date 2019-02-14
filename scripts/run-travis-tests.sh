@@ -2,6 +2,8 @@
 
 set -eux
 
+./scripts/run-clang-format.sh
+
 bash setup.sh
 
 mkdir build
