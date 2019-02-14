@@ -135,39 +135,36 @@ chainerx::Array ROIPool2D(const chainerx::Array& bottom_data, const chainerx::Ar
     return top_data;
 }
 
-nonstd::optional<std::tuple<int64_t, int64_t, int64_t, int64_t, double, double, double, double>>
-get_bilinear_interp_params(double y, double x, int64_t height, int64_t width) {
-    if(y < -1 || y > height || x < -1 || x > width) {
+nonstd::optional<std::tuple<double, int64_t, int64_t>>
+get_bounds(double p, int64_t limit) {
+    if(p < -1 || limit < p) {
         return nonstd::nullopt;
     }
-    auto calc_a_low_a_high_la_ha = [](double a, int64_t len) {
-        if(a <= 0.0) {
-            a = 0.0;
-        }
-        int64_t a_low = static_cast<int64_t>(a);
-        int64_t a_high;
-        if(a_low >= len - 1) {
-            a_high = a_low = len - 1;
-            a = static_cast<double>(a_low);
-        }
-        else {
-            a_high = a_low + 1;
-        }
-        double la = a - a_low;
-        double ha = 1.0 - la;
-        return std::make_tuple(a_low, a_high, la, ha);
-    };
-    int64_t y_low, y_high;
-    double ly, hy;
-    std::tie(y_low, y_high, ly, hy) = calc_a_low_a_high_la_ha(y, height);
-    int64_t x_low, x_high;
-    double lx, hx;
-    std::tie(x_low, x_high, lx, hx) = calc_a_low_a_high_la_ha(x, width);
+    if(p < 0.0) {
+        p = 0.0;
+    }
+    int64_t low = static_cast<int64_t>(p);
+    int64_t high;
+    if (limit - 1 <= low) {
+        p = high = low = limit - 1;
+    }
+    else {
+        high = low + 1;
+    }
+    return nonstd::make_optional(std::make_tuple(p, low, high));
+}
+
+std::tuple<double, double, double, double> get_bilinear_interp_params(double y, double x, int65_t y_low, int64_t x_low, int64_t y_high, int64_t x_high) {
+    double ly = y - y_low;
+    double lx = x - x_low;
+    double hy = 1.0 - ly;
+    double hx = 1.0 - lx;
+
     double w1 = hy * hx;
     double w2 = hy * lx;
     double w3 = ly * hx;
     double w4 = ly * lx;
-    return std::make_tuple(y_low, x_low, y_high, x_high, w1, w2, w3, w4);
+    return std::make_tuple(w1, w2, w3, w4);
 }
 
 template<class ReduceMode>
@@ -182,7 +179,7 @@ chainerx::Array ROIAlign2D(const chainerx::Array& bottom_data, const chainerx::A
     const int64_t n_rois = bottom_rois.shape()[0];
     const int64_t pooled_height = output_shape[0];
     const int64_t pooled_width = output_shape[1];
-    chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_rois.dtype());
+    chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
     for(int64_t n = 0; n < n_rois; ++n) {
         int64_t roi_batch_ind = int64_t(chainerx::AsScalar(bottom_roi_indices.At({n})));
@@ -202,29 +199,33 @@ chainerx::Array ROIAlign2D(const chainerx::Array& bottom_data, const chainerx::A
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
                     ReduceMode reduce;
-                    int64_t iy = 0;
-                    while(iy < roi_bin_grid_h) {
+                    for(int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
                         auto y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
-                        int64_t ix = 0;
-                        while(ix < roi_bin_grid_w) {
+                        int64_t y_low, y_high;
+                        auto y_bounds = get_bounds(y, height);
+                        if(!y_bounds) {
+                            continue;
+                        }
+                        std::tie(y, y_low, y_high) = *y_bounds;
+                        for(int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                             auto x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
-
-                            // bilinear interpolation {{
-                            auto params = get_bilinear_interp_params(y, x, height, width);
-                            if(!params) {
+                            int64_t x_low, x_high;
+                            auto x_bounds = get_bounds(x, width);
+                            if(!x_bounds) {
                                 continue;
                             }
-                            int64_t y_low, x_low, y_high, x_high;
+                            std::tie(x, x_low, x_high) = *x_bounds;
+
+                            // bilinear interpolation {{
                             double w1, w2, w3, w4;
-                            std::tie(y_low, x_low, y_high, x_high, w1, w2, w3, w4) = *params;
+                            std::tie(w1, w2, w3, w4) = get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high);
                             auto v1 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_low})));
                             auto v2 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_high})));
                             auto v3 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_low})));
                             auto v4 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_high})));
                             reduce.Reduce(v1, v2, v3, v4, w1, w2, w3, w4);
-                            ++ix;
+                            // }}
                         }
-                        ++iy;
                     }
                     top_data.At({n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
                 }
