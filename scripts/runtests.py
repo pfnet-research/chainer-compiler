@@ -658,7 +658,6 @@ def main():
             args.build_dir = 'build'
 
     run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
-    print('Testing %s' % run_onnx)
 
     tested = []
     failed = []
@@ -699,6 +698,8 @@ def main():
             gpu_tests.append(test_case)
         else:
             tests.append(test_case)
+
+    print('Testing %d tests with %s' % (len(tests + gpu_tests), run_onnx))
 
     for test in tests + gpu_tests:
         test.prepare()
