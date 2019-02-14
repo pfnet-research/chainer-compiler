@@ -160,7 +160,7 @@ nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int6
 }
 
 std::tuple<double, double, double, double> get_bilinear_interp_params(
-        double y, double x, int65_t y_low, int64_t x_low, int64_t y_high, int64_t x_high) {
+        double y, double x, int64_t y_low, int64_t x_low, int64_t y_high, int64_t x_high) {
     double ly = y - y_low;
     double lx = x - x_low;
     double hy = 1.0 - ly;
@@ -212,7 +212,7 @@ chainerx::Array ROIAlign2D(
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
                     ReduceMode reduce;
                     for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
-                        auto y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                        double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
                         int64_t y_low, y_high;
                         auto y_bounds = get_bounds(y, height);
                         if (!y_bounds) {
@@ -220,7 +220,7 @@ chainerx::Array ROIAlign2D(
                         }
                         std::tie(y, y_low, y_high) = *y_bounds;
                         for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
-                            auto x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                            double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
                             int64_t x_low, x_high;
                             auto x_bounds = get_bounds(x, width);
                             if (!x_bounds) {
@@ -235,7 +235,8 @@ chainerx::Array ROIAlign2D(
                             auto v2 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_high})));
                             auto v3 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_low})));
                             auto v4 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_high})));
-                            reduce.Reduce(v1, v2, v3, v4, w1, w2, w3, w4);
+                            double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+                            reduce.Reduce(weighted_average);
                             // }}
                         }
                     }
@@ -249,13 +250,10 @@ chainerx::Array ROIAlign2D(
 
 class ReduceByMax {
 public:
-    void Reduce(float v1, float v2, float v3, float v4, double w1, double w2, double w3, double w4) {
-        float tmp_val = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
-        if (max_val_ < tmp_val) {
-            max_val_ = tmp_val;
-        }
+    void Reduce(double weighted_average) {
+        max_val_ = std::max(max_val_, weighted_average);
     }
-    auto Finish(int64_t /*roi_bin_grid_h*/, int64_t /*roi_bin_grid_w*/) const {
+    double Finish(int64_t /*roi_bin_grid_h*/, int64_t /*roi_bin_grid_w*/) const {
         return max_val_;
     }
 
@@ -265,10 +263,10 @@ private:
 
 class ReduceByAverage {
 public:
-    void Reduce(float v1, float v2, float v3, float v4, double w1, double w2, double w3, double w4) {
-        sum_ += w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+    void Reduce(double weighted_average) {
+        sum_ += weighted_average;
     }
-    auto Finish(int64_t roi_bin_grid_h, int64_t roi_bin_grid_w) const {
+    double Finish(int64_t roi_bin_grid_h, int64_t roi_bin_grid_w) const {
         return sum_ / (roi_bin_grid_h * roi_bin_grid_w);
     }
 
