@@ -446,7 +446,9 @@ void RunMain(const std::vector<std::string>& argv) {
     std::vector<std::string> output_names;
     std::set<std::string> initializer_names;
     for (const Value* input : model.graph().input_values()) {
-        if (!input->initializer()) {
+        if (input->initializer()) {
+            CHECK(initializer_names.insert(input->name()).second);
+        } else {
             input_names.push_back(input->name());
         }
     }
