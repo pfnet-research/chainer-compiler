@@ -440,11 +440,13 @@ class Function_Separate(Callable):
 
 class Function_Squeeze(Callable):
     def call_impl(self, env, x, axis):
-        assert not axis.is_none()  # TODO(hamaji): Not supported yet.
+        kwargs = {}
+        if not axis.is_none():
+            kwargs['axes'] = _int_or_list(axis)
         return env.calc(
             'Squeeze',
             inputs=[x.to_tensor(env).name],
-            axes=_int_or_list(axis)
+            **kwargs
         )
 
 

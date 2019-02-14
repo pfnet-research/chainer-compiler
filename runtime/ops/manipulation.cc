@@ -45,15 +45,7 @@ chainerx::Array ExpandOp::RunImpl(XCVMState* st, const chainerx::Array& data, co
 }
 
 chainerx::Array SqueezeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
-    chainerx::Shape shape;
-    for (size_t i = 0; i < data.shape().size(); ++i) {
-        if (std::find(axes.begin(), axes.end(), i) == axes.end()) {
-            shape.push_back(data.shape()[i]);
-        } else {
-            CHECK_EQ(1, data.shape()[i]) << "Cannot squeeze a dimension whose size is not 1: " << data.shape();
-        }
-    }
-    return chainerx::Reshape(data, shape);
+    return chainerx::Squeeze(data, GetChainerXAxes(axes));
 }
 
 chainerx::Array UnsqueezeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
