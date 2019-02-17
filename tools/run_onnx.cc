@@ -53,6 +53,8 @@ bool g_quiet;
 #define LOG() \
     if (!g_quiet) std::cerr
 
+bool g_skip_validation;
+
 std::vector<std::string> ListDir(const std::string& dirname) {
     DIR* dir = opendir(dirname.c_str());
     std::vector<std::string> filenames;
@@ -400,6 +402,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
     args.add("quiet", 'q', "Quiet mode");
+    args.add("skip_validation", '\0', "Skip test validation (for benchmark)");
     AddCompilerFlags(&args);
     args.parse_check(argv);
     ApplyCompilerFlags(args);
@@ -410,6 +413,7 @@ void RunMain(const std::vector<std::string>& argv) {
     std::string test_path = args.get<std::string>("test");
 
     g_quiet = args.exist("quiet");
+    g_skip_validation = args.exist("skip_validation");
     if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
         std::cerr << args.usage() << std::endl;
         QFAIL() << "Either --onnx or --test must be specified!";
@@ -516,97 +520,99 @@ void RunMain(const std::vector<std::string>& argv) {
             continue;
         }
 
-        LOG() << "Verifying the result..." << std::endl;
         size_t ok_cnt = 0;
-        for (const auto& p : test_case->outputs) {
-            test_cnt++;
-            const std::string key = p.first;
-            XCVMVar* expected = p.second.get();
-            auto found = outputs.find(key);
-            CHECK(found != outputs.end()) << "Output does not contain " << key;
-            XCVMVar* actual = found->second.get();
+        if (!g_skip_validation) {
+            LOG() << "Verifying the result..." << std::endl;
+            for (const auto& p : test_case->outputs) {
+                test_cnt++;
+                const std::string key = p.first;
+                XCVMVar* expected = p.second.get();
+                auto found = outputs.find(key);
+                CHECK(found != outputs.end()) << "Output does not contain " << key;
+                XCVMVar* actual = found->second.get();
 
-            auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
-                int size = a->GetTotalSize();
-                if (size < 100 || args.exist("verbose")) return a->ToString();
-                return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
-            };
+                auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
+                    int size = a->GetTotalSize();
+                    if (size < 100 || args.exist("verbose")) return a->ToString();
+                    return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
+                };
 
-            auto var_str = [&args, array_str](XCVMVar* v) {
-                switch (v->kind()) {
-                    case XCVMVar::Kind::kArray:
-                        return array_str(v->GetArray());
-                    case XCVMVar::Kind::kSequence:
-                        return JoinString(MapToString(NonOptional(*v->GetSequence()), array_str));
-                    case XCVMVar::Kind::kOpaque:
-                    case XCVMVar::Kind::kNull:
-                        CHECK(false) << v->DebugString();
-                }
-                CHECK(false);
-            };
-
-            auto fail = [&](const std::string& type) {
-                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
-                      << std::endl;
-            };
-
-            auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
-                if (expected.dtype() != actual.dtype()) {
-                    fail("dtype");
-                    return false;
-                }
-                if (expected.shape() != actual.shape()) {
-                    fail("shape");
-                    return false;
-                }
-                if (iterations > 1) return true;
-                if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"), 1e-6)) {
-                    if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
-                        static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
-                        return true;
+                auto var_str = [&args, array_str](XCVMVar* v) {
+                    switch (v->kind()) {
+                        case XCVMVar::Kind::kArray:
+                            return array_str(v->GetArray());
+                        case XCVMVar::Kind::kSequence:
+                            return JoinString(MapToString(NonOptional(*v->GetSequence()), array_str));
+                        case XCVMVar::Kind::kOpaque:
+                        case XCVMVar::Kind::kNull:
+                            CHECK(false) << v->DebugString();
                     }
-                    fail("value");
-                    return false;
+                    CHECK(false);
+                };
+
+                auto fail = [&](const std::string& type) {
+                    LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
+                          << std::endl;
+                };
+
+                auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
+                    if (expected.dtype() != actual.dtype()) {
+                        fail("dtype");
+                        return false;
+                    }
+                    if (expected.shape() != actual.shape()) {
+                        fail("shape");
+                        return false;
+                    }
+                    if (iterations > 1) return true;
+                    if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"), 1e-6)) {
+                        if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
+                            static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
+                            return true;
+                        }
+                        fail("value");
+                        return false;
+                    }
+                    return true;
+                };
+
+                if (expected->kind() != actual->kind()) {
+                    fail("kind");
+                    continue;
                 }
-                return true;
-            };
 
-            if (expected->kind() != actual->kind()) {
-                fail("kind");
-                continue;
-            }
+                bool ok = false;
+                switch (expected->kind()) {
+                    case XCVMVar::Kind::kArray:
+                        ok = check_array(expected->GetArray(), actual->GetArray());
+                        break;
 
-            bool ok = false;
-            switch (expected->kind()) {
-                case XCVMVar::Kind::kArray:
-                    ok = check_array(expected->GetArray(), actual->GetArray());
-                    break;
+                    case XCVMVar::Kind::kSequence: {
+                        const auto& expected_seq = *expected->GetSequence();
+                        const auto& actual_seq = *actual->GetSequence();
+                        if (expected_seq.size() != actual_seq.size()) {
+                            fail("seq_size");
+                            ok = false;
+                            break;
+                        }
 
-                case XCVMVar::Kind::kSequence: {
-                    const auto& expected_seq = *expected->GetSequence();
-                    const auto& actual_seq = *actual->GetSequence();
-                    if (expected_seq.size() != actual_seq.size()) {
-                        fail("seq_size");
-                        ok = false;
+                        for (size_t i = 0; i < expected_seq.size(); ++i) {
+                            ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
+                            if (!ok) break;
+                        }
                         break;
                     }
 
-                    for (size_t i = 0; i < expected_seq.size(); ++i) {
-                        ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
-                        if (!ok) break;
-                    }
-                    break;
+                    case XCVMVar::Kind::kOpaque:
+                    case XCVMVar::Kind::kNull:
+                        CHECK(false) << expected->DebugString();
                 }
 
-                case XCVMVar::Kind::kOpaque:
-                case XCVMVar::Kind::kNull:
-                    CHECK(false) << expected->DebugString();
+                if (!ok) continue;
+
+                LOG() << "OK: " << key << std::endl;
+                ++ok_cnt;
             }
-
-            if (!ok) continue;
-
-            LOG() << "OK: " << key << std::endl;
-            ++ok_cnt;
         }
 
         chainerx::GetDefaultDevice().Synchronize();
