@@ -8,12 +8,13 @@ File.readlines('scripts/runtests.py').each do |line|
   end
 end
 
-node_tests = Dir.glob('onnx/onnx/backend/test/data/node/*').map do |f|
+node_tests = Dir.glob(
+  'third_party/onnx/onnx/backend/test/data/node/*').map do |f|
   File.basename(f)
 end
 
 onnx_ops = []
-File.readlines('onnx/docs/Operators.md').each do |line|
+File.readlines('third_party/onnx/docs/Operators.md').each do |line|
   if line =~ /^  \* <a href="#(.*?)"/
     onnx_ops << $1
   end
