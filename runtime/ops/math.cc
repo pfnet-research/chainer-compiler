@@ -61,13 +61,18 @@ chainerx::Array MulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const ch
 }
 
 chainerx::Array DivOp::RunImpl(XCVMState* st, const chainerx::Array& a0, const chainerx::Array& b0) {
-    chainerx::Array a, b;
+    chainerx::Array a, b, r;
     std::tie(a, b) = CoerceBinary(a0, b0);
     // TODO(hamaji): Come up with a better idea to handle cross device ops.
     if (&a.device() != &b.device() && b.GetTotalSize() == 1) {
-        return a / chainerx::AsScalar(b);
+        r = chainerx::Divide(a, chainerx::AsScalar(b));
     }
-    return a / b;
+    r = chainerx::Divide(a, b);
+    // TODO(hamaji): Use FloorDivide once ChainerX supports it.
+    if (a.dtype() != r.dtype()) {
+        r = CastTo(r, a.dtype());
+    }
+    return r;
 }
 
 chainerx::Array PowOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
