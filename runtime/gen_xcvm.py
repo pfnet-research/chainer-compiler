@@ -16,6 +16,22 @@ args = parser.parse_args()
 
 output_dir = args.output_dir
 
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+RESET = '\033[0m'
+
+
+def colored_name(typ, name):
+    s = sigil(typ)
+    if s == '$':
+        color = GREEN
+    elif s == '*':
+        color = YELLOW
+    else:
+        color = RED
+    return '"{}{}" << {} << "{}"'.format(color, s, name, RESET)
+
 
 def gen_xcvm_proto():
     with open(os.path.join(args.input_dir, 'xcvm.proto.tmpl')) as f:
@@ -172,14 +188,14 @@ def gen_gen_xcvm_ops_cc():
                 if typ == ARRAY_LIST:
                     line += ' << ArrayListToString(%s)' % name
                 else:
-                    line += ' << "%s" << %s' % (sigil(typ), name)
+                    line += ' << %s' % colored_name(typ, name)
             line += ' << " = "'
         line += ' << "%s("' % (op.name)
         for i, (typ, name) in enumerate(op.inputs):
             if i:
                 line += ' << ", "'
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE]:
-                line += ' << "%s" << %s' % (sigil(typ), name)
+                line += ' << %s' % colored_name(typ, name)
             elif typ in (INT, FLOAT):
                 line += ' << %s' % name
             elif typ in [STRING, DOUBLES]:
@@ -197,7 +213,7 @@ def gen_gen_xcvm_ops_cc():
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.inputs:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE]:
-                line += ' << " %s" << %s << "="' % (sigil(typ), name)
+                line += ' << " " << %s << "="' % colored_name(typ, name)
                 line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:
                 line += ' << st->GetVarListString(%s)' % name
@@ -272,7 +288,7 @@ def gen_gen_xcvm_ops_cc():
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.outputs:
             if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE]:
-                line += ' << " %s" << %s << "="' % (sigil(typ), name)
+                line += ' << " " << %s << "="' % colored_name(typ, name)
                 line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:
                 line += ' << st->GetVarListString(%s)' % name
