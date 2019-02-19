@@ -1,5 +1,7 @@
 #include "runtime/xcvm_state.h"
 
+#include <map>
+
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
@@ -207,16 +209,30 @@ void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>
 }
 
 void XCVMState::ShowVariableStatus() const {
-    int64_t total = 0;
     for (size_t i = 0; i < variables_.size(); ++i) {
         const std::unique_ptr<XCVMVar>& var = variables_[i];
         if (!var.get()) continue;
-        int64_t size = var->GetNBytes();
-        total += size;
+        const int64_t size = var->GetNBytes();
         std::cerr << "$" << i << ": " << size << std::endl;
     }
-    int64_t total_mb = total / 1000 / 1000;
-    std::cerr << "Total chainerx::Array: " << total_mb << "MB" << std::endl;
+}
+
+int64_t XCVMState::GetTotalVariableSize() const {
+    std::map<void*, int64_t> array_sizes;
+    for (const auto& v : variables_) {
+        if (!v) {
+            continue;
+        }
+        for (const chainerx::Array& a : v->GetArrays()) {
+            array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
+        }
+    }
+
+    int64_t total_size = 0;
+    for (const auto& p : array_sizes) {
+        total_size += p.second;
+    }
+    return total_size;
 }
 
 }  // namespace runtime

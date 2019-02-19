@@ -63,6 +63,31 @@ int64_t XCVMVar::GetNBytes() const {
     return size;
 }
 
+std::vector<chainerx::Array> XCVMVar::GetArrays() const {
+    switch (kind_) {
+        case Kind::kArray:
+            return {array_};
+        case Kind::kSequence: {
+            std::vector<chainerx::Array> arrays;
+            for (const XCVMVar& v : *sequence_) {
+                for (const chainerx::Array a : v.GetArrays()) {
+                    arrays.push_back(a);
+                }
+            }
+            return arrays;
+        }
+        case Kind::kOpaque:
+            return opaque_->GetArrays();
+
+        case Kind::kNull:
+            return {};
+
+        default:
+            CHECK(false) << DebugString();
+            return {};
+    }
+}
+
 char XCVMVar::Sigil() const {
     switch (kind_) {
         case Kind::kArray:

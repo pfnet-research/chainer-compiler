@@ -83,6 +83,8 @@ public:
         program_ = program;
     }
 
+    int64_t GetTotalVariableSize() const;
+
 private:
     void ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs);
 

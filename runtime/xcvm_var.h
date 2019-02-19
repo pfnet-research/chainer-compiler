@@ -61,6 +61,8 @@ public:
 
     int64_t GetNBytes() const;
 
+    std::vector<chainerx::Array> GetArrays() const;
+
     char Sigil() const;
 
     std::string ToString() const;

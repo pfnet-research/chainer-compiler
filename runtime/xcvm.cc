@@ -48,6 +48,10 @@ void CheckType(XCVMState* st, const XCVMOp* op) {
     }
 }
 
+int64_t InMbs(int64_t bytes) {
+    return bytes / 1000 / 1000;
+}
+
 }  // namespace
 
 XCVMOptions::XCVMOptions() {
@@ -84,7 +88,7 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
 void XCVM::Run(XCVMState* state) {
     state->SetProgram(&program_);
     const XCVMOptions& options = state->options();
-    int64_t peak_usage = 0;
+    int64_t peak_used_mbs = 0, peak_total_mbs = 0;
 
     while (true) {
         int pc = state->pc();
@@ -114,17 +118,26 @@ void XCVM::Run(XCVMState* state) {
             CheckType(state, op);
         }
 
-        if (options.dump_memory_usage && options.base_memory_usage >= 0) {
-            int64_t bytes = options.base_memory_usage - GetMemoryUsageInBytes();
-            int64_t mbs = bytes / 1000 / 1000;
-            peak_usage = std::max(mbs, peak_usage);
-            std::cerr << " Memory usage: " << mbs << "MB" << std::endl;
+        if (options.dump_memory_usage) {
+            int64_t used_mbs = InMbs(state->GetTotalVariableSize());
+            peak_used_mbs = std::max(used_mbs, peak_used_mbs);
+            std::string report = StrCat(" Memory usage=", used_mbs, "MB");
+            if (options.base_memory_usage >= 0) {
+                int64_t total_mbs = InMbs(options.base_memory_usage - GetMemoryUsageInBytes());
+                peak_total_mbs = std::max(total_mbs, peak_total_mbs);
+                report = StrCat(report, " allocated=", total_mbs, "MB");
+            }
+            std::cerr << report << std::endl;
         }
     }
 
     if (options.dump_memory_usage) {
         state->ShowVariableStatus();
-        std::cerr << "Peak memory usage: " << peak_usage << "MB" << std::endl;
+        std::string report = StrCat("Peak memory usage=", peak_used_mbs, "MB");
+        if (options.base_memory_usage >= 0) {
+            report = StrCat(report, " allocated=", peak_total_mbs, "MB");
+        }
+        std::cerr << report << std::endl;
     }
 }
 
