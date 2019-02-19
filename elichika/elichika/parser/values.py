@@ -20,14 +20,17 @@ from elichika.parser.functions import FunctionBase, UserDefinedFunction
 fields = []
 attributes = []
 registered_objects = []
+history_tags = []
 
 def reset_field_and_attributes():
     global fields
     global attributes
     global registered_objects
+    global history_tags
     fields = []
     attributes = []
     registered_objects = []
+    history_tags = []
 
 def register_field(field : 'Field'):
     fields.append(weakref.ref(field))
@@ -39,6 +42,9 @@ def register_object(value : 'Object'):
     registered_objects.append(weakref.ref(value))
 
 def commit(commit_id : 'str'):
+    if not commit_id in history_tags:
+        history_tags.append(commit_id)
+
     for field in fields:
         o = field()
         if o is not None:
@@ -172,7 +178,7 @@ class Field():
 
         return False
 
-    def get_attribute(self, key : 'str') -> 'Attribute':
+    def get_attribute(self, key : 'str', from_module = True) -> 'Attribute':
         if key in self.attributes.keys():
             return self.attributes[key]
         else:
@@ -185,7 +191,7 @@ class Field():
                 return attribute
 
             # search an attribute from a module
-            if self.module is not None and self.module.has_attribute(key):
+            if self.module is not None and self.module.has_attribute(key) and from_module:
                 attribute = self.module.get_attribute(key)
 
             if attribute is not None:
@@ -275,11 +281,8 @@ class Attribute:
         assert(isinstance(obj, Object))
         
         # assgin name to the object
-        if obj.name == "":
-            obj.name = self.name
-
-        if obj.get_value().name == '':
-            obj.get_value().name = self.name
+        obj.name = utils.create_obj_value_name_with_attribute(self.name, obj.name)
+        obj.get_value().name = utils.create_obj_value_name_with_attribute(self.name, obj.get_value().name)
 
         if self.initial_obj is None:
             self.initial_obj = obj
@@ -357,6 +360,20 @@ class Object():
 
     def revise(self, value):
         self.value = value
+
+    def set_value_all(self, value):
+        '''
+        set value to current and all histories.
+        this function is for try_get_obj
+        '''
+        self.value = value
+
+        for k, v in self.histories.items():
+            v.value = value
+
+        for history_tag in history_tags:
+            if not history_tag in self.histories.keys():
+                self.histories[history_tag] = ObjectHistory(self.value)
 
     def commit(self, commit_id : 'str'):
         self.histories[commit_id] = ObjectHistory(self.value)
@@ -542,12 +559,13 @@ class UserDefinedInstance(Instance):
             self.func = obj.try_get_and_store_obj('forward')
 
     def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
+        obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):
                 return None
 
             attr_v = getattr(self.inst, name)
-            return parse_instance(self.module, name, attr_v, inst)
+            obj = parse_instance(self.module, name, attr_v, inst)
 
         else:
             members = inspect.getmembers(self.classinfo)
@@ -558,4 +576,9 @@ class UserDefinedInstance(Instance):
             if not (name in members_dict.keys()):
                 return None
 
-            return parse_instance(self.module, name, members_dict[name], inst)
+            obj = parse_instance(self.module, name, members_dict[name], inst)
+
+        # it is for calling this function in if or for
+        obj.set_value_all(obj.value)
+
+        return obj

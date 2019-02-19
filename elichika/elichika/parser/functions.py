@@ -23,7 +23,14 @@ def generate_copied_value(value : 'values.Value'):
 
     if isinstance(value, values.TensorValue):
         copied = values.TensorValue()
+        copied.value = value.value
         copied.shape = value.shape
+        return copied
+
+    if isinstance(value, values.ListValue):
+        copied = values.ListValue()
+        copied.is_any = value.is_any
+        copied.values = value.values.copy()
         return copied
 
     if isinstance(value, values.NoneValue):
