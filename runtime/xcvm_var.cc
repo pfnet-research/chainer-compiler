@@ -38,7 +38,7 @@ XCVMOpaque* XCVMVar::GetOpaque() const {
     return opaque_.get();
 }
 
-int64_t XCVMVar::GetTotalSize() const {
+int64_t XCVMVar::GetNBytes() const {
     int64_t size = 0;
     switch (kind_) {
         case Kind::kArray:

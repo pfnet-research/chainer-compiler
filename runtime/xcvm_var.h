@@ -53,7 +53,7 @@ public:
         return kind_ == Kind::kNull;
     }
 
-    int64_t GetTotalSize() const;
+    int64_t GetNBytes() const;
 
     char Sigil() const;
 
