@@ -7,7 +7,6 @@
 #include <queue>
 #include <vector>
 
-#include <common/strutil.h>
 #include <compiler/graph.h>
 #include <compiler/log.h>
 #include <compiler/memory_simulator.h>
@@ -261,14 +260,7 @@ int64_t ScheduleComputation(
     }
 
     if (g_compiler_log) {
-        SimulatedMemoryUsage usage = SimulateMemoryUsage(graph);
-        if (usage.num_unknowns) {
-            WARN_ONCE(StrCat("Incomplete memory simulation due to unknown shapes (", usage.num_unknowns, "/", usage.num_values, ")"));
-        }
-        int64_t param_mb = usage.param / 1000 / 1000;
-        int64_t peak_mb = usage.peak / 1000 / 1000;
-        int64_t all_mb = usage.all / 1000 / 1000;
-        std::cerr << "Simulated memory usage: param=" << param_mb << "MB peak=" << peak_mb << "MB all=" << all_mb << "MB" << std::endl;
+        ShowSimulatedMemoryUsage(graph);
     }
     return order;
 }

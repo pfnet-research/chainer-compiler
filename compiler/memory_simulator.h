@@ -16,4 +16,6 @@ struct SimulatedMemoryUsage {
 
 SimulatedMemoryUsage SimulateMemoryUsage(const Graph& graph);
 
+void ShowSimulatedMemoryUsage(const Graph& graph);
+
 }  // namespace chainer_compiler
