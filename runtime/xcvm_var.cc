@@ -6,6 +6,15 @@
 namespace chainer_compiler {
 namespace runtime {
 
+const std::vector<chainerx::Array>& XCVMOpaque::GetArrays() const {
+    CHECK(retained_arrays_) << "SetRetainedArrays was not called: " << DebugString();
+    return *retained_arrays_;
+}
+
+void XCVMOpaque::SetRetainedArrays(const std::vector<chainerx::Array>& retained_arrays) {
+    retained_arrays_.reset(new std::vector<chainerx::Array>(retained_arrays));
+}
+
 XCVMVar::XCVMVar() : kind_(Kind::kNull) {
 }
 

@@ -129,6 +129,9 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
     const Array& beta_reshaped = result.beta;
     chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
     XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
+    if (st->options().dump_memory_usage) {
+        ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
+    }
     chainerx::Array saved_mean, saved_var;
     if (this->saved_mean >= 0) {
         WARN_ONCE("saved_mean is implemented by re-calculation");

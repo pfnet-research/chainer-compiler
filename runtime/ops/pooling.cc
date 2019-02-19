@@ -41,6 +41,9 @@ std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const
             x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
     chainerx::Array out = fb->Forward(x);
     XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolForwardBackward>(std::move(fb));
+    if (st->options().dump_memory_usage) {
+        ctx->SetRetainedArrays({x, out});
+    }
     return std::tie(out, ctx);
 }
 
@@ -51,6 +54,9 @@ std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, c
             x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
     chainerx::Array out = fb->Forward(x);
     XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolForwardBackward>(std::move(fb));
+    if (st->options().dump_memory_usage) {
+        ctx->SetRetainedArrays({x, out});
+    }
     return std::tie(out, ctx);
 }
 

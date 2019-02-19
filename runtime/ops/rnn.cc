@@ -230,7 +230,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
     // TODO(hamaji): Handle more cases.
     if ((direction == 0 || direction == 2) && b.has_value() && !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> result;
-        if (CudnnLSTM(x, w, r, b, sequence_lens, initial_h, initial_c, p, hidden_size, direction, &result)) {
+        if (CudnnLSTM(st, x, w, r, b, sequence_lens, initial_h, initial_c, p, hidden_size, direction, &result)) {
             return result;
         }
     }
@@ -327,19 +327,30 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
         cs[d] = c;
     }
 
+    chainerx::Array output, h, c;
     if (num_direction == 1) {
-        chainerx::Array output = chainerx::Reshape(outputs[0], {seq_length, 1, batch_size, hidden_size});
-        chainerx::Array h = chainerx::Reshape(hs[0], {1, hs[0].shape()[0], hs[0].shape()[1]});
-        chainerx::Array c = chainerx::Reshape(cs[0], {1, cs[0].shape()[0], cs[0].shape()[1]});
-        bwd->SetOutput({output});
-        return std::make_tuple(output, h, c, bwd.release());
+        output = chainerx::Reshape(outputs[0], {seq_length, 1, batch_size, hidden_size});
+        h = chainerx::Reshape(hs[0], {1, hs[0].shape()[0], hs[0].shape()[1]});
+        c = chainerx::Reshape(cs[0], {1, cs[0].shape()[0], cs[0].shape()[1]});
     } else {
-        chainerx::Array output = chainerx::Stack({outputs[0], outputs[1]}, 1);
-        chainerx::Array h = chainerx::Stack({hs[0], hs[1]}, 0);
-        chainerx::Array c = chainerx::Stack({cs[0], cs[1]}, 0);
-        bwd->SetOutput({output});
-        return std::make_tuple(output, h, c, bwd.release());
+        output = chainerx::Stack({outputs[0], outputs[1]}, 1);
+        h = chainerx::Stack({hs[0], hs[1]}, 0);
+        c = chainerx::Stack({cs[0], cs[1]}, 0);
     }
+
+    if (st->options().dump_memory_usage) {
+        WARN_ONCE("Retained arrays for LSTM on CPU is inaccurate");
+        std::vector<chainerx::Array> retained_arrays = {x, w, r, output, h, c};
+        for (const auto& a : {b, sequence_lens, initial_h, initial_c, p}) {
+            if (a.has_value()) {
+                retained_arrays.push_back(*a);
+            }
+        }
+        bwd->SetRetainedArrays(retained_arrays);
+    }
+
+    bwd->SetOutput({output});
+    return std::make_tuple(output, h, c, bwd.release());
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> LSTMGradOp::RunImpl(

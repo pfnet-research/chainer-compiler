@@ -4,6 +4,7 @@ namespace chainer_compiler {
 namespace runtime {
 
 bool CudnnLSTM(
+        XCVMState* st,
         const chainerx::Array& ox,
         const chainerx::Array& w,
         const chainerx::Array& r,

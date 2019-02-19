@@ -22,8 +22,14 @@ public:
         return "???";
     }
 
+    const std::vector<chainerx::Array>& GetArrays() const;
+
+    void SetRetainedArrays(const std::vector<chainerx::Array>& retained_arrays);
+
 protected:
     XCVMOpaque() = default;
+
+    std::unique_ptr<std::vector<chainerx::Array>> retained_arrays_;
 };
 
 class XCVMVar {

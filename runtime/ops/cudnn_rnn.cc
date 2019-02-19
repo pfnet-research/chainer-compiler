@@ -227,7 +227,8 @@ public:
             chainerx::Shape b_shape,
             const std::vector<int64_t>& offsets,
             int64_t num_inputs,
-            const std::vector<int>& num_batches)
+            const std::vector<int>& num_batches,
+            bool dump_memory_usage)
         : rnn_desc_(std::move(rnn_desc)),
           dropout_desc_(std::move(dropout_desc)),
           y_desc_(std::move(y_desc)),
@@ -246,6 +247,9 @@ public:
           offsets_(offsets),
           num_inputs_(num_inputs),
           num_batches_(num_batches) {
+        if (dump_memory_usage) {
+            SetRetainedArrays({y_, w_, h_, c_, x_, workspace_, reserve_});
+        }
     }
 
     virtual ~LSTMBackwardContext() = default;
@@ -369,6 +373,7 @@ chainerx::Array UnpackSequence(
 }  // namespace
 
 bool CudnnLSTM(
+        XCVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
@@ -545,7 +550,8 @@ bool CudnnLSTM(
             b_shape,
             offsets,
             num_inputs,
-            num_batches);
+            num_batches,
+            st->options().dump_memory_usage);
 
     y = UnpackSequence(y, num_inputs, num_batches, y_shape);
     y = chainerx::Reshape(y, chainerx::Shape{seq_length, batch_size, num_direction, hidden_size});
