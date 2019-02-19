@@ -4,6 +4,8 @@ set -eux
 
 ./scripts/run-clang-format.sh
 
+sudo pip3 install third_party/chainer
+
 bash setup.sh
 
 mkdir build
