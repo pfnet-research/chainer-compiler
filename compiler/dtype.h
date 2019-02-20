@@ -17,6 +17,7 @@ public:
         kInt32,
         kInt64,
         kUInt8,
+        kFloat16,
         kFloat32,
         kFloat64,
     };

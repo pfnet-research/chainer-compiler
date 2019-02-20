@@ -38,6 +38,8 @@ Dtype GetDtype(const chainerx::Array& a) {
             return Dtype::kInt64;
         case chainerx::Dtype::kUInt8:
             return Dtype::kUInt8;
+        case chainerx::Dtype::kFloat16:
+            return Dtype::kFloat16;
         case chainerx::Dtype::kFloat32:
             return Dtype::kFloat32;
         case chainerx::Dtype::kFloat64:
