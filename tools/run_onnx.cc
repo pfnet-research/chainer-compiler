@@ -83,6 +83,7 @@ chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
         ASSIGN_DTYPE(kInt32);
         ASSIGN_DTYPE(kInt64);
         ASSIGN_DTYPE(kUInt8);
+        ASSIGN_DTYPE(kFloat16);
         ASSIGN_DTYPE(kFloat32);
         ASSIGN_DTYPE(kFloat64);
         default:

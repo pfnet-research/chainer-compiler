@@ -149,13 +149,12 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_eyelike_with_dtype'),
     TestCase(NODE_TEST, 'test_eyelike_without_dtype'),
 
-    # TODO(ChainerX): Support float16?
     TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),
-    # TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
-    # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_DOUBLE'),
-    # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_FLOAT'),
+    TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT16_to_DOUBLE'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT16_to_FLOAT'),
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_DOUBLE'),
-    # TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
 
     # TODO(ChainerX): Support non-2D dot.
     # terminate called after throwing an instance of 'chainerx::NotImplementedError'

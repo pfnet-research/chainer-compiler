@@ -120,6 +120,9 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
             case Dtype::kUInt8:
                 data_.reset(LoadDataFromRawData<uint8_t>(xtensor.raw_data(), NumElements()).release());
                 break;
+            case Dtype::kFloat16:
+                data_.reset(LoadDataFromRawData<int16_t>(xtensor.raw_data(), NumElements()).release());
+                break;
             case Dtype::kFloat32:
                 data_.reset(LoadDataFromRawData<float>(xtensor.raw_data(), NumElements()).release());
                 break;
