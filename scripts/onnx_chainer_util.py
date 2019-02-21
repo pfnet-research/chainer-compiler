@@ -1,9 +1,13 @@
 import chainer
 import contextlib
 import os
+import pkg_resources
 
 import numpy as np
-import onnx_chainer
+try:
+    from onnx_chainer.export import export as onnx_chainer_export
+except pkg_resources.DistributionNotFound:
+    pass
 from onnx import numpy_helper
 
 
@@ -49,7 +53,7 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     chainer.config.train = False
     makedirs(out_dir)
     with replace_id(model, builtins):
-        onnx_chainer.export(model, inputs,
+        onnx_chainer_export(model, inputs,
                             filename='%s/model.onnx' % out_dir,
                             graph_name=graph_name)
 

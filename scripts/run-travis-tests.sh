@@ -5,6 +5,7 @@ set -eux
 ./scripts/run-clang-format.sh
 
 sudo pip3 install third_party/chainer
+sudo pip3 install third_party/onnx-chainer
 
 bash setup.sh
 
