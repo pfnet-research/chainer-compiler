@@ -530,6 +530,11 @@ class TensorValue(Value):
         super().__init__()
         self.shape = ()
         self.value = None
+
+    def apply_to_object(self, obj : 'Object'):
+        shape_func = Object(FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))
+        obj.attributes.get_attribute('shape').revise(shape_func)
+
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
 

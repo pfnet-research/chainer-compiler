@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 current_id = 0
 
@@ -13,6 +14,20 @@ def get_guid():
 def reset_guid():
     global current_id
     current_id = 0
+
+def numpy_type_2_int(t):
+    if t == np.int32:
+        return 0
+    if t == np.float32:
+        return 1
+    assert(False)
+
+def int_2_numpy_type(n):
+    if n == 0:
+        return np.int32
+    if n == 1:
+        return np.float32
+    assert(False)
 
 def create_obj_value_name_with_constant(value):
     return '@C_' + str(value)

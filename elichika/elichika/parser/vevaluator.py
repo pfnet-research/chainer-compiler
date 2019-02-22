@@ -136,6 +136,12 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     value_obj = try_get_obj(value, 'attribute', lineprop)
     attr = value_obj.get_field().get_attribute(astc.nast.attr, from_module)
 
+    # property(getter)
+    if attr.has_obj() and isinstance(attr.get_obj(False).get_value(), values.FuncValue) and attr.get_obj(False).get_value().func.is_property:
+        func_value = attr.get_obj(False).get_value()
+        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, [], lineprop)
+        return ret
+
     if attr.has_obj():
         return attr
 
@@ -832,6 +838,17 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
     left_value = try_get_value(left, 'compare', lineprop)
     right_value = try_get_value(right, 'compare', lineprop)
 
+    # TODO : adhoc code
+    if isinstance(left_value, values.TupleValue):
+        value = values.TupleValue()
+        value.values = [try_get_value(v, 'compare', lineprop) for v in left_value.values]
+        left_value = value
+
+    if isinstance(right_value, values.TupleValue):
+        value = values.TupleValue()
+        value.values = [try_get_value(v, 'compare', lineprop) for v in right_value.values]
+        right_value = value
+
     binop = nodes.BinOpType.Unknown
     if isinstance(astc.nast.op, gast.Add):
         binop = nodes.BinOpType.Add
@@ -867,7 +884,7 @@ def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph 
 
     operand = veval_ast(astc.c(astc.nast.operand), local_field, graph)
     operand_value = try_get_value(operand, 'unary', lineprop)
-
+    
     node = nodes.NodeUnaryOp(operand_value, unaryop)
 
     ret_value = veval_unary.veval(unaryop, operand_value)

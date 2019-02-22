@@ -103,6 +103,7 @@ class FunctionArg():
 class FunctionBase():
     def __init__(self):
         self.name = ''
+        self.is_property = False
         self.funcArgs = []
 
     def parse_args(self, args):
