@@ -33,8 +33,6 @@ def main():
     model = A(3)
     x = np.random.rand(5, 7).astype(np.float32)
 
-    model(x)
-
     testtools.generate_testcase(model, [x])
 
 

@@ -138,15 +138,15 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
             return model()
         return model
 
-    onnxmod = compile_model(get_model(), xs)
-    input_tensors = onnxmod.inputs
-    output_tensors = onnxmod.outputs
-
     model = get_model()
     chainer.config.train = backprop
     model.cleargrads()
     ys = model(*xs)
     chainer_out = validate_chainer_output(ys)
+
+    onnxmod = compile_model(model, xs)
+    input_tensors = onnxmod.inputs
+    output_tensors = onnxmod.outputs
 
     if backprop:
         ys.grad = np.ones(ys.shape, ys.dtype)
