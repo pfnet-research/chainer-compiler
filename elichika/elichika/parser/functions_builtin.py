@@ -41,6 +41,23 @@ class SoftmaxFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.Object(value)
 
+class SoftmaxCrossEntropyFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'softmax_cross_entropy'
+        self.analyze_args(F.softmax_cross_entropy)
+
+    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
+        funcArgs = self.parse_args(args)
+        vargs = self.get_values(funcArgs)
+
+        node = nodes.NodeCall(self, vargs, line)
+        graph.add_node(node)
+        value = functions.generate_value_with_same_type(vargs[0])
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
 class RangeFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()

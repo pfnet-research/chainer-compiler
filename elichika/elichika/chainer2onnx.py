@@ -641,6 +641,17 @@ class ONNXGenerator:
 
                     onnx_graph.nodes.append(onnx_node)
 
+                if isinstance(node.func, functions_builtin.SoftmaxCrossEntropyFunction):
+                    # softmax_cross_entropy
+                    onnx_node = oh.make_node(
+                        "ChainerSoftmaxCrossEntropy",
+                        [value2onnx_parameter[node.inputs[0]].onnx_name,
+                         value2onnx_parameter[node.inputs[1]].onnx_name],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        str(node.lineprop))
+
+                    onnx_graph.nodes.append(onnx_node)
+
                 if isinstance(node.func, values_builtin.ChainerLinkFunction):
                     original_inst = node.func.owner.inst
 
