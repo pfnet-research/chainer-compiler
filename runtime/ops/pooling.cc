@@ -303,6 +303,39 @@ void NaiveUpsample(const chainerx::Array& x, const chainerx::Array& y, const std
     NaiveUpsampleImpl(x, y, int_scales, {});
 }
 
+void Upsample2D32bitForRawPtr(float* dst, const float* src, int64_t batch_size, int64_t num_channels, int64_t height, int64_t width, int64_t y_scale, int64_t x_scale) {
+    const int64_t dst_height = height * y_scale;
+    const int64_t dst_width = width * x_scale;
+    const int64_t pitch = dst_height * dst_width;
+    for (int64_t b = 0; b < batch_size; ++b) {
+        for (int64_t c = 0; c < num_channels; ++c) {
+            const int64_t dst_base = (b * num_channels + c) * pitch;
+            for (int64_t y = 0; y < height; ++y) {
+                for (int64_t x = 0; x < width; ++x) {
+                    float v = *src++;
+                    for (int64_t yi = 0; yi < y_scale; ++yi) {
+                        const int64_t dst_y = y * y_scale + yi;
+                        for (int64_t xi = 0; xi < x_scale; ++xi) {
+                            const int64_t dst_x = x * x_scale + xi;
+                            const int64_t dst_index = dst_base + dst_y * dst_width + dst_x;
+                            dst[dst_index] = v;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& to_shape, const std::vector<int64_t>& int_scales) {
+    if (!x.IsContiguous()) {
+        x = chainerx::Copy(x);
+    }
+    chainerx::Array y = chainerx::Empty(to_shape, x.dtype());
+    Upsample2D32bitForRawPtr(reinterpret_cast<float*>(y.raw_data()), reinterpret_cast<float*>(x.raw_data()), x.shape()[0], x.shape()[1], x.shape()[2], x.shape()[3], int_scales[2], int_scales[3]);
+    return y;
+}
+
 }  // namespace
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(
@@ -349,6 +382,12 @@ chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     chainerx::Shape to_shape(x.shape());
     for (size_t i = 0; i < int_scales.size(); ++i) {
         to_shape[i] *= int_scales[i];
+    }
+
+    if (IsNativeDevice(&x.device()) && int_scales.size() == 4 && int_scales[0] == 1 && int_scales[1] == 1) {
+        if (x.GetItemSize() == 4) {
+            return Upsample2D32bitForCPU(x, to_shape, int_scales);
+        }
     }
 
     chainerx::Array y = chainerx::Zeros(to_shape, x.dtype());

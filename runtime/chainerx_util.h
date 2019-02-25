@@ -34,6 +34,7 @@ chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
 
 chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes);
 
+bool IsNativeDevice(const chainerx::Device* device);
 bool IsCudaDevice(const chainerx::Device* device);
 
 Int64StackVector ComplementStride(const Int64StackVector& strides, const chainerx::Array& input);

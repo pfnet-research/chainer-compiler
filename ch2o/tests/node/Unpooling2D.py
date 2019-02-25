@@ -25,3 +25,7 @@ if __name__ == '__main__':
     x = np.random.rand(2, 3, 11, 7).astype(np.float32)
     ch2o.generate_testcase(Unpooling2D, [x])
     ch2o.generate_testcase(Unpooling2D_3x4, [x], subname='3x4')
+
+    # The largest input in FPN.
+    x = np.random.rand(1, 256, 100, 100).astype(np.float32)
+    ch2o.generate_testcase(Unpooling2D, [x], subname='large')
