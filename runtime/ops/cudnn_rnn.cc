@@ -22,13 +22,12 @@ using chainerx::cuda::cuda_internal::CudnnTensorDescriptor;
 // TODO(hamaji): Use ChainerX's.
 cudnnDataType_t GetCudnnDataType(chainerx::Dtype dtype) {
     switch (dtype) {
+        case chainerx::Dtype::kFloat16:
+            return CUDNN_DATA_HALF;
         case chainerx::Dtype::kFloat32:
             return CUDNN_DATA_FLOAT;
         case chainerx::Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
-        // TODO(hamaji): Support float16 if it becomes avaialable
-        // case chainerx::Dtype::kFloat16:
-        //    return CUDNN_DATA_HALF;
         default:
             throw chainerx::DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }
