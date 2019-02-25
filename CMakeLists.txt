@@ -278,6 +278,7 @@ foreach(
     Sum
     SwapAxes
     Tanh
+    Unpooling2D
     Variable
     Vstack
     )
