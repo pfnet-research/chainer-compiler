@@ -24,6 +24,8 @@ chainerx::Dtype ChainerXTypeFromONNX(int xtype) {
             return chainerx::Dtype::kInt64;
         case onnx::TensorProto::UINT8:
             return chainerx::Dtype::kUInt8;
+        case onnx::TensorProto::FLOAT16:
+            return chainerx::Dtype::kFloat16;
         case onnx::TensorProto::FLOAT:
             return chainerx::Dtype::kFloat32;
         case onnx::TensorProto::DOUBLE:
