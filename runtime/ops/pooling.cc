@@ -280,7 +280,8 @@ private:
     double sum_ = 0.0;
 };
 
-void NaiveUpsampleImpl(const chainerx::Array& x, const chainerx::Array& y, const std::vector<int64_t>& int_scales, const std::vector<int64_t>& indices) {
+void NaiveUpsampleImpl(
+        const chainerx::Array& x, const chainerx::Array& y, const std::vector<int64_t>& int_scales, const std::vector<int64_t>& indices) {
     if (int_scales.size() == indices.size()) {
         std::vector<chainerx::ArrayIndex> dst_indices(indices.begin(), indices.end());
         std::vector<chainerx::ArrayIndex> src_indices;
@@ -328,8 +329,7 @@ chainerx::Array ROIAverageAlign2DOp::RunImpl(
     return ROIAlign2D<ReduceByAverage>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
-chainerx::Array UpsampleOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
     CHECK_EQ(1, scales.ndim());
     std::vector<int64_t> int_scales;
     for (int64_t i = 0; i < scales.shape()[0]; ++i) {
