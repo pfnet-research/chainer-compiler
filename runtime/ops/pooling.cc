@@ -280,6 +280,28 @@ private:
     double sum_ = 0.0;
 };
 
+void NaiveUpsampleImpl(const chainerx::Array& x, const chainerx::Array& y, const std::vector<int64_t>& int_scales, const std::vector<int64_t>& indices) {
+    if (int_scales.size() == indices.size()) {
+        std::vector<chainerx::ArrayIndex> dst_indices(indices.begin(), indices.end());
+        std::vector<chainerx::ArrayIndex> src_indices;
+        for (size_t i = 0; i < indices.size(); ++i) {
+            src_indices.push_back(indices[i] / int_scales[i]);
+        }
+        y.At(dst_indices) += x.At(src_indices);
+    } else {
+        int64_t width = y.shape()[indices.size()];
+        for (size_t i = 0; i < width; ++i) {
+            std::vector<int64_t> next_indices(indices);
+            next_indices.push_back(i);
+            NaiveUpsampleImpl(x, y, int_scales, next_indices);
+        }
+    }
+}
+
+void NaiveUpsample(const chainerx::Array& x, const chainerx::Array& y, const std::vector<int64_t>& int_scales) {
+    NaiveUpsampleImpl(x, y, int_scales, {});
+}
+
 }  // namespace
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(
@@ -304,6 +326,34 @@ chainerx::Array ROIAverageAlign2DOp::RunImpl(
         XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
     CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
     return ROIAlign2D<ReduceByAverage>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
+}
+
+chainerx::Array UpsampleOp::RunImpl(
+        XCVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+    CHECK_EQ(1, scales.ndim());
+    std::vector<int64_t> int_scales;
+    for (int64_t i = 0; i < scales.shape()[0]; ++i) {
+        chainerx::Scalar scale = chainerx::AsScalar(scales.At({i}));
+        int64_t int_scale;
+        if (chainerx::GetKind(scale.dtype()) == chainerx::DtypeKind::kFloat) {
+            double double_scale = static_cast<double>(scale);
+            int_scale = static_cast<int64_t>(std::round(double_scale));
+            CHECK_EQ(double_scale, int_scale) << "Only int scale is supported: " << scales;
+        } else {
+            int_scale = static_cast<int64_t>(scale);
+        }
+        CHECK_LE(1, int_scale) << "scales must be greater than or equal to 1: " << scales;
+        int_scales.push_back(int_scale);
+    }
+
+    chainerx::Shape to_shape(x.shape());
+    for (size_t i = 0; i < int_scales.size(); ++i) {
+        to_shape[i] *= int_scales[i];
+    }
+
+    chainerx::Array y = chainerx::Zeros(to_shape, x.dtype());
+    NaiveUpsample(x, y, int_scales);
+    return y;
 }
 
 }  // namespace runtime

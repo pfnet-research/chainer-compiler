@@ -128,6 +128,7 @@ public:
         CHECK(op_set_.emplace(Node::kTanh).second);
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
+        CHECK(op_set_.emplace(Node::kUpsample).second);
         CHECK(op_set_.emplace(Node::kXor).second);
 
         if (diversed) {

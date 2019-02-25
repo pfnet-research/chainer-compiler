@@ -382,6 +382,9 @@ private:
             }
         } else if (node.op_type() == Node::kChainerLRNGrad) {
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
+        } else if (node.op_type() == Node::kUpsample) {
+            CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
+            EMIT(Upsample, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kPad) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

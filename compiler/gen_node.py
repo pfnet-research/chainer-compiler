@@ -179,6 +179,7 @@ NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
+NodeDef('Upsample', 2, 1, mode='nearest')
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
