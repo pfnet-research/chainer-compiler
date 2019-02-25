@@ -40,5 +40,7 @@ Int64StackVector ComplementStride(const Int64StackVector& strides, const chainer
 
 Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Array& input);
 
+bool IsFloat(chainerx::Dtype dtype);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

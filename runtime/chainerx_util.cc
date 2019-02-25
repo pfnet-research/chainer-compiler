@@ -117,7 +117,7 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
 
 chainerx::Array Sigmoid(chainerx::Array a) {
     // TODO(hamaji): Revisit implementation of this function.
-    CHECK(a.dtype() == chainerx::Dtype::kFloat32 || a.dtype() == chainerx::Dtype::kFloat64) << a.dtype();
+    CHECK(IsFloat(a.dtype())) << a.dtype();
     chainerx::Scalar half(0.5, a.dtype());
     return chainerx::Tanh(a * half) * half + half;
 }
@@ -191,6 +191,10 @@ Int64StackVector ComplementStride(const Int64StackVector& strides, const chainer
 
 Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Array& input) {
     return ComplementStrideOrPad(pads, input, 0);
+}
+
+bool IsFloat(chainerx::Dtype dtype) {
+    return chainerx::GetKind(dtype) == chainerx::DtypeKind::kFloat;
 }
 
 }  // namespace runtime

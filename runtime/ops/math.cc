@@ -17,10 +17,6 @@ chainerx::Array Pow(chainerx::Array a, chainerx::Array b) {
     return chainerx::Exp(chainerx::Log(a) * b);
 }
 
-bool IsFloat(chainerx::Dtype dtype) {
-    return dtype == chainerx::Dtype::kFloat32 || dtype == chainerx::Dtype::kFloat64;
-}
-
 // TODO(hamaji): Implement type coersion in ChainerX.
 chainerx::Dtype CoerceDtype(chainerx::Dtype dtype0, chainerx::Dtype dtype1) {
     if (dtype0 == dtype1) return dtype0;
