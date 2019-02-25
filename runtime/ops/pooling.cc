@@ -304,7 +304,15 @@ void NaiveUpsample(const chainerx::Array& x, const chainerx::Array& y, const std
 }
 
 template <int static_xy_scale>
-void Upsample2D32bitForRawPtr(float* dst, const float* src, int64_t batch_size, int64_t num_channels, int64_t height, int64_t width, int64_t y_scale, int64_t x_scale) {
+void Upsample2D32bitForRawPtr(
+        float* dst,
+        const float* src,
+        int64_t batch_size,
+        int64_t num_channels,
+        int64_t height,
+        int64_t width,
+        int64_t y_scale,
+        int64_t x_scale) {
     if (static_xy_scale) {
         y_scale = x_scale = static_xy_scale;
     }
@@ -337,9 +345,25 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
     }
     chainerx::Array y = chainerx::Empty(to_shape, x.dtype());
     if (int_scales[2] == 2 && int_scales[3] == 2) {
-        Upsample2D32bitForRawPtr<2>(reinterpret_cast<float*>(y.raw_data()), reinterpret_cast<float*>(x.raw_data()), x.shape()[0], x.shape()[1], x.shape()[2], x.shape()[3], -1, -1);
+        Upsample2D32bitForRawPtr<2>(
+                reinterpret_cast<float*>(y.raw_data()),
+                reinterpret_cast<float*>(x.raw_data()),
+                x.shape()[0],
+                x.shape()[1],
+                x.shape()[2],
+                x.shape()[3],
+                -1,
+                -1);
     } else {
-        Upsample2D32bitForRawPtr<0>(reinterpret_cast<float*>(y.raw_data()), reinterpret_cast<float*>(x.raw_data()), x.shape()[0], x.shape()[1], x.shape()[2], x.shape()[3], int_scales[2], int_scales[3]);
+        Upsample2D32bitForRawPtr<0>(
+                reinterpret_cast<float*>(y.raw_data()),
+                reinterpret_cast<float*>(x.raw_data()),
+                x.shape()[0],
+                x.shape()[1],
+                x.shape()[2],
+                x.shape()[3],
+                int_scales[2],
+                int_scales[3]);
     }
     return y;
 }
