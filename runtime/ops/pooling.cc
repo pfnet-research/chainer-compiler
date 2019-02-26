@@ -156,7 +156,7 @@ nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int6
     if (p < 0.0) {
         p = 0.0;
     }
-    int64_t low = static_cast<int64_t>(p);
+    int64_t low = static_cast<int64_t>(std::floor(p));
     int64_t high;
     if (limit - 1 <= low) {
         p = high = low = limit - 1;
@@ -260,11 +260,11 @@ chainerx::Array ROIAlign2D(
                         ReduceMode reduce;
                         for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
                             double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
-                            int64_t y_low = static_cast<int64_t>(y);
+                            int64_t y_low = static_cast<int64_t>(std::floor(y));
                             int64_t y_high = y_low + 1;
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                                 double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
-                                int64_t x_low = static_cast<int64_t>(x);
+                                int64_t x_low = static_cast<int64_t>(std::floor(x));
                                 int64_t x_high = x_low + 1;
 
                                 // bilinear interpolation {{
