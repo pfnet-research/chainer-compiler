@@ -70,6 +70,31 @@ Dtype::Dtype(DataType type) : type_(type) {
 Dtype::Dtype(chainerx::Dtype type) : type_(FromChainerX(type)) {
 }
 
+chainerx::Dtype Dtype::chx() const {
+    switch (type_) {
+        case kBool:
+            return chainerx::Dtype::kBool;
+        case kInt8:
+            return chainerx::Dtype::kInt8;
+        case kInt16:
+            return chainerx::Dtype::kInt16;
+        case kInt32:
+            return chainerx::Dtype::kInt32;
+        case kInt64:
+            return chainerx::Dtype::kInt64;
+        case kUInt8:
+            return chainerx::Dtype::kUInt8;
+        case kFloat16:
+            return chainerx::Dtype::kFloat16;
+        case kFloat32:
+            return chainerx::Dtype::kFloat32;
+        case kFloat64:
+            return chainerx::Dtype::kFloat64;
+        default:
+            CHECK(false) << "Unknown ChainerX data type: " << type_;
+    }
+}
+
 std::string Dtype::ToString() const {
     switch (type_) {
         case kBool:
@@ -84,6 +109,8 @@ std::string Dtype::ToString() const {
             return "INT64";
         case kUInt8:
             return "UINT8";
+        case kFloat16:
+            return "FLOAT16";
         case kFloat32:
             return "FLOAT32";
         case kFloat64:

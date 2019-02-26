@@ -7,6 +7,7 @@
 
 #include <common/log.h>
 #include <compiler/serializer_util.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 
@@ -86,11 +87,14 @@ void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* 
 }  // namespace
 
 Tensor::Tensor(const onnx::TensorProto& xtensor)
-    : dims_(xtensor.dims().begin(), xtensor.dims().end()),
-      dtype_(xtensor.data_type()),
-      data_(nullptr, &std::free),
-      name_(xtensor.name()),
+    : name_(xtensor.name()),
       doc_string_(xtensor.doc_string()) {
+#if 0
+    dims_(xtensor.dims().begin(), xtensor.dims().end()),
+        dtype_(xtensor.data_type()),
+      data_(nullptr, &std::free),
+#endif
+
     CHECK(!xtensor.has_segment()) << "Segmented TensorProto not supported";
 
     if (xtensor.has_raw_data()) {
@@ -211,6 +215,14 @@ std::string Tensor::DebugString() const {
     onnx::TensorProto xtensor;
     ToONNX(&xtensor);
     return xtensor.DebugString();
+}
+
+const std::vector<int64_t> dims() const {
+    return array_.shape();
+}
+
+Dtype dtype() const {
+    return Dtype(array_.dtype());
 }
 
 int Tensor::ElementSize() const {

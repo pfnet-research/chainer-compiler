@@ -34,6 +34,8 @@ public:
         return type_;
     }
 
+    chainerx::Dtype chx() const;
+
     onnx::TensorProto::DataType ToONNX() const;
     std::string ToString() const;
 
