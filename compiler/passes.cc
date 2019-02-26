@@ -13,6 +13,7 @@
 #include <compiler/model.h>
 #include <compiler/recompute.h>
 #include <compiler/scheduler.h>
+#include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
 #include <compiler/subgraph_canonicalizer.h>
 #include <compiler/type_inference.h>
@@ -71,6 +72,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
 
     Recursively(PropagateConstants, graph);
+
+    Recursively(EvaluateShapes, graph);
 
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 
