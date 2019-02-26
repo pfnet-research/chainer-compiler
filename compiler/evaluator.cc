@@ -96,6 +96,7 @@ void Eval(const std::vector<Node*>& nodes, const std::vector<std::pair<Value*, s
     for (size_t i = 0; i < feeds.size(); ++i) {
         int input_id = input_ids[i];
         const Tensor* t = feeds[i].second.get();
+        CHECK_NE(Dtype::kUnknown, t->dtype());
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(static_cast<int>(t->dtype()));
         chainerx::Shape shape(t->dims());
         chainerx::Array array = runtime::MakeHostArray(dtype, shape, t->GetRawData());

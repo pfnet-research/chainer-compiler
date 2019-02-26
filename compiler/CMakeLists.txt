@@ -59,6 +59,7 @@ add_library(chainer_compiler_compiler
   passes.cc
   recompute.cc
   scheduler.cc
+  shape_evaluator.cc
   simplifier.cc
   subgraph_canonicalizer.cc
   tensor.cc
@@ -86,6 +87,7 @@ add_executable(compiler_test
   gradient_test.cc
   model_test.cc
   scheduler_test.cc
+  shape_evaluator_test.cc
   tensor_test.cc
   topology_test.cc
   xcvm/emitter_test.cc

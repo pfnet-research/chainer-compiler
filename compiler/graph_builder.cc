@@ -86,6 +86,7 @@ Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data, Value* 
         v = Op(Node::kConstant, {}, {value});
     }
     v->producer()->set_tensor_value(new Tensor(v->name(), type.dtype(), type.dims(), data));
+    v->set_type(new Type(type));
     return v;
 }
 
