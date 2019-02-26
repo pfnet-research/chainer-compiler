@@ -201,6 +201,10 @@ T ContiguousArrayAt(const chainerx::Array& a, const ArrayIndices& indices) {
     return ContiguousArrayAt<T>(const_cast<chainerx::Array&>(a), indices);
 }
 
+chainerx::Array EnsureContiguous(chainerx::Array const& a) {
+    return a.IsContiguous() ? a : chainerx::Copy(a);
+}
+
 template <class ReduceMode>
 chainerx::Array ROIAlign2D(
         const chainerx::Array& bottom_data,
@@ -213,12 +217,9 @@ chainerx::Array ROIAlign2D(
     CHECK_EQ(2, output_shape.size());
     CHECK_EQ(2, sampling_ratio.size());
 
-    chainerx::Array contiguous_bottom_data;
-    if (bottom_data.IsContiguous()) {
-        contiguous_bottom_data = bottom_data;
-    } else {
-        contiguous_bottom_data = chainerx::Copy(bottom_data);
-    }
+    chainerx::Array contiguous_bottom_data = EnsureContiguous(bottom_data);
+    chainerx::Array contiguous_bottom_roi_indices = EnsureContiguous(bottom_roi_indices);
+    chainerx::Array contiguous_bottom_rois = EnsureContiguous(bottom_rois);
 
     const int64_t channels = bottom_data.shape()[1];
     const int64_t height = bottom_data.shape()[2];
@@ -229,11 +230,11 @@ chainerx::Array ROIAlign2D(
     chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
     for (int64_t n = 0; n < n_rois; ++n) {
-        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(bottom_roi_indices, {n});
-        double roi_start_h = ContiguousArrayAt<float>(bottom_rois, {n, 0}) * spatial_scale;
-        double roi_start_w = ContiguousArrayAt<float>(bottom_rois, {n, 1}) * spatial_scale;
-        double roi_end_h = ContiguousArrayAt<float>(bottom_rois, {n, 2}) * spatial_scale;
-        double roi_end_w = ContiguousArrayAt<float>(bottom_rois, {n, 3}) * spatial_scale;
+        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
+        double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
+        double roi_end_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 2}) * spatial_scale;
+        double roi_end_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 3}) * spatial_scale;
 
         double roi_height = std::max<double>(roi_end_h - roi_start_h, 1.);
         double roi_width = std::max<double>(roi_end_w - roi_start_w, 1.);
