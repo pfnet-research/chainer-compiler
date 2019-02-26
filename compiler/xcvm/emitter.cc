@@ -83,7 +83,7 @@ public:
         EmitStackQuit(program);
     }
 
-    void AssignValueIds(const std::set<Value*>& values) {
+    void AssignValueIds(const std::vector<Value*>& values) {
         for (const Value* v : values) {
             CHECK(value_ids_.emplace(v, next_value_id_++).second);
         }
@@ -1174,17 +1174,36 @@ void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
 
 void Emit(
         const std::vector<Node*>& nodes,
+        const std::vector<Value*>& feeds,
         const std::vector<Value*>& fetches,
         runtime::XCProgramProto* program,
+        std::vector<int>* input_ids,
         std::vector<int>* output_ids) {
     XCVMEmitter emitter;
-    std::set<Value*> values;
-    for (Node* node : nodes) {
-        for (Value* value : node->inputs()) values.insert(value);
-        for (Value* value : node->outputs()) values.insert(value);
+
+    std::vector<Value*> values;
+    {
+        std::set<Value*> seen_values;
+        auto add_value = [&](Value* v) {
+            if (seen_values.insert(v).second) {
+                values.push_back(v);
+            }
+        };
+
+        // Assign feeds first so variable slots for them will be available.
+        for (Value* value : feeds) add_value(value);
+        for (Node* node : nodes) {
+            for (Value* value : node->inputs()) add_value(value);
+            for (Value* value : node->outputs()) add_value(value);
+        }
     }
     emitter.AssignValueIds(values);
-    for (Value* v : fetches) output_ids->push_back(emitter.GetValueId(v));
+    for (Value* v : feeds) {
+        input_ids->push_back(emitter.GetValueId(v));
+    }
+    for (Value* v : fetches) {
+        output_ids->push_back(emitter.GetValueId(v));
+    }
     emitter.EmitNodes(nodes, program);
 }
 

@@ -24,8 +24,10 @@ void Emit(const Model& model, std::ostream& out, bool dump_value_names = false);
 
 void Emit(
         const std::vector<Node*>& nodes,
+        const std::vector<Value*>& feeds,
         const std::vector<Value*>& fetches,
         runtime::XCProgramProto* program,
+        std::vector<int>* input_ids,
         std::vector<int>* output_ids);
 
 }  // namespace xcvm
