@@ -45,7 +45,9 @@ bool MaybeEvaluateShape(Node* node) {
     switch (node->op_type()) {
         // TODO(hamaji): Handle more ops.
         case Node::kOneHot: {
-            DoEvaluateShape(node);
+            if (node->input(1)->producer()->op_type() == Node::kConstant) {
+                DoEvaluateShape(node);
+            }
             return true;
         }
 
@@ -62,13 +64,24 @@ void DoEvaluateShape(Node* node) {
 
     std::vector<std::pair<Value*, std::unique_ptr<Tensor>>> feeds;
     for (Value* input : node->inputs()) {
-        const Type& type = input->type();
-        int64_t nbytes = type.GetNBytes();
-        CHECK_LT(0, nbytes);
-        Tensor::UniqueData data(std::malloc(nbytes), &std::free);
-        memset(data.get(), 0, nbytes);
-        CHECK_NE(Dtype::kUnknown, type.dtype()) << input->DebugString();
-        Tensor* t = new Tensor(input->name(), type.dtype(), type.dims(), std::move(data));
+        Tensor* t;
+        if (input->producer() && input->producer()->op_type() == Node::kConstant) {
+            // To handle output shapes which depend on input values,
+            // we use the constant value if `input` is a constant.
+            // The caller of this function is responsible not to call
+            // this function for this kind of ops.
+            Node* const_node = input->producer();
+            CHECK(const_node->tensor_value().get()) << const_node->DebugString();
+            t = new Tensor(input->name(), *const_node->tensor_value());
+        } else {
+            const Type& type = input->type();
+            int64_t nbytes = type.GetNBytes();
+            CHECK_LT(0, nbytes);
+            Tensor::UniqueData data(std::malloc(nbytes), &std::free);
+            memset(data.get(), 0, nbytes);
+            CHECK_NE(Dtype::kUnknown, type.dtype()) << input->DebugString();
+            t = new Tensor(input->name(), type.dtype(), type.dims(), std::move(data));
+        }
         feeds.emplace_back(input, t);
     }
 
@@ -84,6 +97,7 @@ void DoEvaluateShape(Node* node) {
         }
         std::unique_ptr<Tensor> r(result->ReleaseTensor());
         value->set_type(new Type(r->dtype(), r->dims()));
+        CLOG() << " output #" << i << ": " << value->DebugString();
     }
 }
 
