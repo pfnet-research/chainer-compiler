@@ -34,12 +34,40 @@ Dtype::DataType FromONNX(int xtype) {
     }
 }
 
+Dtype::DataType FromChainerX(chainerx::Dtype type) {
+    switch (type) {
+        case chainerx::Dtype::kBool:
+            return Dtype::DataType::kBool;
+        case chainerx::Dtype::kInt8:
+            return Dtype::DataType::kInt8;
+        case chainerx::Dtype::kInt16:
+            return Dtype::DataType::kInt16;
+        case chainerx::Dtype::kInt32:
+            return Dtype::DataType::kInt32;
+        case chainerx::Dtype::kInt64:
+            return Dtype::DataType::kInt64;
+        case chainerx::Dtype::kUInt8:
+            return Dtype::DataType::kUInt8;
+        case chainerx::Dtype::kFloat16:
+            return Dtype::DataType::kFloat16;
+        case chainerx::Dtype::kFloat32:
+            return Dtype::DataType::kFloat32;
+        case chainerx::Dtype::kFloat64:
+            return Dtype::DataType::kFloat64;
+        default:
+            CHECK(false) << "Unknown ChainerX data type: " << type;
+    }
+}
+
 }  // namespace
 
 Dtype::Dtype(int xtype) : type_(FromONNX(xtype)) {
 }
 
 Dtype::Dtype(DataType type) : type_(type) {
+}
+
+Dtype::Dtype(chainerx::Dtype type) : type_(FromChainerX(type)) {
 }
 
 std::string Dtype::ToString() const {

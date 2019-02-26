@@ -24,35 +24,11 @@ namespace chainer_compiler {
 
 namespace {
 
-Dtype GetDtype(const chainerx::Array& a) {
-    switch (a.dtype()) {
-        case chainerx::Dtype::kBool:
-            return Dtype::kBool;
-        case chainerx::Dtype::kInt8:
-            return Dtype::kInt8;
-        case chainerx::Dtype::kInt16:
-            return Dtype::kInt16;
-        case chainerx::Dtype::kInt32:
-            return Dtype::kInt32;
-        case chainerx::Dtype::kInt64:
-            return Dtype::kInt64;
-        case chainerx::Dtype::kUInt8:
-            return Dtype::kUInt8;
-        case chainerx::Dtype::kFloat16:
-            return Dtype::kFloat16;
-        case chainerx::Dtype::kFloat32:
-            return Dtype::kFloat32;
-        case chainerx::Dtype::kFloat64:
-            return Dtype::kFloat64;
-    }
-    CHECK(false) << a;
-}
-
 Tensor* ArrayToTensor(const std::string& name, const chainerx::Array& a) {
     Tensor::UniqueData data(std::malloc(a.GetNBytes()), &std::free);
     memcpy(data.get(), a.ToNative().raw_data(), a.GetNBytes());
     std::vector<int64_t> dims{a.shape().begin(), a.shape().end()};
-    return new Tensor(name, GetDtype(a), dims, std::move(data));
+    return new Tensor(name, Dtype(a.dtype()), dims, std::move(data));
 }
 
 }  // namespace

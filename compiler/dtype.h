@@ -2,6 +2,8 @@
 
 #include <iosfwd>
 
+#include <chainerx/dtype.h>
+
 #include <compiler/onnx.h>
 
 namespace chainer_compiler {
@@ -26,6 +28,7 @@ public:
     explicit Dtype(int xtype);
     // Note this is an implicit constructor.
     Dtype(DataType type);
+    explicit Dtype(chainerx::Dtype type);
 
     operator DataType() const {
         return type_;
