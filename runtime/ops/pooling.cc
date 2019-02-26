@@ -149,10 +149,7 @@ chainerx::Array ROIPool2D(
     return top_data;
 }
 
-nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int64_t limit) {
-    if (p < -1 || limit < p) {
-        return nonstd::nullopt;
-    }
+std::tuple<double, int64_t, int64_t> get_bounds(double p, int64_t limit) {
     if (p < 0.0) {
         p = 0.0;
     }
@@ -163,7 +160,7 @@ nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int6
     } else {
         high = low + 1;
     }
-    return nonstd::make_optional(std::make_tuple(p, low, high));
+    return std::make_tuple(p, low, high);
 }
 
 std::tuple<double, double, double, double> get_bilinear_interp_params(
@@ -287,26 +284,51 @@ chainerx::Array ROIAlign2D(
             // }}
         } else {
             // {{
+            auto get_start_pl_ip = [](int64_t pooled_length, int64_t roi_bin_grid_l, double roi_start_l, double bin_size_l, int64_t limit) {
+                for (int64_t pl = 0; pl < pooled_length; ++pl) {
+                    for (int64_t ip = 0; ip < roi_bin_grid_l; ++ip) {
+                        double p = roi_start_l + pl * bin_size_l + (ip + 0.5) * bin_size_l / roi_bin_grid_l;
+                        if (-1 <= p && p <= limit) {
+                            // return nonstd::make_optional(std::make_tuple(pl, ip));
+                            return std::make_tuple(pl, ip);
+                        }
+                    }
+                }
+                // return nonstd::nullopt;
+            };
+            auto get_end_pl_ip = [](int64_t pooled_length, int64_t roi_bin_grid_l, double roi_start_l, double bin_size_l, int64_t limit) {
+                for (int64_t pl = pooled_length - 1; 0 <= pl; --pl) {
+                    for (int64_t ip = roi_bin_grid_l - 1; 0 <= ip; --ip) {
+                        double p = roi_start_l + pl * bin_size_l + (ip + 0.5) * bin_size_l / roi_bin_grid_l;
+                        if (-1 <= p && p <= limit) {
+                            // return nonstd::make_optional(std::make_tuple(pl, ip));
+                            return std::make_tuple(pl, ip);
+                        }
+                    }
+                }
+                // return nonstd::nullopt;
+            };
+            int64_t start_ph, start_iy;
+            std::tie(start_ph, start_iy) = get_start_pl_ip(pooled_height, roi_bin_grid_h, roi_start_h, bin_size_h, height);
+            int64_t start_pw, start_ix;
+            std::tie(start_pw, start_ix) = get_start_pl_ip(pooled_width, roi_bin_grid_w, roi_start_w, bin_size_w, width);
+            int64_t end_ph, end_iy;
+            std::tie(end_ph, end_iy) = get_end_pl_ip(pooled_height, roi_bin_grid_h, roi_start_h, bin_size_h, height);
+            int64_t end_pw, end_ix;
+            std::tie(end_pw, end_ix) = get_end_pl_ip(pooled_width, roi_bin_grid_w, roi_start_w, bin_size_w, width);
+
             for (int64_t c = 0; c < channels; ++c) {
-                for (int64_t ph = 0; ph < pooled_height; ++ph) {
-                    for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                for (int64_t ph = start_ph; ph <= end_ph; ++ph) {
+                    for (int64_t pw = start_pw; pw <= end_pw; ++pw) {
                         ReduceMode reduce;
-                        for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                        for (int64_t iy = start_iy; iy <= end_iy; ++iy) {
                             double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
                             int64_t y_low, y_high;
-                            auto y_bounds = get_bounds(y, height);
-                            if (!y_bounds) {
-                                continue;
-                            }
-                            std::tie(y, y_low, y_high) = *y_bounds;
-                            for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                            std::tie(y, y_low, y_high) = get_bounds(y, height);
+                            for (int64_t ix = start_ix; ix <= end_ix; ++ix) {
                                 double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
                                 int64_t x_low, x_high;
-                                auto x_bounds = get_bounds(x, width);
-                                if (!x_bounds) {
-                                    continue;
-                                }
-                                std::tie(x, x_low, x_high) = *x_bounds;
+                                std::tie(x, x_low, x_high) = get_bounds(x, width);
 
                                 // bilinear interpolation {{
                                 double w1, w2, w3, w4;
