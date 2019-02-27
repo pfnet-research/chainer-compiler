@@ -62,7 +62,8 @@ bool MaybeEvaluateShape(Node* node) {
 void DoEvaluateShape(Node* node) {
     CLOG() << "Evaluate shape of " << node->ToString() << std::endl;
 
-    std::vector<std::pair<Value*, std::unique_ptr<Tensor>>> feeds;
+    std::vector<std::unique_ptr<Tensor>> tensor_buf;
+    std::vector<std::pair<Value*, Tensor*>> feeds;
     for (Value* input : node->inputs()) {
         Tensor* t;
         if (input->producer() && input->producer()->op_type() == Node::kConstant) {
@@ -71,8 +72,8 @@ void DoEvaluateShape(Node* node) {
             // The caller of this function is responsible not to call
             // this function for this kind of ops.
             Node* const_node = input->producer();
-            CHECK(const_node->tensor_value().get()) << const_node->DebugString();
-            t = new Tensor(input->name(), *const_node->tensor_value());
+            t = const_node->tensor_value().get();
+            CHECK(t) << const_node->DebugString();
         } else {
             const Type& type = input->type();
             int64_t nbytes = type.GetNBytes();
@@ -81,6 +82,7 @@ void DoEvaluateShape(Node* node) {
             memset(data.get(), 0, nbytes);
             CHECK_NE(Dtype::kUnknown, type.dtype()) << input->DebugString();
             t = new Tensor(input->name(), type.dtype(), type.dims(), std::move(data));
+            tensor_buf.emplace_back(t);
         }
         feeds.emplace_back(input, t);
     }

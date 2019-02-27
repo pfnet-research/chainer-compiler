@@ -45,7 +45,7 @@ TEST(EvaluatorTest, EvalWithFeeds) {
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
     const std::vector<Node*> nodes = {r->producer()};
-    std::vector<std::pair<Value*, std::unique_ptr<Tensor>>> feeds;
+    std::vector<std::pair<Value*, Tensor*>> feeds;
     feeds.emplace_back(a, new Tensor("a", Dtype::kInt32, {2}, {3, 10}));
     feeds.emplace_back(b, new Tensor("b", Dtype::kInt32, {2}, {7, 32}));
     std::vector<std::unique_ptr<EvaluatedValue>> outputs;
@@ -58,6 +58,9 @@ TEST(EvaluatorTest, EvalWithFeeds) {
     EXPECT_EQ(2, out->dims()[0]);
     EXPECT_EQ(10, out->Get<int>(0));
     EXPECT_EQ(42, out->Get<int>(1));
+    for (const auto& p : feeds) {
+        delete p.second;
+    }
 }
 
 }  // namespace

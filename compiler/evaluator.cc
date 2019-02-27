@@ -77,7 +77,7 @@ std::vector<std::unique_ptr<Tensor>> EvaluatedValue::ReleaseSequence() {
 
 void Eval(
         const std::vector<Node*>& nodes,
-        const std::vector<std::pair<Value*, std::unique_ptr<Tensor>>>& feeds,
+        const std::vector<std::pair<Value*, Tensor*>>& feeds,
         const std::vector<Value*>& fetches,
         std::vector<std::unique_ptr<EvaluatedValue>>* outputs) {
     runtime::XCProgramProto program;
@@ -99,7 +99,7 @@ void Eval(
 
     for (size_t i = 0; i < feeds.size(); ++i) {
         int input_id = input_ids[i];
-        const Tensor* t = feeds[i].second.get();
+        const Tensor* t = feeds[i].second;
         CHECK_NE(Dtype::kUnknown, t->dtype());
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(static_cast<int>(t->dtype()));
         chainerx::Shape shape(t->dims());
