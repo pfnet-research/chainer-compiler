@@ -12,7 +12,6 @@ namespace chainer_compiler {
 namespace {
 
 TEST(ShapeEvaluatorTest, EvaluateShapes) {
-    return;
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);

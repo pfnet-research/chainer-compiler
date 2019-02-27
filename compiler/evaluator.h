@@ -29,7 +29,7 @@ private:
 
 void Eval(
         const std::vector<Node*>& nodes,
-        const std::vector<std::pair<Value*, std::unique_ptr<Tensor>>>& feeds,
+        const std::vector<std::pair<Value*, Tensor*>>& feeds,
         const std::vector<Value*>& fetches,
         std::vector<std::unique_ptr<EvaluatedValue>>* outputs);
 
