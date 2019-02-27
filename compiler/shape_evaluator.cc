@@ -82,7 +82,7 @@ void DoEvaluateShape(Node* node) {
             CHECK_NE(Dtype::kUnknown, type.dtype()) << input->DebugString();
             t = new Tensor(input->name(), type.dtype(), type.dims(), std::move(data));
         }
-        feeds.emplace_back(input, t);
+        // feeds.emplace_back(input, t);
     }
 
     std::vector<std::unique_ptr<EvaluatedValue>> results;
