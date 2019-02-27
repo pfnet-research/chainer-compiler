@@ -61,6 +61,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerBatchNormalizationGrad).second);
         CHECK(op_set_.emplace(Node::kChainerConvGradWeight).second);
         CHECK(op_set_.emplace(Node::kChainerConvTransposeWithDynamicOutputShape).second);
+        CHECK(op_set_.emplace(Node::kChainerDoSomething).second);
         CHECK(op_set_.emplace(Node::kChainerDynamicSliceGrad).second);
         CHECK(op_set_.emplace(Node::kChainerFusionGroup).second);
         CHECK(op_set_.emplace(Node::kChainerGatherGrad).second);
