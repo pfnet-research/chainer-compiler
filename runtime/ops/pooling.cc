@@ -166,20 +166,6 @@ nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int6
     return nonstd::make_optional(std::make_tuple(p, low, high));
 }
 
-std::tuple<double, double, double, double> get_bilinear_interp_params(
-        double y, double x, int64_t y_low, int64_t x_low, int64_t y_high, int64_t x_high) {
-    double ly = y - y_low;
-    double lx = x - x_low;
-    double hy = 1.0 - ly;
-    double hx = 1.0 - lx;
-
-    double w1 = hy * hx;
-    double w2 = hy * lx;
-    double w3 = ly * hx;
-    double w4 = ly * lx;
-    return std::make_tuple(w1, w2, w3, w4);
-}
-
 using ArrayIndices = chainerx::StackVector<int64_t, chainerx::kMaxNdim>;
 template <typename T>
 T& ContiguousArrayAt(chainerx::Array& a, const ArrayIndices& indices) {
@@ -262,14 +248,20 @@ chainerx::Array ROIAlign2D(
                             double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
                             int64_t y_low = static_cast<int64_t>(y);
                             int64_t y_high = y_low + 1;
+                            double ly = y - y_low;
+                            double hy = 1.0 - ly;
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                                 double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
                                 int64_t x_low = static_cast<int64_t>(x);
                                 int64_t x_high = x_low + 1;
+                                double lx = x - x_low;
+                                double hx = 1.0 - lx;
 
                                 // bilinear interpolation {{
-                                double w1, w2, w3, w4;
-                                std::tie(w1, w2, w3, w4) = get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high);
+                                double w1 = hy * hx;
+                                double w2 = hy * lx;
+                                double w3 = ly * hx;
+                                double w4 = ly * lx;
                                 float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
                                 float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
                                 float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
@@ -299,6 +291,8 @@ chainerx::Array ROIAlign2D(
                                 continue;
                             }
                             std::tie(y, y_low, y_high) = *y_bounds;
+                            double ly = y - y_low;
+                            double hy = 1.0 - ly;
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                                 double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
                                 int64_t x_low, x_high;
@@ -307,10 +301,14 @@ chainerx::Array ROIAlign2D(
                                     continue;
                                 }
                                 std::tie(x, x_low, x_high) = *x_bounds;
+                                double lx = x - x_low;
+                                double hx = 1.0 - lx;
 
                                 // bilinear interpolation {{
-                                double w1, w2, w3, w4;
-                                std::tie(w1, w2, w3, w4) = get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high);
+                                double w1 = hy * hx;
+                                double w2 = hy * lx;
+                                double w3 = ly * hx;
+                                double w4 = ly * lx;
                                 float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
                                 float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
                                 float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
