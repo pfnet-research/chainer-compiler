@@ -73,7 +73,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     Recursively(PropagateConstants, graph);
 
-    // Recursively(EvaluateShapes, graph);
+    Recursively(EvaluateShapes, graph);
 
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 
