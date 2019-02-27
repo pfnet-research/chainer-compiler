@@ -34,7 +34,7 @@ bool HasKnownInputsAndUnknownOutputs(const Node& node) {
         return false;
     }
     for (Value* input : node.inputs()) {
-        if (!input->type(). HasKnownShape()) {
+        if (!input->type().HasKnownShape()) {
             return false;
         }
     }
