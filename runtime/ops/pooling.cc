@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <algorithm>
+#include <numeric>
 
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
@@ -165,18 +166,37 @@ nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int6
     return nonstd::make_optional(std::make_tuple(p, low, high));
 }
 
-std::tuple<double, double, double, double> get_bilinear_interp_params(
-        double y, double x, int64_t y_low, int64_t x_low, int64_t y_high, int64_t x_high) {
-    double ly = y - y_low;
-    double lx = x - x_low;
-    double hy = 1.0 - ly;
-    double hx = 1.0 - lx;
+using ArrayIndices = chainerx::StackVector<int64_t, chainerx::kMaxNdim>;
+template <typename T>
+T& ContiguousArrayAt(chainerx::Array& a, const ArrayIndices& indices) {
+    assert(a.IsContiguous());
+    assert(a.shape().size() == indices.size());
+    assert(a.dtype() == chainerx::PrimitiveType<T>::kDtype);
+    int64_t index = indices.back();
+    int64_t stride = 1;
+    for (int64_t i = indices.size() - 2; i >= 0; --i) {
+        stride *= a.shape()[i + 1];
+        index += indices[i] * stride;
+    }
+    assert(index < a.GetTotalSize());
+    return *(static_cast<T*>(a.raw_data()) + index);
+}
 
-    double w1 = hy * hx;
-    double w2 = hy * lx;
-    double w3 = ly * hx;
-    double w4 = ly * lx;
-    return std::make_tuple(w1, w2, w3, w4);
+template <typename T>
+T ContiguousArrayAt(const chainerx::Array& a, const ArrayIndices& indices) {
+    return ContiguousArrayAt<T>(const_cast<chainerx::Array&>(a), indices);
+}
+
+chainerx::Array EnsureContiguous(chainerx::Array const& a) {
+    return a.IsContiguous() ? a : chainerx::Copy(a);
+}
+
+bool is_roi_covered_by_bottom_data(
+        double roi_start_h, double roi_start_w, double roi_end_h, double roi_end_w, int64_t height, int64_t width) {
+    auto is_p_covered = [](double start_p, double end_p, int64_t limit) {
+        return 0.0 < start_p && static_cast<int64_t>(end_p) < (limit - 1);
+    };
+    return is_p_covered(roi_start_h, roi_end_h, height) && is_p_covered(roi_start_w, roi_end_w, width);
 }
 
 template <class ReduceMode>
@@ -191,6 +211,10 @@ chainerx::Array ROIAlign2D(
     CHECK_EQ(2, output_shape.size());
     CHECK_EQ(2, sampling_ratio.size());
 
+    chainerx::Array contiguous_bottom_data = EnsureContiguous(bottom_data);
+    chainerx::Array contiguous_bottom_roi_indices = EnsureContiguous(bottom_roi_indices);
+    chainerx::Array contiguous_bottom_rois = EnsureContiguous(bottom_rois);
+
     const int64_t channels = bottom_data.shape()[1];
     const int64_t height = bottom_data.shape()[2];
     const int64_t width = bottom_data.shape()[3];
@@ -200,11 +224,12 @@ chainerx::Array ROIAlign2D(
     chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
     for (int64_t n = 0; n < n_rois; ++n) {
-        int64_t roi_batch_ind = int64_t(chainerx::AsScalar(bottom_roi_indices.At({n})));
-        double roi_start_h = double(chainerx::AsScalar(bottom_rois.At({n, 0})) * spatial_scale);
-        double roi_start_w = double(chainerx::AsScalar(bottom_rois.At({n, 1})) * spatial_scale);
-        double roi_end_h = double(chainerx::AsScalar(bottom_rois.At({n, 2})) * spatial_scale);
-        double roi_end_w = double(chainerx::AsScalar(bottom_rois.At({n, 3})) * spatial_scale);
+        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
+        double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
+        double roi_end_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 2}) * spatial_scale;
+        double roi_end_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 3}) * spatial_scale;
+
         double roi_height = std::max<double>(roi_end_h - roi_start_h, 1.);
         double roi_width = std::max<double>(roi_end_w - roi_start_w, 1.);
         double bin_size_h = roi_height / pooled_height;
@@ -213,42 +238,92 @@ chainerx::Array ROIAlign2D(
         int64_t roi_bin_grid_h = sampling_ratio[0];
         int64_t roi_bin_grid_w = sampling_ratio[1];
 
-        for (int64_t c = 0; c < channels; ++c) {
-            for (int64_t ph = 0; ph < pooled_height; ++ph) {
-                for (int64_t pw = 0; pw < pooled_width; ++pw) {
-                    ReduceMode reduce;
-                    for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
-                        double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
-                        int64_t y_low, y_high;
-                        auto y_bounds = get_bounds(y, height);
-                        if (!y_bounds) {
-                            continue;
-                        }
-                        std::tie(y, y_low, y_high) = *y_bounds;
-                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
-                            double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
-                            int64_t x_low, x_high;
-                            auto x_bounds = get_bounds(x, width);
-                            if (!x_bounds) {
-                                continue;
-                            }
-                            std::tie(x, x_low, x_high) = *x_bounds;
+        if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
+            // {{
+            for (int64_t c = 0; c < channels; ++c) {
+                for (int64_t ph = 0; ph < pooled_height; ++ph) {
+                    for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                        ReduceMode reduce;
+                        for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                            double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                            int64_t y_low = static_cast<int64_t>(y);
+                            int64_t y_high = y_low + 1;
+                            double ly = y - y_low;
+                            double hy = 1.0 - ly;
+                            for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                                double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                                int64_t x_low = static_cast<int64_t>(x);
+                                int64_t x_high = x_low + 1;
+                                double lx = x - x_low;
+                                double hx = 1.0 - lx;
 
-                            // bilinear interpolation {{
-                            double w1, w2, w3, w4;
-                            std::tie(w1, w2, w3, w4) = get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high);
-                            auto v1 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_low})));
-                            auto v2 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_low, x_high})));
-                            auto v3 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_low})));
-                            auto v4 = float(chainerx::AsScalar(bottom_data.At({roi_batch_ind, c, y_high, x_high})));
-                            double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
-                            reduce.Reduce(weighted_average);
-                            // }}
+                                // bilinear interpolation {{
+                                double w1 = hy * hx;
+                                double w2 = hy * lx;
+                                double w3 = ly * hx;
+                                double w4 = ly * lx;
+                                float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
+                                float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
+                                float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
+                                float v4 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_high});
+
+                                double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+                                reduce.Reduce(weighted_average);
+                                // }}
+                            }
                         }
+                        ContiguousArrayAt<float>(top_data, {n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
                     }
-                    top_data.At({n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
                 }
             }
+            // }}
+        } else {
+            // {{
+            for (int64_t c = 0; c < channels; ++c) {
+                for (int64_t ph = 0; ph < pooled_height; ++ph) {
+                    for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                        ReduceMode reduce;
+                        for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                            double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                            int64_t y_low, y_high;
+                            auto y_bounds = get_bounds(y, height);
+                            if (!y_bounds) {
+                                continue;
+                            }
+                            std::tie(y, y_low, y_high) = *y_bounds;
+                            double ly = y - y_low;
+                            double hy = 1.0 - ly;
+                            for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                                double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                                int64_t x_low, x_high;
+                                auto x_bounds = get_bounds(x, width);
+                                if (!x_bounds) {
+                                    continue;
+                                }
+                                std::tie(x, x_low, x_high) = *x_bounds;
+                                double lx = x - x_low;
+                                double hx = 1.0 - lx;
+
+                                // bilinear interpolation {{
+                                double w1 = hy * hx;
+                                double w2 = hy * lx;
+                                double w3 = ly * hx;
+                                double w4 = ly * lx;
+                                float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
+                                float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
+                                float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
+                                float v4 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_high});
+
+                                double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+                                reduce.Reduce(weighted_average);
+                                // }}
+                            }
+                        }
+                        ContiguousArrayAt<float>(top_data, {n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
+                    }
+                }
+            }
+            // }}
         }
     }
     return top_data;
