@@ -10,7 +10,12 @@ import onnx
 import onnx_script
 import test_case
 
-import chainercv_rpn
+_has_chnainercv = True
+
+try:
+    import chainercv_rpn
+except ImportError:
+    _has_chnainercv = False
 
 
 def aranges(*shape):
@@ -75,6 +80,9 @@ class TestCase(test_case.TestCase):
 
 
 def get_tests():
+    if not _has_chnainercv:
+        return []
+
     tests = []
     def test(name, func, **kwargs):
         tests.append(TestCase(name, func, **kwargs))
