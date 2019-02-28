@@ -28,6 +28,8 @@ std::string g_dump_autotvm_task_dir;
 
 std::string g_autotvm_log;
 
+bool g_use_ngraph;
+
 std::string g_backend_name;
 
 bool g_dump_after_inference;

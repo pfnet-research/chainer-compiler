@@ -48,6 +48,9 @@ extern std::string g_dump_autotvm_task_dir;
 // A tuning log of AutoTVM which contains best scheduling parameters.
 extern std::string g_autotvm_log;
 
+// Use nGraph to execute fused operations.
+extern bool g_use_ngraph;
+
 // The name of backend.
 extern std::string g_backend_name;
 
