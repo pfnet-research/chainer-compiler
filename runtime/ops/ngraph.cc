@@ -26,28 +26,28 @@ namespace {
 
 chainerx::Dtype GetDtype(ngraph::element::Type type) {
     switch (type.get_type_enum()) {
-    case ngraph::element::Type_t::boolean:
-        return chainerx::Dtype::kBool;
-    case ngraph::element::Type_t::f32:
-        return chainerx::Dtype::kFloat32;
-    case ngraph::element::Type_t::f64:
-        return chainerx::Dtype::kFloat64;
-    case ngraph::element::Type_t::i8:
-        return chainerx::Dtype::kInt8;
-    case ngraph::element::Type_t::i16:
-        return chainerx::Dtype::kInt16;
-    case ngraph::element::Type_t::i32:
-        return chainerx::Dtype::kInt32;
-    case ngraph::element::Type_t::i64:
-        return chainerx::Dtype::kInt64;
-    case ngraph::element::Type_t::u8:
-        return chainerx::Dtype::kUInt8;
-    default:
-        // bf16,
-        // u16,
-        // u32,
-        // u64
-        CHECK(false) << "Not supported ngraph dtype: " << type;
+        case ngraph::element::Type_t::boolean:
+            return chainerx::Dtype::kBool;
+        case ngraph::element::Type_t::f32:
+            return chainerx::Dtype::kFloat32;
+        case ngraph::element::Type_t::f64:
+            return chainerx::Dtype::kFloat64;
+        case ngraph::element::Type_t::i8:
+            return chainerx::Dtype::kInt8;
+        case ngraph::element::Type_t::i16:
+            return chainerx::Dtype::kInt16;
+        case ngraph::element::Type_t::i32:
+            return chainerx::Dtype::kInt32;
+        case ngraph::element::Type_t::i64:
+            return chainerx::Dtype::kInt64;
+        case ngraph::element::Type_t::u8:
+            return chainerx::Dtype::kUInt8;
+        default:
+            // bf16,
+            // u16,
+            // u32,
+            // u64
+            CHECK(false) << "Not supported ngraph dtype: " << type;
     }
 }
 
