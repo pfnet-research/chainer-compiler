@@ -16,6 +16,7 @@
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
 #include <compiler/xcvm/emitter.h>
+#include <runtime/chrome_tracing.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>
@@ -106,7 +107,8 @@ std::map<std::string, VarPtr> Run(
         bool training,
         bool check_nans,
         bool check_infs,
-        bool dump_memory_usage) {
+        bool dump_memory_usage,
+        const std::string& chrome_tracing) {
     runtime::XCVMOptions xcvm_opts;
     if (trace) xcvm_opts.trace_level = 1;
     if (verbose) xcvm_opts.trace_level = 2;
@@ -114,7 +116,13 @@ std::map<std::string, VarPtr> Run(
     xcvm_opts.check_nans = check_nans;
     xcvm_opts.check_infs = check_infs;
     xcvm_opts.dump_memory_usage = dump_memory_usage;
+    if (!chrome_tracing.empty()) {
+        xcvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
+    }
     runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
+    if (xcvm_opts.chrome_tracing) {
+        xcvm_opts.chrome_tracing->Emit(chrome_tracing);
+    }
     return outputs;
 }
 
@@ -129,7 +137,8 @@ void InitXCVM(py::module& m) {
           py::arg("training") = false,
           py::arg("check_nans") = false,
           py::arg("check_infs") = false,
-          py::arg("dump_memory_usage") = false);
+          py::arg("dump_memory_usage") = false,
+          py::arg("chrome_tracing") = "");
 }
 
 bool IsArray(const VarPtr& v) {
