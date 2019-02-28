@@ -38,7 +38,6 @@ add_library(chainer_compiler_runtime
   ops/controlflow.cc
   ops/creation.cc
   ops/cudnn_rnn.cc
-  ops/space_depth.cc
   ops/generic.cc
   ops/indexing.cc
   ops/logic.cc
@@ -50,7 +49,9 @@ add_library(chainer_compiler_runtime
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/something.cc
   ops/sorting.cc
+  ops/space_depth.cc
   ops/statistics.cc
   ops/tvm.cc
   xcvm.cc

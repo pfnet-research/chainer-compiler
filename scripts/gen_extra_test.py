@@ -10,6 +10,7 @@ import onnx
 import onnx_script
 import test_case
 
+import gen_chainercv_test
 import sentiment
 
 
@@ -1082,6 +1083,8 @@ def get_tests():
     test('extra_test_spacetodepth', gen_spacetodepth_test)
 
     test('extra_test_imagescaler', gen_imagescaler_test)
+
+    tests += gen_chainercv_test.get_tests()
 
     return tests
 

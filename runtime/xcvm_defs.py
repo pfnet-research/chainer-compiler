@@ -355,6 +355,10 @@ XC_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
+
+    ('DoSomething',
+     [ArrayList('inputs'), String('func_name')],
+     [ArrayList('outputs')]),
 ]
 
 XC_CUSTOM_FIELD_OPS = [

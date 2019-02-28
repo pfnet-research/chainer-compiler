@@ -561,6 +561,12 @@ private:
             EmitLoop(node, prog);
         } else if (node.op_type() == Node::kConstant) {
             EmitConstant(node, prog);
+        } else if (node.op_type() == Node::kChainerDoSomething) {
+            std::vector<int> ins;
+            std::vector<XCVMValue> outs;
+            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
+            EMIT(DoSomething, outs, ins, node.function_name());
         } else if (node.op_type() == Node::kChainerSequenceConstants) {
             EmitConstantSequence(node, prog);
         } else if (node.op_type() == Node::kChainerPrint) {
