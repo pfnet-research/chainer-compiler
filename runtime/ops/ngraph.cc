@@ -64,6 +64,8 @@ chainerx::Shape GetShape(const ngraph::Shape& nshape) {
 class NGraphOp::NGraphImpl {
 public:
     std::shared_ptr<ngraph::Function> func;
+    std::unique_ptr<ngraph::runtime::Backend> backend;
+    std::shared_ptr<ngraph::runtime::Executable> handle;
 };
 
 #endif
@@ -73,6 +75,12 @@ void NGraphOp::InitImpl() {
     impl_ = new NGraphImpl();
     std::istringstream iss(onnx);
     impl_->func = ngraph::onnx_import::import_onnx_model(iss);
+
+    // TODO(hamaji): Make this customizable.
+    const char* kBackend = "CPU";
+    impl_->backend = std::move(ngraph::runtime::Backend::create(kBackend));
+
+    impl_->handle = impl_->backend->compile(impl_->func);
 #endif
 }
 
@@ -99,17 +107,12 @@ std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::XCVMSt
         }
     }
 
-    // TODO(hamaji): Make this customizable.
-    const char* kBackend = "CPU";
-
-    auto backend = ngraph::runtime::Backend::create(kBackend);
-
     auto params = impl_->func->get_parameters();
     CHECK_EQ(params.size(), num_inputs);
 
     std::vector<std::shared_ptr<ngraph::runtime::Tensor>> arg_tensors(num_inputs);
     for (size_t i = 0; i < num_inputs; ++i) {
-        auto t = backend->create_tensor(params.at(i)->get_element_type(), params.at(i)->get_shape(), inputs[i].raw_data());
+        auto t = impl_->backend->create_tensor(params.at(i)->get_element_type(), params.at(i)->get_shape(), inputs[i].raw_data());
         arg_tensors.at(i) = t;
     }
 
@@ -121,12 +124,11 @@ std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::XCVMSt
         chainerx::Dtype dtype = GetDtype(tensor->get_element_type());
         chainerx::Shape shape = GetShape(tensor->get_shape());
         chainerx::Array array = chainerx::Empty(shape, dtype);
-        result_tensors.at(i) = backend->create_tensor(tensor->get_element_type(), tensor->get_shape(), array.raw_data());
+        result_tensors.at(i) = impl_->backend->create_tensor(tensor->get_element_type(), tensor->get_shape(), array.raw_data());
         outputs.push_back(array);
     }
 
-    auto handle = backend->compile(impl_->func);
-    handle->call_with_validate(result_tensors, arg_tensors);
+    impl_->handle->call_with_validate(result_tensors, arg_tensors);
 
     return outputs;
 
