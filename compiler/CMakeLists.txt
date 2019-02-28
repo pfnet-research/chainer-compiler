@@ -93,6 +93,9 @@ add_executable(compiler_test
   xcvm/emitter_test.cc
   )
 add_dependencies(compiler_test runtime_xcvm_pb_h)
+target_link_directories(compiler_test
+  PUBLIC
+  ${CHAINER_COMPILER_NGRAPH_LINK_DIRS})
 target_link_libraries(compiler_test
   chainer_compiler_compiler
   chainer_compiler_runtime
@@ -104,6 +107,7 @@ target_link_libraries(compiler_test
   gtest
   gtest_main
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
