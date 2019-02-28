@@ -73,7 +73,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         if _is_array(v):
             if isinstance(v, chainer.Variable):
                 v = v.array
-            v = chainer.backend.to_chainerx(v)
+            v = chainer.backend.to_chx(v)
             if self.chainerx_device_name is None:
                 self.chainerx_device_name = v.device
             else:
