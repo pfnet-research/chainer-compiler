@@ -366,6 +366,9 @@ XC_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('dso_filename'), String('func_name'), Ints('output_shape')],
      [ArrayList('outputs')]),
+    ('NGraph',
+     [ArrayList('inputs'), String('onnx')],
+     [ArrayList('outputs')]),
 ]
 
 XC_SEQ_OPS = [

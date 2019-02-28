@@ -43,6 +43,7 @@ add_library(chainer_compiler_runtime
   ops/logic.cc
   ops/manipulation.cc
   ops/math.cc
+  ops/ngraph.cc
   ops/noise.cc
   ops/normalization.cc
   ops/nvrtc.cc

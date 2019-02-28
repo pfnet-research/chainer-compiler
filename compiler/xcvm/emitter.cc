@@ -11,6 +11,7 @@
 #include <compiler/model.h>
 #include <compiler/node.h>
 #include <compiler/nvrtc_builder.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
@@ -830,6 +831,31 @@ private:
         Add##op##Op(prog, __VA_ARGS__);                             \
         FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
     } while (0)
+
+        if (g_use_ngraph && node.fusion_type() == "ngraph") {
+#if 0
+            for (Node* node : body.nodes()) {
+                node->set_chainer_order(-1);
+                node->set_chainer_fusion_group(0);
+            }
+#endif
+
+            onnx::ModelProto xmodel;
+            body.ToONNX(xmodel.mutable_graph());
+            std::string onnx;
+            xmodel.SerializeToString(&onnx);
+
+            std::vector<int> inputs;
+            std::vector<XCVMValue> outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.emplace_back(GetValueId(value), value);
+            }
+            EMIT(NGraph, outputs, inputs, onnx);
+            return;
+        }
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
