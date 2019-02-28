@@ -99,7 +99,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
     if (g_fuse_operations) {
-        FuseOperations(graph, g_use_tvm);
+        FuseOperations(graph, g_use_tvm, g_use_ngraph);
         dump_onnx(g_dump_after_fusion, "after fusion");
     }
 
