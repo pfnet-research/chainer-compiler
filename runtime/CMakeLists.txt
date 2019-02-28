@@ -70,9 +70,6 @@ include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(runtime_test
   xcvm_test.cc
   )
-target_link_directories(runtime_test
-  PUBLIC
-  ${CHAINER_COMPILER_NGRAPH_LINK_DIRS})
 target_link_libraries(runtime_test
   chainer_compiler_runtime
   chainer_compiler_compiler
