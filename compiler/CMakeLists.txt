@@ -104,6 +104,7 @@ target_link_libraries(compiler_test
   gtest
   gtest_main
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )

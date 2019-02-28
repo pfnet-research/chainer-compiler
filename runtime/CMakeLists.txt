@@ -24,6 +24,7 @@ add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_NGRAPH_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
 add_library(chainer_compiler_runtime
@@ -43,6 +44,7 @@ add_library(chainer_compiler_runtime
   ops/logic.cc
   ops/manipulation.cc
   ops/math.cc
+  ops/ngraph.cc
   ops/noise.cc
   ops/normalization.cc
   ops/nvrtc.cc
@@ -78,6 +80,7 @@ target_link_libraries(runtime_test
   gtest
   gtest_main
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
