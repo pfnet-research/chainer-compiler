@@ -163,6 +163,9 @@ void ReadTestDir(
                     tensor_name = output_names[output_index++];
                 }
                 CHECK(test_case->outputs.emplace(tensor_name, var).second) << "Duplicate output tensor:" << tensor_name;
+            } else if (HasPrefix(filename, "gradient_")) {
+                CHECK(!tensor_name.empty());
+                CHECK(test_case->outputs.emplace("grad_out@" + tensor_name, var).second) << "Duplicate gradient tensor:" << tensor_name;
             }
         }
         test_cases->emplace_back(std::move(test_case));
