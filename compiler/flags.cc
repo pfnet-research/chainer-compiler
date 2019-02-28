@@ -37,4 +37,6 @@ bool g_dump_after_fusion;
 bool g_dump_after_scheduling;
 bool g_dump_subgraphs;
 
+std::string g_computation_order;
+
 }  // namespace chainer_compiler

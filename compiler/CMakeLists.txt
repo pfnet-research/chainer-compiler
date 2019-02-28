@@ -40,6 +40,7 @@ add_library(chainer_compiler_compiler
   code_emitter.cc
   constant_propagation.cc
   config.cc
+  computation_order/core.cc
   custom_onnx_ops.cc
   dtype.cc
   dtype_inference.cc
@@ -50,6 +51,7 @@ add_library(chainer_compiler_compiler
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
   gradient.cc
   gradient_ops.cc
+  gradient_with_order.cc
   graph.cc
   graph_builder.cc
   memory_simulator.cc
