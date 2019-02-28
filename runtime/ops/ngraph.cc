@@ -66,6 +66,8 @@ public:
     std::shared_ptr<ngraph::Function> func;
     std::unique_ptr<ngraph::runtime::Backend> backend;
     std::shared_ptr<ngraph::runtime::Executable> handle;
+    std::vector<std::shared_ptr<ngraph::runtime::Tensor>> result_tensors;
+    std::vector<chainerx::Array> outputs;
 };
 
 #endif
@@ -81,6 +83,16 @@ void NGraphOp::InitImpl() {
     impl_->backend = std::move(ngraph::runtime::Backend::create(kBackend));
 
     impl_->handle = impl_->backend->compile(impl_->func);
+
+    auto results = impl_->func->get_results();
+    for (size_t i = 0; i < results.size(); ++i) {
+        auto& tensor = results[i];
+        chainerx::Dtype dtype = GetDtype(tensor->get_element_type());
+        chainerx::Shape shape = GetShape(tensor->get_shape());
+        chainerx::Array array = chainerx::Empty(shape, dtype);
+        impl_->result_tensors.push_back(impl_->backend->create_tensor(tensor->get_element_type(), tensor->get_shape(), array.raw_data()));
+        impl_->outputs.push_back(array);
+    }
 #endif
 }
 
@@ -116,21 +128,9 @@ std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::XCVMSt
         arg_tensors.at(i) = t;
     }
 
-    auto results = impl_->func->get_results();
-    std::vector<std::shared_ptr<ngraph::runtime::Tensor>> result_tensors(results.size());
-    std::vector<chainerx::Array> outputs;
-    for (size_t i = 0; i < results.size(); ++i) {
-        auto& tensor = results[i];
-        chainerx::Dtype dtype = GetDtype(tensor->get_element_type());
-        chainerx::Shape shape = GetShape(tensor->get_shape());
-        chainerx::Array array = chainerx::Empty(shape, dtype);
-        result_tensors.at(i) = impl_->backend->create_tensor(tensor->get_element_type(), tensor->get_shape(), array.raw_data());
-        outputs.push_back(array);
-    }
+    impl_->handle->call_with_validate(impl_->result_tensors, arg_tensors);
 
-    impl_->handle->call_with_validate(result_tensors, arg_tensors);
-
-    return outputs;
+    return impl_->outputs;
 
 #else
     CHECK(false) << "Set -DCHAINER_COMPILER_NGRAPH_DIR";
