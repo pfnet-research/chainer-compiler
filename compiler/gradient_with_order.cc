@@ -109,10 +109,14 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
     for (auto& order : orders) {
         if (order.kind == Order::kComputeForward) {
             std::cout << "kComputeForward";
+            std::cout << " " << order.node->outputs()[0]->name() << std::endl;
         } else if (order.kind == Order::kComputeBackward) {
             std::cout << "kComputeBackward";
+            std::cout << " " << order.node->outputs()[0]->name() << std::endl;
+        } else if (order.kind == Order::kForgetForward) {
+            std::cout << "kForgetForward";
+            std::cout << " " << order.value->name() << std::endl;
         }
-        std::cout << " " << order.node->outputs()[0]->name() << std::endl;
     }
 
 
@@ -232,4 +236,3 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
 }
 
 }  // namespace chainer_compiler
-
