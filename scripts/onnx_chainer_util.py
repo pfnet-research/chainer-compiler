@@ -2,6 +2,7 @@ import chainer
 import contextlib
 import os
 import pkg_resources
+import shutil
 
 import numpy as np
 try:
@@ -44,9 +45,14 @@ def replace_id(model, builtins):
 
 
 def makedirs(d):
-    if not os.path.exists(d):
-        os.makedirs(d)
+    shutil.rmtree(d, ignore_errors=True)
+    os.makedirs(d, exist_ok=True)
 
+
+def _write_tensor_pb(filename, name, value):
+    with open(filename, 'wb') as f:
+        t = numpy_helper.from_array(value, name)
+        f.write(t.SerializeToString())
 
 def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     # TODO(hamaji): Investigate why we need to set train=False for ResNet50.
@@ -64,9 +70,8 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     test_data_dir = '%s/test_data_set_0' % out_dir
     makedirs(test_data_dir)
     for i, var in enumerate(list(inputs) + list(onnx_extra_inputs)):
-        with open(os.path.join(test_data_dir, 'input_%d.pb' % i), 'wb') as f:
-            t = numpy_helper.from_array(var.data, 'Input_%d' % i)
-            f.write(t.SerializeToString())
+        filename = os.path.join(test_data_dir, 'input_%d.pb' % i)
+        _write_tensor_pb(filename, 'Input_%d' % i, var.data)
 
     chainer.config.train = True
     model.cleargrads()
@@ -75,9 +80,9 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
     result.backward()
 
     outputs = [('', result.array)]
-    for name, param in model.namedparams():
-        outputs.append(('grad_out@' + name, param.grad))
     for i, (name, value) in enumerate(outputs):
-        with open(os.path.join(test_data_dir, 'output_%d.pb' % i), 'wb') as f:
-            t = numpy_helper.from_array(value, name)
-            f.write(t.SerializeToString())
+        filename = os.path.join(test_data_dir, 'output_%d.pb' % i)
+        _write_tensor_pb(filename, name, value)
+    for name, param in model.namedparams():
+        filename = os.path.join(test_data_dir, 'gradient_%d.pb' % i)
+        _write_tensor_pb(filename, name, param.grad)

@@ -36,7 +36,7 @@ add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/extra_test_stamp
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_extra_test.py && touch ${CMAKE_CURRENT_BINARY_DIR}/extra_test_stamp > /dev/null
   MAIN_DEPENDENCY gen_extra_test.py
-  DEPENDS onnx_script.py sentiment.py
+  DEPENDS onnx_script.py sentiment.py gen_chainercv_test.py chainercv_rpn.py
   WORKING_DIRECTORY ${CHAINER_COMPILER_ROOT_DIR}
   )
 

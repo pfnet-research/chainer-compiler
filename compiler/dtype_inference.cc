@@ -348,6 +348,9 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kChainerDoSomething:
+            break;
+
         case Node::kChainerPrint:
             break;
 
