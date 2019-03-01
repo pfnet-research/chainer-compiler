@@ -851,12 +851,24 @@ def gen_maxpool_cover_all_test(test_name):
 
     input = np.random.random((1, 3, 7, 7))
     input_v = gb.input('input', input)
+
+    # Forget shape.
+    squeezed_v = gb.Squeeze([input_v])
+    dynamic_v = gb.Unsqueeze([squeezed_v], axes=[0])
+
     gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
                          outputs=['not_cover_all']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
     gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
                          chainer_cover_all=True,
                          outputs=['cover_all']),
+              F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
+    gb.output(gb.MaxPool([dynamic_v], kernel_shape=[3, 3], strides=[2, 2],
+                         outputs=['not_cover_all_dynamic']),
+              F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
+    gb.output(gb.MaxPool([dynamic_v], kernel_shape=[3, 3], strides=[2, 2],
+                         chainer_cover_all=True,
+                         outputs=['cover_all_dynamic']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
 
     gb.gen_test()
