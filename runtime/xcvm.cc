@@ -1,6 +1,8 @@
 #include "runtime/xcvm.h"
 
+#include <iomanip>
 #include <numeric>
+#include <sstream>
 
 #ifdef CHAINER_COMPILER_ENABLE_NVTX
 #include <nvToolsExt.h>
@@ -71,8 +73,9 @@ void DumpOutput(XCVMState* st, const XCVMOp* op, const std::string& output_dir) 
             continue;
         }
 
-        const std::string& filename = output_dir + "/" + name + ".npy";
-        SaveNpy(filename, var->GetArray());
+        std::ostringstream oss;
+        oss << output_dir << '/' << std::setfill('0') << std::setw(5) << inst.id() << '_' << name << ".npy";
+        SaveNpy(oss.str(), var->GetArray());
     }
 }
 
