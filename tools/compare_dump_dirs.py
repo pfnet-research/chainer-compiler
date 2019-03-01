@@ -36,4 +36,9 @@ for name, filename1 in files1:
     print('Comparing %s' % name)
     n1 = np.load(filename1)
     n2 = np.load(filename2)
-    np.testing.assert_allclose(n1, n2)
+    try:
+        np.testing.assert_allclose(n1, n2)
+    except AssertionError as e:
+        sys.stderr.write('%s\n\n' % e)
+        sys.stderr.write('=== %s ===\n%s\n' % (filename1, n1))
+        sys.stderr.write('=== %s ===\n%s\n' % (filename2, n2))
