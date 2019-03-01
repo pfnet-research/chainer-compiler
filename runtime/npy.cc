@@ -4,6 +4,7 @@
 
 #include <chainerx/array.h>
 
+#include <common/log.h>
 #include <common/strutil.h>
 
 namespace chainer_compiler {
@@ -41,6 +42,8 @@ void SaveNpy(const std::string& filename, const chainerx::Array& a) {
         case chainerx::Dtype::kFloat64:
             header += "<f8";
             break;
+        default:
+            CHECK(false) << "Unknown ChainerX dtype: " << a.dtype();
     }
 
     header += "', 'fortran_order': False, 'shape': (";
