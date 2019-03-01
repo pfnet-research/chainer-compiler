@@ -4,6 +4,7 @@
 
 #include <chainerx/array.h>
 
+#include <common/log.h>
 #include <common/strutil.h>
 
 namespace chainer_compiler {
@@ -62,6 +63,7 @@ void SaveNpy(const std::string& filename, const chainerx::Array& a) {
     header[9] = (aligned_size - 10) / 256;
 
     FILE* fp = fopen(filename.c_str(), "wb");
+    CHECK(fp) << "Failed to open: " << filename;
     fwrite(header.data(), 1, header.size(), fp);
     fwrite(a.raw_data(), 1, a.GetNBytes(), fp);
     fclose(fp);
