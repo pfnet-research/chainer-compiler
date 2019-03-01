@@ -12,6 +12,9 @@ namespace chainer_compiler {
 namespace {
 
 TEST(ShapeEvaluatorTest, EvaluateShapes) {
+    chainerx::Context ctx;
+    chainerx::ContextScope ctx_scope(ctx);
+
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
@@ -22,8 +25,6 @@ TEST(ShapeEvaluatorTest, EvaluateShapes) {
     ASSERT_TRUE(b->type().HasKnownShape());
     ASSERT_FALSE(r->type().HasKnownShape());
 
-    chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
     DoEvaluateShape(r->producer());
 
     ASSERT_TRUE(r->type().HasKnownShape());
