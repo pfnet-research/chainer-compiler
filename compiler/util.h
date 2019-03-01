@@ -12,4 +12,6 @@ void StripONNXGraph(onnx::GraphProto* graph);
 
 void StripONNXModel(onnx::ModelProto* model);
 
+std::string CleanseIdent(const std::string& s);
+
 }  // namespace chainer_compiler

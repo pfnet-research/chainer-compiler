@@ -42,4 +42,16 @@ void StripONNXModel(onnx::ModelProto* model) {
     StripONNXGraph(model->mutable_graph());
 }
 
+std::string CleanseIdent(const std::string& s) {
+    std::string o;
+    for (char c : s) {
+        if (std::isalnum(c)) {
+            o += c;
+        } else {
+            o += '_';
+        }
+    }
+    return o;
+}
+
 }  // namespace chainer_compiler
