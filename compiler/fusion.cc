@@ -204,6 +204,10 @@ void FuseNGraphOperations(Graph* graph) {
             if (!node.input(1)->producer() || node.input(1)->producer()->op_type() != Node::kConstant) {
                 return false;
             }
+        } else if (node.op_type() == Node::kMaxPool) {
+            if (node.chainer_cover_all()) {
+                return false;
+            }
         }
 
         return true;
