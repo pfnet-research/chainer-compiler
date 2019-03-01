@@ -45,25 +45,26 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
     return params;
 }
 
-std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Graph>& graph,
-                                       bool compiler_log,
-                                       bool permissive,
-                                       bool skip_inference,
-                                       bool use_cuda,
-                                       bool fuse_operations,
-                                       bool use_nvrtc,
-                                       bool use_tvm,
-                                       bool reuse_tvm_code,
-                                       const std::string& dump_autotvm_task_dir,
-                                       const std::string& autotvm_log,
-                                       bool use_ngraph,
-                                       const std::string& backend_name,
-                                       bool dump_after_inference,
-                                       bool dump_after_simplification,
-                                       bool dump_after_gradient,
-                                       bool dump_after_fusion,
-                                       bool dump_after_scheduling,
-                                       bool dump_subgraphs) {
+std::shared_ptr<runtime::XCVM> Compile(
+        const std::shared_ptr<Graph>& graph,
+        bool compiler_log,
+        bool permissive,
+        bool skip_inference,
+        bool use_cuda,
+        bool fuse_operations,
+        bool use_nvrtc,
+        bool use_tvm,
+        bool reuse_tvm_code,
+        const std::string& dump_autotvm_task_dir,
+        const std::string& autotvm_log,
+        bool use_ngraph,
+        const std::string& backend_name,
+        bool dump_after_inference,
+        bool dump_after_simplification,
+        bool dump_after_gradient,
+        bool dump_after_fusion,
+        bool dump_after_scheduling,
+        bool dump_subgraphs) {
     g_compiler_log = compiler_log;
     g_permissive = permissive;
     g_skip_inference = skip_inference;
