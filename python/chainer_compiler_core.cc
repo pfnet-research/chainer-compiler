@@ -83,6 +83,8 @@ std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Graph>& graph,
     g_dump_after_scheduling = dump_after_scheduling;
     g_dump_subgraphs = dump_subgraphs;
 
+    if (!g_skip_inference) graph->InferShapes();
+
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop);
     runtime::XCProgramProto xcvm_prog;
