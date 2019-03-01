@@ -167,21 +167,24 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, const std::function<b
 }
 
 void FuseNGraphOperations(Graph* graph) {
+    // TODO(hamaji): Use nGraph for softmax.
     const std::set<Node::OpType> fusable_ops = {
             Node::kAdd,
             Node::kAveragePool,
             Node::kBatchNormalization,
+            Node::kConstant,
             Node::kConv,
             Node::kDiv,
             Node::kExp,
             Node::kGemm,
             Node::kIdentity,
+            // Node::kLogSoftmax,
             Node::kMaxPool,
             Node::kMul,
             Node::kRelu,
             Node::kReshape,
             Node::kSigmoid,
-            Node::kSoftmax,
+            // Node::kSoftmax,
             Node::kSub,
             Node::kSum,
             Node::kTanh,
@@ -198,6 +201,18 @@ void FuseNGraphOperations(Graph* graph) {
         for (Value* value : node.outputs()) {
             if (!value->type().HasKnownShape()) return false;
         }
+
+        if (node.op_type() == Node::kReshape) {
+            CHECK_EQ(2, node.inputs().size());
+            if (!node.input(1)->producer() || node.input(1)->producer()->op_type() != Node::kConstant) {
+                return false;
+            }
+        } else if (node.op_type() == Node::kMaxPool) {
+            if (node.chainer_cover_all()) {
+                return false;
+            }
+        }
+
         return true;
     };
 

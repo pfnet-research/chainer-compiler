@@ -840,6 +840,10 @@ private:
             }
 #endif
 
+            if (g_compiler_log) {
+                CLOG() << "Fusion group (nGraph) " << GetFusionGroupSummary(node) << std::endl;
+            }
+
             onnx::ModelProto xmodel;
             body.ToONNX(xmodel.mutable_graph());
             std::string onnx;

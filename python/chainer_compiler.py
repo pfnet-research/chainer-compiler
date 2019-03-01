@@ -184,8 +184,9 @@ class CompiledModel(chainer.Chain):
         self.fwd_output_names = fwd_graph.output_names()
         self.bwd_input_names = bwd_graph.input_names()
         self.bwd_output_names = bwd_graph.output_names()
-        self.fwd = fwd_graph.compile()
-        self.bwd = bwd_graph.compile()
+        # TODO(hamaji): Revive shape inference.
+        self.fwd = fwd_graph.compile(skip_inference=True)
+        self.bwd = bwd_graph.compile(skip_inference=True)
         self.param_names = self.fwd_input_names[len(inputs):]
 
         self.compiled = True

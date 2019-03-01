@@ -15,6 +15,7 @@ target_link_libraries(chainer_compiler_core.so
   onnx_proto
   protobuf
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )

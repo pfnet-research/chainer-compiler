@@ -10,6 +10,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/flags.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
@@ -44,7 +45,47 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
     return params;
 }
 
-std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Graph>& graph) {
+std::shared_ptr<runtime::XCVM> Compile(
+        const std::shared_ptr<Graph>& graph,
+        bool compiler_log,
+        bool permissive,
+        bool skip_inference,
+        bool use_cuda,
+        bool fuse_operations,
+        bool use_nvrtc,
+        bool use_tvm,
+        bool reuse_tvm_code,
+        const std::string& dump_autotvm_task_dir,
+        const std::string& autotvm_log,
+        bool use_ngraph,
+        const std::string& backend_name,
+        bool dump_after_inference,
+        bool dump_after_simplification,
+        bool dump_after_gradient,
+        bool dump_after_fusion,
+        bool dump_after_scheduling,
+        bool dump_subgraphs) {
+    g_compiler_log = compiler_log;
+    g_permissive = permissive;
+    g_skip_inference = skip_inference;
+    g_use_cuda = use_cuda;
+    g_fuse_operations = fuse_operations;
+    g_use_nvrtc = use_nvrtc;
+    g_use_tvm = use_tvm;
+    g_reuse_tvm_code = reuse_tvm_code;
+    g_dump_autotvm_task_dir = dump_autotvm_task_dir;
+    g_autotvm_log = autotvm_log;
+    g_use_ngraph = use_ngraph;
+    g_backend_name = backend_name;
+    g_dump_after_inference = dump_after_inference;
+    g_dump_after_simplification = dump_after_simplification;
+    g_dump_after_gradient = dump_after_gradient;
+    g_dump_after_fusion = dump_after_fusion;
+    g_dump_after_scheduling = dump_after_scheduling;
+    g_dump_subgraphs = dump_subgraphs;
+
+    if (!g_skip_inference) graph->InferShapes();
+
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop);
     runtime::XCProgramProto xcvm_prog;
@@ -91,7 +132,27 @@ std::string Dump(const std::shared_ptr<Graph>& graph) {
 void InitGraph(py::module& m) {
     py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
-    c.def("compile", &Compile, "Compile a model");
+    c.def("compile",
+          &Compile,
+          "Compile a model",
+          py::arg("compiler_log") = false,
+          py::arg("permissive") = false,
+          py::arg("skip_inference") = false,
+          py::arg("use_cuda") = false,
+          py::arg("fuse_operations") = false,
+          py::arg("use_nvrtc") = false,
+          py::arg("use_tvm") = false,
+          py::arg("reuse_tvm_code") = false,
+          py::arg("dump_autotvm_task_dir") = "",
+          py::arg("autotvm_log") = "",
+          py::arg("use_ngraph") = false,
+          py::arg("backend_name") = "",
+          py::arg("dump_after_inference") = false,
+          py::arg("dump_after_simplification") = false,
+          py::arg("dump_after_gradient") = false,
+          py::arg("dump_after_fusion") = false,
+          py::arg("dump_after_scheduling") = false,
+          py::arg("dump_subgraphs") = false);
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward, "Generate a pair of graphs for forward and back propagation");
