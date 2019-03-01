@@ -239,8 +239,36 @@ chainerx::Array ROIAlign2D(
         int64_t roi_bin_grid_w = sampling_ratio[1];
 
         if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
+            std::vector<chainerx::StackVector<double, 4>> weights(pooled_height * pooled_width * roi_bin_grid_h * roi_bin_grid_w);
+            size_t i = 0;
+            for (int64_t ph = 0; ph < pooled_height; ++ph) {
+                for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                    for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                        double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                        int64_t y_low = static_cast<int64_t>(y);
+                        int64_t y_high = y_low + 1;
+                        double ly = y - y_low;
+                        double hy = 1.0 - ly;
+                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                            double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                            int64_t x_low = static_cast<int64_t>(x);
+                            int64_t x_high = x_low + 1;
+                            double lx = x - x_low;
+                            double hx = 1.0 - lx;
+
+                            weights[i][0] = hy * hx;
+                            weights[i][1] = hy * lx;
+                            weights[i][2] = ly * hx;
+                            weights[i][3] = ly * lx;
+
+                            ++i;
+                        }
+                    }
+                }
+            }
             // {{
             for (int64_t c = 0; c < channels; ++c) {
+                size_t i = 0;
                 for (int64_t ph = 0; ph < pooled_height; ++ph) {
                     for (int64_t pw = 0; pw < pooled_width; ++pw) {
                         ReduceMode reduce;
@@ -248,27 +276,20 @@ chainerx::Array ROIAlign2D(
                             double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
                             int64_t y_low = static_cast<int64_t>(y);
                             int64_t y_high = y_low + 1;
-                            double ly = y - y_low;
-                            double hy = 1.0 - ly;
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                                 double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
                                 int64_t x_low = static_cast<int64_t>(x);
                                 int64_t x_high = x_low + 1;
-                                double lx = x - x_low;
-                                double hx = 1.0 - lx;
 
                                 // bilinear interpolation {{
-                                double w1 = hy * hx;
-                                double w2 = hy * lx;
-                                double w3 = ly * hx;
-                                double w4 = ly * lx;
                                 float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
                                 float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
                                 float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
                                 float v4 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_high});
 
-                                double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
+                                double weighted_average = weights[i][0] * v1 + weights[i][1] * v2 + weights[i][2] * v3 + weights[i][3] * v4;
                                 reduce.Reduce(weighted_average);
+                                ++i;
                                 // }}
                             }
                         }
