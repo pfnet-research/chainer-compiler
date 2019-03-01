@@ -34,6 +34,7 @@ private:
 TEST(TestDataIterator, Basic) {
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
+
     MyDataIterator iter;
     iter.Start();
     EXPECT_EQ(42, int64_t(chainerx::AsScalar(iter.GetNext()[0])));
@@ -47,6 +48,7 @@ TEST(TestDataIterator, Basic) {
 TEST(TestDataIterator, Finish) {
     chainerx::Context ctx;
     chainerx::SetGlobalDefaultContext(&ctx);
+
     MyDataIterator iter(45);
     iter.Start();
     EXPECT_EQ(42, int64_t(chainerx::AsScalar(iter.GetNext()[0])));

@@ -126,7 +126,7 @@ TEST(ModelTest, LoadResNet50) {
 
 TEST(ModelTest, CompileCH2OResNet50) {
     chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::ContextScope ctx_scope(ctx);
 
     std::string path = "out/ch2o_model_Resnet_with_loss/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));

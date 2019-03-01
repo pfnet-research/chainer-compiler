@@ -19,7 +19,7 @@ namespace {
 
 TEST(XCVMTest, Run) {
     chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::ContextScope ctx_scope(ctx);
 
     XCProgramProto program;
     xcvm::AddInOp(&program, 0, "in1");

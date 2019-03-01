@@ -12,6 +12,9 @@ namespace chainer_compiler {
 namespace {
 
 TEST(EvaluatorTest, Eval) {
+    chainerx::Context ctx;
+    chainerx::ContextScope ctx_scope(ctx);
+
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
@@ -19,8 +22,6 @@ TEST(EvaluatorTest, Eval) {
     Value* b = gb.Const(Type(Dtype::kInt32, {2}), {7, 32});
     Value* r = gb.Op(Node::kAdd, {a, b});
 
-    chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
     const std::vector<Node*> nodes = {a->producer(), b->producer(), r->producer()};
     std::vector<std::unique_ptr<EvaluatedValue>> outputs;
     Eval(nodes, {r}, &outputs);
@@ -35,6 +36,9 @@ TEST(EvaluatorTest, Eval) {
 }
 
 TEST(EvaluatorTest, EvalWithFeeds) {
+    chainerx::Context ctx;
+    chainerx::ContextScope ctx_scope(ctx);
+
     Value dummy_for_test("test");
     Graph graph("test");
     GraphBuilder gb(&graph, "test", &dummy_for_test);
@@ -42,8 +46,6 @@ TEST(EvaluatorTest, EvalWithFeeds) {
     Value* b = gb.Const(Type(Dtype::kInt32, {2}), {0, 0});
     Value* r = gb.Op(Node::kAdd, {a, b});
 
-    chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
     const std::vector<Node*> nodes = {r->producer()};
     std::vector<std::pair<Value*, Tensor*>> feeds;
     feeds.emplace_back(a, new Tensor("a", Dtype::kInt32, {2}, {3, 10}));
