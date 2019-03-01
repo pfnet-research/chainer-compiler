@@ -167,6 +167,7 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, const std::function<b
 }
 
 void FuseNGraphOperations(Graph* graph) {
+    // TODO(hamaji): Use nGraph for softmax.
     const std::set<Node::OpType> fusable_ops = {
             Node::kAdd,
             Node::kAveragePool,
@@ -177,12 +178,13 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kExp,
             Node::kGemm,
             Node::kIdentity,
+            // Node::kLogSoftmax,
             Node::kMaxPool,
             Node::kMul,
             Node::kRelu,
             Node::kReshape,
             Node::kSigmoid,
-            Node::kSoftmax,
+            // Node::kSoftmax,
             Node::kSub,
             Node::kSum,
             Node::kTanh,
