@@ -12,6 +12,7 @@
 #include <common/strutil.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
+#include <runtime/npy.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_op.h>
 #include <runtime/xcvm_state.h>
@@ -50,6 +51,29 @@ void CheckType(XCVMState* st, const XCVMOp* op) {
 
 int64_t InMbs(int64_t bytes) {
     return bytes / 1000 / 1000;
+}
+
+void DumpOutput(XCVMState* st, const XCVMOp* op, const std::string& output_dir) {
+    const XCInstructionProto& inst = op->instruction();
+    CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
+    for (size_t i = 0; i < inst.outputs().size(); ++i) {
+        int id = inst.outputs(i);
+        if (id <= 0) {
+            continue;
+        }
+        const std::string& name = inst.output_names(i);
+        if (name.empty()) {
+            continue;
+        }
+
+        XCVMVar* var = st->GetVar(id);
+        if (var->kind() != XCVMVar::Kind::kArray) {
+            continue;
+        }
+
+        const std::string& filename = output_dir + "/" + name + ".npy";
+        SaveNpy(filename, var->GetArray());
+    }
 }
 
 }  // namespace
@@ -116,6 +140,10 @@ void XCVM::Run(XCVMState* state) {
 
         if (options.check_types) {
             CheckType(state, op);
+        }
+
+        if (!options.dump_outputs_dir.empty()) {
+            DumpOutput(state, op, options.dump_outputs_dir);
         }
 
         if (options.dump_memory_usage) {

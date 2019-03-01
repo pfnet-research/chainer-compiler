@@ -40,6 +40,8 @@ public:
     int64_t base_memory_usage{0};
 
     ChromeTracingEmitter* chrome_tracing{nullptr};
+
+    std::string dump_outputs_dir;
 };
 
 class XCVM {
