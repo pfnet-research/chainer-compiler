@@ -198,6 +198,14 @@ void FuseNGraphOperations(Graph* graph) {
         for (Value* value : node.outputs()) {
             if (!value->type().HasKnownShape()) return false;
         }
+
+        if (node.op_type() == Node::kReshape) {
+            CHECK_EQ(2, node.inputs().size());
+            if (!node.input(1)->producer() || node.input(1)->producer()->op_type() != Node::kConstant) {
+                return false;
+            }
+        }
+
         return true;
     };
 
