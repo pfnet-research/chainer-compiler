@@ -57,7 +57,6 @@ add_library(chainer_compiler_compiler
   node.cc
   nvrtc_builder.cc
   passes.cc
-  recompute.cc
   scheduler.cc
   shape_evaluator.cc
   simplifier.cc

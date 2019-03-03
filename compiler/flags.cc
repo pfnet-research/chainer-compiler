@@ -10,8 +10,6 @@ bool g_skip_inference;
 
 bool g_replace_constant;
 
-int g_recompute_relu;
-
 bool g_modify_pool_with_imbalanced_pads;
 
 bool g_use_cuda;
