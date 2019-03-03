@@ -78,6 +78,13 @@ void NGraphOp::InitImpl() {
     std::istringstream iss(onnx);
     impl_->func = ngraph::onnx_import::import_onnx_model(iss);
 
+    if (false) {
+        std::cerr << "nGraph function: " << impl_->func->get_name() << std::endl;
+        for (const auto& node : impl_->func->get_ordered_ops()) {
+            std::cerr << " nGraph node(" << node->get_name() << "): " << node->description() << std::endl;
+        }
+    }
+
     // TODO(hamaji): Make this customizable.
     const char* kBackend = "CPU";
     impl_->backend = std::move(ngraph::runtime::Backend::create(kBackend));
