@@ -374,13 +374,7 @@ private:
         } else if (node.op_type() == Node::kBatchNormalization) {
             EmitBatchNormalization(node, prog);
         } else if (node.op_type() == Node::kLRN) {
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(LRN, out(0), tmp_id, in(0), node.alpha(), node.beta(), node.bias(), node.size());
-                FREE(tmp_id);
-            } else {
-                EMIT(LRN, out(0), out(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
-            }
+            EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kChainerLRNGrad) {
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kUpsample) {
@@ -394,15 +388,11 @@ private:
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(MaxPool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
-                FREE(tmp_id);
-            } else {
+            if (node.outputs().size() != 1) {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.output(1)->IsNull());
-                EMIT(MaxPool, out(0), out(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
             }
+            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kChainerROIMaxPool2D) {
             EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
@@ -417,14 +407,7 @@ private:
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(AveragePool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
-                FREE(tmp_id);
-            } else {
-                CHECK_EQ(2UL, node.outputs().size());
-                EMIT(AveragePool, out(0), out(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
-            }
+            EMIT(AveragePool, out(0), oout(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
         } else if (node.op_type() == Node::kChainerAveragePoolGradNoCtx) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             EMIT(AveragePoolGradNoCtx, out(0), in(0), in(1), in(2), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
@@ -611,13 +594,7 @@ private:
         } else if (node.op_type() == Node::kChainerSequenceStack) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kChainerSequenceConcat) {
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(SequenceConcat, out(0), tmp_id, in(0), node.axis());
-                FREE(tmp_id);
-            } else {
-                EMIT(SequenceConcat, out(0), out(1), in(0), node.axis());
-            }
+            EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
         } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
             EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
         } else if (node.op_type() == Node::kChainerSequenceSeparate) {
