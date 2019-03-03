@@ -78,6 +78,11 @@ void NGraphOp::InitImpl() {
     std::istringstream iss(onnx);
     impl_->func = ngraph::onnx_import::import_onnx_model(iss);
 
+    // TODO(hamaji): Figure out a way to obtain actual strides.
+    for (const std::shared_ptr<ngraph::op::Result>& result : impl_->func->get_results()) {
+        result->set_needs_default_layout(true);
+    }
+
     if (false) {
         std::cerr << "nGraph function: " << impl_->func->get_name() << std::endl;
         for (const auto& node : impl_->func->get_ordered_ops()) {
@@ -92,12 +97,11 @@ void NGraphOp::InitImpl() {
     impl_->handle = impl_->backend->compile(impl_->func);
 
     auto results = impl_->func->get_results();
-    for (size_t i = 0; i < results.size(); ++i) {
-        auto& tensor = results[i];
-        chainerx::Dtype dtype = GetDtype(tensor->get_element_type());
-        chainerx::Shape shape = GetShape(tensor->get_shape());
+    for (const std::shared_ptr<ngraph::op::Result>& result : impl_->func->get_results()) {
+        chainerx::Dtype dtype = GetDtype(result->get_element_type());
+        chainerx::Shape shape = GetShape(result->get_shape());
         chainerx::Array array = chainerx::Empty(shape, dtype);
-        impl_->result_tensors.push_back(impl_->backend->create_tensor(tensor->get_element_type(), tensor->get_shape(), array.raw_data()));
+        impl_->result_tensors.push_back(impl_->backend->create_tensor(result->get_element_type(), result->get_shape(), array.raw_data()));
         impl_->outputs.push_back(array);
     }
 #endif
