@@ -117,7 +117,7 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
-void FuseAllConnectedNodes(const char* name, Graph* graph, const std::function<bool(const Node&)>& is_fusable) {
+void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, const std::function<bool(const Node&)>& is_fusable) {
     int num_fusion_groups = 0;
     const std::vector<Node*> all_nodes(graph->nodes());
     for (Node* base_node : all_nodes) {
@@ -155,7 +155,7 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, const std::function<b
         for (Node* node : cands) {
             if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
         }
-        if (num_calculation <= 1) continue;
+        if (num_calculation < min_fuse_ops) continue;
 
         ++num_fusion_groups;
         for (Node* node : cands) {
@@ -216,7 +216,7 @@ void FuseNGraphOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("ngraph", graph, is_fusable);
+    FuseAllConnectedNodes("ngraph", graph, 1, is_fusable);
 }
 
 void FuseTVMOperations(Graph* graph) {
@@ -315,7 +315,7 @@ void FuseElementwiseOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("nvrtc", graph, is_fusable);
+    FuseAllConnectedNodes("nvrtc", graph, 2, is_fusable);
 }
 
 }  // namespace
