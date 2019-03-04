@@ -82,7 +82,7 @@ chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data)
 
 chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     CHECK_EQ(data.ndim() * 2, pads.size());
-    const auto shape = data.shape();
+    const chainerx::Shape shape = data.shape();
     chainerx::Shape new_shape = data.shape();
     std::vector<chainerx::ArrayIndex> indices1, indices2;
     for (int i = 0; i < shape.size(); ++i) {

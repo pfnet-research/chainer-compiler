@@ -282,10 +282,10 @@ void ExpandGradFn(GradientOpContext* gc) {
 }
 
 void PadGradFn(GradientOpContext* gc) {
-    auto gy = gc->gy(0);
-    const auto pads = gc->node()->pads();
-    auto negated_pads(pads);
-    for (auto& p : negated_pads) p = -p;
+    Value* gy = gc->gy(0);
+    const std::vector<int64_t> pads = gc->node()->pads();
+    std::vector<int64_t> negated_pads(pads);
+    for (int64_t& p : negated_pads) p = -p;
 
     gc->GradOp(Node::kPad, 0, {gy})->producer()->set_pads(negated_pads);
 }
