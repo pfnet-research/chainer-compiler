@@ -10,6 +10,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
@@ -245,6 +246,8 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
 }  // namespace
 
 PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
+    RegisterCustomOnnxOperatorSetSchema();
+
     m.doc() = "chainer_compiler";
 
     InitGraph(m);
