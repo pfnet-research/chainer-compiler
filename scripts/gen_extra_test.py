@@ -981,6 +981,15 @@ def gen_imagescaler_test(test_name):
     gb.gen_test()
 
 
+def gen_pad_negative_width_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    v = aranges(2, 5, 6, 7)
+    gb.input('input', v)
+    gb.output(gb.Pad(['input'], pads=[0, -2, -1, -2, 0, -2, -2, -1]),
+              v[:, 2:-2, 1:-2, 2:-1])
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1095,6 +1104,8 @@ def get_tests():
     test('extra_test_spacetodepth', gen_spacetodepth_test)
 
     test('extra_test_imagescaler', gen_imagescaler_test)
+
+    test('extra_test_pad_negative_width', gen_pad_negative_width_test)
 
     tests += gen_chainercv_test.get_tests()
 
