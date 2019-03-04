@@ -258,6 +258,7 @@ public:
         xcvm_opts_.check_infs = args_.exist("check_infs");
         xcvm_opts_.dump_memory_usage = args_.exist("trace");
         xcvm_opts_.base_memory_usage = initial_free_bytes_;
+        xcvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
             xcvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
@@ -390,6 +391,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
+    args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of XCVM ops to this directory", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add("check_nans", '\0', "Check for NaNs after each operation");

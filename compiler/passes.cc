@@ -11,7 +11,6 @@
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
-#include <compiler/recompute.h>
 #include <compiler/scheduler.h>
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
@@ -95,8 +94,6 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     if (g_dump_subgraphs) {
         graph->DumpSubGraphs();
     }
-
-    if (g_recompute_relu) GetReluRecompute(graph, g_recompute_relu);
 
     if (g_fuse_operations) {
         FuseOperations(graph, g_use_tvm, g_use_ngraph);
