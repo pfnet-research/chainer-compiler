@@ -281,6 +281,17 @@ void ExpandGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerReduceSumTo, 0, {gc->gy(0), t0});
 }
 
+void PadGradFn(GradientOpContext* gc) {
+    auto gy = gc->gy(0);
+    const auto pads = gc->node()->pads();
+    auto negated_pads(pads);
+    for (auto& p : negated_pads) p = -p;
+
+    gc->GradOp(Node::kPad, 0, {gy})
+        ->producer()
+        ->set_pads(negated_pads);
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -968,6 +979,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kChainerSelectItem, &SelectItemGradFn);
         register_grad_fn(Node::kGather, &GatherGradFn);
         register_grad_fn(Node::kExpand, &ExpandGradFn);
+        register_grad_fn(Node::kPad, &PadGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
