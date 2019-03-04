@@ -129,6 +129,10 @@ def get_backprop_tests():
          b=aranges(5),
          r=aranges(2, 5, 3, 3) % 7)
 
+    test('pad',
+         lambda m: F.pad(m.x, 2, 'constant'),
+         x=aranges(2, 5, 3, 3))
+
     return tests
 
 
