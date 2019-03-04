@@ -243,7 +243,55 @@ void InferROI(InferenceContext& ctx) {
 }  // namespace
 
 ONNX_OPERATOR_SET_SCHEMA(
+        ChainerROIAveragePool2D,
+        9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Input(1, "rois", "Input tensor", "T")
+                .Input(2, "roi_indices", "Input tensor", "I")
+                .Output(0, "Y", "Output tensor", "T")
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
+                .TypeAndShapeInferenceFunction(InferROI));
+
+ONNX_OPERATOR_SET_SCHEMA(
+        ChainerROIMaxPool2D,
+        9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Input(1, "rois", "Input tensor", "T")
+                .Input(2, "roi_indices", "Input tensor", "I")
+                .Output(0, "Y", "Output tensor", "T")
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
+                .TypeAndShapeInferenceFunction(InferROI));
+
+ONNX_OPERATOR_SET_SCHEMA(
         ChainerROIAverageAlign2D,
+        9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Input(1, "rois", "Input tensor", "T")
+                .Input(2, "roi_indices", "Input tensor", "I")
+                .Output(0, "Y", "Output tensor", "T")
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
+                .TypeAndShapeInferenceFunction(InferROI));
+
+ONNX_OPERATOR_SET_SCHEMA(
+        ChainerROIMaxAlign2D,
         9,
         OpSchema()
                 .SetDoc("TBD")
@@ -262,6 +310,9 @@ class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAverageAlign2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAveragePool2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxAlign2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxPool2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerLinear)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSoftmaxCrossEntropy)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSelectItem)>());
