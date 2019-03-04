@@ -94,8 +94,10 @@ chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
         const auto end1 = std::min(shape[i] + pads[i + shape.size()], shape[i]);
         const auto end2 = std::min(new_shape[i] - pads[i + shape.size()], new_shape[i]);
 
-        CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      " << start1 << " " << end1 << " " << len;
-        CHECK_EQ(end2 - start2, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      " << start2 << " " << end2 << " " << len;
+        CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      "
+                                     << start1 << " " << end1 << " " << len;
+        CHECK_EQ(end2 - start2, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      "
+                                     << start2 << " " << end2 << " " << len;
 
         indices1.push_back(chainerx::Slice(start1, end1));
         indices2.push_back(chainerx::Slice(start2, end2));

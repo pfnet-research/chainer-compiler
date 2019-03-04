@@ -287,9 +287,7 @@ void PadGradFn(GradientOpContext* gc) {
     auto negated_pads(pads);
     for (auto& p : negated_pads) p = -p;
 
-    gc->GradOp(Node::kPad, 0, {gy})
-        ->producer()
-        ->set_pads(negated_pads);
+    gc->GradOp(Node::kPad, 0, {gy})->producer()->set_pads(negated_pads);
 }
 
 namespace {
