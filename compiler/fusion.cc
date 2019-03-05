@@ -222,6 +222,13 @@ void FuseNGraphOperations(Graph* graph) {
             if (node.input(0)->type().dtype() != node.input(1)->type().dtype()) {
                 return false;
             }
+        } else if (node.op_type() == Node::kPad) {
+            // Apparently, nGraph does not support negative pads.
+            for (int p : node.pads()) {
+                if (p < 0) {
+                    return false;
+                }
+            }
         }
 
         return true;
