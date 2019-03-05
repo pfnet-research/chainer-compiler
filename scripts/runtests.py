@@ -43,6 +43,7 @@ parser.add_argument('--failed', action='store_true',
 parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
+parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -693,6 +694,9 @@ def main():
             test_case.args.append('--fuse_operations')
             if is_gpu:
                 test_case.args.append('--use_nvrtc')
+        if args.ngraph:
+            test_case.args.append('--fuse_operations')
+            test_case.args.append('--use_ngraph')
 
         if is_gpu:
             gpu_tests.append(test_case)

@@ -11,6 +11,7 @@
 #include <compiler/model.h>
 #include <compiler/node.h>
 #include <compiler/nvrtc_builder.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
@@ -102,6 +103,13 @@ public:
         return found->second;
     }
 
+    XCVMValue GetOutputValue(const Node& node, int i) {
+        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
+        Value* output = node.output(i);
+        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
+        return XCVMValue(GetValueId(output), output);
+    }
+
 private:
     void AssignValueIds(const Graph& graph) {
         for (const Value* v : graph.input_values()) {
@@ -146,12 +154,7 @@ private:
             return in(i);
         };
 
-        auto out = [this, &node](int i) {
-            CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
-            Value* output = node.output(i);
-            CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
-            return XCVMValue(GetValueId(output), output);
-        };
+        auto out = [this, &node](int i) { return GetOutputValue(node, i); };
 
         // Optional output.
         auto oout = [this, out, &node](int i) {
@@ -373,13 +376,7 @@ private:
         } else if (node.op_type() == Node::kBatchNormalization) {
             EmitBatchNormalization(node, prog);
         } else if (node.op_type() == Node::kLRN) {
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(LRN, out(0), tmp_id, in(0), node.alpha(), node.beta(), node.bias(), node.size());
-                FREE(tmp_id);
-            } else {
-                EMIT(LRN, out(0), out(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
-            }
+            EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kChainerLRNGrad) {
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kUpsample) {
@@ -393,15 +390,11 @@ private:
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(MaxPool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
-                FREE(tmp_id);
-            } else {
+            if (node.outputs().size() != 1) {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.output(1)->IsNull());
-                EMIT(MaxPool, out(0), out(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
             }
+            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kChainerROIMaxPool2D) {
             EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
@@ -416,14 +409,7 @@ private:
         } else if (node.op_type() == Node::kAveragePool) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(AveragePool, out(0), tmp_id, in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
-                FREE(tmp_id);
-            } else {
-                CHECK_EQ(2UL, node.outputs().size());
-                EMIT(AveragePool, out(0), out(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
-            }
+            EMIT(AveragePool, out(0), oout(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
         } else if (node.op_type() == Node::kChainerAveragePoolGradNoCtx) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             EMIT(AveragePoolGradNoCtx, out(0), in(0), in(1), in(2), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
@@ -610,13 +596,7 @@ private:
         } else if (node.op_type() == Node::kChainerSequenceStack) {
             EMIT(SequenceStack, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kChainerSequenceConcat) {
-            if (node.outputs().size() == 1) {
-                int tmp_id = next_value_id_++;
-                EMIT(SequenceConcat, out(0), tmp_id, in(0), node.axis());
-                FREE(tmp_id);
-            } else {
-                EMIT(SequenceConcat, out(0), out(1), in(0), node.axis());
-            }
+            EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
         } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
             EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
         } else if (node.op_type() == Node::kChainerSequenceSeparate) {
@@ -644,7 +624,7 @@ private:
         }
     }
 
-    void EmitConstantImpl(const Node& node, const Tensor* value, int out, bool host, XCProgramProto* prog) {
+    void EmitConstantImpl(const Node& node, const Tensor* value, XCVMValue out, bool host, XCProgramProto* prog) {
         Dtype dtype = value->dtype();
         std::vector<int64_t> shape;
         for (int64_t d : value->dims()) {
@@ -693,7 +673,7 @@ private:
 
     void EmitConstant(const Node& node, XCProgramProto* prog) {
         CHECK_EQ(1, node.outputs().size());
-        int out = GetValueId(node.output(0));
+        XCVMValue out = GetOutputValue(node, 0);
         Tensor* value = node.tensor_value().get();
         EmitConstantImpl(node, value, out, node.chainer_host(), prog);
     }
@@ -703,12 +683,12 @@ private:
         std::vector<int> const_values;
         for (const auto& tensor : node.tensor_values()) {
             int id = next_value_id_++;
-            EmitConstantImpl(node, tensor.get(), id, false, prog);
+            EmitConstantImpl(node, tensor.get(), XCVMValue(id), false, prog);
             const_values.push_back(id);
         }
 
         int out = GetValueId(node.output(0));
-        EMIT(SequenceCreate, out);
+        EMIT(SequenceCreate, XCVMValue(out));
         for (int id : const_values) {
             EMIT(SequenceAppend, out, id);
             FREE(id);
@@ -721,7 +701,7 @@ private:
         size_t num_onnx_outputs = node.outputs().size();
         if (num_onnx_outputs == 1) {
             EMIT(FixedBatchNormalization,
-                 GetValueId(node.output(0)),
+                 GetOutputValue(node, 0),
                  GetValueId(node.input(0)),
                  GetValueId(node.input(1)),
                  GetValueId(node.input(2)),
@@ -731,18 +711,18 @@ private:
             return;
         }
 
-        std::vector<XCVMValue> outs = {GetValueId(node.output(0))};
+        std::vector<XCVMValue> outs = {GetOutputValue(node, 0)};
         if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
             num_onnx_outputs--;
-            outs.push_back(GetValueId(node.output(num_onnx_outputs)));
+            outs.push_back(GetOutputValue(node, num_onnx_outputs));
         } else {
-            outs.push_back(-1);
+            outs.push_back(XCVMValue());
         }
         for (size_t i = 1; i < num_onnx_outputs; ++i) {
-            outs.push_back(GetValueId(node.output(i)));
+            outs.push_back(GetOutputValue(node, i));
         }
         for (size_t i = num_onnx_outputs; i < 6; ++i) {
-            outs.push_back(-1);
+            outs.push_back(XCVMValue());
         }
 
         EMIT(BatchNormalization,
@@ -785,7 +765,7 @@ private:
                 for (const Value* value : node->inputs()) {
                     if (!value->IsInput()) continue;
                     if (!staged_inputs.emplace(value).second) continue;
-                    AddInOp(prog, GetValueId(value), value->name());
+                    AddInOp(prog, XCVMValue(GetValueId(value)), value->name());
                     prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
                 }
             }
@@ -830,6 +810,35 @@ private:
         Add##op##Op(prog, __VA_ARGS__);                             \
         FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
     } while (0)
+
+        if (g_use_ngraph && node.fusion_type() == "ngraph") {
+#if 0
+            for (Node* node : body.nodes()) {
+                node->set_chainer_order(-1);
+                node->set_chainer_fusion_group(0);
+            }
+#endif
+
+            if (g_compiler_log) {
+                CLOG() << "Fusion group (nGraph) " << GetFusionGroupSummary(node) << std::endl;
+            }
+
+            onnx::ModelProto xmodel;
+            body.ToONNX(xmodel.mutable_graph());
+            std::string onnx;
+            xmodel.SerializeToString(&onnx);
+
+            std::vector<int> inputs;
+            std::vector<XCVMValue> outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.emplace_back(GetValueId(value), value);
+            }
+            EMIT(NGraph, outputs, inputs, onnx);
+            return;
+        }
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
@@ -885,7 +894,7 @@ private:
             Value* from = node.input(i);
             Value* to = body.input_values()[i];
             // MOVE(GetValueId(to), GetValueId(from));
-            EMIT(Identity, GetValueId(to), GetValueId(from));
+            EMIT(Identity, XCVMValue(GetValueId(to)), GetValueId(from));
         }
 
         EmitGraph(body, prog, true /* in_loop */, body.output_values());
@@ -896,12 +905,12 @@ private:
         }
         for (size_t i = 0; i < node.outputs().size(); ++i) {
             Value* from = body.output_values()[i];
-            Value* to = node.output(i);
+            XCVMValue to = GetOutputValue(node, i);
             if (from->IsNull()) {
                 // TODO(hamaji): Consider removing this value.
-                EMIT(NullConstant, GetValueId(to));
+                EMIT(NullConstant, to);
             } else {
-                MOVE(GetValueId(to), GetValueId(from));
+                MOVE(to, GetValueId(from));
             }
         }
 
@@ -935,7 +944,7 @@ private:
             for (size_t i = 0; i < inputs.size(); ++i) {
                 Value* from = cond.input(i + 1);
                 Value* to = inputs[i];
-                EMIT(Identity, GetValueId(to), GetValueId(from));
+                EMIT(Identity, XCVMValue(GetValueId(to)), GetValueId(from));
             }
             EmitGraph(*graph, prog, true /* in_loop */, outputs);
             // TODO(hamaji): Fix `EmitGraph` so it frees inputs automatically.
@@ -944,12 +953,12 @@ private:
             }
             for (size_t i = 0; i < cond.outputs().size(); ++i) {
                 Value* from = outputs[i];
-                Value* to = cond.output(i);
+                XCVMValue to = GetOutputValue(cond, i);
                 if (from->IsNull()) {
                     // TODO(hamaji): Consider removing this value.
-                    EMIT(NullConstant, GetValueId(to));
+                    EMIT(NullConstant, to);
                 } else {
-                    MOVE(GetValueId(to), GetValueId(from));
+                    MOVE(to, GetValueId(from));
                 }
             }
         };
@@ -1015,22 +1024,22 @@ private:
 
         // Initialize loop variables.
         int iter_id = GetValueId(body_input_values[0]);
-        EMIT(IntScalarConstant, iter_id, 0, Dtype::kInt64, true);
+        EMIT(IntScalarConstant, XCVMValue(iter_id), 0, Dtype::kInt64, true);
         int cond_id = GetValueId(body_input_values[1]);
-        EMIT(IntScalarConstant, cond_id, 1, Dtype::kBool, true);
+        EMIT(IntScalarConstant, XCVMValue(cond_id), 1, Dtype::kBool, true);
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.inputs().size());
             CHECK_LT(i + 2, body_input_values.size());
             const Value* loop_in = loop.input(i + 2);
             const Value* body_in = body_input_values[i + 2];
-            EMIT(Identity, GetValueId(body_in), GetValueId(loop_in));
+            EMIT(Identity, XCVMValue(GetValueId(body_in)), GetValueId(loop_in));
         }
 
         // Prepare temporary sequences for scan outputs.
         std::vector<int> scan_out_ids;
         for (int i = 0; i < num_scans; ++i) {
             int id = next_value_id_++;
-            EMIT(SequenceCreate, id);
+            EMIT(SequenceCreate, XCVMValue(id));
             scan_out_ids.push_back(id);
         }
 
@@ -1039,17 +1048,17 @@ private:
         if (!max_trip_count->IsNull()) {
             int zero_id = next_value_id_++;
             skip_loop_cond_id = next_value_id_++;
-            EMIT(IntScalarConstant, zero_id, 0, Dtype::kInt64, true);
-            EMIT(Greater, skip_loop_cond_id, GetValueId(max_trip_count), zero_id);
+            EMIT(IntScalarConstant, XCVMValue(zero_id), 0, Dtype::kInt64, true);
+            EMIT(Greater, XCVMValue(skip_loop_cond_id), GetValueId(max_trip_count), zero_id);
             FREE(zero_id);
         }
         if (!terminal_condition->IsNull()) {
             int tmp_id = next_value_id_++;
             if (skip_loop_cond_id >= 0) {
-                EMIT(Mul, tmp_id, skip_loop_cond_id, GetValueId(terminal_condition));
+                EMIT(Mul, XCVMValue(tmp_id), skip_loop_cond_id, GetValueId(terminal_condition));
                 FREE(skip_loop_cond_id);
             } else {
-                EMIT(Identity, tmp_id, GetValueId(terminal_condition));
+                EMIT(Identity, XCVMValue(tmp_id), GetValueId(terminal_condition));
             }
             skip_loop_cond_id = tmp_id;
         }
@@ -1062,15 +1071,15 @@ private:
 
         EmitGraph(*body, prog, true /* in_loop */, body_output_values);
         int one_id = next_value_id_++;
-        EMIT(IntScalarConstant, one_id, 1, Dtype::kInt64, true);
+        EMIT(IntScalarConstant, XCVMValue(one_id), 1, Dtype::kInt64, true);
         int tmp_id = next_value_id_++;
-        EMIT(Add, tmp_id, iter_id, one_id);
+        EMIT(Add, XCVMValue(tmp_id), iter_id, one_id);
         FREE(one_id);
         for (const Value* value : body_input_values) {
             FREE(GetValueId(value));
         }
-        MOVE(iter_id, tmp_id);
-        MOVE(cond_id, GetValueId(body_output_values[0]));
+        MOVE(XCVMValue(iter_id), tmp_id);
+        MOVE(XCVMValue(cond_id), GetValueId(body_output_values[0]));
 
         // Propagate the loop state.
         for (int i = 0; i < num_states; ++i) {
@@ -1080,9 +1089,9 @@ private:
             const Value* body_out = body_output_values[i + 1];
             if (body_out->IsNull()) {
                 // TODO(hamaji): Consider removing this value.
-                EMIT(NullConstant, GetValueId(body_in));
+                EMIT(NullConstant, XCVMValue(GetValueId(body_in)));
             } else {
-                MOVE(GetValueId(body_in), GetValueId(body_out));
+                MOVE(XCVMValue(GetValueId(body_in)), GetValueId(body_out));
             }
         }
 
@@ -1098,13 +1107,13 @@ private:
         if (terminal_condition->IsNull()) {
             CHECK(!max_trip_count->IsNull());
             FREE(cond_id);
-            EMIT(Greater, cond_id, GetValueId(loop.input(0)), iter_id);
+            EMIT(Greater, XCVMValue(cond_id), GetValueId(loop.input(0)), iter_id);
         } else if (!max_trip_count->IsNull()) {
-            EMIT(Greater, tmp_id, GetValueId(loop.input(0)), iter_id);
+            EMIT(Greater, XCVMValue(tmp_id), GetValueId(loop.input(0)), iter_id);
             int tmp2_id = next_value_id_++;
-            EMIT(Mul, tmp2_id, cond_id, tmp_id);
+            EMIT(Mul, XCVMValue(tmp2_id), cond_id, tmp_id);
             FREE(cond_id);
-            MOVE(cond_id, tmp2_id);
+            MOVE(XCVMValue(cond_id), tmp2_id);
             FREE(tmp_id);
         }
         EMIT(JmpTrue, cond_id, loop_begin);
@@ -1124,7 +1133,7 @@ private:
             if (loop_out->IsNull()) {
                 FREE(GetValueId(body_in));
             } else {
-                MOVE(GetValueId(loop_out), GetValueId(body_in));
+                MOVE(XCVMValue(GetValueId(loop_out)), GetValueId(body_in));
             }
         }
 
@@ -1132,7 +1141,7 @@ private:
         for (int i = 0; i < num_scans; ++i) {
             CHECK_LT(i + num_states, loop.outputs().size());
             const Value* loop_out = loop.output(i + num_states);
-            EMIT(SequenceStack, GetValueId(loop_out), scan_out_ids[i], loop.chainer_stack_axis());
+            EMIT(SequenceStack, XCVMValue(GetValueId(loop_out)), scan_out_ids[i], loop.chainer_stack_axis());
             FREE(scan_out_ids[i]);
         }
 

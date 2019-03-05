@@ -59,7 +59,6 @@ add_library(chainer_compiler_compiler
   node.cc
   nvrtc_builder.cc
   passes.cc
-  recompute.cc
   scheduler.cc
   shape_evaluator.cc
   simplifier.cc
@@ -106,6 +105,7 @@ target_link_libraries(compiler_test
   gtest
   gtest_main
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )

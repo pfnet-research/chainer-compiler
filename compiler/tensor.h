@@ -28,7 +28,8 @@ public:
     Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::initializer_list<T>& data)
         : Tensor(name, dtype, dims, std::vector<T>{data}) {
     }
-    Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, UniqueData&& data);
+    // Takes the ownership of `data`.
+    Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, void* data);
 
     Tensor(const Tensor&) = delete;
     Tensor& operator=(const Tensor&) = delete;

@@ -81,7 +81,7 @@ void DoEvaluateShape(Node* node) {
             Tensor::UniqueData data(std::malloc(nbytes), &std::free);
             memset(data.get(), 0, nbytes);
             CHECK_NE(Dtype::kUnknown, type.dtype()) << input->DebugString();
-            t = new Tensor(input->name(), type.dtype(), type.dims(), std::move(data));
+            t = new Tensor(input->name(), type.dtype(), type.dims(), data.release());
             tensor_buf.emplace_back(t);
         }
         feeds.emplace_back(input, t);

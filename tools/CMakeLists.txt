@@ -43,6 +43,7 @@ target_link_libraries(run_onnx
   onnx
   onnx_proto
   protobuf
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )
@@ -68,6 +69,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     onnx_proto
     protobuf
     pthread
+    ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
     ${CHAINER_COMPILER_CUDA_LIBRARIES}
     ${OpenCV_LIBS}
@@ -92,6 +94,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     onnx_proto
     protobuf
     pthread
+    ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
     ${CHAINER_COMPILER_CUDA_LIBRARIES}
     )
@@ -116,6 +119,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       onnx_proto
       protobuf
       pthread
+      ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
       ${CHAINER_COMPILER_TVM_LIBRARIES}
       ${CHAINER_COMPILER_CUDA_LIBRARIES}
       ${OpenCV_LIBS}

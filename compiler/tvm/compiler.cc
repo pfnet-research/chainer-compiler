@@ -27,6 +27,7 @@
 #include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/type.h>
+#include <compiler/util.h>
 #include <compiler/value.h>
 #endif
 
@@ -226,18 +227,6 @@ public:
     }
 
 private:
-    std::string CleanseIdent(const std::string& s) {
-        std::string o;
-        for (char c : s) {
-            if (std::isalnum(c)) {
-                o += c;
-            } else {
-                o += '_';
-            }
-        }
-        return o;
-    }
-
     std::string GetIdent(const Value* v) {
         return CleanseIdent(v->name());
     }

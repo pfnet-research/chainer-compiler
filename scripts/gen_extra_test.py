@@ -851,12 +851,24 @@ def gen_maxpool_cover_all_test(test_name):
 
     input = np.random.random((1, 3, 7, 7))
     input_v = gb.input('input', input)
+
+    # Forget shape.
+    squeezed_v = gb.Squeeze([input_v])
+    dynamic_v = gb.Unsqueeze([squeezed_v], axes=[0])
+
     gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
                          outputs=['not_cover_all']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
     gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
                          chainer_cover_all=True,
                          outputs=['cover_all']),
+              F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
+    gb.output(gb.MaxPool([dynamic_v], kernel_shape=[3, 3], strides=[2, 2],
+                         outputs=['not_cover_all_dynamic']),
+              F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
+    gb.output(gb.MaxPool([dynamic_v], kernel_shape=[3, 3], strides=[2, 2],
+                         chainer_cover_all=True,
+                         outputs=['cover_all_dynamic']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
 
     gb.gen_test()
@@ -966,6 +978,15 @@ def gen_imagescaler_test(test_name):
         inputs=['input'], scale=scale, bias=bias, outputs=['output']),
         expected)
 
+    gb.gen_test()
+
+
+def gen_pad_negative_width_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    v = aranges(2, 5, 6, 7)
+    gb.input('input', v)
+    gb.output(gb.Pad(['input'], pads=[0, -2, -1, -2, 0, -2, -2, -1]),
+              v[:, 2:-2, 1:-2, 2:-1])
     gb.gen_test()
 
 
@@ -1083,6 +1104,8 @@ def get_tests():
     test('extra_test_spacetodepth', gen_spacetodepth_test)
 
     test('extra_test_imagescaler', gen_imagescaler_test)
+
+    test('extra_test_pad_negative_width', gen_pad_negative_width_test)
 
     tests += gen_chainercv_test.get_tests()
 

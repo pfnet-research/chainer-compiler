@@ -53,7 +53,7 @@ Tensor* ArrayToTensor(const std::string& name, const chainerx::Array& a) {
     Tensor::UniqueData data(std::malloc(a.GetNBytes()), &std::free);
     memcpy(data.get(), a.ToNative().raw_data(), a.GetNBytes());
     std::vector<int64_t> dims{a.shape().begin(), a.shape().end()};
-    return new Tensor(name, GetDtype(a), dims, std::move(data));
+    return new Tensor(name, GetDtype(a), dims, data.release());
 }
 
 }  // namespace

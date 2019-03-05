@@ -69,7 +69,7 @@ def _run_fwd_bwd(model, inputs):
     y = model(*inputs)
     if isinstance(y, (list, tuple)):
         loss = F.sum(F.stack(y))
-        y = [chainer.backend.to_chainerx(x.array) for x in y]
+        y = [chainer.backend.to_chx(x.array) for x in y]
     else:
         loss = y
         y = y.array
@@ -78,7 +78,7 @@ def _run_fwd_bwd(model, inputs):
     grads = []
     for name, param in sorted(model.namedparams()):
         name = name.replace('/mc', '')
-        grads.append((name, chainer.backend.to_chainerx(param.grad)))
+        grads.append((name, chainer.backend.to_chx(param.grad)))
     return y, grads
 
 
@@ -128,8 +128,8 @@ def test_mnist(device_name):
         grads = []
         for name, param in sorted(model.namedparams()):
             name = name.replace('/mc', '')
-            grads.append((name, chainer.backend.to_chainerx(param.grad)))
-        loss = chainer.backend.to_chainerx(loss.array)
+            grads.append((name, chainer.backend.to_chx(param.grad)))
+        loss = chainer.backend.to_chx(loss.array)
         return loss, grads
 
     expected_loss, expected_grads = _run_fwd_bwd(model, [input, target])
