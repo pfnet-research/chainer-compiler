@@ -211,6 +211,13 @@ void FuseNGraphOperations(Graph* graph) {
             if (node.chainer_cover_all()) {
                 return false;
             }
+        } else if (
+                node.op_type() == Node::kAdd || node.op_type() == Node::kSub || node.op_type() == Node::kMul ||
+                node.op_type() == Node::kDiv || node.op_type() == Node::kPow) {
+            // No type coercion in nGraph.
+            if (node.input(0)->type().dtype() != node.input(1)->type().dtype()) {
+                return false;
+            }
         }
 
         return true;
