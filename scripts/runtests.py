@@ -44,6 +44,8 @@ parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
 parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
+parser.add_argument('--computation_order', default=None,
+                    help='Force setting --computation_order flag')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -681,9 +683,14 @@ def main():
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:
             test_case.args.append('--backprop')
+
         if test_case.computation_order:
             test_case.args.append(
                 '--computation_order=' + test_case.computation_order)
+        elif args.computation_order:
+            test_case.args.append(
+                '--computation_order=' + args.computation_order)
+
         if test_case.backend is not None:
             test_case.args.append('--backend')
             test_case.args.append(test_case.backend)
