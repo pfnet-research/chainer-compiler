@@ -17,6 +17,9 @@
 #include <compiler/subgraph_canonicalizer.h>
 #include <compiler/type_inference.h>
 
+#include <compiler/computation_order/core.h>
+#include <compiler/gradient_with_order.h>
+
 namespace chainer_compiler {
 
 namespace {
@@ -78,16 +81,30 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     dump_onnx(g_dump_after_simplification, "after simplification");
 
-    if (gen_backprop) AddGradientNodesForTraining(graph);
+    bool skip_scheduling = false;
+    if (gen_backprop) {
+        if (g_computation_order.empty()) {
+            // normal computation order
+            AddGradientNodesForTraining(graph);
+        } else {
+            // specified computation order
+            skip_scheduling = true;
+            auto orders = GetComputationOrder(*graph, g_computation_order);
+            AddGradientNodesForTrainingWithOrders(graph, orders);
+            // SimplifyOps({Node::kIdentity}, graph);
+        }
+    }
 
     // TODO(hamaji): Make it possible to infer shapes here.
     // if (!g_skip_inference) graph->InferShapes();
 
-    Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
+    if (!skip_scheduling) {
+        Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
 
-    Recursively(PropagateConstants, graph);
+        Recursively(PropagateConstants, graph);
 
-    Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+        Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+    }
 
     dump_onnx(g_dump_after_gradient, "after gradient generation");
 
@@ -95,9 +112,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
         graph->DumpSubGraphs();
     }
 
-    if (g_fuse_operations) {
-        FuseOperations(graph, g_use_tvm, g_use_ngraph);
-        dump_onnx(g_dump_after_fusion, "after fusion");
+    if (!skip_scheduling) {
+        if (g_fuse_operations) {
+            FuseOperations(graph, g_use_tvm);
+            dump_onnx(g_dump_after_fusion, "after fusion");
+        }
     }
 
     int64_t order = 0;

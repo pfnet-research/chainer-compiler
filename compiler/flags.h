@@ -58,4 +58,7 @@ extern bool g_dump_after_fusion;
 extern bool g_dump_after_scheduling;
 extern bool g_dump_subgraphs;
 
+// The policy of computation order.
+extern std::string g_computation_order;
+
 }  // namespace chainer_compiler
