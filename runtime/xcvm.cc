@@ -25,7 +25,8 @@ namespace chainer_compiler {
 namespace runtime {
 
 struct XCVMInputType {
-    XCVMInputType(chainerx::Dtype d, chainerx::Shape s) : dtype(d), shape(s) {}
+    XCVMInputType(chainerx::Dtype d, chainerx::Shape s) : dtype(d), shape(s) {
+    }
     chainerx::Dtype dtype;
     chainerx::Shape shape;
 };
