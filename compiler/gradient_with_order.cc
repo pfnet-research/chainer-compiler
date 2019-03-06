@@ -1,5 +1,6 @@
 #include "compiler/computation_order/core.h"
 
+#include <functional>
 #include <iostream>
 #include <string>
 
