@@ -3,7 +3,10 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include <chainerx/shape.h>
 
 #include "runtime/xcvm.pb.h"
 
@@ -44,6 +47,8 @@ public:
     std::string dump_outputs_dir;
 };
 
+class XCVMInputType;
+
 class XCVM {
 public:
     explicit XCVM(const XCProgramProto& program);
@@ -57,7 +62,11 @@ public:
     }
 
 private:
+    XCVM(const XCVM&) = delete;
+    XCVM& operator=(const XCVM&) = delete;
+
     std::vector<std::unique_ptr<XCVMOp>> program_;
+    std::vector<std::pair<std::string, std::unique_ptr<XCVMInputType>>> input_types_;
     int num_variables_;
 };
 

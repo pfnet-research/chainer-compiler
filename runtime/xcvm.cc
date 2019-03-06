@@ -24,6 +24,12 @@
 namespace chainer_compiler {
 namespace runtime {
 
+struct XCVMInputType {
+    XCVMInputType(chainerx::Dtype d, chainerx::Shape s) : dtype(d), shape(s) {}
+    chainerx::Dtype dtype;
+    chainerx::Shape shape;
+};
+
 namespace {
 
 void CheckType(XCVMState* st, const XCVMOp* op) {
@@ -101,12 +107,39 @@ XCVM::XCVM(const XCProgramProto& program) {
         XCVMOp* op = MakeXCVMOp(inst);
         program_.emplace_back(op);
     }
+
+    CHECK_EQ(program.input_names_size(), program.input_types_size());
+    for (int i = 0; i < program.input_names_size(); ++i) {
+        const std::string& name = program.input_names(i);
+        const XCTypeProto& type = program.input_types(i);
+        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
+        chainerx::Shape shape(type.shape().begin(), type.shape().end());
+        input_types_.emplace_back(name, new XCVMInputType(dtype, shape));
+    }
 }
 
 XCVM::~XCVM() {
 }
 
 InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
+    for (const auto& p : input_types_) {
+        const std::string& name = p.first;
+        const XCVMInputType& type = *p.second;
+        auto found = program_inputs.find(name);
+        CHECK(found != program_inputs.end()) << "Input '" << name << "' not found";
+        const XCVMVar& var = *found->second;
+        if (var.kind() == XCVMVar::Kind::kArray) {
+            const chainerx::Array& a = var.GetArray();
+            if (static_cast<int>(type.dtype) == 0) {
+                continue;
+            }
+            CHECK_EQ(type.dtype, a.dtype()) << "Input '" << name << "' has an unexpected dtype";
+            CHECK_EQ(type.shape, a.shape()) << "Input '" << name << "' has an unexpected shape";
+        } else {
+            CHECK_EQ(static_cast<int>(type.dtype), 0) << "Input '" << name << "' must be a tensor";
+        }
+    }
+
     XCVMState state(options, num_variables_, program_inputs);
     Run(&state);
     return state.GetOutputs();

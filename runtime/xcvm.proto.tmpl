@@ -51,4 +51,6 @@ message XCInstructionProto {
 
 message XCProgramProto {
     repeated XCInstructionProto instructions = 1;
+    repeated string input_names = 2;
+    repeated XCTypeProto input_types = 3;
 }
