@@ -560,6 +560,12 @@ for test in TEST_CASES:
     new_test.is_backprop_two_phase = True
     new_tests.append(new_test)
 
+    if test.name == 'ch2o_model_MLP_with_loss_backprop':
+        new_test = copy.copy(test)
+        new_test.name = test.name + '_computation_order'
+        new_test.computation_order = 'dummy'
+        new_tests.append(new_test)
+
 for test in new_tests:
     TEST_CASES.append(test)
 
@@ -675,6 +681,9 @@ def main():
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:
             test_case.args.append('--backprop')
+        if test_case.computation_order:
+            test_case.args.append(
+                '--computation_order=' + test_case.computation_order)
         if test_case.backend is not None:
             test_case.args.append('--backend')
             test_case.args.append(test_case.backend)

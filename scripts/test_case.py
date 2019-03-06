@@ -29,6 +29,7 @@ class TestCase(object):
         self.args = None
         self.is_backprop = 'backprop' in name
         self.is_backprop_two_phase = False
+        self.computation_order = None
         self.want_gpu = want_gpu
         self.prepare_func = prepare_func
         self.backend = backend
