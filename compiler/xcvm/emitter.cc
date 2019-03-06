@@ -62,6 +62,7 @@ public:
     }
 
     void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
+        EmitInputTypes(graph, program);
         AssignValueIds(graph);
         EmitGraph(graph, program, false /* in_loop */, graph.output_values());
         EmitOutputs(graph.output_values(), program);
@@ -1161,6 +1162,23 @@ private:
             AddOutOp(prog, value->name(), GetValueId(value));
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
             FREE(GetValueId(value));
+        }
+    }
+
+    void EmitInputTypes(const Graph& graph, XCProgramProto* program) {
+        const std::set<Value*>& necessary_values = graph.GetNecessaryValues();
+        for (Value* value : graph.input_values()) {
+            if (!necessary_values.count(value)) {
+                continue;
+            }
+            program->add_input_names(value->name());
+            runtime::XCTypeProto* type = program->add_input_types();
+            if (value->type().kind() == Type::Kind::kTensor && value->type().HasKnownShape()) {
+                type->set_dtype(value->type().dtype());
+                for (int d : value->type().dims()) {
+                    type->add_shape(d);
+                }
+            }
         }
     }
 
