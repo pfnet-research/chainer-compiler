@@ -43,7 +43,7 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
         order.node = node;
         orders.emplace_back(order);
     }
-    for (size_t i = nodes.size(); i--; ) {
+    for (size_t i = nodes.size(); i--;) {
         // in reverse order
         Order order;
         order.kind = Order::kComputeBackward;

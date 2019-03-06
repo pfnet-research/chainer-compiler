@@ -76,10 +76,8 @@ std::set<Value*> GetParamValues(Graph* graph) {
 
 class ScheduleAddedScope {
 public:
-    ScheduleAddedScope(Graph* graph, std::function<void (Node*)> schedule_fn)
-        : graph_(graph),
-          schedule_fn_(schedule_fn),
-          num_nodes_before_(graph->nodes().size()) {
+    ScheduleAddedScope(Graph* graph, std::function<void(Node*)> schedule_fn)
+        : graph_(graph), schedule_fn_(schedule_fn), num_nodes_before_(graph->nodes().size()) {
     }
 
     ~ScheduleAddedScope() {
@@ -97,7 +95,7 @@ public:
 
 private:
     Graph* graph_{nullptr};
-    std::function<void (Node*)> schedule_fn_;
+    std::function<void(Node*)> schedule_fn_;
     const size_t num_nodes_before_;
 };
 
@@ -120,85 +118,83 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         }
     };
 
-    auto schedule_node = [&schedule_recompute](Node* node) {
-        schedule_recompute(node, node);
-    };
+    auto schedule_node = [&schedule_recompute](Node* node) { schedule_recompute(node, node); };
 
     {
         ScheduleAddedScope schedule_scope(graph, schedule_node);
         SetInitialGradients(graph);
     }
 
-    GraphBuilder gb(graph, "ConnectRetained", graph->output_values()[0] );
+    GraphBuilder gb(graph, "ConnectRetained", graph->output_values()[0]);
 
     std::set<Node*> scheduled_forward;
     for (const Order& order : orders) {
         switch (order.kind) {
-        case Order::kComputeForward: {
-            Node* node = order.node;
-            CHECK(node);
-            if (scheduled_forward.insert(node).second) {
-                for (Value* value : node->inputs()) {
-                    auto found = staged.find(value);
-                    CHECK(found != staged.end()) << value->DebugString();
-                    CHECK_EQ(value, found->second);
+            case Order::kComputeForward: {
+                Node* node = order.node;
+                CHECK(node);
+                if (scheduled_forward.insert(node).second) {
+                    for (Value* value : node->inputs()) {
+                        auto found = staged.find(value);
+                        CHECK(found != staged.end()) << value->DebugString();
+                        CHECK_EQ(value, found->second);
+                    }
+                    schedule_node(node);
+                } else {
+                    std::vector<Value*> inputs;
+                    for (Value* value : node->inputs()) {
+                        auto found = staged.find(value);
+                        CHECK(found != staged.end());
+                        inputs.push_back(found->second);
+                    }
+                    std::vector<Value*> outputs;
+                    for (Value* value : node->outputs()) {
+                        Value* new_value = graph->AddValue("Recompute" + value->name());
+                        outputs.push_back(new_value);
+                    }
+                    onnx::NodeProto xnode;
+                    node->ToONNX(&xnode);
+                    Node* new_node = new Node(xnode, inputs, outputs);
+                    graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
+                    schedule_recompute(new_node, node);
                 }
-                schedule_node(node);
-            } else {
-                std::vector<Value*> inputs;
-                for (Value* value : node->inputs()) {
-                    auto found = staged.find(value);
-                    CHECK(found != staged.end());
-                    inputs.push_back(found->second);
-                }
-                std::vector<Value*> outputs;
-                for (Value* value : node->outputs()) {
-                    Value* new_value = graph->AddValue("Recompute" + value->name());
-                    outputs.push_back(new_value);
-                }
-                onnx::NodeProto xnode;
-                node->ToONNX(&xnode);
-                Node* new_node = new Node(xnode, inputs, outputs);
-                graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
-                schedule_recompute(new_node, node);
-            }
-            break;
-        }
-
-        case Order::kComputeBackward: {
-            std::map<Value*, Value*> retained;
-            Node* node = order.node;
-            ScheduleAddedScope schedule_scope(graph, schedule_node);
-            if (!AddGradientForNode(graph, graph, node, &retained)) {
                 break;
-                // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
             }
-            for (const auto& p : retained) {
-                Value* retained = p.first;
-                if (retained->type().kind() != Type::Kind::kOpaque) {
-                    auto found = staged.find(p.first);
-                    CHECK(found != staged.end()) << p.first->DebugString();
-                    retained = found->second;
+
+            case Order::kComputeBackward: {
+                std::map<Value*, Value*> retained;
+                Node* node = order.node;
+                ScheduleAddedScope schedule_scope(graph, schedule_node);
+                if (!AddGradientForNode(graph, graph, node, &retained)) {
+                    break;
+                    // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
                 }
-                gb.Op(Node::kIdentity, {retained}, p.second);
+                for (const auto& p : retained) {
+                    Value* retained = p.first;
+                    if (retained->type().kind() != Type::Kind::kOpaque) {
+                        auto found = staged.find(p.first);
+                        CHECK(found != staged.end()) << p.first->DebugString();
+                        retained = found->second;
+                    }
+                    gb.Op(Node::kIdentity, {retained}, p.second);
+                }
+
+                break;
             }
 
-            break;
-        }
+            case Order::kForgetForward: {
+                auto found = staged.find(order.value);
+                CHECK(found != staged.end()) << order.value->DebugString();
+                staged.erase(found);
+                break;
+            }
 
-        case Order::kForgetForward: {
-            auto found = staged.find(order.value);
-            CHECK(found != staged.end()) << order.value->DebugString();
-            staged.erase(found);
-            break;
-        }
+            case Order::kForgetBackward:
+                // TODO(hamaji): Do something?
+                break;
 
-        case Order::kForgetBackward:
-            // TODO(hamaji): Do something?
-            break;
-
-        default:
-            CHECK(false) << static_cast<int>(order.kind);
+            default:
+                CHECK(false) << static_cast<int>(order.kind);
         }
     }
 
