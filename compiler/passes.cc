@@ -54,6 +54,9 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 }
 
 void RunDefaultPasses(Graph* graph, bool gen_backprop) {
+    // TODO(hamaji): Improve backend selection probably by `CompilerConfig`.
+    g_modify_pool_with_imbalanced_pads = !g_use_ngraph;
+
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
 
     InferAllDtypeAndShape(graph);

@@ -381,8 +381,6 @@ private:
 };
 
 void RunMain(const std::vector<std::string>& argv) {
-    g_modify_pool_with_imbalanced_pads = true;
-
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<std::string>("backend", '\0', "The name of the backend", false, "xcvm");
