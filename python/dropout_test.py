@@ -24,7 +24,7 @@ def test_dropout_inference():
     assert len(output_names) == 1
 
     xcvm = graph.compile()
-    input = chainerx.array(np.random.normal(size=(3, 4, 5)))
+    input = chainerx.array(np.random.normal(size=(3, 4, 5)).astype(np.float32))
     inputs = {input_names[0]: chainer_compiler_core.value(input)}
     outputs = xcvm.run(inputs)
     output = outputs[output_names[0]].array()
@@ -41,7 +41,7 @@ def test_dropout_training():
     assert len(output_names) == 1
 
     xcvm = graph.compile()
-    input = chainerx.array(np.random.normal(size=(3, 4, 5)))
+    input = chainerx.array(np.random.normal(size=(3, 4, 5)).astype(np.float32))
     inputs = {input_names[0]: chainer_compiler_core.value(input)}
 
     num_retries = 3
