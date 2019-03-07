@@ -47,7 +47,7 @@ public:
     std::string dump_outputs_dir;
 };
 
-class XCVMInputType;
+class XCVMInputDesc;
 
 class XCVM {
 public:
@@ -66,7 +66,7 @@ private:
     XCVM& operator=(const XCVM&) = delete;
 
     std::vector<std::unique_ptr<XCVMOp>> program_;
-    std::vector<std::pair<std::string, std::unique_ptr<XCVMInputType>>> input_types_;
+    std::vector<std::unique_ptr<XCVMInputDesc>> input_descs_;
     int num_variables_;
 };
 

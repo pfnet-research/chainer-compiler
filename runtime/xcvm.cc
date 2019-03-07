@@ -24,11 +24,12 @@
 namespace chainer_compiler {
 namespace runtime {
 
-struct XCVMInputType {
-    XCVMInputType(chainerx::Dtype d, chainerx::Shape s) : dtype(d), shape(s) {
+struct XCVMInputDesc {
+    XCVMInputDesc(const std::string& n, chainerx::Dtype d, chainerx::Shape s) : name(n), dtype(d), shape(s) {
     }
-    chainerx::Dtype dtype;
-    chainerx::Shape shape;
+    const std::string name;
+    const chainerx::Dtype dtype;
+    const chainerx::Shape shape;
 };
 
 namespace {
@@ -115,7 +116,7 @@ XCVM::XCVM(const XCProgramProto& program) {
         const XCTypeProto& type = program.input_types(i);
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
-        input_types_.emplace_back(name, new XCVMInputType(dtype, shape));
+        input_descs_.emplace_back(new XCVMInputDesc(name, dtype, shape));
     }
 }
 
@@ -123,21 +124,19 @@ XCVM::~XCVM() {
 }
 
 InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
-    for (const auto& p : input_types_) {
-        const std::string& name = p.first;
-        const XCVMInputType& type = *p.second;
-        auto found = program_inputs.find(name);
-        CHECK(found != program_inputs.end()) << "Input '" << name << "' not found";
+    for (const std::unique_ptr<XCVMInputDesc>& input : input_descs_) {
+        auto found = program_inputs.find(input->name);
+        CHECK(found != program_inputs.end()) << "Input '" << input->name << "' not found";
         const XCVMVar& var = *found->second;
         if (var.kind() == XCVMVar::Kind::kArray) {
             const chainerx::Array& a = var.GetArray();
-            if (static_cast<int>(type.dtype) == 0) {
+            if (static_cast<int>(input->dtype) == 0) {
                 continue;
             }
-            CHECK_EQ(type.dtype, a.dtype()) << "Input '" << name << "' has an unexpected dtype";
-            CHECK_EQ(type.shape, a.shape()) << "Input '" << name << "' has an unexpected shape";
+            CHECK_EQ(input->dtype, a.dtype()) << "Input '" << input->name << "' has an unexpected dtype";
+            CHECK_EQ(input->shape, a.shape()) << "Input '" << input->name << "' has an unexpected shape";
         } else {
-            CHECK_EQ(static_cast<int>(type.dtype), 0) << "Input '" << name << "' must be a tensor";
+            CHECK_EQ(static_cast<int>(input->dtype), 0) << "Input '" << input->name << "' must be a tensor";
         }
     }
 
