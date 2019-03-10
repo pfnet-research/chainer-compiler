@@ -46,6 +46,7 @@ add_library(chainer_compiler_compiler
   dtype_inference.cc
   evaluator.cc
   flags.cc
+  flops.cc
   fusion.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
