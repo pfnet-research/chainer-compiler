@@ -67,6 +67,7 @@ public:
         return initializer_.get();
     }
     void ResetInitializer(std::unique_ptr<Tensor>&& tensor);
+    Tensor* ReleaseInitializer();
 
     const std::vector<Node*>& users() const {
         return users_;

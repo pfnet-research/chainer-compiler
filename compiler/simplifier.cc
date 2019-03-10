@@ -624,6 +624,28 @@ bool ReplaceImageScaler(Graph* graph, Node* node) {
     return true;
 }
 
+void ReplaceInitializers(Graph* graph) {
+    std::map<Value*, Value*> initializers;
+    for (Node* node : std::vector<Node*>(graph->nodes())) {
+        for (Value* value : std::vector<Value*>(node->inputs())) {
+            if (!value->initializer()) {
+                continue;
+            }
+
+            auto p = initializers.emplace(value, nullptr);
+            if (p.second) {
+                GraphBuilder gb(graph, "SimplifyInitializers", value);
+                Value* replaced = gb.Op(Node::kConstant, {});
+                replaced->producer()->set_tensor_value(value->ReleaseInitializer());
+                p.first->second = replaced;
+            }
+            value->DetachUser(node);
+            p.first->second->AddUser(node);
+            node->ReplaceInput(value, p.first->second);
+        }
+    }
+}
+
 }  // namespace
 
 void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
@@ -669,7 +691,10 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
         CHECK(simplifiers.emplace(Node::kAveragePool, ReplaceAveragePool).second);
     }
 
-    if (g_replace_constant) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    if (g_replace_constant) {
+        CHECK(!gen_backprop);
+        CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    }
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif
@@ -690,6 +715,12 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
                 replaced = true;
             }
         }
+    }
+
+    // Replace initializers by `Constant` for better optimization
+    // (e.g., Conv+BN fusion).
+    if (!gen_backprop && g_use_ngraph) {
+        ReplaceInitializers(graph);
     }
 }
 

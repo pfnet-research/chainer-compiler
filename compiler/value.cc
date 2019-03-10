@@ -41,6 +41,10 @@ void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {
     initializer_.reset(tensor.release());
 }
 
+Tensor* Value::ReleaseInitializer() {
+    return initializer_.release();
+}
+
 void Value::set_type(Type* type) {
     type_.reset(type);
 }
