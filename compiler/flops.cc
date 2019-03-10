@@ -1,5 +1,7 @@
 #include "compiler/flops.h"
 
+#include <iostream>
+
 #include <compiler/graph.h>
 #include <compiler/node.h>
 
