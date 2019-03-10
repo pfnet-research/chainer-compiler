@@ -674,6 +674,7 @@ def main():
     gpu_tests = []
     for test_case in TEST_CASES:
         test_case.args = [run_onnx, '--test', test_case.test_dir]
+        test_case.args.append('--compiler_log')
         is_gpu = False
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
