@@ -46,9 +46,7 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     return bsize * ichan * ochan * ow * oh * kw * kh;
 }
 
-}
-
-int64_t CalculateFlops(const Node& node) {
+int64_t CalculateFlopsImpl(const Node& node) {
     if (!HasKnownInOuts(node)) {
         return -1;
     }
@@ -59,22 +57,49 @@ int64_t CalculateFlops(const Node& node) {
         case Node::kConv:
             return CalculateFlopsOfConv(node);
 
+        case Node::kChainerFusionGroup:
+            return CalculateFlopsOfConv(node);
+
         default:
             return OutputSize(node);
     }
 }
 
-void ShowFlops(const Graph& graph) {
+int64_t CalculateFlopsOfGraph(const Graph& graph, int* num_unknown_flops) {
     int64_t total_flops = 0;
-    int num_unknown_flops = 0;
     for (const Node* node : graph.GetComputationSequence()) {
-        int64_t flops = CalculateFlops(*node);
-        if (flops < 0) {
-            ++num_unknown_flops;
-        } else {
+        int64_t flops = CalculateFlops(*node, num_unknown_flops);
+        if (flops >= 0) {
             total_flops += flops;
         }
     }
+    return total_flops;
+}
+
+}  // namespace
+
+int64_t CalculateFlops(const Node& node, int* num_unknown_flops) {
+    std::vector<Graph*> subgraphs = node.GetSubGraphs();
+    if (subgraphs.empty()) {
+        int64_t flops = CalculateFlopsImpl(node);
+        if (flops < 0 && num_unknown_flops) {
+            ++*num_unknown_flops;
+        }
+        return flops;
+    }
+
+    if (node.op_type() == Node::kChainerFusionGroup) {
+        CHECK_EQ(1, subgraphs.size());
+        return CalculateFlopsOfGraph(*subgraphs[0], num_unknown_flops);
+    } else {
+        ++*num_unknown_flops;
+        return -1;
+    }
+}
+
+void ShowFlops(const Graph& graph) {
+    int num_unknown_flops = 0;
+    int64_t total_flops = CalculateFlopsOfGraph(graph, &num_unknown_flops);
     if (num_unknown_flops) {
         std::cerr << "Incomplete flops clalculation" << std::endl;
     }
