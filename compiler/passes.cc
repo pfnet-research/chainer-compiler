@@ -10,6 +10,7 @@
 #include <compiler/fusion.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
+#include <compiler/memory_simulator.h>
 #include <compiler/model.h>
 #include <compiler/scheduler.h>
 #include <compiler/shape_evaluator.h>
@@ -126,6 +127,10 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     Recursively([&order](Graph* g) { order = ScheduleComputation(*g, order); }, graph);
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
+
+    if (g_compiler_log) {
+        ShowSimulatedMemoryUsage(*graph);
+    }
 
     Recursively(CollectGarbageNode, graph);
 
