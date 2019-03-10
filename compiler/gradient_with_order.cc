@@ -99,17 +99,19 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         CHECK(staged.emplace(value, value).second);
     }
 
+    std::map<Node*, Node*> last_forward_map;
     std::vector<Node*> scheduled_nodes;
-    auto schedule_recompute = [&staged, &scheduled_nodes](Node* node, Node* orig_node) {
+    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](Node* node, Node* orig_node) {
         scheduled_nodes.push_back(node);
         node->set_chainer_order(scheduled_nodes.size());
+        last_forward_map[orig_node] = node;
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
             CHECK(staged.emplace(std::get<1>(p), value).second);
         }
     };
 
-    auto schedule_node = [&schedule_recompute](Node* node) { schedule_recompute(node, node); };
+    auto schedule_node = [&schedule_recompute, &last_forward_map](Node* node) { schedule_recompute(node, node); };
 
     {
         ScheduleAddedScope schedule_scope(graph, schedule_node);
@@ -153,21 +155,27 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
             }
 
             case Order::kComputeBackward: {
-                std::map<Value*, Value*> retained;
-                Node* node = order.node;
+                Node* orig_node = order.node;
+                auto found = last_forward_map.find(orig_node);
+                CHECK(found != last_forward_map.end());
+                Node* node = found->second;
+
+                if (node != orig_node) {
+                    for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                    }
+                }
+
                 ScheduleAddedScope schedule_scope(graph, schedule_node);
-                if (!AddGradientForNode(graph, graph, node, &retained)) {
+                if (!AddGradientForNode(graph, graph, node, nullptr)) {
                     break;
                     // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
                 }
-                for (const auto& p : retained) {
-                    Value* retained = p.first;
-                    if (retained->type().kind() != Type::Kind::kOpaque) {
-                        auto found = staged.find(p.first);
-                        CHECK(found != staged.end()) << p.first->DebugString();
-                        retained = found->second;
+
+                if (node != orig_node) {
+                    for (const auto& p : Zip(orig_node->inputs(), node->inputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
                     }
-                    gb.Op(Node::kIdentity, {retained}, p.second);
                 }
 
                 break;
