@@ -99,10 +99,16 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         CHECK(staged.emplace(value, value).second);
     }
 
+    // A map from the original node to the last forward
+    // computation. This scheduler assumes the last forward
+    // computation is the only computation which must care the
+    // backward computation.
+    std::map<Node*, Node*> last_forward_map;
     std::vector<Node*> scheduled_nodes;
-    auto schedule_recompute = [&staged, &scheduled_nodes](Node* node, Node* orig_node) {
+    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](Node* node, Node* orig_node) {
         scheduled_nodes.push_back(node);
         node->set_chainer_order(scheduled_nodes.size());
+        last_forward_map[orig_node] = node;
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
             CHECK(staged.emplace(std::get<1>(p), value).second);
@@ -116,8 +122,6 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         SetInitialGradients(graph);
     }
 
-    GraphBuilder gb(graph, "ConnectRetained", graph->output_values()[0]);
-
     std::set<Node*> scheduled_forward;
     for (const Order& order : orders) {
         switch (order.kind) {
@@ -125,24 +129,34 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                 Node* node = order.node;
                 CHECK(node);
                 if (scheduled_forward.insert(node).second) {
+                    // The first forward computation. All inputs must
+                    // be staged and not be recomputed.
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
                         CHECK(found != staged.end()) << value->DebugString();
+                        // Not recomputed.
                         CHECK_EQ(value, found->second);
                     }
                     schedule_node(node);
                 } else {
+                    // All inputs must be staged and may be recomputed.
                     std::vector<Value*> inputs;
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
                         CHECK(found != staged.end());
                         inputs.push_back(found->second);
                     }
+
+                    // Recomputed values need different `Value`
+                    // objects with different names.
                     std::vector<Value*> outputs;
                     for (Value* value : node->outputs()) {
                         Value* new_value = graph->AddValue("Recompute" + value->name());
                         outputs.push_back(new_value);
                     }
+
+                    // Copy the original computation node to generate
+                    // node for recomputation.
                     onnx::NodeProto xnode;
                     node->ToONNX(&xnode);
                     Node* new_node = new Node(xnode, inputs, outputs);
@@ -153,21 +167,31 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
             }
 
             case Order::kComputeBackward: {
-                std::map<Value*, Value*> retained;
-                Node* node = order.node;
+                Node* orig_node = order.node;
+                auto found = last_forward_map.find(orig_node);
+                CHECK(found != last_forward_map.end());
+                Node* node = found->second;
+
+                // Copy gradients of outputs from the original
+                // computation node to the last forward computation.
+                if (node != orig_node) {
+                    for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                    }
+                }
+
                 ScheduleAddedScope schedule_scope(graph, schedule_node);
-                if (!AddGradientForNode(graph, graph, node, &retained)) {
+                if (!AddGradientForNode(graph, graph, node, nullptr)) {
                     break;
                     // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
                 }
-                for (const auto& p : retained) {
-                    Value* retained = p.first;
-                    if (retained->type().kind() != Type::Kind::kOpaque) {
-                        auto found = staged.find(p.first);
-                        CHECK(found != staged.end()) << p.first->DebugString();
-                        retained = found->second;
+
+                // Copy back gradients of inputs from the last forward
+                // computation to the original node.
+                if (node != orig_node) {
+                    for (const auto& p : Zip(orig_node->inputs(), node->inputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
                     }
-                    gb.Op(Node::kIdentity, {retained}, p.second);
                 }
 
                 break;
