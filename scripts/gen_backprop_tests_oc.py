@@ -133,6 +133,12 @@ def get_backprop_tests():
          lambda m: F.pad(m.x, 2, 'constant'),
          x=aranges(2, 5, 3, 3))
 
+    # TODO(hamaji): Enable this test after fixing gradient of binary
+    # ops with broadcast.
+    # test('normalize',
+    #      lambda m: F.normalize(m.x, axis=1),
+    #      x=aranges(2, 5, 3, 3))
+
     return tests
 
 

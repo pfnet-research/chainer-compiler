@@ -80,6 +80,21 @@ bool ReplaceReduceMin(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceLpNormalization(Graph* graph, Node* node) {
+    CHECK_EQ(2, node->p()) << "TODO(hamaji): Implement other norms";
+    CHECK_LE(0, node->axis()) << "TODO(hamaji): Implement axis=-1";
+    GraphBuilder gb(graph, "SimplifyLpNormalization", node->output(0));
+    Value* x = node->input(0);
+    Value* x2 = gb.Op(Node::kMul, {x, x});
+    Value* n2 = gb.Op(Node::kReduceSum, {x2});
+    n2->producer()->set_axes({node->axis()})->set_keepdims(true);
+    Value* n = gb.Op(Node::kSqrt, {n2});
+    Value* eps = gb.Const(Type(node->output(0)->type().dtype(), {}), {1e-5});
+    Value* norm = gb.Op(Node::kAdd, {n, eps});
+    gb.Op(Node::kDiv, {x, norm}, node->output(0));
+    return true;
+}
+
 bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftmaxCrossEntropy", node->output(0));
     Value* log_softmax = gb.Op(Node::kLogSoftmax, {node->input(0)});
@@ -655,6 +670,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kMin, ReplaceMin).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
+    CHECK(simplifiers.emplace(Node::kLpNormalization, ReplaceLpNormalization).second);
     CHECK(simplifiers.emplace(Node::kChainerSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
     // TODO(hamaji): Revive Scan.
     // CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);

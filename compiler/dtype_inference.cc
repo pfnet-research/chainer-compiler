@@ -104,6 +104,7 @@ void InferDtype(Node* node) {
         case Node::kHardmax:
         case Node::kDropout:
         case Node::kLRN:
+        case Node::kLpNormalization:
         case Node::kSoftmax:
         case Node::kLogSoftmax:
         case Node::kAveragePool:
