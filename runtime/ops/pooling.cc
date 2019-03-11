@@ -502,12 +502,55 @@ chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     return y;
 }
 
+namespace {
+
+void ResizeImagesFloat32ForCPU(const chainerx::Array& x, const chainerx::Array& y) {
+    const float* src = static_cast<float*>(x.raw_data());
+    float* dst = static_cast<float*>(y.raw_data());
+
+    const int64_t sh = x.shape()[2];
+    const int64_t sw = x.shape()[3];
+    const int64_t dh = y.shape()[2];
+    const int64_t dw = y.shape()[3];
+
+    for (int64_t b = 0; b < x.shape()[0]; ++b) {
+        for (int64_t c = 0; c < x.shape()[1]; ++c) {
+            const float* sp = src + ((b * x.shape()[1]) + c) * sh * sw;
+            for (int64_t yi = 0; yi < dh; ++yi) {
+                const double v = static_cast<double>(yi) * (sh - 1) / (dh - 1);
+                const int v0 = std::min<int>(v, sh - 2);
+                const int v1 = v0 + 1;
+                for (int64_t xi = 0; xi < dw; ++xi) {
+                    const double u = static_cast<double>(xi) * (sw - 1) / (dw - 1);
+                    const int u0 = std::min<int>(u, sw - 2);
+                    const int u1 = u0 + 1;
+                    const double w1 = (u1 - u) * (v1 - v);
+                    const double w2 = (u - u0) * (v1 - v);
+                    const double w3 = (u1 - u) * (v - v0);
+                    const double w4 = (u - u0) * (v - v0);
+                    const float val = (w1 * sp[v0 * sw + u0] + w2 * sp[v0 * sw + u1] + w3 * sp[v1 * sw + u0] + w4 * sp[v1 * sw + u1]);
+                    *dst++ = val;
+                }
+            }
+        }
+    }
+}
+
+}  // namespace
+
 chainerx::Array ResizeImagesOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     CHECK_EQ(4, x.ndim());
     CHECK_EQ(2, output_shape.size());
     chainerx::Shape y_shape(x.shape());
     y_shape[2] = output_shape[0];
     y_shape[3] = output_shape[1];
+
+    if (IsNativeDevice(&x.device()) && x.dtype() == chainerx::Dtype::kFloat32) {
+        chainerx::Array xc = x.IsContiguous() ? x : chainerx::Copy(x);
+        chainerx::Array y = chainerx::Empty(y_shape, x.dtype());
+        ResizeImagesFloat32ForCPU(xc, y);
+        return y;
+    }
 
     chainerx::Array y = chainerx::Zeros(y_shape, x.dtype());
 
