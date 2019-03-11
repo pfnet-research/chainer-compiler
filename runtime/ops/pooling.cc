@@ -503,7 +503,45 @@ chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
 }
 
 chainerx::Array ResizeImagesOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    CHECK(false) << "Not implemented yet";
+    CHECK_EQ(4, x.ndim());
+    CHECK_EQ(2, output_shape.size());
+    chainerx::Shape y_shape(x.shape());
+    y_shape[2] = output_shape[0];
+    y_shape[3] = output_shape[1];
+
+    chainerx::Array y = chainerx::Zeros(y_shape, x.dtype());
+
+    const int64_t sh = x.shape()[2];
+    const int64_t sw = x.shape()[3];
+    const int64_t dh = y.shape()[2];
+    const int64_t dw = y.shape()[3];
+
+    for (int64_t b = 0; b < x.shape()[0]; ++b) {
+        for (int64_t c = 0; c < x.shape()[1]; ++c) {
+            for (int64_t yi = 0; yi < y_shape[2]; ++yi) {
+                for (int64_t xi = 0; xi < y_shape[3]; ++xi) {
+                    const double u = static_cast<double>(xi) * (sw - 1) / (dw - 1);
+                    const double v = static_cast<double>(yi) * (sh - 1) / (dh - 1);
+                    const int u0 = std::min<int>(u, sw - 2);
+                    const int v0 = std::min<int>(v, sh - 2);
+                    const int u1 = u0 + 1;
+                    const int v1 = v0 + 1;
+                    const double w1 = (u1 - u) * (v1 - v);
+                    const double w2 = (u - u0) * (v1 - v);
+                    const double w3 = (u1 - u) * (v - v0);
+                    const double w4 = (u - u0) * (v - v0);
+                    const double val =
+                            (w1 * static_cast<double>(chainerx::AsScalar(x.At({b, c, v0, u0}))) +
+                             w2 * static_cast<double>(chainerx::AsScalar(x.At({b, c, v0, u1}))) +
+                             w3 * static_cast<double>(chainerx::AsScalar(x.At({b, c, v1, u0}))) +
+                             w4 * static_cast<double>(chainerx::AsScalar(x.At({b, c, v1, u1}))));
+                    y.At({b, c, yi, xi}) += val;
+                }
+            }
+        }
+    }
+
+    return y;
 }
 
 }  // namespace runtime
