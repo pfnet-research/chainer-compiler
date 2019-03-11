@@ -52,7 +52,7 @@ std::set<Node*> FindArticulationPoints(const Graph& graph) {
                 q.push(k);
             }
         }
-        if (std::accumulate(visited.begin(), visited.end(), 0) == n - 1) {
+        if (std::accumulate(visited.begin(), visited.end(), 0) < n - 1) {
             articulation_points.insert(nodes[i]);
         }
     }
@@ -66,9 +66,10 @@ std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
 
     // find blocks to split
     std::set<Node*> split_candidates = FindArticulationPoints(graph);
-    puts("FFF");
     std::vector<Node*> splits;
     std::vector<size_t> split_indices;
+
+    for (auto s : split_candidates) std::cout << s->outputs()[0]->name() << std::endl;
 
     int64_t sum = 0;
     for (size_t i = 0; i < sorted.size(); ++i) {
@@ -86,13 +87,11 @@ std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
             sum += consumption;
         }
     }
-    puts("FFF");
 
     // schedule forward computation
     for (Node* node : sorted) {
         orders.emplace_back(Order::kComputeForward, node, nullptr);
     }
-    puts("FFF");
 
     for (Node* node : sorted) {
         if (std::count(splits.begin(), splits.end(), node)) continue;
@@ -100,26 +99,23 @@ std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
             orders.emplace_back(Order::kForgetForward, nullptr, value);
         }
     }
-    puts("FFF");
 
     // now turn to backward computation
     size_t end_index = sorted.size();
     for (int64_t i = static_cast<int64_t>(split_indices.size()) - 1; i >= -1; --i) {
-        size_t begin_index = (i >= 0) ? split_indices[i] : 0;
-        std::cout << "###" << begin_index << std::endl;
+        int64_t begin_index = (i >= 0) ? static_cast<int64_t>(split_indices[i]) : 0;
 
-        for (size_t j = begin_index + 1; j < end_index; ++j) {
-            // recomputation for [begin_index + 1, end_index)
+        for (int64_t j = begin_index + (i >= 0);
+             j < end_index; ++j) {
+            // recomputation for [begin_index, end_index)
             orders.emplace_back(Order::kComputeForward, sorted[j], nullptr);
         }
-
-        for (size_t j = end_index; j-- > begin_index; --j) {
+        for (int64_t j = static_cast<int64_t>(end_index) - 1; j >= begin_index; --j) {
             // backward computation for [begin_index, end_index)
             orders.emplace_back(Order::kComputeBackward, sorted[j], nullptr);
         }
         end_index = begin_index;
     }
-    puts("FFF");
 
     return orders;
 }
