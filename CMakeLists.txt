@@ -276,6 +276,7 @@ foreach(
     PadSequence
     Relu
     Reshape
+    ResizeImages
     Roi
     Separate
     Shape
