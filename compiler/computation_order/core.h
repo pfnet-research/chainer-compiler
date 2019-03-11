@@ -23,6 +23,9 @@ public:
     Node* node{nullptr};
     Value* value{nullptr};
     std::vector<int> indices;
+
+    Order(Kind kind_, Node* node_, Value* value_)
+        : kind(kind_), node(node_), value(value_) {}
 };
 
 }  // namespace chainer_compiler
