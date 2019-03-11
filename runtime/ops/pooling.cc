@@ -502,5 +502,9 @@ chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     return y;
 }
 
+chainerx::Array ResizeImagesOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+    CHECK(false) << "Not implemented yet";
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

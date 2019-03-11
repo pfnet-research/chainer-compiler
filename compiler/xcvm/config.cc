@@ -81,6 +81,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerPrint).second);
         CHECK(op_set_.emplace(Node::kChainerReduceSumTo).second);
         CHECK(op_set_.emplace(Node::kChainerReluGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerResizeImages).second);
         CHECK(op_set_.emplace(Node::kChainerROIAverageAlign2D).second);
         CHECK(op_set_.emplace(Node::kChainerROIAveragePool2D).second);
         CHECK(op_set_.emplace(Node::kChainerROIMaxAlign2D).second);

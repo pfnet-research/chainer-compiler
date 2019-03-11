@@ -271,6 +271,9 @@ XC_OPS = [
      [Array('x'), Array('rois'), Array('roi_indices'),
       Ints('output_shape'), Float('spatial_scale'), Ints('sampling_ratio')],
      ['y']),
+    ('ResizeImages',
+     [Array('x'), Ints('output_shape')],
+     ['y']),
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',
