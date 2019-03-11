@@ -1,5 +1,7 @@
 #include "compiler/computation_order/core.h"
 
+#include "compiler/computation_order/policy_dummy.h"
+
 #include <functional>
 #include <iostream>
 #include <string>
@@ -91,6 +93,15 @@ private:
 };
 
 }  // namespace
+
+std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy) {
+    if (policy == "dummy") {
+        return DummyPolicy(graph);
+    } else {
+        CHECK(false) << "Unknown policy of computation order: " << policy;
+        return {};
+    }
+}
 
 void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders) {
     // A map from the original value to the staged value, possibly recomputed.

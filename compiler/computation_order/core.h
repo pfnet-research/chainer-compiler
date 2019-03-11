@@ -25,6 +25,4 @@ public:
     std::vector<int> indices;
 };
 
-std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy);
-
 }  // namespace chainer_compiler

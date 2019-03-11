@@ -1,22 +1,11 @@
-#include "compiler/computation_order/core.h"
+#include "compiler/computation_order/policy_dummy.h"
 
-#include <queue>
-#include <string>
-
-#include <common/iterator.h>
-#include <common/log.h>
-#include <common/strutil.h>
-#include <compiler/gradient_ops.h>
 #include <compiler/graph.h>
-#include <compiler/graph_builder.h>
-#include <compiler/log.h>
 #include <compiler/node.h>
-#include <compiler/topology.h>
-#include <compiler/value.h>
 
 namespace chainer_compiler {
 
-std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy) {
+std::vector<Order> DummyPolicy(const Graph& graph) {
     // calculate dummy order
     std::vector<Order> orders;
 
