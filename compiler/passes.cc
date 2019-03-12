@@ -127,14 +127,14 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     int64_t order = 0;
     Recursively([&order](Graph* g) { order = ScheduleComputation(*g, order); }, graph);
 
-    dump_onnx(g_dump_after_scheduling, "after scheduling");
-
     if (g_compiler_log) {
         ShowSimulatedMemoryUsage(*graph);
         ShowFlops(*graph);
     }
 
     Recursively(CollectGarbageNode, graph);
+
+    dump_onnx(g_dump_after_scheduling, "after scheduling");
 
     Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
 }

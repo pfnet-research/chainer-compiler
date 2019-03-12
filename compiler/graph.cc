@@ -330,6 +330,7 @@ void Graph::ResetGradients() {
 
 void Graph::DeleteDetached() {
     nodes_ = GetLiveNodes();
+    std::sort(nodes_.begin(), nodes_.end(), [](Node* l, Node* r) { return l->chainer_order() < r->chainer_order(); });
 }
 
 void Graph::CheckSanity(const std::string& msg) const {
