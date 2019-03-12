@@ -85,6 +85,7 @@ add_executable(compiler_test
   code_emitter_test.cc
   dtype_inference_test.cc
   evaluator_test.cc
+  flops_test.cc
   fusion_test.cc
   gradient_test.cc
   model_test.cc
