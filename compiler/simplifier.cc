@@ -641,22 +641,24 @@ bool ReplaceImageScaler(Graph* graph, Node* node) {
 
 void ReplaceInitializers(Graph* graph) {
     std::map<Value*, Value*> initializers;
-    for (Node* node : std::vector<Node*>(graph->nodes())) {
-        for (Value* value : std::vector<Value*>(node->inputs())) {
-            if (!value->initializer()) {
-                continue;
-            }
+    for (Value* value : graph->input_values()) {
+        if (!value->initializer()) {
+            continue;
+        }
 
-            auto p = initializers.emplace(value, nullptr);
-            if (p.second) {
-                GraphBuilder gb(graph, "SimplifyInitializers", value);
-                Value* replaced = gb.Op(Node::kConstant, {});
-                replaced->producer()->set_tensor_value(value->ReleaseInitializer());
-                p.first->second = replaced;
-            }
+        GraphBuilder gb(graph, "SimplifyInitializers", value);
+        Value* replaced = gb.Op(Node::kConstant, {});
+        replaced->producer()->set_tensor_value(value->ReleaseInitializer());
+        CHECK(initializers.emplace(value, replaced).second);
+    }
+
+    for (const auto& p : initializers) {
+        Value* value = p.first;
+        Value* replaced = p.second;
+        for (Node* node : std::vector<Node*>(value->users())) {
             value->DetachUser(node);
-            p.first->second->AddUser(node);
-            node->ReplaceInput(value, p.first->second);
+            replaced->AddUser(node);
+            node->ReplaceInput(value, replaced);
         }
     }
 }
