@@ -19,6 +19,9 @@ TEST(FlopsTest, Conv) {
     }
     int num_unknown_ops = 0;
     EXPECT_EQ(10080, CalculateFlops(*y->producer(), &num_unknown_ops));
+
+    y->producer()->set_group(2);
+    EXPECT_EQ(5040, CalculateFlops(*y->producer(), &num_unknown_ops));
 }
 
 }  // namespace

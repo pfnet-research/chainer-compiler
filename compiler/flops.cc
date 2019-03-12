@@ -45,7 +45,7 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     int64_t ochan = node.output(0)->type().dims()[1];
     int64_t ow = node.output(0)->type().dims()[2];
     int64_t oh = node.output(0)->type().dims()[3];
-    return bsize * ichan * ochan * ow * oh * kw * kh;
+    return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
 int64_t CalculateFlopsImpl(const Node& node) {
