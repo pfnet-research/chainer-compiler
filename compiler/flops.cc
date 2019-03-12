@@ -60,7 +60,7 @@ int64_t CalculateFlopsImpl(const Node& node) {
             return CalculateFlopsOfConv(node);
 
         case Node::kChainerFusionGroup:
-            return CalculateFlopsOfConv(node);
+            CHECK(false);
 
         default:
             return OutputSize(node);
