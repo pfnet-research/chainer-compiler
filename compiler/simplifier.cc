@@ -684,12 +684,14 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
     CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
-    CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
     CHECK(simplifiers.emplace(Node::kConstantOfShape, ReplaceConstantOfShape).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kImageScaler, ReplaceImageScaler).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
+    if (!g_use_ngraph) {
+        CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
+    }
 
     auto replace_if_not_supported = [&ccfg, &simplifiers](Node::OpType op, SimplifierFn fn) {
         if (!ccfg.HasOp(op)) {
