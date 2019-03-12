@@ -71,6 +71,7 @@ int64_t CalculateFlopsOfGraph(const Graph& graph, int* num_unknown_flops) {
     int64_t total_flops = 0;
     for (const Node* node : graph.GetComputationSequence()) {
         int64_t flops = CalculateFlops(*node, num_unknown_flops);
+        // std::cerr << node->ToString() << " " << flops << std::endl;
         if (flops >= 0) {
             total_flops += flops;
         }
