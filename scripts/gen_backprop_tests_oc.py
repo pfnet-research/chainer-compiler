@@ -2,8 +2,7 @@
 
 import chainer
 import numpy as np
-
-import onnx_chainer_util
+import onnx_chainer
 
 
 class AnyModel(chainer.Chain):
@@ -28,11 +27,12 @@ def create_backprop_test(test_name, fn, **kwargs):
         params[name] = np.array(value, np.float32)
     model = AnyModel(fn, params)
 
-    onnx_chainer_util.create_onnx_test('backprop_test_oc_' + test_name,
-                                       model,
-                                       (),
-                                       __builtins__,
-                                       test_dir)
+    chainer.disable_experimental_feature_warning = True
+    onnx_chainer.export_testcase(model,
+                                 (),
+                                 test_dir,
+                                 output_grad=True,
+                                 output_names='loss')
 
 
 class BackpropTest(object):

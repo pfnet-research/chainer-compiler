@@ -22,8 +22,6 @@ import alex
 import nin
 import resnet50
 
-import onnx_chainer_util
-
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
@@ -217,11 +215,11 @@ def main_impl(args, model_cls):
     y = chainer.Variable(y, name='y')
     onehot = chainer.Variable(onehot, name='onehot')
 
-    onnx_chainer_util.create_onnx_test(args.arch,
-                                       model,
-                                       (x, onehot),
-                                       __builtins__,
-                                       out_dir)
+    onnx_chainer.export_testcase(model,
+                                 (x, onehot),
+                                 out_dir,
+                                 output_grad=True,
+                                 output_names='loss')
 
 
 def run_training(args, model):

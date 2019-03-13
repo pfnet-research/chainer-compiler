@@ -14,8 +14,7 @@ from chainer import reporter
 from chainer import training
 from chainer.functions.evaluation import accuracy
 from chainer.training import extensions
-
-import onnx_chainer_util
+import onnx_chainer
 
 
 class MyClassifier(chainer.link.Chain):
@@ -165,11 +164,11 @@ def main_impl(args):
     x = chainer.Variable(x, name='input')
     onehot = chainer.Variable(onehot, name='onehot')
 
-    onnx_chainer_util.create_onnx_test('mnist_mlp',
-                                       model,
-                                       (x, onehot),
-                                       __builtins__,
-                                       out_dir)
+    onnx_chainer.export_testcase(model,
+                                 (x, onehot),
+                                 out_dir,
+                                 output_grad=True,
+                                 output_names='loss')
 
     # Revive this code if we need to test parameter update.
     #
