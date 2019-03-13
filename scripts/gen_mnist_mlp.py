@@ -164,6 +164,7 @@ def main_impl(args):
     x = chainer.Variable(x, name='input')
     onehot = chainer.Variable(onehot, name='onehot')
 
+    chainer.disable_experimental_feature_warning = True
     onnx_chainer.export_testcase(model,
                                  (x, onehot),
                                  out_dir,

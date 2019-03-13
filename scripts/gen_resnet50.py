@@ -220,6 +220,7 @@ def main_impl(args, model_cls):
     y = chainer.Variable(y, name='y')
     onehot = chainer.Variable(onehot, name='onehot')
 
+    chainer.disable_experimental_feature_warning = True
     onnx_chainer.export_testcase(model,
                                  (x, onehot),
                                  out_dir,
