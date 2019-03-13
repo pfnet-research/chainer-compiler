@@ -4,8 +4,11 @@ set(CHAINER_COMPILER_TOOLS_DIR ${CHAINER_COMPILER_ROOT_DIR}/tools)
 set(ONNX_CHAINER_DEPS
   onnx_chainer_util.py
   ../third_party/onnx-chainer/onnx_chainer/__init__.py
+  ../third_party/onnx-chainer/onnx_chainer/context.py
   ../third_party/onnx-chainer/onnx_chainer/export.py
+  ../third_party/onnx-chainer/onnx_chainer/export_testcase.py
   ../third_party/onnx-chainer/onnx_chainer/mapping.py
+  ../third_party/onnx-chainer/onnx_chainer/onnx_helper.py
   ../third_party/onnx-chainer/onnx_chainer/functions/__init__.py
   ../third_party/onnx-chainer/onnx_chainer/functions/activation.py
   ../third_party/onnx-chainer/onnx_chainer/functions/array.py
