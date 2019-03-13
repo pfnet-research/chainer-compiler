@@ -7,7 +7,6 @@ import chainer
 import numpy as np
 import onnx
 
-import onnx_chainer_util
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
@@ -24,7 +23,7 @@ def create_backprop_test(test_name, model, input_values):
 
     test_dir = 'out/backprop_test_pc_%s' % test_name
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
-    onnx_chainer_util.makedirs(test_data_set_dir)
+    os.makedirs(test_data_set_dir, exist_ok=True)
 
     xmodel = ch2o.compile_model(model, input_values)
     all_input_tensors = xmodel.graph.input
