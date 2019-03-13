@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-"""A ResNet50 trainer which is exportable by ONNX-chainer."""
+"""A ResNet50 trainer which is exportable by ONNX-chainer.
+
+Usage:
+
+$ PYTHONPATH=third_party/onnx-chainer python3 scripts/gen_resnet50.py
+"""
 
 import argparse
 import os
