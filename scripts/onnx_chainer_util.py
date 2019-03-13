@@ -84,5 +84,6 @@ def create_onnx_test(graph_name, model, inputs, builtins, out_dir):
         filename = os.path.join(test_data_dir, 'output_%d.pb' % i)
         _write_tensor_pb(filename, name, value)
     for name, param in model.namedparams():
+        name = 'param' + name.replace('/', '_')
         filename = os.path.join(test_data_dir, 'gradient_%d.pb' % i)
         _write_tensor_pb(filename, name, param.grad)
