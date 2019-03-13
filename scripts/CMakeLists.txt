@@ -2,7 +2,6 @@ get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PAT
 set(CHAINER_COMPILER_TOOLS_DIR ${CHAINER_COMPILER_ROOT_DIR}/tools)
 
 set(ONNX_CHAINER_DEPS
-  onnx_chainer_util.py
   ../third_party/onnx-chainer/onnx_chainer/__init__.py
   ../third_party/onnx-chainer/onnx_chainer/context.py
   ../third_party/onnx-chainer/onnx_chainer/export.py
