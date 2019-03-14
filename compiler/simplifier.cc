@@ -639,6 +639,16 @@ bool ReplaceImageScaler(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSlice(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySlice", node->output(0));
+    // Do nothing for Slice-1.
+    if (node->inputs().size() == 1) {
+        return false;
+    }
+    gb.Op(Node::kDynamicSlice, node->inputs(), node->output(0));
+    return true;
+}
+
 void ReplaceInitializers(Graph* graph) {
     std::map<Value*, Value*> initializers;
     for (Value* value : graph->input_values()) {
@@ -690,6 +700,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kImageScaler, ReplaceImageScaler).second);
+    CHECK(simplifiers.emplace(Node::kSlice, ReplaceSlice).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
     if (!g_use_ngraph) {
         CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
