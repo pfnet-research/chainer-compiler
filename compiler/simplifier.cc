@@ -445,16 +445,27 @@ bool HasImbalancedPad(const Node* node) {
     return false;
 }
 
+Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
+    Value* padded = gb->Op(Node::kPad, node->inputs());
+    std::vector<int64_t> pads = {0, 0};
+    size_t i = 0;
+    for (; i < node->pads().size() / 2; ++i) {
+        pads.push_back(node->pads()[i]);
+    }
+    pads.push_back(0);
+    pads.push_back(0);
+    for (; i < node->pads().size(); ++i) {
+        pads.push_back(node->pads()[i]);
+    }
+    padded->producer()->set_pads(pads)->set_value(value);
+    return padded;
+}
+
 bool ReplaceMaxPool(Graph* graph, Node* node) {
     if (!HasImbalancedPad(node)) return false;
     CHECK_EQ(1, node->outputs().size()) << "Not implemented yet";
     GraphBuilder gb(graph, "SimplifyMaxPoolPad", node->output(0));
-
-    Value* padded = gb.Op(Node::kPad, node->inputs());
-    std::vector<int64_t> pads = {0, 0, 0, 0};
-    for (int p : node->pads()) pads.push_back(p);
-    padded->producer()->set_pads(pads)->set_value(-std::numeric_limits<float>::infinity());
-
+    Value* padded = PadForPool(&gb, node, -std::numeric_limits<double>::infinity());
     gb.Op(Node::kMaxPool, {padded}, node->output(0))
             ->producer()
             ->set_chainer_cover_all(node->chainer_cover_all())
@@ -471,12 +482,7 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
         WARN_ONCE("AveragePool with imbalanced pads and count_include_pad would lead an incorrect result");
     }
     GraphBuilder gb(graph, "SimplifyAveragePoolPad", node->output(0));
-
-    Value* padded = gb.Op(Node::kPad, node->inputs());
-    std::vector<int64_t> pads = {0, 0, 0, 0};
-    for (int p : node->pads()) pads.push_back(p);
-    padded->producer()->set_pads(pads)->set_value(0);
-
+    Value* padded = PadForPool(&gb, node, 0);
     gb.Op(Node::kAveragePool, {padded}, node->output(0))
             ->producer()
             ->set_auto_pad(node->auto_pad())

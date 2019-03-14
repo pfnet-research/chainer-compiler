@@ -11,8 +11,6 @@ def get():
         name = 'onnx_chainer_' + os.path.basename(test_dir)
         fail = ('dilated' in name or
                 'hard_sigmoid' in name or
-                'max_pooling_2d_coverall' in name or
-                'max_pooling_nd_coverall' in name or
                 'pad_' in name or
                 'prod' in name or
                 'roipooling2d' in name or
