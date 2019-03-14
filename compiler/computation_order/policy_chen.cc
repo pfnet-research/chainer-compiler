@@ -2,6 +2,7 @@
 
 #include <compiler/graph.h>
 #include <compiler/node.h>
+#include <compiler/flags.h>
 
 #include <algorithm>
 #include <iostream>
@@ -59,7 +60,19 @@ std::set<Node*> FindArticulationPoints(const Graph& graph) {
     return articulation_points;
 }
 
-std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
+std::vector<Order> ChenPolicy(const Graph& graph) {
+    int64_t budget = g_chen_budget * 1000000LL;
+    if (g_chen_budget == 0) {
+        // default budget = sqrt of total memory
+        for (Node* node : graph.nodes()) {
+            for (Value* value : node->outputs()) {
+                budget += value->GetNBytes();
+            }
+        }
+        budget = budget / static_cast<int64_t>(std::sqrt(graph.nodes().size()));
+        std::cout << "Budget = " << budget / 1000000LL << " MB is used." << std::endl;
+    }
+
     std::vector<Order> orders;
 
     std::vector<Node*> sorted = graph.GetTopologicallySortedNodes();
@@ -111,7 +124,6 @@ std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
     {
         size_t g = 0;
         for (Node* node : sorted) {
-            std::cout << "generation: " << node->outputs()[0]->name() << " = " << g << std::endl;
             for (Value* value : node->inputs()) {
                 auto it = generation.find(value);
                 if (it == generation.end()) {

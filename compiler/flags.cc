@@ -38,5 +38,6 @@ bool g_dump_after_scheduling;
 bool g_dump_subgraphs;
 
 std::string g_computation_order;
+int g_chen_budget;
 
 }  // namespace chainer_compiler

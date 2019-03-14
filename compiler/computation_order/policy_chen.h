@@ -6,6 +6,6 @@
 
 namespace chainer_compiler {
 
-std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget);
+std::vector<Order> ChenPolicy(const Graph& graph);
 
 }  // namespace chainer_compiler

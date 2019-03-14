@@ -99,7 +99,7 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
     if (policy == "dummy") {
         return DummyPolicy(graph);
     } else if (policy == "chen") {
-        return ChenPolicy(graph, 100000000);
+        return ChenPolicy(graph);
     } else {
         CHECK(false) << "Unknown policy of computation order: " << policy;
         return {};
