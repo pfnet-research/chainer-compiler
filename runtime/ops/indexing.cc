@@ -25,7 +25,8 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes) {
+        const nonstd::optional<chainerx::Array>& axes,
+        const nonstd::optional<chainerx::Array>& steps) {
     CHECK_EQ(1, starts.ndim());
     CHECK_EQ(1, ends.ndim());
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
@@ -33,7 +34,8 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
         int64_t axis = axes.has_value() ? int64_t(chainerx::AsScalar(axes->At({i}))) : i;
         int64_t start = int64_t(chainerx::AsScalar(starts.At({i})));
         int64_t end = int64_t(chainerx::AsScalar(ends.At({i})));
-        indices[axis] = chainerx::Slice(start, end, 1);
+        int64_t step = steps.has_value() ? int64_t(chainerx::AsScalar(steps->At({i}))) : 1;
+        indices[axis] = chainerx::Slice(start, end, step);
     }
     return indices;
 }
@@ -45,8 +47,9 @@ chainerx::Array DynamicSliceOp::RunImpl(
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes) {
-    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(data, starts, ends, axes);
+        const nonstd::optional<chainerx::Array>& axes,
+        const nonstd::optional<chainerx::Array>& steps) {
+    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(data, starts, ends, axes, steps);
     return data.At(indices);
 }
 
@@ -56,9 +59,10 @@ chainerx::Array DynamicSliceGradOp::RunImpl(
         const chainerx::Array& shape,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes) {
+        const nonstd::optional<chainerx::Array>& axes,
+        const nonstd::optional<chainerx::Array>& steps) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
-    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes);
+    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes, steps);
     out.device().Copy(gy, out.At(indices));
     return out;
 }

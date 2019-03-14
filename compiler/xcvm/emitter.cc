@@ -488,7 +488,7 @@ private:
             }
             EMIT(Slice, out(0), in(0), axes, node.starts(), node.ends());
         } else if (node.op_type() == Node::kDynamicSlice) {
-            EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3));
+            EMIT(DynamicSlice, out(0), in(0), in(1), in(2), oin(3), oin(4));
         } else if (node.op_type() == Node::kChainerGetItem) {
             std::vector<int> ins;
             for (size_t i = 1; i < node.inputs().size(); ++i) ins.push_back(in(i));
@@ -541,7 +541,7 @@ private:
         } else if (node.op_type() == Node::kChainerGatherGrad) {
             EMIT(GatherGrad, out(0), in(0), in(1), in(2), node.axis());
         } else if (node.op_type() == Node::kChainerDynamicSliceGrad) {
-            EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4));
+            EMIT(DynamicSliceGrad, out(0), in(0), in(1), in(2), in(3), oin(4), oin(5));
         } else if (node.op_type() == Node::kChainerFusionGroup) {
             EmitFusionGroup(node, prog);
         } else if (node.op_type() == Node::kIf) {
