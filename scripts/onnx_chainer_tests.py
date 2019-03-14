@@ -11,7 +11,8 @@ def get():
         name = 'onnx_chainer_' + os.path.basename(test_dir)
         fail = ('dilated' in name or
                 'hard_sigmoid' in name or
-                'pad_' in name or
+                'pad_edge' in name or
+                'pad_reflect' in name or
                 'prod' in name or
                 'roipooling2d' in name or
                 'prelu' in name or
