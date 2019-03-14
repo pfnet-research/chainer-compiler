@@ -17,7 +17,7 @@ TEST(NpyTest, SaveNpy) {
     chainerx::ContextScope ctx_scope(ctx);
 
     chainerx::Array a = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
-    SaveNpy("out/t.npy", a);
+    SaveNpy(a, "out/t.npy");
 
     std::string actual(144, '\0');
     FILE* fp = fopen("out/t.npy", "rb");

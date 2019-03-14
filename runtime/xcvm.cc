@@ -83,7 +83,7 @@ void DumpOutput(XCVMState* st, const XCVMOp* op, const std::string& output_dir) 
 
         std::ostringstream oss;
         oss << output_dir << '/' << std::setfill('0') << std::setw(5) << inst.id() << '_' << name << ".npy";
-        SaveNpy(oss.str(), var->GetArray());
+        SaveNpy(var->GetArray(), oss.str());
     }
 }
 

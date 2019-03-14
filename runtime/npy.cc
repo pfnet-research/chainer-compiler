@@ -10,7 +10,7 @@
 namespace chainer_compiler {
 namespace runtime {
 
-void SaveNpy(const std::string& filename, const chainerx::Array& a) {
+void SaveNpy(const chainerx::Array& a, const std::string& filename) {
     std::string header("\x93NUMPY\x01\x00\x00\x00", 10);
     header += "{'descr': '";
 

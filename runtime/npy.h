@@ -7,7 +7,7 @@
 namespace chainer_compiler {
 namespace runtime {
 
-void SaveNpy(const std::string& filename, const chainerx::Array& a);
+void SaveNpy(const chainerx::Array& a, const std::string& filename);
 
 }  // namespace runtime
 }  // namespace chainer_compiler
