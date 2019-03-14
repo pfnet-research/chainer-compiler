@@ -167,6 +167,27 @@ add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests > ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test.log && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  DEPENDS
+  third_party/onnx-chainer/tests/functions_tests/test_activations.py
+  third_party/onnx-chainer/tests/functions_tests/test_arrays.py
+  third_party/onnx-chainer/tests/functions_tests/test_connections.py
+  third_party/onnx-chainer/tests/functions_tests/test_loss.py
+  third_party/onnx-chainer/tests/functions_tests/test_maths.py
+  third_party/onnx-chainer/tests/functions_tests/test_noises.py
+  third_party/onnx-chainer/tests/functions_tests/test_normalizations.py
+  third_party/onnx-chainer/tests/functions_tests/test_poolings.py
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
+add_custom_target(
+  onnx_chainer_test
+  ALL
+  DEPENDS onnx_chainer_test_stamp
+  )
+
 set(CH2O_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/__init__.py
   ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
