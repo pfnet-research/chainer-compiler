@@ -14,6 +14,7 @@ import elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
+import onnx_chainer_tests
 import onnx_real_tests
 from test_case import TestCase
 
@@ -549,6 +550,8 @@ TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
 TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(elichika_tests.get())
+
+TEST_CASES.extend(onnx_chainer_tests.get())
 
 TEST_CASES.extend(onnx_real_tests.get())
 

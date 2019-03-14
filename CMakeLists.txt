@@ -160,12 +160,51 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   add_subdirectory(python)
 endif()
 
+set(ONNX_CHAINER_DEPS
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/context.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/export.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/export_testcase.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/mapping.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/onnx_helper.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/activation.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/array.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/connection.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/math.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/noise.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/normalization.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/pooling.py
+  )
+
 add_subdirectory(compiler)
 add_subdirectory(common)
 add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  DEPENDS
+  third_party/onnx-chainer/tests/functions_tests/test_activations.py
+  third_party/onnx-chainer/tests/functions_tests/test_arrays.py
+  third_party/onnx-chainer/tests/functions_tests/test_connections.py
+  third_party/onnx-chainer/tests/functions_tests/test_loss.py
+  third_party/onnx-chainer/tests/functions_tests/test_maths.py
+  third_party/onnx-chainer/tests/functions_tests/test_noises.py
+  third_party/onnx-chainer/tests/functions_tests/test_normalizations.py
+  third_party/onnx-chainer/tests/functions_tests/test_poolings.py
+  ${ONNX_CHAINER_DEPS}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+
+add_custom_target(
+  onnx_chainer_test
+  ALL
+  DEPENDS onnx_chainer_test_stamp
+  )
 
 set(CH2O_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/__init__.py

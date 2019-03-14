@@ -1,23 +1,6 @@
 get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
 set(CHAINER_COMPILER_TOOLS_DIR ${CHAINER_COMPILER_ROOT_DIR}/tools)
 
-set(ONNX_CHAINER_DEPS
-  ../third_party/onnx-chainer/onnx_chainer/__init__.py
-  ../third_party/onnx-chainer/onnx_chainer/context.py
-  ../third_party/onnx-chainer/onnx_chainer/export.py
-  ../third_party/onnx-chainer/onnx_chainer/export_testcase.py
-  ../third_party/onnx-chainer/onnx_chainer/mapping.py
-  ../third_party/onnx-chainer/onnx_chainer/onnx_helper.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/__init__.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/activation.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/array.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/connection.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/math.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/noise.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/normalization.py
-  ../third_party/onnx-chainer/onnx_chainer/functions/pooling.py
-  )
-
 function(gen_onnx_by_onnx_chainer_ name_)
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${name_}_stamp
