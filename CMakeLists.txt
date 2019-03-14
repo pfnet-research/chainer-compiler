@@ -169,7 +169,7 @@ add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests > ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test.log && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py
