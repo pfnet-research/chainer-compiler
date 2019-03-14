@@ -160,6 +160,23 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   add_subdirectory(python)
 endif()
 
+set(ONNX_CHAINER_DEPS
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/context.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/export.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/export_testcase.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/mapping.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/onnx_helper.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/activation.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/array.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/connection.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/math.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/noise.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/normalization.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/pooling.py
+  )
+
 add_subdirectory(compiler)
 add_subdirectory(common)
 add_subdirectory(feeder)
@@ -179,6 +196,7 @@ add_custom_command(
   third_party/onnx-chainer/tests/functions_tests/test_noises.py
   third_party/onnx-chainer/tests/functions_tests/test_normalizations.py
   third_party/onnx-chainer/tests/functions_tests/test_poolings.py
+  ${ONNX_CHAINER_DEPS}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
