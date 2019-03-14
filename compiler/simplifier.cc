@@ -671,7 +671,9 @@ bool ReplaceMaxRoiPool(Graph* graph, Node* node) {
     roi_indices = gb.Op(Node::kSqueeze, {roi_indices});
     roi_indices->producer()->set_axes({1});
     gb.Op(Node::kChainerROIMaxPool2D, {node->input(0), rois, roi_indices}, node->output(0))
-        ->producer()->set_spatial_scale(node->spatial_scale())->set_output_shape(node->pooled_shape());
+            ->producer()
+            ->set_spatial_scale(node->spatial_scale())
+            ->set_output_shape(node->pooled_shape());
     return true;
 }
 
