@@ -194,6 +194,7 @@ NodeDef('Loop', None, None, body=Graph, chainer_stack_axis=0)
 # NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
+NodeDef('MaxRoiPool', 2, 1, pooled_shape=Required([int]), spatial_scale=1.0)
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)

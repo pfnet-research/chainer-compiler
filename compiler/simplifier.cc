@@ -655,6 +655,26 @@ bool ReplaceSlice(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceMaxRoiPool(Graph* graph, Node* node) {
+    // TODO(hamaji): Fix this. The result does not match for
+    // out/opset9/test_roipooling2d.
+    GraphBuilder gb(graph, "SimplifyMaxRoiPool", node->output(0));
+    Value* roi_combined = node->input(1);
+    Dtype roi_dtype = roi_combined->type().dtype();
+    int64_t roi_batchsize = roi_combined->type().dims()[0];
+    Value* roi_indices = gb.Temp(Type(roi_dtype, {roi_batchsize, 1}));
+    Value* rois = gb.Temp(Type(roi_dtype, {roi_batchsize, 4}));
+    Node* split_op = gb.MOp(Node::kSplit, {roi_combined}, {roi_indices, rois});
+    split_op->set_axis(1)->set_split({1, 4});
+    roi_indices = gb.Op(Node::kCast, {roi_indices});
+    roi_indices->producer()->set_to(Dtype::kInt32);
+    roi_indices = gb.Op(Node::kSqueeze, {roi_indices});
+    roi_indices->producer()->set_axes({1});
+    gb.Op(Node::kChainerROIMaxPool2D, {node->input(0), rois, roi_indices}, node->output(0))
+        ->producer()->set_spatial_scale(node->spatial_scale())->set_output_shape(node->pooled_shape());
+    return true;
+}
+
 void ReplaceInitializers(Graph* graph) {
     std::map<Value*, Value*> initializers;
     for (Value* value : graph->input_values()) {
@@ -707,6 +727,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kImageScaler, ReplaceImageScaler).second);
     CHECK(simplifiers.emplace(Node::kSlice, ReplaceSlice).second);
+    CHECK(simplifiers.emplace(Node::kMaxRoiPool, ReplaceMaxRoiPool).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
     if (!g_use_ngraph) {
         CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
