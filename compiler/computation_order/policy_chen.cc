@@ -1,16 +1,16 @@
 #include "compiler/computation_order/policy_chen.h"
 
-#include <compiler/graph.h>
-#include <compiler/node.h>
-#include <compiler/flags.h>
-
 #include <algorithm>
 #include <iostream>
-#include <numeric>
 #include <map>
+#include <numeric>
 #include <queue>
 #include <set>
 #include <vector>
+
+#include <compiler/flags.h>
+#include <compiler/graph.h>
+#include <compiler/node.h>
 
 namespace chainer_compiler {
 
@@ -129,8 +129,7 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
                 if (it == generation.end()) {
                     // input value
                     must_remember.insert(value);
-                }
-                else if (it->second != g) {
+                } else if (it->second != g) {
                     // boundary value
                     must_remember.insert(value);
                 }
@@ -154,8 +153,7 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
     for (int64_t i = static_cast<int64_t>(split_indices.size()) - 1; i >= -1; --i) {
         int64_t begin_index = (i >= 0) ? static_cast<int64_t>(split_indices[i]) : 0;
 
-        for (int64_t j = begin_index + (i >= 0);
-             j < end_index; ++j) {
+        for (int64_t j = begin_index + (i >= 0); j < end_index; ++j) {
             // recomputation for [begin_index, end_index)
             orders.emplace_back(Order::kComputeForward, sorted[j], nullptr);
         }

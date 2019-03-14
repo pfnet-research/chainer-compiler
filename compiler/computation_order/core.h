@@ -1,8 +1,8 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 #include <vector>
-#include <ostream>
 
 #include <compiler/graph.h>
 #include <compiler/node.h>
@@ -25,13 +25,13 @@ public:
     Value* value{nullptr};
     std::vector<int> indices;
 
-    Order(Kind kind_, Node* node_, Value* value_)
-        : kind(kind_), node(node_), value(value_) {}
+    Order(Kind kind_, Node* node_, Value* value_) : kind(kind_), node(node_), value(value_) {
+    }
 
-    friend std::ostream& operator<<(std::ostream &os, const Order& order);
+    friend std::ostream& operator<<(std::ostream& os, const Order& order);
 };
 
-inline std::ostream& operator<<(std::ostream &os, const Order& order) {
+inline std::ostream& operator<<(std::ostream& os, const Order& order) {
     os << "Order: ";
     switch (order.kind) {
         case Order::kComputeForward: {

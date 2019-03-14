@@ -1,7 +1,7 @@
 #include "compiler/computation_order/core.h"
 
-#include "compiler/computation_order/policy_dummy.h"
 #include "compiler/computation_order/policy_chen.h"
+#include "compiler/computation_order/policy_dummy.h"
 
 #include <functional>
 #include <iostream>
