@@ -1,4 +1,11 @@
-# Compare two output dumps created by --dump_output_dir.
+# Compare two output dumps created by --dump_outputs_dir.
+#
+# $ mkdir a b
+# $ build/tools/run_onnx --dump_outputs_dir a  --backprop --test out/backprop_test_mnist_mlp
+# ... do some change ...
+# $ build/tools/run_onnx --dump_outputs_dir b  --backprop --test out/backprop_test_mnist_mlp
+# $ python3 tools/compare_dump_dirs.py a b
+#
 
 import glob
 import os
