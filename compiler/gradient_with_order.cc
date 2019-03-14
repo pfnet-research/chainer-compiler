@@ -99,7 +99,7 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
     if (policy == "dummy") {
         return DummyPolicy(graph);
     } else if (policy == "chen") {
-        return ChenPolicy(graph, 100000);
+        return ChenPolicy(graph, 100000000);
     } else {
         CHECK(false) << "Unknown policy of computation order: " << policy;
         return {};
@@ -125,7 +125,9 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         last_forward_map[orig_node] = node;
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
-            CHECK(staged.emplace(std::get<1>(p), value).second);
+            // TODO(mkusumoto): Can I safely remove this assertion?
+            // CHECK(staged.emplace(std::get<1>(p), value).second);
+            staged.emplace(std::get<1>(p), value);
         }
     };
 
@@ -157,7 +159,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                     std::vector<Value*> inputs;
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
-                        CHECK(found != staged.end());
+                        CHECK(found != staged.end()) << "Value " << value->name() << " is not staged.";
                         inputs.push_back(found->second);
                     }
 

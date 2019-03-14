@@ -69,8 +69,6 @@ std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
     std::vector<Node*> splits;
     std::vector<size_t> split_indices;
 
-    for (auto s : split_candidates) std::cout << s->outputs()[0]->name() << std::endl;
-
     int64_t sum = 0;
     for (size_t i = 0; i < sorted.size(); ++i) {
         Node* node = sorted[i];
@@ -87,16 +85,55 @@ std::vector<Order> ChenPolicy(const Graph& graph, const int64_t budget) {
             sum += consumption;
         }
     }
+    for (auto s : splits) std::cout << "Split at " << s->outputs()[0]->name() << std::endl;
 
     // schedule forward computation
     for (Node* node : sorted) {
         orders.emplace_back(Order::kComputeForward, node, nullptr);
     }
 
+    // perform forgetting
+    std::map<Value*, size_t> generation;
+    {
+        size_t g = 0;
+        for (Node* node : sorted) {
+            for (Value* value : node->outputs()) {
+                CHECK(generation.count(value) == 0) << "Value has multiple parents?";
+                generation.emplace(value, g);
+            }
+            if (g < splits.size() && splits[g] == node) {
+                g++;
+            }
+        }
+    }
+
+    std::set<Value*> must_remember;
+    {
+        size_t g = 0;
+        for (Node* node : sorted) {
+            std::cout << "generation: " << node->outputs()[0]->name() << " = " << g << std::endl;
+            for (Value* value : node->inputs()) {
+                auto it = generation.find(value);
+                if (it == generation.end()) {
+                    // input value
+                    must_remember.insert(value);
+                }
+                else if (it->second != g) {
+                    // boundary value
+                    must_remember.insert(value);
+                }
+            }
+            if (g < splits.size() && splits[g] == node) {
+                g++;
+            }
+        }
+    }
+
     for (Node* node : sorted) {
-        if (std::count(splits.begin(), splits.end(), node)) continue;
         for (Value* value : node->outputs()) {
-            orders.emplace_back(Order::kForgetForward, nullptr, value);
+            if (!must_remember.count(value)) {
+                orders.emplace_back(Order::kForgetForward, nullptr, value);
+            }
         }
     }
 
