@@ -688,6 +688,16 @@ def gen_sequence_constants_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_create_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    inputs = [4, 2, 3]
+    inputs_v = [gb.input('input_%d' % i, input)
+                for i, input in enumerate(inputs)]
+    seq_v = gb.ChainerSequenceCreate(inputs_v)
+    gb.output(seq_v, Seq(inputs))
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -1069,6 +1079,7 @@ def get_tests():
     test('extra_test_sequence_range', gen_sequence_range_test)
     test('extra_test_sequence_pop', gen_sequence_pop_test)
     test('extra_test_sequence_constants', gen_sequence_constants_test)
+    test('extra_test_sequence_create', gen_sequence_create_test)
 
     test('extra_test_sentiment_lstm',
          sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2)
