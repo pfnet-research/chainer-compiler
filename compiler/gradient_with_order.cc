@@ -1,5 +1,8 @@
 #include "compiler/computation_order/core.h"
 
+#include "compiler/computation_order/policy_chen.h"
+#include "compiler/computation_order/policy_dummy.h"
+
 #include <functional>
 #include <iostream>
 #include <string>
@@ -92,6 +95,17 @@ private:
 
 }  // namespace
 
+std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy) {
+    if (policy == "dummy") {
+        return DummyPolicy(graph);
+    } else if (policy == "chen") {
+        return ChenPolicy(graph);
+    } else {
+        CHECK(false) << "Unknown policy of computation order: " << policy;
+        return {};
+    }
+}
+
 void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders) {
     // A map from the original value to the staged value, possibly recomputed.
     std::map<Value*, Value*> staged;
@@ -111,7 +125,9 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         last_forward_map[orig_node] = node;
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
-            CHECK(staged.emplace(std::get<1>(p), value).second);
+            if (!staged.emplace(std::get<1>(p), value).second) {
+                std::cerr << "Forward recompute without forgetting the output: " << orig_node->ToString() << std::endl;
+            }
         }
     };
 
@@ -143,7 +159,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                     std::vector<Value*> inputs;
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
-                        CHECK(found != staged.end());
+                        CHECK(found != staged.end()) << "Value " << value->name() << " is not staged.";
                         inputs.push_back(found->second);
                     }
 

@@ -1,13 +1,14 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 #include <vector>
 
-namespace chainer_compiler {
+#include <compiler/graph.h>
+#include <compiler/node.h>
+#include <compiler/value.h>
 
-class Node;
-class Value;
-class Graph;
+namespace chainer_compiler {
 
 class Order {
 public:
@@ -23,8 +24,13 @@ public:
     Node* node{nullptr};
     Value* value{nullptr};
     std::vector<int> indices;
+
+    Order(Kind kind_, Node* node_, Value* value_) : kind(kind_), node(node_), value(value_) {
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const Order& order);
 };
 
-std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy);
+std::ostream& operator<<(std::ostream& os, const Order& order);
 
 }  // namespace chainer_compiler
