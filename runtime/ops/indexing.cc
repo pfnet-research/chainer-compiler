@@ -120,27 +120,14 @@ chainerx::Array GetItemGradOp::RunImpl(
     return out;
 }
 
-namespace {
-
-chainerx::Array Indices(chainerx::Array indices) {
-    // TODO(hamaji): Support int32 Take in ChainerX.
-    WARN_ONCE("int32 Take is not supported by ChainerX, could be slow");
-    if (indices.dtype() == chainerx::Dtype::kInt32) {
-        return indices.AsType(chainerx::Dtype::kInt64);
-    }
-    return indices;
-}
-
-}  // namespace
-
 chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(Indices(indices), axis);
+    return data.Take(indices, axis);
 }
 
 chainerx::Array GatherGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
-    out.device().AddAt(out, Indices(indices), axis, gy, out);
+    out.device().AddAt(out, indices, axis, gy, out);
     return out;
 }
 
@@ -149,8 +136,7 @@ chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data
     int64_t batch_size = data.shape()[0];
     int64_t num_classes = data.shape()[1];
     int64_t total_size = batch_size * num_classes;
-    chainerx::Array take_indices =
-            (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(data.device());
+    chainerx::Array take_indices = (indices + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(data.device());
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 
@@ -162,8 +148,7 @@ chainerx::Array SelectItemGradOp::RunImpl(
     int64_t num_classes = shape[1];
     int64_t total_size = batch_size * num_classes;
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
-    chainerx::Array take_indices =
-            (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(out.device());
+    chainerx::Array take_indices = (indices + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(out.device());
     out.device().AddAt(out, take_indices, 0, gy, out);
     return out.Reshape(shape);
 }
