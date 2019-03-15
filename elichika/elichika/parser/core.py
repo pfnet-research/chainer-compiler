@@ -43,10 +43,28 @@ def convert_model(model : 'chainer.Chain', args = []):
         f_dict.get_field().get_attribute('softmax').revise(values.Object(f_softmax))
         f_softmax_cross_entropy = values.FuncValue(functions_builtin.SoftmaxCrossEntropyFunction(), None)
         f_dict.get_field().get_attribute('softmax_cross_entropy').revise(values.Object(f_softmax_cross_entropy))
+        f_pad_sequence = values.FuncValue(functions_builtin.PadSequenceFunction(), None)
+        f_dict.get_field().get_attribute('pad_sequence').revise(values.Object(f_pad_sequence))
         default_module.set_default_value(chainer_functions_module_name, f_dict)
+
+    # numpy
+    numpy_module_name = get_module_name(np, default_module.internal_module)
+    if numpy_module_name != '':
+        f_dict = values.Object(values.ModuleValue())
+
+        f_array = values.FuncValue(functions_builtin.NDArrayFunction(), None)
+        f_dict.get_field().get_attribute('array').revise(values.Object(f_array))
+
+        f_dict.get_field().get_attribute('int32').revise(values.Object(values.NumberValue(utils.numpy_type_2_int(np.int32))))
+        f_dict.get_field().get_attribute('float32').revise(values.Object(values.NumberValue(utils.numpy_type_2_int(np.float32))))
+
+        default_module.set_default_value(numpy_module_name, f_dict)
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     default_module.set_default_value('range', values.Object(m_range))
+
+    m_list = values.FuncValue(functions_builtin.ListFunction(), None)
+    default_module.set_default_value('list', values.Object(m_list))
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward')

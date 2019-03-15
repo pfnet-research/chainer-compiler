@@ -387,3 +387,20 @@ class NodeGenerate(Node):
 
     def __str__(self):
         return 'Generate({},{})'.format(self.classtype, self.lineprop)
+
+class NodeConvert(Node):
+    def __init__(self, classtype, value, line = -1):
+        super().__init__(line)
+        self.classtype = classtype
+        self.value = value
+        self.append_inputs(self.value)
+
+    def replace_inputs(self, old, new):
+        super().replace_inputs(old, new)
+
+        if self.value == old:
+            self.value = new
+
+    def __str__(self):
+        return 'Convert({},{})'.format(self.classtype, self.lineprop)
+

@@ -641,6 +641,28 @@ class ONNXGenerator:
 
                     onnx_graph.nodes.append(onnx_node)
 
+                if isinstance(node.func, functions_builtin.PadSequenceFunction):
+                    # pad_sequence
+                    kwargs = {}
+
+                    if node.inputs[1] is not None:
+                        value = onnx_graph.try_get_attribute(node.inputs[1])
+                        if value is not None:
+                            kwargs['length'] = value
+                    if node.inputs[2] is not None:
+                        value = onnx_graph.try_get_attribute(node.inputs[2])
+                        if value != 0:
+                            kwargs['value'] = float(value)
+
+                    onnx_node = oh.make_node(
+                        "ChainerSequencePad",
+                        [value2onnx_parameter[node.inputs[0]].onnx_name],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        str(node.lineprop),
+                        **kwargs)
+
+                    onnx_graph.nodes.append(onnx_node)
+
                 if isinstance(node.func, functions_builtin.SoftmaxCrossEntropyFunction):
                     # softmax_cross_entropy
                     onnx_node = oh.make_node(
