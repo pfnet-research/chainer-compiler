@@ -157,7 +157,16 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
 
         for (int64_t j = begin_index + (i >= 0); j < end_index; ++j) {
             // recomputation for [begin_index, end_index)
-            orders.emplace_back(Order::kComputeForward, sorted[j], nullptr);
+            bool need_recompute = false;
+            for (Value* output : sorted[j]->outputs()) {
+                if (!must_remember.count(output)) {
+                    need_recompute = true;
+                    break;
+                }
+            }
+            if (need_recompute) {
+                orders.emplace_back(Order::kComputeForward, sorted[j], nullptr);
+            }
         }
         for (int64_t j = static_cast<int64_t>(end_index) - 1; j >= begin_index; --j) {
             // backward computation for [begin_index, end_index)
