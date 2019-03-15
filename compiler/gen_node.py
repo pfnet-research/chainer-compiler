@@ -260,8 +260,8 @@ NodeDef('ChainerNullConstant', 0, 1)
 # Creates a constant sequence: () -> ([T])
 NodeDef('ChainerSequenceConstants', 0, 1, tensor_values=[Tensor])
 
-# Creates a new sequence: () -> ([T])
-NodeDef('ChainerSequenceCreate', 0, 1)
+# Creates a new sequence: (T...) -> ([T])
+NodeDef('ChainerSequenceCreate', None, 1)
 
 # Appends an element to a sequence: ([T], T) -> ([T])
 NodeDef('ChainerSequenceAppend', 2, 1)

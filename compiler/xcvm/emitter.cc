@@ -563,7 +563,9 @@ private:
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Print, ins);
         } else if (node.op_type() == Node::kChainerSequenceCreate) {
-            EMIT(SequenceCreate, out(0));
+            std::vector<int> ins;
+            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            EMIT(SequenceCreate, out(0), ins);
         } else if (node.op_type() == Node::kChainerSequenceSize) {
             EMIT(SequenceSize, out(0), in(0));
         } else if (node.op_type() == Node::kChainerSequenceLengths) {
@@ -691,7 +693,7 @@ private:
         }
 
         int out = GetValueId(node.output(0));
-        EMIT(SequenceCreate, XCVMValue(out));
+        EMIT(SequenceCreate, XCVMValue(out), {});
         for (int id : const_values) {
             EMIT(SequenceAppend, out, id);
             FREE(id);
@@ -1042,7 +1044,7 @@ private:
         std::vector<int> scan_out_ids;
         for (int i = 0; i < num_scans; ++i) {
             int id = next_value_id_++;
-            EMIT(SequenceCreate, XCVMValue(id));
+            EMIT(SequenceCreate, XCVMValue(id), {});
             scan_out_ids.push_back(id);
         }
 
