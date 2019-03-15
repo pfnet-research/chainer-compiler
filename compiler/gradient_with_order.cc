@@ -125,9 +125,9 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
         last_forward_map[orig_node] = node;
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
-            // TODO(mkusumoto): Can I safely remove this assertion?
-            // CHECK(staged.emplace(std::get<1>(p), value).second);
-            staged.emplace(std::get<1>(p), value);
+            if (!staged.emplace(std::get<1>(p), value).second) {
+                std::cerr << "Forward recompute without forgetting the output: " << orig_node->ToString() << std::endl;
+            }
         }
     };
 

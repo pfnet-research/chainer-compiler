@@ -1,6 +1,8 @@
+// In this code, we implement sublinear memory cost policy proposed in `https://arxiv.org/abs/1604.06174`.
 #include "compiler/computation_order/policy_chen.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <map>
 #include <numeric>
