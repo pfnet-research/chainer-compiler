@@ -702,7 +702,7 @@ private:
         CHECK_EQ(5UL, node.inputs().size());
         CHECK_EQ(1, node.spatial()) << "`spatial` for BatchNormalization was removed from ONNX";
         size_t num_onnx_outputs = node.outputs().size();
-        if (num_onnx_outputs == 1) {
+        if (num_onnx_outputs == 1 && !node.chainer_in_recomputing()) {
             EMIT(FixedBatchNormalization,
                  GetOutputValue(node, 0),
                  GetValueId(node.input(0)),
@@ -741,7 +741,8 @@ private:
              GetValueId(node.input(3)),
              GetValueId(node.input(4)),
              node.epsilon(),
-             node.momentum());
+             node.momentum(),
+	     node.chainer_in_recomputing());
     }
 
 #undef EMIT

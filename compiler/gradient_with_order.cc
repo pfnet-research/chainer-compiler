@@ -178,6 +178,9 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                     Node* new_node = new Node(xnode, inputs, outputs);
                     graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
                     schedule_recompute(new_node, node);
+		    if (node->op_type() == Node::kBatchNormalization) {
+			node->set_chainer_in_recomputing(1);
+		    }
                 }
                 break;
             }
