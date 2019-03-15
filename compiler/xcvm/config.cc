@@ -61,6 +61,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerBatchNormalizationGrad).second);
         CHECK(op_set_.emplace(Node::kChainerConvGradWeight).second);
         CHECK(op_set_.emplace(Node::kChainerConvTransposeWithDynamicOutputShape).second);
+        CHECK(op_set_.emplace(Node::kChainerDoSomething).second);
         CHECK(op_set_.emplace(Node::kChainerDynamicSliceGrad).second);
         CHECK(op_set_.emplace(Node::kChainerFusionGroup).second);
         CHECK(op_set_.emplace(Node::kChainerGatherGrad).second);
@@ -80,6 +81,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerPrint).second);
         CHECK(op_set_.emplace(Node::kChainerReduceSumTo).second);
         CHECK(op_set_.emplace(Node::kChainerReluGrad).second);
+        CHECK(op_set_.emplace(Node::kChainerResizeImages).second);
         CHECK(op_set_.emplace(Node::kChainerROIAverageAlign2D).second);
         CHECK(op_set_.emplace(Node::kChainerROIAveragePool2D).second);
         CHECK(op_set_.emplace(Node::kChainerROIMaxAlign2D).second);
@@ -128,6 +130,7 @@ public:
         CHECK(op_set_.emplace(Node::kTanh).second);
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
+        CHECK(op_set_.emplace(Node::kUpsample).second);
         CHECK(op_set_.emplace(Node::kXor).second);
 
         if (diversed) {

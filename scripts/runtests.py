@@ -14,6 +14,7 @@ import elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
+import onnx_chainer_tests
 import onnx_real_tests
 from test_case import TestCase
 
@@ -43,6 +44,9 @@ parser.add_argument('--failed', action='store_true',
 parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
+parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
+parser.add_argument('--computation_order', default=None,
+                    help='Force setting --computation_order flag')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -149,13 +153,12 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_eyelike_with_dtype'),
     TestCase(NODE_TEST, 'test_eyelike_without_dtype'),
 
-    # TODO(ChainerX): Support float16?
     TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT'),
-    # TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
-    # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_DOUBLE'),
-    # TestCase(NODE_TEST, 'test_cast_FLOAT16_to_FLOAT'),
+    TestCase(NODE_TEST, 'test_cast_DOUBLE_to_FLOAT16'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT16_to_DOUBLE'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT16_to_FLOAT'),
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_DOUBLE'),
-    # TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
+    TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
 
     # TODO(ChainerX): Support non-2D dot.
     # terminate called after throwing an instance of 'chainerx::NotImplementedError'
@@ -199,6 +202,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_globalmaxpool_precomputed'),
     TestCase(NODE_TEST, 'test_globalaveragepool'),
     TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
+    TestCase(NODE_TEST, 'test_upsample_nearest'),
 
     TestCase(NODE_TEST, 'test_shape'),
     TestCase(NODE_TEST, 'test_shape_example'),
@@ -224,14 +228,11 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_slice'),
     TestCase(NODE_TEST, 'test_slice_default_axes'),
+    TestCase(NODE_TEST, 'test_slice_default_steps'),
     TestCase(NODE_TEST, 'test_slice_end_out_of_bounds'),
     TestCase(NODE_TEST, 'test_slice_neg'),
+    TestCase(NODE_TEST, 'test_slice_neg_steps', fail=True),
     TestCase(NODE_TEST, 'test_slice_start_out_of_bounds'),
-    TestCase(NODE_TEST, 'test_dynamic_slice'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_default_axes'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_end_out_of_bounds'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_neg'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_start_out_of_bounds'),
     TestCase(NODE_TEST, 'test_gather_0'),
     TestCase(NODE_TEST, 'test_gather_1'),
     TestCase(NODE_TEST, 'test_concat_1d_axis_0'),
@@ -547,6 +548,8 @@ TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(elichika_tests.get())
 
+TEST_CASES.extend(onnx_chainer_tests.get())
+
 TEST_CASES.extend(onnx_real_tests.get())
 
 new_tests = []
@@ -558,6 +561,12 @@ for test in TEST_CASES:
     new_test.name = test.name + '_two_phase'
     new_test.is_backprop_two_phase = True
     new_tests.append(new_test)
+
+    if test.name == 'ch2o_model_MLP_with_loss_backprop':
+        new_test = copy.copy(test)
+        new_test.name = test.name + '_computation_order'
+        new_test.computation_order = 'dummy'
+        new_tests.append(new_test)
 
 for test in new_tests:
     TEST_CASES.append(test)
@@ -665,6 +674,7 @@ def main():
     gpu_tests = []
     for test_case in TEST_CASES:
         test_case.args = [run_onnx, '--test', test_case.test_dir]
+        test_case.args.append('--compiler_log')
         is_gpu = False
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
@@ -674,6 +684,14 @@ def main():
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:
             test_case.args.append('--backprop')
+
+        if test_case.computation_order:
+            test_case.args.append(
+                '--computation_order=' + test_case.computation_order)
+        elif args.computation_order:
+            test_case.args.append(
+                '--computation_order=' + args.computation_order)
+
         if test_case.backend is not None:
             test_case.args.append('--backend')
             test_case.args.append(test_case.backend)
@@ -693,6 +711,9 @@ def main():
             test_case.args.append('--fuse_operations')
             if is_gpu:
                 test_case.args.append('--use_nvrtc')
+        if args.ngraph:
+            test_case.args.append('--fuse_operations')
+            test_case.args.append('--use_ngraph')
 
         if is_gpu:
             gpu_tests.append(test_case)

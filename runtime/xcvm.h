@@ -3,7 +3,10 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include <chainerx/shape.h>
 
 #include "runtime/xcvm.pb.h"
 
@@ -40,7 +43,11 @@ public:
     int64_t base_memory_usage{0};
 
     ChromeTracingEmitter* chrome_tracing{nullptr};
+
+    std::string dump_outputs_dir;
 };
+
+class XCVMInputDesc;
 
 class XCVM {
 public:
@@ -55,7 +62,11 @@ public:
     }
 
 private:
+    XCVM(const XCVM&) = delete;
+    XCVM& operator=(const XCVM&) = delete;
+
     std::vector<std::unique_ptr<XCVMOp>> program_;
+    std::vector<std::unique_ptr<XCVMInputDesc>> input_descs_;
     int num_variables_;
 };
 

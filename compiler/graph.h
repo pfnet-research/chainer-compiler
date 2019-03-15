@@ -111,11 +111,11 @@ public:
 
     void DumpONNXOnFailure(const std::string& filename = "") const;
 
+    void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+
 private:
     std::string GenSym(const std::string& base = "");
     std::string MakeUnique(const std::string& name);
-
-    void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
     void Construct(const onnx::GraphProto& xgraph);
 

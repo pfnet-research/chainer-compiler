@@ -2,8 +2,7 @@
 
 import chainer
 import numpy as np
-
-import onnx_chainer_util
+import onnx_chainer
 
 
 class AnyModel(chainer.Chain):
@@ -28,11 +27,12 @@ def create_backprop_test(test_name, fn, **kwargs):
         params[name] = np.array(value, np.float32)
     model = AnyModel(fn, params)
 
-    onnx_chainer_util.create_onnx_test('backprop_test_oc_' + test_name,
-                                       model,
-                                       (),
-                                       __builtins__,
-                                       test_dir)
+    chainer.disable_experimental_feature_warning = True
+    onnx_chainer.export_testcase(model,
+                                 (),
+                                 test_dir,
+                                 output_grad=True,
+                                 output_names='loss')
 
 
 class BackpropTest(object):
@@ -128,6 +128,16 @@ def get_backprop_tests():
          g=aranges(5),
          b=aranges(5),
          r=aranges(2, 5, 3, 3) % 7)
+
+    test('pad',
+         lambda m: F.pad(m.x, 2, 'constant'),
+         x=aranges(2, 5, 3, 3))
+
+    # TODO(hamaji): Enable this test after fixing gradient of binary
+    # ops with broadcast.
+    # test('normalize',
+    #      lambda m: F.normalize(m.x, axis=1),
+    #      x=aranges(2, 5, 3, 3))
 
     return tests
 

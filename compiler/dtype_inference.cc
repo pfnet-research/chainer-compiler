@@ -80,6 +80,7 @@ void InferDtype(Node* node) {
         case Node::kPad:
         case Node::kMaxPool:
         case Node::kGlobalMaxPool:
+        case Node::kUpsample:
         case Node::kTranspose:
         case Node::kDepthToSpace:
         case Node::kSpaceToDepth:
@@ -103,6 +104,7 @@ void InferDtype(Node* node) {
         case Node::kHardmax:
         case Node::kDropout:
         case Node::kLRN:
+        case Node::kLpNormalization:
         case Node::kSoftmax:
         case Node::kLogSoftmax:
         case Node::kAveragePool:
@@ -251,10 +253,12 @@ void InferDtype(Node* node) {
             break;
         }
 
+        case Node::kMaxRoiPool:
         case Node::kChainerROIMaxPool2D:
         case Node::kChainerROIAveragePool2D:
         case Node::kChainerROIMaxAlign2D:
         case Node::kChainerROIAverageAlign2D:
+        case Node::kChainerResizeImages:
         case Node::kChainerMaxPoolGrad:
         case Node::kChainerAveragePoolGrad:
         case Node::kChainerMaxPoolGradNoCtx:
@@ -346,6 +350,9 @@ void InferDtype(Node* node) {
             }
             break;
         }
+
+        case Node::kChainerDoSomething:
+            break;
 
         case Node::kChainerPrint:
             break;

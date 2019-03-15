@@ -24,6 +24,7 @@ TESTS = [
     Generator('node', 'Linear'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
+    Generator('node', 'SoftmaxCrossEntropy'),
 
     # Generator('syntax', 'ChinerFunctionNode'),
     # Generator('syntax', 'Cmp'),

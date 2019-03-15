@@ -21,6 +21,8 @@ Dtype::DataType FromONNX(int xtype) {
             return Dtype::DataType::kInt64;
         case onnx::TensorProto::UINT8:
             return Dtype::DataType::kUInt8;
+        case onnx::TensorProto::FLOAT16:
+            return Dtype::DataType::kFloat16;
         case onnx::TensorProto::FLOAT:
             return Dtype::DataType::kFloat32;
         case onnx::TensorProto::DOUBLE:
@@ -79,6 +81,8 @@ onnx::TensorProto::DataType Dtype::ToONNX() const {
             return onnx::TensorProto::INT64;
         case kUInt8:
             return onnx::TensorProto::UINT8;
+        case kFloat16:
+            return onnx::TensorProto::FLOAT16;
         case kFloat32:
             return onnx::TensorProto::FLOAT;
         case kFloat64:
@@ -104,6 +108,8 @@ int Dtype::SizeOf() const {
             return 8;
         case kUInt8:
             return 1;
+        case kFloat16:
+            return 2;
         case kFloat32:
             return 4;
         case kFloat64:

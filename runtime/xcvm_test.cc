@@ -9,6 +9,7 @@
 #include <chainerx/testing/array.h>
 
 #include <compiler/gen_xcvm_codegen.h>
+#include <compiler/xcvm/xcvm_value.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>
@@ -19,12 +20,12 @@ namespace {
 
 TEST(XCVMTest, Run) {
     chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::ContextScope ctx_scope(ctx);
 
     XCProgramProto program;
-    xcvm::AddInOp(&program, 0, "in1");
-    xcvm::AddInOp(&program, 1, "in2");
-    xcvm::AddAddOp(&program, 2, 0, 1);
+    xcvm::AddInOp(&program, xcvm::XCVMValue(0), "in1");
+    xcvm::AddInOp(&program, xcvm::XCVMValue(1), "in2");
+    xcvm::AddAddOp(&program, xcvm::XCVMValue(2), 0, 1);
     xcvm::AddOutOp(&program, "out", 2);
     // std::cerr << program.DebugString() << std::endl;
 

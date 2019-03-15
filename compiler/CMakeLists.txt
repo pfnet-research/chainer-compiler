@@ -40,16 +40,21 @@ add_library(chainer_compiler_compiler
   code_emitter.cc
   constant_propagation.cc
   config.cc
+  computation_order/core.cc
+  computation_order/policy_dummy.cc
+  computation_order/policy_chen.cc
   custom_onnx_ops.cc
   dtype.cc
   dtype_inference.cc
   evaluator.cc
   flags.cc
+  flops.cc
   fusion.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
   gradient.cc
   gradient_ops.cc
+  gradient_with_order.cc
   graph.cc
   graph_builder.cc
   memory_simulator.cc
@@ -57,8 +62,8 @@ add_library(chainer_compiler_compiler
   node.cc
   nvrtc_builder.cc
   passes.cc
-  recompute.cc
   scheduler.cc
+  shape_evaluator.cc
   simplifier.cc
   subgraph_canonicalizer.cc
   tensor.cc
@@ -82,10 +87,12 @@ add_executable(compiler_test
   code_emitter_test.cc
   dtype_inference_test.cc
   evaluator_test.cc
+  flops_test.cc
   fusion_test.cc
   gradient_test.cc
   model_test.cc
   scheduler_test.cc
+  shape_evaluator_test.cc
   tensor_test.cc
   topology_test.cc
   xcvm/emitter_test.cc
@@ -102,6 +109,7 @@ target_link_libraries(compiler_test
   gtest
   gtest_main
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )

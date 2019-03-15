@@ -36,10 +36,33 @@ void StripONNXGraph(onnx::GraphProto* graph) {
         StripLargeValue(tensor, 20);
         MakeHumanReadableValue(tensor);
     }
+    for (int i = 0; i < graph->node_size(); ++i) {
+        onnx::NodeProto* node = graph->mutable_node(i);
+        for (int j = 0; j < node->attribute_size(); ++j) {
+            onnx::AttributeProto* attr = node->mutable_attribute(j);
+            if (attr->type() == onnx::AttributeProto::TENSOR) {
+                StripLargeValue(attr->mutable_t(), 20);
+            } else if (attr->type() == onnx::AttributeProto::GRAPH) {
+                StripONNXGraph(attr->mutable_g());
+            }
+        }
+    }
 }
 
 void StripONNXModel(onnx::ModelProto* model) {
     StripONNXGraph(model->mutable_graph());
+}
+
+std::string CleanseIdent(const std::string& s) {
+    std::string o;
+    for (char c : s) {
+        if (std::isalnum(c)) {
+            o += c;
+        } else {
+            o += '_';
+        }
+    }
+    return o;
 }
 
 }  // namespace chainer_compiler

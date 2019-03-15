@@ -3,7 +3,9 @@
 namespace chainer_compiler {
 
 class Graph;
+class Node;
 
-void GetReluRecompute(Graph* graph, int threshold);
+void DoEvaluateShape(Node* node);
+void EvaluateShapes(Graph* graph);
 
 }  // namespace chainer_compiler

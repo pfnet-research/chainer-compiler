@@ -120,6 +120,9 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
             case Dtype::kUInt8:
                 data_.reset(LoadDataFromRawData<uint8_t>(xtensor.raw_data(), NumElements()).release());
                 break;
+            case Dtype::kFloat16:
+                data_.reset(LoadDataFromRawData<int16_t>(xtensor.raw_data(), NumElements()).release());
+                break;
             case Dtype::kFloat32:
                 data_.reset(LoadDataFromRawData<float>(xtensor.raw_data(), NumElements()).release());
                 break;
@@ -161,8 +164,8 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
     }
 }
 
-Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, UniqueData&& data)
-    : dims_(dims), dtype_(dtype), data_(std::move(data)), name_(name), doc_string_() {
+Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, void* data)
+    : dims_(dims), dtype_(dtype), data_(data, &std::free), name_(name), doc_string_() {
 }
 
 Tensor::~Tensor() {

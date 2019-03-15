@@ -205,11 +205,12 @@ XC_OPS = [
     ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
      ['output']),
     ('DynamicSlice',
-     [Array('data'), Array('starts'), Array('ends'), OptionalArray('axes')],
+     [Array('data'), Array('starts'), Array('ends'),
+      OptionalArray('axes'), OptionalArray('steps')],
      ['output']),
     ('DynamicSliceGrad',
      [Array('gy'), Array('shape'), Array('starts'), Array('ends'),
-      OptionalArray('axes')],
+      OptionalArray('axes'), OptionalArray('steps')],
      ['gx']),
     ('GetItem', [Array('data'), ArrayList('slices'), Ints('slice_specs')],
      ['output']),
@@ -233,6 +234,7 @@ XC_OPS = [
 
     ('Dropout', [Array('data'), Float('ratio')], ['output', 'mask']),
 
+    ('Upsample', [Array('x'), Array('scales')], ['y']),
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
@@ -269,6 +271,9 @@ XC_OPS = [
     ('ROIAverageAlign2D',
      [Array('x'), Array('rois'), Array('roi_indices'),
       Ints('output_shape'), Float('spatial_scale'), Ints('sampling_ratio')],
+     ['y']),
+    ('ResizeImages',
+     [Array('x'), Ints('output_shape')],
      ['y']),
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
@@ -354,6 +359,10 @@ XC_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
+
+    ('DoSomething',
+     [ArrayList('inputs'), String('func_name')],
+     [ArrayList('outputs')]),
 ]
 
 XC_CUSTOM_FIELD_OPS = [
@@ -361,10 +370,13 @@ XC_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), Int('num_outputs'),
       String('dso_filename'), String('func_name'), Ints('output_shape')],
      [ArrayList('outputs')]),
+    ('NGraph',
+     [ArrayList('inputs'), String('onnx')],
+     [ArrayList('outputs')]),
 ]
 
 XC_SEQ_OPS = [
-    ('SequenceCreate', [], [Sequence('output')]),
+    ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Array('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
      [Sequence('gx')]),

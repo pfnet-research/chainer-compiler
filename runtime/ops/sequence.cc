@@ -200,7 +200,10 @@ void SequenceUnpadOp::RunImpl(XCVMState* st, const chainerx::Array& input, const
     }
 }
 
-void SequenceCreateOp::RunImpl(XCVMState* st, XCVMSequence* output) {
+void SequenceCreateOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs, XCVMSequence* output) {
+    for (const chainerx::Array& a : inputs) {
+        output->emplace_back(a);
+    }
 }
 
 chainerx::Array SequenceSizeOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {

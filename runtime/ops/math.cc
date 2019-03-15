@@ -17,10 +17,6 @@ chainerx::Array Pow(chainerx::Array a, chainerx::Array b) {
     return chainerx::Exp(chainerx::Log(a) * b);
 }
 
-bool IsFloat(chainerx::Dtype dtype) {
-    return dtype == chainerx::Dtype::kFloat32 || dtype == chainerx::Dtype::kFloat64;
-}
-
 // TODO(hamaji): Implement type coersion in ChainerX.
 chainerx::Dtype CoerceDtype(chainerx::Dtype dtype0, chainerx::Dtype dtype1) {
     if (dtype0 == dtype1) return dtype0;
@@ -65,9 +61,17 @@ chainerx::Array DivOp::RunImpl(XCVMState* st, const chainerx::Array& a0, const c
     std::tie(a, b) = CoerceBinary(a0, b0);
     // TODO(hamaji): Come up with a better idea to handle cross device ops.
     if (&a.device() != &b.device() && b.GetTotalSize() == 1) {
-        return a / chainerx::AsScalar(b);
+        if (IsFloat(a.dtype())) {
+            return chainerx::TrueDivide(a, chainerx::AsScalar(b));
+        } else {
+            return chainerx::FloorDivide(a, chainerx::AsScalar(b));
+        }
     }
-    return a / b;
+    if (IsFloat(a.dtype())) {
+        return chainerx::TrueDivide(a, b);
+    } else {
+        return chainerx::FloorDivide(a, b);
+    }
 }
 
 chainerx::Array PowOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {

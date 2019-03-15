@@ -4,6 +4,9 @@ set -eux
 
 ./scripts/run-clang-format.sh
 
+sudo pip3 install third_party/chainer
+sudo pip3 install third_party/onnx-chainer
+
 bash setup.sh
 
 mkdir build
@@ -20,7 +23,8 @@ make test
 
 cd ..
 ./scripts/runtests.py
-pytest python
+pytest -sv python
 
-./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
-./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
+# TODO(hamaji): Investigate why running these on Travis takes ~10 minutes.
+# ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
+# ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss

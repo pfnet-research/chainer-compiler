@@ -3,6 +3,7 @@
 #include <runtime/xcvm.pb.h>
 
 #include <compiler/type.h>
+#include <compiler/util.h>
 #include <compiler/value.h>
 
 namespace chainer_compiler {
@@ -17,6 +18,7 @@ void XCVMValue::AddOutput(runtime::XCInstructionProto* inst) const {
             type->add_shape(d);
         }
     }
+    inst->add_output_names(value_ ? CleanseIdent(value_->name()) : "");
 }
 
 }  // namespace xcvm

@@ -141,7 +141,7 @@ def totensor(x, env, dtype=None):
                 name="hoge",
                 data_type=dt,
                 dims=x.shape,
-                vals=[x],
+                vals=x.flat,
             )
         )
 

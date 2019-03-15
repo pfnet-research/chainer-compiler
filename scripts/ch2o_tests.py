@@ -34,6 +34,7 @@ NpZeros
 PadSequence
 Relu
 Reshape
+ResizeImages
 Roi
 Separate
 Shape
@@ -47,6 +48,7 @@ Stack
 Sum
 SwapAxes
 Tanh
+Unpooling2D
 Variable
 Vstack
 '''.split()

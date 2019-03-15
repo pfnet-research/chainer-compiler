@@ -147,9 +147,9 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
         xs_gpu = []
         for x in xs:
             if isinstance(x, (list, tuple)):
-                x = [cupy.array(a) for a in x]
+                x = [model.xp.array(a) for a in x]
             else:
-                x = cupy.array(x)
+                x = model.xp.array(x)
             xs_gpu.append(x)
         xs = xs_gpu
     chainer.config.train = backprop
