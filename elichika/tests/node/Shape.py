@@ -21,7 +21,7 @@ class ShapeConcat(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -30,3 +30,6 @@ if __name__ == '__main__':
     testtools.generate_testcase(Shape(), [x])
 
     testtools.generate_testcase(ShapeConcat(), [x], subname='concat')
+
+if __name__ == '__main__':
+    main()

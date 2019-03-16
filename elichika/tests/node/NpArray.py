@@ -22,9 +22,12 @@ class ArrayCast(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
-    testtools.generate_testcase(Array, [])
+    testtools.generate_testcase(Array, [], subname='default')
     testtools.generate_testcase(ArrayCast, [], subname='cast')
+
+if __name__ == '__main__':
+    main()

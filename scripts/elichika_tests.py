@@ -24,21 +24,22 @@ TESTS = [
     Generator('node', 'Linear'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
-    Generator('node', 'SoftmaxCrossEntropy'),
+    Generator('node', 'NpArray'),
+    Generator('node', 'PadSequence'),
 
     # Generator('syntax', 'ChinerFunctionNode'),
-    # Generator('syntax', 'Cmp'),
+    Generator('syntax', 'Cmp'),
     # Generator('syntax', 'For'),
     # Generator('syntax', 'ForAndIf'),
     # Generator('syntax', 'If'),
     # Generator('syntax', 'LinkInFor'),
     # Generator('syntax', 'ListComp'),
-    # Generator('syntax', 'MultiClass'),
+    Generator('syntax', 'MultiClass'),
     Generator('syntax', 'MultiFunction'),
     # Generator('syntax', 'Range'),
     # Generator('syntax', 'Sequence'),
     # Generator('syntax', 'Slice'),
-    # Generator('syntax', 'UserDefinedFunc'),
+    Generator('syntax', 'UserDefinedFunc'),
 ]
 
 

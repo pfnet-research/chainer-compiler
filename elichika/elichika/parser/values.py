@@ -530,6 +530,7 @@ class TensorValue(Value):
         super().__init__()
         self.shape = ()
         self.value = None
+        self.dtype = None
 
     def apply_to_object(self, obj : 'Object'):
         shape_func = Object(FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))

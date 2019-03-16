@@ -2,6 +2,7 @@ from elichika.parser import nodes
 from elichika.parser import values
 from elichika.parser import functions
 from elichika.parser import graphs
+from elichika.parser import utils
 
 import chainer
 import chainer.functions as F
@@ -74,6 +75,7 @@ class PadSequenceFunction(functions.FunctionBase):
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
+        
 class RangeFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
@@ -174,9 +176,17 @@ class NDArrayFunction(functions.FunctionBase):
         funcArgs = self.parse_args(args)
         vargs = self.get_values(funcArgs)
 
+        dtype_value = vargs[1]
+        if dtype_value is not None:
+            # TODO : make better
+            dtype = utils.int_2_numpy_type(dtype_value.internal_value)
+        else:
+            dtype = None
+
         node = nodes.NodeGenerate('array', vargs, line)
         graph.add_node(node)
         value = values.TensorValue()
+        value.dtype = dtype
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
