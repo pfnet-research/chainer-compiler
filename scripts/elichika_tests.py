@@ -25,6 +25,7 @@ TESTS = [
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
     Generator('node', 'NpArray'),
+    # Generator('node', 'Shape'),
     Generator('node', 'PadSequence'),
 
     # Generator('syntax', 'ChinerFunctionNode'),
@@ -33,11 +34,11 @@ TESTS = [
     # Generator('syntax', 'ForAndIf'),
     # Generator('syntax', 'If'),
     # Generator('syntax', 'LinkInFor'),
-    # Generator('syntax', 'ListComp'),
+    Generator('syntax', 'ListComp'),
     Generator('syntax', 'MultiClass'),
     Generator('syntax', 'MultiFunction'),
-    # Generator('syntax', 'Range'),
-    # Generator('syntax', 'Sequence'),
+    Generator('syntax', 'Range'),
+    Generator('syntax', 'Sequence'),
     # Generator('syntax', 'Slice'),
     Generator('syntax', 'UserDefinedFunc'),
 ]

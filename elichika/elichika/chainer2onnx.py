@@ -532,6 +532,9 @@ class ONNXGenerator:
                 binops[nodes.BinOpType.Mul] = 'Mul'
                 binops[nodes.BinOpType.Unknown] = 'Add'
 
+                def convert_tuple_to_list(value):
+                    assert(isinstance(value, values.TupleValue))
+
                 if isinstance(node_.left, values.ListValue) or isinstance(node_.left, values.TupleValue):
                     assert(isinstance(node_.right, values.ListValue) or isinstance(node_.right, values.TupleValue))
                     # TODO: not implemented
@@ -934,11 +937,6 @@ class ONNXGenerator:
         return onnx_graph.generate_graph(graph.name, isMain=isMain)
 
     def generate_model(self, inputs, outputs, graph)-> 'ModelProto':
-        # assign names
-        assigned_names.clear()
-        node2onnx_parameter.clear()
-        value2onnx_parameter.clear()
-
         assign_onnx_name(graph)
 
         graph_ = self.generate_graph(inputs, outputs, graph, None, True)
@@ -952,6 +950,11 @@ class ONNXModel:
         self.outputs = []
 
 def compile_model(model, inputs) -> 'ONNXModel':
+    # assign names
+    assigned_names.clear()
+    node2onnx_parameter.clear()
+    value2onnx_parameter.clear()
+
     inputs_, outputs_, graph_ = core.convert_model(model, inputs)
 
     if graph_ is None:
