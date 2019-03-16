@@ -26,5 +26,5 @@ if __name__ == '__main__':
     import numpy as np
     np.random.seed(314)
 
-    testtools.generate_testcase(Array, [])
+    testtools.generate_testcase(Array, [], subname='default')
     testtools.generate_testcase(ArrayCast, [], subname='cast')

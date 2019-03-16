@@ -12,6 +12,7 @@ import elichika.parser.nodes as nodes
 import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
 import elichika.parser.values_builtin as values_builtin
+import elichika.parser.utils as utils
 
 import numpy as np
 import collections
@@ -20,6 +21,11 @@ def size2d(x):
     if isinstance(x, collections.Iterable):
         return x
     return (x, x)
+
+def get_onnx_dtype(dtype):
+    a = np.zeros((), dtype=dtype)
+    dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
+    return dt
 
 assigned_names = []
 node2onnx_parameter = {}
@@ -85,9 +91,15 @@ def assign_onnx_name_to_value(value : 'values.Value', none_name = ''):
     if isinstance(value, values.TupleValue):
         tupleValue = value # type : values.TupleValue
         for value_ in tupleValue.values:
-            assign_onnx_name_to_value(value_.get_obj().get_value(), value2onnx_parameter[tupleValue].onnx_name)
-
-
+            if isinstance(value_, values.Value):
+                 assign_onnx_name_to_value(value_, value2onnx_parameter[tupleValue].onnx_name)
+            elif isinstance(value_, values.Attribute):
+                assign_onnx_name_to_value(value_.get_obj(False).get_value(), value2onnx_parameter[tupleValue].onnx_name)
+            elif isinstance(value_, values.Object):
+                assign_onnx_name_to_value(value_.get_value(), value2onnx_parameter[tupleValue].onnx_name)
+            else:
+                assert(False)
+                
 def assign_onnx_name(graph : 'graphs.Graph'):
 
     for v in graph.input_values:
@@ -270,14 +282,34 @@ class ONNXGraph:
         self.input_tensor = []
         self.output_tensor = []
 
-    def try_get_attribute(self, value):
+    def try_get_attribute(self, value, calling_node : 'nodes.Node' = None):
+
+        if calling_node is None:
+            lineinfo = 'unknown'
+        else:
+            lineinfo = str(calling_node.lineprop)
+
         if isinstance(value, values.NumberValue):
             value_ = value  # type: values.NumberValue
+            if value_.internal_value is None:
+                print('Warning : unconst attribute in {}'.format(lineinfo))
             return value_.internal_value
 
         if isinstance(value, values.BoolValue):
             value_ = value  # type: values.BoolValue
+            if value_.internal_value is None:
+                print('Warning : unconst attribute in {}'.format(lineinfo))
             return value_.internal_value
+
+        if isinstance(value, values.StrValue):
+            value_ = value  # type: values.StrValue
+            if value_.internal_value is None:
+                print('Warning : unconst attribute in {}'.format(lineinfo))
+            return value_.internal_value
+
+        if isinstance(value, values.NoneValue):
+            value_ = value  # type: values.NoneValue
+            return None
 
         # error
         print("Cannot convert a value into an attribute")
@@ -297,12 +329,20 @@ class ONNXGraph:
         generate a tensor with Value to indicate shape
         it is for inputting and outputting
         '''
-        if isinstance(value, values.TensorValue) and len(value.shape) > 0:
-            shape = list(value.shape)
-            shape = [x if x != -1 else 'Undefined' for x in shape]
-            # type estimation is not correct. so shape needs to be undefined.
-            shape = None
-            return self.new_empty_tensor(shape, np.float32, value2onnx_parameter[value].onnx_name)
+        if isinstance(value, values.TensorValue):
+            dtype = np.float32
+            if value.dtype is not None:
+                dtype = value.dtype
+
+            if len(value.shape) > 0:
+                shape = list(value.shape)
+                shape = [x if x != -1 else 'Undefined' for x in shape]
+                # type estimation is not correct. so shape needs to be undefined.
+                shape = None        
+                return self.new_empty_tensor(shape, dtype, value2onnx_parameter[value].onnx_name)
+            else:
+                shape = None        
+                return self.new_empty_tensor(shape, dtype, value2onnx_parameter[value].onnx_name)
 
         if isinstance(value, values.BoolValue):
             return self.new_empty_tensor(None, np.bool, value2onnx_parameter[value].onnx_name)
@@ -492,8 +532,13 @@ class ONNXGenerator:
                 binops[nodes.BinOpType.Mul] = 'Mul'
                 binops[nodes.BinOpType.Unknown] = 'Add'
 
-                onnx_node = oh.make_node(binops[node_.binop], [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
-                onnx_graph.nodes.append(onnx_node)
+                if isinstance(node_.left, values.ListValue) or isinstance(node_.left, values.TupleValue):
+                    assert(isinstance(node_.right, values.ListValue) or isinstance(node_.right, values.TupleValue))
+                    # TODO: not implemented
+                    assert(False)
+                else:
+                    onnx_node = oh.make_node(binops[node_.binop], [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
+                    onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeUnaryOp):
                 node_ = node # type: nodes.NodeUnaryOp
@@ -623,6 +668,26 @@ class ONNXGenerator:
                         [value2onnx_parameter[node.inputs[0]].onnx_name, value2onnx_parameter[node.inputs[1]].onnx_name],
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))
+                    onnx_graph.nodes.append(onnx_node)
+
+                if isinstance(node.func, functions_builtin.NDArrayShapeFunction):
+                    # shape
+                    op_shape_temp = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[node.outputs[0]].onnx_name + '/ShapeTemp')
+
+                    onnx_node = oh.make_node(
+                        "Shape",
+                        [value2onnx_parameter[node.inputs[0]].onnx_name],
+                        [op_shape_temp.name],
+                        str(node.lineprop))
+
+                    onnx_graph.nodes.append(onnx_node)
+
+                    onnx_node = oh.make_node(
+                        "ChainerSequenceSeparate",
+                        [op_shape_temp.name],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        str(node.lineprop))
+
                     onnx_graph.nodes.append(onnx_node)
 
                 if isinstance(node.func, functions_builtin.ReluFunction):
@@ -760,6 +825,27 @@ class ONNXGenerator:
 
                 onnx_graph.nodes.append(onnx_node)
 
+            if isinstance(node, nodes.NodeConvert):
+                node_ = node # type: nodes.NodeConvert
+                if node_.classtype == 'List':
+
+                     if isinstance(node_.value, values.ListValue):
+                        onnx_node = oh.make_node(
+                            "Identity",
+                            [value2onnx_parameter[node.inputs[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            str(node.lineprop))
+
+                        onnx_graph.nodes.append(onnx_node)
+
+                     else:
+                        # not supported yet
+                        assert False
+
+                else:
+                    # not supported yet
+                    assert False
+
             if isinstance(node, nodes.NodeGenerate):
                 node_ = node # type: nodes.NodeGenerate
                 if node_.classtype == 'range':
@@ -770,6 +856,48 @@ class ONNXGenerator:
                         str(node.lineprop))
 
                     onnx_graph.nodes.append(onnx_node)
+
+                if node_.classtype == 'array':
+                    dtype_value = onnx_graph.try_get_attribute(node.inputs[1])
+                    if dtype_value is not None:
+                        dtype = utils.int_2_numpy_type(dtype_value)
+                    else:
+                        dtype = None
+
+                    copy = onnx_graph.try_get_attribute(node.inputs[2])
+                    order = onnx_graph.try_get_attribute(node.inputs[3])
+                    subok = onnx_graph.try_get_attribute(node.inputs[4])
+                    ndmin = onnx_graph.try_get_attribute(node.inputs[5])
+
+                    assert copy is True  # TODO(hamaji): Not supported yet.
+                    assert order == 'K'  # TODO(hamaji): Not supported yet.
+                    assert subok is False   # TODO(hamaji): Not supported yet.
+                    assert ndmin == 0  # TODO(hamaji): Not supported yet.
+
+                    if dtype is None:
+                        onnx_node = oh.make_node(
+                            "ChainerSequenceStack",
+                            [value2onnx_parameter[node.inputs[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            str(node.lineprop))
+                        onnx_graph.nodes.append(onnx_node)
+                    else:
+                        casting_name = value2onnx_parameter[node.outputs[0]].onnx_name + '/Cast'
+                        onnx_node = oh.make_node(
+                            "ChainerSequenceStack",
+                            [value2onnx_parameter[node.inputs[0]].onnx_name],
+                            [casting_name],
+                            str(node.lineprop))
+                        onnx_graph.nodes.append(onnx_node)
+
+                        onnx_node = oh.make_node(
+                            "Cast",
+                            [casting_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            str(node.lineprop),
+                            to=get_onnx_dtype(dtype))
+                        onnx_graph.nodes.append(onnx_node)
+
 
                 if node_.classtype == 'List':
                     last_name = value2onnx_parameter[node.outputs[0]].onnx_name

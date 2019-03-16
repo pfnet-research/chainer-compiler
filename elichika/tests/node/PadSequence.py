@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     ls = np.random.randint(0, 10, size=5)
     x = [np.random.rand(i).astype(np.float32) for i in ls]
-    testtools.generate_testcase(PadSequence, [x])
+    testtools.generate_testcase(PadSequence, [x], subname='basic')
 
     testtools.generate_testcase(PadSequenceLength, [x], subname='length')
 
