@@ -29,7 +29,7 @@ class PadSequencePadding(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -40,3 +40,6 @@ if __name__ == '__main__':
     testtools.generate_testcase(PadSequenceLength, [x], subname='length')
 
     testtools.generate_testcase(PadSequencePadding, [x], subname='padding')
+
+if __name__ == '__main__':
+    main()
