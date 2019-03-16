@@ -685,7 +685,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     for obj in value_changed_objs:
         in_value = obj.get_value_log(listcomp_id)
         out_value = obj.get_value_log(body_id)
-        changed_values[in_value] = out_value
+        changed_values[in_value] = (obj, out_value)
 
 
     output_attributes_2_values = {}
@@ -797,16 +797,16 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         output_obj_in_node = values.Object(output_value_in_node)
         parent.get_attribute(name).revise(output_obj_in_node)
 
-    for changed_value_in, changed_value_out in changed_values.items():
+    for changed_value_in, changed_obj_value_out in changed_values.items():
         if changed_value_in is None:
             continue
         if changed_value_in in inputs:
             continue
         inputs.append(changed_value_in)
         body_graph.add_input_value(changed_value_in)
-        body_graph.add_output_value(changed_value_out)
-        value = functions.generate_value_with_same_type(changed_value_out)
-        obj.revise(value)
+        body_graph.add_output_value(changed_obj_value_out[1])
+        value = functions.generate_value_with_same_type(changed_obj_value_out[1])
+        changed_obj_value_out[0].revise(value)
         outputs.append(value)
 
     node = nodes.NodeListcomp(iter_value, inputs, body_graph, astc.lineno)

@@ -177,7 +177,7 @@ class NDArrayFunction(functions.FunctionBase):
         vargs = self.get_values(funcArgs)
 
         dtype_value = vargs[1]
-        if dtype_value is not None:
+        if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
             dtype = utils.int_2_numpy_type(dtype_value.internal_value)
         else:
