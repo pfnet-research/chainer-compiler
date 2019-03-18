@@ -148,7 +148,7 @@ void SequenceSplitAxisOp::RunImpl(
 
 chainerx::Array SequencePadOp::RunImpl(XCVMState* st, const XCVMSequence& seq) {
     CHECK(!seq.empty());
-    chainerx::Scalar p(value, seq[0].GetArray().dtype());
+    chainerx::Scalar p(value, chainerx::GetKind(seq[0].GetArray().dtype()));
     return PadSequence(NonOptional(seq), length, p);
 }
 

@@ -475,7 +475,7 @@ chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     for (int64_t i = 0; i < scales.shape()[0]; ++i) {
         chainerx::Scalar scale = chainerx::AsScalar(scales.At({i}));
         int64_t int_scale;
-        if (chainerx::GetKind(scale.dtype()) == chainerx::DtypeKind::kFloat) {
+        if (scale.kind() == chainerx::DtypeKind::kFloat) {
             double double_scale = static_cast<double>(scale);
             int_scale = static_cast<int64_t>(std::round(double_scale));
             CHECK_EQ(double_scale, int_scale) << "Only int scale is supported: " << scales;
