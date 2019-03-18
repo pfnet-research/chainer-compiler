@@ -16,7 +16,7 @@ chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
     chainerx::Array out = chainerx::EmptyLike(x, x.device());
     const float eps = std::numeric_limits<float>::epsilon();
-    x.device().IfLessElseASSA(x, eps, chainerx::Scalar{0, gy.dtype()}, gy, out);
+    x.device().IfLessElseASSA(x, eps, chainerx::Scalar(0.0), gy, out);
     return out;
 }
 

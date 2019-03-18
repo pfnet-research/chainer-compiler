@@ -136,7 +136,8 @@ chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data
     int64_t batch_size = data.shape()[0];
     int64_t num_classes = data.shape()[1];
     int64_t total_size = batch_size * num_classes;
-    chainerx::Array take_indices = (indices + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(data.device());
+    chainerx::Array take_indices =
+            (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(data.device());
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 
@@ -148,7 +149,8 @@ chainerx::Array SelectItemGradOp::RunImpl(
     int64_t num_classes = shape[1];
     int64_t total_size = batch_size * num_classes;
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
-    chainerx::Array take_indices = (indices + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(out.device());
+    chainerx::Array take_indices =
+            (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(out.device());
     out.device().AddAt(out, take_indices, 0, gy, out);
     return out.Reshape(shape);
 }

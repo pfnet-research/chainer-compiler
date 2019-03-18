@@ -94,7 +94,7 @@ class CudnnRNNDataDescriptor {
 public:
     explicit CudnnRNNDataDescriptor(
             CudnnHandle& cudnn, chainerx::Dtype dtype, const chainerx::Shape& shape, const std::vector<int>& sequence_lengths)
-        : sequence_lengths_(sequence_lengths), pad_(0, dtype) {
+        : sequence_lengths_(sequence_lengths), pad_(0, chainerx::GetKind(dtype)) {
         CheckCudnnError(cudnnCreateRNNDataDescriptor(&desc_));
         CheckCudnnError(cudnnSetRNNDataDescriptor(
                 desc_,
