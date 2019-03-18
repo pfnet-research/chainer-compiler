@@ -694,7 +694,9 @@ def gen_sequence_create_test(test_name):
     inputs_v = [gb.input('input_%d' % i, input)
                 for i, input in enumerate(inputs)]
     seq_v = gb.ChainerSequenceCreate(inputs_v)
+    stack_v = gb.ChainerSequenceStack([seq_v])
     gb.output(seq_v, Seq(inputs))
+    gb.output(stack_v, np.array(inputs))
     gb.gen_test()
 
 

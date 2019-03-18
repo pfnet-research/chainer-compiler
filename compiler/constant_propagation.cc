@@ -18,8 +18,7 @@ bool HasConstantInputsOnly(const Node& node) {
     if (node.inputs().empty()) return false;
     for (Value* input : node.inputs()) {
         if (input->producer() &&
-            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kChainerSequenceConstants ||
-             input->producer()->op_type() == Node::kChainerSequenceCreate)) {
+            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kChainerSequenceConstants)) {
         } else {
             return false;
         }
@@ -73,6 +72,7 @@ bool MaybePropagateConstant(Graph* graph, Node* node) {
         case Node::kCast:
         case Node::kChainerSequenceAppend:
         case Node::kChainerSequenceConcat:
+        case Node::kChainerSequenceCreate:
         case Node::kChainerSequenceStack:
         case Node::kChainerSequenceRange: {
             DoConstantPropagation(graph, node);
