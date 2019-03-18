@@ -903,33 +903,12 @@ class ONNXGenerator:
 
 
                 if node_.classtype == 'List':
-                    last_name = value2onnx_parameter[node.outputs[0]].onnx_name
-                    name = last_name
-                    count = 0
-                    if(len(node_.args) > 0):
-                        name += '_gen_' + str(count)
-
                     onnx_node = oh.make_node(
                         "ChainerSequenceCreate",
-                        [],
-                        [name],
+                        [value2onnx_parameter[x].onnx_name for x in node.args],
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
                         str(node.lineprop))
                     onnx_graph.nodes.append(onnx_node)
-
-                    for i in range(len(node_.args)):
-                        next_name = last_name + '_gen_' + str(count + 1)
-
-                        if i == len(node_.args) - 1:
-                            next_name = last_name
-
-                        onnx_node = oh.make_node(
-                            "ChainerSequenceAppend",
-                            [name, value2onnx_parameter[node.args[i]].onnx_name],
-                            [next_name],
-                            str(node.lineprop))
-                        onnx_graph.nodes.append(onnx_node)
-                        name = next_name
-                        count += 1
 
         onnx_graph.set_input(inputs)
         onnx_graph.set_output(outputs)
