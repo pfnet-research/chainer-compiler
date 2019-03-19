@@ -51,7 +51,7 @@ Dtype GetDtype(const chainerx::Array& a) {
 
 Tensor* ArrayToTensor(const std::string& name, const chainerx::Array& a) {
     Tensor::UniqueData data(std::malloc(a.GetNBytes()), &std::free);
-    memcpy(data.get(), a.ToNative().raw_data(), a.GetNBytes());
+    memcpy(data.get(), a.Copy().ToNative().raw_data(), a.GetNBytes());
     std::vector<int64_t> dims{a.shape().begin(), a.shape().end()};
     return new Tensor(name, GetDtype(a), dims, data.release());
 }
@@ -95,7 +95,8 @@ void Eval(
     chainerx::DeviceScope device_scope{chainerx::GetNativeBackend().GetDevice(0)};
 
     runtime::XCVM xcvm(program);
-    runtime::XCVMState state(runtime::XCVMOptions{}, xcvm.num_variables(), {});
+    runtime::XCVMOptions xcvm_options;
+    runtime::XCVMState state(xcvm_options, xcvm.num_variables(), {});
 
     for (size_t i = 0; i < feeds.size(); ++i) {
         int input_id = input_ids[i];
