@@ -740,6 +740,7 @@ def main():
                 f.write('\n'.encode())
         print('%d/%d tests failed! (see %s)' %
               (len(failed), len(tested), args.failure_log))
+        sys.exit(1)
     else:
         print('ALL %d tests OK! (%d from ONNX)' %
               (len(tested), num_official_onnx_tests))
