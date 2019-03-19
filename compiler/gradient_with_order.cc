@@ -26,10 +26,9 @@ namespace {
 void SetInitialGradients(Graph* graph) {
     CHECK_EQ(1UL, graph->output_values().size());
     for (Value* value : graph->output_values()) {
-        // TODO(hamaji): Refactor code to support non-float values.
-        CHECK_EQ(Dtype::kFloat32, value->type().dtype());
+        GraphBuilder gb(graph, "GradIn", value);
         std::vector<float> data(value->type().NumElements(), 1.0);
-        Value* grad = graph->AddConstValue("grad_in@" + value->name(), Type(value->type()), data);
+        Value* grad = gb.Const(value->type(), data);
         CHECK(value->grad() == nullptr);
         value->set_grad(grad);
     }
