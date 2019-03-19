@@ -122,55 +122,6 @@ bool ReplaceConstant(Graph* graph, Node* node) {
     return true;
 }
 
-#if 0
-
-bool ReplaceBatchNormalization(Graph* graph, Node* node) {
-    Value* x = node->input(0);
-    Value* s = node->input(1);
-    Value* bias = node->input(2);
-    Value* mean = node->input(3);
-    Value* var = node->input(4);
-    // TODO(hamaji): Revisit how we handle dynamic shapes.
-    int x_ndim = x->type().dims().size();
-    int64_t size = s->type().NumElements();
-    if (size < 0) {
-        WARN_ONCE("BatchNormalization without static shape cannot be backpropped for now");
-        return false;
-    }
-    if (x_ndim < 2) {
-        WARN_ONCE("Input of BatchNormalization is not known. Assuming this is after 2D convolution...");
-        x_ndim = 4;
-    }
-
-    std::vector<int64_t> dims = {size};
-    for (int i = 0; i < x_ndim - 2; ++i)
-        dims.push_back(1);
-    Value* shape = graph->AddConstValue(StrCat(s->name(), "_simplify_shape"), Type(Dtype::kInt64, {static_cast<int>(dims.size())}), dims);
-
-    auto add_op = [&](const std::string& name, Node::OpType op_type, const std::vector<Value*>& inputs) {
-        Value* r = graph->AddValue(StrCat(node->name(), "_simplify_", name));
-        graph->AddNode(op_type, inputs, {r});
-        return r;
-    };
-
-    Value* rs = add_op("s_reshaped", Node::kReshape, {s, shape});
-    Value* rbias = add_op("bias_reshaped", Node::kReshape, {bias, shape});
-    Value* rmean = add_op("mean_reshaped", Node::kReshape, {mean, shape});
-    Value* rvar = add_op("var_reshaped", Node::kReshape, {var, shape});
-
-    Value* epsilon = graph->AddConstValue(StrCat(s->name(), "_simplify_epsilon"), Type(Dtype::kFloat32, {1}), {node->epsilon()});
-
-    Value* t0 = add_op("t0", Node::kSub, {x, rmean});
-    Value* t1 = add_op("t1", Node::kMul, {rs, t0});
-    Value* t2 = add_op("t2", Node::kAdd, {rvar, epsilon});
-    Value* t3 = add_op("t3", Node::kSqrt, {t2});
-    Value* t4 = add_op("t4", Node::kDiv, {t1, t3});
-    graph->AddNode(Node::kAdd, {t4, rbias}, node->outputs());
-    return true;
-}
-
-#endif
-
 // TODO(hamaji): Revive Scan.
 #if 0
 
