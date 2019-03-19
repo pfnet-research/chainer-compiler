@@ -19,12 +19,12 @@ class AnyModel(chainer.Chain):
         return result
 
 
-def create_backprop_test(test_name, fn, **kwargs):
+def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
     test_dir = 'out/backprop_test_oc_%s' % test_name
 
     params = {}
     for name, value in kwargs.items():
-        params[name] = np.array(value, np.float32)
+        params[name] = np.array(value, dtype)
     model = AnyModel(fn, params)
 
     chainer.disable_experimental_feature_warning = True
@@ -50,7 +50,9 @@ def get_backprop_tests():
     tests = []
 
     def test(name, fn, **kwargs):
-        tests.append(BackpropTest(name, fn, **kwargs))
+        for dtype in (np.float32, np.float64):
+            test_name = '%s_%s' % (name, dtype.__name__)
+            tests.append(BackpropTest(test_name, fn, dtype=dtype, **kwargs))
 
     def aranges(*shape):
         r = np.prod(shape)
