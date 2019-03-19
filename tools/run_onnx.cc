@@ -48,6 +48,10 @@ namespace chainer_compiler {
 namespace runtime {
 namespace {
 
+const char* GREEN = "\033[92m";
+const char* RED = "\033[91m";
+const char* RESET = "\033[0m";
+
 bool g_quiet;
 
 #define LOG() \
@@ -392,6 +396,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of XCVM ops to this directory", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
+    args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
@@ -552,8 +557,8 @@ void RunMain(const std::vector<std::string>& argv) {
             };
 
             auto fail = [&](const std::string& type) {
-                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
-                      << std::endl;
+                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
+                      << "\nActual: " << var_str(actual) << std::endl;
             };
 
             auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
@@ -566,12 +571,17 @@ void RunMain(const std::vector<std::string>& argv) {
                     return false;
                 }
                 if (iterations > 1) return true;
-                if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"), 1e-6)) {
+
+                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
+                if (mismatch) {
                     if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
                         static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
                         return true;
                     }
                     fail("value");
+                    int total_size = expected.GetTotalSize();
+                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
+                          << "%)" << std::endl;
                     return false;
                 }
                 return true;
@@ -626,7 +636,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
         if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
-    if (test_cnt) LOG() << "OK!" << std::endl;
+    if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
     if (iterations > 1) {
         // The first iteration is for warm up.
