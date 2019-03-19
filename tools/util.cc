@@ -2,6 +2,14 @@
 
 #include <algorithm>
 
+#include <chainerx/array.h>
+#include <chainerx/dtype.h>
+#include <chainerx/error.h>
+#include <chainerx/indexable_array.h>
+#include <chainerx/indexer.h>
+#include <chainerx/native/data_type.h>
+#include <chainerx/numeric.h>
+
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <runtime/chainerx_util.h>
@@ -60,6 +68,40 @@ InOuts LoadParams(const Graph& graph) {
         }
     }
     return params;
+}
+
+int MismatchInAllClose(const chainerx::Array& a, const chainerx::Array& b, double rtol, double atol, bool equal_nan) {
+    // Most part of this code is copied from chainerx
+    if (a.shape() != b.shape()) {
+        throw chainerx::DimensionError{"Cannot compare Arrays of different shapes: ", a.shape(), ", ", b.shape()};
+    }
+    if (a.dtype() != b.dtype()) {
+        throw chainerx::DtypeError{"Cannot compare Arrays of different Dtypes: ", a.dtype(), ", ", b.dtype()};
+    }
+
+    chainerx::Array a_native = a.ToNative();
+    chainerx::Array b_native = b.ToNative();
+
+    return VisitDtype(a.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        chainerx::IndexableArray<const T> a_iarray{a_native};
+        chainerx::IndexableArray<const T> b_iarray{b_native};
+        chainerx::Indexer<> indexer{a_native.shape()};
+
+        int64_t error_count = 0;
+        for (auto it = indexer.It(0); it; ++it) {
+            T ai = chainerx::native::StorageToDataType<const T>(a_iarray[it]);
+            T bi = chainerx::native::StorageToDataType<const T>(b_iarray[it]);
+            if (equal_nan && chainerx::IsNan(ai) && chainerx::IsNan(bi)) {
+                // nop
+            } else if (
+                    chainerx::IsNan(ai) || chainerx::IsNan(bi) ||
+                    std::abs(static_cast<double>(ai) - static_cast<double>(bi)) > atol + rtol * std::abs(static_cast<double>(bi))) {
+                error_count++;
+            }
+        }
+        return error_count;
+    });
 }
 
 }  // namespace runtime

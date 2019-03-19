@@ -566,12 +566,17 @@ void RunMain(const std::vector<std::string>& argv) {
                     return false;
                 }
                 if (iterations > 1) return true;
-                if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"), 1e-6)) {
+
+                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), 1e-6);
+                if (mismatch) {
                     if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
                         static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
                         return true;
                     }
                     fail("value");
+                    int total_size = expected.GetTotalSize();
+                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " ("
+                        << static_cast<double>(mismatch) * 100.0 / total_size << "%)" << std::endl;
                     return false;
                 }
                 return true;
