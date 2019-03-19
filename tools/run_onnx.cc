@@ -392,6 +392,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of XCVM ops to this directory", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
+    args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
@@ -567,7 +568,7 @@ void RunMain(const std::vector<std::string>& argv) {
                 }
                 if (iterations > 1) return true;
 
-                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), 1e-6);
+                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
                 if (mismatch) {
                     if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
                         static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
