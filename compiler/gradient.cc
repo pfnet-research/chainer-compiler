@@ -24,14 +24,10 @@ namespace {
 void SetInitialGradients(Graph* graph) {
     CHECK_EQ(1UL, graph->output_values().size());
     for (Value* value : graph->output_values()) {
-        // TODO(hamaji): Refactor code to support non-float values.
-        CHECK_EQ(Dtype::kFloat32, value->type().dtype());
-        std::vector<float> data(1, 1.0);
-        Value* one = graph->AddConstValue("grad_in_one@" + value->name(), Type(value->type().dtype(), {}), data);
-        Value* shape = graph->AddValue("grad_in_shape@" + value->name());
-        Value* grad = graph->AddValue("grad_in@" + value->name());
-        graph->AddNode(Node::kShape, {value}, {shape});
-        graph->AddNode(Node::kExpand, {one, shape}, {grad});
+        GraphBuilder gb(graph, "GradIn", value);
+        Value* one = gb.Const(Type(value->type().dtype(), {}), {1.0});
+        Value* shape = gb.Op(Node::kShape, {value});
+        Value* grad = gb.Op(Node::kExpand, {one, shape});
         CHECK(value->grad() == nullptr);
         value->set_grad(grad);
     }
