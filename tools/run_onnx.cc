@@ -48,6 +48,10 @@ namespace chainer_compiler {
 namespace runtime {
 namespace {
 
+const char* GREEN = "\033[92m";
+const char* RED = "\033[91m";
+const char* RESET = "\033[0m";
+
 bool g_quiet;
 
 #define LOG() \
@@ -553,7 +557,7 @@ void RunMain(const std::vector<std::string>& argv) {
             };
 
             auto fail = [&](const std::string& type) {
-                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
+                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
                       << std::endl;
             };
 
@@ -632,7 +636,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
         if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
-    if (test_cnt) LOG() << "OK!" << std::endl;
+    if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
     if (iterations > 1) {
         // The first iteration is for warm up.
