@@ -557,8 +557,8 @@ void RunMain(const std::vector<std::string>& argv) {
             };
 
             auto fail = [&](const std::string& type) {
-                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
-                      << std::endl;
+                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
+                      << "\nActual: " << var_str(actual) << std::endl;
             };
 
             auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
@@ -580,8 +580,8 @@ void RunMain(const std::vector<std::string>& argv) {
                     }
                     fail("value");
                     int total_size = expected.GetTotalSize();
-                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " ("
-                        << static_cast<double>(mismatch) * 100.0 / total_size << "%)" << std::endl;
+                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
+                          << "%)" << std::endl;
                     return false;
                 }
                 return true;
