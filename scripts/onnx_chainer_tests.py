@@ -7,7 +7,7 @@ from test_case import TestCase
 def get():
     tests = []
 
-    for test_dir in sorted(glob.glob('out/opset9/*')):
+    for test_dir in sorted(glob.glob('out/opset10/*')):
         name = 'onnx_chainer_' + os.path.basename(test_dir)
         fail = ('dilated' in name or
                 'hard_sigmoid' in name or
