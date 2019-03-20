@@ -208,12 +208,17 @@ public:
         module->SaveToFile(obj_filename, "o");
 
         if (g_use_cuda) {
+            // TODO(hamaji): Temporarily commented out due to missing
+            // `PackImportsToC` in recent TVM.
+            CHECK(false) << "TVM+CUDA is temporarily disabled";
+#if 0
             const std::string& dev_filename = dso_name + "_dev.c";
-            const std::string& c_code = tvm::codegen::PackImportsToC(module, false /* system_lib */);
             std::ofstream ofs(dev_filename);
+            const std::string& c_code = tvm::codegen::PackImportsToC(module, false /* system_lib */);
             ofs << c_code;
             ofs.close();
             input_files.push_back(dev_filename);
+#endif
         }
 
         std::string cmd = StrCat("gcc -shared -fPIC -o ", dso_name, ".so");
