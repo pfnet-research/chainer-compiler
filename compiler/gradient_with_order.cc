@@ -187,9 +187,13 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                 CHECK(found != last_forward_map.end());
                 Node* node = found->second;
 
-                // Copy gradients of outputs from the original
+                // Copy gradients of inputs/outputs from the original
                 // computation node to the last forward computation.
+                // Copying inputs is necessary to accumulate gradients.
                 if (node != orig_node) {
+                    for (const auto& p : Zip(node->inputs(), orig_node->inputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                    }
                     for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
                         std::get<0>(p)->set_grad(std::get<1>(p)->grad());
                     }
