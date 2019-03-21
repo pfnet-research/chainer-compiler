@@ -318,6 +318,31 @@ class ONNXValue:
             self.tensor = onnx_graph.new_tensor_with_np(self.np_value, name_)
             self.name = name_
 
+    def create_sequence(self) -> 'ONNXValue':
+        if(isinstance(self.value, values.ListValue)):
+            ret = ONNXValue(self.onnx_graph,values.ListValue(), [self.name, '/create_sequence'])
+            self.onnx_graph.add_node(
+                "Identity",
+                [self.name],
+                [ret],
+                str('create_sequence'))
+
+            return ret
+
+        if(isinstance(self.value, values.TupleValue)):
+            value = self.value # values.TupleValue
+            ret = ONNXValue(self.onnx_graph,values.ListValue(), [self.name, '/create_sequence'])
+            self.onnx_graph.add_node(
+                "ChainerSequenceCreate",
+                [ONNXValue(self.onnx_graph, v) for v in value.values],
+                [ret],
+                str('create_sequence'))
+
+            return ret
+
+        assert(False)
+
+
 
 
 class ONNXInitrializer:
@@ -543,19 +568,45 @@ class ONNXGenerator:
             for input in inputs_:
                 if not (value2onnx_parameter[input].onnx_name in self.onnx_tensors.keys()):
 
-                    if input.generator is None and not (input in inputs):
-                        tensor = onnx_graph.new_tensor_with_value(input)
-                        self.onnx_tensors[value2onnx_parameter[input].onnx_name] = tensor
-                    else:
-                        tensor = onnx_graph.new_empty_tensor_with_value(input)
-                        self.onnx_tensors[value2onnx_parameter[input].onnx_name] = tensor
+                    def generate_tensor_constant(input_):
+                        tensor = onnx_graph.new_tensor_with_value(input_)
+                        self.onnx_tensors[value2onnx_parameter[input_].onnx_name] = tensor
+                        if isinstance(input_, values.TupleValue):
+                            for value in input_.values:
+                                if not isinstance(value, values.Value):
+                                    continue
+                                generate_tensor_constant(value)
 
+                    def generate_tensor(input_):
+                        tensor = onnx_graph.new_empty_tensor_with_value(input_)
+                        self.onnx_tensors[value2onnx_parameter[input_].onnx_name] = tensor
+                        if isinstance(input_, values.TupleValue):
+                            for value in input_.values:
+                                if not isinstance(value, values.Value):
+                                    continue
+                            for value in input_.values:
+                                generate_tensor(value)
+
+
+                    if input.generator is None and not (input in inputs):
+                        generate_tensor_constant(input)
+                    else:
+                        generate_tensor(input)
 
         def generate_output_tensors(outputs_):
+
+            def generate_tensor(output_):
+                tensor = onnx_graph.new_empty_tensor_with_value(output_)
+                self.onnx_tensors[value2onnx_parameter[output_].onnx_name] = tensor
+                if isinstance(output_, values.TupleValue):
+                    for value in output_.values:
+                        if not isinstance(value, values.Value):
+                            continue
+                        generate_tensor(value)
+
             for output in outputs_:
                 if not (value2onnx_parameter[output].onnx_name in self.onnx_tensors.keys()):
-                    tensor = onnx_graph.new_empty_tensor_with_value(output)
-                    self.onnx_tensors[value2onnx_parameter[output].onnx_name] = tensor
+                    generate_tensor(output)
 
         generate_input_tensors(inputs)
 
@@ -609,13 +660,16 @@ class ONNXGenerator:
                 binops[nodes.BinOpType.Mul] = 'Mul'
                 binops[nodes.BinOpType.Unknown] = 'Add'
 
-                def convert_tuple_to_list(value):
-                    assert(isinstance(value, values.TupleValue))
-
                 if isinstance(node_.left, values.ListValue) or isinstance(node_.left, values.TupleValue):
                     assert(isinstance(node_.right, values.ListValue) or isinstance(node_.right, values.TupleValue))
-                    # TODO: not implemented
-                    assert(False)
+                    binops[nodes.BinOpType.Add] = 'ChainerGenericAdd'
+                    
+                    left = ONNXValue(onnx_graph, node_.left)
+                    right = ONNXValue(onnx_graph, node_.right)
+                    seq_left = left.create_sequence()
+                    seq_right = right.create_sequence()
+                    onnx_graph.add_node(binops[node_.binop], [seq_left, seq_right], [value2onnx_parameter[node.outputs[0]].onnx_name], None)
+                    
                 else:
                     onnx_node = oh.make_node(binops[node_.binop], [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
                     onnx_graph.nodes.append(onnx_node)
