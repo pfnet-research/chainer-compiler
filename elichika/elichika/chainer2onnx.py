@@ -573,12 +573,17 @@ class ONNXGenerator:
                         self.onnx_tensors[value2onnx_parameter[input_].onnx_name] = tensor
                         if isinstance(input_, values.TupleValue):
                             for value in input_.values:
+                                if not isinstance(value, values.Value):
+                                    continue
                                 generate_tensor_constant(value)
 
                     def generate_tensor(input_):
                         tensor = onnx_graph.new_empty_tensor_with_value(input_)
                         self.onnx_tensors[value2onnx_parameter[input_].onnx_name] = tensor
                         if isinstance(input_, values.TupleValue):
+                            for value in input_.values:
+                                if not isinstance(value, values.Value):
+                                    continue
                             for value in input_.values:
                                 generate_tensor(value)
 
@@ -595,6 +600,8 @@ class ONNXGenerator:
                 self.onnx_tensors[value2onnx_parameter[output_].onnx_name] = tensor
                 if isinstance(output_, values.TupleValue):
                     for value in output_.values:
+                        if not isinstance(value, values.Value):
+                            continue
                         generate_tensor(value)
 
             for output in outputs_:
