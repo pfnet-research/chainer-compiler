@@ -83,6 +83,18 @@ def generate_onnx_node_name(node : 'nodes.Node'):
     return name
 
 
+def generate_onnx_name(name : 'str'):
+    base_name = str(name)
+
+    ind = 0
+    name = base_name
+    while (name in assigned_names):
+        ind+=1
+        name = base_name + '_' + str(ind)
+
+    assigned_names.append(name)
+    return name
+
 
 def assign_onnx_name_to_value(value : 'values.Value', none_name = ''):
     if not value in value2onnx_parameter:
@@ -167,77 +179,70 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     chainer_inst = node.func.owner.inst # type: chainer.links.Linear
     onnx_name = node2onnx_parameter[node].onnx_name
 
-    x_name = value2onnx_parameter[node.inputs[0]].onnx_name
-    o_name = value2onnx_parameter[node.outputs[0]].onnx_name
-
+    x = ONNXValue(onnx_graph, node.inputs[0])
+    o = ONNXValue(onnx_graph, node.outputs[0])
+    
     if chainer_inst.W.data is None:
         print("W is unknown. Please infer this model.")
 
-    w = onnx_graph.new_tensor_with_np(chainer_inst.W.data, onnx_name + '/W')
+    w = ONNXValue(onnx_graph, chainer_inst.W.data, [onnx_name, '/W'])
 
-    x_shape = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/x_shape')
-    batch_size_1 = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/batch_size_1')
-    batch_size_2 = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/batch_size_2')
-    mat_shape = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/mat_shape')
-    x_reshape = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/x_reshape')
-
-    onnx_graph.add_node(
+    (x_shape,) = onnx_graph.add_node(
         'Shape',
-        [x_name],
-        [x_shape.name],
+        [x],
+        [None],
         str(node.lineprop))
 
-    onnx_graph.add_node(
+    (batch_size_1,) = onnx_graph.add_node(
         'Gather',
-        [x_shape.name, onnx_graph.new_tensor_with_np(np.array(0, dtype=np.int64), onnx_name + '/Zero').name],
-        [batch_size_1.name],
+        [x_shape, ONNXValue(onnx_graph, np.array(0, dtype=np.int64), [onnx_name, '/Zero'])],
+        [None],
         str(node.lineprop))
 
-    onnx_graph.add_node(
+    (batch_size_2,) = onnx_graph.add_node(
         'Unsqueeze',
-        [batch_size_1.name],
-        [batch_size_2.name],
+        [batch_size_1],
+        [None],
         str(node.lineprop),
         axes=[0])
 
-    onnx_graph.add_node(
+    (mat_shape,) = onnx_graph.add_node(
         'Concat',
-        [batch_size_2.name, onnx_graph.new_tensor_with_np(np.array([-1], dtype=np.int64), onnx_name + '/Minus1').name],
-        [mat_shape.name],
+        [batch_size_2, ONNXValue(onnx_graph, np.array([-1], dtype=np.int64), [onnx_name, '/Minus1'])],
+        [None],
         str(node.lineprop),
         axis=0)
 
-    onnx_graph.add_node(
+    (x_reshape,) = onnx_graph.add_node(
         'Reshape',
-        [x_name, mat_shape.name],
-        [x_reshape.name],
+        [x, mat_shape],
+        [None],
         str(node.lineprop))
 
-    x = x_reshape
-
     if chainer_inst.b is not None:
-        b = onnx_graph.new_tensor_with_np(chainer_inst.b.data, onnx_name + '/B')
+        b = ONNXValue(onnx_graph, chainer_inst.b.data, [onnx_name, '/b'])
 
         onnx_graph.add_node(
             'Gemm',
-            [x.name, w.name, b.name],
-            [o_name],
+            [x_reshape, w, b],
+            [o],
             str(node.lineprop),
             transA=0,
             transB=1)
     else:
-        temp = onnx_graph.new_empty_tensor(['TODO'], np.float32, onnx_name + '/Temp')
+        temp = ONNXValue(onnx_graph, np.float32, [onnx_name, '/Temp'])
+
         onnx_graph.add_node(
             'Transpose',
-            [w.name],
-            [temp.name],
+            [w],
+            [temp],
             str(node.lineprop),
             perm=[1, 0])
 
         onnx_graph.add_node(
             'MatMul',
-            [x.name, temp.name],
-            [o_name],
+            [x_reshape, temp],
+            [o],
             str(node.lineprop))
 
 def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
@@ -249,22 +254,70 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
     ps = size2d(chainer_inst.pad)
     pads = ps + ps
 
-    x_name = value2onnx_parameter[node.inputs[0]].onnx_name
-    o_name = value2onnx_parameter[node.outputs[0]].onnx_name
-    w = onnx_graph.new_tensor_with_np(chainer_inst.W.data, onnx_name + '/W')
+    x = ONNXValue(onnx_graph, node.inputs[0])
+    o = ONNXValue(onnx_graph, node.outputs[0])
+    w = ONNXValue(onnx_graph, chainer_inst.W.data, [onnx_name, '/W'])
     b = None
 
     if chainer_inst.b is not None:
-        b = onnx_graph.new_tensor_with_np(chainer_inst.b.data, onnx_name + '/b')
+        b = ONNXValue(onnx_graph, chainer_inst.b.data, [onnx_name, '/b'])
 
     onnx_graph.add_node(
         'Conv',
-        [x_name, w.name] + ([] if b is None else [b.name]),
-        [o_name],
+        [x, w] + ([] if b is None else [b]),
+        [o],
         str(node.lineprop),
         kernel_shape=ksize,
         pads=pads,
         strides=stride)
+
+class ONNXValue:
+    """
+    A wrapper of ONNX value
+
+    Args:
+        onnx_graph : an instance of ONNXGraph
+        any_value : wrapped value. values.Value, np.array or np.float32(any size)
+        name : a value of name. string or array
+    """
+    def __init__(self, onnx_graph : 'ONNXGraph', any_value = None, name = None):
+        assert(isinstance(onnx_graph,ONNXGraph))
+        self.value = None # values.Value
+        self.np_value = None # np.array
+        self.onnx_graph = onnx_graph
+        self.name = ''
+
+        name_ = ''
+
+        if(isinstance(name, list)):
+            for n in name:
+                if isinstance(n,values.Value):
+                    name_ += value2onnx_parameter[self.value].onnx_name
+                else:
+                    name_ += str(n)
+
+        if(isinstance(name, str)):
+            name_ = name
+
+        if name is not None:
+            name_ = generate_onnx_name(name_)
+
+        if(any_value == np.float32):
+            self.tensor = self.onnx_graph.new_empty_tensor(['TODO'], any_value, name_)
+            self.name = name_
+
+        if isinstance(any_value, values.Value):
+            self.value = any_value
+            if name is not None:
+                self.name = name_
+            else:
+                self.name = value2onnx_parameter[self.value].onnx_name
+        
+        if isinstance(any_value, np.ndarray):
+            self.np_value = any_value
+            self.tensor = onnx_graph.new_tensor_with_np(self.np_value, name_)
+            self.name = name_
+
 
 
 class ONNXInitrializer:
@@ -404,12 +457,36 @@ class ONNXGraph:
         return self.new_tensor_with_np(arr, name)
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):
-        # check types
-        assert(len([i for i in inputs if not isinstance(i, str)]) == 0)
-        assert(len([i for i in outputs if not isinstance(i, str)]) == 0)
 
-        node = oh.make_node(optype, inputs, outputs, name, **kwargs)
+        inputs_ = []
+        outputs_ = []
+        
+        for input in inputs:
+            if isinstance(input, str):
+                inputs_.append(input)
+            elif isinstance(input, ONNXValue):
+                inputs_.append(input.name)
+            else:
+                assert(False)
+
+        output_values = []
+
+        for output in outputs:
+            if isinstance(output, str):
+                outputs_.append(output)
+            elif isinstance(output, ONNXValue):
+                outputs_.append(output.name)
+            elif output is None:
+                o = ONNXValue(self, np.float32, [optype, '/Output'])
+                output_values.append(o)
+                outputs_.append(o.name)
+            else:
+                assert(False)
+
+        node = oh.make_node(optype, inputs_, outputs_, name, **kwargs)
         self.nodes.append(node)
+
+        return tuple(output_values)
 
     def try_get_tensor(self, onnx_name : 'str'):
         if onnx_name in self.generator.tensors.keys():
