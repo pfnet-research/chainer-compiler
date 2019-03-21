@@ -25,7 +25,7 @@ TESTS = [
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
     Generator('node', 'NpArray'),
-    # Generator('node', 'Shape'),
+    Generator('node', 'Shape'),
     Generator('node', 'PadSequence'),
 
     # Generator('syntax', 'ChinerFunctionNode'),
