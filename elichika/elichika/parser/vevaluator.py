@@ -576,7 +576,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         indices = get_slice_indices(astc.nast.slice)
 
         node = nodes.NodeSlice(value_value, indices, [len(indices)])
-        ret_value = values.Value()
+        ret_value = functions.generate_value_with_same_type(value_value)
         node.set_outputs([ret_value])
         graph.add_node(node)
         return values.Object(ret_value)
@@ -596,7 +596,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
                 assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
 
         node = nodes.NodeSlice(value_value, indices, slice_specs)
-        ret_value = values.Value()
+        ret_value = functions.generate_value_with_same_type(value_value)
         node.set_outputs([ret_value])
         graph.add_node(node)
         return values.Object(ret_value)
