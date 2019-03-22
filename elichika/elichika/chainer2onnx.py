@@ -1008,30 +1008,36 @@ class ONNXGenerator:
                     assert subok is False   # TODO(hamaji): Not supported yet.
                     assert ndmin == 0  # TODO(hamaji): Not supported yet.
 
-                    if dtype is None:
-                        onnx_node = oh.make_node(
-                            "ChainerSequenceStack",
-                            [value2onnx_parameter[node.inputs[0]].onnx_name],
-                            [value2onnx_parameter[node.outputs[0]].onnx_name],
-                            str(node.lineprop))
-                        onnx_graph.nodes.append(onnx_node)
+                    value = ONNXValue(onnx_graph, node.inputs[0])
+                    o = ONNXValue(onnx_graph, node.outputs[0])
+
+                    if isinstance(node.inputs[0], values.ListValue):
+                        if dtype is None:
+                            onnx_node = onnx_graph.add_node(
+                                "ChainerSequenceStack",
+                                [value],
+                                [o],
+                                str(node.lineprop))
+                        else:
+                            casting_name = value2onnx_parameter[node.outputs[0]].onnx_name + '/Cast'
+                            onnx_node = onnx_graph.add_node(
+                                "ChainerSequenceStack",
+                                [value],
+                                [casting_name],
+                                str(node.lineprop))
+
+                            onnx_node = onnx_graph.add_node(
+                                "Cast",
+                                [casting_name],
+                                [o],
+                                str(node.lineprop),
+                                to=get_onnx_dtype(dtype))
                     else:
-                        casting_name = value2onnx_parameter[node.outputs[0]].onnx_name + '/Cast'
-                        onnx_node = oh.make_node(
-                            "ChainerSequenceStack",
-                            [value2onnx_parameter[node.inputs[0]].onnx_name],
-                            [casting_name],
+                        onnx_node = onnx_graph.add_node(
+                            "Identity",
+                            [value],
+                            [o],
                             str(node.lineprop))
-                        onnx_graph.nodes.append(onnx_node)
-
-                        onnx_node = oh.make_node(
-                            "Cast",
-                            [casting_name],
-                            [value2onnx_parameter[node.outputs[0]].onnx_name],
-                            str(node.lineprop),
-                            to=get_onnx_dtype(dtype))
-                        onnx_graph.nodes.append(onnx_node)
-
 
                 if node_.classtype == 'List':
                     onnx_node = oh.make_node(

@@ -39,7 +39,7 @@ TESTS = [
     Generator('syntax', 'MultiFunction'),
     Generator('syntax', 'Range'),
     Generator('syntax', 'Sequence'),
-    # Generator('syntax', 'Slice'),
+    Generator('syntax', 'Slice'),
     Generator('syntax', 'UserDefinedFunc'),
 ]
 

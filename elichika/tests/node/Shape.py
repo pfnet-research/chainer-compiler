@@ -15,6 +15,10 @@ class ShapeConcat(chainer.Chain):
         y1 = x.shape
         return np.array(y1 + (42,))
 
+class ShapeIndex(chainer.Chain):
+    def forward(self, x):
+        y1 = x.shape
+        return y1[0]
 
 # ======================================
 
@@ -30,6 +34,8 @@ def main():
     testtools.generate_testcase(Shape(), [x])
 
     testtools.generate_testcase(ShapeConcat(), [x], subname='concat')
+
+    testtools.generate_testcase(ShapeIndex(), [x], subname='index')
 
 if __name__ == '__main__':
     main()
