@@ -14,6 +14,7 @@ import elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
+import gen_large_tests_oc
 import onnx_chainer_tests
 import onnx_real_tests
 from test_case import TestCase
@@ -540,6 +541,10 @@ for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir)
     TEST_CASES.append(test)
 
+for name, _, _ in gen_large_tests_oc.get_large_tests():
+    dirname = 'out'
+    TEST_CASES.append(TestCase(dirname, name, want_gpu=True))
+
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
@@ -557,10 +562,12 @@ for test in TEST_CASES:
     if not test.is_backprop:
         continue
 
-    new_test = copy.copy(test)
-    new_test.name = test.name + '_two_phase'
-    new_test.is_backprop_two_phase = True
-    new_tests.append(new_test)
+    # TODO(mkusumoto): remove this "if" after fixing issue
+    if not test.name.startswith('large_oc'):
+        new_test = copy.copy(test)
+        new_test.name = test.name + '_two_phase'
+        new_test.is_backprop_two_phase = True
+        new_tests.append(new_test)
 
     if test.name == 'ch2o_model_MLP_with_loss_backprop':
         new_test = copy.copy(test)

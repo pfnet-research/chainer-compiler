@@ -7,14 +7,13 @@ import onnx_chainer
 import large_models
 
 
-def create_backprop_test(test_name, get_fun, dtype):
-    test_dir = 'out/large_test_oc_%s' % test_name
-
+def create_test(test_name, get_fun, dtype):
     np.random.seed(314)
     chainer.config.dtype = dtype
-
     model, inputs = get_fun(dtype)
-    output_grad = dtype == np.float64
+
+    output_grad = 'backprop' in test_name
+    test_dir = 'out/%s' % test_name
 
     chainer.disable_experimental_feature_warning = True
     onnx_chainer.export_testcase(model,
@@ -25,12 +24,16 @@ def create_backprop_test(test_name, get_fun, dtype):
                                  output_names='loss')
 
 
-def get_backprop_tests():
+def get_large_tests():
     tests = []
 
     def test(name, get_fun):
         for dtype in (np.float32, np.float64):
-            test_name = '%s_%s' % (name, dtype.__name__)
+            output_grad = dtype == np.float64
+            backprop_str = '_backprop' if output_grad else ''
+            test_name = 'large_oc%s_%s_%s' % (backprop_str,
+                                              name, dtype.__name__)
+
             tests.append((test_name, get_fun, dtype))
 
     test('resnet50', large_models.get_resnet50)
@@ -39,8 +42,8 @@ def get_backprop_tests():
 
 
 def main():
-    for test in get_backprop_tests():
-        create_backprop_test(*test)
+    for test in get_large_tests():
+        create_test(*test)
 
 
 if __name__ == '__main__':
