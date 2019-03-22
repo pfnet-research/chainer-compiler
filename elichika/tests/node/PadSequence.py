@@ -23,6 +23,11 @@ class PadSequencePadding(chainer.Chain):
         y1 = F.pad_sequence(xs, padding=-1)
         return y1
 
+class PadSequenceSlice(chainer.Chain):
+    def forward(self, xs):
+        y1 = F.pad_sequence(xs)
+        y2 = y1[:, 0]
+        return y2
 
 # ======================================
 
@@ -40,6 +45,8 @@ def main():
     testtools.generate_testcase(PadSequenceLength, [x], subname='length')
 
     testtools.generate_testcase(PadSequencePadding, [x], subname='padding')
+
+    testtools.generate_testcase(PadSequenceSlice, [x], subname='slice')
 
 if __name__ == '__main__':
     main()

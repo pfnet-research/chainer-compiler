@@ -71,7 +71,8 @@ class PadSequenceFunction(functions.FunctionBase):
 
         node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
-        value = functions.generate_value_with_same_type(vargs[0])
+        #value = functions.generate_value_with_same_type(vargs[0])
+        value = values.TensorValue()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
