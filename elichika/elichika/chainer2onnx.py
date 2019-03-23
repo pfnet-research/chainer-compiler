@@ -139,7 +139,7 @@ def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
     if not isMain:
         input_values = graph.input_values.copy()
         copied_input_values = [functions.generate_copied_value(v) for v in input_values]
-    
+
         old2new = {}
 
         for i in range(len(input_values)):
@@ -169,6 +169,25 @@ def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
     for i in range(len(graph.output_values)):
         if graph.output_values[i] in replacing.keys():
             graph.output_values[i] = replacing[graph.output_values[i]]
+
+    # fix duplicates (if same output value exsits, error is caused.)
+    output_values = graph.output_values.copy()
+    duplicates = {}
+    for i in range(len(output_values)):
+        if output_values[i] in duplicates.keys():
+            copied_value = functions.generate_copied_value(output_values[i])
+
+            node = nodes.NodeCopy(output_values[i])
+            node.set_outputs([copied_value])
+            graph.add_node(node)
+
+            copied_value.name = output_values[i].name + '_cp_out_' + str(duplicates[output_values[i]])
+            duplicates[output_values[i]] += 1
+            output_values[i] = copied_value
+        else:
+            duplicates[output_values[i]] = 0
+
+    graph.output_values = output_values
 
     for node in graph.nodes:
         for subgraph in node.subgraphs:
