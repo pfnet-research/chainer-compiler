@@ -340,7 +340,7 @@ void Graph::CheckSanity(const std::string& msg) const {
     for (const auto& value : all_values_) {
         if (value->name().empty()) continue;
         if (!value_names.emplace(value->name()).second) {
-            std::cerr << "Duplicated name: " << value->name() << std::endl;
+            std::cerr << "ERROR: Duplicated name: " << value->name() << std::endl;
             DumpONNXOnFailure();
             CHECK(false) << msg;
         }
@@ -356,23 +356,23 @@ void Graph::CheckSanity(const std::string& msg) const {
     {
         bool ok = true;
         std::set<Value*> output_set;
-        auto check = [&ok, &output_set](Value* value) {
+        for (Value* value : input_values_) {
             if (!output_set.insert(value).second) {
-                std::cerr << "A value was output more than once: " << value->DebugString();
+                std::cerr << "ERROR: A value appears as input of the graph more than once: " << value->name() << std::endl;
                 ok = false;
             }
-        };
-        for (Value* value : input_values_) {
-            check(value);
         }
         for (Node* node : nodes_) {
             for (Value* value : node->outputs()) {
-                check(value);
+                if (!output_set.insert(value).second) {
+                    std::cerr << "ERROR: A value is output more than once: `" << value->name() << "` creator: " << node->ToString() << std::endl;
+                    ok = false;
+                }
             }
         }
         if (!ok) {
             DumpONNXOnFailure();
-            CHECK(false);
+            CHECK(false) << "Sanity check (SSA) failed";
         }
     }
 
