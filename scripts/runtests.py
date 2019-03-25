@@ -541,9 +541,9 @@ for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir)
     TEST_CASES.append(test)
 
-for name, _, _ in gen_large_tests_oc.get_large_tests():
+for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
     dirname = 'out'
-    TEST_CASES.append(TestCase(dirname, name, want_gpu=True))
+    TEST_CASES.append(TestCase(dirname, name, want_gpu=True, **kwargs))
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
