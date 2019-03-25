@@ -12,6 +12,7 @@ add_custom_command(
 endfunction()
 
 gen_onnx_by_onnx_chainer_(backprop_tests_oc)
+gen_onnx_by_onnx_chainer_(large_tests_oc)
 gen_onnx_by_onnx_chainer_(mnist_mlp)
 
 add_custom_command(
@@ -38,3 +39,10 @@ add_custom_target(
   extra_test_stamp
   mnist_mlp_stamp
   )
+
+add_custom_target(
+  gen_large_test_onnx
+  DEPENDS
+  large_tests_oc_stamp
+  )
+add_dependencies(large_tests gen_large_test_onnx)
