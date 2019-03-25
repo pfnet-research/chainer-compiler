@@ -451,6 +451,7 @@ class NumberValue(Value):
     def __init__(self, number):
         super().__init__()
         self.internal_value = number
+        self.dtype = None
 
     def __str__(self):
         if self.internal_value == None:
