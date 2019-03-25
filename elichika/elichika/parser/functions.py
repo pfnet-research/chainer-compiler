@@ -6,6 +6,8 @@ import inspect
 import ast, gast
 import weakref
 
+import numpy as np
+
 from elichika.parser import vevaluator
 from elichika.parser import nodes
 from elichika.parser import values
@@ -19,6 +21,7 @@ def generate_copied_value(value : 'values.Value'):
     
     if isinstance(value, values.NumberValue):
         copied = values.NumberValue(value.internal_value)
+        copied.dtype = value.dtype
         return copied
 
     if isinstance(value, values.TensorValue):
@@ -74,6 +77,12 @@ def generate_value_with_same_type(value : 'values.Value'):
 
     if isinstance(value, values.NumberValue):
         ret = values.NumberValue(None)
+        if value.internal_value is None:
+            ret.dtype = value.dtype
+        elif isinstance(value.internal_value, int):
+            ret.dtype = np.array(value.internal_value).dtype
+        elif isinstance(value.internal_value, float):
+            ret.dtype = np.array(value.internal_value).dtype
 
     if isinstance(value, values.StrValue):
         ret = values.StrValue(None)

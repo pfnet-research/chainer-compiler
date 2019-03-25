@@ -451,6 +451,17 @@ class ONNXGraph:
             self.generator.tensors[vi.name] = vi
             return vi
 
+        if isinstance(value, values.NumberValue):
+            if value.dtype is not None:
+                return self.new_empty_tensor(None, value.dtype, value2onnx_parameter[value].onnx_name)
+            elif value.internal_value is not None:
+                if isinstance(value.internal_value, int):
+                    dtype = np.array(value.internal_value).dtype
+                    return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
+                if isinstance(value.internal_value, float):
+                    dtype = np.array(value.internal_value).dtype
+                    return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
+
         return self.new_empty_tensor(None, np.float32, value2onnx_parameter[value].onnx_name)
 
     def new_tensor_with_np(self, ndarray_, name):
@@ -480,8 +491,11 @@ class ONNXGraph:
 
         if isinstance(value, values.NumberValue):
             if value.internal_value is None:
-                # any value                
-                arr = np.array(0)
+                # any value
+                if value.dtype is None:         
+                    arr = np.array(0)
+                else:
+                    arr = np.array(0, dtype=value.dtype)
                 return self.new_tensor_with_np(arr, name)
             else:
                 arr = np.array(value.internal_value)

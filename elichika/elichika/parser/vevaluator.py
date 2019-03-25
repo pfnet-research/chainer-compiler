@@ -13,6 +13,8 @@ from elichika.parser.graphs import Graph
 from elichika.parser import veval_bin
 from elichika.parser import veval_unary
 
+import numpy as np
+
 def try_get_obj(value, name, lineprop) -> 'values.Object':
     if value is None:
         if config.show_warnings:
@@ -516,6 +518,8 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
     node_aug_assign = nodes.NodeAugAssign(target_value, value_value, binop, astc.lineno)
     graph.add_node(node_aug_assign)
     
+    # TODO : estimate type
+
     new_value = functions.generate_value_with_same_type(target_value)
     node_aug_assign.set_outputs([new_value])
     target.get_obj().revise(new_value)
@@ -1053,7 +1057,15 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # create a node to lookup a value from sequence
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
-    target_value = values.Value()
+    
+    # estimate type
+    # TODO : more types
+    if isinstance(iter_value, values.RangeValue):
+        target_value = values.NumberValue(None)
+        target_value.dtype = np.array(0).dtype
+    else:
+        target_value = values.Value()
+
     target_obj = values.Object(target_value)
     node_forgen.set_outputs([target_value])
 
