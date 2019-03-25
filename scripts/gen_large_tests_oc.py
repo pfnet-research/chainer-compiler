@@ -37,6 +37,9 @@ def get_large_tests():
             tests.append((test_name, get_fun, dtype))
 
     test('resnet50', large_models.get_resnet50)
+    test('resnet152', large_models.get_resnet152)
+    # test('vgg16', large_models.get_vgg16)
+    # test('vgg19', large_models.get_vgg19)
 
     return tests
 
