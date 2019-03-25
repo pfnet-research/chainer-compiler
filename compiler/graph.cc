@@ -352,6 +352,30 @@ void Graph::CheckSanity(const std::string& msg) const {
         CHECK(node_set.emplace(node.get()).second);
     }
 
+    // Check if a value is output at most once.
+    {
+        bool ok = true;
+        std::set<Value*> output_set;
+        auto check = [&ok, &output_set](Value* value) {
+            if (!output_set.insert(value).second) {
+                std::cerr << "A value was output more than once: " << value->DebugString();
+                ok = false;
+            }
+        };
+        for (Value* value : input_values_) {
+            check(value);
+        }
+        for (Node* node : nodes_) {
+            for (Value* value : node->outputs()) {
+                check(value);
+            }
+        }
+        if (!ok) {
+            DumpONNXOnFailure();
+            CHECK(false);
+        }
+    }
+
     // TODO(hamaji): No cycle and no links to nodes outside the graph.
 }
 
