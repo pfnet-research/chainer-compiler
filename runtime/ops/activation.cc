@@ -3,6 +3,7 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/math.h>
 
+#include <common/log.h>
 #include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
@@ -15,7 +16,15 @@ chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 
 chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
     chainerx::Array out = chainerx::EmptyLike(x, x.device());
-    const float eps = std::numeric_limits<float>::epsilon();
+    double eps;
+    // TODO(hamaji): Use IsLessElseSAAS once it is added.
+    if (x.dtype() == chainerx::Dtype::kFloat32) {
+        eps = 1.4013e-45f;
+    } else if (x.dtype() == chainerx::Dtype::kFloat64) {
+        eps = 4.94066e-324;
+    } else {
+        CHECK(false) << "TODO(hamaji): Unsupported dtype: " << x.dtype();
+    }
     x.device().IfLessElseASSA(x, eps, chainerx::Scalar(0.0), gy, out);
     return out;
 }
