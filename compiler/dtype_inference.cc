@@ -91,7 +91,18 @@ void InferDtype(Node* node) {
 
         case Node::kReciprocal:
         case Node::kExp:
+        case Node::kSin:
+        case Node::kSinh:
+        case Node::kCos:
+        case Node::kCosh:
+        case Node::kTan:
         case Node::kTanh:
+        case Node::kAsin:
+        case Node::kAsinh:
+        case Node::kAcos:
+        case Node::kAcosh:
+        case Node::kAtan:
+        case Node::kAtanh:
         case Node::kLog:
         case Node::kSqrt:
         case Node::kSigmoid:
