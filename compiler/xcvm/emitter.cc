@@ -224,7 +224,18 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kExp, Exp);
         EMIT_SIMPLE_UNARY_OP(Node::kLog, Log);
         EMIT_SIMPLE_UNARY_OP(Node::kSqrt, Sqrt);
+        EMIT_SIMPLE_UNARY_OP(Node::kSin, Sin);
+        EMIT_SIMPLE_UNARY_OP(Node::kSinh, Sinh);
+        EMIT_SIMPLE_UNARY_OP(Node::kCos, Cos);
+        EMIT_SIMPLE_UNARY_OP(Node::kCosh, Cosh);
+        EMIT_SIMPLE_UNARY_OP(Node::kTan, Tan);
         EMIT_SIMPLE_UNARY_OP(Node::kTanh, Tanh);
+        EMIT_SIMPLE_UNARY_OP(Node::kAsin, Asin);
+        EMIT_SIMPLE_UNARY_OP(Node::kAsinh, Asinh);
+        EMIT_SIMPLE_UNARY_OP(Node::kAcos, Acos);
+        EMIT_SIMPLE_UNARY_OP(Node::kAcosh, Acosh);
+        EMIT_SIMPLE_UNARY_OP(Node::kAtan, Atan);
+        EMIT_SIMPLE_UNARY_OP(Node::kAtanh, Atanh);
         EMIT_SIMPLE_UNARY_OP(Node::kAbs, Abs);
         EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
         EMIT_SIMPLE_UNARY_OP(Node::kFloor, Floor);

@@ -83,21 +83,31 @@ chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
-chainerx::Array ExpOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Exp(a);
-}
+#define DEFINE_UNARY_OP(op)                                                    \
+    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+        return chainerx::op(a);                                                \
+    }
 
-chainerx::Array LogOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Log(a);
-}
+#define DEFINE_UNARY_OP_TODO(op)                                               \
+    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+        CHECK(false) << "TODO(hamaji): " #op " op not implemented";            \
+    }
 
-chainerx::Array SqrtOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Sqrt(a);
-}
-
-chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Reciprocal(a);
-}
+DEFINE_UNARY_OP(Exp);
+DEFINE_UNARY_OP(Log);
+DEFINE_UNARY_OP(Sqrt);
+DEFINE_UNARY_OP(Reciprocal);
+DEFINE_UNARY_OP(Sin);
+DEFINE_UNARY_OP(Cos);
+DEFINE_UNARY_OP_TODO(Sinh);
+DEFINE_UNARY_OP_TODO(Cosh);
+DEFINE_UNARY_OP_TODO(Tan);
+DEFINE_UNARY_OP_TODO(Asin);
+DEFINE_UNARY_OP_TODO(Asinh);
+DEFINE_UNARY_OP_TODO(Acos);
+DEFINE_UNARY_OP_TODO(Acosh);
+DEFINE_UNARY_OP_TODO(Atan);
+DEFINE_UNARY_OP_TODO(Atanh);
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
