@@ -365,7 +365,8 @@ void Graph::CheckSanity(const std::string& msg) const {
         for (Node* node : nodes_) {
             for (Value* value : node->outputs()) {
                 if (!output_set.insert(value).second) {
-                    std::cerr << "ERROR: A value is output more than once: `" << value->name() << "` creator: " << node->ToString() << std::endl;
+                    std::cerr << "ERROR: A value is output more than once: `" << value->name() << "` creator: " << node->ToString()
+                              << std::endl;
                     ok = false;
                 }
             }
