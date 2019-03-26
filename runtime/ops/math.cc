@@ -83,14 +83,14 @@ chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
-#define DEFINE_UNARY_OP(op)                     \
-    chainerx::Array op ## Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
-        return chainerx::op(a);                                         \
+#define DEFINE_UNARY_OP(op)                                                    \
+    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+        return chainerx::op(a);                                                \
     }
 
-#define DEFINE_UNARY_OP_TODO(op)                                        \
-    chainerx::Array op ## Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
-        CHECK(false) << "TODO(hamaji): " #op " op not implemented";     \
+#define DEFINE_UNARY_OP_TODO(op)                                               \
+    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+        CHECK(false) << "TODO(hamaji): " #op " op not implemented";            \
     }
 
 DEFINE_UNARY_OP(Exp);
