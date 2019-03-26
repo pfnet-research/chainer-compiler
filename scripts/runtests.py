@@ -541,9 +541,9 @@ for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir)
     TEST_CASES.append(test)
 
-for name, _, _ in gen_large_tests_oc.get_large_tests():
+for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
     dirname = 'out'
-    TEST_CASES.append(TestCase(dirname, name, want_gpu=True))
+    TEST_CASES.append(TestCase(dirname, name, want_gpu=True, **kwargs))
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
@@ -685,6 +685,8 @@ def main():
         is_gpu = False
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
+        if test_case.atol is not None:
+            test_case.args += ['--atol', str(test_case.atol)]
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
         if test_case.is_backprop_two_phase:

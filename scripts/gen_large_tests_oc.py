@@ -27,26 +27,29 @@ def create_test(test_name, get_fun, dtype):
 def get_large_tests():
     tests = []
 
-    def test(name, get_fun):
+    def test(name, get_fun, kwargs=None):
+        # kwargs is used for testing
         for dtype in (np.float32, np.float64):
             output_grad = dtype == np.float64
             backprop_str = '_backprop' if output_grad else ''
             test_name = 'large_oc%s_%s_%s' % (backprop_str,
                                               name, dtype.__name__)
 
-            tests.append((test_name, get_fun, dtype))
+            if kwargs is None:
+                kwargs = {}
+            tests.append((test_name, get_fun, dtype, kwargs))
 
     test('resnet50', large_models.get_resnet50)
     test('resnet152', large_models.get_resnet152)
-    # test('vgg16', large_models.get_vgg16)
-    # test('vgg19', large_models.get_vgg19)
+    test('vgg16', large_models.get_vgg16, {'rtol': 2e-2, 'atol': 2e-2})
+    test('vgg19', large_models.get_vgg19, {'rtol': 2e-2, 'atol': 2e-2})
 
     return tests
 
 
 def main():
-    for test in get_large_tests():
-        create_test(*test)
+    for test_name, get_fun, dtype, _ in get_large_tests():
+        create_test(test_name, get_fun, dtype)
 
 
 if __name__ == '__main__':
