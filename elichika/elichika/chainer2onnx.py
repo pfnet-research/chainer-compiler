@@ -321,7 +321,7 @@ class ONNXValue:
         if name is not None:
             name_ = generate_onnx_name(name_)
 
-        if(any_value == np.float32):
+        if(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64):
             self.tensor = self.onnx_graph.new_empty_tensor(['TODO'], any_value, name_)
             self.name = name_
 
@@ -974,19 +974,19 @@ class ONNXGenerator:
                 node_ = node # type: nodes.NodeListcomp
 
                 # get length of sequence
-                op_len = onnx_graph.new_empty_tensor(['TODO'], np.int, value2onnx_parameter[node_.iter_value].onnx_name + '/Len')
+                tensor_len = ONNXValue(onnx_graph, np.array(0).dtype, [value2onnx_parameter[node_.iter_value].onnx_name, '/Len'])
 
-                onnx_node = oh.make_node(
+                onnx_graph.add_node(
                     'ChainerGenericLen',
                     [value2onnx_parameter[node_.iter_value].onnx_name],
-                    [op_len.name])
-                onnx_graph.nodes.append(onnx_node)
+                    [tensor_len],
+                    str(node.lineprop))
 
                 body_graph = self.generate_graph(node_.body_graph.input_values, node_.body_graph.output_values, node_.body_graph, onnx_graph)
 
                 onnx_node = oh.make_node(
                     'Loop',
-                    [op_len.name] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values],
+                    [tensor_len.name] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values],
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     body=body_graph)
 
