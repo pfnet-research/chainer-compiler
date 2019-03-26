@@ -48,8 +48,8 @@ def get_large_tests():
 
 
 def main():
-    for test in get_large_tests():
-        create_test(*test[:-1])
+    for test_name, get_fun, dtype, _ in get_large_tests():
+        create_test(test_name, get_fun, dtype)
 
 
 if __name__ == '__main__':
