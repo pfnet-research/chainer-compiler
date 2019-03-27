@@ -312,6 +312,8 @@ class ONNXValue:
             for n in name:
                 if isinstance(n,values.Value):
                     name_ += value2onnx_parameter[self.value].onnx_name
+                elif n is None:
+                    name_ += ''
                 else:
                     name_ += str(n)
 
@@ -535,7 +537,7 @@ class ONNXGraph:
             elif isinstance(output, ONNXValue):
                 outputs_.append(output.name)
             elif output is None:
-                o = ONNXValue(self, np.float32, [optype, '/Output'])
+                o = ONNXValue(self, np.float32, [name, '/', optype, '/Output'])
                 output_values.append(o)
                 outputs_.append(o.name)
             else:
@@ -659,6 +661,8 @@ class ONNXGenerator:
 
                 onnx_graph.nodes.append(onnx_node)
 
+            '''
+            # disabled because of SSA
             if isinstance(node, nodes.NodeNonVolatileAssign):
                 node_ = node # type: nodes.NodeNonVolatileAssign
                 onnx_node = oh.make_node(
@@ -667,7 +671,7 @@ class ONNXGenerator:
                     [value2onnx_parameter[node_.target_value].onnx_name])
 
                 onnx_graph.nodes.append(onnx_node)
-
+            '''
 
             if isinstance(node, nodes.NodeAugAssign):
                 node_ = node # type: nodes.AugAssign
