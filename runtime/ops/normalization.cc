@@ -122,7 +122,13 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         if (i != 1) axes.push_back(i);
     }
 
-    PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
+    PreprocessBatchNormResult result;
+    if (in_recomputing) {
+        // Statistics shouldn't be updated when recomputing
+        result = PreprocessBatchNorm(x, s, bias, mean.Copy(), var.Copy(), axes);
+    } else {
+        result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
+    }
     std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
             x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
     const Array& gamma_reshaped = result.gamma;
