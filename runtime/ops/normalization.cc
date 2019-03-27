@@ -115,6 +115,7 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         const chainerx::Array& bias,
         const chainerx::Array& mean,
         const chainerx::Array& var) {
+    // TODO(hamaji): Use `in_recomputing` not to update running mean/var.
     // To workaround the limitation of CuDNN.
     if (epsilon <= 1e-5) epsilon = 1e-5 + 1e-12;
     chainerx::Axes axes;
