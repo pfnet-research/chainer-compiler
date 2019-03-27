@@ -124,6 +124,7 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
 
     PreprocessBatchNormResult result;
     if (in_recomputing) {
+        // Statistics shouldn't be updated when recomputing
         result = PreprocessBatchNorm(x, s, bias, mean.Copy(), var.Copy(), axes);
     } else {
         result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
