@@ -28,7 +28,6 @@ TESTS = [
     Generator('node', 'Shape'),
     Generator('node', 'PadSequence'),
 
-    # Generator('syntax', 'ChinerFunctionNode'),
     Generator('syntax', 'Cmp'),
     # Generator('syntax', 'For'),
     # Generator('syntax', 'ForAndIf'),
