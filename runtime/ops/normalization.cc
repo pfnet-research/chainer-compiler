@@ -115,7 +115,6 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         const chainerx::Array& bias,
         const chainerx::Array& mean,
         const chainerx::Array& var) {
-    // TODO(hamaji): Use `in_recomputing` not to update running mean/var.
     // To workaround the limitation of CuDNN.
     if (epsilon <= 1e-5) epsilon = 1e-5 + 1e-12;
     chainerx::Axes axes;
@@ -128,7 +127,20 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
             x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
     const Array& gamma_reshaped = result.gamma;
     const Array& beta_reshaped = result.beta;
+
+    chainerx::Array mean_copy, var_copy;  // We used these only for in_recomputing mode
+    if (in_recomputing) {
+        mean_copy = mean.Copy();
+        var_copy = var.Copy();
+    }
     chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
+    if (in_recomputing) {
+        // Revert the statistics
+        mean *= chainerx::Scalar(0);
+        mean += mean_copy;
+        var *= chainerx::Scalar(0);
+        var += var_copy;
+    }
     XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
