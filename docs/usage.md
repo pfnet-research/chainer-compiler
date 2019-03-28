@@ -61,3 +61,39 @@ Or investigate it programmatically by Python:
 ```
 
 You can also use visualizers for ONNX such as [netron](https://github.com/lutzroeder/netron).
+
+## Use chainer-compiler from Chainer
+
+To use chainer-compiler from Chainer code, you first need to install Chainer from source code, for example:
+
+```shell-session
+$ CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j2 pip3 install --user third_party/chainer
+```
+
+You also need to rebuild chainer compiler with three flags:
+
+```shell-session
+$ cd build
+$ cmake -DCHAINER_COMPILER_ENABLE_PYTHON=ON -DPYTHON_EXECUTABLE=/usr/bin/python3 -DCHAINERX_BUILD_PYTHON=ON ..
+$ make
+$ cd ..
+```
+
+Check if everything is fine by running pytest:
+
+```shell-session
+$ pytest python
+```
+
+You need to wrap your model by `chainer_compiler.compile`. E.g.,
+
+```python
+model = YourModel()
+model = chainer_compiler.compile(model, dump_onnx=args.dump_onnx)
+```
+
+See examples directory for more details. You can run the MNIST example by
+
+```shell-session
+$ python3 examples/mnist/train_mnist.py --compile --dump_onnx -d cuda
+```
