@@ -21,16 +21,26 @@ fields = []
 attributes = []
 registered_objects = []
 history_tags = []
+access_guid = 0
 
 def reset_field_and_attributes():
     global fields
     global attributes
     global registered_objects
     global history_tags
+    global access_guid
+
     fields = []
     attributes = []
     registered_objects = []
     history_tags = []
+    access_guid = 0
+
+def get_access_guid() -> 'int': 
+    global access_guid
+    ret = access_guid
+    access_guid += 1
+    return ret
 
 def register_field(field : 'Field'):
     fields.append(weakref.ref(field))
@@ -296,7 +306,7 @@ class Attribute:
     def get_obj(self, inc_access = True):
         assert len(self.history) > 0
         if inc_access:
-            self.access_num += 1
+            self.access_num = get_access_guid()
         return self.history[-1].obj
 
     def commit(self, commit_id : 'str'):

@@ -1039,19 +1039,20 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
 
-    for_id = 'for_' + str(utils.get_guid())
-    body_id = 'body_' + str(utils.get_guid())
+    for_guid = utils.get_guid()
+    for_id = 'for_' + str(for_guid)
+    body_id = 'body_' + str(for_guid)
     values.commit(for_id)
 
     # body
     body_graph = Graph()
-    body_graph.name = 'Body'
+    body_graph.name = 'Body_' + str(for_guid)
 
     counter_value = values.NumberValue(0)
-    counter_value.name = 'for_counter'
+    counter_value.name = 'for_counter_' + str(for_guid)
 
     cond_value = values.BoolValue(True)
-    cond_value.name = 'for_cond'
+    cond_value.name = 'for_cond_' + str(for_guid)
 
     iter_value = try_get_value(iter_, 'for', lineprop)
 
