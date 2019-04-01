@@ -1,6 +1,7 @@
 #include <chainerx/routines/logic.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
 namespace chainer_compiler {
@@ -15,7 +16,8 @@ chainerx::Array AndOp::RunImpl(XCVMState* st, const chainerx::Array& a, const ch
 chainerx::Array OrOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     CHECK_EQ(a.dtype(), chainerx::Dtype::kBool);
     CHECK_EQ(b.dtype(), chainerx::Dtype::kBool);
-    return a + b;
+    // TODO(hamaji): Stop using casts once logical_or is added.
+    return CastTo(CastTo(a, chainerx::Dtype::kInt32) + CastTo(b, chainerx::Dtype::kInt32), chainerx::Dtype::kBool);
 }
 
 chainerx::Array XorOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
