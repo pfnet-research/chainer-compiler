@@ -26,8 +26,6 @@ std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int ax
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding);
 
-chainerx::Array Sigmoid(chainerx::Array a);
-
 chainerx::Array SlowRandom(chainerx::Shape shape);
 
 chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
