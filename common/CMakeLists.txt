@@ -6,6 +6,7 @@ add_library(chainer_compiler_common
   log.cc
   strutil.cc
   )
+set_hidden_(chainer_compiler_common)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(common_test

@@ -66,6 +66,7 @@ add_dependencies(
   chainer_compiler_runtime
   runtime_xcvm_pb_h onnx_files
   )
+set_hidden_(chainer_compiler_runtime)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(runtime_test
