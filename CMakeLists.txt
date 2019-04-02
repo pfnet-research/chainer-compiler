@@ -29,6 +29,14 @@ function (set_option_ var_ desc_)
     option (${var_} ${desc_} ${def_})
 endfunction ()
 
+function (set_hidden_ lib_)
+  set_target_properties(
+    ${lib_} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  set_target_properties(
+    ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
+endfunction ()
+
+
 set_option_ (CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
 set_option_ (CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
 set_option_ (CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")

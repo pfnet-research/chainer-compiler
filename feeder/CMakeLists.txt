@@ -16,6 +16,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
 endif()
 
 add_library(feeder ${FEEDER_SRCS})
+set_hidden_(feeder)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(feeder_test ${FEEDER_TEST_SRCS})

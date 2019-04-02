@@ -14,6 +14,7 @@ add_library(chainer_compiler_tools
   util.cc
   )
 add_dependencies(chainer_compiler_tools runtime_xcvm_pb_h)
+set_hidden_(chainer_compiler_tools)
 
 add_executable(dump dump.cc)
 target_link_libraries(dump
@@ -31,6 +32,7 @@ add_library(run_onnx_lib
   run_onnx.cc
   )
 add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
+set_hidden_(run_onnx_lib)
 
 add_executable(run_onnx run_onnx_main.cc)
 target_link_libraries(run_onnx
@@ -54,6 +56,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     train_imagenet.cc
     )
   add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
+  set_hidden_(train_imagenet_lib)
 
   add_executable(train_imagenet train_imagenet_main.cc)
   add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
@@ -81,6 +84,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   include_directories(${PYTHON_INCLUDE_DIRS})
 
   add_library(run_onnx_core.so MODULE run_onnx_core.cc)
+  set_hidden_(run_onnx_core.so)
 
   target_link_libraries(run_onnx_core.so
     PRIVATE
@@ -105,6 +109,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
 
   if(${CHAINER_COMPILER_ENABLE_OPENCV})
     add_library(train_imagenet_core.so MODULE train_imagenet_core.cc)
+    set_hidden_(train_imagenet_core.so)
 
     target_link_libraries(train_imagenet_core.so
       PRIVATE
