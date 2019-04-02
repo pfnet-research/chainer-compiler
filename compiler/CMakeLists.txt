@@ -106,7 +106,7 @@ target_link_libraries(compiler_test
   chainerx
   onnx
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
   pthread

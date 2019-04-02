@@ -13,11 +13,13 @@ add_custom_command(
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
+    --protoc-exe ${PROTOC_EXECUTABLE}
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
   DEPENDS
     ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py
     ${CMAKE_CURRENT_SOURCE_DIR}/xcvm_defs.py
     ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl
+    ${PROTOC_EXECUTABLE}
     )
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
 
@@ -79,7 +81,7 @@ target_link_libraries(runtime_test
   chainer_compiler_common
   chainerx
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
   pthread

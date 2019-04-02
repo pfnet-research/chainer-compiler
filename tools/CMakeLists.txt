@@ -24,7 +24,7 @@ target_link_libraries(dump
   chainer_compiler_runtime
   chainer_compiler_common
   chainerx
-  protobuf
+  ${PROTOBUF_LIBRARY}
   )
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
@@ -44,7 +44,7 @@ target_link_libraries(run_onnx
   chainerx
   onnx
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
@@ -70,7 +70,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     chainerx
     onnx
     onnx_proto
-    protobuf
+    ${PROTOBUF_LIBRARY}
     pthread
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -96,7 +96,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     chainerx
     onnx
     onnx_proto
-    protobuf
+    ${PROTOBUF_LIBRARY}
     pthread
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -122,7 +122,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       chainerx
       onnx
       onnx_proto
-      protobuf
+      ${PROTOBUF_LIBRARY}
       pthread
       ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
       ${CHAINER_COMPILER_TVM_LIBRARIES}

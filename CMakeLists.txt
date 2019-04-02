@@ -56,6 +56,39 @@ else()
   set(CHAINER_COMPILER_TEST_ALL "")
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+
+# ChainerX will be linked dynamically. Build it before setting
+# visibility flags.
+if (${CHAINER_COMPILER_ENABLE_PYTHON})
+  set(CHAINERX_BUILD_PYTHON ON)
+endif()
+add_subdirectory(third_party/chainer/chainerx_cc)
+
+# TODO(hamaji): Get `set_hidden_(libprotobuf)` work. CMP0063 should do
+# the trick, but `include` without NO_POLICY_SCOPE in protobuf's
+# CMakeLists.txt seems to prevent it from working.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+
+set(protobuf_BUILD_TESTS OFF)
+add_subdirectory(third_party/protobuf/cmake)
+include_directories(third_party/protobuf/src)
+set(PROTOC_EXECUTABLE
+  ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
+set(PROTOBUF_LIBRARY libprotobuf)
+
+set(ONNX_CUSTOM_PROTOC_EXECUTABLE ${PROTOC_EXECUTABLE})
+
 set(ONNX_ML ON)
 set(ONNX_NAMESPACE "chainer_compiler_onnx")
 add_subdirectory(third_party/onnx)
@@ -68,11 +101,6 @@ add_custom_target(onnx_files
 target_compile_definitions(onnx PRIVATE ONNX_API=)
 target_compile_options(onnx PRIVATE -w)
 
-if (${CHAINER_COMPILER_ENABLE_PYTHON})
-  set(CHAINERX_BUILD_PYTHON ON)
-endif()
-
-add_subdirectory(third_party/chainer/chainerx_cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/chainerx_cc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/gsl-lite/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/optional-lite/include)
@@ -82,17 +110,6 @@ enable_testing()
 
 add_definitions(-DONNX_ML=1)
 add_definitions(-DONNX_NAMESPACE=${ONNX_NAMESPACE})
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # OpenCV
 if(${CHAINER_COMPILER_ENABLE_OPENCV})

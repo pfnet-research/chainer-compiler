@@ -16,7 +16,7 @@ add_executable(common_test
 target_link_libraries(common_test
   chainer_compiler_common
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
   pthread
