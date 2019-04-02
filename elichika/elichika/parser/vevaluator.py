@@ -150,7 +150,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     # if attr is not found
     gotten_obj = value_obj.try_get_and_store_obj(astc.nast.attr)
     if gotten_obj is not None:
-        return attr
+        return value_obj.get_field().get_attribute(astc.nast.attr, from_module)
 
     return attr
 
@@ -269,6 +269,133 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     true_id = 'true_' + id_str
     false_id = 'false_' + id_str
 
+    # True
+    values.push_history(true_id)
+
+    true_graph = Graph()
+    true_graph.name = 'True'
+    body = veval_ast(astc.c(astc.nast.body), local_field, true_graph)
+
+    true_value_inputs = values.get_inputs()
+    true_value_outputs = values.get_outputs()
+
+    values.pop_history()
+
+    # False
+    values.push_history(false_id)
+
+    false_graph = Graph()
+    false_graph.name = 'False'
+    body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
+
+    false_value_inputs = values.get_inputs()
+    false_value_outputs = values.get_outputs()
+
+    values.pop_history()
+
+    # generate pairs
+    value_pairs = {}
+    for v in true_value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['true_input_value'] = v.input_value
+        value_pairs[key]['true_input_body_value'] = v.value
+
+    for v in true_value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['true_output_body_value'] = v.value
+
+    for v in false_value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['false_input_value'] = v.input_value
+        value_pairs[key]['false_input_body_value'] = v.value
+
+    for v in false_value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['false_output_body_value'] = v.value
+
+    inputs = []
+    outputs = []
+
+    for k, v in value_pairs.items():
+        name = v['name']
+        field = v['field']
+
+        input_value = None
+        true_input_body_value = None
+        false_input_body_value = None
+            
+        if 'true_input_value' in v:
+            input_value = v['true_input_value']
+        elif 'false_input_value' in v:
+            input_value = v['false_input_value']
+
+        if input_value is not None:
+            if 'true_input_body_value' in v:
+                true_input_body_value = v['true_input_body_value']
+            else:
+                true_input_body_value = functions.generate_value_with_same_type(input_value)
+
+            if 'false_input_body_value' in v:
+                false_input_body_value = v['false_input_body_value']
+            else:
+                false_input_body_value = functions.generate_value_with_same_type(input_value)
+
+        true_output_body_value = None
+        false_output_body_value = None
+        output_value = None
+
+        if 'true_output_body_value' in v:
+            true_output_body_value = v['true_output_body_value']
+        else:
+            true_output_body_value = true_input_body_value
+
+        if 'false_output_body_value' in v:
+            false_output_body_value = v['false_output_body_value']
+        else:
+            false_output_body_value = false_input_body_value
+
+        # TODO check types between true and false
+
+        if true_output_body_value is not None or false_output_body_value is not None:
+            output_value = functions.generate_value_with_same_type(true_output_body_value)
+
+        if input_value is not None:
+            inputs.append(input_value)
+            true_graph.add_input_value(true_input_body_value)
+            false_graph.add_input_value(false_input_body_value)
+
+        if output_value is not None:
+            outputs.append(output_value)
+            true_graph.add_output_value(true_output_body_value)
+            false_graph.add_output_value(false_output_body_value)
+            field.get_attribute(name).revise(values.Object(output_value))
+
+    node = nodes.NodeIf(test_value, inputs, true_graph, false_graph, astc.lineno)
+    node.set_outputs(outputs)
+
+    graph.add_node(node)
+
+    '''
     values.commit(if_id)
 
     # True condition
@@ -496,6 +623,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     for tv, v in non_volatiles:
         node_nv = nodes.NodeNonVolatileAssign(tv, v)
         graph.add_node(node_nv)
+    '''
 
     return None
 
@@ -618,7 +746,9 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     listcomp_guid = str(utils.get_guid())
     listcomp_id = 'listcomp_' + listcomp_guid
     body_id = 'listcomp_body_' + listcomp_guid
-    internal_iter_id = '@internal/iter_' + listcomp_guid
+    internal_counter_id = '@internal/counter_' + listcomp_guid
+    internal_list_id = '@internal/list_' + listcomp_guid
+    internal_cond_id = '@internal/cond_' + listcomp_guid
 
     generator = astc.nast.generators[0]
     iter_value = try_get_value(veval_ast(astc.c(generator.iter), local_field, graph), 'generator', lineprop)
@@ -639,11 +769,115 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         return None
 
     counter_value = values.NumberValue(0)
-    counter_value.name = 'listcomp_counter_' + listcomp_guid
+    counter_value.name = internal_counter_id
 
     cond_value = values.BoolValue(True)
-    cond_value.name = 'listcomp_cond_' + listcomp_guid
+    cond_value.name = internal_cond_id
 
+    # set values with internal name
+    local_field.get_attribute(internal_list_id).revise(list_obj)
+
+    values.push_history(listcomp_id)
+
+    body_graph = Graph()
+    body_graph.name = 'Body_' + listcomp_guid
+
+    node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
+    target_value = values.Value()
+    target_obj = values.Object(target_value)
+    node_forgen.set_outputs([target_value])
+    
+    local_field.get_attribute(target_name).revise(target_obj)
+
+    body_graph.add_node(node_forgen)
+
+    elt = veval_ast(astc.c(astc.nast.elt), local_field, body_graph)
+    elt_obj = try_get_obj(elt, 'listcomp', lineprop)
+
+    farg = functions.FunctionArg()
+    farg.name = ''
+    farg.obj = elt_obj
+
+    append_value = local_field.get_attribute(internal_list_id).get_obj().get_field().get_attribute('append').get_obj().get_value()
+    append_value.func.vcall(local_field.module, body_graph, local_field.get_attribute(internal_list_id).get_obj(), [farg], lineprop)
+
+    value_inputs = values.get_inputs()
+    value_outputs = values.get_outputs()
+
+    values.pop_history()
+
+    inputs = []
+    outputs = []
+
+    # default input for subgraph's input
+    body_graph.add_input_value(counter_value)
+    body_graph.add_input_value(cond_value)
+    body_graph.add_input_value(iter_value)
+
+    # default output for subgraph's output
+    body_graph.add_output_value(cond_value)
+    body_graph.add_output_value(iter_value)
+
+    # default output
+    outputs.append(functions.generate_value_with_same_type(iter_value))
+    
+    # generate pairs
+    value_pairs = {}
+    for v in value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['input_value'] = v.input_value
+        value_pairs[key]['input_body_value'] = v.value
+
+    for v in value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['output_body_value'] = v.value
+
+    # remove iterator
+    removed_name = str(local_field.id) + '_' + target_value.name
+    del value_pairs[removed_name]
+
+    for k, v in value_pairs.items():
+        name = v['name']
+        field = v['field']
+
+        if 'input_body_value' in v:
+            inputs.append(v['input_value'])
+            body_graph.add_input_value(v['input_body_value'])
+        else:
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'])
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'])
+            inputs.append(temp_value1)
+            body_graph.add_input_value(temp_value2)
+
+        if 'output_body_value' in v:
+            body_graph.add_output_value(v['output_body_value'])
+            output_value = functions.generate_value_with_same_type(v['output_body_value'])
+            outputs.append(output_value)
+            field.get_attribute(name).revise(values.Object(output_value))
+        else:
+            temp_value1 = v['input_body_value']
+            temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
+            body_graph.add_output_value(temp_value1)
+            outputs.append(temp_value2)
+
+    node = nodes.NodeListcomp(iter_value, inputs, body_graph, astc.lineno)
+    node.set_outputs(outputs)
+
+    graph.add_node(node)
+
+    return local_field.get_attribute(internal_list_id).get_obj()
+
+    '''
     body_field = values.Field()
     body_field.set_module(local_field.module)
     body_field.set_parent(local_field)
@@ -827,6 +1061,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         return body_field.get_attribute(internal_iter_id).get_obj()
     else:
         return list_obj
+    '''
 
 def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     """
@@ -1042,7 +1277,8 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     for_guid = utils.get_guid()
     for_id = 'for_' + str(for_guid)
     body_id = 'body_' + str(for_guid)
-    values.commit(for_id)
+
+    values.push_history(for_id)
 
     # body
     body_graph = Graph()
@@ -1077,8 +1313,78 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     # veval body
     body = veval_ast(astc.c(astc.nast.body), local_field, body_graph)
 
-    values.commit(body_id)
+    value_inputs = values.get_inputs()
+    value_outputs = values.get_outputs()
 
+    values.pop_history()
+
+    inputs = []
+    outputs = []
+
+    # default input for subgraph's input
+    body_graph.add_input_value(counter_value)
+    body_graph.add_input_value(cond_value)
+    body_graph.add_input_value(iter_value)
+
+    # default output for subgraph's output
+    body_graph.add_output_value(cond_value)
+    body_graph.add_output_value(iter_value)
+
+    # default output
+    outputs.append(functions.generate_value_with_same_type(iter_value))
+    
+    # generate pairs
+    value_pairs = {}
+    for v in value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['input_value'] = v.input_value
+        value_pairs[key]['input_body_value'] = v.value
+
+    for v in value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
+
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['output_body_value'] = v.value
+
+    for k, v in value_pairs.items():
+        name = v['name']
+        field = v['field']
+
+        if 'input_body_value' in v:
+            inputs.append(v['input_value'])
+            body_graph.add_input_value(v['input_body_value'])
+        else:
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'])
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'])
+            inputs.append(temp_value1)
+            body_graph.add_input_value(temp_value2)
+
+        if 'output_body_value' in v:
+            body_graph.add_output_value(v['output_body_value'])
+            output_value = functions.generate_value_with_same_type(v['output_body_value'])
+            outputs.append(output_value)
+            field.get_attribute(name).revise(values.Object(output_value))
+        else:
+            temp_value1 = v['input_body_value']
+            temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
+            body_graph.add_output_value(temp_value1)
+            outputs.append(temp_value2)
+
+    node = nodes.NodeFor(iter_value, inputs, body_graph, astc.lineno)
+    node.set_outputs(outputs)
+
+    graph.add_node(node)
+
+
+    '''
     # get changed attributes
     body_input_attributes = get_input_attritubtes(local_field, for_id, body_id)
     body_output_attributes = get_output_attritubtes(local_field, for_id, body_id)
@@ -1228,6 +1534,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     for tv, v in non_volatiles:
         node_nv = nodes.NodeNonVolatileAssign(tv, v)
         graph.add_node(node_nv)
+    '''
 
     return None
 
