@@ -18,73 +18,45 @@ from elichika.parser import functions_builtin
 from elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
-attributes = []
-registered_objects = []
-history_tags = []
-access_guid = 0
+histories = []
 
 def reset_field_and_attributes():
     global fields
-    global attributes
-    global registered_objects
-    global history_tags
-    global access_guid
-
     fields = []
-    attributes = []
-    registered_objects = []
-    history_tags = []
-    access_guid = 0
-
-def get_access_guid() -> 'int':
-    global access_guid
-    ret = access_guid
-    access_guid += 1
-    return ret
+    histories.clear()
 
 def register_field(field : 'Field'):
     fields.append(weakref.ref(field))
 
-def register_attribute(attribute : 'Attribute'):
-    attributes.append(weakref.ref(attribute))
-
-def register_object(value : 'Object'):
-    registered_objects.append(weakref.ref(value))
-
-def commit(commit_id : 'str'):
-    if not commit_id in history_tags:
-        history_tags.append(commit_id)
-
+def push_history(history_id : 'str'):
+    histories.append(history_id)
     for field in fields:
         o = field()
         if o is not None:
-            o.commit(commit_id)
+            o.push_history(history_id)
 
-    for attribute in attributes:
-        o = attribute()
-        if o is not None:
-            o.commit(commit_id)
-
-    for registered_object in registered_objects:
-        o = registered_object()
-        if o is not None:
-            o.commit(commit_id)
-
-def checkout(commit_id : 'str'):
+def pop_history():
+    histories.pop()
     for field in fields:
         o = field()
         if o is not None:
-            o.checkout(commit_id)
+            o.pop_history()
 
-    for attribute in attributes:
-        o = attribute()
+def get_inputs() -> 'List[FieldInput]':
+    ret = []    
+    for field in fields:
+        o = field()
         if o is not None:
-            o.checkout(commit_id)
+            ret += o.get_inputs()
+    return ret
 
-    for registered_object in registered_objects:
-        o = registered_object()
+def get_outputs() -> 'List[FieldOutput]':
+    ret = []    
+    for field in fields:
+        o = field()
         if o is not None:
-            o.checkout(commit_id)
+            ret += o.get_outputs()
+    return ret
 
 def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "Object":
     from elichika.parser import values_builtin
@@ -161,13 +133,104 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
     model_inst = UserDefinedInstance(default_module, instance, None, isinstance(instance, chainer.Link))
     return Object(model_inst)
 
+class FieldInput:
+    def __init__(self):
+        self.input_value = None
+        self.field = None
+        self.name = None
+        self.value = None
+
+class FieldOutput:
+    def __init__(self):
+        self.field = None
+        self.name = None
+        self.value = None
+
+class FieldAttributeCollection():
+    def __init__(self, id : 'str', parent: 'FieldAttributeCollection'):
+        self.id = id
+        self.parent = parent
+        self.attributes = {}
+        self.inputs = {}
+
+    def try_get_attribute(self, key : 'str'):
+        if key in self.attributes.keys():
+            return self.attributes[key]
+
+        # search from parent
+        if self.parent is None:
+            return None
+
+        parent_attribute = self.parent.try_get_attribute(key)
+        if parent_attribute is None:
+            return None
+
+        attribute = Attribute(key)
+        attribute.parent = parent_attribute.parent
+
+        # instance or func
+        if isinstance(parent_attribute.get_obj().get_value(), Instance) or isinstance(parent_attribute.get_obj().get_value(), FuncValue) or isinstance(parent_attribute.get_obj().get_value(), ModuleValue):
+            attribute.revise(parent_attribute.get_obj())
+            self.attributes[key] = attribute
+            return attribute
+
+        # input
+        value = parent_attribute.get_obj().get_value()
+
+        copied_value = functions.generate_copied_value(value)
+        attribute.revise(Object(copied_value))
+
+        self.attributes[key] = attribute
+        self.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), value, copied_value)
+
+        return attribute
+
+    def get_inputs(self) -> 'List[FieldInput]':
+        '''
+        return [(input value, copied input value)]
+        '''
+        ret = []
+        for att, input in self.inputs.items():
+            fi = FieldInput()
+            fi.name = att.name
+            fi.field = att.parent
+            fi.input_value = input[2]
+            fi.value = input[3]
+            ret.append(fi)
+        return ret
+
+    def get_outputs(self) -> 'List[FieldOutput]':
+        '''
+        return [(field,key,value)]
+        '''
+        ret = []
+
+        for key, att in self.attributes.items():
+
+            # instance or func
+            if isinstance(att.get_obj().get_value(), Instance) or isinstance(att.get_obj().get_value(), FuncValue) or isinstance(att.get_obj().get_value(), ModuleValue):
+                continue
+
+            if (not (att in self.inputs.keys())) or att.get_obj() != self.inputs[att][0] or att.get_obj().get_value() != self.inputs[att][1]:
+                fo = FieldOutput()
+                fo.name = att.name
+                fo.field = att.parent
+                fo.value = att.get_obj().get_value()
+                ret.append(fo)
+
+        return ret
+
 class Field():
     def __init__(self):
-        self.attributes = {}
-        self.module = None
-        self.parent = None
+        self.collection = FieldAttributeCollection('', None)
+        histories_ = histories.copy()
+        histories_.reverse()
 
-        self.rev_attributes = {}
+        for history in histories_:
+            collection = FieldAttributeCollection(history, self.collection)
+            self.collection = collection
+
+        self.module = None
         self.id = utils.get_guid()
 
         register_field(self)
@@ -175,55 +238,86 @@ class Field():
     def set_module(self, module):
         self.module = module
 
-    def set_parent(self, parent):
-        self.parent = parent
-
     def get_field(self) -> 'Field':
         return self
 
     def has_attribute(self, key) -> 'Boolean':
+        c = self.collection
 
-        if key in self.attributes.keys():
-            return True
-
+        while c is not None:
+            if key in c.attributes.keys():
+                return True
+            c = c.parent
+            
         return False
 
     def get_attribute(self, key : 'str', from_module = True) -> 'Attribute':
-        if key in self.attributes.keys():
-            return self.attributes[key]
-        else:
-            # search an attribute from parents
-            attribute = None
-            if self.parent is not None and self.parent.has_attribute(key):
-                attribute = self.parent.get_attribute(key)
+        attribute = self.collection.try_get_attribute(key)
 
-            if attribute is not None:
-                return attribute
-
-            # search an attribute from a module
-            if self.module is not None and self.module.has_attribute(key) and from_module:
-                attribute = self.module.get_attribute(key)
-
-            if attribute is not None:
-                return attribute
-
-            attribute = Attribute(key)
-            attribute.parent = self
-            self.attributes[key] = attribute
+        if attribute is not None:
             return attribute
 
-    def commit(self, commit_id : 'str'):
-        self.rev_attributes[commit_id] = self.attributes.copy()
+        # search an attribute from a module
+        if self.module is not None and self.module.has_attribute(key) and from_module:
+            attribute = self.module.get_attribute(key)
 
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.rev_attributes:
-            self.attributes = self.rev_attributes[commit_id].copy()
-        else:
-            self.attributes = {}
+        if attribute is not None:
+            return attribute
+
+        attribute = Attribute(key)
+        attribute.parent = self
+        self.collection.attributes[key] = attribute
+        return attribute
+
+    def push_history(self, history_id : 'str'):
+        collection = FieldAttributeCollection(history_id, self.collection)
+        self.collection = collection
+
+    def pop_history(self):
+        self.collection = self.collection.parent
+        if self.collection is None:
+            self.collection = FieldAttributeCollection('', None)
+
+    def get_inputs(self):
+        return self.collection.get_inputs()
+
+    def get_outputs(self):
+        return self.collection.get_outputs()
 
     def set_default_value(self, key, value):
         attribute = self.get_attribute(key)
         attribute.revise(value)
+        
+    def set_predefined_obj(self, key, obj):
+        collections = []
+        c = self.collection
+
+        while True:
+            collections.append(c)
+            c = c.parent
+            if c is None:
+                break
+
+        collections.reverse()
+
+        old_value = None
+        value = None
+
+        for collection in collections:
+            attribute = Attribute(key)
+            attribute.parent = self
+            attribute.revise(obj)
+            collection.attributes[key] = attribute
+
+            if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
+                continue
+
+            if old_value is not None:            
+                collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), old_value, value)
+
+            old_value = obj.get_value()
+            value = functions.generate_copied_value(old_value)
+            obj = Object(value)
 
 class Module(Field):
     def __init__(self, module):
@@ -285,8 +379,6 @@ class Attribute:
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
 
-        register_field(self)
-
     def revise(self, obj : 'Object'):
         assert(isinstance(obj, Object))
 
@@ -306,50 +398,8 @@ class Attribute:
     def get_obj(self, inc_access = True):
         assert len(self.history) > 0
         if inc_access:
-            self.access_num = get_access_guid()
-        return self.history[-1].obj
-
-    def commit(self, commit_id : 'str'):
-        self.rev_history[commit_id] = self.history.copy()
-        self.rev_access_num[commit_id] = self.access_num
-
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.rev_history:
-            self.history = self.rev_history[commit_id].copy()
-            self.access_num = self.rev_access_num[commit_id]
-        else:
-            self.history = []
             self.access_num = 0
-
-    def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
-        if not commit_id1 in self.rev_history.keys() and not commit_id2 in self.rev_history.keys():
-            return False
-
-        if commit_id1 in self.rev_history.keys() and not commit_id2 in self.rev_history.keys():
-            return True
-
-        if not commit_id1 in self.rev_history.keys() and commit_id2 in self.rev_history.keys():
-            return True
-
-        if len(self.rev_history[commit_id1]) != len(self.rev_history[commit_id2]):
-            return True
-        for i in range(len(self.rev_history[commit_id1])):
-            if self.rev_history[commit_id1][i] != self.rev_history[commit_id2][i]:
-                return True
-
-        return False
-
-    def has_accessed(self, commit_id1 : 'str', commit_id2 : 'str'):
-        if not commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
-            return False
-
-        if commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
-            return False
-
-        if not commit_id1 in self.rev_access_num.keys() and commit_id2 in self.rev_access_num.keys():
-            return False
-
-        return self.rev_access_num[commit_id1] != self.rev_access_num[commit_id2]
+        return self.history[-1].obj
 
     def __str__(self):
         return self.name
@@ -363,45 +413,8 @@ class Object():
         self.name = ""
         self.value = value
         self.id = utils.get_guid()
-        self.histories = {}
         self.attributes = Field()
         self.value.apply_to_object(self)
-        register_object(self)
-
-    def revise(self, value):
-        self.value = value
-
-    def set_value_all(self, value):
-        '''
-        set value to current and all histories.
-        this function is for try_get_obj
-        '''
-        self.value = value
-
-        for k, v in self.histories.items():
-            v.value = value
-
-        for history_tag in history_tags:
-            if not history_tag in self.histories.keys():
-                self.histories[history_tag] = ObjectHistory(self.value)
-
-    def commit(self, commit_id : 'str'):
-        self.histories[commit_id] = ObjectHistory(self.value)
-
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.histories:
-            self.value = self.histories[commit_id].value
-        else:
-            self.value = None
-
-    def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
-        if not commit_id1 in self.histories and not commit_id2 in self.histories:
-            return False
-        if not commit_id1 in self.histories and commit_id2 in self.histories:
-            return True
-        if commit_id1 in self.histories and not commit_id2 in self.histories:
-            return True
-        return self.histories[commit_id1].value != self.histories[commit_id2].value
 
     def get_field(self) -> 'Field':
         return self.attributes
@@ -409,10 +422,8 @@ class Object():
     def get_value(self) -> 'Value':
         return self.value
 
-    def get_value_log(self, commit_id):
-        if commit_id in self.histories.keys():
-            return self.histories[commit_id].value
-        return None
+    def revise(self, value):
+        self.value = value
 
     def try_get_and_store_obj(self, name : 'str') -> 'Object':
 
@@ -425,9 +436,7 @@ class Object():
         if obj is None:
             return None
 
-        attribute.is_non_volatile = True
-        attribute.revise(obj)
-
+        self.attributes.set_predefined_obj(name, obj)
         return obj
 
 class Value():
@@ -594,8 +603,5 @@ class UserDefinedInstance(Instance):
                 return None
 
             obj = parse_instance(self.module, name, members_dict[name], inst)
-
-        # it is for calling this function in if or for
-        obj.set_value_all(obj.value)
 
         return obj
