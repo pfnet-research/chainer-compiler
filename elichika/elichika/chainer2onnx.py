@@ -639,10 +639,17 @@ class ONNXGenerator:
                         if not isinstance(value, values.Value):
                             continue
                         generate_tensor(value)
+                return tensor
 
             for output in outputs_:
                 if not (value2onnx_parameter[output].onnx_name in self.onnx_tensors.keys()):
-                    generate_tensor(output)
+                    t = generate_tensor(output)
+
+                    # TODO improve
+                    if output.generator is None:
+                        tensor = numpy_helper.from_array(np.array(output.internal_value), name=value2onnx_parameter[output].onnx_name)
+                        onnx_node = oh.make_node('Constant', [], [t.name], value=tensor)
+                        onnx_graph.nodes.append(onnx_node)
 
         generate_input_tensors(inputs)
 
