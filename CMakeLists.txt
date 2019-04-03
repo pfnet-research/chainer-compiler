@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+ cmake_minimum_required(VERSION 3.4)
 
 if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
@@ -6,45 +6,45 @@ endif()
 
 execute_process(COMMAND git submodule update --init)
 
-list (INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
 # Sets default settings from the associated env-var if existed.
 # Usage:
-#   set_option_ (FOO "Option FOO")
+#   set_option_(FOO "Option FOO")
 # is equivalent to:
-#   if (DEFINED ENV{FOO})
-#       option (FOO "Option FOO" $ENV{FOO})
-#   else ()
-#       option (FOO "Option FOO" OFF)
-#   endif ()
-function (set_option_ var_ desc_)
-    if (DEFINED ENV{${var_}})
-        set (def_ $ENV{${var_}})
-        message (STATUS "# ${var_} = $ENV{${var_}}")
-    else ()
-        set (def_ OFF)
-    endif ()
-    option (${var_} ${desc_} ${def_})
-endfunction ()
+#   if(DEFINED ENV{FOO})
+#       option(FOO "Option FOO" $ENV{FOO})
+#   else()
+#       option(FOO "Option FOO" OFF)
+#   endif()
+function(set_option_ var_ desc_)
+  if(DEFINED ENV{${var_}})
+    set(def_ $ENV{${var_}})
+    message(STATUS "# ${var_} = $ENV{${var_}}")
+  else()
+    set(def_ OFF)
+  endif()
+  option(${var_} ${desc_} ${def_})
+endfunction()
 
-function (set_hidden_ lib_)
+function(set_hidden_ lib_)
   set_target_properties(
     ${lib_} PROPERTIES CXX_VISIBILITY_PRESET hidden)
   set_target_properties(
     ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
-endfunction ()
+endfunction()
 
 
-set_option_ (CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
-set_option_ (CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
-set_option_ (CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")
-set_option_ (CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC")
-set_option_ (CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV")
-set_option_ (CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
-set_option_ (CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
-set_option_ (CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
+set_option_(CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
+set_option_(CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
+set_option_(CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")
+set_option_(CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC")
+set_option_(CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV")
+set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
+set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
+set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
 
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
 
@@ -70,7 +70,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
 # ChainerX will be linked dynamically. Build it before setting
 # visibility flags.
-if (${CHAINER_COMPILER_ENABLE_PYTHON})
+if(${CHAINER_COMPILER_ENABLE_PYTHON})
   set(CHAINERX_BUILD_PYTHON ON)
 endif()
 add_subdirectory(third_party/chainer/chainerx_cc)
@@ -81,7 +81,7 @@ add_subdirectory(third_party/chainer/chainerx_cc)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 
-if (${CHAINER_COMPILER_USE_SYSTEM_PROTOBUF})
+if(${CHAINER_COMPILER_USE_SYSTEM_PROTOBUF})
   set(PROTOC_EXECUTABLE protoc)
   set(PROTOBUF_LIBRARY protobuf)
 else()
@@ -183,7 +183,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx ${CMAKE_CURRENT
 
 add_custom_target(large_tests)
 
-if (${CHAINER_COMPILER_ENABLE_PYTHON})
+if(${CHAINER_COMPILER_ENABLE_PYTHON})
   include_directories(${CMAKE_BINARY_DIR}/third_party/chainer/chainerx_cc/pybind11/include)
   add_subdirectory(python)
 endif()
