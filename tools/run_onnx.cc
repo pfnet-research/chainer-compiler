@@ -479,6 +479,7 @@ void RunMain(const std::vector<std::string>& argv) {
     int iterations = args.get<int>("iterations");
     CHECK_LT(0, iterations);
     if (iterations > 1) {
+        test_cases.resize(1);
         std::vector<std::unique_ptr<TestCase>> new_test_cases;
         for (int i = 0; i < iterations; ++i) {
             for (auto& test : test_cases) {
