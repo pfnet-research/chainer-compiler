@@ -82,6 +82,9 @@ add_dependencies(
   runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h gen_onnx_proto
   )
 set_hidden_(chainer_compiler_compiler)
+target_compile_options(
+  chainer_compiler_compiler PRIVATE
+  -Walloc-size-larger-than=-1)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(compiler_test
