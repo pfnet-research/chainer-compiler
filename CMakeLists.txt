@@ -395,7 +395,7 @@ function(gen_elichika_test dir all)
   add_custom_command(
     OUTPUT ${out_stamp}
     COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/elichika python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
-    DEPENDS ${elichika_tests_py} ${test_files}
+    DEPENDS ${elichika_tests_py} ${test_files} ${ELICHIKA_FILES}
     )
 
   message(${out_stamp})
