@@ -21,9 +21,7 @@ target_link_libraries(dump
   onnx_proto
   chainer_compiler_tools
   chainer_compiler_compiler
-  chainer_compiler_runtime
   chainer_compiler_common
-  chainerx
   ${PROTOBUF_LIBRARY}
   )
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
