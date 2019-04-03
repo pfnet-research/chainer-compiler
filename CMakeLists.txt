@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+ cmake_minimum_required(VERSION 3.4)
 
 if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
@@ -6,44 +6,49 @@ endif()
 
 execute_process(COMMAND git submodule update --init)
 
-list (INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
 # Sets default settings from the associated env-var if existed.
 # Usage:
-#   set_option_ (FOO "Option FOO")
+#   set_option_(FOO "Option FOO")
 # is equivalent to:
-#   if (DEFINED ENV{FOO})
-#       option (FOO "Option FOO" $ENV{FOO})
-#   else ()
-#       option (FOO "Option FOO" OFF)
-#   endif ()
-function (set_option_ var_ desc_)
-    if (DEFINED ENV{${var_}})
-        set (def_ $ENV{${var_}})
-        message (STATUS "# ${var_} = $ENV{${var_}}")
-    else ()
-        set (def_ OFF)
-    endif ()
-    option (${var_} ${desc_} ${def_})
-endfunction ()
+#   if(DEFINED ENV{FOO})
+#       option(FOO "Option FOO" $ENV{FOO})
+#   else()
+#       option(FOO "Option FOO" OFF)
+#   endif()
+function(set_option_ var_ desc_)
+  if(DEFINED ENV{${var_}})
+    set(def_ $ENV{${var_}})
+    message(STATUS "# ${var_} = $ENV{${var_}}")
+  else()
+    set(def_ OFF)
+  endif()
+  option(${var_} ${desc_} ${def_})
+endfunction()
 
-function (set_hidden_ lib_)
+# Ref: https://github.com/edsiper/cmake-options
+function(set_subdirectory_option_ option value)
+  set(${option} ${value} CACHE "" INTERNAL FORCE)
+endfunction()
+
+function(set_hidden_ lib_)
   set_target_properties(
     ${lib_} PROPERTIES CXX_VISIBILITY_PRESET hidden)
   set_target_properties(
     ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
-endfunction ()
+endfunction()
 
-
-set_option_ (CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
-set_option_ (CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
-set_option_ (CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")
-set_option_ (CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC")
-set_option_ (CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV")
-set_option_ (CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
-set_option_ (CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
+set_option_(CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
+set_option_(CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
+set_option_(CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")
+set_option_(CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC")
+set_option_(CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV")
+set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
+set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
+set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
 
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
 
@@ -56,33 +61,6 @@ else()
   set(CHAINER_COMPILER_TEST_ALL "")
 endif()
 
-set(ONNX_ML ON)
-set(ONNX_NAMESPACE "chainer_compiler_onnx")
-add_subdirectory(third_party/onnx)
-add_custom_target(onnx_files
-  DEPENDS
-  ${CMAKE_CURRENT_BINARY_DIR}/third_party/onnx/onnx/onnx_chainer_compiler_onnx-ml.pb.h
-  )
-# It seems `onnx` target compiles onnx*.pb.cc. As this will let other
-# files produce warnings, we suppress all warnings from ONNX by -w.
-target_compile_definitions(onnx PRIVATE ONNX_API=)
-target_compile_options(onnx PRIVATE -w)
-
-if (${CHAINER_COMPILER_ENABLE_PYTHON})
-  set(CHAINERX_BUILD_PYTHON ON)
-endif()
-
-add_subdirectory(third_party/chainer/chainerx_cc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/chainerx_cc)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/gsl-lite/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/optional-lite/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/googletest-src/googletest/include)
-
-enable_testing()
-
-add_definitions(-DONNX_ML=1)
-add_definitions(-DONNX_NAMESPACE=${ONNX_NAMESPACE})
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
@@ -94,25 +72,59 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
+# ChainerX will be linked dynamically. Build it before setting
+# visibility flags.
+if(${CHAINER_COMPILER_ENABLE_PYTHON})
+  set_subdirectory_option_(CHAINERX_BUILD_PYTHON ON)
+endif()
+add_subdirectory(third_party/chainer/chainerx_cc)
+
+# TODO(hamaji): Get `set_hidden_(libprotobuf)` work. CMP0063 should do
+# the trick, but `include` without NO_POLICY_SCOPE in protobuf's
+# CMakeLists.txt seems to prevent it from working.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+
+if(${CHAINER_COMPILER_USE_SYSTEM_PROTOBUF})
+  set(PROTOC_EXECUTABLE protoc)
+  set(PROTOBUF_LIBRARY protobuf)
+else()
+  set_subdirectory_option_(protobuf_BUILD_TESTS OFF)
+  add_subdirectory(third_party/protobuf/cmake EXCLUDE_FROM_ALL)
+  include_directories(third_party/protobuf/src)
+  set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
+  set(PROTOBUF_LIBRARY libprotobuf)
+endif()
+
+set(ONNX_CUSTOM_PROTOC_EXECUTABLE ${PROTOC_EXECUTABLE})
+
+set(ONNX_ML ON)
+set(ONNX_NAMESPACE "chainer_compiler_onnx")
+add_subdirectory(third_party/onnx)
+# It seems `onnx` target compiles onnx*.pb.cc. As this will let other
+# files produce warnings, we suppress all warnings from ONNX by -w.
+target_compile_definitions(onnx PRIVATE ONNX_API=)
+target_compile_options(onnx PRIVATE -w)
+add_dependencies(gen_onnx_proto protoc)
+add_dependencies(gen_onnx_operators_proto protoc)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/chainerx_cc)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/gsl-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/optional-lite/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/googletest-src/googletest/include)
+
+enable_testing()
+
+add_definitions(-DONNX_ML=1)
+add_definitions(-DONNX_NAMESPACE=${ONNX_NAMESPACE})
+
 # OpenCV
 if(${CHAINER_COMPILER_ENABLE_OPENCV})
   find_package(OpenCV REQUIRED)
 endif()
 
-if(POLICY ${CMP0077})
-  # Make both chainer-compiler and ChainerX consistent.
-  set(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_BUILD_CUDA})
-else()
-  if(${CHAINER_COMPILER_BUILD_CUDA})
-    if(NOT ${CHAINERX_BUILD_CUDA})
-      message(FATAL_ERROR "Please set -DCHAINERX_BUILD_CUDA=ON when -DCHAINER_COMPILER_ENABLE_CUDA is ON")
-    endif()
-  else()
-    if(${CHAINERX_BUILD_CUDA})
-      message(FATAL_ERROR "Please set -DCHAINERX_BUILD_CUDA=OFF when -DCHAINER_COMPILER_ENABLE_CUDA is OFF")
-    endif()
-  endif()
-endif()
+# Make both chainer-compiler and ChainerX consistent.
+set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_BUILD_CUDA})
 
 # CUDA
 if(${CHAINER_COMPILER_BUILD_CUDA})
@@ -163,7 +175,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx ${CMAKE_CURRENT
 
 add_custom_target(large_tests)
 
-if (${CHAINER_COMPILER_ENABLE_PYTHON})
+if(${CHAINER_COMPILER_ENABLE_PYTHON})
   include_directories(${CMAKE_BINARY_DIR}/third_party/chainer/chainerx_cc/pybind11/include)
   add_subdirectory(python)
 endif()

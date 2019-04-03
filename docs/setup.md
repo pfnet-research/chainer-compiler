@@ -104,9 +104,9 @@ $ ./setup.sh
 $ mkdir -p build
 $ cd build
 
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=ON -DCHAINERX_BUILD_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
+$ cmake -DCHAINER_COMPILER_BUILD_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
 or
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF -DCHAINERX_BUILD_CUDA=OFF ..
+$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF ..
 
 $ make
 ```

@@ -79,7 +79,7 @@ add_library(chainer_compiler_compiler
   )
 add_dependencies(
   chainer_compiler_compiler
-  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h onnx_files
+  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h gen_onnx_proto
   )
 set_hidden_(chainer_compiler_compiler)
 
@@ -106,7 +106,7 @@ target_link_libraries(compiler_test
   chainerx
   onnx
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
   pthread
