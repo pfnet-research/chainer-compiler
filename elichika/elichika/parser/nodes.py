@@ -107,7 +107,7 @@ class NodeNonVolatileAssign(Node):
 class NodeAssign(Node):
     def __init__(self, attr : 'values.Attribute', obj : 'values.Object', line = -1):
         assert(isinstance(obj,values.Object))
-        
+
         super().__init__(line)
         self.targets = []
         self.objects = []

@@ -129,7 +129,7 @@ class VEvalOption:
 def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Attribute))
     lineprop = utils.LineProperty(astc.lineno)
-    
+
     from_module = True
     if option is not None and option.eval_as_written_target:
         from_module = False
@@ -517,13 +517,13 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
 
     node_aug_assign = nodes.NodeAugAssign(target_value, value_value, binop, astc.lineno)
     graph.add_node(node_aug_assign)
-    
+
     # TODO : estimate type
 
     new_value = functions.generate_value_with_same_type(target_value)
     node_aug_assign.set_outputs([new_value])
     target.get_obj().revise(new_value)
-        
+
 def veval_ast_expr(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     '''
     call a function without not assigning
@@ -660,7 +660,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     target_value = values.Value()
     target_obj = values.Object(target_value)
     node_forgen.set_outputs([target_value])
-    
+
     body_field.get_attribute(target_name).revise(target_obj)
 
     body_graph.add_node(node_forgen)
@@ -757,7 +757,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     # default output
     outputs.append(functions.generate_value_with_same_type(iter_value))
-    
+
     for attributes in name2attributes.values():
         name = ''
         parent = None
@@ -888,7 +888,7 @@ def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph 
 
     operand = veval_ast(astc.c(astc.nast.operand), local_field, graph)
     operand_value = try_get_value(operand, 'unary', lineprop)
-    
+
     node = nodes.NodeUnaryOp(operand_value, unaryop)
 
     ret_value = veval_unary.veval(unaryop, operand_value)
@@ -949,7 +949,7 @@ def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     lineprop = utils.LineProperty(astc.lineno)
     value = values.NumberValue(astc.nast.n)
     ret = values.Object(value)
-    
+
     name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
     ret.name = name
     ret.get_value().name = name
@@ -963,7 +963,7 @@ def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     lineprop = utils.LineProperty(astc.lineno)
     value = values.StrValue(astc.nast.s)
     ret = values.Object(value)
-    
+
     name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
     ret.name = name
     ret.get_value().name = name
@@ -1058,7 +1058,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # create a node to lookup a value from sequence
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
-    
+
     # estimate type
     # TODO : more types
     if isinstance(iter_value, values.RangeValue):
@@ -1162,7 +1162,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # default output
     outputs.append(functions.generate_value_with_same_type(iter_value))
-    
+
     for attributes in name2attributes.values():
         name = ''
         parent = None
@@ -1211,7 +1211,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             continue
         if changed_value_in in inputs:
             continue
-            
+
         inputs.append(changed_value_in)
         body_graph.add_input_value(changed_value_in)
         body_graph.add_output_value(changed_value_out)

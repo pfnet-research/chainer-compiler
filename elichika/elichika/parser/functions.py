@@ -18,7 +18,7 @@ from elichika.parser import config
 
 def generate_copied_value(value : 'values.Value'):
     assert(isinstance(value,values.Value))
-    
+
     if isinstance(value, values.NumberValue):
         copied = values.NumberValue(value.internal_value)
         copied.dtype = value.dtype
