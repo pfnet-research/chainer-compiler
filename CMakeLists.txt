@@ -86,7 +86,7 @@ if (${CHAINER_COMPILER_USE_SYSTEM_PROTOBUF})
   set(PROTOBUF_LIBRARY protobuf)
 else()
   set(protobuf_BUILD_TESTS OFF)
-  add_subdirectory(third_party/protobuf/cmake)
+  add_subdirectory(third_party/protobuf/cmake EXCLUDE_FROM_ALL)
   include_directories(third_party/protobuf/src)
   set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
   set(PROTOBUF_LIBRARY libprotobuf)
@@ -105,6 +105,8 @@ add_custom_target(onnx_files
 # files produce warnings, we suppress all warnings from ONNX by -w.
 target_compile_definitions(onnx PRIVATE ONNX_API=)
 target_compile_options(onnx PRIVATE -w)
+add_dependencies(gen_onnx_proto protoc)
+add_dependencies(gen_onnx_operators_proto protoc)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/chainerx_cc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/gsl-lite/include)

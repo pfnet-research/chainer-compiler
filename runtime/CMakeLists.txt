@@ -19,7 +19,7 @@ add_custom_command(
     ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py
     ${CMAKE_CURRENT_SOURCE_DIR}/xcvm_defs.py
     ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl
-    ${PROTOC_EXECUTABLE}
+    protoc
     )
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
 
