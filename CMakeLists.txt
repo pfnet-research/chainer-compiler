@@ -44,6 +44,7 @@ set_option_ (CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC")
 set_option_ (CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV")
 set_option_ (CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
 set_option_ (CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
+set_option_ (CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
 
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
 
@@ -80,12 +81,16 @@ add_subdirectory(third_party/chainer/chainerx_cc)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 
-set(protobuf_BUILD_TESTS OFF)
-add_subdirectory(third_party/protobuf/cmake)
-include_directories(third_party/protobuf/src)
-set(PROTOC_EXECUTABLE
-  ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
-set(PROTOBUF_LIBRARY libprotobuf)
+if (${CHAINER_COMPILER_USE_SYSTEM_PROTOBUF})
+  set(PROTOC_EXECUTABLE protoc)
+  set(PROTOBUF_LIBRARY protobuf)
+else()
+  set(protobuf_BUILD_TESTS OFF)
+  add_subdirectory(third_party/protobuf/cmake)
+  include_directories(third_party/protobuf/src)
+  set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
+  set(PROTOBUF_LIBRARY libprotobuf)
+endif()
 
 set(ONNX_CUSTOM_PROTOC_EXECUTABLE ${PROTOC_EXECUTABLE})
 
