@@ -110,7 +110,7 @@ def reset_test_generator(args):
     get_test_args(args)
 
 
-def generate_testcase(model, xs, subname=None, output_dir=None,
+def generate_testcase(model_or_model_gen, xs, subname=None, output_dir=None,
                       backprop=False):
     if output_dir is None:
         args = get_test_args()
@@ -134,9 +134,10 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
         os.makedirs(output_dir)
 
     def get_model():
-        if isinstance(model, type) or isinstance(model, types.FunctionType):
-            return model()
-        return model
+        if (isinstance(model_or_model_gen, type) or
+            isinstance(model_or_model_gen, types.FunctionType)):
+            return model_or_model_gen()
+        return model_or_model_gen
 
     model = get_model()
     chainer.config.train = backprop
