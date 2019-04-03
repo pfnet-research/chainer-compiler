@@ -144,12 +144,7 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
     ys = model(*xs)
     chainer_out = validate_chainer_output(ys)
 
-    if list(model.params()):
-        chainer.serializers.save_npz(os.path.join(output_dir, 'chainer_model.npz'), model)
     model = get_model()
-    if list(model.params()):
-        chainer.serializers.load_npz(os.path.join(output_dir, 'chainer_model.npz'), model)
-
     onnxmod = compile_model(model, xs)
     input_tensors = onnxmod.inputs
     output_tensors = onnxmod.outputs
