@@ -66,7 +66,7 @@ add_library(chainer_compiler_runtime
   )
 add_dependencies(
   chainer_compiler_runtime
-  runtime_xcvm_pb_h onnx_files
+  runtime_xcvm_pb_h gen_onnx_proto
   )
 set_hidden_(chainer_compiler_runtime)
 

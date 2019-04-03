@@ -97,10 +97,6 @@ set(ONNX_CUSTOM_PROTOC_EXECUTABLE ${PROTOC_EXECUTABLE})
 set(ONNX_ML ON)
 set(ONNX_NAMESPACE "chainer_compiler_onnx")
 add_subdirectory(third_party/onnx)
-add_custom_target(onnx_files
-  DEPENDS
-  ${CMAKE_CURRENT_BINARY_DIR}/third_party/onnx/onnx/onnx_chainer_compiler_onnx-ml.pb.h
-  )
 # It seems `onnx` target compiles onnx*.pb.cc. As this will let other
 # files produce warnings, we suppress all warnings from ONNX by -w.
 target_compile_definitions(onnx PRIVATE ONNX_API=)
