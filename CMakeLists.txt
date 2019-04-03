@@ -29,13 +29,17 @@ function(set_option_ var_ desc_)
   option(${var_} ${desc_} ${def_})
 endfunction()
 
+# Ref: https://github.com/edsiper/cmake-options
+function(set_subdirectory_option_ option value)
+  set(${option} ${value} CACHE "" INTERNAL FORCE)
+endfunction()
+
 function(set_hidden_ lib_)
   set_target_properties(
     ${lib_} PROPERTIES CXX_VISIBILITY_PRESET hidden)
   set_target_properties(
     ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endfunction()
-
 
 set_option_(CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
 set_option_(CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
@@ -71,7 +75,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 # ChainerX will be linked dynamically. Build it before setting
 # visibility flags.
 if(${CHAINER_COMPILER_ENABLE_PYTHON})
-  set(CHAINERX_BUILD_PYTHON ON)
+  set_subdirectory_option_(CHAINERX_BUILD_PYTHON ON)
 endif()
 add_subdirectory(third_party/chainer/chainerx_cc)
 
@@ -85,7 +89,7 @@ if(${CHAINER_COMPILER_USE_SYSTEM_PROTOBUF})
   set(PROTOC_EXECUTABLE protoc)
   set(PROTOBUF_LIBRARY protobuf)
 else()
-  set(protobuf_BUILD_TESTS OFF CACHE "" INTERNAL FORCE)
+  set_subdirectory_option_(protobuf_BUILD_TESTS OFF)
   add_subdirectory(third_party/protobuf/cmake EXCLUDE_FROM_ALL)
   include_directories(third_party/protobuf/src)
   set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
@@ -119,20 +123,8 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
   find_package(OpenCV REQUIRED)
 endif()
 
-if(POLICY ${CMP0077})
-  # Make both chainer-compiler and ChainerX consistent.
-  set(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_BUILD_CUDA})
-else()
-  if(${CHAINER_COMPILER_BUILD_CUDA})
-    if(NOT ${CHAINERX_BUILD_CUDA})
-      message(FATAL_ERROR "Please set -DCHAINERX_BUILD_CUDA=ON when -DCHAINER_COMPILER_ENABLE_CUDA is ON")
-    endif()
-  else()
-    if(${CHAINERX_BUILD_CUDA})
-      message(FATAL_ERROR "Please set -DCHAINERX_BUILD_CUDA=OFF when -DCHAINER_COMPILER_ENABLE_CUDA is OFF")
-    endif()
-  endif()
-endif()
+# Make both chainer-compiler and ChainerX consistent.
+set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_BUILD_CUDA})
 
 # CUDA
 if(${CHAINER_COMPILER_BUILD_CUDA})
