@@ -133,15 +133,13 @@ def main():
     testtools.generate_testcase(UpdateSelfLiteralInInit, [],
                            subname='update_self_literal_in_init')
 
-    # TODO(hamaji): Use this test once this passes.
-    # testtools.generate_testcase(ForBackprop,
-    #                        [np.random.rand(4, 3).astype(np.float32), 2],
-    #                        subname='for', backprop=True)
+    testtools.generate_testcase(ForBackprop(),
+                           [np.random.rand(4, 3).astype(np.float32), 2],
+                           subname='for', backprop=True)
 
-    # TODO(hamaji): Use this test once this passes.
-    # testtools.generate_testcase(DoubleForBackprop,
-    #                        [np.random.rand(4, 3).astype(np.float32), 2, 5],
-    #                        subname='double_for', backprop=True)
+    testtools.generate_testcase(DoubleForBackprop(),
+                           [np.random.rand(4, 3).astype(np.float32), 2, 5],
+                           subname='double_for', backprop=True)
 
 
 if __name__ == '__main__':
