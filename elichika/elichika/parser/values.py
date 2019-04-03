@@ -36,7 +36,7 @@ def reset_field_and_attributes():
     history_tags = []
     access_guid = 0
 
-def get_access_guid() -> 'int': 
+def get_access_guid() -> 'int':
     global access_guid
     ret = access_guid
     access_guid += 1
@@ -289,7 +289,7 @@ class Attribute:
 
     def revise(self, obj : 'Object'):
         assert(isinstance(obj, Object))
-        
+
         # assgin name to the object
         obj.name = utils.create_obj_value_name_with_attribute(self.name, obj.name)
         obj.get_value().name = utils.create_obj_value_name_with_attribute(self.name, obj.get_value().name)
@@ -421,7 +421,7 @@ class Object():
             return attribute.get_obj()
 
         obj = self.value.try_get_obj(name, self)
-        
+
         if obj is None:
             return None
 

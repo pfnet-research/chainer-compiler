@@ -111,7 +111,7 @@ def assign_onnx_name_to_value(value : 'values.Value', none_name = ''):
                 assign_onnx_name_to_value(value_.get_value(), value2onnx_parameter[tupleValue].onnx_name)
             else:
                 assert(False)
-                
+
 def assign_onnx_name(graph : 'graphs.Graph'):
 
     for v in graph.input_values:
@@ -155,7 +155,7 @@ def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
         for i in range(len(graph.output_values)):
             if graph.output_values[i] in old2new.keys():
                 graph.output_values[i] = old2new[graph.output_values[i]]
-    
+
     replacing = {}
     for value in graph.output_values:
         if value in graph.input_values:
@@ -200,7 +200,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
 
     x = ONNXValue(onnx_graph, node.inputs[0])
     o = ONNXValue(onnx_graph, node.outputs[0])
-    
+
     if chainer_inst.W.data is None:
         print("W is unknown. Please infer this model.")
 
@@ -333,7 +333,7 @@ class ONNXValue:
                 self.name = name_
             else:
                 self.name = value2onnx_parameter[self.value].onnx_name
-        
+
         if isinstance(any_value, np.ndarray):
             self.np_value = any_value
             self.tensor = onnx_graph.new_tensor_with_np(self.np_value, name_)
@@ -437,10 +437,10 @@ class ONNXGraph:
                 shape = list(value.shape)
                 shape = [x if x != -1 else 'Undefined' for x in shape]
                 # type estimation is not correct. so shape needs to be undefined.
-                shape = None        
+                shape = None
                 return self.new_empty_tensor(shape, dtype, value2onnx_parameter[value].onnx_name)
             else:
-                shape = None        
+                shape = None
                 return self.new_empty_tensor(shape, dtype, value2onnx_parameter[value].onnx_name)
 
         if isinstance(value, values.BoolValue):
@@ -494,7 +494,7 @@ class ONNXGraph:
         if isinstance(value, values.NumberValue):
             if value.internal_value is None:
                 # any value
-                if value.dtype is None:         
+                if value.dtype is None:
                     arr = np.array(0)
                 else:
                     arr = np.array(0, dtype=value.dtype)
@@ -520,7 +520,7 @@ class ONNXGraph:
 
         inputs_ = []
         outputs_ = []
-        
+
         for input in inputs:
             if isinstance(input, str):
                 inputs_.append(input)
@@ -700,13 +700,13 @@ class ONNXGenerator:
                 if isinstance(node_.left, values.ListValue) or isinstance(node_.left, values.TupleValue):
                     assert(isinstance(node_.right, values.ListValue) or isinstance(node_.right, values.TupleValue))
                     binops[nodes.BinOpType.Add] = 'ChainerGenericAdd'
-                    
+
                     left = ONNXValue(onnx_graph, node_.left)
                     right = ONNXValue(onnx_graph, node_.right)
                     seq_left = left.create_sequence()
                     seq_right = right.create_sequence()
                     onnx_graph.add_node(binops[node_.binop], [seq_left, seq_right], [value2onnx_parameter[node.outputs[0]].onnx_name], None)
-                    
+
                 else:
                     onnx_node = oh.make_node(binops[node_.binop], [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
                     onnx_graph.nodes.append(onnx_node)
@@ -778,7 +778,7 @@ class ONNXGenerator:
                 node_ = node # type: nodes.NodeGetItem
                 if len(node_.indexes) == 1:
 
-                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.RangeValue): 
+                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.RangeValue):
                         onnx_node = oh.make_node(
                             'ChainerSequenceLookup',
                             [value2onnx_parameter[node_.target].onnx_name, value2onnx_parameter[node_.indexes[0]].onnx_name],
@@ -815,7 +815,7 @@ class ONNXGenerator:
                 for index in node_.indices:
                     indices.append(value2onnx_parameter[index].onnx_name)
 
-                if isinstance(node_.target, values.ListValue): 
+                if isinstance(node_.target, values.ListValue):
                     onnx_node = oh.make_node(
                         'ChainerSequenceGetSlice',
                         [value2onnx_parameter[node_.target].onnx_name] + indices,
