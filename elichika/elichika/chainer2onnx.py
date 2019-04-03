@@ -2,6 +2,7 @@ import chainer
 
 import onnx
 import onnx.helper as oh
+from onnx import numpy_helper
 from onnx import TensorProto
 from onnx import ModelProto
 
@@ -471,8 +472,8 @@ class ONNXGraph:
         generate a tensor which contains np data
         it is for constant input
         '''
+        tensor = numpy_helper.from_array(ndarray_, name=name)
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(ndarray_.dtype)]
-        tensor = oh.make_tensor(name, dt, ndarray_.shape, ndarray_.flat)
         initializer = ONNXInitrializer()
         initializer.name = name
         initializer.node = tensor
