@@ -21,17 +21,15 @@ target_link_libraries(dump
   onnx_proto
   chainer_compiler_tools
   chainer_compiler_compiler
-  chainer_compiler_runtime
   chainer_compiler_common
-  chainerx
-  protobuf
+  ${PROTOBUF_LIBRARY}
   )
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
 add_library(run_onnx_lib
   run_onnx.cc
   )
-add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
+add_dependencies(run_onnx_lib runtime_xcvm_pb_h gen_onnx_proto)
 set_hidden_(run_onnx_lib)
 
 add_executable(run_onnx run_onnx_main.cc)
@@ -44,7 +42,7 @@ target_link_libraries(run_onnx
   chainerx
   onnx
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
@@ -55,11 +53,11 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
   add_library(train_imagenet_lib
     train_imagenet.cc
     )
-  add_dependencies(run_onnx_lib runtime_xcvm_pb_h onnx_files)
+  add_dependencies(run_onnx_lib runtime_xcvm_pb_h gen_onnx_proto)
   set_hidden_(train_imagenet_lib)
 
   add_executable(train_imagenet train_imagenet_main.cc)
-  add_dependencies(train_imagenet runtime_xcvm_pb_h onnx_files)
+  add_dependencies(train_imagenet runtime_xcvm_pb_h gen_onnx_proto)
   target_link_libraries(train_imagenet
     train_imagenet_lib
     chainer_compiler_tools
@@ -70,7 +68,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     chainerx
     onnx
     onnx_proto
-    protobuf
+    ${PROTOBUF_LIBRARY}
     pthread
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -96,7 +94,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     chainerx
     onnx
     onnx_proto
-    protobuf
+    ${PROTOBUF_LIBRARY}
     pthread
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -122,7 +120,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       chainerx
       onnx
       onnx_proto
-      protobuf
+      ${PROTOBUF_LIBRARY}
       pthread
       ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
       ${CHAINER_COMPILER_TVM_LIBRARIES}
