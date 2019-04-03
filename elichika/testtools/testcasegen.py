@@ -138,17 +138,17 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
             return model()
         return model
 
-    model_ = get_model()
+    model = get_model()
     chainer.config.train = backprop
-    model_.cleargrads()
-    ys = model_(*xs)
+    model.cleargrads()
+    ys = model(*xs)
     chainer_out = validate_chainer_output(ys)
 
-    chainer.serializers.save_npz(os.path.join(output_dir, 'chainer_model.npz'), model_)
-    model_ = get_model()
-    chainer.serializers.load_npz(os.path.join(output_dir, 'chainer_model.npz'), model_)
+    chainer.serializers.save_npz(os.path.join(output_dir, 'chainer_model.npz'), model)
+    model = get_model()
+    chainer.serializers.load_npz(os.path.join(output_dir, 'chainer_model.npz'), model)
 
-    onnxmod = compile_model(model_, xs)
+    onnxmod = compile_model(model, xs)
     input_tensors = onnxmod.inputs
     output_tensors = onnxmod.outputs
 
