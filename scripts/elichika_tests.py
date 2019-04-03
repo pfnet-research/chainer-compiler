@@ -29,10 +29,10 @@ TESTS = [
     Generator('node', 'PadSequence'),
 
     Generator('syntax', 'Cmp'),
-    # Generator('syntax', 'For'),
+    Generator('syntax', 'For'),
     # Generator('syntax', 'ForAndIf'),
     Generator('syntax', 'If'),
-    # Generator('syntax', 'LinkInFor'),
+    Generator('syntax', 'LinkInFor'),
     Generator('syntax', 'ListComp'),
     Generator('syntax', 'MultiClass'),
     Generator('syntax', 'MultiFunction'),

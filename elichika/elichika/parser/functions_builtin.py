@@ -76,7 +76,7 @@ class PadSequenceFunction(functions.FunctionBase):
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
-        
+
 class RangeFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
@@ -116,7 +116,7 @@ class ListFunction(functions.FunctionBase):
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
-        
+
 class AppendFunction(functions.FunctionBase):
     def __init__(self, owner):
         super().__init__()

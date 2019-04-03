@@ -1,4 +1,5 @@
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/indexing.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
@@ -127,7 +128,7 @@ chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, co
 chainerx::Array GatherGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
-    out.device().AddAt(out, indices, axis, gy, out);
+    chainerx::AddAt(out, indices, axis, gy, out);
     return out;
 }
 
@@ -151,7 +152,7 @@ chainerx::Array SelectItemGradOp::RunImpl(
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
     chainerx::Array take_indices =
             (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(out.device());
-    out.device().AddAt(out, take_indices, 0, gy, out);
+    chainerx::AddAt(out, take_indices, 0, gy, out);
     return out.Reshape(shape);
 }
 

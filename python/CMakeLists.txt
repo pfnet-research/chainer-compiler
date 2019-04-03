@@ -23,3 +23,4 @@ set_target_properties(chainer_compiler_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_SUFFIX}")
+set_hidden_(chainer_compiler_core.so)

@@ -7,6 +7,7 @@ import traceback
 import numpy as np
 import onnx
 from onnx import helper
+from onnx import numpy_helper
 from onnx import TensorProto
 
 from ch2o import value
@@ -133,16 +134,10 @@ def totensor(x, env, dtype=None):
         if dtype is None and type(x) == float:
             dtype = np.float32
         x = np.array(x, dtype=dtype)
-        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[x.dtype]
         res = env.calc(
             'Constant',
             inputs=[],
-            value=onnx.helper.make_tensor(
-                name="hoge",
-                data_type=dt,
-                dims=x.shape,
-                vals=x.flat,
-            )
+            value=numpy_helper.from_array(x, name="hoge")
         )
 
     return res

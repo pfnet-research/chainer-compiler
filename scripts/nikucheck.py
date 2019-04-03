@@ -22,7 +22,7 @@ def main():
 
     if os.path.exists(tmpdir):
         shutil.rmtree(tmpdir)
-        
+
     os.makedirs(tmpdir)
     subprocess.check_call([sys.executable, py, os.path.join(tmpdir, 'tmp')])
 

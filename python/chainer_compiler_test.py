@@ -9,11 +9,11 @@ import chainerx.testing
 import numpy as np
 
 
-all_device_names = [np, 'native:0']
+all_device_names = ['@numpy', 'native:0']
 
 try:
     import cupy
-    all_device_names.extend([np, (cupy, 0), 'native:0', 'cuda:0'])
+    all_device_names.extend(['@cupy:0', 'cuda:0'])
     has_cupy = True
 except:
     has_cupy = False
@@ -316,7 +316,7 @@ class PartiallyDifferentiable(chainer.Chain):
         return r
 
 
-@pytest.mark.parametrize('device_name', [np])
+@pytest.mark.parametrize('device_name', ['@numpy'])
 def test_partially_differentiable(device_name):
     np.random.seed(40)
     device = chainer.get_device(device_name)

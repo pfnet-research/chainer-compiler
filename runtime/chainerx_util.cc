@@ -116,13 +116,6 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
     return result;
 }
 
-chainerx::Array Sigmoid(chainerx::Array a) {
-    // TODO(hamaji): Revisit implementation of this function.
-    CHECK(IsFloat(a.dtype())) << a.dtype();
-    chainerx::Scalar half(0.5);
-    return chainerx::Tanh(a * half) * half + half;
-}
-
 namespace {
 
 uint32_t xorshift() {

@@ -31,7 +31,7 @@ def int_2_numpy_type(n):
 
 def create_obj_value_name_with_constant(value):
     return '@C_' + str(value)
-    
+
 def create_obj_value_name_with_attribute(name : "str", pre_name : "str"):
     if len(pre_name) > 0 and pre_name[0] != '@':
         return pre_name

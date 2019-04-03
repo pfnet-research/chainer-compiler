@@ -29,6 +29,14 @@ function (set_option_ var_ desc_)
     option (${var_} ${desc_} ${def_})
 endfunction ()
 
+function (set_hidden_ lib_)
+  set_target_properties(
+    ${lib_} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+  set_target_properties(
+    ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
+endfunction ()
+
+
 set_option_ (CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
 set_option_ (CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
 set_option_ (CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")
@@ -387,7 +395,7 @@ function(gen_elichika_test dir all)
   add_custom_command(
     OUTPUT ${out_stamp}
     COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/elichika python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
-    DEPENDS ${elichika_tests_py} ${test_files}
+    DEPENDS ${elichika_tests_py} ${test_files} ${ELICHIKA_FILES}
     )
 
   message(${out_stamp})

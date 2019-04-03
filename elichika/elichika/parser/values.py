@@ -381,7 +381,7 @@ class Attribute:
 
     def revise(self, obj : 'Object'):
         assert(isinstance(obj, Object))
-        
+
         # assgin name to the object
         obj.name = utils.create_obj_value_name_with_attribute(self.name, obj.name)
         obj.get_value().name = utils.create_obj_value_name_with_attribute(self.name, obj.get_value().name)
@@ -432,7 +432,7 @@ class Object():
             return attribute.get_obj()
 
         obj = self.value.try_get_obj(name, self)
-        
+
         if obj is None:
             return None
 

@@ -99,15 +99,15 @@ DEFINE_UNARY_OP(Sqrt);
 DEFINE_UNARY_OP(Reciprocal);
 DEFINE_UNARY_OP(Sin);
 DEFINE_UNARY_OP(Cos);
+DEFINE_UNARY_OP(Tan);
+DEFINE_UNARY_OP(Arcsin);
+DEFINE_UNARY_OP(Arccos);
+DEFINE_UNARY_OP(Arctan);
 DEFINE_UNARY_OP_TODO(Sinh);
 DEFINE_UNARY_OP_TODO(Cosh);
-DEFINE_UNARY_OP_TODO(Tan);
-DEFINE_UNARY_OP_TODO(Asin);
-DEFINE_UNARY_OP_TODO(Asinh);
-DEFINE_UNARY_OP_TODO(Acos);
-DEFINE_UNARY_OP_TODO(Acosh);
-DEFINE_UNARY_OP_TODO(Atan);
-DEFINE_UNARY_OP_TODO(Atanh);
+DEFINE_UNARY_OP_TODO(Arcsinh);
+DEFINE_UNARY_OP_TODO(Arccosh);
+DEFINE_UNARY_OP_TODO(Arctanh);
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
