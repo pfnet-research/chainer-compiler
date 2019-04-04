@@ -245,16 +245,17 @@ public:
             double bin_size_h = roi_height / pooled_height;
             double bin_size_w = roi_width / pooled_width;
 
+            float* bottom_base = &bottom_ptr[roi_batch_ind * channels * height * width];
             if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
                 FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
                 FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
                 FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                CalculateOutput<false>(pixel_weights, pixel_x, pixel_y, roi_batch_ind, n);
+                CalculateOutput<false>(pixel_weights, pixel_x, pixel_y, bottom_base, n);
             } else {
                 FillPixelPositionsBounded(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, height, &pixel_y);
                 FillPixelPositionsBounded(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, width, &pixel_x);
                 FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                CalculateOutput<true>(pixel_weights, pixel_x, pixel_y, roi_batch_ind, n);
+                CalculateOutput<true>(pixel_weights, pixel_x, pixel_y, bottom_base, n);
             }
         }
         return top_data;
@@ -340,16 +341,12 @@ private:
         }
     }
 
-    float GetBottom(int b, int c, int y, int x) const {
-        return bottom_ptr[(((b * channels) + c) * height + y) * width + x];
-    }
-
     template <bool needs_bounds_check>
     void CalculateOutput(
             const std::vector<PixelWeight>& pixel_weights,
             const std::vector<PixelPos>& pixel_x,
             const std::vector<PixelPos>& pixel_y,
-            const int64_t roi_batch_ind,
+            const float* bottom_base,
             const int64_t n) {
         for (int64_t c = 0; c < channels; ++c) {
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
@@ -358,24 +355,24 @@ private:
                     for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
                         const PixelPos& py = pixel_y[ph * roi_bin_grid_h + iy];
                         if (needs_bounds_check && py.IsInvalid()) continue;
+                        const int64_t y_low = py.p_low;
+                        const int64_t y_high = py.p_high;
                         for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                             const PixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
                             if (needs_bounds_check && px.IsInvalid()) continue;
-                            const PixelWeight& weights =
-                                    pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
                             const int64_t x_low = px.p_low;
                             const int64_t x_high = px.p_high;
-                            const int64_t y_low = py.p_low;
-                            const int64_t y_high = py.p_high;
+                            const PixelWeight& weights =
+                                    pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
                             const double w1 = weights.w1;
                             const double w2 = weights.w2;
                             const double w3 = weights.w3;
                             const double w4 = weights.w4;
 
-                            float v1 = GetBottom(roi_batch_ind, c, y_low, x_low);
-                            float v2 = GetBottom(roi_batch_ind, c, y_low, x_high);
-                            float v3 = GetBottom(roi_batch_ind, c, y_high, x_low);
-                            float v4 = GetBottom(roi_batch_ind, c, y_high, x_high);
+                            float v1 = bottom_base[y_low * width + x_low];
+                            float v2 = bottom_base[y_low * width + x_high];
+                            float v3 = bottom_base[y_high * width + x_low];
+                            float v4 = bottom_base[y_high * width + x_high];
 
                             double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                             reduce.Reduce(weighted_average);
@@ -384,6 +381,7 @@ private:
                     ContiguousArrayAt<float>(top_data, {n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
                 }
             }
+            bottom_base += height * width;
         }
     }
 
