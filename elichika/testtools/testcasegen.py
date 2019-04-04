@@ -66,15 +66,18 @@ def validate_chainer_output(ys):
     return ys
 
 
-def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
+def dump_test_inputs_outputs(inputs, outputs, gradients, test_data_dir):
     if not os.path.exists(test_data_dir):
         os.makedirs(test_data_dir)
 
-    for typ, values in [('input', inputs), ('output', outputs)]:
+    for typ, values in [('input', inputs),
+                        ('output', outputs),
+                        ('gradient', gradients)]:
         for i, (value_info, value) in enumerate(values):
-            name = onnx_name(value_info)
-            if name is None:
+            if typ == 'gradient':
                 name = value_info.name
+            else:
+                name = onnx_name(value_info)
             if isinstance(value, list):
                 assert value
                 digits = len(str(len(value)))
@@ -164,18 +167,20 @@ def generate_testcase(model_or_model_gen, xs, subname=None, output_dir=None,
     assert len(output_tensors) == len(chainer_out)
 
     outputs = list(zip(output_tensors, chainer_out))
+    gradients = []
     if backprop:
         for name, param in sorted(model.namedparams()):
-            bp_name = 'grad_out@param' + name.replace('/', '_')
+            bp_name = 'param' + name.replace('/', '_')
             vi = onnx.helper.make_tensor_value_info(
                 bp_name, onnx.TensorProto.FLOAT, ())
-            outputs.append((vi, param.grad))
+            gradients.append((vi, param.grad))
 
     xs = list(map(lambda x: _validate_inout(x), xs))
 
     dump_test_inputs_outputs(
         list(zip(input_tensors, xs)),
         outputs,
+        gradients,
         os.path.join(output_dir, 'test_data_set_0'))
 
     with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:
