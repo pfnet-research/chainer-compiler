@@ -252,12 +252,20 @@ public:
                 FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
                 FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
                 FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                CalculateOutput<false>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
+                    CalculateOutput<false, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                } else {
+                    CalculateOutput<false, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                }
             } else {
                 FillPixelPositionsBounded(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, height, &pixel_y);
                 FillPixelPositionsBounded(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, width, &pixel_x);
                 FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                CalculateOutput<true>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
+                    CalculateOutput<true, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                } else {
+                    CalculateOutput<true, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                }
             }
         }
         return top_data;
@@ -343,26 +351,34 @@ private:
         }
     }
 
-    template <bool needs_bounds_check>
+    template <bool needs_bounds_check, int static_roi_bin_grid>
     void CalculateOutput(
             const std::vector<PixelWeight>& pixel_weights,
             const std::vector<PixelPos>& pixel_x,
             const std::vector<PixelPos>& pixel_y,
             const float* bottom_base,
             float* top_base) {
-        ReduceMode reduce(roi_bin_grid_h, roi_bin_grid_w);
+        int64_t rbgh, rbgw;
+        if (static_roi_bin_grid) {
+            rbgh = rbgw = static_roi_bin_grid;
+        } else {
+            rbgh = roi_bin_grid_h;
+            rbgw = roi_bin_grid_w;
+        }
+
+        ReduceMode reduce(rbgh, rbgw);
         for (int64_t c = 0; c < channels; ++c) {
             auto pixel_weights_iterator = pixel_weights.begin();
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
                     reduce.Reset();
-                    for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
-                        const PixelPos& py = pixel_y[ph * roi_bin_grid_h + iy];
+                    for (int64_t iy = 0; iy < rbgh; ++iy) {
+                        const PixelPos& py = pixel_y[ph * rbgh + iy];
                         if (needs_bounds_check && py.IsInvalid()) continue;
                         const int64_t y_low = py.p_low;
                         const int64_t y_high = py.p_high;
-                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix, ++pixel_weights_iterator) {
-                            const PixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
+                        for (int64_t ix = 0; ix < rbgw; ++ix, ++pixel_weights_iterator) {
+                            const PixelPos& px = pixel_x[pw * rbgw + ix];
                             if (needs_bounds_check && px.IsInvalid()) continue;
                             const int64_t x_low = px.p_low;
                             const int64_t x_high = px.p_high;
