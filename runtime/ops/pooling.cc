@@ -223,6 +223,9 @@ chainerx::Array ROIAlign2D(
     const int64_t pooled_width = output_shape[1];
     chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
+    float* bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
+
+    auto get_bottom = [&](int b, int c, int y, int x) { return bottom_ptr[(((b * channels) + c) * height + y) * width + x]; };
 #if CHAINER_COMPILER_ENABLE_OPENMP
 #pragma omp parallel for
 #endif
@@ -265,10 +268,10 @@ chainerx::Array ROIAlign2D(
                                 double w2 = hy * lx;
                                 double w3 = ly * hx;
                                 double w4 = ly * lx;
-                                float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
-                                float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
-                                float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
-                                float v4 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_high});
+                                float v1 = get_bottom(roi_batch_ind, c, y_low, x_low);
+                                float v2 = get_bottom(roi_batch_ind, c, y_low, x_high);
+                                float v3 = get_bottom(roi_batch_ind, c, y_high, x_low);
+                                float v4 = get_bottom(roi_batch_ind, c, y_high, x_high);
 
                                 double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                                 reduce.Reduce(weighted_average);
@@ -312,10 +315,10 @@ chainerx::Array ROIAlign2D(
                                 double w2 = hy * lx;
                                 double w3 = ly * hx;
                                 double w4 = ly * lx;
-                                float v1 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_low});
-                                float v2 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_low, x_high});
-                                float v3 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_low});
-                                float v4 = ContiguousArrayAt<float>(contiguous_bottom_data, {roi_batch_ind, c, y_high, x_high});
+                                float v1 = get_bottom(roi_batch_ind, c, y_low, x_low);
+                                float v2 = get_bottom(roi_batch_ind, c, y_low, x_high);
+                                float v3 = get_bottom(roi_batch_ind, c, y_high, x_low);
+                                float v4 = get_bottom(roi_batch_ind, c, y_high, x_high);
 
                                 double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                                 reduce.Reduce(weighted_average);
