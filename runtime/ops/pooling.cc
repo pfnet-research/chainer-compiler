@@ -221,7 +221,7 @@ public:
         contiguous_bottom_data = EnsureContiguous(bottom_data);
         contiguous_bottom_roi_indices = EnsureContiguous(bottom_roi_indices);
         contiguous_bottom_rois = EnsureContiguous(bottom_rois);
-        top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
+        top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
         bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
         top_ptr = static_cast<float*>(top_data.raw_data());
     }
@@ -397,7 +397,7 @@ private:
                             reduce.Reduce(weighted_average);
                         }
                     }
-                    top_base[ph * pooled_width + pw] += reduce.Finish();
+                    top_base[ph * pooled_width + pw] = reduce.Finish();
                 }
             }
             bottom_base += height * width;
