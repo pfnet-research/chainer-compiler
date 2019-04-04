@@ -247,27 +247,8 @@ public:
 
             if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
                 // {{
-                for (int64_t ph = 0; ph < pooled_height; ++ph) {
-                    for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
-                        double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
-                        int64_t y_low = static_cast<int64_t>(y);
-                        int64_t y_high = y_low + 1;
-                        pixel_y[ph * roi_bin_grid_h + iy].p = y;
-                        pixel_y[ph * roi_bin_grid_h + iy].p_low = y_low;
-                        pixel_y[ph * roi_bin_grid_h + iy].p_high = y_high;
-                    }
-                }
-
-                for (int64_t pw = 0; pw < pooled_width; ++pw) {
-                    for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
-                        double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
-                        int64_t x_low = static_cast<int64_t>(x);
-                        int64_t x_high = x_low + 1;
-                        pixel_x[pw * roi_bin_grid_w + ix].p = x;
-                        pixel_x[pw * roi_bin_grid_w + ix].p_low = x_low;
-                        pixel_x[pw * roi_bin_grid_w + ix].p_high = x_high;
-                    }
-                }
+                FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
+                FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
 
                 for (int64_t ph = 0; ph < pooled_height; ++ph) {
                     for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
@@ -389,6 +370,17 @@ private:
     struct PixelWeight {
         double w1, w2, w3, w4;
     };
+
+    void FillPixelPositions(double roi_start, double bin_size_w, int64_t pooled_width, int64_t roi_bin_grid_w, std::vector<PixelPos>* positions) {
+        for (int64_t px = 0; px < pooled_width; ++px) {
+            for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                PixelPos* pp = &(*positions)[px * roi_bin_grid_w + ix];
+                pp->p = roi_start + px * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                pp->p_low = static_cast<int64_t>(pp->p);
+                pp->p_high = pp->p_low + 1;
+            }
+        }
+    }
 
     float GetBottom(int b, int c, int y, int x) const {
         return bottom_ptr[(((b * channels) + c) * height + y) * width + x];
