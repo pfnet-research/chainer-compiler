@@ -223,6 +223,7 @@ public:
         contiguous_bottom_rois = EnsureContiguous(bottom_rois);
         top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
         bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
+        top_ptr = static_cast<float*>(top_data.raw_data());
     }
 
     chainerx::Array Run() {
@@ -245,17 +246,18 @@ public:
             double bin_size_h = roi_height / pooled_height;
             double bin_size_w = roi_width / pooled_width;
 
-            float* bottom_base = &bottom_ptr[roi_batch_ind * channels * height * width];
+            const float* bottom_base = &bottom_ptr[roi_batch_ind * channels * height * width];
+            float* top_base = &top_ptr[n * channels * pooled_height * pooled_width];
             if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
                 FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
                 FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
                 FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                CalculateOutput<false>(pixel_weights, pixel_x, pixel_y, bottom_base, n);
+                CalculateOutput<false>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
             } else {
                 FillPixelPositionsBounded(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, height, &pixel_y);
                 FillPixelPositionsBounded(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, width, &pixel_x);
                 FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                CalculateOutput<true>(pixel_weights, pixel_x, pixel_y, bottom_base, n);
+                CalculateOutput<true>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
             }
         }
         return top_data;
@@ -347,7 +349,7 @@ private:
             const std::vector<PixelPos>& pixel_x,
             const std::vector<PixelPos>& pixel_y,
             const float* bottom_base,
-            const int64_t n) {
+            float* top_base) {
         for (int64_t c = 0; c < channels; ++c) {
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
@@ -378,10 +380,11 @@ private:
                             reduce.Reduce(weighted_average);
                         }
                     }
-                    ContiguousArrayAt<float>(top_data, {n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
+                    top_base[ph * pooled_width + pw] += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
                 }
             }
             bottom_base += height * width;
+            top_base += pooled_height * pooled_width;
         }
     }
 
@@ -399,7 +402,8 @@ private:
     chainerx::Array contiguous_bottom_roi_indices;
     chainerx::Array contiguous_bottom_rois;
     chainerx::Array top_data;
-    float* bottom_ptr;
+    const float* bottom_ptr;
+    float* top_ptr;
 };
 
 template <class ReduceMode>
