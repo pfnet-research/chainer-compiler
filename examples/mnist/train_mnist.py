@@ -63,6 +63,8 @@ def main():
                         help='Compile the model')
     parser.add_argument('--dump_onnx', action='store_true',
                         help='Dump ONNX model after optimization')
+    parser.add_argument('--iterations', '-I', type=int, default=None,
+                        help='Number of iterations to train')
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
@@ -97,7 +99,11 @@ def main():
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, device=device)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+    if args.iterations:
+        stop_trigger = (args.iterations, 'iteration')
+    else:
+        stop_trigger = (args.epoch, 'epoch')
+    trainer = training.Trainer(updater, stop_trigger, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, model, device=device))
