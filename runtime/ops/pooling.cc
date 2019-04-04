@@ -377,6 +377,8 @@ private:
                         if (needs_bounds_check && py.IsInvalid()) continue;
                         const int64_t y_low = py.p_low;
                         const int64_t y_high = py.p_high;
+                        const float* bottom_low = &bottom_base[y_low * width];
+                        const float* bottom_high = &bottom_base[y_high * width];
                         for (int64_t ix = 0; ix < rbgw; ++ix, ++pixel_weights_iterator) {
                             const PixelPos& px = pixel_x[pw * rbgw + ix];
                             if (needs_bounds_check && px.IsInvalid()) continue;
@@ -388,10 +390,10 @@ private:
                             const double w3 = weights.w3;
                             const double w4 = weights.w4;
 
-                            float v1 = bottom_base[y_low * width + x_low];
-                            float v2 = bottom_base[y_low * width + x_high];
-                            float v3 = bottom_base[y_high * width + x_low];
-                            float v4 = bottom_base[y_high * width + x_high];
+                            float v1 = bottom_low[x_low];
+                            float v2 = bottom_low[x_high];
+                            float v3 = bottom_high[x_low];
+                            float v4 = bottom_high[x_high];
 
                             double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                             reduce.Reduce(weighted_average);
