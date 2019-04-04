@@ -3,6 +3,8 @@ import argparse
 import os
 import sys
 
+import numpy as np
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -32,6 +34,19 @@ class MLP(chainer.Chain):
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))
         return self.l3(h2)
+
+
+def fake_dataset():
+    def gen(size):
+        inputs = []
+        labels = []
+        for i in range(size):
+            inputs.append(np.random.rand(224).astype(np.float32))
+            labels.append(np.random.randint(10))
+        return inputs, labels
+    train = chainer.datasets.TupleDataset(*gen(150))
+    test = chainer.datasets.TupleDataset(*gen(10))
+    return train, test
 
 
 def main():
@@ -65,6 +80,8 @@ def main():
                         help='Dump ONNX model after optimization')
     parser.add_argument('--iterations', '-I', type=int, default=None,
                         help='Number of iterations to train')
+    parser.add_argument('--use-fake-data', action='store_true',
+                        help='Use fake data')
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
@@ -90,7 +107,10 @@ def main():
     optimizer.setup(model)
 
     # Load the MNIST dataset
-    train, test = chainer.datasets.get_mnist()
+    if args.use_fake_data:
+        train, test = fake_dataset()
+    else:
+        train, test = chainer.datasets.get_mnist()
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,

@@ -25,7 +25,8 @@ cd ..
 ./scripts/runtests.py
 time pytest -sv python
 
-time python3 examples/mnist/train_mnist.py -d native --compile -I 3 --dump_onnx
+time python3 examples/mnist/train_mnist.py \
+     -d native --compile -I 3 --dump_onnx --use-fake-data
 
 # TODO(hamaji): Investigate why running these on Travis takes ~10 minutes.
 # ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
