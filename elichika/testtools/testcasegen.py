@@ -11,6 +11,8 @@ import numpy as np
 
 import chainer
 
+import elichika
+
 from elichika.chainer2onnx import compile_model, onnx_name
 from testtools.test_args import get_test_args
 from testtools.test_args import dprint
@@ -71,6 +73,8 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
     for typ, values in [('input', inputs), ('output', outputs)]:
         for i, (value_info, value) in enumerate(values):
             name = onnx_name(value_info)
+            if name is None:
+                name = value_info.name
             if isinstance(value, list):
                 assert value
                 digits = len(str(len(value)))
@@ -160,14 +164,12 @@ def generate_testcase(model_or_model_gen, xs, subname=None, output_dir=None,
     assert len(output_tensors) == len(chainer_out)
 
     outputs = list(zip(output_tensors, chainer_out))
-
-    '''
     if backprop:
         for name, param in sorted(model.namedparams()):
-            bp_name = onnx.helper.make_tensor_value_info(
-                'grad_out@' + name, onnx.TensorProto.FLOAT, ())
-            outputs.append((bp_name, param.grad))
-    '''
+            bp_name = 'grad_out@param' + name.replace('/', '_')
+            vi = onnx.helper.make_tensor_value_info(
+                bp_name, onnx.TensorProto.FLOAT, ())
+            outputs.append((vi, param.grad))
 
     xs = list(map(lambda x: _validate_inout(x), xs))
 

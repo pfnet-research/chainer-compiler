@@ -195,7 +195,7 @@ def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
             preprocess(subgraph, False)
 
 
-def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
+def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', param2name):
     chainer_inst = node.func.owner.inst # type: chainer.links.Linear
     onnx_name = node2onnx_parameter[node].onnx_name
 
@@ -205,7 +205,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     if chainer_inst.W.data is None:
         print("W is unknown. Please infer this model.")
 
-    w = ONNXValue(onnx_graph, chainer_inst.W.data, [onnx_name, '/W'])
+    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)])
 
     (x_shape,) = onnx_graph.add_node(
         'Shape',
@@ -240,7 +240,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
         str(node.lineprop))
 
     if chainer_inst.b is not None:
-        b = ONNXValue(onnx_graph, chainer_inst.b.data, [onnx_name, '/b'])
+        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)])
 
         onnx_graph.add_node(
             'Gemm',
@@ -265,7 +265,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
             [o],
             str(node.lineprop))
 
-def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
+def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node', param2name):
     chainer_inst = node.func.owner.inst # type: chainer.links.Convolution2D
     onnx_name = node2onnx_parameter[node].onnx_name
 
@@ -276,11 +276,11 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
 
     x = ONNXValue(onnx_graph, node.inputs[0])
     o = ONNXValue(onnx_graph, node.outputs[0])
-    w = ONNXValue(onnx_graph, chainer_inst.W.data, [onnx_name, '/W'])
+    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)])
     b = None
 
     if chainer_inst.b is not None:
-        b = ONNXValue(onnx_graph, chainer_inst.b.data, [onnx_name, '/b'])
+        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)])
 
     onnx_graph.add_node(
         'Conv',
@@ -591,11 +591,13 @@ class ONNXGraph:
         return oh.make_graph(self.nodes, name, input_tensor_and_initializer, self.output_tensor, initializer=initializers)
 
 class ONNXGenerator:
-    def __init__(self):
+    def __init__(self, namedparams):
         self.onnx_graphs = []
         self.initializers = {}
         self.tensors = {}
         self.onnx_tensors = {}
+        self.param2name = {id(p): 'param' + n.replace('/', '_')
+                           for n, p in namedparams}
 
     def generate_graph(self, inputs, outputs, graph : 'graphs.Graph', parent : 'ONNXGraph', isMain = False):
         onnx_graph = ONNXGraph(self, parent)
@@ -922,10 +924,11 @@ class ONNXGenerator:
                     original_inst = node.func.owner.inst
 
                     if isinstance(original_inst, chainer.links.Linear):
-                        convert_onnx_chainer_linear(onnx_graph, node)
+                        print(original_inst.W)
+                        convert_onnx_chainer_linear(onnx_graph, node, self.param2name)
 
                     if isinstance(original_inst, chainer.links.Convolution2D):
-                        convert_onnx_chainer_convolution2d(onnx_graph, node)
+                        convert_onnx_chainer_convolution2d(onnx_graph, node, self.param2name)
 
             if isinstance(node, nodes.NodeIf):
                 node_ = node # type: nodes.NodeIf
@@ -1123,7 +1126,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
 
     preprocess(graph_, True)
 
-    generator = ONNXGenerator()
+    generator = ONNXGenerator(model.namedparams())
     model = generator.generate_model(graph_.input_values, graph_.output_values, graph_)
 
     # check inputs
