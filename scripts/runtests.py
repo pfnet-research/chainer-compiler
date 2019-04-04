@@ -61,6 +61,9 @@ RESET = '\033[0m'
 ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
 
+# ChainerX does not support 1D conv/pool.
+fail_1d_conv_pool = args.use_gpu_all
+
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_identity'),
 
@@ -184,7 +187,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_conv_with_strides_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_and_asymmetric_padding'),
     TestCase(NODE_TEST, 'test_convtranspose'),
-    TestCase(NODE_TEST, 'test_convtranspose_1d', fail=args.use_gpu_all),
+    TestCase(NODE_TEST, 'test_convtranspose_1d', fail=fail_1d_conv_pool),
     TestCase(NODE_TEST, 'test_convtranspose_3d'),
     TestCase(NODE_TEST, 'test_convtranspose_kernel_shape'),
     TestCase(NODE_TEST, 'test_convtranspose_output_shape'),
@@ -195,14 +198,14 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
-    TestCase(NODE_TEST, 'test_maxpool_1d_default', fail=args.use_gpu_all),
+    TestCase(NODE_TEST, 'test_maxpool_1d_default', fail=fail_1d_conv_pool),
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
     TestCase(NODE_TEST, 'test_maxpool_3d_default'),
-    TestCase(NODE_TEST, 'test_averagepool_1d_default', fail=args.use_gpu_all),
+    TestCase(NODE_TEST, 'test_averagepool_1d_default', fail=fail_1d_conv_pool),
     TestCase(NODE_TEST, 'test_averagepool_2d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads_count_include_pad'),
@@ -413,14 +416,14 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_BatchNorm3d_eval', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_BatchNorm3d_momentum_eval', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_ConstantPad2d'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d', fail=args.use_gpu_all),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d', fail=fail_1d_conv_pool),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_dilated', fail=True),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_groups', fail=args.use_gpu_all),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1', fail=args.use_gpu_all),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1size1', fail=args.use_gpu_all),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2', fail=args.use_gpu_all),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2size1', fail=args.use_gpu_all),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_stride', fail=args.use_gpu_all),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_groups', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1size1', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2size1', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_stride', fail=fail_1d_conv_pool),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv2d'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv2d_depthwise'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv2d_depthwise_padded'),
@@ -451,8 +454,8 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Linear', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Linear_no_bias'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_LogSoftmax'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d', fail=args.use_gpu_all),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d_stride', fail=args.use_gpu_all),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d_stride', fail=fail_1d_conv_pool),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool2d'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool3d'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool3d_stride'),
