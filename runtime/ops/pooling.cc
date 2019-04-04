@@ -203,12 +203,12 @@ template <class ReduceMode>
 class ROIAlign2DImpl {
 public:
     ROIAlign2DImpl(
-        const chainerx::Array& bottom_data,
-        const chainerx::Array& bottom_rois,
-        const chainerx::Array& bottom_roi_indices,
-        const Int64StackVector& output_shape,
-        const float spatial_scale0,
-        const chainerx::StackVector<int64_t, chainerx::kMaxNdim>& sampling_ratio)
+            const chainerx::Array& bottom_data,
+            const chainerx::Array& bottom_rois,
+            const chainerx::Array& bottom_roi_indices,
+            const Int64StackVector& output_shape,
+            const float spatial_scale0,
+            const chainerx::StackVector<int64_t, chainerx::kMaxNdim>& sampling_ratio)
         : spatial_scale(spatial_scale0),
           channels(bottom_data.shape()[1]),
           height(bottom_data.shape()[2]),
@@ -264,16 +264,23 @@ private:
     struct PixelPos {
         double p;
         int64_t p_low, p_high;
-        double lp() const { return p - p_low; }
-        double hp() const { return 1.0 - lp(); }
-        bool IsInvalid() const { return p_low < 0; }
+        double lp() const {
+            return p - p_low;
+        }
+        double hp() const {
+            return 1.0 - lp();
+        }
+        bool IsInvalid() const {
+            return p_low < 0;
+        }
     };
 
     struct PixelWeight {
         double w1, w2, w3, w4;
     };
 
-    void FillPixelPositions(double roi_start, double bin_size_w, int64_t pooled_width, int64_t roi_bin_grid_w, std::vector<PixelPos>* positions) {
+    void FillPixelPositions(
+            double roi_start, double bin_size_w, int64_t pooled_width, int64_t roi_bin_grid_w, std::vector<PixelPos>* positions) {
         for (int64_t px = 0; px < pooled_width; ++px) {
             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                 PixelPos* pp = &(*positions)[px * roi_bin_grid_w + ix];
@@ -284,7 +291,13 @@ private:
         }
     }
 
-    void FillPixelPositionsBounded(double roi_start, double bin_size_w, int64_t pooled_width, int64_t roi_bin_grid_w, int64_t width, std::vector<PixelPos>* positions) {
+    void FillPixelPositionsBounded(
+            double roi_start,
+            double bin_size_w,
+            int64_t pooled_width,
+            int64_t roi_bin_grid_w,
+            int64_t width,
+            std::vector<PixelPos>* positions) {
         for (int64_t px = 0; px < pooled_width; ++px) {
             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                 PixelPos* pp = &(*positions)[px * roi_bin_grid_w + ix];
@@ -300,9 +313,7 @@ private:
     }
 
     void FillPixelWeights(
-        const std::vector<PixelPos>& pixel_x,
-        const std::vector<PixelPos>& pixel_y,
-        std::vector<PixelWeight>* pixel_weights) {
+            const std::vector<PixelPos>& pixel_x, const std::vector<PixelPos>& pixel_y, std::vector<PixelWeight>* pixel_weights) {
         for (int64_t ph = 0; ph < pooled_height; ++ph) {
             for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
                 const PixelPos& py = pixel_y[ph * roi_bin_grid_h + iy];
@@ -335,11 +346,11 @@ private:
 
     template <bool needs_bounds_check>
     void CalculateOutput(
-        const std::vector<PixelWeight>& pixel_weights,
-        const std::vector<PixelPos>& pixel_x,
-        const std::vector<PixelPos>& pixel_y,
-        const int64_t roi_batch_ind,
-        const int64_t n) {
+            const std::vector<PixelWeight>& pixel_weights,
+            const std::vector<PixelPos>& pixel_x,
+            const std::vector<PixelPos>& pixel_y,
+            const int64_t roi_batch_ind,
+            const int64_t n) {
         for (int64_t c = 0; c < channels; ++c) {
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
@@ -350,7 +361,8 @@ private:
                         for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                             const PixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
                             if (needs_bounds_check && px.IsInvalid()) continue;
-                            const PixelWeight& weights = pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
+                            const PixelWeight& weights =
+                                    pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
                             const int64_t x_low = px.p_low;
                             const int64_t x_high = px.p_high;
                             const int64_t y_low = py.p_low;
