@@ -350,11 +350,12 @@ private:
             const std::vector<PixelPos>& pixel_y,
             const float* bottom_base,
             float* top_base) {
+        ReduceMode reduce(roi_bin_grid_h, roi_bin_grid_w);
         for (int64_t c = 0; c < channels; ++c) {
             auto pixel_weights_iterator = pixel_weights.begin();
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
-                    ReduceMode reduce;
+                    reduce.Reset();
                     for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
                         const PixelPos& py = pixel_y[ph * roi_bin_grid_h + iy];
                         if (needs_bounds_check && py.IsInvalid()) continue;
@@ -380,7 +381,7 @@ private:
                             reduce.Reduce(weighted_average);
                         }
                     }
-                    top_base[ph * pooled_width + pw] += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
+                    top_base[ph * pooled_width + pw] += reduce.Finish();
                 }
             }
             bottom_base += height * width;
@@ -423,28 +424,47 @@ chainerx::Array ROIAlign2D(
 
 class ReduceByMax {
 public:
+    ReduceByMax(int64_t /*roi_bin_grid_h*/, int64_t /*roi_bin_grid_w*/) {
+        Reset();
+    }
+
+    void Reset() {
+        max_val_ = std::numeric_limits<double>::lowest();
+    }
+
     void Reduce(double weighted_average) {
         max_val_ = std::max(max_val_, weighted_average);
     }
-    double Finish(int64_t /*roi_bin_grid_h*/, int64_t /*roi_bin_grid_w*/) const {
+
+    double Finish() const {
         return max_val_;
     }
 
 private:
-    double max_val_ = std::numeric_limits<double>::lowest();
+    double max_val_;
 };
 
 class ReduceByAverage {
 public:
+    ReduceByAverage(int64_t roi_bin_grid_h, int64_t roi_bin_grid_w) : inv_elems_(1.0 / (roi_bin_grid_h * roi_bin_grid_w)) {
+        Reset();
+    }
+
+    void Reset() {
+        sum_ = 0.0;
+    }
+
     void Reduce(double weighted_average) {
         sum_ += weighted_average;
     }
-    double Finish(int64_t roi_bin_grid_h, int64_t roi_bin_grid_w) const {
-        return sum_ / (roi_bin_grid_h * roi_bin_grid_w);
+
+    double Finish() const {
+        return sum_ * inv_elems_;
     }
 
 private:
-    double sum_ = 0.0;
+    double sum_;
+    double inv_elems_;
 };
 
 void NaiveUpsampleImpl(
