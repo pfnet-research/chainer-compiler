@@ -199,8 +199,15 @@ bool is_roi_covered_by_bottom_data(
     return is_p_covered(roi_start_h, roi_end_h, height) && is_p_covered(roi_start_w, roi_end_w, width);
 }
 
-struct ROIPixel {
-    int64_t x_low, x_high, y_low, y_high;
+struct ROIPixelPos {
+    double p;
+    int64_t p_low, p_high;
+
+    double lp() const { return p - p_low; }
+    double hp() const { return 1.0 - lp(); }
+};
+
+struct ROIPixelWeight {
     double w1, w2, w3, w4;
 };
 
@@ -238,7 +245,10 @@ chainerx::Array ROIAlign2D(
 #pragma omp parallel for
 #endif
     for (int64_t n = 0; n < n_rois; ++n) {
-        std::vector<ROIPixel> roi_pixels(pooled_height * pooled_width * roi_bin_grid_h * roi_bin_grid_w);
+        std::vector<ROIPixelWeight> pixel_weights(pooled_height * pooled_width * roi_bin_grid_h * roi_bin_grid_w);
+        std::vector<ROIPixelPos> pixel_x(pooled_width * roi_bin_grid_w);
+        std::vector<ROIPixelPos> pixel_y(pooled_height * roi_bin_grid_h);
+
         int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
         double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
         double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
@@ -253,32 +263,47 @@ chainerx::Array ROIAlign2D(
         if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
             // {{
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
-                for (int64_t pw = 0; pw < pooled_width; ++pw) {
-                    for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
-                        double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
-                        int64_t y_low = static_cast<int64_t>(y);
-                        double ly = y - y_low;
-                        double hy = 1.0 - ly;
-                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
-                            double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
-                            int64_t x_low = static_cast<int64_t>(x);
-                            double lx = x - x_low;
-                            double hx = 1.0 - lx;
+                for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                    double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                    int64_t y_low = static_cast<int64_t>(y);
+                    int64_t y_high = y_low + 1;
+                    pixel_y[ph * roi_bin_grid_h + iy].p = y;
+                    pixel_y[ph * roi_bin_grid_h + iy].p_low = y_low;
+                    pixel_y[ph * roi_bin_grid_h + iy].p_high = y_high;
+                }
+            }
 
+            for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                    double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                    int64_t x_low = static_cast<int64_t>(x);
+                    int64_t x_high = x_low + 1;
+                    pixel_x[pw * roi_bin_grid_w + ix].p = x;
+                    pixel_x[pw * roi_bin_grid_w + ix].p_low = x_low;
+                    pixel_x[pw * roi_bin_grid_w + ix].p_high = x_high;
+                }
+            }
+
+            for (int64_t ph = 0; ph < pooled_height; ++ph) {
+                for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                    const ROIPixelPos& py = pixel_y[ph * roi_bin_grid_h + iy];
+                    double ly = py.lp();
+                    double hy = py.hp();
+                    for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                            const ROIPixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
+                            double lx = px.lp();
+                            double hx = px.hp();
                             double w1 = hy * hx;
                             double w2 = hy * lx;
                             double w3 = ly * hx;
                             double w4 = ly * lx;
 
-                            ROIPixel* rp = &roi_pixels[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
-                            rp->x_low = x_low;
-                            rp->x_high = x_low + 1;
-                            rp->y_low = y_low;
-                            rp->y_high = y_low + 1;
-                            rp->w1 = w1;
-                            rp->w2 = w2;
-                            rp->w3 = w3;
-                            rp->w4 = w4;
+                            ROIPixelWeight* weights = &pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
+                            weights->w1 = w1;
+                            weights->w2 = w2;
+                            weights->w3 = w3;
+                            weights->w4 = w4;
                         }
                     }
                 }
@@ -289,16 +314,18 @@ chainerx::Array ROIAlign2D(
                     for (int64_t pw = 0; pw < pooled_width; ++pw) {
                         ReduceMode reduce;
                         for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                            const ROIPixelPos& py = pixel_y[ph * roi_bin_grid_h + iy];
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
-                                const ROIPixel& rp = roi_pixels[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
-                                const int64_t x_low = rp.x_low;
-                                const int64_t x_high = rp.x_high;
-                                const int64_t y_low = rp.y_low;
-                                const int64_t y_high = rp.y_high;
-                                const double w1 = rp.w1;
-                                const double w2 = rp.w2;
-                                const double w3 = rp.w3;
-                                const double w4 = rp.w4;
+                                const ROIPixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
+                                const ROIPixelWeight& weights = pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
+                                const int64_t x_low = px.p_low;
+                                const int64_t x_high = px.p_high;
+                                const int64_t y_low = py.p_low;
+                                const int64_t y_high = py.p_high;
+                                const double w1 = weights.w1;
+                                const double w2 = weights.w2;
+                                const double w3 = weights.w3;
+                                const double w4 = weights.w4;
 
                                 float v1 = get_bottom(roi_batch_ind, c, y_low, x_low);
                                 float v2 = get_bottom(roi_batch_ind, c, y_low, x_high);
