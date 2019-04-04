@@ -199,6 +199,11 @@ bool is_roi_covered_by_bottom_data(
     return is_p_covered(roi_start_h, roi_end_h, height) && is_p_covered(roi_start_w, roi_end_w, width);
 }
 
+struct ROIPixel {
+    int64_t x_low, x_high, y_low, y_high;
+    double w1, w2, w3, w4;
+};
+
 template <class ReduceMode>
 chainerx::Array ROIAlign2D(
         const chainerx::Array& bottom_data,
@@ -223,6 +228,9 @@ chainerx::Array ROIAlign2D(
     const int64_t pooled_width = output_shape[1];
     chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
+    const int64_t roi_bin_grid_h = sampling_ratio[0];
+    const int64_t roi_bin_grid_w = sampling_ratio[1];
+
     float* bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
 
     auto get_bottom = [&](int b, int c, int y, int x) { return bottom_ptr[(((b * channels) + c) * height + y) * width + x]; };
@@ -230,6 +238,7 @@ chainerx::Array ROIAlign2D(
 #pragma omp parallel for
 #endif
     for (int64_t n = 0; n < n_rois; ++n) {
+        std::vector<ROIPixel> roi_pixels(pooled_height * pooled_width * roi_bin_grid_h * roi_bin_grid_w);
         int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
         double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
         double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
@@ -241,33 +250,56 @@ chainerx::Array ROIAlign2D(
         double bin_size_h = roi_height / pooled_height;
         double bin_size_w = roi_width / pooled_width;
 
-        int64_t roi_bin_grid_h = sampling_ratio[0];
-        int64_t roi_bin_grid_w = sampling_ratio[1];
-
         if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
             // {{
+            for (int64_t ph = 0; ph < pooled_height; ++ph) {
+                for (int64_t pw = 0; pw < pooled_width; ++pw) {
+                    for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
+                        double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
+                        int64_t y_low = static_cast<int64_t>(y);
+                        double ly = y - y_low;
+                        double hy = 1.0 - ly;
+                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                            double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
+                            int64_t x_low = static_cast<int64_t>(x);
+                            double lx = x - x_low;
+                            double hx = 1.0 - lx;
+
+                            double w1 = hy * hx;
+                            double w2 = hy * lx;
+                            double w3 = ly * hx;
+                            double w4 = ly * lx;
+
+                            ROIPixel* rp = &roi_pixels[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
+                            rp->x_low = x_low;
+                            rp->x_high = x_low + 1;
+                            rp->y_low = y_low;
+                            rp->y_high = y_low + 1;
+                            rp->w1 = w1;
+                            rp->w2 = w2;
+                            rp->w3 = w3;
+                            rp->w4 = w4;
+                        }
+                    }
+                }
+            }
+
             for (int64_t c = 0; c < channels; ++c) {
                 for (int64_t ph = 0; ph < pooled_height; ++ph) {
                     for (int64_t pw = 0; pw < pooled_width; ++pw) {
                         ReduceMode reduce;
                         for (int64_t iy = 0; iy < roi_bin_grid_h; ++iy) {
-                            double y = roi_start_h + ph * bin_size_h + (iy + 0.5) * bin_size_h / roi_bin_grid_h;
-                            int64_t y_low = static_cast<int64_t>(y);
-                            int64_t y_high = y_low + 1;
-                            double ly = y - y_low;
-                            double hy = 1.0 - ly;
                             for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
-                                double x = roi_start_w + pw * bin_size_w + (ix + 0.5) * bin_size_w / roi_bin_grid_w;
-                                int64_t x_low = static_cast<int64_t>(x);
-                                int64_t x_high = x_low + 1;
-                                double lx = x - x_low;
-                                double hx = 1.0 - lx;
+                                const ROIPixel& rp = roi_pixels[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
+                                const int64_t x_low = rp.x_low;
+                                const int64_t x_high = rp.x_high;
+                                const int64_t y_low = rp.y_low;
+                                const int64_t y_high = rp.y_high;
+                                const double w1 = rp.w1;
+                                const double w2 = rp.w2;
+                                const double w3 = rp.w3;
+                                const double w4 = rp.w4;
 
-                                // bilinear interpolation {{
-                                double w1 = hy * hx;
-                                double w2 = hy * lx;
-                                double w3 = ly * hx;
-                                double w4 = ly * lx;
                                 float v1 = get_bottom(roi_batch_ind, c, y_low, x_low);
                                 float v2 = get_bottom(roi_batch_ind, c, y_low, x_high);
                                 float v3 = get_bottom(roi_batch_ind, c, y_high, x_low);
@@ -275,7 +307,6 @@ chainerx::Array ROIAlign2D(
 
                                 double weighted_average = w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4;
                                 reduce.Reduce(weighted_average);
-                                // }}
                             }
                         }
                         ContiguousArrayAt<float>(top_data, {n, c, ph, pw}) += reduce.Finish(roi_bin_grid_h, roi_bin_grid_w);
