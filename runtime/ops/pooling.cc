@@ -224,7 +224,7 @@ chainerx::Array ROIAlign2D(
     chainerx::Array top_data = chainerx::Zeros(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
 
 #if CHAINER_COMPILER_ENABLE_OPENMP
-# pragma omp parallel for
+#pragma omp parallel for
 #endif
     for (int64_t n = 0; n < n_rois; ++n) {
         int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
