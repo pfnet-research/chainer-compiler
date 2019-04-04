@@ -351,6 +351,7 @@ private:
             const float* bottom_base,
             float* top_base) {
         for (int64_t c = 0; c < channels; ++c) {
+            auto pixel_weights_iterator = pixel_weights.begin();
             for (int64_t ph = 0; ph < pooled_height; ++ph) {
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
                     ReduceMode reduce;
@@ -359,13 +360,12 @@ private:
                         if (needs_bounds_check && py.IsInvalid()) continue;
                         const int64_t y_low = py.p_low;
                         const int64_t y_high = py.p_high;
-                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
+                        for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix, ++pixel_weights_iterator) {
                             const PixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
                             if (needs_bounds_check && px.IsInvalid()) continue;
                             const int64_t x_low = px.p_low;
                             const int64_t x_high = px.p_high;
-                            const PixelWeight& weights =
-                                    pixel_weights[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
+                            const PixelWeight& weights = *pixel_weights_iterator;
                             const double w1 = weights.w1;
                             const double w2 = weights.w2;
                             const double w3 = weights.w3;
