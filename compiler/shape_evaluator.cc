@@ -50,9 +50,17 @@ bool MaybeEvaluateShape(Node* node) {
             }
             return true;
         }
+        case Node::kAdd:
+        case Node::kConv:
+        case Node::kDiv:
+        case Node::kMul:
+        case Node::kSub:
+        case Node::kTranspose:
+            DoEvaluateShape(node);
+            return true;
 
         default:
-            CLOG() << "Not propagate " << node->ToString() << std::endl;
+            CLOG() << "Not evaluate shape " << node->ToString() << std::endl;
     }
     return false;
 }
