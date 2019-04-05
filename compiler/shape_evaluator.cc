@@ -52,7 +52,7 @@ bool MaybeEvaluateShape(Node* node) {
         }
 
         default:
-            CLOG() << "Not propagate " << node->ToString() << std::endl;
+            CLOG() << "Not evaluate shape: " << node->ToString() << std::endl;
     }
     return false;
 }
