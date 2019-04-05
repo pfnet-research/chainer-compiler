@@ -9,7 +9,7 @@ If you feel lucky, you can proceed to [building chainer compiler](#building-chai
 ### Setting up toolchains
 
 ```shell-session
-$ apt-get install git curl wget build-essential cmake libblas-dev
+$ apt-get install git curl wget build-essential cmake libopenblas-dev
 ```
 
 ### Setting up CUDA
