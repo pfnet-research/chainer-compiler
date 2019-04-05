@@ -14,6 +14,7 @@ class ChainerLinkDefinition:
 def estimate_linear_shape(inst : 'chainer.links.Linear', args):
     if isinstance(args[0].obj.get_value(), values.TensorValue) and len(args[0].obj.get_value().shape) >= 2:
         return (args[0].obj.get_value().shape[0], inst.out_size)
+    return ()
 
 def estimate_convolution2D_shape(inst : 'chainer.links.Convolution2D', args):
     return functions.generate_tensor_value_with_undefined_shape_size(args[0].obj.get_value()).shape
