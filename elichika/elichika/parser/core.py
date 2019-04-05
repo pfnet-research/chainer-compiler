@@ -37,13 +37,13 @@ def convert_model(model : 'chainer.Chain', args = []):
 
     if chainer_functions_module_name != '':
         f_dict = values.Object(values.ModuleValue())
-        f_relu = values.FuncValue(functions_builtin.ReluFunction(), None)
+        f_relu = values.FuncValue(functions_builtin.ChainerFunction(F.relu), None)
         f_dict.get_field().get_attribute('relu').revise(values.Object(f_relu))
-        f_softmax = values.FuncValue(functions_builtin.SoftmaxFunction(), None)
+        f_softmax = values.FuncValue(functions_builtin.ChainerFunction(F.softmax), None)
         f_dict.get_field().get_attribute('softmax').revise(values.Object(f_softmax))
-        f_softmax_cross_entropy = values.FuncValue(functions_builtin.SoftmaxCrossEntropyFunction(), None)
+        f_softmax_cross_entropy = values.FuncValue(functions_builtin.ChainerFunction(F.softmax_cross_entropy), None)
         f_dict.get_field().get_attribute('softmax_cross_entropy').revise(values.Object(f_softmax_cross_entropy))
-        f_pad_sequence = values.FuncValue(functions_builtin.PadSequenceFunction(), None)
+        f_pad_sequence = values.FuncValue(functions_builtin.ChainerFunction(F.pad_sequence), None)
         f_dict.get_field().get_attribute('pad_sequence').revise(values.Object(f_pad_sequence))
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 

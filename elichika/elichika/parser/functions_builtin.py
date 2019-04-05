@@ -8,66 +8,12 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-class ReluFunction(functions.FunctionBase):
-    def __init__(self):
+class ChainerFunction(functions.FunctionBase):
+    def __init__(self, func):
         super().__init__()
-        self.name = 'relu'
-        self.analyze_args(F.relu)
-        self.base_func = F.relu
-
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
-        funcArgs = self.parse_args(args)
-        vargs = self.get_values(funcArgs)
-
-        node = nodes.NodeCall(self, vargs, line)
-        graph.add_node(node)
-        value = functions.generate_value_with_same_type(vargs[0])
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return values.Object(value)
-
-class SoftmaxFunction(functions.FunctionBase):
-    def __init__(self):
-        super().__init__()
-        self.name = 'softmax'
-        self.analyze_args(F.softmax)
-        self.base_func = F.softmax
-
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
-        funcArgs = self.parse_args(args)
-        vargs = self.get_values(funcArgs)
-
-        node = nodes.NodeCall(self, vargs, line)
-        graph.add_node(node)
-        value = functions.generate_value_with_same_type(vargs[0])
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return values.Object(value)
-
-class SoftmaxCrossEntropyFunction(functions.FunctionBase):
-    def __init__(self):
-        super().__init__()
-        self.name = 'softmax_cross_entropy'
-        self.analyze_args(F.softmax_cross_entropy)
-        self.base_func = F.softmax_cross_entropy
-
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
-        funcArgs = self.parse_args(args)
-        vargs = self.get_values(funcArgs)
-
-        node = nodes.NodeCall(self, vargs, line)
-        graph.add_node(node)
-        value = functions.generate_value_with_same_type(vargs[0])
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return values.Object(value)
-
-class PadSequenceFunction(functions.FunctionBase):
-    def __init__(self):
-        super().__init__()
-        self.name = 'pad_sequence'
-        self.analyze_args(F.pad_sequence)
-        self.base_func = F.pad_sequence
+        self.name = str(func)
+        self.analyze_args(func)
+        self.base_func = func
 
     def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
@@ -76,7 +22,7 @@ class PadSequenceFunction(functions.FunctionBase):
         node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
         #value = functions.generate_value_with_same_type(vargs[0])
-        value = values.TensorValue()
+        value = values.TensorValue()        
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
