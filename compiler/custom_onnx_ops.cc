@@ -306,6 +306,43 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
+namespace {
+
+void InferResizeImages(InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+
+    std::vector<int64_t> output_shape;
+    if (getRepeatedAttribute(ctx, "output_shape", output_shape)) {
+        if (output_shape.size() != 2) {
+            fail_shape_inference("Attribute output_shape has incorrect size");
+        }
+    } else {
+        fail_shape_inference("Attribute output_shape must be specified");
+    }
+
+    auto output = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+    output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(0));
+    output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(1));
+    output->add_dim()->set_dim_value(output_shape[0]);
+    output->add_dim()->set_dim_value(output_shape[1]);
+}
+
+}  // namespace
+
+ONNX_OPERATOR_SET_SCHEMA(
+        ChainerResizeImages,
+        9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Output(0, "Y", "Output tensor", "T")
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .Attr("output_shape", "The size of the output image.", AttributeProto::INTS)
+                .TypeAndShapeInferenceFunction(InferResizeImages));
+
 // TODO(hamaji): Remove this once
 // https://github.com/onnx/onnx/pull/1855 is merged.
 static const char* Expand_ver9_doc = R"DOC(
@@ -383,6 +420,7 @@ public:
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxAlign2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxPool2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerLinear)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerResizeImages)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSoftmaxCrossEntropy)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSelectItem)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Expand)>());
