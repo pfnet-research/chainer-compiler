@@ -368,9 +368,6 @@ class Attribute:
     def __init__(self, name : 'str'):
         self.name = name
         self.history = []
-        self.rev_history = {}
-        self.access_num = 0
-        self.rev_access_num = {}
         self.parent = None
 
         # a obj which is contained in this attribute at first
@@ -397,8 +394,6 @@ class Attribute:
 
     def get_obj(self, inc_access = True):
         assert len(self.history) > 0
-        if inc_access:
-            self.access_num = 0
         return self.history[-1].obj
 
     def __str__(self):

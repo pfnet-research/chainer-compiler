@@ -5,12 +5,26 @@ from elichika.parser.graphs import Graph
 
 import chainer.links
 
+chainer_links = {}
+
+class ChainerLinkDefinition:
+    def __init__(self, estimate_shape = None):
+        self.estimate_shape = estimate_shape
+
+def estimate_linear_shape(inst : 'chainer.links.Linear', args):
+    if isinstance(args[0].obj.get_value(), values.TensorValue) and len(args[0].obj.get_value().shape) >= 2:
+        return (args[0].obj.get_value().shape[0], inst.out_size)
+    return ()
+
+def estimate_convolution2D_shape(inst : 'chainer.links.Convolution2D', args):
+    return functions.generate_tensor_value_with_undefined_shape_size(args[0].obj.get_value()).shape
+
+
+chainer_links[chainer.links.Linear] = ChainerLinkDefinition(estimate_linear_shape)
+chainer_links[chainer.links.Convolution2D] = ChainerLinkDefinition(estimate_convolution2D_shape)
+
 def is_builtin_chainer_link(value) -> 'bool':
-    if isinstance(value, chainer.links.Linear):
-        return True
-    if isinstance(value, chainer.links.Convolution2D):
-        return True
-    return False
+    return type(value) in chainer_links.keys()
 
 class ChainerLinkFunction(functions.FunctionBase):
     def __init__(self, owner):
@@ -23,14 +37,9 @@ class ChainerLinkFunction(functions.FunctionBase):
         graph.add_node(node)
         value = values.TensorValue()
 
-        # TODO refactor
-        if(isinstance(self.owner.inst, chainer.links.Linear)):
-            cn = self.owner.inst # type: chainer.links.Linear
-            if isinstance(args[0].obj.get_value(), values.TensorValue) and len(args[0].obj.get_value().shape) >= 2:
-                value.shape = (args[0].obj.get_value().shape[0], cn.out_size)
-
-        if(isinstance(self.owner.inst, chainer.links.Convolution2D)):
-            value = functions.generate_tensor_value_with_undefined_shape_size(args[0].obj.get_value())
+        estimate_shape = chainer_links[type(self.owner.inst)].estimate_shape
+        if estimate_shape is not None:
+            value.shape = estimate_shape(self.owner.inst, args)
 
         node.set_outputs([value])
         return values.Object(value)

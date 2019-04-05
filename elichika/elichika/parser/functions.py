@@ -114,7 +114,8 @@ class FunctionBase():
         self.name = ''
         self.is_property = False
         self.funcArgs = []
-
+        self.base_func = None
+        
     def parse_args(self, args):
         funcArgs = self.funcArgs.copy()
 

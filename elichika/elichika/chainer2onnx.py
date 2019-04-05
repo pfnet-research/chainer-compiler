@@ -1,4 +1,6 @@
 import chainer
+import chainer.functions as F
+import chainer.links as L
 
 import onnx
 import onnx.helper as oh
@@ -290,6 +292,128 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
         kernel_shape=ksize,
         pads=pads,
         strides=stride)
+
+chainer_l_converter = {}
+chainer_l_converter[L.Linear] = convert_onnx_chainer_linear
+chainer_l_converter[L.Convolution2D] = convert_onnx_chainer_convolution2d
+
+def convert_relu(onnx_graph, node):
+    onnx_node = oh.make_node("Relu", [value2onnx_parameter[node.inputs[0]].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
+    onnx_graph.nodes.append(onnx_node)
+
+def convert_softmax(onnx_graph, node):
+    onnx_node = oh.make_node(
+        "Softmax",
+        [value2onnx_parameter[node.inputs[0]].onnx_name],
+        [value2onnx_parameter[node.outputs[0]].onnx_name],
+        str(node.lineprop),
+        axis = onnx_graph.try_get_attribute(node.inputs[1]))
+
+    onnx_graph.nodes.append(onnx_node)
+
+def convert_pad_sequence(onnx_graph, node):
+    kwargs = {}
+
+    if node.inputs[1] is not None:
+        value = onnx_graph.try_get_attribute(node.inputs[1])
+        if value is not None:
+            kwargs['length'] = value
+        if node.inputs[2] is not None:
+            value = onnx_graph.try_get_attribute(node.inputs[2])
+            if value != 0:
+                kwargs['value'] = float(value)
+
+        onnx_node = oh.make_node(
+            "ChainerSequencePad",
+            [value2onnx_parameter[node.inputs[0]].onnx_name],
+            [value2onnx_parameter[node.outputs[0]].onnx_name],
+            str(node.lineprop),
+            **kwargs)
+
+    onnx_graph.nodes.append(onnx_node)
+
+def convert_softmax_cross_entropy(onnx_graph, node):
+
+    onnx_node = oh.make_node(
+        "ChainerSoftmaxCrossEntropy",
+        [value2onnx_parameter[node.inputs[0]].onnx_name,
+        value2onnx_parameter[node.inputs[1]].onnx_name],
+        [value2onnx_parameter[node.outputs[0]].onnx_name],
+        str(node.lineprop))
+
+    onnx_graph.nodes.append(onnx_node)
+
+chainer_f_converter = {}
+chainer_f_converter[F.relu] = convert_relu
+chainer_f_converter[F.softmax] = convert_softmax
+chainer_f_converter[F.pad_sequence] = convert_pad_sequence
+chainer_f_converter[F.softmax_cross_entropy] = convert_softmax_cross_entropy
+
+def convert_node_call(onnx_graph, node : 'nodes.NodeCall', param2name):
+
+    if node.func.base_func is not None:
+        chainer_f_converter[node.func.base_func](onnx_graph, node)
+        return
+
+    if isinstance(node.func, functions_builtin.AppendFunction):
+        # append
+        onnx_node = oh.make_node(
+            "ChainerSequenceAppend",
+            [value2onnx_parameter[node.inputs[0]].onnx_name, value2onnx_parameter[node.inputs[1]].onnx_name],
+            [value2onnx_parameter[node.outputs[0]].onnx_name],
+            str(node.lineprop))
+        onnx_graph.nodes.append(onnx_node)
+
+    if isinstance(node.func, functions_builtin.NDArrayShapeFunction):
+        # shape
+        op_shape_temp = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[node.outputs[0]].onnx_name + '/ShapeTemp')
+
+        onnx_node = oh.make_node(
+            "Shape",
+            [value2onnx_parameter[node.inputs[0]].onnx_name],
+            [op_shape_temp.name],
+            str(node.lineprop))
+
+        onnx_graph.nodes.append(onnx_node)
+
+        onnx_node = oh.make_node(
+            "ChainerSequenceSeparate",
+            [op_shape_temp.name],
+            [value2onnx_parameter[node.outputs[0]].onnx_name],
+            str(node.lineprop))
+
+        onnx_graph.nodes.append(onnx_node)
+
+    if isinstance(node.func, values_builtin.ChainerLinkFunction):
+        original_inst = node.func.owner.inst
+        chainer_l_converter[type(original_inst)](onnx_graph, node, param2name)
+            
+def convert_node_unary_op(onnx_graph, node : 'nodes.NodeUnaryOp'):
+
+    if node.unaryop == nodes.UnaryOpType.UAdd:
+        zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node].onnx_name + '/Zero')
+        onnx_node = oh.make_node(
+            'Add',
+            [zero_.name, value2onnx_parameter[node.operand].onnx_name],
+            [value2onnx_parameter[node.outputs[0]].onnx_name])
+        onnx_graph.nodes.append(onnx_node)
+
+    if node.unaryop == nodes.UnaryOpType.USub:
+        zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node].onnx_name + '/Zero')
+        onnx_node = oh.make_node(
+            'Sub',
+            [zero_.name, value2onnx_parameter[node.operand].onnx_name],
+            [value2onnx_parameter[node.outputs[0]].onnx_name])
+        onnx_graph.nodes.append(onnx_node)
+
+    if node.unaryop == nodes.UnaryOpType.Not:
+        onnx_node = oh.make_node(
+            'Not',
+            [value2onnx_parameter[node.operand].onnx_name],
+            [value2onnx_parameter[node.outputs[0]].onnx_name])
+        onnx_graph.nodes.append(onnx_node)
+
+
 
 class ONNXValue:
     """
@@ -722,30 +846,7 @@ class ONNXGenerator:
                     onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeUnaryOp):
-                node_ = node # type: nodes.NodeUnaryOp
-
-                if node_.unaryop == nodes.UnaryOpType.UAdd:
-                    zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node_].onnx_name + '/Zero')
-                    onnx_node = oh.make_node(
-                        'Add',
-                        [zero_.name, value2onnx_parameter[node_.operand].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name])
-                    onnx_graph.nodes.append(onnx_node)
-
-                if node_.unaryop == nodes.UnaryOpType.USub:
-                    zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node_].onnx_name + '/Zero')
-                    onnx_node = oh.make_node(
-                        'Sub',
-                        [zero_.name, value2onnx_parameter[node_.operand].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name])
-                    onnx_graph.nodes.append(onnx_node)
-
-                if node_.unaryop == nodes.UnaryOpType.Not:
-                    onnx_node = oh.make_node(
-                        'Not',
-                        [value2onnx_parameter[node_.operand].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name])
-                    onnx_graph.nodes.append(onnx_node)
+                convert_node_unary_op(onnx_graph, node)
 
             if isinstance(node, nodes.NodeCompare):
                 node_ = node # type: nodes.NodeCompare
@@ -841,94 +942,7 @@ class ONNXGenerator:
 
 
             if isinstance(node, nodes.NodeCall):
-
-                if isinstance(node.func, functions_builtin.AppendFunction):
-                    # append
-                    onnx_node = oh.make_node(
-                        "ChainerSequenceAppend",
-                        [value2onnx_parameter[node.inputs[0]].onnx_name, value2onnx_parameter[node.inputs[1]].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        str(node.lineprop))
-                    onnx_graph.nodes.append(onnx_node)
-
-                if isinstance(node.func, functions_builtin.NDArrayShapeFunction):
-                    # shape
-                    op_shape_temp = onnx_graph.new_empty_tensor(['TODO'], np.int32, value2onnx_parameter[node.outputs[0]].onnx_name + '/ShapeTemp')
-
-                    onnx_node = oh.make_node(
-                        "Shape",
-                        [value2onnx_parameter[node.inputs[0]].onnx_name],
-                        [op_shape_temp.name],
-                        str(node.lineprop))
-
-                    onnx_graph.nodes.append(onnx_node)
-
-                    onnx_node = oh.make_node(
-                        "ChainerSequenceSeparate",
-                        [op_shape_temp.name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        str(node.lineprop))
-
-                    onnx_graph.nodes.append(onnx_node)
-
-                if isinstance(node.func, functions_builtin.ReluFunction):
-                    # relu
-                    onnx_node = oh.make_node("Relu", [value2onnx_parameter[node.inputs[0]].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
-                    onnx_graph.nodes.append(onnx_node)
-
-                if isinstance(node.func, functions_builtin.SoftmaxFunction):
-                    # softmax
-                    onnx_node = oh.make_node(
-                        "Softmax",
-                        [value2onnx_parameter[node.inputs[0]].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        str(node.lineprop),
-                        axis = onnx_graph.try_get_attribute(node.inputs[1]))
-
-                    onnx_graph.nodes.append(onnx_node)
-
-                if isinstance(node.func, functions_builtin.PadSequenceFunction):
-                    # pad_sequence
-                    kwargs = {}
-
-                    if node.inputs[1] is not None:
-                        value = onnx_graph.try_get_attribute(node.inputs[1])
-                        if value is not None:
-                            kwargs['length'] = value
-                    if node.inputs[2] is not None:
-                        value = onnx_graph.try_get_attribute(node.inputs[2])
-                        if value != 0:
-                            kwargs['value'] = float(value)
-
-                    onnx_node = oh.make_node(
-                        "ChainerSequencePad",
-                        [value2onnx_parameter[node.inputs[0]].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        str(node.lineprop),
-                        **kwargs)
-
-                    onnx_graph.nodes.append(onnx_node)
-
-                if isinstance(node.func, functions_builtin.SoftmaxCrossEntropyFunction):
-                    # softmax_cross_entropy
-                    onnx_node = oh.make_node(
-                        "ChainerSoftmaxCrossEntropy",
-                        [value2onnx_parameter[node.inputs[0]].onnx_name,
-                         value2onnx_parameter[node.inputs[1]].onnx_name],
-                        [value2onnx_parameter[node.outputs[0]].onnx_name],
-                        str(node.lineprop))
-
-                    onnx_graph.nodes.append(onnx_node)
-
-                if isinstance(node.func, values_builtin.ChainerLinkFunction):
-                    original_inst = node.func.owner.inst
-
-                    if isinstance(original_inst, chainer.links.Linear):
-                        print(original_inst.W)
-                        convert_onnx_chainer_linear(onnx_graph, node, self.param2name)
-
-                    if isinstance(original_inst, chainer.links.Convolution2D):
-                        convert_onnx_chainer_convolution2d(onnx_graph, node, self.param2name)
+                convert_node_call(onnx_graph, node, self.param2name)
 
             if isinstance(node, nodes.NodeIf):
                 node_ = node # type: nodes.NodeIf
