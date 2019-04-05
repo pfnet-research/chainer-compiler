@@ -50,6 +50,9 @@ extern bool g_use_ngraph;
 // The name of backend.
 extern std::string g_backend_name;
 
+// Reset all shapes.
+extern bool g_reset_shape;
+
 // Dumps the ONNX graph at a specific timing.
 extern bool g_dump_after_inference;
 extern bool g_dump_after_simplification;

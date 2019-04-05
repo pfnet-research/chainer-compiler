@@ -15,6 +15,7 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add("use_tvm", '\0', "Use TVM");
     args->add("reuse_tvm_code", '\0', "Reuse TVM code (unsafe)");
     args->add("use_ngraph", '\0', "Use nGraph");
+    args->add("reset_shape", '\0', "Reset shape information");
     args->add<std::string>("dump_autotvm_task_dir", '\0', "Output AutoTVM tasks in this directory", false);
     args->add<std::string>("autotvm_log", '\0', "A tuning log of AutoTVM which contains best scheduling parameters", false);
     args->add("dump_after_inference", '\0', "Dump the ONNX graph after dtype/shape inference");
@@ -37,6 +38,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_use_tvm = args.exist("use_tvm");
     g_reuse_tvm_code = args.exist("reuse_tvm_code");
     g_use_ngraph = args.exist("use_ngraph");
+    g_reset_shape = args.exist("reset_shape");
     g_dump_autotvm_task_dir = args.get<std::string>("dump_autotvm_task_dir");
     g_autotvm_log = args.get<std::string>("autotvm_log");
     g_dump_after_inference = args.exist("dump_after_inference");
