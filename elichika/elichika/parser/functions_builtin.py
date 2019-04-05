@@ -13,6 +13,7 @@ class ReluFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'relu'
         self.analyze_args(F.relu)
+        self.base_func = F.relu
 
     def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
@@ -30,6 +31,7 @@ class SoftmaxFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'softmax'
         self.analyze_args(F.softmax)
+        self.base_func = F.softmax
 
     def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
@@ -47,6 +49,7 @@ class SoftmaxCrossEntropyFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'softmax_cross_entropy'
         self.analyze_args(F.softmax_cross_entropy)
+        self.base_func = F.softmax_cross_entropy
 
     def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
@@ -64,6 +67,7 @@ class PadSequenceFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'pad_sequence'
         self.analyze_args(F.pad_sequence)
+        self.base_func = F.pad_sequence
 
     def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.Object', args = [], line = -1):
         funcArgs = self.parse_args(args)
