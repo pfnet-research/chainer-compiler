@@ -289,6 +289,8 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
+            // TODO(hamaji): Support grouped conv in XCVM.
+            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads());
@@ -296,6 +298,8 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
+            // TODO(hamaji): Support grouped conv in XCVM.
+            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
@@ -304,10 +308,14 @@ private:
         } else if (node.op_type() == Node::kChainerConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
+            // TODO(hamaji): Support grouped conv in XCVM.
+            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
             EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kChainerConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
+            // TODO(hamaji): Support grouped conv in XCVM.
+            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
