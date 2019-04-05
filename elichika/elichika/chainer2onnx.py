@@ -1,5 +1,6 @@
 import chainer
 import chainer.functions as F
+import chainer.links as L
 
 import onnx
 import onnx.helper as oh
@@ -292,8 +293,9 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
         pads=pads,
         strides=stride)
 
-
-chainer_f_converter = {}
+chainer_l_converter = {}
+chainer_l_converter[L.Linear] = convert_onnx_chainer_linear
+chainer_l_converter[L.Convolution2D] = convert_onnx_chainer_convolution2d
 
 def convert_relu(onnx_graph, node):
     onnx_node = oh.make_node("Relu", [value2onnx_parameter[node.inputs[0]].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
@@ -341,6 +343,7 @@ def convert_softmax_cross_entropy(onnx_graph, node):
 
     onnx_graph.nodes.append(onnx_node)
 
+chainer_f_converter = {}
 chainer_f_converter[F.relu] = convert_relu
 chainer_f_converter[F.softmax] = convert_softmax
 chainer_f_converter[F.pad_sequence] = convert_pad_sequence
@@ -383,13 +386,7 @@ def convert_node_call(onnx_graph, node : 'nodes.NodeCall', param2name):
 
     if isinstance(node.func, values_builtin.ChainerLinkFunction):
         original_inst = node.func.owner.inst
-
-        if isinstance(original_inst, chainer.links.Linear):
-            convert_onnx_chainer_linear(onnx_graph, node, param2name)
-
-        if isinstance(original_inst, chainer.links.Convolution2D):
-            convert_onnx_chainer_convolution2d(onnx_graph, node, param2name)
-
+        chainer_l_converter[type(original_inst)](onnx_graph, node, param2name)
             
 def convert_node_unary_op(onnx_graph, node : 'nodes.NodeUnaryOp'):
 
