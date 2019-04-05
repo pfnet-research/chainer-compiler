@@ -27,6 +27,5 @@ time pytest -sv python
 
 time python3 examples/mnist/train_mnist.py -d native --compile -I 3 --dump_onnx
 
-# TODO(hamaji): Investigate why running these on Travis takes ~10 minutes.
-# ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
-# ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
+time ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
+time ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
