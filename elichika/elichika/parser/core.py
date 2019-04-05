@@ -70,22 +70,21 @@ def convert_model(model : 'chainer.Chain', args = []):
     forward_func = model_inst.try_get_and_store_obj('forward')
 
     # convert args
+    finput = functions.FunctionArgInput()
+
     value_args = []
-    function_args = []
     ind = 0
     for arg in args:
         varg = values.parse_instance(default_module, '', arg, None, True)
         varg.name = 'in_' + str(ind)
         varg.get_value().name = 'in_' + str(ind)
-        farg = functions.FunctionArg()
-        farg.obj = varg
+        finput.inputs.append(varg)
         value_args.append(varg.get_value())
-        function_args.append(farg)
         ind += 1
 
     graph = Graph()
     forward_func_value = forward_func.get_value()
-    ret = forward_func_value.func.vcall(default_module, graph, forward_func_value.obj, function_args)
+    ret = forward_func_value.func.vcall(default_module, graph, forward_func_value.obj, finput)
     assert(ret is None or isinstance(ret, values.Object))
 
     ret_ = []

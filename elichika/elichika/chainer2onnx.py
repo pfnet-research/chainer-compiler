@@ -139,6 +139,7 @@ def assign_onnx_name(graph : 'graphs.Graph'):
 def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
 
     # replace inputs
+    '''
     if not isMain:
         input_values = graph.input_values.copy()
         copied_input_values = [functions.generate_copied_value(v) for v in input_values]
@@ -158,6 +159,7 @@ def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
         for i in range(len(graph.output_values)):
             if graph.output_values[i] in old2new.keys():
                 graph.output_values[i] = old2new[graph.output_values[i]]
+    '''
 
     replacing = {}
     for value in graph.output_values:
