@@ -427,7 +427,7 @@ class ONNXValue:
         if name is not None:
             name_ = generate_onnx_name(name_)
 
-        if(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64 or any_value == np.int or any_value == np.float):
+        if(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64):
             self.tensor = self.onnx_graph.new_empty_tensor(['TODO'], any_value, name_)
             self.name = name_
 
@@ -942,7 +942,7 @@ class ONNXGenerator:
                 node_ = node # type: nodes.NodeFor
 
                 # get length of sequence
-                v_len = ONNXValue(onnx_graph, np.int, [value2onnx_parameter[node_.iter_value].onnx_name, '/Len'])
+                v_len = ONNXValue(onnx_graph, np.array(0).dtype, [value2onnx_parameter[node_.iter_value].onnx_name, '/Len'])
 
                 onnx_node = onnx_graph.add_node(
                     'ChainerGenericLen',
