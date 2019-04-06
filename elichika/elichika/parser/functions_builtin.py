@@ -132,6 +132,7 @@ class NDArrayFunction(functions.FunctionBase):
             dtype = None
 
         node = nodes.NodeGenerate('array', vargs, line)
+        node.fargs = funcArgs
         graph.add_node(node)
         value = values.TensorValue()
         value.dtype = dtype
