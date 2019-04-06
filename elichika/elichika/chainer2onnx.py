@@ -186,7 +186,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', p
     if chainer_inst.W.data is None:
         print("W is unknown. Please infer this model.")
 
-    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)])
+    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)], is_constant=False)
 
     (x_shape,) = onnx_graph.add_node(
         'Shape',
@@ -221,7 +221,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', p
         str(node.lineprop))
 
     if chainer_inst.b is not None:
-        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)])
+        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)], is_constant=False)
 
         onnx_graph.add_node(
             'Gemm',
@@ -257,11 +257,11 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
 
     x = ONNXValue(onnx_graph, node.inputs[0])
     o = ONNXValue(onnx_graph, node.outputs[0])
-    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)])
+    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)], is_constant=False)
     b = None
 
     if chainer_inst.b is not None:
-        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)])
+        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)], is_constant=False)
 
     onnx_graph.add_node(
         'Conv',
@@ -286,7 +286,7 @@ def convert_softmax(onnx_graph, node):
         [value2onnx_parameter[node.inputs[0]].onnx_name],
         [value2onnx_parameter[node.outputs[0]].onnx_name],
         str(node.lineprop),
-        axis = onnx_graph.try_get_attribute(node.inputs[1]))
+        axis = try_get_attribute(node.inputs[1]))
 
     onnx_graph.nodes.append(onnx_node)
 
@@ -294,11 +294,11 @@ def convert_pad_sequence(onnx_graph, node):
     kwargs = {}
 
     if node.inputs[1] is not None:
-        value = onnx_graph.try_get_attribute(node.inputs[1])
+        value = try_get_attribute(node.inputs[1])
         if value is not None:
             kwargs['length'] = value
         if node.inputs[2] is not None:
-            value = onnx_graph.try_get_attribute(node.inputs[2])
+            value = try_get_attribute(node.inputs[2])
             if value != 0:
                 kwargs['value'] = float(value)
 
@@ -402,12 +402,14 @@ class ONNXValue:
         onnx_graph : an instance of ONNXGraph
         any_value : wrapped value. values.Value, np.array or np.float32(any size)
         name : a value of name. string or array
+        is_constant : if this value can be converted as constant, it makes constant values.
     """
-    def __init__(self, onnx_graph : 'ONNXGraph', any_value = None, name = None):
+    def __init__(self, onnx_graph : 'ONNXGraph', any_value = None, name = None, is_constant = True):
         assert(isinstance(onnx_graph,ONNXGraph))
         self.value = None # values.Value
         self.np_value = None # np.array
         self.onnx_graph = onnx_graph
+        self.is_constant = is_constant
         self.name = ''
 
         name_ = ''
@@ -440,8 +442,13 @@ class ONNXValue:
 
         if isinstance(any_value, np.ndarray):
             self.np_value = any_value
-            self.tensor = onnx_graph.new_tensor_with_np(self.np_value, name_)
             self.name = name_
+
+            if self.is_constant:
+                tensor = numpy_helper.from_array(any_value, name=name_)
+                self.onnx_graph.add_node('Constant', [], [name_], name_, value=tensor)
+            else:
+                self.tensor = onnx_graph.new_tensor_with_np(self.np_value, name_)
 
     def create_sequence(self) -> 'ONNXValue':
         if(isinstance(self.value, values.ListValue)):
@@ -469,6 +476,38 @@ class ONNXValue:
 
 
 
+def try_get_attribute(value, calling_node : 'nodes.Node' = None):
+
+    if calling_node is None:
+        lineinfo = 'unknown'
+    else:
+        lineinfo = str(calling_node.lineprop)
+
+    if isinstance(value, values.NumberValue):
+        value_ = value  # type: values.NumberValue
+        if value_.internal_value is None:
+            print('Warning : unconst attribute in {}'.format(lineinfo))
+        return value_.internal_value
+
+    if isinstance(value, values.BoolValue):
+        value_ = value  # type: values.BoolValue
+        if value_.internal_value is None:
+            print('Warning : unconst attribute in {}'.format(lineinfo))
+        return value_.internal_value
+
+    if isinstance(value, values.StrValue):
+        value_ = value  # type: values.StrValue
+        if value_.internal_value is None:
+            print('Warning : unconst attribute in {}'.format(lineinfo))
+        return value_.internal_value
+
+    if isinstance(value, values.NoneValue):
+        value_ = value  # type: values.NoneValue
+        return None
+
+    # error
+    print("Cannot convert a value into an attribute")
+    return -1
 
 class ONNXInitrializer:
     def __init__(self):
@@ -485,46 +524,13 @@ class ONNXGraph:
         self.input_tensor = []
         self.output_tensor = []
 
-    def try_get_attribute(self, value, calling_node : 'nodes.Node' = None):
-
-        if calling_node is None:
-            lineinfo = 'unknown'
-        else:
-            lineinfo = str(calling_node.lineprop)
-
-        if isinstance(value, values.NumberValue):
-            value_ = value  # type: values.NumberValue
-            if value_.internal_value is None:
-                print('Warning : unconst attribute in {}'.format(lineinfo))
-            return value_.internal_value
-
-        if isinstance(value, values.BoolValue):
-            value_ = value  # type: values.BoolValue
-            if value_.internal_value is None:
-                print('Warning : unconst attribute in {}'.format(lineinfo))
-            return value_.internal_value
-
-        if isinstance(value, values.StrValue):
-            value_ = value  # type: values.StrValue
-            if value_.internal_value is None:
-                print('Warning : unconst attribute in {}'.format(lineinfo))
-            return value_.internal_value
-
-        if isinstance(value, values.NoneValue):
-            value_ = value  # type: values.NoneValue
-            return None
-
-        # error
-        print("Cannot convert a value into an attribute")
-        return -1
-
     def new_empty_tensor(self, dims, dtype, name):
         '''
         generate a tensor for connecting between nodes
         '''
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(dtype)]
         tensor = oh.make_tensor_value_info(name, dt, dims)
-        self.generator.tensors[name] = tensor
+        self.generator.onnx_tensors[name] = tensor
         return tensor
 
     def new_empty_tensor_with_value(self, value):
@@ -554,7 +560,7 @@ class ONNXGraph:
             vi = onnx.ValueInfoProto()
             vi.name = value2onnx_parameter[value].onnx_name
             vi.type.sequence_type.elem_type.tensor_type.elem_type = onnx.TensorProto.FLOAT
-            self.generator.tensors[vi.name] = vi
+            self.generator.onnx_tensors[vi.name] = vi
             return vi
 
         if isinstance(value, values.NumberValue):
@@ -652,26 +658,11 @@ class ONNXGraph:
 
         return tuple(output_values)
 
-    def try_get_tensor(self, onnx_name : 'str'):
-        if onnx_name in self.generator.tensors.keys():
-            return self.generator.tensors[onnx_name]
-
-        #if self.parent is not None:
-        #    return self.parent.try_get_tensor(onnx_name)
-
-        return None
-
     def set_input(self, input):
-        self.input_tensor = []
-
-        for input_ in input:
-            onnx_name = value2onnx_parameter[input_].onnx_name
-            value = self.try_get_tensor(onnx_name)
-            assert(value is not None)
-            self.input_tensor.append(value)
+        self.input_tensor = [self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name] for x in input]
 
     def set_output(self, output):
-        self.output_tensor = [self.generator.tensors[value2onnx_parameter[x].onnx_name] for x in output]
+        self.output_tensor = [self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name] for x in output]
 
     def generate_graph(self, name : 'str', isMain = False):
 
@@ -697,7 +688,6 @@ class ONNXGenerator:
     def __init__(self, namedparams):
         self.onnx_graphs = []
         self.initializers = {}
-        self.tensors = {}
         self.onnx_tensors = {}
         self.param2name = {id(p): 'param' + n.replace('/', '_')
                            for n, p in namedparams}
@@ -711,7 +701,6 @@ class ONNXGenerator:
 
                     def generate_tensor_constant(input_):
                         tensor = onnx_graph.new_tensor_with_value(input_)
-                        self.onnx_tensors[value2onnx_parameter[input_].onnx_name] = tensor
                         if isinstance(input_, values.TupleValue):
                             for value in input_.values:
                                 if not isinstance(value, values.Value):
@@ -720,7 +709,6 @@ class ONNXGenerator:
 
                     def generate_tensor(input_):
                         tensor = onnx_graph.new_empty_tensor_with_value(input_)
-                        self.onnx_tensors[value2onnx_parameter[input_].onnx_name] = tensor
                         if isinstance(input_, values.TupleValue):
                             for value in input_.values:
                                 if not isinstance(value, values.Value):
@@ -738,7 +726,6 @@ class ONNXGenerator:
 
             def generate_tensor(output_):
                 tensor = onnx_graph.new_empty_tensor_with_value(output_)
-                self.onnx_tensors[value2onnx_parameter[output_].onnx_name] = tensor
                 if isinstance(output_, values.TupleValue):
                     for value in output_.values:
                         if not isinstance(value, values.Value):
@@ -1033,16 +1020,16 @@ class ONNXGenerator:
                     onnx_graph.nodes.append(onnx_node)
 
                 if node_.classtype == 'array':
-                    dtype_value = onnx_graph.try_get_attribute(node.fargs.get_value('dtype'))
+                    dtype_value = try_get_attribute(node.fargs.get_value('dtype'))
                     if dtype_value is not None:
                         dtype = utils.int_2_numpy_type(dtype_value)
                     else:
                         dtype = None
 
-                    copy = onnx_graph.try_get_attribute(node.fargs.get_value('copy'))
-                    order = onnx_graph.try_get_attribute(node.fargs.get_value('order'))
-                    subok = onnx_graph.try_get_attribute(node.fargs.get_value('subok'))
-                    ndmin = onnx_graph.try_get_attribute(node.fargs.get_value('ndmin'))
+                    copy = try_get_attribute(node.fargs.get_value('copy'))
+                    order = try_get_attribute(node.fargs.get_value('order'))
+                    subok = try_get_attribute(node.fargs.get_value('subok'))
+                    ndmin = try_get_attribute(node.fargs.get_value('ndmin'))
 
                     assert copy is True  # TODO(hamaji): Not supported yet.
                     assert order == 'K'  # TODO(hamaji): Not supported yet.
