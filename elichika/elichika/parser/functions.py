@@ -104,16 +104,83 @@ def generate_value_with_same_type(value : 'values.Value'):
 
     return ret
 
-class FunctionArg():
+class FunctionArgInput():
     def __init__(self):
-        self.name = ''
-        self.obj = None # values.Object
+        self.inputs = []
+        self.keywords = {}
+
+class FunctionArg():
+    def __init__(self, name : 'str' = '', obj : 'values.Object' = None):
+        self.name = name
+        self.obj = obj
+
+class FunctionArgCollection():
+    def __init__(self):
+        self.args = {} # Dict[str,FunctionArg]
+        self.args_list = []
+
+    def add_arg(self, fa : 'FunctionArg'):
+        self.args_list.append(fa)
+        self.args[fa.name] = fa
+
+    def analyze_args(self, func):
+        sig = inspect.signature(func)
+        argspec = inspect.getargspec(func)
+
+        isSelfRemoved = len(sig.parameters.keys()) != len(argspec[0])
+
+        if isSelfRemoved:
+            fa = FunctionArg()
+            fa.name = argspec[0][0]
+            fa.obj = None
+            self.add_arg(fa)
+
+        for k, v in sig.parameters.items():
+
+            fa = FunctionArg()
+            fa.name = v.name
+            fa.obj = values.parse_instance(None, v.name, v.default)
+            self.add_arg(fa)
+                
+    def merge_inputs(self, inputs : 'FunctionArgInput') -> 'FunctionArgCollection':
+        ret = FunctionArgCollection()
+        
+        for fa in self.get_args():
+            ret.add_arg(fa)
+
+        for i in range(len(inputs.inputs)):
+            ret.args_list[i].obj = inputs.inputs[i]
+            
+        for k,v in inputs.keywords.items():
+            if k in ret.args.keys():
+                ret.args[k].obj = v
+
+        return ret
+
+    def get_value(self, key) -> 'values.Value':
+        if isinstance(key, int):
+            return self.args_list[key].obj.get_value()
+        if isinstance(key, str) and key in self.args.keys():
+            return self.args[key].obj.get_value()
+        return None
+
+    def get_values(self) -> 'List[values.Value]':
+        return [a.obj.get_value() for a in self.args_list]
+
+    def get_args(self) -> 'List[FunctionArg]':
+        ret = []
+
+        for fa in self.args_list:
+            ret.append(FunctionArg(fa.name, fa.obj))
+        return ret
 
 class FunctionBase():
     def __init__(self):
         self.name = ''
         self.is_property = False
         self.funcArgs = []
+        self.args = FunctionArgCollection()
+
         self.base_func = None
         
     def parse_args(self, args):
@@ -133,6 +200,8 @@ class FunctionBase():
         return funcArgs
 
     def analyze_args(self, func):
+        self.args.analyze_args(func)
+
         sig = inspect.signature(func)
         argspec = inspect.getargspec(func)
 
@@ -179,7 +248,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
-    def vcall(self, module : 'values.Field', graph : 'graphs.Graph', inst : 'values.Object', args = [], line = -1):
+    def vcall(self, module : 'values.Field', graph : 'graphs.Graph', inst : 'values.Object', args : 'FunctionArgInput', line = -1):
         ret = values.Object(values.UserDefinedInstance(module, None, self.classinfo))
         inst = ret
 
@@ -188,14 +257,12 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         # add self
         if inst is not None:
-            self_func_arg = FunctionArg()
-            self_func_arg.obj = inst
-            args = [self_func_arg] + args
+            args.inputs = [inst] + args.inputs
 
         # add args
-        funcArgs = self.parse_args(args)
+        funcArgs = self.args.merge_inputs(args)
 
-        for fa in funcArgs:
+        for fa in funcArgs.get_args():
             func_field.get_field().get_attribute(fa.name).revise(fa.obj)
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1)
@@ -217,20 +284,18 @@ class UserDefinedFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Object', args = [], line = -1):
+    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Object', args : 'FunctionArgInput', line = -1):
         func_field = values.Field()
         func_field.set_module(module)
 
         # add self
         if inst is not None:
-            self_func_arg = FunctionArg()
-            self_func_arg.obj = inst
-            args = [self_func_arg] + args
+            args.inputs = [inst] + args.inputs
 
         # add args
-        funcArgs = self.parse_args(args)
+        funcArgs = self.args.merge_inputs(args)
 
-        for fa in funcArgs:
+        for fa in funcArgs.get_args():
             func_field.get_field().get_attribute(fa.name).revise(fa.obj)
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1)

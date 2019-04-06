@@ -97,7 +97,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     # property(getter)
     if attr.has_obj() and isinstance(attr.get_obj(False).get_value(), values.FuncValue) and attr.get_obj(False).get_value().func.is_property:
         func_value = attr.get_obj(False).get_value()
-        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, [], lineprop)
+        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
         return ret
 
     if attr.has_obj():
@@ -164,29 +164,25 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     func_obj = try_get_obj(func, 'call', lineprop)
     func_value = try_get_value(func, 'call', lineprop)
 
-    fargs = []
+    finput = functions.FunctionArgInput()
+
     for arg in astc.nast.args:
         arg_ = veval_ast(astc.c(arg), local_field, graph)
-        farg = functions.FunctionArg()
-        farg.obj = try_get_obj(arg_, 'call', lineprop)
-        fargs.append(farg)
+        finput.inputs.append(try_get_obj(arg_, 'call', lineprop))
 
     for keyword in astc.nast.keywords:
         arg_ = veval_ast(astc.c(keyword.value), local_field, graph)
-        farg = functions.FunctionArg()
-        farg.name = keyword.arg
-        farg.obj = try_get_obj(arg_, 'call', lineprop)
-        fargs.append(farg)
+        finput.keywords[keyword.arg] = try_get_obj(arg_, 'call', lineprop)
 
     lineprop = utils.LineProperty(astc.lineno)
 
     ret = None
     if isinstance(func_value, values.FuncValue):
-        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, fargs, lineprop)
+        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, finput, lineprop)
 
     elif isinstance(func_value, values.Instance) and func_value.callable:
         # __call__
-        ret = func_value.func.get_value().func.vcall(local_field.module, graph, func_obj, fargs, lineprop)
+        ret = func_value.func.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
 
     else:
         if config.show_warnings:
@@ -520,12 +516,11 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     elt = veval_ast(astc.c(astc.nast.elt), local_field, body_graph)
     elt_obj = try_get_obj(elt, 'listcomp', lineprop)
 
-    farg = functions.FunctionArg()
-    farg.name = ''
-    farg.obj = elt_obj
+    finput = functions.FunctionArgInput()
+    finput.inputs.append(elt_obj)
 
     append_value = local_field.get_attribute(internal_list_id).get_obj().get_field().get_attribute('append').get_obj().get_value()
-    append_value.func.vcall(local_field.module, body_graph, local_field.get_attribute(internal_list_id).get_obj(), [farg], lineprop)
+    append_value.func.vcall(local_field.module, body_graph, local_field.get_attribute(internal_list_id).get_obj(), finput, lineprop)
 
     value_inputs = values.get_inputs()
     value_outputs = values.get_outputs()

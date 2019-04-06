@@ -138,27 +138,6 @@ def assign_onnx_name(graph : 'graphs.Graph'):
 
 def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
 
-    # replace inputs
-    if not isMain:
-        input_values = graph.input_values.copy()
-        copied_input_values = [functions.generate_copied_value(v) for v in input_values]
-
-        old2new = {}
-
-        for i in range(len(input_values)):
-            copied_input_values[i].name = input_values[i].name + '_in'
-            old2new[input_values[i]] = copied_input_values[i]
-
-        for node in graph.nodes:
-            for i in range(len(input_values)):
-                node.replace_inputs(input_values[i], copied_input_values[i])
-
-        graph.input_values = copied_input_values
-
-        for i in range(len(graph.output_values)):
-            if graph.output_values[i] in old2new.keys():
-                graph.output_values[i] = old2new[graph.output_values[i]]
-
     replacing = {}
     for value in graph.output_values:
         if value in graph.input_values:
@@ -963,23 +942,23 @@ class ONNXGenerator:
                 node_ = node # type: nodes.NodeFor
 
                 # get length of sequence
-                op_len = onnx_graph.new_empty_tensor(['TODO'], np.int, value2onnx_parameter[node_.iter_value].onnx_name + '/Len')
+                v_len = ONNXValue(onnx_graph, np.array(0).dtype, [value2onnx_parameter[node_.iter_value].onnx_name, '/Len'])
 
-                onnx_node = oh.make_node(
+                onnx_node = onnx_graph.add_node(
                     'ChainerGenericLen',
                     [value2onnx_parameter[node_.iter_value].onnx_name],
-                    [op_len.name])
-                onnx_graph.nodes.append(onnx_node)
+                    [v_len],
+                    str(node.lineprop))
 
                 body_graph = self.generate_graph(node_.body_graph.input_values, node_.body_graph.output_values, node_.body_graph, onnx_graph)
 
                 # for
-                onnx_node = oh.make_node(
+                onnx_node = onnx_graph.add_node(
                     'Loop',
-                    [op_len.name] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values],
+                    [v_len] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] + [value2onnx_parameter[x].onnx_name for x in node.input_values],
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
+                    str(node.lineprop),
                     body=body_graph)
-                onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeForGenerator):
                 node_ = node # type: nodes.NodeForGenerator
@@ -1054,16 +1033,16 @@ class ONNXGenerator:
                     onnx_graph.nodes.append(onnx_node)
 
                 if node_.classtype == 'array':
-                    dtype_value = onnx_graph.try_get_attribute(node.inputs[1])
+                    dtype_value = onnx_graph.try_get_attribute(node.fargs.get_value('dtype'))
                     if dtype_value is not None:
                         dtype = utils.int_2_numpy_type(dtype_value)
                     else:
                         dtype = None
 
-                    copy = onnx_graph.try_get_attribute(node.inputs[2])
-                    order = onnx_graph.try_get_attribute(node.inputs[3])
-                    subok = onnx_graph.try_get_attribute(node.inputs[4])
-                    ndmin = onnx_graph.try_get_attribute(node.inputs[5])
+                    copy = onnx_graph.try_get_attribute(node.fargs.get_value('copy'))
+                    order = onnx_graph.try_get_attribute(node.fargs.get_value('order'))
+                    subok = onnx_graph.try_get_attribute(node.fargs.get_value('subok'))
+                    ndmin = onnx_graph.try_get_attribute(node.fargs.get_value('ndmin'))
 
                     assert copy is True  # TODO(hamaji): Not supported yet.
                     assert order == 'K'  # TODO(hamaji): Not supported yet.

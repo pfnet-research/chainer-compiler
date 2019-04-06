@@ -11,13 +11,13 @@ class ChainerLinkDefinition:
     def __init__(self, estimate_shape = None):
         self.estimate_shape = estimate_shape
 
-def estimate_linear_shape(inst : 'chainer.links.Linear', args):
-    if isinstance(args[0].obj.get_value(), values.TensorValue) and len(args[0].obj.get_value().shape) >= 2:
-        return (args[0].obj.get_value().shape[0], inst.out_size)
+def estimate_linear_shape(inst : 'chainer.links.Linear', args : 'functions.FunctionArgInput'):
+    if isinstance(args.inputs[0].get_value(), values.TensorValue) and len(args.inputs[0].get_value().shape) >= 2:
+        return (args.inputs[0].get_value().shape[0], inst.out_size)
     return ()
 
-def estimate_convolution2D_shape(inst : 'chainer.links.Convolution2D', args):
-    return functions.generate_tensor_value_with_undefined_shape_size(args[0].obj.get_value()).shape
+def estimate_convolution2D_shape(inst : 'chainer.links.Convolution2D', args : 'functions.FunctionArgInput'):
+    return functions.generate_tensor_value_with_undefined_shape_size(args.inputs[0].get_value()).shape
 
 
 chainer_links[chainer.links.Linear] = ChainerLinkDefinition(estimate_linear_shape)
@@ -32,8 +32,8 @@ class ChainerLinkFunction(functions.FunctionBase):
         self.name = '__call__'
         self.owner = owner
 
-    def vcall(self, module : 'values.Field', graph : 'Graph', inst : 'Object', args = [], line = -1):
-        node = nodes.NodeCall(self, [v.obj.get_value() for v in args], line)
+    def vcall(self, module : 'values.Field', graph : 'Graph', inst : 'Object', args : 'functions.FunctionArgInput', line = -1):
+        node = nodes.NodeCall(self, [v.get_value() for v in args.inputs], line)
         graph.add_node(node)
         value = values.TensorValue()
 
