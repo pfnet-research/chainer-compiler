@@ -53,9 +53,9 @@ def onnx_name(value):
 def generate_onnx_value_name(value : 'values.Value', none_name = ''):
     base_name = ''
 
+    base_name = value.name
     if value.generator != None:
         base_name = value.name + '_' + str(value.generator.lineprop)
-    base_name = value.name
 
     if base_name == '':
         base_name = none_name
