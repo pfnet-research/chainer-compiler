@@ -13,8 +13,8 @@ mkdir build
 cd build
 time cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
-      -DCHAINERX_BUILD_PYTHON=ON \
-      -DPYTHON_EXECUTABLE=/usr/bin/python3
+      -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+      -CHAINER_COMPILER_ENABLE_OPENCV=ON
 time make -j2
 
 time make large_tests
