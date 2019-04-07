@@ -53,7 +53,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
   add_library(train_imagenet_lib
     train_imagenet.cc
     )
-  add_dependencies(run_onnx_lib runtime_xcvm_pb_h gen_onnx_proto)
+  add_dependencies(train_imagenet_lib runtime_xcvm_pb_h gen_onnx_proto)
   set_hidden_(train_imagenet_lib)
 
   add_executable(train_imagenet train_imagenet_main.cc)
