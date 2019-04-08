@@ -417,9 +417,9 @@ class ONNXValue:
         if(isinstance(name, list)):
             for n in name:
                 if isinstance(n,values.Value):
-                    name_ += value2onnx_parameter[self.value].onnx_name
+                    name_ += value2onnx_parameter[n].onnx_name
                 if isinstance(n, nodes.Node):
-                    name_ += node2onnx_parameter[self.value].onnx_name
+                    name_ += node2onnx_parameter[n].onnx_name
                 elif n is None:
                     name_ += ''
                 else:
