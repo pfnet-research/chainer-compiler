@@ -638,17 +638,19 @@ class TestRunner(object):
                 test_case = tests.pop()
                 if num_parallel_jobs == 1:
                     _start_output('%s... ' % test_case.name)
+                log_file = open(test_case.log_filename, 'wb')
                 proc = subprocess.Popen(test_case.args,
                                         stdout=subprocess.PIPE,
-                                        stderr=test_case.log_writer())
-                procs[proc.pid] = (test_case, proc)
+                                        stderr=log_file)
+                procs[proc.pid] = (test_case, proc, log_file)
                 continue
 
             assert procs
             pid, status = os.wait()
             assert pid in procs
-            test_case, proc = procs[pid]
+            test_case, proc, log_file = procs[pid]
             del procs[pid]
+            log_file.close()
 
             if num_parallel_jobs != 1:
                 _start_output('%s... ' % test_case.name)
