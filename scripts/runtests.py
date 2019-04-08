@@ -63,8 +63,6 @@ NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
 
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
-# https://github.com/chainer/chainer/issues/6742
-fail_negative_argmax = args.use_gpu_all
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_identity'),
@@ -332,9 +330,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_argmin_default_axis_example'),
     TestCase(NODE_TEST, 'test_argmin_default_axis_random'),
     TestCase(NODE_TEST, 'test_argmin_keepdims_example'),
-    TestCase(NODE_TEST, 'test_argmin_keepdims_random', fail=fail_negative_argmax),
+    TestCase(NODE_TEST, 'test_argmin_keepdims_random'),
     TestCase(NODE_TEST, 'test_argmin_no_keepdims_example'),
-    TestCase(NODE_TEST, 'test_argmin_no_keepdims_random', fail=fail_negative_argmax),
+    TestCase(NODE_TEST, 'test_argmin_no_keepdims_random'),
     TestCase(NODE_TEST, 'test_hardmax_axis_0'),
     TestCase(NODE_TEST, 'test_hardmax_axis_1'),
     TestCase(NODE_TEST, 'test_hardmax_axis_2'),
