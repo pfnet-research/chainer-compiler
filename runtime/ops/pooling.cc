@@ -251,16 +251,21 @@ public:
             if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
                 FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
                 FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
-                FillPixelWeights<false>(pixel_x, pixel_y, &pixel_weights);
+                FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
+                if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
+                    CalculateOutput<false, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                } else {
+                    CalculateOutput<false, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                }
             } else {
                 FillPixelPositionsBounded(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, height, &pixel_y);
                 FillPixelPositionsBounded(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, width, &pixel_x);
-                FillPixelWeights<true>(pixel_x, pixel_y, &pixel_weights);
-            }
-            if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
-                CalculateOutput<2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
-            } else {
-                CalculateOutput<0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
+                if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
+                    CalculateOutput<true, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                } else {
+                    CalculateOutput<true, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+                }
             }
         }
         return top_data;
@@ -318,7 +323,6 @@ private:
         }
     }
 
-    template <bool needs_bounds_check>
     void FillPixelWeights(
             const std::vector<PixelPos>& pixel_x, const std::vector<PixelPos>& pixel_y, std::vector<PixelWeight>* pixel_weights) {
         for (int64_t ph = 0; ph < pooled_height; ++ph) {
@@ -329,28 +333,25 @@ private:
                 for (int64_t pw = 0; pw < pooled_width; ++pw) {
                     for (int64_t ix = 0; ix < roi_bin_grid_w; ++ix) {
                         const PixelPos& px = pixel_x[pw * roi_bin_grid_w + ix];
+                        double lx = px.lp();
+                        double hx = px.hp();
+                        double w1 = hy * hx;
+                        double w2 = hy * lx;
+                        double w3 = ly * hx;
+                        double w4 = ly * lx;
+
                         PixelWeight* weights = &(*pixel_weights)[((ph * pooled_width + pw) * roi_bin_grid_h + iy) * roi_bin_grid_w + ix];
-                        if (needs_bounds_check && (px.IsInvalid() || py.IsInvalid())) {
-                            weights->w1 = weights->w2 = weights->w3 = weights->w4 = 0;
-                        } else {
-                            double lx = px.lp();
-                            double hx = px.hp();
-                            double w1 = hy * hx;
-                            double w2 = hy * lx;
-                            double w3 = ly * hx;
-                            double w4 = ly * lx;
-                            weights->w1 = w1;
-                            weights->w2 = w2;
-                            weights->w3 = w3;
-                            weights->w4 = w4;
-                        }
+                        weights->w1 = w1;
+                        weights->w2 = w2;
+                        weights->w3 = w3;
+                        weights->w4 = w4;
                     }
                 }
             }
         }
     }
 
-    template <int static_roi_bin_grid>
+    template <bool needs_bounds_check, int static_roi_bin_grid>
     void CalculateOutput(
             const std::vector<PixelWeight>& pixel_weights,
             const std::vector<PixelPos>& pixel_x,
@@ -373,12 +374,14 @@ private:
                     reduce.Reset();
                     for (int64_t iy = 0; iy < rbgh; ++iy) {
                         const PixelPos& py = pixel_y[ph * rbgh + iy];
+                        if (needs_bounds_check && py.IsInvalid()) continue;
                         const int64_t y_low = py.p_low;
                         const int64_t y_high = py.p_high;
                         const float* bottom_low = &bottom_base[y_low * width];
                         const float* bottom_high = &bottom_base[y_high * width];
                         for (int64_t ix = 0; ix < rbgw; ++ix, ++pixel_weights_iterator) {
                             const PixelPos& px = pixel_x[pw * rbgw + ix];
+                            if (needs_bounds_check && px.IsInvalid()) continue;
                             const int64_t x_low = px.p_low;
                             const int64_t x_high = px.p_high;
                             const PixelWeight& weights = *pixel_weights_iterator;
