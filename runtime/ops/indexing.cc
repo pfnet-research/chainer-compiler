@@ -128,8 +128,9 @@ chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, co
 chainerx::Array GatherGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
-    chainerx::AddAt(out, indices, axis, gy, out);
-    return out;
+    // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
+    // https://github.com/chainer/chainer/pull/6789
+    return chainerx::AddAt(out, indices, axis, gy);
 }
 
 chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
@@ -152,7 +153,9 @@ chainerx::Array SelectItemGradOp::RunImpl(
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
     chainerx::Array take_indices =
             (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(out.device());
-    chainerx::AddAt(out, take_indices, 0, gy, out);
+    // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
+    // https://github.com/chainer/chainer/pull/6789
+    out = chainerx::AddAt(out, take_indices, 0, gy);
     return out.Reshape(shape);
 }
 
