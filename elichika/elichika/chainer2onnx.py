@@ -370,7 +370,7 @@ def convert_node_call(onnx_graph, node : 'nodes.NodeCall', param2name):
 def convert_node_unary_op(onnx_graph, node : 'nodes.NodeUnaryOp'):
 
     if node.unaryop == nodes.UnaryOpType.UAdd:
-        zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node].onnx_name + '/Zero')
+        zero_ = ONNXValue(onnx_graph, np.array(0, dtype=np.float), [node,'/Zero'], is_constant=True)
         onnx_node = oh.make_node(
             'Add',
             [zero_.name, value2onnx_parameter[node.operand].onnx_name],
@@ -378,7 +378,7 @@ def convert_node_unary_op(onnx_graph, node : 'nodes.NodeUnaryOp'):
         onnx_graph.nodes.append(onnx_node)
 
     if node.unaryop == nodes.UnaryOpType.USub:
-        zero_ = onnx_graph.new_tensor_with_np(np.array(0, dtype=np.float), node2onnx_parameter[node].onnx_name + '/Zero')
+        zero_ = ONNXValue(onnx_graph, np.array(0, dtype=np.float), [node,'/Zero'], is_constant=True)
         onnx_node = oh.make_node(
             'Sub',
             [zero_.name, value2onnx_parameter[node.operand].onnx_name],
@@ -417,7 +417,9 @@ class ONNXValue:
         if(isinstance(name, list)):
             for n in name:
                 if isinstance(n,values.Value):
-                    name_ += value2onnx_parameter[self.value].onnx_name
+                    name_ += value2onnx_parameter[n].onnx_name
+                if isinstance(n, nodes.Node):
+                    name_ += node2onnx_parameter[n].onnx_name
                 elif n is None:
                     name_ += ''
                 else:
@@ -511,7 +513,8 @@ def try_get_attribute(value, calling_node : 'nodes.Node' = None):
 
 class ONNXInitrializer:
     def __init__(self):
-        self.node = None
+        self.tensor_value = None
+        self.tensor = None
         self.name = NameError
         self.dt = 0
         self.shape = ()
@@ -583,16 +586,20 @@ class ONNXGraph:
         '''
         tensor = numpy_helper.from_array(ndarray_, name=name)
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(ndarray_.dtype)]
+        
+        tensor_value = oh.make_tensor_value_info(name, dt, ndarray_.shape)
+
         initializer = ONNXInitrializer()
         initializer.name = name
-        initializer.node = tensor
+        initializer.tensor = tensor
+        initializer.tensor_value = tensor_value
         initializer.dt = dt
         initializer.shape = ndarray_.shape
 
         assert(not (name in self.generator.initializers.keys()))
-        self.generator.initializers[name] = initializer
 
-        self.generator.onnx_tensors[name] = tensor
+        self.generator.initializers[name] = initializer
+        self.generator.onnx_tensors[name] = tensor_value
 
         return tensor
 
@@ -674,15 +681,12 @@ class ONNXGraph:
         # add initializers
         if isMain:
             for v in self.generator.initializers.values():
-                if v.node in self.input_tensor:
-                    continue
-                if v.node in self.output_tensor:
+                initializers.append(v.tensor)
+
+                if v.tensor_value in self.input_tensor:
                     continue
 
-                initializers.append(v.node)
-
-                tensor = oh.make_tensor_value_info(v.name, v.dt, v.shape)
-                input_tensor_and_initializer.append(tensor)
+                input_tensor_and_initializer.append(v.tensor_value)
 
         return oh.make_graph(self.nodes, name, input_tensor_and_initializer, self.output_tensor, initializer=initializers)
 
