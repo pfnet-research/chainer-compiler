@@ -592,6 +592,8 @@ class ONNXGraph:
         assert(not (name in self.generator.initializers.keys()))
         self.generator.initializers[name] = initializer
 
+        self.generator.onnx_tensors[name] = tensor
+
         return tensor
 
     def new_tensor_with_value(self, value):
@@ -716,11 +718,11 @@ class ONNXGenerator:
                             for value in input_.values:
                                 generate_tensor(value)
 
-
-                    if input.generator is None and not (input in inputs):
-                        generate_tensor_constant(input)
-                    else:
-                        generate_tensor(input)
+                    if not (value2onnx_parameter[input].onnx_name in self.onnx_tensors.keys()):            
+                        if input.generator is None and not (input in inputs):
+                            generate_tensor_constant(input)
+                        else:
+                            generate_tensor(input)
 
         def generate_output_tensors(outputs_):
 
