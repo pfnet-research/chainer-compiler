@@ -176,7 +176,7 @@ def preprocess(graph : 'graphs.Graph', isMain : 'bool'):
             preprocess(subgraph, False)
 
 
-def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', param2name):
+def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     chainer_inst = node.func.owner.inst # type: chainer.links.Linear
     onnx_name = node2onnx_parameter[node].onnx_name
 
@@ -186,7 +186,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', p
     if chainer_inst.W.data is None:
         print("W is unknown. Please infer this model.")
 
-    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)], is_constant=False)
+    w = ONNXValue(onnx_graph, chainer_inst.W)
 
     (x_shape,) = onnx_graph.add_node(
         'Shape',
@@ -221,7 +221,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', p
         str(node.lineprop))
 
     if chainer_inst.b is not None:
-        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)], is_constant=False)
+        b = ONNXValue(onnx_graph, chainer_inst.b)
 
         onnx_graph.add_node(
             'Gemm',
@@ -246,7 +246,7 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node', p
             [o],
             str(node.lineprop))
 
-def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node', param2name):
+def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
     chainer_inst = node.func.owner.inst # type: chainer.links.Convolution2D
     onnx_name = node2onnx_parameter[node].onnx_name
 
@@ -257,11 +257,11 @@ def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.N
 
     x = ONNXValue(onnx_graph, node.inputs[0])
     o = ONNXValue(onnx_graph, node.outputs[0])
-    w = ONNXValue(onnx_graph, chainer_inst.W.data, param2name[id(chainer_inst.W)], is_constant=False)
+    w = ONNXValue(onnx_graph, chainer_inst.W)
     b = None
 
     if chainer_inst.b is not None:
-        b = ONNXValue(onnx_graph, chainer_inst.b.data, param2name[id(chainer_inst.b)], is_constant=False)
+        b = ONNXValue(onnx_graph, chainer_inst.b)
 
     onnx_graph.add_node(
         'Conv',
@@ -277,18 +277,18 @@ chainer_l_converter[L.Linear] = convert_onnx_chainer_linear
 chainer_l_converter[L.Convolution2D] = convert_onnx_chainer_convolution2d
 
 def convert_relu(onnx_graph, node):
-    onnx_node = oh.make_node("Relu", [value2onnx_parameter[node.inputs[0]].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
-    onnx_graph.nodes.append(onnx_node)
+    onnx_graph.add_node('Relu', 
+        [node.inputs[0]],
+        [node.outputs[0]],
+        name = str(node.lineprop))
 
 def convert_softmax(onnx_graph, node):
-    onnx_node = oh.make_node(
+    onnx_graph.add_node(
         "Softmax",
-        [value2onnx_parameter[node.inputs[0]].onnx_name],
-        [value2onnx_parameter[node.outputs[0]].onnx_name],
+        [node.inputs[0]],
+        [node.outputs[0]],
         str(node.lineprop),
         axis = try_get_attribute(node.inputs[1]))
-
-    onnx_graph.nodes.append(onnx_node)
 
 def convert_pad_sequence(onnx_graph, node):
     kwargs = {}
@@ -302,25 +302,20 @@ def convert_pad_sequence(onnx_graph, node):
             if value != 0:
                 kwargs['value'] = float(value)
 
-        onnx_node = oh.make_node(
-            "ChainerSequencePad",
-            [value2onnx_parameter[node.inputs[0]].onnx_name],
-            [value2onnx_parameter[node.outputs[0]].onnx_name],
-            str(node.lineprop),
-            **kwargs)
-
-    onnx_graph.nodes.append(onnx_node)
+    onnx_graph.add_node(
+        "ChainerSequencePad",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        str(node.lineprop),
+        **kwargs)
 
 def convert_softmax_cross_entropy(onnx_graph, node):
 
-    onnx_node = oh.make_node(
+    onnx_graph.add_node(
         "ChainerSoftmaxCrossEntropy",
-        [value2onnx_parameter[node.inputs[0]].onnx_name,
-        value2onnx_parameter[node.inputs[1]].onnx_name],
-        [value2onnx_parameter[node.outputs[0]].onnx_name],
+        node.inputs,
+        node.outputs,
         str(node.lineprop))
-
-    onnx_graph.nodes.append(onnx_node)
 
 chainer_f_converter = {}
 chainer_f_converter[F.relu] = convert_relu
@@ -328,7 +323,7 @@ chainer_f_converter[F.softmax] = convert_softmax
 chainer_f_converter[F.pad_sequence] = convert_pad_sequence
 chainer_f_converter[F.softmax_cross_entropy] = convert_softmax_cross_entropy
 
-def convert_node_call(onnx_graph, node : 'nodes.NodeCall', param2name):
+def convert_node_call(onnx_graph, node : 'nodes.NodeCall'):
 
     if node.func.base_func is not None:
         chainer_f_converter[node.func.base_func](onnx_graph, node)
@@ -336,12 +331,11 @@ def convert_node_call(onnx_graph, node : 'nodes.NodeCall', param2name):
 
     if isinstance(node.func, functions_builtin.AppendFunction):
         # append
-        onnx_node = oh.make_node(
+        onnx_graph.add_node(
             "ChainerSequenceAppend",
-            [value2onnx_parameter[node.inputs[0]].onnx_name, value2onnx_parameter[node.inputs[1]].onnx_name],
-            [value2onnx_parameter[node.outputs[0]].onnx_name],
+            node.inputs,
+            node.outputs,
             str(node.lineprop))
-        onnx_graph.nodes.append(onnx_node)
 
     if isinstance(node.func, functions_builtin.NDArrayShapeFunction):
         # shape
@@ -365,7 +359,7 @@ def convert_node_call(onnx_graph, node : 'nodes.NodeCall', param2name):
 
     if isinstance(node.func, values_builtin.ChainerLinkFunction):
         original_inst = node.func.owner.inst
-        chainer_l_converter[type(original_inst)](onnx_graph, node, param2name)
+        chainer_l_converter[type(original_inst)](onnx_graph, node)
             
 def convert_node_unary_op(onnx_graph, node : 'nodes.NodeUnaryOp'):
 
@@ -412,45 +406,52 @@ class ONNXValue:
         self.is_constant = is_constant
         self.name = ''
 
-        name_ = ''
+        def generate_name():
+            name_ = ''
 
-        if(isinstance(name, list)):
-            for n in name:
-                if isinstance(n,values.Value):
-                    name_ += value2onnx_parameter[n].onnx_name
-                if isinstance(n, nodes.Node):
-                    name_ += node2onnx_parameter[n].onnx_name
-                elif n is None:
-                    name_ += ''
-                else:
-                    name_ += str(n)
+            if(isinstance(name, list)):
+                for n in name:
+                    if isinstance(n,values.Value):
+                        name_ += value2onnx_parameter[n].onnx_name
+                    if isinstance(n, nodes.Node):
+                        name_ += node2onnx_parameter[n].onnx_name
+                    elif n is None:
+                        name_ += ''
+                    else:
+                        name_ += str(n)
 
-        if(isinstance(name, str)):
-            name_ = name
+            if(isinstance(name, str)):
+                name_ = name
 
-        if name is not None:
             name_ = generate_onnx_name(name_)
 
-        if(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64):
-            self.tensor = self.onnx_graph.new_empty_tensor(['TODO'], any_value, name_)
-            self.name = name_
+            return name_
 
         if isinstance(any_value, values.Value):
             self.value = any_value
             if name is not None:
-                self.name = name_
+                self.name = generate_name()
             else:
-                self.name = value2onnx_parameter[self.value].onnx_name
+                self.name = onnx_graph.get_value_name(self.value)
 
-        if isinstance(any_value, np.ndarray):
+        elif id(any_value) in onnx_graph.generator.param2name.keys():
+            self.np_value = any_value.data
+            self.name = onnx_graph.generator.param2name[id(any_value)]
+            self.tensor = onnx_graph.new_tensor_with_np(self.np_value, self.name)
+
+        elif isinstance(any_value, np.ndarray):
             self.np_value = any_value
-            self.name = name_
+            self.name = generate_name()
 
             if self.is_constant:
-                tensor = numpy_helper.from_array(any_value, name=name_)
-                self.onnx_graph.add_node('Constant', [], [name_], name_, value=tensor)
+                tensor = numpy_helper.from_array(any_value, name=self.name)
+                self.onnx_graph.add_node('Constant', [], [self.name], self.name, value=tensor)
             else:
-                self.tensor = onnx_graph.new_tensor_with_np(self.np_value, name_)
+                self.tensor = onnx_graph.new_tensor_with_np(self.np_value, self.name)
+
+        elif(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64):
+            self.name = generate_name()
+            self.tensor = self.onnx_graph.new_empty_tensor(['TODO'], any_value, self.name)
 
     def create_sequence(self) -> 'ONNXValue':
         if(isinstance(self.value, values.ListValue)):
@@ -608,8 +609,8 @@ class ONNXGraph:
         generate a tensor which value
         it is for constant input
         '''
-        name = value2onnx_parameter[value].onnx_name
-
+        name = self.get_value_name(value)
+        
         if isinstance(value, values.NumberValue):
             if value.internal_value is None:
                 # any value
@@ -645,6 +646,8 @@ class ONNXGraph:
                 inputs_.append(input)
             elif isinstance(input, ONNXValue):
                 inputs_.append(input.name)
+            elif isinstance(input, values.Value):
+                inputs_.append(value2onnx_parameter[input].onnx_name)
             else:
                 assert(False)
 
@@ -655,6 +658,8 @@ class ONNXGraph:
                 outputs_.append(output)
             elif isinstance(output, ONNXValue):
                 outputs_.append(output.name)
+            elif isinstance(output, values.Value):
+                outputs_.append(value2onnx_parameter[output].onnx_name)
             elif output is None:
                 o = ONNXValue(self, np.float32, [name, '/', optype, '/Output'])
                 output_values.append(o)
@@ -666,6 +671,18 @@ class ONNXGraph:
         self.nodes.append(node)
 
         return tuple(output_values)
+
+    def get_value_name(self, value):
+        if isinstance(value, values.Value):
+            return value2onnx_parameter[value].onnx_name
+
+        if isinstance(value, nodes.Node):
+            return node2onnx_parameter[value].onnx_name
+
+        if id(value) in self.generator.param2name.keys():
+            return self.generator.param2name[id(value)]
+
+        assert(False)
 
     def set_input(self, input):
         self.input_tensor = [self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name] for x in input]
@@ -691,12 +708,11 @@ class ONNXGraph:
         return oh.make_graph(self.nodes, name, input_tensor_and_initializer, self.output_tensor, initializer=initializers)
 
 class ONNXGenerator:
-    def __init__(self, namedparams):
+    def __init__(self):
         self.onnx_graphs = []
         self.initializers = {}
         self.onnx_tensors = {}
-        self.param2name = {id(p): 'param' + n.replace('/', '_')
-                           for n, p in namedparams}
+        self.param2name = {}
 
     def generate_graph(self, inputs, outputs, graph : 'graphs.Graph', parent : 'ONNXGraph', isMain = False):
         onnx_graph = ONNXGraph(self, parent)
@@ -914,7 +930,7 @@ class ONNXGenerator:
 
 
             if isinstance(node, nodes.NodeCall):
-                convert_node_call(onnx_graph, node, self.param2name)
+                convert_node_call(onnx_graph, node)
 
             if isinstance(node, nodes.NodeIf):
                 node_ = node # type: nodes.NodeIf
@@ -1086,12 +1102,21 @@ class ONNXGenerator:
 
         return onnx_graph.generate_graph(graph.name, isMain=isMain)
 
-    def generate_model(self, inputs, outputs, graph)-> 'ModelProto':
+    def generate_model(self, inputs, outputs, graph, model)-> 'ModelProto':
+
+        # assign param names
+        self.param2name = {id(p): 'param' + n.replace('/', '_')
+                           for n, p in model.namedparams()}
+
+        for p,n in self.param2name.items():
+            assigned_names.append(n)
+
+        # assign onnx name
         assign_onnx_name(graph)
 
         graph_ = self.generate_graph(inputs, outputs, graph, None, True)
-        model = oh.make_model(graph_, producer_name="elichika", producer_version="0.1")
-        return model
+        onnx_model = oh.make_model(graph_, producer_name="elichika", producer_version="0.1")
+        return onnx_model
 
 class ONNXModel:
     def __init__(self):
@@ -1112,8 +1137,8 @@ def compile_model(model, inputs) -> 'ONNXModel':
 
     preprocess(graph_, True)
 
-    generator = ONNXGenerator(model.namedparams())
-    model = generator.generate_model(graph_.input_values, graph_.output_values, graph_)
+    generator = ONNXGenerator()
+    model = generator.generate_model(graph_.input_values, graph_.output_values, graph_, model)
 
     # check inputs
 
