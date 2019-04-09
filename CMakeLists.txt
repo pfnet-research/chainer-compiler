@@ -180,7 +180,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx ${CMAKE_CURRENT
 add_custom_target(large_tests)
 
 if(${CHAINER_COMPILER_ENABLE_PYTHON})
-  include_directories(${CMAKE_BINARY_DIR}/third_party/chainer/chainerx_cc/pybind11/include)
+  include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/pybind11/include)
   add_subdirectory(python)
 endif()
 

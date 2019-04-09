@@ -28,7 +28,7 @@ include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CHAINER_COMPILER_NGRAPH_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
-include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 add_library(chainer_compiler_runtime
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
