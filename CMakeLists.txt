@@ -41,7 +41,7 @@ function(set_hidden_ lib_)
     ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endfunction()
 
-set_option_(CHAINER_COMPILER_BUILD_CUDA    "Build CUDA backend (if CUDA is available)")
+set_option_(CHAINER_COMPILER_ENABLE_CUDA   "Enable CUDA")
 set_option_(CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
 set_option_(CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC")
 set_option_(CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX")
@@ -136,10 +136,10 @@ if(${CHAINER_COMPILER_ENABLE_OPENMP})
 endif()
 
 # Make both chainer-compiler and ChainerX consistent.
-set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_BUILD_CUDA})
+set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
 
 # CUDA
-if(${CHAINER_COMPILER_BUILD_CUDA})
+if(${CHAINER_COMPILER_ENABLE_CUDA})
   find_package(CUDA REQUIRED)
   if(${CUDA_FOUND})
     add_definitions(-DCHAINER_COMPILER_ENABLE_CUDA=1)
