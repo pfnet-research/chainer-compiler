@@ -24,9 +24,9 @@ Chainer compiler can be built on the non-GPU environment because it just require
 
 There are two ways to build Chainer compiler without CUDA.
 
-##### Specifying `CHAINER_COMPILER_BUILD_CUDA`
+##### Specifying `CHAINER_COMPILER_ENABLE_CUDA`
 
-You can enable CUDA by specifying `CHAINER_COMPILER_BUILD_CUDA=ON`.
+You can enable CUDA by specifying `CHAINER_COMPILER_ENABLE_CUDA=ON`.
 
 ##### Using stub driver
 
@@ -104,9 +104,9 @@ $ ./setup.sh
 $ mkdir -p build
 $ cd build
 
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
+$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
 or
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF ..
+$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=OFF ..
 
 $ make
 ```
@@ -134,7 +134,6 @@ to see the list of supported options.
 TODO(hamaji): Document some of them. Notably,
 
 1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
-1. `CHAINER_COMPILER_ENABLE_NVTX` and `CHAINER_COMPILER_ENABLE_NVRTC` are important for tuning CUDA performance.
 1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](python/chainer_compiler.py).
 
 ## Run tests
