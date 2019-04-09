@@ -2,6 +2,7 @@
 # Almost code are from　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 
 import collections
+import copy
 import glob
 import os
 import shutil
@@ -115,8 +116,10 @@ def reset_test_generator(args):
     get_test_args(args)
 
 
-def generate_testcase(model_or_model_gen, xs, subname=None, output_dir=None,
+def generate_testcase(model_or_model_gen, orig_xs,
+                      subname=None, output_dir=None,
                       backprop=False):
+    xs = copy.deepcopy(orig_xs)
     if output_dir is None:
         args = get_test_args()
         output_dir = args.output
@@ -173,7 +176,7 @@ def generate_testcase(model_or_model_gen, xs, subname=None, output_dir=None,
                 bp_name, onnx.TensorProto.FLOAT, ())
             gradients.append((vi, param.grad))
 
-    xs = list(map(lambda x: _validate_inout(x), xs))
+    xs = list(map(lambda x: _validate_inout(x), orig_xs))
 
     dump_test_inputs_outputs(
         list(zip(input_tensors, xs)),
