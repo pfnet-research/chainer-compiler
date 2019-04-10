@@ -126,6 +126,21 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
     target_option.eval_as_written_target = True
     targets = veval_ast(astc.c(astc.nast.targets[0]), local_field, graph, target_option)
 
+    def return_value_or_ref(obj : 'value.Object'):
+            if isinstance(obj.get_value(), values.NumberValue):
+                return values.Object(obj.get_value())
+
+            if isinstance(obj.get_value(), values.StrValue):
+                return values.Object(obj.get_value())
+
+            if isinstance(obj.get_value(), values.BoolValue):
+                return values.Object(obj.get_value())
+
+            if isinstance(obj.get_value(), values.NoneValue):
+                return values.Object(obj.get_value())
+
+            return obj
+
     isTuple = False
     if targets.has_obj() and isinstance(targets.get_obj().get_value(), values.TupleValue):
         targets = targets.get_obj().values
@@ -137,8 +152,9 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
             targets[i].revise(value.values[i])
             graph.add_node(node_assign)
     else:
-        node_assign = nodes.NodeAssign(targets, value_obj, astc.lineno)
-        targets.revise(value_obj)
+        assigned_obj = return_value_or_ref(value_obj)
+        node_assign = nodes.NodeAssign(targets, assigned_obj, astc.lineno)
+        targets.revise(assigned_obj)
         graph.add_node(node_assign)
 
 def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':

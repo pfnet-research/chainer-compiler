@@ -36,8 +36,7 @@ import numpy as np
 
 
 def main():
-    # TODO(hamaji): Enable this test once this is fixed.
-    # testtools.generate_testcase(Add(), [42], subname='add_int')
+    testtools.generate_testcase(Add(), [42], subname='add_int')
 
     testtools.generate_testcase(Add(), [np.array(42)], subname='add_np')
 
