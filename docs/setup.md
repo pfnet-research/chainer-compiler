@@ -80,8 +80,11 @@ Chainer compiler requires Python and some libraries to build.
 ```shell-session
 $ apt-get install python3 python3-pip
 $ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest onnxruntime
-$ pip3 install third_party/chainer
+$ git submodule update --init
+$ CHAINER_BUILD_CHAINERX=1 pip3 install third_party/chainer
 ```
+
+You need to install `third_party/chainer` to run its Python interface which requires ABI compatibility.
 
 ## Building Chainer compiler
 
