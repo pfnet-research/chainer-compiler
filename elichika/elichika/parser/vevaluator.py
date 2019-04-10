@@ -356,7 +356,11 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             outputs.append(output_value)
             true_graph.add_output_value(true_output_body_value)
             false_graph.add_output_value(false_output_body_value)
-            field.get_attribute(name).revise(values.Object(output_value))
+            
+            if field.get_attribute(name).has_obj():
+                field.get_attribute(name).get_obj().revise(output_value)
+            else:
+                field.get_attribute(name).revise(values.Object(output_value))
 
     node = nodes.NodeIf(test_value, inputs, true_graph, false_graph, astc.lineno)
     node.set_outputs(outputs)
@@ -600,7 +604,10 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
             body_graph.add_output_value(v['output_body_value'])
             output_value = functions.generate_value_with_same_type(v['output_body_value'])
             outputs.append(output_value)
-            field.get_attribute(name).revise(values.Object(output_value))
+            if field.get_attribute(name).has_obj():
+                field.get_attribute(name).get_obj().revise(output_value)
+            else:
+                field.get_attribute(name).revise(values.Object(output_value))
         else:
             temp_value1 = v['input_body_value']
             temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
@@ -922,7 +929,10 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             body_graph.add_output_value(v['output_body_value'])
             output_value = functions.generate_value_with_same_type(v['output_body_value'])
             outputs.append(output_value)
-            field.get_attribute(name).revise(values.Object(output_value))
+            if field.get_attribute(name).has_obj():
+                field.get_attribute(name).get_obj().revise(output_value)
+            else:
+                field.get_attribute(name).revise(values.Object(output_value))
         else:
             temp_value1 = v['input_body_value']
             temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
