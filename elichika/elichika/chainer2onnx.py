@@ -67,7 +67,7 @@ def generate_onnx_value_name(value : 'values.Value', none_name = ''):
         name = 'noname'
 
     while (name in assigned_names):
-        ind+=1
+        ind += 1
         name = base_name + '_' + str(ind)
 
     assigned_names.append(name)
@@ -79,7 +79,7 @@ def generate_onnx_node_name(node : 'nodes.Node'):
     ind = 0
     name = base_name
     while (name in assigned_names):
-        ind+=1
+        ind += 1
         name = base_name + '_' + str(ind)
 
     assigned_names.append(name)
@@ -92,7 +92,7 @@ def generate_onnx_name(name : 'str'):
     ind = 0
     name = base_name
     while (name in assigned_names):
-        ind+=1
+        ind += 1
         name = base_name + '_' + str(ind)
 
     assigned_names.append(name)
@@ -1102,7 +1102,7 @@ class ONNXGenerator:
 
         return onnx_graph.generate_graph(graph.name, isMain=isMain)
 
-    def generate_model(self, inputs, outputs, graph, model)-> 'ModelProto':
+    def generate_model(self, inputs, outputs, graph, model) -> 'ModelProto':
 
         # assign param names
         self.param2name = {id(p): 'param' + n.replace('/', '_')
