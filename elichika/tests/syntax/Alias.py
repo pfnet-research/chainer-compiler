@@ -22,6 +22,13 @@ class If(chainer.Chain):
         return x
 
 
+class SeqAdd(chainer.Chain):
+    def forward(self, x, a):
+        y = x
+        y += a
+        return x
+
+
 # ======================================
 
 import testtools
@@ -42,6 +49,11 @@ def main():
     #                             subname='if_false_np')
     # testtools.generate_testcase(If(), [np.array(42), True],
     #                             subname='if_true_np')
+
+    # TODO(hamaji): Enable this tests once they are fixed.
+    # testtools.generate_testcase(SeqAdd(), [[42], [3]], subname='add_list')
+    #
+    # testtools.generate_testcase(SeqAdd(), [(42,), (3,)], subname='add_tuple')
 
 
 if __name__ == '__main__':
