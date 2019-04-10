@@ -144,6 +144,8 @@ class FieldOutput:
     def __init__(self):
         self.field = None
         self.name = None
+        self.obj = None
+        self.old_value = None
         self.value = None
 
 class FieldAttributeCollection():
@@ -175,16 +177,25 @@ class FieldAttributeCollection():
             return attribute
 
         # input
-        value = parent_attribute.get_obj().get_value()
+        
+        #value = parent_attribute.get_obj().get_value()
 
-        copied_value = functions.generate_copied_value(value)
-        attribute.revise(Object(copied_value))
+        #copied_value = functions.generate_copied_value(value)
+        #attribute.revise(Object(copied_value))
 
+        #self.attributes[key] = attribute
+
+        attribute.revise(parent_attribute.get_obj())
         self.attributes[key] = attribute
-        self.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), value, copied_value)
+
+        self.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), attribute.get_obj().get_value(), attribute.get_obj().get_value())
 
         return attribute
 
+    def pop_history(self):
+        for att, input in self.inputs.items():
+            input[0].revise(input[1])
+        
     def get_inputs(self) -> 'List[FieldInput]':
         '''
         return [(input value, copied input value)]
@@ -215,6 +226,9 @@ class FieldAttributeCollection():
                 fo = FieldOutput()
                 fo.name = att.name
                 fo.field = att.parent
+                fo.obj = att.get_obj()
+                if att in self.inputs.keys():
+                    fo.old_value = self.inputs[att][1]
                 fo.value = att.get_obj().get_value()
                 ret.append(fo)
 
@@ -275,6 +289,8 @@ class Field():
 
     def pop_history(self):
         self.collection = self.collection.parent
+        self.collection.pop_history()
+
         if self.collection is None:
             self.collection = FieldAttributeCollection('', None)
 
@@ -312,12 +328,14 @@ class Field():
             if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
                 continue
 
-            if old_value is not None:            
-                collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), old_value, value)
+            collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), attribute.get_obj().get_value(), attribute.get_obj().get_value())
 
-            old_value = obj.get_value()
-            value = functions.generate_copied_value(old_value)
-            obj = Object(value)
+           # if old_value is not None:            
+           #     collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), old_value, value)
+
+            #old_value = obj.get_value()
+            #value = functions.generate_copied_value(old_value)
+            #obj = Object(value)
 
 class Module(Field):
     def __init__(self, module):
