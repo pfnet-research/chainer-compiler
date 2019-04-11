@@ -139,18 +139,25 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
             if isinstance(obj.get_value(), values.NoneValue):
                 return values.Object(obj.get_value())
 
+            if isinstance(obj.get_value(), values.TupleValue):
+                return values.Object(obj.get_value())
+
             return obj
 
     isTuple = False
     if targets.has_obj() and isinstance(targets.get_obj().get_value(), values.TupleValue):
-        targets = targets.get_obj().values
+        targets = targets.get_obj().internal_value
         isTuple = True
 
     if isTuple:
-        for i in range(len(targets)):
-            node_assign = nodes.NodeAssign(targets[i], value.values[i], astc.lineno)
-            targets[i].revise(value.values[i])
-            graph.add_node(node_assign)
+        if targets is not None:
+            for i in range(len(targets)):
+                node_assign = nodes.NodeAssign(targets[i], value.values[i], astc.lineno)
+                targets[i].revise(try_get_obj(value.values[i],'assign', lineprop))
+                graph.add_node(node_assign)
+        else:
+            # TODO implement getter
+            assert(False)
     else:
         assigned_obj = return_value_or_ref(value_obj)
         node_assign = nodes.NodeAssign(targets, assigned_obj, astc.lineno)
@@ -435,7 +442,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
         if isinstance(slice_value, values.TupleValue):
             # ex. x[1,2]
-            values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.values]
+            values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.internal_value]
             node = nodes.NodeGetItem(value_value, values_)
         else:
             # ex. x[1]
@@ -635,17 +642,6 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
     left_value = try_get_value(left, 'compare', lineprop)
     right_value = try_get_value(right, 'compare', lineprop)
 
-    # TODO : adhoc code
-    if isinstance(left_value, values.TupleValue):
-        value = values.TupleValue()
-        value.values = [try_get_value(v, 'compare', lineprop) for v in left_value.values]
-        left_value = value
-
-    if isinstance(right_value, values.TupleValue):
-        value = values.TupleValue()
-        value.values = [try_get_value(v, 'compare', lineprop) for v in right_value.values]
-        right_value = value
-
     binop = nodes.BinOpType.Unknown
     if isinstance(astc.nast.op, gast.Add):
         binop = nodes.BinOpType.Add
@@ -783,9 +779,11 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
 
 def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.Tuple))
+    lineprop = utils.LineProperty(astc.lineno)
+
     vs = []
     for v in astc.nast.elts:
-        v_ = veval_ast(astc.c(v), local_field, graph)
+        v_ = try_get_obj(veval_ast(astc.c(v), local_field, graph), 'tuple', lineprop)
         vs.append(v_)
 
     return values.Object(values.TupleValue(vs))

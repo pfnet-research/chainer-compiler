@@ -49,9 +49,9 @@ def main():
     testtools.generate_testcase(If(), [np.array(42), True],
                                 subname='if_true_np')
 
-    # TODO(hamaji): Enable this tests once they are fixed.
-    # testtools.generate_testcase(SeqAdd(), [[42], [3]], subname='add_list')
+    testtools.generate_testcase(SeqAdd(), [[42], [3]], subname='add_list')
 
+    # TODO(hamaji): Enable this tests once they are fixed.
     # testtools.generate_testcase(SeqAdd(), [(42,), (3,)], subname='add_tuple')
 
 
