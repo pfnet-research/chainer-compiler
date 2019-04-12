@@ -29,6 +29,15 @@ def convert_model(model : 'chainer.Chain', args = []):
     values.reset_field_and_attributes()
     utils.reset_guid()
 
+    values.instance_converters.clear()
+
+    def instance_converter(m,i):
+        if values_builtin.is_builtin_chainer_link(i):
+            return values_builtin.ChainerLinkInstance(m,i)
+        return None
+
+    values.instance_converters.append(instance_converter)
+
     # generate default module
     default_module = values.Module(sys.modules[model.__module__])
 

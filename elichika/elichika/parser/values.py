@@ -20,6 +20,8 @@ from elichika.parser.functions import FunctionBase, UserDefinedFunction
 fields = []
 histories = []
 
+instance_converters = []
+
 def reset_field_and_attributes():
     global fields
     fields = []
@@ -59,10 +61,11 @@ def get_outputs() -> 'List[FieldOutput]':
     return ret
 
 def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "ValueRef":
-    from elichika.parser import values_builtin
 
-    if values_builtin.is_builtin_chainer_link(instance):
-        return ValueRef(values_builtin.ChainerLinkInstance(default_module, instance))
+    for converter in instance_converters:
+        ret = converter(default_module, instance)
+        if ret is not None:
+            return ValueRef(ret)
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
