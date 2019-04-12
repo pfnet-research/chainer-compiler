@@ -472,7 +472,8 @@ bool CudnnLSTM(
                 int64_t param_size = src_w.GetTotalSize();
                 int offset = GetRNNWeightOffset(
                         cudnn_handle, *rnn_desc, pseudo_layer, x_desc, *w_concat_desc, w_concat, lin_layer_id, is_bias, src_w);
-                w_concat.device().backend().CallOp<chainerx::CopyOp>(chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
+                w_concat.device().backend().CallOp<chainerx::CopyOp>(
+                        chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
                 offsets.push_back(offset);
             }
         }
