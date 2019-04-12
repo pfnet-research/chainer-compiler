@@ -104,7 +104,7 @@ def convert_model(model : 'chainer.Chain', args = []):
             return value.get_value()
 
         if isinstance(value, values.Attribute):
-            return value.get_obj().get_value()
+            return value.get_ref().get_value()
 
     ret_ = []
     if isinstance(ret.get_value(), values.TupleValue):
