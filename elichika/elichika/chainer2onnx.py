@@ -777,11 +777,20 @@ class ONNXGenerator:
                     def generate_tensor_constant(input_):
                         tensor = onnx_graph.new_tensor_with_value(input_)
 
+                    # TODO improve
+                    def generate_tensor_constant_constant(input_):
+                        t = onnx_graph.new_empty_tensor_with_value(input_)
+                        tensor = numpy_helper.from_array(np.array(input_.internal_value), name=value2onnx_parameter[input_].onnx_name)
+                        onnx_node = oh.make_node('Constant', [], [t.name], value=tensor)
+                        onnx_graph.nodes.append(onnx_node)
+
                     def generate_tensor(input_):
                         tensor = onnx_graph.new_empty_tensor_with_value(input_)
 
                     if not (value2onnx_parameter[input].onnx_name in self.onnx_tensors.keys()):            
-                        if input.generator is None and not (input in inputs):
+                        if input.generator is None and not (input in inputs) and input.internal_value is not None and not isinstance(input, values.TupleValue):
+                            generate_tensor_constant_constant(input)
+                        elif input.generator is None and not (input in inputs):
                             generate_tensor_constant(input)
                         else:
                             generate_tensor(input)
