@@ -257,8 +257,6 @@ private:
         EMIT_SIMPLE_BINARY_OP(Node::kXor, Xor);
 
         EMIT_SIMPLE_BINARY_OP(Node::kChainerReluGrad, ReluGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kChainerMaxPoolGrad, MaxPoolGrad);
-        EMIT_SIMPLE_BINARY_OP(Node::kChainerAveragePoolGrad, AveragePoolGrad);
         EMIT_SIMPLE_BINARY_OP(Node::kChainerSelectItem, SelectItem);
 
         if (node.op_type() == Node::kDropout) {
@@ -415,6 +413,9 @@ private:
                 CHECK(node.output(1)->IsNull());
             }
             EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
+        } else if (node.op_type() == Node::kChainerMaxPoolGrad) {
+            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
+            EMIT(MaxPoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.chainer_cover_all());
         } else if (node.op_type() == Node::kChainerROIMaxPool2D) {
             EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
@@ -432,6 +433,9 @@ private:
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             CHECK_EQ(1UL, node.inputs().size());
             EMIT(AveragePool, out(0), oout(1), in(0), node.kernel_shape(), strides(), pads(), node.count_include_pad());
+        } else if (node.op_type() == Node::kChainerAveragePoolGrad) {
+            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
+            EMIT(AveragePoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.count_include_pad());
         } else if (node.op_type() == Node::kChainerAveragePoolGradNoCtx) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             EMIT(AveragePoolGradNoCtx, out(0), in(0), in(1), in(2), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());

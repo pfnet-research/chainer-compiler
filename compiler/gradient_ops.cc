@@ -457,7 +457,13 @@ void MaxPoolGradFn(GradientOpContext* gc) {
         if (node->outputs().size() == 1) gc->AddNullOutput();
         CHECK_EQ(2, node->outputs().size());
         Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-        gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context});
+        gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context})
+                ->producer()
+                ->set_kernel_shape(node->kernel_shape())
+                ->set_pads(node->pads())
+                ->set_storage_order(node->storage_order())
+                ->set_strides(node->strides())
+                ->set_chainer_cover_all(node->chainer_cover_all());
     }
 }
 
@@ -477,7 +483,13 @@ void AveragePoolGradFn(GradientOpContext* gc) {
         Node* node = gc->node();
         CHECK_EQ(1, node->outputs().size());
         Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-        gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context});
+        gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context})
+                ->producer()
+                ->set_kernel_shape(node->kernel_shape())
+                ->set_pads(node->pads())
+                ->set_storage_order(node->storage_order())
+                ->set_strides(node->strides())
+                ->set_count_include_pad(node->count_include_pad());
     }
 }
 

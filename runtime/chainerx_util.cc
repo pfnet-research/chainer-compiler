@@ -111,7 +111,7 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
         const chainerx::Array& input = inputs[i];
         indices[0] = chainerx::ArrayIndex(i);
         indices[1] = chainerx::Slice(0, input.shape()[0]);
-        input.device().Copy(input, result.At(indices));
+        input.device().backend().CallOp<chainerx::CopyOp>(input, result.At(indices));
     }
     return result;
 }

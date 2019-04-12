@@ -103,7 +103,7 @@ chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
         indices2.push_back(chainerx::Slice(start2, end2));
     }
     chainerx::Array result = chainerx::Full(new_shape, value, data.dtype(), data.device());
-    result.device().Copy(data.At(indices1), result.At(indices2));
+    result.device().backend().CallOp<chainerx::CopyOp>(data.At(indices1), result.At(indices2));
     return result;
 }
 
