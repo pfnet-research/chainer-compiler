@@ -65,9 +65,30 @@ class Node:
         for output in self.outputs:
             output.generator = self
 
+def filter_tuple(value):
+    if isinstance(value, list):
+        for i in range(len(value)):
+            value[i] = filter_tuple(value[i])
+
+    if isinstance(value, values.TupleValue) and value.internal_value is not None:
+        vs = []
+        for v in value.internal_value:
+            if isinstance(v, values.Object):
+                v = v.get_value()
+
+            if v is None or v.internal_value is None:
+                return value
+
+            vs.append(v)
+
+        return values.TupleValue(vs)
+    return value
+
 class NodeCopy(Node):
     def __init__(self, value : 'values.Value', line = -1):
         super().__init__(line)
+        value = filter_tuple(value)
+
         self.value = value
         self.append_inputs(value)
 
@@ -77,6 +98,9 @@ class NodeCopy(Node):
 class NodeNonVolatileAssign(Node):
     def __init__(self, target_value : 'values.Value', value : 'values.Value', line = -1):
         super().__init__(line)
+        target_value = filter_tuple(target_value)
+        value = filter_tuple(value)
+
         self.target_value = target_value
         self.value = value
         self.append_inputs(target_value)
@@ -88,8 +112,8 @@ class NodeNonVolatileAssign(Node):
 class NodeAssign(Node):
     def __init__(self, attr : 'values.Attribute', obj : 'values.Object', line = -1):
         assert(isinstance(obj,values.Object))
-
         super().__init__(line)
+        
         self.targets = []
         self.objects = []
 
@@ -102,6 +126,10 @@ class NodeAssign(Node):
 class NodeAugAssign(Node):
     def __init__(self, target : 'values.Value', value : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
+
+        target = filter_tuple(target)
+        value = filter_tuple(value)
+
         self.target = target
         self.value = value
         self.binop = binop
@@ -115,6 +143,10 @@ class NodeAugAssign(Node):
 class NodeBinOp(Node):
     def __init__(self, left : 'values.Value', right : 'values.Value', binop : 'BinOp', line = -1):
         super().__init__(line)
+
+        left = filter_tuple(left)
+        right = filter_tuple(right)
+
         self.left = left
         self.right = right
         self.binop = binop
@@ -128,6 +160,8 @@ class NodeBinOp(Node):
 class NodeUnaryOp(Node):
     def __init__(self, operand : 'values.Value', unaryop : 'UnaryOpType', line = -1):
         super().__init__(line)
+        operand = filter_tuple(operand)
+
         self.operand = operand
         self.unaryop = unaryop
 
@@ -139,6 +173,9 @@ class NodeUnaryOp(Node):
 class NodeCompare(Node):
     def __init__(self, left : 'values.Value', right : 'values.Value', compare : 'CompareType', line = -1):
         super().__init__(line)
+        left = filter_tuple(left)
+        right = filter_tuple(right)
+
         self.left = left
         self.right = right
         self.compare = compare
@@ -152,6 +189,8 @@ class NodeCompare(Node):
 class NodeGetItem(Node):
     def __init__(self, target : "values.Value", indexes, line = -1):
         super().__init__(line)
+        target = filter_tuple(target)
+
         self.target = target
         self.indexes = indexes
 
@@ -164,6 +203,8 @@ class NodeGetItem(Node):
 class NodeSlice(Node):
     def __init__(self, target : "values.Value", indices, slice_specs, line = -1):
         super().__init__(line)
+        target = filter_tuple(target)
+
         self.target = target
         self.indices = indices
         self.slice_specs = slice_specs
@@ -177,6 +218,8 @@ class NodeSlice(Node):
 class NodeCall(Node):
     def __init__(self, func : 'Function', args, line = -1):
         super().__init__(line)
+        args = filter_tuple(args)
+
         self.func = func
         self.args = args
         self.inputs.extend(self.args)
@@ -193,6 +236,8 @@ class NodeCall(Node):
 class NodeReturn(Node):
     def __init__(self, value, line = -1):
         super().__init__(line)
+        value = filter_tuple(value)
+
         self.value = value
         self.append_inputs(value)
 
@@ -202,6 +247,9 @@ class NodeReturn(Node):
 class NodeIf(Node):
     def __init__(self, cond, input_values, true_graph, false_graph, line = -1):
         super().__init__(line)
+        cond = filter_tuple(cond)
+        input_values = filter_tuple(input_values)
+
         self.cond = cond
         self.input_values = input_values
 
@@ -220,6 +268,9 @@ class NodeIf(Node):
 class NodeFor(Node):
     def __init__(self, iter_value, input_values, body_graph, line = -1):
         super().__init__(line)
+        iter_value = filter_tuple(iter_value)
+        input_values = filter_tuple(input_values)
+
         self.iter_value = iter_value
         self.input_values = input_values
         self.append_inputs(iter_value)
@@ -234,6 +285,9 @@ class NodeFor(Node):
 class NodeForGenerator(Node):
     def __init__(self, counter_value, iter_value, line = -1):
         super().__init__(line)
+        counter_value = filter_tuple(counter_value)
+        iter_value = filter_tuple(iter_value)
+
         self.counter_value = counter_value
         self.iter_value = iter_value
         self.append_inputs(counter_value)
@@ -245,6 +299,9 @@ class NodeForGenerator(Node):
 class NodeListcomp(Node):
     def __init__(self, iter_value, input_values, body_graph, line = -1):
         super().__init__(line)
+        input_values = filter_tuple(input_values)
+        iter_value = filter_tuple(iter_value)
+
         self.iter_value = iter_value
         self.input_values = input_values
         self.append_inputs(iter_value)
@@ -259,6 +316,8 @@ class NodeListcomp(Node):
 class NodeGenerate(Node):
     def __init__(self, classtype, args, line = -1):
         super().__init__(line)
+        args = filter_tuple(args)
+
         self.classtype = classtype
         self.args = args
         self.extend_inputs(self.args)
@@ -270,6 +329,8 @@ class NodeGenerate(Node):
 class NodeConvert(Node):
     def __init__(self, classtype, value, line = -1):
         super().__init__(line)
+        value = filter_tuple(value)
+
         self.classtype = classtype
         self.value = value
         self.append_inputs(self.value)

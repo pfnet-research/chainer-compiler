@@ -53,7 +53,10 @@ def generate_copied_value(value : 'values.Value'):
         return copied
 
     if isinstance(value, values.TupleValue):
-        copied = values.TupleValue(value.values)
+        if value.internal_value is not None:
+            copied = values.TupleValue(value.internal_value.copy())
+        else:
+            copied = values.TupleValue(value.internal_value)
         return copied
 
     if config.show_warnings:
@@ -95,6 +98,12 @@ def generate_value_with_same_type(value : 'values.Value'):
 
     if isinstance(value, values.NoneValue):
         ret = values.NoneValue()
+
+    if isinstance(value, values.TupleValue):
+        ret = values.TupleValue()
+
+    if ret is None and isinstance(value, values.Value):
+        ret = values.Value()
 
     if ret is None and isinstance(value, values.Value):
         ret = values.Value()

@@ -118,6 +118,14 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
         tensorValue.shape = tuple(shape)
         return Object(tensorValue)
 
+    if isinstance(instance, tuple):
+        value_in_tuple = []
+        for v in instance:
+            o = parse_instance(default_module, '', v)
+            value_in_tuple.append(o)
+
+        return Object(TupleValue(value_in_tuple))
+
     if isinstance(instance, np.ndarray):
         tensorValue = TensorValue()
         tensorValue.value = instance
@@ -517,11 +525,11 @@ class RangeValue(Value):
         return self.name + '(R)'
 
 class TupleValue(Value):
-    def __init__(self, values = []):
+    def __init__(self, values = None):
         super().__init__()
-        self.values = values
+        self.internal_value = values
     def __str__(self):
-        return self.name + '({})'.format(",".join([str(x) for x in self.values]))
+        return self.name + '(Tp{})'
 
 class FuncValue(Value):
     def __init__(self, func : 'functions.FunctionBase', obj : 'Object'):

@@ -78,6 +78,14 @@ def convert_model(model : 'chainer.Chain', args = []):
         varg = values.parse_instance(default_module, '', arg, None, True)
         varg.name = 'in_' + str(ind)
         varg.get_value().name = 'in_' + str(ind)
+
+        # make value unknown
+        #if isinstance(varg.get_value(), values.TupleValue):
+        #    for i in range(len(varg.get_value().internal_value)):
+        #        varg.get_value().internal_value[i] = None
+        #else:
+        varg.get_value().internal_value = None
+
         finput.inputs.append(varg)
         value_args.append(varg.get_value())
         ind += 1
@@ -87,9 +95,26 @@ def convert_model(model : 'chainer.Chain', args = []):
     ret = forward_func_value.func.vcall(default_module, graph, forward_func_value.obj, finput)
     assert(ret is None or isinstance(ret, values.Object))
 
+
+    def try_get_value(value) -> 'values.Value':
+        if isinstance(value, values.Value):
+            return value
+
+        if isinstance(value, values.Object):
+            return value.get_value()
+
+        if isinstance(value, values.Attribute):
+            return value.get_obj().get_value()
+
     ret_ = []
     if isinstance(ret.get_value(), values.TupleValue):
-        ret_.extend([v.get_obj().get_value() for v in ret.get_value().values])
+        if ret.get_value().internal_value is not None:
+            for v in ret.get_value().internal_value:
+                assert(v is not None)
+                ret_.append(try_get_value(v))
+        else:
+            ret_ = [ret.get_value()]
+
     elif isinstance(ret, list):
         ret_ = [r.get_value() for r in ret]
     else:
