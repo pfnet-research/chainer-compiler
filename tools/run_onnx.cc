@@ -549,7 +549,7 @@ void RunMain(const std::vector<std::string>& argv) {
                     case XCVMVar::Kind::kArray:
                         return array_str(v->GetArray());
                     case XCVMVar::Kind::kSequence:
-                        return JoinString(MapToString(NonOptional(*v->GetSequence()), array_str));
+                        return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
                     case XCVMVar::Kind::kOpaque:
                     case XCVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
