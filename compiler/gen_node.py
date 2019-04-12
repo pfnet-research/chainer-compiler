@@ -227,8 +227,8 @@ NodeDef('ChainerResizeImages', 1, 1, output_shape=[int])
 # For experimental ops.
 NodeDef('ChainerDoSomething', None, None, function_name=Required(str))
 
-NodeDef('ChainerMaxPoolGrad', 2, 1)
-NodeDef('ChainerAveragePoolGrad', 2, 1)
+NodeDef('ChainerMaxPoolGrad', 2, 1, chainer_cover_all=False, **pool_attrs)
+NodeDef('ChainerAveragePoolGrad', 2, 1, count_include_pad=False, **pool_attrs)
 NodeDef('ChainerMaxPoolGradNoCtx',
         3, 1, chainer_cover_all=False, **pool_attrs)
 NodeDef('ChainerAveragePoolGradNoCtx',

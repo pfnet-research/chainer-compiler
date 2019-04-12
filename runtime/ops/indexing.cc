@@ -64,7 +64,7 @@ chainerx::Array DynamicSliceGradOp::RunImpl(
         const nonstd::optional<chainerx::Array>& steps) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes, steps);
-    out.device().Copy(gy, out.At(indices));
+    out.device().backend().CallOp<chainerx::CopyOp>(gy, out.At(indices));
     return out;
 }
 
@@ -117,7 +117,7 @@ chainerx::Array GetItemGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const chainerx::Array& shape, const std::vector<chainerx::Array>& index_arrays) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
-    out.device().Copy(gy, out.At(indices));
+    out.device().backend().CallOp<chainerx::CopyOp>(gy, out.At(indices));
     return out;
 }
 

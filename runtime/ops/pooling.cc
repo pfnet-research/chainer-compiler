@@ -22,26 +22,38 @@ namespace {
 template <class T>
 class BackwardContext : public XCVMOpaque {
 public:
-    explicit BackwardContext(std::unique_ptr<T>&& fb) : fb_(std::move(fb)) {
+    BackwardContext(std::shared_ptr<T> state, const Int64StackVector& strides, const Int64StackVector& pads) : state_(state), strides_(strides), pads_(pads) {
     }
     virtual ~BackwardContext() = default;
 
-    T* fb() const {
-        return fb_.get();
+    std::shared_ptr<T> state() const {
+        return state_;
+    }
+
+    const Int64StackVector& strides() const {
+	return strides_;
+    }
+
+    const Int64StackVector& pads() const {
+	return pads_;
     }
 
 private:
-    std::unique_ptr<T> fb_;
+    std::shared_ptr<T> state_;
+    const Int64StackVector strides_;
+    const Int64StackVector pads_;
 };
 
 }  // namespace
 
 std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
-    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(
-            x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
-    chainerx::Array out = fb->Forward(x);
-    XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolForwardBackward>(std::move(fb));
+    std::shared_ptr<chainerx::MaxPoolGradState> state;
+    chainerx::Array out;
+    const Int64StackVector& strides = ComplementStride(this->strides, x);
+    const Int64StackVector& pads = ComplementPad(this->pads, x);
+    std::tie(out, state) = x.device().backend().CallOp<chainerx::MaxPoolOp>(x, kernel_shape, strides, pads, cover_all, true, nonstd::nullopt);
+    XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
     }
@@ -51,10 +63,10 @@ std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const
 std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
-    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(
-            x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
-    chainerx::Array out = fb->Forward(x);
-    XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolForwardBackward>(std::move(fb));
+    std::shared_ptr<chainerx::AveragePoolGradState> state;
+    chainerx::Array out;
+    std::tie(out, state) = x.device().backend().CallOp<chainerx::AveragePoolOp>(x, kernel_shape, strides, pads, pad_mode, true, nonstd::nullopt);
+    XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
     }
@@ -62,29 +74,36 @@ std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, c
 }
 
 chainerx::Array MaxPoolGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
-    auto& context = dynamic_cast<const BackwardContext<chainerx::MaxPoolForwardBackward>&>(ctx);
-    return context.fb()->Backward(gy);
+    auto& context = dynamic_cast<const BackwardContext<chainerx::MaxPoolGradState>&>(ctx);
+    return std::get<0>(gy.device().backend().CallOp<chainerx::MaxPoolGradOp>(gy, kernel_shape, context.strides(), context.pads(), context.state(), true, nonstd::nullopt));
 }
 
 chainerx::Array AveragePoolGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
-    auto& context = dynamic_cast<const BackwardContext<chainerx::AveragePoolForwardBackward>&>(ctx);
-    return context.fb()->Backward(gy);
+    chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
+    auto& context = dynamic_cast<const BackwardContext<chainerx::AveragePoolGradState>&>(ctx);
+    return gy.device().backend().CallOp<chainerx::AveragePoolGradOp>(gy, kernel_shape, context.strides(), context.pads(), pad_mode, context.state(), nonstd::nullopt);
 }
 
 chainerx::Array MaxPoolGradNoCtxOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
+    CHECK(false);
+#if 0
     std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(
             x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
     fb->Forward(x);
     return fb->Backward(gy);
+#endif
 }
 
 chainerx::Array AveragePoolGradNoCtxOp::RunImpl(
         XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
+    CHECK(false);
+#if 0
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
     std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(
             x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
     fb->Forward(x);
     return fb->Backward(gy);
+#endif
 }
 
 // A faithful re-implementation of Chainer's ROI ops.

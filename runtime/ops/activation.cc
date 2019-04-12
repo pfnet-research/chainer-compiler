@@ -25,7 +25,7 @@ chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     } else {
         CHECK(false) << "TODO(hamaji): Unsupported dtype: " << x.dtype();
     }
-    x.device().IfLessElseASSA(x, eps, chainerx::Scalar(0.0), gy, out);
+    x.device().backend().CallOp<chainerx::IfLessElseASSAOp>(x, eps, chainerx::Scalar(0.0), gy, out);
     return out;
 }
 
