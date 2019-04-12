@@ -119,7 +119,7 @@ class FunctionArgInput():
         self.keywords = {}
 
 class FunctionArg():
-    def __init__(self, name : 'str' = '', obj : 'values.Object' = None):
+    def __init__(self, name : 'str' = '', obj : 'values.ValueRef' = None):
         self.name = name
         self.obj = obj
 
@@ -230,7 +230,7 @@ class FunctionBase():
             self.funcArgs.append(fa)
 
     def get_values(self, args):
-        assert(all([isinstance(arg.obj,values.Object) for arg in args]))
+        assert(all([isinstance(arg.obj,values.ValueRef) for arg in args]))
 
         return [arg.obj.get_value() for arg in args]
 
@@ -257,8 +257,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
-    def vcall(self, module : 'values.Field', graph : 'graphs.Graph', inst : 'values.Object', args : 'FunctionArgInput', line = -1):
-        ret = values.Object(values.UserDefinedInstance(module, None, self.classinfo))
+    def vcall(self, module : 'values.Field', graph : 'graphs.Graph', inst : 'values.ValueRef', args : 'FunctionArgInput', line = -1):
+        ret = values.ValueRef(values.UserDefinedInstance(module, None, self.classinfo))
         inst = ret
 
         func_field = values.Field()
@@ -293,7 +293,7 @@ class UserDefinedFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Object', args : 'FunctionArgInput', line = -1):
+    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.ValueRef', args : 'FunctionArgInput', line = -1):
         func_field = values.Field()
         func_field.set_module(module)
 

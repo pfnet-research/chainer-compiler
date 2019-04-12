@@ -73,7 +73,7 @@ def filter_tuple(value):
     if isinstance(value, values.TupleValue) and value.internal_value is not None:
         vs = []
         for v in value.internal_value:
-            if isinstance(v, values.Object):
+            if isinstance(v, values.ValueRef):
                 v = v.get_value()
 
             if v is None or v.internal_value is None:
@@ -110,8 +110,8 @@ class NodeNonVolatileAssign(Node):
         return 'NodeNonVolatileAssign({})'.format(self.lineprop)
 
 class NodeAssign(Node):
-    def __init__(self, attr : 'values.Attribute', obj : 'values.Object', line = -1):
-        assert(isinstance(obj,values.Object))
+    def __init__(self, attr : 'values.Attribute', obj : 'values.ValueRef', line = -1):
+        assert(isinstance(obj,values.ValueRef))
         super().__init__(line)
         
         self.targets = []

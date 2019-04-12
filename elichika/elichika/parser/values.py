@@ -58,65 +58,65 @@ def get_outputs() -> 'List[FieldOutput]':
             ret += o.get_outputs()
     return ret
 
-def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "Object":
+def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "ValueRef":
     from elichika.parser import values_builtin
 
     if values_builtin.is_builtin_chainer_link(instance):
-        return Object(values_builtin.ChainerLinkInstance(default_module, instance))
+        return ValueRef(values_builtin.ChainerLinkInstance(default_module, instance))
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
-        return Object(BoolValue(instance))
+        return ValueRef(BoolValue(instance))
 
     if isinstance(instance, int):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.int32):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.int64):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, float):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.float32):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.float64):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, str):
-        return Object(StrValue(instance))
+        return ValueRef(StrValue(instance))
 
     if isinstance(instance, list):
         if parse_shape:
-            return Object(ListValue())
+            return ValueRef(ListValue())
         else:
             print('List is not supported now!!!')
-            return Object(NumberValue(0.0))
+            return ValueRef(NumberValue(0.0))
 
     if instance is inspect._empty:
         return None
 
     if inspect.isfunction(instance):
         func = UserDefinedFunction(instance)
-        return Object(FuncValue(func, self_instance))
+        return ValueRef(FuncValue(func, self_instance))
 
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
-        return Object(FuncValue(func, self_instance))
+        return ValueRef(FuncValue(func, self_instance))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
-        return Object(FuncValue(func, None))
+        return ValueRef(FuncValue(func, None))
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
         shape = -1 if shape == 'Undefined' else shape
         tensorValue = TensorValue()
         tensorValue.shape = tuple(shape)
-        return Object(tensorValue)
+        return ValueRef(tensorValue)
 
     if isinstance(instance, tuple):
         value_in_tuple = []
@@ -124,22 +124,22 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
             o = parse_instance(default_module, '', v)
             value_in_tuple.append(o)
 
-        return Object(TupleValue(value_in_tuple))
+        return ValueRef(TupleValue(value_in_tuple))
 
     if isinstance(instance, np.ndarray):
         tensorValue = TensorValue()
         tensorValue.value = instance
         tensorValue.shape = instance.shape
-        return Object(tensorValue)
+        return ValueRef(tensorValue)
 
     if instance == inspect._empty:
-        return Object(NoneValue())
+        return ValueRef(NoneValue())
 
     if instance is None:
-        return Object(NoneValue())
+        return ValueRef(NoneValue())
 
     model_inst = UserDefinedInstance(default_module, instance, None, isinstance(instance, chainer.Link))
-    return Object(model_inst)
+    return ValueRef(model_inst)
 
 class FieldInput:
     def __init__(self):
@@ -179,24 +179,24 @@ class FieldAttributeCollection():
         attribute.parent = parent_attribute.parent
 
         # instance or func
-        if isinstance(parent_attribute.get_obj().get_value(), Instance) or isinstance(parent_attribute.get_obj().get_value(), FuncValue) or isinstance(parent_attribute.get_obj().get_value(), ModuleValue):
-            attribute.revise(parent_attribute.get_obj())
+        if isinstance(parent_attribute.get_ref().get_value(), Instance) or isinstance(parent_attribute.get_ref().get_value(), FuncValue) or isinstance(parent_attribute.get_ref().get_value(), ModuleValue):
+            attribute.revise(parent_attribute.get_ref())
             self.attributes[key] = attribute
             return attribute
 
         # input
         
-        #value = parent_attribute.get_obj().get_value()
+        #value = parent_attribute.get_ref().get_value()
 
         #copied_value = functions.generate_copied_value(value)
-        #attribute.revise(Object(copied_value))
+        #attribute.revise(ValueRef(copied_value))
 
         #self.attributes[key] = attribute
 
-        attribute.revise(parent_attribute.get_obj())
+        attribute.revise(parent_attribute.get_ref())
         self.attributes[key] = attribute
 
-        self.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), attribute.get_obj().get_value(), attribute.get_obj().get_value())
+        self.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
 
         return attribute
 
@@ -227,17 +227,17 @@ class FieldAttributeCollection():
         for key, att in self.attributes.items():
 
             # instance or func
-            if isinstance(att.get_obj().get_value(), Instance) or isinstance(att.get_obj().get_value(), FuncValue) or isinstance(att.get_obj().get_value(), ModuleValue):
+            if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
                 continue
 
-            if (not (att in self.inputs.keys())) or att.get_obj() != self.inputs[att][0] or att.get_obj().get_value() != self.inputs[att][1]:
+            if (not (att in self.inputs.keys())) or att.get_ref() != self.inputs[att][0] or att.get_ref().get_value() != self.inputs[att][1]:
                 fo = FieldOutput()
                 fo.name = att.name
                 fo.field = att.parent
-                fo.obj = att.get_obj()
+                fo.obj = att.get_ref()
                 if att in self.inputs.keys():
                     fo.old_value = self.inputs[att][1]
-                fo.value = att.get_obj().get_value()
+                fo.value = att.get_ref().get_value()
                 ret.append(fo)
 
         return ret
@@ -336,14 +336,14 @@ class Field():
             if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
                 continue
 
-            collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), attribute.get_obj().get_value(), attribute.get_obj().get_value())
+            collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
 
            # if old_value is not None:            
-           #     collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), old_value, value)
+           #     collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), old_value, value)
 
             #old_value = obj.get_value()
             #value = functions.generate_copied_value(old_value)
-            #obj = Object(value)
+            #obj = ValueRef(value)
 
 class Module(Field):
     def __init__(self, module):
@@ -387,7 +387,7 @@ class Module(Field):
         attribute.revise(value)
 
 class AttributeHistory:
-    def __init__(self, obj : 'Object'):
+    def __init__(self, obj : 'ValueRef'):
         self.obj = obj
 
 class Attribute:
@@ -402,8 +402,8 @@ class Attribute:
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
 
-    def revise(self, obj : 'Object'):
-        assert(isinstance(obj, Object))
+    def revise(self, obj : 'ValueRef'):
+        assert(isinstance(obj, ValueRef))
 
         # assgin name to the object
         obj.name = utils.create_obj_value_name_with_attribute(self.name, obj.name)
@@ -418,18 +418,18 @@ class Attribute:
     def has_obj(self):
         return len(self.history) > 0
 
-    def get_obj(self, inc_access = True):
+    def get_ref(self, inc_access = True):
         assert len(self.history) > 0
         return self.history[-1].obj
 
     def __str__(self):
         return self.name
 
-class ObjectHistory():
+class ValueRefHistory():
     def __init__(self, value):
         self.value = value
 
-class Object():
+class ValueRef():
     def __init__(self, value : 'Value'):
         self.name = ""
         self.value = value
@@ -446,13 +446,13 @@ class Object():
     def revise(self, value):
         self.value = value
 
-    def try_get_and_store_obj(self, name : 'str') -> 'Object':
+    def try_get_and_store_obj(self, name : 'str') -> 'ValueRef':
 
         attribute = self.attributes.get_attribute(name)
         if attribute.has_obj():
-            return attribute.get_obj()
+            return attribute.get_ref()
 
-        obj = self.value.try_get_obj(name, self)
+        obj = self.value.try_get_ref(name, self)
 
         if obj is None:
             return None
@@ -467,14 +467,14 @@ class Value():
         self.internal_value = None
         self.id = utils.get_guid()
 
-    def apply_to_object(self, obj : 'Object'):
+    def apply_to_object(self, obj : 'ValueRef'):
         '''
         register functions to an object
         this function is only called when an object is generated
         '''
         return None
 
-    def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
+    def try_get_ref(self, name : 'str', inst : 'ValueRef') -> 'ValueRef':
         return None
 
     def __str__(self):
@@ -532,7 +532,7 @@ class TupleValue(Value):
         return self.name + '(Tp{})'
 
 class FuncValue(Value):
-    def __init__(self, func : 'functions.FunctionBase', obj : 'Object'):
+    def __init__(self, func : 'functions.FunctionBase', obj : 'ValueRef'):
         super().__init__()
         self.func = func
         self.obj = obj
@@ -545,8 +545,8 @@ class ListValue(Value):
         self.is_any = values is None
         self.values = []
 
-    def apply_to_object(self, obj : 'Object'):
-        append_func = Object(FuncValue(functions_builtin.AppendFunction(self), obj))
+    def apply_to_object(self, obj : 'ValueRef'):
+        append_func = ValueRef(FuncValue(functions_builtin.AppendFunction(self), obj))
         obj.attributes.get_attribute('append').revise(append_func)
 
     def __str__(self):
@@ -573,8 +573,8 @@ class TensorValue(Value):
         self.value = None
         self.dtype = None
 
-    def apply_to_object(self, obj : 'Object'):
-        shape_func = Object(FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))
+    def apply_to_object(self, obj : 'ValueRef'):
+        shape_func = ValueRef(FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))
         obj.attributes.get_attribute('shape').revise(shape_func)
 
     def __str__(self):
@@ -601,11 +601,11 @@ class UserDefinedInstance(Instance):
         if self.is_chainer_link:
             self.callable = True
 
-    def apply_to_object(self, obj : 'Object'):
+    def apply_to_object(self, obj : 'ValueRef'):
         if self.is_chainer_link:
             self.func = obj.try_get_and_store_obj('forward')
 
-    def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
+    def try_get_ref(self, name : 'str', inst : 'ValueRef') -> 'ValueRef':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):

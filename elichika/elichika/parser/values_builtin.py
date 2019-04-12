@@ -42,13 +42,13 @@ class ChainerLinkFunction(functions.FunctionBase):
             value.shape = estimate_shape(self.owner.inst, args)
 
         node.set_outputs([value])
-        return values.Object(value)
+        return values.ValueRef(value)
 
 class ChainerLinkInstance(values.Instance):
     def __init__(self, module : 'Field', inst):
         super().__init__(module, inst, None)
         self.callable = True
 
-    def apply_to_object(self, obj : 'values.Object'):
-        self.func = values.Object(values.FuncValue(ChainerLinkFunction(self), obj))
+    def apply_to_object(self, obj : 'values.ValueRef'):
+        self.func = values.ValueRef(values.FuncValue(ChainerLinkFunction(self), obj))
         obj.get_field().get_attribute('forward').revise(self.func)
