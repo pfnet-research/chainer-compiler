@@ -24,11 +24,13 @@ import elichika.onnx_converters as oc
 import elichika.layers_buikdin as lb
 import elichika.functions_buildin as fb
 
+
 class ONNXModel:
     def __init__(self):
         self.model = None
         self.inputs = []
         self.outputs = []
+
 
 def compile_model(model, inputs) -> 'ONNXModel':
 
@@ -56,10 +58,10 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.preprocess(graph_, True)
 
     generator = oc.ONNXGenerator()
-    model = generator.generate_model(graph_.input_values, graph_.output_values, graph_, model)
+    model = generator.generate_model(
+        graph_.input_values, graph_.output_values, graph_, model)
 
     # check inputs
-
 
     onnx_model = ONNXModel()
     onnx_model.model = model
@@ -67,10 +69,12 @@ def compile_model(model, inputs) -> 'ONNXModel':
     onnx_model.outputs = graph_.output_values
     return onnx_model
 
-def save_model(path : 'str', model : 'ModelProto'):
+
+def save_model(path: 'str', model: 'ModelProto'):
     with open(path, "wb") as f:
         f.write(model.SerializeToString())
 
-def save_model_as_text(path : 'str', model : 'ModelProto'):
+
+def save_model_as_text(path: 'str', model: 'ModelProto'):
     with open(path, "w") as f:
         print(model, file=f)

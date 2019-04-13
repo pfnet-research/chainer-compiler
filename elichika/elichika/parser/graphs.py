@@ -1,6 +1,7 @@
 from elichika.parser import nodes
 from elichika.parser import utils
 
+
 class Graph:
     def __init__(self):
         self.name = ''
@@ -18,5 +19,5 @@ class Graph:
         value = nodes.filter_tuple(value)
         self.output_values.append(value)
 
-    def add_node(self, node : 'nodes.Node'):
+    def add_node(self, node: 'nodes.Node'):
         self.nodes.append(node)

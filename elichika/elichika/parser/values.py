@@ -5,7 +5,8 @@ import chainer.links as L
 import numpy as np
 
 import inspect
-import ast, gast
+import ast
+import gast
 import weakref
 from elichika.parser import vevaluator
 from elichika.parser import core
@@ -22,20 +23,24 @@ histories = []
 
 instance_converters = []
 
+
 def reset_field_and_attributes():
     global fields
     fields = []
     histories.clear()
 
-def register_field(field : 'Field'):
+
+def register_field(field: 'Field'):
     fields.append(weakref.ref(field))
 
-def push_history(history_id : 'str'):
+
+def push_history(history_id: 'str'):
     histories.append(history_id)
     for field in fields:
         o = field()
         if o is not None:
             o.push_history(history_id)
+
 
 def pop_history():
     histories.pop()
@@ -44,23 +49,26 @@ def pop_history():
         if o is not None:
             o.pop_history()
 
+
 def get_inputs() -> 'List[FieldInput]':
-    ret = []    
+    ret = []
     for field in fields:
         o = field()
         if o is not None:
             ret += o.get_inputs()
     return ret
 
+
 def get_outputs() -> 'List[FieldOutput]':
-    ret = []    
+    ret = []
     for field in fields:
         o = field()
         if o is not None:
             ret += o.get_outputs()
     return ret
 
-def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "ValueRef":
+
+def parse_instance(default_module, name, instance, self_instance=None, parse_shape=False) -> "ValueRef":
 
     for converter in instance_converters:
         ret = converter(default_module, instance)
@@ -141,8 +149,10 @@ def parse_instance(default_module, name, instance, self_instance = None, parse_s
     if instance is None:
         return ValueRef(NoneValue())
 
-    model_inst = UserDefinedInstance(default_module, instance, None, isinstance(instance, chainer.Link))
+    model_inst = UserDefinedInstance(
+        default_module, instance, None, isinstance(instance, chainer.Link))
     return ValueRef(model_inst)
+
 
 class FieldInput:
     def __init__(self):
@@ -150,6 +160,7 @@ class FieldInput:
         self.field = None
         self.name = None
         self.value = None
+
 
 class FieldOutput:
     def __init__(self):
@@ -159,14 +170,15 @@ class FieldOutput:
         self.old_value = None
         self.value = None
 
+
 class FieldAttributeCollection():
-    def __init__(self, id : 'str', parent: 'FieldAttributeCollection'):
+    def __init__(self, id: 'str', parent: 'FieldAttributeCollection'):
         self.id = id
         self.parent = parent
         self.attributes = {}
         self.inputs = {}
 
-    def try_get_attribute(self, key : 'str'):
+    def try_get_attribute(self, key: 'str'):
         if key in self.attributes.keys():
             return self.attributes[key]
 
@@ -188,25 +200,26 @@ class FieldAttributeCollection():
             return attribute
 
         # input
-        
+
         #value = parent_attribute.get_ref().get_value()
 
         #copied_value = functions.generate_copied_value(value)
-        #attribute.revise(ValueRef(copied_value))
+        # attribute.revise(ValueRef(copied_value))
 
         #self.attributes[key] = attribute
 
         attribute.revise(parent_attribute.get_ref())
         self.attributes[key] = attribute
 
-        self.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+        self.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(
+        ), attribute.get_ref().get_value(), attribute.get_ref().get_value())
 
         return attribute
 
     def pop_history(self):
         for att, input in self.inputs.items():
             input[0].revise(input[1])
-        
+
     def get_inputs(self) -> 'List[FieldInput]':
         '''
         return [(input value, copied input value)]
@@ -245,6 +258,7 @@ class FieldAttributeCollection():
 
         return ret
 
+
 class Field():
     def __init__(self):
         self.collection = FieldAttributeCollection('', None)
@@ -273,10 +287,10 @@ class Field():
             if key in c.attributes.keys():
                 return True
             c = c.parent
-            
+
         return False
 
-    def get_attribute(self, key : 'str', from_module = True) -> 'Attribute':
+    def get_attribute(self, key: 'str', from_module=True) -> 'Attribute':
         attribute = self.collection.try_get_attribute(key)
 
         if attribute is not None:
@@ -294,7 +308,7 @@ class Field():
         self.collection.attributes[key] = attribute
         return attribute
 
-    def push_history(self, history_id : 'str'):
+    def push_history(self, history_id: 'str'):
         collection = FieldAttributeCollection(history_id, self.collection)
         self.collection = collection
 
@@ -314,7 +328,7 @@ class Field():
     def set_default_value(self, key, value):
         attribute = self.get_attribute(key)
         attribute.revise(value)
-        
+
     def set_predefined_obj(self, key, obj):
         collections = []
         c = self.collection
@@ -339,14 +353,16 @@ class Field():
             if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
                 continue
 
-            collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+            collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref(
+            ).get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
 
-           # if old_value is not None:            
+           # if old_value is not None:
            #     collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), old_value, value)
 
             #old_value = obj.get_value()
             #value = functions.generate_copied_value(old_value)
             #obj = ValueRef(value)
+
 
 class Module(Field):
     def __init__(self, module):
@@ -389,12 +405,14 @@ class Module(Field):
         attribute = super().get_attribute(key)
         attribute.revise(value)
 
+
 class AttributeHistory:
-    def __init__(self, obj : 'ValueRef'):
+    def __init__(self, obj: 'ValueRef'):
         self.obj = obj
 
+
 class Attribute:
-    def __init__(self, name : 'str'):
+    def __init__(self, name: 'str'):
         self.name = name
         self.history = []
         self.parent = None
@@ -405,12 +423,14 @@ class Attribute:
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
 
-    def revise(self, obj : 'ValueRef'):
+    def revise(self, obj: 'ValueRef'):
         assert(isinstance(obj, ValueRef))
 
         # assgin name to the object
-        obj.name = utils.create_obj_value_name_with_attribute(self.name, obj.name)
-        obj.get_value().name = utils.create_obj_value_name_with_attribute(self.name, obj.get_value().name)
+        obj.name = utils.create_obj_value_name_with_attribute(
+            self.name, obj.name)
+        obj.get_value().name = utils.create_obj_value_name_with_attribute(
+            self.name, obj.get_value().name)
 
         if self.initial_obj is None:
             self.initial_obj = obj
@@ -421,19 +441,21 @@ class Attribute:
     def has_obj(self):
         return len(self.history) > 0
 
-    def get_ref(self, inc_access = True):
+    def get_ref(self, inc_access=True):
         assert len(self.history) > 0
         return self.history[-1].obj
 
     def __str__(self):
         return self.name
 
+
 class ValueRefHistory():
     def __init__(self, value):
         self.value = value
 
+
 class ValueRef():
-    def __init__(self, value : 'Value'):
+    def __init__(self, value: 'Value'):
         self.name = ""
         self.value = value
         self.id = utils.get_guid()
@@ -449,7 +471,7 @@ class ValueRef():
     def revise(self, value):
         self.value = value
 
-    def try_get_and_store_obj(self, name : 'str') -> 'ValueRef':
+    def try_get_and_store_obj(self, name: 'str') -> 'ValueRef':
 
         attribute = self.attributes.get_attribute(name)
         if attribute.has_obj():
@@ -463,6 +485,7 @@ class ValueRef():
         self.attributes.set_predefined_obj(name, obj)
         return obj
 
+
 class Value():
     def __init__(self):
         self.name = ""
@@ -470,18 +493,19 @@ class Value():
         self.internal_value = None
         self.id = utils.get_guid()
 
-    def apply_to_object(self, obj : 'ValueRef'):
+    def apply_to_object(self, obj: 'ValueRef'):
         '''
         register functions to an object
         this function is only called when an object is generated
         '''
         return None
 
-    def try_get_ref(self, name : 'str', inst : 'ValueRef') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
         return None
 
     def __str__(self):
         return self.name
+
 
 class NoneValue(Value):
     def __init__(self):
@@ -489,6 +513,7 @@ class NoneValue(Value):
 
     def __str__(self):
         return self.name + '({})'.format('None')
+
 
 class NumberValue(Value):
     def __init__(self, number):
@@ -501,6 +526,7 @@ class NumberValue(Value):
             return self.name + '(N.{})'.format('Any')
         return self.name + '(N.{})'.format(self.internal_value)
 
+
 class StrValue(Value):
     def __init__(self, string):
         super().__init__()
@@ -510,6 +536,7 @@ class StrValue(Value):
         if self.internal_value == None:
             return self.name + '(S.{})'.format('Any')
         return self.name + '(S.{})'.format(self.internal_value)
+
 
 class BoolValue(Value):
     def __init__(self, b):
@@ -521,39 +548,48 @@ class BoolValue(Value):
             return self.name + '(B.{})'.format('Any')
         return self.name + '(B.{})'.format(self.internal_value)
 
+
 class RangeValue(Value):
     def __init__(self):
         super().__init__()
+
     def __str__(self):
         return self.name + '(R)'
 
+
 class TupleValue(Value):
-    def __init__(self, values = None):
+    def __init__(self, values=None):
         super().__init__()
         self.internal_value = values
+
     def __str__(self):
         return self.name + '(Tp{})'
 
+
 class FuncValue(Value):
-    def __init__(self, func : 'functions.FunctionBase', obj : 'ValueRef'):
+    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef'):
         super().__init__()
         self.func = func
         self.obj = obj
+
     def __str__(self):
         return self.name + '(F)'
 
+
 class ListValue(Value):
-    def __init__(self, values = None):
+    def __init__(self, values=None):
         super().__init__()
         self.is_any = values is None
         self.values = []
 
-    def apply_to_object(self, obj : 'ValueRef'):
-        append_func = ValueRef(FuncValue(functions_builtin.AppendFunction(self), obj))
+    def apply_to_object(self, obj: 'ValueRef'):
+        append_func = ValueRef(
+            FuncValue(functions_builtin.AppendFunction(self), obj))
         obj.attributes.get_attribute('append').revise(append_func)
 
     def __str__(self):
         return self.name + '(L)'
+
 
 class ModuleValue(Value):
     def __init__(self):
@@ -562,12 +598,14 @@ class ModuleValue(Value):
     def __str__(self):
         return self.name + '(M)'
 
+
 class DictValue(Value):
     def __init__(self):
         super().__init__()
 
     def __str__(self):
         return self.name + '(D)'
+
 
 class TensorValue(Value):
     def __init__(self):
@@ -576,20 +614,23 @@ class TensorValue(Value):
         self.value = None
         self.dtype = None
 
-    def apply_to_object(self, obj : 'ValueRef'):
-        shape_func = ValueRef(FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))
+    def apply_to_object(self, obj: 'ValueRef'):
+        shape_func = ValueRef(
+            FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))
         obj.attributes.get_attribute('shape').revise(shape_func)
 
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
 
+
 class Type(Value):
-    def __init__(self, name : 'str'):
+    def __init__(self, name: 'str'):
         super().__init__()
         self.name = name
 
+
 class Instance(Value):
-    def __init__(self, module : 'Field', inst, classinfo):
+    def __init__(self, module: 'Field', inst, classinfo):
         super().__init__()
         self.inst = inst
         self.callable = False
@@ -597,18 +638,19 @@ class Instance(Value):
         self.module = module
         self.classinfo = classinfo
 
+
 class UserDefinedInstance(Instance):
-    def __init__(self, module : 'Field', inst, classinfo, is_chainer_link = False):
+    def __init__(self, module: 'Field', inst, classinfo, is_chainer_link=False):
         super().__init__(module, inst, classinfo)
         self.is_chainer_link = is_chainer_link
         if self.is_chainer_link:
             self.callable = True
 
-    def apply_to_object(self, obj : 'ValueRef'):
+    def apply_to_object(self, obj: 'ValueRef'):
         if self.is_chainer_link:
             self.func = obj.try_get_and_store_obj('forward')
 
-    def try_get_ref(self, name : 'str', inst : 'ValueRef') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):

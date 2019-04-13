@@ -15,6 +15,7 @@ from elichika.parser import utils
 from elichika.parser.graphs import Graph
 import numpy as np
 
+
 def get_module_name(target_module, parent_module):
     members = inspect.getmembers(parent_module)
 
@@ -24,16 +25,17 @@ def get_module_name(target_module, parent_module):
 
     return ''
 
-def convert_model(model : 'chainer.Chain', args = []):
+
+def convert_model(model: 'chainer.Chain', args=[]):
     # reset values
     values.reset_field_and_attributes()
     utils.reset_guid()
 
     values.instance_converters.clear()
 
-    def instance_converter(m,i):
+    def instance_converter(m, i):
         if values_builtin.is_builtin_chainer_link(i):
-            return values_builtin.ChainerLinkInstance(m,i)
+            return values_builtin.ChainerLinkInstance(m, i)
         return None
 
     values.instance_converters.append(instance_converter)
@@ -42,18 +44,25 @@ def convert_model(model : 'chainer.Chain', args = []):
     default_module = values.Module(sys.modules[model.__module__])
 
     # chainer.functions
-    chainer_functions_module_name = get_module_name(F, default_module.internal_module)
+    chainer_functions_module_name = get_module_name(
+        F, default_module.internal_module)
 
     if chainer_functions_module_name != '':
         f_dict = values.ValueRef(values.ModuleValue())
-        f_relu = values.FuncValue(functions_builtin.ChainerFunction(F.relu), None)
+        f_relu = values.FuncValue(
+            functions_builtin.ChainerFunction(F.relu), None)
         f_dict.get_field().get_attribute('relu').revise(values.ValueRef(f_relu))
-        f_softmax = values.FuncValue(functions_builtin.ChainerFunction(F.softmax), None)
+        f_softmax = values.FuncValue(
+            functions_builtin.ChainerFunction(F.softmax), None)
         f_dict.get_field().get_attribute('softmax').revise(values.ValueRef(f_softmax))
-        f_softmax_cross_entropy = values.FuncValue(functions_builtin.ChainerFunction(F.softmax_cross_entropy), None)
-        f_dict.get_field().get_attribute('softmax_cross_entropy').revise(values.ValueRef(f_softmax_cross_entropy))
-        f_pad_sequence = values.FuncValue(functions_builtin.ChainerFunction(F.pad_sequence), None)
-        f_dict.get_field().get_attribute('pad_sequence').revise(values.ValueRef(f_pad_sequence))
+        f_softmax_cross_entropy = values.FuncValue(
+            functions_builtin.ChainerFunction(F.softmax_cross_entropy), None)
+        f_dict.get_field().get_attribute('softmax_cross_entropy').revise(
+            values.ValueRef(f_softmax_cross_entropy))
+        f_pad_sequence = values.FuncValue(
+            functions_builtin.ChainerFunction(F.pad_sequence), None)
+        f_dict.get_field().get_attribute('pad_sequence').revise(
+            values.ValueRef(f_pad_sequence))
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 
     # numpy
@@ -64,8 +73,10 @@ def convert_model(model : 'chainer.Chain', args = []):
         f_array = values.FuncValue(functions_builtin.NDArrayFunction(), None)
         f_dict.get_field().get_attribute('array').revise(values.ValueRef(f_array))
 
-        f_dict.get_field().get_attribute('int32').revise(values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))
-        f_dict.get_field().get_attribute('float32').revise(values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.float32))))
+        f_dict.get_field().get_attribute('int32').revise(
+            values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))
+        f_dict.get_field().get_attribute('float32').revise(
+            values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.float32))))
 
         default_module.set_default_value(numpy_module_name, f_dict)
 
@@ -89,10 +100,10 @@ def convert_model(model : 'chainer.Chain', args = []):
         varg.get_value().name = 'in_' + str(ind)
 
         # make value unknown
-        #if isinstance(varg.get_value(), values.TupleValue):
+        # if isinstance(varg.get_value(), values.TupleValue):
         #    for i in range(len(varg.get_value().internal_value)):
         #        varg.get_value().internal_value[i] = None
-        #else:
+        # else:
         varg.get_value().internal_value = None
 
         finput.inputs.append(varg)
@@ -101,9 +112,9 @@ def convert_model(model : 'chainer.Chain', args = []):
 
     graph = Graph()
     forward_func_value = forward_func.get_value()
-    ret = forward_func_value.func.vcall(default_module, graph, forward_func_value.obj, finput)
+    ret = forward_func_value.func.vcall(
+        default_module, graph, forward_func_value.obj, finput)
     assert(ret is None or isinstance(ret, values.ValueRef))
-
 
     def try_get_value(value) -> 'values.Value':
         if isinstance(value, values.Value):

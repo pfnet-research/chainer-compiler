@@ -7,24 +7,31 @@ import chainer.links
 
 chainer_links = {}
 
+
 class ChainerLinkDefinition:
-    def __init__(self, estimate_shape = None):
+    def __init__(self, estimate_shape=None):
         self.estimate_shape = estimate_shape
 
-def estimate_linear_shape(inst : 'chainer.links.Linear', args : 'functions.FunctionArgInput'):
+
+def estimate_linear_shape(inst: 'chainer.links.Linear', args: 'functions.FunctionArgInput'):
     if isinstance(args.inputs[0].get_value(), values.TensorValue) and len(args.inputs[0].get_value().shape) >= 2:
         return (args.inputs[0].get_value().shape[0], inst.out_size)
     return ()
 
-def estimate_convolution2D_shape(inst : 'chainer.links.Convolution2D', args : 'functions.FunctionArgInput'):
+
+def estimate_convolution2D_shape(inst: 'chainer.links.Convolution2D', args: 'functions.FunctionArgInput'):
     return functions.generate_tensor_value_with_undefined_shape_size(args.inputs[0].get_value()).shape
 
 
-chainer_links[chainer.links.Linear] = ChainerLinkDefinition(estimate_linear_shape)
-chainer_links[chainer.links.Convolution2D] = ChainerLinkDefinition(estimate_convolution2D_shape)
+chainer_links[chainer.links.Linear] = ChainerLinkDefinition(
+    estimate_linear_shape)
+chainer_links[chainer.links.Convolution2D] = ChainerLinkDefinition(
+    estimate_convolution2D_shape)
+
 
 def is_builtin_chainer_link(value) -> 'bool':
     return type(value) in chainer_links.keys()
+
 
 class ChainerLinkFunction(functions.FunctionBase):
     def __init__(self, owner):
@@ -32,7 +39,7 @@ class ChainerLinkFunction(functions.FunctionBase):
         self.name = '__call__'
         self.owner = owner
 
-    def vcall(self, module : 'values.Field', graph : 'Graph', inst : 'Object', args : 'functions.FunctionArgInput', line = -1):
+    def vcall(self, module: 'values.Field', graph: 'Graph', inst: 'Object', args: 'functions.FunctionArgInput', line=-1):
         node = nodes.NodeCall(self, [v.get_value() for v in args.inputs], line)
         graph.add_node(node)
         value = values.TensorValue()
@@ -44,11 +51,13 @@ class ChainerLinkFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.ValueRef(value)
 
+
 class ChainerLinkInstance(values.Instance):
-    def __init__(self, module : 'Field', inst):
+    def __init__(self, module: 'Field', inst):
         super().__init__(module, inst, None)
         self.callable = True
 
-    def apply_to_object(self, obj : 'values.ValueRef'):
-        self.func = values.ValueRef(values.FuncValue(ChainerLinkFunction(self), obj))
+    def apply_to_object(self, obj: 'values.ValueRef'):
+        self.func = values.ValueRef(
+            values.FuncValue(ChainerLinkFunction(self), obj))
         obj.get_field().get_attribute('forward').revise(self.func)

@@ -3,7 +3,8 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import inspect
-import ast, gast
+import ast
+import gast
 import weakref
 
 import numpy as np
@@ -16,8 +17,9 @@ from elichika.parser import utils
 from elichika.parser import core
 from elichika.parser import config
 
-def generate_copied_value(value : 'values.Value'):
-    assert(isinstance(value,values.Value))
+
+def generate_copied_value(value: 'values.Value'):
+    assert(isinstance(value, values.Value))
 
     if isinstance(value, values.NumberValue):
         copied = values.NumberValue(value.internal_value)
@@ -64,15 +66,16 @@ def generate_copied_value(value : 'values.Value'):
 
     return values.Value()
 
-def generate_tensor_value_with_undefined_shape_size(value : 'values.TensorValue'):
+
+def generate_tensor_value_with_undefined_shape_size(value: 'values.TensorValue'):
     assert(isinstance(value, values.TensorValue))
     ret = values.TensorValue()
     ret.shape = tuple([-1 for v in value.shape])
     return ret
 
 
-def generate_value_with_same_type(value : 'values.Value'):
-    assert(isinstance(value,values.Value))
+def generate_value_with_same_type(value: 'values.Value'):
+    assert(isinstance(value, values.Value))
     ret = None
     if isinstance(value, values.TensorValue):
         ret = values.TensorValue()
@@ -113,22 +116,25 @@ def generate_value_with_same_type(value : 'values.Value'):
 
     return ret
 
+
 class FunctionArgInput():
     def __init__(self):
         self.inputs = []
         self.keywords = {}
 
+
 class FunctionArg():
-    def __init__(self, name : 'str' = '', obj : 'values.ValueRef' = None):
+    def __init__(self, name: 'str' = '', obj: 'values.ValueRef' = None):
         self.name = name
         self.obj = obj
 
+
 class FunctionArgCollection():
     def __init__(self):
-        self.args = {} # Dict[str,FunctionArg]
+        self.args = {}  # Dict[str,FunctionArg]
         self.args_list = []
 
-    def add_arg(self, fa : 'FunctionArg'):
+    def add_arg(self, fa: 'FunctionArg'):
         self.args_list.append(fa)
         self.args[fa.name] = fa
 
@@ -150,17 +156,17 @@ class FunctionArgCollection():
             fa.name = v.name
             fa.obj = values.parse_instance(None, v.name, v.default)
             self.add_arg(fa)
-                
-    def merge_inputs(self, inputs : 'FunctionArgInput') -> 'FunctionArgCollection':
+
+    def merge_inputs(self, inputs: 'FunctionArgInput') -> 'FunctionArgCollection':
         ret = FunctionArgCollection()
-        
+
         for fa in self.get_args():
             ret.add_arg(fa)
 
         for i in range(len(inputs.inputs)):
             ret.args_list[i].obj = inputs.inputs[i]
-            
-        for k,v in inputs.keywords.items():
+
+        for k, v in inputs.keywords.items():
             if k in ret.args.keys():
                 ret.args[k].obj = v
 
@@ -183,6 +189,7 @@ class FunctionArgCollection():
             ret.append(FunctionArg(fa.name, fa.obj))
         return ret
 
+
 class FunctionBase():
     def __init__(self):
         self.name = ''
@@ -191,7 +198,7 @@ class FunctionBase():
         self.args = FunctionArgCollection()
 
         self.base_func = None
-        
+
     def parse_args(self, args):
         funcArgs = self.funcArgs.copy()
 
@@ -230,12 +237,13 @@ class FunctionBase():
             self.funcArgs.append(fa)
 
     def get_values(self, args):
-        assert(all([isinstance(arg.obj,values.ValueRef) for arg in args]))
+        assert(all([isinstance(arg.obj, values.ValueRef) for arg in args]))
 
         return [arg.obj.get_value() for arg in args]
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.Value', args = [], line = -1):
+    def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.Value', args=[], line=-1):
         return None
+
 
 class UserDefinedClassConstructorFunction(FunctionBase):
     def __init__(self, classinfo):
@@ -257,8 +265,9 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
-    def vcall(self, module : 'values.Field', graph : 'graphs.Graph', inst : 'values.ValueRef', args : 'FunctionArgInput', line = -1):
-        ret = values.ValueRef(values.UserDefinedInstance(module, None, self.classinfo))
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
+        ret = values.ValueRef(values.UserDefinedInstance(
+            module, None, self.classinfo))
         inst = ret
 
         func_field = values.Field()
@@ -279,6 +288,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         return ret
 
+
 class UserDefinedFunction(FunctionBase):
     def __init__(self, func):
         super().__init__()
@@ -293,7 +303,7 @@ class UserDefinedFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
-    def vcall(self, module : 'values.Field', graph : 'core.Graph', inst : 'values.ValueRef', args : 'FunctionArgInput', line = -1):
+    def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
         func_field = values.Field()
         func_field.set_module(module)
 
