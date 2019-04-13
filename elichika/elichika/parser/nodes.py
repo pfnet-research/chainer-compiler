@@ -10,17 +10,20 @@ from elichika.parser import values
 from elichika.parser import functions
 from elichika.parser import utils
 
+
 class BinOpType(Enum):
     Add = 0,
     Sub = 1,
     Mul = 2,
     Unknown = 255,
 
+
 class UnaryOpType(Enum):
     UAdd = 0,
     USub = 1,
     Not = 2,
     Unknown = 255,
+
 
 class CompareType(Enum):
     Eq = 0,
@@ -32,6 +35,7 @@ class CompareType(Enum):
     Is = 6,
     IsNot = 7,
     unknown = 255,
+
 
 class Node:
     def __init__(self, line):
@@ -65,6 +69,7 @@ class Node:
         for output in self.outputs:
             output.generator = self
 
+
 def filter_tuple(value):
     if isinstance(value, list):
         for i in range(len(value)):
@@ -84,8 +89,9 @@ def filter_tuple(value):
         return values.TupleValue(vs)
     return value
 
+
 class NodeCopy(Node):
-    def __init__(self, value : 'values.Value', line = -1):
+    def __init__(self, value: 'values.Value', line=-1):
         super().__init__(line)
         value = filter_tuple(value)
 
@@ -95,8 +101,9 @@ class NodeCopy(Node):
     def __str__(self):
         return 'Copy({})'.format(self.lineprop)
 
+
 class NodeNonVolatileAssign(Node):
-    def __init__(self, target_value : 'values.Value', value : 'values.Value', line = -1):
+    def __init__(self, target_value: 'values.Value', value: 'values.Value', line=-1):
         super().__init__(line)
         target_value = filter_tuple(target_value)
         value = filter_tuple(value)
@@ -109,11 +116,12 @@ class NodeNonVolatileAssign(Node):
     def __str__(self):
         return 'NodeNonVolatileAssign({})'.format(self.lineprop)
 
+
 class NodeAssign(Node):
-    def __init__(self, attr : 'values.Attribute', obj : 'values.ValueRef', line = -1):
-        assert(isinstance(obj,values.ValueRef))
+    def __init__(self, attr: 'values.Attribute', obj: 'values.ValueRef', line=-1):
+        assert(isinstance(obj, values.ValueRef))
         super().__init__(line)
-        
+
         self.targets = []
         self.objects = []
 
@@ -123,8 +131,9 @@ class NodeAssign(Node):
     def __str__(self):
         return 'Assign({})'.format(self.lineprop)
 
+
 class NodeAugAssign(Node):
-    def __init__(self, target : 'values.Value', value : 'values.Value', binop : 'BinOp', line = -1):
+    def __init__(self, target: 'values.Value', value: 'values.Value', binop: 'BinOp', line=-1):
         super().__init__(line)
 
         target = filter_tuple(target)
@@ -140,8 +149,9 @@ class NodeAugAssign(Node):
     def __str__(self):
         return 'AugAssign({})'.format(self.lineprop)
 
+
 class NodeBinOp(Node):
-    def __init__(self, left : 'values.Value', right : 'values.Value', binop : 'BinOp', line = -1):
+    def __init__(self, left: 'values.Value', right: 'values.Value', binop: 'BinOp', line=-1):
         super().__init__(line)
 
         left = filter_tuple(left)
@@ -157,8 +167,9 @@ class NodeBinOp(Node):
     def __str__(self):
         return 'BinOp({},{})'.format(self.lineprop, self.binop)
 
+
 class NodeUnaryOp(Node):
-    def __init__(self, operand : 'values.Value', unaryop : 'UnaryOpType', line = -1):
+    def __init__(self, operand: 'values.Value', unaryop: 'UnaryOpType', line=-1):
         super().__init__(line)
         operand = filter_tuple(operand)
 
@@ -170,8 +181,9 @@ class NodeUnaryOp(Node):
     def __str__(self):
         return 'UnaryOp({},{})'.format(self.lineprop, self.unaryop)
 
+
 class NodeCompare(Node):
-    def __init__(self, left : 'values.Value', right : 'values.Value', compare : 'CompareType', line = -1):
+    def __init__(self, left: 'values.Value', right: 'values.Value', compare: 'CompareType', line=-1):
         super().__init__(line)
         left = filter_tuple(left)
         right = filter_tuple(right)
@@ -186,8 +198,9 @@ class NodeCompare(Node):
     def __str__(self):
         return 'Compare({},{})'.format(self.lineprop, self.compare)
 
+
 class NodeGetItem(Node):
-    def __init__(self, target : "values.Value", indexes, line = -1):
+    def __init__(self, target: "values.Value", indexes, line=-1):
         super().__init__(line)
         target = filter_tuple(target)
 
@@ -200,8 +213,9 @@ class NodeGetItem(Node):
     def __str__(self):
         return 'GetItem({})'.format(self.lineprop)
 
+
 class NodeSlice(Node):
-    def __init__(self, target : "values.Value", indices, slice_specs, line = -1):
+    def __init__(self, target: "values.Value", indices, slice_specs, line=-1):
         super().__init__(line)
         target = filter_tuple(target)
 
@@ -215,15 +229,16 @@ class NodeSlice(Node):
     def __str__(self):
         return 'Slice({})'.format(self.lineprop)
 
+
 class NodeCall(Node):
-    def __init__(self, func : 'Function', args, line = -1):
+    def __init__(self, func: 'Function', args, line=-1):
         super().__init__(line)
         args = filter_tuple(args)
 
         self.func = func
         self.args = args
         self.inputs.extend(self.args)
-        self.fargs = None # functions.FunctionArgCollection
+        self.fargs = None  # functions.FunctionArgCollection
 
     def __str__(self):
         if self.func is not None and isinstance(self.func, values.FuncValue):
@@ -233,8 +248,9 @@ class NodeCall(Node):
         else:
             return 'Call({}, {})'.format(self.lineprop, 'Unknown')
 
+
 class NodeReturn(Node):
-    def __init__(self, value, line = -1):
+    def __init__(self, value, line=-1):
         super().__init__(line)
         value = filter_tuple(value)
 
@@ -244,8 +260,9 @@ class NodeReturn(Node):
     def __str__(self):
         return 'Return({})'.format(self.lineprop)
 
+
 class NodeIf(Node):
-    def __init__(self, cond, input_values, true_graph, false_graph, line = -1):
+    def __init__(self, cond, input_values, true_graph, false_graph, line=-1):
         super().__init__(line)
         cond = filter_tuple(cond)
         input_values = filter_tuple(input_values)
@@ -265,8 +282,9 @@ class NodeIf(Node):
     def __str__(self):
         return 'If({})'.format(self.lineprop)
 
+
 class NodeFor(Node):
-    def __init__(self, iter_value, input_values, body_graph, line = -1):
+    def __init__(self, iter_value, input_values, body_graph, line=-1):
         super().__init__(line)
         iter_value = filter_tuple(iter_value)
         input_values = filter_tuple(input_values)
@@ -282,8 +300,9 @@ class NodeFor(Node):
     def __str__(self):
         return 'For({})'.format(self.lineprop)
 
+
 class NodeForGenerator(Node):
-    def __init__(self, counter_value, iter_value, line = -1):
+    def __init__(self, counter_value, iter_value, line=-1):
         super().__init__(line)
         counter_value = filter_tuple(counter_value)
         iter_value = filter_tuple(iter_value)
@@ -296,8 +315,9 @@ class NodeForGenerator(Node):
     def __str__(self):
         return 'ForGen({})'.format(self.lineprop)
 
+
 class NodeListcomp(Node):
-    def __init__(self, iter_value, input_values, body_graph, line = -1):
+    def __init__(self, iter_value, input_values, body_graph, line=-1):
         super().__init__(line)
         input_values = filter_tuple(input_values)
         iter_value = filter_tuple(iter_value)
@@ -313,21 +333,23 @@ class NodeListcomp(Node):
     def __str__(self):
         return 'Listcomp({})'.format(self.lineprop)
 
+
 class NodeGenerate(Node):
-    def __init__(self, classtype, args, line = -1):
+    def __init__(self, classtype, args, line=-1):
         super().__init__(line)
         args = filter_tuple(args)
 
         self.classtype = classtype
         self.args = args
         self.extend_inputs(self.args)
-        self.fargs = None # functions.FunctionArgCollection
+        self.fargs = None  # functions.FunctionArgCollection
 
     def __str__(self):
         return 'Generate({},{})'.format(self.classtype, self.lineprop)
 
+
 class NodeConvert(Node):
-    def __init__(self, classtype, value, line = -1):
+    def __init__(self, classtype, value, line=-1):
         super().__init__(line)
         value = filter_tuple(value)
 
@@ -337,4 +359,3 @@ class NodeConvert(Node):
 
     def __str__(self):
         return 'Convert({},{})'.format(self.classtype, self.lineprop)
-

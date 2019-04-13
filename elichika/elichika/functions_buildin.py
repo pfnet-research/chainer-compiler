@@ -22,11 +22,13 @@ import collections
 
 import elichika.onnx_converters as oc
 
+
 def convert_relu(onnx_graph, node):
-    onnx_graph.add_node('Relu', 
-        [node.inputs[0]],
-        [node.outputs[0]],
-        name = str(node.lineprop))
+    onnx_graph.add_node('Relu',
+                        [node.inputs[0]],
+                        [node.outputs[0]],
+                        name=str(node.lineprop))
+
 
 def convert_softmax(onnx_graph, node):
     onnx_graph.add_node(
@@ -34,7 +36,8 @@ def convert_softmax(onnx_graph, node):
         [node.inputs[0]],
         [node.outputs[0]],
         str(node.lineprop),
-        axis = oc.try_get_attribute(node.inputs[1]))
+        axis=oc.try_get_attribute(node.inputs[1]))
+
 
 def convert_pad_sequence(onnx_graph, node):
     kwargs = {}
@@ -54,6 +57,7 @@ def convert_pad_sequence(onnx_graph, node):
         [node.outputs[0]],
         str(node.lineprop),
         **kwargs)
+
 
 def convert_softmax_cross_entropy(onnx_graph, node):
 

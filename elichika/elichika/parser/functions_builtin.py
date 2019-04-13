@@ -8,6 +8,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
+
 class ChainerFunction(functions.FunctionBase):
     def __init__(self, func):
         super().__init__()
@@ -15,38 +16,42 @@ class ChainerFunction(functions.FunctionBase):
         self.analyze_args(func)
         self.base_func = func
 
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.ValueRef', args : 'functions.FunctionArgInput', line = -1):
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         funcArgs = self.args.merge_inputs(args)
         vargs = funcArgs.get_values()
 
         node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
         #value = functions.generate_value_with_same_type(vargs[0])
-        value = values.TensorValue()        
+        value = values.TensorValue()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.ValueRef(value)
+
 
 class RangeFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
         self.name = 'range'
 
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.ValueRef', args : 'functions.FunctionArgInput', line = -1):
-        node = nodes.NodeGenerate('range', [v.get_value() for v in args.inputs], line)
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        node = nodes.NodeGenerate(
+            'range', [v.get_value() for v in args.inputs], line)
         graph.add_node(node)
         value = values.RangeValue()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.ValueRef(value)
 
+
 class ListFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
         self.name = 'list'
-        self.args.add_arg(functions.FunctionArg('value', values.ValueRef(values.NoneValue())))
+        self.args.add_arg(functions.FunctionArg(
+            'value', values.ValueRef(values.NoneValue())))
 
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.ValueRef', args : 'functions.FunctionArgInput', line = -1):
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         funcArgs = self.args.merge_inputs(args)
         vargs = funcArgs.get_values()
         value = values.ListValue()
@@ -62,6 +67,7 @@ class ListFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.ValueRef(value)
 
+
 class AppendFunction(functions.FunctionBase):
     def __init__(self, owner):
         super().__init__()
@@ -69,7 +75,7 @@ class AppendFunction(functions.FunctionBase):
         self.owner = owner
         self.args.add_arg(functions.FunctionArg('elmnt'))
 
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.ValueRef', args : 'functions.FunctionArgInput', line = -1):
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         funcArgs = self.args.merge_inputs(args)
         vargs = funcArgs.get_values()
 
@@ -84,6 +90,7 @@ class AppendFunction(functions.FunctionBase):
 
         graph.add_node(node)
         return values.NoneValue()
+
 
 class NDArrayFunction(functions.FunctionBase):
     def __init__(self):
@@ -120,7 +127,7 @@ class NDArrayFunction(functions.FunctionBase):
         fa.obj = values.ValueRef(values.NumberValue(0))
         self.args.add_arg(fa)
 
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.ValueRef', args : 'functions.FunctionArgInput', line = -1):
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         funcArgs = self.args.merge_inputs(args)
         vargs = funcArgs.get_values()
 
@@ -140,6 +147,7 @@ class NDArrayFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.ValueRef(value)
 
+
 class NDArrayShapeFunction(functions.FunctionBase):
     def __init__(self, owner):
         super().__init__()
@@ -147,7 +155,7 @@ class NDArrayShapeFunction(functions.FunctionBase):
         self.owner = owner
         self.is_property = True
 
-    def vcall(self, module : 'Field', graph : 'Graph', inst : 'values.ValueRef', args : 'functions.FunctionArgInput', line = -1):
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         node = nodes.NodeCall(self, [inst.get_value()], line)
 
         value = values.ListValue()

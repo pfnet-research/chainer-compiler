@@ -22,8 +22,9 @@ import collections
 
 import elichika.onnx_converters as oc
 
-def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
-    chainer_inst = node.func.owner.inst # type: chainer.links.Linear
+
+def convert_onnx_chainer_linear(onnx_graph: 'ONNXGraph', node: 'nodes.Node'):
+    chainer_inst = node.func.owner.inst  # type: chainer.links.Linear
     onnx_name = oc.node2onnx_parameter[node].onnx_name
 
     x = oc.ONNXValue(onnx_graph, node.inputs[0])
@@ -42,7 +43,8 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
 
     (batch_size_1,) = onnx_graph.add_node(
         'Gather',
-        [x_shape, oc.ONNXValue(onnx_graph, np.array(0, dtype=np.int64), [onnx_name, '/Zero'])],
+        [x_shape, oc.ONNXValue(onnx_graph, np.array(
+            0, dtype=np.int64), [onnx_name, '/Zero'])],
         [None],
         str(node.lineprop))
 
@@ -55,7 +57,8 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
 
     (mat_shape,) = onnx_graph.add_node(
         'Concat',
-        [batch_size_2, oc.ONNXValue(onnx_graph, np.array([-1], dtype=np.int64), [onnx_name, '/Minus1'])],
+        [batch_size_2, oc.ONNXValue(onnx_graph, np.array(
+            [-1], dtype=np.int64), [onnx_name, '/Minus1'])],
         [None],
         str(node.lineprop),
         axis=0)
@@ -92,8 +95,9 @@ def convert_onnx_chainer_linear(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
             [o],
             str(node.lineprop))
 
-def convert_onnx_chainer_convolution2d(onnx_graph : 'ONNXGraph', node : 'nodes.Node'):
-    chainer_inst = node.func.owner.inst # type: chainer.links.Convolution2D
+
+def convert_onnx_chainer_convolution2d(onnx_graph: 'ONNXGraph', node: 'nodes.Node'):
+    chainer_inst = node.func.owner.inst  # type: chainer.links.Convolution2D
     onnx_name = oc.node2onnx_parameter[node].onnx_name
 
     ksize = oc.size2d(chainer_inst.ksize)
