@@ -63,6 +63,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
             functions_builtin.ChainerFunction(F.pad_sequence), None)
         f_dict.get_field().get_attribute('pad_sequence').revise(
             values.ValueRef(f_pad_sequence))
+        f_average_pooling_2d = values.FuncValue(
+            functions_builtin.ChainerFunction(F.average_pooling_2d), None)
+        f_dict.get_field().get_attribute('average_pooling_2d').revise(values.ValueRef(f_average_pooling_2d))
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 
     # numpy

@@ -66,3 +66,36 @@ def convert_softmax_cross_entropy(onnx_graph, node):
         node.inputs,
         node.outputs,
         str(node.lineprop))
+
+
+def convert_average_pool_2d(onnx_graph, node):
+    def _pair(x):
+        if isinstance(x, collections.Iterable):
+            return x
+        return (x, x)
+
+    kwargs = {}
+    ksize = oc.try_get_attribute(node.inputs[1])
+    kwargs['kernel_shape'] = _pair(ksize)
+
+    value = oc.try_get_attribute(node.inputs[2])
+    if value is not None:
+        kwargs['strides'] = _pair(value)
+    else:
+        kwargs['strides'] = _pair(ksize)
+
+    value = oc.try_get_attribute(node.inputs[3])
+    if value is not None:
+        kwargs['pads'] = _pair(value) * 2
+    else:
+        kwargs['pads'] = _pair(0)
+
+    kwargs['count_include_pad'] = 1
+
+    onnx_graph.add_node(
+        "AveragePool",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        **kwargs,
+        )
