@@ -441,6 +441,22 @@ def try_get_attribute(value, calling_node: 'nodes.Node' = None):
         value_ = value  # type: values.NoneValue
         return None
 
+    if isinstance(value, values.TupleValue):
+        value_ = value  # type: values.TupleValue
+        if value_.internal_value is None:
+            print('Warning : unconst attribute in {}'.format(lineinfo))
+
+        for v in value_.internal_value:
+            if v.internal_value is None:
+                print('Warning : unconst attribute in {}'.format(lineinfo))
+
+        ret = []
+        for v in value_.internal_value:
+            v_ = try_get_attribute(v, calling_node=calling_node)
+            ret.append(v_)
+
+        return tuple(ret)
+
     # error
     print("Cannot convert a value into an attribute")
     return -1
