@@ -49,23 +49,18 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     if chainer_functions_module_name != '':
         f_dict = values.ValueRef(values.ModuleValue())
-        f_relu = values.FuncValue(
-            functions_builtin.ChainerFunction(F.relu), None)
-        f_dict.get_field().get_attribute('relu').revise(values.ValueRef(f_relu))
-        f_softmax = values.FuncValue(
-            functions_builtin.ChainerFunction(F.softmax), None)
-        f_dict.get_field().get_attribute('softmax').revise(values.ValueRef(f_softmax))
-        f_softmax_cross_entropy = values.FuncValue(
-            functions_builtin.ChainerFunction(F.softmax_cross_entropy), None)
-        f_dict.get_field().get_attribute('softmax_cross_entropy').revise(
-            values.ValueRef(f_softmax_cross_entropy))
-        f_pad_sequence = values.FuncValue(
-            functions_builtin.ChainerFunction(F.pad_sequence), None)
-        f_dict.get_field().get_attribute('pad_sequence').revise(
-            values.ValueRef(f_pad_sequence))
-        f_average_pooling_2d = values.FuncValue(
-            functions_builtin.ChainerFunction(F.average_pooling_2d), None)
-        f_dict.get_field().get_attribute('average_pooling_2d').revise(values.ValueRef(f_average_pooling_2d))
+
+        def add_chainer_funtion(name:'str', func):
+            f = values.FuncValue(
+                functions_builtin.ChainerFunction(func), None)
+            f_dict.get_field().get_attribute(name).revise(values.ValueRef(f))
+
+        add_chainer_funtion('relu', F.relu)
+        add_chainer_funtion('softmax', F.softmax)
+        add_chainer_funtion('softmax_cross_entropy', F.softmax_cross_entropy)
+        add_chainer_funtion('pad_sequence', F.pad_sequence)
+        add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
+
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 
     # numpy
