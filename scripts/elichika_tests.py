@@ -20,6 +20,7 @@ class Generator(object):
 
 # TODO(hamaji): Triage failing tests.
 TESTS = [
+    Generator('node', 'AveragePool2d'),
     Generator('node', 'Convolution2D'),
     Generator('node', 'Linear'),
     Generator('node', 'Relu'),

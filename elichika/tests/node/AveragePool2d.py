@@ -33,6 +33,10 @@ class AvgPoolNoStride(chainer.Chain):
         y1 = F.average_pooling_2d(x, 3)
         return y1
 
+class AvgPoolPadTuple(chainer.Chain):
+    def forward(self, x):
+        y1 = F.average_pooling_2d(x, (3, 4), stride=1, pad=(2, 3))
+        return y1
 
 # ======================================
 
@@ -48,6 +52,8 @@ def main():
     testtools.generate_testcase(AvgPoolPad(), [x], subname='withpad')
     testtools.generate_testcase(AvgPoolNoStride(), [x], subname='withoutstride')
 
+    # TODO need to support it
+    # testtools.generate_testcase(AvgPoolPadTuple(), [x], subname='withpadtuple')
 
 if __name__ == '__main__':
     main()
