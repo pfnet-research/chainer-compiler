@@ -60,6 +60,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('softmax_cross_entropy', F.softmax_cross_entropy)
         add_chainer_funtion('pad_sequence', F.pad_sequence)
         add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
+        add_chainer_funtion('unpooling_2d', F.unpooling_2d)
 
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 

@@ -28,6 +28,7 @@ TESTS = [
     Generator('node', 'NpArray'),
     Generator('node', 'Shape'),
     Generator('node', 'PadSequence'),
+    Generator('node', 'Unpooling2D'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
