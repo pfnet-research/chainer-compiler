@@ -8,6 +8,7 @@
 #include <cudnn.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
 namespace chainer_compiler {
@@ -346,7 +347,7 @@ chainerx::Array PackSequence(const chainerx::Array& x, int64_t num_inputs, const
         chainerx::Array src = x.At({time, chainerx::Slice(0, num_batch)});
         chainerx::Array dest = packed.At({chainerx::Slice(offset, offset + num_batch)});
         CHECK_EQ(src.GetTotalSize(), dest.GetTotalSize());
-        x.device().backend().CallOp<chainerx::CopyOp>(src, dest);
+        BlitArray(src, dest);
         offset += num_batch;
     }
     CHECK_EQ(offset, packed.shape()[0]);
@@ -363,7 +364,7 @@ chainerx::Array UnpackSequence(
         chainerx::Array src = packed.At({chainerx::Slice(offset, offset + num_batch)});
         chainerx::Array dest = x.At({time, chainerx::Slice(0, num_batch)});
         CHECK_EQ(src.GetTotalSize(), dest.GetTotalSize());
-        x.device().backend().CallOp<chainerx::CopyOp>(src, dest);
+        BlitArray(src, dest);
         offset += num_batch;
     }
     return x;
@@ -472,8 +473,7 @@ bool CudnnLSTM(
                 int64_t param_size = src_w.GetTotalSize();
                 int offset = GetRNNWeightOffset(
                         cudnn_handle, *rnn_desc, pseudo_layer, x_desc, *w_concat_desc, w_concat, lin_layer_id, is_bias, src_w);
-                w_concat.device().backend().CallOp<chainerx::CopyOp>(
-                        chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
+                BlitArray(chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
                 offsets.push_back(offset);
             }
         }
@@ -653,8 +653,7 @@ bool CudnnLSTMGrad(
             for (int is_bias = 0; is_bias < 2; ++is_bias) {
                 int64_t offset = context.offsets()[offset_index++];
                 chainerx::Array dest = slices[is_bias][lin_layer_id];
-                gw_concat.device().backend().CallOp<chainerx::CopyOp>(
-                        chainerx::Reshape(gw_concat.At({chainerx::Slice(offset, offset + dest.GetTotalSize())}), dest.shape()), dest);
+                BlitArray(chainerx::Reshape(gw_concat.At({chainerx::Slice(offset, offset + dest.GetTotalSize())}), dest.shape()), dest);
             }
         }
     }

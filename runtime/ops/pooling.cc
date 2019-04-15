@@ -89,28 +89,6 @@ chainerx::Array AveragePoolGradOp::RunImpl(XCVMState* st, const chainerx::Array&
             gy, kernel_shape, context.strides(), context.pads(), pad_mode, context.state(), nonstd::nullopt);
 }
 
-chainerx::Array MaxPoolGradNoCtxOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
-    CHECK(false);
-#if 0
-    std::unique_ptr<chainerx::MaxPoolForwardBackward> fb(
-            x.device().GetMaxPoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), cover_all));
-    fb->Forward(x);
-    return fb->Backward(gy);
-#endif
-}
-
-chainerx::Array AveragePoolGradNoCtxOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy) {
-    CHECK(false);
-#if 0
-    chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
-    std::unique_ptr<chainerx::AveragePoolForwardBackward> fb(
-            x.device().GetAveragePoolForwardBackward(kernel_shape, ComplementStride(strides, x), ComplementPad(pads, x), pad_mode));
-    fb->Forward(x);
-    return fb->Backward(gy);
-#endif
-}
-
 // A faithful re-implementation of Chainer's ROI ops.
 // TODO(hamaji): Move this to ChainerX.
 namespace {

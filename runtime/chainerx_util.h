@@ -41,5 +41,7 @@ Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Arr
 
 bool IsFloat(chainerx::Dtype dtype);
 
+void BlitArray(const chainerx::Array& src, const chainerx::Array& dst);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

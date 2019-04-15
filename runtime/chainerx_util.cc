@@ -111,7 +111,7 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
         const chainerx::Array& input = inputs[i];
         indices[0] = chainerx::ArrayIndex(i);
         indices[1] = chainerx::Slice(0, input.shape()[0]);
-        input.device().backend().CallOp<chainerx::CopyOp>(input, result.At(indices));
+        BlitArray(input, result.At(indices));
     }
     return result;
 }
@@ -193,6 +193,10 @@ Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Arr
 
 bool IsFloat(chainerx::Dtype dtype) {
     return chainerx::GetKind(dtype) == chainerx::DtypeKind::kFloat;
+}
+
+void BlitArray(const chainerx::Array& src, const chainerx::Array& dst) {
+    src.device().backend().CallOp<chainerx::CopyOp>(src, dst);
 }
 
 }  // namespace runtime
