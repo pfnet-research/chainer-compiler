@@ -29,7 +29,6 @@ public:
         CHECK(op_set_.emplace(Node::kCast).second);
         CHECK(op_set_.emplace(Node::kCeil).second);
         CHECK(op_set_.emplace(Node::kChainerAveragePoolGrad).second);
-        CHECK(op_set_.emplace(Node::kChainerAveragePoolGradNoCtx).second);
         CHECK(op_set_.emplace(Node::kChainerBatchNormalizationGrad).second);
         CHECK(op_set_.emplace(Node::kChainerConvGradWeight).second);
         CHECK(op_set_.emplace(Node::kChainerConvTransposeWithDynamicOutputShape).second);
@@ -48,7 +47,6 @@ public:
         CHECK(op_set_.emplace(Node::kChainerLRNGrad).second);
         CHECK(op_set_.emplace(Node::kChainerLSTMGrad).second);
         CHECK(op_set_.emplace(Node::kChainerMaxPoolGrad).second);
-        CHECK(op_set_.emplace(Node::kChainerMaxPoolGradNoCtx).second);
         CHECK(op_set_.emplace(Node::kChainerNullConstant).second);
         CHECK(op_set_.emplace(Node::kChainerPrint).second);
         CHECK(op_set_.emplace(Node::kChainerROIAverageAlign2D).second);
