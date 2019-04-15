@@ -56,6 +56,21 @@ class ListSlice(chainer.Chain):
         y5 = np.array(xs[1::2])
         return y1, y2, y3, y4, y5
 
+class AvgPool(chainer.Chain):
+
+    def __init__(self):
+        super(AvgPool, self).__init__()
+
+    def forward(self, x):
+        y1 = F.average_pooling_2d(x, 1, stride=2)
+        return y1
+
+class ArrayCast(chainer.Chain):
+    def forward(self):
+        y1 = np.array([4.0, 2.0, 3.0], dtype=np.int32)
+        return y1
+
+
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
         print(node)
@@ -77,14 +92,8 @@ def export(model, args, path):
 if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
-    n_maxlen = 10
+    np.random.seed(123)
+    x = np.random.rand(2, 20, 15, 17).astype(np.float32)
 
-    model = A()
-
-    u = np.random.rand(n_maxlen+6).astype(np.float32)
-    v = np.random.rand(n_maxlen+6, n_maxlen+6).astype(np.float32)
-    w = np.random.randint(0, n_maxlen, size=2)
-
-    x = np.random.rand(7, 5, 3, 4)
-    export(ListSlice(), [x], 'result/SoftmaxAxis')
+    export(ArrayCast(), [], 'result/AvgPool')
 

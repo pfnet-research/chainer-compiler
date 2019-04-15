@@ -38,9 +38,13 @@ class ChainerLinkFunction(functions.FunctionBase):
         super().__init__()
         self.name = '__call__'
         self.owner = owner
+        self.args.add_arg(functions.FunctionArg('self', None))
+        self.args.add_arg(functions.FunctionArg('x', None))
 
-    def vcall(self, module: 'values.Field', graph: 'Graph', inst: 'Object', args: 'functions.FunctionArgInput', line=-1):
-        node = nodes.NodeCall(self, [v.get_value() for v in args.inputs], line)
+    def vcall(self, module: 'values.Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        vargs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, vargs, line)
         graph.add_node(node)
         value = values.TensorValue()
 

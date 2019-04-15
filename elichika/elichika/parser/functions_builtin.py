@@ -13,14 +13,13 @@ class ChainerFunction(functions.FunctionBase):
     def __init__(self, func):
         super().__init__()
         self.name = str(func)
-        self.analyze_args(func)
+        self.args.analyze_args(func)
         self.base_func = func
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        funcArgs = self.args.merge_inputs(args)
-        vargs = funcArgs.get_values()
+        funcArgs = self.args.merge_inputs(inst, args)
 
-        node = nodes.NodeCall(self, vargs, line)
+        node = nodes.NodeCall(self, funcArgs, line)
         graph.add_node(node)
         #value = functions.generate_value_with_same_type(vargs[0])
         value = values.TensorValue()
@@ -52,8 +51,10 @@ class ListFunction(functions.FunctionBase):
             'value', values.ValueRef(values.NoneValue())))
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        funcArgs = self.args.merge_inputs(args)
-        vargs = funcArgs.get_values()
+        assert(inst is None)
+
+        funcArgs = self.args.merge_inputs(inst, args)
+        vargs = funcArgs.get_value().inputs
         value = values.ListValue()
 
         if isinstance(vargs[0], values.NoneValue):
@@ -73,13 +74,13 @@ class AppendFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'append'
         self.owner = owner
+        self.args.add_arg(functions.FunctionArg('self'))
         self.args.add_arg(functions.FunctionArg('elmnt'))
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        funcArgs = self.args.merge_inputs(args)
-        vargs = funcArgs.get_values()
+        funcArgs = self.args.merge_inputs(inst, args)
 
-        node = nodes.NodeCall(self, [inst.get_value()] + vargs, line)
+        node = nodes.NodeCall(self, funcArgs, line)
 
         old_v = inst.get_value()
         new_v = functions.generate_value_with_same_type(old_v)
@@ -128,8 +129,10 @@ class NDArrayFunction(functions.FunctionBase):
         self.args.add_arg(fa)
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        funcArgs = self.args.merge_inputs(args)
-        vargs = funcArgs.get_values()
+        assert(inst is None)
+
+        funcArgs = self.args.merge_inputs(inst ,args)
+        vargs = funcArgs.get_value().inputs
 
         dtype_value = vargs[1]
         if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
@@ -138,7 +141,7 @@ class NDArrayFunction(functions.FunctionBase):
         else:
             dtype = None
 
-        node = nodes.NodeGenerate('array', vargs, line)
+        node = nodes.NodeGenerate('array', funcArgs, line)
         node.fargs = funcArgs
         graph.add_node(node)
         value = values.TensorValue()
@@ -156,7 +159,11 @@ class NDArrayShapeFunction(functions.FunctionBase):
         self.is_property = True
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        node = nodes.NodeCall(self, [inst.get_value()], line)
+        args = functions.FunctionArgInput()
+        args.inputs.append(inst)
+        args.keywords['self'] = inst
+
+        node = nodes.NodeCall(self, args, line)
 
         value = values.ListValue()
         value.name = '@F.{}.{}'.format(line, self.name)
