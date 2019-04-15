@@ -75,6 +75,16 @@ def filter_tuple(value):
         for i in range(len(value)):
             value[i] = filter_tuple(value[i])
 
+    if isinstance(value, functions.FunctionArgValueInput):
+        ret = functions.FunctionArgValueInput()
+        ret.inputs = [filter_tuple(v) for v in value.inputs]
+
+        keywords_ = {}
+        for k,v in value.keywords.items():
+            keywords_[k] = filter_tuple(v)
+        ret.keywords = keywords_
+        return ret
+
     if isinstance(value, values.TupleValue) and value.internal_value is not None:
         vs = []
         for v in value.internal_value:
@@ -231,14 +241,14 @@ class NodeSlice(Node):
 
 
 class NodeCall(Node):
-    def __init__(self, func: 'Function', args, line=-1):
+    def __init__(self, func: 'Function', args : 'functions.FunctionArgInput', line=-1):
         super().__init__(line)
-        args = filter_tuple(args)
+        args_ = args.get_value()
+        args_ = filter_tuple(args_)
 
         self.func = func
-        self.args = args
-        self.inputs.extend(self.args)
-        self.fargs = None  # functions.FunctionArgCollection
+        self.args = args_ # functions.FunctionArgValueInput
+        self.inputs.extend(self.args.inputs)
 
     def __str__(self):
         if self.func is not None and isinstance(self.func, values.FuncValue):
@@ -337,12 +347,17 @@ class NodeListcomp(Node):
 class NodeGenerate(Node):
     def __init__(self, classtype, args, line=-1):
         super().__init__(line)
-        args = filter_tuple(args)
+
+        if isinstance(args, list):
+            self.extend_inputs(args)
+            self.args = args
+        else:
+            args_ = args.get_value()
+            args_ = filter_tuple(args_)
+            self.args = args_
+            self.extend_inputs(self.args.inputs)
 
         self.classtype = classtype
-        self.args = args
-        self.extend_inputs(self.args)
-        self.fargs = None  # functions.FunctionArgCollection
 
     def __str__(self):
         return 'Generate({},{})'.format(self.classtype, self.lineprop)

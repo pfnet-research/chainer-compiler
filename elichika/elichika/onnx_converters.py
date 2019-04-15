@@ -742,18 +742,6 @@ class ONNXGenerator:
 
                 onnx_graph.nodes.append(onnx_node)
 
-            '''
-            # disabled because of SSA
-            if isinstance(node, nodes.NodeNonVolatileAssign):
-                node_ = node # type: nodes.NodeNonVolatileAssign
-                onnx_node = oh.make_node(
-                    'Identity',
-                    [value2onnx_parameter[node_.value].onnx_name],
-                    [value2onnx_parameter[node_.target_value].onnx_name])
-
-                onnx_graph.nodes.append(onnx_node)
-            '''
-
             if isinstance(node, nodes.NodeAugAssign):
                 convert_node_aug_assign(onnx_graph, node)
 
@@ -986,16 +974,16 @@ class ONNXGenerator:
 
                 if node_.classtype == 'array':
                     dtype_value = try_get_attribute(
-                        node.fargs.get_value('dtype'))
+                        node.args.get_value('dtype'))
                     if dtype_value is not None:
                         dtype = utils.int_2_numpy_type(dtype_value)
                     else:
                         dtype = None
 
-                    copy = try_get_attribute(node.fargs.get_value('copy'))
-                    order = try_get_attribute(node.fargs.get_value('order'))
-                    subok = try_get_attribute(node.fargs.get_value('subok'))
-                    ndmin = try_get_attribute(node.fargs.get_value('ndmin'))
+                    copy = try_get_attribute(node.args.get_value('copy'))
+                    order = try_get_attribute(node.args.get_value('order'))
+                    subok = try_get_attribute(node.args.get_value('subok'))
+                    ndmin = try_get_attribute(node.args.get_value('ndmin'))
 
                     assert copy is True  # TODO(hamaji): Not supported yet.
                     assert order == 'K'  # TODO(hamaji): Not supported yet.

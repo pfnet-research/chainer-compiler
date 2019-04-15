@@ -23,11 +23,11 @@ import collections
 import elichika.onnx_converters as oc
 
 
-def convert_onnx_chainer_linear(onnx_graph: 'ONNXGraph', node: 'nodes.Node'):
+def convert_onnx_chainer_linear(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'):
     chainer_inst = node.func.owner.inst  # type: chainer.links.Linear
     onnx_name = oc.node2onnx_parameter[node].onnx_name
 
-    x = oc.ONNXValue(onnx_graph, node.inputs[0])
+    x = oc.ONNXValue(onnx_graph, node.args.get_value('x'))
     o = oc.ONNXValue(onnx_graph, node.outputs[0])
 
     if chainer_inst.W.data is None:
@@ -96,16 +96,15 @@ def convert_onnx_chainer_linear(onnx_graph: 'ONNXGraph', node: 'nodes.Node'):
             str(node.lineprop))
 
 
-def convert_onnx_chainer_convolution2d(onnx_graph: 'ONNXGraph', node: 'nodes.Node'):
+def convert_onnx_chainer_convolution2d(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'):
     chainer_inst = node.func.owner.inst  # type: chainer.links.Convolution2D
-    onnx_name = oc.node2onnx_parameter[node].onnx_name
 
     ksize = oc.size2d(chainer_inst.ksize)
     stride = oc.size2d(chainer_inst.stride)
     ps = oc.size2d(chainer_inst.pad)
     pads = ps + ps
 
-    x = oc.ONNXValue(onnx_graph, node.inputs[0])
+    x = oc.ONNXValue(onnx_graph, node.args.get_value('x'))
     o = oc.ONNXValue(onnx_graph, node.outputs[0])
     w = oc.ONNXValue(onnx_graph, chainer_inst.W)
     b = None
