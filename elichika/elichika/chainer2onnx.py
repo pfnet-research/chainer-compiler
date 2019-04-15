@@ -45,6 +45,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.pad_sequence] = fb.convert_pad_sequence
     oc.chainer_f_converter[F.softmax_cross_entropy] = fb.convert_softmax_cross_entropy
     oc.chainer_f_converter[F.average_pooling_2d] = fb.convert_average_pool_2d
+    oc.chainer_f_converter[F.unpooling_2d] = fb.convert_unpooling_2d
 
     # assign names
     oc.assigned_names.clear()
