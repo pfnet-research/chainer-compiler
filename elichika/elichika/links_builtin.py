@@ -14,7 +14,6 @@ import elichika.parser.values as values
 import elichika.parser.nodes as nodes
 import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
-import elichika.parser.values_builtin as values_builtin
 import elichika.parser.utils as utils
 
 import numpy as np
@@ -120,3 +119,26 @@ def convert_onnx_chainer_convolution2d(onnx_graph: 'ONNXGraph', node: 'nodes.Nod
         kernel_shape=ksize,
         pads=pads,
         strides=stride)
+
+def convert_onnx_chainer_batch_normalization(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'):
+    chainer_inst = node.func.owner.inst  # type: chainer.links.BatchNormalization
+
+    assert(chainer_inst.axis is None) # not support yet
+
+    x = oc.ONNXValue(onnx_graph, node.args.get_value('x'))
+    o = oc.ONNXValue(onnx_graph, node.outputs[0])
+
+    gamma = oc.ONNXValue(onnx_graph, chainer_inst.gamma)
+    beta = oc.ONNXValue(onnx_graph, chainer_inst.beta)
+    avg_mean = oc.ONNXValue(onnx_graph, chainer_inst.avg_mean, [node,'mean'])
+    avg_var = oc.ONNXValue(onnx_graph, chainer_inst.avg_var,[node,'var'])
+    eps = chainer_inst.eps
+    momentum = chainer_inst.decay
+
+    onnx_graph.add_node(
+        'BatchNormalization',
+        [x, gamma, beta, avg_mean, avg_var],
+        [o],
+        str(node.lineprop),
+        epsilon=eps,
+        momentum=momentum)

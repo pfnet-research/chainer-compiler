@@ -14,15 +14,14 @@ import elichika.parser.values as values
 import elichika.parser.nodes as nodes
 import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
-import elichika.parser.values_builtin as values_builtin
 import elichika.parser.utils as utils
 
 import numpy as np
 import collections
 
 import elichika.onnx_converters as oc
-import elichika.layers_buikdin as lb
-import elichika.functions_buildin as fb
+import elichika.links_builtin as lb
+import elichika.functions_builtin as fb
 
 
 class ONNXModel:
@@ -39,6 +38,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
 
     oc.chainer_l_converter[L.Linear] = lb.convert_onnx_chainer_linear
     oc.chainer_l_converter[L.Convolution2D] = lb.convert_onnx_chainer_convolution2d
+    oc.chainer_l_converter[L.BatchNormalization] = lb.convert_onnx_chainer_batch_normalization
 
     oc.chainer_f_converter[F.relu] = fb.convert_relu
     oc.chainer_f_converter[F.softmax] = fb.convert_softmax

@@ -14,8 +14,8 @@ import elichika.parser.values as values
 import elichika.parser.nodes as nodes
 import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
-import elichika.parser.values_builtin as values_builtin
 import elichika.parser.utils as utils
+import elichika.parser.links_builtin as links_builtin
 
 import numpy as np
 import collections
@@ -271,7 +271,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
 
         onnx_graph.nodes.append(onnx_node)
 
-    if isinstance(node.func, values_builtin.ChainerLinkFunction):
+    if isinstance(node.func, links_builtin.ChainerLinkFunction):
         original_inst = node.func.owner.inst
         chainer_l_converter[type(original_inst)](onnx_graph, node)
 
