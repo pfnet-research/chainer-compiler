@@ -8,20 +8,6 @@ import elichika
 import elichika.parser as parser
 import elichika.parser.visualizer as visualizer
 
-class A(chainer.Chain):
-    def forward(self, xs, xss, ps):
-        y1 = xs[2]
-        y2 = xs[3:5]
-        y3 = xs[ps[0]]
-        y4 = xs[ps[0]:ps[0]+2]
-        y5 = xss[ps[0]:10, ps[1]:ps[1]+4]
-        y6 = xss[ps[0], ps[1]:ps[1]+4]
-        y7 = xss[3, ps[0]]
-        y8 = xs[-1]
-        y9 = xs[-2]
-        # TODO(satos) listによるインデクシングもできるようにする
-        # y10 = xs[[1,3,5]]
-        return y1, y2, y3, y4, y5, y6, y7, y8, y9
 
 
 class SoftmaxAxis(chainer.Chain):
@@ -70,6 +56,16 @@ class ArrayCast(chainer.Chain):
         y1 = np.array([4.0, 2.0, 3.0], dtype=np.int32)
         return y1
 
+class A(chainer.Chain):
+
+    def __init__(self):
+        super(A, self).__init__()
+        with self.init_scope():
+            self.l1 = L.BatchNormalization(3)
+
+    def forward(self, x):
+        r = self.l1(x)
+        return r
 
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
@@ -92,8 +88,6 @@ def export(model, args, path):
 if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
-    np.random.seed(123)
-    x = np.random.rand(2, 20, 15, 17).astype(np.float32)
-
-    export(ArrayCast(), [], 'result/AvgPool')
-
+    model = A()
+    v = np.random.rand(2, 3, 5, 5).astype(np.float32)
+    export(model, [v], 'result/BN')

@@ -8,7 +8,7 @@ from elichika.parser import config
 from elichika.parser import nodes
 from elichika.parser import vevaluator
 from elichika.parser import values
-from elichika.parser import values_builtin
+from elichika.parser import links_builtin
 from elichika.parser import functions
 from elichika.parser import functions_builtin
 from elichika.parser import utils
@@ -34,8 +34,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.instance_converters.clear()
 
     def instance_converter(m, i):
-        if values_builtin.is_builtin_chainer_link(i):
-            return values_builtin.ChainerLinkInstance(m, i)
+        if links_builtin.is_builtin_chainer_link(i):
+            return links_builtin.ChainerLinkInstance(m, i)
         return None
 
     values.instance_converters.append(instance_converter)

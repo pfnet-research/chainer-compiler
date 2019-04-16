@@ -372,6 +372,9 @@ endforeach()
 set(ELICHIKA_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/__init__.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/functions_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/links_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/onnx_converters.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/__init__.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/config.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/core.py
@@ -381,7 +384,7 @@ set(ELICHIKA_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/nodes.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/utils.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_bin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_unary.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/vevaluator.py

@@ -14,7 +14,6 @@ import elichika.parser.values as values
 import elichika.parser.nodes as nodes
 import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
-import elichika.parser.values_builtin as values_builtin
 import elichika.parser.utils as utils
 
 import numpy as np
