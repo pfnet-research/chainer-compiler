@@ -20,8 +20,7 @@ class A(chainer.Chain):
 
 # ======================================from MLP
 
-
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -30,3 +29,6 @@ if __name__ == '__main__':
     v = np.random.rand(2, 3, 5, 5).astype(np.float32)
 
     testtools.generate_testcase(model, [v])
+
+if __name__ == '__main__':
+    main()
