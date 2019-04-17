@@ -15,6 +15,7 @@ from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser import config
 from elichika.parser import functions_builtin
+from elichika.parser import functions_ndarray
 
 from elichika.parser.functions import FunctionBase, UserDefinedFunction
 
@@ -616,8 +617,12 @@ class TensorValue(Value):
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(
-            FuncValue(functions_builtin.NDArrayShapeFunction(self), obj))
+            FuncValue(functions_ndarray.NDArrayShapeFunction(self), obj))
         obj.attributes.get_attribute('shape').revise(shape_func)
+
+        size_func = ValueRef(
+            FuncValue(functions_ndarray.NDArraySizeFunction(self), obj))
+        obj.attributes.get_attribute('size').revise(size_func)
 
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)

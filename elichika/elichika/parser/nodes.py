@@ -76,12 +76,21 @@ def filter_tuple(value):
             value[i] = filter_tuple(value[i])
 
     if isinstance(value, functions.FunctionArgValueInput):
+        converted = {}
+
         ret = functions.FunctionArgValueInput()
-        ret.inputs = [filter_tuple(v) for v in value.inputs]
+        
+        for v in value.inputs:
+            converted_v = filter_tuple(v)
+            ret.inputs.append(converted_v)
+            converted[v] = converted_v
 
         keywords_ = {}
         for k,v in value.keywords.items():
-            keywords_[k] = filter_tuple(v)
+            if v in converted.keys():
+                keywords_[k] = converted[v]
+            else:        
+                keywords_[k] = filter_tuple(v)
         ret.keywords = keywords_
         return ret
 

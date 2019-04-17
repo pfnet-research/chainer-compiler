@@ -14,6 +14,7 @@ import elichika.parser.values as values
 import elichika.parser.nodes as nodes
 import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
+import elichika.parser.functions_ndarray as functions_ndarray
 import elichika.parser.utils as utils
 import elichika.parser.links_builtin as links_builtin
 
@@ -250,7 +251,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             node.outputs,
             str(node.lineprop))
 
-    if isinstance(node.func, functions_builtin.NDArrayShapeFunction):
+    if isinstance(node.func, functions_ndarray.NDArrayShapeFunction):
         # shape
         op_shape_temp = onnx_graph.new_empty_tensor(
             ['TODO'], np.int32, value2onnx_parameter[node.outputs[0]].onnx_name + '/ShapeTemp')
@@ -270,6 +271,14 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             str(node.lineprop))
 
         onnx_graph.nodes.append(onnx_node)
+
+    if isinstance(node.func, functions_ndarray.NDArraySizeFunction):
+        # size
+        onnx_node = onnx_graph.add_node(
+            "Size",
+            [node.inputs[0]],
+            [node.outputs[0]],
+            str(node.lineprop))
 
     if isinstance(node.func, links_builtin.ChainerLinkFunction):
         original_inst = node.func.owner.inst
@@ -411,6 +420,32 @@ class ONNXValue:
 
         assert(False)
 
+    def create_tensor(self) -> 'ONNXValue':
+        if(isinstance(self.value, values.TupleValue)):
+            value = self.value  # values.TupleValue
+            if value.internal_value is None:
+                assert(False)
+            else:
+                # TODO adhoc code
+                ret = ONNXValue(self.onnx_graph, np.float32, [
+                                self.name, '/c'])
+
+                vs = []
+                for v in value.internal_value:
+                    c = ONNXValue(self.onnx_graph, np.array(v.internal_value), [self.name, '/c'], is_constant=True)
+                    us = self.onnx_graph.add_node("Unsqueeze", [c], [None], str('create_tensor'), axes=[0])
+                    vs.append(us[0])
+
+                self.onnx_graph.add_node(
+                    "Concat",
+                    vs,
+                    [ret],
+                    str('create_tensor'),
+                    axis=0)
+
+                return ret
+
+        assert(False)
 
 def try_get_attribute(value, calling_node: 'nodes.Node' = None):
 
@@ -1021,6 +1056,58 @@ class ONNXGenerator:
                             [value],
                             [o],
                             str(node.lineprop))
+
+                if node_.classtype == 'zeros':
+                    dtype_value = try_get_attribute(
+                        node.args.get_value('dtype'))
+                    if dtype_value is not None:
+                        dtype = utils.int_2_numpy_type(dtype_value)
+                    else:
+                        dtype = None
+                    order = try_get_attribute(node.args.get_value('order'))
+                    assert order == 'C'  # TODO(hamaji): Not supported yet.
+                    onnx_node = onnx_graph.add_node(
+                        "ConstantFill",
+                        [ONNXValue(onnx_graph,node.args.get_value('shape')).create_tensor()],
+                        [node.outputs[0]],
+                        str(node.lineprop),
+                        input_as_shape=1,
+                        dtype=get_onnx_dtype(dtype))
+
+
+                if node_.classtype == 'full':
+                    dtype_value = try_get_attribute(
+                        node.args.get_value('dtype'))
+                    if dtype_value is not None:
+                        dtype = utils.int_2_numpy_type(dtype_value)
+                    else:
+                        dtype = None
+                    order = try_get_attribute(node.args.get_value('order'))
+                    assert order == 'C'  # TODO(hamaji): Not supported yet.
+
+                    tensor_temp = ONNXValue(onnx_graph, None, [node_, '/Temp'])
+
+                    if dtype is not None:
+                        onnx_node = onnx_graph.add_node(
+                            "Expand",
+                            [node.args.get_value('fill_value'), ONNXValue(onnx_graph,node.args.get_value('shape')).create_tensor()],
+                            [tensor_temp],
+                            str(node.lineprop))
+
+                        onnx_node = onnx_graph.add_node(
+                            "Cast",
+                            [tensor_temp],
+                            [node.outputs[0]],
+                            str(node.lineprop),
+                            to=get_onnx_dtype(dtype))
+                    else:
+                        onnx_node = onnx_graph.add_node(
+                            "Expand",
+                            [node.args.get_value('fill_value'), ONNXValue(onnx_graph,node.args.get_value('shape')).create_tensor()],
+                            [node.outputs[0]],
+                            str(node.lineprop))
+
+
 
                 if node_.classtype == 'List':
                     onnx_node = oh.make_node(

@@ -44,8 +44,8 @@ class ChainerLinkFunction(functions.FunctionBase):
         super().__init__()
         self.name = '__call__'
         self.owner = owner
-        self.args.add_arg(functions.FunctionArg('self', None))
-        self.args.add_arg(functions.FunctionArg('x', None))
+        self.args.add_arg('self', None)
+        self.args.add_arg('x', None)
 
     def vcall(self, module: 'values.Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         vargs = self.args.merge_inputs(inst, args)

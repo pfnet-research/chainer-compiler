@@ -47,8 +47,7 @@ class ListFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
         self.name = 'list'
-        self.args.add_arg(functions.FunctionArg(
-            'value', values.ValueRef(values.NoneValue())))
+        self.args.add_arg('value', values.ValueRef(values.NoneValue()))
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         assert(inst is None)
@@ -74,8 +73,8 @@ class AppendFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'append'
         self.owner = owner
-        self.args.add_arg(functions.FunctionArg('self'))
-        self.args.add_arg(functions.FunctionArg('elmnt'))
+        self.args.add_arg('self', None)
+        self.args.add_arg('elmnt', None)
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
@@ -91,84 +90,3 @@ class AppendFunction(functions.FunctionBase):
 
         graph.add_node(node)
         return values.NoneValue()
-
-
-class NDArrayFunction(functions.FunctionBase):
-    def __init__(self):
-        super().__init__()
-        self.name = 'array'
-
-        fa = functions.FunctionArg()
-        fa.name = 'object'
-        fa.obj = values.ValueRef(values.NoneValue())
-        self.args.add_arg(fa)
-
-        fa = functions.FunctionArg()
-        fa.name = 'dtype'
-        fa.obj = values.ValueRef(values.NoneValue())
-        self.args.add_arg(fa)
-
-        fa = functions.FunctionArg()
-        fa.name = 'copy'
-        fa.obj = values.ValueRef(values.BoolValue(True))
-        self.args.add_arg(fa)
-
-        fa = functions.FunctionArg()
-        fa.name = 'order'
-        fa.obj = values.ValueRef(values.StrValue('K'))
-        self.args.add_arg(fa)
-
-        fa = functions.FunctionArg()
-        fa.name = 'subok'
-        fa.obj = values.ValueRef(values.BoolValue(False))
-        self.args.add_arg(fa)
-
-        fa = functions.FunctionArg()
-        fa.name = 'ndmin'
-        fa.obj = values.ValueRef(values.NumberValue(0))
-        self.args.add_arg(fa)
-
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        assert(inst is None)
-
-        funcArgs = self.args.merge_inputs(inst ,args)
-        vargs = funcArgs.get_value().inputs
-
-        dtype_value = vargs[1]
-        if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
-            # TODO : make better
-            dtype = utils.int_2_numpy_type(dtype_value.internal_value)
-        else:
-            dtype = None
-
-        node = nodes.NodeGenerate('array', funcArgs, line)
-        node.fargs = funcArgs
-        graph.add_node(node)
-        value = values.TensorValue()
-        value.dtype = dtype
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return values.ValueRef(value)
-
-
-class NDArrayShapeFunction(functions.FunctionBase):
-    def __init__(self, owner):
-        super().__init__()
-        self.name = 'shape'
-        self.owner = owner
-        self.is_property = True
-
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        args = functions.FunctionArgInput()
-        args.inputs.append(inst)
-        args.keywords['self'] = inst
-
-        node = nodes.NodeCall(self, args, line)
-
-        value = values.ListValue()
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-
-        # TODO should make tuple
-        graph.add_node(node)
-        return values.ValueRef(value)
