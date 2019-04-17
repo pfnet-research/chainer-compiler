@@ -11,6 +11,7 @@ from elichika.parser import values
 from elichika.parser import links_builtin
 from elichika.parser import functions
 from elichika.parser import functions_builtin
+from elichika.parser import functions_ndarray
 from elichika.parser import utils
 from elichika.parser.graphs import Graph
 import numpy as np
@@ -69,8 +70,14 @@ def convert_model(model: 'chainer.Chain', args=[]):
     if numpy_module_name != '':
         f_dict = values.ValueRef(values.ModuleValue())
 
-        f_array = values.FuncValue(functions_builtin.NDArrayFunction(), None)
+        f_array = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
         f_dict.get_field().get_attribute('array').revise(values.ValueRef(f_array))
+
+        f_zeros = values.FuncValue(functions_ndarray.NDArrayZerosFunction(), None)
+        f_dict.get_field().get_attribute('zeros').revise(values.ValueRef(f_zeros))
+
+        f_full = values.FuncValue(functions_ndarray.NDArrayFullFunction(), None)
+        f_dict.get_field().get_attribute('full').revise(values.ValueRef(f_full))
 
         f_dict.get_field().get_attribute('int32').revise(
             values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))

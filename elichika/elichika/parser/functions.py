@@ -156,7 +156,12 @@ class FunctionArgCollection():
         self.args = {}  # Dict[str,FunctionArg]
         self.args_list = []
         
-    def add_arg(self, fa: 'FunctionArg'):
+    def add_arg(self, name, value):
+
+        if isinstance(value, values.Value):
+            value = values.ValueRef(value)
+
+        fa = FunctionArg(name, value)
         self.args_list.append(fa)
         self.args[fa.name] = fa
 
@@ -167,17 +172,10 @@ class FunctionArgCollection():
         isSelfRemoved = len(sig.parameters.keys()) != len(argspec[0])
 
         if isSelfRemoved:
-            fa = FunctionArg()
-            fa.name = argspec[0][0]
-            fa.obj = None
-            self.add_arg(fa)
+            self.add_arg(argspec[0][0], None)
 
         for k, v in sig.parameters.items():
-
-            fa = FunctionArg()
-            fa.name = v.name
-            fa.obj = values.parse_instance(None, v.name, v.default)
-            self.add_arg(fa)
+            self.add_arg(v.name, values.parse_instance(None, v.name, v.default))
 
     def merge_inputs(self, self_valueref, inputs: 'FunctionArgInput') -> 'FunctionArgInput':
         ret = FunctionArgInput()

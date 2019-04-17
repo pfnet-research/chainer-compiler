@@ -26,10 +26,13 @@ TESTS = [
     Generator('node', 'Linear'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
-    Generator('node', 'NpArray'),
     Generator('node', 'Shape'),
     Generator('node', 'PadSequence'),
     Generator('node', 'Unpooling2D'),
+
+    Generator('node', 'ndarray/NpArray'),
+    Generator('node', 'ndarray/NpFull'),
+    Generator('node', 'ndarray/NpZeros'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
