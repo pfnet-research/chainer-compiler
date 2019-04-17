@@ -33,6 +33,7 @@ TESTS = [
     Generator('node', 'ndarray/NpArray'),
     Generator('node', 'ndarray/NpFull'),
     Generator('node', 'ndarray/NpZeros'),
+    Generator('node', 'ndarray/Size'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),

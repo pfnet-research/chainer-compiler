@@ -620,6 +620,10 @@ class TensorValue(Value):
             FuncValue(functions_ndarray.NDArrayShapeFunction(self), obj))
         obj.attributes.get_attribute('shape').revise(shape_func)
 
+        size_func = ValueRef(
+            FuncValue(functions_ndarray.NDArraySizeFunction(self), obj))
+        obj.attributes.get_attribute('size').revise(size_func)
+
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
 

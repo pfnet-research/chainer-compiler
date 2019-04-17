@@ -123,3 +123,25 @@ class NDArrayShapeFunction(functions.FunctionBase):
         # TODO should make tuple
         graph.add_node(node)
         return values.ValueRef(value)
+
+class NDArraySizeFunction(functions.FunctionBase):
+    def __init__(self, owner):
+        super().__init__()
+        self.name = 'size'
+        self.owner = owner
+        self.is_property = True
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        args = functions.FunctionArgInput()
+        args.inputs.append(inst)
+        args.keywords['self'] = inst
+
+        node = nodes.NodeCall(self, args, line)
+
+        value = values.NumberValue(None)
+        value.dtype = np.array(0).dtype
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+
+        graph.add_node(node)
+        return values.ValueRef(value)

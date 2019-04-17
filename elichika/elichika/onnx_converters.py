@@ -272,6 +272,14 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
 
         onnx_graph.nodes.append(onnx_node)
 
+    if isinstance(node.func, functions_ndarray.NDArraySizeFunction):
+        # size
+        onnx_node = onnx_graph.add_node(
+            "Size",
+            [node.inputs[0]],
+            [node.outputs[0]],
+            str(node.lineprop))
+
     if isinstance(node.func, links_builtin.ChainerLinkFunction):
         original_inst = node.func.owner.inst
         chainer_l_converter[type(original_inst)](onnx_graph, node)
