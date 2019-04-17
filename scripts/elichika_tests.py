@@ -30,10 +30,10 @@ TESTS = [
     Generator('node', 'PadSequence'),
     Generator('node', 'Unpooling2D'),
 
-    Generator('node', 'ndarray/NpArray'),
-    Generator('node', 'ndarray/NpFull'),
-    Generator('node', 'ndarray/NpZeros'),
-    Generator('node', 'ndarray/Size'),
+    Generator('node/ndarray', 'NpArray'),
+    Generator('node/ndarray', 'NpFull'),
+    Generator('node/ndarray', 'NpZeros'),
+    Generator('node/ndarray', 'Size'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
