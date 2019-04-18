@@ -98,8 +98,47 @@ def test_backprop():
         grad_b, bwd_outputs['grad_out@/l1/b'].array())
 
 
-def test_custom_op():
-    gb = onnx_script.GraphBuilder('pytest_custom_op')
+def test_custom_op_1_output():
+    test_name = 'pytest_custom_op_1_output'
+    gb = onnx_script.GraphBuilder(test_name)
+    a = np.array(13)
+    b = np.array(4)
+    c = np.array(10)
+    a_v = gb.input('a', a)
+    b_v = gb.input('b', b)
+    c_v = gb.input('c', c)
+
+    def custom_func(a, b, c):
+        return a * b - c
+
+    y = custom_func(a, b, c)
+
+    y_v = gb.ChainerDoSomething([a_v, b_v, c_v],
+                                function_name='CustomFunction')
+    gb.output(y_v, y)
+
+    gb.gen_test()
+
+    graph = chainer_compiler_core.load('out/%s/model.onnx' % test_name)
+    params = graph.params()
+    input_names = graph.input_names()
+    output_names = graph.output_names()
+    assert len(input_names) == 3
+    assert len(output_names) == 1
+
+    xcvm = graph.compile()
+
+    inputs = {}
+    for n, v in [('a', a), ('b', b), ('c', c)]:
+        inputs[n] = chainer_compiler_core.value(chainerx.array(v))
+
+    outputs = xcvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
+    assert len(outputs) == 1
+
+
+def test_custom_op_2_outputs():
+    test_name = 'pytest_custom_op_2_outputs'
+    gb = onnx_script.GraphBuilder(test_name)
     a = np.array(13)
     b = np.array(4)
     c = np.array(10)
@@ -122,7 +161,7 @@ def test_custom_op():
 
     gb.gen_test()
 
-    graph = chainer_compiler_core.load('out/pytest_custom_op/model.onnx')
+    graph = chainer_compiler_core.load('out/%s/model.onnx' % test_name)
     params = graph.params()
     input_names = graph.input_names()
     output_names = graph.output_names()

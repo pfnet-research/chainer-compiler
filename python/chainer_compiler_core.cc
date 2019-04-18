@@ -196,13 +196,14 @@ std::map<std::string, VarPtr> Run(
             }
             py::object py_outputs = py_func(*py_inputs);
             std::vector<chainerx::Array> outputs;
-            if (py::isinstance<py::tuple>(py_outputs)) {
+            if (py::isinstance<ArrayBodyPtr>(py_outputs)) {
+                outputs.emplace_back(py::cast<ArrayBodyPtr>(py_outputs));
+            } else if (py::isinstance<py::tuple>(py_outputs)) {
                 for (auto py_output : py::cast<py::tuple>(py_outputs)) {
                     outputs.emplace_back(py::cast<ArrayBodyPtr>(py_output));
                 }
             } else {
-                py::print(py_outputs);
-                CHECK(false) << "Invalid return values from custom op " << name;
+                CHECK(false) << "Invalid return values from custom op " << name << ": " << py::str(py_outputs);
             }
             return outputs;
         };
