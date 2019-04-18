@@ -56,6 +56,11 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(chainer_compiler::runtime::XCVMS
 }  // namespace
 
 std::vector<chainerx::Array> DoSomethingOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+    auto found = st->options().custom_op_funcs.find(func_name);
+    if (found != st->options().custom_op_funcs.end()) {
+        return found->second(inputs);
+    }
+
     if (func_name == "ChainerCVRPNDecode") {
         return ChainerCVRPNDecode(st, inputs);
     }

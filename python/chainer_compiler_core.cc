@@ -173,7 +173,8 @@ std::map<std::string, VarPtr> Run(
         bool check_nans,
         bool check_infs,
         bool dump_memory_usage,
-        const std::string& chrome_tracing) {
+        const std::string& chrome_tracing,
+        const std::map<std::string, py::function>& custom_funcs) {
     runtime::XCVMOptions xcvm_opts;
     if (trace) xcvm_opts.trace_level = 1;
     if (verbose) xcvm_opts.trace_level = 2;
@@ -184,7 +185,32 @@ std::map<std::string, VarPtr> Run(
     if (!chrome_tracing.empty()) {
         xcvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
     }
+
+    for (const auto& p : custom_funcs) {
+        const std::string& name = p.first;
+        py::object py_func = p.second;
+        auto func = [name, py_func](const std::vector<chainerx::Array>& inputs) {
+            py::list py_inputs;
+            for (const chainerx::Array& input : inputs) {
+                py_inputs.append(chainerx::internal::GetArrayBody(input));
+            }
+            py::object py_outputs = py_func(*py_inputs);
+            std::vector<chainerx::Array> outputs;
+            if (py::isinstance<py::tuple>(py_outputs)) {
+                for (auto py_output : py::cast<py::tuple>(py_outputs)) {
+                    outputs.emplace_back(py::cast<ArrayBodyPtr>(py_output));
+                }
+            } else {
+                py::print(py_outputs);
+                CHECK(false) << "Invalid return values from custom op " << name;
+            }
+            return outputs;
+        };
+        CHECK(xcvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
+    }
+
     runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
+
     if (xcvm_opts.chrome_tracing) {
         xcvm_opts.chrome_tracing->Emit(chrome_tracing);
     }
@@ -203,7 +229,8 @@ void InitXCVM(py::module& m) {
           py::arg("check_nans") = false,
           py::arg("check_infs") = false,
           py::arg("dump_memory_usage") = false,
-          py::arg("chrome_tracing") = "");
+          py::arg("chrome_tracing") = "",
+          py::arg("custom_funcs") = py::dict());
 }
 
 bool IsArray(const VarPtr& v) {

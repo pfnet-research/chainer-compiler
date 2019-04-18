@@ -4,12 +4,16 @@ import sys
 import chainerx
 import chainerx.testing
 import numpy as np
+import onnx
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'build/python'))
 sys.path.append(os.path.join(project_root, 'python'))
+sys.path.append(os.path.join(project_root, 'scripts'))
 
 import chainer_compiler_core
+
+import onnx_script
 
 
 def aranges(*shape):
@@ -92,3 +96,44 @@ def test_backprop():
     grad_b = chainerx.sum(grad_loss, axis=0)
     chainerx.testing.assert_allclose(
         grad_b, bwd_outputs['grad_out@/l1/b'].array())
+
+
+def test_custom_op():
+    gb = onnx_script.GraphBuilder('pytest_custom_op')
+    a = np.array(13)
+    b = np.array(4)
+    c = np.array(10)
+    a_v = gb.input('a', a)
+    b_v = gb.input('b', b)
+    c_v = gb.input('c', c)
+
+    def custom_func(a, b, c):
+        return a - b, a * b - c
+
+    y, z = custom_func(a, b, c)
+    y_v = 'y'
+    z_v = 'z'
+
+    gb.ChainerDoSomething([a_v, b_v, c_v],
+                          outputs=[y_v, z_v],
+                          function_name='CustomFunction')
+    gb.output(y_v, y)
+    gb.output(z_v, z)
+
+    gb.gen_test()
+
+    graph = chainer_compiler_core.load('out/pytest_custom_op/model.onnx')
+    params = graph.params()
+    input_names = graph.input_names()
+    output_names = graph.output_names()
+    assert len(input_names) == 3
+    assert len(output_names) == 2
+
+    xcvm = graph.compile()
+
+    inputs = {}
+    for n, v in [('a', a), ('b', b), ('c', c)]:
+        inputs[n] = chainer_compiler_core.value(chainerx.array(v))
+
+    outputs = xcvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
+    assert len(outputs) == 2
