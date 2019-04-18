@@ -24,6 +24,13 @@ histories = []
 
 instance_converters = []
 
+def create_ref_value_name_with_constant(value):
+    if isinstance(value, ValueRef):
+        value = value.get_value()
+
+    if value.has_constant_value():
+        return '@C_' + str(value.get_constant_value())
+    return '@C_Unknown'
 
 def reset_field_and_attributes():
     global fields
@@ -494,6 +501,15 @@ class Value():
         self.internal_value = None
         self.id = utils.get_guid()
 
+    def has_constant_value(self) -> 'bool':
+        return self.internal_value is not None
+    
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        return self.internal_value is not None
+
+    def get_constant_value(self):
+        return self.internal_value
+
     def apply_to_object(self, obj: 'ValueRef'):
         '''
         register functions to an object
@@ -512,6 +528,15 @@ class NoneValue(Value):
     def __init__(self):
         super().__init__()
 
+    def has_constant_value(self) -> 'bool':
+        return True
+    
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        return True
+
+    def get_constant_value(self):
+        return None
+
     def __str__(self):
         return self.name + '({})'.format('None')
 
@@ -521,6 +546,9 @@ class NumberValue(Value):
         super().__init__()
         self.internal_value = number
         self.dtype = None
+
+        if self.internal_value is not None:
+            self.dtype = np.array(self.internal_value).dtype
 
     def __str__(self):
         if self.internal_value == None:
@@ -562,6 +590,23 @@ class TupleValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.internal_value = values
+        
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        if self.internal_value is not None:
+            for v in self.internal_value:
+                if v is None:
+                    return False
+
+                if isinstance(v, ValueRef) and not is_ref_enabled:
+                    return False
+
+                if isinstance(v, ValueRef):
+                    if not v.get_value().is_all_constant_values(is_ref_enabled):
+                        return False
+                else:
+                    if not v.is_all_constant_values(is_ref_enabled):
+                        return False
+        return True                    
 
     def __str__(self):
         return self.name + '(Tp{})'

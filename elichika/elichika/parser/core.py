@@ -62,6 +62,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('pad_sequence', F.pad_sequence)
         add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
         add_chainer_funtion('unpooling_2d', F.unpooling_2d)
+        add_chainer_funtion('reshape', F.reshape)
 
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 
@@ -100,6 +101,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     value_args = []
     ind = 0
+
+    node_input = nodes.NodeInput('input')
+
     for arg in args:
         varg = values.parse_instance(default_module, '', arg, None, True)
         varg.name = 'in_' + str(ind)
@@ -116,7 +120,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
         value_args.append(varg.get_value())
         ind += 1
 
+    node_input.set_outputs(value_args)
+
     graph = Graph()
+    graph.add_node(node_input)
+
     forward_func_value = forward_func.get_value()
     ret = forward_func_value.func.vcall(
         default_module, graph, forward_func_value.obj, finput)

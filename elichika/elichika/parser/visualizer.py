@@ -91,10 +91,10 @@ def visit_edge(parent_dot, graph: 'Graph', is_unused_node_ignored):
                 if str(input) != "":
                     dot.edge(value2id[input], node2id[node])
 
-                    if input.generator is not None:
+                    if input.generator is not None and input.generator in node2id.keys():
                         dot.edge(node2id[input.generator], value2id[input])
                 else:
-                    if input.generator is not None:
+                    if input.generator is not None and input.generator in node2id.keys():
                         dot.edge(node2id[input.generator], node2id[node])
 
             for subgraph in node.subgraphs:

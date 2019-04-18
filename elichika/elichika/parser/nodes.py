@@ -36,6 +36,47 @@ class CompareType(Enum):
     IsNot = 7,
     unknown = 255,
 
+def remove_ref(value):
+    '''
+    remove ref
+    '''
+    if isinstance(value, list):
+        for i in range(len(value)):
+            value[i] = remove_ref(value[i])
+
+    if isinstance(value, functions.FunctionArgValueInput):
+        converted = {}
+
+        ret = functions.FunctionArgValueInput()
+        
+        for v in value.inputs:
+            converted_v = remove_ref(v)
+            ret.inputs.append(converted_v)
+            converted[v] = converted_v
+
+        keywords_ = {}
+        for k,v in value.keywords.items():
+            if v in converted.keys():
+                keywords_[k] = converted[v]
+            else:        
+                keywords_[k] = remove_ref(v)
+        ret.keywords = keywords_
+        return ret
+
+    if isinstance(value, values.TupleValue) and value.internal_value is not None:
+        vs = []
+        for v in value.internal_value:
+            if isinstance(v, values.ValueRef):
+                v = v.get_value()
+
+            vs.append(v)
+
+        return values.TupleValue(vs)
+
+    if isinstance(value, values.ValueRef):
+        return value.get_value()
+
+    return value
 
 class Node:
     def __init__(self, line):
@@ -67,52 +108,28 @@ class Node:
         self.outputs = outputs
 
         for output in self.outputs:
+            assert(output.generator is None)
             output.generator = self
 
+class NodeInvalid(Node):
+    def __init__(self, line=-1):
+        super().__init__(line)
 
-def filter_tuple(value):
-    if isinstance(value, list):
-        for i in range(len(value)):
-            value[i] = filter_tuple(value[i])
+    def __str__(self):
+        return 'Invalid({})'.format(self.lineprop)
 
-    if isinstance(value, functions.FunctionArgValueInput):
-        converted = {}
+class NodeInput(Node):
+    def __init__(self, tag = '', line=-1):
+        super().__init__(line)
+        self.tag = tag
 
-        ret = functions.FunctionArgValueInput()
-        
-        for v in value.inputs:
-            converted_v = filter_tuple(v)
-            ret.inputs.append(converted_v)
-            converted[v] = converted_v
-
-        keywords_ = {}
-        for k,v in value.keywords.items():
-            if v in converted.keys():
-                keywords_[k] = converted[v]
-            else:        
-                keywords_[k] = filter_tuple(v)
-        ret.keywords = keywords_
-        return ret
-
-    if isinstance(value, values.TupleValue) and value.internal_value is not None:
-        vs = []
-        for v in value.internal_value:
-            if isinstance(v, values.ValueRef):
-                v = v.get_value()
-
-            if v is None or v.internal_value is None:
-                return value
-
-            vs.append(v)
-
-        return values.TupleValue(vs)
-    return value
-
+    def __str__(self):
+        return 'Input({})'.format(self.tag)
 
 class NodeCopy(Node):
     def __init__(self, value: 'values.Value', line=-1):
         super().__init__(line)
-        value = filter_tuple(value)
+        value = remove_ref(value)
 
         self.value = value
         self.append_inputs(value)
@@ -124,8 +141,8 @@ class NodeCopy(Node):
 class NodeNonVolatileAssign(Node):
     def __init__(self, target_value: 'values.Value', value: 'values.Value', line=-1):
         super().__init__(line)
-        target_value = filter_tuple(target_value)
-        value = filter_tuple(value)
+        target_value = remove_ref(target_value)
+        value = remove_ref(value)
 
         self.target_value = target_value
         self.value = value
@@ -155,8 +172,8 @@ class NodeAugAssign(Node):
     def __init__(self, target: 'values.Value', value: 'values.Value', binop: 'BinOp', line=-1):
         super().__init__(line)
 
-        target = filter_tuple(target)
-        value = filter_tuple(value)
+        target = remove_ref(target)
+        value = remove_ref(value)
 
         self.target = target
         self.value = value
@@ -173,8 +190,8 @@ class NodeBinOp(Node):
     def __init__(self, left: 'values.Value', right: 'values.Value', binop: 'BinOp', line=-1):
         super().__init__(line)
 
-        left = filter_tuple(left)
-        right = filter_tuple(right)
+        left = remove_ref(left)
+        right = remove_ref(right)
 
         self.left = left
         self.right = right
@@ -190,7 +207,7 @@ class NodeBinOp(Node):
 class NodeUnaryOp(Node):
     def __init__(self, operand: 'values.Value', unaryop: 'UnaryOpType', line=-1):
         super().__init__(line)
-        operand = filter_tuple(operand)
+        operand = remove_ref(operand)
 
         self.operand = operand
         self.unaryop = unaryop
@@ -204,8 +221,8 @@ class NodeUnaryOp(Node):
 class NodeCompare(Node):
     def __init__(self, left: 'values.Value', right: 'values.Value', compare: 'CompareType', line=-1):
         super().__init__(line)
-        left = filter_tuple(left)
-        right = filter_tuple(right)
+        left = remove_ref(left)
+        right = remove_ref(right)
 
         self.left = left
         self.right = right
@@ -221,7 +238,7 @@ class NodeCompare(Node):
 class NodeGetItem(Node):
     def __init__(self, target: "values.Value", indexes, line=-1):
         super().__init__(line)
-        target = filter_tuple(target)
+        target = remove_ref(target)
 
         self.target = target
         self.indexes = indexes
@@ -236,7 +253,7 @@ class NodeGetItem(Node):
 class NodeSlice(Node):
     def __init__(self, target: "values.Value", indices, slice_specs, line=-1):
         super().__init__(line)
-        target = filter_tuple(target)
+        target = remove_ref(target)
 
         self.target = target
         self.indices = indices
@@ -253,7 +270,7 @@ class NodeCall(Node):
     def __init__(self, func: 'Function', args : 'functions.FunctionArgInput', line=-1):
         super().__init__(line)
         args_ = args.get_value()
-        args_ = filter_tuple(args_)
+        args_ = remove_ref(args_)
 
         self.func = func
         self.args = args_ # functions.FunctionArgValueInput
@@ -271,7 +288,7 @@ class NodeCall(Node):
 class NodeReturn(Node):
     def __init__(self, value, line=-1):
         super().__init__(line)
-        value = filter_tuple(value)
+        value = remove_ref(value)
 
         self.value = value
         self.append_inputs(value)
@@ -283,8 +300,8 @@ class NodeReturn(Node):
 class NodeIf(Node):
     def __init__(self, cond, input_values, true_graph, false_graph, line=-1):
         super().__init__(line)
-        cond = filter_tuple(cond)
-        input_values = filter_tuple(input_values)
+        cond = remove_ref(cond)
+        input_values = remove_ref(input_values)
 
         self.cond = cond
         self.input_values = input_values
@@ -305,8 +322,8 @@ class NodeIf(Node):
 class NodeFor(Node):
     def __init__(self, iter_value, input_values, body_graph, line=-1):
         super().__init__(line)
-        iter_value = filter_tuple(iter_value)
-        input_values = filter_tuple(input_values)
+        iter_value = remove_ref(iter_value)
+        input_values = remove_ref(input_values)
 
         self.iter_value = iter_value
         self.input_values = input_values
@@ -323,8 +340,8 @@ class NodeFor(Node):
 class NodeForGenerator(Node):
     def __init__(self, counter_value, iter_value, line=-1):
         super().__init__(line)
-        counter_value = filter_tuple(counter_value)
-        iter_value = filter_tuple(iter_value)
+        counter_value = remove_ref(counter_value)
+        iter_value = remove_ref(iter_value)
 
         self.counter_value = counter_value
         self.iter_value = iter_value
@@ -338,8 +355,8 @@ class NodeForGenerator(Node):
 class NodeListcomp(Node):
     def __init__(self, iter_value, input_values, body_graph, line=-1):
         super().__init__(line)
-        input_values = filter_tuple(input_values)
-        iter_value = filter_tuple(iter_value)
+        input_values = remove_ref(input_values)
+        iter_value = remove_ref(iter_value)
 
         self.iter_value = iter_value
         self.input_values = input_values
@@ -356,13 +373,14 @@ class NodeListcomp(Node):
 class NodeGenerate(Node):
     def __init__(self, classtype, args, line=-1):
         super().__init__(line)
+        args = remove_ref(args)
 
         if isinstance(args, list):
             self.extend_inputs(args)
             self.args = args
         else:
             args_ = args.get_value()
-            args_ = filter_tuple(args_)
+            args_ = remove_ref(args_)
             self.args = args_
             self.extend_inputs(self.args.inputs)
 
@@ -375,7 +393,7 @@ class NodeGenerate(Node):
 class NodeConvert(Node):
     def __init__(self, classtype, value, line=-1):
         super().__init__(line)
-        value = filter_tuple(value)
+        value = remove_ref(value)
 
         self.classtype = classtype
         self.value = value

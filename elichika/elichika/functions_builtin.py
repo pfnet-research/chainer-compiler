@@ -123,3 +123,11 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
         [node.inputs[0], scales_],
         [node.outputs[0]],
         name=str(node.lineprop))
+
+def convert_reshape(onnx_graph, node):
+
+    onnx_graph.add_node(
+        "Reshape",
+        [node.inputs[0],oc.ONNXValue(onnx_graph,node.inputs[1]).create_tensor()],
+        node.outputs,
+        str(node.lineprop))
