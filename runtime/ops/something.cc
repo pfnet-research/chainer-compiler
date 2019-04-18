@@ -53,6 +53,13 @@ std::vector<chainerx::Array> DoSomethingOp::RunImpl(chainer_compiler::runtime::X
     if (func_name == "ChainerCVRPNDecode") {
         return ChainerCVRPNDecode(st, inputs);
     }
+    // TODO(hamaji): Remove this temporary implementation.
+    if (func_name == "CustomFunction") {
+        CHECK_EQ(3, inputs.size());
+        chainerx::Array y = inputs[0] - inputs[1];
+        chainerx::Array z = inputs[0] * inputs[1] - inputs[2];
+        return {y, z};
+    }
     CHECK(false) << "Not implemented: " << func_name;
 }
 
