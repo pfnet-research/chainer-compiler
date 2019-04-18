@@ -44,7 +44,13 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(chainer_compiler::runtime::XCVMS
     }
 #endif
 
-    CHECK(false) << "TODO";
+    WARN_ONCE("TODO: Implement ChainerCVRPNDecode");
+
+    const int64_t num_rois = 7;
+    chainerx::Array fake_rois = chainerx::Zeros({num_rois, 4}, chainerx::Dtype::kFloat32, inputs[0].device());
+    chainerx::Array fake_roi_indices = chainerx::Zeros({num_rois}, chainerx::Dtype::kInt32, inputs[0].device());
+
+    return {fake_rois, fake_roi_indices};
 }
 
 }  // namespace
