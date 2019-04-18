@@ -53,6 +53,9 @@ extern std::string g_backend_name;
 // Reset all shapes.
 extern bool g_reset_shape;
 
+// Reset output shapes.
+extern bool g_reset_output_shape;
+
 // Dumps the ONNX graph at a specific timing.
 extern bool g_dump_after_inference;
 extern bool g_dump_after_simplification;

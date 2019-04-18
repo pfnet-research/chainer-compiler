@@ -61,6 +61,7 @@ std::shared_ptr<runtime::XCVM> Compile(
         bool use_ngraph,
         const std::string& backend_name,
         bool reset_shape,
+        bool reset_output_shape,
         bool dump_after_inference,
         bool dump_after_simplification,
         bool dump_after_gradient,
@@ -80,6 +81,7 @@ std::shared_ptr<runtime::XCVM> Compile(
     g_use_ngraph = use_ngraph;
     g_backend_name = backend_name;
     g_reset_shape = reset_shape;
+    g_reset_output_shape = reset_output_shape;
     g_dump_after_inference = dump_after_inference;
     g_dump_after_simplification = dump_after_simplification;
     g_dump_after_gradient = dump_after_gradient;
@@ -151,6 +153,7 @@ void InitGraph(py::module& m) {
           py::arg("use_ngraph") = false,
           py::arg("backend_name") = "",
           py::arg("reset_shape") = false,
+          py::arg("reset_output_shape") = false,
           py::arg("dump_after_inference") = false,
           py::arg("dump_after_simplification") = false,
           py::arg("dump_after_gradient") = false,

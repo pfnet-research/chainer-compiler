@@ -32,6 +32,8 @@ std::string g_backend_name;
 
 bool g_reset_shape;
 
+bool g_reset_output_shape;
+
 bool g_dump_after_inference;
 bool g_dump_after_simplification;
 bool g_dump_after_gradient;

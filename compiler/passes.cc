@@ -59,6 +59,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     // TODO(hamaji): Improve backend selection probably by `CompilerConfig`.
     g_modify_pool_with_imbalanced_pads = !g_use_ngraph;
 
+    if (g_reset_output_shape) {
+        for (Value* value : graph->output_values()) {
+            value->set_type(new Type());
+        }
+    }
     if (g_reset_shape) {
         for (const std::unique_ptr<Value>& value : graph->all_values()) {
             value->set_type(new Type());
