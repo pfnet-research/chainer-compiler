@@ -18,9 +18,9 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(chainer_compiler::runtime::XCVMS
     const int num_scales = inputs.size() / 3;
     CHECK_LT(0, num_scales) << inputs.size();
 
-    const int batch_size = static_cast<int>(chainerx::AsScalar(inputs[0].At({0})));
-    const int height = static_cast<int>(chainerx::AsScalar(inputs[0].At({2})));
-    const int width = static_cast<int>(chainerx::AsScalar(inputs[0].At({3})));
+    const int batch_size = static_cast<int>(chainerx::AsScalar(inputs.back().At({0})));
+    const int height = static_cast<int>(chainerx::AsScalar(inputs.back().At({2})));
+    const int width = static_cast<int>(chainerx::AsScalar(inputs.back().At({3})));
     CHECK_LT(0, batch_size);
     CHECK_LT(0, height);
     CHECK_LT(0, width);

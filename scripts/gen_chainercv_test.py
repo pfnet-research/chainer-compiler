@@ -57,14 +57,14 @@ def chainercv_test_rpn_decode(test_name):
         anchors, in_shape)
 
     gb = onnx_script.GraphBuilder(test_name)
-    in_shape_v = gb.input('in_shape', np.array(in_shape))
     hs_v = [gb.input('hs_%d' % i, h) for i, h in enumerate(hs)]
     locs_v = [gb.input('loc_%d' % i, l) for i, l in enumerate(locs)]
     confs_v = [gb.input('conf_%d' % i, c) for i, c in enumerate(confs)]
+    in_shape_v = gb.input('in_shape', np.array(in_shape))
 
     rois_v = 'rois'
     roi_indices_v = 'roi_indices'
-    gb.ChainerDoSomething([in_shape_v] + hs_v + locs_v + confs_v,
+    gb.ChainerDoSomething(hs_v + locs_v + confs_v + [in_shape_v],
                           outputs=[rois_v, roi_indices_v],
                           function_name='ChainerCVRPNDecode')
     gb.output(rois_v, rois)
