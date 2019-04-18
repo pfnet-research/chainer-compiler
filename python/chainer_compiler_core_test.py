@@ -135,5 +135,5 @@ def test_custom_op():
     for n, v in [('a', a), ('b', b), ('c', c)]:
         inputs[n] = chainer_compiler_core.value(chainerx.array(v))
 
-    outputs = xcvm.run(inputs)
+    outputs = xcvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
     assert len(outputs) == 2
