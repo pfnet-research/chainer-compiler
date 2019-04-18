@@ -550,7 +550,7 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
     if (!x.IsContiguous()) {
         x = chainerx::Copy(x);
     }
-    chainerx::Array y = chainerx::Empty(to_shape, x.dtype());
+    chainerx::Array y = chainerx::Empty(to_shape, x.dtype(), x.device());
     if (int_scales[2] == 2 && int_scales[3] == 2) {
         Upsample2D32bitForRawPtr<2>(
                 reinterpret_cast<float*>(y.raw_data()),
@@ -623,9 +623,13 @@ chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
         to_shape[i] *= int_scales[i];
     }
 
-    if (IsNativeDevice(&x.device()) && int_scales.size() == 4 && int_scales[0] == 1 && int_scales[1] == 1) {
-        if (x.GetItemSize() == 4) {
+    if (int_scales.size() == 4 && int_scales[0] == 1 && int_scales[1] == 1 && x.GetItemSize() == 4) {
+        if (IsNativeDevice(&x.device())) {
             return Upsample2D32bitForCPU(x, to_shape, int_scales);
+        } else {
+            chainerx::Array x_cpu = x.ToNative();
+            chainerx::Array y = Upsample2D32bitForCPU(x_cpu, to_shape, int_scales);
+            return y.ToDevice(x.device());
         }
     }
 
