@@ -426,7 +426,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
     LOG() << "Initializing ChainerX..." << std::endl;
     chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::ContextScope ctx_scope(ctx);
     chainerx::NoBackpropModeScope no_backprop;
     const std::string device_spec = args.get<std::string>("device");
     if (!device_spec.empty()) {
