@@ -48,6 +48,7 @@ public:
         CHECK(op_set_.emplace(Node::kChainerLSTMGrad).second);
         CHECK(op_set_.emplace(Node::kChainerMaxPoolGrad).second);
         CHECK(op_set_.emplace(Node::kChainerNullConstant).second);
+        CHECK(op_set_.emplace(Node::kChainerPadBatchSize).second);
         CHECK(op_set_.emplace(Node::kChainerPrint).second);
         CHECK(op_set_.emplace(Node::kChainerROIAverageAlign2D).second);
         CHECK(op_set_.emplace(Node::kChainerROIAveragePool2D).second);

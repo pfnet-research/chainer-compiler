@@ -111,5 +111,16 @@ chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
     return CastTo(input, static_cast<chainerx::Dtype>(to));
 }
 
+chainerx::Array PadBatchSizeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+    const chainerx::Shape shape = data.shape();
+    CHECK_LT(0, shape.size());
+    chainerx::Shape new_shape = shape;
+    new_shape[0] = batch_size;
+    chainerx::Array out = chainerx::Zeros(new_shape, data.dtype(), data.device());
+    const chainerx::ArrayIndex index = chainerx::Slice(0, shape[0]);
+    BlitArray(data, out.At({index}));
+    return out;
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

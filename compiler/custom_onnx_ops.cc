@@ -420,9 +420,46 @@ ONNX_OPERATOR_SET_SCHEMA(
                     }
                 }));
 
+namespace {
+
+void InferPadBatchSize(InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    const int64_t batch_size = getAttribute(ctx, "size", -1);
+    if (batch_size < 1) {
+        fail_shape_inference("invalid batch size");
+    }
+    const TypeProto& type = *ctx.getInputType(0);
+    if (!type.has_tensor_type() || !type.tensor_type().has_shape() || type.tensor_type().shape().dim_size() < 1) {
+        return;
+    }
+
+    auto output = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+    output->add_dim()->set_dim_value(batch_size);
+    for (int i = 1; i < type.tensor_type().shape().dim_size(); ++i) {
+        output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(i));
+    }
+}
+
+}  // namespace
+
+ONNX_OPERATOR_SET_SCHEMA(
+        ChainerPadBatchSize,
+        9,
+        OpSchema()
+                .SetDoc("TBD")
+                .Input(0, "X", "Input tensor", "T")
+                .Output(0, "Y", "Output tensor", "T")
+                .TypeConstraint(
+                        "T",
+                        {"tensor(float)", "tensor(float16)", "tensor(double)"},
+                        "Constrain input and output types to signed numeric tensors.")
+                .Attr("size", "The batch size of the output.", AttributeProto::INT)
+                .TypeAndShapeInferenceFunction(InferPadBatchSize));
+
 class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerPadBatchSize)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAverageAlign2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAveragePool2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxAlign2D)>());

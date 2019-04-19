@@ -224,6 +224,8 @@ NodeDef('ChainerROIAverageAlign2D', 3, 1,
         output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
 NodeDef('ChainerResizeImages', 1, 1, output_shape=[int])
 
+NodeDef('ChainerPadBatchSize', 1, 1, size=Required(int))
+
 # For experimental ops.
 NodeDef('ChainerDoSomething', None, None, function_name=Required(str))
 

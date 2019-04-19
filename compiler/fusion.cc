@@ -175,6 +175,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kConstant,
             Node::kConcat,
             Node::kConv,
+            Node::kConvTranspose,
             Node::kDiv,
             Node::kExp,
             Node::kGemm,

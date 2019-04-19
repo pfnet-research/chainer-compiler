@@ -996,9 +996,18 @@ def gen_imagescaler_test(test_name):
 def gen_pad_negative_width_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     v = aranges(2, 5, 6, 7)
-    gb.input('input', v)
-    gb.output(gb.Pad(['input'], pads=[0, -2, -1, -2, 0, -2, -2, -1]),
+    i_v = gb.input('input', v)
+    gb.output(gb.Pad([i_v], pads=[0, -2, -1, -2, 0, -2, -2, -1]),
               v[:, 2:-2, 1:-2, 2:-1])
+    gb.gen_test()
+
+
+def gen_pad_batch_size_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    v = aranges(2, 5, 6, 7)
+    i_v = gb.input('input', v)
+    o = np.pad(v, ((0, 6), (0, 0), (0, 0), (0, 0)), 'constant')
+    gb.output(gb.ChainerPadBatchSize([i_v], size=8), o)
     gb.gen_test()
 
 
@@ -1119,6 +1128,8 @@ def get_tests():
     test('extra_test_imagescaler', gen_imagescaler_test)
 
     test('extra_test_pad_negative_width', gen_pad_negative_width_test)
+
+    test('extra_test_pad_batch_size', gen_pad_batch_size_test)
 
     tests += gen_chainercv_test.get_tests()
 

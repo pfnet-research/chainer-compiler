@@ -433,6 +433,8 @@ private:
         } else if (node.op_type() == Node::kChainerAveragePoolGrad) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for AveragePool";
             EMIT(AveragePoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.count_include_pad());
+        } else if (node.op_type() == Node::kChainerPadBatchSize) {
+            EMIT(PadBatchSize, out(0), in(0), node.size());
         } else if (node.op_type() == Node::kSoftmax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
