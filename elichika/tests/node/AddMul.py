@@ -20,8 +20,7 @@ def main():
     v = np.random.rand(3, 5).astype(np.float32)
     w = np.random.rand(3, 5).astype(np.float32)
 
-    # Pass test
-    # testtools.generate_testcase(model, [v, w])
+    testtools.generate_testcase(model, [v, w])
 
 if __name__ == '__main__':
     main()

@@ -16,6 +16,7 @@ import elichika.parser.functions as functions
 import elichika.parser.functions_builtin as functions_builtin
 import elichika.parser.functions_ndarray as functions_ndarray
 import elichika.parser.utils as utils
+import elichika.parser.config as config
 import elichika.parser.links_builtin as links_builtin
 
 import numpy as np
@@ -472,7 +473,8 @@ class ONNXValue:
                         c = ONNXValue(self.onnx_graph, np.array(v.get_constant_value()), [
                                       self.name, '/c'], is_constant=True)
                     else:
-                        c = ONNXValue(self.onnx_graph, v, None, is_constant=False)
+                        c = ONNXValue(self.onnx_graph, v,
+                                      None, is_constant=False)
 
                     us = self.onnx_graph.add_node(
                         "Unsqueeze", [c], [None], str('create_tensor'), axes=[0])
@@ -489,7 +491,6 @@ class ONNXValue:
             else:
                 assert(False)
 
-                
         assert(False)
 
 
@@ -565,7 +566,12 @@ class ONNXGraph:
                     dtype = np.array(value.internal_value).dtype
                     return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
                 if isinstance(value.internal_value, float):
-                    dtype = np.array(value.internal_value).dtype
+
+                    if config.float_restrict:
+                        dtype = np.array(value.internal_value).dtype
+                    else:
+                        dtype = np.float32
+
                     return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
 
         return self.new_empty_tensor(None, np.float32, value2onnx_parameter[value].onnx_name)
@@ -575,6 +581,11 @@ class ONNXGraph:
         generate a tensor which contains np data
         it is for constant input
         '''
+
+        if not config.float_restrict:
+            if ndarray_.dtype == np.float64:
+                ndarray_ = ndarray_.astype(np.float32)
+
         tensor = numpy_helper.from_array(ndarray_, name=name)
         dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(ndarray_.dtype)]
 
@@ -724,61 +735,20 @@ class ONNXGenerator:
                 else:
                     if isinstance(value_, values.NumberValue):
                         t = onnx_graph.new_empty_tensor_with_value(value_)
+                        arr = np.array(value_.get_constant_value())
+
+                        if not config.float_restrict:
+                            if arr.dtype == np.float64:
+                                arr = arr.astype(np.float32)
+
                         tensor = numpy_helper.from_array(
-                            np.array(value_.get_constant_value()), name=value2onnx_parameter[value_].onnx_name)
+                            arr, name=value2onnx_parameter[value_].onnx_name)
                         onnx_node = oh.make_node(
                             'Constant', [], [t.name], value=tensor)
                         onnx_graph.nodes.append(onnx_node)
                     else:
                         tensor = onnx_graph.new_tensor_with_value(value_)
 
-        '''
-        def generate_input_tensors(inputs_):
-            for input in inputs_:
-                if not (value2onnx_parameter[input].onnx_name in self.onnx_tensors.keys()):
-
-                    def generate_tensor_constant(input_):
-                        tensor = onnx_graph.new_tensor_with_value(input_)
-
-                    # TODO improve
-                    def generate_tensor_constant_constant(input_):
-                        t = onnx_graph.new_empty_tensor_with_value(input_)
-                        tensor = numpy_helper.from_array(
-                            np.array(input_.internal_value), name=value2onnx_parameter[input_].onnx_name)
-                        onnx_node = oh.make_node(
-                            'Constant', [], [t.name], value=tensor)
-                        onnx_graph.nodes.append(onnx_node)
-
-                    def generate_tensor(input_):
-                        tensor = onnx_graph.new_empty_tensor_with_value(input_)
-
-                    if not (value2onnx_parameter[input].onnx_name in self.onnx_tensors.keys()):
-                        if input.generator is None and input.internal_value is not None and not isinstance(input, values.TupleValue)is not None and not isinstance(input, values.StrValue):
-                            generate_tensor_constant_constant(input)
-                        elif input.generator is None and (input.internal_value is not None or isinstance(input, values.NoneValue)):
-                            generate_tensor_constant(input)
-                        else:
-                            generate_tensor(input)
-
-        def generate_output_tensors(outputs_):
-
-            def generate_tensor(output_):
-                tensor = onnx_graph.new_empty_tensor_with_value(output_)
-                return tensor
-
-            for output in outputs_:
-                if not (value2onnx_parameter[output].onnx_name in self.onnx_tensors.keys()):
-                    t = generate_tensor(output)
-
-                    # TODO improve
-                    if output.generator is None:
-                        tensor = numpy_helper.from_array(
-                            np.array(output.internal_value), name=value2onnx_parameter[output].onnx_name)
-                        onnx_node = oh.make_node(
-                            'Constant', [], [t.name], value=tensor)
-                        onnx_graph.nodes.append(onnx_node)
-        '''
-        # generate_input_tensors(inputs)
         generate_tensors(inputs)
 
         for node in graph.nodes:
@@ -789,10 +759,7 @@ class ONNXGenerator:
 
             generate_tensors(node.inputs)
             generate_tensors(node.outputs)
-            # generate_input_tensors(node.inputs)
-            # generate_output_tensors(node.outputs)
 
-        # generate_output_tensors(outputs)
         generate_tensors(outputs)
 
         for node in graph.nodes:
