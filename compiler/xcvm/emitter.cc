@@ -846,6 +846,8 @@ private:
                 CLOG() << "Fusion group (nGraph) " << GetFusionGroupSummary(node) << std::endl;
             }
 
+            std::cerr << "=== " << node.chainer_order() << " ===\n" << body.DebugString() << std::endl;
+
             onnx::ModelProto xmodel;
             body.ToONNX(xmodel.mutable_graph());
             std::string onnx;

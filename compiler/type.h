@@ -46,6 +46,12 @@ public:
         return dims_;
     }
 
+    int64_t dim(size_t i) const {
+        return dims_[i];
+    }
+
+    void set_dim_param(size_t i, const std::string& param);
+
     const std::string& denotation() const {
         return denotation_;
     }

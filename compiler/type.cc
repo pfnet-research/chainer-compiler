@@ -110,6 +110,13 @@ std::string Type::DebugString() const {
     return xtype.DebugString();
 }
 
+void Type::set_dim_param(size_t i, const std::string& param) {
+    CHECK_LT(i, ndim());
+    CHECK_GT(0, dim(i));
+    dim_params_.resize(std::max(dim_params_.size(), i + 1));
+    dim_params_[i] = param;
+}
+
 int64_t Type::NumElements() const {
     CHECK_EQ(kind_, Kind::kTensor);
     if (!has_known_shape_) return -1;

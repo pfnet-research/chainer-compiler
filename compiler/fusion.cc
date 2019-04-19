@@ -64,6 +64,13 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
     }
     Node* fused = gb.MOp(Node::kChainerFusionGroup, inputs, outputs);
     graph->MigrateNodes({nodes.begin(), nodes.end()}, temps, subgraph);
+
+    for (const std::unique_ptr<Value>& value : subgraph->all_values()) {
+        if (value->type().ndim() > 0 && value->type().dim(0) < 0) {
+            value->mutable_type()->set_dim_param(0, "bsize");
+        }
+    }
+
     fused->set_subgraph(subgraph);
     fused->set_fusion_type(fusion_type);
     fused->set_chainer_fusion_group(fusion_group_id);
@@ -166,6 +173,24 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
     }
 }
 
+bool HasKnownNonBatchDims(const Type& type) {
+    if (type.HasKnownShape()) {
+        return true;
+    }
+    if (type.kind() != Type::Kind::kTensor) {
+        return false;
+    }
+    if (type.ndim() != 4) {
+        return false;
+    }
+    for (size_t i = 1; i < 4; ++i) {
+        if (type.dim(i) < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void FuseNGraphOperations(Graph* graph) {
     // TODO(hamaji): Use nGraph for softmax.
     const std::set<Node::OpType> fusable_ops = {
@@ -203,10 +228,10 @@ void FuseNGraphOperations(Graph* graph) {
             return false;
         }
         for (Value* value : node.inputs()) {
-            if (!value->type().HasKnownShape()) return false;
+            if (!HasKnownNonBatchDims(value->type())) return false;
         }
         for (Value* value : node.outputs()) {
-            if (!value->type().HasKnownShape()) return false;
+            if (!HasKnownNonBatchDims(value->type())) return false;
         }
 
         if (node.op_type() == Node::kReshape) {

@@ -74,6 +74,8 @@ public:
 
 void NGraphOp::InitImpl() {
 #if CHAINER_COMPILER_ENABLE_NGRAPH
+    std::cerr << name() << " " << id() << std::endl;
+
     impl_ = new NGraphImpl();
     std::istringstream iss(onnx);
     impl_->func = ngraph::onnx_import::import_onnx_model(iss);
