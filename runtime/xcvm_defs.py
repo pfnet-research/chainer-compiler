@@ -281,6 +281,9 @@ XC_OPS = [
     ('ResizeImages',
      [Array('x'), Ints('output_shape')],
      ['y']),
+    ('PadBatchSize',
+     [Array('x'), Int('batch_size')],
+     ['y']),
 
     ('MatMul', [Array('a'), Array('b')], ['y']),
     ('Gemm',

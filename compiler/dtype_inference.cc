@@ -68,6 +68,7 @@ void InferDtype(Node* node) {
         case Node::kSlice:
         case Node::kDynamicSlice:
         case Node::kChainerDynamicSliceGrad:
+        case Node::kChainerPadBatchSize:
         case Node::kReduceSum:
         case Node::kReduceSumSquare:
         case Node::kReduceL1:

@@ -1129,7 +1129,7 @@ def get_tests():
 
     test('extra_test_pad_negative_width', gen_pad_negative_width_test)
 
-    test('extra_test_pad_batch_size', gen_pad_batch_size_test, fail=True)
+    test('extra_test_pad_batch_size', gen_pad_batch_size_test)
 
     tests += gen_chainercv_test.get_tests()
 
