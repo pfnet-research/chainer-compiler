@@ -873,7 +873,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         target_value = values.NumberValue(None)
         target_value.dtype = np.array(0).dtype
     else:
-        target_value = values.Value()
+        target_value = values.UnknownValue()
 
     target_ref = values.ValueRef(target_value)
     node_forgen.set_outputs([target_value])
@@ -935,8 +935,8 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
             body_graph.add_input_value(v['input_body_value'])
         else:
-            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'], has_default=True)
-            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'])
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'], has_default=True, suffix_type=functions.SuffixType.Unused)
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'], suffix_type=functions.SuffixType.Unused)
             inputs.append(temp_value1)
 
             body_graph.add_input_value(temp_value2)

@@ -540,6 +540,11 @@ class NoneValue(Value):
     def __str__(self):
         return self.name + '({})'.format('None')
 
+class UnknownValue(Value):
+    def __init__(self):
+        super().__init__()
+    def __str__(self):
+        return self.name + '(Un)'
 
 class NumberValue(Value):
     def __init__(self, number):

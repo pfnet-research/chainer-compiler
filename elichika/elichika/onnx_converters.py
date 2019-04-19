@@ -621,6 +621,10 @@ class ONNXGraph:
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
 
+        if isinstance(value, values.UnknownValue):
+            arr = np.array(False)
+            return self.new_tensor_with_np(arr, name)
+
         print('Warning : Found uknown type {} in new_tensor_with_value. Float is stored.'.format(
             type(value)))
         arr = np.array(0.0, dtype=np.float32)

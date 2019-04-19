@@ -6,6 +6,7 @@ import inspect
 import ast
 import gast
 import weakref
+from enum import Enum
 
 import numpy as np
 
@@ -74,7 +75,11 @@ def generate_tensor_value_with_undefined_shape_size(value: 'values.TensorValue')
     return ret
 
 
-def generate_value_with_same_type(value: 'values.Value', has_default = False):
+class SuffixType(Enum):
+    Unknown = 0,
+    Unused = 1,
+
+def generate_value_with_same_type(value: 'values.Value', has_default = False, suffix_type = SuffixType.Unknown):
     assert(isinstance(value, values.Value))
     ret = None
     if isinstance(value, values.TensorValue):
@@ -122,15 +127,16 @@ def generate_value_with_same_type(value: 'values.Value', has_default = False):
     if isinstance(value, values.TupleValue):
         ret = values.TupleValue()
 
-    if ret is None and isinstance(value, values.Value):
-        ret = values.Value()
-
-    if ret is None and isinstance(value, values.Value):
-        ret = values.Value()
+    if isinstance(value, values.UnknownValue):
+        ret = values.UnknownValue()
+        if has_default:
+            ret.internal_value = 0
 
     if ret is not None:
-        ret.name = value.name + '_st'
-
+        if suffix_type == SuffixType.Unknown:
+            ret.name = value.name + '_st'
+        if suffix_type == SuffixType.Unused:
+            ret.name = value.name + '_unused'
     return ret
 
 
