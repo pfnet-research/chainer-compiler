@@ -29,6 +29,7 @@ TESTS = [
     Generator('node', 'Softmax'),
     Generator('node', 'PadSequence'),
     Generator('node', 'Unpooling2D'),
+    Generator('node', 'Id'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),

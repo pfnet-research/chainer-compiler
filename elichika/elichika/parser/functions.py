@@ -132,6 +132,9 @@ def generate_value_with_same_type(value: 'values.Value', has_default = False, su
         if has_default:
             ret.internal_value = 0
 
+    if ret is None and isinstance(value, values.Value):
+        ret = values.Value()
+
     if ret is not None:
         if suffix_type == SuffixType.Unknown:
             ret.name = value.name + '_st'
