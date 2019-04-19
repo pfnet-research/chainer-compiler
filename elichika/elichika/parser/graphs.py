@@ -11,12 +11,12 @@ class Graph:
 
     def add_input_value(self, value):
         assert(value is not None)
-        value = nodes.filter_tuple(value)
+        value = nodes.remove_ref(value)
         self.input_values.append(value)
 
     def add_output_value(self, value):
         assert(value is not None)
-        value = nodes.filter_tuple(value)
+        value = nodes.remove_ref(value)
         self.output_values.append(value)
 
     def add_node(self, node: 'nodes.Node'):

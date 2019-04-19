@@ -146,7 +146,7 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     isTuple = False
     if targets.has_obj() and isinstance(targets.get_ref().get_value(), values.TupleValue):
-        targets = targets.get_ref().internal_value
+        targets = targets.get_ref().get_constant_value()
         isTuple = True
 
     if isTuple:
@@ -156,7 +156,7 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
                 targets[i].revise(try_get_ref(value.values[i],'assign', lineprop))
                 graph.add_node(node_assign)
         else:
-            # TODO implement getter
+            # TODO implement getter for tuple
             assert(False)
     else:
         assigned_obj = return_value_or_ref(value_obj)
@@ -356,6 +356,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
         if input_value is not None:
             inputs.append(input_value)
+
             true_graph.add_input_value(true_input_body_value)
             false_graph.add_input_value(false_input_body_value)
 
@@ -442,8 +443,13 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
         if isinstance(slice_value, values.TupleValue):
             # ex. x[1,2]
-            values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.internal_value]
-            node = nodes.NodeGetItem(value_value, values_)
+            if slice_value.has_constant_value():
+                values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.get_constant_value()]
+                node = nodes.NodeGetItem(value_value, values_, line=lineprop)
+            else:
+                if config.show_warnings:
+                    print('This subscript is not supported. in L.{}'.format(astc.lineno))
+                node = nodes.NodeInvalid(line=lineprop)
         else:
             # ex. x[1]
             node = nodes.NodeGetItem(value_value, [slice_value])
@@ -495,9 +501,9 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     listcomp_guid = str(utils.get_guid())
     listcomp_id = 'listcomp_' + listcomp_guid
     body_id = 'listcomp_body_' + listcomp_guid
-    internal_counter_id = '@internal/counter_' + listcomp_guid
-    internal_list_id = '@internal/list_' + listcomp_guid
-    internal_cond_id = '@internal/cond_' + listcomp_guid
+    internal_counter_id = '@internal/listcomp_counter_' + listcomp_guid
+    internal_list_id = '@internal/listcomp_list_' + listcomp_guid
+    internal_cond_id = '@internal/listcomp_cond_' + listcomp_guid
 
     generator = astc.nast.generators[0]
     iter_value = try_get_value(veval_ast(astc.c(generator.iter), local_field, graph), 'generator', lineprop)
@@ -517,10 +523,11 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
             print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
 
-    counter_value = values.NumberValue(0)
+    counter_value = values.NumberValue(None)
+    counter_value.dtype = np.array(0).dtype
     counter_value.name = internal_counter_id
 
-    cond_value = values.BoolValue(True)
+    cond_value = values.BoolValue(None)
     cond_value.name = internal_cond_id
 
     # set values with internal name
@@ -601,6 +608,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         if 'input_body_value' in v:
             inputs.append(v['input_value'])
             body_graph.add_input_value(v['input_body_value'])
+
         else:
             temp_value1 = functions.generate_value_with_same_type(v['output_body_value'])
             temp_value2 = functions.generate_value_with_same_type(v['output_body_value'])
@@ -739,7 +747,7 @@ def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     value = values.NumberValue(astc.nast.n)
     ret = values.ValueRef(value)
 
-    name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
+    name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
@@ -753,7 +761,7 @@ def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     value = values.StrValue(astc.nast.s)
     ret = values.ValueRef(value)
 
-    name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
+    name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
@@ -772,7 +780,7 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     if astc.nast.value is None:
         ret = values.ValueRef(values.NoneValue())
 
-    name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
+    name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
@@ -786,7 +794,14 @@ def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : '
         v_ = try_get_ref(veval_ast(astc.c(v), local_field, graph), 'tuple', lineprop)
         vs.append(v_)
 
-    return values.ValueRef(values.TupleValue(vs))
+    tuple_value = values.TupleValue(vs)
+
+    if not tuple_value.is_all_constant_values(True):
+        node = nodes.NodeGenerate('Tuple', vs, line=lineprop)
+        node.set_outputs([tuple_value])
+        graph.add_node(node)
+        
+    return values.ValueRef(tuple_value)
 
 def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.List))
@@ -840,10 +855,11 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     body_graph = Graph()
     body_graph.name = 'Body_' + str(for_guid)
 
-    counter_value = values.NumberValue(0)
+    counter_value = values.NumberValue(None)
+    counter_value.dtype = np.array(0).dtype
     counter_value.name = 'for_counter_' + str(for_guid)
 
-    cond_value = values.BoolValue(True)
+    cond_value = values.BoolValue(None)
     cond_value.name = 'for_cond_' + str(for_guid)
 
     iter_value = try_get_value(iter_, 'for', lineprop)
@@ -857,7 +873,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         target_value = values.NumberValue(None)
         target_value.dtype = np.array(0).dtype
     else:
-        target_value = values.Value()
+        target_value = values.UnknownValue()
 
     target_ref = values.ValueRef(target_value)
     node_forgen.set_outputs([target_value])
@@ -916,11 +932,13 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
         if 'input_body_value' in v:
             inputs.append(v['input_value'])
+
             body_graph.add_input_value(v['input_body_value'])
         else:
-            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'])
-            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'])
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'], has_default=True, suffix_type=functions.SuffixType.Unused)
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'], suffix_type=functions.SuffixType.Unused)
             inputs.append(temp_value1)
+
             body_graph.add_input_value(temp_value2)
 
         if 'output_body_value' in v:

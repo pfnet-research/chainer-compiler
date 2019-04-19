@@ -20,20 +20,24 @@ class Generator(object):
 
 # TODO(hamaji): Triage failing tests.
 TESTS = [
+    Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
     Generator('node', 'BatchNorm'),
     Generator('node', 'Convolution2D'),
     Generator('node', 'Linear'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
-    Generator('node', 'Shape'),
     Generator('node', 'PadSequence'),
     Generator('node', 'Unpooling2D'),
+    Generator('node', 'Id'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),
     Generator('node/ndarray', 'NpZeros'),
     Generator('node/ndarray', 'Size'),
+    Generator('node/ndarray', 'Shape'),
+
+    Generator('node/Functions', 'Reshape'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),

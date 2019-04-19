@@ -33,17 +33,11 @@ def int_2_numpy_type(n):
         return np.float32
     assert(False)
 
-
-def create_obj_value_name_with_constant(value):
-    return '@C_' + str(value)
-
-
 def create_obj_value_name_with_attribute(name: "str", pre_name: "str"):
     if len(pre_name) > 0 and pre_name[0] != '@':
         return pre_name
     else:
         return name
-
 
 def clip_head(s: 'str'):
     s = s.split('\n')

@@ -6,6 +6,7 @@ import inspect
 import ast
 import gast
 import weakref
+from enum import Enum
 
 import numpy as np
 
@@ -74,7 +75,11 @@ def generate_tensor_value_with_undefined_shape_size(value: 'values.TensorValue')
     return ret
 
 
-def generate_value_with_same_type(value: 'values.Value'):
+class SuffixType(Enum):
+    Unknown = 0,
+    Unused = 1,
+
+def generate_value_with_same_type(value: 'values.Value', has_default = False, suffix_type = SuffixType.Unknown):
     assert(isinstance(value, values.Value))
     ret = None
     if isinstance(value, values.TensorValue):
@@ -82,19 +87,36 @@ def generate_value_with_same_type(value: 'values.Value'):
         ret.shape = value.shape
 
     if isinstance(value, values.NumberValue):
-        ret = values.NumberValue(None)
+        dtype = None
         if value.internal_value is None:
-            ret.dtype = value.dtype
+            dtype = value.dtype
         elif isinstance(value.internal_value, int):
-            ret.dtype = np.array(value.internal_value).dtype
+            dtype = np.array(value.internal_value).dtype
         elif isinstance(value.internal_value, float):
-            ret.dtype = np.array(value.internal_value).dtype
+            dtype = np.array(value.internal_value).dtype
+
+        if has_default:
+            if dtype == np.array(0).dtype:
+                ret = values.NumberValue(0)
+            elif dtype == np.array(0.0).dtype:
+                ret = values.NumberValue(0.0)
+            else:
+                ret = values.NumberValue(None)
+        else:
+            ret = values.NumberValue(None)
+        ret.dtype = dtype
 
     if isinstance(value, values.StrValue):
-        ret = values.StrValue(None)
-
+        if has_default:
+            ret = values.StrValue('')
+        else:
+            ret = values.StrValue(None)
+            
     if isinstance(value, values.BoolValue):
-        ret = values.BoolValue(None)
+        if has_default:
+            ret = values.BoolValue(False)
+        else:
+            ret = values.BoolValue(None)
 
     if isinstance(value, values.ListValue):
         ret = values.ListValue(None)
@@ -105,15 +127,19 @@ def generate_value_with_same_type(value: 'values.Value'):
     if isinstance(value, values.TupleValue):
         ret = values.TupleValue()
 
-    if ret is None and isinstance(value, values.Value):
-        ret = values.Value()
+    if isinstance(value, values.UnknownValue):
+        ret = values.UnknownValue()
+        if has_default:
+            ret.internal_value = 0
 
     if ret is None and isinstance(value, values.Value):
         ret = values.Value()
 
     if ret is not None:
-        ret.name = value.name + '_st'
-
+        if suffix_type == SuffixType.Unknown:
+            ret.name = value.name + '_st'
+        if suffix_type == SuffixType.Unused:
+            ret.name = value.name + '_unused'
     return ret
 
 

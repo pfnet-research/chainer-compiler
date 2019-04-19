@@ -111,7 +111,7 @@ def main():
 
     v = np.random.rand(10).astype(np.float32)
     p = np.int64(5)
-    testtools.generate_testcase(model, [v, p])
+    testtools.generate_testcase(model, [v, p], subname='a')
 
     model = B()
     length = 4
