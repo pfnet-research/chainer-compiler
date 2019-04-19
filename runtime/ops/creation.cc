@@ -19,16 +19,44 @@ chainerx::Array FloatScalarConstantOp::RunImpl(XCVMState* st) {
     return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
 }
 
-chainerx::Array IntConstantOp::RunImpl(XCVMState* st) {
+class IntConstantOp::IntConstantImpl {
+public:
+    chainerx::Array cache;
+};
+
+void IntConstantOp::InitImpl() {
+    impl_ = new IntConstantImpl();
     auto make = host ? MakeHostArray : MakeArray;
     chainerx::Array a = make(chainerx::Dtype::kInt64, chainerx::Shape(shape), value.data());
-    return a.AsType(static_cast<chainerx::Dtype>(dtype));
+    impl_->cache = a.AsType(static_cast<chainerx::Dtype>(dtype));
+}
+
+IntConstantOp::~IntConstantOp() {
+    delete impl_;
+}
+
+class FloatConstantOp::FloatConstantImpl {
+public:
+    chainerx::Array cache;
+};
+
+void FloatConstantOp::InitImpl() {
+    impl_ = new FloatConstantImpl();
+    auto make = host ? MakeHostArray : MakeArray;
+    chainerx::Array a = make(chainerx::Dtype::kFloat64, chainerx::Shape(shape), value.data());
+    impl_->cache = a.AsType(static_cast<chainerx::Dtype>(dtype));
+}
+
+FloatConstantOp::~FloatConstantOp() {
+    delete impl_;
+}
+
+chainerx::Array IntConstantOp::RunImpl(XCVMState* st) {
+    return impl_->cache;
 }
 
 chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
-    auto make = host ? MakeHostArray : MakeArray;
-    chainerx::Array a = make(chainerx::Dtype::kFloat64, chainerx::Shape(shape), value.data());
-    return a.AsType(static_cast<chainerx::Dtype>(dtype));
+    return impl_->cache;
 }
 
 chainerx::Array OneHotOp::RunImpl(

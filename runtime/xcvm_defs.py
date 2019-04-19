@@ -347,10 +347,6 @@ XC_OPS = [
      [Int('value'), Int('dtype'), Int('host')], ['output']),
     ('FloatScalarConstant',
      [Float('value'), Int('dtype'), Int('host')], ['output']),
-    ('IntConstant',
-     [Ints('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
-    ('FloatConstant',
-     [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('ConstantFill',
      [OptionalArray('input'), Int('dtype'), Ints('extra_shape'),
       Ints('shape'), Float('value')],
@@ -375,6 +371,10 @@ XC_OPS = [
 ]
 
 XC_CUSTOM_FIELD_OPS = [
+    ('IntConstant',
+     [Ints('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
+    ('FloatConstant',
+     [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('TVM',
      [ArrayList('inputs'), Int('num_outputs'),
       String('dso_filename'), String('func_name'), Ints('output_shape')],
