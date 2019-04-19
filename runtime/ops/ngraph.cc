@@ -90,9 +90,7 @@ void NGraphOp::InitImpl() {
         }
     }
 
-    // TODO(hamaji): Make this customizable.
-    const char* kBackend = "CPU";
-    impl_->backend = std::move(ngraph::runtime::Backend::create(kBackend));
+    impl_->backend = std::move(ngraph::runtime::Backend::create(backend));
 
     impl_->handle = impl_->backend->compile(impl_->func);
 
