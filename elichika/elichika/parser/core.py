@@ -1,4 +1,5 @@
 import chainer
+import chainer as C
 import chainer.functions as F
 import chainer.links as L
 import inspect
@@ -44,6 +45,19 @@ def convert_model(model: 'chainer.Chain', args=[]):
     # generate default module
     default_module = values.Module(sys.modules[model.__module__])
 
+    # chainer
+    chainer_module_name = get_module_name(
+        C, default_module.internal_module)
+
+    if chainer_module_name != '':
+        c_dict = values.ValueRef(values.ModuleValue())
+
+        # a substitute of Variable
+        c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
+        c_dict.get_field().get_attribute('Variable').revise(values.ValueRef(c_variable))
+
+        default_module.set_default_value(chainer_module_name, c_dict)
+
     # chainer.functions
     chainer_functions_module_name = get_module_name(
         F, default_module.internal_module)
@@ -51,10 +65,17 @@ def convert_model(model: 'chainer.Chain', args=[]):
     if chainer_functions_module_name != '':
         f_dict = values.ValueRef(values.ModuleValue())
 
-        def add_chainer_funtion(name:'str', func):
-            f = values.FuncValue(
-                functions_builtin.ChainerFunction(func), None)
+        def add_chainer_funtion(name:'str', func, ret_value_func = None):
+            if ret_value_func is None:
+                f = values.FuncValue(
+                    functions_builtin.ChainerFunction(func), None)
+            else:
+                f = values.FuncValue(
+                    functions_builtin.ChainerFunction(func, ret_value_func=ret_value_func), None)
             f_dict.get_field().get_attribute(name).revise(values.ValueRef(f))
+
+        def ret_tuple():
+            return values.TupleValue()
 
         add_chainer_funtion('relu', F.relu)
         add_chainer_funtion('softmax', F.softmax)
@@ -63,6 +84,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
         add_chainer_funtion('unpooling_2d', F.unpooling_2d)
         add_chainer_funtion('reshape', F.reshape)
+        add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
 
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 

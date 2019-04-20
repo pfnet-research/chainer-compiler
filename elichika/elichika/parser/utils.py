@@ -40,13 +40,23 @@ def create_obj_value_name_with_attribute(name: "str", pre_name: "str"):
         return name
 
 def clip_head(s: 'str'):
-    s = s.split('\n')
-    # print(s)
-    hs = os.path.commonprefix(list(filter(lambda x: x != '', s)))
+    splitted = s.split('\n')
+    
+    # remove comments
+    comment_count = 0
+    indent_targets = []
+    for sp in splitted:
+        if '"""' in sp or "'''" in sp:
+            comment_count += 1
+        else:
+            if comment_count % 2 == 0:
+                indent_targets.append(sp)
+
+    hs = os.path.commonprefix(list(filter(lambda x: x != '', indent_targets)))
     # print('hs',list(map(ord,hs)))
     ls = len(hs)
-    s = map(lambda x: x[ls:], s)
-    return '\n'.join(s)
+    strs = map(lambda x: x[ls:], splitted)
+    return '\n'.join(strs)
 
 
 class LineProperty():

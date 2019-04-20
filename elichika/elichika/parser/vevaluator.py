@@ -91,8 +91,8 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         from_module = False
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
-    value_obj = try_get_ref(value, 'attribute', lineprop)
-    attr = value_obj.get_field().get_attribute(astc.nast.attr, from_module)
+    value_ref = try_get_ref(value, 'attribute', lineprop)
+    attr = value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
     # property(getter)
     if attr.has_obj() and isinstance(attr.get_ref(False).get_value(), values.FuncValue) and attr.get_ref(False).get_value().func.is_property:
@@ -104,11 +104,14 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         return attr
 
     # if attr is not found
-    gotten_obj = value_obj.try_get_and_store_obj(astc.nast.attr)
+    gotten_obj = value_ref.try_get_and_store_obj(astc.nast.attr)
     if gotten_obj is not None:
-        return value_obj.get_field().get_attribute(astc.nast.attr, from_module)
+        return value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
-    return attr
+    # value is unknown
+    if config.show_warnings:
+        print('Assigning value is not found in L.{}'.format(astc.lineno))
+    return None
 
 def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.Assign))
@@ -144,20 +147,16 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
 
             return obj
 
-    isTuple = False
-    if targets.has_obj() and isinstance(targets.get_ref().get_value(), values.TupleValue):
-        targets = targets.get_ref().get_constant_value()
-        isTuple = True
-
-    if isTuple:
-        if targets is not None:
-            for i in range(len(targets)):
-                node_assign = nodes.NodeAssign(targets[i], value.values[i], astc.lineno)
-                targets[i].revise(try_get_ref(value.values[i],'assign', lineprop))
-                graph.add_node(node_assign)
-        else:
-            # TODO implement getter for tuple
-            assert(False)
+    if isinstance(targets, list):
+        # ex. a,b = (1,2)
+        if not isinstance(value_obj.get_value(), values.TupleValue):
+            # TODO fix it
+            assert(False)   # not supported
+        
+        for i in range(len(targets)):
+            node_assign = nodes.NodeAssign(targets[i], value_obj.get_value().get_constant_value()[i], astc.lineno)
+            targets[i].revise(try_get_ref(value_obj.get_value().get_constant_value()[i],'assign', lineprop))
+            graph.add_node(node_assign)
     else:
         assigned_obj = return_value_or_ref(value_obj)
         node_assign = nodes.NodeAssign(targets, assigned_obj, astc.lineno)
@@ -785,23 +784,31 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     ret.get_value().name = name
     return ret
 
-def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     assert(isinstance(astc.nast, gast.gast.Tuple))
     lineprop = utils.LineProperty(astc.lineno)
 
-    vs = []
-    for v in astc.nast.elts:
-        v_ = try_get_ref(veval_ast(astc.c(v), local_field, graph), 'tuple', lineprop)
-        vs.append(v_)
+    if option is not None and option.eval_as_written_target:
+        vs = []
+        for v in astc.nast.elts:
+            a_ = veval_ast(astc.c(v), local_field, graph, option=option)
+            vs.append(a_)
+        return vs
+    else:
+        vs = []
+        for v in astc.nast.elts:
+            a_ = veval_ast(astc.c(v), local_field, graph, option=option)
+            v_ = try_get_ref(a_, 'tuple', lineprop)
+            vs.append(v_)
 
-    tuple_value = values.TupleValue(vs)
+        tuple_value = values.TupleValue(vs)
 
-    if not tuple_value.is_all_constant_values(True):
-        node = nodes.NodeGenerate('Tuple', vs, line=lineprop)
-        node.set_outputs([tuple_value])
-        graph.add_node(node)
+        if not tuple_value.is_all_constant_values(True):
+            node = nodes.NodeGenerate('Tuple', vs.copy(), line=lineprop)
+            node.set_outputs([tuple_value])
+            graph.add_node(node)
         
-    return values.ValueRef(tuple_value)
+        return values.ValueRef(tuple_value)
 
 def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.List))
@@ -1032,7 +1039,7 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         return ret
 
     elif isinstance(astc.nast, gast.gast.Tuple):
-        ret = veval_ast_tuple(astc, local_field, graph)
+        ret = veval_ast_tuple(astc, local_field, graph, option)
         return ret
 
     elif isinstance(astc.nast, gast.gast.List):

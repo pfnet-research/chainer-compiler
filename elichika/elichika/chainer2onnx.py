@@ -47,6 +47,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.average_pooling_2d] = fb.convert_average_pool_2d
     oc.chainer_f_converter[F.unpooling_2d] = fb.convert_unpooling_2d
     oc.chainer_f_converter[F.reshape] = fb.convert_reshape
+    oc.chainer_f_converter[F.split_axis] = fb.convert_split_axis
 
     # assign names
     oc.assigned_names.clear()
