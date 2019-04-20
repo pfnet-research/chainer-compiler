@@ -108,6 +108,9 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     if gotten_obj is not None:
         return value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
+    if option.eval_as_written_target:
+        return attr
+        
     # value is unknown
     if config.show_warnings:
         print('Assigning value is not found in L.{}'.format(astc.lineno))
