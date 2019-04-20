@@ -131,3 +131,14 @@ def convert_reshape(onnx_graph, node):
         [node.inputs[0],oc.ONNXValue(onnx_graph,node.inputs[1]).create_tensor()],
         node.outputs,
         str(node.lineprop))
+
+def convert_split_axis(onnx_graph, node):
+    force_tuple = oc.try_get_attribute(node.args.keywords['force_tuple'])
+    assert(force_tuple is True) # TODO(hamaji): Not supported yet.
+
+    onnx_graph.add_node(
+        "ChainerSequenceSplitAxis",
+        [node.inputs[0],oc.ONNXValue(onnx_graph,node.args.keywords['indices_or_sections']).create_tensor()],
+        node.outputs,
+        str(node.lineprop),
+        axis = oc.try_get_attribute(node.args.keywords['axis']))

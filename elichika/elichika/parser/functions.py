@@ -275,7 +275,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         self.lineno = inspect.getsourcelines(func)[1]
         self.classinfo = classinfo
 
-        code = utils.clip_head(inspect.getsource(func))
+        original_code = inspect.getsource(func)
+        code = utils.clip_head(original_code)
 
         self.args.analyze_args(func)
 

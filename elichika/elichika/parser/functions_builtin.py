@@ -8,13 +8,16 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
+def create_return_value_in_chainer_function():
+    return values.TensorValue()
 
 class ChainerFunction(functions.FunctionBase):
-    def __init__(self, func):
+    def __init__(self, func, ret_value_func = create_return_value_in_chainer_function):
         super().__init__()
         self.name = str(func)
         self.args.analyze_args(func)
         self.base_func = func
+        self.ret_value_func = ret_value_func
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
@@ -22,7 +25,7 @@ class ChainerFunction(functions.FunctionBase):
         node = nodes.NodeCall(self, funcArgs, line)
         graph.add_node(node)
         #value = functions.generate_value_with_same_type(vargs[0])
-        value = values.TensorValue()
+        value = self.ret_value_func()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.ValueRef(value)

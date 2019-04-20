@@ -491,6 +491,19 @@ class ONNXValue:
             else:
                 assert(False)
 
+        if(isinstance(self.value, values.ListValue)):
+            value = self.value  # type:values.ListValue
+
+            ret = ONNXValue(self.onnx_graph, np.float32, [
+                            self.name, '/tensor'])
+
+            self.onnx_graph.add_node(
+                "ChainerSequenceStack",
+                [value],
+                [ret],
+                str('create_tensor'))
+            return ret
+
         assert(False)
 
 
@@ -826,7 +839,7 @@ class ONNXGenerator:
                 node_ = node  # type: nodes.NodeGetItem
                 if len(node_.indexes) == 1:
 
-                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.RangeValue):
+                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue) or isinstance(node_.target, values.RangeValue):
                         onnx_node = oh.make_node(
                             'ChainerSequenceLookup',
                             [value2onnx_parameter[node_.target].onnx_name,
@@ -865,7 +878,7 @@ class ONNXGenerator:
                 for index in node_.indices:
                     indices.append(value2onnx_parameter[index].onnx_name)
 
-                if isinstance(node_.target, values.ListValue):
+                if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue):
                     onnx_node = oh.make_node(
                         'ChainerSequenceGetSlice',
                         [value2onnx_parameter[node_.target].onnx_name] + indices,
@@ -929,7 +942,7 @@ class ONNXGenerator:
                 node_ = node  # type: nodes.NodeForGenerator
 
                 # get value from sequence with index
-                if isinstance(node_.iter_value, values.ListValue) or isinstance(node_.iter_value, values.RangeValue):
+                if isinstance(node_.iter_value, values.ListValue) or isinstance(node_.iter_value, values.TupleValue) or isinstance(node_.iter_value, values.RangeValue):
                     onnx_node = oh.make_node(
                         'ChainerSequenceLookup',
                         [value2onnx_parameter[node_.iter_value].onnx_name,

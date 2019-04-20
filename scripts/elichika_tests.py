@@ -30,6 +30,7 @@ TESTS = [
     Generator('node', 'PadSequence'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Id'),
+    Generator('node', 'Variable'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),
@@ -38,6 +39,7 @@ TESTS = [
     Generator('node/ndarray', 'Shape'),
 
     Generator('node/Functions', 'Reshape'),
+    Generator('node/Functions', 'SplitAxis'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
@@ -52,6 +54,7 @@ TESTS = [
     Generator('syntax', 'Sequence'),
     Generator('syntax', 'Slice'),
     Generator('syntax', 'UserDefinedFunc'),
+    Generator('syntax', 'Tuple'),
 ]
 
 
