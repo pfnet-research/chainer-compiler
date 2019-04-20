@@ -839,7 +839,7 @@ class ONNXGenerator:
                 node_ = node  # type: nodes.NodeGetItem
                 if len(node_.indexes) == 1:
 
-                    if isinstance(node_.target, values.ListValue) or isinstance(node_.iter_value, values.TupleValue) or isinstance(node_.target, values.RangeValue):
+                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue) or isinstance(node_.target, values.RangeValue):
                         onnx_node = oh.make_node(
                             'ChainerSequenceLookup',
                             [value2onnx_parameter[node_.target].onnx_name,
@@ -878,7 +878,7 @@ class ONNXGenerator:
                 for index in node_.indices:
                     indices.append(value2onnx_parameter[index].onnx_name)
 
-                if isinstance(node_.target, values.ListValue) or isinstance(node_.iter_value, values.TupleValue):
+                if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue):
                     onnx_node = oh.make_node(
                         'ChainerSequenceGetSlice',
                         [value2onnx_parameter[node_.target].onnx_name] + indices,
