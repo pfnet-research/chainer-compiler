@@ -504,6 +504,14 @@ class ONNXValue:
                 str('create_tensor'))
             return ret
 
+        if(isinstance(self.value, values.TensorValue)):
+            value = self.value  # type:values.TensorValue
+            return self
+
+        if(isinstance(self.value, values.NumberValue)):
+            value = self.value  # type:values.NumberValue
+            return self
+
         assert(False)
 
 

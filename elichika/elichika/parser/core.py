@@ -74,6 +74,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
                     functions_builtin.ChainerFunction(func, ret_value_func=ret_value_func), None)
             f_dict.get_field().get_attribute(name).revise(values.ValueRef(f))
 
+            values.function_converters[func] = f
+
         def ret_tuple():
             return values.TupleValue()
 
@@ -85,6 +87,14 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('unpooling_2d', F.unpooling_2d)
         add_chainer_funtion('reshape', F.reshape)
         add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
+        add_chainer_funtion('reshape', F.reshape)
+
+        if int(chainer.__version__[0]) >= 6:
+            add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
+            add_chainer_funtion('roi_average_pooling_2d', F.roi_average_pooling_2d)
+            add_chainer_funtion('roi_max_align_2d', F.roi_max_align_2d)
+        
+        add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
 
         default_module.set_default_value(chainer_functions_module_name, f_dict)
 
@@ -161,6 +171,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
         if isinstance(value, values.Attribute):
             return value.get_ref().get_value()
+
+    if ret is None or isinstance(ret, values.NoneValue):
+        if config.show_warnings:
+            print('Failed to compile. output is None.')
+        return (value_args, None, graph)
 
     ret_ = []
     if isinstance(ret.get_value(), values.TupleValue):

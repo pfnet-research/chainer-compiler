@@ -38,12 +38,12 @@ def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
 def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Value':
     if value is None:
         if config.show_warnings:
-            print('Failed to get value {}. in L.{}'.format(name, lineprop))
+            print('Failed to get value {}. in {}'.format(name, lineprop))
         return None
 
     if isinstance(value, values.NoneValue) and not is_none_allowed:
         if config.show_warnings:
-            print('Value {} is none. in L.{}'.format(name, lineprop))
+            print('Value {} is none. in {}'.format(name, lineprop))
         return None
 
     if isinstance(value, values.Value):
@@ -224,7 +224,7 @@ def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 
     value_obj = try_get_ref(value, 'return', lineprop)
     value_value = try_get_value(value, 'return', lineprop)
 
-    if value is values.Attribute and not value.has_obj():
+    if value_value is None:
         if config.show_warnings:
             print('Returned values are not found. in L.{}'.format(astc.lineno))
         return None
