@@ -429,6 +429,7 @@ function(gen_elichika_test dir all)
 
 endfunction()
 
+gen_elichika_test(model "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/ndarray "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Functions "${CHAINER_COMPILER_TEST_ALL}")

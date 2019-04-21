@@ -13,24 +13,32 @@ from test_case import TestCase
 
 
 class Generator(object):
-    def __init__(self, dirname, filename):
+    def __init__(self, dirname, filename, fail=False):
         self.dirname = dirname
         self.category = dirname.replace('/', '_')
         self.filename = filename
+        self.fail = True
 
 
-# TODO(hamaji): Triage failing tests.
 TESTS = [
+    # TODO(hamaji): Remove `fail=True` after fixing the implementation
+    # of SoftmaxCrossEntropy.
+    Generator('model', 'MLP', fail=True),
+    # TODO(hamaji): Build and run this test.
+    # Generator('model', 'Alex'),
+
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
     Generator('node', 'BatchNorm'),
     Generator('node', 'Convolution2D'),
+    Generator('node', 'Id'),
     Generator('node', 'Linear'),
+    Generator('node', 'PadSequence'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
-    Generator('node', 'PadSequence'),
+    # TODO(hamaji): Build and run this test.
+    # Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
-    Generator('node', 'Id'),
     Generator('node', 'Variable'),
 
     Generator('node/ndarray', 'NpArray'),
@@ -102,6 +110,9 @@ def get():
         name = gen.filename
         test_name = 'elichika_%s_%s' % (category, name)
         kwargs = {}
+
+        if gen.fail:
+            kwargs['fail'] = True
 
         diversed = False
         for substr in diversed_whitelist:
