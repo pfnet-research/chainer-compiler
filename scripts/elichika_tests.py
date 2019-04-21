@@ -24,6 +24,8 @@ TESTS = [
     # TODO(hamaji): Remove `fail=True` after fixing the implementation
     # of SoftmaxCrossEntropy.
     Generator('model', 'MLP', fail=True),
+    # TODO(hamaji): Build and run this test.
+    # Generator('model', 'Alex'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),

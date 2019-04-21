@@ -27,7 +27,6 @@ import testtools
 import numpy as np
 
 def main():
-    import numpy as np
     np.random.seed(314)
 
     out_n = 4
