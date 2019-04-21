@@ -20,9 +20,12 @@ class A(chainer.Chain):
 # ======================================
 
 
-if __name__ == '__main__':
-
+def main():
     model = A()
 
     x = np.random.rand(6, 4, 2, 7).astype(np.float32)
     testtools.generate_testcase(model, [x])
+
+
+if __name__ == '__main__':
+    main()
