@@ -401,8 +401,9 @@ set(ELICHIKA_FILES
 include(scripts/elichika_tests.py)
 
 function(gen_elichika_test dir all)
+  string(REPLACE "/" "_" name ${dir})
   set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
-  set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${dir})
+  set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${name})
 
   execute_process(
     COMMAND ${elichika_tests_py} --list ${dir}
@@ -420,13 +421,15 @@ function(gen_elichika_test dir all)
   message(${out_stamp})
 
   add_custom_target(
-    gen_elichika_${dir}
+    gen_elichika_${name}
     ${all}
     DEPENDS ${out_stamp})
 
-  add_dependencies(large_tests gen_elichika_${dir})
+  add_dependencies(large_tests gen_elichika_${name})
 
 endfunction()
 
 gen_elichika_test(node "${CHAINER_COMPILER_TEST_ALL}")
+gen_elichika_test(node/ndarray "${CHAINER_COMPILER_TEST_ALL}")
+gen_elichika_test(node/Functions "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(syntax "${CHAINER_COMPILER_TEST_ALL}")

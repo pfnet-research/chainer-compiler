@@ -15,6 +15,7 @@ from test_case import TestCase
 class Generator(object):
     def __init__(self, dirname, filename):
         self.dirname = dirname
+        self.category = dirname.replace('/', '_')
         self.filename = filename
 
 
@@ -82,7 +83,7 @@ def generate_tests(dirname):
     for gen in get_test_generators(dirname):
         py = os.path.join('tests', gen.dirname, gen.filename)
         out_dir = os.path.join(get_source_dir(), 'out', 'elichika_%s_%s' %
-                               (gen.dirname, gen.filename))
+                               (gen.category, gen.filename))
         print('Running %s' % py)
         module = importlib.import_module(py.replace('/', '.'))
         testcasegen.reset_test_generator([out_dir])
@@ -97,7 +98,7 @@ def get():
     ]
 
     for gen in TESTS:
-        category = gen.dirname
+        category = gen.category
         name = gen.filename
         test_name = 'elichika_%s_%s' % (category, name)
         kwargs = {}
@@ -110,6 +111,7 @@ def get():
 
         test_dirs = glob.glob('out/%s' % test_name)
         test_dirs += glob.glob('out/%s_*' % test_name)
+        assert test_dirs, 'No tests found for %s' % test_name
         for d in test_dirs:
             name = os.path.basename(d)
             test_dir = os.path.join('out', name)
