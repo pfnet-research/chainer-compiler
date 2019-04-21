@@ -861,7 +861,7 @@ private:
             for (Value* value : node.outputs()) {
                 outputs.emplace_back(GetValueId(value), value);
             }
-            EMIT(NGraph, outputs, inputs, onnx);
+            EMIT(NGraph, outputs, inputs, onnx, "CPU");
             return;
         }
 

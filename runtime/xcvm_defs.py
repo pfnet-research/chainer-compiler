@@ -380,7 +380,7 @@ XC_CUSTOM_FIELD_OPS = [
       String('dso_filename'), String('func_name'), Ints('output_shape')],
      [ArrayList('outputs')]),
     ('NGraph',
-     [ArrayList('inputs'), String('onnx')],
+     [ArrayList('inputs'), String('onnx'), String('backend')],
      [ArrayList('outputs')]),
 ]
 
