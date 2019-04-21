@@ -85,6 +85,7 @@ def generate_value_with_same_type(value: 'values.Value', has_default = False, su
     if isinstance(value, values.TensorValue):
         ret = values.TensorValue()
         ret.shape = value.shape
+        ret.dtype = value.dtype
 
     if isinstance(value, values.NumberValue):
         dtype = None
