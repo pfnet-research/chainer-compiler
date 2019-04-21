@@ -564,6 +564,9 @@ class NumberValue(Value):
         if self.internal_value is not None:
             self.dtype = np.array(self.internal_value).dtype
 
+        if not config.float_restrict and self.dtype == np.float64:
+            self.dtype = np.float32
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
@@ -677,6 +680,9 @@ class TensorValue(Value):
 
         if self.internal_value is not None:
             self.dtype = np.array(self.internal_value).dtype
+
+        if not config.float_restrict and self.dtype == np.float64:
+            self.dtype = np.float32
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(

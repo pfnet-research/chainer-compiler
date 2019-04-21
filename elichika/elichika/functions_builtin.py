@@ -143,6 +143,20 @@ def convert_split_axis(onnx_graph, node):
         str(node.lineprop),
         axis = oc.try_get_attribute(node.args.keywords['axis']))
 
+def convert_swapaxes(onnx_graph, node):
+    axis1 = oc.try_get_attribute(node.args.keywords['axis1'])
+    axis2 = oc.try_get_attribute(node.args.keywords['axis2'])
+    pe = list(range(max(axis1, axis2)+1))
+    pe[axis1] = axis2
+    pe[axis2] = axis1
+
+    onnx_graph.add_node(
+        "Transpose",
+        [node.inputs[0]],
+        node.outputs,
+        str(node.lineprop),
+        perm = pe)
+
 def convert_roi_max_pooling_2d(onnx_graph, node):
     x = oc.ONNXValue(onnx_graph,node.args.keywords['x'])
     rois = oc.ONNXValue(onnx_graph,node.args.keywords['rois'])
