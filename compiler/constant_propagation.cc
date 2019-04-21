@@ -48,7 +48,10 @@ void DoConstantPropagation(Graph* graph, Node* node) {
 
     graph->DetachNode(node);
     for (Node* input : inputs) {
-        if (input->output(0)->users().empty()) {
+        Value* output = input->output(0);
+        // Detach node if the value is not uesd by other ops nor a
+        // graph output.
+        if (output->users().empty() && !output->IsOutput()) {
             graph->DetachNode(input);
         }
     }

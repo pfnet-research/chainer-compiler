@@ -46,9 +46,8 @@ def main():
     testtools.generate_testcase(
         SubstituteTuple(), [], subname='substitute_tuple')
 
-    # TODO : fix runtime?
-    # testtools.generate_testcase(
-    #     SubstituteTupleSelf(), [], subname='substitute_tuple_self')
+    testtools.generate_testcase(
+        SubstituteTupleSelf(), [], subname='substitute_tuple_self')
 
 
 if __name__ == '__main__':
