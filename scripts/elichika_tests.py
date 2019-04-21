@@ -31,12 +31,14 @@ TESTS = [
     Generator('node', 'AveragePool2d'),
     Generator('node', 'BatchNorm'),
     Generator('node', 'Convolution2D'),
+    Generator('node', 'Id'),
     Generator('node', 'Linear'),
+    Generator('node', 'PadSequence'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
-    Generator('node', 'PadSequence'),
+    # TODO(hamaji): Build and run this test.
+    # Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
-    Generator('node', 'Id'),
     Generator('node', 'Variable'),
 
     Generator('node/ndarray', 'NpArray'),
