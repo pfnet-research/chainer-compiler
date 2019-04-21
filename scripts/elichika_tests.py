@@ -41,8 +41,8 @@ TESTS = [
 
     Generator('node/Functions', 'Reshape'),
     Generator('node/Functions', 'SplitAxis'),
+    Generator('node/Functions', 'Roi'),
     # TODO(hamaji): Temporarily disabled.
-    # Generator('node/Functions', 'Roi'),
     # Generator('node/Functions', 'SwapAxes'),
 
     Generator('syntax', 'Alias'),

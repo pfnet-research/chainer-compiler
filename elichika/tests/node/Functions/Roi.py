@@ -105,8 +105,8 @@ class FPN_ROIAlign2D_5th_scale(chainer.Chain):
 
 
 def main():
-
-    if len(sys.argv) > 1 and sys.argv[1].startswith('-'):
+    if (len(sys.argv) > 1 and sys.argv[1].startswith('-') and
+        sys.argv[1] != '--generate'):
         # TODO
         '''
         parser = argparse.ArgumentParser()
