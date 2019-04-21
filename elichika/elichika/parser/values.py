@@ -22,6 +22,7 @@ from elichika.parser.functions import FunctionBase, UserDefinedFunction
 fields = []
 histories = []
 
+function_converters = {}
 instance_converters = []
 
 def create_ref_value_name_with_constant(value):
@@ -76,12 +77,17 @@ def get_outputs() -> 'List[FieldOutput]':
     return ret
 
 
-def parse_instance(default_module, name, instance, self_instance=None, parse_shape=False) -> "ValueRef":
+def parse_instance(default_module, name, instance, self_instance=None, parse_shape=False, from_member = False) -> "ValueRef":
 
     for converter in instance_converters:
         ret = converter(default_module, instance)
         if ret is not None:
             return ValueRef(ret)
+
+    if inspect.ismethod(instance) or inspect.isfunction(instance):
+        if instance in function_converters.keys():
+            func = function_converters[instance]
+            return ValueRef(func)
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
@@ -118,13 +124,16 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
     if instance is inspect._empty:
         return None
 
-    if inspect.isfunction(instance):
-        func = UserDefinedFunction(instance)
-        return ValueRef(FuncValue(func, self_instance))
-
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
         return ValueRef(FuncValue(func, self_instance))
+
+    if inspect.isfunction(instance):
+        func = UserDefinedFunction(instance)
+        if from_member:
+            return ValueRef(FuncValue(func, self_instance))
+        else:
+            return ValueRef(FuncValue(func, None))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
@@ -146,7 +155,7 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
         return ValueRef(TupleValue(value_in_tuple))
 
     if isinstance(instance, np.ndarray):
-        tensorValue = TensorValue()
+        tensorValue = TensorValue(instance)
         tensorValue.value = instance
         tensorValue.shape = instance.shape
         return ValueRef(tensorValue)
@@ -555,6 +564,9 @@ class NumberValue(Value):
         if self.internal_value is not None:
             self.dtype = np.array(self.internal_value).dtype
 
+        if not config.float_restrict and self.dtype == np.float64:
+            self.dtype = np.float32
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
@@ -595,7 +607,7 @@ class TupleValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.internal_value = values
-        
+
     def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
         if self.internal_value is not None:
             for v in self.internal_value:
@@ -659,11 +671,18 @@ class DictValue(Value):
 
 
 class TensorValue(Value):
-    def __init__(self):
+    def __init__(self, value = None):
         super().__init__()
         self.shape = ()
+        self.internal_value = value
         self.value = None
         self.dtype = None
+
+        if self.internal_value is not None:
+            self.dtype = np.array(self.internal_value).dtype
+
+        if not config.float_restrict and self.dtype == np.float64:
+            self.dtype = np.float32
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(
@@ -723,6 +742,6 @@ class UserDefinedInstance(Instance):
             if not (name in members_dict.keys()):
                 return None
 
-            obj = parse_instance(self.module, name, members_dict[name], inst)
+            obj = parse_instance(self.module, name, members_dict[name], inst, from_member=True)
 
         return obj

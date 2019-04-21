@@ -40,6 +40,8 @@ TESTS = [
 
     Generator('node/Functions', 'Reshape'),
     Generator('node/Functions', 'SplitAxis'),
+    Generator('node/Functions', 'Roi'),
+    Generator('node/Functions', 'SwapAxes'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),

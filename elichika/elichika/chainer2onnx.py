@@ -48,6 +48,14 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.unpooling_2d] = fb.convert_unpooling_2d
     oc.chainer_f_converter[F.reshape] = fb.convert_reshape
     oc.chainer_f_converter[F.split_axis] = fb.convert_split_axis
+    oc.chainer_f_converter[F.swapaxes] = fb.convert_swapaxes
+
+    if int(chainer.__version__[0]) >= 6:
+        oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.convert_roi_max_pooling_2d
+        oc.chainer_f_converter[F.roi_average_pooling_2d] = fb.convert_roi_average_pooling_2d
+        oc.chainer_f_converter[F.roi_max_align_2d] = fb.convert_roi_max_align_2d
+
+    oc.chainer_f_converter[F.roi_average_align_2d] = fb.convert_roi_average_align_2d
 
     # assign names
     oc.assigned_names.clear()

@@ -49,10 +49,8 @@ def main():
 
     testtools.generate_testcase(SplitAxis, [xs, ilens])
     testtools.generate_testcase(SplitAxis1, [xs, ilens], subname='axis1')
-    
-    # TODO(durswd) : need to pass tests
-    # testtools.generate_testcase(SplitAxisSections, [xs], subname='sections')
-    # testtools.generate_testcase(SplitAxisSections1, [xs], subname='sections_axis1')
+    testtools.generate_testcase(SplitAxisSections, [xs], subname='sections')
+    testtools.generate_testcase(SplitAxisSections1, [xs], subname='sections_axis1')
 
 
 if __name__ == '__main__':

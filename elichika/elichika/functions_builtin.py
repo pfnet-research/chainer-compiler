@@ -142,3 +142,105 @@ def convert_split_axis(onnx_graph, node):
         node.outputs,
         str(node.lineprop),
         axis = oc.try_get_attribute(node.args.keywords['axis']))
+
+def convert_swapaxes(onnx_graph, node):
+    axis1 = oc.try_get_attribute(node.args.keywords['axis1'])
+    axis2 = oc.try_get_attribute(node.args.keywords['axis2'])
+    pe = list(range(max(axis1, axis2)+1))
+    pe[axis1] = axis2
+    pe[axis2] = axis1
+
+    onnx_graph.add_node(
+        "Transpose",
+        [node.inputs[0]],
+        node.outputs,
+        str(node.lineprop),
+        perm = pe)
+
+def convert_roi_max_pooling_2d(onnx_graph, node):
+    x = oc.ONNXValue(onnx_graph,node.args.keywords['x'])
+    rois = oc.ONNXValue(onnx_graph,node.args.keywords['rois'])
+    roi_indices = oc.ONNXValue(onnx_graph,node.args.keywords['roi_indices'])
+    outsize = oc.ONNXValue(onnx_graph,node.args.keywords['outsize'])
+    spatial_scale = oc.ONNXValue(onnx_graph,node.args.keywords['spatial_scale'])
+
+    def _pair(x):
+        if isinstance(x, collections.Iterable):
+            return x
+        return (x, x)
+
+    onnx_graph.add_node(
+        "ChainerROIMaxPool2D",
+        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        node.outputs,
+        str(node.lineprop),
+        output_shape=_pair(oc.try_get_attribute(outsize.value)),
+        spatial_scale=oc.try_get_attribute(spatial_scale.value))
+    return
+
+def convert_roi_average_pooling_2d(onnx_graph, node):
+    x = oc.ONNXValue(onnx_graph,node.args.keywords['x'])
+    rois = oc.ONNXValue(onnx_graph,node.args.keywords['rois'])
+    roi_indices = oc.ONNXValue(onnx_graph,node.args.keywords['roi_indices'])
+    outsize = oc.ONNXValue(onnx_graph,node.args.keywords['outsize'])
+    spatial_scale = oc.ONNXValue(onnx_graph,node.args.keywords['spatial_scale'])
+
+    def _pair(x):
+        if isinstance(x, collections.Iterable):
+            return x
+        return (x, x)
+
+    onnx_graph.add_node(
+        "ChainerROIAveragePool2D",
+        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        node.outputs,
+        str(node.lineprop),
+        output_shape=_pair(oc.try_get_attribute(outsize.value)),
+        spatial_scale=oc.try_get_attribute(spatial_scale.value))
+    return
+
+def convert_roi_max_align_2d(onnx_graph, node):
+    x = oc.ONNXValue(onnx_graph,node.args.keywords['x'])
+    rois = oc.ONNXValue(onnx_graph,node.args.keywords['rois'])
+    roi_indices = oc.ONNXValue(onnx_graph,node.args.keywords['roi_indices'])
+    outsize = oc.ONNXValue(onnx_graph,node.args.keywords['outsize'])
+    spatial_scale = oc.ONNXValue(onnx_graph,node.args.keywords['spatial_scale'])
+    sampling_ratio = oc.ONNXValue(onnx_graph,node.args.keywords['sampling_ratio'])
+
+    def _pair(x):
+        if isinstance(x, collections.Iterable):
+            return x
+        return (x, x)
+
+    onnx_graph.add_node(
+        "ChainerROIMaxAlign2D",
+        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        node.outputs,
+        str(node.lineprop),
+        output_shape=_pair(oc.try_get_attribute(outsize.value)),
+        spatial_scale=oc.try_get_attribute(spatial_scale.value),
+        sampling_ratio=_pair(oc.try_get_attribute(sampling_ratio.value)))
+    return
+
+def convert_roi_average_align_2d(onnx_graph, node):
+    x = oc.ONNXValue(onnx_graph,node.args.keywords['x'])
+    rois = oc.ONNXValue(onnx_graph,node.args.keywords['rois'])
+    roi_indices = oc.ONNXValue(onnx_graph,node.args.keywords['roi_indices'])
+    outsize = oc.ONNXValue(onnx_graph,node.args.keywords['outsize'])
+    spatial_scale = oc.ONNXValue(onnx_graph,node.args.keywords['spatial_scale'])
+    sampling_ratio = oc.ONNXValue(onnx_graph,node.args.keywords['sampling_ratio'])
+
+    def _pair(x):
+        if isinstance(x, collections.Iterable):
+            return x
+        return (x, x)
+
+    onnx_graph.add_node(
+        "ChainerROIAverageAlign2D",
+        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        node.outputs,
+        str(node.lineprop),
+        output_shape=_pair(oc.try_get_attribute(outsize.value)),
+        spatial_scale=oc.try_get_attribute(spatial_scale.value),
+        sampling_ratio=_pair(oc.try_get_attribute(sampling_ratio.value)))
+    return
