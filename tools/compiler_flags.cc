@@ -40,7 +40,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_use_tvm = args.exist("use_tvm");
     g_reuse_tvm_code = args.exist("reuse_tvm_code");
     g_use_ngraph = args.exist("use_ngraph");
-    g_ngraph_device = args.exist("ngraph_device");
+    g_ngraph_device = args.get<std::string>("ngraph_device");
     g_reset_shape = args.exist("reset_shape");
     g_reset_output_shape = args.exist("reset_output_shape");
     g_dump_autotvm_task_dir = args.get<std::string>("dump_autotvm_task_dir");
