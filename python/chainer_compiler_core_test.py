@@ -149,15 +149,20 @@ def test_fusion_hook():
     assert len(graph.input_names()) == 2
     assert len(graph.output_names()) == 1
 
-    xcvm = graph.compile(reset_shape=True)
+    a = np.random.rand(3, 4, 5).astype(dtype=np.float32)
+    b = np.random.rand(3, 4, 5).astype(dtype=np.float32)
+
+    xcvm = graph.compile(use_ngraph=True,
+                         fuse_operations=True)
     inputs = {}
-    for n, v in zip(graph.input_names(), [3.0, 39.0]):
-        inputs[n] = chainer_compiler_core.value(chainerx.array(
-            v, dtype=np.float32))
+    for n, v in zip(graph.input_names(), [a, b]):
+        inputs[n] = chainer_compiler_core.value(chainerx.array(v))
 
     def fusion_hook(onnx):
-        return None
+        def custom_func(a, b):
+            return a - b,
+        return custom_func
 
     outputs = xcvm.run(inputs, fusion_hooks=[fusion_hook])
     output = outputs[graph.output_names()[0]].array()
-    chainerx.testing.assert_allclose(42.0, output)
+    chainerx.testing.assert_allclose(a - b, output)

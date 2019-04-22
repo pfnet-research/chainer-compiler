@@ -1,5 +1,6 @@
 #if CHAINER_COMPILER_ENABLE_NGRAPH
 
+#include <fstream>
 #include <sstream>
 
 #include <chainerx/routines/creation.h>
@@ -8,6 +9,7 @@
 #include <ngraph/ngraph.hpp>
 
 #include <common/log.h>
+#include <common/strutil.h>
 
 #else
 
@@ -68,6 +70,9 @@ public:
     std::shared_ptr<ngraph::runtime::Executable> handle;
     std::vector<std::shared_ptr<ngraph::runtime::Tensor>> result_tensors;
     std::vector<chainerx::Array> outputs;
+
+    bool fusion_hook_called;
+    std::unique_ptr<CustomOpFunc> custom_op_func;
 };
 
 #endif
@@ -116,6 +121,27 @@ std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::XCVMSt
     CHECK(!inputs.empty());
 
     size_t num_inputs = orig_inputs.size();
+
+    if (!impl_->fusion_hook_called) {
+        const std::string tmp_filename = StrCat("/tmp/ngraph_tmp_", id(), ".onnx");
+        {
+            std::ofstream ofs(tmp_filename);
+            ofs << onnx;
+        }
+
+        for (const FusionHookFunc& fusion_hook : st->options().fusion_hook_funcs) {
+            CustomOpFunc* exec_func = fusion_hook(tmp_filename);
+            if (exec_func) {
+                impl_->custom_op_func.reset(exec_func);
+                break;
+            }
+        }
+        impl_->fusion_hook_called = true;
+    }
+
+    if (impl_->custom_op_func) {
+        return (*impl_->custom_op_func)(orig_inputs);
+    }
 
     // Validate inputs.
     chainerx::Array inputs[num_inputs];
