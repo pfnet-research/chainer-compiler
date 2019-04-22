@@ -4,11 +4,11 @@
 #include <onnx/shape_inference/implementation.h>
 
 #include <common/strutil.h>
+#include <compiler/dtype_inference.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/topology.h>
-#include <compiler/type_inference.h>
 #include <compiler/value.h>
 
 namespace chainer_compiler {
@@ -59,7 +59,7 @@ GraphBuilder::~GraphBuilder() {
     }
 
     for (Node* node : added_nodes_) {
-        InferDtypeAndShape(node);
+        InferDtype(node);
     }
 }
 

@@ -397,4 +397,10 @@ void InferDtype(Node* node) {
     }
 }
 
+void InferAllDtype(Graph* graph) {
+    for (Node* node : graph->GetTopologicallySortedNodes()) {
+        InferDtype(node);
+    }
+}
+
 }  // namespace chainer_compiler
