@@ -1,3 +1,8 @@
+// Most dtype/shape inference is done by the ONNX's standard inference
+// but we still need this to infer output dtypes of operators we
+// needed to expand to support numpy style dtype coersion
+// (e.g., int+float => float).
+
 #pragma once
 
 #include <compiler/dtype.h>
