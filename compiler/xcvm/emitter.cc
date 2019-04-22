@@ -861,7 +861,12 @@ private:
             for (Value* value : node.outputs()) {
                 outputs.emplace_back(GetValueId(value), value);
             }
-            EMIT(NGraph, outputs, inputs, onnx, "CPU");
+
+            std::string ngraph_device = g_ngraph_device;
+            if (ngraph_device.empty()) {
+                ngraph_device = "CPU";
+            }
+            EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
             return;
         }
 
