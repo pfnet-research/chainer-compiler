@@ -137,3 +137,6 @@ def test_custom_op():
 
     outputs = xcvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
     assert len(outputs) == 2
+
+    chainerx.testing.assert_allclose(9, outputs['y'].array())
+    chainerx.testing.assert_allclose(42, outputs['z'].array())
