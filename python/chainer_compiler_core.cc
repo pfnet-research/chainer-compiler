@@ -170,6 +170,24 @@ void InitGraph(py::module& m) {
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
+std::vector<chainerx::Array> RunPythonOp(py::function py_func, const std::vector<chainerx::Array>& inputs) {
+    py::list py_inputs;
+    for (const chainerx::Array& input : inputs) {
+        py_inputs.append(chainerx::internal::GetArrayBody(input));
+    }
+    py::object py_outputs = py_func(*py_inputs);
+    std::vector<chainerx::Array> outputs;
+    if (py::isinstance<py::tuple>(py_outputs)) {
+        for (auto py_output : py::cast<py::tuple>(py_outputs)) {
+            outputs.emplace_back(py::cast<ArrayBodyPtr>(py_output));
+        }
+    } else {
+        py::print(py_outputs);
+        CHECK(false) << "Invalid return value from " << py::str(py_func);
+    }
+    return outputs;
+}
+
 std::map<std::string, VarPtr> Run(
         const std::shared_ptr<runtime::XCVM>& xcvm,
         const std::map<std::string, VarPtr>& inputs,
@@ -180,7 +198,8 @@ std::map<std::string, VarPtr> Run(
         bool check_infs,
         bool dump_memory_usage,
         const std::string& chrome_tracing,
-        const std::map<std::string, py::function>& custom_funcs) {
+        const std::map<std::string, py::function>& custom_funcs,
+        const std::vector<py::function>& fusion_hooks) {
     runtime::XCVMOptions xcvm_opts;
     if (trace) xcvm_opts.trace_level = 1;
     if (verbose) xcvm_opts.trace_level = 2;
@@ -194,25 +213,29 @@ std::map<std::string, VarPtr> Run(
 
     for (const auto& p : custom_funcs) {
         const std::string& name = p.first;
-        py::object py_func = p.second;
+        py::function py_func = p.second;
         auto func = [name, py_func](const std::vector<chainerx::Array>& inputs) {
-            py::list py_inputs;
-            for (const chainerx::Array& input : inputs) {
-                py_inputs.append(chainerx::internal::GetArrayBody(input));
-            }
-            py::object py_outputs = py_func(*py_inputs);
-            std::vector<chainerx::Array> outputs;
-            if (py::isinstance<py::tuple>(py_outputs)) {
-                for (auto py_output : py::cast<py::tuple>(py_outputs)) {
-                    outputs.emplace_back(py::cast<ArrayBodyPtr>(py_output));
-                }
-            } else {
-                py::print(py_outputs);
-                CHECK(false) << "Invalid return values from custom op " << name;
-            }
-            return outputs;
+            return RunPythonOp(py_func, inputs);
         };
         CHECK(xcvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
+    }
+
+    for (const py::function& py_hook_func : fusion_hooks) {
+        auto hook_func = [py_hook_func](const std::string& onnx) {
+            py::object py_exec_func = py_hook_func(onnx);
+            if (py_exec_func.is_none()) {
+                return static_cast<runtime::CustomOpFunc*>(nullptr);
+            }
+            if (py::isinstance<py::function>(py_exec_func)) {
+                auto exec_func = [py_exec_func](const std::vector<chainerx::Array>& inputs) {
+                    return RunPythonOp(py_exec_func, inputs);
+                };
+                return new runtime::CustomOpFunc(std::move(exec_func));
+            }
+            py::print(py_exec_func);
+            CHECK(false) << "Invalid return value from fusion hook " << py::str((py::handle)py_hook_func);
+        };
+        xcvm_opts.fusion_hook_funcs.push_back(hook_func);
     }
 
     runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
@@ -236,7 +259,8 @@ void InitXCVM(py::module& m) {
           py::arg("check_infs") = false,
           py::arg("dump_memory_usage") = false,
           py::arg("chrome_tracing") = "",
-          py::arg("custom_funcs") = py::dict());
+          py::arg("custom_funcs") = py::dict(),
+          py::arg("fusion_hooks") = py::list());
 }
 
 bool IsArray(const VarPtr& v) {

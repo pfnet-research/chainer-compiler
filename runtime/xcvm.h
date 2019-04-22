@@ -27,6 +27,8 @@ typedef std::map<std::string, std::shared_ptr<XCVMVar>> InOuts;
 
 typedef std::function<std::vector<chainerx::Array>(std::vector<chainerx::Array>)> CustomOpFunc;
 
+typedef std::function<CustomOpFunc*(const std::string&)> FusionHookFunc;
+
 struct XCVMOptions {
 public:
     XCVMOptions();
@@ -54,6 +56,8 @@ public:
     std::string dump_outputs_dir;
 
     std::map<std::string, CustomOpFunc> custom_op_funcs;
+
+    std::vector<FusionHookFunc> fusion_hook_funcs;
 };
 
 class XCVMInputDesc;
