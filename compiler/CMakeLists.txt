@@ -70,7 +70,6 @@ add_library(chainer_compiler_compiler
   topology.cc
   tvm/compiler.cc
   type.cc
-  type_inference.cc
   util.cc
   value.cc
   xcvm/config.cc

@@ -6,6 +6,7 @@
 
 #include <compiler/config.h>
 #include <compiler/constant_propagation.h>
+#include <compiler/dtype_inference.h>
 #include <compiler/flags.h>
 #include <compiler/flops.h>
 #include <compiler/fusion.h>
@@ -17,7 +18,6 @@
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
 #include <compiler/subgraph_canonicalizer.h>
-#include <compiler/type_inference.h>
 
 #include <compiler/computation_order/core.h>
 #include <compiler/gradient_with_order.h>
@@ -72,7 +72,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
 
-    InferAllDtypeAndShape(graph);
+    InferAllDtype(graph);
 
     auto dump_onnx = [&graph](bool cond, const char* msg) {
         if (cond) {
