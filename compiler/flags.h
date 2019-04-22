@@ -47,6 +47,9 @@ extern std::string g_autotvm_log;
 // Use nGraph to execute fused operations.
 extern bool g_use_ngraph;
 
+// The device of nGraph (e.g., CPU and INTELGPU).
+extern std::string g_ngraph_device;
+
 // The name of backend.
 extern std::string g_backend_name;
 
