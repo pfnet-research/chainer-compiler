@@ -140,3 +140,24 @@ def test_custom_op():
 
     chainerx.testing.assert_allclose(9, outputs['y'].array())
     chainerx.testing.assert_allclose(42, outputs['z'].array())
+
+
+def test_fusion_hook():
+    graph = chainer_compiler_core.load(
+        'third_party/onnx/onnx/backend/test/data/node/test_add/model.onnx')
+
+    assert len(graph.input_names()) == 2
+    assert len(graph.output_names()) == 1
+
+    xcvm = graph.compile(reset_shape=True)
+    inputs = {}
+    for n, v in zip(graph.input_names(), [3.0, 39.0]):
+        inputs[n] = chainer_compiler_core.value(chainerx.array(
+            v, dtype=np.float32))
+
+    def fusion_hook(onnx):
+        return None
+
+    outputs = xcvm.run(inputs, fusion_hooks=[fusion_hook])
+    output = outputs[graph.output_names()[0]].array()
+    chainerx.testing.assert_allclose(42.0, output)
