@@ -112,9 +112,8 @@ void InferDtype(Node* node) {
             break;
         }
 
-        default: {
+        default:
             break;
-        }
     }
 }
 
