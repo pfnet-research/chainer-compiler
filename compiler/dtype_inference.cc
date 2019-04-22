@@ -56,40 +56,6 @@ void InferDtype(Node* node) {
     if (node->inputs().size() >= 3) in2 = node->input(2)->type().dtype();
 
     switch (node->op_type()) {
-        case Node::kIdentity:
-        case Node::kNeg:
-        case Node::kAbs:
-        case Node::kRelu:
-        case Node::kFloor:
-        case Node::kCeil:
-        case Node::kSqueeze:
-        case Node::kUnsqueeze:
-        case Node::kFlatten:
-        case Node::kSlice:
-        case Node::kDynamicSlice:
-        case Node::kChainerDynamicSliceGrad:
-        case Node::kChainerPadBatchSize:
-        case Node::kReduceSum:
-        case Node::kReduceSumSquare:
-        case Node::kReduceL1:
-        case Node::kReduceL2:
-        case Node::kReduceLogSum:
-        case Node::kReduceLogSumExp:
-        case Node::kReduceMax:
-        case Node::kReduceMin:
-        case Node::kClip:
-        case Node::kPad:
-        case Node::kMaxPool:
-        case Node::kGlobalMaxPool:
-        case Node::kUpsample:
-        case Node::kTranspose:
-        case Node::kDepthToSpace:
-        case Node::kSpaceToDepth:
-        case Node::kImageScaler: {
-            set(0, in0);
-            break;
-        }
-
         case Node::kReciprocal:
         case Node::kExp:
         case Node::kSin:
@@ -196,35 +162,6 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kOneHot: {
-            set(0, in2);
-            break;
-        }
-
-        case Node::kReshape:
-        case Node::kExpand:
-        case Node::kChainerReduceSumTo: {
-            CHECK(in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " << node->ToString();
-            set(0, in0);
-            break;
-        }
-
-        case Node::kGather:
-        case Node::kChainerGetItem:
-        case Node::kChainerGetItemGrad:
-        case Node::kChainerSelectItem: {
-            // TODO(hamaji): Need an update for the Python compiler.
-            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
-            // node->ToString();
-            set(0, in0);
-            break;
-        }
-
-        case Node::kChainerGatherGrad:
-            // TODO(hamaji): Check for other inputs.
-            set(0, in0);
-            break;
-
         case Node::kRNN:
         case Node::kGRU:
         case Node::kLSTM: {
@@ -236,32 +173,12 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kChainerLSTMGrad: {
-            // TODO(hamaji): Implement this.
-            break;
-        }
-
         case Node::kConv:
         case Node::kConvTranspose:
         case Node::kChainerConvGradWeight: {
             Dtype dtype = CoerceDtype(in0, in1);
             if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->input(2)->type().dtype());
             oset(0, dtype);
-            break;
-        }
-
-        case Node::kBatchNormalization: {
-            Dtype dtype = coerce();
-            set(0, dtype);
-            for (int i = 1; i < 5; ++i) oset(i, dtype);
-            break;
-        }
-
-        case Node::kChainerSoftmaxCrossEntropy: {
-            // TODO(hamaji): Probably, better to fix the compiler.
-            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
-            // node->ToString();
-            set(0, in0);
             break;
         }
 
@@ -293,105 +210,8 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kChainerSelectItemGrad: {
-            // TODO(hamaji): Probably, better to fix the compiler.
-            // CHECK(in1 == Dtype::kInt32 || in1 == Dtype::kInt64 || in1 == Dtype::kUnknown) << in1.ToString() << " in " <<
-            // node->ToString();
-            CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in2.ToString() << " in " << node->ToString();
-            set(0, in0);
-            break;
-        }
-
-        case Node::kIf: {
-            // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
-            break;
-        }
-
-        case Node::kLoop: {
-            // TOOD(hamaji): Enable this check.
-#if 0
-            for (size_t i = 2; i < node->inputs().size(); ++i) {
-                Value* input = node->input(i);
-                Value* output = node->output(i - 2);
-                CHECK_EQ(input->type().kind(), output->type().kind());
-            }
-            for (size_t i = 2; i < node->inputs().size(); ++i) {
-                Value* input = node->input(i);
-                Value* body = node->body()->input_values()[i];
-                CHECK_EQ(input->type().kind(), body->type().kind());
-            }
-            for (size_t i = 0; i < node->outputs().size(); ++i) {
-                Value* output = node->input(i);
-                Value* body = node->body()->output_values()[i + 1];
-                CHECK_EQ(output->type().kind(), body->type().kind());
-            }
-#endif
-
-            // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
-            break;
-        }
-
-        case Node::kChainerFusionGroup: {
-            // TODO(hamaji): Dtype inference for Loop/If is not implemented yet.
-            break;
-        }
-
-#if 0
-        // TODO(hamaji): Revive Scan.
-        case Node::kScan: {
-            // TODO(hamaji): We assume when all inputs have the smae
-            // dtypes, the outputs will be the same.
-            Dtype dtype = in0;
-            for (Value* in : node->inputs()) {
-                if (in->type().dtype() != dtype) {
-                    WARN_ONCE("Dtype inference for Scan with multiple types of dtypes");
-                }
-            }
-            for (size_t i = 0; i < node->outputs().size(); ++i) {
-                set(i, dtype);
-            }
-            break;
-        }
-#endif
-
-        case Node::kSplit: {
-            for (size_t i = 0; i < node->outputs().size(); ++i) {
-                set(i, in0);
-            }
-            break;
-        }
-
-        case Node::kChainerDoSomething:
-            break;
-
-        case Node::kChainerPrint:
-            break;
-
-        case Node::kChainerNullConstant:
-        case Node::kChainerSequenceConstants:
-        case Node::kChainerSequenceCreate:
-        case Node::kChainerSequenceAppend:
-        case Node::kChainerSequencePop:
-        case Node::kChainerSequenceLookup:
-        case Node::kChainerSequenceLookupGrad:
-        case Node::kChainerSequenceStack:
-        case Node::kChainerSequenceConcat:
-        case Node::kChainerSequenceSplitAxis:
-        case Node::kChainerSequenceSeparate:
-        case Node::kChainerSequenceUnpad:
-        case Node::kChainerSequenceLengths:
-        case Node::kChainerSequenceSize:
-        case Node::kChainerSequencePad:
-        case Node::kChainerSequenceRange:
-        case Node::kChainerSequenceGetSlice:
-        case Node::kChainerSequenceGetSliceGrad:
-        case Node::kChainerGenericLen:
-        case Node::kChainerGenericGetItem:
-        case Node::kChainerGenericGetSlice:
-        case Node::kChainerGenericAdd:
-        case Node::kChainerGenericAccumulateGrad:
-        case Node::kChainerGenericIs: {
-            // TODO(hamaji): Consider implementing dtype inference for sequences.
+        default: {
+            // TODO(hamaji): Consider revive dtype inference.
             break;
         }
     }
