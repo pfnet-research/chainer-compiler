@@ -59,6 +59,7 @@ std::shared_ptr<runtime::XCVM> Compile(
         const std::string& dump_autotvm_task_dir,
         const std::string& autotvm_log,
         bool use_ngraph,
+        const std::string& ngraph_device,
         const std::string& backend_name,
         bool reset_shape,
         bool reset_output_shape,
@@ -79,6 +80,7 @@ std::shared_ptr<runtime::XCVM> Compile(
     g_dump_autotvm_task_dir = dump_autotvm_task_dir;
     g_autotvm_log = autotvm_log;
     g_use_ngraph = use_ngraph;
+    g_ngraph_device = ngraph_device;
     g_backend_name = backend_name;
     g_reset_shape = reset_shape;
     g_reset_output_shape = reset_output_shape;
@@ -151,6 +153,7 @@ void InitGraph(py::module& m) {
           py::arg("dump_autotvm_task_dir") = "",
           py::arg("autotvm_log") = "",
           py::arg("use_ngraph") = false,
+          py::arg("ngraph_device") = "",
           py::arg("backend_name") = "",
           py::arg("reset_shape") = false,
           py::arg("reset_output_shape") = false,
