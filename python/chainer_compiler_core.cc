@@ -214,9 +214,7 @@ std::map<std::string, VarPtr> Run(
     for (const auto& p : custom_funcs) {
         const std::string& name = p.first;
         py::function py_func = p.second;
-        auto func = [name, py_func](const std::vector<chainerx::Array>& inputs) {
-            return RunPythonOp(py_func, inputs);
-        };
+        auto func = [name, py_func](const std::vector<chainerx::Array>& inputs) { return RunPythonOp(py_func, inputs); };
         CHECK(xcvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
     }
 
@@ -227,9 +225,7 @@ std::map<std::string, VarPtr> Run(
                 return static_cast<runtime::CustomOpFunc*>(nullptr);
             }
             if (py::isinstance<py::function>(py_exec_func)) {
-                auto exec_func = [py_exec_func](const std::vector<chainerx::Array>& inputs) {
-                    return RunPythonOp(py_exec_func, inputs);
-                };
+                auto exec_func = [py_exec_func](const std::vector<chainerx::Array>& inputs) { return RunPythonOp(py_exec_func, inputs); };
                 return new runtime::CustomOpFunc(std::move(exec_func));
             }
             py::print(py_exec_func);
