@@ -23,6 +23,7 @@ Dtype CoerceDtype(Dtype dtype0, Dtype dtype1) {
 }
 
 void InferDtype(Node* node) {
+    // TODO(hamaji): Remove this or make this a parameter.
     Dtype default_float = Dtype(Dtype::kFloat32);
 
     auto coerce = [node]() {
@@ -42,10 +43,6 @@ void InferDtype(Node* node) {
         } else {
             if (dtype != Dtype::kUnknown) CHECK_EQ(dtype, odtype) << "dtype mismatch for output #" << i << " of " << node->ToString();
         }
-    };
-
-    auto oset = [node, set](int i, Dtype dtype) {
-        if (i < node->outputs().size()) set(i, dtype);
     };
 
     Dtype in0 = Dtype::kUnknown;
@@ -91,30 +88,6 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kConstantFill: {
-            set(0, node->dtype());
-            break;
-        }
-
-        case Node::kConstantLike: {
-            set(0, node->dtype());
-            break;
-        }
-
-        case Node::kCast: {
-            set(0, node->to());
-            break;
-        }
-
-        case Node::kEyeLike: {
-            if (node->dtype()) {
-                set(0, node->dtype());
-            } else {
-                set(0, in0 == Dtype::kUnknown ? default_float : in0);
-            }
-            break;
-        }
-
         case Node::kAdd:
         case Node::kSub:
         case Node::kMul:
@@ -133,77 +106,6 @@ void InferDtype(Node* node) {
             break;
         }
 
-        case Node::kNot:
-        case Node::kEqual:
-        case Node::kGreater:
-        case Node::kLess:
-        case Node::kAnd:
-        case Node::kOr:
-        case Node::kXor: {
-            set(0, Dtype::kBool);
-            break;
-        }
-
-        case Node::kArgMax:
-        case Node::kArgMin:
-        case Node::kSize:
-        case Node::kShape: {
-            set(0, Dtype::kInt64);
-            break;
-        }
-
-        case Node::kConstant: {
-            set(0, node->tensor_value()->dtype());
-            break;
-        }
-
-        case Node::kConstantOfShape: {
-            set(0, node->tensor_value() ? node->tensor_value()->dtype() : default_float);
-            break;
-        }
-
-        case Node::kRNN:
-        case Node::kGRU:
-        case Node::kLSTM: {
-            Dtype dtype = CoerceDtype(in0, in1);
-            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->input(2)->type().dtype());
-            oset(0, dtype);
-            oset(1, dtype);
-            oset(2, dtype);
-            break;
-        }
-
-        case Node::kConv:
-        case Node::kConvTranspose:
-        case Node::kChainerConvGradWeight: {
-            Dtype dtype = CoerceDtype(in0, in1);
-            if (node->inputs().size() >= 3) dtype = CoerceDtype(dtype, node->input(2)->type().dtype());
-            oset(0, dtype);
-            break;
-        }
-
-        case Node::kMaxRoiPool:
-        case Node::kChainerROIMaxPool2D:
-        case Node::kChainerROIAveragePool2D:
-        case Node::kChainerROIMaxAlign2D:
-        case Node::kChainerROIAverageAlign2D:
-        case Node::kChainerResizeImages:
-        case Node::kChainerMaxPoolGrad:
-        case Node::kChainerAveragePoolGrad:
-        case Node::kChainerReluGrad:
-        case Node::kChainerLRNGrad: {
-            set(0, coerce());
-            break;
-        }
-
-        case Node::kChainerBatchNormalizationGrad: {
-            Dtype dtype = coerce();
-            set(0, dtype);
-            set(1, dtype);
-            set(2, dtype);
-            break;
-        }
-
         case Node::kChainerConvTransposeWithDynamicOutputShape: {
             CHECK(in2 == Dtype::kInt64 || in2 == Dtype::kUnknown) << in1.ToString() << " in " << node->ToString();
             set(0, CoerceDtype(in0, in1));
@@ -211,7 +113,6 @@ void InferDtype(Node* node) {
         }
 
         default: {
-            // TODO(hamaji): Consider revive dtype inference.
             break;
         }
     }
