@@ -18,12 +18,20 @@ try:
 except:
     has_cupy = False
 
+all_translators = ['ch2o']
+
+try:
+    import onnx_chainer  # noqa
+    all_translators.append('onnx_chainer')
+except:
+    pass
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
 sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'build/python'))
 
-import chainer_compiler
+import chainer_compiler  # noqa
 
 
 def aranges(xp, *shape):
@@ -99,7 +107,12 @@ class MLP(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-def test_mnist(device_name):
+@pytest.mark.parametrize('translator', all_translators)
+def test_mnist(device_name, translator):
+    if translator == 'onnx_chainer':
+        if device_name == 'native:0' or device_name == 'cuda:0':
+            pytest.skip()
+
     np.random.seed(40)
     if has_cupy:
         cupy.random.seed(40)
@@ -134,7 +147,8 @@ def test_mnist(device_name):
 
     expected_loss, expected_grads = _run_fwd_bwd(model, [input, target])
 
-    mlp_compiled = chainer_compiler.compile(mlp, [input])
+    mlp_compiled = chainer_compiler.compile(mlp, [input],
+                                            translator=translator)
     model = L.Classifier(mlp_compiled)
     model.to_device(device)
 
@@ -158,7 +172,12 @@ class MultiInOuts(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-def test_multi_in_outs(device_name):
+@pytest.mark.parametrize('translator', all_translators)
+def test_multi_in_outs(device_name, translator):
+    if translator == 'onnx_chainer':
+        if device_name == 'native:0' or device_name == 'cuda:0':
+            pytest.skip()
+
     device = chainer.get_device(device_name)
     device.use()
 
@@ -189,7 +208,12 @@ class ConstMul(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-def test_const_mul(device_name):
+@pytest.mark.parametrize('translator', all_translators)
+def test_const_mul(device_name, translator):
+    if translator == 'onnx_chainer':
+        if device_name == 'native:0' or device_name == 'cuda:0':
+            pytest.skip()
+
     device = chainer.get_device(device_name)
     device.use()
 
@@ -225,7 +249,12 @@ class Sequence(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-def test_sequence(device_name):
+@pytest.mark.parametrize('translator', all_translators)
+def test_sequence(device_name, translator):
+    if translator == 'onnx_chainer':
+        if device_name == 'native:0' or device_name == 'cuda:0':
+            pytest.skip()
+
     device = chainer.get_device(device_name)
     device.use()
 
@@ -266,7 +295,12 @@ class SequenceGrad(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-def test_sequence_grad(device_name):
+@pytest.mark.parametrize('translator', all_translators)
+def test_sequence_grad(device_name, translator):
+    if translator == 'onnx_chainer':
+        if device_name == 'native:0' or device_name == 'cuda:0':
+            pytest.skip()
+
     device = chainer.get_device(device_name)
     device.use()
 
@@ -317,7 +351,12 @@ class PartiallyDifferentiable(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', ['@numpy'])
-def test_partially_differentiable(device_name):
+@pytest.mark.parametrize('translator', all_translators)
+def test_partially_differentiable(device_name, translator):
+    if translator == 'onnx_chainer':
+        if device_name == 'native:0' or device_name == 'cuda:0':
+            pytest.skip()
+
     np.random.seed(40)
     device = chainer.get_device(device_name)
     device.use()
@@ -334,7 +373,7 @@ def test_partially_differentiable(device_name):
     model.to_device(device)
 
     expected_loss, expected_grads = _run_fwd_bwd(model, [xs, indices])
-    expected_gxs = [x.grad for x in xs]
+    # expected_gxs = [x.grad for x in xs]
 
     xs = aranges(device.xp, seq_length, batch_size, n_units)
     xs = [chainer.Variable(device.xp.array(x)) for x in xs]
@@ -342,7 +381,7 @@ def test_partially_differentiable(device_name):
     model = chainer_compiler.compile(model, [xs, indices])
     model.to_device(device)
     actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
-    actual_gxs = [x.grad for x in xs]
+    # actual_gxs = [x.grad for x in xs]
 
     chainerx.testing.assert_allclose(expected_loss, actual_loss, rtol=1e-5)
 
