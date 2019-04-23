@@ -14,7 +14,10 @@ class ResizeImages(chainer.Chain):
 
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     x = np.random.rand(1, 1, 129, 257).astype(np.float32)
     # x = np.random.rand(1, 256, 129, 257).astype(np.float32)
     testtools.generate_testcase(ResizeImages, [x])
+
+if __name__ == '__main__':
+    main()
