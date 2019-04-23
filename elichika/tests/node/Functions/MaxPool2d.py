@@ -27,10 +27,14 @@ class MaxPoolNoStride(chainer.Chain):
 import testtools
 import numpy as np
 
-if __name__ == '__main__':
+def main():
     x = np.random.rand(2, 3, 19, 13).astype(np.float32)
     testtools.generate_testcase(MaxPool, [x])
 
     testtools.generate_testcase(MaxPoolPad, [x], subname='pad')
 
     testtools.generate_testcase(MaxPoolNoStride, [x], subname='no_stride')
+
+
+if __name__ == '__main__':
+    main()
