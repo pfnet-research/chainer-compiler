@@ -172,6 +172,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kAdd,
             Node::kAveragePool,
             Node::kBatchNormalization,
+            Node::kClip,
             Node::kConstant,
             Node::kConcat,
             Node::kConv,
