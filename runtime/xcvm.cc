@@ -157,7 +157,7 @@ void XCVM::Run(XCVMState* state) {
         XCVMOp* op = program_[pc].get();
 
         {
-            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name(), pc);
+            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name(), pc, op->instruction().flops());
 #ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
