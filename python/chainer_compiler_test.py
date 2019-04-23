@@ -172,12 +172,8 @@ class MultiInOuts(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('translator', ['ch2o'])
 def test_multi_in_outs(device_name, translator):
-    if translator == 'onnx_chainer':
-        if device_name == 'native:0' or device_name == 'cuda:0':
-            pytest.skip()
-
     device = chainer.get_device(device_name)
     device.use()
 
@@ -188,7 +184,7 @@ def test_multi_in_outs(device_name, translator):
 
     expected = model(*inputs)
 
-    model = chainer_compiler.compile(model, inputs)
+    model = chainer_compiler.compile(model, inputs, translator=translator)
     model.to_device(device)
 
     actual = model(*inputs)
@@ -208,12 +204,8 @@ class ConstMul(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('translator', ['ch2o'])
 def test_const_mul(device_name, translator):
-    if translator == 'onnx_chainer':
-        if device_name == 'native:0' or device_name == 'cuda:0':
-            pytest.skip()
-
     device = chainer.get_device(device_name)
     device.use()
 
@@ -226,7 +218,7 @@ def test_const_mul(device_name, translator):
 
     expected = model(*inputs)
 
-    model = chainer_compiler.compile(model, inputs)
+    model = chainer_compiler.compile(model, inputs, translator=translator)
     model.to_device(device)
 
     actual = model(*inputs)
@@ -295,12 +287,8 @@ class SequenceGrad(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('translator', ['ch2o'])
 def test_sequence_grad(device_name, translator):
-    if translator == 'onnx_chainer':
-        if device_name == 'native:0' or device_name == 'cuda:0':
-            pytest.skip()
-
     device = chainer.get_device(device_name)
     device.use()
 
@@ -315,7 +303,7 @@ def test_sequence_grad(device_name, translator):
 
     expected_ys, expected_grads = _run_fwd_bwd(model, [xs])
 
-    model = chainer_compiler.compile(model, [xs])
+    model = chainer_compiler.compile(model, [xs], translator=translator)
     model.to_device(device)
     actual_ys, actual_grads = _run_fwd_bwd(model, [xs])
 
@@ -351,12 +339,8 @@ class PartiallyDifferentiable(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', ['@numpy'])
-@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('translator', ['ch2o'])
 def test_partially_differentiable(device_name, translator):
-    if translator == 'onnx_chainer':
-        if device_name == 'native:0' or device_name == 'cuda:0':
-            pytest.skip()
-
     np.random.seed(40)
     device = chainer.get_device(device_name)
     device.use()
@@ -378,7 +362,8 @@ def test_partially_differentiable(device_name, translator):
     xs = aranges(device.xp, seq_length, batch_size, n_units)
     xs = [chainer.Variable(device.xp.array(x)) for x in xs]
 
-    model = chainer_compiler.compile(model, [xs, indices])
+    model = chainer_compiler.compile(model, [xs, indices],
+                                     translator=translator)
     model.to_device(device)
     actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
     # actual_gxs = [x.grad for x in xs]
