@@ -21,6 +21,11 @@ import collections
 
 import elichika.onnx_converters as oc
 
+def _pair(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return (x, x)
+
 
 def convert_relu(onnx_graph, node):
     onnx_graph.add_node('Relu',
@@ -134,12 +139,43 @@ def convert_softmax_cross_entropy(onnx_graph, node):
         node.outputs,
         str(node.lineprop))
 
-def convert_average_pool_2d(onnx_graph, node):
+def convert_max_pooling_2d(onnx_graph, node):
     def _pair(x):
         if isinstance(x, collections.Iterable):
             return x
         return (x, x)
 
+    ksize = oc.try_get_attribute(node.args.keywords['ksize'])
+    stride = oc.try_get_attribute(node.args.keywords['stride'])
+    pad = oc.try_get_attribute(node.args.keywords['pad'])
+    cover_all = oc.try_get_attribute(node.args.keywords['cover_all'])
+    return_indices = oc.try_get_attribute(node.args.keywords['return_indices'])
+
+    assert not return_indices  # TODO(hamaji): Not implemented yet.
+
+    kwargs = {}
+    kwargs['kernel_shape'] = _pair(ksize)
+
+    if stride is not None:
+        kwargs['strides'] = _pair(stride)
+    else:
+        kwargs['strides'] = _pair(ksize)
+
+    if pad is not None:
+        kwargs['pads'] = _pair(pad) * 2
+    else:
+        kwargs['pads'] = _pair(0)
+
+    onnx_graph.add_node(
+        "MaxPool",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        chainer_cover_all=cover_all,
+        **kwargs,
+        )
+
+def convert_average_pool_2d(onnx_graph, node):
     kwargs = {}
     ksize = oc.try_get_attribute(node.inputs[1])
     kwargs['kernel_shape'] = _pair(ksize)
@@ -178,11 +214,6 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
     assert(outsize is None) # TODO(hamaji): Not supported yet.
     assert(cover_all is False) # TODO(hamaji): Not supported yet.
     
-    def _pair(x):
-        if isinstance(x, collections.Iterable):
-            return x
-        return (x, x)
-
     scales = np.array([1, 1] + list(_pair(ksize)), dtype=np.float32)
     scales_ = oc.ONNXValue(onnx_graph, scales, [node, '/Scale'], is_constant = True)
     onnx_graph.add_node(
@@ -190,6 +221,25 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
         [node.inputs[0], scales_],
         [node.outputs[0]],
         name=str(node.lineprop))
+
+def convert_resize_images(onnx_graph, node):
+    output_shape = oc.try_get_attribute(node.args.keywords['output_shape'])
+
+    onnx_graph.add_node(
+        "ChainerResizeImages",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        output_shape=_pair(output_shape))
+
+'''
+class Function_ResizeImages(Callable):
+    def call_impl(self, env, x, output_shape):
+        return env.calc(
+            'ChainerResizeImages',
+            inputs=[x.to_tensor(env).name],
+            output_shape=_pair(output_shape))
+'''
 
 def convert_reshape(onnx_graph, node):
 
