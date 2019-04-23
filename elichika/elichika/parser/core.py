@@ -89,6 +89,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
         add_chainer_funtion('reshape', F.reshape)
         add_chainer_funtion('swapaxes', F.swapaxes)
+        add_chainer_funtion('dropout', F.dropout)
+        add_chainer_funtion('concat', F.concat)
+        add_chainer_funtion('matmul', F.matmul)
 
         if int(chainer.__version__[0]) >= 6:
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)

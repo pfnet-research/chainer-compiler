@@ -36,8 +36,7 @@ TESTS = [
     Generator('node', 'PadSequence'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
-    # TODO(hamaji): Build and run this test.
-    # Generator('node', 'SoftmaxCrossEntropy'),
+    Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
 
@@ -51,6 +50,9 @@ TESTS = [
     Generator('node/Functions', 'SplitAxis'),
     Generator('node/Functions', 'Roi'),
     Generator('node/Functions', 'SwapAxes'),
+    Generator('node/Functions', 'Concat'),
+    Generator('node/Functions', 'Dropout'),
+    Generator('node/Functions', 'Matmul'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
