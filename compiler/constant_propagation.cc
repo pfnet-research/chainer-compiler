@@ -60,24 +60,25 @@ void DoConstantPropagation(Graph* graph, Node* node) {
 bool MaybePropagateConstant(Graph* graph, Node* node) {
     switch (node->op_type()) {
         // TODO(hamaji): Handle more ops.
-        case Node::kIdentity:
         case Node::kAdd:
-        case Node::kSub:
-        case Node::kMul:
-        case Node::kDiv:
+        case Node::kCast:
         case Node::kChainerGenericIs:
         case Node::kChainerGenericLen:
-        case Node::kShape:
-        case Node::kUnsqueeze:
-        case Node::kGather:
-        case Node::kSlice:
-        case Node::kExpand:
-        case Node::kCast:
         case Node::kChainerSequenceAppend:
         case Node::kChainerSequenceConcat:
         case Node::kChainerSequenceCreate:
+        case Node::kChainerSequenceRange:
         case Node::kChainerSequenceStack:
-        case Node::kChainerSequenceRange: {
+        case Node::kDiv:
+        case Node::kExpand:
+        case Node::kGather:
+        case Node::kIdentity:
+        case Node::kMul:
+        case Node::kShape:
+        case Node::kSlice:
+        case Node::kSub:
+        case Node::kTranspose:
+        case Node::kUnsqueeze: {
             DoConstantPropagation(graph, node);
             return true;
         }
