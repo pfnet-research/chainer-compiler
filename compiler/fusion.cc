@@ -117,6 +117,27 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
+void RejectUnusedConstants(std::set<Node*>* cands) {
+    std::set<Node*> rejected;
+    for (Node* node : *cands) {
+        if (node->op_type() != Node::kConstant) {
+            continue;
+        }
+        bool is_used = false;
+        for (Node* user : node->output(0)->users()) {
+            if (cands->count(user)) {
+                is_used = true;
+                break;
+            }
+        }
+        if (!is_used) {
+            CHECK(rejected.insert(node).second);
+        }
+    }
+
+    for (Node* node : rejected) cands->erase(node);
+}
+
 void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, const std::function<bool(const Node&)>& is_fusable) {
     int num_fusion_groups = 0;
     const std::vector<Node*> all_nodes(graph->nodes());
@@ -150,6 +171,7 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
         }
 
         RejectCyclicNodes(&cands);
+        RejectUnusedConstants(&cands);
 
         int num_calculation = 0;
         for (Node* node : cands) {
