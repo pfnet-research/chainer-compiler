@@ -143,7 +143,7 @@ chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const
 }
 
 chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
-    if (alpha == 1.0 && beta == 1.0 && !trans_a && trans_b) {
+    if (alpha == 1.0 && beta == 1.0 && !trans_a && trans_b && c.ndim() == 1) {
         return Linear(a, b, c);
     }
 
