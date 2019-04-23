@@ -53,6 +53,8 @@ TESTS = [
     Generator('node/Functions', 'Concat'),
     Generator('node/Functions', 'Dropout'),
     Generator('node/Functions', 'Matmul'),
+    Generator('node/Functions', 'MaxPool2d'),
+    Generator('node/Functions', 'ResizeImages'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
