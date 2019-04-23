@@ -12,8 +12,10 @@
 #include <common/protoutil.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
+#include <compiler/flops.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
+#include <compiler/memory_simulator.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
@@ -132,6 +134,22 @@ std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardTo(
     return std::make_pair(graph, backprop);
 }
 
+int64_t GetFlops(const std::shared_ptr<Graph>& graph) {
+    return CalculateTotalFlops(*graph);
+}
+
+int64_t GetPeakMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).peak;
+}
+
+int64_t GetAllMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).all;
+}
+
+int64_t GetParamMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).param;
+}
+
 std::string Dump(const std::shared_ptr<Graph>& graph) {
     return graph->DebugString();
 }
@@ -167,6 +185,10 @@ void InitGraph(py::module& m) {
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward, "Generate a pair of graphs for forward and back propagation");
     c.def("backward_to", &GenerateBackwardTo, "Generate a pair of graphs for forward and back propagation");
+    c.def("flops", &GetFlops, "Get estimated flops");
+    c.def("peak_memory_usage", &GetPeakMemoryUsage, "Get estimated peak memory usage");
+    c.def("all_memory_usage", &GetAllMemoryUsage, "Get estimated all memory usage");
+    c.def("param_memory_usage", &GetParamMemoryUsage, "Get estimated param memory usage");
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
