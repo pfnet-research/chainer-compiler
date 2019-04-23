@@ -12,6 +12,9 @@ def _is_array(v):
 
 
 def _flatten(xs):
+    if _is_array(xs):
+        return [xs]
+
     o = []
     for x in xs:
         if _is_array(x):
@@ -63,10 +66,12 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.fwd_output_names = compiled_model.fwd_output_names
         self.bwd_input_names = compiled_model.bwd_input_names
         self.bwd_output_names = compiled_model.bwd_output_names
+        self.param_names = compiled_model.param_names
         self.fwd = compiled_model.fwd
         self.bwd = compiled_model.bwd
         self.num_outputs = len(compiled_model.orig_output_names)
         self.input_tmpl = input_tmpl
+        self.num_inputs = len(_flatten(input_tmpl))
         self.chainerx_device_name = None
 
     def _to_var(self, v):
@@ -81,18 +86,23 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
             return chainer_compiler_core.value(v)
         return chainer_compiler_core.value([self._to_var(a) for a in v])
 
-    def forward(self, flat_args):
-        device = chainer.backend.get_device_from_array(*flat_args)
-        args, i = _unflatten(flat_args, self.input_tmpl)
-        assert i == len(flat_args)
+    def forward(self, args):
+        flat_inputs = args[:self.num_inputs]
+        param_values = args[self.num_inputs:]
+        device = chainer.backend.get_device_from_array(*flat_inputs)
+        inputs, i = _unflatten(flat_inputs, self.input_tmpl)
+        assert i == len(flat_inputs)
 
-        inputs = {}
-        assert len(self.fwd_input_names) == len(args)
-        for name, value in zip(self.fwd_input_names, args):
-            inputs[name] = self._to_var(value)
+        entire_inputs = {}
+        assert len(self.fwd_input_names) == len(inputs)
+        for name, value in zip(self.fwd_input_names, inputs):
+            entire_inputs[name] = self._to_var(value)
+        assert len(self.param_names) == len(param_values)
+        for name, value in zip(self.param_names, param_values):
+            entire_inputs[name] = self._to_var(value)
 
         with chainer.using_device(self.chainerx_device_name):
-            outputs = self.fwd.run(inputs)
+            outputs = self.fwd.run(entire_inputs)
         outputs_and_retained = []
         for name in self.fwd_output_names:
             outputs_and_retained.append(outputs[name])
@@ -140,16 +150,25 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
             else:
                 gxs.extend([None] * len(_flatten(tmpl)))
 
+        for name in self.param_names:
+            grad_name = 'grad_out@' + name
+            if grad_name in outputs:
+                gx = _from_var(outputs[grad_name], device)
+                gxs.append(gx)
+            else:
+                gxs.extend([None])
+
         gxs = tuple(None if gx is None else chainer.Variable(gx) for gx in gxs)
         return gxs
 
 
 class CompiledModel(chainer.Chain):
 
-    def __init__(self, model, inputs, dump_onnx=False):
+    def __init__(self, model, inputs, translator='ch2o', dump_onnx=False):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
+        self.translator = translator
         self.dump_onnx = dump_onnx
 
         self.compiled = False
@@ -159,18 +178,28 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def compile(self, inputs):
-        xmodel = ch2o.compile_model(self.mc, inputs)
-        f = tempfile.NamedTemporaryFile(delete=False)
-        f.write(xmodel.SerializeToString())
-        f.close()
-        del xmodel
+        if self.translator == 'ch2o':
+            xmodel = ch2o.compile_model(self.mc, inputs)
+            f = tempfile.NamedTemporaryFile(delete=False)
+            f.write(xmodel.SerializeToString())
+            f.close()
+            del xmodel
+        elif self.translator == 'onnx_chainer':
+            import onnx_chainer
+            f = tempfile.NamedTemporaryFile(delete=False)
+            onnx_chainer.export(self.mc, inputs, filename=f)
+            f.close()
+        else:
+            raise NotImplementedError('Unsupported translator:',
+                                      self.translator)
 
         graph = chainer_compiler_core.load(f.name)
         os.unlink(f.name)
 
         self.orig_output_names = graph.output_names()
 
-        fwd_graph, bwd_graph = graph.backward_to(graph.input_names())
+        # fwd_graph, bwd_graph = graph.backward_to(graph.input_names())
+        fwd_graph, bwd_graph = graph.backward_to(graph.param_names())
         if self.dump_onnx:
             sys.stderr.write('=== vvv forward vvv ===\n' +
                              fwd_graph.dump() +
@@ -187,7 +216,7 @@ class CompiledModel(chainer.Chain):
         # TODO(hamaji): Revive shape inference.
         self.fwd = fwd_graph.compile(skip_inference=True)
         self.bwd = bwd_graph.compile(skip_inference=True)
-        self.param_names = self.fwd_input_names[len(inputs):]
+        self.param_names = fwd_graph.param_names()
 
         self.compiled = True
 
@@ -200,6 +229,9 @@ class CompiledModel(chainer.Chain):
         if self.param_values is None:
             assert self.param_names is not None
             params = dict(self.mc.namedparams())
+            if self.translator == 'onnx_chainer':
+                params = {'param' + key.replace('/', '_'): value for key, value
+                          in params.items()}
             self.param_values = []
             for name in self.param_names:
                 assert name in params
@@ -207,7 +239,7 @@ class CompiledModel(chainer.Chain):
 
         inputs = list(args)
         flat_inputs = _flatten(inputs)
-        runner = RunCompiledModel(self, inputs + self.param_values)
+        runner = RunCompiledModel(self, inputs)
         outputs = runner.apply(flat_inputs + self.param_values)
         outputs = runner.unflatten_outputs(outputs)
         outputs = outputs[:len(self.orig_output_names)]
