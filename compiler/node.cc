@@ -180,6 +180,11 @@ bool Node::IsGradNode() const {
     return name_.find("Grad") != std::string::npos;
 }
 
+bool Node::IsZeroCost() const {
+    Node::OpType op = op_type();
+    return op == Node::kIdentity || op == Node::kConstant || op == Node::kReshape;
+}
+
 std::string Node::ToString() const {
     std::ostringstream oss;
     oss << op_type();

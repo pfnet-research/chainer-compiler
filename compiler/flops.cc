@@ -49,9 +49,14 @@ int64_t CalculateFlopsOfConv(const Node& node) {
 }
 
 int64_t CalculateFlopsImpl(const Node& node) {
+    if (node.IsZeroCost()) {
+        return 0;
+    }
+
     if (!HasKnownInOuts(node)) {
         return -1;
     }
+
     switch (node.op_type()) {
         case Node::kGemm:
             return CalculateFlopsOfGemm(node);
