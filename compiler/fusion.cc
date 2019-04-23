@@ -20,6 +20,11 @@ namespace chainer_compiler {
 
 namespace {
 
+bool IsZeroCost(const Node& node) {
+    Node::OpType op = node.op_type();
+    return op == Node::kIdentity || op == Node::kConstant || op == Node::kReshape;
+}
+
 void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id) {
     std::vector<Value*> inputs;
     std::vector<Value*> outputs;
@@ -153,7 +158,7 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
 
         int num_calculation = 0;
         for (Node* node : cands) {
-            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
+            if (!IsZeroCost(*node)) ++num_calculation;
         }
         if (num_calculation < min_fuse_ops) continue;
 
