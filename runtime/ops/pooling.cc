@@ -229,7 +229,7 @@ public:
     }
 
     chainerx::Array Run() {
-        if (n_rois < 2) {
+        if (n_rois < 20) {
             for (int64_t n = 0; n < n_rois; ++n) {
                 RunROI(n);
             }
