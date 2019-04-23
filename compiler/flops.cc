@@ -100,7 +100,9 @@ int64_t CalculateFlops(const Node& node, int* num_unknown_flops) {
         CHECK_EQ(1, subgraphs.size());
         return CalculateFlopsOfGraph(*subgraphs[0], num_unknown_flops);
     } else {
-        ++*num_unknown_flops;
+        if (num_unknown_flops) {
+            ++*num_unknown_flops;
+        }
         return -1;
     }
 }
