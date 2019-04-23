@@ -49,6 +49,9 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.reshape] = fb.convert_reshape
     oc.chainer_f_converter[F.split_axis] = fb.convert_split_axis
     oc.chainer_f_converter[F.swapaxes] = fb.convert_swapaxes
+    oc.chainer_f_converter[F.dropout] = fb.convert_dropout
+    oc.chainer_f_converter[F.matmul] = fb.convert_matmul
+    oc.chainer_f_converter[F.concat] = fb.convert_concat
 
     if int(chainer.__version__[0]) >= 6:
         oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.convert_roi_max_pooling_2d

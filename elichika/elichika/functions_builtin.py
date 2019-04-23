@@ -58,14 +58,81 @@ def convert_pad_sequence(onnx_graph, node):
         **kwargs)
 
 
+def convert_dropout(onnx_graph, node):
+    x = oc.ONNXValue(onnx_graph,node.args.keywords['x'])
+    ratio = oc.try_get_attribute(node.args.keywords['ratio'])
+
+    onnx_graph.add_node(
+        "Dropout",
+        [x],
+        node.outputs,
+        str(node.lineprop),
+        ratio=ratio,
+        )
+
+
+def convert_matmul(onnx_graph, node):
+    a = oc.ONNXValue(onnx_graph,node.args.keywords['a'])
+    b = oc.ONNXValue(onnx_graph,node.args.keywords['b'])
+    transa = oc.try_get_attribute(node.args.keywords['transa'])
+    transb = oc.try_get_attribute(node.args.keywords['transb'])
+    assert not transa  # TODO(hamaji): Not supported yet.
+    assert not transb  # TODO(hamaji): Not supported yet.
+
+    onnx_graph.add_node(
+        "MatMul",
+        [a.create_tensor(), b.create_tensor()],
+        node.outputs,
+        str(node.lineprop),
+        )
+
+def convert_concat(onnx_graph, node):
+    xs = oc.ONNXValue(onnx_graph,node.args.keywords['xs'])
+    axis = oc.try_get_attribute(node.args.keywords['axis'])
+
+    if isinstance(node.args.inputs[0], values.TupleValue) and node.args.inputs[0].has_constant_value():
+        vs = []
+        for v in xs.value.get_constant_value():
+            v_ = oc.ONNXValue(onnx_graph, v)
+            vs.append(v_)
+
+        onnx_graph.add_node(
+            "Concat",
+            vs,
+            node.outputs,
+            str(node.lineprop),
+            axis=axis,
+            )
+
+    elif isinstance(node.args.inputs[0], values.ListValue):
+        onnx_graph.add_node(
+            "ChainerSequenceConcat",
+            [xs.create_sequence()],
+            node.outputs,
+            str(node.lineprop),
+            axis=axis,
+            )
+
 def convert_softmax_cross_entropy(onnx_graph, node):
+    normalize = oc.try_get_attribute(node.args.keywords['normalize'])
+    cache_score = oc.try_get_attribute(node.args.keywords['cache_score'])
+    class_weight = oc.try_get_attribute(node.args.keywords['class_weight'])
+    ignore_label = oc.try_get_attribute(node.args.keywords['ignore_label'])
+    reduce = oc.try_get_attribute(node.args.keywords['reduce'])
+    enable_double_backprop = oc.try_get_attribute(node.args.keywords['enable_double_backprop'])
+    
+    assert normalize  # TODO(hamaji): Not supported yet.
+    assert cache_score  # TODO(hamaji): Not supported yet.
+    assert class_weight is None  # TODO(hamaji): Not supported yet.
+    assert ignore_label == -1  # TODO(hamaji): Not supported yet.
+    assert reduce == 'mean'  # TODO(hamaji): Not supported yet.
+    assert not enable_double_backprop  # TODO(hamaji): Not supported yet.
 
     onnx_graph.add_node(
         "ChainerSoftmaxCrossEntropy",
-        node.inputs,
+        node.inputs[0:2],
         node.outputs,
         str(node.lineprop))
-
 
 def convert_average_pool_2d(onnx_graph, node):
     def _pair(x):

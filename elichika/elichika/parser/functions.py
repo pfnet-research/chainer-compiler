@@ -188,6 +188,8 @@ class FunctionArgCollection():
         if isinstance(value, values.Value):
             value = values.ValueRef(value)
 
+        assert not(name in self.args.keys())
+
         fa = FunctionArg(name, value)
         self.args_list.append(fa)
         self.args[fa.name] = fa
@@ -196,12 +198,23 @@ class FunctionArgCollection():
         sig = inspect.signature(func)
         argspec = inspect.getargspec(func)
 
-        isSelfRemoved = len(sig.parameters.keys()) != len(argspec[0])
+        parameter_count = 0
+        for k, v in sig.parameters.items():
+            # TODO improve it
+            if k == 'kwargs':
+                continue
+            parameter_count += 1
+
+        isSelfRemoved = parameter_count != len(argspec[0])
 
         if isSelfRemoved:
             self.add_arg(argspec[0][0], None)
 
         for k, v in sig.parameters.items():
+            # TODO improve it
+            if k == 'kwargs':
+                continue
+
             self.add_arg(v.name, values.parse_instance(None, v.name, v.default))
 
     def merge_inputs(self, self_valueref, inputs: 'FunctionArgInput') -> 'FunctionArgInput':
