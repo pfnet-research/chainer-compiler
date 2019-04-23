@@ -175,7 +175,7 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
 
         int num_calculation = 0;
         for (Node* node : cands) {
-            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
+            if (!node->IsZeroCost()) ++num_calculation;
         }
         if (num_calculation < min_fuse_ops) continue;
 
@@ -194,6 +194,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kAdd,
             Node::kAveragePool,
             Node::kBatchNormalization,
+            Node::kClip,
             Node::kConstant,
             Node::kConcat,
             Node::kConv,
