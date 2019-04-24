@@ -199,7 +199,8 @@ class CompiledModel(chainer.Chain):
         self.orig_output_names = graph.output_names()
 
         # fwd_graph, bwd_graph = graph.backward_to(graph.input_names())
-        fwd_graph, bwd_graph = graph.backward_to(graph.param_names())
+        fwd_graph, bwd_graph = graph.backward_to(
+            graph.input_names() + graph.param_names())
         if self.dump_onnx:
             sys.stderr.write('=== vvv forward vvv ===\n' +
                              fwd_graph.dump() +
