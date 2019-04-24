@@ -69,6 +69,9 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
             value->set_type(new Type());
         }
     }
+    if (g_reset_output_shape || g_reset_shape) {
+        graph->InferShapes();
+    }
 
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
 
