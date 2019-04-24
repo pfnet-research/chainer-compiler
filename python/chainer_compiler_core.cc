@@ -104,6 +104,7 @@ std::shared_ptr<runtime::XCVM> Compile(
 bool IsParam(Value* value) {
     const std::string& name = value->name();
     // the second condition is for ch2o
+    // TODO(hamaji): Remove the check for '/' after deprecating ch2o
     return value->initializer() || (name.size() >= 1 && name[0] == '/');
 }
 
