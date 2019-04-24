@@ -118,6 +118,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
         f_full = values.FuncValue(functions_ndarray.NDArrayFullFunction(), None)
         f_dict.get_field().get_attribute('full').revise(values.ValueRef(f_full))
 
+        f_ceil = values.FuncValue(functions_ndarray.NDArrayCeilFunction(), None)
+        f_dict.get_field().get_attribute('ceil').revise(values.ValueRef(f_ceil))
+
         f_dict.get_field().get_attribute('int32').revise(
             values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))
         f_dict.get_field().get_attribute('float32').revise(

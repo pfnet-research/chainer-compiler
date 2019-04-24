@@ -281,6 +281,13 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             [node.outputs[0]],
             str(node.lineprop))
 
+    if isinstance(node.func, functions_ndarray.NDArrayCeilFunction):
+        onnx_node = onnx_graph.add_node(
+            "Ceil",
+            [node.inputs[0]],
+            [node.outputs[0]],
+            str(node.lineprop))
+
     if isinstance(node.func, links_builtin.ChainerLinkFunction):
         original_inst = node.func.owner.inst
         chainer_l_converter[type(original_inst)](onnx_graph, node)
