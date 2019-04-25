@@ -103,10 +103,25 @@ std::shared_ptr<runtime::XCVM> Compile(
     return std::make_shared<runtime::XCVM>(xcvm_prog);
 }
 
+bool IsParam(Value* value) {
+    const std::string& name = value->name();
+    // the second condition is for ch2o
+    // TODO(hamaji): Remove the check for '/' after deprecating ch2o
+    return value->initializer() || (name.size() >= 1 && name[0] == '/');
+}
+
 std::vector<std::string> GetInputNames(const std::shared_ptr<Graph>& graph) {
     std::vector<std::string> names;
     for (Value* value : graph->input_values()) {
-        if (!value->initializer()) names.push_back(value->name());
+        if (!IsParam(value)) names.push_back(value->name());
+    }
+    return names;
+}
+
+std::vector<std::string> GetParamNames(const std::shared_ptr<Graph>& graph) {
+    std::vector<std::string> names;
+    for (Value* value : graph->input_values()) {
+        if (IsParam(value)) names.push_back(value->name());
     }
     return names;
 }
@@ -182,6 +197,7 @@ void InitGraph(py::module& m) {
           py::arg("dump_after_scheduling") = false,
           py::arg("dump_subgraphs") = false);
     c.def("input_names", &GetInputNames, "Names of inputs");
+    c.def("param_names", &GetParamNames, "Names of params");
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward, "Generate a pair of graphs for forward and back propagation");
     c.def("backward_to", &GenerateBackwardTo, "Generate a pair of graphs for forward and back propagation");
