@@ -57,7 +57,7 @@ chainerx::Array SigmoidOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
 }
 
 chainerx::Array SoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return chainerx::Exp(chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)}));
+    return chainerx::Softmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
 }
 
 chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
