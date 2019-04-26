@@ -164,10 +164,11 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
             std::vector<size_t> mask_indices(roi_l_list_cut.size());
             std::iota(mask_indices.begin(), mask_indices.end(), 0);
             const auto mask_indices_end_iter = std::remove_if(mask_indices.begin(), mask_indices.end(), [&roi_l_list_cut](size_t i) {
-                const double roi_l_tly = static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({0})));
-                const double roi_l_tlx = static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({1})));
-                const double roi_l_bry = static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({2})));
-                const double roi_l_brx = static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({3})));
+                const float* p = static_cast<float*>(at(roi_l_list_cut, i).raw_data());
+                const double roi_l_tly = *(p+0);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({0})));
+                const double roi_l_tlx = *(p+1);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({1})));
+                const double roi_l_bry = *(p+2);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({2})));
+                const double roi_l_brx = *(p+3);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({3})));
                 return (roi_l_bry <= roi_l_tly) || (roi_l_brx <= roi_l_tlx);
             });
             const size_t masked_size = std::distance(mask_indices.begin(), mask_indices_end_iter);
