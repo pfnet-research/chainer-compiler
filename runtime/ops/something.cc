@@ -35,10 +35,10 @@ std::vector<Int> argsort(Iter first, Iter last, Comp comp) {
 }
 
 std::array<double, 4> extract_tlbr(chainerx::Array const& a) {
-    const double tly = static_cast<double>(chainerx::AsScalar(a.At({0})));
-    const double tlx = static_cast<double>(chainerx::AsScalar(a.At({1})));
-    const double bry = static_cast<double>(chainerx::AsScalar(a.At({2})));
-    const double brx = static_cast<double>(chainerx::AsScalar(a.At({3})));
+    const double tly = *(static_cast<float*>(a.raw_data()) + 0);//static_cast<double>(chainerx::AsScalar(a.At({0})));
+    const double tlx = *(static_cast<float*>(a.raw_data()) + 1);//static_cast<double>(chainerx::AsScalar(a.At({1})));
+    const double bry = *(static_cast<float*>(a.raw_data()) + 2);//static_cast<double>(chainerx::AsScalar(a.At({2})));
+    const double brx = *(static_cast<float*>(a.raw_data()) + 3);//static_cast<double>(chainerx::AsScalar(a.At({3})));
     return std::array<double, 4>{{tly, tlx, bry, brx}};
 }
 
