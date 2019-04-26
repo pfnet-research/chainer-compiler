@@ -101,7 +101,7 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         std::vector<double> confs_list_per_batch;
         for (size_t l = 0; l < scales.size(); ++l) {
             const chainerx::Array loc_l = locs[l].At({b});
-            const chainerx::Array conf_l = confs[l].At({b});
+            const float* conf_l = static_cast<float*>(confs[l].raw_data()) + b * confs[l].shape()[1];
             const auto& h_l = hs[l];
             const int64_t k_l = loc_l.shape()[0];
             assert(k_l == h_l.shape()[1] * h_l.shape()[2] * k_anchor_ratios.size());
@@ -149,8 +149,11 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
             std::vector<size_t> cut_indices(k_l);
             std::iota(cut_indices.begin(), cut_indices.end(), 0);
             std::sort(cut_indices.begin(), cut_indices.end(), [&conf_l](size_t i, size_t j) {
+                return *(conf_l + i) > *(conf_l + j);
+                /*
                 return static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(i)}))) >
                        static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(j)})));
+                */
             });  // TODO(okada) can we use nth_element?
             std::vector<chainerx::Array> roi_l_list_cut(std::min(static_cast<size_t>(k_l), k_nms_limit_pre));
             std::vector<double> conf_l_list_cut(std::min(static_cast<size_t>(k_l), k_nms_limit_pre));
@@ -159,7 +162,8 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
                         return at(roi_l_list, i);
                     });
             std::transform(cut_indices.begin(), cut_indices.begin() + conf_l_list_cut.size(), conf_l_list_cut.begin(), [&conf_l](size_t i) {
-                return static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(i)})));
+                return *(conf_l + i);
+                // return static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(i)})));
             });
 
             // mask
