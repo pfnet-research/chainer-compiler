@@ -6,7 +6,9 @@ set -eux
 
 time sudo pip3 install third_party/chainer
 time sudo pip3 install third_party/onnx-chainer
-time sudo pip3 install onnx==1.4.0
+# TODO(hamaji): Remove this once ONNX-chainer becomes compatible with
+# ONNX-1.5.0.
+time sudo pip3 install onnx==1.4.1
 
 time bash setup.sh
 
