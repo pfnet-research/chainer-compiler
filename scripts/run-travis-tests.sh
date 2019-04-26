@@ -6,6 +6,7 @@ set -eux
 
 time sudo pip3 install third_party/chainer
 time sudo pip3 install third_party/onnx-chainer
+time sudo pip3 install onnx==1.4.0
 
 time bash setup.sh
 
