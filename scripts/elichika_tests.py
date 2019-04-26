@@ -25,7 +25,7 @@ TESTS = [
     # of SoftmaxCrossEntropy.
     Generator('model', 'MLP', fail=True),
     # TODO(hamaji): Build and run this test.
-    # Generator('model', 'Alex'),
+    Generator('model', 'Alex'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
@@ -39,6 +39,7 @@ TESTS = [
     Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
+    Generator('node', 'LRN'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),
