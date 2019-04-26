@@ -35,10 +35,10 @@ std::vector<Int> argsort(Iter first, Iter last, Comp comp) {
 }
 
 std::array<double, 4> extract_tlbr(chainerx::Array const& a) {
-    const double tly = *(static_cast<float*>(a.raw_data()) + 0);//static_cast<double>(chainerx::AsScalar(a.At({0})));
-    const double tlx = *(static_cast<float*>(a.raw_data()) + 1);//static_cast<double>(chainerx::AsScalar(a.At({1})));
-    const double bry = *(static_cast<float*>(a.raw_data()) + 2);//static_cast<double>(chainerx::AsScalar(a.At({2})));
-    const double brx = *(static_cast<float*>(a.raw_data()) + 3);//static_cast<double>(chainerx::AsScalar(a.At({3})));
+    const double tly = *(static_cast<float*>(a.raw_data()) + 0);
+    const double tlx = *(static_cast<float*>(a.raw_data()) + 1);
+    const double bry = *(static_cast<float*>(a.raw_data()) + 2);
+    const double brx = *(static_cast<float*>(a.raw_data()) + 3);
     return std::array<double, 4>{{tly, tlx, bry, brx}};
 }
 
@@ -165,10 +165,10 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
             std::iota(mask_indices.begin(), mask_indices.end(), 0);
             const auto mask_indices_end_iter = std::remove_if(mask_indices.begin(), mask_indices.end(), [&roi_l_list_cut](size_t i) {
                 const float* p = static_cast<float*>(at(roi_l_list_cut, i).raw_data());
-                const double roi_l_tly = *(p+0);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({0})));
-                const double roi_l_tlx = *(p+1);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({1})));
-                const double roi_l_bry = *(p+2);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({2})));
-                const double roi_l_brx = *(p+3);//static_cast<double>(chainerx::AsScalar(at(roi_l_list_cut, i).At({3})));
+                const double roi_l_tly = *(p + 0);
+                const double roi_l_tlx = *(p + 1);
+                const double roi_l_bry = *(p + 2);
+                const double roi_l_brx = *(p + 3);
                 return (roi_l_bry <= roi_l_tly) || (roi_l_brx <= roi_l_tlx);
             });
             const size_t masked_size = std::distance(mask_indices.begin(), mask_indices_end_iter);
