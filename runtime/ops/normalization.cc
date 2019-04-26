@@ -1,3 +1,4 @@
+#include <chainerx/kernels/normalization.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 #include <chainerx/routines/normalization.h>
@@ -160,7 +161,7 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
     const Array& beta_reshaped = result.beta;
     std::shared_ptr<chainerx::BatchNormGradState> state;
     chainerx::Array out;
-    std::tie(out, state) = x.device().backend().CallOp<chainerx::BatchNormOp>(
+    std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
             x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, nonstd::nullopt);
     XCVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
     if (st->options().dump_memory_usage) {
@@ -202,7 +203,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalization
         XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
     auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
     chainerx::Array gx, ggamma, gbeta;
-    std::tie(gx, ggamma, gbeta) = gy.device().backend().CallOp<chainerx::BatchNormGradOp>(
+    std::tie(gx, ggamma, gbeta) = gy.device().backend().CallKernel<chainerx::BatchNormGradKernel>(
             context.x(),
             context.gamma(),
             gy,

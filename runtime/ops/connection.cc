@@ -1,3 +1,4 @@
+#include <chainerx/kernels/connection.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/manipulation.h>
@@ -43,7 +44,7 @@ chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
 }
 
 chainerx::Array ConvGradWeightOp::RunImpl(XCVMState* st, const chainerx::Array& w, const chainerx::Array& x, const chainerx::Array& gy) {
-    return x.device().backend().CallOp<chainerx::ConvGradWeightOp>(
+    return x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
             w.dtype(), w.shape(), x, gy, ComplementStride(strides, x), ComplementPad(pads, x), false /* cover_all */, nonstd::nullopt);
 }
 

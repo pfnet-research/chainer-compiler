@@ -1,5 +1,6 @@
 #include <limits>
 
+#include <chainerx/kernels/math.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/math.h>
 
@@ -25,7 +26,7 @@ chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     } else {
         CHECK(false) << "TODO(hamaji): Unsupported dtype: " << x.dtype();
     }
-    x.device().backend().CallOp<chainerx::IfLessElseASSAOp>(x, eps, chainerx::Scalar(0.0), gy, out);
+    x.device().backend().CallKernel<chainerx::IfLessElseASSAKernel>(x, eps, chainerx::Scalar(0.0), gy, out);
     return out;
 }
 
