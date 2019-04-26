@@ -12,7 +12,7 @@ namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    return chainerx::Maximum(x, 0);
+    return chainerx::Relu(x);
 }
 
 chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
