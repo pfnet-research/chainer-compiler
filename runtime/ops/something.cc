@@ -48,7 +48,7 @@ double calc_area(std::array<double, 4> const& tlbr) {
 
 template <typename T>
 const T& at(const std::vector<T>& v, size_t i) {
-    //return v.at(i);
+    // return v.at(i);
     return v[i];
 }
 
@@ -93,6 +93,8 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         const std::vector<double>& scales) {
     const size_t k_nms_limit_pre = k_train_nms_limit_pre;
     const size_t k_nms_limit_post = k_train_nms_limit_post;
+    const double in_shape_h = static_cast<double>(AsScalar(in_shape.At({2})));
+    const double in_shape_w = static_cast<double>(AsScalar(in_shape.At({3})));
     std::vector<chainerx::Array> rois_list;
     std::vector<chainerx::Array> roi_indices_list;
     const int64_t batch_size = static_cast<int64_t>(chainerx::AsScalar(in_shape.At({0})));
@@ -100,11 +102,10 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         std::vector<chainerx::Array> rois_list_per_batch;
         std::vector<double> confs_list_per_batch;
         for (size_t l = 0; l < scales.size(); ++l) {
-            const chainerx::Array loc_l = locs[l].At({b});
+            const float* loc_l = static_cast<float*>(locs[l].raw_data()) + b * locs[l].shape()[1] * locs[l].shape()[2];
             const float* conf_l = static_cast<float*>(confs[l].raw_data()) + b * confs[l].shape()[1];
             const auto& h_l = hs[l];
-            const int64_t k_l = loc_l.shape()[0];
-            assert(k_l == h_l.shape()[1] * h_l.shape()[2] * k_anchor_ratios.size());
+            const int64_t k_l = locs[l].shape()[1];
             std::vector<chainerx::Array> roi_l_list;
             for (size_t u = 0; u < h_l.shape()[2]; ++u) {
                 for (size_t v = 0; v < h_l.shape()[3]; ++v) {
@@ -118,10 +119,10 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
                         const double aw = w * (k_anchor_size << l) * scales[l];
 
                         const int64_t k = h_l.shape()[3] * k_anchor_ratios.size() * u + k_anchor_ratios.size() * v + iar;
-                        const double loc_l_y = static_cast<double>(chainerx::AsScalar(loc_l.At({k, 0})));
-                        const double loc_l_x = static_cast<double>(chainerx::AsScalar(loc_l.At({k, 1})));
-                        const double loc_l_h = static_cast<double>(chainerx::AsScalar(loc_l.At({k, 2})));
-                        const double loc_l_w = static_cast<double>(chainerx::AsScalar(loc_l.At({k, 3})));
+                        const double loc_l_y = *(loc_l + k * 4 + 0);
+                        const double loc_l_x = *(loc_l + k * 4 + 1);
+                        const double loc_l_h = *(loc_l + k * 4 + 2);
+                        const double loc_l_w = *(loc_l + k * 4 + 3);
 
                         const double roi_l_y = ay + ah * loc_l_y;
                         const double roi_l_x = ax + aw * loc_l_x;
@@ -131,10 +132,8 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
                         // yxhw -> tlbr (top left, bottom right)
                         const double roi_l_tly = std::max(roi_l_y - roi_l_h / 2.0, 0.0);
                         const double roi_l_tlx = std::max(roi_l_x - roi_l_w / 2.0, 0.0);
-                        const double roi_l_bry =
-                                std::min(roi_l_y + roi_l_h / 2.0, static_cast<double>(chainerx::AsScalar(in_shape.At({2}))));
-                        const double roi_l_brx =
-                                std::min(roi_l_x + roi_l_w / 2.0, static_cast<double>(chainerx::AsScalar(in_shape.At({3}))));
+                        const double roi_l_bry = std::min(roi_l_y + roi_l_h / 2.0, in_shape_h);
+                        const double roi_l_brx = std::min(roi_l_x + roi_l_w / 2.0, in_shape_w);
                         auto data = std::shared_ptr<void>(new float[4]{static_cast<float>(roi_l_tly),
                                                                        static_cast<float>(roi_l_tlx),
                                                                        static_cast<float>(roi_l_bry),
@@ -150,10 +149,6 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
             std::iota(cut_indices.begin(), cut_indices.end(), 0);
             std::sort(cut_indices.begin(), cut_indices.end(), [&conf_l](size_t i, size_t j) {
                 return *(conf_l + i) > *(conf_l + j);
-                /*
-                return static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(i)}))) >
-                       static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(j)})));
-                */
             });  // TODO(okada) can we use nth_element?
             std::vector<chainerx::Array> roi_l_list_cut(std::min(static_cast<size_t>(k_l), k_nms_limit_pre));
             std::vector<double> conf_l_list_cut(std::min(static_cast<size_t>(k_l), k_nms_limit_pre));
@@ -163,7 +158,6 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
                     });
             std::transform(cut_indices.begin(), cut_indices.begin() + conf_l_list_cut.size(), conf_l_list_cut.begin(), [&conf_l](size_t i) {
                 return *(conf_l + i);
-                // return static_cast<double>(chainerx::AsScalar(conf_l.At({static_cast<int64_t>(i)})));
             });
 
             // mask
@@ -235,7 +229,7 @@ std::vector<chainerx::Array> DoSomethingOp::RunImpl(chainer_compiler::runtime::X
         constexpr int64_t k_n_pyramids = 5;
         const std::vector<double> k_scales({1. / 4, 1. / 8, 1. / 16, 1. / 32, 1. / 64});
         assert(k_scales.size() == k_n_pyramids);
-        assert(inputs.size() == (3 * n_pyramids + 1));
+        assert(inputs.size() == (3 * k_n_pyramids + 1));
         const std::vector<chainerx::Array> hs(inputs.begin() + 0 * k_n_pyramids, inputs.begin() + 1 * k_n_pyramids);
         const std::vector<chainerx::Array> locs(inputs.begin() + 1 * k_n_pyramids, inputs.begin() + 2 * k_n_pyramids);
         const std::vector<chainerx::Array> confs(inputs.begin() + 2 * k_n_pyramids, inputs.begin() + 3 * k_n_pyramids);
