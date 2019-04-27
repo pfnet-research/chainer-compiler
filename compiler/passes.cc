@@ -69,7 +69,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
             value->set_type(new Type());
         }
     }
-    if (g_reset_output_shape || g_reset_shape) {
+    if (!g_skip_inference) {
         graph->InferShapes();
     }
 
