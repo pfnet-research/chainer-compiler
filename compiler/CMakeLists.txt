@@ -58,6 +58,7 @@ add_library(chainer_compiler_compiler
   graph.cc
   graph_builder.cc
   memory_simulator.cc
+  merge.cc
   model.cc
   node.cc
   nvrtc_builder.cc
