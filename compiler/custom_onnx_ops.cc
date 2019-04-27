@@ -459,7 +459,7 @@ ONNX_OPERATOR_SET_SCHEMA(
 namespace {
 
 static const char* Split_ver9_doc =
-    R"DOC(Split a tensor into a list of tensors, along the specified
+        R"DOC(Split a tensor into a list of tensors, along the specified
 'axis'. Lengths of the parts can be specified using argument 'split'.
 Otherwise, the tensor is split to equal sized parts.
 )DOC";
@@ -502,51 +502,32 @@ void InferSplit(InferenceContext& ctx) {
             return;
         }
     } else {
-        int chunkSize =
-            splitDimValue / static_cast<int>(ctx.getNumOutputs());
-        int leftOver = splitDimValue -
-            (chunkSize * static_cast<int>(ctx.getNumOutputs()));
+        int chunkSize = splitDimValue / static_cast<int>(ctx.getNumOutputs());
+        int leftOver = splitDimValue - (chunkSize * static_cast<int>(ctx.getNumOutputs()));
         for (int i = 0; i < static_cast<int>(ctx.getNumOutputs()); i++) {
             split.push_back(i < leftOver ? chunkSize + 1 : chunkSize);
         }
     }
 
     for (size_t i = 0; i < ctx.getNumOutputs(); i++) {
-        *ctx.getOutputType(i)->mutable_tensor_type()->mutable_shape() =
-            shape;
-        ctx.getOutputType(i)
-            ->mutable_tensor_type()
-            ->mutable_shape()
-            ->mutable_dim(axis)
-            ->set_dim_value(split[i]);
+        *ctx.getOutputType(i)->mutable_tensor_type()->mutable_shape() = shape;
+        ctx.getOutputType(i)->mutable_tensor_type()->mutable_shape()->mutable_dim(axis)->set_dim_value(split[i]);
     }
 }
 
 }  // namespace
 
 ONNX_OPERATOR_SET_SCHEMA(
-    Split,
-    9,
-    OpSchema()
-        .Input(0, "input", "The tensor to split", "T")
-        .Output(
-            0,
-            "outputs",
-            "One or more outputs forming list of tensors after splitting",
-            "T",
-            OpSchema::Variadic)
-        .TypeConstraint(
-            "T",
-            OpSchema::all_tensor_types(),
-            "Constrain input and output types to all tensor types.")
-        .Attr(
-            "axis",
-            "Which axis to split on.",
-            AttributeProto::INT,
-            static_cast<int64_t>(0))
-        .Attr("split", "length of each output", AttributeProto::INTS, OPTIONAL)
-        .SetDoc(Split_ver9_doc)
-        .TypeAndShapeInferenceFunction(InferSplit));
+        Split,
+        9,
+        OpSchema()
+                .Input(0, "input", "The tensor to split", "T")
+                .Output(0, "outputs", "One or more outputs forming list of tensors after splitting", "T", OpSchema::Variadic)
+                .TypeConstraint("T", OpSchema::all_tensor_types(), "Constrain input and output types to all tensor types.")
+                .Attr("axis", "Which axis to split on.", AttributeProto::INT, static_cast<int64_t>(0))
+                .Attr("split", "length of each output", AttributeProto::INTS, OPTIONAL)
+                .SetDoc(Split_ver9_doc)
+                .TypeAndShapeInferenceFunction(InferSplit));
 
 class Custom_OpSet_Onnx_ver9 {
 public:
