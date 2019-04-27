@@ -370,7 +370,7 @@ void FuseOperations(Graph* graph, bool use_tvm, bool use_ngraph) {
     // Fuse ops in subgraphs first to avoid infinite loop.
     for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
-            FuseOperations(subgraph, use_tvm);
+            FuseOperations(subgraph, use_tvm, use_ngraph);
         }
     }
 
