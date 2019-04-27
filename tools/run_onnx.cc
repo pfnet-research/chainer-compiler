@@ -234,7 +234,8 @@ public:
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
             GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
-
+            // TODO(hamaji): Revive shape inference.
+            g_skip_inference = true;
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph());
             CompileModel(model, &xcvm_);
@@ -447,7 +448,6 @@ void RunMain(const std::vector<std::string>& argv) {
     RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     Model model(xmodel);
-    if (!g_skip_inference) model.mutable_graph()->InferShapes();
 
     LOG() << "Loading data..." << std::endl;
 
