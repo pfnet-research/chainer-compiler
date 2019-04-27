@@ -91,6 +91,7 @@ add_executable(compiler_test
   flops_test.cc
   fusion_test.cc
   gradient_test.cc
+  merge_test.cc
   model_test.cc
   scheduler_test.cc
   shape_evaluator_test.cc
