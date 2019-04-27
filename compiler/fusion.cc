@@ -216,6 +216,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kSqrt,
             Node::kSqueeze,
             // Node::kSoftmax,
+            Node::kSplit,
             Node::kSub,
             Node::kSum,
             Node::kTanh,
