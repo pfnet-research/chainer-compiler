@@ -940,6 +940,26 @@ class ONNXGenerator:
 
                 onnx_graph.nodes.append(onnx_node)
 
+            if isinstance(node, nodes.NodeTensorAttribute):
+                node_ = node  # type: nodes.NodeShape
+
+                if node_.type == 'shape':
+                    onnx_node = oh.make_node(
+                        'ChainerSequenceSeparate',
+                        [value2onnx_parameter[node_.value].onnx_name],
+                        [value2onnx_parameter[node_.outputs[0]].onnx_name],
+                        str(node.lineprop)
+                    )
+                elif node_.type == 'size':
+                    onnx_node = oh.make_node(
+                        'Size',
+                        [value2onnx_parameter[node_.value].onnx_name],
+                        [value2onnx_parameter[node_.outputs[0]].onnx_name],
+                        str(node.lineprop)
+                    )
+
+                onnx_graph.nodes.append(onnx_node)
+
             if isinstance(node, nodes.NodeFor):
                 node_ = node  # type: nodes.NodeFor
 
