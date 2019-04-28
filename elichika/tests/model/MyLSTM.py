@@ -44,6 +44,17 @@ class MyLSTM(chainer.Chain):
         #h = self.initial_h
         #c = self.initial_c
         inputs = F.pad_sequence(xs)
+        x = None
+        input = None
+        gate = None
+        i = None
+        o = None
+        f = None
+        nc = None
+        nh = None
+        m = None
+        pmask = None
+        nmask = None
         for time in range(max_len):
             x = inputs[:, time]
             input = F.concat((x, h), axis=1)
@@ -83,7 +94,7 @@ def main():
     num_vocabs = 10
     num_hidden = 5
 
-    model_fn = lambda: MyLSTM(num_hidden, batch_size, sequence_length)
+    model_fn = MyLSTM(num_hidden, batch_size, sequence_length)
 
     labels, lengths = sequence_utils.gen_random_sequence(
         batch_size, sequence_length, num_vocabs)

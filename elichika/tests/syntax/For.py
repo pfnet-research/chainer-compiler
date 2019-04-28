@@ -27,6 +27,12 @@ class B(chainer.Chain):
             h = inputs[:, time]
         return h
 
+class B2(chainer.Chain):
+    def forward(self, xs, l):
+        inputs = F.pad_sequence(xs)
+        for time in range(l):
+            h = inputs[:, time]
+        return h
 
 class C(chainer.Chain):
     def forward(self):
@@ -140,6 +146,14 @@ def main():
     testtools.generate_testcase(DoubleForBackprop(),
                            [np.random.rand(4, 3).astype(np.float32), 2, 5],
                            subname='double_for', backprop=True)
+
+    # Bugs.
+    model = lambda: B()
+    testtools.generate_testcase(model, args, subname='lambda_bug')
+
+    # model = B2()
+    # testtools.generate_testcase(model, args, subname='forloop_bug')
+
 
 
 if __name__ == '__main__':
