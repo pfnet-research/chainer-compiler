@@ -54,6 +54,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.concat] = fb.convert_concat
     oc.chainer_f_converter[F.max_pooling_2d] = fb.convert_max_pooling_2d
     oc.chainer_f_converter[F.resize_images] = fb.convert_resize_images
+    oc.chainer_f_converter[F.local_response_normalization] = fb.convert_local_response_normalization
 
     if int(chainer.__version__[0]) >= 6:
         oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.convert_roi_max_pooling_2d

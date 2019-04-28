@@ -125,7 +125,7 @@ def convert_softmax_cross_entropy(onnx_graph, node):
     ignore_label = oc.try_get_attribute(node.args.keywords['ignore_label'])
     reduce = oc.try_get_attribute(node.args.keywords['reduce'])
     enable_double_backprop = oc.try_get_attribute(node.args.keywords['enable_double_backprop'])
-    
+
     assert normalize  # TODO(hamaji): Not supported yet.
     assert cache_score  # TODO(hamaji): Not supported yet.
     assert class_weight is None  # TODO(hamaji): Not supported yet.
@@ -208,12 +208,12 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
     pad = oc.try_get_attribute(node.args.keywords['pad'])
     outsize = oc.try_get_attribute(node.args.keywords['outsize'])
     cover_all = oc.try_get_attribute(node.args.keywords['cover_all'])
-    
+
     assert(stride is None) # TODO(hamaji): Not supported yet.
     assert(pad == 0) # TODO(hamaji): Not supported yet.
     assert(outsize is None) # TODO(hamaji): Not supported yet.
     assert(cover_all is False) # TODO(hamaji): Not supported yet.
-    
+
     scales = np.array([1, 1] + list(_pair(ksize)), dtype=np.float32)
     scales_ = oc.ONNXValue(onnx_graph, scales, [node, '/Scale'], is_constant = True)
     onnx_graph.add_node(
@@ -361,3 +361,18 @@ def convert_roi_average_align_2d(onnx_graph, node):
         spatial_scale=oc.try_get_attribute(spatial_scale.value),
         sampling_ratio=_pair(oc.try_get_attribute(sampling_ratio.value)))
     return
+
+def convert_local_response_normalization(onnx_graph, node):
+    kwargs = {}
+    kwargs['size'] = oc.try_get_attribute(node.args.keywords['n'])
+    kwargs['bias'] = float(oc.try_get_attribute(node.args.keywords['k']))
+    kwargs['alpha'] = float(oc.try_get_attribute(node.args.keywords['alpha']) * kwargs['size'])
+    kwargs['beta'] = float(oc.try_get_attribute(node.args.keywords['beta']))
+
+    onnx_graph.add_node(
+        "LRN",
+        [node.inputs[0]],
+        node.outputs,
+        str(node.lineprop),
+        **kwargs,
+    )
