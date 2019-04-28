@@ -139,7 +139,6 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
                     }  // end for iar
                 }  // end for v
             }  // end for u
-            // printf("%f\n", static_cast<float*>(roi_l_list.at(0).raw_data()));
 
             // reduce size of `conf_l` to `nms_limit_pre`
             std::vector<size_t> cut_indices = argsort<size_t>(conf_l, conf_l + k_l, [](float a, float b) { return a > b; });
