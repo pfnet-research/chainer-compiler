@@ -375,3 +375,15 @@ def convert_roi_average_align_2d(onnx_graph, node):
         spatial_scale=oc.try_get_attribute(spatial_scale.value),
         sampling_ratio=_pair(oc.try_get_attribute(sampling_ratio.value)))
     return
+
+def convert_broadcast_to(onnx_graph, node):
+    node_ = node
+
+    # x = oc.try_get_attribute(node_.args.keywords['x'])
+    shape = oc.ONNXValue(onnx_graph, node_.args.keywords['shape'])
+    onnx_graph.add_node(
+        "Expand",
+        [node_.inputs[0], shape.create_tensor()],
+        node.outputs,
+        str(node.lineprop))
+    return
