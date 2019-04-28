@@ -94,6 +94,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('matmul', F.matmul)
         add_chainer_funtion('max_pooling_2d', F.max_pooling_2d)
         add_chainer_funtion('resize_images', F.resize_images)
+        add_chainer_funtion('tanh', F.tanh)
+        add_chainer_funtion('sigmoid', F.sigmoid)
 
         if int(chainer.__version__[0]) >= 6:
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)

@@ -32,7 +32,21 @@ def convert_relu(onnx_graph, node):
                         [node.inputs[0]],
                         [node.outputs[0]],
                         name=str(node.lineprop))
+    return
 
+def convert_tanh(onnx_graph, node):
+    onnx_graph.add_node('Tanh',
+                        [node.inputs[0]],
+                        [node.outputs[0]],
+                        name=str(node.lineprop))
+    return
+
+def convert_sigmoid(onnx_graph, node):
+    onnx_graph.add_node("Sigmoid",
+                        [node.inputs[0]],
+                        [node.outputs[0]],
+                        name=str(node.lineprop))
+    return
 
 def convert_softmax(onnx_graph, node):
     onnx_graph.add_node(
@@ -125,7 +139,7 @@ def convert_softmax_cross_entropy(onnx_graph, node):
     ignore_label = oc.try_get_attribute(node.args.keywords['ignore_label'])
     reduce = oc.try_get_attribute(node.args.keywords['reduce'])
     enable_double_backprop = oc.try_get_attribute(node.args.keywords['enable_double_backprop'])
-    
+
     assert normalize  # TODO(hamaji): Not supported yet.
     assert cache_score  # TODO(hamaji): Not supported yet.
     assert class_weight is None  # TODO(hamaji): Not supported yet.
@@ -208,12 +222,12 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
     pad = oc.try_get_attribute(node.args.keywords['pad'])
     outsize = oc.try_get_attribute(node.args.keywords['outsize'])
     cover_all = oc.try_get_attribute(node.args.keywords['cover_all'])
-    
+
     assert(stride is None) # TODO(hamaji): Not supported yet.
     assert(pad == 0) # TODO(hamaji): Not supported yet.
     assert(outsize is None) # TODO(hamaji): Not supported yet.
     assert(cover_all is False) # TODO(hamaji): Not supported yet.
-    
+
     scales = np.array([1, 1] + list(_pair(ksize)), dtype=np.float32)
     scales_ = oc.ONNXValue(onnx_graph, scales, [node, '/Scale'], is_constant = True)
     onnx_graph.add_node(
