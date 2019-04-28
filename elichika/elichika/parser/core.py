@@ -97,6 +97,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('tanh', F.tanh)
         add_chainer_funtion('sigmoid', F.sigmoid)
         add_chainer_funtion('broadcast_to', F.broadcast_to)
+        add_chainer_funtion('expand_dims', F.expand_dims)
 
         if int(chainer.__version__[0]) >= 6:
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)

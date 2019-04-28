@@ -379,11 +379,22 @@ def convert_roi_average_align_2d(onnx_graph, node):
 def convert_broadcast_to(onnx_graph, node):
     node_ = node
 
-    # x = oc.try_get_attribute(node_.args.keywords['x'])
     shape = oc.ONNXValue(onnx_graph, node_.args.keywords['shape'])
     onnx_graph.add_node(
         "Expand",
         [node_.inputs[0], shape.create_tensor()],
-        node.outputs,
+        node_.outputs,
         str(node.lineprop))
+    return
+
+
+def convert_expand_dims(onnx_graph, node):
+    node_ = node
+    axis = oc.try_get_attribute(node_.args.keywords['axis'])
+    onnx_graph.add_node(
+        'Unsqueeze',
+        [node_.inputs[0]],
+        node_.outputs,
+        str(node.lineprop),
+        axes=[int(axis)])
     return
