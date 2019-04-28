@@ -48,7 +48,7 @@ def remove_ref(value):
         converted = {}
 
         ret = functions.FunctionArgValueInput()
-        
+
         for v in value.inputs:
             converted_v = remove_ref(v)
             ret.inputs.append(converted_v)
@@ -58,7 +58,7 @@ def remove_ref(value):
         for k,v in value.keywords.items():
             if v in converted.keys():
                 keywords_[k] = converted[v]
-            else:        
+            else:
                 keywords_[k] = remove_ref(v)
         ret.keywords = keywords_
         return ret
@@ -401,3 +401,14 @@ class NodeConvert(Node):
 
     def __str__(self):
         return 'Convert({},{})'.format(self.classtype, self.lineprop)
+
+class NodeLen(Node):
+    def __init__(self, iter_value, line=-1):
+        super().__init__(line)
+        iter_value = remove_ref(iter_value)
+
+        self.iter_value = iter_value
+        self.append_inputs(self.iter_value)
+
+    def __str_(self):
+        return 'Len({},{})'.format(self.classtype, self.lineprop)

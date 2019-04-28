@@ -99,7 +99,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
             add_chainer_funtion('roi_average_pooling_2d', F.roi_average_pooling_2d)
             add_chainer_funtion('roi_max_align_2d', F.roi_max_align_2d)
-        
+
         add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
 
         default_module.set_default_value(chainer_functions_module_name, f_dict)
@@ -133,6 +133,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
     default_module.set_default_value('list', values.ValueRef(m_list))
+
+    m_len = values.FuncValue(functions_builtin.LenFunction(), None)
+    default_module.set_default_value('len', values.ValueRef(m_len))
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward')
