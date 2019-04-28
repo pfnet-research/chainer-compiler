@@ -80,6 +80,17 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         const std::vector<chainerx::Array>& confs,
         const chainerx::Array& in_shape,
         const std::vector<double>& scales) {
+    for (const chainerx::Array& h : hs) {
+        CHECK(IsNativeDevice(h.device());
+    }
+    for (const chainerx::Array& loc : locs) {
+        CHECK(IsNativeDevice(loc.device());
+    }
+    for (const chainerx::Array& conf : confs) {
+        CHECK(IsNativeDevice(conf.device());
+    }
+    CHECK(IsNativeDevice(in_shape.device()));
+
     const size_t k_nms_limit_pre = k_train_nms_limit_pre;
     const size_t k_nms_limit_post = k_train_nms_limit_post;
     const double in_shape_h = static_cast<double>(AsScalar(in_shape.At({2})));
