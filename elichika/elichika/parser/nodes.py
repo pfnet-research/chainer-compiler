@@ -410,17 +410,5 @@ class NodeLen(Node):
         self.iter_value = iter_value
         self.append_inputs(self.iter_value)
 
-    def __str__(self):
-        return 'Len({})'.format(self.lineprop)
-
-class NodeTensorAttribute(Node):
-    def __init__(self, type, value, line=-1):
-        super().__init__(line)
-        value = remove_ref(value)
-
-        self.value = value
-        self.type = type
-        self.append_inputs(self.value)
-
-    def __str__(self):
-        return 'TensorAttribute({},{})'.format(self.type, self.lineprop)
+    def __str_(self):
+        return 'Len({},{})'.format(self.classtype, self.lineprop)

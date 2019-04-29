@@ -108,16 +108,9 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     if gotten_obj is not None:
         return value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
-    if option is not None and option.eval_as_written_target:
+    if option.eval_as_written_target:
         return attr
-
-    if attr.name in ['shape', 'size']:
-        node = nodes.NodeTensorAttribute(attr.name, value_ref, value_ref.get_value())
-        value = values.TupleValue()
-        node.set_outputs([value])
-        graph.add_node(node)
-        return values.ValueRef(value)
-
+        
     # value is unknown
     if config.show_warnings:
         print('Assigning value is not found in L.{}'.format(astc.lineno))
@@ -162,7 +155,7 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
         if not isinstance(value_obj.get_value(), values.TupleValue):
             # TODO fix it
             assert(False)   # not supported
-
+        
         for i in range(len(targets)):
             node_assign = nodes.NodeAssign(targets[i], value_obj.get_value().get_constant_value()[i], astc.lineno)
             targets[i].revise(try_get_ref(value_obj.get_value().get_constant_value()[i],'assign', lineprop))
@@ -327,7 +320,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         input_value = None
         true_input_body_value = None
         false_input_body_value = None
-
+            
         if 'true_input_value' in v:
             input_value = v['true_input_value']
         elif 'false_input_value' in v:
@@ -373,7 +366,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             outputs.append(output_value)
             true_graph.add_output_value(true_output_body_value)
             false_graph.add_output_value(false_output_body_value)
-
+            
             if field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
@@ -551,7 +544,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     target_value = values.Value()
     target_ref = values.ValueRef(target_value)
     node_forgen.set_outputs([target_value])
-
+    
     local_field.get_attribute(target_name).revise(target_ref)
 
     body_graph.add_node(node_forgen)
@@ -584,7 +577,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     # default output
     outputs.append(functions.generate_value_with_same_type(iter_value))
-
+    
     # generate pairs
     value_pairs = {}
     for v in value_inputs:
@@ -817,7 +810,7 @@ def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : '
             node = nodes.NodeGenerate('Tuple', vs.copy(), line=lineprop)
             node.set_outputs([tuple_value])
             graph.add_node(node)
-
+        
         return values.ValueRef(tuple_value)
 
 def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
@@ -921,7 +914,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # default output
     outputs.append(functions.generate_value_with_same_type(iter_value))
-
+    
     # generate pairs
     value_pairs = {}
     for v in value_inputs:

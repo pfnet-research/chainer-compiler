@@ -258,8 +258,7 @@ class FieldAttributeCollection():
         ret = []
 
         for key, att in self.attributes.items():
-            if att.name in ['shape', 'size']:
-                continue
+
             # instance or func
             if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
                 continue
@@ -513,7 +512,7 @@ class Value():
 
     def has_constant_value(self) -> 'bool':
         return self.internal_value is not None
-
+    
     def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
         return self.internal_value is not None
 
@@ -540,7 +539,7 @@ class NoneValue(Value):
 
     def has_constant_value(self) -> 'bool':
         return True
-
+    
     def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
         return True
 
@@ -624,7 +623,7 @@ class TupleValue(Value):
                 else:
                     if not v.is_all_constant_values(is_ref_enabled):
                         return False
-        return True
+        return True                    
 
     def __str__(self):
         return self.name + '(Tp{})'
