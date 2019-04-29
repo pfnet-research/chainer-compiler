@@ -829,8 +829,7 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     node = nodes.NodeGenerate('List', [elt.get_value() for elt in elts], lineprop)
     graph.add_node(node)
-    value = values.ListValue()
-    value.get_constant_value().extend(elts)
+    value = values.ListValue(elts)
     node.set_outputs([value])
 
     return values.ValueRef(value)
