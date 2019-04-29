@@ -148,11 +148,9 @@ def main():
                            subname='double_for', backprop=True)
 
     # Bugs.
-    model = lambda: B()
-    testtools.generate_testcase(model, args, subname='lambda_bug')
 
-    # model = B2()
-    # testtools.generate_testcase(model, args, subname='forloop_bug')
+    model = B2()
+    testtools.generate_testcase(model, args, subname='forloop_bug')
 
 
 
