@@ -38,6 +38,7 @@ TESTS = [
     Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
+    Generator('node', 'ChainList'),
     Generator('node', 'LRN'),
 
     Generator('node/ndarray', 'NpArray'),

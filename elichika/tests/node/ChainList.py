@@ -12,8 +12,10 @@ class LinearBlock(chainer.Chain):
         super(LinearBlock, self).__init__()
         with self.init_scope():
             self.l = L.Linear(10, 10)
-            
-    def __call__(self, x):
+
+    # TODO (durswd): support __call__ without adhoc codes            
+    #def __call__(self, x):
+    def forward(self, x):
         return F.relu(self.l(x))
 
 class A(chainer.ChainList):

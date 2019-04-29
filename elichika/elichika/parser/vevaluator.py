@@ -830,10 +830,25 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     node = nodes.NodeGenerate('List', [elt.get_value() for elt in elts], lineprop)
     graph.add_node(node)
     value = values.ListValue()
-    value.values.extend(elts)
+    value.get_constant_value().extend(elts)
     node.set_outputs([value])
 
     return values.ValueRef(value)
+
+def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListValue', local_field : 'values.Field', graph : 'Graph'):
+    '''
+    for target in iter: 
+        ...
+    with unroll
+    '''
+    assert(isinstance(astc.nast, gast.gast.For))
+    lineprop = utils.LineProperty(astc.lineno)
+
+    for element in iter_.get_constant_value():
+        local_field.get_attribute(target_name).revise(element)
+        veval_ast(astc.c(astc.nast.body), local_field, graph)
+    
+    return None
 
 def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     '''
@@ -845,6 +860,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # for target in iter:
     iter_ = veval_ast(astc.c(astc.nast.iter), local_field, graph)
+    iter_value = try_get_value(iter_, 'for', lineprop)
 
     # get target name
     target_name = ''
@@ -854,6 +870,10 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         if config.show_warnings:
             print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
+
+    # unroll?
+    if isinstance(iter_value, values.ListValue) and iter_value.has_constant_value():
+        return veval_ast_for_unroll(astc, target_name, iter_value, local_field, graph)
 
     for_guid = utils.get_guid()
     for_id = 'for_' + str(for_guid)
@@ -871,8 +891,6 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     cond_value = values.BoolValue(None)
     cond_value.name = 'for_cond_' + str(for_guid)
-
-    iter_value = try_get_value(iter_, 'for', lineprop)
 
     # create a node to lookup a value from sequence
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
