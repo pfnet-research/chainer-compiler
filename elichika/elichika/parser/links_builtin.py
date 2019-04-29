@@ -71,3 +71,34 @@ class ChainerLinkInstance(values.Instance):
         self.func = values.ValueRef(
             values.FuncValue(ChainerLinkFunction(self), obj))
         obj.get_field().get_attribute('forward').revise(self.func)
+
+class ChainerChainListChildrenFunction(functions.FunctionBase):
+    def __init__(self, owner):
+        super().__init__()
+        self.name = 'children'
+        self.owner = owner
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        args = functions.FunctionArgInput()
+        args.inputs.append(inst)
+        args.keywords['self'] = inst
+
+        value = values.ListValue(self.owner.children)
+        return values.ValueRef(value)
+
+class ChainerChainListInstance(values.UserDefinedInstance):
+    def __init__(self, module: 'Field', inst):
+        super().__init__(module, inst, None)
+        self.callable = True
+        self.is_chainer_link = True
+        self.children = []
+
+        for child in inst.children():
+            child_ = values.parse_instance(module, '', child, inst)
+            self.children.append(child_)
+
+    def apply_to_object(self, obj: 'values.ValueRef'):
+        super().apply_to_object(obj)
+        children = values.ValueRef(
+            values.FuncValue(ChainerChainListChildrenFunction(self), obj))
+        obj.get_field().get_attribute('children').revise(children)

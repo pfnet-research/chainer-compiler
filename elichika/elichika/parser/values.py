@@ -643,7 +643,24 @@ class ListValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.is_any = values is None
-        self.values = []
+        self.internal_value = values
+
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        if self.internal_value is not None:
+            for v in self.internal_value:
+                if v is None:
+                    return False
+
+                if isinstance(v, ValueRef) and not is_ref_enabled:
+                    return False
+
+                if isinstance(v, ValueRef):
+                    if not v.get_value().is_all_constant_values(is_ref_enabled):
+                        return False
+                else:
+                    if not v.is_all_constant_values(is_ref_enabled):
+                        return False
+        return True                    
 
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
