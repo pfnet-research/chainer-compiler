@@ -204,18 +204,21 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     ret = None
     if isinstance(func_value, values.FuncValue):
         ret = func_value.func.vcall(local_field.module, graph, func_value.obj, finput, lineprop)
+        return ret
 
-    elif isinstance(func_value, values.Instance) and func_value.callable:
+    elif isinstance(func_value, values.Instance):
         # __call__
-        ret = func_value.func.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
+        call_func_ref = func_obj.try_get_and_store_obj('__call__')
+        if call_func_ref is not None:        
+            ret = call_func_ref.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
+            return ret
 
-    else:
-        if config.show_warnings:
-            print('Unknown function is called in L.{}'.format(astc.lineno))
-        return None
+    
+    if config.show_warnings:
+        print('Unknown function is called in L.{}'.format(astc.lineno))
+    return None
 
-    return ret
-
+    
 def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph') -> 'None':
     assert(isinstance(astc.nast, gast.gast.Return))
     lineprop = utils.LineProperty(astc.lineno)

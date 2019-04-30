@@ -65,12 +65,13 @@ class ChainerLinkFunction(functions.FunctionBase):
 class ChainerLinkInstance(values.Instance):
     def __init__(self, module: 'Field', inst):
         super().__init__(module, inst, None)
-        self.callable = True
 
     def apply_to_object(self, obj: 'values.ValueRef'):
-        self.func = values.ValueRef(
+        callable_func = values.ValueRef(
             values.FuncValue(ChainerLinkFunction(self), obj))
-        obj.get_field().get_attribute('forward').revise(self.func)
+
+        obj.get_field().get_attribute('__call__').revise(callable_func)
+        obj.get_field().get_attribute('forward').revise(callable_func)
 
 class ChainerChainListChildrenFunction(functions.FunctionBase):
     def __init__(self, owner):
@@ -86,10 +87,10 @@ class ChainerChainListChildrenFunction(functions.FunctionBase):
         value = values.ListValue(self.owner.children)
         return values.ValueRef(value)
 
+
 class ChainerChainListInstance(values.UserDefinedInstance):
     def __init__(self, module: 'Field', inst):
         super().__init__(module, inst, None)
-        self.callable = True
         self.is_chainer_link = True
         self.children = []
 
@@ -102,3 +103,29 @@ class ChainerChainListInstance(values.UserDefinedInstance):
         children = values.ValueRef(
             values.FuncValue(ChainerChainListChildrenFunction(self), obj))
         obj.get_field().get_attribute('children').revise(children)
+
+        forward_func = obj.try_get_and_store_obj('forward')
+        if forward_func is not None:
+            obj.get_field().get_attribute('__call__').revise(forward_func)
+            obj.get_field().get_attribute('forward').revise(forward_func)
+
+class ChainerChainInstance(values.UserDefinedInstance):
+    def __init__(self, module: 'Field', inst):
+        super().__init__(module, inst, None)
+        self.is_chainer_link = True
+        self.children = []
+
+        for child in inst.children():
+            child_ = values.parse_instance(module, '', child, inst)
+            self.children.append(child_)
+
+    def apply_to_object(self, obj: 'values.ValueRef'):
+        super().apply_to_object(obj)
+        children = values.ValueRef(
+            values.FuncValue(ChainerChainListChildrenFunction(self), obj))
+        obj.get_field().get_attribute('children').revise(children)
+
+        forward_func = obj.try_get_and_store_obj('forward')
+        if forward_func is not None:
+            obj.get_field().get_attribute('__call__').revise(forward_func)
+            obj.get_field().get_attribute('forward').revise(forward_func)

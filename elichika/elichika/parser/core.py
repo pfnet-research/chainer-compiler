@@ -36,11 +36,14 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.instance_converters.clear()
 
     def instance_converter(m, i):
+        if links_builtin.is_builtin_chainer_link(i):
+            return links_builtin.ChainerLinkInstance(m, i)
+
         if isinstance(i, chainer.ChainList):
             return links_builtin.ChainerChainListInstance(m, i)
 
-        if links_builtin.is_builtin_chainer_link(i):
-            return links_builtin.ChainerLinkInstance(m, i)
+        if isinstance(i, chainer.Link):
+            return links_builtin.ChainerChainInstance(m, i)
 
         return None
 
