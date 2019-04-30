@@ -81,15 +81,15 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         const chainerx::Array& in_shape,
         const std::vector<double>& scales) {
     for (const chainerx::Array& h : hs) {
-        CHECK(IsNativeDevice(h.device());
+        CHECK(IsNativeDevice(&h.device()));
     }
     for (const chainerx::Array& loc : locs) {
-        CHECK(IsNativeDevice(loc.device());
+        CHECK(IsNativeDevice(&loc.device()));
     }
     for (const chainerx::Array& conf : confs) {
-        CHECK(IsNativeDevice(conf.device());
+        CHECK(IsNativeDevice(&conf.device()));
     }
-    CHECK(IsNativeDevice(in_shape.device()));
+    CHECK(IsNativeDevice(&in_shape.device()));
 
     const size_t k_nms_limit_pre = k_train_nms_limit_pre;
     const size_t k_nms_limit_post = k_train_nms_limit_post;
@@ -201,7 +201,7 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         rois_list.insert(rois_list.end(), rois_list_per_batch_sorted.begin(), rois_list_per_batch_sorted.end());
         roi_indices_list.push_back(chainerx::Full({static_cast<int64_t>(rois_list.size())}, b));
     }
-    chainerx::Array rois = chainerx::Zeros({rois_list.size() * 4}, hs.front().dtype());
+    chainerx::Array rois = chainerx::Zeros({static_cast<int64_t>(rois_list.size()) * 4}, hs.front().dtype());
     for (size_t i = 0; i < rois_list.size(); ++i) {
         *(static_cast<float*>(rois.raw_data()) + i * 4 + 0) = rois_list[i][0];
         *(static_cast<float*>(rois.raw_data()) + i * 4 + 1) = rois_list[i][1];
