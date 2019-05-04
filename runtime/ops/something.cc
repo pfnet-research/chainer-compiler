@@ -43,6 +43,10 @@ const T& at(const std::vector<T>& v, size_t i) {
     // return v.at(i);
     return v[i];
 }
+template <typename T>
+T& at(std::vector<T>& v, size_t i) {
+    return const_cast<T&>(at(const_cast<const std::vector<T>&>(v), i));
+}
 
 }  // namespace
 
@@ -61,8 +65,7 @@ std::vector<size_t> NonMaximumSuppression(std::vector<std::array<double, 4>> con
                                                       std::min(b_tlbr[2], selected_roi_tlbr[2]),
                                                       std::min(b_tlbr[3], selected_roi_tlbr[3])}};
                     const double area = (tlbr[0] < tlbr[2]) && (tlbr[1] < tlbr[3]) ? calc_area(tlbr) : 0;
-                    const double iou = area / (at(bbox_area_list, i) + at(bbox_area_list, s) - area);
-                    return nms_threash > iou;
+                    return nms_threash * (at(bbox_area_list, i) + at(bbox_area_list, s) - area) > area;
                 });
         if (is_selected) {
             selected_indices.push_back(i);
@@ -98,6 +101,19 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
     std::vector<std::array<double, 4>> rois_list;
     std::vector<chainerx::Array> roi_indices_list;
     const int64_t batch_size = static_cast<int64_t>(chainerx::AsScalar(in_shape.At({0})));
+
+    std::vector<std::vector<double>> ahs(scales.size(), std::vector<double>(k_anchor_ratios.size()));
+    std::vector<std::vector<double>> aws(scales.size(), std::vector<double>(k_anchor_ratios.size()));
+    for (size_t l = 0; l < scales.size(); ++l) {
+        for (size_t iar = 0; iar < k_anchor_ratios.size(); ++iar) {
+            const double ar = k_anchor_ratios[iar];
+            const double w = std::round(1.0 / scales[l] / std::sqrt(ar));
+            const double h = std::round(w * ar);
+            at(at(ahs, l), iar) = h * (k_anchor_size << l) * scales[l];
+            at(at(aws, l), iar) = w * (k_anchor_size << l) * scales[l];
+        }
+    }
+
     for (int64_t b = 0; b < batch_size; ++b) {
         std::vector<std::array<double, 4>> rois_list_per_batch;
         std::vector<double> confs_list_per_batch;
@@ -110,20 +126,17 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
             size_t ki = 0;
             for (size_t u = 0; u < h_l.shape()[2]; ++u) {
                 for (size_t v = 0; v < h_l.shape()[3]; ++v) {
+                    const double ay = (u + 0.5) / scales[l];
+                    const double ax = (v + 0.5) / scales[l];
                     for (size_t iar = 0; iar < k_anchor_ratios.size(); ++iar) {
-                        double ar = k_anchor_ratios[iar];
-                        const double ay = (u + 0.5) / scales[l];
-                        const double ax = (v + 0.5) / scales[l];
-                        const double w = std::round(1.0 / scales[l] / std::sqrt(ar));
-                        const double h = std::round(w * ar);
-                        const double ah = h * (k_anchor_size << l) * scales[l];
-                        const double aw = w * (k_anchor_size << l) * scales[l];
+                        const double ah = at(at(ahs, l), iar);
+                        const double aw = at(at(aws, l), iar);
 
-                        const int64_t k = h_l.shape()[3] * k_anchor_ratios.size() * u + k_anchor_ratios.size() * v + iar;
-                        const double loc_l_y = *(loc_l + k * 4 + 0);
-                        const double loc_l_x = *(loc_l + k * 4 + 1);
-                        const double loc_l_h = *(loc_l + k * 4 + 2);
-                        const double loc_l_w = *(loc_l + k * 4 + 3);
+                        const float* loc_l_ki = loc_l + ki * 4;
+                        const double loc_l_y = *(loc_l_ki + 0);
+                        const double loc_l_x = *(loc_l_ki + 1);
+                        const double loc_l_h = *(loc_l_ki + 2);
+                        const double loc_l_w = *(loc_l_ki + 3);
 
                         const double roi_l_y = ay + ah * loc_l_y;
                         const double roi_l_x = ax + aw * loc_l_x;
@@ -131,10 +144,10 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
                         const double roi_l_w = aw * std::exp(std::min(loc_l_w, k_exp_clip));
 
                         // yxhw -> tlbr (top left, bottom right)
-                        roi_l_list[ki][0] = std::max(roi_l_y - roi_l_h / 2.0, 0.0);  // roi_l_tly
-                        roi_l_list[ki][1] = std::max(roi_l_x - roi_l_w / 2.0, 0.0);  // roi_l_tlx
-                        roi_l_list[ki][2] = std::min(roi_l_y + roi_l_h / 2.0, in_shape_h);  // roi_l_bry
-                        roi_l_list[ki][3] = std::min(roi_l_x + roi_l_w / 2.0, in_shape_w);  // roi_l_brx
+                        roi_l_list[ki][0] = std::max(roi_l_y - roi_l_h * 0.5, 0.0);  // roi_l_tly
+                        roi_l_list[ki][1] = std::max(roi_l_x - roi_l_w * 0.5, 0.0);  // roi_l_tlx
+                        roi_l_list[ki][2] = std::min(roi_l_y + roi_l_h * 0.5, in_shape_h);  // roi_l_bry
+                        roi_l_list[ki][3] = std::min(roi_l_x + roi_l_w * 0.5, in_shape_w);  // roi_l_brx
                         ++ki;
                     }  // end for iar
                 }  // end for v
