@@ -30,9 +30,9 @@ function(set_option_ var_ desc_)
 endfunction()
 
 # Ref: https://github.com/edsiper/cmake-options
-function(set_subdirectory_option_ option value)
+macro(set_subdirectory_option_ option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
-endfunction()
+endmacro()
 
 function(set_hidden_ lib_)
   set_target_properties(

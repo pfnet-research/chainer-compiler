@@ -38,6 +38,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
     def instance_converter(m, i):
         if links_builtin.is_builtin_chainer_link(i):
             return links_builtin.ChainerLinkInstance(m, i)
+
+        if isinstance(i, chainer.ChainList):
+            return links_builtin.ChainerChainListInstance(m, i)
+
+        if isinstance(i, chainer.Link):
+            return links_builtin.ChainerChainInstance(m, i)
+
         return None
 
     values.instance_converters.append(instance_converter)
@@ -94,12 +101,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('matmul', F.matmul)
         add_chainer_funtion('max_pooling_2d', F.max_pooling_2d)
         add_chainer_funtion('resize_images', F.resize_images)
+        add_chainer_funtion('local_response_normalization', F.local_response_normalization)
 
         if int(chainer.__version__[0]) >= 6:
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
             add_chainer_funtion('roi_average_pooling_2d', F.roi_average_pooling_2d)
             add_chainer_funtion('roi_max_align_2d', F.roi_max_align_2d)
-        
+
         add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
 
         default_module.set_default_value(chainer_functions_module_name, f_dict)

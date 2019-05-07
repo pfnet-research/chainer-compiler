@@ -166,8 +166,7 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
     if instance is None:
         return ValueRef(NoneValue())
 
-    model_inst = UserDefinedInstance(
-        default_module, instance, None, isinstance(instance, chainer.Link))
+    model_inst = UserDefinedInstance(default_module, instance, None)
     return ValueRef(model_inst)
 
 
@@ -643,7 +642,24 @@ class ListValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.is_any = values is None
-        self.values = []
+        self.internal_value = values
+
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        if self.internal_value is not None:
+            for v in self.internal_value:
+                if v is None:
+                    return False
+
+                if isinstance(v, ValueRef) and not is_ref_enabled:
+                    return False
+
+                if isinstance(v, ValueRef):
+                    if not v.get_value().is_all_constant_values(is_ref_enabled):
+                        return False
+                else:
+                    if not v.is_all_constant_values(is_ref_enabled):
+                        return False
+        return True                    
 
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
@@ -707,22 +723,13 @@ class Instance(Value):
     def __init__(self, module: 'Field', inst, classinfo):
         super().__init__()
         self.inst = inst
-        self.callable = False
         self.func = None
         self.module = module
         self.classinfo = classinfo
-
-
+        
 class UserDefinedInstance(Instance):
-    def __init__(self, module: 'Field', inst, classinfo, is_chainer_link=False):
+    def __init__(self, module: 'Field', inst, classinfo):
         super().__init__(module, inst, classinfo)
-        self.is_chainer_link = is_chainer_link
-        if self.is_chainer_link:
-            self.callable = True
-
-    def apply_to_object(self, obj: 'ValueRef'):
-        if self.is_chainer_link:
-            self.func = obj.try_get_and_store_obj('forward')
 
     def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
         obj = None
