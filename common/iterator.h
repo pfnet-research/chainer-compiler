@@ -2,6 +2,7 @@
 
 #include <tuple>
 #include <utility>
+#include <vector>
 
 #include <common/log.h>
 

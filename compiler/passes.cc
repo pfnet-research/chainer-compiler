@@ -13,6 +13,7 @@
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/memory_simulator.h>
+#include <compiler/merge.h>
 #include <compiler/model.h>
 #include <compiler/scheduler.h>
 #include <compiler/shape_evaluator.h>
@@ -91,6 +92,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     CanonicalizeSubGraphs(graph);
 
     Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
+
+    Recursively(MergeOperations, graph);
 
     Recursively(PropagateConstants, graph);
 
