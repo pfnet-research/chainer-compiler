@@ -288,9 +288,107 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             [node.outputs[0]],
             str(node.lineprop))
 
+    if isinstance(node.func, functions_ndarray.NDArrayCumsumFunction):
+        a = ONNXValue(onnx_graph, node.args.keywords['a'])
+        axis = try_get_attribute(node.args.keywords['axis'])
+        dtype = try_get_attribute(node.args.keywords['dtype'])
+        out = try_get_attribute(node.args.keywords['out'])
+
+        assert(axis is None)  # TODO(hamaji): Not supported yet.
+        assert(dtype is None)  # TODO(hamaji): Not supported yet.
+        assert(out is None)  # TODO(hamaji): Not supported yet.
+        # limitation
+        # a must be 1dim tensor
+        # the number of element of a must be larger than 1
+
+        v = a.create_tensor()
+
+        v_len = ONNXValue(onnx_graph, np.array(0).dtype, [a, '/v_Len'])
+
+        zero_ind = ONNXValue(onnx_graph, np.array(0), [a, '/zero_ind'])
+
+        onnx_graph.add_node(
+            'ChainerGenericLen',
+            [v],
+            [v_len],
+            str(node.lineprop))
+
+        # TODO : good shape
+        (elm_zero,) = onnx_graph.add_node(
+            "ChainerGenericGetItem",
+            [v, zero_ind],
+            [None],
+            str(node.lineprop))
+
+        zero = ONNXValue(onnx_graph, np.array(0.0).dtype, [a, '/v_zero'])
+
+        onnx_graph.add_node(
+            "Sub",
+            [elm_zero, elm_zero],
+            [zero],
+            str(node.lineprop))
+
+        unused1 = ONNXValue(onnx_graph, np.array(0.0).dtype, [a, '/unused1'])
+        unused2 = ONNXValue(onnx_graph, np.array(0.0).dtype, [a, '/unused2'])
+
+        onnx_loop_graph = ONNXGraph(onnx_graph.generator, onnx_graph)
+
+        cnt = ONNXValue(onnx_loop_graph, np.array(0).dtype, [a, '/cnt'])
+        cond_in = ONNXValue(onnx_loop_graph, np.array(0).dtype, [a, '/cond_in'])
+        cond_out = ONNXValue(onnx_loop_graph, np.array(0).dtype, [a, '/cond_out'])
+        v_in = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/v_in'])
+        v_out = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/v_out'])
+
+        s = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/s'])
+        elm = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/elm'])
+
+        s_elm = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/s_elm'])
+
+        s_elm_cp = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/s_elm_cp'])
+
+        onnx_loop_graph.add_node(
+            "ChainerGenericGetItem",
+            [v_in, cnt],
+            [elm],
+            str(node.lineprop))
+
+        onnx_loop_graph.add_node(
+            "Add",
+            [elm, s],
+            [s_elm],
+            str(node.lineprop))
+
+        onnx_loop_graph.add_node(
+            "Identity",
+            [s_elm],
+            [s_elm_cp],
+            str(node.lineprop))
+
+        onnx_loop_graph.add_node(
+            "Identity",
+            [v_in],
+            [v_out],
+            str(node.lineprop))
+
+        onnx_loop_graph.add_node(
+            "Identity",
+            [cond_in],
+            [cond_out],
+            str(node.lineprop))
+
+        onnx_loop_graph.set_input([cnt, cond_in, v_in, s])
+        onnx_loop_graph.set_output([cond_out, v_out, s_elm, s_elm_cp])
+
+        onnx_graph.add_node(
+            "Loop",
+            [v_len, "", v, zero],
+            [unused1, unused2, node.outputs[0]],
+            str(node.lineprop),
+            body=onnx_loop_graph.generate_graph('CumsumLoop_' + str(node.lineprop), False))
+
     if isinstance(node.func, links_builtin.ChainerLinkFunction):
-        original_inst = node.func.owner.inst
-        chainer_l_converter[type(original_inst)](onnx_graph, node)
+            original_inst = node.func.owner.inst
+            chainer_l_converter[type(original_inst)](onnx_graph, node)
 
 
 def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
@@ -399,6 +497,8 @@ class ONNXValue:
                         name_ += value2onnx_parameter[n].onnx_name
                     if isinstance(n, nodes.Node):
                         name_ += node2onnx_parameter[n].onnx_name
+                    if isinstance(n, ONNXValue):
+                        name_ += n.name
                     elif n is None:
                         name_ += ''
                     else:
@@ -429,6 +529,9 @@ class ONNXValue:
             self.name = generate_name()
 
             if self.is_constant:
+                self.tensor = self.onnx_graph.new_empty_tensor(
+                    ['TODO'], any_value.dtype, self.name)
+
                 tensor = numpy_helper.from_array(any_value, name=self.name)
                 self.onnx_graph.add_node(
                     'Constant', [], [self.name], self.name, value=tensor)
@@ -718,12 +821,26 @@ class ONNXGraph:
         assert(False)
 
     def set_input(self, input):
-        self.input_tensor = [
-            self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name] for x in input]
+        self.input_tensor.clear()
+
+        for x in input:
+            if isinstance(x, values.Value):
+                self.input_tensor.append(self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name])
+            elif isinstance(x, ONNXValue):
+                self.input_tensor.append(x.tensor)
+            else:
+                assert(False)
 
     def set_output(self, output):
-        self.output_tensor = [
-            self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name] for x in output]
+        self.output_tensor.clear()
+
+        for x in output:
+            if isinstance(x, values.Value):
+                self.output_tensor.append(self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name])
+            elif isinstance(x, ONNXValue):
+                self.output_tensor.append(x.tensor)
+            else:
+                assert(False)
 
     def generate_graph(self, name: 'str', isMain=False):
 

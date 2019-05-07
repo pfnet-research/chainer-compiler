@@ -47,6 +47,7 @@ TESTS = [
     Generator('node/ndarray', 'Size'),
     Generator('node/ndarray', 'Shape'),
     Generator('node/ndarray', 'Ceil'),
+    Generator('node/ndarray', 'Cumsum'),
 
     Generator('node/Functions', 'Reshape'),
     Generator('node/Functions', 'SplitAxis'),
