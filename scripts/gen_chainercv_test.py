@@ -87,6 +87,6 @@ def get_tests():
     def test(name, func, **kwargs):
         tests.append(TestCase(name, func, **kwargs))
 
-    test('chainercv_test_rpn_decode', chainercv_test_rpn_decode, fail=True)
+    test('chainercv_test_rpn_decode', chainercv_test_rpn_decode)
 
     return tests
