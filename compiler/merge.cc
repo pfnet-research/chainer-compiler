@@ -60,7 +60,10 @@ void MergeOperations(Graph* graph) {
     while (replaced) {
         replaced = false;
         for (Node* node : graph->GetLiveNodes()) {
-            if (node->op_type() == Node::kSplit || node->op_type() == Node::kConcat) {
+            // TODO(hamaji): Fix the implementation of Concat => Split
+            // merge. Unlike Split => Concat merge, we should check
+            // if the split dimensions are not changed.
+            if (node->op_type() == Node::kSplit) {
                 replaced |= MaybeMergeSplitConcat(graph, node);
             }
         }
