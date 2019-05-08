@@ -1,3 +1,9 @@
+// TODO(hamaji): Remove this workaround after fixing the following issue:
+// https://github.com/pfnet-research/chainer-compiler/issues/220
+#ifndef NDEBUG
+#define NDEBUG 1
+#endif
+
 #include "onnx/defs/schema.h"
 
 namespace ONNX_NAMESPACE {
