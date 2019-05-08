@@ -17,13 +17,11 @@ class Generator(object):
         self.dirname = dirname
         self.category = dirname.replace('/', '_')
         self.filename = filename
-        self.fail = True
+        self.fail = fail
 
 
 TESTS = [
-    # TODO(hamaji): Remove `fail=True` after fixing the implementation
-    # of SoftmaxCrossEntropy.
-    Generator('model', 'MLP', fail=True),
+    Generator('model', 'MLP'),
     Generator('model', 'Alex'),
 
     Generator('node', 'AddMul'),
