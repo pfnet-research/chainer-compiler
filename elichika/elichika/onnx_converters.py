@@ -2,6 +2,9 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
+from enum import Enum
+import sys
+
 import onnx
 import onnx.helper as oh
 from onnx import numpy_helper
@@ -34,6 +37,48 @@ def get_onnx_dtype(dtype):
     dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
     return dt
 
+class ParseType(Enum):
+    In = 0,
+    Att = 1,
+    AttPad = 2,
+
+class NodeParse:
+    def __init__(self):
+        self.args = {}
+        self.defs = {}
+
+    def get(self, name : 'str'):
+        return self.args[name]
+
+    def add_def(self, name : 'str', type_ : 'ParseType', required = "None"):
+        self.defs[name] = (type_, required)
+
+    def parse(self, onnx_graph, node):
+        for k,v in self.defs.items():
+            arg = node.args.keywords[k]
+
+            if v[0] == ParseType.In:
+                a = ONNXValue(onnx_graph,arg)
+                self.args[k] = a
+            else:
+                att = try_get_attribute(arg, node)
+
+                # failed
+                if att == sys.maxsize:
+                    raise Exception("failed to get attribute from {} in {}".format(k, node.lineprop))
+
+                if v[1] != "None":
+                    if isinstance(v[1], list):
+                        if not (att in v[1]):
+                            raise Exception("unsupported attribute {} from {} in {}".format(att, k, node.lineprop))                    
+                    else:
+                        if att != v[1]:
+                            raise Exception("unsupported attribute {} from {} in {}".format(att, k, node.lineprop))                    
+
+                if v[0] == ParseType.AttPad:
+                    self.args[k] = size2d(att)
+                else:
+                    self.args[k] = att
 
 assigned_names = []
 node2onnx_parameter = {}
@@ -430,18 +475,21 @@ def try_get_attribute(value, calling_node: 'nodes.Node' = None):
         value_ = value  # type: values.NumberValue
         if value_.internal_value is None:
             print('Warning : unconst attribute in {}'.format(lineinfo))
+            return sys.maxsize
         return value_.internal_value
 
     if isinstance(value, values.BoolValue):
         value_ = value  # type: values.BoolValue
         if value_.internal_value is None:
             print('Warning : unconst attribute in {}'.format(lineinfo))
+            return sys.maxsize
         return value_.internal_value
 
     if isinstance(value, values.StrValue):
         value_ = value  # type: values.StrValue
         if value_.internal_value is None:
             print('Warning : unconst attribute in {}'.format(lineinfo))
+            return sys.maxsize
         return value_.internal_value
 
     if isinstance(value, values.NoneValue):
@@ -466,7 +514,9 @@ def try_get_attribute(value, calling_node: 'nodes.Node' = None):
 
     # error
     print("Cannot convert a value into an attribute")
-    return -1
+
+    # TODO : improve it
+    return sys.maxsize
 
 
 class ONNXValue:
