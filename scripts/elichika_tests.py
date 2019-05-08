@@ -21,9 +21,7 @@ class Generator(object):
 
 
 TESTS = [
-    # TODO(hamaji): Remove `fail=True` after fixing the implementation
-    # of SoftmaxCrossEntropy.
-    Generator('model', 'MLP', fail=True),
+    Generator('model', 'MLP'),
     Generator('model', 'Alex'),
 
     Generator('node', 'AddMul'),
