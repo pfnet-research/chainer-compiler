@@ -84,6 +84,14 @@ chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
+chainerx::Array IsNaNOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+    return chainerx::IsNan(a);
+}
+
+chainerx::Array IsInfOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+    return chainerx::IsInf(a);
+}
+
 #define DEFINE_UNARY_OP(op)                                                    \
     chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
         return chainerx::op(a);                                                \
