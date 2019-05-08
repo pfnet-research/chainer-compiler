@@ -77,6 +77,15 @@ $ apt-get install libprotobuf-dev protobuf-compiler
 
 Chainer compiler requires Python and some libraries to build.
 
+Check out the source code if you didn't:
+
+```shell-session
+$ git clone https://github.com/pfnet-research/chainer-compiler.git
+$ cd chainer-compiler
+```
+
+And run:
+
 ```shell-session
 $ apt-get install python3 python3-pip
 $ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest onnxruntime
