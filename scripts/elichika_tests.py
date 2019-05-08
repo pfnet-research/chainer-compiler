@@ -55,8 +55,7 @@ TESTS = [
     Generator('node/Functions', 'Dropout'),
     Generator('node/Functions', 'Matmul'),
     Generator('node/Functions', 'MaxPool2d'),
-    # TODO(hamaji): Investigate why this test is failing.
-    # Generator('node/Functions', 'ResizeImages'),
+    Generator('node/Functions', 'ResizeImages'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
