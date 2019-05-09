@@ -103,10 +103,13 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     n->set_kernel_shape(conv->kernel_shape());
     n->set_strides(conv->strides());
 
+    // make pads compatible with Conv op
     std::vector<int64_t> new_pads(pads.size() - 4);
-    for (auto i = 2, j = 0; i < pads.size() / 2; ++i, ++j) {
-        new_pads[j] = conv->pads()[j] + pads[i];
-        new_pads[new_pads.size() / 2 + j] = conv->pads()[j] + pads[pads.size() / 2 + i];
+    for (auto i = 2; i < pads.size() / 2; ++i) {
+        // begin
+        new_pads[i - 2] = conv->pads()[i - 2] + pads[i];
+        // end
+        new_pads[new_pads.size() / 2 + (i - 2)] = conv->pads()[i - 2] + pads[pads.size() / 2 + i];
     }
     n->set_pads(new_pads);
 
