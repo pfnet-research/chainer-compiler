@@ -243,4 +243,182 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
     graph->ResetGradients();
 }
 
+void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, const std::map<Value*, Value*>& staged) {
+    for (const auto& p : staged) {
+        Value* value = p.first;
+
+        GraphBuilder gbf(fwd_graph, "retain", value);
+        GraphBuilder gbb(bwd_graph, "retain", value);
+        const std::string& name = "retained_" + value->name();
+
+        Value* o = fwd_graph->AddOutputValue(name, value->type());
+        gbf.Op(Node::kIdentity, {value}, o);
+
+        Value* i = bwd_graph->AddInputValue(name, value->type());
+        gbb.Op(Node::kIdentity, {i}, value);
+    }
+}
+
+void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
+    // Two phase version
+
+    // A map from the original value to the staged value, possibly recomputed.
+    std::map<Value*, Value*> staged;
+    for (Value* value : fwd_graph->input_values()) {
+        CHECK(staged.emplace(value, value).second);
+    }
+
+    // A map from the original node to the last forward
+    // computation. This scheduler assumes the last forward
+    // computation is the only computation which must care the
+    // backward computation.
+    std::map<Node*, Node*> last_forward_map;
+    std::vector<Node*> scheduled_nodes;
+    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](Node* node, Node* orig_node) {
+        scheduled_nodes.push_back(node);
+        node->set_chainer_order(scheduled_nodes.size());
+        last_forward_map[orig_node] = node;
+        for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
+            Value* value = std::get<0>(p);
+            if (!staged.emplace(std::get<1>(p), value).second) {
+                std::cerr << "Forward recompute without forgetting the output: " << orig_node->ToString() << std::endl;
+            }
+        }
+    };
+
+    auto schedule_node = [&schedule_recompute](Node* node) { schedule_recompute(node, node); };
+
+    std::set<Node*> scheduled_forward;
+    Graph* current_graph = fwd_graph;
+
+    for (const Order& order : orders) {
+        // Check if we should turn to the backward part
+        if (current_graph == fwd_graph) {
+            bool output_all_staged = true;
+            for (Value* output : fwd_graph->output_values()) {
+                if (!staged.count(output)) output_all_staged = false;
+            }
+            if (output_all_staged) {
+                current_graph = bwd_graph;
+                {
+                    ScheduleAddedScope schedule_scope(fwd_graph, schedule_node);
+                    {
+                        ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+                        AddRetainedParts(fwd_graph, bwd_graph, staged);
+                    }
+                }
+            }
+        }
+
+        switch (order.kind) {
+            case Order::kComputeForward: {
+                Node* node = order.node;
+                CHECK(node);
+                if (scheduled_forward.insert(node).second) {
+                    // First forward: current graph must be the forward part
+                    CHECK_EQ(current_graph, fwd_graph);
+                    // The first forward computation. All inputs must
+                    // be staged and not be recomputed.
+                    for (Value* value : node->inputs()) {
+                        auto found = staged.find(value);
+                        CHECK(found != staged.end()) << value->DebugString();
+                        // Not recomputed.
+                        CHECK_EQ(value, found->second);
+                    }
+                    schedule_node(node);
+                } else {
+                    // Recomputation: current graph must be the backward part
+                    CHECK_EQ(current_graph, bwd_graph);
+                    // All inputs must be staged and may be recomputed.
+                    std::vector<Value*> inputs;
+                    for (Value* value : node->inputs()) {
+                        auto found = staged.find(value);
+                        CHECK(found != staged.end()) << "Value " << value->name() << " is not staged.";
+                        inputs.push_back(found->second);
+                    }
+
+                    // Recomputed values need different `Value`
+                    // objects with different names.
+                    std::vector<Value*> outputs;
+                    for (Value* value : node->outputs()) {
+                        Value* new_value = bwd_graph->AddValue("Recompute" + value->name());
+                        outputs.push_back(new_value);
+                    }
+
+                    // Copy the original computation node to generate
+                    // node for recomputation.
+                    onnx::NodeProto xnode;
+                    node->ToONNX(&xnode);
+                    Node* new_node = new Node(xnode, inputs, outputs);
+                    bwd_graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
+                    schedule_recompute(new_node, node);
+                    if (node->op_type() == Node::kBatchNormalization) {
+                        node->set_chainer_in_recomputing(1);
+                    }
+                }
+                break;
+            }
+
+            case Order::kComputeBackward: {
+                // current graph must be the backward part
+                CHECK_EQ(current_graph, bwd_graph);
+
+                Node* orig_node = order.node;
+                auto found = last_forward_map.find(orig_node);
+                CHECK(found != last_forward_map.end());
+                Node* node = found->second;
+
+                // Copy gradients of inputs/outputs from the original
+                // computation node to the last forward computation.
+                // Copying inputs is necessary to accumulate gradients.
+                if (node != orig_node) {
+                    for (const auto& p : Zip(node->inputs(), orig_node->inputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                    }
+                    for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                    }
+                }
+
+                ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+                if (!AddGradientForNode(fwd_graph, bwd_graph, node, nullptr)) {
+                    break;
+                    // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
+                }
+
+                // Copy back gradients of inputs from the last forward
+                // computation to the original node.
+                if (node != orig_node) {
+                    for (const auto& p : Zip(orig_node->inputs(), node->inputs())) {
+                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                    }
+                }
+
+                break;
+            }
+
+            case Order::kForgetForward: {
+                auto found = staged.find(order.value);
+                CHECK(found != staged.end()) << order.value->DebugString();
+                staged.erase(found);
+                break;
+            }
+
+            case Order::kForgetBackward:
+                // TODO(hamaji): Do something?
+                break;
+
+            default:
+                CHECK(false) << static_cast<int>(order.kind);
+        }
+    }
+
+    {
+        ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+        ExposeParamGradsAsOutputs(fwd_graph, bwd_graph, GetParamValues(fwd_graph));
+    }
+
+    fwd_graph->ResetGradients();
+}
+
 }  // namespace chainer_compiler
