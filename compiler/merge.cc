@@ -86,8 +86,9 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     if (pad->outputs().size() != 1 || pad->output(0)->users().size() != 1) {
         return false;
     }
-    Node* conv = pad->outputs()[0]->users()[0];
-    if (conv->op_type() != Node::kConv) {
+    Value* pad_conv = pad->output(0);
+    Node* conv = pad_conv->users()[0];
+    if (conv->input(0) != pad_conv || conv->op_type() != Node::kConv) {
         return false;
     }
 
