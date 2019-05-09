@@ -86,7 +86,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
 
     // replace node
     GraphBuilder gb(graph, "MergePadConv", pad->input(0));
-    Node* n = gb.Op(Node::kConv, {pad->input(0)}, conv->output(0))->users()[0];
+    Node* n = gb.MOp(Node::kConv, {pad->input(0)}, conv->outputs());
     n->set_dilations(conv->dilations());
     n->set_group(conv->group());
     n->set_kernel_shape(conv->kernel_shape());
