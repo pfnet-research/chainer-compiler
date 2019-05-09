@@ -37,11 +37,13 @@ TEST(MergeTest, PadConv) {
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
 
+    std::string pad_name;
     {
         GraphBuilder gb(&graph, "test", input);
 
         // Pad node
         Value& pad = *gb.Op(Node::kPad, {input});
+        pad_name = pad.name();
         Node& pad_node = *pad.producer();
         pad_node.set_mode("constant");
         pad_node.set_pads({0, 0, 1, 1, 0, 0, 1, 1});
@@ -63,6 +65,8 @@ TEST(MergeTest, PadConv) {
     Node const& node = *graph.nodes()[0];
     ASSERT_EQ(Node::kConv, node.op_type());
     ASSERT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
+    ASSERT_EQ(2, node.inputs().size());
+    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [pad_name](Value* v) { return v->name() == pad_name; }));
     graph.CheckSanity("merged");
 }
 
