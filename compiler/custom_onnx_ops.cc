@@ -335,8 +335,15 @@ void InferResizeImages(InferenceContext& ctx) {
     }
 
     auto output = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
-    output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(0));
-    output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(1));
+    auto add_dim = [&output](const TypeProto& type, int index) {
+        auto new_dim = output->add_dim();
+        if (!type.has_tensor_type() || !type.tensor_type().has_shape() || index >= type.tensor_type().shape().dim().size()) {
+            return;
+        }
+        new_dim->CopyFrom(type.tensor_type().shape().dim(index));
+    };
+    add_dim(*ctx.getInputType(0), 0);
+    add_dim(*ctx.getInputType(0), 1);
     output->add_dim()->set_dim_value(output_shape[0]);
     output->add_dim()->set_dim_value(output_shape[1]);
 }

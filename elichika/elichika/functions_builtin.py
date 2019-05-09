@@ -77,16 +77,16 @@ def convert_dropout(onnx_graph, node):
 
 
 def convert_matmul(onnx_graph, node):
-    a = oc.ONNXValue(onnx_graph,node.args.keywords['a'])
-    b = oc.ONNXValue(onnx_graph,node.args.keywords['b'])
-    transa = oc.try_get_attribute(node.args.keywords['transa'])
-    transb = oc.try_get_attribute(node.args.keywords['transb'])
-    assert not transa  # TODO(hamaji): Not supported yet.
-    assert not transb  # TODO(hamaji): Not supported yet.
+    parser = oc.NodeParse()
+    parser.add_def('a', oc.ParseType.In)
+    parser.add_def('b', oc.ParseType.In)
+    parser.add_def('transa', oc.ParseType.Att, False)
+    parser.add_def('transb', oc.ParseType.Att, False)
+    parser.parse(onnx_graph, node)
 
     onnx_graph.add_node(
         "MatMul",
-        [a.create_tensor(), b.create_tensor()],
+        [parser.get('a').create_tensor(), parser.get('b').create_tensor()],
         node.outputs,
         str(node.lineprop),
         )
