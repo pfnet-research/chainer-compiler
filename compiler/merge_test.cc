@@ -38,12 +38,16 @@ TEST(MergeTest, PadConv) {
     Value* output = graph.AddOutputValue("output", type);
 
     {
-        GraphBuilder gb(&graph, "test", output);
+        GraphBuilder gb(&graph, "test", input);
+
+        // Pad node
         Value& pad = *gb.Op(Node::kPad, {input});
         Node& pad_node = *pad.producer();
         pad_node.set_mode("constant");
         pad_node.set_pads({0, 0, 1, 1, 0, 0, 1, 1});
         pad_node.set_value(0);
+
+        // Conv node
         Value& conv = *gb.Op(Node::kConv, {&pad, graph.AddInputValue("w", type)}, output);
         Node& conv_node = *conv.producer();
         conv_node.set_dilations({1, 1});
