@@ -70,12 +70,14 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
         return false;
     }
 
+    /*
     // pads of begin and end should be same
-    for (auto i = 2, j = 0; i < pads.size() / 2; ++i, ++j) {
+    for (auto i = 2; i < pads.size() / 2; ++i) {
         if (pads[i] != pads[pads.size() / 2 + i]) {
             return false;
         }
     }
+    */
 
     // pads must be greater or equal to 0
     if (std::any_of(pads.begin(), pads.end(), [](auto p) { return p < 0; })) {
