@@ -111,7 +111,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
         // end
         new_pads[new_pads.size() / 2 + (i - 2)] = conv->pads()[i - 2] + pads[pads.size() / 2 + i];
     }
-    n->set_pads(new_pads);
+    n->set_pads(std::move(new_pads));
 
     graph->DetachNode(pad);
     graph->DetachNode(conv);
