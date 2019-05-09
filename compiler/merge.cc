@@ -86,18 +86,20 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
 
     // replace node
     GraphBuilder gb(graph, "MergePadConv", pad->input(0));
-    Node* n = gb.MOp(Node::kConv, {pad->input(0)}, conv->outputs());
+    std::vector<Value*> new_in = pad->inputs();
+    new_in.insert(new_in.end(), conv->inputs().begin(), conv->inputs().end());
+    Node* n = gb.MOp(Node::kConv, new_in, conv->outputs());
     n->set_dilations(conv->dilations());
     n->set_group(conv->group());
     n->set_kernel_shape(conv->kernel_shape());
     n->set_strides(conv->strides());
 
-    std::vector<int64_t> new_pad(pads.size() - 4);
+    std::vector<int64_t> new_pads(pads.size() - 4);
     for (auto i = 2, j = 0; i < pads.size() / 2; ++i, ++j) {
-        new_pad[j] = conv->pads()[j] + pads[i];
-        new_pad[n->pads().size() / 2 + j] = conv->pads()[j] + pads[pads.size() / 2 + i];
+        new_pads[j] = conv->pads()[j] + pads[i];
+        new_pads[new_pads.size() / 2 + j] = conv->pads()[j] + pads[pads.size() / 2 + i];
     }
-    n->set_pads(new_pad);
+    n->set_pads(new_pads);
 
     graph->DetachNode(pad);
     graph->DetachNode(conv);
