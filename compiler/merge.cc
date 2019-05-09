@@ -94,9 +94,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     // replace node
     GraphBuilder gb(graph, "MergePadConv", pad->input(0));
     std::vector<Value*> new_in = pad->inputs();
-    std::copy_if(conv->inputs().begin(), conv->inputs().end(),
-                 std::back_inserter(new_in),
-                 [pad](Value* v) { return v->name() != pad->name(); });
+    std::copy(conv->inputs().begin() + 1, conv->inputs().end(), std::back_inserter(new_in));
     Node* n = gb.MOp(Node::kConv, new_in, conv->outputs());
     n->set_dilations(conv->dilations());
     n->set_group(conv->group());
