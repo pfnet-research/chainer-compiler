@@ -53,6 +53,59 @@ bool MaybeMergeSplitConcat(Graph* graph, Node* node) {
     return true;
 }
 
+bool MaybeMergePadConv(Graph* graph, Node* pad) {
+    if (pad->value() != 0.0 || pad->mode() != "constant") {
+        return false;
+    }
+
+    auto const& pads = pad->pads();
+
+    // range check
+    if (pads.size() < 4) {
+        return false;
+    }
+
+    // pads should apply to feature dims
+    if (pads[0] != 0 || pads[1] != 0 ||
+        pads[pads.size() / 2] != 0 || pads[pads.size() / 2 + 1] != 0) {
+        return false;
+    }
+
+    // pads must be greater or equal to 0
+    if (std::any_of(pads.begin(), pads.end(), [](auto p) { return p < 0; })) {
+        return false;
+    }
+
+    // connected node must be Conv
+    if (pad->outputs().size() != 1 || pad->output(0)->users().size() != 1) {
+        return false;
+    }
+    Node* conv = pad->outputs()[0]->users()[0];
+    if (conv->op_type() != Node::kConv) {
+        return false;
+    }
+
+    // replace node
+    GraphBuilder gb(graph, "MergePadConv", pad->input(0));
+    Node* n = gb.Op(Node::kConv, {pad->input(0)}, conv->output(0))->users()[0];
+    n->set_dilations(conv->dilations());
+    n->set_group(conv->group());
+    n->set_kernel_shape(conv->kernel_shape());
+    n->set_strides(conv->strides());
+
+    std::vector<int64_t> new_pad(pads.size() - 4);
+    for (auto i = 2, j = 0; i < pads.size() / 2; ++i, ++j) {
+        new_pad[j] = conv->pads()[j] + pads[i];
+        new_pad[n->pads().size() / 2 + j] = conv->pads()[j] + pads[pads.size() / 2 + i];
+    }
+    n->set_pads(new_pad);
+
+    graph->DetachNode(pad);
+    graph->DetachNode(conv);
+
+    return true;
+}
+
 }  // namespace
 
 void MergeOperations(Graph* graph) {
@@ -65,6 +118,10 @@ void MergeOperations(Graph* graph) {
             // if the split dimensions are not changed.
             if (node->op_type() == Node::kSplit) {
                 replaced |= MaybeMergeSplitConcat(graph, node);
+            }
+
+            if (node->op_type() == Node::kPad) {
+                replaced |= MaybeMergePadConv(graph, node);
             }
         }
     }
