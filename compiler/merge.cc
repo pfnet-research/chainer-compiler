@@ -66,8 +66,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     }
 
     // pads should apply to feature dims
-    if (pads[0] != 0 || pads[1] != 0 ||
-        pads[pads.size() / 2] != 0 || pads[pads.size() / 2 + 1] != 0) {
+    if (pads[0] != 0 || pads[1] != 0 || pads[pads.size() / 2] != 0 || pads[pads.size() / 2 + 1] != 0) {
         return false;
     }
 
