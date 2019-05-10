@@ -31,4 +31,32 @@ std::vector<Order> DummyPolicy(const Graph& graph) {
     return orders;
 }
 
+std::vector<Order> DummyPolicy2(const Graph& graph) {
+    // discard all the intermediate values in the first run
+    std::vector<Order> orders;
+
+    std::set<Value*> params;
+    for (Value* value : graph.input_values()) {
+        params.insert(value);
+    }
+
+    auto nodes = graph.GetTopologicallySortedNodes();
+    for (auto node : nodes) {
+        orders.emplace_back(Order::kComputeForward, node, nullptr);
+        for (auto value : node->inputs()) {
+            if (!params.count(value)) {
+                orders.emplace_back(Order::kForgetForward, nullptr, value);
+            }
+        }
+    }
+    for (auto node : nodes) {
+        orders.emplace_back(Order::kComputeForward, node, nullptr);
+    }
+    for (size_t i = nodes.size(); i--;) {
+        orders.emplace_back(Order::kComputeBackward, nodes[i], nullptr);
+    }
+
+    return orders;
+}
+
 }  // namespace chainer_compiler
