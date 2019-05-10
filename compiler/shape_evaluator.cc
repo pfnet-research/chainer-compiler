@@ -12,6 +12,7 @@
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 
@@ -78,10 +79,11 @@ void DoEvaluateShape(Node* node) {
             const Type& type = input->type();
             int64_t nbytes = type.GetNBytes();
             CHECK_LT(0, nbytes);
-            Tensor::UniqueData data(std::malloc(nbytes), &std::free);
+            std::unique_ptr<void, decltype(&std::free)> data(std::malloc(nbytes), &std::free);
             memset(data.get(), 0, nbytes);
             CHECK_NE(Dtype::kUnknown, type.dtype()) << input->DebugString();
-            t = new Tensor(input->name(), type.dtype(), type.dims(), data.release());
+            chainerx::Shape shape(type.dims().begin(), type.dims().end());
+            t = new Tensor(input->name(), runtime::MakeHostArray(type.dtype().chx(), shape, data.release()));
             tensor_buf.emplace_back(t);
         }
         feeds.emplace_back(input, t);

@@ -26,10 +26,7 @@ namespace chainer_compiler {
 namespace {
 
 Tensor* ArrayToTensor(const std::string& name, const chainerx::Array& a) {
-    Tensor::UniqueData data(std::malloc(a.GetNBytes()), &std::free);
-    memcpy(data.get(), a.Copy().ToNative().raw_data(), a.GetNBytes());
-    std::vector<int64_t> dims{a.shape().begin(), a.shape().end()};
-    return new Tensor(name, Dtype(a.dtype()), dims, data.release());
+    return new Tensor(name, a);
 }
 
 }  // namespace
