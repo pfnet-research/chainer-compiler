@@ -31,7 +31,6 @@ def size2d(x):
         return x
     return (x, x)
 
-
 def get_onnx_dtype(dtype):
     a = np.zeros((), dtype=dtype)
     dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
@@ -600,14 +599,18 @@ class ONNXValue:
 
         if(isinstance(self.value, values.TupleValue)):
             value = self.value  # values.TupleValue
-            if value.is_all_constant_values():
+            if value.has_constant_value():
                 ret = ONNXValue(self.onnx_graph, values.ListValue(), [
                                 self.name, '/create_sequence'])
 
                 vs = []
                 for v in value.get_constant_value():
-                    vs.append(ONNXValue(self.onnx_graph, np.array(
-                        v.get_constant_value()), [self.name, '/c'], is_constant=True))
+                    if v.is_all_constant_values():
+                        vs.append(ONNXValue(self.onnx_graph, np.array(
+                            v.get_constant_value()), [self.name, '/c'], is_constant=True))
+                    else:
+                        vs.append(ONNXValue(self.onnx_graph, v))
+
                 self.onnx_graph.add_node(
                     "ChainerSequenceCreate",
                     vs,
