@@ -58,31 +58,31 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
         return false;
     }
 
-    auto const& pads = pad->pads();
+    std::vector<int64_t> const& pads = pad->pads();
 
-    // range check
+    // Padding for non-spatial dims can't be merged.
     if (pads.size() < 4) {
         return false;
     }
-
-    // pads should apply to feature dims
     if (pads[0] != 0 || pads[1] != 0 || pads[pads.size() / 2] != 0 || pads[pads.size() / 2 + 1] != 0) {
         return false;
     }
 
-    // pads of begin and end must be same
+    // Padding of begin and end must be same due to ChainerX limitation.
     for (auto i = 2; i < pads.size() / 2; ++i) {
         if (pads[i] != pads[pads.size() / 2 + i]) {
             return false;
         }
     }
 
-    // pads must be greater or equal to 0
-    if (std::any_of(pads.begin(), pads.end(), [](auto p) { return p < 0; })) {
-        return false;
+    // Pads must be greater or equal to 0.
+    for (int64_t p : pads) {
+        if (p < 0) {
+            return false;
+        }
     }
 
-    // connected node must be Conv
+    // Connected node must be Conv.
     if (pad->outputs().size() != 1 || pad->output(0)->users().size() != 1) {
         return false;
     }
@@ -92,7 +92,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
         return false;
     }
 
-    // replace node
+    // Replace Pad+Conv with merged Conv.
     GraphBuilder gb(graph, "MergePadConv", pad->input(0));
     std::vector<Value*> new_in = pad->inputs();
     std::copy(conv->inputs().begin() + 1, conv->inputs().end(), std::back_inserter(new_in));
@@ -101,13 +101,14 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     n->set_group(conv->group());
     n->set_kernel_shape(conv->kernel_shape());
     n->set_strides(conv->strides());
+    n->set_auto_pad(conv->auto_pad());
 
-    // make pads compatible with Conv op
+    // Merge pads with Conv op.
     std::vector<int64_t> new_pads(pads.size() - 4);
     for (auto i = 2; i < pads.size() / 2; ++i) {
-        // begin
+        // Merge [x1_begin, x2_begin...] part.
         new_pads[i - 2] = conv->pads()[i - 2] + pads[i];
-        // end
+        // Merge [x1_end, x2_end...] part.
         new_pads[new_pads.size() / 2 + (i - 2)] = conv->pads()[i - 2] + pads[pads.size() / 2 + i];
     }
     n->set_pads(std::move(new_pads));
@@ -130,9 +131,7 @@ void MergeOperations(Graph* graph) {
             // if the split dimensions are not changed.
             if (node->op_type() == Node::kSplit) {
                 replaced |= MaybeMergeSplitConcat(graph, node);
-            }
-
-            if (node->op_type() == Node::kPad) {
+            } else if (node->op_type() == Node::kPad) {
                 replaced |= MaybeMergePadConv(graph, node);
             }
         }
