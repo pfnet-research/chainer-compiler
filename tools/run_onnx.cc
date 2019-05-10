@@ -238,8 +238,8 @@ public:
             if (g_computation_order.empty()) {
                 GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
             } else {
-              auto orders = GetComputationOrder(model->graph(), g_computation_order);
-              AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders);
+                auto orders = GetComputationOrder(model->graph(), g_computation_order);
+                AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders);
             }
 
             LOG() << "Constructing model (forward)..." << std::endl;
