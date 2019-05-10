@@ -5,6 +5,7 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
+#include <compiler/flops.h>
 #include <compiler/gen_xcvm_codegen.h>
 #include <compiler/graph.h>
 #include <compiler/log.h>
@@ -54,6 +55,7 @@ void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto*
     runtime::XCInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
     inst->set_debug_info(debug_info);
     inst->set_id(node.chainer_order());
+    inst->set_flops(CalculateFlops(node));
 }
 
 class XCVMEmitter {
@@ -243,6 +245,8 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kSigmoid, Sigmoid);
         EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
         EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
+        EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
+        EMIT_SIMPLE_UNARY_OP(Node::kIsInf, IsInf);
 
         EMIT_SIMPLE_BINARY_OP(Node::kAdd, Add);
         EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);

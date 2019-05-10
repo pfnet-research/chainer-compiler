@@ -21,6 +21,11 @@ import collections
 
 import elichika.onnx_converters as oc
 
+def _pair(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return (x, x)
+
 
 def convert_relu(onnx_graph, node):
     onnx_graph.add_node('Relu',
@@ -72,16 +77,16 @@ def convert_dropout(onnx_graph, node):
 
 
 def convert_matmul(onnx_graph, node):
-    a = oc.ONNXValue(onnx_graph,node.args.keywords['a'])
-    b = oc.ONNXValue(onnx_graph,node.args.keywords['b'])
-    transa = oc.try_get_attribute(node.args.keywords['transa'])
-    transb = oc.try_get_attribute(node.args.keywords['transb'])
-    assert not transa  # TODO(hamaji): Not supported yet.
-    assert not transb  # TODO(hamaji): Not supported yet.
+    parser = oc.NodeParse()
+    parser.add_def('a', oc.ParseType.In)
+    parser.add_def('b', oc.ParseType.In)
+    parser.add_def('transa', oc.ParseType.Att, False)
+    parser.add_def('transb', oc.ParseType.Att, False)
+    parser.parse(onnx_graph, node)
 
     onnx_graph.add_node(
         "MatMul",
-        [a.create_tensor(), b.create_tensor()],
+        [parser.get('a').create_tensor(), parser.get('b').create_tensor()],
         node.outputs,
         str(node.lineprop),
         )
@@ -120,7 +125,7 @@ def convert_softmax_cross_entropy(onnx_graph, node):
     ignore_label = oc.try_get_attribute(node.args.keywords['ignore_label'])
     reduce = oc.try_get_attribute(node.args.keywords['reduce'])
     enable_double_backprop = oc.try_get_attribute(node.args.keywords['enable_double_backprop'])
-    
+
     assert normalize  # TODO(hamaji): Not supported yet.
     assert cache_score  # TODO(hamaji): Not supported yet.
     assert class_weight is None  # TODO(hamaji): Not supported yet.
@@ -134,12 +139,43 @@ def convert_softmax_cross_entropy(onnx_graph, node):
         node.outputs,
         str(node.lineprop))
 
-def convert_average_pool_2d(onnx_graph, node):
+def convert_max_pooling_2d(onnx_graph, node):
     def _pair(x):
         if isinstance(x, collections.Iterable):
             return x
         return (x, x)
 
+    ksize = oc.try_get_attribute(node.args.keywords['ksize'])
+    stride = oc.try_get_attribute(node.args.keywords['stride'])
+    pad = oc.try_get_attribute(node.args.keywords['pad'])
+    cover_all = oc.try_get_attribute(node.args.keywords['cover_all'])
+    return_indices = oc.try_get_attribute(node.args.keywords['return_indices'])
+
+    assert not return_indices  # TODO(hamaji): Not implemented yet.
+
+    kwargs = {}
+    kwargs['kernel_shape'] = _pair(ksize)
+
+    if stride is not None:
+        kwargs['strides'] = _pair(stride)
+    else:
+        kwargs['strides'] = _pair(ksize)
+
+    if pad is not None:
+        kwargs['pads'] = _pair(pad) * 2
+    else:
+        kwargs['pads'] = _pair(0)
+
+    onnx_graph.add_node(
+        "MaxPool",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        chainer_cover_all=cover_all,
+        **kwargs,
+        )
+
+def convert_average_pool_2d(onnx_graph, node):
     kwargs = {}
     ksize = oc.try_get_attribute(node.inputs[1])
     kwargs['kernel_shape'] = _pair(ksize)
@@ -172,16 +208,11 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
     pad = oc.try_get_attribute(node.args.keywords['pad'])
     outsize = oc.try_get_attribute(node.args.keywords['outsize'])
     cover_all = oc.try_get_attribute(node.args.keywords['cover_all'])
-    
+
     assert(stride is None) # TODO(hamaji): Not supported yet.
     assert(pad == 0) # TODO(hamaji): Not supported yet.
     assert(outsize is None) # TODO(hamaji): Not supported yet.
     assert(cover_all is False) # TODO(hamaji): Not supported yet.
-    
-    def _pair(x):
-        if isinstance(x, collections.Iterable):
-            return x
-        return (x, x)
 
     scales = np.array([1, 1] + list(_pair(ksize)), dtype=np.float32)
     scales_ = oc.ONNXValue(onnx_graph, scales, [node, '/Scale'], is_constant = True)
@@ -190,6 +221,25 @@ def convert_unpooling_2d(onnx_graph, node : 'nodes.NodeCall'):
         [node.inputs[0], scales_],
         [node.outputs[0]],
         name=str(node.lineprop))
+
+def convert_resize_images(onnx_graph, node):
+    output_shape = oc.try_get_attribute(node.args.keywords['output_shape'])
+
+    onnx_graph.add_node(
+        "ChainerResizeImages",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        output_shape=_pair(output_shape))
+
+'''
+class Function_ResizeImages(Callable):
+    def call_impl(self, env, x, output_shape):
+        return env.calc(
+            'ChainerResizeImages',
+            inputs=[x.to_tensor(env).name],
+            output_shape=_pair(output_shape))
+'''
 
 def convert_reshape(onnx_graph, node):
 
@@ -311,3 +361,18 @@ def convert_roi_average_align_2d(onnx_graph, node):
         spatial_scale=oc.try_get_attribute(spatial_scale.value),
         sampling_ratio=_pair(oc.try_get_attribute(sampling_ratio.value)))
     return
+
+def convert_local_response_normalization(onnx_graph, node):
+    kwargs = {}
+    kwargs['size'] = oc.try_get_attribute(node.args.keywords['n'])
+    kwargs['bias'] = float(oc.try_get_attribute(node.args.keywords['k']))
+    kwargs['alpha'] = float(oc.try_get_attribute(node.args.keywords['alpha']) * kwargs['size'])
+    kwargs['beta'] = float(oc.try_get_attribute(node.args.keywords['beta']))
+
+    onnx_graph.add_node(
+        "LRN",
+        [node.inputs[0]],
+        node.outputs,
+        str(node.lineprop),
+        **kwargs,
+    )

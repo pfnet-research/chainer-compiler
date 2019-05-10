@@ -12,8 +12,10 @@
 #include <common/protoutil.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
+#include <compiler/flops.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
+#include <compiler/memory_simulator.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
@@ -91,8 +93,6 @@ std::shared_ptr<runtime::XCVM> Compile(
     g_dump_after_scheduling = dump_after_scheduling;
     g_dump_subgraphs = dump_subgraphs;
 
-    if (!g_skip_inference) graph->InferShapes();
-
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop);
     runtime::XCProgramProto xcvm_prog;
@@ -101,10 +101,25 @@ std::shared_ptr<runtime::XCVM> Compile(
     return std::make_shared<runtime::XCVM>(xcvm_prog);
 }
 
+bool IsParam(Value* value) {
+    const std::string& name = value->name();
+    // the second condition is for ch2o
+    // TODO(hamaji): Remove the check for '/' after deprecating ch2o
+    return value->initializer() || (name.size() >= 1 && name[0] == '/');
+}
+
 std::vector<std::string> GetInputNames(const std::shared_ptr<Graph>& graph) {
     std::vector<std::string> names;
     for (Value* value : graph->input_values()) {
-        if (!value->initializer()) names.push_back(value->name());
+        if (!IsParam(value)) names.push_back(value->name());
+    }
+    return names;
+}
+
+std::vector<std::string> GetParamNames(const std::shared_ptr<Graph>& graph) {
+    std::vector<std::string> names;
+    for (Value* value : graph->input_values()) {
+        if (IsParam(value)) names.push_back(value->name());
     }
     return names;
 }
@@ -130,6 +145,22 @@ std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardTo(
     RunDefaultPassesBeforeGradient(graph.get());
     GenerateGradientNodesTo(graph.get(), backprop.get(), param_names);
     return std::make_pair(graph, backprop);
+}
+
+int64_t GetFlops(const std::shared_ptr<Graph>& graph) {
+    return CalculateTotalFlops(*graph);
+}
+
+int64_t GetPeakMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).peak;
+}
+
+int64_t GetAllMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).all;
+}
+
+int64_t GetParamMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).param;
 }
 
 std::string Dump(const std::shared_ptr<Graph>& graph) {
@@ -164,9 +195,14 @@ void InitGraph(py::module& m) {
           py::arg("dump_after_scheduling") = false,
           py::arg("dump_subgraphs") = false);
     c.def("input_names", &GetInputNames, "Names of inputs");
+    c.def("param_names", &GetParamNames, "Names of params");
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward, "Generate a pair of graphs for forward and back propagation");
     c.def("backward_to", &GenerateBackwardTo, "Generate a pair of graphs for forward and back propagation");
+    c.def("flops", &GetFlops, "Get estimated flops");
+    c.def("peak_memory_usage", &GetPeakMemoryUsage, "Get estimated peak memory usage");
+    c.def("all_memory_usage", &GetAllMemoryUsage, "Get estimated all memory usage");
+    c.def("param_memory_usage", &GetParamMemoryUsage, "Get estimated param memory usage");
     c.def("dump", &Dump, "Dump a model to a string");
 }
 

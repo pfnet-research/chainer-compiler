@@ -150,6 +150,8 @@ XC_OPS = [
     ('And', [Array('a'), Array('b')], ['c']),
     ('Or', [Array('a'), Array('b')], ['c']),
     ('Xor', [Array('a'), Array('b')], ['c']),
+    ('IsNaN', [Array('x')], ['y']),
+    ('IsInf', [Array('x')], ['y']),
 
     ('Reciprocal', [Array('x')], ['y']),
     ('Exp', [Array('x')], ['y']),

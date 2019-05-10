@@ -1,5 +1,6 @@
 #include <limits>
 
+#include <chainerx/kernels/math.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/math.h>
 
@@ -11,7 +12,7 @@ namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array ReluOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    return chainerx::Maximum(x, 0);
+    return chainerx::Relu(x);
 }
 
 chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& gy) {
@@ -25,7 +26,7 @@ chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     } else {
         CHECK(false) << "TODO(hamaji): Unsupported dtype: " << x.dtype();
     }
-    x.device().backend().CallOp<chainerx::IfLessElseASSAOp>(x, eps, chainerx::Scalar(0.0), gy, out);
+    x.device().backend().CallKernel<chainerx::IfLessElseASSAKernel>(x, eps, chainerx::Scalar(0.0), gy, out);
     return out;
 }
 
@@ -56,7 +57,7 @@ chainerx::Array SigmoidOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
 }
 
 chainerx::Array SoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
-    return chainerx::Exp(chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)}));
+    return chainerx::Softmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
 }
 
 chainerx::Array LogSoftmaxOp::RunImpl(XCVMState* st, const chainerx::Array& input) {

@@ -1,3 +1,9 @@
+// TODO(hamaji): Remove this workaround after fixing the following issue:
+// https://github.com/pfnet-research/chainer-compiler/issues/220
+#ifndef NDEBUG
+#define NDEBUG 1
+#endif
+
 #include "onnx/defs/schema.h"
 
 namespace ONNX_NAMESPACE {
@@ -329,8 +335,15 @@ void InferResizeImages(InferenceContext& ctx) {
     }
 
     auto output = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
-    output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(0));
-    output->add_dim()->CopyFrom(ctx.getInputType(0)->tensor_type().shape().dim(1));
+    auto add_dim = [&output](const TypeProto& type, int index) {
+        auto new_dim = output->add_dim();
+        if (!type.has_tensor_type() || !type.tensor_type().has_shape() || index >= type.tensor_type().shape().dim().size()) {
+            return;
+        }
+        new_dim->CopyFrom(type.tensor_type().shape().dim(index));
+    };
+    add_dim(*ctx.getInputType(0), 0);
+    add_dim(*ctx.getInputType(0), 1);
     output->add_dim()->set_dim_value(output_shape[0]);
     output->add_dim()->set_dim_value(output_shape[1]);
 }
@@ -456,6 +469,79 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .Attr("size", "The batch size of the output.", AttributeProto::INT)
                 .TypeAndShapeInferenceFunction(InferPadBatchSize));
 
+namespace {
+
+static const char* Split_ver9_doc =
+        R"DOC(Split a tensor into a list of tensors, along the specified
+'axis'. Lengths of the parts can be specified using argument 'split'.
+Otherwise, the tensor is split to equal sized parts.
+)DOC";
+
+void InferSplit(InferenceContext& ctx) {
+    for (int i = 0; i < static_cast<int>(ctx.getNumOutputs()); ++i) {
+        propagateElemTypeFromInputToOutput(ctx, 0, i);
+    }
+
+    if (!hasNInputShapes(ctx, 1)) {
+        return;
+    }
+
+    auto axisAttr = ctx.getAttribute("axis");
+    int axis = axisAttr ? static_cast<int>(axisAttr->i()) : 0;
+    if (axis < 0) {
+        return;
+    }
+    if (!ctx.getInputType(0)->tensor_type().has_shape()) {
+        return;
+    }
+    const auto& shape = ctx.getInputType(0)->tensor_type().shape();
+    if (axis >= shape.dim_size()) {
+        fail_type_inference("Invalid value of attribute 'axis'");
+    }
+    const auto& splitDim = shape.dim(axis);
+    if (!splitDim.has_dim_value()) {
+        return;
+    }
+    int splitDimValue = static_cast<int>(splitDim.dim_value());
+
+    std::vector<int64_t> split;
+    if (getRepeatedAttribute(ctx, "split", split)) {
+        if (split.size() != ctx.getNumOutputs()) {
+            return;
+        }
+        int64_t totalDim = 0;
+        for (int64_t d : split) totalDim += d;
+        if (totalDim != splitDimValue) {
+            return;
+        }
+    } else {
+        int chunkSize = splitDimValue / static_cast<int>(ctx.getNumOutputs());
+        int leftOver = splitDimValue - (chunkSize * static_cast<int>(ctx.getNumOutputs()));
+        for (int i = 0; i < static_cast<int>(ctx.getNumOutputs()); i++) {
+            split.push_back(i < leftOver ? chunkSize + 1 : chunkSize);
+        }
+    }
+
+    for (size_t i = 0; i < ctx.getNumOutputs(); i++) {
+        *ctx.getOutputType(i)->mutable_tensor_type()->mutable_shape() = shape;
+        ctx.getOutputType(i)->mutable_tensor_type()->mutable_shape()->mutable_dim(axis)->set_dim_value(split[i]);
+    }
+}
+
+}  // namespace
+
+ONNX_OPERATOR_SET_SCHEMA(
+        Split,
+        9,
+        OpSchema()
+                .Input(0, "input", "The tensor to split", "T")
+                .Output(0, "outputs", "One or more outputs forming list of tensors after splitting", "T", OpSchema::Variadic)
+                .TypeConstraint("T", OpSchema::all_tensor_types(), "Constrain input and output types to all tensor types.")
+                .Attr("axis", "Which axis to split on.", AttributeProto::INT, static_cast<int64_t>(0))
+                .Attr("split", "length of each output", AttributeProto::INTS, OPTIONAL)
+                .SetDoc(Split_ver9_doc)
+                .TypeAndShapeInferenceFunction(InferSplit));
+
 class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
@@ -470,6 +556,7 @@ public:
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSelectItem)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Expand)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, MaxPool)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Split)>());
     }
 };
 

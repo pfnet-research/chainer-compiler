@@ -54,7 +54,7 @@ def main():
     model = Alex()
 
     v = np.random.rand(5, 3, 227, 227).astype(np.float32)
-    t = np.random.randint(1000, size=2)
+    t = np.random.randint(1000, size=5)
     testtools.generate_testcase(model, [v, t])
 
 

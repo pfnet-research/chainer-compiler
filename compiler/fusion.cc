@@ -117,6 +117,27 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
+void RejectUnusedConstants(std::set<Node*>* cands) {
+    std::set<Node*> rejected;
+    for (Node* node : *cands) {
+        if (node->op_type() != Node::kConstant) {
+            continue;
+        }
+        bool is_used = false;
+        for (Node* user : node->output(0)->users()) {
+            if (cands->count(user)) {
+                is_used = true;
+                break;
+            }
+        }
+        if (!is_used) {
+            CHECK(rejected.insert(node).second);
+        }
+    }
+
+    for (Node* node : rejected) cands->erase(node);
+}
+
 void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, const std::function<bool(const Node&)>& is_fusable) {
     int num_fusion_groups = 0;
     const std::vector<Node*> all_nodes(graph->nodes());
@@ -150,10 +171,11 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
         }
 
         RejectCyclicNodes(&cands);
+        RejectUnusedConstants(&cands);
 
         int num_calculation = 0;
         for (Node* node : cands) {
-            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
+            if (!node->IsZeroCost()) ++num_calculation;
         }
         if (num_calculation < min_fuse_ops) continue;
 
@@ -172,6 +194,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kAdd,
             Node::kAveragePool,
             Node::kBatchNormalization,
+            Node::kClip,
             Node::kConstant,
             Node::kConcat,
             Node::kConv,
@@ -193,6 +216,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kSqrt,
             Node::kSqueeze,
             // Node::kSoftmax,
+            Node::kSplit,
             Node::kSub,
             Node::kSum,
             Node::kTanh,
@@ -346,7 +370,7 @@ void FuseOperations(Graph* graph, bool use_tvm, bool use_ngraph) {
     // Fuse ops in subgraphs first to avoid infinite loop.
     for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
-            FuseOperations(subgraph, use_tvm);
+            FuseOperations(subgraph, use_tvm, use_ngraph);
         }
     }
 

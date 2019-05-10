@@ -6,6 +6,7 @@
 
 #include <chainerx/array.h>
 #include <chainerx/context.h>
+#include <chainerx/kernels/creation.h>
 #include <chainerx/native/native_backend.h>
 #include <chainerx/native/native_device.h>
 #include <chainerx/routines/creation.h>
@@ -196,7 +197,7 @@ bool IsFloat(chainerx::Dtype dtype) {
 }
 
 void BlitArray(const chainerx::Array& src, const chainerx::Array& dst) {
-    src.device().backend().CallOp<chainerx::CopyOp>(src, dst);
+    src.device().backend().CallKernel<chainerx::CopyKernel>(src, dst);
 }
 
 }  // namespace runtime

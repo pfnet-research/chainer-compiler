@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include <chainerx/kernels/pooling.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
@@ -54,7 +55,7 @@ std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const
     const Int64StackVector& strides = ComplementStride(this->strides, x);
     const Int64StackVector& pads = ComplementPad(this->pads, x);
     std::tie(out, state) =
-            x.device().backend().CallOp<chainerx::MaxPoolOp>(x, kernel_shape, strides, pads, cover_all, true, nonstd::nullopt);
+            x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, nonstd::nullopt);
     XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
@@ -68,7 +69,7 @@ std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, c
     std::shared_ptr<chainerx::AveragePoolGradState> state;
     chainerx::Array out;
     std::tie(out, state) =
-            x.device().backend().CallOp<chainerx::AveragePoolOp>(x, kernel_shape, strides, pads, pad_mode, true, nonstd::nullopt);
+            x.device().backend().CallKernel<chainerx::AveragePoolKernel>(x, kernel_shape, strides, pads, pad_mode, true, nonstd::nullopt);
     XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
@@ -78,14 +79,14 @@ std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, c
 
 chainerx::Array MaxPoolGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
     auto& context = dynamic_cast<const BackwardContext<chainerx::MaxPoolGradState>&>(ctx);
-    return std::get<0>(gy.device().backend().CallOp<chainerx::MaxPoolGradOp>(
+    return std::get<0>(gy.device().backend().CallKernel<chainerx::MaxPoolGradKernel>(
             gy, kernel_shape, context.strides(), context.pads(), context.state(), true, nonstd::nullopt));
 }
 
 chainerx::Array AveragePoolGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
     auto& context = dynamic_cast<const BackwardContext<chainerx::AveragePoolGradState>&>(ctx);
-    return gy.device().backend().CallOp<chainerx::AveragePoolGradOp>(
+    return gy.device().backend().CallKernel<chainerx::AveragePoolGradKernel>(
             gy, kernel_shape, context.strides(), context.pads(), pad_mode, context.state(), nonstd::nullopt);
 }
 
@@ -229,45 +230,16 @@ public:
     }
 
     chainerx::Array Run() {
+        if (n_rois < 20) {
+            for (int64_t n = 0; n < n_rois; ++n) {
+                RunROI(n);
+            }
+        } else {
 #if CHAINER_COMPILER_ENABLE_OPENMP
 #pragma omp parallel for
 #endif
-        for (int64_t n = 0; n < n_rois; ++n) {
-            std::vector<PixelWeight> pixel_weights(pooled_height * pooled_width * roi_bin_grid_h * roi_bin_grid_w);
-            std::vector<PixelPos> pixel_x(pooled_width * roi_bin_grid_w);
-            std::vector<PixelPos> pixel_y(pooled_height * roi_bin_grid_h);
-
-            int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
-            double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
-            double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
-            double roi_end_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 2}) * spatial_scale;
-            double roi_end_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 3}) * spatial_scale;
-
-            double roi_height = std::max<double>(roi_end_h - roi_start_h, 1.);
-            double roi_width = std::max<double>(roi_end_w - roi_start_w, 1.);
-            double bin_size_h = roi_height / pooled_height;
-            double bin_size_w = roi_width / pooled_width;
-
-            const float* bottom_base = &bottom_ptr[roi_batch_ind * channels * height * width];
-            float* top_base = &top_ptr[n * channels * pooled_height * pooled_width];
-            if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
-                FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
-                FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
-                FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
-                    CalculateOutput<false, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
-                } else {
-                    CalculateOutput<false, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
-                }
-            } else {
-                FillPixelPositionsBounded(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, height, &pixel_y);
-                FillPixelPositionsBounded(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, width, &pixel_x);
-                FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
-                if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
-                    CalculateOutput<true, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
-                } else {
-                    CalculateOutput<true, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
-                }
+            for (int64_t n = 0; n < n_rois; ++n) {
+                RunROI(n);
             }
         }
         return top_data;
@@ -291,6 +263,45 @@ private:
     struct PixelWeight {
         double w1, w2, w3, w4;
     };
+
+    void RunROI(int n) {
+        std::vector<PixelWeight> pixel_weights(pooled_height * pooled_width * roi_bin_grid_h * roi_bin_grid_w);
+        std::vector<PixelPos> pixel_x(pooled_width * roi_bin_grid_w);
+        std::vector<PixelPos> pixel_y(pooled_height * roi_bin_grid_h);
+
+        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
+        double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
+        double roi_end_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 2}) * spatial_scale;
+        double roi_end_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 3}) * spatial_scale;
+
+        double roi_height = std::max<double>(roi_end_h - roi_start_h, 1.);
+        double roi_width = std::max<double>(roi_end_w - roi_start_w, 1.);
+        double bin_size_h = roi_height / pooled_height;
+        double bin_size_w = roi_width / pooled_width;
+
+        const float* bottom_base = &bottom_ptr[roi_batch_ind * channels * height * width];
+        float* top_base = &top_ptr[n * channels * pooled_height * pooled_width];
+        if (is_roi_covered_by_bottom_data(roi_start_h, roi_start_w, roi_end_h, roi_end_w, height, width)) {
+            FillPixelPositions(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, &pixel_y);
+            FillPixelPositions(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, &pixel_x);
+            FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
+            if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
+                CalculateOutput<false, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+            } else {
+                CalculateOutput<false, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+            }
+        } else {
+            FillPixelPositionsBounded(roi_start_h, bin_size_h, pooled_height, roi_bin_grid_h, height, &pixel_y);
+            FillPixelPositionsBounded(roi_start_w, bin_size_w, pooled_width, roi_bin_grid_w, width, &pixel_x);
+            FillPixelWeights(pixel_x, pixel_y, &pixel_weights);
+            if (roi_bin_grid_h == 2 && roi_bin_grid_w == 2) {
+                CalculateOutput<true, 2>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+            } else {
+                CalculateOutput<true, 0>(pixel_weights, pixel_x, pixel_y, bottom_base, top_base);
+            }
+        }
+    }
 
     void FillPixelPositions(
             double roi_start, double bin_size_w, int64_t pooled_width, int64_t roi_bin_grid_w, std::vector<PixelPos>* positions) {
