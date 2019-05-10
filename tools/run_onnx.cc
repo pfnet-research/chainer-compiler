@@ -24,9 +24,11 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
 #include <compiler/gradient.h>
+#include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
@@ -233,7 +235,12 @@ public:
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
-            GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
+            if (g_computation_order.empty()) {
+                GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
+            } else {
+              auto orders = GetComputationOrder(model->graph(), g_computation_order);
+              AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders);
+            }
 
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph());
