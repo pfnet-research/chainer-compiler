@@ -8,84 +8,64 @@ import elichika
 import elichika.parser as parser
 import elichika.parser.visualizer as visualizer
 
-class MultiLayerPerceptron(chainer.Chain):
-    def __init__(self, n_in, n_hidden, n_out):
-        super(MultiLayerPerceptron, self).__init__()
-        with self.init_scope():
-            self.layer1 = L.Linear(n_in, n_hidden)
-            self.layer2 = L.Linear(n_hidden, n_hidden)
-            self.layer3 = L.Linear(n_hidden, n_out)
 
+
+class SoftmaxAxis(chainer.Chain):
     def forward(self, x):
-        # Forward propagation
-        self.x = x
-        h1 = F.relu(self.layer1(x))
-        h2 = F.relu(self.layer2(h1))
-        return self.layer3(h2)
+        return F.softmax(x, axis=2)
 
-class DynamicCond(chainer.Chain):
-    def forward(self, x, cond):
-        if cond:
-            x = 3
-        else:
-            x = 10
+class Basic1(chainer.Chain):
+    def forward(self):
+        x = 0
+        for i in range(2):
+            x = i + 1
         return x
 
-class D(chainer.Chain):
+class C(chainer.Chain):
     def forward(self):
+        bs = 0
+        cs = 0
         for i in range(4):
-            o = i
-        return o
+            cs = i
+            bs = cs
+        return bs, cs
 
-class SimpleFunc(chainer.Chain):
-    def forward(self):
-        a,b = self.get_value()
-        return a + b
 
-    def get_value(self):
-        return 1.0, 2.0
+class ListSlice(chainer.Chain):
+    def forward(self, x):
+        # Use `shape` to make a sequence.
+        xs = x.shape
+        y1 = np.array(xs[2])
+        y2 = np.array(xs[-2])
+        y3 = np.array(xs[:2])
+        y4 = np.array(xs[1:3])
+        y5 = np.array(xs[1::2])
+        return y1, y2, y3, y4, y5
 
-class Conv(chainer.Chain):
+class AvgPool(chainer.Chain):
 
     def __init__(self):
-        super(Conv, self).__init__()
-        with self.init_scope():
-            # TODO Add more tests
-            self.l1 = L.Convolution2D(None, 6, (5, 7), stride=(2, 3))
+        super(AvgPool, self).__init__()
 
     def forward(self, x):
-        y1 = self.l1(x)
+        y1 = F.average_pooling_2d(x, 1, stride=2)
         return y1
 
-class IsNot(chainer.Chain):
-    def forward(self, x, y):
-        return x is not y
+class ArrayCast(chainer.Chain):
+    def forward(self):
+        y1 = np.array([4.0, 2.0, 3.0], dtype=np.int32)
+        return y1
 
-class ListGen(chainer.Chain):
+class A(chainer.Chain):
+
+    def __init__(self):
+        super(A, self).__init__()
+        with self.init_scope():
+            self.l1 = L.BatchNormalization(3)
+
     def forward(self, x):
-        self.z = -x
-        self.y = []
-        self.y.append(1)
-        self.y.append(2)
-        self.y.append(3)
-        self.z3 = [int(w) for w in self.y]
-        self.z2 = self.y[1]
-        self.z = self.y[1:2]
-
-class StaticCondTrue(chainer.Chain):
-    def forward(self, x):
-        if True:
-            x += 3
-        else:
-            x += 10
-        return x
-
-class UpdateSelf(chainer.Chain):
-    def forward(self, x, cond):
-        self.x = x
-        if cond:
-            self.x += 10
-        return self.x
+        r = self.l1(x)
+        return r
 
 def print_graph(graph : 'core.Graph'):
     for node in graph.nodes:
@@ -108,19 +88,6 @@ def export(model, args, path):
 if __name__ == "__main__":
     os.makedirs('result/', exist_ok=True)
 
-    #resnet50 = chainer.links.ResNet50Layers()
-    export(UpdateSelf(), [42, True], 'result/UpdateSelf')
-
-    all = False
-    if all:
-        m = SimpleFunc()
-        export(m, [], 'result/SimpleFunc')
-
-        m = MultiLayerPerceptron(10, 10, 10)
-        export(m, [np.zeros((10))], 'result/MLP')
-
-        m = DynamicCond()
-        export(m, [0.0, True], 'result/DynamicCond')
-
-        m = UpdateSelf()
-        export(m, [10.0], 'result/UpdateSelf')
+    model = A()
+    v = np.random.rand(2, 3, 5, 5).astype(np.float32)
+    export(model, [v], 'result/BN')

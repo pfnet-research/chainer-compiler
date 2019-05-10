@@ -17,3 +17,6 @@
 __pycache__
 build/
 out/
+
+# exclude the data directory created by setup.sh
+data/

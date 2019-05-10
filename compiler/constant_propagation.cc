@@ -18,8 +18,7 @@ bool HasConstantInputsOnly(const Node& node) {
     if (node.inputs().empty()) return false;
     for (Value* input : node.inputs()) {
         if (input->producer() &&
-            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kChainerSequenceConstants ||
-             input->producer()->op_type() == Node::kChainerSequenceCreate)) {
+            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kChainerSequenceConstants)) {
         } else {
             return false;
         }
@@ -49,7 +48,10 @@ void DoConstantPropagation(Graph* graph, Node* node) {
 
     graph->DetachNode(node);
     for (Node* input : inputs) {
-        if (input->output(0)->users().empty()) {
+        Value* output = input->output(0);
+        // Detach node if the value is not uesd by other ops nor a
+        // graph output.
+        if (output->users().empty() && !output->IsOutput()) {
             graph->DetachNode(input);
         }
     }
@@ -58,21 +60,25 @@ void DoConstantPropagation(Graph* graph, Node* node) {
 bool MaybePropagateConstant(Graph* graph, Node* node) {
     switch (node->op_type()) {
         // TODO(hamaji): Handle more ops.
-        case Node::kIdentity:
         case Node::kAdd:
-        case Node::kSub:
-        case Node::kMul:
-        case Node::kDiv:
+        case Node::kCast:
         case Node::kChainerGenericIs:
         case Node::kChainerGenericLen:
-        case Node::kShape:
-        case Node::kUnsqueeze:
-        case Node::kGather:
-        case Node::kCast:
         case Node::kChainerSequenceAppend:
         case Node::kChainerSequenceConcat:
+        case Node::kChainerSequenceCreate:
+        case Node::kChainerSequenceRange:
         case Node::kChainerSequenceStack:
-        case Node::kChainerSequenceRange: {
+        case Node::kDiv:
+        case Node::kExpand:
+        case Node::kGather:
+        case Node::kIdentity:
+        case Node::kMul:
+        case Node::kShape:
+        case Node::kSlice:
+        case Node::kSub:
+        case Node::kTranspose:
+        case Node::kUnsqueeze: {
             DoConstantPropagation(graph, node);
             return true;
         }

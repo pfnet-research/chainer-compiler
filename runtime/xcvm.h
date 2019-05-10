@@ -1,11 +1,19 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include <chainerx/shape.h>
+
 #include "runtime/xcvm.pb.h"
+
+namespace chainerx {
+class Array;
+}  // namespace chainerx
 
 namespace chainer_compiler {
 namespace runtime {
@@ -16,6 +24,8 @@ class XCVMState;
 class XCVMVar;
 
 typedef std::map<std::string, std::shared_ptr<XCVMVar>> InOuts;
+
+typedef std::function<std::vector<chainerx::Array>(std::vector<chainerx::Array>)> CustomOpFunc;
 
 struct XCVMOptions {
 public:
@@ -40,7 +50,13 @@ public:
     int64_t base_memory_usage{0};
 
     ChromeTracingEmitter* chrome_tracing{nullptr};
+
+    std::string dump_outputs_dir;
+
+    std::map<std::string, CustomOpFunc> custom_op_funcs;
 };
+
+class XCVMInputDesc;
 
 class XCVM {
 public:
@@ -55,7 +71,11 @@ public:
     }
 
 private:
+    XCVM(const XCVM&) = delete;
+    XCVM& operator=(const XCVM&) = delete;
+
     std::vector<std::unique_ptr<XCVMOp>> program_;
+    std::vector<std::unique_ptr<XCVMInputDesc>> input_descs_;
     int num_variables_;
 };
 

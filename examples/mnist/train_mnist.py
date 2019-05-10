@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import os
-import re
 import sys
 
-import numpy
+import numpy as np
 
 import chainer
 import chainer.functions as F
@@ -19,7 +18,6 @@ sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'build/python'))
 
 import chainer_compiler
-
 
 # Network definition
 class MLP(chainer.Chain):
@@ -38,21 +36,17 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(numpy)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.get_device(args.device)
+def fake_dataset():
+    def gen(size):
+        inputs = []
+        labels = []
+        for i in range(size):
+            inputs.append(np.random.rand(224).astype(np.float32))
+            labels.append(np.random.randint(10))
+        return inputs, labels
+    train = chainer.datasets.TupleDataset(*gen(150))
+    test = chainer.datasets.TupleDataset(*gen(100))
+    return train, test
 
 
 def main():
@@ -77,15 +71,20 @@ def main():
     parser.add_argument('--noplot', dest='plot', action='store_false',
                         help='Disable PlotReport extension')
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--compile', action='store_true',
                         help='Compile the model')
     parser.add_argument('--dump_onnx', action='store_true',
                         help='Dump ONNX model after optimization')
+    parser.add_argument('--iterations', '-I', type=int, default=None,
+                        help='Number of iterations to train')
+    parser.add_argument('--use-fake-data', action='store_true',
+                        help='Use fake data')
     args = parser.parse_args()
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
@@ -108,7 +107,10 @@ def main():
     optimizer.setup(model)
 
     # Load the MNIST dataset
-    train, test = chainer.datasets.get_mnist()
+    if args.use_fake_data:
+        train, test = fake_dataset()
+    else:
+        train, test = chainer.datasets.get_mnist()
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
@@ -117,7 +119,11 @@ def main():
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, device=device)
-    trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
+    if args.iterations:
+        stop_trigger = (args.iterations, 'iteration')
+    else:
+        stop_trigger = (args.epoch, 'epoch')
+    trainer = training.Trainer(updater, stop_trigger, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, model, device=device))
@@ -126,7 +132,7 @@ def main():
     # The "main" refers to the target link of the "main" optimizer.
     # TODO(niboshi): Temporarily disabled for chainerx. Fix it.
     if device.xp is not chainerx:
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot for each specified epoch
     frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)

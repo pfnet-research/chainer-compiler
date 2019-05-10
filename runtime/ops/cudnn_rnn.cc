@@ -8,6 +8,7 @@
 #include <cudnn.h>
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_xcvm_ops.h>
 
 namespace chainer_compiler {
@@ -22,13 +23,12 @@ using chainerx::cuda::cuda_internal::CudnnTensorDescriptor;
 // TODO(hamaji): Use ChainerX's.
 cudnnDataType_t GetCudnnDataType(chainerx::Dtype dtype) {
     switch (dtype) {
+        case chainerx::Dtype::kFloat16:
+            return CUDNN_DATA_HALF;
         case chainerx::Dtype::kFloat32:
             return CUDNN_DATA_FLOAT;
         case chainerx::Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
-        // TODO(hamaji): Support float16 if it becomes avaialable
-        // case chainerx::Dtype::kFloat16:
-        //    return CUDNN_DATA_HALF;
         default:
             throw chainerx::DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }
@@ -95,7 +95,7 @@ class CudnnRNNDataDescriptor {
 public:
     explicit CudnnRNNDataDescriptor(
             CudnnHandle& cudnn, chainerx::Dtype dtype, const chainerx::Shape& shape, const std::vector<int>& sequence_lengths)
-        : sequence_lengths_(sequence_lengths), pad_(0, dtype) {
+        : sequence_lengths_(sequence_lengths), pad_(0, chainerx::GetKind(dtype)) {
         CheckCudnnError(cudnnCreateRNNDataDescriptor(&desc_));
         CheckCudnnError(cudnnSetRNNDataDescriptor(
                 desc_,
@@ -347,7 +347,7 @@ chainerx::Array PackSequence(const chainerx::Array& x, int64_t num_inputs, const
         chainerx::Array src = x.At({time, chainerx::Slice(0, num_batch)});
         chainerx::Array dest = packed.At({chainerx::Slice(offset, offset + num_batch)});
         CHECK_EQ(src.GetTotalSize(), dest.GetTotalSize());
-        x.device().Copy(src, dest);
+        BlitArray(src, dest);
         offset += num_batch;
     }
     CHECK_EQ(offset, packed.shape()[0]);
@@ -364,7 +364,7 @@ chainerx::Array UnpackSequence(
         chainerx::Array src = packed.At({chainerx::Slice(offset, offset + num_batch)});
         chainerx::Array dest = x.At({time, chainerx::Slice(0, num_batch)});
         CHECK_EQ(src.GetTotalSize(), dest.GetTotalSize());
-        x.device().Copy(src, dest);
+        BlitArray(src, dest);
         offset += num_batch;
     }
     return x;
@@ -429,7 +429,7 @@ bool CudnnLSTM(
     chainerx::Array packed = PackSequence(x, num_inputs, num_batches);
 
     auto& device = dynamic_cast<chainerx::cuda::CudaDevice&>(x.device());
-    CudnnHandle& cudnn_handle = device.cudnn_handle();
+    CudnnHandle& cudnn_handle = chainerx::cuda::cuda_internal::GetDeviceInternals(device).cudnn_handle();
 
     // TODO(hamaji): Avoid unnecessary memory allocation.
     CudnnTensorDescriptor x_desc(chainerx::Empty({batch_size, input_size, 1}, x.dtype(), chainerx::GetNativeBackend().GetDevice(0)));
@@ -473,7 +473,7 @@ bool CudnnLSTM(
                 int64_t param_size = src_w.GetTotalSize();
                 int offset = GetRNNWeightOffset(
                         cudnn_handle, *rnn_desc, pseudo_layer, x_desc, *w_concat_desc, w_concat, lin_layer_id, is_bias, src_w);
-                w_concat.device().Copy(chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
+                BlitArray(chainerx::Reshape(src_w, {param_size}), w_concat.At({chainerx::Slice(offset, offset + param_size)}));
                 offsets.push_back(offset);
             }
         }
@@ -568,7 +568,7 @@ bool CudnnLSTMGrad(
     if (!dynamic_cast<const LSTMBackwardContext*>(&ctx)) return false;
     auto& context = dynamic_cast<const LSTMBackwardContext&>(ctx);
     auto& device = dynamic_cast<chainerx::cuda::CudaDevice&>(ogy.device());
-    CudnnHandle& cudnn_handle = device.cudnn_handle();
+    CudnnHandle& cudnn_handle = chainerx::cuda::cuda_internal::GetDeviceInternals(device).cudnn_handle();
 
     const chainerx::Array& x = context.x();
     const chainerx::Array& w_concat = context.w();
@@ -653,8 +653,7 @@ bool CudnnLSTMGrad(
             for (int is_bias = 0; is_bias < 2; ++is_bias) {
                 int64_t offset = context.offsets()[offset_index++];
                 chainerx::Array dest = slices[is_bias][lin_layer_id];
-                gw_concat.device().Copy(
-                        chainerx::Reshape(gw_concat.At({chainerx::Slice(offset, offset + dest.GetTotalSize())}), dest.shape()), dest);
+                BlitArray(chainerx::Reshape(gw_concat.At({chainerx::Slice(offset, offset + dest.GetTotalSize())}), dest.shape()), dest);
             }
         }
     }

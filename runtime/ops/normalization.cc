@@ -1,3 +1,4 @@
+#include <chainerx/kernels/normalization.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 #include <chainerx/routines/normalization.h>
@@ -14,13 +15,28 @@ namespace {
 
 class BatchNormBackwardContext : public XCVMOpaque {
 public:
-    BatchNormBackwardContext(std::unique_ptr<chainerx::BatchNormForwardBackward>&& fb, chainerx::Shape x1_shape, chainerx::Shape x2_shape)
-        : fb_(std::move(fb)), x1_shape_(x1_shape), x2_shape_(x2_shape) {
+    BatchNormBackwardContext(
+            std::shared_ptr<chainerx::BatchNormGradState> state,
+            const chainerx::Array& x,
+            const chainerx::Array& gamma,
+            chainerx::Shape x1_shape,
+            chainerx::Shape x2_shape,
+            double epsilon,
+            const chainerx::Axes& sorted_axis)
+        : state_(state), x_(x), gamma_(gamma), x1_shape_(x1_shape), x2_shape_(x2_shape), epsilon_(epsilon), sorted_axis_(sorted_axis) {
     }
     virtual ~BatchNormBackwardContext() = default;
 
-    chainerx::BatchNormForwardBackward* fb() const {
-        return fb_.get();
+    const std::shared_ptr<chainerx::BatchNormGradState>& state() const {
+        return state_;
+    }
+
+    const chainerx::Array& x() const {
+        return x_;
+    }
+
+    const chainerx::Array& gamma() const {
+        return gamma_;
     }
 
     const chainerx::Shape& x1_shape() const {
@@ -31,10 +47,22 @@ public:
         return x2_shape_;
     }
 
+    double epsilon() const {
+        return epsilon_;
+    }
+
+    const chainerx::Axes& sorted_axis() const {
+        return sorted_axis_;
+    }
+
 private:
-    std::unique_ptr<chainerx::BatchNormForwardBackward> fb_;
+    std::shared_ptr<chainerx::BatchNormGradState> state_;
+    chainerx::Array x_;
+    chainerx::Array gamma_;
     chainerx::Shape x1_shape_;
     chainerx::Shape x2_shape_;
+    double epsilon_;
+    chainerx::Axes sorted_axis_;
 };
 
 // TODO(hamaji): Copied from ChainerX's code.
@@ -122,13 +150,20 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
         if (i != 1) axes.push_back(i);
     }
 
-    PreprocessBatchNormResult result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
-    std::unique_ptr<chainerx::BatchNormForwardBackward> fb =
-            x.device().GetBatchNormForwardBackward(result.mean, result.var, epsilon, decay, result.sorted_axis);
+    PreprocessBatchNormResult result;
+    if (in_recomputing) {
+        // Statistics shouldn't be updated when recomputing
+        result = PreprocessBatchNorm(x, s, bias, mean.Copy(), var.Copy(), axes);
+    } else {
+        result = PreprocessBatchNorm(x, s, bias, mean, var, axes);
+    }
     const Array& gamma_reshaped = result.gamma;
     const Array& beta_reshaped = result.beta;
-    chainerx::Array out = fb->Forward(x, gamma_reshaped, beta_reshaped);
-    XCVMOpaque* ctx = new BatchNormBackwardContext(std::move(fb), s.shape(), bias.shape());
+    std::shared_ptr<chainerx::BatchNormGradState> state;
+    chainerx::Array out;
+    std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
+            x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, nonstd::nullopt);
+    XCVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
     }
@@ -167,10 +202,20 @@ chainerx::Array FixedBatchNormalizationOp::RunImpl(
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
     auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
-    std::array<chainerx::Array, 3> gxs = context.fb()->Backward(gy);
-    chainerx::Array gx1 = chainerx::Reshape(gxs[1], context.x1_shape());
-    chainerx::Array gx2 = chainerx::Reshape(gxs[2], context.x2_shape());
-    return std::forward_as_tuple(gxs[0], gx1, gx2);
+    chainerx::Array gx, ggamma, gbeta;
+    std::tie(gx, ggamma, gbeta) = gy.device().backend().CallKernel<chainerx::BatchNormGradKernel>(
+            context.x(),
+            context.gamma(),
+            gy,
+            context.epsilon(),
+            context.sorted_axis(),
+            context.state(),
+            nonstd::nullopt,
+            nonstd::nullopt,
+            nonstd::nullopt);
+    chainerx::Array gx1 = chainerx::Reshape(ggamma, context.x1_shape());
+    chainerx::Array gx2 = chainerx::Reshape(gbeta, context.x2_shape());
+    return std::forward_as_tuple(gx, gx1, gx2);
 }
 
 std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {

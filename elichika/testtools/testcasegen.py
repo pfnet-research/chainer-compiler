@@ -2,6 +2,7 @@
 # Almost code are from　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 
 import collections
+import copy
 import glob
 import os
 import shutil
@@ -11,7 +12,9 @@ import numpy as np
 
 import chainer
 
-from elichika.chainer2onnx import compile_model, onnx_name
+from elichika.chainer2onnx import compile_model
+from elichika.onnx_converters import onnx_name
+
 from testtools.test_args import get_test_args
 from testtools.test_args import dprint
 
@@ -64,13 +67,18 @@ def validate_chainer_output(ys):
     return ys
 
 
-def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
+def dump_test_inputs_outputs(inputs, outputs, gradients, test_data_dir):
     if not os.path.exists(test_data_dir):
         os.makedirs(test_data_dir)
 
-    for typ, values in [('input', inputs), ('output', outputs)]:
+    for typ, values in [('input', inputs),
+                        ('output', outputs),
+                        ('gradient', gradients)]:
         for i, (value_info, value) in enumerate(values):
-            name = onnx_name(value_info)
+            if typ == 'gradient':
+                name = value_info.name
+            else:
+                name = onnx_name(value_info)
             if isinstance(value, list):
                 assert value
                 digits = len(str(len(value)))
@@ -110,8 +118,10 @@ def reset_test_generator(args):
     get_test_args(args)
 
 
-def generate_testcase(model, xs, subname=None, output_dir=None,
+def generate_testcase(model_or_model_gen, orig_xs,
+                      subname=None, output_dir=None,
                       backprop=False):
+    xs = copy.deepcopy(orig_xs)
     if output_dir is None:
         args = get_test_args()
         output_dir = args.output
@@ -134,9 +144,10 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
         os.makedirs(output_dir)
 
     def get_model():
-        if isinstance(model, type) or isinstance(model, types.FunctionType):
-            return model()
-        return model
+        if (isinstance(model_or_model_gen, type) or
+            isinstance(model_or_model_gen, types.FunctionType)):
+            return model_or_model_gen()
+        return model_or_model_gen
 
     model = get_model()
     chainer.config.train = backprop
@@ -144,6 +155,7 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
     ys = model(*xs)
     chainer_out = validate_chainer_output(ys)
 
+    model = get_model()
     onnxmod = compile_model(model, xs)
     input_tensors = onnxmod.inputs
     output_tensors = onnxmod.outputs
@@ -158,20 +170,20 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
     assert len(output_tensors) == len(chainer_out)
 
     outputs = list(zip(output_tensors, chainer_out))
-
-    '''
+    gradients = []
     if backprop:
         for name, param in sorted(model.namedparams()):
-            bp_name = onnx.helper.make_tensor_value_info(
-                'grad_out@' + name, onnx.TensorProto.FLOAT, ())
-            outputs.append((bp_name, param.grad))
-    '''
+            bp_name = 'param' + name.replace('/', '_')
+            vi = onnx.helper.make_tensor_value_info(
+                bp_name, onnx.TensorProto.FLOAT, ())
+            gradients.append((vi, param.grad))
 
-    xs = list(map(lambda x: _validate_inout(x), xs))
+    xs = list(map(lambda x: _validate_inout(x), orig_xs))
 
     dump_test_inputs_outputs(
         list(zip(input_tensors, xs)),
         outputs,
+        gradients,
         os.path.join(output_dir, 'test_data_set_0'))
 
     with open(os.path.join(output_dir, 'model.onnx'), 'wb') as fp:

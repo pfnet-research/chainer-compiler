@@ -10,12 +10,17 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/custom_onnx_ops.h>
+#include <compiler/flags.h>
+#include <compiler/flops.h>
 #include <compiler/gradient.h>
 #include <compiler/graph.h>
+#include <compiler/memory_simulator.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
 #include <compiler/xcvm/emitter.h>
+#include <runtime/chrome_tracing.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_var.h>
@@ -43,7 +48,51 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
     return params;
 }
 
-std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Graph>& graph) {
+std::shared_ptr<runtime::XCVM> Compile(
+        const std::shared_ptr<Graph>& graph,
+        bool compiler_log,
+        bool permissive,
+        bool skip_inference,
+        bool use_cuda,
+        bool fuse_operations,
+        bool use_nvrtc,
+        bool use_tvm,
+        bool reuse_tvm_code,
+        const std::string& dump_autotvm_task_dir,
+        const std::string& autotvm_log,
+        bool use_ngraph,
+        const std::string& ngraph_device,
+        const std::string& backend_name,
+        bool reset_shape,
+        bool reset_output_shape,
+        bool dump_after_inference,
+        bool dump_after_simplification,
+        bool dump_after_gradient,
+        bool dump_after_fusion,
+        bool dump_after_scheduling,
+        bool dump_subgraphs) {
+    g_compiler_log = compiler_log;
+    g_permissive = permissive;
+    g_skip_inference = skip_inference;
+    g_use_cuda = use_cuda;
+    g_fuse_operations = fuse_operations;
+    g_use_nvrtc = use_nvrtc;
+    g_use_tvm = use_tvm;
+    g_reuse_tvm_code = reuse_tvm_code;
+    g_dump_autotvm_task_dir = dump_autotvm_task_dir;
+    g_autotvm_log = autotvm_log;
+    g_use_ngraph = use_ngraph;
+    g_ngraph_device = ngraph_device;
+    g_backend_name = backend_name;
+    g_reset_shape = reset_shape;
+    g_reset_output_shape = reset_output_shape;
+    g_dump_after_inference = dump_after_inference;
+    g_dump_after_simplification = dump_after_simplification;
+    g_dump_after_gradient = dump_after_gradient;
+    g_dump_after_fusion = dump_after_fusion;
+    g_dump_after_scheduling = dump_after_scheduling;
+    g_dump_subgraphs = dump_subgraphs;
+
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop);
     runtime::XCProgramProto xcvm_prog;
@@ -52,10 +101,25 @@ std::shared_ptr<runtime::XCVM> Compile(const std::shared_ptr<Graph>& graph) {
     return std::make_shared<runtime::XCVM>(xcvm_prog);
 }
 
+bool IsParam(Value* value) {
+    const std::string& name = value->name();
+    // the second condition is for ch2o
+    // TODO(hamaji): Remove the check for '/' after deprecating ch2o
+    return value->initializer() || (name.size() >= 1 && name[0] == '/');
+}
+
 std::vector<std::string> GetInputNames(const std::shared_ptr<Graph>& graph) {
     std::vector<std::string> names;
     for (Value* value : graph->input_values()) {
-        if (!value->initializer()) names.push_back(value->name());
+        if (!IsParam(value)) names.push_back(value->name());
+    }
+    return names;
+}
+
+std::vector<std::string> GetParamNames(const std::shared_ptr<Graph>& graph) {
+    std::vector<std::string> names;
+    for (Value* value : graph->input_values()) {
+        if (IsParam(value)) names.push_back(value->name());
     }
     return names;
 }
@@ -83,6 +147,22 @@ std::pair<std::shared_ptr<Graph>, std::shared_ptr<Graph>> GenerateBackwardTo(
     return std::make_pair(graph, backprop);
 }
 
+int64_t GetFlops(const std::shared_ptr<Graph>& graph) {
+    return CalculateTotalFlops(*graph);
+}
+
+int64_t GetPeakMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).peak;
+}
+
+int64_t GetAllMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).all;
+}
+
+int64_t GetParamMemoryUsage(const std::shared_ptr<Graph>& graph) {
+    return SimulateMemoryUsage(*graph).param;
+}
+
 std::string Dump(const std::shared_ptr<Graph>& graph) {
     return graph->DebugString();
 }
@@ -90,11 +170,39 @@ std::string Dump(const std::shared_ptr<Graph>& graph) {
 void InitGraph(py::module& m) {
     py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
-    c.def("compile", &Compile, "Compile a model");
+    c.def("compile",
+          &Compile,
+          "Compile a model",
+          py::arg("compiler_log") = false,
+          py::arg("permissive") = false,
+          py::arg("skip_inference") = false,
+          py::arg("use_cuda") = false,
+          py::arg("fuse_operations") = false,
+          py::arg("use_nvrtc") = false,
+          py::arg("use_tvm") = false,
+          py::arg("reuse_tvm_code") = false,
+          py::arg("dump_autotvm_task_dir") = "",
+          py::arg("autotvm_log") = "",
+          py::arg("use_ngraph") = false,
+          py::arg("ngraph_device") = "",
+          py::arg("backend_name") = "",
+          py::arg("reset_shape") = false,
+          py::arg("reset_output_shape") = false,
+          py::arg("dump_after_inference") = false,
+          py::arg("dump_after_simplification") = false,
+          py::arg("dump_after_gradient") = false,
+          py::arg("dump_after_fusion") = false,
+          py::arg("dump_after_scheduling") = false,
+          py::arg("dump_subgraphs") = false);
     c.def("input_names", &GetInputNames, "Names of inputs");
+    c.def("param_names", &GetParamNames, "Names of params");
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward, "Generate a pair of graphs for forward and back propagation");
     c.def("backward_to", &GenerateBackwardTo, "Generate a pair of graphs for forward and back propagation");
+    c.def("flops", &GetFlops, "Get estimated flops");
+    c.def("peak_memory_usage", &GetPeakMemoryUsage, "Get estimated peak memory usage");
+    c.def("all_memory_usage", &GetAllMemoryUsage, "Get estimated all memory usage");
+    c.def("param_memory_usage", &GetParamMemoryUsage, "Get estimated param memory usage");
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
@@ -106,7 +214,9 @@ std::map<std::string, VarPtr> Run(
         bool training,
         bool check_nans,
         bool check_infs,
-        bool dump_memory_usage) {
+        bool dump_memory_usage,
+        const std::string& chrome_tracing,
+        const std::map<std::string, py::function>& custom_funcs) {
     runtime::XCVMOptions xcvm_opts;
     if (trace) xcvm_opts.trace_level = 1;
     if (verbose) xcvm_opts.trace_level = 2;
@@ -114,7 +224,38 @@ std::map<std::string, VarPtr> Run(
     xcvm_opts.check_nans = check_nans;
     xcvm_opts.check_infs = check_infs;
     xcvm_opts.dump_memory_usage = dump_memory_usage;
+    if (!chrome_tracing.empty()) {
+        xcvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
+    }
+
+    for (const auto& p : custom_funcs) {
+        const std::string& name = p.first;
+        py::object py_func = p.second;
+        auto func = [name, py_func](const std::vector<chainerx::Array>& inputs) {
+            py::list py_inputs;
+            for (const chainerx::Array& input : inputs) {
+                py_inputs.append(chainerx::internal::GetArrayBody(input));
+            }
+            py::object py_outputs = py_func(*py_inputs);
+            std::vector<chainerx::Array> outputs;
+            if (py::isinstance<py::tuple>(py_outputs)) {
+                for (auto py_output : py::cast<py::tuple>(py_outputs)) {
+                    outputs.emplace_back(py::cast<ArrayBodyPtr>(py_output));
+                }
+            } else {
+                py::print(py_outputs);
+                CHECK(false) << "Invalid return values from custom op " << name;
+            }
+            return outputs;
+        };
+        CHECK(xcvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
+    }
+
     runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
+
+    if (xcvm_opts.chrome_tracing) {
+        xcvm_opts.chrome_tracing->Emit(chrome_tracing);
+    }
     return outputs;
 }
 
@@ -129,7 +270,9 @@ void InitXCVM(py::module& m) {
           py::arg("training") = false,
           py::arg("check_nans") = false,
           py::arg("check_infs") = false,
-          py::arg("dump_memory_usage") = false);
+          py::arg("dump_memory_usage") = false,
+          py::arg("chrome_tracing") = "",
+          py::arg("custom_funcs") = py::dict());
 }
 
 bool IsArray(const VarPtr& v) {
@@ -175,6 +318,8 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
 }  // namespace
 
 PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
+    RegisterCustomOnnxOperatorSetSchema();
+
     m.doc() = "chainer_compiler";
 
     InitGraph(m);

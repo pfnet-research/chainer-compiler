@@ -26,19 +26,22 @@ std::vector<chainerx::Array> SplitByLengths(const chainerx::Array& input, int ax
 
 chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t length, chainerx::Scalar padding);
 
-chainerx::Array Sigmoid(chainerx::Array a);
-
 chainerx::Array SlowRandom(chainerx::Shape shape);
 
 chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype);
 
 chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes);
 
+bool IsNativeDevice(const chainerx::Device* device);
 bool IsCudaDevice(const chainerx::Device* device);
 
 Int64StackVector ComplementStride(const Int64StackVector& strides, const chainerx::Array& input);
 
 Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Array& input);
+
+bool IsFloat(chainerx::Dtype dtype);
+
+void BlitArray(const chainerx::Array& src, const chainerx::Array& dst);
 
 }  // namespace runtime
 }  // namespace chainer_compiler

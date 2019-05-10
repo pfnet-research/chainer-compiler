@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 
-"""A ResNet50 trainer which is exportable by ONNX-chainer."""
+"""A ResNet50 trainer which is exportable by ONNX-chainer.
+
+Usage:
+
+$ PYTHONPATH=third_party/onnx-chainer python3 scripts/gen_resnet50.py
+"""
 
 import argparse
 import os
@@ -21,8 +26,6 @@ import onnx_chainer
 import alex
 import nin
 import resnet50
-
-import onnx_chainer_util
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -217,11 +220,12 @@ def main_impl(args, model_cls):
     y = chainer.Variable(y, name='y')
     onehot = chainer.Variable(onehot, name='onehot')
 
-    onnx_chainer_util.create_onnx_test(args.arch,
-                                       model,
-                                       (x, onehot),
-                                       __builtins__,
-                                       out_dir)
+    chainer.disable_experimental_feature_warning = True
+    onnx_chainer.export_testcase(model,
+                                 (x, onehot),
+                                 out_dir,
+                                 output_grad=True,
+                                 output_names='loss')
 
 
 def run_training(args, model):

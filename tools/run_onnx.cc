@@ -48,6 +48,10 @@ namespace chainer_compiler {
 namespace runtime {
 namespace {
 
+const char* GREEN = "\033[92m";
+const char* RED = "\033[91m";
+const char* RESET = "\033[0m";
+
 bool g_quiet;
 
 #define LOG() \
@@ -163,6 +167,9 @@ void ReadTestDir(
                     tensor_name = output_names[output_index++];
                 }
                 CHECK(test_case->outputs.emplace(tensor_name, var).second) << "Duplicate output tensor:" << tensor_name;
+            } else if (HasPrefix(filename, "gradient_")) {
+                CHECK(!tensor_name.empty());
+                CHECK(test_case->outputs.emplace("grad_out@" + tensor_name, var).second) << "Duplicate gradient tensor:" << tensor_name;
             }
         }
         test_cases->emplace_back(std::move(test_case));
@@ -227,7 +234,8 @@ public:
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
             GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
-
+            // TODO(hamaji): Revive shape inference.
+            g_skip_inference = true;
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph());
             CompileModel(model, &xcvm_);
@@ -255,6 +263,7 @@ public:
         xcvm_opts_.check_infs = args_.exist("check_infs");
         xcvm_opts_.dump_memory_usage = args_.exist("trace");
         xcvm_opts_.base_memory_usage = initial_free_bytes_;
+        xcvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
             xcvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
@@ -377,8 +386,6 @@ private:
 };
 
 void RunMain(const std::vector<std::string>& argv) {
-    g_modify_pool_with_imbalanced_pads = true;
-
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<std::string>("backend", '\0', "The name of the backend", false, "xcvm");
@@ -387,8 +394,10 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
+    args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of XCVM ops to this directory", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
+    args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
@@ -418,7 +427,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
     LOG() << "Initializing ChainerX..." << std::endl;
     chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
+    chainerx::ContextScope ctx_scope(ctx);
     chainerx::NoBackpropModeScope no_backprop;
     const std::string device_spec = args.get<std::string>("device");
     if (!device_spec.empty()) {
@@ -439,7 +448,6 @@ void RunMain(const std::vector<std::string>& argv) {
     RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
     Model model(xmodel);
-    if (!g_skip_inference) model.mutable_graph()->InferShapes();
 
     LOG() << "Loading data..." << std::endl;
 
@@ -471,6 +479,7 @@ void RunMain(const std::vector<std::string>& argv) {
     int iterations = args.get<int>("iterations");
     CHECK_LT(0, iterations);
     if (iterations > 1) {
+        test_cases.resize(1);
         std::vector<std::unique_ptr<TestCase>> new_test_cases;
         for (int i = 0; i < iterations; ++i) {
             for (auto& test : test_cases) {
@@ -540,7 +549,7 @@ void RunMain(const std::vector<std::string>& argv) {
                     case XCVMVar::Kind::kArray:
                         return array_str(v->GetArray());
                     case XCVMVar::Kind::kSequence:
-                        return JoinString(MapToString(NonOptional(*v->GetSequence()), array_str));
+                        return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
                     case XCVMVar::Kind::kOpaque:
                     case XCVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
@@ -549,8 +558,8 @@ void RunMain(const std::vector<std::string>& argv) {
             };
 
             auto fail = [&](const std::string& type) {
-                LOG() << "FAIL(" << type << "): " << key << "\nExpected: " << var_str(expected) << "\nActual: " << var_str(actual)
-                      << std::endl;
+                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
+                      << "\nActual: " << var_str(actual) << std::endl;
             };
 
             auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
@@ -563,12 +572,17 @@ void RunMain(const std::vector<std::string>& argv) {
                     return false;
                 }
                 if (iterations > 1) return true;
-                if (!chainerx::AllClose(expected, actual, args.get<double>("rtol"), 1e-6)) {
+
+                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
+                if (mismatch) {
                     if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
                         static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
                         return true;
                     }
                     fail("value");
+                    int total_size = expected.GetTotalSize();
+                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
+                          << "%)" << std::endl;
                     return false;
                 }
                 return true;
@@ -623,7 +637,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
         if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
-    if (test_cnt) LOG() << "OK!" << std::endl;
+    if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
     if (iterations > 1) {
         // The first iteration is for warm up.

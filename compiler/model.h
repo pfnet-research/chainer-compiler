@@ -19,6 +19,7 @@ public:
     Model(const Model& model, const std::string& graph_name);
     ~Model();
 
+    Model(const Model&) = delete;
     Model& operator=(const Model&) = delete;
 
     void ToONNX(onnx::ModelProto* xmodel) const;

@@ -3,6 +3,7 @@
 # からもらっってきました
 
 import collections
+import copy
 import glob
 import os
 import shutil
@@ -108,8 +109,10 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
 _seen_subnames = set()
 
 
-def generate_testcase(model, xs, subname=None, output_dir=None,
+def generate_testcase(model, orig_xs,
+                      subname=None, output_dir=None,
                       backprop=False, use_gpu=False):
+    xs = copy.deepcopy(orig_xs)
     if output_dir is None:
         args = get_test_args()
         output_dir = args.output
@@ -147,9 +150,9 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
         xs_gpu = []
         for x in xs:
             if isinstance(x, (list, tuple)):
-                x = [cupy.array(a) for a in x]
+                x = [model.xp.array(a) for a in x]
             else:
-                x = cupy.array(x)
+                x = model.xp.array(x)
             xs_gpu.append(x)
         xs = xs_gpu
     chainer.config.train = backprop
@@ -184,7 +187,7 @@ def generate_testcase(model, xs, subname=None, output_dir=None,
                 'grad_out@' + name, onnx.TensorProto.FLOAT, ())
             outputs.append((bp_name, param.grad))
 
-    xs = list(map(lambda x: _validate_inout(x), xs))
+    xs = list(map(lambda x: _validate_inout(x), orig_xs))
 
     dump_test_inputs_outputs(
         list(zip(input_tensors, xs)),

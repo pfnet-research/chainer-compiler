@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -7,11 +7,10 @@ import chainer
 import numpy as np
 import onnx
 
-import onnx_chainer_util
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
-import ch2o
+import ch2o  # noqa
 
 F = chainer.functions
 L = chainer.links
@@ -24,7 +23,7 @@ def create_backprop_test(test_name, model, input_values):
 
     test_dir = 'out/backprop_test_pc_%s' % test_name
     test_data_set_dir = os.path.join(test_dir, 'test_data_set_0')
-    onnx_chainer_util.makedirs(test_data_set_dir)
+    os.makedirs(test_data_set_dir, exist_ok=True)
 
     xmodel = ch2o.compile_model(model, input_values)
     all_input_tensors = xmodel.graph.input
@@ -67,10 +66,16 @@ def create_backprop_test(test_name, model, input_values):
 
 
 class BackpropTest(object):
-    def __init__(self, name, model, inputs, rtol=None, fail=False):
-        self.name = name
+    def __init__(self, name, model, inputs, dtype, rtol=None, fail=False):
+        self.name = '%s_%s' % (name, dtype.__name__)
         self.model = model
-        self.inputs = inputs
+
+        def cast(inp):
+            if inp.dtype == np.float32:
+                return np.array(inp, dtype=dtype)
+            return inp
+
+        self.inputs = [cast(inp) for inp in inputs]
         self.rtol = rtol
         self.fail = fail
 
@@ -79,11 +84,18 @@ class BackpropTest(object):
 
 
 def get_backprop_tests():
+    return _get_backprop_tests(np.float32)
+
+
+def _get_backprop_tests(dtype):
+    chainer.config.dtype = dtype
+
     F = chainer.functions
     tests = []
 
     def test(name, model, *inputs, rtol=None, fail=False):
-        tests.append(BackpropTest(name, model, inputs, rtol=rtol, fail=fail))
+        tests.append(BackpropTest(name, model, inputs, dtype,
+                                  rtol=rtol, fail=fail))
 
     def aranges(*shape):
         r = np.prod(shape)
@@ -133,7 +145,7 @@ def get_backprop_tests():
             return F.softmax_cross_entropy(self.l1(x), t)
 
     test('softmax_cross_entropy', SoftmaxCrossEntropy(),
-         aranges(2, 3), np.array([1, 0]))
+         aranges(2, 3), np.array([1, 0], dtype=np.int32))
 
     class LRN(chainer.Chain):
         def __init__(self):

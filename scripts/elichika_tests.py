@@ -13,32 +13,64 @@ from test_case import TestCase
 
 
 class Generator(object):
-    def __init__(self, dirname, filename):
+    def __init__(self, dirname, filename, fail=False):
         self.dirname = dirname
+        self.category = dirname.replace('/', '_')
         self.filename = filename
+        self.fail = fail
 
 
-# TODO(hamaji): Triage failing tests.
 TESTS = [
+    Generator('model', 'MLP'),
+    Generator('model', 'Alex'),
+
+    Generator('node', 'AddMul'),
+    Generator('node', 'AveragePool2d'),
+    Generator('node', 'BatchNorm'),
     Generator('node', 'Convolution2D'),
+    Generator('node', 'Id'),
     Generator('node', 'Linear'),
+    Generator('node', 'PadSequence'),
     Generator('node', 'Relu'),
     Generator('node', 'Softmax'),
     Generator('node', 'SoftmaxCrossEntropy'),
+    Generator('node', 'Unpooling2D'),
+    Generator('node', 'Variable'),
+    Generator('node', 'ChainList'),
+    Generator('node', 'LRN'),
 
-    # Generator('syntax', 'ChinerFunctionNode'),
-    # Generator('syntax', 'Cmp'),
-    # Generator('syntax', 'For'),
-    # Generator('syntax', 'ForAndIf'),
-    # Generator('syntax', 'If'),
-    # Generator('syntax', 'LinkInFor'),
-    # Generator('syntax', 'ListComp'),
-    # Generator('syntax', 'MultiClass'),
+    Generator('node/ndarray', 'NpArray'),
+    Generator('node/ndarray', 'NpFull'),
+    Generator('node/ndarray', 'NpZeros'),
+    Generator('node/ndarray', 'Size'),
+    Generator('node/ndarray', 'Shape'),
+    Generator('node/ndarray', 'Ceil'),
+    Generator('node/ndarray', 'Cumsum'),
+
+    Generator('node/Functions', 'Reshape'),
+    Generator('node/Functions', 'SplitAxis'),
+    Generator('node/Functions', 'Roi'),
+    Generator('node/Functions', 'SwapAxes'),
+    Generator('node/Functions', 'Concat'),
+    Generator('node/Functions', 'Dropout'),
+    Generator('node/Functions', 'Matmul'),
+    Generator('node/Functions', 'MaxPool2d'),
+    Generator('node/Functions', 'ResizeImages'),
+
+    Generator('syntax', 'Alias'),
+    Generator('syntax', 'Cmp'),
+    Generator('syntax', 'For'),
+    Generator('syntax', 'ForAndIf'),
+    Generator('syntax', 'If'),
+    Generator('syntax', 'LinkInFor'),
+    Generator('syntax', 'ListComp'),
+    Generator('syntax', 'MultiClass'),
     Generator('syntax', 'MultiFunction'),
-    # Generator('syntax', 'Range'),
-    # Generator('syntax', 'Sequence'),
-    # Generator('syntax', 'Slice'),
-    # Generator('syntax', 'UserDefinedFunc'),
+    Generator('syntax', 'Range'),
+    Generator('syntax', 'Sequence'),
+    Generator('syntax', 'Slice'),
+    Generator('syntax', 'UserDefinedFunc'),
+    Generator('syntax', 'Tuple'),
 ]
 
 
@@ -64,7 +96,7 @@ def generate_tests(dirname):
     for gen in get_test_generators(dirname):
         py = os.path.join('tests', gen.dirname, gen.filename)
         out_dir = os.path.join(get_source_dir(), 'out', 'elichika_%s_%s' %
-                               (gen.dirname, gen.filename))
+                               (gen.category, gen.filename))
         print('Running %s' % py)
         module = importlib.import_module(py.replace('/', '.'))
         testcasegen.reset_test_generator([out_dir])
@@ -79,10 +111,13 @@ def get():
     ]
 
     for gen in TESTS:
-        category = gen.dirname
+        category = gen.category
         name = gen.filename
         test_name = 'elichika_%s_%s' % (category, name)
         kwargs = {}
+
+        if gen.fail:
+            kwargs['fail'] = True
 
         diversed = False
         for substr in diversed_whitelist:
@@ -92,6 +127,7 @@ def get():
 
         test_dirs = glob.glob('out/%s' % test_name)
         test_dirs += glob.glob('out/%s_*' % test_name)
+        assert test_dirs, 'No tests found for %s' % test_name
         for d in test_dirs:
             name = os.path.basename(d)
             test_dir = os.path.join('out', name)

@@ -63,18 +63,6 @@ public:
     Value* AddOutputValue(const std::string& name, const Type& type, int index = -1);
     Value* AddNullValue();
 
-    template <class T>
-    Value* AddConstValue(const std::string& name, const Type& type, const std::vector<T>& data) {
-        Value* value = AddInputValue(name, type);
-        Tensor* t = new Tensor(value->name(), type.dtype(), type.dims(), data);
-        value->ResetInitializer(std::unique_ptr<Tensor>(t));
-        return value;
-    }
-    template <class T>
-    Value* AddConstValue(const std::string& name, const Type& type, const std::initializer_list<T>& data) {
-        return AddConstValue(name, type, std::vector<T>{data});
-    }
-
     Node* AddNode(
             Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base = "");
 
@@ -111,11 +99,11 @@ public:
 
     void DumpONNXOnFailure(const std::string& filename = "") const;
 
+    void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+
 private:
     std::string GenSym(const std::string& base = "");
     std::string MakeUnique(const std::string& name);
-
-    void AddNodeImpl(std::unique_ptr<Node> node, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
     void Construct(const onnx::GraphProto& xgraph);
 

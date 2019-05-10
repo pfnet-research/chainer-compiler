@@ -111,7 +111,7 @@ def main():
 
     v = np.random.rand(10).astype(np.float32)
     p = np.int64(5)
-    testtools.generate_testcase(model, [v, p])
+    testtools.generate_testcase(model, [v, p], subname='a')
 
     model = B()
     length = 4
@@ -133,11 +133,11 @@ def main():
     testtools.generate_testcase(UpdateSelfLiteralInInit, [],
                            subname='update_self_literal_in_init')
 
-    testtools.generate_testcase(ForBackprop,
+    testtools.generate_testcase(ForBackprop(),
                            [np.random.rand(4, 3).astype(np.float32), 2],
                            subname='for', backprop=True)
 
-    testtools.generate_testcase(DoubleForBackprop,
+    testtools.generate_testcase(DoubleForBackprop(),
                            [np.random.rand(4, 3).astype(np.float32), 2, 5],
                            subname='double_for', backprop=True)
 

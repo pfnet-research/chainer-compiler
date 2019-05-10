@@ -646,8 +646,12 @@ def eval_binary_op(nast, env):
             body=loop
         )
     else:
-        lv = lv.to_tensor(env)
-        rv = rv.to_tensor(env)
+        if optype == 'Div' and not isfloor:
+            lv = castto(lv.to_tensor(env), TensorProto.FLOAT, env)
+            rv = castto(rv.to_tensor(env), TensorProto.FLOAT, env)
+        else:
+            lv = lv.to_tensor(env)
+            rv = rv.to_tensor(env)
         res = env.calc(
             optype,
             inputs=[lv.name, rv.name],

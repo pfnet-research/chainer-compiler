@@ -3,8 +3,10 @@ from graphviz import Digraph
 from elichika.parser.core import convert_model, Graph
 from elichika.parser.nodes import Node
 
+
 def get_valids(list_):
     return [l for l in list_ if l is not None]
+
 
 node_id = 0
 node2id = {}
@@ -14,6 +16,7 @@ value_id = 0
 value2id = {}
 
 graph_id = 0
+
 
 def reset():
     global node_id
@@ -34,7 +37,8 @@ def reset():
 
     graph_id = 0
 
-def assign_id(graph : 'Graph'):
+
+def assign_id(graph: 'Graph'):
     global node_id
     global node2id
     global value_id
@@ -51,7 +55,8 @@ def assign_id(graph : 'Graph'):
         for subgraph in node.subgraphs:
             assign_id(subgraph)
 
-def count_ref(graph : 'Graph'):
+
+def count_ref(graph: 'Graph'):
     global node_ref_count
 
     for node in graph.nodes:
@@ -65,7 +70,8 @@ def count_ref(graph : 'Graph'):
         for subgraph in node.subgraphs:
             count_ref(subgraph)
 
-def visit_edge(parent_dot, graph : 'Graph', is_unused_node_ignored):
+
+def visit_edge(parent_dot, graph: 'Graph', is_unused_node_ignored):
     global graph_id
 
     with parent_dot.subgraph(name='cluster_' + str(graph_id)) as dot:
@@ -76,25 +82,26 @@ def visit_edge(parent_dot, graph : 'Graph', is_unused_node_ignored):
 
             # ignore
             if is_unused_node_ignored:
-                if len(node.inputs) == 0 and  not (node in node_ref_count):
+                if len(node.inputs) == 0 and not (node in node_ref_count):
                     continue
 
-            dot.node(node2id[node],str(node))
+            dot.node(node2id[node], str(node))
 
             for input in node.inputs:
                 if str(input) != "":
                     dot.edge(value2id[input], node2id[node])
 
-                    if input.generator is not None:
+                    if input.generator is not None and input.generator in node2id.keys():
                         dot.edge(node2id[input.generator], value2id[input])
                 else:
-                    if input.generator is not None:
+                    if input.generator is not None and input.generator in node2id.keys():
                         dot.edge(node2id[input.generator], node2id[node])
 
             for subgraph in node.subgraphs:
                 visit_edge(parent_dot, subgraph, is_unused_node_ignored)
 
-def visualize(path : 'str', graph : 'Graph', is_unused_node_ignored = True):
+
+def visualize(path: 'str', graph: 'Graph', is_unused_node_ignored=True):
     global node_id
     global node2id
     global value_id
@@ -120,4 +127,3 @@ def visualize(path : 'str', graph : 'Graph', is_unused_node_ignored = True):
     visit_edge(dot, graph, is_unused_node_ignored)
 
     dot.render(path)
-

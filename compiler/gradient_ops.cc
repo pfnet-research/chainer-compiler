@@ -281,6 +281,15 @@ void ExpandGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerReduceSumTo, 0, {gc->gy(0), t0});
 }
 
+void PadGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    const std::vector<int64_t> pads = gc->node()->pads();
+    std::vector<int64_t> negated_pads(pads);
+    for (int64_t& p : negated_pads) p = -p;
+
+    gc->GradOp(Node::kPad, 0, {gy})->producer()->set_pads(negated_pads);
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -433,43 +442,31 @@ void ConvGradFn(GradientOpContext* gc) {
 
 void MaxPoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    // TODO(hamaji): Enable this code path using CompilerConfig.
-    if (false) {
-        Node* node = gc->node();
-        gc->GradOp(Node::kChainerMaxPoolGradNoCtx, 0, {gc->x(0), gc->y(0), gc->gy(0)})
-                ->producer()
-                ->set_kernel_shape(node->kernel_shape())
-                ->set_pads(node->pads())
-                ->set_storage_order(node->storage_order())
-                ->set_strides(node->strides())
-                ->set_chainer_cover_all(node->chainer_cover_all());
-    } else {
-        Node* node = gc->node();
-        if (node->outputs().size() == 1) gc->AddNullOutput();
-        CHECK_EQ(2, node->outputs().size());
-        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-        gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context});
-    }
+    Node* node = gc->node();
+    if (node->outputs().size() == 1) gc->AddNullOutput();
+    CHECK_EQ(2, node->outputs().size());
+    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+    gc->GradOp(Node::kChainerMaxPoolGrad, 0, {gc->gy(0), context})
+            ->producer()
+            ->set_kernel_shape(node->kernel_shape())
+            ->set_pads(node->pads())
+            ->set_storage_order(node->storage_order())
+            ->set_strides(node->strides())
+            ->set_chainer_cover_all(node->chainer_cover_all());
 }
 
 void AveragePoolGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    // TODO(hamaji): Enable this code path using CompilerConfig.
-    if (false) {
-        Node* node = gc->node();
-        gc->GradOp(Node::kChainerAveragePoolGradNoCtx, 0, {gc->x(0), gc->y(0), gc->gy(0)})
-                ->producer()
-                ->set_kernel_shape(node->kernel_shape())
-                ->set_pads(node->pads())
-                ->set_storage_order(node->storage_order())
-                ->set_strides(node->strides())
-                ->set_count_include_pad(node->count_include_pad());
-    } else {
-        Node* node = gc->node();
-        CHECK_EQ(1, node->outputs().size());
-        Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
-        gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context});
-    }
+    Node* node = gc->node();
+    CHECK_EQ(1, node->outputs().size());
+    Value* context = gc->AddOutput(Type(Type::Kind::kOpaque));
+    gc->GradOp(Node::kChainerAveragePoolGrad, 0, {gc->gy(0), context})
+            ->producer()
+            ->set_kernel_shape(node->kernel_shape())
+            ->set_pads(node->pads())
+            ->set_storage_order(node->storage_order())
+            ->set_strides(node->strides())
+            ->set_count_include_pad(node->count_include_pad());
 }
 
 void LogSoftmaxGradFn(GradientOpContext* gc) {
@@ -968,6 +965,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kChainerSelectItem, &SelectItemGradFn);
         register_grad_fn(Node::kGather, &GatherGradFn);
         register_grad_fn(Node::kExpand, &ExpandGradFn);
+        register_grad_fn(Node::kPad, &PadGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);

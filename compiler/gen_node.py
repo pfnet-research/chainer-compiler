@@ -59,7 +59,22 @@ NodeDef('Reciprocal', 1, 1)
 NodeDef('Exp', 1, 1)
 NodeDef('Log', 1, 1)
 NodeDef('Sqrt', 1, 1)
+NodeDef('IsNaN', 1, 1)
+NodeDef('IsInf', 1, 1)
+
+NodeDef('Sin', 1, 1)
+NodeDef('Sinh', 1, 1)
+NodeDef('Cos', 1, 1)
+NodeDef('Cosh', 1, 1)
+NodeDef('Tan', 1, 1)
 NodeDef('Tanh', 1, 1)
+NodeDef('Asin', 1, 1)
+NodeDef('Asinh', 1, 1)
+NodeDef('Acos', 1, 1)
+NodeDef('Acosh', 1, 1)
+NodeDef('Atan', 1, 1)
+NodeDef('Atanh', 1, 1)
+
 NodeDef('Abs', 1, 1)
 NodeDef('Relu', 1, 1)
 NodeDef('Selu', 1, 1,
@@ -102,8 +117,11 @@ NodeDef('Expand', 2, 1)
 NodeDef('Squeeze', 1, 1, axes=[int])
 NodeDef('Unsqueeze', 1, 1, axes=Required([int]))
 NodeDef('Flatten', 1, 1, axis=1)
-NodeDef('Slice', 1, 1, axes=[int], starts=[int], ends=[int])
-NodeDef('DynamicSlice', (3, 4), 1)
+# This Slice supports both Slice-1 and Slice-10.
+NodeDef('Slice', (1, 3, 4, 5), 1,
+        axes=[int], starts=[int], ends=[int])
+# TOOD(hamaji): Remove this as it is deprecated in ONNX.
+NodeDef('DynamicSlice', (3, 4, 5), 1)
 NodeDef('Gather', 2, 1, axis=0)
 NodeDef('Concat', None, 1, axis=Required(int))
 NodeDef('Split', 1, None, axis=0, split=[int])
@@ -163,9 +181,10 @@ NodeDef('ConvTranspose', (2, 3), 1,
 
 # Extension: the second or the sixth output is for backward context.
 NodeDef('BatchNormalization', 5, (1, 2, 3, 4, 5, 6),
-        epsilon=1e-5, momentum=0.9, spatial=1)
+        epsilon=1e-5, momentum=0.9, spatial=1, chainer_in_recomputing=0)
 # Extension: the second output is for backward context.
 NodeDef('LRN', 1, (1, 2), alpha=1e-4, beta=0.75, bias=1.0, size=Required(int))
+NodeDef('LpNormalization', 1, 1, axis=-1, p=2)
 
 pool_attrs = attr_sets(auto_pad='NOTSET',
                        kernel_shape=Required([int]),
@@ -179,6 +198,7 @@ NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
+NodeDef('Upsample', 2, 1, mode='nearest')
 
 NodeDef('Softmax', 1, 1, axis=1)
 NodeDef('LogSoftmax', 1, 1, axis=1)
@@ -189,6 +209,7 @@ NodeDef('Loop', None, None, body=Graph, chainer_stack_axis=0)
 # NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
+NodeDef('MaxRoiPool', 2, 1, pooled_shape=Required([int]), spatial_scale=1.0)
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
@@ -203,13 +224,15 @@ NodeDef('ChainerROIMaxAlign2D', 3, 1,
         output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
 NodeDef('ChainerROIAverageAlign2D', 3, 1,
         output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
+NodeDef('ChainerResizeImages', 1, 1, output_shape=[int])
 
-NodeDef('ChainerMaxPoolGrad', 2, 1)
-NodeDef('ChainerAveragePoolGrad', 2, 1)
-NodeDef('ChainerMaxPoolGradNoCtx',
-        3, 1, chainer_cover_all=False, **pool_attrs)
-NodeDef('ChainerAveragePoolGradNoCtx',
-        3, 1, count_include_pad=False, **pool_attrs)
+NodeDef('ChainerPadBatchSize', 1, 1, size=Required(int))
+
+# For experimental ops.
+NodeDef('ChainerDoSomething', None, None, function_name=Required(str))
+
+NodeDef('ChainerMaxPoolGrad', 2, 1, chainer_cover_all=False, **pool_attrs)
+NodeDef('ChainerAveragePoolGrad', 2, 1, count_include_pad=False, **pool_attrs)
 NodeDef('ChainerBatchNormalizationGrad', 2, 3)
 NodeDef('ChainerConvTransposeWithDynamicOutputShape', 3, 1, **conv_attrs)
 NodeDef('ChainerSoftmaxCrossEntropy', 2, 1)
@@ -220,7 +243,7 @@ NodeDef('ChainerLRNGrad', 4, 1,
 NodeDef('ChainerLSTMGrad', 2, 4)
 NodeDef('ChainerConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('ChainerGatherGrad', 3, 1, axis=0)
-NodeDef('ChainerDynamicSliceGrad', (4, 5), 1)
+NodeDef('ChainerDynamicSliceGrad', (4, 5, 6), 1)
 NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 
 # Numpy's advanced indexing.
@@ -250,8 +273,8 @@ NodeDef('ChainerNullConstant', 0, 1)
 # Creates a constant sequence: () -> ([T])
 NodeDef('ChainerSequenceConstants', 0, 1, tensor_values=[Tensor])
 
-# Creates a new sequence: () -> ([T])
-NodeDef('ChainerSequenceCreate', 0, 1)
+# Creates a new sequence: (T...) -> ([T])
+NodeDef('ChainerSequenceCreate', None, 1)
 
 # Appends an element to a sequence: ([T], T) -> ([T])
 NodeDef('ChainerSequenceAppend', 2, 1)

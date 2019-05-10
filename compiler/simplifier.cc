@@ -80,6 +80,21 @@ bool ReplaceReduceMin(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceLpNormalization(Graph* graph, Node* node) {
+    CHECK_EQ(2, node->p()) << "TODO(hamaji): Implement other norms";
+    CHECK_LE(0, node->axis()) << "TODO(hamaji): Implement axis=-1";
+    GraphBuilder gb(graph, "SimplifyLpNormalization", node->output(0));
+    Value* x = node->input(0);
+    Value* x2 = gb.Op(Node::kMul, {x, x});
+    Value* n2 = gb.Op(Node::kReduceSum, {x2});
+    n2->producer()->set_axes({node->axis()})->set_keepdims(true);
+    Value* n = gb.Op(Node::kSqrt, {n2});
+    Value* eps = gb.Const(Type(node->output(0)->type().dtype(), {}), {1e-5});
+    Value* norm = gb.Op(Node::kAdd, {n, eps});
+    gb.Op(Node::kDiv, {x, norm}, node->output(0));
+    return true;
+}
+
 bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftmaxCrossEntropy", node->output(0));
     Value* log_softmax = gb.Op(Node::kLogSoftmax, {node->input(0)});
@@ -106,55 +121,6 @@ bool ReplaceConstant(Graph* graph, Node* node) {
     graph->AddNode(Node::kIdentity, {v}, {node->output(0)});
     return true;
 }
-
-#if 0
-
-bool ReplaceBatchNormalization(Graph* graph, Node* node) {
-    Value* x = node->input(0);
-    Value* s = node->input(1);
-    Value* bias = node->input(2);
-    Value* mean = node->input(3);
-    Value* var = node->input(4);
-    // TODO(hamaji): Revisit how we handle dynamic shapes.
-    int x_ndim = x->type().dims().size();
-    int64_t size = s->type().NumElements();
-    if (size < 0) {
-        WARN_ONCE("BatchNormalization without static shape cannot be backpropped for now");
-        return false;
-    }
-    if (x_ndim < 2) {
-        WARN_ONCE("Input of BatchNormalization is not known. Assuming this is after 2D convolution...");
-        x_ndim = 4;
-    }
-
-    std::vector<int64_t> dims = {size};
-    for (int i = 0; i < x_ndim - 2; ++i)
-        dims.push_back(1);
-    Value* shape = graph->AddConstValue(StrCat(s->name(), "_simplify_shape"), Type(Dtype::kInt64, {static_cast<int>(dims.size())}), dims);
-
-    auto add_op = [&](const std::string& name, Node::OpType op_type, const std::vector<Value*>& inputs) {
-        Value* r = graph->AddValue(StrCat(node->name(), "_simplify_", name));
-        graph->AddNode(op_type, inputs, {r});
-        return r;
-    };
-
-    Value* rs = add_op("s_reshaped", Node::kReshape, {s, shape});
-    Value* rbias = add_op("bias_reshaped", Node::kReshape, {bias, shape});
-    Value* rmean = add_op("mean_reshaped", Node::kReshape, {mean, shape});
-    Value* rvar = add_op("var_reshaped", Node::kReshape, {var, shape});
-
-    Value* epsilon = graph->AddConstValue(StrCat(s->name(), "_simplify_epsilon"), Type(Dtype::kFloat32, {1}), {node->epsilon()});
-
-    Value* t0 = add_op("t0", Node::kSub, {x, rmean});
-    Value* t1 = add_op("t1", Node::kMul, {rs, t0});
-    Value* t2 = add_op("t2", Node::kAdd, {rvar, epsilon});
-    Value* t3 = add_op("t3", Node::kSqrt, {t2});
-    Value* t4 = add_op("t4", Node::kDiv, {t1, t3});
-    graph->AddNode(Node::kAdd, {t4, rbias}, node->outputs());
-    return true;
-}
-
-#endif
 
 // TODO(hamaji): Revive Scan.
 #if 0
@@ -430,16 +396,27 @@ bool HasImbalancedPad(const Node* node) {
     return false;
 }
 
+Value* PadForPool(GraphBuilder* gb, Node* node, double value) {
+    Value* padded = gb->Op(Node::kPad, node->inputs());
+    std::vector<int64_t> pads = {0, 0};
+    size_t i = 0;
+    for (; i < node->pads().size() / 2; ++i) {
+        pads.push_back(node->pads()[i]);
+    }
+    pads.push_back(0);
+    pads.push_back(0);
+    for (; i < node->pads().size(); ++i) {
+        pads.push_back(node->pads()[i]);
+    }
+    padded->producer()->set_pads(pads)->set_value(value);
+    return padded;
+}
+
 bool ReplaceMaxPool(Graph* graph, Node* node) {
     if (!HasImbalancedPad(node)) return false;
     CHECK_EQ(1, node->outputs().size()) << "Not implemented yet";
     GraphBuilder gb(graph, "SimplifyMaxPoolPad", node->output(0));
-
-    Value* padded = gb.Op(Node::kPad, node->inputs());
-    std::vector<int64_t> pads = {0, 0, 0, 0};
-    for (int p : node->pads()) pads.push_back(p);
-    padded->producer()->set_pads(pads)->set_value(-std::numeric_limits<float>::infinity());
-
+    Value* padded = PadForPool(&gb, node, -std::numeric_limits<double>::infinity());
     gb.Op(Node::kMaxPool, {padded}, node->output(0))
             ->producer()
             ->set_chainer_cover_all(node->chainer_cover_all())
@@ -456,12 +433,7 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
         WARN_ONCE("AveragePool with imbalanced pads and count_include_pad would lead an incorrect result");
     }
     GraphBuilder gb(graph, "SimplifyAveragePoolPad", node->output(0));
-
-    Value* padded = gb.Op(Node::kPad, node->inputs());
-    std::vector<int64_t> pads = {0, 0, 0, 0};
-    for (int p : node->pads()) pads.push_back(p);
-    padded->producer()->set_pads(pads)->set_value(0);
-
+    Value* padded = PadForPool(&gb, node, 0);
     gb.Op(Node::kAveragePool, {padded}, node->output(0))
             ->producer()
             ->set_auto_pad(node->auto_pad())
@@ -624,6 +596,62 @@ bool ReplaceImageScaler(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSlice(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySlice", node->output(0));
+    // Do nothing for Slice-1.
+    if (node->inputs().size() == 1) {
+        return false;
+    }
+    gb.Op(Node::kDynamicSlice, node->inputs(), node->output(0));
+    return true;
+}
+
+bool ReplaceMaxRoiPool(Graph* graph, Node* node) {
+    // TODO(hamaji): Fix this. The result does not match for
+    // out/opset9/test_roipooling2d.
+    GraphBuilder gb(graph, "SimplifyMaxRoiPool", node->output(0));
+    Value* roi_combined = node->input(1);
+    Dtype roi_dtype = roi_combined->type().dtype();
+    int64_t roi_batchsize = roi_combined->type().dims()[0];
+    Value* roi_indices = gb.Temp(Type(roi_dtype, {roi_batchsize, 1}));
+    Value* rois = gb.Temp(Type(roi_dtype, {roi_batchsize, 4}));
+    Node* split_op = gb.MOp(Node::kSplit, {roi_combined}, {roi_indices, rois});
+    split_op->set_axis(1)->set_split({1, 4});
+    roi_indices = gb.Op(Node::kCast, {roi_indices});
+    roi_indices->producer()->set_to(Dtype::kInt32);
+    roi_indices = gb.Op(Node::kSqueeze, {roi_indices});
+    roi_indices->producer()->set_axes({1});
+    gb.Op(Node::kChainerROIMaxPool2D, {node->input(0), rois, roi_indices}, node->output(0))
+            ->producer()
+            ->set_spatial_scale(node->spatial_scale())
+            ->set_output_shape(node->pooled_shape());
+    return true;
+}
+
+void ReplaceInitializers(Graph* graph) {
+    std::map<Value*, Value*> initializers;
+    for (Value* value : graph->input_values()) {
+        if (!value->initializer()) {
+            continue;
+        }
+
+        GraphBuilder gb(graph, "SimplifyInitializers", value);
+        Value* replaced = gb.Op(Node::kConstant, {});
+        replaced->producer()->set_tensor_value(value->ReleaseInitializer());
+        CHECK(initializers.emplace(value, replaced).second);
+    }
+
+    for (const auto& p : initializers) {
+        Value* value = p.first;
+        Value* replaced = p.second;
+        for (Node* node : std::vector<Node*>(value->users())) {
+            value->DetachUser(node);
+            replaced->AddUser(node);
+            node->ReplaceInput(value, replaced);
+        }
+    }
+}
+
 }  // namespace
 
 void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
@@ -633,6 +661,7 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kMin, ReplaceMin).second);
     CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
     CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
+    CHECK(simplifiers.emplace(Node::kLpNormalization, ReplaceLpNormalization).second);
     CHECK(simplifiers.emplace(Node::kChainerSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
     // TODO(hamaji): Revive Scan.
     // CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
@@ -646,12 +675,16 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
     CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
     CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
     CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
-    CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
     CHECK(simplifiers.emplace(Node::kConstantOfShape, ReplaceConstantOfShape).second);
     CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
     CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
     CHECK(simplifiers.emplace(Node::kImageScaler, ReplaceImageScaler).second);
+    CHECK(simplifiers.emplace(Node::kSlice, ReplaceSlice).second);
+    CHECK(simplifiers.emplace(Node::kMaxRoiPool, ReplaceMaxRoiPool).second);
     CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
+    if (!g_use_ngraph) {
+        CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
+    }
 
     auto replace_if_not_supported = [&ccfg, &simplifiers](Node::OpType op, SimplifierFn fn) {
         if (!ccfg.HasOp(op)) {
@@ -669,7 +702,10 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
         CHECK(simplifiers.emplace(Node::kAveragePool, ReplaceAveragePool).second);
     }
 
-    if (g_replace_constant) CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    if (g_replace_constant) {
+        CHECK(!gen_backprop);
+        CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+    }
 #if 0
     CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
 #endif
@@ -690,6 +726,12 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
                 replaced = true;
             }
         }
+    }
+
+    // Replace initializers by `Constant` for better optimization
+    // (e.g., Conv+BN fusion).
+    if (!gen_backprop && g_use_ngraph) {
+        ReplaceInitializers(graph);
     }
 }
 

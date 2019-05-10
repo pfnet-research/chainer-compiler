@@ -46,8 +46,12 @@ message XCInstructionProto {
     optional string debug_info = 4;
     optional int64 id = 5;
     repeated XCTypeProto output_types = 6;
+    repeated string output_names = 7;
+    optional int64 flops = 8;
 }
 
 message XCProgramProto {
     repeated XCInstructionProto instructions = 1;
+    repeated string input_names = 2;
+    repeated XCTypeProto input_types = 3;
 }

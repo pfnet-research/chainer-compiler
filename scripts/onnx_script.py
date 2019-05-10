@@ -29,8 +29,7 @@ def _extract_value_info(arr, name):
 
 def make_constant_node(name, typ, value):
     value = np.array(value)
-    tensor = onnx.helper.make_tensor(name + '_val', typ,
-                                     value.shape, value.flat)
+    tensor = numpy_helper.from_array(value, name=name + '_val')
     node = onnx.helper.make_node('Constant', inputs=[], outputs=[name],
                                  value=tensor)
     return node
@@ -40,8 +39,7 @@ def make_constant_sequence_node(name, typ, values):
     tensor_values = []
     for i, value in enumerate(values):
         value = np.array(value)
-        tensor = onnx.helper.make_tensor('%s_%d' % (name, i), typ,
-                                         value.shape, value.flat)
+        tensor = numpy_helper.from_array(value, name='%s_%d' % (name, i))
         tensor_values.append(tensor)
     node = onnx.helper.make_node('ChainerSequenceConstants',
                                  inputs=[], outputs=[name],
@@ -186,8 +184,7 @@ class GraphBuilder(object):
         initializer = []
         for name, value in self.params:
             typ = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
-            tensor = onnx.helper.make_tensor(
-                name, typ, value.shape, value.flat)
+            tensor = numpy_helper.from_array(value, name=name)
             initializer.append(tensor)
         graph = onnx.helper.make_graph(self.nodes, self.graph_name,
                                        inputs=inputs_vi, outputs=outputs_vi,

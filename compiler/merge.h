@@ -4,6 +4,6 @@ namespace chainer_compiler {
 
 class Graph;
 
-void GetReluRecompute(Graph* graph, int threshold);
+void MergeOperations(Graph* graph);
 
 }  // namespace chainer_compiler

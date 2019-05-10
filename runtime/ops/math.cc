@@ -1,3 +1,4 @@
+#include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
@@ -15,10 +16,6 @@ namespace {
 
 chainerx::Array Pow(chainerx::Array a, chainerx::Array b) {
     return chainerx::Exp(chainerx::Log(a) * b);
-}
-
-bool IsFloat(chainerx::Dtype dtype) {
-    return dtype == chainerx::Dtype::kFloat32 || dtype == chainerx::Dtype::kFloat64;
 }
 
 // TODO(hamaji): Implement type coersion in ChainerX.
@@ -61,18 +58,21 @@ chainerx::Array MulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const ch
 }
 
 chainerx::Array DivOp::RunImpl(XCVMState* st, const chainerx::Array& a0, const chainerx::Array& b0) {
-    chainerx::Array a, b, r;
+    chainerx::Array a, b;
     std::tie(a, b) = CoerceBinary(a0, b0);
     // TODO(hamaji): Come up with a better idea to handle cross device ops.
     if (&a.device() != &b.device() && b.GetTotalSize() == 1) {
-        r = chainerx::Divide(a, chainerx::AsScalar(b));
+        if (IsFloat(a.dtype())) {
+            return chainerx::TrueDivide(a, chainerx::AsScalar(b));
+        } else {
+            return chainerx::FloorDivide(a, chainerx::AsScalar(b));
+        }
     }
-    r = chainerx::Divide(a, b);
-    // TODO(hamaji): Use FloorDivide once ChainerX supports it.
-    if (a.dtype() != r.dtype()) {
-        r = CastTo(r, a.dtype());
+    if (IsFloat(a.dtype())) {
+        return chainerx::TrueDivide(a, b);
+    } else {
+        return chainerx::FloorDivide(a, b);
     }
-    return r;
 }
 
 chainerx::Array PowOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
@@ -84,21 +84,39 @@ chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
-chainerx::Array ExpOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Exp(a);
+chainerx::Array IsNaNOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+    return chainerx::IsNan(a);
 }
 
-chainerx::Array LogOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Log(a);
+chainerx::Array IsInfOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+    return chainerx::IsInf(a);
 }
 
-chainerx::Array SqrtOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Sqrt(a);
-}
+#define DEFINE_UNARY_OP(op)                                                    \
+    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+        return chainerx::op(a);                                                \
+    }
 
-chainerx::Array ReciprocalOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
-    return chainerx::Reciprocal(a);
-}
+#define DEFINE_UNARY_OP_TODO(op)                                               \
+    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+        CHECK(false) << "TODO(hamaji): " #op " op not implemented";            \
+    }
+
+DEFINE_UNARY_OP(Exp);
+DEFINE_UNARY_OP(Log);
+DEFINE_UNARY_OP(Sqrt);
+DEFINE_UNARY_OP(Reciprocal);
+DEFINE_UNARY_OP(Sin);
+DEFINE_UNARY_OP(Cos);
+DEFINE_UNARY_OP(Tan);
+DEFINE_UNARY_OP(Arcsin);
+DEFINE_UNARY_OP(Arccos);
+DEFINE_UNARY_OP(Arctan);
+DEFINE_UNARY_OP_TODO(Sinh);
+DEFINE_UNARY_OP_TODO(Cosh);
+DEFINE_UNARY_OP_TODO(Arcsinh);
+DEFINE_UNARY_OP_TODO(Arccosh);
+DEFINE_UNARY_OP_TODO(Arctanh);
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
     chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
@@ -106,21 +124,17 @@ chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    WARN_ONCE("Floor is broken for large floats");
-    chainerx::Array out = x.AsType(chainerx::Dtype::kInt64).AsType(x.dtype());
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
-    out -= negs * floats;
-    return out;
+    if (!IsFloat(x.dtype())) {
+        return x;
+    }
+    return chainerx::Floor(x);
 }
 
 chainerx::Array CeilOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    WARN_ONCE("Ceil is broken for large values");
-    chainerx::Array out = x.AsType(chainerx::Dtype::kInt64).AsType(x.dtype());
-    chainerx::Array poses = (x > chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    chainerx::Array floats = chainerx::NotEqual(x, out).AsType(x.dtype());
-    out += poses * floats;
-    return out;
+    if (!IsFloat(x.dtype())) {
+        return x;
+    }
+    return chainerx::Ceil(x);
 }
 
 chainerx::Array ClipOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
@@ -133,6 +147,10 @@ chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const
 }
 
 chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
+    if (alpha == 1.0 && beta == 1.0 && !trans_a && trans_b && c.ndim() == 1) {
+        return Linear(a, b, c);
+    }
+
     chainerx::Array xa = a;
     chainerx::Array xb = b;
     if (trans_a) xa = chainerx::Transpose(xa);
@@ -145,42 +163,11 @@ chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const c
     return r + xc;
 }
 
-namespace {
-
-chainerx::Array ElementwiseMax(chainerx::Array a, chainerx::Array b) {
-    // TODO(hamaji): Implement this in ChainerX.
-    CHECK_EQ(a.dtype(), b.dtype());
-    int64_t an = a.GetTotalSize();
-    int64_t bn = b.GetTotalSize();
-    chainerx::Array result;
-    if (an == 1) {
-        result = chainerx::Maximum(chainerx::AsScalar(a), b);
-    } else if (bn == 1) {
-        result = chainerx::Maximum(a, chainerx::AsScalar(b));
-    } else {
-        CHECK_EQ(an, bn) << "Max with broadcast not supported yet";
-        WARN_ONCE("Slow element-wise Max");
-        // Flatten views.
-        chainerx::Array av = chainerx::Reshape(a, {an});
-        chainerx::Array bv = chainerx::Reshape(b, {an});
-        std::vector<chainerx::Array> maxes;
-        for (int i = 0; i < an; ++i) {
-            chainerx::Array m = chainerx::Maximum(chainerx::AsScalar(av.At({i})), bv.At({i}));
-            maxes.push_back(chainerx::Reshape(m, {1}));
-        }
-        result = chainerx::Concatenate(maxes, 0);
-        result = chainerx::Reshape(result, a.shape());
-    }
-    return result;
-}
-
-}  // namespace
-
 chainerx::Array MaxOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
     CHECK_LT(0, inputs.size());
     chainerx::Array result = inputs[0];
     for (size_t i = 1; i < inputs.size(); ++i) {
-        result = ElementwiseMax(result, inputs[i]);
+        result = Maximum(result, inputs[i]);
     }
     return result;
 }

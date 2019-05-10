@@ -5,7 +5,8 @@ import chainer.links as L
 import numpy as np
 
 import inspect
-import ast, gast
+import ast
+import gast
 import weakref
 from elichika.parser import vevaluator
 from elichika.parser import core
@@ -14,150 +15,277 @@ from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser import config
 from elichika.parser import functions_builtin
+from elichika.parser import functions_ndarray
 
 from elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
-attributes = []
-registered_objects = []
-history_tags = []
+histories = []
+
+function_converters = {}
+instance_converters = []
+
+def create_ref_value_name_with_constant(value):
+    if isinstance(value, ValueRef):
+        value = value.get_value()
+
+    if value.has_constant_value():
+        return '@C_' + str(value.get_constant_value())
+    return '@C_Unknown'
 
 def reset_field_and_attributes():
     global fields
-    global attributes
-    global registered_objects
-    global history_tags
     fields = []
-    attributes = []
-    registered_objects = []
-    history_tags = []
+    histories.clear()
 
-def register_field(field : 'Field'):
+
+def register_field(field: 'Field'):
     fields.append(weakref.ref(field))
 
-def register_attribute(attribute : 'Attribute'):
-    attributes.append(weakref.ref(attribute))
 
-def register_object(value : 'Object'):
-    registered_objects.append(weakref.ref(value))
-
-def commit(commit_id : 'str'):
-    if not commit_id in history_tags:
-        history_tags.append(commit_id)
-
+def push_history(history_id: 'str'):
+    histories.append(history_id)
     for field in fields:
         o = field()
         if o is not None:
-            o.commit(commit_id)
+            o.push_history(history_id)
 
-    for attribute in attributes:
-        o = attribute()
-        if o is not None:
-            o.commit(commit_id)
 
-    for registered_object in registered_objects:
-        o = registered_object()
-        if o is not None:
-            o.commit(commit_id)
-
-def checkout(commit_id : 'str'):
+def pop_history():
+    histories.pop()
     for field in fields:
         o = field()
         if o is not None:
-            o.checkout(commit_id)
+            o.pop_history()
 
-    for attribute in attributes:
-        o = attribute()
+
+def get_inputs() -> 'List[FieldInput]':
+    ret = []
+    for field in fields:
+        o = field()
         if o is not None:
-            o.checkout(commit_id)
+            ret += o.get_inputs()
+    return ret
 
-    for registered_object in registered_objects:
-        o = registered_object()
+
+def get_outputs() -> 'List[FieldOutput]':
+    ret = []
+    for field in fields:
+        o = field()
         if o is not None:
-            o.checkout(commit_id)
+            ret += o.get_outputs()
+    return ret
 
-def parse_instance(default_module, name, instance, self_instance = None, parse_shape = False) -> "Object":
-    from elichika.parser import values_builtin
 
-    if values_builtin.is_builtin_chainer_link(instance):
-        return Object(values_builtin.ChainerLinkInstance(default_module, instance))
+def parse_instance(default_module, name, instance, self_instance=None, parse_shape=False, from_member = False) -> "ValueRef":
+
+    for converter in instance_converters:
+        ret = converter(default_module, instance)
+        if ret is not None:
+            return ValueRef(ret)
+
+    if inspect.ismethod(instance) or inspect.isfunction(instance):
+        if instance in function_converters.keys():
+            func = function_converters[instance]
+            return ValueRef(func)
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
-        return Object(BoolValue(instance))
+        return ValueRef(BoolValue(instance))
 
     if isinstance(instance, int):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.int32):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.int64):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, float):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.float32):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, np.float64):
-        return Object(NumberValue(instance))
+        return ValueRef(NumberValue(instance))
 
     if isinstance(instance, str):
-        return Object(StrValue(instance))
+        return ValueRef(StrValue(instance))
 
     if isinstance(instance, list):
         if parse_shape:
-            return Object(ListValue())
+            return ValueRef(ListValue())
         else:
             print('List is not supported now!!!')
-            return Object(NumberValue(0.0))
+            return ValueRef(NumberValue(0.0))
 
     if instance is inspect._empty:
         return None
 
-    if inspect.isfunction(instance):
-        func = UserDefinedFunction(instance)
-        return Object(FuncValue(func, self_instance))
-
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
-        return Object(FuncValue(func, self_instance))
+        return ValueRef(FuncValue(func, self_instance))
+
+    if inspect.isfunction(instance):
+        func = UserDefinedFunction(instance)
+        if from_member:
+            return ValueRef(FuncValue(func, self_instance))
+        else:
+            return ValueRef(FuncValue(func, None))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
-        return Object(FuncValue(func, None))
+        return ValueRef(FuncValue(func, None))
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
         shape = -1 if shape == 'Undefined' else shape
         tensorValue = TensorValue()
         tensorValue.shape = tuple(shape)
-        return Object(tensorValue)
+        return ValueRef(tensorValue)
+
+    if isinstance(instance, tuple):
+        value_in_tuple = []
+        for v in instance:
+            o = parse_instance(default_module, '', v)
+            value_in_tuple.append(o)
+
+        return ValueRef(TupleValue(value_in_tuple))
 
     if isinstance(instance, np.ndarray):
-        tensorValue = TensorValue()
+        tensorValue = TensorValue(instance)
         tensorValue.value = instance
         tensorValue.shape = instance.shape
-        return Object(tensorValue)
+        return ValueRef(tensorValue)
 
     if instance == inspect._empty:
-        return Object(NoneValue())
+        return ValueRef(NoneValue())
 
     if instance is None:
-        return Object(NoneValue())
+        return ValueRef(NoneValue())
 
-    model_inst = UserDefinedInstance(default_module, instance, None, isinstance(instance, chainer.Link))
-    return Object(model_inst)
+    model_inst = UserDefinedInstance(default_module, instance, None)
+    return ValueRef(model_inst)
+
+
+class FieldInput:
+    def __init__(self):
+        self.input_value = None
+        self.field = None
+        self.name = None
+        self.value = None
+
+
+class FieldOutput:
+    def __init__(self):
+        self.field = None
+        self.name = None
+        self.obj = None
+        self.old_value = None
+        self.value = None
+
+
+class FieldAttributeCollection():
+    def __init__(self, id: 'str', parent: 'FieldAttributeCollection'):
+        self.id = id
+        self.parent = parent
+        self.attributes = {}
+        self.inputs = {}
+
+    def try_get_attribute(self, key: 'str'):
+        if key in self.attributes.keys():
+            return self.attributes[key]
+
+        # search from parent
+        if self.parent is None:
+            return None
+
+        parent_attribute = self.parent.try_get_attribute(key)
+        if parent_attribute is None:
+            return None
+
+        attribute = Attribute(key)
+        attribute.parent = parent_attribute.parent
+
+        # instance or func
+        if isinstance(parent_attribute.get_ref().get_value(), Instance) or isinstance(parent_attribute.get_ref().get_value(), FuncValue) or isinstance(parent_attribute.get_ref().get_value(), ModuleValue):
+            attribute.revise(parent_attribute.get_ref())
+            self.attributes[key] = attribute
+            return attribute
+
+        # input
+
+        #value = parent_attribute.get_ref().get_value()
+
+        #copied_value = functions.generate_copied_value(value)
+        # attribute.revise(ValueRef(copied_value))
+
+        #self.attributes[key] = attribute
+
+        attribute.revise(parent_attribute.get_ref())
+        self.attributes[key] = attribute
+
+        self.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(
+        ), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+
+        return attribute
+
+    def pop_history(self):
+        for att, input in self.inputs.items():
+            input[0].revise(input[1])
+
+    def get_inputs(self) -> 'List[FieldInput]':
+        '''
+        return [(input value, copied input value)]
+        '''
+        ret = []
+        for att, input in self.inputs.items():
+            fi = FieldInput()
+            fi.name = att.name
+            fi.field = att.parent
+            fi.input_value = input[2]
+            fi.value = input[3]
+            ret.append(fi)
+        return ret
+
+    def get_outputs(self) -> 'List[FieldOutput]':
+        '''
+        return [(field,key,value)]
+        '''
+        ret = []
+
+        for key, att in self.attributes.items():
+
+            # instance or func
+            if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
+                continue
+
+            if (not (att in self.inputs.keys())) or att.get_ref() != self.inputs[att][0] or att.get_ref().get_value() != self.inputs[att][1]:
+                fo = FieldOutput()
+                fo.name = att.name
+                fo.field = att.parent
+                fo.obj = att.get_ref()
+                if att in self.inputs.keys():
+                    fo.old_value = self.inputs[att][1]
+                fo.value = att.get_ref().get_value()
+                ret.append(fo)
+
+        return ret
+
 
 class Field():
     def __init__(self):
-        self.attributes = {}
-        self.module = None
-        self.parent = None
+        self.collection = FieldAttributeCollection('', None)
+        histories_ = histories.copy()
+        histories_.reverse()
 
-        self.rev_attributes = {}
+        for history in histories_:
+            collection = FieldAttributeCollection(history, self.collection)
+            self.collection = collection
+
+        self.module = None
         self.id = utils.get_guid()
 
         register_field(self)
@@ -165,55 +293,92 @@ class Field():
     def set_module(self, module):
         self.module = module
 
-    def set_parent(self, parent):
-        self.parent = parent
-
     def get_field(self) -> 'Field':
         return self
 
     def has_attribute(self, key) -> 'Boolean':
+        c = self.collection
 
-        if key in self.attributes.keys():
-            return True
+        while c is not None:
+            if key in c.attributes.keys():
+                return True
+            c = c.parent
 
         return False
 
-    def get_attribute(self, key : 'str', from_module = True) -> 'Attribute':
-        if key in self.attributes.keys():
-            return self.attributes[key]
-        else:
-            # search an attribute from parents
-            attribute = None
-            if self.parent is not None and self.parent.has_attribute(key):
-                attribute = self.parent.get_attribute(key)
+    def get_attribute(self, key: 'str', from_module=True) -> 'Attribute':
+        attribute = self.collection.try_get_attribute(key)
 
-            if attribute is not None:
-                return attribute
-
-            # search an attribute from a module
-            if self.module is not None and self.module.has_attribute(key) and from_module:
-                attribute = self.module.get_attribute(key)
-
-            if attribute is not None:
-                return attribute
-
-            attribute = Attribute(key)
-            attribute.parent = self
-            self.attributes[key] = attribute
+        if attribute is not None:
             return attribute
 
-    def commit(self, commit_id : 'str'):
-        self.rev_attributes[commit_id] = self.attributes.copy()
+        # search an attribute from a module
+        if self.module is not None and self.module.has_attribute(key) and from_module:
+            attribute = self.module.get_attribute(key)
 
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.rev_attributes:
-            self.attributes = self.rev_attributes[commit_id].copy()
-        else:
-            self.attributes = {}
+        if attribute is not None:
+            return attribute
+
+        attribute = Attribute(key)
+        attribute.parent = self
+        self.collection.attributes[key] = attribute
+        return attribute
+
+    def push_history(self, history_id: 'str'):
+        collection = FieldAttributeCollection(history_id, self.collection)
+        self.collection = collection
+
+    def pop_history(self):
+        self.collection = self.collection.parent
+        self.collection.pop_history()
+
+        if self.collection is None:
+            self.collection = FieldAttributeCollection('', None)
+
+    def get_inputs(self):
+        return self.collection.get_inputs()
+
+    def get_outputs(self):
+        return self.collection.get_outputs()
 
     def set_default_value(self, key, value):
         attribute = self.get_attribute(key)
         attribute.revise(value)
+
+    def set_predefined_obj(self, key, obj):
+        collections = []
+        c = self.collection
+
+        while True:
+            collections.append(c)
+            c = c.parent
+            if c is None:
+                break
+
+        collections.reverse()
+
+        old_value = None
+        value = None
+
+        for collection in collections:
+            attribute = Attribute(key)
+            attribute.parent = self
+            attribute.revise(obj)
+            collection.attributes[key] = attribute
+
+            if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
+                continue
+
+            collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref(
+            ).get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+
+           # if old_value is not None:
+           #     collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), old_value, value)
+
+            #old_value = obj.get_value()
+            #value = functions.generate_copied_value(old_value)
+            #obj = ValueRef(value)
+
 
 class Module(Field):
     def __init__(self, module):
@@ -256,17 +421,16 @@ class Module(Field):
         attribute = super().get_attribute(key)
         attribute.revise(value)
 
+
 class AttributeHistory:
-    def __init__(self, obj : 'Object'):
+    def __init__(self, obj: 'ValueRef'):
         self.obj = obj
 
+
 class Attribute:
-    def __init__(self, name : 'str'):
+    def __init__(self, name: 'str'):
         self.name = name
         self.history = []
-        self.rev_history = {}
-        self.access_num = 0
-        self.rev_access_num = {}
         self.parent = None
 
         # a obj which is contained in this attribute at first
@@ -275,14 +439,14 @@ class Attribute:
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
 
-        register_field(self)
+    def revise(self, obj: 'ValueRef'):
+        assert(isinstance(obj, ValueRef))
 
-    def revise(self, obj : 'Object'):
-        assert(isinstance(obj, Object))
-        
         # assgin name to the object
-        obj.name = utils.create_obj_value_name_with_attribute(self.name, obj.name)
-        obj.get_value().name = utils.create_obj_value_name_with_attribute(self.name, obj.get_value().name)
+        obj.name = utils.create_obj_value_name_with_attribute(
+            self.name, obj.name)
+        obj.get_value().name = utils.create_obj_value_name_with_attribute(
+            self.name, obj.get_value().name)
 
         if self.initial_obj is None:
             self.initial_obj = obj
@@ -293,105 +457,26 @@ class Attribute:
     def has_obj(self):
         return len(self.history) > 0
 
-    def get_obj(self, inc_access = True):
+    def get_ref(self, inc_access=True):
         assert len(self.history) > 0
-        if inc_access:
-            self.access_num += 1
         return self.history[-1].obj
-
-    def commit(self, commit_id : 'str'):
-        self.rev_history[commit_id] = self.history.copy()
-        self.rev_access_num[commit_id] = self.access_num
-
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.rev_history:
-            self.history = self.rev_history[commit_id].copy()
-            self.access_num = self.rev_access_num[commit_id]
-        else:
-            self.history = []
-            self.access_num = 0
-
-    def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
-        if not commit_id1 in self.rev_history.keys() and not commit_id2 in self.rev_history.keys():
-            return False
-
-        if commit_id1 in self.rev_history.keys() and not commit_id2 in self.rev_history.keys():
-            return True
-
-        if not commit_id1 in self.rev_history.keys() and commit_id2 in self.rev_history.keys():
-            return True
-
-        if len(self.rev_history[commit_id1]) != len(self.rev_history[commit_id2]):
-            return True
-        for i in range(len(self.rev_history[commit_id1])):
-            if self.rev_history[commit_id1][i] != self.rev_history[commit_id2][i]:
-                return True
-
-        return False
-
-    def has_accessed(self, commit_id1 : 'str', commit_id2 : 'str'):
-        if not commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
-            return False
-
-        if commit_id1 in self.rev_access_num.keys() and not commit_id2 in self.rev_access_num.keys():
-            return False
-
-        if not commit_id1 in self.rev_access_num.keys() and commit_id2 in self.rev_access_num.keys():
-            return False
-
-        return self.rev_access_num[commit_id1] != self.rev_access_num[commit_id2]
 
     def __str__(self):
         return self.name
 
-class ObjectHistory():
+
+class ValueRefHistory():
     def __init__(self, value):
         self.value = value
 
-class Object():
-    def __init__(self, value : 'Value'):
+
+class ValueRef():
+    def __init__(self, value: 'Value'):
         self.name = ""
         self.value = value
         self.id = utils.get_guid()
-        self.histories = {}
         self.attributes = Field()
         self.value.apply_to_object(self)
-        register_object(self)
-
-    def revise(self, value):
-        self.value = value
-
-    def set_value_all(self, value):
-        '''
-        set value to current and all histories.
-        this function is for try_get_obj
-        '''
-        self.value = value
-
-        for k, v in self.histories.items():
-            v.value = value
-
-        for history_tag in history_tags:
-            if not history_tag in self.histories.keys():
-                self.histories[history_tag] = ObjectHistory(self.value)
-
-    def commit(self, commit_id : 'str'):
-        self.histories[commit_id] = ObjectHistory(self.value)
-
-    def checkout(self, commit_id : 'str'):
-        if commit_id in self.histories:
-            self.value = self.histories[commit_id].value
-        else:
-            self.value = None
-
-    def has_diff(self, commit_id1 : 'str', commit_id2 : 'str'):
-        if not commit_id1 in self.histories and not commit_id2 in self.histories:
-            return False
-        if not commit_id1 in self.histories and commit_id2 in self.histories:
-            return True
-        if commit_id1 in self.histories and not commit_id2 in self.histories:
-            return True
-        return self.histories[commit_id1].value != self.histories[commit_id2].value
 
     def get_field(self) -> 'Field':
         return self.attributes
@@ -399,26 +484,23 @@ class Object():
     def get_value(self) -> 'Value':
         return self.value
 
-    def get_value_log(self, commit_id):
-        if commit_id in self.histories.keys():
-            return self.histories[commit_id].value
-        return None
+    def revise(self, value):
+        self.value = value
 
-    def try_get_and_store_obj(self, name : 'str') -> 'Object':
+    def try_get_and_store_obj(self, name: 'str') -> 'ValueRef':
 
         attribute = self.attributes.get_attribute(name)
         if attribute.has_obj():
-            return attribute.get_obj()
+            return attribute.get_ref()
 
-        obj = self.value.try_get_obj(name, self)
-        
+        obj = self.value.try_get_ref(name, self)
+
         if obj is None:
             return None
 
-        attribute.is_non_volatile = True
-        attribute.revise(obj)
-
+        self.attributes.set_predefined_obj(name, obj)
         return obj
+
 
 class Value():
     def __init__(self):
@@ -427,35 +509,68 @@ class Value():
         self.internal_value = None
         self.id = utils.get_guid()
 
-    def apply_to_object(self, obj : 'Object'):
+    def has_constant_value(self) -> 'bool':
+        return self.internal_value is not None
+    
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        return self.internal_value is not None
+
+    def get_constant_value(self):
+        return self.internal_value
+
+    def apply_to_object(self, obj: 'ValueRef'):
         '''
         register functions to an object
         this function is only called when an object is generated
         '''
         return None
 
-    def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
+    def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
         return None
 
     def __str__(self):
         return self.name
 
+
 class NoneValue(Value):
     def __init__(self):
         super().__init__()
 
+    def has_constant_value(self) -> 'bool':
+        return True
+    
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        return True
+
+    def get_constant_value(self):
+        return None
+
     def __str__(self):
         return self.name + '({})'.format('None')
+
+class UnknownValue(Value):
+    def __init__(self):
+        super().__init__()
+    def __str__(self):
+        return self.name + '(Un)'
 
 class NumberValue(Value):
     def __init__(self, number):
         super().__init__()
         self.internal_value = number
+        self.dtype = None
+
+        if self.internal_value is not None:
+            self.dtype = np.array(self.internal_value).dtype
+
+        if not config.float_restrict and self.dtype == np.float64:
+            self.dtype = np.float32
 
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
         return self.name + '(N.{})'.format(self.internal_value)
+
 
 class StrValue(Value):
     def __init__(self, string):
@@ -467,6 +582,7 @@ class StrValue(Value):
             return self.name + '(S.{})'.format('Any')
         return self.name + '(S.{})'.format(self.internal_value)
 
+
 class BoolValue(Value):
     def __init__(self, b):
         super().__init__()
@@ -477,39 +593,82 @@ class BoolValue(Value):
             return self.name + '(B.{})'.format('Any')
         return self.name + '(B.{})'.format(self.internal_value)
 
+
 class RangeValue(Value):
     def __init__(self):
         super().__init__()
+
     def __str__(self):
         return self.name + '(R)'
 
+
 class TupleValue(Value):
-    def __init__(self, values = []):
+    def __init__(self, values=None):
         super().__init__()
-        self.values = values
+        self.internal_value = values
+
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        if self.internal_value is not None:
+            for v in self.internal_value:
+                if v is None:
+                    return False
+
+                if isinstance(v, ValueRef) and not is_ref_enabled:
+                    return False
+
+                if isinstance(v, ValueRef):
+                    if not v.get_value().is_all_constant_values(is_ref_enabled):
+                        return False
+                else:
+                    if not v.is_all_constant_values(is_ref_enabled):
+                        return False
+        return True                    
+
     def __str__(self):
-        return self.name + '({})'.format(",".join([str(x) for x in self.values]))
+        return self.name + '(Tp{})'
+
 
 class FuncValue(Value):
-    def __init__(self, func : 'functions.FunctionBase', obj : 'Object'):
+    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef'):
         super().__init__()
         self.func = func
         self.obj = obj
+
     def __str__(self):
         return self.name + '(F)'
 
+
 class ListValue(Value):
-    def __init__(self, values = None):
+    def __init__(self, values=None):
         super().__init__()
         self.is_any = values is None
-        self.values = []
+        self.internal_value = values
 
-    def apply_to_object(self, obj : 'Object'):
-        append_func = Object(FuncValue(functions_builtin.AppendFunction(self), obj))
+    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
+        if self.internal_value is not None:
+            for v in self.internal_value:
+                if v is None:
+                    return False
+
+                if isinstance(v, ValueRef) and not is_ref_enabled:
+                    return False
+
+                if isinstance(v, ValueRef):
+                    if not v.get_value().is_all_constant_values(is_ref_enabled):
+                        return False
+                else:
+                    if not v.is_all_constant_values(is_ref_enabled):
+                        return False
+        return True                    
+
+    def apply_to_object(self, obj: 'ValueRef'):
+        append_func = ValueRef(
+            FuncValue(functions_builtin.AppendFunction(self), obj))
         obj.attributes.get_attribute('append').revise(append_func)
 
     def __str__(self):
         return self.name + '(L)'
+
 
 class ModuleValue(Value):
     def __init__(self):
@@ -518,6 +677,7 @@ class ModuleValue(Value):
     def __str__(self):
         return self.name + '(M)'
 
+
 class DictValue(Value):
     def __init__(self):
         super().__init__()
@@ -525,40 +685,53 @@ class DictValue(Value):
     def __str__(self):
         return self.name + '(D)'
 
+
 class TensorValue(Value):
-    def __init__(self):
+    def __init__(self, value = None):
         super().__init__()
         self.shape = ()
+        self.internal_value = value
         self.value = None
+        self.dtype = None
+
+        if self.internal_value is not None:
+            self.dtype = np.array(self.internal_value).dtype
+
+        if not config.float_restrict and self.dtype == np.float64:
+            self.dtype = np.float32
+
+    def apply_to_object(self, obj: 'ValueRef'):
+        shape_func = ValueRef(
+            FuncValue(functions_ndarray.NDArrayShapeFunction(self), obj))
+        obj.attributes.get_attribute('shape').revise(shape_func)
+
+        size_func = ValueRef(
+            FuncValue(functions_ndarray.NDArraySizeFunction(self), obj))
+        obj.attributes.get_attribute('size').revise(size_func)
+
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
 
+
 class Type(Value):
-    def __init__(self, name : 'str'):
+    def __init__(self, name: 'str'):
         super().__init__()
         self.name = name
 
+
 class Instance(Value):
-    def __init__(self, module : 'Field', inst, classinfo):
+    def __init__(self, module: 'Field', inst, classinfo):
         super().__init__()
         self.inst = inst
-        self.callable = False
         self.func = None
         self.module = module
         self.classinfo = classinfo
-
+        
 class UserDefinedInstance(Instance):
-    def __init__(self, module : 'Field', inst, classinfo, is_chainer_link = False):
+    def __init__(self, module: 'Field', inst, classinfo):
         super().__init__(module, inst, classinfo)
-        self.is_chainer_link = is_chainer_link
-        if self.is_chainer_link:
-            self.callable = True
 
-    def apply_to_object(self, obj : 'Object'):
-        if self.is_chainer_link:
-            self.func = obj.try_get_and_store_obj('forward')
-
-    def try_get_obj(self, name : 'str', inst : 'Object') -> 'Object':
+    def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):
@@ -576,9 +749,6 @@ class UserDefinedInstance(Instance):
             if not (name in members_dict.keys()):
                 return None
 
-            obj = parse_instance(self.module, name, members_dict[name], inst)
-
-        # it is for calling this function in if or for
-        obj.set_value_all(obj.value)
+            obj = parse_instance(self.module, name, members_dict[name], inst, from_member=True)
 
         return obj

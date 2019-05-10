@@ -9,7 +9,7 @@ If you feel lucky, you can proceed to [building chainer compiler](#building-chai
 ### Setting up toolchains
 
 ```shell-session
-$ apt-get install git curl wget build-essential cmake
+$ apt-get install git curl wget build-essential cmake libopenblas-dev
 ```
 
 ### Setting up CUDA
@@ -24,9 +24,9 @@ Chainer compiler can be built on the non-GPU environment because it just require
 
 There are two ways to build Chainer compiler without CUDA.
 
-##### Specifying `CHAINER_COMPILER_BUILD_CUDA`
+##### Specifying `CHAINER_COMPILER_ENABLE_CUDA`
 
-You can enable CUDA by specifying `CHAINER_COMPILER_BUILD_CUDA=ON`.
+You can enable CUDA by specifying `CHAINER_COMPILER_ENABLE_CUDA=ON`.
 
 ##### Using stub driver
 
@@ -77,11 +77,23 @@ $ apt-get install libprotobuf-dev protobuf-compiler
 
 Chainer compiler requires Python and some libraries to build.
 
+Check out the source code if you didn't:
+
+```shell-session
+$ git clone https://github.com/pfnet-research/chainer-compiler.git
+$ cd chainer-compiler
+```
+
+And run:
+
 ```shell-session
 $ apt-get install python3 python3-pip
-$ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest
-$ pip3 install third_party/chainer
+$ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest onnxruntime
+$ git submodule update --init
+$ CHAINER_BUILD_CHAINERX=1 pip3 install third_party/chainer
 ```
+
+You need to install `third_party/chainer` to run its Python interface which requires ABI compatibility.
 
 ## Building Chainer compiler
 
@@ -104,9 +116,9 @@ $ ./setup.sh
 $ mkdir -p build
 $ cd build
 
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=ON -DCHAINERX_BUILD_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
+$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
 or
-$ cmake -DCHAINER_COMPILER_BUILD_CUDA=OFF -DCHAINERX_BUILD_CUDA=OFF ..
+$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=OFF ..
 
 $ make
 ```
@@ -134,7 +146,6 @@ to see the list of supported options.
 TODO(hamaji): Document some of them. Notably,
 
 1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
-1. `CHAINER_COMPILER_ENABLE_NVTX` and `CHAINER_COMPILER_ENABLE_NVRTC` are important for tuning CUDA performance.
 1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](python/chainer_compiler.py).
 
 ## Run tests

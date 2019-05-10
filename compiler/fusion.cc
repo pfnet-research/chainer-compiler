@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <set>
 #include <stack>
@@ -116,15 +117,163 @@ void RejectCyclicNodes(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
+void RejectUnusedConstants(std::set<Node*>* cands) {
+    std::set<Node*> rejected;
+    for (Node* node : *cands) {
+        if (node->op_type() != Node::kConstant) {
+            continue;
+        }
+        bool is_used = false;
+        for (Node* user : node->output(0)->users()) {
+            if (cands->count(user)) {
+                is_used = true;
+                break;
+            }
+        }
+        if (!is_used) {
+            CHECK(rejected.insert(node).second);
+        }
+    }
+
+    for (Node* node : rejected) cands->erase(node);
+}
+
+void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, const std::function<bool(const Node&)>& is_fusable) {
+    int num_fusion_groups = 0;
+    const std::vector<Node*> all_nodes(graph->nodes());
+    for (Node* base_node : all_nodes) {
+        if (base_node->chainer_fusion_group()) continue;
+        if (!is_fusable(*base_node)) continue;
+
+        std::set<Node*> cands;
+        std::stack<Node*> q;
+        q.push(base_node);
+        while (!q.empty()) {
+            Node* node = q.top();
+            CHECK_EQ(0, node->chainer_fusion_group());
+            q.pop();
+            if (!cands.emplace(node).second) continue;
+
+            for (Value* value : node->inputs()) {
+                Node* next_node = value->producer();
+                if (!next_node) continue;
+                if (!is_fusable(*next_node)) continue;
+                if (base_node->IsGradNode() != next_node->IsGradNode()) continue;
+                q.push(next_node);
+            }
+            for (Value* value : node->outputs()) {
+                for (Node* next_node : value->users()) {
+                    if (!is_fusable(*next_node)) continue;
+                    if (base_node->IsGradNode() != next_node->IsGradNode()) continue;
+                    q.push(next_node);
+                }
+            }
+        }
+
+        RejectCyclicNodes(&cands);
+        RejectUnusedConstants(&cands);
+
+        int num_calculation = 0;
+        for (Node* node : cands) {
+            if (!node->IsZeroCost()) ++num_calculation;
+        }
+        if (num_calculation < min_fuse_ops) continue;
+
+        ++num_fusion_groups;
+        for (Node* node : cands) {
+            node->set_chainer_fusion_group(num_fusion_groups);
+        }
+
+        CreateFusionGroup(graph, cands, name, num_fusion_groups);
+    }
+}
+
+void FuseNGraphOperations(Graph* graph) {
+    // TODO(hamaji): Use nGraph for softmax.
+    const std::set<Node::OpType> fusable_ops = {
+            Node::kAdd,
+            Node::kAveragePool,
+            Node::kBatchNormalization,
+            Node::kClip,
+            Node::kConstant,
+            Node::kConcat,
+            Node::kConv,
+            Node::kConvTranspose,
+            Node::kDiv,
+            Node::kExp,
+            Node::kGemm,
+            Node::kIdentity,
+            Node::kLeakyRelu,
+            // Node::kLogSoftmax,
+            Node::kMaxPool,
+            Node::kMul,
+            Node::kPad,
+            Node::kRelu,
+            Node::kReduceSum,
+            Node::kReshape,
+            Node::kSigmoid,
+            Node::kSlice,
+            Node::kSqrt,
+            Node::kSqueeze,
+            // Node::kSoftmax,
+            Node::kSplit,
+            Node::kSub,
+            Node::kSum,
+            Node::kTanh,
+            Node::kTranspose,
+    };
+
+    auto is_fusable = [&fusable_ops](const Node& node) {
+        if (!fusable_ops.count(node.op_type())) {
+            return false;
+        }
+        for (Value* value : node.inputs()) {
+            if (!value->type().HasKnownShape()) return false;
+        }
+        for (Value* value : node.outputs()) {
+            if (!value->type().HasKnownShape()) return false;
+        }
+
+        if (node.op_type() == Node::kReshape) {
+            CHECK_EQ(2, node.inputs().size());
+            if (!node.input(1)->producer() || node.input(1)->producer()->op_type() != Node::kConstant) {
+                return false;
+            }
+        } else if (node.op_type() == Node::kMaxPool) {
+            if (node.chainer_cover_all()) {
+                return false;
+            }
+        } else if (
+                node.op_type() == Node::kAdd || node.op_type() == Node::kSub || node.op_type() == Node::kMul ||
+                node.op_type() == Node::kDiv || node.op_type() == Node::kPow) {
+            // No type coercion in nGraph.
+            if (node.input(0)->type().dtype() != node.input(1)->type().dtype()) {
+                return false;
+            }
+        } else if (node.op_type() == Node::kPad) {
+            // Apparently, nGraph does not support negative pads.
+            for (int p : node.pads()) {
+                if (p < 0) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
+    FuseAllConnectedNodes("ngraph", graph, 1, is_fusable);
+}
+
 void FuseTVMOperations(Graph* graph) {
     auto is_fusable = [](Node* node) {
         for (Value* value : node->inputs()) {
             if (value->type().dtype() == Dtype::kInt64) return false;
-            if (value->type().HasKnownShape()) return false;
+            if (!value->type().HasKnownShape()) return false;
         }
         for (Value* value : node->outputs()) {
             if (value->type().dtype() == Dtype::kInt64) return false;
-            if (value->type().HasKnownShape()) return false;
+            if (!value->type().HasKnownShape()) return false;
         }
         return true;
     };
@@ -182,6 +331,7 @@ void FuseTVMOperations(Graph* graph) {
         CreateFusionGroup(graph, fused_nodes, "tvm", num_fusion_groups);
     }
 }
+
 void FuseElementwiseOperations(Graph* graph) {
     // TODO(hamaji): Do not try fusing integer ops.
     const std::set<Node::OpType> fusable_ops = {
@@ -211,69 +361,26 @@ void FuseElementwiseOperations(Graph* graph) {
         return true;
     };
 
-    int num_fusion_groups = 0;
-    const std::vector<Node*> all_nodes(graph->nodes());
-    for (Node* base_node : all_nodes) {
-        if (base_node->chainer_fusion_group()) continue;
-        if (!is_fusable(*base_node)) continue;
-
-        std::set<Node*> cands;
-        std::stack<Node*> q;
-        q.push(base_node);
-        while (!q.empty()) {
-            Node* node = q.top();
-            CHECK_EQ(0, node->chainer_fusion_group());
-            q.pop();
-            if (!cands.emplace(node).second) continue;
-
-            for (Value* value : node->inputs()) {
-                Node* next_node = value->producer();
-                if (!next_node) continue;
-                if (!is_fusable(*next_node)) continue;
-                if (base_node->IsGradNode() != next_node->IsGradNode()) continue;
-                q.push(next_node);
-            }
-            for (Value* value : node->outputs()) {
-                for (Node* next_node : value->users()) {
-                    if (!is_fusable(*next_node)) continue;
-                    if (base_node->IsGradNode() != next_node->IsGradNode()) continue;
-                    q.push(next_node);
-                }
-            }
-        }
-
-        RejectCyclicNodes(&cands);
-
-        int num_calculation = 0;
-        for (Node* node : cands) {
-            if (node->op_type() != Node::kIdentity && node->op_type() != Node::kConstant) ++num_calculation;
-        }
-        if (num_calculation <= 1) continue;
-
-        ++num_fusion_groups;
-        for (Node* node : cands) {
-            node->set_chainer_fusion_group(num_fusion_groups);
-        }
-
-        CreateFusionGroup(graph, cands, "nvrtc", num_fusion_groups);
-    }
+    FuseAllConnectedNodes("nvrtc", graph, 2, is_fusable);
 }
 
 }  // namespace
 
-void FuseOperations(Graph* graph, bool use_tvm) {
+void FuseOperations(Graph* graph, bool use_tvm, bool use_ngraph) {
     // Fuse ops in subgraphs first to avoid infinite loop.
     for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
-            FuseOperations(subgraph, use_tvm);
+            FuseOperations(subgraph, use_tvm, use_ngraph);
         }
     }
 
+    if (use_ngraph) {
+        FuseNGraphOperations(graph);
+    }
     if (use_tvm) {
         FuseTVMOperations(graph);
-    } else {
-        FuseElementwiseOperations(graph);
     }
+    FuseElementwiseOperations(graph);
 }
 
 }  // namespace chainer_compiler

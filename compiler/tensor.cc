@@ -168,8 +168,8 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
     }
 }
 
-Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, UniqueData&& data)
-    : dims_(dims), dtype_(dtype), data_(std::move(data)), name_(name), doc_string_() {
+Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, void* data)
+    : dims_(dims), dtype_(dtype), data_(data, &std::free), name_(name), doc_string_() {
 }
 
 Tensor::~Tensor() {

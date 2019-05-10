@@ -51,8 +51,6 @@ bool ExpectsOnehot(const Model& model) {
 }
 
 void RunMain(const std::vector<std::string>& argv) {
-    g_modify_pool_with_imbalanced_pads = true;
-
     cmdline::parser args;
     args.add<int>("batchsize", 'B', "Batch size", false, 32);
     args.add<float>("learning_rate", '\0', "Learning rate", false, 0.01);
@@ -99,7 +97,6 @@ void RunMain(const std::vector<std::string>& argv) {
     RegisterCustomOnnxOperatorSetSchema();
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(args.rest()[0]));
     Model model(xmodel);
-    if (!g_skip_inference) model.mutable_graph()->InferShapes();
     const bool expects_onehot = ExpectsOnehot(model);
     CHECK_EQ(1, model.graph().output_values().size());
     const std::string loss_value_name = model.graph().output_values()[0]->name();

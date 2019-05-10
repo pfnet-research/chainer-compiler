@@ -135,6 +135,29 @@ class Function_ROIAverageAlign2d(Callable):
             sampling_ratio=_pair(sampling_ratio))
 
 
+class Function_Unpooling2d(Callable):
+    def call_impl(self, env, x, ksize, stride, pad, outsize, cover_all):
+        assert stride.is_none()  # TODO(hamaji): Not supported yet.
+        assert pad.value == 0  # TODO(hamaji): Not supported yet.
+        assert outsize.is_none()  # TODO(hamaji): Not supported yet.
+        assert cover_all.value is False  # TODO(hamaji): Not supported yet.
+
+        scales = np.array([1, 1] + _pair(ksize), dtype=np.float32)
+        return env.calc(
+            'Upsample',
+            inputs=[x.to_tensor(env).name,
+                    Value(scales).to_tensor(env).name]
+        )
+
+
+class Function_ResizeImages(Callable):
+    def call_impl(self, env, x, output_shape):
+        return env.calc(
+            'ChainerResizeImages',
+            inputs=[x.to_tensor(env).name],
+            output_shape=_pair(output_shape))
+
+
 class Function_LocalRespNorm(Callable):
     def call_impl(self, env, x, n, k, alpha, beta):
         n = n.to_int()
@@ -563,6 +586,8 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.roi_average_pooling_2d, Function_ROIAveragePool2d),
                 (F.roi_max_align_2d, Function_ROIMaxAlign2d),
                 (F.roi_average_align_2d, Function_ROIAverageAlign2d),
+                (F.resize_images, Function_ResizeImages),
+                (F.unpooling_2d, Function_Unpooling2d),
                 (F.local_response_normalization, Function_LocalRespNorm),
                 (F.concat, Function_Concat),
                 (F.softmax_cross_entropy, Function_SoftmaxCrossEntropy),

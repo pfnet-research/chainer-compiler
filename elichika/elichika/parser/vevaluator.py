@@ -13,7 +13,9 @@ from elichika.parser.graphs import Graph
 from elichika.parser import veval_bin
 from elichika.parser import veval_unary
 
-def try_get_obj(value, name, lineprop) -> 'values.Object':
+import numpy as np
+
+def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
     if value is None:
         if config.show_warnings:
             print('Failed to get object {}. in {}'.format(name, lineprop))
@@ -26,9 +28,9 @@ def try_get_obj(value, name, lineprop) -> 'values.Object':
 
     if isinstance(value, values.Attribute):
         if value.has_obj():
-            return value.get_obj()
+            return value.get_ref()
 
-    if isinstance(value, values.Object):
+    if isinstance(value, values.ValueRef):
         return value
 
     return None
@@ -36,22 +38,22 @@ def try_get_obj(value, name, lineprop) -> 'values.Object':
 def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Value':
     if value is None:
         if config.show_warnings:
-            print('Failed to get value {}. in L.{}'.format(name, lineprop))
+            print('Failed to get value {}. in {}'.format(name, lineprop))
         return None
 
     if isinstance(value, values.NoneValue) and not is_none_allowed:
         if config.show_warnings:
-            print('Value {} is none. in L.{}'.format(name, lineprop))
+            print('Value {} is none. in {}'.format(name, lineprop))
         return None
 
     if isinstance(value, values.Value):
         return value
 
-    if isinstance(value, values.Object):
+    if isinstance(value, values.ValueRef):
         return value.get_value()
 
     if isinstance(value, values.Attribute):
-        return value.get_obj().get_value()
+        return value.get_ref().get_value()
 
     raise Exception('Value {} is invalid. in L.{}'.format(name, lineprop))
 
@@ -61,50 +63,6 @@ def get_ast_name_forcibly(ast):
     if isinstance(ast, gast.gast.Attribute):
         return ast.attr
     return ''
-
-def get_input_attritubtes(target : 'values.Field', commit_id1 : 'str', commit_id2 : 'str'):
-    ret = [v for v in target.attributes.values() if v.has_accessed(commit_id1, commit_id2)]
-    dicts = [v.get_obj(False) for v in target.attributes.values()]
-
-    for d in dicts:
-        ret_ = get_input_attritubtes(d.get_field(), commit_id1, commit_id2)
-        ret.extend(ret_)
-
-    return ret
-
-def get_output_attritubtes(target : 'values.Field', commit_id1 : 'str', commit_id2 : 'str'):
-    ret = [v for v in target.attributes.values() if v.has_diff(commit_id1, commit_id2)]
-    dicts = [v.get_obj(False) for v in target.attributes.values()]
-
-    for d in dicts:
-        ret_ = get_output_attritubtes(d.get_field(), commit_id1, commit_id2)
-        ret.extend(ret_)
-
-    return ret
-
-def get_output_objs(target : 'values.Field', commit_id1 : 'str', commit_id2 : 'str'):
-    ret = [v.get_obj(False) for v in target.attributes.values() if v.get_obj(False).has_diff(commit_id1, commit_id2)]
-    dicts = [v.get_obj(False) for v in target.attributes.values()]
-
-    for d in dicts:
-        ret_ = get_output_objs(d.get_field(), commit_id1, commit_id2)
-        ret.extend(ret_)
-
-    return ret
-
-def filter_attributes(attributes):
-    ret = []
-
-    for attribute in attributes:
-        if attribute.has_obj() and isinstance(attribute.get_obj(False).get_value(), values.Instance):
-            continue
-
-        if attribute.has_obj() and isinstance(attribute.get_obj(False).get_value(), values.FuncValue):
-            continue
-
-        ret.append(attribute)
-
-    return ret
 
 class AstContext:
     def __init__(self, nast, lineno_offset : 'int'):
@@ -127,31 +85,43 @@ class VEvalOption:
 def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Attribute))
     lineprop = utils.LineProperty(astc.lineno)
-    
+
     from_module = True
     if option is not None and option.eval_as_written_target:
         from_module = False
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
-    value_obj = try_get_obj(value, 'attribute', lineprop)
-    attr = value_obj.get_field().get_attribute(astc.nast.attr, from_module)
+    value_ref = try_get_ref(value, 'attribute', lineprop)
+    attr = value_ref.get_field().get_attribute(astc.nast.attr, from_module)
+
+    # property(getter)
+    if attr.has_obj() and isinstance(attr.get_ref(False).get_value(), values.FuncValue) and attr.get_ref(False).get_value().func.is_property:
+        func_value = attr.get_ref(False).get_value()
+        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+        return ret
 
     if attr.has_obj():
         return attr
 
     # if attr is not found
-    gotten_obj = value_obj.try_get_and_store_obj(astc.nast.attr)
+    gotten_obj = value_ref.try_get_and_store_obj(astc.nast.attr)
     if gotten_obj is not None:
-        return attr
+        return value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
-    return attr
+    if option.eval_as_written_target:
+        return attr
+        
+    # value is unknown
+    if config.show_warnings:
+        print('Assigning value is not found in L.{}'.format(astc.lineno))
+    return None
 
 def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.Assign))
     lineprop = utils.LineProperty(astc.lineno)
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
-    value_obj = try_get_obj(value, 'assign', lineprop)
+    value_obj = try_get_ref(value, 'assign', lineprop)
 
     if value is None:
         if config.show_warnings:
@@ -162,19 +132,38 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
     target_option.eval_as_written_target = True
     targets = veval_ast(astc.c(astc.nast.targets[0]), local_field, graph, target_option)
 
-    isTuple = False
-    if targets.has_obj() and isinstance(targets.get_obj().get_value(), values.TupleValue):
-        targets = targets.get_obj().values
-        isTuple = True
+    def return_value_or_ref(obj : 'value.Object'):
+            if isinstance(obj.get_value(), values.NumberValue):
+                return values.ValueRef(obj.get_value())
 
-    if isTuple:
+            if isinstance(obj.get_value(), values.StrValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.BoolValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.NoneValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.TupleValue):
+                return values.ValueRef(obj.get_value())
+
+            return obj
+
+    if isinstance(targets, list):
+        # ex. a,b = (1,2)
+        if not isinstance(value_obj.get_value(), values.TupleValue):
+            # TODO fix it
+            assert(False)   # not supported
+        
         for i in range(len(targets)):
-            node_assign = nodes.NodeAssign(targets[i], value.values[i], astc.lineno)
-            targets[i].revise(value.values[i])
+            node_assign = nodes.NodeAssign(targets[i], value_obj.get_value().get_constant_value()[i], astc.lineno)
+            targets[i].revise(try_get_ref(value_obj.get_value().get_constant_value()[i],'assign', lineprop))
             graph.add_node(node_assign)
     else:
-        node_assign = nodes.NodeAssign(targets, value_obj, astc.lineno)
-        targets.revise(value_obj)
+        assigned_obj = return_value_or_ref(value_obj)
+        node_assign = nodes.NodeAssign(targets, assigned_obj, astc.lineno)
+        targets.revise(assigned_obj)
         graph.add_node(node_assign)
 
 def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
@@ -197,49 +186,48 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
             print('Unknown function {} is called in L.{}'.format(get_ast_name_forcibly(astc.nast.func) ,astc.lineno))
         return None
 
-    func_obj = try_get_obj(func, 'call', lineprop)
+    func_obj = try_get_ref(func, 'call', lineprop)
     func_value = try_get_value(func, 'call', lineprop)
 
-    fargs = []
+    finput = functions.FunctionArgInput()
+
     for arg in astc.nast.args:
         arg_ = veval_ast(astc.c(arg), local_field, graph)
-        farg = functions.FunctionArg()
-        farg.obj = try_get_obj(arg_, 'call', lineprop)
-        fargs.append(farg)
+        finput.inputs.append(try_get_ref(arg_, 'call', lineprop))
 
     for keyword in astc.nast.keywords:
         arg_ = veval_ast(astc.c(keyword.value), local_field, graph)
-        farg = functions.FunctionArg()
-        farg.name = keyword.arg
-        farg.obj = try_get_obj(arg_, 'call', lineprop)
-        fargs.append(farg)
+        finput.keywords[keyword.arg] = try_get_ref(arg_, 'call', lineprop)
 
     lineprop = utils.LineProperty(astc.lineno)
 
     ret = None
     if isinstance(func_value, values.FuncValue):
-        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, fargs, lineprop)
+        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, finput, lineprop)
+        return ret
 
-    elif isinstance(func_value, values.Instance) and func_value.callable:
+    elif isinstance(func_value, values.Instance):
         # __call__
-        ret = func_value.func.get_value().func.vcall(local_field.module, graph, func_obj, fargs, lineprop)
+        call_func_ref = func_obj.try_get_and_store_obj('__call__')
+        if call_func_ref is not None:        
+            ret = call_func_ref.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
+            return ret
 
-    else:
-        if config.show_warnings:
-            print('Unknown function is called in L.{}'.format(astc.lineno))
-        return None
+    
+    if config.show_warnings:
+        print('Unknown function is called in L.{}'.format(astc.lineno))
+    return None
 
-    return ret
-
+    
 def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph') -> 'None':
     assert(isinstance(astc.nast, gast.gast.Return))
     lineprop = utils.LineProperty(astc.lineno)
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
-    value_obj = try_get_obj(value, 'return', lineprop)
+    value_obj = try_get_ref(value, 'return', lineprop)
     value_value = try_get_value(value, 'return', lineprop)
 
-    if value is values.Attribute and not value.has_obj():
+    if value_value is None:
         if config.show_warnings:
             print('Returned values are not found. in L.{}'.format(astc.lineno))
         return None
@@ -261,233 +249,136 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     true_id = 'true_' + id_str
     false_id = 'false_' + id_str
 
-    values.commit(if_id)
+    # True
+    values.push_history(true_id)
 
-    # True condition
-    values.checkout(if_id)
     true_graph = Graph()
     true_graph.name = 'True'
     body = veval_ast(astc.c(astc.nast.body), local_field, true_graph)
 
-    values.commit(true_id)
-    true_input_attributes = get_input_attritubtes(local_field, if_id, true_id)
-    true_output_attributes = get_output_attritubtes(local_field, if_id, true_id)
-    true_output_objs = get_output_objs(local_field, if_id, true_id)
+    true_value_inputs = values.get_inputs()
+    true_value_outputs = values.get_outputs()
 
-    #TODO(durswd): improve
-    true_input_attributes = filter_attributes(true_input_attributes)
-    true_output_attributes = filter_attributes(true_output_attributes)
+    values.pop_history()
 
-    true_output_attributes_2_values = {}
+    # False
+    values.push_history(false_id)
 
-    for attribute in true_output_attributes:
-        true_output_attributes_2_values[attribute] = attribute.get_obj().get_value()
-
-    # False condition
-    values.checkout(if_id)
     false_graph = Graph()
     false_graph.name = 'False'
-    orelse = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
+    body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
 
-    values.commit(false_id)
-    false_input_attributes = get_input_attritubtes(local_field, if_id, false_id)
-    false_output_attributes = get_output_attritubtes(local_field, if_id, false_id)
-    false_output_objs = get_output_objs(local_field, if_id, false_id)
+    false_value_inputs = values.get_inputs()
+    false_value_outputs = values.get_outputs()
 
-    #TODO(durswd): improve
-    false_input_attributes = filter_attributes(false_input_attributes)
-    false_output_attributes = filter_attributes(false_output_attributes)
+    values.pop_history()
 
-    false_output_attributes_2_values = {}
+    # generate pairs
+    value_pairs = {}
+    for v in true_value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-    for attribute in false_output_attributes:
-        false_output_attributes_2_values[attribute] = attribute.get_obj().get_value()
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['true_input_value'] = v.input_value
+        value_pairs[key]['true_input_body_value'] = v.value
 
-    # Merge
-    values.checkout(if_id)
+    for v in true_value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-    # Input
-    input_attributes = set(true_input_attributes) | set(false_input_attributes)
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['true_output_body_value'] = v.value
 
-    # remove unexisting values
-    input_attributes = [v for v in input_attributes if v.has_obj()]
-    input_values = [i.get_obj().get_value() for i in input_attributes]
+    for v in false_value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-    # Output
-    name2output_attributes = {}
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['false_input_value'] = v.input_value
+        value_pairs[key]['false_input_body_value'] = v.value
 
-    # generate attribute pairs
-    for attribute in true_output_attributes:
-        key = str(attribute.parent.id) + '_' + attribute.name
+    for v in false_value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-        if key in name2output_attributes.keys():
-            name2output_attributes[key][0] = attribute
-        else:
-            name2output_attributes[key] = [attribute, None]
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['false_output_body_value'] = v.value
 
-    for attribute in false_output_attributes:
-        key = str(attribute.parent.id) + '_' + attribute.name
+    inputs = []
+    outputs = []
 
-        if key in name2output_attributes.keys():
-            name2output_attributes[key][1] = attribute
-        else:
-            name2output_attributes[key] = [None, attribute]
+    for k, v in value_pairs.items():
+        name = v['name']
+        field = v['field']
 
-    obj2output_values = {}
-    for obj in true_output_objs:
-        if obj.get_value() == None:
-            continue
+        input_value = None
+        true_input_body_value = None
+        false_input_body_value = None
+            
+        if 'true_input_value' in v:
+            input_value = v['true_input_value']
+        elif 'false_input_value' in v:
+            input_value = v['false_input_value']
 
-        key = obj
-        value = obj.get_value_log(true_id)
-
-        if key in obj2output_values.keys():
-            obj2output_values[key][0] = value
-        else:
-            obj2output_values[key] = [value, None]
-
-    for obj in false_output_objs:
-        if obj.get_value() == None:
-            continue
-
-        key = obj
-        value = obj.get_value_log(false_id)
-
-        if key in obj2output_values.keys():
-            obj2output_values[key][1] = value
-        else:
-            obj2output_values[key] = [None, value]
-
-
-    output_attributes = set(true_output_attributes) | set(false_output_attributes)
-    output_values = []
-
-    non_volatiles = []
-
-    for attribute_pair in name2output_attributes.values():
-        true_attribute, false_attribute = attribute_pair
-        name = ''
-        parent = None # type: values.Field
-
-        if true_attribute is not None:
-            name = true_attribute.name
-            parent = true_attribute.parent
-
-        if false_attribute is not None:
-            name = false_attribute.name
-            parent = false_attribute.parent
-
-        if true_attribute is not None:
-            true_value = true_output_attributes_2_values[true_attribute]
-        else:
-            if parent.has_attribute(name):
-                true_value = parent.get_attribute(name).get_obj().get_value()
-
-                if not true_value in input_values:
-                    input_values.append(true_value)
+        if input_value is not None:
+            if 'true_input_body_value' in v:
+                true_input_body_value = v['true_input_body_value']
             else:
-                # TODO : it should be better
-                # case
-                # if xxx:
-                #     y = 10
-                # print(y)
-                true_value = false_output_attributes_2_values[false_attribute]
+                true_input_body_value = functions.generate_value_with_same_type(input_value)
 
-        if false_attribute is not None:
-            false_value = false_output_attributes_2_values[false_attribute]
-        else:
-            if parent.has_attribute(name):
-                false_value = parent.get_attribute(name).get_obj().get_value()
-
-                if not false_value in input_values:
-                    input_values.append(false_value)
-
+            if 'false_input_body_value' in v:
+                false_input_body_value = v['false_input_body_value']
             else:
-                # TODO : it should be better
-                # case
-                # if xxx:
-                #     y = 10
-                # print(y)
-                false_value = true_output_attributes_2_values[true_attribute]
+                false_input_body_value = functions.generate_value_with_same_type(input_value)
 
-        true_graph.add_output_value(true_value)
-        false_graph.add_output_value(false_value)
+        true_output_body_value = None
+        false_output_body_value = None
+        output_value = None
 
-        if true_attribute is not None and false_attribute is not None and true_attribute != false_attribute:
-            # dynamic
-            value = functions.generate_value_with_same_type(true_value)
-            output_values.append(value)
-            parent.get_attribute(name).revise(values.Object(value))
-
-        elif true_attribute is not None and false_attribute is not None:
-            # change both
-            value = functions.generate_value_with_same_type(true_value)
-            output_values.append(value)
-
-            if parent.get_attribute(name).is_non_volatile:
-                non_volatiles.append((parent.get_attribute(name).initial_obj.get_value(), value))
-
-            parent.get_attribute(name).revise(values.Object(value))
-
-        elif true_attribute in input_attributes:
-            value = functions.generate_value_with_same_type(true_value)
-
-            if parent.get_attribute(name).is_non_volatile:
-                non_volatiles.append((parent.get_attribute(name).initial_obj.get_value(), value))
-
-            output_values.append(value)
-            parent.get_attribute(name).revise(values.Object(value))
+        if 'true_output_body_value' in v:
+            true_output_body_value = v['true_output_body_value']
         else:
-            value = functions.generate_value_with_same_type(false_value)
+            true_output_body_value = true_input_body_value
 
-            if parent.get_attribute(name).is_non_volatile:
-                non_volatiles.append((parent.get_attribute(name).initial_obj.get_value(), value))
+        if 'false_output_body_value' in v:
+            false_output_body_value = v['false_output_body_value']
+        else:
+            false_output_body_value = false_input_body_value
 
-            output_values.append(value)
-            parent.get_attribute(name).revise(values.Object(value))
+        # TODO check types between true and false
 
-    for input_value in input_values:
-        true_graph.add_input_value(input_value)
-        false_graph.add_input_value(input_value)
+        if true_output_body_value is not None or false_output_body_value is not None:
+            output_value = functions.generate_value_with_same_type(true_output_body_value)
 
-    for obj, values_pairs in obj2output_values.items():
-        if not obj.get_value() in input_values:
-            input_values.append(obj.get_value())
+        if input_value is not None:
+            inputs.append(input_value)
 
-        value = None
-        true_value = None
-        false_value = None
+            true_graph.add_input_value(true_input_body_value)
+            false_graph.add_input_value(false_input_body_value)
 
-        if values_pairs[0] is not None:
-            value = values_pairs[0]
-            true_value = values_pairs[0]
-        if values_pairs[1] is not None:
-            value = values_pairs[1]
-            false_value = values_pairs[1]
+        if output_value is not None:
+            outputs.append(output_value)
+            true_graph.add_output_value(true_output_body_value)
+            false_graph.add_output_value(false_output_body_value)
+            
+            if field.get_attribute(name).has_obj():
+                field.get_attribute(name).get_ref().revise(output_value)
+            else:
+                field.get_attribute(name).revise(values.ValueRef(output_value))
 
-        if true_value is None:
-            true_value = obj.get_value()
-
-        if false_value is None:
-            false_value = obj.get_value()
-
-        value = functions.generate_value_with_same_type(value)
-        obj.revise(value)
-        output_values.append(value)
-
-        true_graph.add_output_value(true_value)
-        false_graph.add_output_value(false_value)
-
-
-    node = nodes.NodeIf(test_value, input_values, true_graph, false_graph, astc.lineno)
-    node.set_outputs(output_values)
+    node = nodes.NodeIf(test_value, inputs, true_graph, false_graph, astc.lineno)
+    node.set_outputs(outputs)
 
     graph.add_node(node)
-
-    # add non-volatiles
-    for tv, v in non_volatiles:
-        node_nv = nodes.NodeNonVolatileAssign(tv, v)
-        graph.add_node(node_nv)
 
     return None
 
@@ -509,11 +400,13 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
 
     node_aug_assign = nodes.NodeAugAssign(target_value, value_value, binop, astc.lineno)
     graph.add_node(node_aug_assign)
-    
+
+    # TODO : estimate type
+
     new_value = functions.generate_value_with_same_type(target_value)
     node_aug_assign.set_outputs([new_value])
-    target.get_obj().revise(new_value)
-        
+    target.get_ref().revise(new_value)
+
 def veval_ast_expr(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     '''
     call a function without not assigning
@@ -555,25 +448,30 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
         if isinstance(slice_value, values.TupleValue):
             # ex. x[1,2]
-            values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.values]
-            node = nodes.NodeGetItem(value_value, values_)
+            if slice_value.has_constant_value():
+                values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.get_constant_value()]
+                node = nodes.NodeGetItem(value_value, values_, line=lineprop)
+            else:
+                if config.show_warnings:
+                    print('This subscript is not supported. in L.{}'.format(astc.lineno))
+                node = nodes.NodeInvalid(line=lineprop)
         else:
             # ex. x[1]
             node = nodes.NodeGetItem(value_value, [slice_value])
         ret_value = values.Value()
         node.set_outputs([ret_value])
         graph.add_node(node)
-        return values.Object(ret_value)
+        return values.ValueRef(ret_value)
 
     elif isinstance(astc.nast.slice, gast.gast.Slice):
 
         indices = get_slice_indices(astc.nast.slice)
 
         node = nodes.NodeSlice(value_value, indices, [len(indices)])
-        ret_value = values.Value()
+        ret_value = functions.generate_value_with_same_type(value_value)
         node.set_outputs([ret_value])
         graph.add_node(node)
-        return values.Object(ret_value)
+        return values.ValueRef(ret_value)
 
     elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
         indices = []
@@ -590,10 +488,10 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
                 assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
 
         node = nodes.NodeSlice(value_value, indices, slice_specs)
-        ret_value = values.Value()
+        ret_value = functions.generate_value_with_same_type(value_value)
         node.set_outputs([ret_value])
         graph.add_node(node)
-        return values.Object(ret_value)
+        return values.ValueRef(ret_value)
 
     return None
 
@@ -608,12 +506,14 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     listcomp_guid = str(utils.get_guid())
     listcomp_id = 'listcomp_' + listcomp_guid
     body_id = 'listcomp_body_' + listcomp_guid
-    internal_iter_id = '@internal/iter_' + listcomp_guid
+    internal_counter_id = '@internal/listcomp_counter_' + listcomp_guid
+    internal_list_id = '@internal/listcomp_list_' + listcomp_guid
+    internal_cond_id = '@internal/listcomp_cond_' + listcomp_guid
 
     generator = astc.nast.generators[0]
     iter_value = try_get_value(veval_ast(astc.c(generator.iter), local_field, graph), 'generator', lineprop)
     list_value = values.ListValue()
-    list_obj = values.Object(list_value)
+    list_obj = values.ValueRef(list_value)
 
     node_generate_list = nodes.NodeGenerate('List', [], lineprop)
     node_generate_list.set_outputs([list_value])
@@ -628,195 +528,118 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
             print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
 
-    counter_value = values.NumberValue(0)
-    counter_value.name = 'listcomp_counter_' + listcomp_guid
+    counter_value = values.NumberValue(None)
+    counter_value.dtype = np.array(0).dtype
+    counter_value.name = internal_counter_id
 
-    cond_value = values.BoolValue(True)
-    cond_value.name = 'listcomp_cond_' + listcomp_guid
+    cond_value = values.BoolValue(None)
+    cond_value.name = internal_cond_id
 
-    body_field = values.Field()
-    body_field.set_module(local_field.module)
-    body_field.set_parent(local_field)
+    # set values with internal name
+    local_field.get_attribute(internal_list_id).revise(list_obj)
 
-    # set iter with internal name
-    body_field.get_attribute(internal_iter_id).revise(list_obj)
-
-    values.commit(listcomp_id)
+    values.push_history(listcomp_id)
 
     body_graph = Graph()
     body_graph.name = 'Body_' + listcomp_guid
 
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
     target_value = values.Value()
-    target_obj = values.Object(target_value)
+    target_ref = values.ValueRef(target_value)
     node_forgen.set_outputs([target_value])
     
-    body_field.get_attribute(target_name).revise(target_obj)
+    local_field.get_attribute(target_name).revise(target_ref)
 
     body_graph.add_node(node_forgen)
 
-    elt = veval_ast(astc.c(astc.nast.elt), body_field, body_graph)
-    elt_obj = try_get_obj(elt, 'listcomp', lineprop)
+    elt = veval_ast(astc.c(astc.nast.elt), local_field, body_graph)
+    elt_obj = try_get_ref(elt, 'listcomp', lineprop)
 
-    farg = functions.FunctionArg()
-    farg.name = ''
-    farg.obj = elt_obj
-    append_value = list_obj.get_field().get_attribute('append').get_obj().get_value()
-    append_value.func.vcall(local_field.module, body_graph, list_obj, [farg], lineprop)
+    finput = functions.FunctionArgInput()
+    finput.inputs.append(elt_obj)
 
-    values.commit(body_id)
+    append_value = local_field.get_attribute(internal_list_id).get_ref().get_field().get_attribute('append').get_ref().get_value()
+    append_value.func.vcall(local_field.module, body_graph, local_field.get_attribute(internal_list_id).get_ref(), finput, lineprop)
 
-    body_input_attributes = get_input_attritubtes(body_field, listcomp_id, body_id) + get_input_attritubtes(local_field, listcomp_id, body_id)
-    body_output_attributes = get_output_attritubtes(body_field, listcomp_id, body_id) + get_output_attritubtes(local_field, listcomp_id, body_id)
-    body_input_attributes = filter_attributes(body_input_attributes)
-    body_output_attributes = filter_attributes(body_output_attributes)
+    value_inputs = values.get_inputs()
+    value_outputs = values.get_outputs()
 
-    # get objects whose values are changed
-    value_changed_objs = get_output_objs(body_field, listcomp_id, body_id) + get_output_objs(local_field, listcomp_id, body_id)
+    values.pop_history()
 
-    changed_values = {}
-
-    for obj in value_changed_objs:
-        in_value = obj.get_value_log(listcomp_id)
-        out_value = obj.get_value_log(body_id)
-        changed_values[in_value] = out_value
-
-
-    output_attributes_2_values = {}
-
-    for attribute in body_output_attributes:
-        output_attributes_2_values[attribute] = attribute.get_obj().get_value()
-
-    # get inputs
-    values.checkout(listcomp_id)
-
-    input_attributes_2_values = {}
-
-    for attribute in body_input_attributes:
-        input_attributes_2_values[attribute] = attribute.get_obj().get_value()
-
-    # Exports
-    values.checkout(listcomp_id)
-
-    # generate attribute pairs
-    name2attributes = {}
-
-    for attribute in body_input_attributes:
-        key = str(attribute.parent.id) + '_' + attribute.name
-
-        if key in name2attributes.keys():
-            name2attributes[key][0] = attribute
-        else:
-            name2attributes[key] = [attribute, None]
-
-    for attribute in body_output_attributes:
-        key = str(attribute.parent.id) + '_' + attribute.name
-
-        if key in name2attributes.keys():
-            name2attributes[key][1] = attribute
-        else:
-            name2attributes[key] = [None, attribute]
-
-    # remove defaule values
-    name_removing = []
-    defaule_values = [counter_value, cond_value, iter_value]
-    for k, v in name2attributes.items():
-        if v[0] is not None and input_attributes_2_values[v[0]] in defaule_values:
-            name_removing.append(k)
-
-        if v[1] is not None and output_attributes_2_values[v[1]] in defaule_values:
-            name_removing.append(k)
-
-    for nr in name_removing:
-        if nr in name2attributes.keys():
-            name2attributes.pop(nr)
-
-    #
     inputs = []
     outputs = []
-    non_volatiles = []
 
     # default input for subgraph's input
     body_graph.add_input_value(counter_value)
     body_graph.add_input_value(cond_value)
     body_graph.add_input_value(iter_value)
 
-    # default output for subgrap's output
+    # default output for subgraph's output
     body_graph.add_output_value(cond_value)
     body_graph.add_output_value(iter_value)
 
     # default output
     outputs.append(functions.generate_value_with_same_type(iter_value))
     
-    for attributes in name2attributes.values():
-        name = ''
-        parent = None
-        input_value = None
-        output_value = None
+    # generate pairs
+    value_pairs = {}
+    for v in value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-        if attributes[0] is not None:
-            name = attributes[0].name
-            parent = attributes[0].parent
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['input_value'] = v.input_value
+        value_pairs[key]['input_body_value'] = v.value
 
-        if attributes[1] is not None:
-            name = attributes[1].name
-            parent = attributes[1].parent
+    for v in value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-        if attributes[0] is not None:
-            input_value = input_attributes_2_values[attributes[0]]
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['output_body_value'] = v.value
+
+    # remove iterator
+    removed_name = str(local_field.id) + '_' + target_value.name
+    del value_pairs[removed_name]
+
+    for k, v in value_pairs.items():
+        name = v['name']
+        field = v['field']
+
+        if 'input_body_value' in v:
+            inputs.append(v['input_value'])
+            body_graph.add_input_value(v['input_body_value'])
+
         else:
-            # value with same type
-            input_value = functions.generate_value_with_same_type(output_attributes_2_values[attributes[1]])
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'])
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'])
+            inputs.append(temp_value1)
+            body_graph.add_input_value(temp_value2)
 
-        if attributes[1] is not None:
-            output_value = output_attributes_2_values[attributes[1]]
-        else:
-            if input_attributes_2_values[attributes[0]] in changed_values.keys():
-                # change only values
-                output_value = changed_values[input_attributes_2_values[attributes[0]]]
+        if 'output_body_value' in v:
+            body_graph.add_output_value(v['output_body_value'])
+            output_value = functions.generate_value_with_same_type(v['output_body_value'])
+            outputs.append(output_value)
+            if field.get_attribute(name).has_obj():
+                field.get_attribute(name).get_ref().revise(output_value)
             else:
-                # copy value
-                output_value = input_attributes_2_values[attributes[0]]
-
-        output_value_in_node = functions.generate_value_with_same_type(output_value)
-
-        inputs.append(input_value)
-        outputs.append(output_value_in_node)
-        body_graph.add_input_value(input_value)
-        body_graph.add_output_value(output_value)
-
-        if attributes[1] is not None and attributes[1].is_non_volatile:
-            non_volatiles.append((attribute[1].initial_obj.get_value(),output_value_in_node))
-
-        output_obj_in_node = values.Object(output_value_in_node)
-        parent.get_attribute(name).revise(output_obj_in_node)
-
-    for changed_value_in, changed_value_out in changed_values.items():
-        if changed_value_in is None:
-            continue
-        if changed_value_in in inputs:
-            continue
-        inputs.append(changed_value_in)
-        body_graph.add_input_value(changed_value_in)
-        body_graph.add_output_value(changed_value_out)
-        value = functions.generate_value_with_same_type(changed_value_out)
-        obj.revise(value)
-        outputs.append(value)
+                field.get_attribute(name).revise(values.ValueRef(output_value))
+        else:
+            temp_value1 = v['input_body_value']
+            temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
+            body_graph.add_output_value(temp_value1)
+            outputs.append(temp_value2)
 
     node = nodes.NodeListcomp(iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
 
     graph.add_node(node)
 
-    # add non-volatiles
-    for tv, v in non_volatiles:
-        node_nv = nodes.NodeNonVolatileAssign(tv, v)
-        graph.add_node(node_nv)
-
-    if body_field.get_attribute(internal_iter_id).has_obj():
-        return body_field.get_attribute(internal_iter_id).get_obj()
-    else:
-        return list_obj
+    return local_field.get_attribute(internal_list_id).get_ref()
 
 def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     """
@@ -847,7 +670,7 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
     node_bin_op.set_outputs([ret_value])
     graph.add_node(node_bin_op)
 
-    return values.Object(ret_value)
+    return values.ValueRef(ret_value)
 
 def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph'):
     """
@@ -875,7 +698,7 @@ def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph 
     node.set_outputs([ret_value])
     graph.add_node(node)
 
-    return values.Object(ret_value)
+    return values.ValueRef(ret_value)
 
 
 def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
@@ -917,7 +740,7 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
     node_compare.set_outputs([ret_value])
     graph.add_node(node_compare)
 
-    return values.Object(ret_value)
+    return values.ValueRef(ret_value)
 
 
 def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
@@ -927,9 +750,9 @@ def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     assert(isinstance(astc.nast, gast.gast.Num))
     lineprop = utils.LineProperty(astc.lineno)
     value = values.NumberValue(astc.nast.n)
-    ret = values.Object(value)
-    
-    name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
+    ret = values.ValueRef(value)
+
+    name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
@@ -941,9 +764,9 @@ def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     assert(isinstance(astc.nast, gast.gast.Str))
     lineprop = utils.LineProperty(astc.lineno)
     value = values.StrValue(astc.nast.s)
-    ret = values.Object(value)
-    
-    name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
+    ret = values.ValueRef(value)
+
+    name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
@@ -956,25 +779,42 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     lineprop = utils.LineProperty(astc.lineno)
     ret = None
     if astc.nast.value == True:
-        ret = values.Object(values.BoolValue(True))
+        ret = values.ValueRef(values.BoolValue(True))
     if astc.nast.value == False:
-        ret = values.Object(values.BoolValue(False))
+        ret = values.ValueRef(values.BoolValue(False))
     if astc.nast.value is None:
-        ret = values.Object(values.NoneValue())
+        ret = values.ValueRef(values.NoneValue())
 
-    name = utils.create_obj_value_name_with_constant(ret.get_value().internal_value)
+    name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
 
-def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     assert(isinstance(astc.nast, gast.gast.Tuple))
-    vs = []
-    for v in astc.nast.elts:
-        v_ = veval_ast(astc.c(v), local_field, graph)
-        vs.append(v_)
+    lineprop = utils.LineProperty(astc.lineno)
 
-    return values.Object(values.TupleValue(vs))
+    if option is not None and option.eval_as_written_target:
+        vs = []
+        for v in astc.nast.elts:
+            a_ = veval_ast(astc.c(v), local_field, graph, option=option)
+            vs.append(a_)
+        return vs
+    else:
+        vs = []
+        for v in astc.nast.elts:
+            a_ = veval_ast(astc.c(v), local_field, graph, option=option)
+            v_ = try_get_ref(a_, 'tuple', lineprop)
+            vs.append(v_)
+
+        tuple_value = values.TupleValue(vs)
+
+        if not tuple_value.is_all_constant_values(True):
+            node = nodes.NodeGenerate('Tuple', vs.copy(), line=lineprop)
+            node.set_outputs([tuple_value])
+            graph.add_node(node)
+        
+        return values.ValueRef(tuple_value)
 
 def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.List))
@@ -987,16 +827,30 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     elts = []
     for elt in astc.nast.elts:
         elt_ = veval_ast(astc.c(elt), local_field, graph)
-        elt_obj = try_get_obj(elt_,'list', lineprop)
+        elt_obj = try_get_ref(elt_,'list', lineprop)
         elts.append(elt_obj)
 
     node = nodes.NodeGenerate('List', [elt.get_value() for elt in elts], lineprop)
     graph.add_node(node)
-    value = values.ListValue()
-    value.values.extend(elts)
+    value = values.ListValue(elts)
     node.set_outputs([value])
 
-    return values.Object(value)
+    return values.ValueRef(value)
+
+def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListValue', local_field : 'values.Field', graph : 'Graph'):
+    '''
+    for target in iter: 
+        ...
+    with unroll
+    '''
+    assert(isinstance(astc.nast, gast.gast.For))
+    lineprop = utils.LineProperty(astc.lineno)
+
+    for element in iter_.get_constant_value():
+        local_field.get_attribute(target_name).revise(element)
+        veval_ast(astc.c(astc.nast.body), local_field, graph)
+    
+    return None
 
 def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     '''
@@ -1008,6 +862,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # for target in iter:
     iter_ = veval_ast(astc.c(astc.nast.iter), local_field, graph)
+    iter_value = try_get_value(iter_, 'for', lineprop)
 
     # get target name
     target_name = ''
@@ -1018,186 +873,122 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             print('This for is not supported. in L.{}'.format(astc.lineno))
         return None
 
-    for_id = 'for_' + str(utils.get_guid())
-    body_id = 'body_' + str(utils.get_guid())
-    values.commit(for_id)
+    # unroll?
+    if isinstance(iter_value, values.ListValue) and iter_value.has_constant_value():
+        return veval_ast_for_unroll(astc, target_name, iter_value, local_field, graph)
+
+    for_guid = utils.get_guid()
+    for_id = 'for_' + str(for_guid)
+    body_id = 'body_' + str(for_guid)
+
+    values.push_history(for_id)
 
     # body
     body_graph = Graph()
-    body_graph.name = 'Body'
+    body_graph.name = 'Body_' + str(for_guid)
 
-    counter_value = values.NumberValue(0)
-    counter_value.name = 'for_counter'
+    counter_value = values.NumberValue(None)
+    counter_value.dtype = np.array(0).dtype
+    counter_value.name = 'for_counter_' + str(for_guid)
 
-    cond_value = values.BoolValue(True)
-    cond_value.name = 'for_cond'
-
-    iter_value = try_get_value(iter_, 'for', lineprop)
+    cond_value = values.BoolValue(None)
+    cond_value.name = 'for_cond_' + str(for_guid)
 
     # create a node to lookup a value from sequence
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
-    target_value = values.Value()
-    target_obj = values.Object(target_value)
+
+    # estimate type
+    # TODO : more types
+    if isinstance(iter_value, values.RangeValue):
+        target_value = values.NumberValue(None)
+        target_value.dtype = np.array(0).dtype
+    else:
+        target_value = values.UnknownValue()
+
+    target_ref = values.ValueRef(target_value)
     node_forgen.set_outputs([target_value])
 
     target_attribute = local_field.get_attribute(target_name)
-    target_attribute.revise(target_obj)
+    target_attribute.revise(target_ref)
     body_graph.add_node(node_forgen)
 
     # veval body
     body = veval_ast(astc.c(astc.nast.body), local_field, body_graph)
 
-    values.commit(body_id)
+    value_inputs = values.get_inputs()
+    value_outputs = values.get_outputs()
 
-    # get changed attributes
-    body_input_attributes = get_input_attritubtes(local_field, for_id, body_id)
-    body_output_attributes = get_output_attritubtes(local_field, for_id, body_id)
+    values.pop_history()
 
-    body_input_attributes = filter_attributes(body_input_attributes)
-    body_output_attributes = filter_attributes(body_output_attributes)
-
-    # get objects whose values are changed
-    value_changed_objs = get_output_objs(local_field, for_id, body_id)
-
-    changed_values = {}
-
-    for obj in value_changed_objs:
-        in_value = obj.get_value_log(for_id)
-        out_value = obj.get_value_log(body_id)
-        changed_values[in_value] = out_value
-
-    # get outputs
-    output_attributes_2_values = {}
-
-    for attribute in body_output_attributes:
-        output_attributes_2_values[attribute] = attribute.get_obj().get_value()
-
-    # get inputs
-    values.checkout(for_id)
-
-    input_attributes_2_values = {}
-
-    for attribute in body_input_attributes:
-        input_attributes_2_values[attribute] = attribute.get_obj().get_value()
-
-    # export
-    values.checkout(for_id)
-
-    # generate attribute pairs
-    name2attributes = {}
-
-    for attribute in body_input_attributes:
-        key = str(attribute.parent.id) + '_' + attribute.name
-
-        if key in name2attributes.keys():
-            name2attributes[key][0] = attribute
-        else:
-            name2attributes[key] = [attribute, None]
-
-    for attribute in body_output_attributes:
-        key = str(attribute.parent.id) + '_' + attribute.name
-
-        if key in name2attributes.keys():
-            name2attributes[key][1] = attribute
-        else:
-            name2attributes[key] = [None, attribute]
-
-    # remove defaule values
-    name_removing = []
-    defaule_values = [counter_value, cond_value, iter_value]
-    for k, v in name2attributes.items():
-        if v[0] in defaule_values:
-            name_removing.append(k)
-
-        if v[1] in defaule_values:
-            name_removing.append(k)
-
-    for nr in name_removing:
-        if nr in name2attributes.keys():
-            name2attributes.pop(nr)
-
-    #
     inputs = []
     outputs = []
-    non_volatiles = []
 
     # default input for subgraph's input
     body_graph.add_input_value(counter_value)
     body_graph.add_input_value(cond_value)
     body_graph.add_input_value(iter_value)
 
-    # default output for subgrap's output
+    # default output for subgraph's output
     body_graph.add_output_value(cond_value)
     body_graph.add_output_value(iter_value)
 
     # default output
     outputs.append(functions.generate_value_with_same_type(iter_value))
     
-    for attributes in name2attributes.values():
-        name = ''
-        parent = None
-        input_value = None
-        output_value = None
+    # generate pairs
+    value_pairs = {}
+    for v in value_inputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-        if attributes[0] is not None:
-            name = attributes[0].name
-            parent = attributes[0].parent
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['input_value'] = v.input_value
+        value_pairs[key]['input_body_value'] = v.value
 
-        if attributes[1] is not None:
-            name = attributes[1].name
-            parent = attributes[1].parent
+    for v in value_outputs:
+        key = str(v.field.id) + '_' + v.name
+        if not (key in value_pairs.keys()):
+            value_pairs[key] = {}
 
-        if attributes[0] is not None:
-            input_value = input_attributes_2_values[attributes[0]]
+        value_pairs[key]['field'] = v.field
+        value_pairs[key]['name'] = v.name
+        value_pairs[key]['output_body_value'] = v.value
+
+    for k, v in value_pairs.items():
+        name = v['name']
+        field = v['field']
+
+        if 'input_body_value' in v:
+            inputs.append(v['input_value'])
+
+            body_graph.add_input_value(v['input_body_value'])
         else:
-            # value with same type
-            input_value = functions.generate_value_with_same_type(output_attributes_2_values[attributes[1]])
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'], has_default=True, suffix_type=functions.SuffixType.Unused)
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'], suffix_type=functions.SuffixType.Unused)
+            inputs.append(temp_value1)
 
-        if attributes[1] is not None:
-            output_value = output_attributes_2_values[attributes[1]]
-        else:
-            if input_attributes_2_values[attributes[0]] in changed_values.keys():
-                # change only values
-                output_value = changed_values[input_attributes_2_values[attributes[0]]]
+            body_graph.add_input_value(temp_value2)
+
+        if 'output_body_value' in v:
+            body_graph.add_output_value(v['output_body_value'])
+            output_value = functions.generate_value_with_same_type(v['output_body_value'])
+            outputs.append(output_value)
+            if field.get_attribute(name).has_obj():
+                field.get_attribute(name).get_ref().revise(output_value)
             else:
-                # copy value
-                output_value = input_attributes_2_values[attributes[0]]
-
-        output_value_in_node = functions.generate_value_with_same_type(output_value)
-
-        inputs.append(input_value)
-        outputs.append(output_value_in_node)
-        body_graph.add_input_value(input_value)
-        body_graph.add_output_value(output_value)
-
-        if attributes[1] is not None and attributes[1].is_non_volatile:
-            non_volatiles.append((attributes[1].initial_obj.get_value(),output_value_in_node))
-
-        output_obj_in_node = values.Object(output_value_in_node)
-        parent.get_attribute(name).revise(output_obj_in_node)
-
-    for changed_value_in, changed_value_out in changed_values.items():
-        if changed_value_in is None:
-            continue
-        if changed_value_in in inputs:
-            continue
-            
-        inputs.append(changed_value_in)
-        body_graph.add_input_value(changed_value_in)
-        body_graph.add_output_value(changed_value_out)
-        value = functions.generate_value_with_same_type(changed_value_out)
-        obj.revise(value)
-        outputs.append(value)
+                field.get_attribute(name).revise(values.ValueRef(output_value))
+        else:
+            temp_value1 = v['input_body_value']
+            temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
+            body_graph.add_output_value(temp_value1)
+            outputs.append(temp_value2)
 
     node = nodes.NodeFor(iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
 
     graph.add_node(node)
-
-    # add non-volatiles
-    for tv, v in non_volatiles:
-        node_nv = nodes.NodeNonVolatileAssign(tv, v)
-        graph.add_node(node_nv)
 
     return None
 
@@ -1271,7 +1062,7 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         return ret
 
     elif isinstance(astc.nast, gast.gast.Tuple):
-        ret = veval_ast_tuple(astc, local_field, graph)
+        ret = veval_ast_tuple(astc, local_field, graph, option)
         return ret
 
     elif isinstance(astc.nast, gast.gast.List):

@@ -40,3 +40,5 @@ if __name__ == '__main__':
     w = np.random.randint(out_n, size=batch_size)
     import ch2o
     ch2o.generate_testcase(model, [v, w])
+
+    ch2o.generate_testcase(model, [v, w], backprop=True)

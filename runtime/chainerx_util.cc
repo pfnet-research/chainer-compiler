@@ -6,7 +6,9 @@
 
 #include <chainerx/array.h>
 #include <chainerx/context.h>
+#include <chainerx/kernels/creation.h>
 #include <chainerx/native/native_backend.h>
+#include <chainerx/native/native_device.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
@@ -110,16 +112,9 @@ chainerx::Array PadSequence(const std::vector<chainerx::Array>& inputs, int64_t 
         const chainerx::Array& input = inputs[i];
         indices[0] = chainerx::ArrayIndex(i);
         indices[1] = chainerx::Slice(0, input.shape()[0]);
-        input.device().Copy(input, result.At(indices));
+        BlitArray(input, result.At(indices));
     }
     return result;
-}
-
-chainerx::Array Sigmoid(chainerx::Array a) {
-    // TODO(hamaji): Revisit implementation of this function.
-    CHECK(a.dtype() == chainerx::Dtype::kFloat32 || a.dtype() == chainerx::Dtype::kFloat64) << a.dtype();
-    chainerx::Scalar half(0.5, a.dtype());
-    return chainerx::Tanh(a * half) * half + half;
 }
 
 namespace {
@@ -161,6 +156,10 @@ chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::
     return xc_axes;
 }
 
+bool IsNativeDevice(const chainerx::Device* device) {
+    return dynamic_cast<const chainerx::native::NativeDevice*>(device) != nullptr;
+}
+
 bool IsCudaDevice(const chainerx::Device* device) {
 #ifdef CHAINER_COMPILER_ENABLE_CUDA
     return dynamic_cast<const chainerx::cuda::CudaDevice*>(device) != nullptr;
@@ -191,6 +190,14 @@ Int64StackVector ComplementStride(const Int64StackVector& strides, const chainer
 
 Int64StackVector ComplementPad(const Int64StackVector& pads, const chainerx::Array& input) {
     return ComplementStrideOrPad(pads, input, 0);
+}
+
+bool IsFloat(chainerx::Dtype dtype) {
+    return chainerx::GetKind(dtype) == chainerx::DtypeKind::kFloat;
+}
+
+void BlitArray(const chainerx::Array& src, const chainerx::Array& dst) {
+    src.device().backend().CallKernel<chainerx::CopyKernel>(src, dst);
 }
 
 }  // namespace runtime

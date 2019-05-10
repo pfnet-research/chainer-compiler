@@ -330,6 +330,7 @@ void Graph::ResetGradients() {
 
 void Graph::DeleteDetached() {
     nodes_ = GetLiveNodes();
+    std::sort(nodes_.begin(), nodes_.end(), [](Node* l, Node* r) { return l->chainer_order() < r->chainer_order(); });
 }
 
 void Graph::CheckSanity(const std::string& msg) const {
@@ -339,7 +340,7 @@ void Graph::CheckSanity(const std::string& msg) const {
     for (const auto& value : all_values_) {
         if (value->name().empty()) continue;
         if (!value_names.emplace(value->name()).second) {
-            std::cerr << "Duplicated name: " << value->name() << std::endl;
+            std::cerr << "ERROR: Duplicated name: " << value->name() << std::endl;
             DumpONNXOnFailure();
             CHECK(false) << msg;
         }
@@ -349,6 +350,31 @@ void Graph::CheckSanity(const std::string& msg) const {
     std::set<Node*> node_set;
     for (const auto& node : nodes_buf_) {
         CHECK(node_set.emplace(node.get()).second);
+    }
+
+    // Check if a value is output at most once.
+    {
+        bool ok = true;
+        std::set<Value*> output_set;
+        for (Value* value : input_values_) {
+            if (!output_set.insert(value).second) {
+                std::cerr << "ERROR: A value appears as input of the graph more than once: " << value->name() << std::endl;
+                ok = false;
+            }
+        }
+        for (Node* node : nodes_) {
+            for (Value* value : node->outputs()) {
+                if (!output_set.insert(value).second) {
+                    std::cerr << "ERROR: A value is output more than once: `" << value->name() << "` creator: " << node->ToString()
+                              << std::endl;
+                    ok = false;
+                }
+            }
+        }
+        if (!ok) {
+            DumpONNXOnFailure();
+            CHECK(false) << "Sanity check (SSA) failed";
+        }
     }
 
     // TODO(hamaji): No cycle and no links to nodes outside the graph.

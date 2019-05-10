@@ -9,7 +9,6 @@
 
 #include <compiler/graph.h>
 #include <compiler/log.h>
-#include <compiler/memory_simulator.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
 
@@ -257,10 +256,6 @@ int64_t ScheduleComputation(
 
     for (Node* node : nodes) {
         node->set_chainer_order(++order);
-    }
-
-    if (g_compiler_log) {
-        ShowSimulatedMemoryUsage(graph);
     }
     return order;
 }

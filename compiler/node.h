@@ -63,6 +63,8 @@ public:
 
     bool IsGradNode() const;
 
+    bool IsZeroCost() const;
+
     std::string ToString() const;
 
 private:

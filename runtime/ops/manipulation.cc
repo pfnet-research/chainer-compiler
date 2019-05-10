@@ -82,19 +82,44 @@ chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data)
 
 chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     CHECK_EQ(data.ndim() * 2, pads.size());
-    chainerx::Shape shape = data.shape();
-    std::vector<chainerx::ArrayIndex> indices;
+    const chainerx::Shape shape = data.shape();
+    chainerx::Shape new_shape = data.shape();
+    std::vector<chainerx::ArrayIndex> indices1, indices2;
     for (int i = 0; i < shape.size(); ++i) {
-        indices.push_back(chainerx::Slice(pads[i], pads[i] + shape[i]));
-        shape[i] += pads[i] + pads[i + shape.size()];
+        new_shape[i] += pads[i] + pads[i + shape.size()];
+        auto len = shape[i] + std::min(0L, pads[i]) + std::min(0L, pads[i + shape.size()]);
+
+        const auto start1 = std::max(-pads[i], 0L);
+        const auto start2 = std::max(pads[i], 0L);
+        const auto end1 = std::min(shape[i] + pads[i + shape.size()], shape[i]);
+        const auto end2 = std::min(new_shape[i] - pads[i + shape.size()], new_shape[i]);
+
+        CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      "
+                                     << start1 << " " << end1 << " " << len;
+        CHECK_EQ(end2 - start2, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      "
+                                     << start2 << " " << end2 << " " << len;
+
+        indices1.push_back(chainerx::Slice(start1, end1));
+        indices2.push_back(chainerx::Slice(start2, end2));
     }
-    chainerx::Array result = chainerx::Full(shape, value, data.dtype(), data.device());
-    result.device().Copy(data, result.At(indices));
+    chainerx::Array result = chainerx::Full(new_shape, value, data.dtype(), data.device());
+    BlitArray(data.At(indices1), result.At(indices2));
     return result;
 }
 
 chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
     return CastTo(input, static_cast<chainerx::Dtype>(to));
+}
+
+chainerx::Array PadBatchSizeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+    const chainerx::Shape shape = data.shape();
+    CHECK_LT(0, shape.size());
+    chainerx::Shape new_shape = shape;
+    new_shape[0] = batch_size;
+    chainerx::Array out = chainerx::Zeros(new_shape, data.dtype(), data.device());
+    const chainerx::ArrayIndex index = chainerx::Slice(0, shape[0]);
+    BlitArray(data, out.At({index}));
+    return out;
 }
 
 }  // namespace runtime

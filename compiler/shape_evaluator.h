@@ -2,11 +2,10 @@
 
 namespace chainer_compiler {
 
-class Node;
 class Graph;
+class Node;
 
-void InferDtypeAndShape(Node* node);
-
-void InferAllDtypeAndShape(Graph* graph);
+void DoEvaluateShape(Node* node);
+void EvaluateShapes(Graph* graph);
 
 }  // namespace chainer_compiler

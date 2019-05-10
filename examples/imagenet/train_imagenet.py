@@ -10,8 +10,9 @@ ImageDataLayer).
 """
 import argparse
 import json
+import os
 import random
-import re
+import sys
 
 import numpy as np
 
@@ -30,6 +31,13 @@ import googlenetbn
 import nin
 import resnet50
 import resnext50
+
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(project_root, 'ch2o'))
+sys.path.append(os.path.join(project_root, 'python'))
+sys.path.append(os.path.join(project_root, 'build/python'))
+
+import chainer_compiler
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -71,23 +79,6 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         image -= self.mean[:, top:bottom, left:right]
         image *= (1.0 / 255.0)  # Scale to [0, 1]
         return image, label
-
-
-def parse_device(args):
-    gpu = None
-    if args.gpu is not None:
-        gpu = args.gpu
-    elif re.match(r'(-|\+|)[0-9]+$', args.device):
-        gpu = int(args.device)
-
-    if gpu is not None:
-        if gpu < 0:
-            return chainer.get_device(np)
-        else:
-            import cupy
-            return chainer.get_device((cupy, gpu))
-
-    return chainer.backend.get_device(args.device)
 
 
 def main():
@@ -138,14 +129,19 @@ def main():
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
     group = parser.add_argument_group('deprecated arguments')
-    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--compile', action='store_true',
+                        help='Compile the model')
+    parser.add_argument('--dump_onnx', action='store_true',
+                        help='Dump ONNX model after optimization')
     args = parser.parse_args()
 
     chainer.config.autotune = True
     chainer.config.cudnn_fast_batch_normalization = True
 
-    device = parse_device(args)
+    device = chainer.get_device(args.device)
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
@@ -160,6 +156,9 @@ def main():
     if args.initmodel:
         print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
+    insize = model.insize
+    if args.compile:
+        model = chainer_compiler.compile(model, dump_onnx=args.dump_onnx)
     model.to_device(device)
     device.use()
 
@@ -175,19 +174,19 @@ def main():
         ch_std = [255.0, 255.0, 255.0]
         # Setup DALI pipelines
         train_pipe = dali_util.DaliPipelineTrain(
-            args.train, args.root, model.insize, args.batchsize,
+            args.train, args.root, insize, args.batchsize,
             num_threads, args.gpu, True, mean=ch_mean, std=ch_std)
         val_pipe = dali_util.DaliPipelineVal(
-            args.val, args.root, model.insize, args.val_batchsize,
+            args.val, args.root, insize, args.val_batchsize,
             num_threads, args.gpu, False, mean=ch_mean, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         # converter = dali_converter
-        converter = dali_util.DaliConverter(mean=mean, crop_size=model.insize)
+        converter = dali_util.DaliConverter(mean=mean, crop_size=insize)
     else:
         # Load the dataset files
-        train = PreprocessedDataset(args.train, args.root, mean, model.insize)
-        val = PreprocessedDataset(args.val, args.root, mean, model.insize,
+        train = PreprocessedDataset(args.train, args.root, mean, insize)
+        val = PreprocessedDataset(args.val, args.root, mean, insize,
                                   False)
         # These iterators load the images with subprocesses running in parallel
         # to the training/validation.
@@ -217,8 +216,8 @@ def main():
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
     # TODO(sonots): Temporarily disabled for chainerx. Fix it.
-    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
-        trainer.extend(extensions.dump_graph('main/loss'))
+    if device.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

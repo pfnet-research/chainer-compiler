@@ -1,4 +1,5 @@
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/indexing.h>
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
@@ -25,7 +26,8 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes) {
+        const nonstd::optional<chainerx::Array>& axes,
+        const nonstd::optional<chainerx::Array>& steps) {
     CHECK_EQ(1, starts.ndim());
     CHECK_EQ(1, ends.ndim());
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
@@ -33,7 +35,8 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
         int64_t axis = axes.has_value() ? int64_t(chainerx::AsScalar(axes->At({i}))) : i;
         int64_t start = int64_t(chainerx::AsScalar(starts.At({i})));
         int64_t end = int64_t(chainerx::AsScalar(ends.At({i})));
-        indices[axis] = chainerx::Slice(start, end, 1);
+        int64_t step = steps.has_value() ? int64_t(chainerx::AsScalar(steps->At({i}))) : 1;
+        indices[axis] = chainerx::Slice(start, end, step);
     }
     return indices;
 }
@@ -45,8 +48,9 @@ chainerx::Array DynamicSliceOp::RunImpl(
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes) {
-    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(data, starts, ends, axes);
+        const nonstd::optional<chainerx::Array>& axes,
+        const nonstd::optional<chainerx::Array>& steps) {
+    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(data, starts, ends, axes, steps);
     return data.At(indices);
 }
 
@@ -56,10 +60,11 @@ chainerx::Array DynamicSliceGradOp::RunImpl(
         const chainerx::Array& shape,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes) {
+        const nonstd::optional<chainerx::Array>& axes,
+        const nonstd::optional<chainerx::Array>& steps) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
-    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes);
-    out.device().Copy(gy, out.At(indices));
+    std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes, steps);
+    BlitArray(gy, out.At(indices));
     return out;
 }
 
@@ -112,32 +117,20 @@ chainerx::Array GetItemGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const chainerx::Array& shape, const std::vector<chainerx::Array>& index_arrays) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
-    out.device().Copy(gy, out.At(indices));
+    BlitArray(gy, out.At(indices));
     return out;
 }
 
-namespace {
-
-chainerx::Array Indices(chainerx::Array indices) {
-    // TODO(hamaji): Support int32 Take in ChainerX.
-    WARN_ONCE("int32 Take is not supported by ChainerX, could be slow");
-    if (indices.dtype() == chainerx::Dtype::kInt32) {
-        return indices.AsType(chainerx::Dtype::kInt64);
-    }
-    return indices;
-}
-
-}  // namespace
-
 chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(Indices(indices), axis);
+    return data.Take(indices, axis);
 }
 
 chainerx::Array GatherGradOp::RunImpl(
         XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
-    out.device().AddAt(out, Indices(indices), axis, gy, out);
-    return out;
+    // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
+    // https://github.com/chainer/chainer/pull/6789
+    return chainerx::AddAt(out, indices, axis, gy);
 }
 
 chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
@@ -146,7 +139,7 @@ chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data
     int64_t num_classes = data.shape()[1];
     int64_t total_size = batch_size * num_classes;
     chainerx::Array take_indices =
-            (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(data.device());
+            (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(data.device());
     return data.Reshape({total_size}).Take(take_indices, 0);
 }
 
@@ -159,8 +152,10 @@ chainerx::Array SelectItemGradOp::RunImpl(
     int64_t total_size = batch_size * num_classes;
     chainerx::Array out = chainerx::Zeros({total_size}, gy.dtype());
     chainerx::Array take_indices =
-            (Indices(indices) + chainerx::Arange(0, total_size, num_classes, indices.device())).ToDevice(out.device());
-    out.device().AddAt(out, take_indices, 0, gy, out);
+            (indices + chainerx::Arange(0, total_size, num_classes, indices.dtype(), indices.device())).ToDevice(out.device());
+    // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
+    // https://github.com/chainer/chainer/pull/6789
+    out = chainerx::AddAt(out, take_indices, 0, gy);
     return out.Reshape(shape);
 }
 

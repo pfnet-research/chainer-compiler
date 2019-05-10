@@ -6,6 +6,7 @@ add_library(chainer_compiler_common
   log.cc
   strutil.cc
   )
+set_hidden_(chainer_compiler_common)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(common_test
@@ -15,12 +16,12 @@ add_executable(common_test
 target_link_libraries(common_test
   chainer_compiler_common
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
   pthread
   )
-add_dependencies(common_test onnx_files)
+add_dependencies(common_test gen_onnx_proto)
 
 add_test(
   NAME common_test

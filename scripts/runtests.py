@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import argparse
 import copy
@@ -14,6 +14,8 @@ import elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test
+import gen_large_tests_oc
+import onnx_chainer_tests
 import onnx_real_tests
 from test_case import TestCase
 
@@ -43,6 +45,9 @@ parser.add_argument('--failed', action='store_true',
 parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
+parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
+parser.add_argument('--computation_order', default=None,
+                    help='Force setting --computation_order flag')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -55,6 +60,9 @@ RESET = '\033[0m'
 
 ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
+
+# ChainerX does not support 1D conv/pool.
+fail_1d_conv_pool = args.use_gpu_all
 
 TEST_CASES = [
     TestCase(NODE_TEST, 'test_identity'),
@@ -110,8 +118,20 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_log_example'),
     TestCase(NODE_TEST, 'test_sqrt'),
     TestCase(NODE_TEST, 'test_sqrt_example'),
+    TestCase(NODE_TEST, 'test_sin'),
+    TestCase(NODE_TEST, 'test_sin_example'),
+    TestCase(NODE_TEST, 'test_cos'),
+    TestCase(NODE_TEST, 'test_cos_example'),
+    TestCase(NODE_TEST, 'test_tan'),
+    TestCase(NODE_TEST, 'test_tan_example'),
     TestCase(NODE_TEST, 'test_tanh'),
     TestCase(NODE_TEST, 'test_tanh_example'),
+    TestCase(NODE_TEST, 'test_asin'),
+    TestCase(NODE_TEST, 'test_asin_example'),
+    TestCase(NODE_TEST, 'test_acos'),
+    TestCase(NODE_TEST, 'test_acos_example'),
+    TestCase(NODE_TEST, 'test_atan'),
+    TestCase(NODE_TEST, 'test_atan_example'),
     TestCase(NODE_TEST, 'test_abs'),
     TestCase(NODE_TEST, 'test_relu'),
     TestCase(NODE_TEST, 'test_elu'),
@@ -167,7 +187,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_conv_with_strides_padding'),
     TestCase(NODE_TEST, 'test_conv_with_strides_and_asymmetric_padding'),
     TestCase(NODE_TEST, 'test_convtranspose'),
-    TestCase(NODE_TEST, 'test_convtranspose_1d'),
+    TestCase(NODE_TEST, 'test_convtranspose_1d', fail=fail_1d_conv_pool),
     TestCase(NODE_TEST, 'test_convtranspose_3d'),
     TestCase(NODE_TEST, 'test_convtranspose_kernel_shape'),
     TestCase(NODE_TEST, 'test_convtranspose_output_shape'),
@@ -178,14 +198,14 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
-    TestCase(NODE_TEST, 'test_maxpool_1d_default'),
+    TestCase(NODE_TEST, 'test_maxpool_1d_default', fail=fail_1d_conv_pool),
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
     TestCase(NODE_TEST, 'test_maxpool_3d_default'),
-    TestCase(NODE_TEST, 'test_averagepool_1d_default'),
+    TestCase(NODE_TEST, 'test_averagepool_1d_default', fail=fail_1d_conv_pool),
     TestCase(NODE_TEST, 'test_averagepool_2d_default'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads'),
     TestCase(NODE_TEST, 'test_averagepool_2d_precomputed_pads_count_include_pad'),
@@ -198,6 +218,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_globalmaxpool_precomputed'),
     TestCase(NODE_TEST, 'test_globalaveragepool'),
     TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
+    TestCase(NODE_TEST, 'test_upsample_nearest'),
 
     TestCase(NODE_TEST, 'test_shape'),
     TestCase(NODE_TEST, 'test_shape_example'),
@@ -223,14 +244,11 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_slice'),
     TestCase(NODE_TEST, 'test_slice_default_axes'),
+    TestCase(NODE_TEST, 'test_slice_default_steps'),
     TestCase(NODE_TEST, 'test_slice_end_out_of_bounds'),
     TestCase(NODE_TEST, 'test_slice_neg'),
+    TestCase(NODE_TEST, 'test_slice_neg_steps'),
     TestCase(NODE_TEST, 'test_slice_start_out_of_bounds'),
-    TestCase(NODE_TEST, 'test_dynamic_slice'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_default_axes'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_end_out_of_bounds'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_neg'),
-    TestCase(NODE_TEST, 'test_dynamic_slice_start_out_of_bounds'),
     TestCase(NODE_TEST, 'test_gather_0'),
     TestCase(NODE_TEST, 'test_gather_1'),
     TestCase(NODE_TEST, 'test_concat_1d_axis_0'),
@@ -382,6 +400,9 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_dropout_default'),
     TestCase(NODE_TEST, 'test_dropout_random'),
+
+    TestCase(NODE_TEST, 'test_isnan'),
+    TestCase(NODE_TEST, 'test_isinf'),
 ]
 
 TEST_CASES += [
@@ -398,14 +419,14 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_BatchNorm3d_eval', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_BatchNorm3d_momentum_eval', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_ConstantPad2d'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d'),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d', fail=fail_1d_conv_pool),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_dilated', fail=True),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_groups'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1size1'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2size1'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_stride'),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_groups', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad1size1', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_pad2size1', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv1d_stride', fail=fail_1d_conv_pool),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv2d'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv2d_depthwise'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Conv2d_depthwise_padded'),
@@ -436,8 +457,8 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Linear', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_Linear_no_bias'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_LogSoftmax'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d_stride'),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d', fail=fail_1d_conv_pool),
+    TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool1d_stride', fail=fail_1d_conv_pool),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool2d'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool3d'),
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_MaxPool3d_stride'),
@@ -538,6 +559,10 @@ for test in gen_extra_test.get_tests():
     assert os.path.exists(test.test_dir)
     TEST_CASES.append(test)
 
+for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
+    dirname = 'out'
+    TEST_CASES.append(TestCase(dirname, name, want_gpu=True, **kwargs))
+
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
@@ -546,6 +571,8 @@ TEST_CASES.extend(ch2o_tests.get())
 
 TEST_CASES.extend(elichika_tests.get())
 
+TEST_CASES.extend(onnx_chainer_tests.get())
+
 TEST_CASES.extend(onnx_real_tests.get())
 
 new_tests = []
@@ -553,10 +580,18 @@ for test in TEST_CASES:
     if not test.is_backprop:
         continue
 
-    new_test = copy.copy(test)
-    new_test.name = test.name + '_two_phase'
-    new_test.is_backprop_two_phase = True
-    new_tests.append(new_test)
+    # TODO(mkusumoto): remove this "if" after fixing issue
+    if not test.name.startswith('large_oc'):
+        new_test = copy.copy(test)
+        new_test.name = test.name + '_two_phase'
+        new_test.is_backprop_two_phase = True
+        new_tests.append(new_test)
+
+    if test.name == 'ch2o_model_MLP_with_loss_backprop':
+        new_test = copy.copy(test)
+        new_test.name = test.name + '_computation_order'
+        new_test.computation_order = 'dummy'
+        new_tests.append(new_test)
 
 for test in new_tests:
     TEST_CASES.append(test)
@@ -604,17 +639,19 @@ class TestRunner(object):
                 test_case = tests.pop()
                 if num_parallel_jobs == 1:
                     _start_output('%s... ' % test_case.name)
+                log_file = open(test_case.log_filename, 'wb')
                 proc = subprocess.Popen(test_case.args,
                                         stdout=subprocess.PIPE,
-                                        stderr=test_case.log_writer())
-                procs[proc.pid] = (test_case, proc)
+                                        stderr=log_file)
+                procs[proc.pid] = (test_case, proc, log_file)
                 continue
 
             assert procs
             pid, status = os.wait()
             assert pid in procs
-            test_case, proc = procs[pid]
+            test_case, proc, log_file = procs[pid]
             del procs[pid]
+            log_file.close()
 
             if num_parallel_jobs != 1:
                 _start_output('%s... ' % test_case.name)
@@ -664,15 +701,26 @@ def main():
     gpu_tests = []
     for test_case in TEST_CASES:
         test_case.args = [run_onnx, '--test', test_case.test_dir]
+        test_case.args.append('--compiler_log')
         is_gpu = False
         if test_case.rtol is not None:
             test_case.args += ['--rtol', str(test_case.rtol)]
+        if test_case.atol is not None:
+            test_case.args += ['--atol', str(test_case.atol)]
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
         if test_case.is_backprop_two_phase:
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:
             test_case.args.append('--backprop')
+
+        if test_case.computation_order:
+            test_case.args.append(
+                '--computation_order=' + test_case.computation_order)
+        elif args.computation_order:
+            test_case.args.append(
+                '--computation_order=' + args.computation_order)
+
         if test_case.backend is not None:
             test_case.args.append('--backend')
             test_case.args.append(test_case.backend)
@@ -692,6 +740,9 @@ def main():
             test_case.args.append('--fuse_operations')
             if is_gpu:
                 test_case.args.append('--use_nvrtc')
+        if args.ngraph:
+            test_case.args.append('--fuse_operations')
+            test_case.args.append('--use_ngraph')
 
         if is_gpu:
             gpu_tests.append(test_case)
@@ -718,6 +769,7 @@ def main():
                 f.write('\n'.encode())
         print('%d/%d tests failed! (see %s)' %
               (len(failed), len(tested), args.failure_log))
+        sys.exit(1)
     else:
         print('ALL %d tests OK! (%d from ONNX)' %
               (len(tested), num_official_onnx_tests))

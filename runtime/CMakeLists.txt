@@ -13,19 +13,22 @@ add_custom_command(
   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
+    --protoc-exe ${PROTOC_EXECUTABLE}
   MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
   DEPENDS
     ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py
     ${CMAKE_CURRENT_SOURCE_DIR}/xcvm_defs.py
     ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl
+    protoc
     )
 add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_NGRAPH_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
-include_directories(${CMAKE_BINARY_DIR}) # the root build directory instead of `build/runtime`
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 add_library(chainer_compiler_runtime
   ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
   ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
@@ -33,24 +36,27 @@ add_library(chainer_compiler_runtime
   chainerx_util.cc
   chrome_tracing.cc
   meminfo.cc
+  npy.cc
   ops/activation.cc
   ops/connection.cc
   ops/controlflow.cc
   ops/creation.cc
   ops/cudnn_rnn.cc
-  ops/space_depth.cc
   ops/generic.cc
   ops/indexing.cc
   ops/logic.cc
   ops/manipulation.cc
   ops/math.cc
+  ops/ngraph.cc
   ops/noise.cc
   ops/normalization.cc
   ops/nvrtc.cc
   ops/pooling.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/something.cc
   ops/sorting.cc
+  ops/space_depth.cc
   ops/statistics.cc
   ops/tvm.cc
   xcvm.cc
@@ -60,11 +66,13 @@ add_library(chainer_compiler_runtime
   )
 add_dependencies(
   chainer_compiler_runtime
-  runtime_xcvm_pb_h onnx_files
+  runtime_xcvm_pb_h gen_onnx_proto
   )
+set_hidden_(chainer_compiler_runtime)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(runtime_test
+  npy_test.cc
   xcvm_test.cc
   )
 target_link_libraries(runtime_test
@@ -73,10 +81,11 @@ target_link_libraries(runtime_test
   chainer_compiler_common
   chainerx
   onnx_proto
-  protobuf
+  ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
   pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   )

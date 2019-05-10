@@ -9,7 +9,7 @@ def makedirs(d):
 class TestCase(object):
 
     def __init__(self, basedir=None, name=None, test_dir=None,
-                 rtol=None, fail=False,
+                 rtol=None, atol=None, fail=False,
                  skip_shape_inference=False,
                  want_gpu=False,
                  prepare_func=None,
@@ -24,11 +24,13 @@ class TestCase(object):
             self.test_dir = os.path.join(basedir, self.name)
 
         self.rtol = rtol
+        self.atol = atol
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
         self.args = None
         self.is_backprop = 'backprop' in name
         self.is_backprop_two_phase = False
+        self.computation_order = None
         self.want_gpu = want_gpu
         self.prepare_func = prepare_func
         self.backend = backend
@@ -43,15 +45,10 @@ class TestCase(object):
         if self.prepare_func is not None:
             self.prepare_func()
 
-    def log_writer(self):
-        self.log_file = open(self.log_filename, 'wb')
-        return self.log_file
-
     def repro_cmdline(self):
         filtered = [a for a in self.args if a != '--quiet']
         return ' '.join(filtered)
 
     def log_read(self):
-        self.log_file.close()
         with open(self.log_filename, 'rb') as f:
             return f.read()
