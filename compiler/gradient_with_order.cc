@@ -243,8 +243,15 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
     graph->ResetGradients();
 }
 
-void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, const std::map<Value*, Value*>& staged) {
-    for (const auto& p : staged) {
+void AddGradInputs(Graph* fwd_graph, Graph* bwd_graph) {
+    for (Value* value : fwd_graph->output_values()) {
+        Value* grad = bwd_graph->AddInputValue("grad_in@" + value->name(), value->type());
+        value->set_grad(grad);
+    }
+}
+
+void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value*>* staged) {
+    for (auto& p : *staged) {
         Value* value = p.first;
 
         GraphBuilder gbf(fwd_graph, "retain", value);
@@ -255,7 +262,9 @@ void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, const std::map<Value*,
         gbf.Op(Node::kIdentity, {value}, o);
 
         Value* i = bwd_graph->AddInputValue(name, value->type());
-        gbb.Op(Node::kIdentity, {i}, value);
+
+        // Update the staged value to the retained one
+        p.second = i;
     }
 }
 
@@ -304,7 +313,8 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     ScheduleAddedScope schedule_scope(fwd_graph, schedule_node);
                     {
                         ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                        AddRetainedParts(fwd_graph, bwd_graph, staged);
+                        AddGradInputs(fwd_graph, bwd_graph);
+                        AddRetainedParts(fwd_graph, bwd_graph, &staged);
                     }
                 }
             }
@@ -381,7 +391,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 }
 
                 ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                if (!AddGradientForNode(fwd_graph, bwd_graph, node, nullptr)) {
+                if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) { // FIXME: first argument may be fwd_graph
                     break;
                     // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
                 }
@@ -419,6 +429,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     }
 
     fwd_graph->ResetGradients();
+    bwd_graph->ResetGradients();
 }
 
 }  // namespace chainer_compiler
