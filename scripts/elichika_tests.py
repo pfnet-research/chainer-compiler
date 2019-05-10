@@ -57,8 +57,8 @@ TESTS = [
     Generator('node/Functions', 'MaxPool2d'),
     Generator('node/Functions', 'ResizeImages'),
     Generator('node/Functions', 'Stack'),
-    Generator('node/Functions', 'VStack'),
-    Generator('node/Functions', 'HStack'),
+    Generator('node/Functions', 'Vstack'),
+    Generator('node/Functions', 'Hstack'),
     Generator('node/Functions', 'Squeeze'),
     # TODO : need to pass
     # Generator('node/Functions', 'Separate'),
