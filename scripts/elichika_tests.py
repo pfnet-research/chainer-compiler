@@ -60,8 +60,7 @@ TESTS = [
     Generator('node/Functions', 'Vstack'),
     Generator('node/Functions', 'Hstack'),
     Generator('node/Functions', 'Squeeze'),
-    # TODO : need to pass
-    # Generator('node/Functions', 'Separate'),
+    Generator('node/Functions', 'Separate'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),

@@ -97,7 +97,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('hstack', F.hstack)
         add_chainer_funtion('vstack', F.vstack)
         add_chainer_funtion('stack', F.stack)
-        add_chainer_funtion('separate', F.separate)
+        add_chainer_funtion('separate', F.separate, ret_value_func=ret_tuple)
         add_chainer_funtion('squeeze', F.squeeze)        
         add_chainer_funtion('reshape', F.reshape)
         add_chainer_funtion('swapaxes', F.swapaxes)

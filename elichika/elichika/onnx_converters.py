@@ -1172,7 +1172,7 @@ class ONNXGenerator:
                 node_ = node  # type: nodes.NodeConvert
                 if node_.classtype == 'List':
 
-                    if isinstance(node_.value, values.ListValue):
+                    if isinstance(node_.value, values.ListValue) or isinstance(node_.value, values.TupleValue):
                         onnx_node = oh.make_node(
                             "Identity",
                             [value2onnx_parameter[node.inputs[0]].onnx_name],
@@ -1180,14 +1180,10 @@ class ONNXGenerator:
                             str(node.lineprop))
 
                         onnx_graph.nodes.append(onnx_node)
-
                     else:
-                        # not supported yet
-                        assert False
-
+                        raise utils.UnimplementedError('{} is not converted into List'.format(type(node_.value)), node_.lineprop)
                 else:
-                    # not supported yet
-                    assert False
+                        raise utils.UnimplementedError('unknown converted type {}'.format(type(node_.classtype)), node_.lineprop)
 
             if isinstance(node, nodes.NodeGenerate):
                 node_ = node  # type: nodes.NodeGenerate

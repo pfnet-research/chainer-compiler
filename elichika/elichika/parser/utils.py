@@ -73,3 +73,12 @@ class LineProperty():
             return 'L.' + str(self.lineno)
 
         return self.filename + '[L.' + str(self.lineno) + ']'
+
+class UnimplementedError(Exception):
+    
+    def __init__(self, message, lineprop):
+        self.message = message
+        self.lineprop = lineprop
+
+    def __str__(self):
+        return self.message + ' in ' + str(self.lineprop)
