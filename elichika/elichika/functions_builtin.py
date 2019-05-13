@@ -37,7 +37,21 @@ def convert_relu(onnx_graph, node):
                         [node.inputs[0]],
                         [node.outputs[0]],
                         name=str(node.lineprop))
+    return
 
+def convert_tanh(onnx_graph, node):
+    onnx_graph.add_node('Tanh',
+                        [node.inputs[0]],
+                        [node.outputs[0]],
+                        name=str(node.lineprop))
+    return
+
+def convert_sigmoid(onnx_graph, node):
+    onnx_graph.add_node("Sigmoid",
+                        [node.inputs[0]],
+                        [node.outputs[0]],
+                        name=str(node.lineprop))
+    return
 
 def convert_softmax(onnx_graph, node):
     onnx_graph.add_node(
@@ -422,6 +436,29 @@ def convert_roi_average_align_2d(onnx_graph, node):
         output_shape=_pair(oc.try_get_attribute(outsize.value)),
         spatial_scale=oc.try_get_attribute(spatial_scale.value),
         sampling_ratio=_pair(oc.try_get_attribute(sampling_ratio.value)))
+    return
+
+def convert_broadcast_to(onnx_graph, node):
+    node_ = node
+
+    shape = oc.ONNXValue(onnx_graph, node_.args.keywords['shape'])
+    onnx_graph.add_node(
+        "Expand",
+        [node_.inputs[0], shape.create_tensor()],
+        node_.outputs,
+        str(node.lineprop))
+    return
+
+
+def convert_expand_dims(onnx_graph, node):
+    node_ = node
+    axis = oc.try_get_attribute(node_.args.keywords['axis'])
+    onnx_graph.add_node(
+        'Unsqueeze',
+        [node_.inputs[0]],
+        node_.outputs,
+        str(node.lineprop),
+        axes=[int(axis)])
     return
 
 def convert_local_response_normalization(onnx_graph, node):

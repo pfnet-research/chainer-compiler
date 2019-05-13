@@ -106,6 +106,10 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('matmul', F.matmul)
         add_chainer_funtion('max_pooling_2d', F.max_pooling_2d)
         add_chainer_funtion('resize_images', F.resize_images)
+        add_chainer_funtion('tanh', F.tanh)
+        add_chainer_funtion('sigmoid', F.sigmoid)
+        add_chainer_funtion('broadcast_to', F.broadcast_to)
+        add_chainer_funtion('expand_dims', F.expand_dims)
         add_chainer_funtion('local_response_normalization', F.local_response_normalization)
 
         if int(chainer.__version__[0]) >= 6:
@@ -149,6 +153,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
     default_module.set_default_value('list', values.ValueRef(m_list))
+
+    m_len = values.FuncValue(functions_builtin.LenFunction(), None)
+    default_module.set_default_value('len', values.ValueRef(m_len))
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward')

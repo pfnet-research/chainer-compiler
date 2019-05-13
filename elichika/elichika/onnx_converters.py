@@ -1098,6 +1098,18 @@ class ONNXGenerator:
 
                 onnx_graph.nodes.append(onnx_node)
 
+            if isinstance(node, nodes.NodeLen):
+                node_ = node  # type: nodes.NodeLen
+
+                onnx_node = oh.make_node(
+                    'ChainerGenericLen',
+                    [value2onnx_parameter[node_.iter_value].onnx_name],
+                    [value2onnx_parameter[node_.outputs[0]].onnx_name],
+                    str(node.lineprop)
+                )
+
+                onnx_graph.nodes.append(onnx_node)
+
             if isinstance(node, nodes.NodeFor):
                 node_ = node  # type: nodes.NodeFor
 

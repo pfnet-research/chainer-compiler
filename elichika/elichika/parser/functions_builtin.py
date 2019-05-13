@@ -46,6 +46,23 @@ class RangeFunction(functions.FunctionBase):
         return values.ValueRef(value)
 
 
+class LenFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'len'
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        node = nodes.NodeLen(
+            args.inputs[0].get_value(),  # TODO: Check this.
+            line
+        )
+        graph.add_node(node)
+        value = values.NumberValue(None)
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.ValueRef(value)
+
+
 class ListFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
