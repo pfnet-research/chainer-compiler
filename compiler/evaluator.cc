@@ -15,7 +15,6 @@
 #include <compiler/tensor.h>
 #include <compiler/value.h>
 #include <compiler/xcvm/emitter.h>
-#include <runtime/chainerx_util.h>
 #include <runtime/xcvm.h>
 #include <runtime/xcvm.pb.h>
 #include <runtime/xcvm_state.h>
@@ -75,10 +74,7 @@ void Eval(
         int input_id = input_ids[i];
         const Tensor* t = feeds[i].second;
         CHECK_NE(Dtype::kUnknown, t->dtype());
-        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(static_cast<int>(t->dtype()));
-        chainerx::Shape shape(t->dims());
-        chainerx::Array array = runtime::MakeHostArray(dtype, shape, t->GetRawData());
-        state.SetArray(input_id, array);
+        state.SetArray(input_id, t->chx());
     }
 
     xcvm.Run(&state);

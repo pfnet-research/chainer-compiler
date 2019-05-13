@@ -59,6 +59,10 @@ public:
         return array_.raw_data();
     }
 
+    chainerx::Array const& chx() const {
+        return array_;
+    }
+
 private:
     const chainerx::Array array_;
     std::string name_;
