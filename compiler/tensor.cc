@@ -234,12 +234,7 @@ int Tensor::ElementSize() const {
 }
 
 int64_t Tensor::NumElements() const {
-    int64_t num = 1;
-    for (int64_t d : dims()) {
-        if (d < 0) return -1;
-        num *= d;
-    }
-    return num;
+    return array_.shape().GetTotalSize();
 }
 
 template <typename T>
