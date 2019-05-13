@@ -91,7 +91,6 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
 
     Dtype dtype(xtensor.data_type());
     chainerx::Shape shape(xtensor.dims().begin(), xtensor.dims().end());
-    UniqueData data(NULL, &std::free);
 
     if (xtensor.has_raw_data()) {
         CHECK_EQ(0, xtensor.float_data_size());
@@ -101,39 +100,9 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
         CHECK_EQ(0, xtensor.double_data_size());
         CHECK_EQ(0, xtensor.uint64_data_size());
 
-        int64_t const num_elements = shape.GetTotalSize();
-        switch (dtype) {
-            case Dtype::kBool:
-                data = LoadDataFromRawData<bool>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kInt8:
-                data = LoadDataFromRawData<int8_t>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kInt16:
-                data = LoadDataFromRawData<int16_t>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kInt32:
-                data = LoadDataFromRawData<int32_t>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kInt64:
-                data = LoadDataFromRawData<int64_t>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kUInt8:
-                data = LoadDataFromRawData<uint8_t>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kFloat16:
-                data = LoadDataFromRawData<int16_t>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kFloat32:
-                data = LoadDataFromRawData<float>(xtensor.raw_data(), num_elements);
-                break;
-            case Dtype::kFloat64:
-                data = LoadDataFromRawData<double>(xtensor.raw_data(), num_elements);
-                break;
-            default:
-                CHECK(false) << "Unknown data type: " << dtype.ToString();
-        }
+        return runtime::MakeHostArray(dtype.chx(), std::move(shape), xtensor.raw_data().data());
     } else {
+        UniqueData data(NULL, &std::free);
         switch (dtype) {
             case Dtype::kBool:
                 data = LoadDataFromRepeated<int32_t, bool>(xtensor.int32_data());
@@ -162,8 +131,8 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
             default:
                 CHECK(false) << "Unknown data type: " << dtype.ToString();
         }
+        return runtime::MakeHostArray(dtype.chx(), std::move(shape), data.get());
     }
-    return runtime::MakeHostArray(dtype.chx(), std::move(shape), data.release());
 }
 
 }  // namespace
