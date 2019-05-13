@@ -148,9 +148,9 @@ def main():
                            subname='double_for', backprop=True)
 
     # Bugs.
-
-    model = B2()
-    testtools.generate_testcase(model, args, subname='forloop_bug')
+    # TODO(hamaji, rishav1)
+    # model = B2()
+    # testtools.generate_testcase(model, args, subname='forloop_bug')
 
 
 
