@@ -22,14 +22,6 @@
 
 namespace chainer_compiler {
 
-namespace {
-
-Tensor* ArrayToTensor(const std::string& name, const chainerx::Array& a) {
-    return new Tensor(name, a);
-}
-
-}  // namespace
-
 EvaluatedValue::EvaluatedValue(Tensor* tensor) : tensor_(tensor) {
 }
 
@@ -86,7 +78,8 @@ void Eval(
 
         switch (var->kind()) {
             case runtime::XCVMVar::Kind::kArray: {
-                outputs->emplace_back(new EvaluatedValue(ArrayToTensor(name, state.GetArray(output_id))));
+                // TODO(take-cheeze): Avoid copy if possible.
+                outputs->emplace_back(new EvaluatedValue(new Tensor(name, state.GetArray(output_id).Copy())));
                 break;
             }
 
@@ -95,7 +88,7 @@ void Eval(
                 std::vector<std::unique_ptr<Tensor>> tensors;
                 for (size_t j = 0; j < seq.size(); ++j) {
                     // TODO(hamaji): Support nested sequences.
-                    tensors.emplace_back(ArrayToTensor(StrCat(name, '_', j), seq[j].GetArray()));
+                    tensors.emplace_back(new Tensor(StrCat(name, '_', j), seq[j].GetArray()));
                 }
                 outputs->emplace_back(new EvaluatedValue(std::move(tensors)));
                 break;

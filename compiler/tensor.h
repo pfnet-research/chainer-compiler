@@ -32,7 +32,7 @@ public:
     Tensor& operator=(const Tensor&) = delete;
 
     Tensor(const std::string& name, const Tensor& t);
-    Tensor(const std::string& name, chainerx::Array const& ary);
+    Tensor(const std::string& name, chainerx::Array ary);
 
     void ToONNX(onnx::TensorProto* xtensor) const;
     std::string DebugString() const;

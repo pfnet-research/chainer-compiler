@@ -141,7 +141,7 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
     : array_(TensorProtoToArray(xtensor)), name_(xtensor.name()), doc_string_(xtensor.doc_string()) {
 }
 
-Tensor::Tensor(std::string const& name, chainerx::Array const& ary) : array_(ary.Copy()), name_(name) {
+Tensor::Tensor(std::string const& name, chainerx::Array ary) : array_(ary), name_(name) {
 }
 
 Tensor::~Tensor() {
