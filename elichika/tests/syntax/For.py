@@ -147,10 +147,8 @@ def main():
                            [np.random.rand(4, 3).astype(np.float32), 2, 5],
                            subname='double_for', backprop=True)
 
-    # Bugs.
-    # TODO(hamaji, rishav1)
-    # model = B2()
-    # testtools.generate_testcase(model, args, subname='forloop_bug')
+    model = B2()
+    testtools.generate_testcase(model, args, subname='forloop_bug')
 
 
 
