@@ -13,7 +13,6 @@
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
-#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 
