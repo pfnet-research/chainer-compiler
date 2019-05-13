@@ -134,7 +134,6 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
                 CHECK(false) << "Unknown data type: " << dtype.ToString();
         }
     } else {
-        UniqueData data(NULL, &std::free);
         switch (dtype) {
             case Dtype::kBool:
                 data = LoadDataFromRepeated<int32_t, bool>(xtensor.int32_data());
