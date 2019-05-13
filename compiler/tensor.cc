@@ -249,7 +249,7 @@ template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int>& data);
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data);
 
-Tensor::Tensor(const std::string& name, const Tensor& t) : array_(t.array_.Copy()), name_(name), doc_string_(t.doc_string_) {
+Tensor::Tensor(const std::string& name, const Tensor& t) : array_(t.array_), name_(name), doc_string_(t.doc_string_) {
 }
 
 }  // namespace chainer_compiler
