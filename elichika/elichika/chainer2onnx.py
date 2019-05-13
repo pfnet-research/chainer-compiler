@@ -46,6 +46,13 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.softmax_cross_entropy] = fb.convert_softmax_cross_entropy
     oc.chainer_f_converter[F.average_pooling_2d] = fb.convert_average_pool_2d
     oc.chainer_f_converter[F.unpooling_2d] = fb.convert_unpooling_2d
+
+    oc.chainer_f_converter[F.vstack] = fb.convert_vstack
+    oc.chainer_f_converter[F.hstack] = fb.convert_hstack
+    oc.chainer_f_converter[F.stack] = fb.convert_stack
+    oc.chainer_f_converter[F.separate] = fb.convert_separate
+    oc.chainer_f_converter[F.squeeze] = fb.convert_squeeze
+    
     oc.chainer_f_converter[F.reshape] = fb.convert_reshape
     oc.chainer_f_converter[F.split_axis] = fb.convert_split_axis
     oc.chainer_f_converter[F.swapaxes] = fb.convert_swapaxes

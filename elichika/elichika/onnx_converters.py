@@ -31,7 +31,6 @@ def size2d(x):
         return x
     return (x, x)
 
-
 def get_onnx_dtype(dtype):
     a = np.zeros((), dtype=dtype)
     dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
@@ -600,14 +599,18 @@ class ONNXValue:
 
         if(isinstance(self.value, values.TupleValue)):
             value = self.value  # values.TupleValue
-            if value.is_all_constant_values():
+            if value.has_constant_value():
                 ret = ONNXValue(self.onnx_graph, values.ListValue(), [
                                 self.name, '/create_sequence'])
 
                 vs = []
                 for v in value.get_constant_value():
-                    vs.append(ONNXValue(self.onnx_graph, np.array(
-                        v.get_constant_value()), [self.name, '/c'], is_constant=True))
+                    if v.is_all_constant_values():
+                        vs.append(ONNXValue(self.onnx_graph, np.array(
+                            v.get_constant_value()), [self.name, '/c'], is_constant=True))
+                    else:
+                        vs.append(ONNXValue(self.onnx_graph, v))
+
                 self.onnx_graph.add_node(
                     "ChainerSequenceCreate",
                     vs,
@@ -1169,7 +1172,7 @@ class ONNXGenerator:
                 node_ = node  # type: nodes.NodeConvert
                 if node_.classtype == 'List':
 
-                    if isinstance(node_.value, values.ListValue):
+                    if isinstance(node_.value, values.ListValue) or isinstance(node_.value, values.TupleValue):
                         onnx_node = oh.make_node(
                             "Identity",
                             [value2onnx_parameter[node.inputs[0]].onnx_name],
@@ -1177,14 +1180,10 @@ class ONNXGenerator:
                             str(node.lineprop))
 
                         onnx_graph.nodes.append(onnx_node)
-
                     else:
-                        # not supported yet
-                        assert False
-
+                        raise utils.UnimplementedError('{} is not converted into List'.format(type(node_.value)), node_.lineprop)
                 else:
-                    # not supported yet
-                    assert False
+                        raise utils.UnimplementedError('unknown converted type {}'.format(type(node_.classtype)), node_.lineprop)
 
             if isinstance(node, nodes.NodeGenerate):
                 node_ = node  # type: nodes.NodeGenerate
