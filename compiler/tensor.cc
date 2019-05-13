@@ -89,6 +89,10 @@ void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* 
 chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
     CHECK(!xtensor.has_segment()) << "Segmented TensorProto not supported";
 
+    Dtype dtype(xtensor.data_type());
+    chainerx::Shape shape(xtensor.dims().begin(), xtensor.dims().end());
+    UniqueData data(NULL, &std::free);
+
     if (xtensor.has_raw_data()) {
         CHECK_EQ(0, xtensor.float_data_size());
         CHECK_EQ(0, xtensor.int32_data_size());
@@ -97,71 +101,70 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
         CHECK_EQ(0, xtensor.double_data_size());
         CHECK_EQ(0, xtensor.uint64_data_size());
 
-        UniqueData data(NULL, &std::free);
-        switch (Dtype(array_.dtype())) {
+        int64_t const num_elements = shape.GetTotalSize();
+        switch (dtype) {
             case Dtype::kBool:
-                data.reset(LoadDataFromRawData<bool>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<bool>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kInt8:
-                data.reset(LoadDataFromRawData<int8_t>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<int8_t>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kInt16:
-                data.reset(LoadDataFromRawData<int16_t>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<int16_t>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kInt32:
-                data.reset(LoadDataFromRawData<int32_t>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<int32_t>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kInt64:
-                data.reset(LoadDataFromRawData<int64_t>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<int64_t>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kUInt8:
-                data.reset(LoadDataFromRawData<uint8_t>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<uint8_t>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kFloat16:
-                data.reset(LoadDataFromRawData<int16_t>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<int16_t>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kFloat32:
-                data.reset(LoadDataFromRawData<float>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<float>(xtensor.raw_data(), num_elements);
                 break;
             case Dtype::kFloat64:
-                data.reset(LoadDataFromRawData<double>(xtensor.raw_data(), NumElements()).release());
+                data = LoadDataFromRawData<double>(xtensor.raw_data(), num_elements);
                 break;
             default:
-                CHECK(false) << "Unknown data type: " << dtype_.ToString();
+                CHECK(false) << "Unknown data type: " << dtype.ToString();
         }
-        return runtime::MakeHostArray(array_.dtype(), array_.shape(), data.release());
     } else {
         UniqueData data(NULL, &std::free);
-        switch (dtype()) {
+        switch (dtype) {
             case Dtype::kBool:
-                data_.reset(LoadDataFromRepeated<int32_t, bool>(xtensor.int32_data()).release());
+                data = LoadDataFromRepeated<int32_t, bool>(xtensor.int32_data());
                 break;
             case Dtype::kInt8:
-                data_.reset(LoadDataFromRepeated<int32_t, int8_t>(xtensor.int32_data()).release());
+                data = LoadDataFromRepeated<int32_t, int8_t>(xtensor.int32_data());
                 break;
             case Dtype::kInt16:
-                data_.reset(LoadDataFromRepeated<int32_t, int16_t>(xtensor.int32_data()).release());
+                data = LoadDataFromRepeated<int32_t, int16_t>(xtensor.int32_data());
                 break;
             case Dtype::kInt32:
-                data_.reset(LoadDataFromRepeated<int32_t, int32_t>(xtensor.int32_data()).release());
+                data = LoadDataFromRepeated<int32_t, int32_t>(xtensor.int32_data());
                 break;
             case Dtype::kInt64:
-                data_.reset(LoadDataFromRepeated<int64_t, int64_t>(xtensor.int64_data()).release());
+                data = LoadDataFromRepeated<int64_t, int64_t>(xtensor.int64_data());
                 break;
             case Dtype::kUInt8:
-                data_.reset(LoadDataFromRepeated<int32_t, uint8_t>(xtensor.int32_data()).release());
+                data = LoadDataFromRepeated<int32_t, uint8_t>(xtensor.int32_data());
                 break;
             case Dtype::kFloat32:
-                data_.reset(LoadDataFromRepeated<float, float>(xtensor.float_data()).release());
+                data = LoadDataFromRepeated<float, float>(xtensor.float_data());
                 break;
             case Dtype::kFloat64:
-                data_.reset(LoadDataFromRepeated<double, double>(xtensor.double_data()).release());
+                data = LoadDataFromRepeated<double, double>(xtensor.double_data());
                 break;
             default:
-                CHECK(false) << "Unknown data type: " << dtype_.ToString();
+                CHECK(false) << "Unknown data type: " << dtype.ToString();
         }
-        return runtime::MakeHostArray(array_.dtype(), array_.shape(), data.release());
     }
+    return runtime::MakeHostArray(dtype.chx(), std::move(shape), data.release());
 }
 
 }  // namespace
@@ -172,8 +175,8 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
       doc_string_(xtensor.doc_string()) {
 }
 
-Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, void* data)
-    : dims_(dims), dtype_(dtype), data_(data, &std::free), name_(name), doc_string_() {
+Tensor::Tensor(std::string const& name, chainerx::Array const& ary)
+    : array_(ary), name_(name) {
 }
 
 Tensor::~Tensor() {
@@ -185,7 +188,7 @@ void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
     DUMP_STRING(xtensor, name);
     DUMP_STRING(xtensor, doc_string);
 
-    switch (dtype_) {
+    switch (dtype()) {
         case Dtype::kBool:
             DumpDataToRepeated<bool, int>(*this, xtensor->mutable_int32_data());
             break;
@@ -211,7 +214,7 @@ void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
             DumpDataToRepeated(*this, xtensor->mutable_double_data());
             break;
         default:
-            CHECK(false) << "Unknown data type: " << dtype_.ToString();
+            CHECK(false) << "Unknown data type: " << dtype().ToString();
     }
 }
 
@@ -222,7 +225,8 @@ std::string Tensor::DebugString() const {
 }
 
 const std::vector<int64_t> Tensor::dims() const {
-    return array_.shape();
+    chainerx::Shape const& s = array_.shape();
+    return std::vector<int64_t>(s.begin(), s.end());
 }
 
 Dtype Tensor::dtype() const {
