@@ -38,6 +38,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
     def instance_converter(m, i):
         if links_builtin.is_builtin_chainer_link(i):
             return links_builtin.ChainerLinkInstance(m, i)
+
+        if isinstance(i, chainer.ChainList):
+            return links_builtin.ChainerChainListInstance(m, i)
+
+        if isinstance(i, chainer.Link):
+            return links_builtin.ChainerChainInstance(m, i)
+
         return None
 
     values.instance_converters.append(instance_converter)
@@ -87,6 +94,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('unpooling_2d', F.unpooling_2d)
         add_chainer_funtion('reshape', F.reshape)
         add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
+        add_chainer_funtion('hstack', F.hstack)
+        add_chainer_funtion('vstack', F.vstack)
+        add_chainer_funtion('stack', F.stack)
+        add_chainer_funtion('separate', F.separate, ret_value_func=ret_tuple)
+        add_chainer_funtion('squeeze', F.squeeze)        
         add_chainer_funtion('reshape', F.reshape)
         add_chainer_funtion('swapaxes', F.swapaxes)
         add_chainer_funtion('dropout', F.dropout)
@@ -98,6 +110,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('sigmoid', F.sigmoid)
         add_chainer_funtion('broadcast_to', F.broadcast_to)
         add_chainer_funtion('expand_dims', F.expand_dims)
+        add_chainer_funtion('local_response_normalization', F.local_response_normalization)
 
         if int(chainer.__version__[0]) >= 6:
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
@@ -124,6 +137,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
         f_ceil = values.FuncValue(functions_ndarray.NDArrayCeilFunction(), None)
         f_dict.get_field().get_attribute('ceil').revise(values.ValueRef(f_ceil))
+
+        f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
+        f_dict.get_field().get_attribute('cumsum').revise(values.ValueRef(f_cumsum))
 
         f_dict.get_field().get_attribute('int32').revise(
             values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))

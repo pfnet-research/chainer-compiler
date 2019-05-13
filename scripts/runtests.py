@@ -400,6 +400,9 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_dropout_default'),
     TestCase(NODE_TEST, 'test_dropout_random'),
+
+    TestCase(NODE_TEST, 'test_isnan'),
+    TestCase(NODE_TEST, 'test_isinf'),
 ]
 
 TEST_CASES += [

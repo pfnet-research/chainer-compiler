@@ -26,6 +26,11 @@ def _pair(x):
         return x
     return (x, x)
 
+def _list(v) -> 'List[int]':
+    if isinstance(v, collections.Iterable):
+        return list(x for x in v)
+    return [v]
+
 
 def convert_relu(onnx_graph, node):
     onnx_graph.add_node('Relu',
@@ -91,16 +96,16 @@ def convert_dropout(onnx_graph, node):
 
 
 def convert_matmul(onnx_graph, node):
-    a = oc.ONNXValue(onnx_graph,node.args.keywords['a'])
-    b = oc.ONNXValue(onnx_graph,node.args.keywords['b'])
-    transa = oc.try_get_attribute(node.args.keywords['transa'])
-    transb = oc.try_get_attribute(node.args.keywords['transb'])
-    assert not transa  # TODO(hamaji): Not supported yet.
-    assert not transb  # TODO(hamaji): Not supported yet.
+    parser = oc.NodeParse()
+    parser.add_def('a', oc.ParseType.In)
+    parser.add_def('b', oc.ParseType.In)
+    parser.add_def('transa', oc.ParseType.Att, False)
+    parser.add_def('transb', oc.ParseType.Att, False)
+    parser.parse(onnx_graph, node)
 
     onnx_graph.add_node(
         "MatMul",
-        [a.create_tensor(), b.create_tensor()],
+        [parser.get('a').create_tensor(), parser.get('b').create_tensor()],
         node.outputs,
         str(node.lineprop),
         )
@@ -246,17 +251,74 @@ def convert_resize_images(onnx_graph, node):
         name=str(node.lineprop),
         output_shape=_pair(output_shape))
 
-'''
-class Function_ResizeImages(Callable):
-    def call_impl(self, env, x, output_shape):
-        return env.calc(
-            'ChainerResizeImages',
-            inputs=[x.to_tensor(env).name],
-            output_shape=_pair(output_shape))
-'''
+def convert_vstack(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('xs', oc.ParseType.In)
+    parser.parse(onnx_graph, node)
+
+    onnx_graph.add_node(
+        "ChainerSequenceConcat",
+        [parser.get('xs').create_sequence()],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        axis=0)
+
+def convert_hstack(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('xs', oc.ParseType.In)
+    parser.parse(onnx_graph, node)
+
+    onnx_graph.add_node(
+        "ChainerSequenceConcat",
+        [parser.get('xs').create_sequence()],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        axis=1)
+
+def convert_stack(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('xs', oc.ParseType.In)
+    parser.add_def('axis', oc.ParseType.Att)
+    parser.parse(onnx_graph, node)
+
+    onnx_graph.add_node(
+        "ChainerSequenceStack",
+        [parser.get('xs').create_sequence()],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        axis=parser.get('axis'))
+
+def convert_separate(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('x', oc.ParseType.In)
+    parser.add_def('axis', oc.ParseType.Att)
+    parser.parse(onnx_graph, node)
+
+    onnx_graph.add_node(
+        "ChainerSequenceSeparate",
+        [parser.get('x').create_tensor()],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        axis=parser.get('axis'))
+
+def convert_squeeze(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('x', oc.ParseType.In)
+    parser.add_def('axis', oc.ParseType.Att)
+    parser.parse(onnx_graph, node)
+
+    kwargs = {}
+    if parser.get('axis') is not None:
+        kwargs['axes'] = _list(parser.get('axis'))
+
+    onnx_graph.add_node(
+        "Squeeze",
+        [parser.get('x').create_tensor()],
+        [node.outputs[0]],
+        name=str(node.lineprop),
+        **kwargs)
 
 def convert_reshape(onnx_graph, node):
-
     onnx_graph.add_node(
         "Reshape",
         [node.inputs[0],oc.ONNXValue(onnx_graph,node.inputs[1]).create_tensor()],
@@ -398,3 +460,18 @@ def convert_expand_dims(onnx_graph, node):
         str(node.lineprop),
         axes=[int(axis)])
     return
+
+def convert_local_response_normalization(onnx_graph, node):
+    kwargs = {}
+    kwargs['size'] = oc.try_get_attribute(node.args.keywords['n'])
+    kwargs['bias'] = float(oc.try_get_attribute(node.args.keywords['k']))
+    kwargs['alpha'] = float(oc.try_get_attribute(node.args.keywords['alpha']) * kwargs['size'])
+    kwargs['beta'] = float(oc.try_get_attribute(node.args.keywords['beta']))
+
+    onnx_graph.add_node(
+        "LRN",
+        [node.inputs[0]],
+        node.outputs,
+        str(node.lineprop),
+        **kwargs,
+    )

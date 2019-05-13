@@ -245,6 +245,8 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kSigmoid, Sigmoid);
         EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
         EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
+        EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
+        EMIT_SIMPLE_UNARY_OP(Node::kIsInf, IsInf);
 
         EMIT_SIMPLE_BINARY_OP(Node::kAdd, Add);
         EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);

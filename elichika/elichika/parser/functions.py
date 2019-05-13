@@ -36,7 +36,8 @@ def generate_copied_value(value: 'values.Value'):
     if isinstance(value, values.ListValue):
         copied = values.ListValue()
         copied.is_any = value.is_any
-        copied.values = value.values.copy()
+        if value.internal_value is not None:
+            copied.internal_value = value.internal_value.copy()
         return copied
 
     if isinstance(value, values.NoneValue):

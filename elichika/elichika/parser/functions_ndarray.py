@@ -116,7 +116,29 @@ class NDArrayCeilFunction(functions.FunctionBase):
         funcArgs = self.args.merge_inputs(inst ,args)
         vargs = funcArgs.get_value().inputs
 
-        node = nodes.NodeCall(self, args, line)
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        value = functions.generate_value_with_same_type(vargs[0])
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.ValueRef(value)
+
+class NDArrayCumsumFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'cumsum'
+        self.args.add_arg('a', values.NoneValue())
+        self.args.add_arg('axis', values.NoneValue())
+        self.args.add_arg('dtype', values.NoneValue())
+        self.args.add_arg('out', values.NoneValue())
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        assert(inst is None)
+
+        funcArgs = self.args.merge_inputs(inst ,args)
+        vargs = funcArgs.get_value().inputs
+
+        node = nodes.NodeCall(self, funcArgs, line)
         graph.add_node(node)
         value = functions.generate_value_with_same_type(vargs[0])
         value.name = '@F.{}.{}'.format(line, self.name)

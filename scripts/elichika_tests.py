@@ -17,15 +17,12 @@ class Generator(object):
         self.dirname = dirname
         self.category = dirname.replace('/', '_')
         self.filename = filename
-        self.fail = True
+        self.fail = fail
 
 
 TESTS = [
-    # TODO(hamaji): Remove `fail=True` after fixing the implementation
-    # of SoftmaxCrossEntropy.
-    Generator('model', 'MLP', fail=True),
-    # TODO(hamaji): Build and run this test.
-    # Generator('model', 'Alex'),
+    Generator('model', 'MLP'),
+    Generator('model', 'Alex'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
@@ -39,6 +36,8 @@ TESTS = [
     Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
+    Generator('node', 'ChainList'),
+    Generator('node', 'LRN'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),
@@ -46,6 +45,7 @@ TESTS = [
     Generator('node/ndarray', 'Size'),
     Generator('node/ndarray', 'Shape'),
     Generator('node/ndarray', 'Ceil'),
+    Generator('node/ndarray', 'Cumsum'),
 
     Generator('node/Functions', 'Reshape'),
     Generator('node/Functions', 'SplitAxis'),
@@ -56,6 +56,11 @@ TESTS = [
     Generator('node/Functions', 'Matmul'),
     Generator('node/Functions', 'MaxPool2d'),
     Generator('node/Functions', 'ResizeImages'),
+    Generator('node/Functions', 'Stack'),
+    Generator('node/Functions', 'Vstack'),
+    Generator('node/Functions', 'Hstack'),
+    Generator('node/Functions', 'Squeeze'),
+    Generator('node/Functions', 'Separate'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
