@@ -169,13 +169,10 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
 }  // namespace
 
 Tensor::Tensor(const onnx::TensorProto& xtensor)
-    : array_(TensorProtoToArray(xtensor)),
-      name_(xtensor.name()),
-      doc_string_(xtensor.doc_string()) {
+    : array_(TensorProtoToArray(xtensor)), name_(xtensor.name()), doc_string_(xtensor.doc_string()) {
 }
 
-Tensor::Tensor(std::string const& name, chainerx::Array const& ary)
-    : array_(ary), name_(name) {
+Tensor::Tensor(std::string const& name, chainerx::Array const& ary) : array_(ary), name_(name) {
 }
 
 Tensor::~Tensor() {
@@ -247,7 +244,9 @@ int64_t Tensor::NumElements() const {
 
 template <typename T>
 Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<T>& data)
-    : array_(runtime::MakeHostArray(dtype.chx(), chainerx::Shape(dims.begin(), dims.end()), LoadDataFromTypedData<T>(dtype, data.data(), data.size()).release())), name_(name) {
+    : array_(runtime::MakeHostArray(
+              dtype.chx(), chainerx::Shape(dims.begin(), dims.end()), LoadDataFromTypedData<T>(dtype, data.data(), data.size()).release())),
+      name_(name) {
 }
 
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<double>& data);
@@ -255,10 +254,7 @@ template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int>& data);
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data);
 
-Tensor::Tensor(const std::string& name, const Tensor& t)
-    : array_(t.array_),
-      name_(name),
-      doc_string_(t.doc_string_) {
+Tensor::Tensor(const std::string& name, const Tensor& t) : array_(t.array_), name_(name), doc_string_(t.doc_string_) {
 }
 
 }  // namespace chainer_compiler
