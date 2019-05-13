@@ -25,6 +25,7 @@ public:
     };
 
     Dtype() = default;
+    // Accepts `TensorProto::DataType` type.
     explicit Dtype(int xtype);
     // Note this is an implicit constructor.
     Dtype(DataType type);
