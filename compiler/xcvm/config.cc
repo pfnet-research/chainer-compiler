@@ -108,6 +108,7 @@ public:
         CHECK(op_set_.emplace(Node::kMatMul).second);
         CHECK(op_set_.emplace(Node::kMax).second);
         CHECK(op_set_.emplace(Node::kMaxPool).second);
+        CHECK(op_set_.emplace(Node::kMin).second);
         CHECK(op_set_.emplace(Node::kMul).second);
         CHECK(op_set_.emplace(Node::kNeg).second);
         CHECK(op_set_.emplace(Node::kNot).second);
