@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <chainerx/testing/context_session.h>
+
 #include <compiler/onnx.h>
 
 #include <common/log.h>
@@ -13,6 +15,8 @@ namespace chainer_compiler {
 namespace {
 
 TEST(GradientTest, Basic) {
+    chainerx::testing::ContextSession sess;
+
     onnx::TensorProto dummy_input;
     dummy_input.set_data_type(onnx::TensorProto::FLOAT);
     dummy_input.add_float_data(1.0);

@@ -2,6 +2,8 @@
 
 #include <iosfwd>
 
+#include <chainerx/dtype.h>
+
 #include <compiler/onnx.h>
 
 namespace chainer_compiler {
@@ -23,13 +25,17 @@ public:
     };
 
     Dtype() = default;
+    // Accepts `TensorProto::DataType` type.
     explicit Dtype(int xtype);
     // Note this is an implicit constructor.
     Dtype(DataType type);
+    explicit Dtype(chainerx::Dtype type);
 
     operator DataType() const {
         return type_;
     }
+
+    chainerx::Dtype chx() const;
 
     onnx::TensorProto::DataType ToONNX() const;
     std::string ToString() const;
