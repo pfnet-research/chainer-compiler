@@ -8,9 +8,9 @@ cache:
 
 before_install:
   - sudo apt-get install --no-install-recommends gnupg2 curl ca-certificates
-  - curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | apt-key add
-  - echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list
-  - echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+  - curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | sudo apt-key add
+  - sudo sh -c 'echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list'
+  - sudo sh -c 'echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list'
   - sudo apt-get update
   - sudo apt-get install --no-install-recommends cuda-cudart-dev-10-0 cuda-nvcc-10-0 cuda-nvrtc-dev-10-0 cuda-nvtx-10-0 cuda-cublas-dev-10-0
   - sudo apt-get install -y --no-install-recommends libprotobuf-dev protobuf-compiler libopencv-dev python3 python3-pip python3-setuptools cmake libopenblas-dev
