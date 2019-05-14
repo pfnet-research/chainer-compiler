@@ -87,6 +87,11 @@ def generate_value_with_same_type(value: 'values.Value', has_default = False, su
         ret = values.TensorValue()
         ret.shape = value.shape
         ret.dtype = value.dtype
+        if has_default:
+            if ret.dtype is None:
+                ret.dtype = np.float32
+            ret.internal_value = np.array((0), ret.dtype)
+
 
     if isinstance(value, values.NumberValue):
         dtype = None
