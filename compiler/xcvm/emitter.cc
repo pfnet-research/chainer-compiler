@@ -543,6 +543,11 @@ private:
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Max, out(0), ins);
+        } else if (node.op_type() == Node::kMin) {
+            CHECK_EQ(1UL, node.outputs().size());
+            std::vector<int> ins;
+            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            EMIT(Min, out(0), ins);
         } else if (node.op_type() == Node::kTranspose) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
