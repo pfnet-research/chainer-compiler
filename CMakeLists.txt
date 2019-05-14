@@ -155,6 +155,9 @@ if(${CHAINER_COMPILER_ENABLE_CUDA})
     endif()
 
     link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+    if(${CHAINER_COMPILER_USE_CUDA_STUBS})
+      link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64/stubs)
+    endif()
 
     add_definitions(-DCHAINER_COMPILER_ENABLE_NVRTC=1)
     set(CHAINER_COMPILER_CUDA_LIBRARIES ${CHAINER_COMPILER_CUDA_LIBRARIES} cuda nvrtc)

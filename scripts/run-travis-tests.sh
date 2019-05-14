@@ -16,6 +16,9 @@ mkdir build
 cd build
 time cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
+      -DCHAINER_COMPILER_ENABLE_CUDA=ON \
+      -DHCINAER_COMPILER_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 \
+      -DCHAINER_COMPILER_USE_CUDA_STUBS=ON \
       -DPYTHON_EXECUTABLE=/usr/bin/python3 \
       -DCHAINER_COMPILER_ENABLE_OPENCV=ON
 time make -j2
