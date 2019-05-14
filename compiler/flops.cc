@@ -48,6 +48,42 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
+int64_t CalculateFlopsOfConvTranspose(Node const& node) {
+    Value const& x = *node.input(0);
+    Value const& w = *node.input(1);
+    Value const& y = *node.output(0);
+    int64_t const bsize = x.type().dims()[0];
+    int64_t const ichan = x.type().dims()[1];
+    int64_t const ochan = y.type().dims()[1];
+    int64_t const kw = w.type().dims()[2];
+    int64_t const kh = w.type().dims()[3];
+    int64_t const iw = y.type().dims()[2];
+    int64_t const ih = y.type().dims()[3];
+    return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
+}
+
+int64_t CalculateFlopsOfSoftmax(Node const& node) {
+    int64_t const c = node.input(0)->type().dims()[node.axis()];
+    int64_t const s = node.input(0)->type().NumElements() / c;
+    return 2 * OutputSize(node) + s * (c - 1);
+}
+
+int64_t CalculateFlopsOfAveragePool(Node const& node) {
+    int64_t const kw = node.input(0)->type().dims()[2];
+    int64_t const kh = node.input(0)->type().dims()[3];
+    return OutputSize(node) * kw * kh;
+}
+
+int64_t CalculateFlopsOfMaxPool(Node const& node) {
+    int64_t const kw = node.input(0)->type().dims()[2];
+    int64_t const kh = node.input(0)->type().dims()[3];
+    return OutputSize(node) * (kw * kh - 1);
+}
+
+int64_t CalculateFlopsOfMax(Node const& node) {
+    return (node.inputs().size() - 1) * OutputSize(node);
+}
+
 int64_t CalculateFlopsImpl(const Node& node) {
     if (node.IsZeroCost()) {
         return 0;
@@ -61,11 +97,41 @@ int64_t CalculateFlopsImpl(const Node& node) {
         case Node::kGemm:
             return CalculateFlopsOfGemm(node);
 
+        case Node::kChainerFusionGroup:
+            CHECK(false);
+
+        case Node::kMax:
+            return CalculateFlopsOfMax(node);
+
+        case Node::kClip:
+            return 2 * OutputSize(node);
+
+        // Convolution nodes:
         case Node::kConv:
             return CalculateFlopsOfConv(node);
 
-        case Node::kChainerFusionGroup:
-            CHECK(false);
+        case Node::kConvTranspose:
+            return CalculateFlopsOfConvTranspose(node);
+
+        // case Node::kChainerConvGradWeight:
+        //     return CalculateFlopsOfConvGradWeight(node);
+
+        // Activation nodes:
+        case Node::kSigmoid:
+            return 4 * OutputSize(node);
+
+        case Node::kLeakyRelu:
+            return 2 * OutputSize(node);
+
+        case Node::kSoftmax:
+            return CalculateFlopsOfSoftmax(node);
+
+        // Pooling nodes:
+        case Node::kAveragePool:
+            return CalculateFlopsOfAveragePool(node);
+
+        case Node::kMaxPool:
+            return CalculateFlopsOfMaxPool(node);
 
         default:
             return OutputSize(node);
