@@ -21,6 +21,7 @@ namespace {
 Dtype GetFloatDtype(const Value* value) {
     Dtype dtype = value->type().dtype();
     switch (dtype) {
+        case Dtype::kFloat16:
         case Dtype::kFloat32:
         case Dtype::kFloat64:
             return dtype;

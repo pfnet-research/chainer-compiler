@@ -55,6 +55,8 @@ DLDataType GetDLDataType(const chainerx::Array& array) {
             return DLDataType{kDLInt, 64, 1};
         case chainerx::Dtype::kUInt8:
             return DLDataType{kDLUInt, 8, 1};
+        case chainerx::Dtype::kFloat16:
+            return DLDataType{kDLFloat, 16, 1};
         case chainerx::Dtype::kFloat32:
             return DLDataType{kDLFloat, 32, 1};
         case chainerx::Dtype::kFloat64:
