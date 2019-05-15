@@ -477,7 +477,8 @@ class ValueRef():
         self.id = utils.get_guid()
         self.attributes = Field()
         self.value.apply_to_object(self)
-
+        self.in_container = False
+        
     def get_field(self) -> 'Field':
         return self.attributes
 
@@ -508,6 +509,9 @@ class Value():
         self.generator = None
         self.internal_value = None
         self.id = utils.get_guid()
+
+        #  this actual value is not important, but type is required as dummy value
+        self.is_dummy_value = False
 
     def has_constant_value(self) -> 'bool':
         return self.internal_value is not None

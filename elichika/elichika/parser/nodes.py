@@ -37,6 +37,7 @@ class CompareType(Enum):
     unknown = 255,
 
 def remove_ref(value):
+    return value
     '''
     remove ref
     '''
@@ -67,13 +68,19 @@ def remove_ref(value):
         vs = []
         for v in value.internal_value:
             if isinstance(v, values.ValueRef):
-                v = v.get_value()
-
+                #v = v.get_value()
+                print('find ref')
             vs.append(v)
 
-        return values.TupleValue(vs)
+        ret = values.TupleValue(vs)
+        ret.name = value.name
+        ret.generator = value.generator
+
+        return value
+        return ret
 
     if isinstance(value, values.ValueRef):
+        print('find ref')
         return value.get_value()
 
     return value

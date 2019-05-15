@@ -801,18 +801,21 @@ def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : '
             vs.append(a_)
         return vs
     else:
+        vs_ref = []
         vs = []
+
         for v in astc.nast.elts:
             a_ = veval_ast(astc.c(v), local_field, graph, option=option)
             v_ = try_get_ref(a_, 'tuple', lineprop)
-            vs.append(v_)
+            vs_ref.append(v_)
+            vs.append(v_.get_value())
+            v_.in_container = True
 
-        tuple_value = values.TupleValue(vs)
+        tuple_value = values.TupleValue(vs_ref)
 
-        if not tuple_value.is_all_constant_values(True):
-            node = nodes.NodeGenerate('Tuple', vs.copy(), line=lineprop)
-            node.set_outputs([tuple_value])
-            graph.add_node(node)
+        node = nodes.NodeGenerate('Tuple', vs, line=lineprop)
+        node.set_outputs([tuple_value])
+        graph.add_node(node)
         
         return values.ValueRef(tuple_value)
 
@@ -862,7 +865,8 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # for target in iter:
     iter_ = veval_ast(astc.c(astc.nast.iter), local_field, graph)
-    iter_value = try_get_value(iter_, 'for', lineprop)
+    input_iter_value = try_get_value(iter_, 'for', lineprop)
+    body_iter_value = functions.generate_value_with_same_type(input_iter_value, suffix_type=functions.SuffixType.Input)
 
     # get target name
     target_name = ''
@@ -874,8 +878,8 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         return None
 
     # unroll?
-    if isinstance(iter_value, values.ListValue) and iter_value.has_constant_value():
-        return veval_ast_for_unroll(astc, target_name, iter_value, local_field, graph)
+    if isinstance(input_iter_value, values.ListValue) and input_iter_value.has_constant_value():
+        return veval_ast_for_unroll(astc, target_name, input_iter_value, local_field, graph)
 
     for_guid = utils.get_guid()
     for_id = 'for_' + str(for_guid)
@@ -887,19 +891,23 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     body_graph = Graph()
     body_graph.name = 'Body_' + str(for_guid)
 
-    counter_value = values.NumberValue(None)
-    counter_value.dtype = np.array(0).dtype
-    counter_value.name = 'for_counter_' + str(for_guid)
+    # generate a node for input
+    node_input = nodes.NodeInput('input')
+    body_graph.add_node(node_input)
 
-    cond_value = values.BoolValue(None)
-    cond_value.name = 'for_cond_' + str(for_guid)
+    body_counter_value = values.NumberValue(None)
+    body_counter_value.dtype = np.array(0).dtype
+    body_counter_value.name = 'for_counter_' + str(for_guid)
 
+    body_cond_value = values.BoolValue(None)
+    body_cond_value.name = 'for_cond_' + str(for_guid)
+    
     # create a node to lookup a value from sequence
-    node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
+    node_forgen = nodes.NodeForGenerator(body_counter_value, body_iter_value)
 
     # estimate type
     # TODO : more types
-    if isinstance(iter_value, values.RangeValue):
+    if isinstance(input_iter_value, values.RangeValue):
         target_value = values.NumberValue(None)
         target_value.dtype = np.array(0).dtype
     else:
@@ -922,18 +930,19 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     inputs = []
     outputs = []
+    node_input_outputs = []
 
     # default input for subgraph's input
-    body_graph.add_input_value(counter_value)
-    body_graph.add_input_value(cond_value)
-    body_graph.add_input_value(iter_value)
+    body_graph.add_input_value(body_counter_value)
+    body_graph.add_input_value(body_cond_value)
+    body_graph.add_input_value(body_iter_value)
 
     # default output for subgraph's output
-    body_graph.add_output_value(cond_value)
-    body_graph.add_output_value(iter_value)
+    body_graph.add_output_value(body_cond_value)
+    body_graph.add_output_value(body_iter_value)
 
     # default output
-    outputs.append(functions.generate_value_with_same_type(iter_value))
+    outputs.append(functions.generate_value_with_same_type(input_iter_value))
     
     # generate pairs
     value_pairs = {}
@@ -965,11 +974,12 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
             body_graph.add_input_value(v['input_body_value'])
         else:
-            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'], has_default=True, suffix_type=functions.SuffixType.Unused)
-            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'], suffix_type=functions.SuffixType.Unused)
+            temp_value1 = functions.generate_value_with_same_type(v['output_body_value'], is_dummy_value=True, suffix_type=functions.SuffixType.Dummy)
+            temp_value2 = functions.generate_value_with_same_type(v['output_body_value'], suffix_type=functions.SuffixType.Dummy)
             inputs.append(temp_value1)
 
             body_graph.add_input_value(temp_value2)
+            node_input_outputs.append(temp_value2)
 
         if 'output_body_value' in v:
             body_graph.add_output_value(v['output_body_value'])
@@ -985,8 +995,9 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             body_graph.add_output_value(temp_value1)
             outputs.append(temp_value2)
 
-    node = nodes.NodeFor(iter_value, inputs, body_graph, astc.lineno)
+    node = nodes.NodeFor(input_iter_value, inputs, body_graph, astc.lineno)
     node.set_outputs(outputs)
+    node_input.set_outputs(node_input_outputs)
 
     graph.add_node(node)
 

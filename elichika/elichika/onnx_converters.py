@@ -158,7 +158,6 @@ def assign_onnx_name_to_value(value: 'values.Value', none_name=''):
         value2onnx_parameter[value] = ValueONNXParameter(
             generate_onnx_value_name(value, none_name), value)
 
-
 def assign_onnx_name(graph: 'graphs.Graph'):
 
     for v in graph.input_values:
@@ -928,7 +927,31 @@ class ONNXGenerator:
                 if (value2onnx_parameter[value_].onnx_name in self.onnx_tensors.keys()):
                     continue
 
-                if value_.generator is not None or not value_.is_all_constant_values():
+                if value_.is_dummy_value:
+                    # generate dummy
+                    assert(value_.generator is None or isinstance(value_.generator, nodes.NodeInput))
+
+                    t = onnx_graph.new_empty_tensor_with_value(value_)
+                    dtype = np.float32
+                    if isinstance(value_, values.NumberValue):
+                        if value_.dtype is not None:
+                            dtype = value_.dtype
+                    elif isinstance(value_, values.BoolValue):
+                        dtype = np.bool
+
+                    if not config.float_restrict:
+                        if dtype == np.float64:
+                            dtype == np.float32
+
+                    arr = np.array(0, dtype=dtype)
+
+                    tensor = numpy_helper.from_array(
+                        arr, name=value2onnx_parameter[value_].onnx_name)
+                    onnx_node = oh.make_node(
+                        'Constant', [], [t.name], value=tensor)
+                    onnx_graph.nodes.append(onnx_node)
+
+                elif value_.generator is not None or not value_.is_all_constant_values():
                     tensor = onnx_graph.new_empty_tensor_with_value(value_)
                 else:
                     if isinstance(value_, values.NumberValue):
@@ -944,6 +967,11 @@ class ONNXGenerator:
                         onnx_node = oh.make_node(
                             'Constant', [], [t.name], value=tensor)
                         onnx_graph.nodes.append(onnx_node)
+
+                    elif isinstance(value_, values.TupleValue):
+                        assert(False)
+                    elif isinstance(value_, values.ListValue):
+                        assert(False)
                     else:
                         tensor = onnx_graph.new_tensor_with_value(value_)
 
