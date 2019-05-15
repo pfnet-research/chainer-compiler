@@ -516,9 +516,6 @@ class Value():
     def has_constant_value(self) -> 'bool':
         return self.internal_value is not None
     
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
-        return self.internal_value is not None
-
     def get_constant_value(self):
         return self.internal_value
 
@@ -541,9 +538,6 @@ class NoneValue(Value):
         super().__init__()
 
     def has_constant_value(self) -> 'bool':
-        return True
-    
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
         return True
 
     def get_constant_value(self):
@@ -611,23 +605,6 @@ class TupleValue(Value):
         super().__init__()
         self.internal_value = values
 
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
-        if self.internal_value is not None:
-            for v in self.internal_value:
-                if v is None:
-                    return False
-
-                if isinstance(v, ValueRef) and not is_ref_enabled:
-                    return False
-
-                if isinstance(v, ValueRef):
-                    if not v.get_value().is_all_constant_values(is_ref_enabled):
-                        return False
-                else:
-                    if not v.is_all_constant_values(is_ref_enabled):
-                        return False
-        return True                    
-
     def __str__(self):
         return self.name + '(Tp{})'
 
@@ -647,23 +624,6 @@ class ListValue(Value):
         super().__init__()
         self.is_any = values is None
         self.internal_value = values
-
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
-        if self.internal_value is not None:
-            for v in self.internal_value:
-                if v is None:
-                    return False
-
-                if isinstance(v, ValueRef) and not is_ref_enabled:
-                    return False
-
-                if isinstance(v, ValueRef):
-                    if not v.get_value().is_all_constant_values(is_ref_enabled):
-                        return False
-                else:
-                    if not v.is_all_constant_values(is_ref_enabled):
-                        return False
-        return True                    
 
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(

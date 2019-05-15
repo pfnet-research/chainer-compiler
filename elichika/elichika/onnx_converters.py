@@ -595,32 +595,10 @@ class ONNXValue:
     def create_sequence(self) -> 'ONNXValue':
         if(isinstance(self.value, values.ListValue)):
             return self
-
-        if(isinstance(self.value, values.TupleValue)):
-            value = self.value  # values.TupleValue
-            if value.has_constant_value():
-                ret = ONNXValue(self.onnx_graph, values.ListValue(), [
-                                self.name, '/create_sequence'])
-
-                vs = []
-                for v in value.get_constant_value():
-                    if v.is_all_constant_values():
-                        vs.append(ONNXValue(self.onnx_graph, np.array(
-                            v.get_constant_value()), [self.name, '/c'], is_constant=True))
-                    else:
-                        vs.append(ONNXValue(self.onnx_graph, v))
-
-                self.onnx_graph.add_node(
-                    "ChainerSequenceCreate",
-                    vs,
-                    [ret],
-                    str('create_sequence'))
-
-                return ret
-            else:
-                return self
-
-        assert(False)
+        elif(isinstance(self.value, values.TupleValue)):
+            return self
+        else:
+            assert(False)
 
     def create_tensor(self) -> 'ONNXValue':
         if(isinstance(self.value, values.TupleValue)):
@@ -951,7 +929,7 @@ class ONNXGenerator:
                         'Constant', [], [t.name], value=tensor)
                     onnx_graph.nodes.append(onnx_node)
 
-                elif value_.generator is not None or not value_.is_all_constant_values():
+                elif value_.generator is not None or not value_.has_constant_value():
                     tensor = onnx_graph.new_empty_tensor_with_value(value_)
                 else:
                     if isinstance(value_, values.NumberValue):
