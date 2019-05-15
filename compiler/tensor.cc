@@ -64,15 +64,14 @@ UniqueData LoadDataFromTypedData(Dtype dtype, const void* data, int64_t num_elem
             return LoadDataFromTypedData<From, int64_t>(data, num_elements);
         case Dtype::kUInt8:
             return LoadDataFromTypedData<From, uint8_t>(data, num_elements);
-        case Dtype::kFloat16:
-            {
-                UniqueData p(std::malloc(num_elements * sizeof(chainerx::Float16)), &std::free);
-                auto out_base_ptr = static_cast<chainerx::Float16*>(p.get());
-                for (int i = 0; i < num_elements; ++i) {
-                    out_base_ptr[i] = chainerx::Float16(reinterpret_cast<const From*>(data)[i]);
-                }
-                return p;
+        case Dtype::kFloat16: {
+            UniqueData p(std::malloc(num_elements * sizeof(chainerx::Float16)), &std::free);
+            auto out_base_ptr = static_cast<chainerx::Float16*>(p.get());
+            for (int i = 0; i < num_elements; ++i) {
+                out_base_ptr[i] = chainerx::Float16(reinterpret_cast<const From*>(data)[i]);
             }
+            return p;
+        }
         case Dtype::kFloat32:
             return LoadDataFromTypedData<From, float>(data, num_elements);
         case Dtype::kFloat64:
@@ -131,16 +130,14 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
             case Dtype::kUInt8:
                 data = LoadDataFromRepeated<int32_t, uint8_t>(xtensor.int32_data());
                 break;
-            case Dtype::kFloat16:
-                {
-                    auto a = xtensor.int32_data();
-                    UniqueData p(std::malloc(sizeof(chainerx::Float16) * a.size()), &std::free);
-                    for (int i = 0; i < a.size(); ++i) {
-                        static_cast<chainerx::Float16*>(p.get())[i] = chainerx::Float16::FromData(a.Get(i));
-                    }
-                    data = std::move(p);
+            case Dtype::kFloat16: {
+                auto a = xtensor.int32_data();
+                UniqueData p(std::malloc(sizeof(chainerx::Float16) * a.size()), &std::free);
+                for (int i = 0; i < a.size(); ++i) {
+                    static_cast<chainerx::Float16*>(p.get())[i] = chainerx::Float16::FromData(a.Get(i));
                 }
-                break;
+                data = std::move(p);
+            } break;
             case Dtype::kFloat32:
                 data = LoadDataFromRepeated<float, float>(xtensor.float_data());
                 break;
@@ -191,15 +188,13 @@ void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
         case Dtype::kUInt8:
             DumpDataToRepeated<uint8_t, int>(*this, xtensor->mutable_int32_data());
             break;
-        case Dtype::kFloat16:
-            {
-                auto a = xtensor->mutable_int32_data();
-                CHECK_LE(static_cast<size_t>(ElementSize()), sizeof(int));
-                for (int64_t i = 0; i < NumElements(); ++i) {
-                    a->Add(Get<chainerx::Float16>(i).data());
-                }
+        case Dtype::kFloat16: {
+            auto a = xtensor->mutable_int32_data();
+            CHECK_LE(static_cast<size_t>(ElementSize()), sizeof(int));
+            for (int64_t i = 0; i < NumElements(); ++i) {
+                a->Add(Get<chainerx::Float16>(i).data());
             }
-            break;
+        } break;
         case Dtype::kFloat32:
             DumpDataToRepeated(*this, xtensor->mutable_float_data());
             break;
