@@ -209,7 +209,7 @@ int64_t Tensor::NumElements() const {
 template <typename T>
 Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<T>& data)
     : array_(runtime::MakeHostArray(
-              dtype.chx(), chainerx::Shape(dims.begin(), dims.end()), LoadDataFromTypedData<T>(dtype, data.data(), data.size()).release())),
+              dtype.chx(), chainerx::Shape(dims.begin(), dims.end()), LoadDataFromTypedData<T>(dtype, data.data(), data.size()).get())),
       name_(name) {
 }
 
