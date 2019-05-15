@@ -50,7 +50,7 @@ def get_backprop_tests():
     tests = []
 
     def test(name, fn, **kwargs):
-        for dtype in (np.float32, np.float64):
+        for dtype in (np.float16, np.float32, np.float64):
             test_name = '%s_%s' % (name, dtype.__name__)
             tests.append(BackpropTest(test_name, fn, dtype=dtype, **kwargs))
 
