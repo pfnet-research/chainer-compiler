@@ -3,8 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <chainerx/array.h>
-#include <chainerx/context.h>
 #include <chainerx/routines/creation.h>
+#include <chainerx/testing/context_session.h>
 
 #include <runtime/npy.h>
 
@@ -13,8 +13,7 @@ namespace runtime {
 namespace {
 
 TEST(NpyTest, SaveNpy) {
-    chainerx::Context ctx;
-    chainerx::ContextScope ctx_scope(ctx);
+    chainerx::testing::ContextSession sess;
 
     chainerx::Array a = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
     SaveNpy(a, "out/t.npy");

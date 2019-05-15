@@ -27,6 +27,11 @@ target_link_libraries(dump
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
+  pthread
+  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
+  ${CHAINER_COMPILER_TVM_LIBRARIES}
+  ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${OpenCV_LIBS}
   )
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
