@@ -141,10 +141,13 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
     : array_(TensorProtoToArray(xtensor)), name_(xtensor.name()), doc_string_(xtensor.doc_string()) {
 }
 
-Tensor::Tensor(std::string const& name, chainerx::Array ary) : array_(ary), name_(name) {
+Tensor::Tensor(std::string const& name, chainerx::Array ary)
+    // Take a `Copy` to get C-contiguous array.
+    : array_(ary.Copy()), name_(name) {
 }
 
 Tensor::~Tensor() {
+    CHECK(array_.IsContiguous());
 }
 
 void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
