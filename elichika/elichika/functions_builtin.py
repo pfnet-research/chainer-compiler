@@ -114,28 +114,13 @@ def convert_concat(onnx_graph, node):
     xs = oc.ONNXValue(onnx_graph,node.args.keywords['xs'])
     axis = oc.try_get_attribute(node.attribute_args.keywords['axis'])
 
-    if isinstance(node.args.inputs[0], values.TupleValue) and node.args.inputs[0].has_constant_value():
-        vs = []
-        for v in xs.value.get_constant_value():
-            v_ = oc.ONNXValue(onnx_graph, v)
-            vs.append(v_)
-
-        onnx_graph.add_node(
-            "Concat",
-            vs,
-            node.outputs,
-            str(node.lineprop),
-            axis=axis,
-            )
-
-    elif isinstance(node.args.inputs[0], values.ListValue):
-        onnx_graph.add_node(
-            "ChainerSequenceConcat",
-            [xs.create_sequence()],
-            node.outputs,
-            str(node.lineprop),
-            axis=axis,
-            )
+    onnx_graph.add_node(
+        "ChainerSequenceConcat",
+        [xs.create_sequence()],
+        node.outputs,
+        str(node.lineprop),
+        axis=axis,
+        )
 
 def convert_softmax_cross_entropy(onnx_graph, node):
     normalize = oc.try_get_attribute(node.attribute_args.keywords['normalize'])
