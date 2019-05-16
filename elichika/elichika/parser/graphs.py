@@ -8,6 +8,7 @@ class Graph:
         self.nodes = []
         self.input_values = []
         self.output_values = []
+        self.root_graph = None
 
     def add_input_value(self, value):
         assert(value is not None)
@@ -19,3 +20,6 @@ class Graph:
 
     def add_node(self, node: 'nodes.Node'):
         self.nodes.append(node)
+
+    def add_initial_node(self, node: 'nodes.Node'):
+        self.nodes = [node] + self.nodes

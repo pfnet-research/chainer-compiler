@@ -158,7 +158,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     default_module.set_default_value('len', values.ValueRef(m_len))
 
     model_inst = values.parse_instance(default_module, '', model)
-    forward_func = model_inst.try_get_and_store_obj('forward')
+    forward_func = model_inst.try_get_and_store_obj('forward', None)
 
     # convert args
     finput = functions.FunctionArgInput()
@@ -187,6 +187,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     node_input.set_outputs(value_args)
 
     graph = Graph()
+    graph.root_graph = graph
     graph.add_node(node_input)
 
     forward_func_value = forward_func.get_value()

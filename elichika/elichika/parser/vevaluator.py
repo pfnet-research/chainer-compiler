@@ -104,11 +104,11 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         return attr
 
     # if attr is not found
-    gotten_obj = value_ref.try_get_and_store_obj(astc.nast.attr)
+    gotten_obj = value_ref.try_get_and_store_obj(astc.nast.attr, graph.root_graph)
     if gotten_obj is not None:
         return value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
-    if option.eval_as_written_target:
+    if option is not None and option.eval_as_written_target:
         return attr
         
     # value is unknown
@@ -208,7 +208,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     elif isinstance(func_value, values.Instance):
         # __call__
-        call_func_ref = func_obj.try_get_and_store_obj('__call__')
+        call_func_ref = func_obj.try_get_and_store_obj('__call__', graph.root_graph)
         if call_func_ref is not None:        
             ret = call_func_ref.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
             return ret
@@ -253,6 +253,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     values.push_history(true_id)
 
     true_graph = Graph()
+    true_graph.root_graph = graph.root_graph
     true_graph.name = 'True'
     body = veval_ast(astc.c(astc.nast.body), local_field, true_graph)
 
@@ -265,6 +266,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     values.push_history(false_id)
 
     false_graph = Graph()
+    false_graph.root_graph = graph.root_graph
     false_graph.name = 'False'
     body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
 
@@ -541,6 +543,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     values.push_history(listcomp_id)
 
     body_graph = Graph()
+    body_graph.root_graph = graph.root_graph
     body_graph.name = 'Body_' + listcomp_guid
 
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
@@ -889,6 +892,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     # body
     body_graph = Graph()
+    body_graph.root_graph = graph.root_graph
     body_graph.name = 'Body_' + str(for_guid)
 
     # generate a node for input
