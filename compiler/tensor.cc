@@ -144,7 +144,7 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
 }
 
 Tensor::Tensor(std::string const& name, chainerx::Array ary)
-    : array_(chainerx::internal::AsContiguous(ary)), name_(name) {
+    : array_(chainerx::AsContiguousArray(ary)), name_(name) {
 }
 
 Tensor::~Tensor() {

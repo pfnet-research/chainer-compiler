@@ -217,9 +217,9 @@ public:
           pooled_width(output_shape[1]),
           roi_bin_grid_h(sampling_ratio[0]),
           roi_bin_grid_w(sampling_ratio[1]) {
-        contiguous_bottom_data = chainerx::internal::AsContiguous(bottom_data);
-        contiguous_bottom_roi_indices = chainerx::internal::AsContiguous(bottom_roi_indices);
-        contiguous_bottom_rois = chainerx::internal::AsContiguous(bottom_rois);
+        contiguous_bottom_data = chainerx::AsContiguousArray(bottom_data);
+        contiguous_bottom_roi_indices = chainerx::AsContiguousArray(bottom_roi_indices);
+        contiguous_bottom_rois = chainerx::AsContiguousArray(bottom_rois);
         top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
         bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
         top_ptr = static_cast<float*>(top_data.raw_data());
@@ -554,7 +554,7 @@ void Upsample2D32bitForRawPtr(
 }
 
 chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& to_shape, const std::vector<int64_t>& int_scales) {
-    x = chainerx::internal::AsContiguous(x);
+    x = chainerx::AsContiguousArray(x);
     chainerx::Array y = chainerx::Empty(to_shape, x.dtype(), x.device());
     if (int_scales[2] == 2 && int_scales[3] == 2) {
         Upsample2D32bitForRawPtr<2>(
@@ -687,7 +687,7 @@ chainerx::Array ResizeImagesOp::RunImpl(XCVMState* st, const chainerx::Array& x)
     y_shape[3] = output_shape[1];
 
     if (IsNativeDevice(&x.device()) && x.dtype() == chainerx::Dtype::kFloat32) {
-        chainerx::Array xc = chainerx::internal::AsContiguous(x);
+        chainerx::Array xc = chainerx::AsContiguousArray(x);
         chainerx::Array y = chainerx::Empty(y_shape, x.dtype());
         ResizeImagesFloat32ForCPU(xc, y);
         return y;
