@@ -396,6 +396,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
     args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of XCVM ops to this directory", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
+    args.add<double>("timeout", 'T', "Run tests in this number of seconds", false, 0);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("check_nans", '\0', "Check for NaNs after each operation");
@@ -477,6 +478,11 @@ void RunMain(const std::vector<std::string>& argv) {
     }
 
     int max_iterations = args.get<int>("iterations");
+    double timeout = 1e50;
+    if (args.get<double>("timeout")) {
+        timeout = args.get<double>("timeout") * 1000;
+        max_iterations = INT_MAX;
+    }
     CHECK_LT(0, max_iterations);
     if (max_iterations > 1) {
         test_cases.resize(1);
@@ -489,7 +495,7 @@ void RunMain(const std::vector<std::string>& argv) {
     double elapsed_total = 0;
     int test_cnt = 0;
     int iterations = 0;
-    for (; iterations < max_iterations * test_cases.size(); ++iterations) {
+    for (; iterations < max_iterations * test_cases.size() && elapsed_total < timeout; ++iterations) {
         const std::unique_ptr<TestCase>& test_case = test_cases[iterations % test_cases.size()];
         LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(model_runner.params());
@@ -638,7 +644,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
     if (max_iterations > 1) {
         // The first iteration is for warm up.
-        std::cerr << "Average elapsed: " << elapsed_total / (max_iterations - 1) << " msec" << std::endl;
+        std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
     }
 }
 
