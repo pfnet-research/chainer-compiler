@@ -480,13 +480,6 @@ void RunMain(const std::vector<std::string>& argv) {
     CHECK_LT(0, max_iterations);
     if (max_iterations > 1) {
         test_cases.resize(1);
-        std::vector<std::unique_ptr<TestCase>> new_test_cases;
-        for (int i = 0; i < max_iterations; ++i) {
-            for (auto& test : test_cases) {
-                new_test_cases.emplace_back(new TestCase(*test));
-            }
-        }
-        test_cases.swap(new_test_cases);
     }
 
     ModelRunner model_runner(args, initial_free_bytes, &model);
@@ -495,7 +488,9 @@ void RunMain(const std::vector<std::string>& argv) {
 
     double elapsed_total = 0;
     int test_cnt = 0;
-    for (const std::unique_ptr<TestCase>& test_case : test_cases) {
+    int iterations = 0;
+    for (; iterations < max_iterations * test_cases.size(); ++iterations) {
+        const std::unique_ptr<TestCase>& test_case = test_cases[iterations % test_cases.size()];
         LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(model_runner.params());
         for (const auto& p : test_case->inputs) {
@@ -571,7 +566,7 @@ void RunMain(const std::vector<std::string>& argv) {
                     fail("shape");
                     return false;
                 }
-                if (max_iterations > 1) return true;
+                if (iterations > 1) return true;
 
                 int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
                 if (mismatch) {
@@ -633,9 +628,11 @@ void RunMain(const std::vector<std::string>& argv) {
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
 
         // The first iteration is for warm up.
-        if (test_case != test_cases.front()) elapsed_total += elapsed;
-
-        if (max_iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
+        if (iterations == 0) {
+            CHECK_EQ(ok_cnt, test_case->outputs.size());
+        } else {
+            elapsed_total += elapsed;
+        }
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
