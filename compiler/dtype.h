@@ -43,7 +43,7 @@ public:
     int SizeOf() const;
 
     bool IsFloat() const {
-        return type_ == kFloat32 || type_ == kFloat64;
+        return type_ == kFloat16 || type_ == kFloat32 || type_ == kFloat64;
     }
 
 private:
