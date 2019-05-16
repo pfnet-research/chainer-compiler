@@ -5,6 +5,8 @@
 #include <cstring>
 #include <sstream>
 
+#include <chainerx/routines/creation.h>
+
 #include <common/log.h>
 #include <compiler/serializer_util.h>
 #include <runtime/chainerx_util.h>
@@ -141,9 +143,7 @@ Tensor::Tensor(const onnx::TensorProto& xtensor)
     : array_(TensorProtoToArray(xtensor)), name_(xtensor.name()), doc_string_(xtensor.doc_string()) {
 }
 
-Tensor::Tensor(std::string const& name, chainerx::Array ary)
-    // Take a `Copy` to get C-contiguous array.
-    : array_(ary.Copy()), name_(name) {
+Tensor::Tensor(std::string const& name, chainerx::Array ary) : array_(chainerx::internal::AsContiguous(ary)), name_(name) {
 }
 
 Tensor::~Tensor() {
