@@ -492,6 +492,9 @@ bool ReplaceConstantOfShape(Graph* graph, Node* node) {
             case Dtype::kUInt8:
                 op->set_value(tensor->Get<uint8_t>(0));
                 break;
+            case Dtype::kFloat16:
+                op->set_value(static_cast<float>(tensor->Get<chainerx::Float16>(0)));
+                break;
             case Dtype::kFloat32:
                 op->set_value(tensor->Get<float>(0));
                 break;

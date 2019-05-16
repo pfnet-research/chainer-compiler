@@ -668,7 +668,9 @@ private:
         if (dtype.IsFloat()) {
             std::vector<double> v;
             for (int64_t i = 0; i < value->NumElements(); ++i) {
-                if (dtype.SizeOf() == 4) {
+                if (dtype == Dtype::kFloat16) {
+                    v.push_back(static_cast<double>(value->Get<chainerx::Float16>(i)));
+                } else if (dtype.SizeOf() == 4) {
                     v.push_back(value->Get<float>(i));
                 } else if (dtype.SizeOf() == 8) {
                     v.push_back(value->Get<double>(i));
