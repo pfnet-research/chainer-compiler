@@ -53,7 +53,7 @@ def get_backprop_tests():
     def test(name, fn, **kwargs):
         for dtype in (np.float16, np.float32, np.float64):
             test_name = '%s_%s' % (name, dtype.__name__)
-            rtol = None if dtype != np.float16 else 0.04
+            rtol = None if dtype != np.float16 else 0.02
             tests.append(BackpropTest(test_name, fn, dtype=dtype, rtol=rtol, **kwargs))
 
     def aranges(*shape):
