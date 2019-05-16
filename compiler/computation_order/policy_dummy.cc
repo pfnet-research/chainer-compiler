@@ -44,6 +44,7 @@ std::vector<Order> DummyPolicy2(const Graph& graph) {
     for (auto node : nodes) {
         orders.emplace_back(Order::kComputeForward, node, nullptr);
         for (auto value : node->inputs()) {
+            CHECK_EQ(1, value->users().size()) << "Graph with branches is not compatible with this computation order policy";
             if (!params.count(value)) {
                 orders.emplace_back(Order::kForgetForward, nullptr, value);
             }
