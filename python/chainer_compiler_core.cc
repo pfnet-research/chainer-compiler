@@ -210,7 +210,9 @@ void InitGraph(py::module& m) {
     c.def("output_names", &GetOutputNames, "Names of outputs");
     c.def("backward", &GenerateBackward, "Generate a pair of graphs for forward and back propagation");
     c.def("backward_to", &GenerateBackwardTo, "Generate a pair of graphs for forward and back propagation");
-    c.def("backward_to_with_order", &GenerateBackwardToWithOrder, "Generate a pair of graphs for forward and back propagation with specified computation order policy");
+    c.def("backward_to_with_order",
+          &GenerateBackwardToWithOrder,
+          "Generate a pair of graphs for forward and back propagation with specified computation order policy");
     c.def("flops", &GetFlops, "Get estimated flops");
     c.def("peak_memory_usage", &GetPeakMemoryUsage, "Get estimated peak memory usage");
     c.def("all_memory_usage", &GetAllMemoryUsage, "Get estimated all memory usage");
