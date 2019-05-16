@@ -26,7 +26,7 @@ try:
 except:
     pass
 
-all_computation_orders = [None, 'dummy']
+all_computation_orders = [None, 'dummy', 'dummy2']
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
