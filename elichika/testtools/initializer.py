@@ -1,5 +1,4 @@
 # coding: utf-8
-# Almost code are from　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
 
 import chainer
 import numpy as np

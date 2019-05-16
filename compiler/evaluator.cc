@@ -78,8 +78,7 @@ void Eval(
 
         switch (var->kind()) {
             case runtime::XCVMVar::Kind::kArray: {
-                // TODO(take-cheeze): Avoid copy if possible.
-                outputs->emplace_back(new EvaluatedValue(new Tensor(name, state.GetArray(output_id).Copy())));
+                outputs->emplace_back(new EvaluatedValue(new Tensor(name, state.GetArray(output_id))));
                 break;
             }
 

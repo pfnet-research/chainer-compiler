@@ -64,6 +64,7 @@ public:
     }
 
 private:
+    // Must be a C-contiguous array.
     const chainerx::Array array_;
     std::string name_;
     std::string doc_string_;
