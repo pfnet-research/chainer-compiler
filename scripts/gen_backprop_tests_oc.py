@@ -36,10 +36,11 @@ def create_backprop_test(test_name, fn, dtype=np.float32, **kwargs):
 
 
 class BackpropTest(object):
-    def __init__(self, name, fn, **kwargs):
+    def __init__(self, name, fn, rtol=None, **kwargs):
         self.name = name
         self.fn = fn
         self.kwargs = kwargs
+        self.rtol = rtol
 
     def generate(self):
         create_backprop_test(self.name, self.fn, **self.kwargs)
@@ -52,7 +53,8 @@ def get_backprop_tests():
     def test(name, fn, **kwargs):
         for dtype in (np.float16, np.float32, np.float64):
             test_name = '%s_%s' % (name, dtype.__name__)
-            tests.append(BackpropTest(test_name, fn, dtype=dtype, **kwargs))
+            rtol = None if dtype != np.float16 else 0.04
+            tests.append(BackpropTest(test_name, fn, dtype=dtype, rtol=rtol, **kwargs))
 
     def aranges(*shape):
         r = np.prod(shape)

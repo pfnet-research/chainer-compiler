@@ -543,7 +543,9 @@ for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
     dirname = 'out'
     name = 'backprop_test_oc_' + backprop_test.name
     assert os.path.exists(os.path.join(dirname, name))
-    TEST_CASES.append(TestCase(dirname, name))
+    tc = TestCase(dirname, name)
+    tc.rtol = backprop_test.rtol
+    TEST_CASES.append(tc)
 
 for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     dirname = 'out'
