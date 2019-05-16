@@ -558,7 +558,7 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
                                skip_shape_inference=skip_shape_inference))
 
 for test in gen_extra_test.get_tests():
-    assert os.path.exists(test.test_dir)
+    assert os.path.exists(test.test_dir), test.test_dir
     TEST_CASES.append(test)
 
 for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
