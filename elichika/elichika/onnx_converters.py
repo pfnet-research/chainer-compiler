@@ -609,35 +609,18 @@ class ONNXValue:
     def create_tensor(self) -> 'ONNXValue':
         if(isinstance(self.value, values.TupleValue)):
             value = self.value  # type:values.TupleValue
-            if value.has_constant_value():
-                ret = ONNXValue(self.onnx_graph, np.float32, [
-                                self.name, '/tensor'])
 
-                vs = []
-                for v in value.get_constant_value():
-                    if v.has_constant_value():
-                        c = ONNXValue(self.onnx_graph, np.array(v.get_constant_value()), [
-                                      self.name, '/c'], is_constant=True)
-                    else:
-                        c = ONNXValue(self.onnx_graph, v,
-                                      None, is_constant=False)
+            ret = ONNXValue(self.onnx_graph, np.float32, [
+                            self.name, '/tensor'])
 
-                    us = self.onnx_graph.add_node(
-                        "Unsqueeze", [c], [None], str('create_tensor'), axes=[0])
-                    vs.append(us[0])
+            self.onnx_graph.add_node(
+                "ChainerSequenceStack",
+                [value],
+                [ret],
+                str('create_tensor'))
+            return ret
 
-                self.onnx_graph.add_node(
-                    "Concat",
-                    vs,
-                    [ret],
-                    str('create_tensor'),
-                    axis=0)
-
-                return ret
-            else:
-                assert(False)
-
-        if(isinstance(self.value, values.ListValue)):
+        elif(isinstance(self.value, values.ListValue)):
             value = self.value  # type:values.ListValue
 
             ret = ONNXValue(self.onnx_graph, np.float32, [
