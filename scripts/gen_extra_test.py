@@ -1139,7 +1139,7 @@ def get_tests():
 
     test('extra_test_pad_batch_size', gen_pad_batch_size_test)
 
-    test('extra_test_const_int', gen_const_int_test, fail=True)
+    test('extra_test_const_int', gen_const_int_test)
 
     tests += gen_chainercv_test.get_tests()
 
