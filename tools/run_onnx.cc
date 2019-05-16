@@ -476,12 +476,12 @@ void RunMain(const std::vector<std::string>& argv) {
         LOG() << "Found " << test_cases.size() << " test cases" << std::endl;
     }
 
-    int iterations = args.get<int>("iterations");
-    CHECK_LT(0, iterations);
-    if (iterations > 1) {
+    int max_iterations = args.get<int>("iterations");
+    CHECK_LT(0, max_iterations);
+    if (max_iterations > 1) {
         test_cases.resize(1);
         std::vector<std::unique_ptr<TestCase>> new_test_cases;
-        for (int i = 0; i < iterations; ++i) {
+        for (int i = 0; i < max_iterations; ++i) {
             for (auto& test : test_cases) {
                 new_test_cases.emplace_back(new TestCase(*test));
             }
@@ -571,7 +571,7 @@ void RunMain(const std::vector<std::string>& argv) {
                     fail("shape");
                     return false;
                 }
-                if (iterations > 1) return true;
+                if (max_iterations > 1) return true;
 
                 int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
                 if (mismatch) {
@@ -635,13 +635,13 @@ void RunMain(const std::vector<std::string>& argv) {
         // The first iteration is for warm up.
         if (test_case != test_cases.front()) elapsed_total += elapsed;
 
-        if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
+        if (max_iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
-    if (iterations > 1) {
+    if (max_iterations > 1) {
         // The first iteration is for warm up.
-        std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
+        std::cerr << "Average elapsed: " << elapsed_total / (max_iterations - 1) << " msec" << std::endl;
     }
 }
 
