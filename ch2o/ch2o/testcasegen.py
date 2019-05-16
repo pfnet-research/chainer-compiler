@@ -1,6 +1,4 @@
 # coding: utf-8
-# ほぼ　https://github.com/chainer/onnx-chainer/blob/master/onnx_chainer/testing/test_mxnet.py
-# からもらっってきました
 
 import collections
 import copy
