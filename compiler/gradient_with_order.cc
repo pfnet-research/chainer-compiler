@@ -393,9 +393,8 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 }
 
                 ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) {  // FIXME: first argument may be fwd_graph
+                if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) {  // NOTE: first argument may be fwd_graph?
                     break;
-                    // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
                 }
 
                 // Copy back gradients of inputs from the last forward
