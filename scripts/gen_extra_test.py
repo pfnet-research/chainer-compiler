@@ -1011,6 +1011,14 @@ def gen_pad_batch_size_test(test_name):
     gb.gen_test()
 
 
+def gen_const_int_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    c = np.array(list(range(20)))
+    c_v = gb.const(c)
+    gb.output(gb.Identity([c_v]), c)
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1130,6 +1138,8 @@ def get_tests():
     test('extra_test_pad_negative_width', gen_pad_negative_width_test)
 
     test('extra_test_pad_batch_size', gen_pad_batch_size_test)
+
+    test('extra_test_const_int', gen_const_int_test, fail=True)
 
     tests += gen_chainercv_test.get_tests()
 
