@@ -118,7 +118,7 @@ std::vector<chainerx::Array> TVMOp::RunImpl(chainer_compiler::runtime::XCVMState
     chainerx::Array inputs[orig_inputs.size()];
     for (size_t i = 0; i < orig_inputs.size(); ++i) {
         const chainerx::Array& input = orig_inputs[i];
-        inputs[i] = chainerx::AsContiguousArray(input);
+        inputs[i] = chainerx::internal::AsContiguous(input);
     }
 
     if (impl_->outputs.empty()) {
