@@ -31,6 +31,7 @@ def generate_copied_value(value: 'values.Value'):
         copied = values.TensorValue()
         copied.value = value.value
         copied.shape = value.shape
+        copied.dtype = value.dtype
         return copied
 
     if isinstance(value, values.ListValue):

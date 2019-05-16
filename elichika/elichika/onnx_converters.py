@@ -28,7 +28,7 @@ import collections
 
 def size2d(x):
     if isinstance(x, collections.Iterable):
-        return x
+        return list(x)
     return (x, x)
 
 def get_onnx_dtype(dtype):
@@ -47,6 +47,9 @@ class NodeParse:
         self.defs = {}
 
     def get(self, name : 'str'):
+        if not name in self.args.keys():
+            return None
+
         return self.args[name]
 
     def add_def(self, name : 'str', type_ : 'ParseType', required = "None"):
@@ -55,12 +58,15 @@ class NodeParse:
     def parse(self, onnx_graph, node):
         for k,v in self.defs.items():
             arg = node.args.keywords[k]
+            att_arg = node.attribute_args.keywords[k]
 
             if v[0] == ParseType.In:
                 a = ONNXValue(onnx_graph,arg)
                 self.args[k] = a
             else:
-                att = try_get_attribute(arg, node)
+                att = try_get_attribute(att_arg, node)
+                if att is None:
+                    continue
 
                 # failed
                 if att == sys.maxsize:
@@ -919,7 +925,7 @@ class ONNXGenerator:
 
                     if not config.float_restrict:
                         if dtype == np.float64:
-                            dtype == np.float32
+                            dtype = np.float32
 
                     arr = np.array(0, dtype=dtype)
 
