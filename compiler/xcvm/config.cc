@@ -142,6 +142,7 @@ public:
         CHECK(op_set_.emplace(Node::kTranspose).second);
         CHECK(op_set_.emplace(Node::kUnsqueeze).second);
         CHECK(op_set_.emplace(Node::kUpsample).second);
+        CHECK(op_set_.emplace(Node::kWhere).second);
         CHECK(op_set_.emplace(Node::kXor).second);
         CHECK(op_set_.emplace(Node::kIsNaN).second);
         CHECK(op_set_.emplace(Node::kIsInf).second);

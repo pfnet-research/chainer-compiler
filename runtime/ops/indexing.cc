@@ -159,5 +159,9 @@ chainerx::Array SelectItemGradOp::RunImpl(
     return out.Reshape(shape);
 }
 
+chainerx::Array WhereOp::RunImpl(XCVMState* st, chainerx::Array const& cond, chainerx::Array const& x, chainerx::Array const& y) {
+    return chainerx::Where(cond, x, y);
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
