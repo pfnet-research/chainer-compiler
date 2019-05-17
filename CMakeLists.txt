@@ -74,6 +74,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
 set(CMAKE_CXX_STANDARD 14)
 
+# Make both chainer-compiler and ChainerX consistent.
+set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
+
 # ChainerX will be linked dynamically. Build it before setting
 # visibility flags.
 if(${CHAINER_COMPILER_ENABLE_PYTHON})
@@ -138,9 +141,6 @@ if(${CHAINER_COMPILER_ENABLE_OPENMP})
     error("OpenMP not found")
   endif()
 endif()
-
-# Make both chainer-compiler and ChainerX consistent.
-set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
 
 # CUDA
 if(${CHAINER_COMPILER_ENABLE_CUDA})
