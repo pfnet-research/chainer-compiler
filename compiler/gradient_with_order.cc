@@ -177,12 +177,10 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
             if (output_all_staged) {
                 current_graph = bwd_graph;
                 {
-                    ScheduleAddedScope schedule_scope(fwd_graph, schedule_node);
-                    {
-                        ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                        AddGradInputs(fwd_graph, bwd_graph);
-                        AddRetainedParts(fwd_graph, bwd_graph, &staged);
-                    }
+                    ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
+                    ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node);
+                    AddGradInputs(fwd_graph, bwd_graph);
+                    AddRetainedParts(fwd_graph, bwd_graph, &staged);
                 }
             }
         }
