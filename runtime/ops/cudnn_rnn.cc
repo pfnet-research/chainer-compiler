@@ -428,7 +428,7 @@ bool CudnnLSTM(
     chainerx::Array packed = PackSequence(x, num_inputs, num_batches);
 
     auto& device = dynamic_cast<chainerx::cuda::CudaDevice&>(x.device());
-    CudnnHandle& cudnn_handle = device.cudnn_handle();
+    CudnnHandle& cudnn_handle = chainerx::cuda::cuda_internal::GetDeviceInternals(device).cudnn_handle();
 
     // TODO(hamaji): Avoid unnecessary memory allocation.
     CudnnTensorDescriptor x_desc(chainerx::Empty({batch_size, input_size, 1}, x.dtype(), chainerx::GetNativeBackend().GetDevice(0)));
@@ -567,7 +567,7 @@ bool CudnnLSTMGrad(
     if (!dynamic_cast<const LSTMBackwardContext*>(&ctx)) return false;
     auto& context = dynamic_cast<const LSTMBackwardContext&>(ctx);
     auto& device = dynamic_cast<chainerx::cuda::CudaDevice&>(ogy.device());
-    CudnnHandle& cudnn_handle = device.cudnn_handle();
+    CudnnHandle& cudnn_handle = chainerx::cuda::cuda_internal::GetDeviceInternals(device).cudnn_handle();
 
     const chainerx::Array& x = context.x();
     const chainerx::Array& w_concat = context.w();
