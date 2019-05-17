@@ -547,12 +547,17 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     body_graph.name = 'Body_' + listcomp_guid
 
     node_forgen = nodes.NodeForGenerator(counter_value, iter_value)
-    target_value = values.Value()
-    target_ref = values.ValueRef(target_value)
-    node_forgen.set_outputs([target_value])
-    
-    local_field.get_attribute(target_name).revise(target_ref)
 
+    target_ref = iter_value.get_iterator()
+    if target_ref is None:
+        target_ref = values.ValueRef(values.UnknownValue())
+        if config.show_warnings:
+            print('unknown iteratable type in L.{}'.format(astc.lineno))
+    target_value = target_ref.get_value()
+
+    node_forgen.set_outputs([target_ref.get_value()])
+    local_field.get_attribute(target_name, from_module=False).revise(target_ref)
+    
     body_graph.add_node(node_forgen)
 
     elt = veval_ast(astc.c(astc.nast.elt), local_field, body_graph)
@@ -881,7 +886,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         return None
 
     # unroll?
-    if isinstance(input_iter_value, values.ListValue) and input_iter_value.has_constant_value():
+    if isinstance(input_iter_value, values.ListValue) and input_iter_value.has_constant_value() and input_iter_value.dtype is None:
         return veval_ast_for_unroll(astc, target_name, input_iter_value, local_field, graph)
 
     for_guid = utils.get_guid()
@@ -909,16 +914,15 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     # create a node to lookup a value from sequence
     node_forgen = nodes.NodeForGenerator(body_counter_value, body_iter_value)
 
-    # estimate type
-    # TODO : more types
-    if isinstance(input_iter_value, values.RangeValue):
-        target_value = values.NumberValue(None)
-        target_value.dtype = np.array(0).dtype
-    else:
-        target_value = values.UnknownValue()
-
-    target_ref = values.ValueRef(target_value)
-    node_forgen.set_outputs([target_value])
+    # generate iterator
+    target_ref = input_iter_value.get_iterator()
+    if target_ref is None:
+        target_ref = values.ValueRef(values.UnknownValue())
+        if config.show_warnings:
+            print('unknown iteratable type in L.{}'.format(astc.lineno))
+    target_value = target_ref.get_value()
+    
+    node_forgen.set_outputs([target_ref.get_value()])
 
     target_attribute = local_field.get_attribute(target_name)
     target_attribute.revise(target_ref)

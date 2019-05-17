@@ -169,7 +169,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     node_input = nodes.NodeInput('input')
 
     for arg in args:
-        varg = values.parse_instance(default_module, '', arg, None, True)
+        varg = values.parse_instance(default_module, '', arg, None)
         varg.name = 'in_' + str(ind)
         varg.get_value().name = 'in_' + str(ind)
 
