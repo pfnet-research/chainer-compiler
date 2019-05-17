@@ -550,7 +550,9 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     target_ref = iter_value.get_iterator()
     if target_ref is None:
-        raise Exception("uniteratable")
+        target_ref = values.ValueRef(values.UnknownValue())
+        if config.show_warnings:
+            print('unknown iteratable type in L.{}'.format(astc.lineno))
     target_value = target_ref.get_value()
 
     node_forgen.set_outputs([target_ref.get_value()])
@@ -915,7 +917,9 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     # generate iterator
     target_ref = input_iter_value.get_iterator()
     if target_ref is None:
-        raise Exception('uniteratable')
+        target_ref = values.ValueRef(values.UnknownValue())
+        if config.show_warnings:
+            print('unknown iteratable type in L.{}'.format(astc.lineno))
     target_value = target_ref.get_value()
     
     node_forgen.set_outputs([target_ref.get_value()])
