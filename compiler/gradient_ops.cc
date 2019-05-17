@@ -78,7 +78,7 @@ public:
         if (!p.second) {
             return p.first->second;
         }
-        Value* retained = gb.Temp();
+        Value* retained = gb.Temp(v->type());
         p.first->second = retained;
         return retained;
     }
