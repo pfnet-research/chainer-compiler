@@ -652,6 +652,10 @@ private:
             EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kChainerNullConstant) {
             EMIT(NullConstant, out(0));
+        } else if (node.op_type() == Node::kWhere) {
+            CHECK_EQ(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Where, out(0), in(0), in(1), in(2));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
