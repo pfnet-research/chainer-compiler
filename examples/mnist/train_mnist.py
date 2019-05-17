@@ -99,9 +99,13 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     mlp = MLP(args.unit, 10)
     if args.compile:
+        if args.computation_order is None:
+            translator = 'ch2o'
+        else:
+            translator = 'onnx_chainer'
         mlp = chainer_compiler.compile(
             mlp, dump_onnx=args.dump_onnx,
-            translator='onnx_chainer',
+            translator=translator,
             computation_order=args.computation_order)
     model = L.Classifier(mlp)
     model.to_device(device)
