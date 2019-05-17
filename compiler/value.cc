@@ -53,6 +53,11 @@ int64_t Value::GetNBytes() const {
     return type_->GetNBytes();
 }
 
+Node* Value::user(int index) const {
+    CHECK_LT(index, users_.size());
+    return users_[index];
+}
+
 void Value::AddUser(Node* user) {
     users_.push_back(user);
 }
