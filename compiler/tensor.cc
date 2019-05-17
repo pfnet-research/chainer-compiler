@@ -27,21 +27,6 @@ UniqueData LoadDataFromRepeated(const ::google::protobuf::RepeatedField<From>& a
     return p;
 }
 
-template <typename To>
-UniqueData LoadDataFromRawData(const void* data, int64_t num_elements) {
-    UniqueData p(std::malloc(num_elements * sizeof(To)), &std::free);
-    for (int i = 0; i < num_elements; ++i) {
-        static_cast<To*>(p.get())[i] = reinterpret_cast<const To*>(data)[i];
-    }
-    return p;
-}
-
-template <typename To>
-UniqueData LoadDataFromRawData(const std::string& data, int64_t num_elements) {
-    CHECK_EQ(num_elements * sizeof(To), data.size());
-    return LoadDataFromRawData<To>(data.data(), num_elements);
-}
-
 template <typename From, typename To>
 UniqueData LoadDataFromTypedData(const void* data, int64_t num_elements) {
     UniqueData p(std::malloc(num_elements * sizeof(To)), &std::free);
