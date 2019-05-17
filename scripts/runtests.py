@@ -583,8 +583,7 @@ for test in TEST_CASES:
         continue
 
     # TODO(mkusumoto): remove this "if" after fixing issue
-    # TODO(take-cheeze): Fix issue of two phase backprop float16 dtype inference
-    if not test.name.startswith('large_oc') and not test.name.endswith('float16'):
+    if not test.name.startswith('large_oc'):
         new_test = copy.copy(test)
         new_test.name = test.name + '_two_phase'
         new_test.is_backprop_two_phase = True
