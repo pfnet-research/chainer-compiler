@@ -72,11 +72,10 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     }
     if (!g_skip_inference) {
         graph->InferShapes();
+        InferAllDtype(graph);
     }
 
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
-
-    InferAllDtype(graph);
 
     auto dump_onnx = [&graph](bool cond, const char* msg) {
         if (cond) {
