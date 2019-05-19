@@ -23,6 +23,7 @@ class Generator(object):
 TESTS = [
     Generator('model', 'MLP'),
     Generator('model', 'Alex'),
+    Generator('model', 'Resnet_with_loss'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
@@ -61,6 +62,7 @@ TESTS = [
     Generator('node/Functions', 'Hstack'),
     Generator('node/Functions', 'Squeeze'),
     Generator('node/Functions', 'Separate'),
+    Generator('node/Functions', 'Mean'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),

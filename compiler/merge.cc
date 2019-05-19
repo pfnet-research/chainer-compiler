@@ -19,10 +19,10 @@ bool MaybeMergeSplitConcat(Graph* graph, Node* node) {
         if (output->users().size() != 1) {
             return false;
         }
-        if (user && user != output->users()[0]) {
+        if (user && user != output->user(0)) {
             return false;
         }
-        user = output->users()[0];
+        user = output->user(0);
     }
     if (!user) {
         return false;
@@ -87,7 +87,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
         return false;
     }
     Value* pad_conv = pad->output(0);
-    Node* conv = pad_conv->users()[0];
+    Node* conv = pad_conv->user(0);
     if (conv->input(0) != pad_conv || conv->op_type() != Node::kConv) {
         return false;
     }

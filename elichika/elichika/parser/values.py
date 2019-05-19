@@ -77,7 +77,7 @@ def get_outputs() -> 'List[FieldOutput]':
     return ret
 
 
-def parse_instance(default_module, name, instance, self_instance=None, parse_shape=False, from_member = False, root_graph : 'graphs.Graph' = None) -> "ValueRef":
+def parse_instance(default_module, name, instance, self_instance=None, from_member = False, root_graph : 'graphs.Graph' = None) -> "ValueRef":
 
     for converter in instance_converters:
         ret = converter(default_module, instance)
@@ -114,13 +114,6 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
     if isinstance(instance, str):
         return ValueRef(StrValue(instance))
 
-    if isinstance(instance, list):
-        if parse_shape:
-            return ValueRef(ListValue())
-        else:
-            print('List is not supported now!!!')
-            return ValueRef(NumberValue(0.0))
-
     if instance is inspect._empty:
         return None
 
@@ -138,6 +131,37 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
         return ValueRef(FuncValue(func, None))
+
+    if isinstance(instance, list):
+        if root_graph is None:
+            value_in_tuple = []
+            for v in instance:
+                o = parse_instance(default_module, '', v)
+                value_in_tuple.append(o)
+            ret = ListValue(value_in_tuple)
+        else:
+            value_in_tuple = []
+            vs = []
+            for v in instance:
+                o = parse_instance(default_module, '', v)
+                value_in_tuple.append(o)
+                value = o.get_value()
+
+                if isinstance(value, TupleValue):
+                    assert(False)
+
+                if isinstance(value, ListValue):
+                    assert(False)
+
+                vs.append(value)
+
+            node = nodes.NodeGenerate('List', vs)
+            ret = ListValue(value_in_tuple)
+            node.set_outputs([ret])
+            root_graph.add_initial_node(node)
+
+        ret.estimate_type()
+        return ValueRef(ret)
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
@@ -531,6 +555,7 @@ class Value():
         self.name = ""
         self.generator = None
         self.internal_value = None
+        self.dtype = None
         self.id = utils.get_guid()
 
         #  this actual value is not important, but type is required as dummy value
@@ -541,6 +566,12 @@ class Value():
     
     def get_constant_value(self):
         return self.internal_value
+
+    def is_iteratable(self):
+        return False
+
+    def get_iterator(self) -> 'ValueRef':
+        return None
 
     def apply_to_object(self, obj: 'ValueRef'):
         '''
@@ -619,6 +650,12 @@ class RangeValue(Value):
     def __init__(self):
         super().__init__()
 
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':
+        return ValueRef(NumberValue(None))
+
     def __str__(self):
         return self.name + '(R)'
 
@@ -647,6 +684,42 @@ class ListValue(Value):
         super().__init__()
         self.is_any = values is None
         self.internal_value = values
+        self.dtype = None
+        self.vtype = None # type: Type
+
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':
+        if self.vtype is None:
+            return None
+
+        v = self.vtype()
+
+        if self.dtype is not None:
+            v.dtype = self.dtype
+            
+
+        return ValueRef(v)
+
+    def estimate_type(self):
+        if self.internal_value is None:
+            return
+
+        self.vtype = None
+        self.dtype = None
+
+        for v in self.internal_value:
+            if self.vtype is None:
+                self.vtype = type(v.get_value())
+                self.dtype = v.get_value().dtype
+            else:
+                if self.vtype != type(v.get_value()):
+                    self.vtype = None
+                    self.dtype = None
+                    return
+                if self.dtype != v.get_value().dtype:
+                    self.dtype = None
 
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
@@ -686,6 +759,15 @@ class TensorValue(Value):
 
         if not config.float_restrict and self.dtype == np.float64:
             self.dtype = np.float32
+
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':            
+        v = TensorValue()
+        v.dtype = self.dtype
+        return ValueRef(v)
+
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(

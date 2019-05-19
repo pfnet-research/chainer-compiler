@@ -373,6 +373,8 @@ XC_OPS = [
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
 
+    ('Where', [Array('condition'), Array('x'), Array('y')], [Array('output')]),
+
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],
      [ArrayList('outputs')]),
