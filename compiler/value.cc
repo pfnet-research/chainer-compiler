@@ -1,9 +1,11 @@
 #include "compiler/value.h"
 
 #include <algorithm>
+#include <sstream>
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/node.h>
 #include <compiler/serializer_util.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
@@ -35,6 +37,16 @@ std::string Value::DebugString() const {
     onnx::ValueInfoProto xvalue;
     ToONNX(&xvalue);
     return xvalue.DebugString();
+}
+
+std::string Value::ToString() const {
+    std::ostringstream oss;
+    oss << name();
+    oss << "(kind=" << kind_;
+    oss << " type=" << (type_ ? type_->ToString() : "(null)");
+    oss << " producer=" << (producer() ? producer()->ToString() : "(null)");
+    oss << ")";
+    return oss.str();
 }
 
 void Value::ResetInitializer(std::unique_ptr<Tensor>&& tensor) {

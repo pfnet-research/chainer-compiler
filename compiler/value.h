@@ -31,6 +31,7 @@ public:
 
     void ToONNX(onnx::ValueInfoProto* xvalue) const;
     std::string DebugString() const;
+    std::string ToString() const;
 
     bool IsTemp() const {
         return kind_ == Kind::kTemp;
