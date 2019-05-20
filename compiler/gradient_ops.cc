@@ -78,7 +78,7 @@ public:
         if (!p.second) {
             return p.first->second;
         }
-        Value* retained = gb.Temp();
+        Value* retained = gb.Temp(v->type());
         p.first->second = retained;
         return retained;
     }
@@ -229,7 +229,7 @@ void ExpGradFn(GradientOpContext* gc) {
 void SigmoidGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
-    Value* one = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {1.0});
+    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
     Value* t0 = gb.Op(Node::kMul, {gy, gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, gc->y(0)});
     gc->GradOp(Node::kMul, 0, {t0, t1});
@@ -247,7 +247,7 @@ void SqrtGradFn(GradientOpContext* gc) {
 
 void TanhGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* one = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {1.0});
+    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
     Value* gy = gc->gy(0);
     Value* t0 = gb.Op(Node::kMul, {gc->y(0), gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, t0});
