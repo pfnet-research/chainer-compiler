@@ -31,6 +31,22 @@ TEST(FlopsTest, Conv) {
     EXPECT_EQ(0, num_unknown_ops);
 }
 
+TEST(FlopsTest, ConvGradWeight) {
+    Graph graph("test");
+    Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, 3, 2}));
+    Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {2, 6, 7, 8}));
+    Value* gy = graph.AddInputValue("gy", Type(Dtype::kFloat32, {2, 10, 7, 8}));
+
+    auto make_conv_grad_weight = [&](int group) {
+        GraphBuilder gb(&graph, "test", x);
+        Value* y = gb.Op(Node::kChainerConvGradWeight, {w, x, gy});
+        y->producer()->set_group(group);
+        return y->producer();
+    };
+
+    EXPECT_EQ(2 * 7 * 8 * 6 * 10, CalculateFlops(*make_conv_grad_weight(1)));
+}
+
 TEST(FlopsTest, Gemm) {
     Graph graph("test");
     Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {2, 6}));
