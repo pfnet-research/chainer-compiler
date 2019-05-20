@@ -36,7 +36,7 @@ include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 
-add_library(chainer_compiler_compiler
+set(CHAINER_COMPILER_COMPILER_SRCS
   code_emitter.cc
   constant_propagation.cc
   config.cc
@@ -77,9 +77,19 @@ add_library(chainer_compiler_compiler
   xcvm/emitter.cc
   xcvm/xcvm_value.cc
   )
+
+# Force to generate onnx protocol buffer header before compilation.
+foreach(src ${CHAINER_COMPILER_COMPILER_SRCS})
+  if(NOT IS_ABSOLUTE "${src}")
+    set(src "${CMAKE_CURRENT_SOURCE_DIR}/${src}")
+  endif()
+  add_custom_command(OUTPUT ${src} DEPENDS gen_onnx_proto)
+endforeach()
+
+add_library(chainer_compiler_compiler ${CHAINER_COMPILER_COMPILER_SRCS})
 add_dependencies(
   chainer_compiler_compiler
-  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h gen_onnx_proto
+  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h
   )
 set_hidden_(chainer_compiler_compiler)
 
