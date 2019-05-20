@@ -113,6 +113,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
             auto orders = GetComputationOrder(*graph, g_computation_order);
             if (!AddGradientNodesForTrainingWithOrders(graph, orders)) {
                 std::cerr << "Computation order is not supported in this graph.\n";
+                // TODO(mkusumoto): don't exit here
                 exit(0);
             }
             // SimplifyOps({Node::kIdentity}, graph);

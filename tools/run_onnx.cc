@@ -242,6 +242,7 @@ public:
                 auto orders = GetComputationOrder(model->graph(), g_computation_order);
                 if (!AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders)) {
                     LOG() << "Computation order is not supported in this graph." << std::endl;
+                    // TODO(mkusumoto): don't exit here
                     exit(0);
                 }
             }
