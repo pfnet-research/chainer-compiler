@@ -100,9 +100,9 @@ public:
     }
 
     int GetValueId(const Value* v) const {
-        CHECK(!v->name().empty()) << v->DebugString();
+        CHECK(!v->name().empty()) << v->ToString();
         auto found = value_ids_.find(v);
-        CHECK(found != value_ids_.end()) << "Value not exist: " << v->name();
+        CHECK(found != value_ids_.end()) << "Value not exist: " << v->ToString();
         return found->second;
     }
 
@@ -116,17 +116,17 @@ public:
 private:
     void AssignValueIds(const Graph& graph) {
         for (const Value* v : graph.input_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->DebugString();
+            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
         }
         for (const Value* v : graph.temp_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->DebugString();
+            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
         }
         for (const Value* v : graph.output_values()) {
             // We allow graph output to be null.
             // TODO(hamaji): Revisit this design. Probably, it would
             // be better to mark outputs are unnecessary instead of
             // using null values.
-            CHECK(value_ids_.emplace(v, next_value_id_++).second || v->name().empty()) << v->DebugString();
+            CHECK(value_ids_.emplace(v, next_value_id_++).second || v->name().empty()) << v->ToString();
         }
     }
 
@@ -543,6 +543,11 @@ private:
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Max, out(0), ins);
+        } else if (node.op_type() == Node::kMin) {
+            CHECK_EQ(1UL, node.outputs().size());
+            std::vector<int> ins;
+            for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
+            EMIT(Min, out(0), ins);
         } else if (node.op_type() == Node::kTranspose) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -647,6 +652,10 @@ private:
             EMIT(GenericAccumulateGrad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kChainerNullConstant) {
             EMIT(NullConstant, out(0));
+        } else if (node.op_type() == Node::kWhere) {
+            CHECK_EQ(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(Where, out(0), in(0), in(1), in(2));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
@@ -663,7 +672,9 @@ private:
         if (dtype.IsFloat()) {
             std::vector<double> v;
             for (int64_t i = 0; i < value->NumElements(); ++i) {
-                if (dtype.SizeOf() == 4) {
+                if (dtype == Dtype::kFloat16) {
+                    v.push_back(static_cast<double>(value->Get<chainerx::Float16>(i)));
+                } else if (dtype.SizeOf() == 4) {
                     v.push_back(value->Get<float>(i));
                 } else if (dtype.SizeOf() == 8) {
                     v.push_back(value->Get<double>(i));

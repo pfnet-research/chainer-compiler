@@ -1,6 +1,9 @@
 #include "compiler/type.h"
 
+#include <sstream>
+
 #include <common/log.h>
+#include <common/strutil.h>
 
 namespace chainer_compiler {
 
@@ -108,6 +111,42 @@ std::string Type::DebugString() const {
     onnx::TypeProto xtype;
     ToONNX(&xtype);
     return xtype.DebugString();
+}
+
+std::string Type::ToString() const {
+    std::ostringstream oss;
+    switch (kind_) {
+        case Kind::kTensor: {
+            std::string shape_str;
+            if (has_known_shape_) {
+                shape_str = JoinString(MapToString(dims_, [](int64_t d) { return d < 0 ? "?" : StrCat(d); }), ",");
+            } else {
+                shape_str = "UNKNOWN";
+            }
+            oss << "Tensor";
+            oss << "(dtype=" << dtype_;
+            oss << " shape=" << shape_str;
+            oss << ")";
+            break;
+        }
+
+        case Kind::kSequence:
+            oss << "Sequence(";
+            if (sequence_) {
+                oss << sequence_->ToString();
+            }
+            oss << ")";
+            break;
+
+        case Kind::kMap:
+            CHECK(false) << "Map not implemented";
+            break;
+
+        case Kind::kOpaque:
+            oss << "Opaque()";
+            break;
+    }
+    return oss.str();
 }
 
 int64_t Type::NumElements() const {

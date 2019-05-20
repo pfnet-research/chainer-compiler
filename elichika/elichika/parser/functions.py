@@ -31,6 +31,7 @@ def generate_copied_value(value: 'values.Value'):
         copied = values.TensorValue()
         copied.value = value.value
         copied.shape = value.shape
+        copied.dtype = value.dtype
         return copied
 
     if isinstance(value, values.ListValue):
@@ -79,21 +80,18 @@ def generate_tensor_value_with_undefined_shape_size(value: 'values.TensorValue')
 class SuffixType(Enum):
     Unknown = 0,
     Unused = 1,
+    Dummy = 2,
+    Input = 3,
 
-def generate_value_with_same_type(value: 'values.Value', has_default = False, suffix_type = SuffixType.Unknown):
+def generate_value_with_same_type(value: 'values.Value', is_dummy_value = False, suffix_type = SuffixType.Unknown):
     assert(isinstance(value, values.Value))
     ret = None
     if isinstance(value, values.TensorValue):
         ret = values.TensorValue()
         ret.shape = value.shape
         ret.dtype = value.dtype
-        if has_default:
-            if ret.dtype is None:
-                ret.dtype = np.float32
-            ret.internal_value = np.array((0), ret.dtype)
 
-
-    if isinstance(value, values.NumberValue):
+    elif isinstance(value, values.NumberValue):
         dtype = None
         if value.internal_value is None:
             dtype = value.dtype
@@ -102,51 +100,50 @@ def generate_value_with_same_type(value: 'values.Value', has_default = False, su
         elif isinstance(value.internal_value, float):
             dtype = np.array(value.internal_value).dtype
 
-        if has_default:
-            if dtype == np.array(0).dtype:
-                ret = values.NumberValue(0)
-            elif dtype == np.array(0.0).dtype:
-                ret = values.NumberValue(0.0)
-            else:
-                ret = values.NumberValue(None)
-        else:
-            ret = values.NumberValue(None)
+        ret = values.NumberValue(None)
         ret.dtype = dtype
 
-    if isinstance(value, values.StrValue):
-        if has_default:
-            ret = values.StrValue('')
-        else:
-            ret = values.StrValue(None)
+    elif isinstance(value, values.StrValue):
+        ret = values.StrValue(None)
             
-    if isinstance(value, values.BoolValue):
-        if has_default:
-            ret = values.BoolValue(False)
-        else:
-            ret = values.BoolValue(None)
+    elif isinstance(value, values.BoolValue):
+        ret = values.BoolValue(None)
 
-    if isinstance(value, values.ListValue):
+    elif isinstance(value, values.ListValue):
         ret = values.ListValue(None)
 
-    if isinstance(value, values.NoneValue):
+    elif isinstance(value, values.NoneValue):
         ret = values.NoneValue()
 
-    if isinstance(value, values.TupleValue):
+    elif isinstance(value, values.TupleValue):
         ret = values.TupleValue()
 
-    if isinstance(value, values.UnknownValue):
-        ret = values.UnknownValue()
-        if has_default:
-            ret.internal_value = 0
+    elif isinstance(value, values.RangeValue):
+        ret = values.RangeValue()
 
-    if ret is None and isinstance(value, values.Value):
+    elif isinstance(value, values.UnknownValue):
+        ret = values.UnknownValue()
+
+    elif ret is None and isinstance(value, values.Value):
         ret = values.Value()
 
-    if ret is not None:
-        if suffix_type == SuffixType.Unknown:
-            ret.name = value.name + '_st'
-        if suffix_type == SuffixType.Unused:
-            ret.name = value.name + '_unused'
+    else:
+        assert(False)
+
+    assert(ret is not None)
+
+    ret.is_dummy_value = is_dummy_value
+    if suffix_type == SuffixType.Unknown:
+        ret.name = value.name + '_st'
+    elif suffix_type == SuffixType.Unused:
+        ret.name = value.name + '_unused'
+    elif suffix_type == SuffixType.Dummy:
+        ret.name = value.name + '_dummy'
+    elif suffix_type == SuffixType.Input:
+        ret.name = value.name + '_in'
+    else:
+        assert(False)
+
     return ret
 
 

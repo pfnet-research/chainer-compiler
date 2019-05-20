@@ -26,6 +26,7 @@ public:
 
     void ToONNX(onnx::TypeProto* xtype) const;
     std::string DebugString() const;
+    std::string ToString() const;
 
     Kind kind() const {
         return kind_;

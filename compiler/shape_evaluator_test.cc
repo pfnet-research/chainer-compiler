@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <chainerx/context.h>
+#include <chainerx/testing/context_session.h>
 
-#include <common/log.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/shape_evaluator.h>
@@ -12,8 +11,7 @@ namespace chainer_compiler {
 namespace {
 
 TEST(ShapeEvaluatorTest, EvaluateShapes) {
-    chainerx::Context ctx;
-    chainerx::ContextScope ctx_scope(ctx);
+    chainerx::testing::ContextSession sess;
 
     Value dummy_for_test("test");
     Graph graph("test");

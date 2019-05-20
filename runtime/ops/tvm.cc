@@ -55,6 +55,8 @@ DLDataType GetDLDataType(const chainerx::Array& array) {
             return DLDataType{kDLInt, 64, 1};
         case chainerx::Dtype::kUInt8:
             return DLDataType{kDLUInt, 8, 1};
+        case chainerx::Dtype::kFloat16:
+            return DLDataType{kDLFloat, 16, 1};
         case chainerx::Dtype::kFloat32:
             return DLDataType{kDLFloat, 32, 1};
         case chainerx::Dtype::kFloat64:
@@ -118,11 +120,7 @@ std::vector<chainerx::Array> TVMOp::RunImpl(chainer_compiler::runtime::XCVMState
     chainerx::Array inputs[orig_inputs.size()];
     for (size_t i = 0; i < orig_inputs.size(); ++i) {
         const chainerx::Array& input = orig_inputs[i];
-        if (input.IsContiguous()) {
-            inputs[i] = input;
-        } else {
-            inputs[i] = chainerx::Copy(input);
-        }
+        inputs[i] = chainerx::AsContiguous(input);
     }
 
     if (impl_->outputs.empty()) {

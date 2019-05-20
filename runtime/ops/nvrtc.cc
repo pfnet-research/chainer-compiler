@@ -107,9 +107,7 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(
             // TODO(hamaji): Generate code which works without broadcast.
             input = input.BroadcastTo(shape);
         }
-        if (!input.IsContiguous()) {
-            input = chainerx::Copy(input);
-        }
+        input = chainerx::AsContiguous(input);
         inputs.push_back(input);
     }
 

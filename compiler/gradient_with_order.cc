@@ -41,7 +41,7 @@ void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<V
         if (!xs.count(input)) continue;
         if (!input->type().dtype().IsFloat()) continue;
         if (!input->grad()) {
-            if (input->users().size() == 1 && input->users()[0]->op_type() == Node::kBatchNormalization) continue;
+            if (input->users().size() == 1 && input->user(0)->op_type() == Node::kBatchNormalization) continue;
             std::cerr << "No gradient for parameter: " << input->name() << std::endl;
             // ok = false;
             continue;
@@ -97,6 +97,8 @@ private:
 std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy) {
     if (policy == "dummy") {
         return DummyPolicy(graph);
+    } else if (policy == "dummy2") {
+        return DummyPolicy2(graph);
     } else if (policy == "chen") {
         return ChenPolicy(graph);
     } else {
@@ -105,10 +107,35 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
     }
 }
 
-void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders) {
+void AddGradInputs(Graph* fwd_graph, Graph* bwd_graph) {
+    for (Value* value : fwd_graph->output_values()) {
+        Value* grad = bwd_graph->AddInputValue("grad_in@" + value->name(), value->type());
+        value->set_grad(grad);
+    }
+}
+
+void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value*>* staged) {
+    for (auto& p : *staged) {
+        Value* value = p.first;
+
+        GraphBuilder gbf(fwd_graph, "retain", value);
+        GraphBuilder gbb(bwd_graph, "retain", value);
+        const std::string& name = "retained_" + value->name();
+
+        Value* o = fwd_graph->AddOutputValue(name, value->type());
+        gbf.Op(Node::kIdentity, {value}, o);
+
+        Value* i = bwd_graph->AddInputValue(name, value->type());
+
+        // Update the staged value to the retained one
+        p.second = i;
+    }
+}
+
+void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
     // A map from the original value to the staged value, possibly recomputed.
     std::map<Value*, Value*> staged;
-    for (Value* value : graph->input_values()) {
+    for (Value* value : fwd_graph->input_values()) {
         CHECK(staged.emplace(value, value).second);
     }
 
@@ -132,33 +159,56 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
 
     auto schedule_node = [&schedule_recompute](Node* node) { schedule_recompute(node, node); };
 
-    {
-        ScheduleAddedScope schedule_scope(graph, schedule_node);
-        SetInitialGradients(graph);
+    if (fwd_graph == bwd_graph) {
+        ScheduleAddedScope schedule_scope(fwd_graph, schedule_node);
+        SetInitialGradients(fwd_graph);
     }
 
     std::set<Node*> scheduled_forward;
+    Graph* current_graph = fwd_graph;
+
     for (const Order& order : orders) {
+        // Check if we should turn to the backward part
+        if (fwd_graph != bwd_graph && current_graph == fwd_graph) {
+            bool output_all_staged = true;
+            for (Value* output : fwd_graph->output_values()) {
+                if (!staged.count(output)) output_all_staged = false;
+            }
+            if (output_all_staged) {
+                current_graph = bwd_graph;
+                {
+                    ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
+                    ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node);
+                    AddGradInputs(fwd_graph, bwd_graph);
+                    AddRetainedParts(fwd_graph, bwd_graph, &staged);
+                }
+            }
+        }
+
         switch (order.kind) {
             case Order::kComputeForward: {
                 Node* node = order.node;
                 CHECK(node);
                 if (scheduled_forward.insert(node).second) {
+                    // First forward: current graph must be the forward part
+                    CHECK_EQ(current_graph, fwd_graph);
                     // The first forward computation. All inputs must
                     // be staged and not be recomputed.
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
-                        CHECK(found != staged.end()) << value->DebugString();
+                        CHECK(found != staged.end()) << value->ToString();
                         // Not recomputed.
                         CHECK_EQ(value, found->second);
                     }
                     schedule_node(node);
                 } else {
+                    // Recomputation: current graph must be the backward part
+                    CHECK_EQ(current_graph, bwd_graph);
                     // All inputs must be staged and may be recomputed.
                     std::vector<Value*> inputs;
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
-                        CHECK(found != staged.end()) << "Value " << value->name() << " is not staged.";
+                        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
                         inputs.push_back(found->second);
                     }
 
@@ -166,7 +216,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                     // objects with different names.
                     std::vector<Value*> outputs;
                     for (Value* value : node->outputs()) {
-                        Value* new_value = graph->AddValue("Recompute" + value->name());
+                        Value* new_value = bwd_graph->AddValue("Recompute" + value->name());
                         outputs.push_back(new_value);
                     }
 
@@ -175,7 +225,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                     onnx::NodeProto xnode;
                     node->ToONNX(&xnode);
                     Node* new_node = new Node(xnode, inputs, outputs);
-                    graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
+                    bwd_graph->AddNodeImpl(std::unique_ptr<Node>(new_node), inputs, outputs);
                     schedule_recompute(new_node, node);
                     if (node->op_type() == Node::kBatchNormalization) {
                         node->set_chainer_in_recomputing(1);
@@ -185,6 +235,9 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
             }
 
             case Order::kComputeBackward: {
+                // current graph must be the backward part
+                CHECK_EQ(current_graph, bwd_graph);
+
                 Node* orig_node = order.node;
                 auto found = last_forward_map.find(orig_node);
                 CHECK(found != last_forward_map.end());
@@ -202,10 +255,9 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
                     }
                 }
 
-                ScheduleAddedScope schedule_scope(graph, schedule_node);
-                if (!AddGradientForNode(graph, graph, node, nullptr)) {
+                ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+                if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) {  // NOTE: first argument may be fwd_graph?
                     break;
-                    // CHECK(false) << "All ops must be differentiable: " << node->DebugString();
                 }
 
                 // Copy back gradients of inputs from the last forward
@@ -221,7 +273,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
 
             case Order::kForgetForward: {
                 auto found = staged.find(order.value);
-                CHECK(found != staged.end()) << order.value->DebugString();
+                CHECK(found != staged.end()) << order.value->ToString();
                 staged.erase(found);
                 break;
             }
@@ -236,11 +288,16 @@ void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order
     }
 
     {
-        ScheduleAddedScope schedule_scope(graph, schedule_node);
-        ExposeParamGradsAsOutputs(graph, graph, GetParamValues(graph));
+        ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+        ExposeParamGradsAsOutputs(fwd_graph, bwd_graph, GetParamValues(fwd_graph));
     }
 
-    graph->ResetGradients();
+    fwd_graph->ResetGradients();
+    bwd_graph->ResetGradients();
+}
+
+void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders) {
+    AddGradientNodesForTrainingWithOrders(graph, graph, orders);
 }
 
 }  // namespace chainer_compiler
