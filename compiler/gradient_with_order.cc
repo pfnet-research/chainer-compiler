@@ -132,7 +132,20 @@ void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value
     }
 }
 
-void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
+bool IsComputationOrderSupported(const Graph& graph) {
+    for (const auto& value_ptr : graph.all_values()) {
+        if (value_ptr.get()->type().GetNBytes() < 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
+    if (!IsComputationOrderSupported(*fwd_graph) || !IsComputationOrderSupported(*bwd_graph)) {
+        return false;
+    }
+
     // A map from the original value to the staged value, possibly recomputed.
     std::map<Value*, Value*> staged;
     for (Value* value : fwd_graph->input_values()) {
@@ -294,10 +307,12 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
 
     fwd_graph->ResetGradients();
     bwd_graph->ResetGradients();
+
+    return true;
 }
 
-void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders) {
-    AddGradientNodesForTrainingWithOrders(graph, graph, orders);
+bool AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders) {
+    return AddGradientNodesForTrainingWithOrders(graph, graph, orders);
 }
 
 }  // namespace chainer_compiler
