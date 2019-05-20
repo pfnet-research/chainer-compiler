@@ -99,7 +99,10 @@ add_executable(compiler_test
   topology_test.cc
   xcvm/emitter_test.cc
   )
-add_dependencies(compiler_test runtime_xcvm_pb_h)
+add_dependencies(
+  compiler_test
+  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h gen_onnx_proto
+  )
 target_link_libraries(compiler_test
   chainer_compiler_compiler
   chainer_compiler_runtime
