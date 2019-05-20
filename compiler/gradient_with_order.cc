@@ -196,7 +196,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // be staged and not be recomputed.
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
-                        CHECK(found != staged.end()) << value->DebugString();
+                        CHECK(found != staged.end()) << value->ToString();
                         // Not recomputed.
                         CHECK_EQ(value, found->second);
                     }
@@ -208,7 +208,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     std::vector<Value*> inputs;
                     for (Value* value : node->inputs()) {
                         auto found = staged.find(value);
-                        CHECK(found != staged.end()) << "Value " << value->name() << " is not staged.";
+                        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
                         inputs.push_back(found->second);
                     }
 
@@ -273,7 +273,7 @@ void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
 
             case Order::kForgetForward: {
                 auto found = staged.find(order.value);
-                CHECK(found != staged.end()) << order.value->DebugString();
+                CHECK(found != staged.end()) << order.value->ToString();
                 staged.erase(found);
                 break;
             }
