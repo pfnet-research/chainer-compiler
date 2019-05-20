@@ -32,8 +32,18 @@ int64_t OutputSize(const Node& node) {
 }
 
 int64_t CalculateFlopsOfGemm(const Node& node) {
-    int64_t flops = node.output(0)->type().NumElements();
+    int64_t const out_size = node.output(0)->type().NumElements();
+    int64_t flops = out_size;
     flops *= node.input(0)->type().dims()[node.trans_a() ? 0 : 1];
+    if (node.alpha() != 1.0) {
+        flops += out_size;
+    }
+    if (node.beta() != 0.0) {
+        flops += out_size * node.input(2)->type().dims()[node.trans_a() ? 0 : 1];
+        if (node.beta() != 1.0) {
+            flops += out_size;
+        }
+    }
     return flops;
 }
 

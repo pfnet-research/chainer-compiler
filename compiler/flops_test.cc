@@ -31,5 +31,25 @@ TEST(FlopsTest, Conv) {
     EXPECT_EQ(0, num_unknown_ops);
 }
 
+TEST(FlopsTest, Gemm) {
+    Graph graph("test");
+    Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {2, 6}));
+    Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {6, 2}));
+    Value* c = graph.AddInputValue("c", Type(Dtype::kFloat32, {4, 2}));
+
+    auto make_gemm = [&](double alpha, double beta) {
+        GraphBuilder gb(&graph, "test", a);
+        Value* n = gb.Op(Node::kGemm, {a, b, c});
+        n->producer()->set_alpha(alpha)->set_beta(beta);
+        return n->producer();
+    };
+
+    int64_t const out_size = 2 * 2;
+    EXPECT_EQ(6 * out_size, CalculateFlops(*make_gemm(1.0, 0.0)));
+    EXPECT_EQ(6 * out_size + out_size, CalculateFlops(*make_gemm(0.5, 0.0)));
+    EXPECT_EQ((6 * out_size) + (out_size + 4), CalculateFlops(*make_gemm(1.0, 1.0)));
+    EXPECT_EQ((6 * out_size) + (out_size + 4 + out_size), CalculateFlops(*make_gemm(1.0, 0.5)));
+}
+
 }  // namespace
 }  // namespace chainer_compiler
