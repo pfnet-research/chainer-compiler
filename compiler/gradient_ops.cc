@@ -29,7 +29,7 @@ Dtype GetFloatDtype(const Value* value) {
             WARN_ONCE("Incomplete float dtype, assuming float32...");
             return Dtype::kFloat32;
         default:
-            CHECK(false) << dtype << ' ' << value->name();
+            CHECK(false) << dtype << ' ' << value->ToString();
     }
 }
 
