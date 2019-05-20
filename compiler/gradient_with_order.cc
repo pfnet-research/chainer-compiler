@@ -133,8 +133,8 @@ void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value
 }
 
 bool IsComputationOrderSupported(const Graph& graph) {
-    for (const auto& value_ptr : graph.all_values()) {
-        if (value_ptr.get()->type().GetNBytes() < 0) {
+    for (auto* value : graph.GetNecessaryValues()) {
+        if (value->type().GetNBytes() < 0) {
             return false;
         }
     }
