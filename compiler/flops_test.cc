@@ -67,17 +67,18 @@ TEST(FlopsTest, ConvGradWeight) {
     Graph graph("test");
     Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, 3, 2}));
     Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {2, 6, 7, 8}));
-    Value* gy = graph.AddInputValue("gy", Type(Dtype::kFloat32, {2, 10, 7, 8}));
+    Value* gy = graph.AddInputValue("gy", Type(Dtype::kFloat32, {2, 12, 7, 8}));
 
     auto make_conv_grad_weight = [&](int group, int dilation) {
         GraphBuilder gb(&graph, "test", w);
-        Value* y = gb.Op(Node::kChainerConvGradWeight, {w, x, gy});
+        Value* out = graph.AddOutputValue("y", Type(Dtype::kFloat32, {2, 12, 5, 6}));
+        Value* y = gb.Op(Node::kChainerConvGradWeight, {w, x, gy}, out);
         y->producer()->set_group(group)->set_dilations({dilation, dilation});
         return y->producer();
     };
 
     int num_unknown_ops = 0;
-    EXPECT_EQ(2 * 7 * 8 * 6 * 10, CalculateFlops(*make_conv_grad_weight(1, 1), &num_unknown_ops));
+    EXPECT_EQ(2 * 7 * 8 * 6 * 12 * 3 * 2, CalculateFlops(*make_conv_grad_weight(1, 1), &num_unknown_ops));
     EXPECT_EQ(0, num_unknown_ops);
 }
 
