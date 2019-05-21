@@ -53,5 +53,31 @@ TEST(FlopsTest, IntegralMultipleOfOutputSize) {
     run_test(Node::kLeakyRelu, 2);
 }
 
+TEST(FlopsTest, Reduce) {
+    Graph graph("test");
+    std::vector<Value*> ins = {
+            graph.AddInputValue("input0", Type(Dtype::kFloat32, {2, 6})),
+            graph.AddInputValue("input1", Type(Dtype::kFloat32, {2, 6})),
+            graph.AddInputValue("input2", Type(Dtype::kFloat32, {2, 6})),
+    };
+
+    auto run_test = [&](Node::OpType op) {
+        Node* n;
+        {
+            GraphBuilder gb(&graph, "test", ins[0]);
+            Value* out = gb.Op(op, ins);
+            n = out->producer();
+        }
+
+        int num_unknown_ops = 0;
+        EXPECT_EQ(2 * 6 * (ins.size() - 1), CalculateFlops(*n, &num_unknown_ops));
+        EXPECT_EQ(0, num_unknown_ops);
+    };
+
+    run_test(Node::kMax);
+    run_test(Node::kMin);
+    run_test(Node::kSum);
+}
+
 }  // namespace
 }  // namespace chainer_compiler

@@ -86,6 +86,8 @@ int64_t CalculateFlopsImpl(const Node& node) {
         case Node::kChainerFusionGroup:
             CHECK(false);
 
+        case Node::kSum:
+        case Node::kMin:
         case Node::kMax:
             return CalculateFlopsOfMax(node);
 
