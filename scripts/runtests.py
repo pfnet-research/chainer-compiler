@@ -591,11 +591,18 @@ for test in TEST_CASES:
         new_test.is_backprop_two_phase = True
         new_tests.append(new_test)
 
-    if test.name == 'ch2o_model_MLP_with_loss_backprop':
+    # computation_order is supported in limited test cases
+    if test.name.startswith('backprop_test_oc'):
         new_test = copy.copy(test)
         new_test.name = test.name + '_computation_order'
         new_test.computation_order = 'dummy'
         new_tests.append(new_test)
+
+        new_test2 = copy.copy(test)
+        new_test2.name = test.name + '_computation_order_two_phase'
+        new_test2.computation_order = 'dummy'
+        new_test2.is_backprop_two_phase = True
+        new_tests.append(new_test2)
 
 for test in new_tests:
     TEST_CASES.append(test)
