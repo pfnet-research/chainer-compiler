@@ -10,8 +10,12 @@ namespace {
 
 TEST(FlopsTest, Conv) {
     Graph graph("test");
-    Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {2, 6, 7, 8}));
-    Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, 3, 2}));
+    int64_t const bsize = 2;
+    int64_t const ichan = 6;
+    int64_t const kw = 3;
+    int64_t const kh = 2;
+    Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {bsize, ichan, 7, 8}));
+    Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, kw, kh}));
 
     auto make_conv = [&](int group, int dilation) {
         GraphBuilder gb(&graph, "test", x);
@@ -21,13 +25,40 @@ TEST(FlopsTest, Conv) {
     };
 
     int num_unknown_ops = 0;
-    EXPECT_EQ(10080, CalculateFlops(*make_conv(1, 1), &num_unknown_ops));
+    EXPECT_EQ(bsize * ichan * 4 * kw * kh * 5 * 7 / 1, CalculateFlops(*make_conv(1, 1), &num_unknown_ops));
     EXPECT_EQ(0, num_unknown_ops);
 
-    EXPECT_EQ(5040, CalculateFlops(*make_conv(2, 1), &num_unknown_ops));
+    EXPECT_EQ(bsize * ichan * 4 * kw * kh * 5 * 7 / 2, CalculateFlops(*make_conv(2, 1), &num_unknown_ops));
     EXPECT_EQ(0, num_unknown_ops);
 
-    EXPECT_EQ(5184, CalculateFlops(*make_conv(1, 2), &num_unknown_ops));
+    EXPECT_EQ(bsize * ichan * 4 * kw * kh * 3 * 6 / 1, CalculateFlops(*make_conv(1, 2), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+}
+
+TEST(FlopsTest, ConvTranspose) {
+    Graph graph("test");
+    int64_t const bsize = 2;
+    int64_t const ichan = 6;
+    int64_t const kw = 3;
+    int64_t const kh = 2;
+    Value* x = graph.AddInputValue("x", Type(Dtype::kFloat32, {bsize, ichan, 7, 8}));
+    Value* w = graph.AddInputValue("w", Type(Dtype::kFloat32, {4, 6, kw, kh}));
+
+    auto make_conv = [&](int group, int dilation) {
+        GraphBuilder gb(&graph, "test", x);
+        Value* y = gb.Op(Node::kConvTranspose, {x, w});
+        y->producer()->set_group(group)->set_dilations({dilation, dilation});
+        return y->producer();
+    };
+
+    int num_unknown_ops = 0;
+    EXPECT_EQ(bsize * ichan * 6 * kw * kh * 7 * 8 / 1, CalculateFlops(*make_conv(1, 1), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+
+    EXPECT_EQ(bsize * ichan * 6 * 2 * kw * kh * 7 * 8 / 2, CalculateFlops(*make_conv(2, 1), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+
+    EXPECT_EQ(bsize * ichan * 6 * kw * kh * 7 * 8 / 1, CalculateFlops(*make_conv(1, 2), &num_unknown_ops));
     EXPECT_EQ(0, num_unknown_ops);
 }
 
@@ -44,7 +75,9 @@ TEST(FlopsTest, ConvGradWeight) {
         return y->producer();
     };
 
-    EXPECT_EQ(2 * 7 * 8 * 6 * 10, CalculateFlops(*make_conv_grad_weight(1, 1)));
+    int num_unknown_ops = 0;
+    EXPECT_EQ(2 * 7 * 8 * 6 * 10, CalculateFlops(*make_conv_grad_weight(1, 1), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
 }
 
 TEST(FlopsTest, Gemm) {
