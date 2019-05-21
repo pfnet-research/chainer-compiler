@@ -67,10 +67,6 @@ int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
     CHECK_EQ(gy.dims()[2], x.dims()[2]);
     CHECK_EQ(gy.dims()[3], x.dims()[3]);
 
-    std::cerr << w.DebugString() << std::endl;
-    std::cerr << x.DebugString() << std::endl;
-    std::cerr << gy.DebugString() << std::endl;
-
     int64_t const bsize = x.dims()[0];
     int64_t const ic = x.dims()[1];
     int64_t const oc = gy.dims()[1];
