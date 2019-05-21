@@ -115,5 +115,20 @@ TEST(FlopsTest, AveragePool) {
     EXPECT_EQ(0, num_unknown_ops);
 }
 
+TEST(FlopsTest, Softmax) {
+    Graph graph("test");
+    Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {1, 2, 3}));
+
+    Node* n;
+    {
+        GraphBuilder gb(&graph, "test", in);
+        Value* out = gb.Op(Node::kSoftmax, {in});
+        n = out->producer();
+    }
+    int num_unknown_ops = 0;
+    EXPECT_EQ(2 * 6 + 3 * 1, CalculateFlops(*n, &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+}
+
 }  // namespace
 }  // namespace chainer_compiler
