@@ -48,13 +48,16 @@ int64_t CalculateFlopsOfGemm(const Node& node) {
 }
 
 int64_t CalculateFlopsOfConv(const Node& node) {
-    int64_t bsize = node.input(0)->type().dims()[0];
-    int64_t ichan = node.input(0)->type().dims()[1];
-    int64_t kw = node.input(1)->type().dims()[2];
-    int64_t kh = node.input(1)->type().dims()[3];
-    int64_t ochan = node.output(0)->type().dims()[1];
-    int64_t ow = node.output(0)->type().dims()[2];
-    int64_t oh = node.output(0)->type().dims()[3];
+    Type const& x = node.input(0)->type();
+    Type const& w = node.input(1)->type();
+    Type const& y = node.output(0)->type();
+    int64_t bsize = x.dims()[0];
+    int64_t ichan = x.dims()[1];
+    int64_t kw = w.dims()[2];
+    int64_t kh = w.dims()[3];
+    int64_t ochan = y.dims()[1];
+    int64_t ow = y.dims()[2];
+    int64_t oh = y.dims()[3];
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
