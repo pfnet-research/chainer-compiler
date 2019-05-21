@@ -61,10 +61,19 @@ TEST(FlopsTest, Gemm) {
     };
 
     int64_t const out_size = 2 * 2;
-    EXPECT_EQ(6 * out_size, CalculateFlops(*make_gemm(1.0, 0.0)));
-    EXPECT_EQ(6 * out_size + out_size, CalculateFlops(*make_gemm(0.5, 0.0)));
-    EXPECT_EQ((6 * out_size) + (out_size + 4), CalculateFlops(*make_gemm(1.0, 1.0)));
-    EXPECT_EQ((6 * out_size) + (out_size + 4 + out_size), CalculateFlops(*make_gemm(1.0, 0.5)));
+    int num_unknown_ops = 0;
+
+    EXPECT_EQ(6 * out_size, CalculateFlops(*make_gemm(1.0, 0.0), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+
+    EXPECT_EQ(6 * out_size + out_size, CalculateFlops(*make_gemm(0.5, 0.0), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+
+    EXPECT_EQ((6 * out_size) + (out_size + 4), CalculateFlops(*make_gemm(1.0, 1.0), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+
+    EXPECT_EQ((6 * out_size) + (out_size + 4 + out_size), CalculateFlops(*make_gemm(1.0, 0.5), &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
 }
 
 }  // namespace
