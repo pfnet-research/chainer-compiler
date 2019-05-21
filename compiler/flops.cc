@@ -61,6 +61,20 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
+int64_t CalculateFlopsOfConvTranspose(Node const& node) {
+    Type const& x = node.input(0)->type();
+    Type const& w = node.input(1)->type();
+    Type const& y = node.output(0)->type();
+    int64_t const bsize = x.dims()[0];
+    int64_t const ichan = x.dims()[1];
+    int64_t const ochan = y.dims()[1];
+    int64_t const kw = w.dims()[2];
+    int64_t const kh = w.dims()[3];
+    int64_t const iw = x.dims()[2];
+    int64_t const ih = x.dims()[3];
+    return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
+}
+
 int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
     Type const& w = node.input(0)->type();
     Type const& x = node.input(1)->type();
@@ -78,20 +92,6 @@ int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
     int64_t const kw = w.dims()[2];
     int64_t const kh = w.dims()[3];
     return bsize * iw * ih * oc * ic * kw * kh / node.group();
-}
-
-int64_t CalculateFlopsOfConvTranspose(Node const& node) {
-    Value const& x = *node.input(0);
-    Value const& w = *node.input(1);
-    Value const& y = *node.output(0);
-    int64_t const bsize = x.type().dims()[0];
-    int64_t const ichan = x.type().dims()[1];
-    int64_t const ochan = y.type().dims()[1];
-    int64_t const kw = w.type().dims()[2];
-    int64_t const kh = w.type().dims()[3];
-    int64_t const iw = y.type().dims()[2];
-    int64_t const ih = y.type().dims()[3];
-    return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
 }
 
 int64_t CalculateFlopsOfSoftmax(Node const& node) {
