@@ -112,7 +112,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
             // specified computation order
             skip_scheduling = true;
             auto orders = GetComputationOrder(*graph, g_computation_order);
-            AddGradientNodesForTrainingWithOrders(graph, orders);
+            if (!AddGradientNodesForTrainingWithOrders(graph, orders)) {
+                std::cerr << "Computation order is not supported in this graph.\n";
+                // TODO(mkusumoto): don't exit here
+                exit(0);
+            }
             // SimplifyOps({Node::kIdentity}, graph);
         }
     }

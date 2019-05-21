@@ -241,7 +241,11 @@ public:
                 GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
             } else {
                 auto orders = GetComputationOrder(model->graph(), g_computation_order);
-                AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders);
+                if (!AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders)) {
+                    LOG() << "Computation order is not supported in this graph." << std::endl;
+                    // TODO(mkusumoto): don't exit here
+                    exit(0);
+                }
                 skip_scheduling = true;
             }
             // TODO(hamaji): Revive shape inference.
