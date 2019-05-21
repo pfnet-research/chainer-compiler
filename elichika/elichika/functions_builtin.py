@@ -53,6 +53,31 @@ def convert_sigmoid(onnx_graph, node):
                         name=str(node.lineprop))
     return
 
+
+def convert_sum(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('x', oc.ParseType.In)
+    parser.add_def('axis', oc.ParseType.Att)
+    parser.add_def('keepdims', oc.ParseType.Att)
+    parser.parse(onnx_graph, node)
+
+    kwargs = {}
+
+    axis = parser.get('axis')
+
+    if isinstance(axis, int):
+        kwargs['axes'] = [axis]
+    elif axis is not None:
+        kwargs['axes'] = list(axis)
+
+    onnx_graph.add_node(
+        "ReduceSum",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        str(node.lineprop),
+        keepdims=parser.get('keepdims'),
+        **kwargs)
+
 def convert_average(onnx_graph, node):
     parser = oc.NodeParse()
     parser.add_def('x', oc.ParseType.In)

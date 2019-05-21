@@ -63,6 +63,11 @@ TESTS = [
     Generator('node/Functions', 'Squeeze'),
     Generator('node/Functions', 'Separate'),
     Generator('node/Functions', 'Mean'),
+    Generator('node/Functions', 'Sum'),
+
+    Generator('node/Links', 'NStepLSTM'),
+    Generator('node/Links', 'NStepBiLSTM'),
+    Generator('node/Links', 'EmbedID'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),

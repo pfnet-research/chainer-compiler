@@ -31,37 +31,40 @@ def size2d(x):
         return list(x)
     return (x, x)
 
+
 def get_onnx_dtype(dtype):
     a = np.zeros((), dtype=dtype)
     dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
     return dt
+
 
 class ParseType(Enum):
     In = 0,
     Att = 1,
     AttPad = 2,
 
+
 class NodeParse:
     def __init__(self):
         self.args = {}
         self.defs = {}
 
-    def get(self, name : 'str'):
+    def get(self, name: 'str'):
         if not name in self.args.keys():
             return None
 
         return self.args[name]
 
-    def add_def(self, name : 'str', type_ : 'ParseType', required = "None"):
+    def add_def(self, name: 'str', type_: 'ParseType', required="None"):
         self.defs[name] = (type_, required)
 
     def parse(self, onnx_graph, node):
-        for k,v in self.defs.items():
+        for k, v in self.defs.items():
             arg = node.args.keywords[k]
             att_arg = node.attribute_args.keywords[k]
 
             if v[0] == ParseType.In:
-                a = ONNXValue(onnx_graph,arg)
+                a = ONNXValue(onnx_graph, arg)
                 self.args[k] = a
             else:
                 att = try_get_attribute(att_arg, node)
@@ -70,20 +73,24 @@ class NodeParse:
 
                 # failed
                 if att == sys.maxsize:
-                    raise Exception("failed to get attribute from {} in {}".format(k, node.lineprop))
+                    raise Exception(
+                        "failed to get attribute from {} in {}".format(k, node.lineprop))
 
                 if v[1] != "None":
                     if isinstance(v[1], list):
                         if not (att in v[1]):
-                            raise Exception("unsupported attribute {} from {} in {}".format(att, k, node.lineprop))                    
+                            raise Exception("unsupported attribute {} from {} in {}".format(
+                                att, k, node.lineprop))
                     else:
                         if att != v[1]:
-                            raise Exception("unsupported attribute {} from {} in {}".format(att, k, node.lineprop))                    
+                            raise Exception("unsupported attribute {} from {} in {}".format(
+                                att, k, node.lineprop))
 
                 if v[0] == ParseType.AttPad:
                     self.args[k] = size2d(att)
                 else:
                     self.args[k] = att
+
 
 assigned_names = []
 node2onnx_parameter = {}
@@ -163,6 +170,7 @@ def assign_onnx_name_to_value(value: 'values.Value', none_name=''):
     if not value in value2onnx_parameter:
         value2onnx_parameter[value] = ValueONNXParameter(
             generate_onnx_value_name(value, none_name), value)
+
 
 def assign_onnx_name(graph: 'graphs.Graph'):
 
@@ -383,8 +391,10 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         onnx_loop_graph = ONNXGraph(onnx_graph.generator, onnx_graph)
 
         cnt = ONNXValue(onnx_loop_graph, np.array(0).dtype, [a, '/cnt'])
-        cond_in = ONNXValue(onnx_loop_graph, np.array(0).dtype, [a, '/cond_in'])
-        cond_out = ONNXValue(onnx_loop_graph, np.array(0).dtype, [a, '/cond_out'])
+        cond_in = ONNXValue(
+            onnx_loop_graph, np.array(0).dtype, [a, '/cond_in'])
+        cond_out = ONNXValue(
+            onnx_loop_graph, np.array(0).dtype, [a, '/cond_out'])
         v_in = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/v_in'])
         v_out = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/v_out'])
 
@@ -393,7 +403,8 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
 
         s_elm = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/s_elm'])
 
-        s_elm_cp = ONNXValue(onnx_loop_graph, np.array(0.0).dtype, [a, '/s_elm_cp'])
+        s_elm_cp = ONNXValue(onnx_loop_graph, np.array(
+            0.0).dtype, [a, '/s_elm_cp'])
 
         onnx_loop_graph.add_node(
             "ChainerGenericGetItem",
@@ -436,8 +447,8 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             body=onnx_loop_graph.generate_graph('CumsumLoop_' + str(node.lineprop), False))
 
     if isinstance(node.func, links_builtin.ChainerLinkFunction):
-            original_inst = node.func.owner.inst
-            chainer_l_converter[type(original_inst)](onnx_graph, node)
+        original_inst = node.func.owner.inst
+        chainer_l_converter[type(original_inst)](onnx_graph, node)
 
 
 def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
@@ -523,6 +534,12 @@ def try_get_attribute(value, calling_node: 'nodes.Node' = None):
     return sys.maxsize
 
 
+class ONNXValueType(Enum):
+    Tensor = 0,
+    Sequence = 1,
+    Unknown = 2,
+
+
 class ONNXValue:
     """
     A wrapper of ONNX value
@@ -534,13 +551,14 @@ class ONNXValue:
         is_constant : if this value can be converted as constant, it makes constant values.
     """
 
-    def __init__(self, onnx_graph: 'ONNXGraph', any_value=None, name=None, is_constant=True):
+    def __init__(self, onnx_graph: 'ONNXGraph', any_value=None, name=None, is_constant=True, onnx_type=ONNXValueType.Unknown):
         assert(isinstance(onnx_graph, ONNXGraph))
         self.value = None  # values.Value
         self.np_value = None  # np.array
         self.onnx_graph = onnx_graph
         self.is_constant = is_constant
         self.name = ''
+        self.onnx_type = onnx_type
 
         def generate_name():
             name_ = ''
@@ -572,15 +590,22 @@ class ONNXValue:
             else:
                 self.name = onnx_graph.get_value_name(self.value)
 
+            if isinstance(any_value, values.ListValue) or isinstance(any_value, values.TupleValue):
+                self.onnx_type = ONNXValueType.Sequence
+            else:
+                self.onnx_type = ONNXValueType.Tensor
+
         elif id(any_value) in onnx_graph.generator.param2name.keys():
             self.np_value = any_value.data
             self.name = onnx_graph.generator.param2name[id(any_value)]
             self.tensor = onnx_graph.new_tensor_with_np(
                 self.np_value, self.name)
+            self.onnx_type = ONNXValueType.Tensor
 
         elif isinstance(any_value, np.ndarray):
             self.np_value = any_value
             self.name = generate_name()
+            self.onnx_type = ONNXValueType.Tensor
 
             if self.is_constant:
                 self.tensor = self.onnx_graph.new_empty_tensor(
@@ -597,12 +622,27 @@ class ONNXValue:
             self.name = generate_name()
             self.tensor = self.onnx_graph.new_empty_tensor(
                 ['TODO'], any_value, self.name)
+            self.onnx_type = ONNXValueType.Tensor
+
+        else:
+            assert(False)
 
     def create_sequence(self) -> 'ONNXValue':
         if(isinstance(self.value, values.ListValue)):
             return self
         elif(isinstance(self.value, values.TupleValue)):
             return self
+        elif self.onnx_type == ONNXValueType.Sequence:
+            return self
+        elif self.onnx_type == ONNXValueType.Tensor:
+
+            (ret,) = self.onnx_graph.add_node(
+                "ChainerSequenceSeparate",
+                [self],
+                [None],
+                str('create_sequence'))
+            return ret
+
         else:
             assert(False)
 
@@ -633,15 +673,26 @@ class ONNXValue:
                 str('create_tensor'))
             return ret
 
-        if(isinstance(self.value, values.TensorValue)):
+        elif(isinstance(self.value, values.TensorValue)):
             value = self.value  # type:values.TensorValue
             return self
 
-        if(isinstance(self.value, values.NumberValue)):
+        elif(isinstance(self.value, values.NumberValue)):
             value = self.value  # type:values.NumberValue
             return self
+        elif(self.onnx_type == ONNXValueType.Sequence):
+            ret = ONNXValue(self.onnx_graph, np.float32, [
+                            self.name, '/tensor'])
 
-        assert(False)
+            self.onnx_graph.add_node(
+                "ChainerSequenceStack",
+                [self],
+                [ret],
+                str('create_tensor'))
+            return ret
+
+        else:
+            assert(False)
 
 
 class ONNXInitrializer:
@@ -816,7 +867,8 @@ class ONNXGraph:
             elif isinstance(output, values.Value):
                 outputs_.append(value2onnx_parameter[output].onnx_name)
             elif output is None:
-                o = ONNXValue(self, np.float32, [name, '/', optype, '/Output'])
+                o = ONNXValue(self, np.float32, [
+                              name, '/', optype, '/Output'], is_constant=False)
                 output_values.append(o)
                 outputs_.append(o.name)
             else:
@@ -844,7 +896,8 @@ class ONNXGraph:
 
         for x in input:
             if isinstance(x, values.Value):
-                self.input_tensor.append(self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name])
+                self.input_tensor.append(
+                    self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name])
             elif isinstance(x, ONNXValue):
                 self.input_tensor.append(x.tensor)
             else:
@@ -855,7 +908,8 @@ class ONNXGraph:
 
         for x in output:
             if isinstance(x, values.Value):
-                self.output_tensor.append(self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name])
+                self.output_tensor.append(
+                    self.generator.onnx_tensors[value2onnx_parameter[x].onnx_name])
             elif isinstance(x, ONNXValue):
                 self.output_tensor.append(x.tensor)
             else:
@@ -896,7 +950,8 @@ class ONNXGenerator:
 
                 if value_.is_dummy_value:
                     # generate dummy
-                    assert(value_.generator is None or isinstance(value_.generator, nodes.NodeInput))
+                    assert(value_.generator is None or isinstance(
+                        value_.generator, nodes.NodeInput))
 
                     t = onnx_graph.new_empty_tensor_with_value(value_)
                     dtype = np.float32
@@ -1188,9 +1243,11 @@ class ONNXGenerator:
 
                         onnx_graph.nodes.append(onnx_node)
                     else:
-                        raise utils.UnimplementedError('{} is not converted into List'.format(type(node_.value)), node_.lineprop)
+                        raise utils.UnimplementedError(
+                            '{} is not converted into List'.format(type(node_.value)), node_.lineprop)
                 else:
-                        raise utils.UnimplementedError('unknown converted type {}'.format(type(node_.classtype)), node_.lineprop)
+                    raise utils.UnimplementedError('unknown converted type {}'.format(
+                        type(node_.classtype)), node_.lineprop)
 
             if isinstance(node, nodes.NodeGenerate):
                 node_ = node  # type: nodes.NodeGenerate
