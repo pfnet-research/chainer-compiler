@@ -48,20 +48,6 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
-int64_t CalculateFlopsOfConvTranspose(Node const& node) {
-    Value const& x = *node.input(0);
-    Value const& w = *node.input(1);
-    Value const& y = *node.output(0);
-    int64_t const bsize = x.type().dims()[0];
-    int64_t const ichan = x.type().dims()[1];
-    int64_t const ochan = y.type().dims()[1];
-    int64_t const kw = w.type().dims()[2];
-    int64_t const kh = w.type().dims()[3];
-    int64_t const iw = y.type().dims()[2];
-    int64_t const ih = y.type().dims()[3];
-    return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
-}
-
 int64_t CalculateFlopsOfSoftmax(Node const& node) {
     int64_t const c = node.input(0)->type().dims()[node.axis()];
     int64_t const s = node.input(0)->type().NumElements() / c;
@@ -109,12 +95,6 @@ int64_t CalculateFlopsImpl(const Node& node) {
         // Convolution nodes:
         case Node::kConv:
             return CalculateFlopsOfConv(node);
-
-        case Node::kConvTranspose:
-            return CalculateFlopsOfConvTranspose(node);
-
-        // case Node::kChainerConvGradWeight:
-        //     return CalculateFlopsOfConvGradWeight(node);
 
         // Activation nodes:
         case Node::kSigmoid:
