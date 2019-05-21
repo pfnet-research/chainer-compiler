@@ -79,5 +79,41 @@ TEST(FlopsTest, Reduce) {
     run_test(Node::kSum);
 }
 
+TEST(FlopsTest, MaxPool) {
+    Graph graph("test");
+    Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {1, 1, 4, 4}));
+
+    Node* n;
+    {
+        GraphBuilder gb(&graph, "test", in);
+        Value* out_val = graph.AddOutputValue("output", Type(Dtype::kFloat32, {1, 1, 2, 2}));
+        Value* out = gb.Op(Node::kMaxPool, {in}, out_val);
+        out->producer()->set_kernel_shape({3, 3});
+        n = out->producer();
+    }
+
+    int num_unknown_ops = 0;
+    EXPECT_EQ(4 * (3 * 3 - 1), CalculateFlops(*n, &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+}
+
+TEST(FlopsTest, AveragePool) {
+    Graph graph("test");
+    Value* in = graph.AddInputValue("input", Type(Dtype::kFloat32, {1, 1, 4, 4}));
+
+    Node* n;
+    {
+        GraphBuilder gb(&graph, "test", in);
+        Value* out_val = graph.AddOutputValue("output", Type(Dtype::kFloat32, {1, 1, 2, 2}));
+        Value* out = gb.Op(Node::kAveragePool, {in}, out_val);
+        out->producer()->set_kernel_shape({3, 3});
+        n = out->producer();
+    }
+
+    int num_unknown_ops = 0;
+    EXPECT_EQ(4 * (3 * 3), CalculateFlops(*n, &num_unknown_ops));
+    EXPECT_EQ(0, num_unknown_ops);
+}
+
 }  // namespace
 }  // namespace chainer_compiler

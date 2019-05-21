@@ -55,14 +55,14 @@ int64_t CalculateFlopsOfSoftmax(Node const& node) {
 }
 
 int64_t CalculateFlopsOfAveragePool(Node const& node) {
-    int64_t const kw = node.input(0)->type().dims()[2];
-    int64_t const kh = node.input(0)->type().dims()[3];
+    int64_t const kw = node.kernel_shape()[0];
+    int64_t const kh = node.kernel_shape()[1];
     return OutputSize(node) * kw * kh;
 }
 
 int64_t CalculateFlopsOfMaxPool(Node const& node) {
-    int64_t const kw = node.input(0)->type().dims()[2];
-    int64_t const kh = node.input(0)->type().dims()[3];
+    int64_t const kw = node.kernel_shape()[0];
+    int64_t const kh = node.kernel_shape()[1];
     return OutputSize(node) * (kw * kh - 1);
 }
 
