@@ -54,6 +54,9 @@ void RunMain(int argc, char** argv) {
         QFAIL() << "Usage: " << argv[0] << " <onnx>";
     }
 
+    chainerx::Context ctx;
+    chainerx::ContextScope ctx_scope(ctx);
+
     for (const std::string& filename : args.rest()) {
         std::cout << "=== " << filename << " ===\n";
 

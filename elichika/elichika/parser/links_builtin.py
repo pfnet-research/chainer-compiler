@@ -104,7 +104,7 @@ class ChainerChainListInstance(values.UserDefinedInstance):
             values.FuncValue(ChainerChainListChildrenFunction(self), obj))
         obj.get_field().get_attribute('children').revise(children)
 
-        forward_func = obj.try_get_and_store_obj('forward')
+        forward_func = obj.try_get_and_store_obj('forward', None)
         if forward_func is not None:
             obj.get_field().get_attribute('__call__').revise(forward_func)
             obj.get_field().get_attribute('forward').revise(forward_func)
@@ -125,7 +125,7 @@ class ChainerChainInstance(values.UserDefinedInstance):
             values.FuncValue(ChainerChainListChildrenFunction(self), obj))
         obj.get_field().get_attribute('children').revise(children)
 
-        forward_func = obj.try_get_and_store_obj('forward')
+        forward_func = obj.try_get_and_store_obj('forward', None)
         if forward_func is not None:
             obj.get_field().get_attribute('__call__').revise(forward_func)
             obj.get_field().get_attribute('forward').revise(forward_func)

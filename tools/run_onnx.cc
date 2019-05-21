@@ -24,9 +24,11 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
 #include <compiler/gradient.h>
+#include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
@@ -233,14 +235,23 @@ public:
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
-            GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
+
+            bool skip_scheduling = false;
+            if (g_computation_order.empty()) {
+                GenerateGradientNodes(model->mutable_graph(), backprop_model.mutable_graph());
+            } else {
+                auto orders = GetComputationOrder(model->graph(), g_computation_order);
+                AddGradientNodesForTrainingWithOrders(model->mutable_graph(), backprop_model.mutable_graph(), orders);
+                skip_scheduling = true;
+            }
             // TODO(hamaji): Revive shape inference.
             g_skip_inference = true;
+
             LOG() << "Constructing model (forward)..." << std::endl;
-            RunDefaultPasses(model->mutable_graph());
+            RunDefaultPasses(model->mutable_graph(), false, skip_scheduling);
             CompileModel(model, &xcvm_);
             LOG() << "Constructing model (backward)..." << std::endl;
-            RunDefaultPasses(backprop_model.mutable_graph());
+            RunDefaultPasses(backprop_model.mutable_graph(), false, skip_scheduling);
             CompileModel(&backprop_model, &xcvm_bp_, "bp");
             for (Value* value : backprop_model.graph().input_values()) {
                 backprop_ins_.push_back(value->name());

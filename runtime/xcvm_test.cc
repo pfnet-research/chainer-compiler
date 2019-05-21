@@ -3,10 +3,10 @@
 #include <gtest/gtest.h>
 
 #include <chainerx/array.h>
-#include <chainerx/context.h>
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/testing/array.h>
+#include <chainerx/testing/context_session.h>
 
 #include <compiler/gen_xcvm_codegen.h>
 #include <compiler/xcvm/xcvm_value.h>
@@ -19,8 +19,7 @@ namespace runtime {
 namespace {
 
 TEST(XCVMTest, Run) {
-    chainerx::Context ctx;
-    chainerx::ContextScope ctx_scope(ctx);
+    chainerx::testing::ContextSession sess;
 
     XCProgramProto program;
     xcvm::AddInOp(&program, xcvm::XCVMValue(0), "in1");

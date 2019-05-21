@@ -82,6 +82,8 @@ def main():
                         help='Number of iterations to train')
     parser.add_argument('--use-fake-data', action='store_true',
                         help='Use fake data')
+    parser.add_argument('--computation_order', type=str, default=None,
+                        help='Computation order in backpropagation')
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
@@ -97,7 +99,14 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
     mlp = MLP(args.unit, 10)
     if args.compile:
-        mlp = chainer_compiler.compile(mlp, dump_onnx=args.dump_onnx)
+        if args.computation_order is None:
+            translator = 'ch2o'
+        else:
+            translator = 'onnx_chainer'
+        mlp = chainer_compiler.compile(
+            mlp, dump_onnx=args.dump_onnx,
+            translator=translator,
+            computation_order=args.computation_order)
     model = L.Classifier(mlp)
     model.to_device(device)
     device.use()

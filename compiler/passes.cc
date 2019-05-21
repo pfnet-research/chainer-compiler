@@ -56,7 +56,7 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
     RunDefaultPasses(model->mutable_graph(), gen_backprop);
 }
 
-void RunDefaultPasses(Graph* graph, bool gen_backprop) {
+void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     // TODO(hamaji): Improve backend selection probably by `CompilerConfig`.
     g_modify_pool_with_imbalanced_pads = !g_use_ngraph;
 
@@ -72,11 +72,10 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
     }
     if (!g_skip_inference) {
         graph->InferShapes();
+        InferAllDtype(graph);
     }
 
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
-
-    InferAllDtype(graph);
 
     auto dump_onnx = [&graph](bool cond, const char* msg) {
         if (cond) {
@@ -91,19 +90,20 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop) {
 
     CanonicalizeSubGraphs(graph);
 
-    Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
+    if (!skip_scheduling) {
+        Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
 
-    Recursively(MergeOperations, graph);
+        Recursively(MergeOperations, graph);
 
-    Recursively(PropagateConstants, graph);
+        Recursively(PropagateConstants, graph);
 
-    Recursively(EvaluateShapes, graph);
+        Recursively(EvaluateShapes, graph);
 
-    Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+        Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 
-    dump_onnx(g_dump_after_simplification, "after simplification");
+        dump_onnx(g_dump_after_simplification, "after simplification");
+    }
 
-    bool skip_scheduling = false;
     if (gen_backprop) {
         if (g_computation_order.empty()) {
             // normal computation order

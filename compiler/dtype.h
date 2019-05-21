@@ -2,6 +2,8 @@
 
 #include <iosfwd>
 
+#include <chainerx/dtype.h>
+
 #include <compiler/onnx.h>
 
 namespace chainer_compiler {
@@ -23,13 +25,17 @@ public:
     };
 
     Dtype() = default;
+    // Accepts `TensorProto::DataType` type.
     explicit Dtype(int xtype);
     // Note this is an implicit constructor.
     Dtype(DataType type);
+    explicit Dtype(chainerx::Dtype type);
 
     operator DataType() const {
         return type_;
     }
+
+    chainerx::Dtype chx() const;
 
     onnx::TensorProto::DataType ToONNX() const;
     std::string ToString() const;
@@ -37,7 +43,7 @@ public:
     int SizeOf() const;
 
     bool IsFloat() const {
-        return type_ == kFloat32 || type_ == kFloat64;
+        return type_ == kFloat16 || type_ == kFloat32 || type_ == kFloat64;
     }
 
 private:
