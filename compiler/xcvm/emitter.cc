@@ -89,7 +89,7 @@ public:
 
     void AssignValueIds(const std::vector<Value*>& values) {
         for (const Value* v : values) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
         }
     }
 
@@ -107,9 +107,9 @@ public:
     }
 
     XCVMValue GetOutputValue(const Node& node, int i) {
-        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
+        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
         Value* output = node.output(i);
-        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
+        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
         return XCVMValue(GetValueId(output), output);
     }
 
@@ -144,9 +144,9 @@ private:
 
     void EmitNode(const Graph* graph, const Node& node, XCProgramProto* prog) {
         auto in = [this, &node](int i) {
-            CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory";
+            CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
             Value* input = node.input(i);
-            CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory";
+            CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
             return GetValueId(input);
         };
 
@@ -192,7 +192,7 @@ private:
             else if (dir == "bidirectional")
                 return 2;
             else
-                CHECK(false) << "Unknown direction: " << dir;
+                CHECK(false) << "Unknown direction: " << dir << ": " << node.DebugString();
         };
 
 #define EMIT(op, ...)                            \
@@ -679,7 +679,7 @@ private:
                 } else if (dtype.SizeOf() == 8) {
                     v.push_back(value->Get<double>(i));
                 } else {
-                    CHECK(false) << "Unknown type: " << dtype;
+                    CHECK(false) << "Unknown type: " << dtype << ": " << node.DebugString();
                 }
             }
             if (shape.empty()) {
@@ -699,7 +699,7 @@ private:
                 } else if (dtype.SizeOf() == 8) {
                     v.push_back(value->Get<int64_t>(i));
                 } else {
-                    CHECK(false) << "Unknown type: " << dtype;
+                    CHECK(false) << "Unknown type: " << dtype << ": " << node.DebugString();
                 }
             }
             if (shape.empty()) {
