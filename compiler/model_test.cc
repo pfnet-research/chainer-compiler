@@ -10,7 +10,7 @@
 #include <compiler/onnx.h>
 #include <onnx/shape_inference/implementation.h>
 
-#include <chainerx/context.h>
+#include <chainerx/testing/context_session.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -74,12 +74,14 @@ TEST(ModelTest, DumpSimpleONNX) {
 }
 
 TEST(ModelTest, LoadMNIST) {
+    chainerx::testing::ContextSession sess;
     std::string path = "data/mnist/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     Model model(xmodel);
 }
 
 TEST(ModelTest, DumpMNIST) {
+    chainerx::testing::ContextSession sess;
     std::string path = "data/mnist/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     Model model(xmodel);
@@ -100,6 +102,7 @@ TEST(ModelTest, DumpMNIST) {
 }
 
 TEST(ModelTest, LoadResNet50) {
+    chainerx::testing::ContextSession sess;
     std::string path = "data/resnet50/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
     Model model(xmodel);
@@ -125,8 +128,7 @@ TEST(ModelTest, LoadResNet50) {
 }
 
 TEST(ModelTest, CompileCH2OResNet50) {
-    chainerx::Context ctx;
-    chainerx::ContextScope ctx_scope(ctx);
+    chainerx::testing::ContextSession sess;
 
     std::string path = "out/ch2o_model_Resnet_with_loss/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));

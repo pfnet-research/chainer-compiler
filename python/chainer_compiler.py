@@ -164,12 +164,14 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
 
 class CompiledModel(chainer.Chain):
 
-    def __init__(self, model, inputs, translator='ch2o', dump_onnx=False):
+    def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
+                 computation_order=None):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
         self.translator = translator
         self.dump_onnx = dump_onnx
+        self.computation_order = computation_order
 
         self.compiled = False
         self.param_names = None
@@ -198,9 +200,12 @@ class CompiledModel(chainer.Chain):
 
         self.orig_output_names = graph.output_names()
 
-        # fwd_graph, bwd_graph = graph.backward_to(graph.input_names())
-        fwd_graph, bwd_graph = graph.backward_to(
-            graph.input_names() + graph.param_names())
+        if self.computation_order is None:
+            fwd_graph, bwd_graph = graph.backward_to(
+                graph.input_names() + graph.param_names())
+        else:
+            fwd_graph, bwd_graph = graph.backward_to_with_order(
+                self.computation_order)
         if self.dump_onnx:
             sys.stderr.write('=== vvv forward vvv ===\n' +
                              fwd_graph.dump() +

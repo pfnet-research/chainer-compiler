@@ -21,6 +21,7 @@ namespace {
 Dtype GetFloatDtype(const Value* value) {
     Dtype dtype = value->type().dtype();
     switch (dtype) {
+        case Dtype::kFloat16:
         case Dtype::kFloat32:
         case Dtype::kFloat64:
             return dtype;
@@ -28,7 +29,7 @@ Dtype GetFloatDtype(const Value* value) {
             WARN_ONCE("Incomplete float dtype, assuming float32...");
             return Dtype::kFloat32;
         default:
-            CHECK(false) << dtype << ' ' << value->name();
+            CHECK(false) << dtype << ' ' << value->ToString();
     }
 }
 
@@ -77,7 +78,7 @@ public:
         if (!p.second) {
             return p.first->second;
         }
-        Value* retained = gb.Temp();
+        Value* retained = gb.Temp(v->type());
         p.first->second = retained;
         return retained;
     }
@@ -228,7 +229,7 @@ void ExpGradFn(GradientOpContext* gc) {
 void SigmoidGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
-    Value* one = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {1.0});
+    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
     Value* t0 = gb.Op(Node::kMul, {gy, gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, gc->y(0)});
     gc->GradOp(Node::kMul, 0, {t0, t1});
@@ -246,7 +247,7 @@ void SqrtGradFn(GradientOpContext* gc) {
 
 void TanhGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
-    Value* one = gb.Const(Type(GetFloatDtype(gc->x(0)), {}), {1.0});
+    Value* one = gb.Const(Type(GetFloatDtype(gc->NoRetainX(0)), {}), {1.0});
     Value* gy = gc->gy(0);
     Value* t0 = gb.Op(Node::kMul, {gc->y(0), gc->y(0)});
     Value* t1 = gb.Op(Node::kSub, {one, t0});

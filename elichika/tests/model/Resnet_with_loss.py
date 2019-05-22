@@ -5,7 +5,7 @@ import chainer
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
-
+import testtools
 
 class BottleNeckA(chainer.Chain):
 
@@ -95,8 +95,7 @@ class ResNet50(chainer.Chain):
             self.res5 = Block(3, 1024, 512, 2048)
             self.fc = L.Linear(2048, 1000)
 
-    # たってきtは除く
-    def forward(self, x):
+    def forward(self, x, t):
         h = self.bn1(self.conv1(x))
         h = F.max_pooling_2d(F.relu(h), 3, stride=2)
         h = self.res2(h)
@@ -106,24 +105,27 @@ class ResNet50(chainer.Chain):
         h = F.average_pooling_2d(h, 7, stride=1)
         h = self.fc(h)
 
-        return h
-        """
         loss = F.softmax_cross_entropy(h, t)
-        chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)
+        # chainer.report({'loss': loss, 'accuracy': F.accuracy(h, t)}, self)
         return loss
-        """
+
 # from https://github.com/chainer/chainer/blob/master/examples/imagenet/resnet50.py
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
-    import test_mxnet
-
     model = ResNet50()
+
+    bsize = 2
 
     # batch * channel * H * W
     # 195 ~ 226 までがOKっぽい
-    v = np.random.rand(5, 3, 210, 210).astype(np.float32)
-    test_mxnet.check_compatibility(model, v)
+    v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
+    t = np.random.randint(1000, size=bsize).astype(np.int32)
+
+    testtools.generate_testcase(model, [v, t])
+
+if __name__ == '__main__':
+    main()

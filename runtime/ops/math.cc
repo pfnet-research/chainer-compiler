@@ -138,7 +138,7 @@ chainerx::Array CeilOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array ClipOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    return -chainerx::Maximum(-chainerx::Maximum(x, min), -max);
+    return chainerx::Minimum(chainerx::Maximum(x, min), max);
 }
 
 chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
@@ -168,6 +168,15 @@ chainerx::Array MaxOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>
     chainerx::Array result = inputs[0];
     for (size_t i = 1; i < inputs.size(); ++i) {
         result = Maximum(result, inputs[i]);
+    }
+    return result;
+}
+
+chainerx::Array MinOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+    CHECK_LT(0, inputs.size());
+    chainerx::Array result = inputs[0];
+    for (size_t i = 1; i < inputs.size(); ++i) {
+        result = Minimum(result, inputs[i]);
     }
     return result;
 }

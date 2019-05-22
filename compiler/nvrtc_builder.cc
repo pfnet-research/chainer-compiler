@@ -136,6 +136,9 @@ void BuildNvrtcProgram(
         CHECK_EQ(1, t->NumElements()) << t->dtype();
         double value;
         switch (t->dtype()) {
+            case Dtype::kFloat16:
+                value = static_cast<double>(t->Get<chainerx::Float16>(0));
+                break;
             case Dtype::kFloat32:
                 value = t->Get<float>(0);
                 break;

@@ -207,6 +207,7 @@ NodeDef('If', None, None, else_branch=Graph, then_branch=Graph)
 NodeDef('Loop', None, None, body=Graph, chainer_stack_axis=0)
 # TODO(hamaji): Fix Scan to handle the new semantics.
 # NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
+NodeDef('Where', 3, 1)
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
 NodeDef('MaxRoiPool', 2, 1, pooled_shape=Required([int]), spatial_scale=1.0)

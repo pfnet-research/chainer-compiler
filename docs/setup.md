@@ -146,7 +146,7 @@ to see the list of supported options.
 TODO(hamaji): Document some of them. Notably,
 
 1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
-1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](python/chainer_compiler.py).
+1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](../python/chainer_compiler.py).
 
 ## Run tests
 

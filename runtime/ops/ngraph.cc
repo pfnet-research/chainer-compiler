@@ -121,11 +121,7 @@ std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::XCVMSt
     chainerx::Array inputs[num_inputs];
     for (size_t i = 0; i < num_inputs; ++i) {
         const chainerx::Array& input = orig_inputs[i];
-        if (input.IsContiguous()) {
-            inputs[i] = input;
-        } else {
-            inputs[i] = chainerx::Copy(input);
-        }
+        inputs[i] = chainerx::AsContiguous(input);
     }
 
     auto params = impl_->func->get_parameters();

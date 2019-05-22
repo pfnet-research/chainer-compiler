@@ -77,7 +77,7 @@ def get_outputs() -> 'List[FieldOutput]':
     return ret
 
 
-def parse_instance(default_module, name, instance, self_instance=None, parse_shape=False, from_member = False) -> "ValueRef":
+def parse_instance(default_module, name, instance, self_instance=None, from_member = False, root_graph : 'graphs.Graph' = None) -> "ValueRef":
 
     for converter in instance_converters:
         ret = converter(default_module, instance)
@@ -114,13 +114,6 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
     if isinstance(instance, str):
         return ValueRef(StrValue(instance))
 
-    if isinstance(instance, list):
-        if parse_shape:
-            return ValueRef(ListValue())
-        else:
-            print('List is not supported now!!!')
-            return ValueRef(NumberValue(0.0))
-
     if instance is inspect._empty:
         return None
 
@@ -139,6 +132,37 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
         func = functions.UserDefinedClassConstructorFunction(instance)
         return ValueRef(FuncValue(func, None))
 
+    if isinstance(instance, list):
+        if root_graph is None:
+            value_in_tuple = []
+            for v in instance:
+                o = parse_instance(default_module, '', v)
+                value_in_tuple.append(o)
+            ret = ListValue(value_in_tuple)
+        else:
+            value_in_tuple = []
+            vs = []
+            for v in instance:
+                o = parse_instance(default_module, '', v)
+                value_in_tuple.append(o)
+                value = o.get_value()
+
+                if isinstance(value, TupleValue):
+                    assert(False)
+
+                if isinstance(value, ListValue):
+                    assert(False)
+
+                vs.append(value)
+
+            node = nodes.NodeGenerate('List', vs)
+            ret = ListValue(value_in_tuple)
+            node.set_outputs([ret])
+            root_graph.add_initial_node(node)
+
+        ret.estimate_type()
+        return ValueRef(ret)
+
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
         shape = -1 if shape == 'Undefined' else shape
@@ -147,12 +171,35 @@ def parse_instance(default_module, name, instance, self_instance=None, parse_sha
         return ValueRef(tensorValue)
 
     if isinstance(instance, tuple):
-        value_in_tuple = []
-        for v in instance:
-            o = parse_instance(default_module, '', v)
-            value_in_tuple.append(o)
+        if root_graph is None:
+            value_in_tuple = []
+            for v in instance:
+                o = parse_instance(default_module, '', v)
+                value_in_tuple.append(o)
 
-        return ValueRef(TupleValue(value_in_tuple))
+            return ValueRef(TupleValue(value_in_tuple))
+        else:
+            value_in_tuple = []
+            vs = []
+            for v in instance:
+                o = parse_instance(default_module, '', v)
+                value_in_tuple.append(o)
+                value = o.get_value()
+
+                if isinstance(value, TupleValue):
+                    assert(False)
+
+                if isinstance(value, ListValue):
+                    assert(False)
+
+                vs.append(value)
+
+            node = nodes.NodeGenerate('Tuple', vs)
+            ret = TupleValue(value_in_tuple)
+            node.set_outputs([ret])
+            root_graph.add_initial_node(node)
+            return ValueRef(ret)
+
 
     if isinstance(instance, np.ndarray):
         tensorValue = TensorValue(instance)
@@ -477,7 +524,8 @@ class ValueRef():
         self.id = utils.get_guid()
         self.attributes = Field()
         self.value.apply_to_object(self)
-
+        self.in_container = False
+        
     def get_field(self) -> 'Field':
         return self.attributes
 
@@ -487,13 +535,13 @@ class ValueRef():
     def revise(self, value):
         self.value = value
 
-    def try_get_and_store_obj(self, name: 'str') -> 'ValueRef':
+    def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
 
         attribute = self.attributes.get_attribute(name)
         if attribute.has_obj():
             return attribute.get_ref()
 
-        obj = self.value.try_get_ref(name, self)
+        obj = self.value.try_get_ref(name, self, root_graph)
 
         if obj is None:
             return None
@@ -507,16 +555,23 @@ class Value():
         self.name = ""
         self.generator = None
         self.internal_value = None
+        self.dtype = None
         self.id = utils.get_guid()
+
+        #  this actual value is not important, but type is required as dummy value
+        self.is_dummy_value = False
 
     def has_constant_value(self) -> 'bool':
         return self.internal_value is not None
     
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
-        return self.internal_value is not None
-
     def get_constant_value(self):
         return self.internal_value
+
+    def is_iteratable(self):
+        return False
+
+    def get_iterator(self) -> 'ValueRef':
+        return None
 
     def apply_to_object(self, obj: 'ValueRef'):
         '''
@@ -525,7 +580,7 @@ class Value():
         '''
         return None
 
-    def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
         return None
 
     def __str__(self):
@@ -537,9 +592,6 @@ class NoneValue(Value):
         super().__init__()
 
     def has_constant_value(self) -> 'bool':
-        return True
-    
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
         return True
 
     def get_constant_value(self):
@@ -598,6 +650,12 @@ class RangeValue(Value):
     def __init__(self):
         super().__init__()
 
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':
+        return ValueRef(NumberValue(None))
+
     def __str__(self):
         return self.name + '(R)'
 
@@ -606,23 +664,6 @@ class TupleValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.internal_value = values
-
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
-        if self.internal_value is not None:
-            for v in self.internal_value:
-                if v is None:
-                    return False
-
-                if isinstance(v, ValueRef) and not is_ref_enabled:
-                    return False
-
-                if isinstance(v, ValueRef):
-                    if not v.get_value().is_all_constant_values(is_ref_enabled):
-                        return False
-                else:
-                    if not v.is_all_constant_values(is_ref_enabled):
-                        return False
-        return True                    
 
     def __str__(self):
         return self.name + '(Tp{})'
@@ -643,23 +684,42 @@ class ListValue(Value):
         super().__init__()
         self.is_any = values is None
         self.internal_value = values
+        self.dtype = None
+        self.vtype = None # type: Type
 
-    def is_all_constant_values(self, is_ref_enabled = False) -> 'bool':
-        if self.internal_value is not None:
-            for v in self.internal_value:
-                if v is None:
-                    return False
+    def is_iteratable(self):
+        return True
 
-                if isinstance(v, ValueRef) and not is_ref_enabled:
-                    return False
+    def get_iterator(self) -> 'ValueRef':
+        if self.vtype is None:
+            return None
 
-                if isinstance(v, ValueRef):
-                    if not v.get_value().is_all_constant_values(is_ref_enabled):
-                        return False
-                else:
-                    if not v.is_all_constant_values(is_ref_enabled):
-                        return False
-        return True                    
+        v = self.vtype()
+
+        if self.dtype is not None:
+            v.dtype = self.dtype
+            
+
+        return ValueRef(v)
+
+    def estimate_type(self):
+        if self.internal_value is None:
+            return
+
+        self.vtype = None
+        self.dtype = None
+
+        for v in self.internal_value:
+            if self.vtype is None:
+                self.vtype = type(v.get_value())
+                self.dtype = v.get_value().dtype
+            else:
+                if self.vtype != type(v.get_value()):
+                    self.vtype = None
+                    self.dtype = None
+                    return
+                if self.dtype != v.get_value().dtype:
+                    self.dtype = None
 
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
@@ -700,6 +760,15 @@ class TensorValue(Value):
         if not config.float_restrict and self.dtype == np.float64:
             self.dtype = np.float32
 
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':            
+        v = TensorValue()
+        v.dtype = self.dtype
+        return ValueRef(v)
+
+
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(
             FuncValue(functions_ndarray.NDArrayShapeFunction(self), obj))
@@ -731,14 +800,14 @@ class UserDefinedInstance(Instance):
     def __init__(self, module: 'Field', inst, classinfo):
         super().__init__(module, inst, classinfo)
 
-    def try_get_ref(self, name: 'str', inst: 'ValueRef') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):
                 return None
 
             attr_v = getattr(self.inst, name)
-            obj = parse_instance(self.module, name, attr_v, inst)
+            obj = parse_instance(self.module, name, attr_v, inst, root_graph=root_graph)
 
         else:
             members = inspect.getmembers(self.classinfo)
@@ -749,6 +818,6 @@ class UserDefinedInstance(Instance):
             if not (name in members_dict.keys()):
                 return None
 
-            obj = parse_instance(self.module, name, members_dict[name], inst, from_member=True)
+            obj = parse_instance(self.module, name, members_dict[name], inst, from_member=True, root_graph=root_graph)
 
         return obj

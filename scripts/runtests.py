@@ -403,6 +403,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_isnan'),
     TestCase(NODE_TEST, 'test_isinf'),
+
+    TestCase(NODE_TEST, 'test_where_example'),
 ]
 
 TEST_CASES += [
@@ -543,7 +545,9 @@ for backprop_test in gen_backprop_tests_oc.get_backprop_tests():
     dirname = 'out'
     name = 'backprop_test_oc_' + backprop_test.name
     assert os.path.exists(os.path.join(dirname, name))
-    TEST_CASES.append(TestCase(dirname, name))
+    tc = TestCase(dirname, name)
+    tc.rtol = backprop_test.rtol
+    TEST_CASES.append(tc)
 
 for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
     dirname = 'out'
@@ -556,7 +560,7 @@ for backprop_test in gen_backprop_tests_pc.get_backprop_tests():
                                skip_shape_inference=skip_shape_inference))
 
 for test in gen_extra_test.get_tests():
-    assert os.path.exists(test.test_dir)
+    assert os.path.exists(test.test_dir), test.test_dir
     TEST_CASES.append(test)
 
 for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
@@ -587,11 +591,18 @@ for test in TEST_CASES:
         new_test.is_backprop_two_phase = True
         new_tests.append(new_test)
 
-    if test.name == 'ch2o_model_MLP_with_loss_backprop':
+    # computation_order is supported in limited test cases
+    if test.name.startswith('backprop_test_oc'):
         new_test = copy.copy(test)
         new_test.name = test.name + '_computation_order'
         new_test.computation_order = 'dummy'
         new_tests.append(new_test)
+
+        new_test2 = copy.copy(test)
+        new_test2.name = test.name + '_computation_order_two_phase'
+        new_test2.computation_order = 'dummy'
+        new_test2.is_backprop_two_phase = True
+        new_tests.append(new_test2)
 
 for test in new_tests:
     TEST_CASES.append(test)

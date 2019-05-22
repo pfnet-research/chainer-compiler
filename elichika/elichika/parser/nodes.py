@@ -36,13 +36,10 @@ class CompareType(Enum):
     IsNot = 7,
     unknown = 255,
 
-def remove_ref(value):
-    '''
-    remove ref
-    '''
+def make_attribute(value):
     if isinstance(value, list):
         for i in range(len(value)):
-            value[i] = remove_ref(value[i])
+            value[i] = make_attribute(value[i])
 
     if isinstance(value, functions.FunctionArgValueInput):
         converted = {}
@@ -50,7 +47,7 @@ def remove_ref(value):
         ret = functions.FunctionArgValueInput()
 
         for v in value.inputs:
-            converted_v = remove_ref(v)
+            converted_v = make_attribute(v)
             ret.inputs.append(converted_v)
             converted[v] = converted_v
 
@@ -59,7 +56,7 @@ def remove_ref(value):
             if v in converted.keys():
                 keywords_[k] = converted[v]
             else:
-                keywords_[k] = remove_ref(v)
+                keywords_[k] = make_attribute(v)
         ret.keywords = keywords_
         return ret
 
@@ -68,10 +65,13 @@ def remove_ref(value):
         for v in value.internal_value:
             if isinstance(v, values.ValueRef):
                 v = v.get_value()
-
             vs.append(v)
 
-        return values.TupleValue(vs)
+        ret = values.TupleValue(vs)
+        ret.name = value.name
+        ret.generator = value.generator
+
+        return ret
 
     if isinstance(value, values.ValueRef):
         return value.get_value()
@@ -129,8 +129,6 @@ class NodeInput(Node):
 class NodeCopy(Node):
     def __init__(self, value: 'values.Value', line=-1):
         super().__init__(line)
-        value = remove_ref(value)
-
         self.value = value
         self.append_inputs(value)
 
@@ -141,9 +139,6 @@ class NodeCopy(Node):
 class NodeNonVolatileAssign(Node):
     def __init__(self, target_value: 'values.Value', value: 'values.Value', line=-1):
         super().__init__(line)
-        target_value = remove_ref(target_value)
-        value = remove_ref(value)
-
         self.target_value = target_value
         self.value = value
         self.append_inputs(target_value)
@@ -171,10 +166,6 @@ class NodeAssign(Node):
 class NodeAugAssign(Node):
     def __init__(self, target: 'values.Value', value: 'values.Value', binop: 'BinOp', line=-1):
         super().__init__(line)
-
-        target = remove_ref(target)
-        value = remove_ref(value)
-
         self.target = target
         self.value = value
         self.binop = binop
@@ -190,8 +181,8 @@ class NodeBinOp(Node):
     def __init__(self, left: 'values.Value', right: 'values.Value', binop: 'BinOp', line=-1):
         super().__init__(line)
 
-        left = remove_ref(left)
-        right = remove_ref(right)
+        #left = remove_ref(left)
+        #right = remove_ref(right)
 
         self.left = left
         self.right = right
@@ -207,8 +198,6 @@ class NodeBinOp(Node):
 class NodeUnaryOp(Node):
     def __init__(self, operand: 'values.Value', unaryop: 'UnaryOpType', line=-1):
         super().__init__(line)
-        operand = remove_ref(operand)
-
         self.operand = operand
         self.unaryop = unaryop
 
@@ -221,9 +210,6 @@ class NodeUnaryOp(Node):
 class NodeCompare(Node):
     def __init__(self, left: 'values.Value', right: 'values.Value', compare: 'CompareType', line=-1):
         super().__init__(line)
-        left = remove_ref(left)
-        right = remove_ref(right)
-
         self.left = left
         self.right = right
         self.compare = compare
@@ -238,8 +224,6 @@ class NodeCompare(Node):
 class NodeGetItem(Node):
     def __init__(self, target: "values.Value", indexes, line=-1):
         super().__init__(line)
-        target = remove_ref(target)
-
         self.target = target
         self.indexes = indexes
 
@@ -253,8 +237,6 @@ class NodeGetItem(Node):
 class NodeSlice(Node):
     def __init__(self, target: "values.Value", indices, slice_specs, line=-1):
         super().__init__(line)
-        target = remove_ref(target)
-
         self.target = target
         self.indices = indices
         self.slice_specs = slice_specs
@@ -270,10 +252,15 @@ class NodeCall(Node):
     def __init__(self, func: 'Function', args : 'functions.FunctionArgInput', line=-1):
         super().__init__(line)
         args_ = args.get_value()
-        args_ = remove_ref(args_)
+        attribute_args_ = args.get_value()
 
         self.func = func
+
+        # args (it somtimes contains tuple(valueref))
         self.args = args_ # functions.FunctionArgValueInput
+
+        # args for attributes (valuerefs are removed)
+        self.attribute_args = make_attribute(attribute_args_)
         self.inputs.extend(self.args.inputs)
 
     def __str__(self):
@@ -288,8 +275,6 @@ class NodeCall(Node):
 class NodeReturn(Node):
     def __init__(self, value, line=-1):
         super().__init__(line)
-        value = remove_ref(value)
-
         self.value = value
         self.append_inputs(value)
 
@@ -300,9 +285,6 @@ class NodeReturn(Node):
 class NodeIf(Node):
     def __init__(self, cond, input_values, true_graph, false_graph, line=-1):
         super().__init__(line)
-        cond = remove_ref(cond)
-        input_values = remove_ref(input_values)
-
         self.cond = cond
         self.input_values = input_values
 
@@ -322,9 +304,6 @@ class NodeIf(Node):
 class NodeFor(Node):
     def __init__(self, iter_value, input_values, body_graph, line=-1):
         super().__init__(line)
-        iter_value = remove_ref(iter_value)
-        input_values = remove_ref(input_values)
-
         self.iter_value = iter_value
         self.input_values = input_values
         self.append_inputs(iter_value)
@@ -340,9 +319,6 @@ class NodeFor(Node):
 class NodeForGenerator(Node):
     def __init__(self, counter_value, iter_value, line=-1):
         super().__init__(line)
-        counter_value = remove_ref(counter_value)
-        iter_value = remove_ref(iter_value)
-
         self.counter_value = counter_value
         self.iter_value = iter_value
         self.append_inputs(counter_value)
@@ -355,9 +331,6 @@ class NodeForGenerator(Node):
 class NodeListcomp(Node):
     def __init__(self, iter_value, input_values, body_graph, line=-1):
         super().__init__(line)
-        input_values = remove_ref(input_values)
-        iter_value = remove_ref(iter_value)
-
         self.iter_value = iter_value
         self.input_values = input_values
         self.append_inputs(iter_value)
@@ -373,14 +346,11 @@ class NodeListcomp(Node):
 class NodeGenerate(Node):
     def __init__(self, classtype, args, line=-1):
         super().__init__(line)
-        args = remove_ref(args)
-
         if isinstance(args, list):
             self.extend_inputs(args)
             self.args = args
         else:
             args_ = args.get_value()
-            args_ = remove_ref(args_)
             self.args = args_
             self.extend_inputs(self.args.inputs)
 
@@ -393,8 +363,6 @@ class NodeGenerate(Node):
 class NodeConvert(Node):
     def __init__(self, classtype, value, line=-1):
         super().__init__(line)
-        value = remove_ref(value)
-
         self.classtype = classtype
         self.value = value
         self.append_inputs(self.value)
@@ -405,8 +373,6 @@ class NodeConvert(Node):
 class NodeLen(Node):
     def __init__(self, iter_value, line=-1):
         super().__init__(line)
-        iter_value = remove_ref(iter_value)
-
         self.iter_value = iter_value
         self.append_inputs(self.iter_value)
 

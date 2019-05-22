@@ -26,6 +26,8 @@ try:
 except:
     pass
 
+all_computation_orders = [None, 'dummy', 'dummy2']
+
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
 sys.path.append(os.path.join(project_root, 'python'))
@@ -106,12 +108,21 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-@pytest.mark.parametrize('device_name', all_device_names)
-@pytest.mark.parametrize('translator', all_translators)
-def test_mnist(device_name, translator):
+def skip_check(device_name, translator, computation_order):
     if translator == 'onnx_chainer':
         if device_name == 'native:0' or device_name == 'cuda:0':
-            pytest.skip()
+            return True
+    if translator == 'ch2o' and computation_order is not None:
+        return True
+    return False
+
+
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('computation_order', all_computation_orders)
+def test_mnist(device_name, translator, computation_order):
+    if skip_check(device_name, translator, computation_order):
+        pytest.skip()
 
     np.random.seed(40)
     if has_cupy:
@@ -147,8 +158,9 @@ def test_mnist(device_name, translator):
 
     expected_loss, expected_grads = _run_fwd_bwd(model, [input, target])
 
-    mlp_compiled = chainer_compiler.compile(mlp, [input],
-                                            translator=translator)
+    mlp_compiled = chainer_compiler.compile(
+        mlp, [input], translator=translator,
+        computation_order=computation_order)
     model = L.Classifier(mlp_compiled)
     model.to_device(device)
 
@@ -241,12 +253,8 @@ class Sequence(chainer.Chain):
 
 
 @pytest.mark.parametrize('device_name', all_device_names)
-@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('translator', ['ch2o'])
 def test_sequence(device_name, translator):
-    if translator == 'onnx_chainer':
-        if device_name == 'native:0' or device_name == 'cuda:0':
-            pytest.skip()
-
     device = chainer.get_device(device_name)
     device.use()
 
@@ -256,7 +264,7 @@ def test_sequence(device_name, translator):
     xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
     expected = model(xs)
 
-    model = chainer_compiler.compile(model, [xs])
+    model = chainer_compiler.compile(model, [xs], translator=translator)
     model.to_device(device)
 
     xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]

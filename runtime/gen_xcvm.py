@@ -150,17 +150,19 @@ def gen_gen_xcvm_ops_cc():
                      (op.name, op.name))
         for i, inp in enumerate(op.inputs):
             enum = inp.typ.replace('OPTIONAL_', '')
-            lines.append('CHECK_EQ(XCValueProto::%s, ' % (enum) +
-                         'inst.inputs(%d).type()) ' % (i) +
+            lines.append('CHECK_EQ(XCValueProto::%s, ' % enum +
+                         'inst.inputs(%d).type()) ' % i +
                          '<< "Unexpected type for input#%d of %s";' % (i, op.name))
             pfn = inp.proto_field_name()
             name = inp.name
             if not inp.is_repeated():
                 lines.append('%s = inst.inputs(%d).%s();' % (name, i, pfn))
             elif inp.typ == INTS:
+                lines.append('CHECK_LE(inst.inputs(%d).ints().size(), '
+                             '(int)chainerx::kMaxNdim);' % i)
                 lines.append('%s = %s(' % (name, STACK_VECTOR) +
-                             'inst.inputs(%d).ints().begin(), ' % (i) +
-                             'inst.inputs(%d).ints().end());' % (i))
+                             'inst.inputs(%d).ints().begin(), ' % i +
+                             'inst.inputs(%d).ints().end());' % i)
             else:
                 lines.append('%s.assign(inst.inputs(%d).%s().begin(),' % (name, i, pfn) +
                              'inst.inputs(%d).%s().end());' % (i, pfn))
@@ -199,7 +201,7 @@ def gen_gen_xcvm_ops_cc():
                 line += ' << %s' % colored_name(typ, name)
             elif typ in (INT, FLOAT):
                 line += ' << %s' % name
-            elif typ in [STRING, DOUBLES]:
+            elif typ in [STRING, INT_VALUES, DOUBLES]:
                 line += ' << "%s"' % name
             elif typ == INTS:
                 line += ' << StackVectorToString(%s)' % name

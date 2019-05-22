@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <chainerx/testing/context_session.h>
+
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <compiler/dtype.h>
@@ -11,6 +13,7 @@ namespace chainer_compiler {
 namespace {
 
 TEST(TensorTest, LoadMNISTOutput) {
+    chainerx::testing::ContextSession sess;
     std::string path = "data/mnist/test_data_set_0/output_0.pb";
     onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(path));
     Tensor tensor(xtensor);
@@ -21,6 +24,7 @@ TEST(TensorTest, LoadMNISTOutput) {
 }
 
 TEST(TensorTest, Constructor) {
+    chainerx::testing::ContextSession sess;
     {
         Tensor tensor("foo", Dtype::kFloat32, {2}, {2.0f, 3.0f});
         EXPECT_EQ(2.0, tensor.Get<float>(0));

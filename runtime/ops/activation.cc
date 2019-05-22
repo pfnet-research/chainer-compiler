@@ -19,7 +19,9 @@ chainerx::Array ReluGradOp::RunImpl(XCVMState* st, const chainerx::Array& x, con
     chainerx::Array out = chainerx::EmptyLike(x, x.device());
     double eps;
     // TODO(hamaji): Use IsLessElseSAAS once it is added.
-    if (x.dtype() == chainerx::Dtype::kFloat32) {
+    if (x.dtype() == chainerx::Dtype::kFloat16) {
+        eps = 5.96e-08;
+    } else if (x.dtype() == chainerx::Dtype::kFloat32) {
         eps = 1.4013e-45f;
     } else if (x.dtype() == chainerx::Dtype::kFloat64) {
         eps = 4.94066e-324;

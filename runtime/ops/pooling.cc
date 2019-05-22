@@ -190,10 +190,6 @@ T ContiguousArrayAt(const chainerx::Array& a, const ArrayIndices& indices) {
     return ContiguousArrayAt<T>(const_cast<chainerx::Array&>(a), indices);
 }
 
-chainerx::Array EnsureContiguous(chainerx::Array const& a) {
-    return a.IsContiguous() ? a : chainerx::Copy(a);
-}
-
 bool is_roi_covered_by_bottom_data(
         double roi_start_h, double roi_start_w, double roi_end_h, double roi_end_w, int64_t height, int64_t width) {
     auto is_p_covered = [](double start_p, double end_p, int64_t limit) {
@@ -221,9 +217,9 @@ public:
           pooled_width(output_shape[1]),
           roi_bin_grid_h(sampling_ratio[0]),
           roi_bin_grid_w(sampling_ratio[1]) {
-        contiguous_bottom_data = EnsureContiguous(bottom_data);
-        contiguous_bottom_roi_indices = EnsureContiguous(bottom_roi_indices);
-        contiguous_bottom_rois = EnsureContiguous(bottom_rois);
+        contiguous_bottom_data = chainerx::AsContiguous(bottom_data);
+        contiguous_bottom_roi_indices = chainerx::AsContiguous(bottom_roi_indices);
+        contiguous_bottom_rois = chainerx::AsContiguous(bottom_rois);
         top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
         bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
         top_ptr = static_cast<float*>(top_data.raw_data());
@@ -558,9 +554,7 @@ void Upsample2D32bitForRawPtr(
 }
 
 chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& to_shape, const std::vector<int64_t>& int_scales) {
-    if (!x.IsContiguous()) {
-        x = chainerx::Copy(x);
-    }
+    x = chainerx::AsContiguous(x);
     chainerx::Array y = chainerx::Empty(to_shape, x.dtype(), x.device());
     if (int_scales[2] == 2 && int_scales[3] == 2) {
         Upsample2D32bitForRawPtr<2>(
@@ -693,7 +687,7 @@ chainerx::Array ResizeImagesOp::RunImpl(XCVMState* st, const chainerx::Array& x)
     y_shape[3] = output_shape[1];
 
     if (IsNativeDevice(&x.device()) && x.dtype() == chainerx::Dtype::kFloat32) {
-        chainerx::Array xc = x.IsContiguous() ? x : chainerx::Copy(x);
+        chainerx::Array xc = chainerx::AsContiguous(x);
         chainerx::Array y = chainerx::Empty(y_shape, x.dtype());
         ResizeImagesFloat32ForCPU(xc, y);
         return y;

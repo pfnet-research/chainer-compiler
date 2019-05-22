@@ -101,6 +101,9 @@ class AppendFunction(functions.FunctionBase):
 
         node = nodes.NodeCall(self, funcArgs, line)
 
+        if inst.in_container:
+            raise Exception('Invalid operation')
+            
         old_v = inst.get_value()
         new_v = functions.generate_value_with_same_type(old_v)
         inst.revise(new_v)

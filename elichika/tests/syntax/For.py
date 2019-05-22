@@ -1,8 +1,11 @@
 # coding: utf-8
 
+import numpy as np
+import testtools
 import chainer
 import chainer.functions as F
 import chainer.links as L
+
 
 class Basic1(chainer.Chain):
     def forward(self):
@@ -10,6 +13,7 @@ class Basic1(chainer.Chain):
         for i in range(2):
             x = i + 1
         return x
+
 
 class A(chainer.Chain):
     def forward(self, xs, p):
@@ -27,12 +31,14 @@ class B(chainer.Chain):
             h = inputs[:, time]
         return h
 
+
 class B2(chainer.Chain):
     def forward(self, xs, l):
         inputs = F.pad_sequence(xs)
         for time in range(l):
             h = inputs[:, time]
         return h
+
 
 class C(chainer.Chain):
     def forward(self):
@@ -103,14 +109,41 @@ class DoubleForBackprop(chainer.Chain):
         return x
 
 
+class GenBool(chainer.Chain):
+    def forward(self):
+        for i in range(4):
+            o = True
+        return o
+
+
+class GenList(chainer.Chain):
+    def forward(self):
+        for i in range(4):
+            o = [1,2]
+        return o
+
+
+class GenNone(chainer.Chain):
+    def forward(self):
+        for i in range(4):
+            o = None
+        return o
+
+
+class GenTuple(chainer.Chain):
+    def forward(self):
+        for i in range(4):
+            o = (1, 2)
+
+        # TODO (durswd): to convert tuple into list. it should be removed
+        ret = list(o)
+        return ret
+
 # ======================================
 
 
-import testtools
-import numpy as np
-
-
 def main():
+
     testtools.generate_testcase(Basic1(), [], subname='basic1')
 
     model = A()
@@ -127,6 +160,9 @@ def main():
     args = [xs, length]
     testtools.generate_testcase(model, args, subname='closure_bug')
 
+    model = B2()
+    testtools.generate_testcase(model, args, subname='forloop_bug')
+
     testtools.generate_testcase(C(), [], subname='multi_ref')
 
     testtools.generate_testcase(D(), [], subname='leak')
@@ -134,23 +170,27 @@ def main():
     testtools.generate_testcase(UpdateSelf(), [42], subname='update_self')
 
     testtools.generate_testcase(UpdateSelfLiteral(), [],
-                           subname='update_self_literal')
+                                subname='update_self_literal')
 
     testtools.generate_testcase(UpdateSelfLiteralInInit, [],
-                           subname='update_self_literal_in_init')
+                                subname='update_self_literal_in_init')
 
     testtools.generate_testcase(ForBackprop(),
-                           [np.random.rand(4, 3).astype(np.float32), 2],
-                           subname='for', backprop=True)
+                                [np.random.rand(4, 3).astype(np.float32), 2],
+                                subname='for', backprop=True)
 
     testtools.generate_testcase(DoubleForBackprop(),
-                           [np.random.rand(4, 3).astype(np.float32), 2, 5],
-                           subname='double_for', backprop=True)
+                                [np.random.rand(4, 3).astype(
+                                    np.float32), 2, 5],
+                                subname='double_for', backprop=True)
 
-    model = B2()
-    testtools.generate_testcase(model, args, subname='forloop_bug')
+    testtools.generate_testcase(GenBool(), [], subname='gen_bool')
 
+    testtools.generate_testcase(GenNone(), [], subname='gen_none')
 
+    testtools.generate_testcase(GenTuple(), [], subname='gen_tuple')
+
+    testtools.generate_testcase(GenList(), [], subname='gen_list')
 
 if __name__ == '__main__':
     main()

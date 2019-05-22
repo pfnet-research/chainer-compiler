@@ -302,7 +302,7 @@ void FuseTVMOperations(Graph* graph) {
                 break;
             }
 
-            Node* user = output->users()[0];
+            Node* user = output->user(0);
             if ((user->op_type() != Node::kRelu && user->op_type() != Node::kReduceSum && user->op_type() != Node::kAdd)) {
                 break;
             }

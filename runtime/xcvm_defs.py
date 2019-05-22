@@ -9,6 +9,7 @@ OPAQUE = 'OPAQUE'
 INT = 'INT'
 FLOAT = 'FLOAT'
 INTS = 'INTS'
+INT_VALUES = 'INT_VALUES'
 STRING = 'STRING'
 DOUBLES = 'DOUBLES'
 
@@ -17,7 +18,7 @@ ARG_TYPES = [
 ]
 
 FIELD_TYPES = [
-    INT, FLOAT, INTS, STRING, DOUBLES
+    INT, FLOAT, INTS, INT_VALUES, STRING, DOUBLES
 ]
 
 XC_TYPES = ARG_TYPES + FIELD_TYPES
@@ -30,7 +31,7 @@ _ValueInfo = collections.namedtuple('_ValueInfo', ('typ', 'name'))
 
 class ValueInfo(_ValueInfo):
     def is_repeated(self):
-        return self.typ in [INTS, ARRAY_LIST, DOUBLES]
+        return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES]
 
     def c_type(self):
         if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE]:
@@ -41,7 +42,7 @@ class ValueInfo(_ValueInfo):
             return 'std::string'
         elif self.typ == ARRAY_LIST:
             return 'std::vector<int>'
-        elif self.typ == INTS:
+        elif self.typ == INTS or self.typ == INT_VALUES:
             return 'std::vector<int64_t>'
         elif self.typ == DOUBLES:
             return 'std::vector<double>'
@@ -77,7 +78,7 @@ class ValueInfo(_ValueInfo):
             return 'f'
         elif self.typ == STRING:
             return 's'
-        elif self.typ == INTS:
+        elif self.typ == INTS or self.typ == INT_VALUES:
             return 'ints'
         elif self.typ == DOUBLES:
             return 'doubles'
@@ -119,6 +120,10 @@ def Float(name):
 
 def Ints(name):
     return ValueInfo(INTS, name)
+
+
+def IntValues(name):
+    return ValueInfo(INT_VALUES, name)
 
 
 def String(name):
@@ -177,6 +182,7 @@ XC_OPS = [
 
     ('Clip', [Array('inputs'), Float('max'), Float('min')], ['result']),
     ('Max', [ArrayList('inputs')], ['result']),
+    ('Min', [ArrayList('inputs')], ['result']),
     ('ReduceMax', [Array('x'), Ints('axes'), Int('keepdims')], ['y']),
     ('ReduceSum', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('ReduceSumSquare', [Array('data'), Ints('axes'), Int('keepdims')],
@@ -367,6 +373,8 @@ XC_OPS = [
       String('code'), Int('fusion_id')],
      [ArrayList('outputs')]),
 
+    ('Where', [Array('condition'), Array('x'), Array('y')], [Array('output')]),
+
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],
      [ArrayList('outputs')]),
@@ -374,7 +382,8 @@ XC_OPS = [
 
 XC_CUSTOM_FIELD_OPS = [
     ('IntConstant',
-     [Ints('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
+     [IntValues('value'), Int('dtype'), Ints('shape'), Int('host')],
+     ['output']),
     ('FloatConstant',
      [Doubles('value'), Int('dtype'), Ints('shape'), Int('host')], ['output']),
     ('TVM',

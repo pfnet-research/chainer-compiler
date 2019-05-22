@@ -53,7 +53,6 @@ if __name__ == '__main__':
     # batch * channel * H * W
     v = np.random.rand(2, 3, 227, 227).astype(np.float32)
     w = np.random.randint(1000, size=2)
-    # test_mxnet.check_compatibility(model, v)
 
     import ch2o
     ch2o.generate_testcase(model, [v, w])

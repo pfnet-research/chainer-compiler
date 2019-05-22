@@ -58,6 +58,8 @@ tvm::Type GetType(Dtype dtype) {
             return tvm::Int(64);
         case Dtype::kUInt8:
             return tvm::UInt(8);
+        case Dtype::kFloat16:
+            return tvm::Float(16);
         case Dtype::kFloat32:
             return tvm::Float(32);
         case Dtype::kFloat64:
