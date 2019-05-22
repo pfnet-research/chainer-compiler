@@ -31,7 +31,11 @@ time make -j2
 
 time make large_tests
 
-time make test || cat ./Testing/Temporary/LastTest.log
+if time make test ; then
+    exit_code=$?
+    cat ./Testing/Temporary/LastTest.log
+    exit $?
+fi
 
 cd ..
 ./scripts/runtests.py
