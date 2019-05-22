@@ -61,6 +61,7 @@ NodeDef('Log', 1, 1)
 NodeDef('Sqrt', 1, 1)
 NodeDef('IsNaN', 1, 1)
 NodeDef('IsInf', 1, 1)
+NodeDef('Sign', 1, 1)
 
 NodeDef('Sin', 1, 1)
 NodeDef('Sinh', 1, 1)

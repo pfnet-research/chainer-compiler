@@ -157,6 +157,7 @@ XC_OPS = [
     ('Xor', [Array('a'), Array('b')], ['c']),
     ('IsNaN', [Array('x')], ['y']),
     ('IsInf', [Array('x')], ['y']),
+    ('Sign', [Array('input')], ['output']),
 
     ('Reciprocal', [Array('x')], ['y']),
     ('Exp', [Array('x')], ['y']),

@@ -149,6 +149,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_floor_example'),
     TestCase(NODE_TEST, 'test_ceil'),
     TestCase(NODE_TEST, 'test_ceil_example'),
+    TestCase(NODE_TEST, 'test_sign'),
 
     TestCase(NODE_TEST, 'test_not_2d'),
     TestCase(NODE_TEST, 'test_not_3d'),

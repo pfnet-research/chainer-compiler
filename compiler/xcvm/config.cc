@@ -127,6 +127,7 @@ public:
         CHECK(op_set_.emplace(Node::kSelu).second);
         CHECK(op_set_.emplace(Node::kShape).second);
         CHECK(op_set_.emplace(Node::kSigmoid).second);
+        CHECK(op_set_.emplace(Node::kSign).second);
         CHECK(op_set_.emplace(Node::kSin).second);
         CHECK(op_set_.emplace(Node::kSinh).second);
         CHECK(op_set_.emplace(Node::kSize).second);
