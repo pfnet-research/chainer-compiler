@@ -10,8 +10,8 @@ class Order;
 
 std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& policy);
 
-void AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders);
+bool AddGradientNodesForTrainingWithOrders(Graph* graph, const std::vector<Order>& orders);
 
-void AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders);
+bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders);
 
 }  // namespace chainer_compiler
