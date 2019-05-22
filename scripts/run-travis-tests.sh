@@ -12,7 +12,7 @@ time sudo pip3 install onnx==1.4.1
 
 export LD_LIBRARY_PATH="$HOME/.cudnn/active/cuda/lib64:/usr/local/cuda-10.0/lib64/stubs:${LD_LIBRARY_PATH:-}"
 export CPATH="$HOME/.cudnn/active/cuda/include:${CPATH:-}"
-export LIBRARY_PATH="$HOME/.cudnn/active/cuda/lib64:${LIBRARY_PATH:-}"
+export LIBRARY_PATH="$HOME/.cudnn/active/cuda/lib64:/usr/local/cuda-10.0/lib64/stubs:${LIBRARY_PATH:-}"
 
 time bash setup.sh
 
