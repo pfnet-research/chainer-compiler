@@ -31,7 +31,7 @@ time make -j2
 
 time make large_tests
 
-time make test
+time make test || cat ./Testing/Temporary/LastTest.log
 
 cd ..
 ./scripts/runtests.py
