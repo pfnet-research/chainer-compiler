@@ -2,6 +2,7 @@
 
 #include <chainerx/kernels/math.h>
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/hyperbolic.h>
 #include <chainerx/routines/math.h>
 
 #include <common/log.h>
