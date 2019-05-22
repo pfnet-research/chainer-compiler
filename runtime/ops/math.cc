@@ -15,9 +15,7 @@ namespace runtime {
 namespace {
 
 chainerx::Array Pow(chainerx::Array a, chainerx::Array b) {
-    return chainerx::Exp(chainerx::Log(a) * b);
-    // TODO(take-cheeze): Update ChainerX to use element wise power from chainer/chainer#6496.
-    // return chainerx::Power(a, b);
+    return chainerx::Power(a, b);
 }
 
 // TODO(hamaji): Implement type coersion in ChainerX.

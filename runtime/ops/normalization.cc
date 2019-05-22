@@ -231,8 +231,7 @@ std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(XCVMState* st, const
         sum_part.At(indices2) += x2.At(indices1);
     }
     chainerx::Array unit_scale = bias + (alpha / size) * sum_part;
-    // TODO(hamaji): Add `Pow` and use it.
-    chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
+    chainerx::Array scale = chainerx::Power(unit_scale, -beta);
     chainerx::Array out = x * scale;
     return std::tie(out, unit_scale);
 }
@@ -250,9 +249,8 @@ chainerx::Array LRNGradOp::RunImpl(
         sum_part.At(indices1) += summand.At(indices2);
         sum_part.At(indices2) += summand.At(indices1);
     }
-    // TODO(hamaji): Add `Pow` and use it.
     // TODO(hamaji): Decide whether we want to keep this value or recompute.
-    chainerx::Array scale = chainerx::Exp(chainerx::Log(unit_scale) * -beta);
+    chainerx::Array scale = chainerx::Power(unit_scale, -beta);
     return gy * scale - 2 * (alpha / size) * beta * x * sum_part;
 }
 
