@@ -6,6 +6,8 @@ import tempfile
 import ch2o
 import chainer_compiler_core
 
+from fake_cupy_allocator import use_fake_cupy_allocator
+
 
 def _is_array(v):
     return not isinstance(v, (list, tuple, range, dict))
@@ -162,6 +164,29 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
+def _run_translator(translator, mc, inputs):
+    if translator == 'ch2o':
+        xmodel = ch2o.compile_model(mc, inputs)
+        f = tempfile.NamedTemporaryFile(delete=False)
+        f.write(xmodel.SerializeToString())
+        f.close()
+        del xmodel
+    elif translator == 'onnx_chainer':
+
+        import onnx_chainer
+        f = tempfile.NamedTemporaryFile(delete=False)
+        onnx_chainer.export(mc, inputs, filename=f)
+        f.close()
+    else:
+        raise NotImplementedError('Unsupported translator:',
+                                  translator)
+
+    graph = chainer_compiler_core.load(f.name)
+    os.unlink(f.name)
+
+    return graph
+
+
 class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
@@ -180,23 +205,13 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def compile(self, inputs):
-        if self.translator == 'ch2o':
-            xmodel = ch2o.compile_model(self.mc, inputs)
-            f = tempfile.NamedTemporaryFile(delete=False)
-            f.write(xmodel.SerializeToString())
-            f.close()
-            del xmodel
-        elif self.translator == 'onnx_chainer':
-            import onnx_chainer
-            f = tempfile.NamedTemporaryFile(delete=False)
-            onnx_chainer.export(self.mc, inputs, filename=f)
-            f.close()
-        else:
-            raise NotImplementedError('Unsupported translator:',
-                                      self.translator)
+        with chainer.using_config('train', False),\
+                chainer.using_config('enable_backprop', False):
+            # allocate memory for all the model parameters
+            self.mc(*inputs)
 
-        graph = chainer_compiler_core.load(f.name)
-        os.unlink(f.name)
+        with use_fake_cupy_allocator(self.mc.xp):
+            graph = _run_translator(self.translator, self.mc, inputs)
 
         self.orig_output_names = graph.output_names()
 
