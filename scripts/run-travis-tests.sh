@@ -10,6 +10,10 @@ time sudo pip3 install third_party/onnx-chainer
 # ONNX-1.5.0.
 time sudo pip3 install onnx==1.4.1
 
+export LD_LIBRARY_PATH=$HOME/.cudnn/active/cuda/lib64:$LD_LIBRARY_PATH
+export CPATH=$HOME/.cudnn/active/cuda/include:$CPATH
+export LIBRARY_PATH=$HOME/.cudnn/active/cuda/lib64:$LIBRARY_PATH
+
 time bash setup.sh
 
 mkdir build
@@ -17,7 +21,9 @@ cd build
 time cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
       -DCHAINER_COMPILER_ENABLE_CUDA=ON \
+      -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
       -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 \
+      -DCUDNN_ROOT_DIR=$HOME/.cudnn/active/cuda \
       -DCHAINER_COMPILER_USE_CUDA_STUBS=ON \
       -DPYTHON_EXECUTABLE=/usr/bin/python3 \
       -DCHAINER_COMPILER_ENABLE_OPENCV=ON
