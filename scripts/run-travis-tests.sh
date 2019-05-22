@@ -34,7 +34,7 @@ time make large_tests
 if ! time make test ; then
     exit_code=$?
     cat ./Testing/Temporary/LastTest.log
-    exit $?
+    exit $exit_code
 fi
 
 cd ..
