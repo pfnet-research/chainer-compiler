@@ -1,5 +1,6 @@
 #include <chainerx/backprop_mode.h>
 #include <chainerx/routines/creation.h>
+#include <chainerx/routines/hyperbolic.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
