@@ -53,11 +53,11 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     Type const& y = node.output(0)->type();
     int64_t bsize = x.dims()[0];
     int64_t ichan = x.dims()[1];
-    int64_t kw = w.dims()[2];
-    int64_t kh = w.dims()[3];
     int64_t ochan = y.dims()[1];
-    int64_t ow = y.dims()[2];
-    int64_t oh = y.dims()[3];
+    int64_t kh = w.dims()[2];
+    int64_t kw = w.dims()[3];
+    int64_t oh = y.dims()[2];
+    int64_t ow = y.dims()[3];
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
@@ -68,10 +68,10 @@ int64_t CalculateFlopsOfConvTranspose(Node const& node) {
     int64_t const bsize = x.dims()[0];
     int64_t const ichan = x.dims()[1];
     int64_t const ochan = y.dims()[1];
-    int64_t const kw = w.dims()[2];
-    int64_t const kh = w.dims()[3];
-    int64_t const iw = x.dims()[2];
-    int64_t const ih = x.dims()[3];
+    int64_t const kh = w.dims()[2];
+    int64_t const kw = w.dims()[3];
+    int64_t const ih = x.dims()[2];
+    int64_t const iw = x.dims()[3];
     return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
 }
 
@@ -85,10 +85,10 @@ int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
     int64_t const bsize = x.dims()[0];
     int64_t const ic = x.dims()[1];
     int64_t const oc = gy.dims()[1];
-    int64_t const iw = x.dims()[2];
-    int64_t const ih = x.dims()[3];
-    int64_t const kw = w.dims()[2];
-    int64_t const kh = w.dims()[3];
+    int64_t const ih = x.dims()[2];
+    int64_t const iw = x.dims()[3];
+    int64_t const kh = w.dims()[2];
+    int64_t const kw = w.dims()[3];
     return bsize * iw * ih * oc * ic * kw * kh / node.group();
 }
 
