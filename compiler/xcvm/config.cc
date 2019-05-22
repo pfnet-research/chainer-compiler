@@ -151,6 +151,7 @@ public:
             // SelectItem seemed to be slow on GPU.
             CHECK(op_set_.emplace(Node::kChainerSelectItem).second);
             CHECK(op_set_.emplace(Node::kChainerSelectItemGrad).second);
+            CHECK(op_set_.erase(Node::kSplit));
         } else {
             CHECK(op_set_.emplace(Node::kChainerLinear).second);
             CHECK(op_set_.emplace(Node::kChainerLinearGradWeight).second);

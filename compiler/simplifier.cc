@@ -331,6 +331,7 @@ bool ReplaceSoftsign(Graph* graph, Node* node) {
 }
 
 bool ReplaceConv(Graph* graph, Node* node) {
+    return false;
     CHECK_LT(0, node->group());
     if (node->group() == 1) return false;
     GraphBuilder gb(graph, "SimplifyConvGroup", node->output(0));
@@ -645,6 +646,36 @@ void ReplaceInitializers(Graph* graph) {
     }
 }
 
+bool ReplaceSplit(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySplit", node->output(0));
+    Value* input = node->input(0);
+    CHECK(input->type().HasKnownShape()) << input->ToString();
+    int axis = node->axis();
+    CHECK_LT(axis, input->type().ndim());
+
+    std::vector<int64_t> split(node->split());
+    if (split.empty()) {
+        int dim = input->type().dims()[axis];
+        CHECK_EQ(0, dim % node->outputs().size());
+        for (size_t i = 0; i < node->outputs().size(); ++i) {
+            split.push_back(dim / node->outputs().size());
+        }
+    }
+
+    CHECK_EQ(node->outputs().size(), split.size());
+    int64_t start = 0;
+    for (size_t i = 0; i < node->outputs().size(); ++i) {
+        int64_t end = start + split[i];
+        Value* output = node->output(i);
+        gb.Op(Node::kSlice, {input}, output)->producer()
+            ->set_axes({axis})
+            ->set_starts({start})
+            ->set_ends({end});
+        start = end;
+    }
+    return true;
+}
+
 }  // namespace
 
 void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
@@ -686,11 +717,12 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
 
     replace_if_not_supported(Node::kChainerLinear, ReplaceLinear);
     replace_if_not_supported(Node::kChainerSelectItem, ReplaceSelectItem);
+    replace_if_not_supported(Node::kSplit, ReplaceSplit);
 
     // These passes are workarounds for backends such as Chainer which
     // do not support pooling with imbalanced padding.
     if (g_modify_pool_with_imbalanced_pads) {
-        CHECK(simplifiers.emplace(Node::kMaxPool, ReplaceMaxPool).second);
+        //CHECK(simplifiers.emplace(Node::kMaxPool, ReplaceMaxPool).second);
         CHECK(simplifiers.emplace(Node::kAveragePool, ReplaceAveragePool).second);
     }
 
