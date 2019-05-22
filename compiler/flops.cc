@@ -48,6 +48,28 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
 }
 
+int64_t CalculateFlopsOfSoftmax(Node const& node) {
+    int64_t const c = node.input(0)->type().dims()[node.axis()];
+    int64_t const s = node.input(0)->type().NumElements() / c;
+    return 2 * OutputSize(node) + s * (c - 1);
+}
+
+int64_t CalculateFlopsOfAveragePool(Node const& node) {
+    int64_t const kw = node.kernel_shape()[0];
+    int64_t const kh = node.kernel_shape()[1];
+    return OutputSize(node) * kw * kh;
+}
+
+int64_t CalculateFlopsOfMaxPool(Node const& node) {
+    int64_t const kw = node.kernel_shape()[0];
+    int64_t const kh = node.kernel_shape()[1];
+    return OutputSize(node) * (kw * kh - 1);
+}
+
+int64_t CalculateFlopsOfMax(Node const& node) {
+    return (node.inputs().size() - 1) * OutputSize(node);
+}
+
 int64_t CalculateFlopsImpl(const Node& node) {
     if (node.IsZeroCost()) {
         return 0;
@@ -61,11 +83,37 @@ int64_t CalculateFlopsImpl(const Node& node) {
         case Node::kGemm:
             return CalculateFlopsOfGemm(node);
 
+        case Node::kChainerFusionGroup:
+            CHECK(false);
+
+        case Node::kSum:
+        case Node::kMin:
+        case Node::kMax:
+            return CalculateFlopsOfMax(node);
+
+        case Node::kClip:
+            return 2 * OutputSize(node);
+
+        // Convolution nodes:
         case Node::kConv:
             return CalculateFlopsOfConv(node);
 
-        case Node::kChainerFusionGroup:
-            CHECK(false);
+        // Activation nodes:
+        case Node::kSigmoid:
+            return 4 * OutputSize(node);
+
+        case Node::kLeakyRelu:
+            return 2 * OutputSize(node);
+
+        case Node::kSoftmax:
+            return CalculateFlopsOfSoftmax(node);
+
+        // Pooling nodes:
+        case Node::kAveragePool:
+            return CalculateFlopsOfAveragePool(node);
+
+        case Node::kMaxPool:
+            return CalculateFlopsOfMaxPool(node);
 
         default:
             return OutputSize(node);
