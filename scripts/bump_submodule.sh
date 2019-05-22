@@ -16,6 +16,13 @@
 # $ pip3 install --user third_party/chainer
 # $ pytest python
 #
+# More tips:
+#
+# - When you update Chainer, you should review the result of
+#   `git log chainerx_cc/chainerx/routines` to see updated/added ops.
+# - When you update ONNX, it is also good to see changes for the
+#   standard ops.
+#
 
 set -eux
 
