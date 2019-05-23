@@ -1,4 +1,5 @@
 import chainer
+from contextlib import contextmanager
 import os
 import sys
 import tempfile
@@ -8,7 +9,7 @@ import chainer_compiler_core
 
 try:
     import cupy
-except Exception:
+except ImportError:
     cupy = None
 
 
@@ -167,17 +168,16 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
-class enable_unified_memory:
-
-    def __init__(self, use=True):
-        self.use = use
-
-    def __enter__(self):
+@contextmanager
+def enable_unified_memory(use):
+    if use:
         cupy.cuda.set_allocator(cupy.cuda.memory.malloc_managed)
-
-    def __exit__(self, type, value, traceback):
-        memory_pool = cupy.get_default_memory_pool()
-        cupy.cuda.set_allocator(memory_pool.malloc)
+    try:
+        yield None
+    finally:
+        if use:
+            memory_pool = cupy.get_default_memory_pool()
+            cupy.cuda.set_allocator(memory_pool.malloc)
 
 
 def _run_translator(translator, mc, inputs):
@@ -188,7 +188,6 @@ def _run_translator(translator, mc, inputs):
         f.close()
         del xmodel
     elif translator == 'onnx_chainer':
-
         import onnx_chainer
         f = tempfile.NamedTemporaryFile(delete=False)
         onnx_chainer.export(mc, inputs, filename=f)
