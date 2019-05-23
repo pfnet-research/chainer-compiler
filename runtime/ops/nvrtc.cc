@@ -12,7 +12,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -87,7 +87,7 @@ CUfunction CompileAndLoad(const std::string& name, const std::string& code) {
 #endif
 
 std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(
-        chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+        chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_NVRTC
     CHECK(!inputs.empty());
     const std::string& name = StrCat("fusion", fusion_id);

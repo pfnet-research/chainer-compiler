@@ -3,19 +3,19 @@
 #include <stdint.h>
 #include <string>
 
-#include <runtime/xcvm.pb.h>
+#include <runtime/chxvm.pb.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-class XCVMState;
+class ChxVMState;
 
-class XCVMOp {
+class ChxVMOp {
 public:
-    explicit XCVMOp(const XCInstructionProto& inst);
-    virtual ~XCVMOp() = default;
+    explicit ChxVMOp(const XCInstructionProto& inst);
+    virtual ~ChxVMOp() = default;
 
-    virtual void Run(XCVMState* state) = 0;
+    virtual void Run(ChxVMState* state) = 0;
 
     const XCInstructionProto& instruction() const {
         return inst_;
@@ -44,7 +44,7 @@ protected:
     const std::string name_;
 };
 
-XCVMOp* MakeXCVMOp(const XCInstructionProto& inst);
+ChxVMOp* MakeChxVMOp(const XCInstructionProto& inst);
 
 }  // namespace runtime
 }  // namespace chainer_compiler

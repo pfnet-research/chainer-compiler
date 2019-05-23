@@ -8,7 +8,7 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -228,7 +228,7 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
 
 }  // namespace
 
-std::vector<chainerx::Array> DoSomethingOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+std::vector<chainerx::Array> DoSomethingOp::RunImpl(chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& inputs) {
     auto found = st->options().custom_op_funcs.find(func_name);
     if (found != st->options().custom_op_funcs.end()) {
         return found->second(inputs);

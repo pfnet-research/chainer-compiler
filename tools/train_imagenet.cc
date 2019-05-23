@@ -22,13 +22,13 @@
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
-#include <compiler/xcvm/emitter.h>
+#include <compiler/chxvm/emitter.h>
 #include <feeder/imagenet_iterator.h>
 #include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/meminfo.h>
-#include <runtime/xcvm.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm_var.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
@@ -61,7 +61,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
-    args.add("dump_xcvm", '\0', "Dump XCVM program");
+    args.add("dump_chxvm", '\0', "Dump ChxVM program");
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
     args.add("quiet", 'q', "Quiet mode");
@@ -125,25 +125,25 @@ void RunMain(const std::vector<std::string>& argv) {
     }
 
     LOG() << "Generate code..." << std::endl;
-    XCProgramProto xcvm_prog;
-    xcvm::Emit(model, &xcvm_prog, trace_level > 0);
+    XCProgramProto chxvm_prog;
+    chxvm::Emit(model, &chxvm_prog, trace_level > 0);
 
-    if (args.exist("dump_xcvm")) {
+    if (args.exist("dump_chxvm")) {
         int pc = 0;
-        for (XCInstructionProto inst : xcvm_prog.instructions()) {
+        for (XCInstructionProto inst : chxvm_prog.instructions()) {
             std::cerr << '#' << pc << ": " << inst.DebugString();
             pc++;
         }
     }
 
-    XCVM xcvm(xcvm_prog);
-    XCVMOptions xcvm_opts;
-    xcvm_opts.trace_level = trace_level;
-    xcvm_opts.is_training = true;
-    xcvm_opts.check_nans = args.exist("check_nans");
-    xcvm_opts.check_infs = args.exist("check_infs");
-    xcvm_opts.dump_memory_usage = args.exist("trace");
-    xcvm_opts.base_memory_usage = initial_free_bytes;
+    ChxVM chxvm(chxvm_prog);
+    ChxVMOptions chxvm_opts;
+    chxvm_opts.trace_level = trace_level;
+    chxvm_opts.is_training = true;
+    chxvm_opts.check_nans = args.exist("check_nans");
+    chxvm_opts.check_infs = args.exist("check_infs");
+    chxvm_opts.dump_memory_usage = args.exist("trace");
+    chxvm_opts.base_memory_usage = initial_free_bytes;
 
     int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
 
@@ -165,12 +165,12 @@ void RunMain(const std::vector<std::string>& argv) {
     int max_iterations = args.get<int>("iterations");
     for (; !max_iterations || iter_count < max_iterations; ++iter_count) {
         if (!args.get<std::string>("chrome_tracing").empty() && iter_count % args.get<int>("chrome_tracing_frequency") == 1) {
-            xcvm_opts.chrome_tracing = new ChromeTracingEmitter();
+            chxvm_opts.chrome_tracing = new ChromeTracingEmitter();
         }
 
         InOuts inputs;
         {
-            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Prepare");
+            ChromeTracingEmitter::ScopedEvent se(chxvm_opts.chrome_tracing, "Trainer", "Prepare");
 
             std::vector<chainerx::Array> data = train_iter.GetNext();
             if (data.empty()) break;
@@ -179,46 +179,46 @@ void RunMain(const std::vector<std::string>& argv) {
             if (expects_onehot) {
                 CHECK_EQ(2, data.size());
                 CHECK_EQ(3, infeed_values.size());
-                inputs.emplace("Input_0", std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                inputs.emplace("Input_0", std::shared_ptr<ChxVMVar>(new ChxVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
-                inputs.emplace("Input_1", std::shared_ptr<XCVMVar>(new XCVMVar(onehot)));
-                inputs.emplace("Input_2", std::shared_ptr<XCVMVar>(new XCVMVar(batch_size_array)));
+                inputs.emplace("Input_1", std::shared_ptr<ChxVMVar>(new ChxVMVar(onehot)));
+                inputs.emplace("Input_2", std::shared_ptr<ChxVMVar>(new ChxVMVar(batch_size_array)));
             } else {
                 CHECK_EQ(2, data.size());
                 CHECK_EQ(2, infeed_values.size());
                 inputs.emplace(
-                        infeed_values[0]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
+                        infeed_values[0]->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(data[0].ToDevice(chainerx::GetDefaultDevice()))));
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
-                inputs.emplace(infeed_values[1]->name(), std::shared_ptr<XCVMVar>(new XCVMVar(labels)));
+                inputs.emplace(infeed_values[1]->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(labels)));
             }
         }
 
         InOuts outputs;
 
         {
-            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Run");
-            outputs = xcvm.Run(inputs, xcvm_opts);
+            ChromeTracingEmitter::ScopedEvent se(chxvm_opts.chrome_tracing, "Trainer", "Run");
+            outputs = chxvm.Run(inputs, chxvm_opts);
         }
 
         {
-            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Update");
+            ChromeTracingEmitter::ScopedEvent se(chxvm_opts.chrome_tracing, "Trainer", "Update");
             for (auto&& p : outputs) {
                 if (!HasPrefix(p.first, "grad_out@")) continue;
                 const std::string& param_name = p.first.substr(9);
                 auto found = inputs.find(param_name);
                 CHECK(found != inputs.end());
-                XCVMVar* param = found->second.get();
-                XCVMVar* grad = p.second.get();
-                CHECK_EQ(param->kind(), XCVMVar::Kind::kArray) << "Only an array can be a parameter";
-                CHECK_EQ(grad->kind(), XCVMVar::Kind::kArray) << "Only an array can be a parameter";
+                ChxVMVar* param = found->second.get();
+                ChxVMVar* grad = p.second.get();
+                CHECK_EQ(param->kind(), ChxVMVar::Kind::kArray) << "Only an array can be a parameter";
+                CHECK_EQ(grad->kind(), ChxVMVar::Kind::kArray) << "Only an array can be a parameter";
                 param->GetArray() -= grad->GetArray() * args.get<float>("learning_rate");
             }
         }
 
         double loss;
         {
-            ChromeTracingEmitter::ScopedEvent se(xcvm_opts.chrome_tracing, "Trainer", "Sync");
+            ChromeTracingEmitter::ScopedEvent se(chxvm_opts.chrome_tracing, "Trainer", "Sync");
             loss = static_cast<double>(chainerx::AsScalar(outputs[loss_value_name]->GetArray()));
         }
 
@@ -235,10 +235,10 @@ void RunMain(const std::vector<std::string>& argv) {
         }
         std::cout << std::endl;
 
-        if (xcvm_opts.chrome_tracing) {
-            xcvm_opts.chrome_tracing->Emit(args.get<std::string>("chrome_tracing"));
-            delete xcvm_opts.chrome_tracing;
-            xcvm_opts.chrome_tracing = nullptr;
+        if (chxvm_opts.chrome_tracing) {
+            chxvm_opts.chrome_tracing->Emit(args.get<std::string>("chrome_tracing"));
+            delete chxvm_opts.chrome_tracing;
+            chxvm_opts.chrome_tracing = nullptr;
         }
     }
 

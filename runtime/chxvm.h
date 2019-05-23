@@ -9,7 +9,7 @@
 
 #include <chainerx/shape.h>
 
-#include "runtime/xcvm.pb.h"
+#include "runtime/chxvm.pb.h"
 
 namespace chainerx {
 class Array;
@@ -19,17 +19,17 @@ namespace chainer_compiler {
 namespace runtime {
 
 class ChromeTracingEmitter;
-class XCVMOp;
-class XCVMState;
-class XCVMVar;
+class ChxVMOp;
+class ChxVMState;
+class ChxVMVar;
 
-typedef std::map<std::string, std::shared_ptr<XCVMVar>> InOuts;
+typedef std::map<std::string, std::shared_ptr<ChxVMVar>> InOuts;
 
 typedef std::function<std::vector<chainerx::Array>(std::vector<chainerx::Array>)> CustomOpFunc;
 
-struct XCVMOptions {
+struct ChxVMOptions {
 public:
-    XCVMOptions();
+    ChxVMOptions();
 
     // trace_level=0: No trace
     // trace_level=1: Dump shapes
@@ -56,26 +56,26 @@ public:
     std::map<std::string, CustomOpFunc> custom_op_funcs;
 };
 
-class XCVMInputDesc;
+class ChxVMInputDesc;
 
-class XCVM {
+class ChxVM {
 public:
-    explicit XCVM(const XCProgramProto& program);
-    ~XCVM();
+    explicit ChxVM(const XCProgramProto& program);
+    ~ChxVM();
 
-    InOuts Run(const InOuts& program_inputs, const XCVMOptions& options);
-    void Run(XCVMState* state);
+    InOuts Run(const InOuts& program_inputs, const ChxVMOptions& options);
+    void Run(ChxVMState* state);
 
     int num_variables() const {
         return num_variables_;
     }
 
 private:
-    XCVM(const XCVM&) = delete;
-    XCVM& operator=(const XCVM&) = delete;
+    ChxVM(const ChxVM&) = delete;
+    ChxVM& operator=(const ChxVM&) = delete;
 
-    std::vector<std::unique_ptr<XCVMOp>> program_;
-    std::vector<std::unique_ptr<XCVMInputDesc>> input_descs_;
+    std::vector<std::unique_ptr<ChxVMOp>> program_;
+    std::vector<std::unique_ptr<ChxVMInputDesc>> input_descs_;
     int num_variables_;
 };
 

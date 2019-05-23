@@ -9,7 +9,7 @@
 #include <common/log.h>
 #include <runtime/backward_context.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 #include <runtime/ops/cudnn_rnn.h>
 
 namespace chainer_compiler {
@@ -65,7 +65,7 @@ private:
 }  // namespace
 
 std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
@@ -120,7 +120,7 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
 }
 
 std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
@@ -217,8 +217,8 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
     }
 }
 
-std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMOp::RunImpl(
-        XCVMState* st,
+std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, ChxVMOpaque*> LSTMOp::RunImpl(
+        ChxVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
@@ -230,7 +230,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
 #if CHAINER_COMPILER_ENABLE_CUDNN
     // TODO(hamaji): Handle more cases.
     if ((direction == 0 || direction == 2) && b.has_value() && !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
-        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> result;
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, ChxVMOpaque*> result;
         if (CudnnLSTM(st, x, w, r, b, sequence_lens, initial_h, initial_c, p, hidden_size, direction, &result)) {
             return result;
         }
@@ -355,7 +355,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*> LSTMO
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> LSTMGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
+        ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
 #if CHAINER_COMPILER_ENABLE_CUDNN
     {
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> result;

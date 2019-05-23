@@ -2,12 +2,12 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     if (st->is_training()) {
         WARN_ONCE("Dropout for training is slow.");
         chainerx::Array rnd = SlowRandom(data.shape());

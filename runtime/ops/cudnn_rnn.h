@@ -4,7 +4,7 @@ namespace chainer_compiler {
 namespace runtime {
 
 bool CudnnLSTM(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& ox,
         const chainerx::Array& w,
         const chainerx::Array& r,
@@ -15,11 +15,11 @@ bool CudnnLSTM(
         const nonstd::optional<chainerx::Array>& p,
         int hidden_size,
         int direction,
-        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*>* result);
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, ChxVMOpaque*>* result);
 
 bool CudnnLSTMGrad(
         const chainerx::Array& gy,
-        const XCVMOpaque& ctx,
+        const ChxVMOpaque& ctx,
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array>* result);
 
 }  // namespace runtime

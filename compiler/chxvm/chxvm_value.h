@@ -10,17 +10,17 @@ class XCInstructionProto;
 
 class Value;
 
-namespace xcvm {
+namespace chxvm {
 
-class XCVMValue {
+class ChxVMValue {
 public:
-    XCVMValue() : id_(-1) {
+    ChxVMValue() : id_(-1) {
     }
 
-    explicit XCVMValue(int id) : id_(id) {
+    explicit ChxVMValue(int id) : id_(id) {
     }
 
-    XCVMValue(int id, const Value* value) : id_(id), value_(value) {
+    ChxVMValue(int id, const Value* value) : id_(id), value_(value) {
     }
 
     int id() const {
@@ -34,5 +34,5 @@ private:
     const Value* value_{nullptr};
 };
 
-}  // namespace xcvm
+}  // namespace chxvm
 }  // namespace chainer_compiler

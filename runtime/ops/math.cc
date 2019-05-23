@@ -8,7 +8,7 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -43,22 +43,22 @@ std::tuple<chainerx::Array, chainerx::Array> CoerceBinary(const chainerx::Array&
 
 }  // namespace
 
-chainerx::Array AddOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+chainerx::Array AddOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     auto t = CoerceBinary(a, b);
     return std::get<0>(t) + std::get<1>(t);
 }
 
-chainerx::Array SubOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+chainerx::Array SubOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     auto t = CoerceBinary(a, b);
     return std::get<0>(t) - std::get<1>(t);
 }
 
-chainerx::Array MulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+chainerx::Array MulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     auto t = CoerceBinary(a, b);
     return std::get<0>(t) * std::get<1>(t);
 }
 
-chainerx::Array DivOp::RunImpl(XCVMState* st, const chainerx::Array& a0, const chainerx::Array& b0) {
+chainerx::Array DivOp::RunImpl(ChxVMState* st, const chainerx::Array& a0, const chainerx::Array& b0) {
     chainerx::Array a, b;
     std::tie(a, b) = CoerceBinary(a0, b0);
     // TODO(hamaji): Come up with a better idea to handle cross device ops.
@@ -76,30 +76,30 @@ chainerx::Array DivOp::RunImpl(XCVMState* st, const chainerx::Array& a0, const c
     }
 }
 
-chainerx::Array PowOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+chainerx::Array PowOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     auto t = CoerceBinary(a, b);
     return Pow(std::get<0>(t), std::get<1>(t));
 }
 
-chainerx::Array NegOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array NegOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return -a;
 }
 
-chainerx::Array IsNaNOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array IsNaNOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::IsNan(a);
 }
 
-chainerx::Array IsInfOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array IsInfOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::IsInf(a);
 }
 
 #define DEFINE_UNARY_OP(op)                                                    \
-    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+    chainerx::Array op##Op::RunImpl(ChxVMState* st, const chainerx::Array& a) { \
         return chainerx::op(a);                                                \
     }
 
 #define DEFINE_UNARY_OP_TODO(op)                                               \
-    chainerx::Array op##Op::RunImpl(XCVMState* st, const chainerx::Array& a) { \
+    chainerx::Array op##Op::RunImpl(ChxVMState* st, const chainerx::Array& a) { \
         CHECK(false) << "TODO(hamaji): " #op " op not implemented";            \
     }
 
@@ -119,34 +119,34 @@ DEFINE_UNARY_OP_TODO(Arcsinh);
 DEFINE_UNARY_OP_TODO(Arccosh);
 DEFINE_UNARY_OP_TODO(Arctanh);
 
-chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+chainerx::Array AbsOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return chainerx::Absolute(x);
 }
 
-chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+chainerx::Array FloorOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     if (!IsFloat(x.dtype())) {
         return x;
     }
     return chainerx::Floor(x);
 }
 
-chainerx::Array CeilOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+chainerx::Array CeilOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     if (!IsFloat(x.dtype())) {
         return x;
     }
     return chainerx::Ceil(x);
 }
 
-chainerx::Array ClipOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+chainerx::Array ClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return chainerx::Minimum(chainerx::Maximum(x, min), max);
 }
 
-chainerx::Array MatMulOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+chainerx::Array MatMulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     // TODO(hamaji): Handle non 2D arrays.
     return chainerx::Dot(a, b);
 }
 
-chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
+chainerx::Array GemmOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
     if (alpha == 1.0 && beta == 1.0 && !trans_a && trans_b && c.ndim() == 1) {
         return Linear(a, b, c);
     }
@@ -163,7 +163,7 @@ chainerx::Array GemmOp::RunImpl(XCVMState* st, const chainerx::Array& a, const c
     return r + xc;
 }
 
-chainerx::Array MaxOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+chainerx::Array MaxOp::RunImpl(ChxVMState* st, const std::vector<chainerx::Array>& inputs) {
     CHECK_LT(0, inputs.size());
     chainerx::Array result = inputs[0];
     for (size_t i = 1; i < inputs.size(); ++i) {
@@ -172,7 +172,7 @@ chainerx::Array MaxOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>
     return result;
 }
 
-chainerx::Array MinOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+chainerx::Array MinOp::RunImpl(ChxVMState* st, const std::vector<chainerx::Array>& inputs) {
     CHECK_LT(0, inputs.size());
     chainerx::Array result = inputs[0];
     for (size_t i = 1; i < inputs.size(); ++i) {
@@ -181,7 +181,7 @@ chainerx::Array MinOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>
     return result;
 }
 
-chainerx::Array SignOp::RunImpl(XCVMState* st, chainerx::Array const& input) {
+chainerx::Array SignOp::RunImpl(ChxVMState* st, chainerx::Array const& input) {
     return chainerx::Sign(input);
 }
 

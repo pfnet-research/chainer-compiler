@@ -21,11 +21,11 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
-#include <compiler/xcvm/emitter.h>
+#include <compiler/chxvm/emitter.h>
 #include <runtime/chrome_tracing.h>
-#include <runtime/xcvm.h>
-#include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_var.h>
 #include <tools/util.h>
 
 namespace py = pybind11;
@@ -34,7 +34,7 @@ namespace chainer_compiler {
 namespace {
 
 typedef std::shared_ptr<chainerx::internal::ArrayBody> ArrayBodyPtr;
-typedef std::shared_ptr<runtime::XCVMVar> VarPtr;
+typedef std::shared_ptr<runtime::ChxVMVar> VarPtr;
 
 std::shared_ptr<Graph> LoadGraph(const std::string& onnx_path) {
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
@@ -45,12 +45,12 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
     std::map<std::string, VarPtr> params;
     for (auto& p : runtime::LoadParams(*graph)) {
         chainerx::Array array = p.second->GetArray();
-        CHECK(params.emplace(p.first, std::make_shared<runtime::XCVMVar>(array)).second);
+        CHECK(params.emplace(p.first, std::make_shared<runtime::ChxVMVar>(array)).second);
     }
     return params;
 }
 
-std::shared_ptr<runtime::XCVM> Compile(
+std::shared_ptr<runtime::ChxVM> Compile(
         const std::shared_ptr<Graph>& graph,
         bool compiler_log,
         bool permissive,
@@ -97,10 +97,10 @@ std::shared_ptr<runtime::XCVM> Compile(
 
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop);
-    runtime::XCProgramProto xcvm_prog;
+    runtime::XCProgramProto chxvm_prog;
     constexpr bool kDumpValueNames = false;
-    xcvm::Emit(*graph, &xcvm_prog, kDumpValueNames);
-    return std::make_shared<runtime::XCVM>(xcvm_prog);
+    chxvm::Emit(*graph, &chxvm_prog, kDumpValueNames);
+    return std::make_shared<runtime::ChxVM>(chxvm_prog);
 }
 
 bool IsParam(Value* value) {
@@ -221,7 +221,7 @@ void InitGraph(py::module& m) {
 }
 
 std::map<std::string, VarPtr> Run(
-        const std::shared_ptr<runtime::XCVM>& xcvm,
+        const std::shared_ptr<runtime::ChxVM>& chxvm,
         const std::map<std::string, VarPtr>& inputs,
         bool trace,
         bool verbose,
@@ -231,15 +231,15 @@ std::map<std::string, VarPtr> Run(
         bool dump_memory_usage,
         const std::string& chrome_tracing,
         const std::map<std::string, py::function>& custom_funcs) {
-    runtime::XCVMOptions xcvm_opts;
-    if (trace) xcvm_opts.trace_level = 1;
-    if (verbose) xcvm_opts.trace_level = 2;
-    xcvm_opts.is_training = training;
-    xcvm_opts.check_nans = check_nans;
-    xcvm_opts.check_infs = check_infs;
-    xcvm_opts.dump_memory_usage = dump_memory_usage;
+    runtime::ChxVMOptions chxvm_opts;
+    if (trace) chxvm_opts.trace_level = 1;
+    if (verbose) chxvm_opts.trace_level = 2;
+    chxvm_opts.is_training = training;
+    chxvm_opts.check_nans = check_nans;
+    chxvm_opts.check_infs = check_infs;
+    chxvm_opts.dump_memory_usage = dump_memory_usage;
     if (!chrome_tracing.empty()) {
-        xcvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
+        chxvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
     }
 
     for (const auto& p : custom_funcs) {
@@ -262,19 +262,19 @@ std::map<std::string, VarPtr> Run(
             }
             return outputs;
         };
-        CHECK(xcvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
+        CHECK(chxvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
     }
 
-    runtime::InOuts outputs(xcvm->Run(inputs, xcvm_opts));
+    runtime::InOuts outputs(chxvm->Run(inputs, chxvm_opts));
 
-    if (xcvm_opts.chrome_tracing) {
-        xcvm_opts.chrome_tracing->Emit(chrome_tracing);
+    if (chxvm_opts.chrome_tracing) {
+        chxvm_opts.chrome_tracing->Emit(chrome_tracing);
     }
     return outputs;
 }
 
-void InitXCVM(py::module& m) {
-    py::class_<runtime::XCVM, std::shared_ptr<runtime::XCVM>> c{m, "XCVM"};
+void InitChxVM(py::module& m) {
+    py::class_<runtime::ChxVM, std::shared_ptr<runtime::ChxVM>> c{m, "ChxVM"};
     c.def("run",
           &Run,
           "Run the model",
@@ -290,11 +290,11 @@ void InitXCVM(py::module& m) {
 }
 
 bool IsArray(const VarPtr& v) {
-    return v->kind() == runtime::XCVMVar::Kind::kArray;
+    return v->kind() == runtime::ChxVMVar::Kind::kArray;
 }
 
 bool IsSequence(const VarPtr& v) {
-    return v->kind() == runtime::XCVMVar::Kind::kSequence;
+    return v->kind() == runtime::ChxVMVar::Kind::kSequence;
 }
 
 ArrayBodyPtr GetArray(const VarPtr& v) {
@@ -303,28 +303,28 @@ ArrayBodyPtr GetArray(const VarPtr& v) {
 
 std::vector<VarPtr> GetSequence(const VarPtr& v) {
     std::vector<VarPtr> out;
-    for (const runtime::XCVMVar& var : *v->GetSequence()) {
-        out.emplace_back(std::make_shared<runtime::XCVMVar>(var));
+    for (const runtime::ChxVMVar& var : *v->GetSequence()) {
+        out.emplace_back(std::make_shared<runtime::ChxVMVar>(var));
     }
     return out;
 }
 
-void InitXCVMVar(py::module& m) {
-    py::class_<runtime::XCVMVar, VarPtr> c{m, "XCVMVar"};
-    c.def("is_array", &IsArray, "Check if the XCVMVar is an array");
-    c.def("is_sequence", &IsSequence, "Check if the XCVMVar is a sequence");
-    c.def("array", &GetArray, "Get an array from a XCVMVar");
-    c.def("sequence", &GetSequence, "Get a array from a XCVMVar");
+void InitChxVMVar(py::module& m) {
+    py::class_<runtime::ChxVMVar, VarPtr> c{m, "ChxVMVar"};
+    c.def("is_array", &IsArray, "Check if the ChxVMVar is an array");
+    c.def("is_sequence", &IsSequence, "Check if the ChxVMVar is a sequence");
+    c.def("array", &GetArray, "Get an array from a ChxVMVar");
+    c.def("sequence", &GetSequence, "Get a array from a ChxVMVar");
     c.def("__str__", [](const VarPtr& v) { return "var(" + v->DebugString() + ")"; });
 }
 
 VarPtr CreateValueFromArray(const ArrayBodyPtr& a) {
-    return std::make_shared<runtime::XCVMVar>(chainerx::Array(a));
+    return std::make_shared<runtime::ChxVMVar>(chainerx::Array(a));
 }
 
 VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
-    auto var = std::make_shared<runtime::XCVMVar>(runtime::XCVMVar::Kind::kSequence);
-    runtime::XCVMSequence* out = var->GetSequence();
+    auto var = std::make_shared<runtime::ChxVMVar>(runtime::ChxVMVar::Kind::kSequence);
+    runtime::ChxVMSequence* out = var->GetSequence();
     for (const VarPtr& var : seq) out->push_back(*var);
     return var;
 }
@@ -338,13 +338,13 @@ PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
 
     InitGraph(m);
 
-    InitXCVMVar(m);
+    InitChxVMVar(m);
 
-    InitXCVM(m);
+    InitChxVM(m);
 
     m.def("load", &LoadGraph, "Load an ONNX model");
-    m.def("value", &CreateValueFromArray, "Create an XCVMVar from a ChainerX Array");
-    m.def("value", &CreateValueFromSequence, "Create an XCVMVar from a sequence of XCVMVars");
+    m.def("value", &CreateValueFromArray, "Create an ChxVMVar from a ChainerX Array");
+    m.def("value", &CreateValueFromSequence, "Create an ChxVMVar from a sequence of ChxVMVars");
 }
 
 }  // namespace chainer_compiler

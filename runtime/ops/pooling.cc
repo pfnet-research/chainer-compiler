@@ -12,8 +12,8 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
-#include <runtime/xcvm_state.h>
+#include <runtime/gen_chxvm_ops.h>
+#include <runtime/chxvm_state.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -21,7 +21,7 @@ namespace runtime {
 namespace {
 
 template <class T>
-class BackwardContext : public XCVMOpaque {
+class BackwardContext : public ChxVMOpaque {
 public:
     BackwardContext(std::shared_ptr<T> state, const Int64StackVector& strides, const Int64StackVector& pads)
         : state_(state), strides_(strides), pads_(pads) {
@@ -48,7 +48,7 @@ private:
 
 }  // namespace
 
-std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     std::shared_ptr<chainerx::MaxPoolGradState> state;
     chainerx::Array out;
@@ -56,34 +56,34 @@ std::tuple<chainerx::Array, XCVMOpaque*> MaxPoolOp::RunImpl(XCVMState* st, const
     const Int64StackVector& pads = ComplementPad(this->pads, x);
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, nonstd::nullopt);
-    XCVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
+    ChxVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
     }
     return std::tie(out, ctx);
 }
 
-std::tuple<chainerx::Array, XCVMOpaque*> AveragePoolOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+std::tuple<chainerx::Array, ChxVMOpaque*> AveragePoolOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
     std::shared_ptr<chainerx::AveragePoolGradState> state;
     chainerx::Array out;
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::AveragePoolKernel>(x, kernel_shape, strides, pads, pad_mode, true, nonstd::nullopt);
-    XCVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
+    ChxVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
     }
     return std::tie(out, ctx);
 }
 
-chainerx::Array MaxPoolGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
+chainerx::Array MaxPoolGradOp::RunImpl(ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     auto& context = dynamic_cast<const BackwardContext<chainerx::MaxPoolGradState>&>(ctx);
     return std::get<0>(gy.device().backend().CallKernel<chainerx::MaxPoolGradKernel>(
             gy, kernel_shape, context.strides(), context.pads(), context.state(), true, nonstd::nullopt));
 }
 
-chainerx::Array AveragePoolGradOp::RunImpl(XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
+chainerx::Array AveragePoolGradOp::RunImpl(ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
     auto& context = dynamic_cast<const BackwardContext<chainerx::AveragePoolGradState>&>(ctx);
     return gy.device().backend().CallKernel<chainerx::AveragePoolGradKernel>(
@@ -583,30 +583,30 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
 }  // namespace
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
     CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
     return ROIPool2D(x, rois, roi_indices, output_shape, spatial_scale, chainerx::AMax);
 }
 
 chainerx::Array ROIAveragePool2DOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
     CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
     return ROIPool2D(x, rois, roi_indices, output_shape, spatial_scale, chainerx::Mean);
 }
 
 chainerx::Array ROIMaxAlign2DOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
     CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
     return ROIAlign2D<ReduceByMax>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
 chainerx::Array ROIAverageAlign2DOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
+        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
     CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
     return ROIAlign2D<ReduceByAverage>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
-chainerx::Array UpsampleOp::RunImpl(XCVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+chainerx::Array UpsampleOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
     CHECK_EQ(1, scales.ndim());
     std::vector<int64_t> int_scales;
     for (int64_t i = 0; i < scales.shape()[0]; ++i) {
@@ -679,7 +679,7 @@ void ResizeImagesFloat32ForCPU(const chainerx::Array& x, const chainerx::Array& 
 
 }  // namespace
 
-chainerx::Array ResizeImagesOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+chainerx::Array ResizeImagesOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     CHECK_EQ(4, x.ndim());
     CHECK_EQ(2, output_shape.size());
     chainerx::Shape y_shape(x.shape());

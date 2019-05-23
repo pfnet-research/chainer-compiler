@@ -6,12 +6,12 @@
 #include <chainerx/array.h>
 #include <chainerx/backprop_scope.h>
 
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm_var.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-class BackwardContext : public XCVMOpaque {
+class BackwardContext : public ChxVMOpaque {
 public:
     BackwardContext(const std::string& name, const std::vector<chainerx::Array>& xs);
     virtual ~BackwardContext() = default;

@@ -15,7 +15,7 @@ add_library(chainer_compiler_tools
   )
 add_dependencies(
   chainer_compiler_tools
-  runtime_xcvm_pb_h gen_node_base_h gen_onnx_proto
+  runtime_chxvm_pb_h gen_node_base_h gen_onnx_proto
   )
 set_hidden_(chainer_compiler_tools)
 
@@ -43,7 +43,7 @@ add_library(run_onnx_lib
   )
 add_dependencies(
   run_onnx_lib
-  runtime_xcvm_pb_h gen_node_base_h gen_onnx_proto
+  runtime_chxvm_pb_h gen_node_base_h gen_onnx_proto
   )
 set_hidden_(run_onnx_lib)
 
@@ -70,14 +70,14 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     )
   add_dependencies(
     train_imagenet_lib
-    runtime_xcvm_pb_h gen_node_base_h gen_onnx_proto
+    runtime_chxvm_pb_h gen_node_base_h gen_onnx_proto
     )
   set_hidden_(train_imagenet_lib)
 
   add_executable(train_imagenet train_imagenet_main.cc)
   add_dependencies(
     train_imagenet
-    runtime_xcvm_pb_h gen_node_base_h gen_onnx_proto
+    runtime_chxvm_pb_h gen_node_base_h gen_onnx_proto
     )
   target_link_libraries(train_imagenet
     train_imagenet_lib

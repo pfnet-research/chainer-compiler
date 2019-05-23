@@ -9,15 +9,15 @@
 #include <common/protoutil.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
-#include <compiler/xcvm/emitter.h>
-#include <runtime/xcvm.pb.h>
+#include <compiler/chxvm/emitter.h>
+#include <runtime/chxvm.pb.h>
 
 namespace chainer_compiler {
 namespace {
 
 const char* kONNXTestDataDir = "third_party/onnx/onnx/backend/test/data";
 
-TEST(XCVMTest, Compile) {
+TEST(ChxVMTest, Compile) {
     std::string test_path = std::string(kONNXTestDataDir) + "/node/test_add/";
     std::string model_path = test_path + "model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(model_path));
@@ -25,7 +25,7 @@ TEST(XCVMTest, Compile) {
     RunDefaultPasses(&model);
 
     std::ostringstream oss;
-    xcvm::Emit(model, oss);
+    chxvm::Emit(model, oss);
 
     runtime::XCProgramProto program;
     program.ParseFromString(oss.str());

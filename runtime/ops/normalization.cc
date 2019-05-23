@@ -5,15 +5,15 @@
 #include <chainerx/routines/statistics.h>
 
 #include <common/log.h>
-#include <runtime/gen_xcvm_ops.h>
-#include <runtime/xcvm_state.h>
+#include <runtime/gen_chxvm_ops.h>
+#include <runtime/chxvm_state.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
 namespace {
 
-class BatchNormBackwardContext : public XCVMOpaque {
+class BatchNormBackwardContext : public ChxVMOpaque {
 public:
     BatchNormBackwardContext(
             std::shared_ptr<chainerx::BatchNormGradState> state,
@@ -136,8 +136,8 @@ PreprocessBatchNormResult PreprocessBatchNorm(
 
 }  // namespace
 
-std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationOp::RunImpl(
-        XCVMState* st,
+std::tuple<chainerx::Array, ChxVMOpaque*, chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationOp::RunImpl(
+        ChxVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& s,
         const chainerx::Array& bias,
@@ -163,7 +163,7 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
     chainerx::Array out;
     std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
             x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, nonstd::nullopt);
-    XCVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
+    ChxVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
     }
@@ -184,7 +184,7 @@ std::tuple<chainerx::Array, XCVMOpaque*, chainerx::Array, chainerx::Array, chain
 }
 
 chainerx::Array FixedBatchNormalizationOp::RunImpl(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& s,
         const chainerx::Array& bias,
@@ -200,7 +200,7 @@ chainerx::Array FixedBatchNormalizationOp::RunImpl(
 }
 
 std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalizationGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& gy, const XCVMOpaque& ctx) {
+        ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     auto& context = dynamic_cast<const BatchNormBackwardContext&>(ctx);
     chainerx::Array gx, ggamma, gbeta;
     std::tie(gx, ggamma, gbeta) = gy.device().backend().CallKernel<chainerx::BatchNormGradKernel>(
@@ -218,7 +218,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalization
     return std::forward_as_tuple(gx, gx1, gx2);
 }
 
-std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
+std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     int half_n = size / 2;
     chainerx::Array x2 = x * x;
     chainerx::Array sum_part = x2.Copy();
@@ -237,7 +237,7 @@ std::tuple<chainerx::Array, chainerx::Array> LRNOp::RunImpl(XCVMState* st, const
 }
 
 chainerx::Array LRNGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy, const chainerx::Array& unit_scale) {
+        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& y, const chainerx::Array& gy, const chainerx::Array& unit_scale) {
     int half_n = size / 2;
     chainerx::Array summand = y * gy / unit_scale;
     chainerx::Array sum_part = summand.Copy();

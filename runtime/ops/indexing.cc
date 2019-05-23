@@ -4,12 +4,12 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array SliceOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array SliceOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
     for (size_t i = 0; i < axes.size(); ++i) {
         int64_t axis = axes[i];
@@ -44,7 +44,7 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
 }  // namespace
 
 chainerx::Array DynamicSliceOp::RunImpl(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
@@ -55,7 +55,7 @@ chainerx::Array DynamicSliceOp::RunImpl(
 }
 
 chainerx::Array DynamicSliceGradOp::RunImpl(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& gy,
         const chainerx::Array& shape,
         const chainerx::Array& starts,
@@ -108,32 +108,32 @@ std::vector<chainerx::ArrayIndex> GetIndicesForGetItem(
 
 }  // namespace
 
-chainerx::Array GetItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const std::vector<chainerx::Array>& index_arrays) {
+chainerx::Array GetItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const std::vector<chainerx::Array>& index_arrays) {
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
     return data.At(indices);
 }
 
 chainerx::Array GetItemGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& gy, const chainerx::Array& shape, const std::vector<chainerx::Array>& index_arrays) {
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& shape, const std::vector<chainerx::Array>& index_arrays) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
     BlitArray(gy, out.At(indices));
     return out;
 }
 
-chainerx::Array GatherOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
+chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
     return data.Take(indices, axis);
 }
 
 chainerx::Array GatherGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
     chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
     return chainerx::AddAt(out, indices, axis, gy);
 }
 
-chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
+chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
     CHECK_EQ(2UL, data.shape().size()) << "TODO(hamaji): Support SelectItem for non-2D array";
     int64_t batch_size = data.shape()[0];
     int64_t num_classes = data.shape()[1];
@@ -144,7 +144,7 @@ chainerx::Array SelectItemOp::RunImpl(XCVMState* st, const chainerx::Array& data
 }
 
 chainerx::Array SelectItemGradOp::RunImpl(
-        XCVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape_array) {
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape_array) {
     chainerx::Shape shape{ArrayToShape(shape_array)};
     CHECK_EQ(2, shape.size()) << "TODO(hamaji): Support SelectItem for non-2D array";
     int64_t batch_size = shape[0];
@@ -159,7 +159,7 @@ chainerx::Array SelectItemGradOp::RunImpl(
     return out.Reshape(shape);
 }
 
-chainerx::Array WhereOp::RunImpl(XCVMState* st, chainerx::Array const& condition, chainerx::Array const& x, chainerx::Array const& y) {
+chainerx::Array WhereOp::RunImpl(ChxVMState* st, chainerx::Array const& condition, chainerx::Array const& x, chainerx::Array const& y) {
     return chainerx::Where(condition, x, y);
 }
 

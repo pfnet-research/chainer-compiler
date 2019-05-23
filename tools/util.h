@@ -5,7 +5,7 @@
 #include <chainerx/array.h>
 #include <chainerx/dtype.h>
 
-#include <runtime/xcvm.h>
+#include <runtime/chxvm.h>
 
 namespace chainer_compiler {
 
