@@ -106,11 +106,20 @@ def main():
             translator = 'ch2o'
         else:
             translator = 'onnx_chainer'
+        export_allocator = None
+        runtime_allocator = None
+        if args.use_unified_memory:
+            import cupy
+            # unified memory
+            export_allocator = cupy.cuda.memory.malloc_managed
+            runtime_allocator = cupy.get_default_memory_pool().malloc
+
         mlp = chainer_compiler.compile(
             mlp, dump_onnx=args.dump_onnx,
             translator=translator,
             computation_order=args.computation_order,
-            use_unified_memory=args.use_unified_memory)
+            export_allocator=export_allocator,
+            runtime_allocator=runtime_allocator)
     model = L.Classifier(mlp)
     model.to_device(device)
     device.use()

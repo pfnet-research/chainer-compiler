@@ -1,5 +1,4 @@
 import chainer
-from contextlib import contextmanager
 import os
 import sys
 import tempfile
@@ -168,18 +167,6 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
-@contextmanager
-def enable_unified_memory(use):
-    if use:
-        cupy.cuda.set_allocator(cupy.cuda.memory.malloc_managed)
-    try:
-        yield None
-    finally:
-        if use:
-            memory_pool = cupy.get_default_memory_pool()
-            cupy.cuda.set_allocator(memory_pool.malloc)
-
-
 def _run_translator(translator, mc, inputs):
     if translator == 'ch2o':
         xmodel = ch2o.compile_model(mc, inputs)
@@ -206,14 +193,16 @@ class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
                  computation_order=None,
-                 use_unified_memory=False):
+                 export_allocator=None,
+                 runtime_allocator=None):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
         self.translator = translator
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
-        self.use_unified_memory = use_unified_memory
+        self.export_allocator = export_allocator
+        self.runtime_allocator = runtime_allocator
 
         self.compiled = False
         self.param_names = None
@@ -222,10 +211,11 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def compile(self, inputs):
-        # obtain computational graph using unified memory if specified
-        use = self.use_unified_memory and self.mc.xp == cupy
-        with enable_unified_memory(use):
-            graph = _run_translator(self.translator, self.mc, inputs)
+        if self.export_allocator is not None:
+            cupy.cuda.set_allocator(self.export_allocator)
+        graph = _run_translator(self.translator, self.mc, inputs)
+        if self.runtime_allocator is not None:
+            cupy.cuda.set_allocator(self.runtime_allocator)
 
         self.orig_output_names = graph.output_names()
 
