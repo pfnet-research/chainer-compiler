@@ -1,0 +1,35 @@
+{
+    simplify: [
+        'ReplaceSum': true,
+        'ReplaceLess': true,
+        'ReplaceSum': true,
+        'ReplaceArgMin': true,
+        'ReplaceReduceMin': true,
+        'ReplaceLpNormalization': true,
+        'ReplaceSoftmaxCrossEntropy': true,
+        // TODO(hamaji): Revive Scan.
+        // 'ReplaceScan': true,
+        'ReplaceGlobalMaxPool': true,
+        'ReplaceGlobalAveragePool': true,
+        'ReplaceFlatten': true,
+        'ReplaceMean': true,
+        'ReplaceReduceL1': true,
+        'ReplaceReduceL2': true,
+        'ReplaceReduceLogSum': true,
+        'ReplaceReduceLogSumExp': true,
+        'ReplaceSoftplus': true,
+        'ReplaceSoftsign': true,
+        'ReplaceConstantOfShape': true,
+        'ReplaceConstantLike': true,
+        'ReplaceShape': true,
+        'ReplaceImageScaler': true,
+        'ReplaceSlice': true,
+        'ReplaceMaxRoiPool': true,
+        'RemoveIdentity': true,
+        'ReplaceConv': true,
+        // These passes are workarounds for Chainer which does not
+        // support pooling with imbalanced padding.
+        'ReplaceMaxPool': true,
+        'ReplaceAveragePool': true
+    ]
+}
