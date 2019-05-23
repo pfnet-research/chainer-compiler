@@ -16,7 +16,7 @@ namespace runtime {
 namespace {
 
 chainerx::Array Pow(chainerx::Array a, chainerx::Array b) {
-    return chainerx::Exp(chainerx::Log(a) * b);
+    return chainerx::Power(a, b);
 }
 
 // TODO(hamaji): Implement type coersion in ChainerX.
@@ -120,8 +120,7 @@ DEFINE_UNARY_OP_TODO(Arccosh);
 DEFINE_UNARY_OP_TODO(Arctanh);
 
 chainerx::Array AbsOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs * 2);
+    return chainerx::Absolute(x);
 }
 
 chainerx::Array FloorOp::RunImpl(XCVMState* st, const chainerx::Array& x) {
@@ -180,6 +179,10 @@ chainerx::Array MinOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>
         result = Minimum(result, inputs[i]);
     }
     return result;
+}
+
+chainerx::Array SignOp::RunImpl(XCVMState* st, chainerx::Array const& input) {
+    return chainerx::Sign(input);
 }
 
 }  // namespace runtime
