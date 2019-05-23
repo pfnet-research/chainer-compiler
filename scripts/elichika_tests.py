@@ -24,6 +24,7 @@ TESTS = [
     Generator('model', 'MLP'),
     Generator('model', 'Alex'),
     Generator('model', 'Resnet_with_loss'),
+    Generator('model', 'MyLSTM'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
