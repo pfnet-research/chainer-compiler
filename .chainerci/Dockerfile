@@ -47,7 +47,8 @@ RUN git clone https://github.com/NervanaSystems/ngraph.git -b ${NGRAPH_VERSION} 
         -DNGRAPH_UNIT_TEST_ENABLE=FALSE \
     && \
     make -j1 && \
-    make install
+    make install && \
+    cd .. && rm -rf build
 RUN cd ngraph/python && sed -e "s/^distutils.ccompiler.CCompiler.compile/# &/" setup.py > setup_.py
 RUN cd ngraph/python && \
     git clone --recursive https://github.com/jagerman/pybind11.git && \
@@ -56,7 +57,7 @@ RUN cd ngraph/python && \
     export NGRAPH_ONNX_IMPORT_ENABLE=TRUE && \
     python3 -m pip install numpy && \
     python3 setup_.py bdist_wheel && \
-    python3 -m pip install -U dist/*.whl
+    python3 -m pip install -U dist/*.whl && rm -rf build
 
 ARG NGRAPH_ONNX_VERSION="v0.14.0"
 RUN cd ngraph && \
@@ -70,11 +71,13 @@ RUN cd ngraph && \
 # NOTE(disktnk): official installer does not copy header file
 ARG TVM_VERSION="v0.5"
 RUN wget https://raw.githubusercontent.com/dmlc/tvm/${TVM_VERSION}/docker/install/ubuntu_install_core.sh -P /install && \
-    bash /install/ubuntu_install_core.sh
+    bash /install/ubuntu_install_core.sh && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 RUN echo deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main \
     >> /etc/apt/sources.list.d/llvm.list && \
     wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add - && \
-    apt-get update && apt-get install -y --force-yes llvm-6.0
+    apt-get update && apt-get install -y --force-yes llvm-6.0 && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 # based https://raw.githubusercontent.com/dmlc/tvm/${TVM_VERSION}/docker/install/install_tvm_gpu.sh
 RUN cd /usr && \
     git clone https://github.com/dmlc/tvm --recursive && \
@@ -88,7 +91,8 @@ RUN cd /usr && \
     echo set\(USE_BLAS openblas\) >> config.cmake && \
     mkdir -p build && cd build && \
     cmake .. && \
-    make -j10 && make install
+    make -j10 && make install && \
+    cd .. && rm -rf build
 RUN ln -s /usr/tvm/include/tvm/*.h /usr/local/include/tvm && \
     ln -s /usr/tvm/include/relay /usr/local/include/tvm && \
     ln -s /usr/tvm/topi/include/topi /usr/local/include & \
