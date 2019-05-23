@@ -6,6 +6,11 @@ import tempfile
 import ch2o
 import chainer_compiler_core
 
+try:
+    import cupy
+except ImportError:
+    cupy = None
+
 
 def _is_array(v):
     return not isinstance(v, (list, tuple, range, dict))
@@ -162,16 +167,46 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
+def _run_translator(translator, mc, inputs):
+    if translator == 'ch2o':
+        xmodel = ch2o.compile_model(mc, inputs)
+        f = tempfile.NamedTemporaryFile(delete=False)
+        f.write(xmodel.SerializeToString())
+        f.close()
+        del xmodel
+    elif translator == 'onnx_chainer':
+        import onnx_chainer
+        f = tempfile.NamedTemporaryFile(delete=False)
+        onnx_chainer.export(mc, inputs, filename=f)
+        f.close()
+    else:
+        raise NotImplementedError('Unsupported translator:',
+                                  translator)
+
+    graph = chainer_compiler_core.load(f.name)
+    os.unlink(f.name)
+
+    return graph
+
+
 class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
-                 computation_order=None):
+                 computation_order=None,
+                 export_allocator=None,
+                 runtime_allocator=None):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
         self.translator = translator
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
+        self.export_allocator = export_allocator
+        self.runtime_allocator = runtime_allocator
+
+        if export_allocator is not None and runtime_allocator is None:
+            raise ValueError('`runtime_allocator` must be set when '
+                             ' `export_allocator` is set')
 
         self.compiled = False
         self.param_names = None
@@ -180,23 +215,13 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def compile(self, inputs):
-        if self.translator == 'ch2o':
-            xmodel = ch2o.compile_model(self.mc, inputs)
-            f = tempfile.NamedTemporaryFile(delete=False)
-            f.write(xmodel.SerializeToString())
-            f.close()
-            del xmodel
-        elif self.translator == 'onnx_chainer':
-            import onnx_chainer
-            f = tempfile.NamedTemporaryFile(delete=False)
-            onnx_chainer.export(self.mc, inputs, filename=f)
-            f.close()
-        else:
-            raise NotImplementedError('Unsupported translator:',
-                                      self.translator)
-
-        graph = chainer_compiler_core.load(f.name)
-        os.unlink(f.name)
+        if self.export_allocator is not None:
+            cupy.cuda.set_allocator(self.export_allocator)
+        try:
+            graph = _run_translator(self.translator, self.mc, inputs)
+        finally:
+            if self.runtime_allocator is not None:
+                cupy.cuda.set_allocator(self.runtime_allocator)
 
         self.orig_output_names = graph.output_names()
 
