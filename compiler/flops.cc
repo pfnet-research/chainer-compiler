@@ -32,20 +32,61 @@ int64_t OutputSize(const Node& node) {
 }
 
 int64_t CalculateFlopsOfGemm(const Node& node) {
-    int64_t flops = node.output(0)->type().NumElements();
+    int64_t const out_size = node.output(0)->type().NumElements();
+    int64_t flops = out_size;
     flops *= node.input(0)->type().dims()[node.trans_a() ? 0 : 1];
+    if (node.alpha() != 1.0) {
+        flops += out_size;
+    }
+    if (node.beta() != 0.0) {
+        flops += out_size;
+    }
     return flops;
 }
 
 int64_t CalculateFlopsOfConv(const Node& node) {
-    int64_t bsize = node.input(0)->type().dims()[0];
-    int64_t ichan = node.input(0)->type().dims()[1];
-    int64_t kw = node.input(1)->type().dims()[2];
-    int64_t kh = node.input(1)->type().dims()[3];
-    int64_t ochan = node.output(0)->type().dims()[1];
-    int64_t ow = node.output(0)->type().dims()[2];
-    int64_t oh = node.output(0)->type().dims()[3];
+    Type const& x = node.input(0)->type();
+    Type const& w = node.input(1)->type();
+    Type const& y = node.output(0)->type();
+    int64_t bsize = x.dims()[0];
+    int64_t ichan = x.dims()[1];
+    int64_t ochan = y.dims()[1];
+    int64_t kh = w.dims()[2];
+    int64_t kw = w.dims()[3];
+    int64_t oh = y.dims()[2];
+    int64_t ow = y.dims()[3];
     return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
+}
+
+int64_t CalculateFlopsOfConvTranspose(Node const& node) {
+    Type const& x = node.input(0)->type();
+    Type const& w = node.input(1)->type();
+    Type const& y = node.output(0)->type();
+    int64_t const bsize = x.dims()[0];
+    int64_t const ichan = x.dims()[1];
+    int64_t const ochan = y.dims()[1];
+    int64_t const kh = w.dims()[2];
+    int64_t const kw = w.dims()[3];
+    int64_t const ih = x.dims()[2];
+    int64_t const iw = x.dims()[3];
+    return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
+}
+
+int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
+    Type const& w = node.input(0)->type();
+    Type const& x = node.input(1)->type();
+    Type const& gy = node.input(2)->type();
+
+    CHECK_EQ(gy.dims()[0], x.dims()[0]);
+
+    int64_t const bsize = x.dims()[0];
+    int64_t const ic = x.dims()[1];
+    int64_t const oc = gy.dims()[1];
+    int64_t const ih = x.dims()[2];
+    int64_t const iw = x.dims()[3];
+    int64_t const kh = w.dims()[2];
+    int64_t const kw = w.dims()[3];
+    return bsize * iw * ih * oc * ic * kw * kh / node.group();
 }
 
 int64_t CalculateFlopsOfSoftmax(Node const& node) {
@@ -97,6 +138,12 @@ int64_t CalculateFlopsImpl(const Node& node) {
         // Convolution nodes:
         case Node::kConv:
             return CalculateFlopsOfConv(node);
+
+        case Node::kConvTranspose:
+            return CalculateFlopsOfConvTranspose(node);
+
+        case Node::kChainerConvGradWeight:
+            return CalculateFlopsOfConvGradWeight(node);
 
         // Activation nodes:
         case Node::kSigmoid:
