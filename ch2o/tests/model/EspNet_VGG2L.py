@@ -60,7 +60,7 @@ class VGG2L(chainer.Chain):
         xs = F.max_pooling_2d(xs, 2, stride=2)
 
         # change ilens accordingly
-        # EDIT(hamaji): XCVM puts int32 on GPU and it hurts the performance.
+        # EDIT(hamaji): ChxVM puts int32 on GPU and it hurts the performance.
         # TODO(hamaji): Fix device assignment to get rid of this change.
         ilens = (ilens + 1) // 2
         ilens = (ilens + 1) // 2

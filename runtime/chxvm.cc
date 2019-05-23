@@ -1,4 +1,4 @@
-#include "runtime/xcvm.h"
+#include "runtime/chxvm.h"
 
 #include <iomanip>
 #include <numeric>
@@ -13,19 +13,19 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <runtime/chrome_tracing.h>
+#include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_op.h>
+#include <runtime/chxvm_state.h>
 #include <runtime/meminfo.h>
 #include <runtime/npy.h>
-#include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_op.h>
-#include <runtime/xcvm_state.h>
 
 #define RANGE(x) (x).begin(), (x).end()
 
 namespace chainer_compiler {
 namespace runtime {
 
-struct XCVMInputDesc {
-    XCVMInputDesc(const std::string& n, chainerx::Dtype d, chainerx::Shape s) : name(n), dtype(d), shape(s) {
+struct ChxVMInputDesc {
+    ChxVMInputDesc(const std::string& n, chainerx::Dtype d, chainerx::Shape s) : name(n), dtype(d), shape(s) {
     }
     const std::string name;
     const chainerx::Dtype dtype;
@@ -34,7 +34,7 @@ struct XCVMInputDesc {
 
 namespace {
 
-void CheckType(XCVMState* st, const XCVMOp* op) {
+void CheckType(ChxVMState* st, const ChxVMOp* op) {
     const XCInstructionProto& inst = op->instruction();
     CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
     for (size_t i = 0; i < inst.outputs().size(); ++i) {
@@ -45,9 +45,9 @@ void CheckType(XCVMState* st, const XCVMOp* op) {
 
         int id = inst.outputs(i);
         CHECK_LT(0, id);
-        XCVMVar* var = st->GetVar(id);
+        ChxVMVar* var = st->GetVar(id);
         // Null values are OK as they can be used to accumulate gradients.
-        if (var->kind() == XCVMVar::Kind::kNull) {
+        if (var->kind() == ChxVMVar::Kind::kNull) {
             continue;
         }
 
@@ -63,7 +63,7 @@ int64_t InMbs(int64_t bytes) {
     return bytes / 1000 / 1000;
 }
 
-void DumpOutput(XCVMState* st, const XCVMOp* op, const std::string& output_dir) {
+void DumpOutput(ChxVMState* st, const ChxVMOp* op, const std::string& output_dir) {
     const XCInstructionProto& inst = op->instruction();
     CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
     for (size_t i = 0; i < inst.outputs().size(); ++i) {
@@ -76,8 +76,8 @@ void DumpOutput(XCVMState* st, const XCVMOp* op, const std::string& output_dir) 
             continue;
         }
 
-        XCVMVar* var = st->GetVar(id);
-        if (var->kind() != XCVMVar::Kind::kArray) {
+        ChxVMVar* var = st->GetVar(id);
+        if (var->kind() != ChxVMVar::Kind::kArray) {
             continue;
         }
 
@@ -89,7 +89,7 @@ void DumpOutput(XCVMState* st, const XCVMOp* op, const std::string& output_dir) 
 
 }  // namespace
 
-XCVMOptions::XCVMOptions() {
+ChxVMOptions::ChxVMOptions() {
     int num_ops = 1;
     while (XCInstructionProto::Op_IsValid(num_ops)) {
         ++num_ops;
@@ -97,7 +97,7 @@ XCVMOptions::XCVMOptions() {
     verbose_ops.resize(num_ops);
 }
 
-XCVM::XCVM(const XCProgramProto& program) {
+ChxVM::ChxVM(const XCProgramProto& program) {
     num_variables_ = 0;
     for (const XCInstructionProto& inst : program.instructions()) {
         for (int output : inst.outputs()) {
@@ -106,7 +106,7 @@ XCVM::XCVM(const XCProgramProto& program) {
     }
 
     for (const XCInstructionProto& inst : program.instructions()) {
-        XCVMOp* op = MakeXCVMOp(inst);
+        ChxVMOp* op = MakeChxVMOp(inst);
         program_.emplace_back(op);
     }
 
@@ -116,19 +116,19 @@ XCVM::XCVM(const XCProgramProto& program) {
         const XCTypeProto& type = program.input_types(i);
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
-        input_descs_.emplace_back(new XCVMInputDesc(name, dtype, shape));
+        input_descs_.emplace_back(new ChxVMInputDesc(name, dtype, shape));
     }
 }
 
-XCVM::~XCVM() {
+ChxVM::~ChxVM() {
 }
 
-InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
-    for (const std::unique_ptr<XCVMInputDesc>& input : input_descs_) {
+InOuts ChxVM::Run(const InOuts& program_inputs, const ChxVMOptions& options) {
+    for (const std::unique_ptr<ChxVMInputDesc>& input : input_descs_) {
         auto found = program_inputs.find(input->name);
         CHECK(found != program_inputs.end()) << "Input '" << input->name << "' not found";
-        const XCVMVar& var = *found->second;
-        if (var.kind() == XCVMVar::Kind::kArray) {
+        const ChxVMVar& var = *found->second;
+        if (var.kind() == ChxVMVar::Kind::kArray) {
             const chainerx::Array& a = var.GetArray();
             if (static_cast<int>(input->dtype) == 0) {
                 continue;
@@ -140,24 +140,24 @@ InOuts XCVM::Run(const InOuts& program_inputs, const XCVMOptions& options) {
         }
     }
 
-    XCVMState state(options, num_variables_, program_inputs);
+    ChxVMState state(options, num_variables_, program_inputs);
     Run(&state);
     return state.GetOutputs();
 }
 
-void XCVM::Run(XCVMState* state) {
+void ChxVM::Run(ChxVMState* state) {
     state->SetProgram(&program_);
-    const XCVMOptions& options = state->options();
+    const ChxVMOptions& options = state->options();
     int64_t peak_used_mbs = 0, peak_total_mbs = 0;
 
     while (true) {
         int pc = state->pc();
         if (pc >= program_.size()) break;
 
-        XCVMOp* op = program_[pc].get();
+        ChxVMOp* op = program_[pc].get();
 
         {
-            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "XCVM", op->name(), pc, op->instruction().flops());
+            ChromeTracingEmitter::ScopedEvent se(options.chrome_tracing, "ChxVM", op->name(), pc, op->instruction().flops());
 #ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif

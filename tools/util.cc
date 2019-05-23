@@ -13,7 +13,7 @@
 #include <compiler/graph.h>
 #include <compiler/model.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm_var.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -63,7 +63,7 @@ InOuts LoadParams(const Graph& graph) {
             } else {
                 tensor = MakeArray(dtype, shape, data);
             }
-            CHECK(params.emplace(initializer->name(), std::shared_ptr<XCVMVar>(new XCVMVar(tensor))).second)
+            CHECK(params.emplace(initializer->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(tensor))).second)
                     << "Duplicate input tensor: " << initializer->name();
         }
     }

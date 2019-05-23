@@ -4,24 +4,24 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array ReduceMaxOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array ReduceMaxOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::AMax(a, GetChainerXAxes(axes), keepdims != 0);
 }
 
-chainerx::Array ReduceSumOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array ReduceSumOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::Sum(a, GetChainerXAxes(axes), keepdims != 0);
 }
 
-chainerx::Array ReduceSumSquareOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array ReduceSumSquareOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::Sum(a * a, GetChainerXAxes(axes), keepdims != 0);
 }
 
-chainerx::Array ReduceSumToOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
+chainerx::Array ReduceSumToOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
     const chainerx::Shape& from = data.shape();
     const chainerx::Shape& to = ArrayToShape(shape);
     CHECK_GE(from.size(), to.size()) << "Reduce requested but shape actually expands: " << from << " to=" << to;
@@ -40,7 +40,7 @@ chainerx::Array ReduceSumToOp::RunImpl(XCVMState* st, const chainerx::Array& dat
     return chainerx::Reshape(result, to);
 }
 
-chainerx::Array ReduceMeanOp::RunImpl(XCVMState* st, const chainerx::Array& a) {
+chainerx::Array ReduceMeanOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::Mean(a, GetChainerXAxes(axes), keepdims != 0);
 }
 

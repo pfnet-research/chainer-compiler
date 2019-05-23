@@ -9,7 +9,7 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -207,7 +207,7 @@ void TransposeWeight(const chainerx::Array& w, int pseudo_layer, int hidden_size
     }
 }
 
-class LSTMBackwardContext : public XCVMOpaque {
+class LSTMBackwardContext : public ChxVMOpaque {
 public:
     LSTMBackwardContext(
             std::unique_ptr<CudnnRNNDescriptor>&& rnn_desc,
@@ -373,7 +373,7 @@ chainerx::Array UnpackSequence(
 }  // namespace
 
 bool CudnnLSTM(
-        XCVMState* st,
+        ChxVMState* st,
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
@@ -384,7 +384,7 @@ bool CudnnLSTM(
         const nonstd::optional<chainerx::Array>& p,
         int hidden_size,
         int direction,
-        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, XCVMOpaque*>* result) {
+        std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, ChxVMOpaque*>* result) {
     if (!dynamic_cast<chainerx::cuda::CudaDevice*>(&x.device())) return false;
 
     int64_t seq_length = x.shape()[0];
@@ -532,7 +532,7 @@ bool CudnnLSTM(
             reserve.raw_data(),
             reserve_size);
 
-    XCVMOpaque* context = new LSTMBackwardContext(
+    ChxVMOpaque* context = new LSTMBackwardContext(
             std::move(rnn_desc),
             std::move(dropout_desc),
             std::move(y_desc),
@@ -563,7 +563,7 @@ bool CudnnLSTM(
 
 bool CudnnLSTMGrad(
         const chainerx::Array& ogy,
-        const XCVMOpaque& ctx,
+        const ChxVMOpaque& ctx,
         std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, chainerx::Array>* result) {
     if (!dynamic_cast<const LSTMBackwardContext*>(&ctx)) return false;
     auto& context = dynamic_cast<const LSTMBackwardContext&>(ctx);

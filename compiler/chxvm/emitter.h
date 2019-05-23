@@ -14,7 +14,7 @@ namespace runtime {
 class XCProgramProto;
 }
 
-namespace xcvm {
+namespace chxvm {
 
 void Emit(const Model& model, runtime::XCProgramProto* program, bool dump_value_names = false);
 
@@ -30,5 +30,5 @@ void Emit(
         std::vector<int>* input_ids,
         std::vector<int>* output_ids);
 
-}  // namespace xcvm
+}  // namespace chxvm
 }  // namespace chainer_compiler

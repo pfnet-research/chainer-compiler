@@ -120,7 +120,7 @@ def get():
                 if diversed:
                     tests.append(TestCase(name=name + '_diversed',
                                           test_dir=test_dir,
-                                          backend='xcvm_test',
+                                          backend='chxvm_test',
                                           **kwargs))
 
     return tests
