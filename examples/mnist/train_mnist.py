@@ -84,6 +84,9 @@ def main():
                         help='Use fake data')
     parser.add_argument('--computation_order', type=str, default=None,
                         help='Computation order in backpropagation')
+    parser.add_argument('--use_unified_memory', dest='use_unified_memory',
+                        action='store_true',
+                        help='Use unified memory for large model')
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
@@ -106,7 +109,8 @@ def main():
         mlp = chainer_compiler.compile(
             mlp, dump_onnx=args.dump_onnx,
             translator=translator,
-            computation_order=args.computation_order)
+            computation_order=args.computation_order,
+            use_unified_memory=args.use_unified_memory)
     model = L.Classifier(mlp)
     model.to_device(device)
     device.use()

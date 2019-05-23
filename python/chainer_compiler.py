@@ -167,21 +167,15 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
-class use_unified_memory:
+class enable_unified_memory:
 
-    def __init__(self, xp):
-        self.xp = xp
+    def __init__(self, use=True):
+        self.use = use
 
     def __enter__(self):
-        if self.xp != cupy:
-            return
-
         cupy.cuda.set_allocator(cupy.cuda.memory.malloc_managed)
 
     def __exit__(self, type, value, traceback):
-        if self.xp != cupy:
-            return
-
         memory_pool = cupy.get_default_memory_pool()
         cupy.cuda.set_allocator(memory_pool.malloc)
 
@@ -212,13 +206,15 @@ def _run_translator(translator, mc, inputs):
 class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
-                 computation_order=None):
+                 computation_order=None,
+                 use_unified_memory=False):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
         self.translator = translator
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
+        self.use_unified_memory = use_unified_memory
 
         self.compiled = False
         self.param_names = None
@@ -227,8 +223,9 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def compile(self, inputs):
-        with use_unified_memory(self.mc.xp):
-            # obtain computational graph in unified memory mode
+        # obtain computational graph using unified memory if specified
+        use = self.use_unified_memory and self.mc.xp == cupy
+        with enable_unified_memory(use):
             graph = _run_translator(self.translator, self.mc, inputs)
 
         self.orig_output_names = graph.output_names()
