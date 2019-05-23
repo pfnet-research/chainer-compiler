@@ -24,6 +24,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/chxvm/emitter.h>
 #include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
@@ -35,13 +36,12 @@
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
-#include <compiler/chxvm/emitter.h>
 #include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
-#include <runtime/meminfo.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
+#include <runtime/meminfo.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
 #include <tools/util.h>

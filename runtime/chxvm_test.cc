@@ -8,8 +8,8 @@
 #include <chainerx/testing/array.h>
 #include <chainerx/testing/context_session.h>
 
-#include <compiler/gen_chxvm_codegen.h>
 #include <compiler/chxvm/chxvm_value.h>
+#include <compiler/gen_chxvm_codegen.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>

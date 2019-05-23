@@ -10,11 +10,11 @@
 #include <chainerx/native/native_backend.h>
 
 #include <common/strutil.h>
+#include <compiler/chxvm/emitter.h>
 #include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
-#include <compiler/chxvm/emitter.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_state.h>

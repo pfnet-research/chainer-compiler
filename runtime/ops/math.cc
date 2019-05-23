@@ -93,14 +93,14 @@ chainerx::Array IsInfOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::IsInf(a);
 }
 
-#define DEFINE_UNARY_OP(op)                                                    \
+#define DEFINE_UNARY_OP(op)                                                     \
     chainerx::Array op##Op::RunImpl(ChxVMState* st, const chainerx::Array& a) { \
-        return chainerx::op(a);                                                \
+        return chainerx::op(a);                                                 \
     }
 
-#define DEFINE_UNARY_OP_TODO(op)                                               \
+#define DEFINE_UNARY_OP_TODO(op)                                                \
     chainerx::Array op##Op::RunImpl(ChxVMState* st, const chainerx::Array& a) { \
-        CHECK(false) << "TODO(hamaji): " #op " op not implemented";            \
+        CHECK(false) << "TODO(hamaji): " #op " op not implemented";             \
     }
 
 DEFINE_UNARY_OP(Exp);

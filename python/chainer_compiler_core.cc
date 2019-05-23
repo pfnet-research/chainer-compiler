@@ -10,6 +10,7 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/chxvm/emitter.h>
 #include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
@@ -21,7 +22,6 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
-#include <compiler/chxvm/emitter.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>

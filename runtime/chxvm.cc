@@ -13,11 +13,11 @@
 #include <common/log.h>
 #include <common/strutil.h>
 #include <runtime/chrome_tracing.h>
-#include <runtime/meminfo.h>
-#include <runtime/npy.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_op.h>
 #include <runtime/chxvm_state.h>
+#include <runtime/meminfo.h>
+#include <runtime/npy.h>
 
 #define RANGE(x) (x).begin(), (x).end()
 

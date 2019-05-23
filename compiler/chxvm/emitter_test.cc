@@ -7,9 +7,9 @@
 
 #include <common/log.h>
 #include <common/protoutil.h>
+#include <compiler/chxvm/emitter.h>
 #include <compiler/model.h>
 #include <compiler/passes.h>
-#include <compiler/chxvm/emitter.h>
 #include <runtime/chxvm.pb.h>
 
 namespace chainer_compiler {

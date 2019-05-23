@@ -5,8 +5,8 @@
 #include <chainerx/routines/statistics.h>
 
 #include <common/log.h>
-#include <runtime/gen_chxvm_ops.h>
 #include <runtime/chxvm_state.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {

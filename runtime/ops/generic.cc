@@ -6,9 +6,9 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_chxvm_ops.h>
 #include <runtime/chxvm_state.h>
 #include <runtime/chxvm_var.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
