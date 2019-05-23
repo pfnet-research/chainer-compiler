@@ -204,6 +204,10 @@ class CompiledModel(chainer.Chain):
         self.export_allocator = export_allocator
         self.runtime_allocator = runtime_allocator
 
+        if export_allocator is not None and runtime_allocator is None:
+            raise ValueError('`runtime_allocator` must be set when '
+                             ' `export_allocator` is set')
+
         self.compiled = False
         self.param_names = None
         self.param_values = None
@@ -213,9 +217,11 @@ class CompiledModel(chainer.Chain):
     def compile(self, inputs):
         if self.export_allocator is not None:
             cupy.cuda.set_allocator(self.export_allocator)
-        graph = _run_translator(self.translator, self.mc, inputs)
-        if self.runtime_allocator is not None:
-            cupy.cuda.set_allocator(self.runtime_allocator)
+        try:
+            graph = _run_translator(self.translator, self.mc, inputs)
+        finally:
+            if self.runtime_allocator is not None:
+                cupy.cuda.set_allocator(self.runtime_allocator)
 
         self.orig_output_names = graph.output_names()
 
