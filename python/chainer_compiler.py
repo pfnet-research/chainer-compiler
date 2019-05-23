@@ -6,7 +6,10 @@ import tempfile
 import ch2o
 import chainer_compiler_core
 
-from fake_cupy_allocator import use_fake_cupy_allocator
+try:
+    import cupy
+except Exception:
+    cupy = None
 
 
 def _is_array(v):
@@ -164,6 +167,25 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
+class use_unified_memory:
+
+    def __init__(self, xp):
+        self.xp = xp
+
+    def __enter__(self):
+        if self.xp != cupy:
+            return
+
+        cupy.cuda.set_allocator(cupy.cuda.memory.malloc_managed)
+
+    def __exit__(self, type, value, traceback):
+        if self.xp != cupy:
+            return
+
+        memory_pool = cupy.get_default_memory_pool()
+        cupy.cuda.set_allocator(memory_pool.malloc)
+
+
 def _run_translator(translator, mc, inputs):
     if translator == 'ch2o':
         xmodel = ch2o.compile_model(mc, inputs)
@@ -205,12 +227,8 @@ class CompiledModel(chainer.Chain):
             self.compile(inputs)
 
     def compile(self, inputs):
-        with chainer.using_config('train', False),\
-                chainer.using_config('enable_backprop', False):
-            # allocate memory for all the model parameters
-            self.mc(*inputs)
-
-        with use_fake_cupy_allocator(self.mc.xp):
+        with use_unified_memory(self.mc.xp):
+            # obtain computational graph in unified memory mode
             graph = _run_translator(self.translator, self.mc, inputs)
 
         self.orig_output_names = graph.output_names()
