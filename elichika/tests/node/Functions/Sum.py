@@ -55,7 +55,7 @@ def main():
 
     testtools.generate_testcase(SumAllAxis(), [a], subname='all_axis')
 
-    # TODO (durswd): fixed it
+    # TODO(hamaji): support L.Linear(None,5)
     '''
     for axis in [0, 1, 2, (0, 2), (1, 2), None]:
         for keepdims in [False, True]:

@@ -56,7 +56,7 @@ def main():
         xs.append(np.random.rand(l, num_hidden).astype(dtype=np.float32))
     h = np.zeros((3, num_hidden), dtype=np.float32)
 
-    # TODO : fixit (durswd)
+    # TODO(hamaji): support L.Linear(None, n_out)
     # testtools.generate_testcase(model, [xs, h], subname='lambda_bug')
 
 
