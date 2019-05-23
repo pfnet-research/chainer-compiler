@@ -539,7 +539,6 @@ class ONNXValueType(Enum):
     Sequence = 1,
     Unknown = 2,
 
-
 class ONNXValue:
     """
     A wrapper of ONNX value
@@ -624,6 +623,11 @@ class ONNXValue:
                 ['TODO'], any_value, self.name)
             self.onnx_type = ONNXValueType.Tensor
 
+        elif any_value is None:
+            self.name = generate_name()
+            self.tensor = self.onnx_graph.new_empty_tensor(
+                ['TODO'], np.float32, self.name)
+            self.onnx_type = ONNXValueType.Tensor
         else:
             assert(False)
 
