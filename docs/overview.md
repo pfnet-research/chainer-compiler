@@ -22,15 +22,15 @@ Compiler directory contains a bunch of things such as
 - Auto-differentiation ([gradient.cc](/compiler/gradient.cc) and [gradient_ops.cc](/compiler/gradient_ops.cc))
 - Constant propagation
 - Naive code generators which uses NVRTC/TVM
-- Generate code for ChxVM, a virtual machine based on ChainerX
+- Generate code for ChainerX VM, a virtual machine based on ChainerX
 
 but the most important file in this directory is [gen_node.py](/compiler/gen_node.py), which maintains the list of supported extended ONNX operations.
 
 ## [runtime](/runtime)
 
-The implementation of ChxVM, a Python/ONNX-free virtual machine based on ChainerX. Most operations are/should be simple wrappers of [ChainerX's routines](https://github.com/chainer/chainer/tree/master/chainerx_cc/chainerx/routines). However, there are some operations which complement ChainerX (e.g., NVRTC and cuDNN RNN).
+The implementation of ChainerX VM, a Python/ONNX-free virtual machine based on ChainerX. Most operations are/should be simple wrappers of [ChainerX's routines](https://github.com/chainer/chainer/tree/master/chainerx_cc/chainerx/routines). However, there are some operations which complement ChainerX (e.g., NVRTC and cuDNN RNN).
 
-Again, the operations supported by ChxVM are managed by [chxvm_defs.py](/runtime/chxvm_defs.py), which acts as an IDL of ChxVM ops.
+Again, the operations supported by ChainerX VM are managed by [chxvm_defs.py](/runtime/chxvm_defs.py), which acts as an IDL of ChainerX VM ops.
 
 ## [python](/python)
 
