@@ -39,6 +39,9 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_l_converter[L.Linear] = lb.convert_onnx_chainer_linear
     oc.chainer_l_converter[L.Convolution2D] = lb.convert_onnx_chainer_convolution2d
     oc.chainer_l_converter[L.BatchNormalization] = lb.convert_onnx_chainer_batch_normalization
+    oc.chainer_l_converter[L.NStepLSTM] = lb.convert_onnx_chainer_NStepLSTM
+    oc.chainer_l_converter[L.NStepBiLSTM] = lb.convert_onnx_chainer_NStepBiLSTM
+    oc.chainer_l_converter[L.EmbedID] = lb.convert_onnx_chainer_EmbedID
 
     oc.chainer_f_converter[F.relu] = fb.convert_relu
     oc.chainer_f_converter[F.softmax] = fb.convert_softmax
@@ -67,6 +70,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.expand_dims] = fb.convert_expand_dims
     oc.chainer_f_converter[F.local_response_normalization] = fb.convert_local_response_normalization
     oc.chainer_f_converter[F.average] = fb.convert_average
+    oc.chainer_f_converter[F.sum] = fb.convert_sum
 
     if int(chainer.__version__[0]) >= 6:
         oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.convert_roi_max_pooling_2d
