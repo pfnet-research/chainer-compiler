@@ -262,6 +262,11 @@ void FuseNGraphOperations(Graph* graph) {
             if (!node.perm().empty() && node.input(0)->type().ndim() != node.perm().size()) {
                 return false;
             }
+        } else if (node.op_type() == Node::kBatchNormalization) {
+	    // nGraph does not support BatchNorm in training mode.
+            if (node.outputs().size() != 1) {
+                return false;
+            }
         }
 
         return true;
