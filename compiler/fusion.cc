@@ -258,12 +258,12 @@ void FuseNGraphOperations(Graph* graph) {
                 }
             }
         } else if (node.op_type() == Node::kTranspose) {
-	    // Incomplete transpose is our own extension to ONNX.
+            // Incomplete transpose is our own extension to ONNX.
             if (!node.perm().empty() && node.input(0)->type().ndim() != node.perm().size()) {
                 return false;
             }
         } else if (node.op_type() == Node::kBatchNormalization) {
-	    // nGraph does not support BatchNorm in training mode.
+            // nGraph does not support BatchNorm in training mode.
             if (node.outputs().size() != 1) {
                 return false;
             }
