@@ -12,6 +12,14 @@ CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     python3 -m pip -q install --no-cache-dir third_party/chainer[test]
 python3 -m pip install --no-cache-dir third_party/onnx-chainer[test-gpu]
 
+mkdir -p data
+cd data
+wget https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz && \
+    tar -xzf mnist.tar.gz
+wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz && \
+    tar -xzf resnet50.tar.gz
+cd ..
+
 mkdir -p build
 cd build
 cmake .. \
