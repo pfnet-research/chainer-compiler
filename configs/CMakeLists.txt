@@ -1,3 +1,5 @@
+get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
+
 set(jsons
   chxvm.json
   )
@@ -14,7 +16,11 @@ foreach(json ${jsons})
   list(APPEND json_cs ${out})
 endforeach()
 
+include_directories(${CHAINER_COMPILER_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_ROOT_DIR}/third_party/json/include)
+
 add_library(
   configs
   ${json_cs}
+  backend_config.cc
   )

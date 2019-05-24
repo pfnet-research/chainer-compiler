@@ -1,5 +1,5 @@
 {
-    simplify: [
+    simplify: {
         "ReplaceSum": true,
         "ReplaceLess": true,
         "ReplaceSum": true,
@@ -31,5 +31,5 @@
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
         "ReplaceAveragePool": true
-    ]
+    }
 }
