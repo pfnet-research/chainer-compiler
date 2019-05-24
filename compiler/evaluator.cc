@@ -10,15 +10,15 @@
 #include <chainerx/native/native_backend.h>
 
 #include <common/strutil.h>
+#include <compiler/chxvm/emitter.h>
 #include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/value.h>
-#include <compiler/xcvm/emitter.h>
-#include <runtime/xcvm.h>
-#include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_state.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_state.h>
+#include <runtime/chxvm_var.h>
 
 namespace chainer_compiler {
 
@@ -52,15 +52,15 @@ void Eval(
         for (const auto& p : feeds) {
             feed_values.push_back(p.first);
         }
-        xcvm::Emit(nodes, feed_values, fetches, &program, &input_ids, &output_ids);
+        chxvm::Emit(nodes, feed_values, fetches, &program, &input_ids, &output_ids);
         // CLOG() << "Evaluate " << program.DebugString();
     }
 
     chainerx::DeviceScope device_scope{chainerx::GetNativeBackend().GetDevice(0)};
 
-    runtime::XCVM xcvm(program);
-    runtime::XCVMOptions xcvm_options;
-    runtime::XCVMState state(xcvm_options, xcvm.num_variables(), {});
+    runtime::ChxVM chxvm(program);
+    runtime::ChxVMOptions chxvm_options;
+    runtime::ChxVMState state(chxvm_options, chxvm.num_variables(), {});
 
     for (size_t i = 0; i < feeds.size(); ++i) {
         int input_id = input_ids[i];
@@ -69,21 +69,21 @@ void Eval(
         state.SetArray(input_id, t->chx());
     }
 
-    xcvm.Run(&state);
+    chxvm.Run(&state);
 
     for (size_t i = 0; i < fetches.size(); ++i) {
         const std::string& name = fetches[i]->name();
         int output_id = output_ids[i];
-        runtime::XCVMVar* var = state.GetVar(output_id);
+        runtime::ChxVMVar* var = state.GetVar(output_id);
 
         switch (var->kind()) {
-            case runtime::XCVMVar::Kind::kArray: {
+            case runtime::ChxVMVar::Kind::kArray: {
                 outputs->emplace_back(new EvaluatedValue(new Tensor(name, state.GetArray(output_id))));
                 break;
             }
 
-            case runtime::XCVMVar::Kind::kSequence: {
-                const runtime::XCVMSequence& seq = *var->GetSequence();
+            case runtime::ChxVMVar::Kind::kSequence: {
+                const runtime::ChxVMSequence& seq = *var->GetSequence();
                 std::vector<std::unique_ptr<Tensor>> tensors;
                 for (size_t j = 0; j < seq.size(); ++j) {
                     // TODO(hamaji): Support nested sequences.

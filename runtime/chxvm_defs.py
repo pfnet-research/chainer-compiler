@@ -61,9 +61,9 @@ class ValueInfo(_ValueInfo):
 
     def c_codegen_type(self):
         if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE):
-            return 'XCVMValue'
+            return 'ChxVMValue'
         elif self.typ == ARRAY_LIST:
-            return 'std::vector<XCVMValue>'
+            return 'std::vector<ChxVMValue>'
         else:
             return self.c_type()
 
@@ -157,6 +157,7 @@ XC_OPS = [
     ('Xor', [Array('a'), Array('b')], ['c']),
     ('IsNaN', [Array('x')], ['y']),
     ('IsInf', [Array('x')], ['y']),
+    ('Sign', [Array('input')], ['output']),
 
     ('Reciprocal', [Array('x')], ['y']),
     ('Exp', [Array('x')], ['y']),

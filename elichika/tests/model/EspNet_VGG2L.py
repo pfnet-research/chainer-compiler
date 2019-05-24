@@ -60,7 +60,7 @@ class VGG2L(chainer.Chain):
         xs = F.max_pooling_2d(xs, 2, stride=2)
 
         # change ilens accordingly
-        # EDIT(hamaji): ChxVM puts int32 on GPU and it hurts the performance.
+        # EDIT(hamaji): XCVM puts int32 on GPU and it hurts the performance.
         # TODO(hamaji): Fix device assignment to get rid of this change.
         ilens = (ilens + 1) // 2
         ilens = (ilens + 1) // 2
@@ -89,7 +89,7 @@ class VGG2LBackprop(chainer.Chain):
         return F.pad_sequence(xs)
 
 
-import ch2o
+import testtools
 
 
 if __name__ == '__main__':
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     for l in ilens:
         xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
 
-    ch2o.generate_testcase(lambda: VGG2L(1), [xs, ilens])
+    testtools.generate_testcase(lambda: VGG2L(1), [xs, ilens])
 
-    ch2o.generate_testcase(lambda:  VGG2LBackprop(1),
+    testtools.generate_testcase(lambda:  VGG2LBackprop(1),
                            [xs, ilens], backprop=True)

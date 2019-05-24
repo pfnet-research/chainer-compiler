@@ -1,4 +1,4 @@
-#include "compiler/xcvm/config.h"
+#include "compiler/chxvm/config.h"
 
 #include <set>
 
@@ -6,13 +6,13 @@
 #include <compiler/config.h>
 
 namespace chainer_compiler {
-namespace xcvm {
+namespace chxvm {
 namespace {
 
-class XCVMCompilerConfig : public CompilerConfig {
+class ChxVMCompilerConfig : public CompilerConfig {
 public:
-    explicit XCVMCompilerConfig(bool diversed) {
-        name_ = diversed ? "xcvm_test" : "xcvm";
+    explicit ChxVMCompilerConfig(bool diversed) {
+        name_ = diversed ? "chxvm_test" : "chxvm";
 
         CHECK(op_set_.emplace(Node::kAbs).second);
         CHECK(op_set_.emplace(Node::kAcos).second);
@@ -127,6 +127,7 @@ public:
         CHECK(op_set_.emplace(Node::kSelu).second);
         CHECK(op_set_.emplace(Node::kShape).second);
         CHECK(op_set_.emplace(Node::kSigmoid).second);
+        CHECK(op_set_.emplace(Node::kSign).second);
         CHECK(op_set_.emplace(Node::kSin).second);
         CHECK(op_set_.emplace(Node::kSinh).second);
         CHECK(op_set_.emplace(Node::kSize).second);
@@ -157,7 +158,7 @@ public:
         }
     }
 
-    virtual ~XCVMCompilerConfig() = default;
+    virtual ~ChxVMCompilerConfig() = default;
 
     virtual bool HasOp(Node::OpType op) const {
         return op_set_.count(op);
@@ -175,8 +176,8 @@ protected:
 }  // namespace
 
 std::unique_ptr<CompilerConfig> GetCompilerConfig(bool diversed) {
-    return std::unique_ptr<CompilerConfig>(new XCVMCompilerConfig(diversed));
+    return std::unique_ptr<CompilerConfig>(new ChxVMCompilerConfig(diversed));
 }
 
-}  // namespace xcvm
+}  // namespace chxvm
 }  // namespace chainer_compiler

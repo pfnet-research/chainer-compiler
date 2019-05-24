@@ -8,32 +8,32 @@
 #include <chainerx/testing/array.h>
 #include <chainerx/testing/context_session.h>
 
-#include <compiler/gen_xcvm_codegen.h>
-#include <compiler/xcvm/xcvm_value.h>
-#include <runtime/xcvm.h>
-#include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_var.h>
+#include <compiler/chxvm/chxvm_value.h>
+#include <compiler/gen_chxvm_codegen.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_var.h>
 
 namespace chainer_compiler {
 namespace runtime {
 namespace {
 
-TEST(XCVMTest, Run) {
+TEST(ChxVMTest, Run) {
     chainerx::testing::ContextSession sess;
 
     XCProgramProto program;
-    xcvm::AddInOp(&program, xcvm::XCVMValue(0), "in1");
-    xcvm::AddInOp(&program, xcvm::XCVMValue(1), "in2");
-    xcvm::AddAddOp(&program, xcvm::XCVMValue(2), 0, 1);
-    xcvm::AddOutOp(&program, "out", 2);
+    chxvm::AddInOp(&program, chxvm::ChxVMValue(0), "in1");
+    chxvm::AddInOp(&program, chxvm::ChxVMValue(1), "in2");
+    chxvm::AddAddOp(&program, chxvm::ChxVMValue(2), 0, 1);
+    chxvm::AddOutOp(&program, "out", 2);
     // std::cerr << program.DebugString() << std::endl;
 
-    XCVM xcvm(program);
+    ChxVM chxvm(program);
     InOuts inputs;
     chainerx::Array in1 = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
-    inputs.emplace("in1", std::shared_ptr<XCVMVar>(new XCVMVar(in1)));
-    inputs.emplace("in2", std::shared_ptr<XCVMVar>(new XCVMVar(chainerx::OnesLike(in1))));
-    InOuts outputs = xcvm.Run(inputs, XCVMOptions());
+    inputs.emplace("in1", std::shared_ptr<ChxVMVar>(new ChxVMVar(in1)));
+    inputs.emplace("in2", std::shared_ptr<ChxVMVar>(new ChxVMVar(chainerx::OnesLike(in1))));
+    InOuts outputs = chxvm.Run(inputs, ChxVMOptions());
     ASSERT_EQ(1, outputs.count("out"));
     chainerx::Array e = chainerx::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
     // TODO(hamaji): Use EXPECT_ARRAY_EQ after fixing namespace?

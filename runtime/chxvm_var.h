@@ -7,13 +7,13 @@
 namespace chainer_compiler {
 namespace runtime {
 
-class XCVMVar;
+class ChxVMVar;
 
-typedef std::vector<XCVMVar> XCVMSequence;
+typedef std::vector<ChxVMVar> ChxVMSequence;
 
-class XCVMOpaque {
+class ChxVMOpaque {
 public:
-    virtual ~XCVMOpaque() = default;
+    virtual ~ChxVMOpaque() = default;
 
     virtual std::string ToString() const {
         return "???";
@@ -27,12 +27,12 @@ public:
     void SetRetainedArrays(const std::vector<chainerx::Array>& retained_arrays);
 
 protected:
-    XCVMOpaque() = default;
+    ChxVMOpaque() = default;
 
     std::unique_ptr<std::vector<chainerx::Array>> retained_arrays_;
 };
 
-class XCVMVar {
+class ChxVMVar {
 public:
     enum class Kind {
         kArray,
@@ -41,16 +41,16 @@ public:
         kNull,
     };
 
-    XCVMVar();
-    explicit XCVMVar(Kind kind);
-    explicit XCVMVar(chainerx::Array array);
+    ChxVMVar();
+    explicit ChxVMVar(Kind kind);
+    explicit ChxVMVar(chainerx::Array array);
     // Takes the ownership of `opaque`.
-    explicit XCVMVar(XCVMOpaque* opaque);
-    explicit XCVMVar(const XCVMVar&) = default;
+    explicit ChxVMVar(ChxVMOpaque* opaque);
+    explicit ChxVMVar(const ChxVMVar&) = default;
 
     const chainerx::Array& GetArray() const;
-    XCVMSequence* GetSequence() const;
-    XCVMOpaque* GetOpaque() const;
+    ChxVMSequence* GetSequence() const;
+    ChxVMOpaque* GetOpaque() const;
 
     Kind kind() const {
         return kind_;
@@ -71,13 +71,13 @@ public:
 private:
     Kind kind_;
     chainerx::Array array_;
-    std::shared_ptr<XCVMSequence> sequence_;
-    std::shared_ptr<XCVMOpaque> opaque_;
+    std::shared_ptr<ChxVMSequence> sequence_;
+    std::shared_ptr<ChxVMOpaque> opaque_;
 };
 
-std::vector<chainerx::Array> NonOptional(const XCVMSequence& seq);
+std::vector<chainerx::Array> NonOptional(const ChxVMSequence& seq);
 
-std::ostream& operator<<(std::ostream& os, const XCVMVar::Kind& kind);
+std::ostream& operator<<(std::ostream& os, const ChxVMVar::Kind& kind);
 
 }  // namespace runtime
 }  // namespace chainer_compiler

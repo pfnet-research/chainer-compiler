@@ -3,21 +3,21 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array ShapeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array ShapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     return ShapeToArray(data.shape());
 }
 
-chainerx::Array SizeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array SizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     int64_t size = data.GetTotalSize();
     return MakeHostArray(chainerx::Dtype::kInt64, {}, &size);
 }
 
-chainerx::Array ReshapeOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
+chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
     chainerx::Shape s{ArrayToShape(shape)};
     int from_total_size = data.GetTotalSize();
     int to_total_size = 1;
@@ -40,15 +40,15 @@ chainerx::Array ReshapeOp::RunImpl(XCVMState* st, const chainerx::Array& data, c
     return chainerx::Reshape(data, s);
 }
 
-chainerx::Array ExpandOp::RunImpl(XCVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
+chainerx::Array ExpandOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
     return chainerx::BroadcastTo(data, ArrayToShape(shape));
 }
 
-chainerx::Array SqueezeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array SqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     return chainerx::Squeeze(data, GetChainerXAxes(axes));
 }
 
-chainerx::Array UnsqueezeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array UnsqueezeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::Shape shape = data.shape();
     for (int d : axes) {
         CHECK_LE(d, shape.size()) << "Unsqueezing axis out of bound: " << d;
@@ -57,11 +57,11 @@ chainerx::Array UnsqueezeOp::RunImpl(XCVMState* st, const chainerx::Array& data)
     return chainerx::Reshape(data, shape);
 }
 
-chainerx::Array ConcatOp::RunImpl(XCVMState* st, const std::vector<chainerx::Array>& inputs) {
+chainerx::Array ConcatOp::RunImpl(ChxVMState* st, const std::vector<chainerx::Array>& inputs) {
     return chainerx::Concatenate(inputs, axis);
 }
 
-std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+std::vector<chainerx::Array> SplitOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     std::vector<int64_t> lens{split.begin(), split.end()};
     if (lens.empty()) {
         int64_t dim = input.shape()[axis];
@@ -72,7 +72,7 @@ std::vector<chainerx::Array> SplitOp::RunImpl(XCVMState* st, const chainerx::Arr
     return SplitByLengths(input, axis, lens);
 }
 
-chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array TransposeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     chainerx::OptionalAxes axes = GetChainerXAxes(perm);
     while (axes.has_value() && data.ndim() > axes->size()) {
         axes->push_back(axes->size());
@@ -80,7 +80,7 @@ chainerx::Array TransposeOp::RunImpl(XCVMState* st, const chainerx::Array& data)
     return chainerx::Transpose(data, axes);
 }
 
-chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     CHECK_EQ(data.ndim() * 2, pads.size());
     const chainerx::Shape shape = data.shape();
     chainerx::Shape new_shape = data.shape();
@@ -107,11 +107,11 @@ chainerx::Array PadOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
     return result;
 }
 
-chainerx::Array CastOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+chainerx::Array CastOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     return CastTo(input, static_cast<chainerx::Dtype>(to));
 }
 
-chainerx::Array PadBatchSizeOp::RunImpl(XCVMState* st, const chainerx::Array& data) {
+chainerx::Array PadBatchSizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     const chainerx::Shape shape = data.shape();
     CHECK_LT(0, shape.size());
     chainerx::Shape new_shape = shape;

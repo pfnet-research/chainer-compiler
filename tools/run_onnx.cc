@@ -24,6 +24,7 @@
 #include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
+#include <compiler/chxvm/emitter.h>
 #include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
@@ -35,13 +36,12 @@
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
-#include <compiler/xcvm/emitter.h>
 #include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
-#include <runtime/xcvm.h>
-#include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_var.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
@@ -126,7 +126,7 @@ void ReadTestDir(
             all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);
         }
 
-        std::vector<std::tuple<std::string, std::string, XCVMVar*>> all_vars;
+        std::vector<std::tuple<std::string, std::string, ChxVMVar*>> all_vars;
         for (size_t i = 0; i < all_tensors.size(); ++i) {
             const std::string& filename = std::get<0>(all_tensors[i]);
             const std::string& tensor_name = std::get<1>(all_tensors[i]);
@@ -134,12 +134,12 @@ void ReadTestDir(
             if (first_found == std::string::npos) continue;
             size_t found = filename.find('_', first_found + 1);
             if (found == std::string::npos) {
-                all_vars.emplace_back(filename, tensor_name, new XCVMVar(std::get<2>(all_tensors[i])));
+                all_vars.emplace_back(filename, tensor_name, new ChxVMVar(std::get<2>(all_tensors[i])));
                 continue;
             }
 
             std::string prefix = filename.substr(0, found + 1);
-            std::unique_ptr<XCVMVar> seq(new XCVMVar(XCVMVar::Kind::kSequence));
+            std::unique_ptr<ChxVMVar> seq(new ChxVMVar(ChxVMVar::Kind::kSequence));
             for (; i < all_tensors.size(); ++i) {
                 const std::string& filename = std::get<0>(all_tensors[i]);
                 if (HasPrefix(filename, prefix)) {
@@ -156,7 +156,7 @@ void ReadTestDir(
         for (const auto& p : all_vars) {
             const std::string& filename = std::get<0>(p);
             std::string tensor_name = std::get<1>(p);
-            std::shared_ptr<XCVMVar> var(std::get<2>(p));
+            std::shared_ptr<ChxVMVar> var(std::get<2>(p));
             if (HasPrefix(filename, "input_")) {
                 if (tensor_name.empty()) {
                     CHECK_LT(input_index, input_names.size());
@@ -200,7 +200,7 @@ void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::stri
         chainerx::Dtype dtype = ChainerXTypeFromONNX(tensor_type.elem_type());
         chainerx::Shape shape = ChainerXShapeFromONNX(tensor_type.shape());
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input.name(), std::shared_ptr<XCVMVar>(new XCVMVar(array))).second) << "Duplicated input: " << input.name();
+        CHECK(inputs->emplace(input.name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second) << "Duplicated input: " << input.name();
         LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
@@ -211,18 +211,18 @@ chainerx::Array StageArray(chainerx::Array a) {
     return a;
 }
 
-XCVMVar* StageVar(XCVMVar* var) {
+ChxVMVar* StageVar(ChxVMVar* var) {
     switch (var->kind()) {
-        case XCVMVar::Kind::kArray:
-            return new XCVMVar(StageArray(var->GetArray()));
-        case XCVMVar::Kind::kSequence: {
-            XCVMVar* out = new XCVMVar(XCVMVar::Kind::kSequence);
-            for (const XCVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(StageArray(v.GetArray()));
+        case ChxVMVar::Kind::kArray:
+            return new ChxVMVar(StageArray(var->GetArray()));
+        case ChxVMVar::Kind::kSequence: {
+            ChxVMVar* out = new ChxVMVar(ChxVMVar::Kind::kSequence);
+            for (const ChxVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(StageArray(v.GetArray()));
             return out;
         }
 
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kOpaque:
+        case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
@@ -251,41 +251,41 @@ public:
 
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), false, skip_scheduling);
-            CompileModel(model, &xcvm_);
+            CompileModel(model, &chxvm_);
             LOG() << "Constructing model (backward)..." << std::endl;
             RunDefaultPasses(backprop_model.mutable_graph(), false, skip_scheduling);
-            CompileModel(&backprop_model, &xcvm_bp_, "bp");
+            CompileModel(&backprop_model, &chxvm_bp_, "bp");
             for (Value* value : backprop_model.graph().input_values()) {
                 backprop_ins_.push_back(value->name());
             }
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
-            CompileModel(model, &xcvm_);
+            CompileModel(model, &chxvm_);
         }
 
         for (const std::string& op_name : SplitString(args_.get<std::string>("verbose_ops"), ",")) {
             XCInstructionProto::Op op;
             CHECK(XCInstructionProto::Op_Parse(op_name, &op)) << "Unknown op: " << op_name;
-            xcvm_opts_.verbose_ops[op] = true;
+            chxvm_opts_.verbose_ops[op] = true;
         }
-        xcvm_opts_.trace_level = trace_level();
-        xcvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
-        xcvm_opts_.check_types = true;
-        xcvm_opts_.check_nans = args_.exist("check_nans");
-        xcvm_opts_.check_infs = args_.exist("check_infs");
-        xcvm_opts_.dump_memory_usage = args_.exist("trace");
-        xcvm_opts_.base_memory_usage = initial_free_bytes_;
-        xcvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
+        chxvm_opts_.trace_level = trace_level();
+        chxvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
+        chxvm_opts_.check_types = true;
+        chxvm_opts_.check_nans = args_.exist("check_nans");
+        chxvm_opts_.check_infs = args_.exist("check_infs");
+        chxvm_opts_.dump_memory_usage = args_.exist("trace");
+        chxvm_opts_.base_memory_usage = initial_free_bytes_;
+        chxvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
-            xcvm_opts_.chrome_tracing = new ChromeTracingEmitter();
+            chxvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
 
         params_ = LoadParams(model->graph());
         param_bytes_ = initial_free_bytes - GetMemoryUsageInBytes();
     }
 
-    void CompileModel(Model* model, std::unique_ptr<XCVM>* xcvm, const char* name = nullptr, bool gen_backprop = false) {
+    void CompileModel(Model* model, std::unique_ptr<ChxVM>* chxvm, const char* name = nullptr, bool gen_backprop = false) {
         if (args_.exist("dump_onnx")) {
             onnx::ModelProto xmodel;
             model->ToONNX(&xmodel);
@@ -306,38 +306,38 @@ public:
         }
 
         LOG() << "Generate code..." << std::endl;
-        XCProgramProto xcvm_prog;
-        xcvm::Emit(*model, &xcvm_prog, trace_level() > 0);
+        XCProgramProto chxvm_prog;
+        chxvm::Emit(*model, &chxvm_prog, trace_level() > 0);
 
-        if (args_.exist("dump_xcvm")) {
+        if (args_.exist("dump_chxvm")) {
             int pc = 0;
-            for (XCInstructionProto inst : xcvm_prog.instructions()) {
+            for (XCInstructionProto inst : chxvm_prog.instructions()) {
                 std::cerr << '#' << pc << ": " << inst.DebugString();
                 pc++;
             }
         }
-        const std::string out_xcvm = args_.get<std::string>("out_xcvm");
-        if (!out_xcvm.empty()) {
-            std::ofstream ofs(out_xcvm);
-            CHECK(ofs) << "Failed to open output XCVM: " << out_xcvm;
-            CHECK(xcvm_prog.SerializeToOstream(&ofs));
+        const std::string out_chxvm = args_.get<std::string>("out_chxvm");
+        if (!out_chxvm.empty()) {
+            std::ofstream ofs(out_chxvm);
+            CHECK(ofs) << "Failed to open output ChxVM: " << out_chxvm;
+            CHECK(chxvm_prog.SerializeToOstream(&ofs));
         }
 
-        xcvm->reset(new XCVM(xcvm_prog));
+        chxvm->reset(new ChxVM(chxvm_prog));
     }
 
     ~ModelRunner() {
-        if (xcvm_opts_.chrome_tracing) {
-            xcvm_opts_.chrome_tracing->Emit(args_.get<std::string>("chrome_tracing"));
+        if (chxvm_opts_.chrome_tracing) {
+            chxvm_opts_.chrome_tracing->Emit(args_.get<std::string>("chrome_tracing"));
         }
     }
 
     InOuts Run(const InOuts& inputs) {
-        if (trace_level()) std::cerr << "Running XCVM..." << std::endl;
-        InOuts outputs = xcvm_->Run(inputs, xcvm_opts_);
+        if (trace_level()) std::cerr << "Running ChxVM..." << std::endl;
+        InOuts outputs = chxvm_->Run(inputs, chxvm_opts_);
         MaybeShowGPUMemory();
-        if (xcvm_bp_.get()) {
-            if (trace_level()) std::cerr << "Running XCVM for backward..." << std::endl;
+        if (chxvm_bp_.get()) {
+            if (trace_level()) std::cerr << "Running ChxVM for backward..." << std::endl;
             InOuts bp_inputs;
             for (const std::string& input_name : backprop_ins_) {
                 const std::string kGradPrefix = "grad_in@";
@@ -348,14 +348,14 @@ public:
 
                 auto found = outputs.find(name);
                 CHECK(found != outputs.end()) << input_name;
-                std::shared_ptr<XCVMVar> value = found->second;
+                std::shared_ptr<ChxVMVar> value = found->second;
                 if (name != input_name) {
                     const chainerx::Array& a = value->GetArray();
-                    value = std::make_shared<XCVMVar>(chainerx::OnesLike(a, a.device()));
+                    value = std::make_shared<ChxVMVar>(chainerx::OnesLike(a, a.device()));
                 }
                 CHECK(bp_inputs.emplace(input_name, value).second) << name;
             }
-            InOuts bp_outputs = xcvm_bp_->Run(bp_inputs, xcvm_opts_);
+            InOuts bp_outputs = chxvm_bp_->Run(bp_inputs, chxvm_opts_);
             MaybeShowGPUMemory();
             for (auto& p : bp_outputs) {
                 outputs.emplace(p);
@@ -363,7 +363,7 @@ public:
         }
 
         // Turn off type check from the next run.
-        xcvm_opts_.check_types = false;
+        chxvm_opts_.check_types = false;
         return outputs;
     }
 
@@ -388,26 +388,26 @@ private:
 
     Model* model_;
     const cmdline::parser& args_;
-    std::unique_ptr<XCVM> xcvm_;
-    XCVMOptions xcvm_opts_;
+    std::unique_ptr<ChxVM> chxvm_;
+    ChxVMOptions chxvm_opts_;
     InOuts params_;
     const int64_t initial_free_bytes_;
     int64_t param_bytes_;
 
-    std::unique_ptr<XCVM> xcvm_bp_;
+    std::unique_ptr<ChxVM> chxvm_bp_;
     std::vector<std::string> backprop_ins_;
 };
 
 void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
-    args.add<std::string>("backend", '\0', "The name of the backend", false, "xcvm");
+    args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
     args.add<std::string>("device", 'd', "ChainerX device to be used", false);
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
-    args.add<std::string>("out_xcvm", '\0', "Output XCVM program", false);
-    args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of XCVM ops to this directory", false);
+    args.add<std::string>("out_chxvm", '\0', "Output ChxVM program", false);
+    args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of ChxVM ops to this directory", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
@@ -415,7 +415,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
     args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
-    args.add("dump_xcvm", '\0', "Dump XCVM program");
+    args.add("dump_chxvm", '\0', "Dump ChxVM program");
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("backprop_two_phase", '\0', "Backprop using different graphs for forward and backward");
     args.add("skip_shape_inference", '\0', "Skip shape inference");
@@ -512,15 +512,15 @@ void RunMain(const std::vector<std::string>& argv) {
         LOG() << "Running for " << test_case->name << std::endl;
         InOuts inputs(model_runner.params());
         for (const auto& p : test_case->inputs) {
-            XCVMVar* v = StageVar(p.second.get());
-            CHECK(inputs.emplace(p.first, std::shared_ptr<XCVMVar>(v)).second) << "Duplicated input parameter: " << p.first;
+            ChxVMVar* v = StageVar(p.second.get());
+            CHECK(inputs.emplace(p.first, std::shared_ptr<ChxVMVar>(v)).second) << "Duplicated input parameter: " << p.first;
         }
 
         std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
         InOuts outputs(model_runner.Run(inputs));
 
         if (test_case->outputs.empty()) {
-            if (outputs.size() == 1 && outputs.begin()->second->kind() == XCVMVar::Kind::kSequence) {
+            if (outputs.size() == 1 && outputs.begin()->second->kind() == ChxVMVar::Kind::kSequence) {
                 std::string msg;
                 for (auto& ch : *outputs.begin()->second->GetSequence()) {
                     if (ch.GetArray().GetNBytes() == 1) {
@@ -546,10 +546,10 @@ void RunMain(const std::vector<std::string>& argv) {
         for (const auto& p : test_case->outputs) {
             test_cnt++;
             const std::string key = p.first;
-            XCVMVar* expected = p.second.get();
+            ChxVMVar* expected = p.second.get();
             auto found = outputs.find(key);
             CHECK(found != outputs.end()) << "Output does not contain " << key;
-            XCVMVar* actual = found->second.get();
+            ChxVMVar* actual = found->second.get();
 
             auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
                 int size = a->GetTotalSize();
@@ -557,14 +557,14 @@ void RunMain(const std::vector<std::string>& argv) {
                 return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
             };
 
-            auto var_str = [&args, array_str](XCVMVar* v) {
+            auto var_str = [&args, array_str](ChxVMVar* v) {
                 switch (v->kind()) {
-                    case XCVMVar::Kind::kArray:
+                    case ChxVMVar::Kind::kArray:
                         return array_str(v->GetArray());
-                    case XCVMVar::Kind::kSequence:
+                    case ChxVMVar::Kind::kSequence:
                         return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
-                    case XCVMVar::Kind::kOpaque:
-                    case XCVMVar::Kind::kNull:
+                    case ChxVMVar::Kind::kOpaque:
+                    case ChxVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
                 }
                 CHECK(false);
@@ -608,11 +608,11 @@ void RunMain(const std::vector<std::string>& argv) {
 
             bool ok = false;
             switch (expected->kind()) {
-                case XCVMVar::Kind::kArray:
+                case ChxVMVar::Kind::kArray:
                     ok = check_array(expected->GetArray(), actual->GetArray());
                     break;
 
-                case XCVMVar::Kind::kSequence: {
+                case ChxVMVar::Kind::kSequence: {
                     const auto& expected_seq = *expected->GetSequence();
                     const auto& actual_seq = *actual->GetSequence();
                     if (expected_seq.size() != actual_seq.size()) {
@@ -628,8 +628,8 @@ void RunMain(const std::vector<std::string>& argv) {
                     break;
                 }
 
-                case XCVMVar::Kind::kOpaque:
-                case XCVMVar::Kind::kNull:
+                case ChxVMVar::Kind::kOpaque:
+                case ChxVMVar::Kind::kNull:
                     CHECK(false) << expected->DebugString();
             }
 

@@ -1,11 +1,11 @@
 #include <chainerx/routines/manipulation.h>
 
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array DepthToSpaceOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+chainerx::Array DepthToSpaceOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     const int64_t batch = input.shape()[0];
     const int64_t depth = input.shape()[1];
     const int64_t height = input.shape()[2];
@@ -18,7 +18,7 @@ chainerx::Array DepthToSpaceOp::RunImpl(XCVMState* st, const chainerx::Array& in
     return chainerx::Reshape(temp, chainerx::Shape({batch, depth / blocksize / blocksize, height * blocksize, width * blocksize}));
 }
 
-chainerx::Array SpaceToDepthOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+chainerx::Array SpaceToDepthOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     const int64_t batch = input.shape()[0];
     const int64_t depth = input.shape()[1];
     const int64_t height = input.shape()[2];

@@ -113,6 +113,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         add_chainer_funtion('local_response_normalization', F.local_response_normalization)
         add_chainer_funtion('mean', F.mean)
         add_chainer_funtion('average', F.average)
+        add_chainer_funtion('sum', F.sum)
 
         if int(chainer.__version__[0]) >= 6:
             add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)

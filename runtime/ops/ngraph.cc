@@ -15,7 +15,7 @@
 
 #endif
 
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -111,7 +111,7 @@ NGraphOp::~NGraphOp() {
 #endif
 }
 
-std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::XCVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_NGRAPH
     CHECK(!inputs.empty());
 

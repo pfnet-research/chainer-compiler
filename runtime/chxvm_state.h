@@ -8,20 +8,20 @@
 
 #include <chainerx/array.h>
 
-#include <runtime/xcvm.h>
-#include <runtime/xcvm.pb.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_var.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-class XCVMOptions;
-class XCVMVar;
+class ChxVMOptions;
+class ChxVMVar;
 
-class XCVMState {
+class ChxVMState {
 public:
-    XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs);
-    ~XCVMState();
+    ChxVMState(const ChxVMOptions& options, int num_variables, const InOuts& inputs);
+    ~ChxVMState();
 
     int pc() const {
         return pc_;
@@ -38,14 +38,14 @@ public:
     std::vector<chainerx::Array> GetArrayList(const std::vector<int>& index);
     void SetArrayList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars);
 
-    XCVMSequence* CreateSequence(int index);
-    XCVMSequence* GetSequence(int index);
+    ChxVMSequence* CreateSequence(int index);
+    ChxVMSequence* GetSequence(int index);
 
-    const XCVMOpaque& GetOpaque(int index);
-    void SetOpaque(int index, XCVMOpaque* opaque);
+    const ChxVMOpaque& GetOpaque(int index);
+    void SetOpaque(int index, ChxVMOpaque* opaque);
 
-    XCVMVar* GetVar(int index);
-    void SetVar(int index, const XCVMVar& var);
+    ChxVMVar* GetVar(int index);
+    void SetVar(int index, const ChxVMVar& var);
 
     std::string GetVarString(int index);
     std::string GetVarListString(const std::vector<int>& indices);
@@ -60,7 +60,7 @@ public:
     void CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs);
     void CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs);
 
-    const XCVMOptions& options() const {
+    const ChxVMOptions& options() const {
         return options_;
     }
 
@@ -79,7 +79,7 @@ public:
 
     void ShowVariableStatus() const;
 
-    void SetProgram(const std::vector<std::unique_ptr<XCVMOp>>* program) {
+    void SetProgram(const std::vector<std::unique_ptr<ChxVMOp>>* program) {
         program_ = program;
     }
 
@@ -89,11 +89,11 @@ private:
     void ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs);
 
     int pc_;
-    std::vector<std::unique_ptr<XCVMVar>> variables_;
+    std::vector<std::unique_ptr<ChxVMVar>> variables_;
     InOuts inputs_;
     InOuts outputs_;
-    XCVMOptions options_;
-    const std::vector<std::unique_ptr<XCVMOp>>* program_;
+    ChxVMOptions options_;
+    const std::vector<std::unique_ptr<ChxVMOp>>* program_;
 };
 
 }  // namespace runtime

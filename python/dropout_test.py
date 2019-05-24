@@ -23,10 +23,10 @@ def test_dropout_inference():
     assert len(input_names) == 1
     assert len(output_names) == 1
 
-    xcvm = graph.compile()
+    chxvm = graph.compile()
     input = chainerx.array(np.random.normal(size=(3, 4, 5)).astype(np.float32))
     inputs = {input_names[0]: chainer_compiler_core.value(input)}
-    outputs = xcvm.run(inputs)
+    outputs = chxvm.run(inputs)
     output = outputs[output_names[0]].array()
 
     assert bool(chainerx.sum(input != output) == 0)
@@ -40,13 +40,13 @@ def test_dropout_training():
     assert len(input_names) == 1
     assert len(output_names) == 1
 
-    xcvm = graph.compile()
+    chxvm = graph.compile()
     input = chainerx.array(np.random.normal(size=(3, 4, 5)).astype(np.float32))
     inputs = {input_names[0]: chainer_compiler_core.value(input)}
 
     num_retries = 3
     for i in range(num_retries):
-        outputs = xcvm.run(inputs, training=True)
+        outputs = chxvm.run(inputs, training=True)
         output = outputs[output_names[0]].array()
         ok = bool(chainerx.sum(input != output) > 0)
         if ok: break

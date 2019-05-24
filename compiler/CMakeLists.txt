@@ -19,15 +19,15 @@ add_custom_target(gen_node_base_h DEPENDS gen_node_base.h)
 
 add_custom_command(
   OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
-    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/xcvm/gen_xcvm_codegen.py
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.h
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/chxvm/gen_chxvm_codegen.py
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
-  MAIN_DEPENDENCY xcvm/gen_xcvm_codegen.py
-  DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py ${CHAINER_COMPILER_ROOT_DIR}/runtime/xcvm_defs.py)
+  MAIN_DEPENDENCY chxvm/gen_chxvm_codegen.py
+  DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py ${CHAINER_COMPILER_ROOT_DIR}/runtime/chxvm_defs.py)
 add_custom_target(
-  compiler_xcvm_codegen_h
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.h
+  compiler_chxvm_codegen_h
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.h
   )
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
@@ -51,7 +51,7 @@ add_library(chainer_compiler_compiler
   flops.cc
   fusion.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_codegen.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
   gradient.cc
   gradient_ops.cc
   gradient_with_order.cc
@@ -73,13 +73,14 @@ add_library(chainer_compiler_compiler
   type.cc
   util.cc
   value.cc
-  xcvm/config.cc
-  xcvm/emitter.cc
-  xcvm/xcvm_value.cc
+  chxvm/config.cc
+  chxvm/emitter.cc
+  chxvm/chxvm_value.cc
   )
 add_dependencies(
   chainer_compiler_compiler
-  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h gen_onnx_proto
+  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h
+  gen_onnx_proto gen_onnx_operators_proto
   )
 set_hidden_(chainer_compiler_compiler)
 
@@ -97,11 +98,11 @@ add_executable(compiler_test
   shape_evaluator_test.cc
   tensor_test.cc
   topology_test.cc
-  xcvm/emitter_test.cc
+  chxvm/emitter_test.cc
   )
 add_dependencies(
   compiler_test
-  runtime_xcvm_pb_h compiler_xcvm_codegen_h gen_node_base_h gen_onnx_proto
+  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h gen_onnx_proto
   )
 target_link_libraries(compiler_test
   chainer_compiler_compiler

@@ -1031,7 +1031,7 @@ def get_tests():
         tests.append(TestCase(name, func, **kwargs))
         if diversed:
             tests.append(TestCase(name + '_diversed', func,
-                                  backend='xcvm_test', **kwargs))
+                                  backend='chxvm_test', **kwargs))
 
     test('extra_test_negative_reshape', gen_negative_reshape_test)
 

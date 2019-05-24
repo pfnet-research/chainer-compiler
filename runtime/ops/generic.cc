@@ -6,29 +6,29 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
-#include <runtime/xcvm_state.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm_state.h>
+#include <runtime/chxvm_var.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
 namespace {
 
-int64_t GetSize(XCVMVar* var) {
+int64_t GetSize(ChxVMVar* var) {
     switch (var->kind()) {
-        case XCVMVar::Kind::kArray:
+        case ChxVMVar::Kind::kArray:
             return var->GetArray().shape()[0];
-        case XCVMVar::Kind::kSequence:
+        case ChxVMVar::Kind::kSequence:
             return var->GetSequence()->size();
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kOpaque:
+        case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
 }
 
-int64_t GetOptionalInt(XCVMState* st, int index, int64_t default_value) {
+int64_t GetOptionalInt(ChxVMState* st, int index, int64_t default_value) {
     nonstd::optional<chainerx::Array> var = st->GetOptionalArray(index);
     if (var.has_value()) {
         return static_cast<int64_t>(chainerx::AsScalar(*var));
@@ -39,64 +39,64 @@ int64_t GetOptionalInt(XCVMState* st, int index, int64_t default_value) {
 
 }  // namespace
 
-void InOp::RunImpl(XCVMState* st) {
+void InOp::RunImpl(ChxVMState* st) {
     st->Input(name, v);
 }
 
-void OutOp::RunImpl(XCVMState* st) {
+void OutOp::RunImpl(ChxVMState* st) {
     st->Output(name, v);
 }
 
-void IdentityOp::RunImpl(XCVMState* st) {
+void IdentityOp::RunImpl(ChxVMState* st) {
     st->SetVar(y, *st->GetVar(x));
 }
 
-void FreeOp::RunImpl(XCVMState* st) {
+void FreeOp::RunImpl(ChxVMState* st) {
     st->FreeVar(v);
 }
 
-void PrintOp::RunImpl(XCVMState* st) {
+void PrintOp::RunImpl(ChxVMState* st) {
     for (int v : values) {
         std::cout << st->GetVar(v)->DebugString() << std::endl;
     }
 }
 
-void NullConstantOp::RunImpl(XCVMState* st) {
-    st->SetVar(output, XCVMVar());
+void NullConstantOp::RunImpl(ChxVMState* st) {
+    st->SetVar(output, ChxVMVar());
 }
 
-void GenericLenOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetVar(v);
+void GenericLenOp::RunImpl(ChxVMState* st) {
+    ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
     st->SetArray(len, MakeHostArray(chainerx::Dtype::kInt64, {}, &size));
 }
 
-void GenericGetItemOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetVar(v);
+void GenericGetItemOp::RunImpl(ChxVMState* st) {
+    ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
     if (i < 0) i += size;
     switch (var->kind()) {
-        case XCVMVar::Kind::kArray:
+        case ChxVMVar::Kind::kArray:
             CHECK_LT(i, var->GetArray().shape()[0]);
             st->SetArray(output, var->GetArray().At({i}));
             break;
 
-        case XCVMVar::Kind::kSequence: {
-            const XCVMSequence& v = *var->GetSequence();
+        case ChxVMVar::Kind::kSequence: {
+            const ChxVMSequence& v = *var->GetSequence();
             CHECK_LT(i, v.size());
             st->SetArray(output, v[i].GetArray());
             break;
         }
 
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kOpaque:
+        case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
 }
 
-void GenericGetSliceOp::RunImpl(XCVMState* st) {
-    XCVMVar* var = st->GetVar(v);
+void GenericGetSliceOp::RunImpl(ChxVMState* st) {
+    ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
     int64_t start = GetOptionalInt(st, this->start, 0);
     if (start < 0) start += size;
@@ -110,14 +110,14 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
     CHECK_NE(0, step) << "Slice step cannot be zero";
 
     switch (var->kind()) {
-        case XCVMVar::Kind::kArray: {
+        case ChxVMVar::Kind::kArray: {
             st->SetArray(output, var->GetArray().At({chainerx::Slice(start, end, step)}));
             break;
         }
 
-        case XCVMVar::Kind::kSequence: {
-            const XCVMSequence& v = *var->GetSequence();
-            XCVMSequence* seq = st->CreateSequence(output);
+        case ChxVMVar::Kind::kSequence: {
+            const ChxVMSequence& v = *var->GetSequence();
+            ChxVMSequence* seq = st->CreateSequence(output);
             if (step > 0) {
                 for (int64_t i = start; i < end; i += step) {
                     CHECK_LE(0, i);
@@ -134,39 +134,39 @@ void GenericGetSliceOp::RunImpl(XCVMState* st) {
             break;
         }
 
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kOpaque:
+        case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
 }
 
-void GenericAddOp::RunImpl(XCVMState* st) {
-    XCVMVar* var0 = st->GetVar(a);
-    XCVMVar* var1 = st->GetVar(b);
+void GenericAddOp::RunImpl(ChxVMState* st) {
+    ChxVMVar* var0 = st->GetVar(a);
+    ChxVMVar* var1 = st->GetVar(b);
 
-    if (var0->kind() == XCVMVar::Kind::kArray || var1->kind() == XCVMVar::Kind::kArray) {
-        auto to_a = [](XCVMVar* v) {
-            if (v->kind() == XCVMVar::Kind::kArray) {
+    if (var0->kind() == ChxVMVar::Kind::kArray || var1->kind() == ChxVMVar::Kind::kArray) {
+        auto to_a = [](ChxVMVar* v) {
+            if (v->kind() == ChxVMVar::Kind::kArray) {
                 return v->GetArray();
             }
             return Stack(NonOptional(*v->GetSequence()), 0);
         };
         st->SetArray(output, to_a(var0) + to_a(var1));
     } else {
-        XCVMSequence* seq = st->CreateSequence(output);
+        ChxVMSequence* seq = st->CreateSequence(output);
         *seq = *var0->GetSequence();
         for (const auto& a : *var1->GetSequence()) seq->push_back(a);
     }
 }
 
-void GenericIsOp::RunImpl(XCVMState* st) {
-    XCVMVar* var0 = st->GetVar(a);
-    XCVMVar* var1 = st->GetVar(b);
+void GenericIsOp::RunImpl(ChxVMState* st) {
+    ChxVMVar* var0 = st->GetVar(a);
+    ChxVMVar* var1 = st->GetVar(b);
 
     bool result = false;
     if (var0->kind() != var1->kind()) {
         // We are sure the return value is false.
-    } else if (var0->kind() == XCVMVar::Kind::kArray) {
+    } else if (var0->kind() == ChxVMVar::Kind::kArray) {
         chainerx::Array a = var0->GetArray();
         chainerx::Array b = var1->GetArray();
         if (a.ndim() == 0 && b.ndim() == 0 && a.dtype() == chainerx::Dtype::kBool && b.dtype() == chainerx::Dtype::kBool) {
@@ -182,35 +182,35 @@ void GenericIsOp::RunImpl(XCVMState* st) {
     st->SetArray(output, MakeHostArray(chainerx::Dtype::kBool, {}, &result));
 }
 
-void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
-    XCVMVar* var0 = st->GetVar(a);
-    XCVMVar* var1 = st->GetVar(b);
+void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
+    ChxVMVar* var0 = st->GetVar(a);
+    ChxVMVar* var1 = st->GetVar(b);
 
     // TODO(hamaji): Add testcases which require these checks.
-    if (var0->kind() == XCVMVar::Kind::kNull) {
+    if (var0->kind() == ChxVMVar::Kind::kNull) {
         st->SetVar(output, *var1);
         return;
     }
-    if (var1->kind() == XCVMVar::Kind::kNull) {
+    if (var1->kind() == ChxVMVar::Kind::kNull) {
         st->SetVar(output, *var0);
         return;
     }
     CHECK_EQ(var0->kind(), var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
 
     switch (var0->kind()) {
-        case XCVMVar::Kind::kArray: {
+        case ChxVMVar::Kind::kArray: {
             st->SetArray(output, var0->GetArray() + var1->GetArray());
             break;
         }
-        case XCVMVar::Kind::kSequence: {
-            const XCVMSequence& seq0 = *var0->GetSequence();
-            const XCVMSequence& seq1 = *var1->GetSequence();
-            XCVMSequence* out = st->CreateSequence(output);
+        case ChxVMVar::Kind::kSequence: {
+            const ChxVMSequence& seq0 = *var0->GetSequence();
+            const ChxVMSequence& seq1 = *var1->GetSequence();
+            ChxVMSequence* out = st->CreateSequence(output);
             CHECK_EQ(seq0.size(), seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
             out->resize(seq0.size());
             for (size_t i = 0; i < seq0.size(); ++i) {
                 if (!seq0[i].IsNull() && !seq1[i].IsNull()) {
-                    (*out)[i] = XCVMVar(seq0[i].GetArray() + seq1[i].GetArray());
+                    (*out)[i] = ChxVMVar(seq0[i].GetArray() + seq1[i].GetArray());
                 } else if (!seq0[i].IsNull()) {
                     (*out)[i] = seq0[i];
                 } else if (!seq1[i].IsNull()) {
@@ -220,8 +220,8 @@ void GenericAccumulateGradOp::RunImpl(XCVMState* st) {
             break;
         }
 
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kOpaque:
+        case ChxVMVar::Kind::kNull:
             CHECK(false) << var0->DebugString();
     }
 }

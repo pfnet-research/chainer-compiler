@@ -6,22 +6,22 @@ set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include
 
 add_custom_command(
   OUTPUT
-    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
-    ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.h
-    ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.h
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_ops.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.h
+    ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_ops.h
+  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_chxvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
     --protoc-exe ${PROTOC_EXECUTABLE}
-  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_xcvm.py
+  MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/gen_chxvm.py
   DEPENDS
     ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py
-    ${CMAKE_CURRENT_SOURCE_DIR}/xcvm_defs.py
-    ${CMAKE_CURRENT_SOURCE_DIR}/xcvm.proto.tmpl
+    ${CMAKE_CURRENT_SOURCE_DIR}/chxvm_defs.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/chxvm.proto.tmpl
     protoc
     )
-add_custom_target(runtime_xcvm_pb_h DEPENDS xcvm.pb.h)
+add_custom_target(runtime_chxvm_pb_h DEPENDS chxvm.pb.h)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
@@ -30,11 +30,15 @@ include_directories(${CHAINER_COMPILER_NGRAPH_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 add_library(chainer_compiler_runtime
-  ${CMAKE_CURRENT_BINARY_DIR}/gen_xcvm_ops.cc
-  ${CMAKE_CURRENT_BINARY_DIR}/xcvm.pb.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_ops.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.cc
   backward_context.cc
   chainerx_util.cc
   chrome_tracing.cc
+  chxvm.cc
+  chxvm_op.cc
+  chxvm_state.cc
+  chxvm_var.cc
   meminfo.cc
   npy.cc
   ops/activation.cc
@@ -59,21 +63,17 @@ add_library(chainer_compiler_runtime
   ops/space_depth.cc
   ops/statistics.cc
   ops/tvm.cc
-  xcvm.cc
-  xcvm_op.cc
-  xcvm_state.cc
-  xcvm_var.cc
   )
 add_dependencies(
   chainer_compiler_runtime
-  runtime_xcvm_pb_h gen_onnx_proto
+  runtime_chxvm_pb_h gen_onnx_proto
   )
 set_hidden_(chainer_compiler_runtime)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(runtime_test
   npy_test.cc
-  xcvm_test.cc
+  chxvm_test.cc
   )
 target_link_libraries(runtime_test
   chainer_compiler_runtime

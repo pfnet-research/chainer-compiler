@@ -29,7 +29,7 @@ def test_inference():
     assert len(input_names) == 1
     assert len(output_names) == 2
 
-    xcvm = graph.compile()
+    chxvm = graph.compile()
 
     inputs = dict(params)
     t1 = aranges(5, 7)
@@ -38,7 +38,7 @@ def test_inference():
     y1 = chainerx.dot(t1, params['/l1/W'].array().T) + params['/l1/b'].array()
     y2 = chainerx.dot(t1, params['/l2/W'].array().T)
 
-    outputs = xcvm.run(inputs)
+    outputs = chxvm.run(inputs)
     assert len(outputs) == 2
 
     chainerx.testing.assert_allclose(y1, outputs[output_names[0]].array())
@@ -129,13 +129,13 @@ def test_custom_op():
     assert len(input_names) == 3
     assert len(output_names) == 2
 
-    xcvm = graph.compile()
+    chxvm = graph.compile()
 
     inputs = {}
     for n, v in [('a', a), ('b', b), ('c', c)]:
         inputs[n] = chainer_compiler_core.value(chainerx.array(v))
 
-    outputs = xcvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
+    outputs = chxvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
     assert len(outputs) == 2
 
     chainerx.testing.assert_allclose(9, outputs['y'].array())

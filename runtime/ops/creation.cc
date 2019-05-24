@@ -4,17 +4,17 @@
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array IntScalarConstantOp::RunImpl(XCVMState* st) {
+chainerx::Array IntScalarConstantOp::RunImpl(ChxVMState* st) {
     chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
     return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
 }
 
-chainerx::Array FloatScalarConstantOp::RunImpl(XCVMState* st) {
+chainerx::Array FloatScalarConstantOp::RunImpl(ChxVMState* st) {
     chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
     return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
 }
@@ -51,16 +51,16 @@ FloatConstantOp::~FloatConstantOp() {
     delete impl_;
 }
 
-chainerx::Array IntConstantOp::RunImpl(XCVMState* st) {
+chainerx::Array IntConstantOp::RunImpl(ChxVMState* st) {
     return impl_->cache;
 }
 
-chainerx::Array FloatConstantOp::RunImpl(XCVMState* st) {
+chainerx::Array FloatConstantOp::RunImpl(ChxVMState* st) {
     return impl_->cache;
 }
 
 chainerx::Array OneHotOp::RunImpl(
-        XCVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
+        ChxVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
     int rank = indices.ndim();
     chainerx::Array depth_range = chainerx::Arange(chainerx::AsScalar(depth), indices.device());
     int axis = this->axis;
@@ -88,7 +88,7 @@ chainerx::Array OneHotOp::RunImpl(
     return mask * (on_value + (-off_value)) + off_value;
 }
 
-chainerx::Array ConstantFillOp::RunImpl(XCVMState* st, const nonstd::optional<chainerx::Array>& input) {
+chainerx::Array ConstantFillOp::RunImpl(ChxVMState* st, const nonstd::optional<chainerx::Array>& input) {
     CHECK(extra_shape.empty()) << "extra_shape not implemented yet";
     chainerx::Dtype dtype = this->dtype ? static_cast<chainerx::Dtype>(this->dtype) : chainerx::Dtype::kFloat32;
     chainerx::Shape shape;
@@ -100,7 +100,7 @@ chainerx::Array ConstantFillOp::RunImpl(XCVMState* st, const nonstd::optional<ch
     return chainerx::Full(shape, value, dtype);
 }
 
-chainerx::Array EyeLikeOp::RunImpl(XCVMState* st, const chainerx::Array& input) {
+chainerx::Array EyeLikeOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     chainerx::Dtype dtype = this->dtype ? static_cast<chainerx::Dtype>(this->dtype) : input.dtype();
     return chainerx::Eye(input.shape()[0], input.shape()[1], this->k, dtype, input.device());
 }

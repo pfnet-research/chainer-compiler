@@ -1,4 +1,4 @@
-#include "compiler/xcvm/emitter.h"
+#include "compiler/chxvm/emitter.h"
 
 #include <map>
 
@@ -6,7 +6,7 @@
 #include <common/strutil.h>
 #include <compiler/flags.h>
 #include <compiler/flops.h>
-#include <compiler/gen_xcvm_codegen.h>
+#include <compiler/gen_chxvm_codegen.h>
 #include <compiler/graph.h>
 #include <compiler/log.h>
 #include <compiler/model.h>
@@ -16,10 +16,10 @@
 #include <compiler/passes.h>
 #include <compiler/tvm/compiler.h>
 #include <compiler/value.h>
-#include <runtime/xcvm.pb.h>
+#include <runtime/chxvm.pb.h>
 
 namespace chainer_compiler {
-namespace xcvm {
+namespace chxvm {
 namespace {
 
 #define FREE(...)                                                                                         \
@@ -58,9 +58,9 @@ void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto*
     inst->set_flops(CalculateFlops(node));
 }
 
-class XCVMEmitter {
+class ChxVMEmitter {
 public:
-    XCVMEmitter() {
+    ChxVMEmitter() {
     }
 
     void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
@@ -89,7 +89,7 @@ public:
 
     void AssignValueIds(const std::vector<Value*>& values) {
         for (const Value* v : values) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second);
+            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
         }
     }
 
@@ -106,11 +106,11 @@ public:
         return found->second;
     }
 
-    XCVMValue GetOutputValue(const Node& node, int i) {
-        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory";
+    ChxVMValue GetOutputValue(const Node& node, int i) {
+        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
         Value* output = node.output(i);
-        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory";
-        return XCVMValue(GetValueId(output), output);
+        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
+        return ChxVMValue(GetValueId(output), output);
     }
 
 private:
@@ -144,9 +144,9 @@ private:
 
     void EmitNode(const Graph* graph, const Node& node, XCProgramProto* prog) {
         auto in = [this, &node](int i) {
-            CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory";
+            CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
             Value* input = node.input(i);
-            CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory";
+            CHECK(!input->IsNull()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
             return GetValueId(input);
         };
 
@@ -161,8 +161,8 @@ private:
 
         // Optional output.
         auto oout = [this, out, &node](int i) {
-            if (i >= static_cast<int>(node.outputs().size())) return XCVMValue(-1);
-            if (node.output(i)->IsNull()) return XCVMValue(-1);
+            if (i >= static_cast<int>(node.outputs().size())) return ChxVMValue(-1);
+            if (node.output(i)->IsNull()) return ChxVMValue(-1);
             return out(i);
         };
 
@@ -192,7 +192,7 @@ private:
             else if (dir == "bidirectional")
                 return 2;
             else
-                CHECK(false) << "Unknown direction: " << dir;
+                CHECK(false) << "Unknown direction: " << dir << ": " << node.DebugString();
         };
 
 #define EMIT(op, ...)                            \
@@ -247,6 +247,7 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
         EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
         EMIT_SIMPLE_UNARY_OP(Node::kIsInf, IsInf);
+        EMIT_SIMPLE_UNARY_OP(Node::kSign, Sign);
 
         EMIT_SIMPLE_BINARY_OP(Node::kAdd, Add);
         EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);
@@ -291,8 +292,8 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in XCVM.
-            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
+            // TODO(hamaji): Support grouped conv in ChxVM.
+            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads());
@@ -300,8 +301,8 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in XCVM.
-            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
+            // TODO(hamaji): Support grouped conv in ChxVM.
+            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
@@ -310,14 +311,14 @@ private:
         } else if (node.op_type() == Node::kChainerConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in XCVM.
-            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
+            // TODO(hamaji): Support grouped conv in ChxVM.
+            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
             EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads());
         } else if (node.op_type() == Node::kChainerConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in XCVM.
-            CHECK_EQ(1, node.group()) << "XCVM does not support grouped conv";
+            // TODO(hamaji): Support grouped conv in ChxVM.
+            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
@@ -531,7 +532,7 @@ private:
             EMIT(Concat, out(0), ins, node.axis());
         } else if (node.op_type() == Node::kSplit) {
             CHECK_EQ(1UL, node.inputs().size());
-            std::vector<XCVMValue> outs;
+            std::vector<ChxVMValue> outs;
             for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
             EMIT(Split, outs, in(0), node.axis(), node.split());
         } else if (node.op_type() == Node::kClip) {
@@ -580,7 +581,7 @@ private:
             EmitConstant(node, prog);
         } else if (node.op_type() == Node::kChainerDoSomething) {
             std::vector<int> ins;
-            std::vector<XCVMValue> outs;
+            std::vector<ChxVMValue> outs;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
             EMIT(DoSomething, outs, ins, node.function_name());
@@ -599,7 +600,7 @@ private:
         } else if (node.op_type() == Node::kChainerSequenceLengths) {
             EMIT(SequenceLengths, out(0), in(0));
         } else if (node.op_type() == Node::kChainerSequenceAppend) {
-            XCVMValue o(out(0));
+            ChxVMValue o(out(0));
             if (node.input(0)->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
                 EMIT(SequenceMove, o, in(0));
@@ -609,7 +610,7 @@ private:
                 EMIT(SequenceAppend, o.id(), in(1));
             }
         } else if (node.op_type() == Node::kChainerSequencePop) {
-            XCVMValue o0(out(0));
+            ChxVMValue o0(out(0));
             if (node.input(0)->users().size() == 1) {
                 // Avoid O(N^2) copies for the simple case.
                 EMIT(SequenceMove, o0, in(0));
@@ -661,7 +662,7 @@ private:
         }
     }
 
-    void EmitConstantImpl(const Node& node, const Tensor* value, XCVMValue out, bool host, XCProgramProto* prog) {
+    void EmitConstantImpl(const Node& node, const Tensor* value, ChxVMValue out, bool host, XCProgramProto* prog) {
         Dtype dtype = value->dtype();
         std::vector<int64_t> shape;
         for (int64_t d : value->dims()) {
@@ -679,7 +680,7 @@ private:
                 } else if (dtype.SizeOf() == 8) {
                     v.push_back(value->Get<double>(i));
                 } else {
-                    CHECK(false) << "Unknown type: " << dtype;
+                    CHECK(false) << "Unknown type: " << dtype << ": " << node.DebugString();
                 }
             }
             if (shape.empty()) {
@@ -699,7 +700,7 @@ private:
                 } else if (dtype.SizeOf() == 8) {
                     v.push_back(value->Get<int64_t>(i));
                 } else {
-                    CHECK(false) << "Unknown type: " << dtype;
+                    CHECK(false) << "Unknown type: " << dtype << ": " << node.DebugString();
                 }
             }
             if (shape.empty()) {
@@ -712,7 +713,7 @@ private:
 
     void EmitConstant(const Node& node, XCProgramProto* prog) {
         CHECK_EQ(1, node.outputs().size());
-        XCVMValue out = GetOutputValue(node, 0);
+        ChxVMValue out = GetOutputValue(node, 0);
         Tensor* value = node.tensor_value().get();
         EmitConstantImpl(node, value, out, node.chainer_host(), prog);
     }
@@ -722,12 +723,12 @@ private:
         std::vector<int> const_values;
         for (const auto& tensor : node.tensor_values()) {
             int id = next_value_id_++;
-            EmitConstantImpl(node, tensor.get(), XCVMValue(id), false, prog);
+            EmitConstantImpl(node, tensor.get(), ChxVMValue(id), false, prog);
             const_values.push_back(id);
         }
 
         int out = GetValueId(node.output(0));
-        EMIT(SequenceCreate, XCVMValue(out), {});
+        EMIT(SequenceCreate, ChxVMValue(out), {});
         for (int id : const_values) {
             EMIT(SequenceAppend, out, id);
             FREE(id);
@@ -750,18 +751,18 @@ private:
             return;
         }
 
-        std::vector<XCVMValue> outs = {GetOutputValue(node, 0)};
+        std::vector<ChxVMValue> outs = {GetOutputValue(node, 0)};
         if (node.outputs().back()->type().kind() == Type::Kind::kOpaque) {
             num_onnx_outputs--;
             outs.push_back(GetOutputValue(node, num_onnx_outputs));
         } else {
-            outs.push_back(XCVMValue());
+            outs.push_back(ChxVMValue());
         }
         for (size_t i = 1; i < num_onnx_outputs; ++i) {
             outs.push_back(GetOutputValue(node, i));
         }
         for (size_t i = num_onnx_outputs; i < 6; ++i) {
-            outs.push_back(XCVMValue());
+            outs.push_back(ChxVMValue());
         }
 
         EMIT(BatchNormalization,
@@ -805,7 +806,7 @@ private:
                 for (const Value* value : node->inputs()) {
                     if (!value->IsInput()) continue;
                     if (!staged_inputs.emplace(value).second) continue;
-                    AddInOp(prog, XCVMValue(GetValueId(value)), value->name());
+                    AddInOp(prog, ChxVMValue(GetValueId(value)), value->name());
                     prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
                 }
             }
@@ -869,7 +870,7 @@ private:
             xmodel.SerializeToString(&onnx);
 
             std::vector<int> inputs;
-            std::vector<XCVMValue> outputs;
+            std::vector<ChxVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
             }
@@ -896,7 +897,7 @@ private:
             }
 
             std::vector<int> inputs;
-            std::vector<XCVMValue> outputs;
+            std::vector<ChxVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
             }
@@ -922,7 +923,7 @@ private:
             }
 
             std::vector<int> inputs;
-            std::vector<XCVMValue> outputs;
+            std::vector<ChxVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
             }
@@ -939,7 +940,7 @@ private:
             Value* from = node.input(i);
             Value* to = body.input_values()[i];
             // MOVE(GetValueId(to), GetValueId(from));
-            EMIT(Identity, XCVMValue(GetValueId(to)), GetValueId(from));
+            EMIT(Identity, ChxVMValue(GetValueId(to)), GetValueId(from));
         }
 
         EmitGraph(body, prog, true /* in_loop */, body.output_values());
@@ -950,7 +951,7 @@ private:
         }
         for (size_t i = 0; i < node.outputs().size(); ++i) {
             Value* from = body.output_values()[i];
-            XCVMValue to = GetOutputValue(node, i);
+            ChxVMValue to = GetOutputValue(node, i);
             if (from->IsNull()) {
                 // TODO(hamaji): Consider removing this value.
                 EMIT(NullConstant, to);
@@ -989,7 +990,7 @@ private:
             for (size_t i = 0; i < inputs.size(); ++i) {
                 Value* from = cond.input(i + 1);
                 Value* to = inputs[i];
-                EMIT(Identity, XCVMValue(GetValueId(to)), GetValueId(from));
+                EMIT(Identity, ChxVMValue(GetValueId(to)), GetValueId(from));
             }
             EmitGraph(*graph, prog, true /* in_loop */, outputs);
             // TODO(hamaji): Fix `EmitGraph` so it frees inputs automatically.
@@ -998,7 +999,7 @@ private:
             }
             for (size_t i = 0; i < cond.outputs().size(); ++i) {
                 Value* from = outputs[i];
-                XCVMValue to = GetOutputValue(cond, i);
+                ChxVMValue to = GetOutputValue(cond, i);
                 if (from->IsNull()) {
                     // TODO(hamaji): Consider removing this value.
                     EMIT(NullConstant, to);
@@ -1069,22 +1070,22 @@ private:
 
         // Initialize loop variables.
         int iter_id = GetValueId(body_input_values[0]);
-        EMIT(IntScalarConstant, XCVMValue(iter_id), 0, Dtype::kInt64, true);
+        EMIT(IntScalarConstant, ChxVMValue(iter_id), 0, Dtype::kInt64, true);
         int cond_id = GetValueId(body_input_values[1]);
-        EMIT(IntScalarConstant, XCVMValue(cond_id), 1, Dtype::kBool, true);
+        EMIT(IntScalarConstant, ChxVMValue(cond_id), 1, Dtype::kBool, true);
         for (int i = 0; i < num_states; ++i) {
             CHECK_LT(i + 2, loop.inputs().size());
             CHECK_LT(i + 2, body_input_values.size());
             const Value* loop_in = loop.input(i + 2);
             const Value* body_in = body_input_values[i + 2];
-            EMIT(Identity, XCVMValue(GetValueId(body_in)), GetValueId(loop_in));
+            EMIT(Identity, ChxVMValue(GetValueId(body_in)), GetValueId(loop_in));
         }
 
         // Prepare temporary sequences for scan outputs.
         std::vector<int> scan_out_ids;
         for (int i = 0; i < num_scans; ++i) {
             int id = next_value_id_++;
-            EMIT(SequenceCreate, XCVMValue(id), {});
+            EMIT(SequenceCreate, ChxVMValue(id), {});
             scan_out_ids.push_back(id);
         }
 
@@ -1093,17 +1094,17 @@ private:
         if (!max_trip_count->IsNull()) {
             int zero_id = next_value_id_++;
             skip_loop_cond_id = next_value_id_++;
-            EMIT(IntScalarConstant, XCVMValue(zero_id), 0, Dtype::kInt64, true);
-            EMIT(Greater, XCVMValue(skip_loop_cond_id), GetValueId(max_trip_count), zero_id);
+            EMIT(IntScalarConstant, ChxVMValue(zero_id), 0, Dtype::kInt64, true);
+            EMIT(Greater, ChxVMValue(skip_loop_cond_id), GetValueId(max_trip_count), zero_id);
             FREE(zero_id);
         }
         if (!terminal_condition->IsNull()) {
             int tmp_id = next_value_id_++;
             if (skip_loop_cond_id >= 0) {
-                EMIT(Mul, XCVMValue(tmp_id), skip_loop_cond_id, GetValueId(terminal_condition));
+                EMIT(Mul, ChxVMValue(tmp_id), skip_loop_cond_id, GetValueId(terminal_condition));
                 FREE(skip_loop_cond_id);
             } else {
-                EMIT(Identity, XCVMValue(tmp_id), GetValueId(terminal_condition));
+                EMIT(Identity, ChxVMValue(tmp_id), GetValueId(terminal_condition));
             }
             skip_loop_cond_id = tmp_id;
         }
@@ -1116,15 +1117,15 @@ private:
 
         EmitGraph(*body, prog, true /* in_loop */, body_output_values);
         int one_id = next_value_id_++;
-        EMIT(IntScalarConstant, XCVMValue(one_id), 1, Dtype::kInt64, true);
+        EMIT(IntScalarConstant, ChxVMValue(one_id), 1, Dtype::kInt64, true);
         int tmp_id = next_value_id_++;
-        EMIT(Add, XCVMValue(tmp_id), iter_id, one_id);
+        EMIT(Add, ChxVMValue(tmp_id), iter_id, one_id);
         FREE(one_id);
         for (const Value* value : body_input_values) {
             FREE(GetValueId(value));
         }
-        MOVE(XCVMValue(iter_id), tmp_id);
-        MOVE(XCVMValue(cond_id), GetValueId(body_output_values[0]));
+        MOVE(ChxVMValue(iter_id), tmp_id);
+        MOVE(ChxVMValue(cond_id), GetValueId(body_output_values[0]));
 
         // Propagate the loop state.
         for (int i = 0; i < num_states; ++i) {
@@ -1134,9 +1135,9 @@ private:
             const Value* body_out = body_output_values[i + 1];
             if (body_out->IsNull()) {
                 // TODO(hamaji): Consider removing this value.
-                EMIT(NullConstant, XCVMValue(GetValueId(body_in)));
+                EMIT(NullConstant, ChxVMValue(GetValueId(body_in)));
             } else {
-                MOVE(XCVMValue(GetValueId(body_in)), GetValueId(body_out));
+                MOVE(ChxVMValue(GetValueId(body_in)), GetValueId(body_out));
             }
         }
 
@@ -1152,13 +1153,13 @@ private:
         if (terminal_condition->IsNull()) {
             CHECK(!max_trip_count->IsNull());
             FREE(cond_id);
-            EMIT(Greater, XCVMValue(cond_id), GetValueId(loop.input(0)), iter_id);
+            EMIT(Greater, ChxVMValue(cond_id), GetValueId(loop.input(0)), iter_id);
         } else if (!max_trip_count->IsNull()) {
-            EMIT(Greater, XCVMValue(tmp_id), GetValueId(loop.input(0)), iter_id);
+            EMIT(Greater, ChxVMValue(tmp_id), GetValueId(loop.input(0)), iter_id);
             int tmp2_id = next_value_id_++;
-            EMIT(Mul, XCVMValue(tmp2_id), cond_id, tmp_id);
+            EMIT(Mul, ChxVMValue(tmp2_id), cond_id, tmp_id);
             FREE(cond_id);
-            MOVE(XCVMValue(cond_id), tmp2_id);
+            MOVE(ChxVMValue(cond_id), tmp2_id);
             FREE(tmp_id);
         }
         EMIT(JmpTrue, cond_id, loop_begin);
@@ -1178,7 +1179,7 @@ private:
             if (loop_out->IsNull()) {
                 FREE(GetValueId(body_in));
             } else {
-                MOVE(XCVMValue(GetValueId(loop_out)), GetValueId(body_in));
+                MOVE(ChxVMValue(GetValueId(loop_out)), GetValueId(body_in));
             }
         }
 
@@ -1186,7 +1187,7 @@ private:
         for (int i = 0; i < num_scans; ++i) {
             CHECK_LT(i + num_states, loop.outputs().size());
             const Value* loop_out = loop.output(i + num_states);
-            EMIT(SequenceStack, XCVMValue(GetValueId(loop_out)), scan_out_ids[i], loop.chainer_stack_axis());
+            EMIT(SequenceStack, ChxVMValue(GetValueId(loop_out)), scan_out_ids[i], loop.chainer_stack_axis());
             FREE(scan_out_ids[i]);
         }
 
@@ -1239,7 +1240,7 @@ void Emit(const Model& model, XCProgramProto* program, bool dump_value_names) {
 }
 
 void Emit(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
-    XCVMEmitter emitter;
+    ChxVMEmitter emitter;
     emitter.EmitModel(graph, program, dump_value_names);
 }
 
@@ -1256,7 +1257,7 @@ void Emit(
         runtime::XCProgramProto* program,
         std::vector<int>* input_ids,
         std::vector<int>* output_ids) {
-    XCVMEmitter emitter;
+    ChxVMEmitter emitter;
 
     std::vector<Value*> values;
     {
@@ -1284,5 +1285,5 @@ void Emit(
     emitter.EmitNodes(nodes, program);
 }
 
-}  // namespace xcvm
+}  // namespace chxvm
 }  // namespace chainer_compiler

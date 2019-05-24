@@ -24,6 +24,7 @@ TESTS = [
     Generator('model', 'MLP'),
     Generator('model', 'Alex'),
     Generator('model', 'Resnet_with_loss'),
+    Generator('model', 'MyLSTM'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
@@ -63,6 +64,11 @@ TESTS = [
     Generator('node/Functions', 'Squeeze'),
     Generator('node/Functions', 'Separate'),
     Generator('node/Functions', 'Mean'),
+    Generator('node/Functions', 'Sum'),
+
+    Generator('node/Links', 'NStepLSTM'),
+    Generator('node/Links', 'NStepBiLSTM'),
+    Generator('node/Links', 'EmbedID'),
 
     Generator('syntax', 'Alias'),
     Generator('syntax', 'Cmp'),
@@ -142,7 +148,7 @@ def get():
             if diversed:
                 tests.append(TestCase(name=name + '_diversed',
                                       test_dir=test_dir,
-                                      backend='xcvm_test',
+                                      backend='chxvm_test',
                                       **kwargs))
 
     return tests

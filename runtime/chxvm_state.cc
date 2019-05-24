@@ -1,4 +1,4 @@
-#include "runtime/xcvm_state.h"
+#include "runtime/chxvm_state.h"
 
 #include <map>
 
@@ -7,86 +7,86 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
-#include <runtime/xcvm.h>
-#include <runtime/xcvm_op.h>
-#include <runtime/xcvm_var.h>
+#include <runtime/chxvm.h>
+#include <runtime/chxvm_op.h>
+#include <runtime/chxvm_var.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-XCVMState::XCVMState(const XCVMOptions& options, int num_variables, const InOuts& inputs)
+ChxVMState::ChxVMState(const ChxVMOptions& options, int num_variables, const InOuts& inputs)
     : pc_(0), variables_(num_variables), inputs_(inputs), options_(options) {
 }
 
-XCVMState::~XCVMState() {
+ChxVMState::~ChxVMState() {
 }
 
-chainerx::Array XCVMState::GetArray(int index) {
+chainerx::Array ChxVMState::GetArray(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return variables_[index]->GetArray();
 }
 
-nonstd::optional<chainerx::Array> XCVMState::GetOptionalArray(int index) {
+nonstd::optional<chainerx::Array> ChxVMState::GetOptionalArray(int index) {
     if (index < 0) return nonstd::nullopt;
     return GetArray(index);
 }
 
-std::vector<chainerx::Array> XCVMState::GetArrayList(const std::vector<int>& index) {
+std::vector<chainerx::Array> ChxVMState::GetArrayList(const std::vector<int>& index) {
     std::vector<chainerx::Array> vars;
     for (int i : index) vars.push_back(GetArray(i));
     return vars;
 }
 
-void XCVMState::SetArrayList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars) {
+void ChxVMState::SetArrayList(const std::vector<int>& index, const std::vector<chainerx::Array>& vars) {
     CHECK_EQ(index.size(), vars.size());
     for (size_t i = 0; i < index.size(); ++i) SetArray(index[i], vars[i]);
 }
 
-XCVMSequence* XCVMState::CreateSequence(int index) {
+ChxVMSequence* ChxVMState::CreateSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
-    variables_[index].reset(new XCVMVar(XCVMVar::Kind::kSequence));
+    variables_[index].reset(new ChxVMVar(ChxVMVar::Kind::kSequence));
     return GetSequence(index);
 }
 
-XCVMSequence* XCVMState::GetSequence(int index) {
+ChxVMSequence* ChxVMState::GetSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return variables_[index]->GetSequence();
 }
 
-const XCVMOpaque& XCVMState::GetOpaque(int index) {
+const ChxVMOpaque& ChxVMState::GetOpaque(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return *variables_[index]->GetOpaque();
 }
 
-void XCVMState::SetOpaque(int index, XCVMOpaque* opaque) {
+void ChxVMState::SetOpaque(int index, ChxVMOpaque* opaque) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
-    variables_[index].reset(new XCVMVar(opaque));
+    variables_[index].reset(new ChxVMVar(opaque));
 }
 
-XCVMVar* XCVMState::GetVar(int index) {
+ChxVMVar* ChxVMState::GetVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get());
     return variables_[index].get();
 }
 
-void XCVMState::SetVar(int index, const XCVMVar& var) {
+void ChxVMState::SetVar(int index, const ChxVMVar& var) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
-    variables_[index].reset(new XCVMVar(var));
+    variables_[index].reset(new ChxVMVar(var));
 }
 
-std::string XCVMState::GetVarString(int index) {
+std::string ChxVMState::GetVarString(int index) {
     if (index < 0) return "null";
     CHECK_GT(variables_.size(), index) << index;
     if (!variables_[index].get()) return "UNSET";
@@ -96,7 +96,7 @@ std::string XCVMState::GetVarString(int index) {
         return variables_[index]->ToString();
 }
 
-std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
+std::string ChxVMState::GetVarListString(const std::vector<int>& indices) {
     std::ostringstream oss;
     oss << '[';
     bool is_first = true;
@@ -108,7 +108,7 @@ std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
             oss << "null";
             continue;
         }
-        XCVMVar* var = GetVar(index);
+        ChxVMVar* var = GetVar(index);
         if (!var) {
             oss << "null";
             continue;
@@ -120,37 +120,37 @@ std::string XCVMState::GetVarListString(const std::vector<int>& indices) {
     return oss.str();
 }
 
-void XCVMState::SetArray(int index, const chainerx::Array& value) {
+void ChxVMState::SetArray(int index, const chainerx::Array& value) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
-    variables_[index].reset(new XCVMVar(value));
+    variables_[index].reset(new ChxVMVar(value));
 }
 
-void XCVMState::FreeVar(int index) {
+void ChxVMState::FreeVar(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get()) << index;
     variables_[index].reset();
 }
 
-void XCVMState::Input(const std::string& name, int index) {
+void ChxVMState::Input(const std::string& name, int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get()) << index;
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;
-    variables_[index].reset(new XCVMVar(*found->second.get()));
+    variables_[index].reset(new ChxVMVar(*found->second.get()));
 }
 
-void XCVMState::Output(const std::string& name, int index) {
+void ChxVMState::Output(const std::string& name, int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(variables_[index].get()) << index;
-    CHECK(outputs_.emplace(name, std::shared_ptr<XCVMVar>(new XCVMVar(*variables_[index]))).second) << "Duplicated output name: " << name;
+    CHECK(outputs_.emplace(name, std::shared_ptr<ChxVMVar>(new ChxVMVar(*variables_[index]))).second) << "Duplicated output name: " << name;
 }
 
-void XCVMState::ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs) {
+void ChxVMState::ReportInvalidInOuts(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (size_t i = 0; i < inputs.size(); ++i) {
         if (inputs[i] < 0)
             std::cerr << "input #" << i << ": null\n";
@@ -172,17 +172,17 @@ bool HasElemInArray(chainerx::Array (*pred_fn)(const chainerx::Array&), const ch
     return false;
 }
 
-bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const XCVMVar& var) {
+bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxVMVar& var) {
     switch (var.kind()) {
-        case XCVMVar::Kind::kArray:
+        case ChxVMVar::Kind::kArray:
             return HasElemInArray(pred_fn, var.GetArray());
-        case XCVMVar::Kind::kSequence:
-            for (const XCVMVar& v : *var.GetSequence()) {
+        case ChxVMVar::Kind::kSequence:
+            for (const ChxVMVar& v : *var.GetSequence()) {
                 if (HasElemInVar(pred_fn, v)) return true;
             }
             return false;
-        case XCVMVar::Kind::kOpaque:
-        case XCVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kOpaque:
+        case ChxVMVar::Kind::kNull:
             return false;
     }
     CHECK(false);
@@ -190,7 +190,7 @@ bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const XCVM
 
 }  // namespace
 
-void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
+void ChxVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
         if (!HasElemInVar(chainerx::IsNan, *GetVar(output))) continue;
 
@@ -199,7 +199,7 @@ void XCVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>
     }
 }
 
-void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
+void ChxVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
         if (!HasElemInVar(chainerx::IsInf, *GetVar(output))) continue;
 
@@ -208,16 +208,16 @@ void XCVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>
     }
 }
 
-void XCVMState::ShowVariableStatus() const {
+void ChxVMState::ShowVariableStatus() const {
     for (size_t i = 0; i < variables_.size(); ++i) {
-        const std::unique_ptr<XCVMVar>& var = variables_[i];
+        const std::unique_ptr<ChxVMVar>& var = variables_[i];
         if (!var.get()) continue;
         const int64_t size = var->GetNBytes();
         std::cerr << "$" << i << ": " << size << std::endl;
     }
 }
 
-int64_t XCVMState::GetTotalVariableSize() const {
+int64_t ChxVMState::GetTotalVariableSize() const {
     std::map<void*, int64_t> array_sizes;
     for (const auto& v : variables_) {
         if (!v) {

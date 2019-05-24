@@ -1,22 +1,22 @@
 #include <chainerx/routines/manipulation.h>
 
 #include <common/log.h>
-#include <runtime/gen_xcvm_ops.h>
+#include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
 namespace runtime {
 
-void JmpOp::RunImpl(XCVMState* st) {
+void JmpOp::RunImpl(ChxVMState* st) {
     st->set_pc(pc - 1);
 }
 
-void JmpTrueOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {
+void JmpTrueOp::RunImpl(ChxVMState* st, const chainerx::Array& cond) {
     if (static_cast<bool>(chainerx::AsScalar(cond))) {
         st->set_pc(pc - 1);
     }
 }
 
-void JmpFalseOp::RunImpl(XCVMState* st, const chainerx::Array& cond) {
+void JmpFalseOp::RunImpl(ChxVMState* st, const chainerx::Array& cond) {
     if (!static_cast<bool>(chainerx::AsScalar(cond))) {
         st->set_pc(pc - 1);
     }
