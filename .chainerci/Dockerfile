@@ -27,7 +27,8 @@ RUN apt-get update -y && \
     automake \
     libtool \
     # from chainer-compiler
-    ninja-build && \
+    ninja-build \
+    libopencv-dev && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # nGraph build, referenced ngraph-onnx/BUILDING.md
@@ -95,7 +96,7 @@ RUN cd /usr && \
     cd .. && rm -rf build
 RUN ln -s /usr/tvm/include/tvm/*.h /usr/local/include/tvm && \
     ln -s /usr/tvm/include/relay /usr/local/include/tvm && \
-    ln -s /usr/tvm/topi/include/topi /usr/local/include & \
+    ln -s /usr/tvm/topi/include/topi /usr/local/include && \
     mkdir -p /usr/local/include/HalideIR &&  ln -s /usr/tvm/3rdparty/HalideIR/src/* /usr/local/include/HalideIR
 RUN python3 -m pip install --user decorator attrs
 ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
