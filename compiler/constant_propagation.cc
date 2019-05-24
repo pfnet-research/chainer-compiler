@@ -69,6 +69,7 @@ bool MaybePropagateConstant(Graph* graph, Node* node) {
         case Node::kChainerSequenceCreate:
         case Node::kChainerSequenceRange:
         case Node::kChainerSequenceStack:
+        case Node::kConcat:
         case Node::kDiv:
         case Node::kExpand:
         case Node::kGather:

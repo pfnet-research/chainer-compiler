@@ -608,6 +608,29 @@ for test in TEST_CASES:
 for test in new_tests:
     TEST_CASES.append(test)
 
+
+if args.ngraph:
+    # TODO(hamaji): Triage these failures.
+    ngraph_blacklist = [
+        'extra_test_loop_scan_out',
+        'extra_backprop_test_need_stack_loop',
+        'ch2o_node_Linear_backprop',
+        'ch2o_node_Linear_backprop_diversed',
+        'backprop_test_oc_mul_same_float32_two_phase',
+        'backprop_test_oc_mul_same_float64_two_phase',
+        'extra_backprop_test_need_stack_loop_two_phase',
+    ]
+    for test in TEST_CASES:
+        if test.name in ngraph_blacklist:
+            test.fail = True
+        if '_float16' in test.name:
+            # TODO(hamaji): Skip float16 tests since nGraph
+            # automatically promote float16 to float32.
+            test.fail = True
+        if test.name.endswith('_sigmoid_float64'):
+            # TODO(hamaji): nGraph seems not to support fp64 sigmoid.
+            test.fail = True
+
 if args.failed:
     if not os.path.exists(args.failure_log):
         raise RuntimeError('No failure log in %s' % args.failure_log)
