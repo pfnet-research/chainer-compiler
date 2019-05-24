@@ -257,6 +257,11 @@ void FuseNGraphOperations(Graph* graph) {
                     return false;
                 }
             }
+        } else if (node.op_type() == Node::kTranspose) {
+	    // Incomplete transpose is our own extension to ONNX.
+            if (!node.perm().empty() && node.input(0)->type().ndim() != node.perm().size()) {
+                return false;
+            }
         }
 
         return true;
