@@ -36,7 +36,8 @@ class TestCase(object):
         self.backend = backend
 
         self.log_dirname = self.test_dir
-        if not self.log_dirname.startswith('out'):
+        if not (self.log_dirname.startswith('out') or
+                self.log_dirname.startswith('data')):
             self.log_dirname = os.path.join('out', name)
             makedirs(self.log_dirname)
         self.log_filename = os.path.join(self.log_dirname, 'out.txt')
