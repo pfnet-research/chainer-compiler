@@ -13,7 +13,7 @@ public:
 
     virtual ~BackendConfig() = default;
 
-    virtual const std::set<std::string>& GetSimplifiers() const;
+    virtual const std::set<std::string>& GetSimplifiers() const = 0;
 };
 
 }  // namespace chainer_compiler

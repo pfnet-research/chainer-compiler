@@ -20,7 +20,26 @@ include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CHAINER_COMPILER_ROOT_DIR}/third_party/json/include)
 
 add_library(
-  configs
+  chainer_compiler_configs
   ${json_cs}
   backend_config.cc
+  )
+
+add_executable(
+  chainer_compiler_configs_test
+  backend_config_test.cc
+  )
+
+target_link_libraries(
+  chainer_compiler_configs_test
+  chainer_compiler_configs
+  chainer_compiler_common
+  gtest
+  gtest_main
+  )
+
+add_test(
+  NAME chainer_compiler_configs_test
+  COMMAND chainer_compiler_configs_test
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
   )
