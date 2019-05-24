@@ -41,6 +41,7 @@ make test
 cd ..
 
 python3 scripts/runtests.py -g
+python3 scripts/runtests.py --ngraph
 python3 -m pytest -sv python
 
 EOM
