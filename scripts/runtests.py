@@ -611,7 +611,7 @@ for test in new_tests:
 
 if args.ngraph:
     for test in TEST_CASES:
-        if test.name.endswith('_float16'):
+        if '_float16' in test.name:
             # TODO(hamaji): Skip float16 tests since nGraph
             # automatically promote float16 to float32.
             test.fail = True
