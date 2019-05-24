@@ -15,7 +15,6 @@ python3 -m pip install --no-cache-dir third_party/onnx-chainer[test-gpu]
 mkdir -p build
 cd build
 cmake .. \
-    -G Ninja \
     -DCHAINER_COMPILER_ENABLE_CUDA=ON \
     -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
     -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
@@ -26,14 +25,14 @@ cmake .. \
     -DCHAINERX_BUILD_CUDA=ON \
     -DCHAINERX_BUILD_PYTHON=ON \
     && \
-    ninja
+    make -j8
 
 make large_tests
 
 make test
 cd ..
 
-python3 scripts/runtests.py -G --ngraph
+python3 scripts/runtests.py -g
 python3 -m pytest -sv python
 
 EOM
