@@ -7,6 +7,7 @@
 #include <common/log.h>
 
 extern "C" const char* chxvm_json;
+extern "C" const char* chxvm_test_json;
 
 namespace chainer_compiler {
 
@@ -47,6 +48,9 @@ private:
 };
 
 std::unique_ptr<BackendConfig> BackendConfig::FromName(const std::string& name) {
+    if (name == "chxvm_test") {
+        return FromJSON(chxvm_test_json);
+    }
     CHECK_EQ("chxvm", name);
     return FromJSON(chxvm_json);
 }

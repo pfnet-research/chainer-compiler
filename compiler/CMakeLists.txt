@@ -108,6 +108,7 @@ target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler
   chainer_compiler_runtime
   chainer_compiler_common
+  chainer_compiler_configs
   chainerx
   onnx
   onnx_proto

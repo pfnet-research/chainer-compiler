@@ -19,9 +19,9 @@
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
 #include <compiler/subgraph_canonicalizer.h>
-
 #include <compiler/computation_order/core.h>
 #include <compiler/gradient_with_order.h>
+#include <configs/backend_config.h>
 
 namespace chainer_compiler {
 
@@ -57,6 +57,8 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 }
 
 void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
+    std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
+
     // TODO(hamaji): Improve backend selection probably by `CompilerConfig`.
     g_modify_pool_with_imbalanced_pads = !g_use_ngraph;
 
