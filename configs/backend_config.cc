@@ -16,6 +16,8 @@ public:
                 ParseSimplify(el.value(), &simplify_preproc_);
             } else if (el.key() == "simplify") {
                 ParseSimplify(el.value(), &simplify_);
+            } else if (el.key() == "supported_ops") {
+                ParseSupportedOps(el.value(), &supported_ops_);
             } else {
                 std::cerr << "WARNING: Unknown backend config: " << el.key() << std::endl;
             }
@@ -36,6 +38,10 @@ public:
         return simplify_;
     }
 
+    bool HasOp(const std::string& op) const override {
+        return supported_ops_.count(op) > 0;
+    }
+
 private:
     void ParseSimplify(const json& simplify, std::set<std::string>* names) {
         CHECK(simplify.is_object()) << "simplify must be an object: " << simplify;
@@ -48,8 +54,20 @@ private:
         }
     }
 
+    void ParseSupportedOps(const json& supported_ops, std::set<std::string>* ops) {
+        CHECK(supported_ops.is_object()) << "supported_ops must be an object: " << supported_ops;
+        for (const auto& el : supported_ops.items()) {
+            CHECK(el.value().is_boolean()) << "op values must be bool: " << supported_ops;
+            if (el.value() == false) {
+                continue;
+            }
+            CHECK(ops->emplace(el.key()).second) << "Duplicate key: " << el.key();
+        }
+    }
+
     std::set<std::string> simplify_preproc_;
     std::set<std::string> simplify_;
+    std::set<std::string> supported_ops_;
 };
 
 std::unique_ptr<BackendConfig> BackendConfig::FromName(const std::string& name) {
