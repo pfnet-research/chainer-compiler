@@ -5,7 +5,6 @@
 #include <memory>
 
 #include <compiler/computation_order/core.h>
-#include <compiler/config.h>
 #include <compiler/constant_propagation.h>
 #include <compiler/dtype_inference.h>
 #include <compiler/flags.h>

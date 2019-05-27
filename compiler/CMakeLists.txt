@@ -39,7 +39,6 @@ include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 add_library(chainer_compiler_compiler
   code_emitter.cc
   constant_propagation.cc
-  config.cc
   computation_order/core.cc
   computation_order/policy_dummy.cc
   computation_order/policy_chen.cc
@@ -73,7 +72,6 @@ add_library(chainer_compiler_compiler
   type.cc
   util.cc
   value.cc
-  chxvm/config.cc
   chxvm/emitter.cc
   chxvm/chxvm_value.cc
   )
