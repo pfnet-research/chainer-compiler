@@ -5,17 +5,24 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
-#include <compiler/config.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
+#include <configs/backend_config.h>
 
 namespace chainer_compiler {
 namespace {
 
 typedef bool (*SimplifierFn)(Graph*, Node*);
+
+struct Simplifier {
+    Simplifier(const char* n, SimplifierFn f) : name(n), fn(f) {
+    }
+    const char* name;
+    SimplifierFn fn;
+};
 
 bool ReplaceSum(Graph* graph, Node* node) {
     CHECK_LT(0UL, node->inputs().size());
@@ -85,7 +92,7 @@ bool ReplaceLpNormalization(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceSoftmaxCrossEntropy(Graph* graph, Node* node) {
+bool ReplaceChainerSoftmaxCrossEntropy(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftmaxCrossEntropy", node->output(0));
     Value* log_softmax = gb.Op(Node::kLogSoftmax, {node->input(0)});
     Value* log_prob = gb.Op(Node::kChainerSelectItem, {log_softmax, node->input(1)});
@@ -524,7 +531,7 @@ bool ReplaceShape(Graph* graph, Node* node) {
     return true;
 }
 
-bool RemoveIdentity(Graph* graph, Node* node) {
+bool ReplaceIdentity(Graph* graph, Node* node) {
     Value* input = node->input(0);
     Value* output = node->output(0);
     if (!input->IsTemp() || !output->IsTemp()) return false;
@@ -535,7 +542,7 @@ bool RemoveIdentity(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceSelectItem(Graph* graph, Node* node) {
+bool ReplaceChainerSelectItem(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySelectItem", node->output(0));
     Value* x = node->input(0);
     Value* values = gb.Const(Type(x->type().dtype(), {2}), {0.0, 1.0});
@@ -555,7 +562,7 @@ bool ReplaceSelectItem(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceLinear(Graph* graph, Node* node) {
+bool ReplaceChainerLinear(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyLinear", node->output(0));
     Value* x = node->input(0);
     Value* x_shape = gb.Op(Node::kShape, {x});
@@ -647,63 +654,61 @@ void ReplaceInitializers(Graph* graph) {
 
 }  // namespace
 
-void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
-    std::map<Node::OpType, SimplifierFn> simplifiers;
-    CHECK(simplifiers.emplace(Node::kSum, ReplaceSum).second);
-    CHECK(simplifiers.emplace(Node::kLess, ReplaceLess).second);
-    CHECK(simplifiers.emplace(Node::kArgMin, ReplaceArgMin).second);
-    CHECK(simplifiers.emplace(Node::kReduceMin, ReplaceReduceMin).second);
-    CHECK(simplifiers.emplace(Node::kLpNormalization, ReplaceLpNormalization).second);
-    CHECK(simplifiers.emplace(Node::kChainerSoftmaxCrossEntropy, ReplaceSoftmaxCrossEntropy).second);
+void Simplify(const BackendConfig& backend_config, Graph* graph, bool gen_backprop) {
+    std::map<Node::OpType, Simplifier> simplifiers;
+
+#define REGISTER_SIMPLIFIER(op) CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second)
+
+    REGISTER_SIMPLIFIER(Sum);
+    REGISTER_SIMPLIFIER(Less);
+    REGISTER_SIMPLIFIER(ArgMin);
+    REGISTER_SIMPLIFIER(ReduceMin);
+    REGISTER_SIMPLIFIER(LpNormalization);
+    REGISTER_SIMPLIFIER(ChainerSoftmaxCrossEntropy);
     // TODO(hamaji): Revive Scan.
-    // CHECK(simplifiers.emplace(Node::kScan, ReplaceScan).second);
-    CHECK(simplifiers.emplace(Node::kGlobalMaxPool, ReplaceGlobalMaxPool).second);
-    CHECK(simplifiers.emplace(Node::kGlobalAveragePool, ReplaceGlobalAveragePool).second);
-    CHECK(simplifiers.emplace(Node::kFlatten, ReplaceFlatten).second);
-    CHECK(simplifiers.emplace(Node::kMean, ReplaceMean).second);
-    CHECK(simplifiers.emplace(Node::kReduceL1, ReplaceReduceL1).second);
-    CHECK(simplifiers.emplace(Node::kReduceL2, ReplaceReduceL2).second);
-    CHECK(simplifiers.emplace(Node::kReduceLogSum, ReplaceReduceLogSum).second);
-    CHECK(simplifiers.emplace(Node::kReduceLogSumExp, ReplaceReduceLogSumExp).second);
-    CHECK(simplifiers.emplace(Node::kSoftplus, ReplaceSoftplus).second);
-    CHECK(simplifiers.emplace(Node::kSoftsign, ReplaceSoftsign).second);
-    CHECK(simplifiers.emplace(Node::kConstantOfShape, ReplaceConstantOfShape).second);
-    CHECK(simplifiers.emplace(Node::kConstantLike, ReplaceConstantLike).second);
-    CHECK(simplifiers.emplace(Node::kShape, ReplaceShape).second);
-    CHECK(simplifiers.emplace(Node::kImageScaler, ReplaceImageScaler).second);
-    CHECK(simplifiers.emplace(Node::kSlice, ReplaceSlice).second);
-    CHECK(simplifiers.emplace(Node::kMaxRoiPool, ReplaceMaxRoiPool).second);
-    CHECK(simplifiers.emplace(Node::kIdentity, RemoveIdentity).second);
+    // REGISTER_SIMPLIFIER(Scan);
+    REGISTER_SIMPLIFIER(GlobalMaxPool);
+    REGISTER_SIMPLIFIER(GlobalAveragePool);
+    REGISTER_SIMPLIFIER(Flatten);
+    REGISTER_SIMPLIFIER(Mean);
+    REGISTER_SIMPLIFIER(ReduceL1);
+    REGISTER_SIMPLIFIER(ReduceL2);
+    REGISTER_SIMPLIFIER(ReduceLogSum);
+    REGISTER_SIMPLIFIER(ReduceLogSumExp);
+    REGISTER_SIMPLIFIER(Softplus);
+    REGISTER_SIMPLIFIER(Softsign);
+    REGISTER_SIMPLIFIER(ConstantOfShape);
+    REGISTER_SIMPLIFIER(ConstantLike);
+    REGISTER_SIMPLIFIER(Shape);
+    REGISTER_SIMPLIFIER(ImageScaler);
+    REGISTER_SIMPLIFIER(Slice);
+    REGISTER_SIMPLIFIER(MaxRoiPool);
+    REGISTER_SIMPLIFIER(Identity);
+    REGISTER_SIMPLIFIER(ChainerLinear);
+    REGISTER_SIMPLIFIER(ChainerSelectItem);
+
+    // TODO(hamaji): Handle this by the backend config.
     if (!g_use_ngraph) {
-        CHECK(simplifiers.emplace(Node::kConv, ReplaceConv).second);
+        REGISTER_SIMPLIFIER(Conv);
     }
-
-    auto replace_if_not_supported = [&ccfg, &simplifiers](Node::OpType op, SimplifierFn fn) {
-        if (!ccfg.HasOp(op)) {
-            CHECK(simplifiers.emplace(op, fn).second) << op;
-        }
-    };
-
-    replace_if_not_supported(Node::kChainerLinear, ReplaceLinear);
-    replace_if_not_supported(Node::kChainerSelectItem, ReplaceSelectItem);
 
     // These passes are workarounds for backends such as Chainer which
     // do not support pooling with imbalanced padding.
     if (g_modify_pool_with_imbalanced_pads) {
-        CHECK(simplifiers.emplace(Node::kMaxPool, ReplaceMaxPool).second);
-        CHECK(simplifiers.emplace(Node::kAveragePool, ReplaceAveragePool).second);
+        REGISTER_SIMPLIFIER(MaxPool);
+        REGISTER_SIMPLIFIER(AveragePool);
     }
 
     if (g_replace_constant) {
         CHECK(!gen_backprop);
-        CHECK(simplifiers.emplace(Node::kConstant, ReplaceConstant).second);
+        REGISTER_SIMPLIFIER(Constant);
     }
 #if 0
-    CHECK(simplifiers.emplace(Node::kBatchNormalization, ReplaceBatchNormalization).second);
+    REGISTER_SIMPLIFIER(BatchNormalization);
 #endif
 
     if (gen_backprop) {
-        CHECK(simplifiers.emplace(Node::kConcat, ReplaceConcat).second);
+        REGISTER_SIMPLIFIER(Concat);
     }
 
     bool replaced = true;
@@ -712,7 +717,11 @@ void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop) {
         for (Node* node : graph->GetLiveNodes()) {
             auto found = simplifiers.find(node->op_type());
             if (found == simplifiers.end()) continue;
-            if (found->second(graph, node)) {
+            const Simplifier& simplifier = found->second;
+            if (!backend_config.GetSimplifiers().count(simplifier.name)) {
+                continue;
+            }
+            if (simplifier.fn(graph, node)) {
                 // std::cerr << node->op_type() << " removed" << std::endl;
                 graph->DetachNode(node);
                 replaced = true;

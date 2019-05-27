@@ -6,7 +6,7 @@
         "ReplaceArgMin": true,
         "ReplaceReduceMin": true,
         "ReplaceLpNormalization": true,
-        "ReplaceSoftmaxCrossEntropy": true,
+        "ReplaceChainerSoftmaxCrossEntropy": true,
         // TODO(hamaji): Revive Scan.
         // "ReplaceScan": true,
         "ReplaceGlobalMaxPool": true,
@@ -25,12 +25,14 @@
         "ReplaceImageScaler": true,
         "ReplaceSlice": true,
         "ReplaceMaxRoiPool": true,
-        "RemoveIdentity": true,
+        "ReplaceIdentity": true,
         "ReplaceConv": true,
         // These passes are workarounds for Chainer which does not
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
         "ReplaceAveragePool": true,
-        "ReplaceLinear": true
+        "ReplaceChainerLinear": true,
+        // Backprop only.
+        "ReplaceConcat": true
     }
 }

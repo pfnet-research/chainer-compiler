@@ -4,6 +4,7 @@
 #include <map>
 #include <memory>
 
+#include <compiler/computation_order/core.h>
 #include <compiler/config.h>
 #include <compiler/constant_propagation.h>
 #include <compiler/dtype_inference.h>
@@ -11,6 +12,7 @@
 #include <compiler/flops.h>
 #include <compiler/fusion.h>
 #include <compiler/gradient.h>
+#include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
 #include <compiler/memory_simulator.h>
 #include <compiler/merge.h>
@@ -19,8 +21,6 @@
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
 #include <compiler/subgraph_canonicalizer.h>
-#include <compiler/computation_order/core.h>
-#include <compiler/gradient_with_order.h>
 #include <configs/backend_config.h>
 
 namespace chainer_compiler {
@@ -93,7 +93,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     CanonicalizeSubGraphs(graph);
 
     if (!skip_scheduling) {
-        Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
+        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(*backend_config, g, gen_backprop); }, graph);
 
         Recursively(MergeOperations, graph);
 
@@ -124,7 +124,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     // if (!g_skip_inference) graph->InferShapes();
 
     if (!skip_scheduling) {
-        Recursively([&ccfg, gen_backprop](Graph* g) { Simplify(*ccfg, g, gen_backprop); }, graph);
+        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(*backend_config, g, gen_backprop); }, graph);
 
         Recursively(PropagateConstants, graph);
 
@@ -160,10 +160,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
+    std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively([&ccfg](Graph* g) { Simplify(*ccfg, g, true); }, graph);
+    Recursively([&backend_config](Graph* g) { Simplify(*backend_config, g, true); }, graph);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
     Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);

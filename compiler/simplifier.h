@@ -2,9 +2,9 @@
 
 namespace chainer_compiler {
 
-class CompilerConfig;
+class BackendConfig;
 class Graph;
 
-void Simplify(const CompilerConfig& ccfg, Graph* graph, bool gen_backprop);
+void Simplify(const BackendConfig& ccfg, Graph* graph, bool gen_backprop);
 
 }  // namespace chainer_compiler
