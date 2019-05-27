@@ -19,8 +19,8 @@ add_library(feeder ${FEEDER_SRCS})
 set_hidden_(feeder)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
-add_executable(feeder_test ${FEEDER_TEST_SRCS})
-target_link_libraries(feeder_test
+add_executable(chainer_compiler_feeder_test ${FEEDER_TEST_SRCS})
+target_link_libraries(chainer_compiler_feeder_test
   feeder
   chainer_compiler_common
   chainerx
@@ -32,7 +32,7 @@ target_link_libraries(feeder_test
   )
 
 add_test(
-  NAME feeder_test
-  COMMAND feeder_test
+  NAME chainer_compiler_feeder_test
+  COMMAND chainer_compiler_feeder_test
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
   )

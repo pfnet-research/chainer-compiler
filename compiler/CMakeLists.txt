@@ -85,7 +85,7 @@ add_dependencies(
 set_hidden_(chainer_compiler_compiler)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
-add_executable(compiler_test
+add_executable(chainer_compiler_compiler_test
   code_emitter_test.cc
   dtype_inference_test.cc
   evaluator_test.cc
@@ -101,10 +101,10 @@ add_executable(compiler_test
   chxvm/emitter_test.cc
   )
 add_dependencies(
-  compiler_test
+  chainer_compiler_compiler_test
   runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h gen_onnx_proto
   )
-target_link_libraries(compiler_test
+target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler
   chainer_compiler_runtime
   chainer_compiler_common
@@ -121,7 +121,7 @@ target_link_libraries(compiler_test
   )
 
 add_test(
-  NAME compiler_test
-  COMMAND compiler_test
+  NAME chainer_compiler_compiler_test
+  COMMAND chainer_compiler_compiler_test
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
   )

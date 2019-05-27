@@ -71,11 +71,11 @@ add_dependencies(
 set_hidden_(chainer_compiler_runtime)
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
-add_executable(runtime_test
+add_executable(chainer_compiler_runtime_test
   npy_test.cc
   chxvm_test.cc
   )
-target_link_libraries(runtime_test
+target_link_libraries(chainer_compiler_runtime_test
   chainer_compiler_runtime
   chainer_compiler_compiler
   chainer_compiler_common
@@ -91,7 +91,7 @@ target_link_libraries(runtime_test
   )
 
 add_test(
-  NAME runtime_test
-  COMMAND runtime_test
+  NAME chainer_compiler_runtime_test
+  COMMAND chainer_compiler_runtime_test
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
   )
