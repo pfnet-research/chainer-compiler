@@ -93,7 +93,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     CanonicalizeSubGraphs(graph);
 
     if (!skip_scheduling) {
-        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(*backend_config, g, gen_backprop); }, graph);
+        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(backend_config->GetSimplifyAlways(), g, gen_backprop); }, graph);
 
         Recursively(MergeOperations, graph);
 
@@ -107,6 +107,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     }
 
     if (gen_backprop) {
+        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(backend_config->GetSimplifyFull(), g, gen_backprop); }, graph);
+
         if (g_computation_order.empty()) {
             // normal computation order
             AddGradientNodesForTraining(graph);
@@ -124,7 +126,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     // if (!g_skip_inference) graph->InferShapes();
 
     if (!skip_scheduling) {
-        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(*backend_config, g, gen_backprop); }, graph);
+        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(backend_config->GetSimplifyFull(), g, gen_backprop); }, graph);
 
         Recursively(PropagateConstants, graph);
 
@@ -164,7 +166,7 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively([&backend_config](Graph* g) { Simplify(*backend_config, g, true); }, graph);
+    Recursively([&backend_config](Graph* g) { Simplify(backend_config->GetSimplifyFull(), g, true); }, graph);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
     Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);

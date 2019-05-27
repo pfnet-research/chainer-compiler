@@ -1,6 +1,6 @@
 {
     "base": "chxvm",
-    "simplify": {
+    "simplify_always": {
         "ReplaceChainerLinear": true,
         "ReplaceChainerSelectItem": null
     }

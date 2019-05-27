@@ -10,7 +10,6 @@
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
-#include <configs/backend_config.h>
 
 namespace chainer_compiler {
 namespace {
@@ -654,7 +653,7 @@ void ReplaceInitializers(Graph* graph) {
 
 }  // namespace
 
-void Simplify(const BackendConfig& backend_config, Graph* graph, bool gen_backprop) {
+void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
     std::map<Node::OpType, Simplifier> simplifiers;
 
 #define REGISTER_SIMPLIFIER(op) CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second)
@@ -715,7 +714,7 @@ void Simplify(const BackendConfig& backend_config, Graph* graph, bool gen_backpr
             auto found = simplifiers.find(node->op_type());
             if (found == simplifiers.end()) continue;
             const Simplifier& simplifier = found->second;
-            if (!backend_config.GetSimplifiers().count(simplifier.name)) {
+            if (!simplifier_names.count(simplifier.name)) {
                 continue;
             }
             if (simplifier.fn(graph, node)) {

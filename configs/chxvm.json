@@ -1,37 +1,38 @@
 {
-    "simplify": {
-        "ReplaceSum": true,
-        "ReplaceLess": true,
-        "ReplaceSum": true,
-        "ReplaceArgMin": true,
-        "ReplaceReduceMin": true,
-        "ReplaceLpNormalization": true,
+    "simplify_always": {
+        "ReplaceChainerSelectItem": true,
         "ReplaceChainerSoftmaxCrossEntropy": true,
+        "ReplaceIdentity": true,
         // TODO(hamaji): Revive Scan.
         // "ReplaceScan": true,
-        "ReplaceGlobalMaxPool": true,
-        "ReplaceGlobalAveragePool": true,
+        "ReplaceShape": true
+    },
+    "simplify_full": {
+        "ReplaceArgMin": true,
+        "ReplaceConstantLike": true,
+        "ReplaceConstantOfShape": true,
+        "ReplaceConv": true,
         "ReplaceFlatten": true,
+        "ReplaceGlobalAveragePool": true,
+        "ReplaceGlobalMaxPool": true,
+        "ReplaceImageScaler": true,
+        "ReplaceLess": true,
+        "ReplaceLpNormalization": true,
+        "ReplaceMaxRoiPool": true,
         "ReplaceMean": true,
         "ReplaceReduceL1": true,
         "ReplaceReduceL2": true,
         "ReplaceReduceLogSum": true,
         "ReplaceReduceLogSumExp": true,
+        "ReplaceReduceMin": true,
+        "ReplaceSlice": true,
         "ReplaceSoftplus": true,
         "ReplaceSoftsign": true,
-        "ReplaceConstantOfShape": true,
-        "ReplaceConstantLike": true,
-        "ReplaceShape": true,
-        "ReplaceImageScaler": true,
-        "ReplaceSlice": true,
-        "ReplaceMaxRoiPool": true,
-        "ReplaceIdentity": true,
-        "ReplaceConv": true,
+        "ReplaceSum": true,
         // These passes are workarounds for Chainer which does not
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
         "ReplaceAveragePool": true,
-        "ReplaceChainerSelectItem": true,
         // Backprop only.
         "ReplaceConcat": true
     }

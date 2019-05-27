@@ -1,10 +1,12 @@
 #pragma once
 
+#include <set>
+#include <string>
+
 namespace chainer_compiler {
 
-class BackendConfig;
 class Graph;
 
-void Simplify(const BackendConfig& ccfg, Graph* graph, bool gen_backprop);
+void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop);
 
 }  // namespace chainer_compiler
