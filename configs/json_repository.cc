@@ -11,7 +11,7 @@ extern const char* chxvm_test_json;
 
 json LoadJSONFromName(const std::string& name) {
     const char* json_str = nullptr;
-    if (name == "chxvm") {
+    if (name.empty() || name == "chxvm") {
         json_str = builtin_configs::chxvm_json;
     } else if (name == "chxvm_test") {
         json_str = builtin_configs::chxvm_test_json;
