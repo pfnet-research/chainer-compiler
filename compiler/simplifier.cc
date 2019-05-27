@@ -106,19 +106,6 @@ bool ReplaceChainerSoftmaxCrossEntropy(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceConstant(Graph* graph, Node* node) {
-    // Do not move host Constant to initializer. They should be small
-    // and cheap to initialize.
-    if (node->chainer_host()) return false;
-    // TODO(hamaji): Use GraphBuilder.
-    const std::string& name = StrCat("SimplifyConstant_", node->output(0)->name());
-    Tensor* tensor = node->tensor_value().get();
-    Value* v = graph->AddInputValue(name, Type(tensor->dtype(), tensor->dims()));
-    v->ResetInitializer(std::make_unique<Tensor>(name, *tensor));
-    graph->AddNode(Node::kIdentity, {v}, {node->output(0)});
-    return true;
-}
-
 // TODO(hamaji): Revive Scan.
 #if 0
 
@@ -689,11 +676,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(Conv);
     REGISTER_SIMPLIFIER(MaxPool);
     REGISTER_SIMPLIFIER(AveragePool);
-
-    if (g_replace_constant) {
-        CHECK(!gen_backprop);
-        REGISTER_SIMPLIFIER(Constant);
-    }
 
     if (gen_backprop) {
         REGISTER_SIMPLIFIER(Concat);

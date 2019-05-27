@@ -14,10 +14,6 @@ extern bool g_permissive;
 // Skip dtype/shape inference.
 extern bool g_skip_inference;
 
-// Extract Constant ops as inputs with initializers.
-// Similar to onnx/optimizer/passes/extract_constant_to_initializer.h
-extern bool g_replace_constant;
-
 // Use CUDA specific ops.
 extern bool g_use_cuda;
 

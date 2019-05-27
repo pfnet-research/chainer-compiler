@@ -8,8 +8,6 @@ bool g_permissive;
 
 bool g_skip_inference;
 
-bool g_replace_constant;
-
 bool g_use_cuda;
 
 bool g_fuse_operations;
