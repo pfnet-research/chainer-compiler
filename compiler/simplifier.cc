@@ -686,18 +686,9 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(Identity);
     REGISTER_SIMPLIFIER(ChainerLinear);
     REGISTER_SIMPLIFIER(ChainerSelectItem);
-
-    // TODO(hamaji): Handle this by the backend config.
-    if (!g_use_ngraph) {
-        REGISTER_SIMPLIFIER(Conv);
-    }
-
-    // These passes are workarounds for backends such as Chainer which
-    // do not support pooling with imbalanced padding.
-    if (g_modify_pool_with_imbalanced_pads) {
-        REGISTER_SIMPLIFIER(MaxPool);
-        REGISTER_SIMPLIFIER(AveragePool);
-    }
+    REGISTER_SIMPLIFIER(Conv);
+    REGISTER_SIMPLIFIER(MaxPool);
+    REGISTER_SIMPLIFIER(AveragePool);
 
     if (g_replace_constant) {
         CHECK(!gen_backprop);
