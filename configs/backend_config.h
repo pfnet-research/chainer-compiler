@@ -13,6 +13,8 @@ public:
 
     virtual ~BackendConfig() = default;
 
+    virtual const std::string& name() const = 0;
+
     virtual const std::set<std::string>& GetSimplifyPreproc() const = 0;
     virtual const std::set<std::string>& GetSimplify() const = 0;
     virtual bool HasOp(const std::string& name) const = 0;

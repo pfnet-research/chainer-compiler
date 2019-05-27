@@ -9,7 +9,8 @@ namespace chainer_compiler {
 
 class BackendConfigImpl : public BackendConfig {
 public:
-    explicit BackendConfigImpl(const json& config) {
+    explicit BackendConfigImpl(const std::string& name, const json& config)
+        : name_(name) {
         CHECK(config.is_object()) << config;
         for (const auto& el : config.items()) {
             if (el.key() == "simplify_preproc") {
@@ -29,6 +30,10 @@ public:
     }
 
     ~BackendConfigImpl() override = default;
+
+    const std::string& name() const override {
+        return name_;
+    }
 
     const std::set<std::string>& GetSimplifyPreproc() const override {
         return simplify_preproc_;
@@ -65,6 +70,7 @@ private:
         }
     }
 
+    std::string name_;
     std::set<std::string> simplify_preproc_;
     std::set<std::string> simplify_;
     std::set<std::string> supported_ops_;
@@ -72,12 +78,12 @@ private:
 
 std::unique_ptr<BackendConfig> BackendConfig::FromName(const std::string& name) {
     json j = LoadJSONFromName(name);
-    return std::make_unique<BackendConfigImpl>(j);
+    return std::make_unique<BackendConfigImpl>(name, j);
 }
 
 std::unique_ptr<BackendConfig> BackendConfig::FromJSON(const std::string& json_str) {
     json j = LoadJSONFromString(json_str);
-    return std::make_unique<BackendConfigImpl>(j);
+    return std::make_unique<BackendConfigImpl>("custom", j);
 }
 
 }  // namespace chainer_compiler

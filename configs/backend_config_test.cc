@@ -7,6 +7,7 @@ namespace {
 
 TEST(BackendConfigTest, ChxVM) {
     std::unique_ptr<BackendConfig> config = BackendConfig::FromName("chxvm");
+    EXPECT_EQ("chxvm", config->name());
     EXPECT_EQ(0, config->GetSimplifyPreproc().count("ReplaceLess"));
     EXPECT_EQ(0, config->GetSimplifyPreproc().count("NOT FOUND"));
     EXPECT_EQ(0, config->GetSimplifyPreproc().count("ReplaceChainerLinear"));
@@ -19,6 +20,7 @@ TEST(BackendConfigTest, ChxVM) {
 
 TEST(BackendConfigTest, ChxVMTest) {
     std::unique_ptr<BackendConfig> config = BackendConfig::FromName("chxvm_test");
+    EXPECT_EQ("chxvm_test", config->name());
     EXPECT_EQ(0, config->GetSimplifyPreproc().count("ReplaceLess"));
     EXPECT_EQ(0, config->GetSimplifyPreproc().count("NOT FOUND"));
     EXPECT_EQ(1, config->GetSimplifyPreproc().count("ReplaceChainerLinear"));
