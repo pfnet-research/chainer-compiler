@@ -67,9 +67,6 @@ void RunDefaultPasses(Model* model, bool gen_backprop) {
 void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
 
-    // TODO(hamaji): Improve backend selection probably by `CompilerConfig`.
-    g_modify_pool_with_imbalanced_pads = !g_use_ngraph;
-
     if (g_reset_output_shape) {
         for (Value* value : graph->output_values()) {
             value->set_type(new Type());
