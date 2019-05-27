@@ -24,6 +24,7 @@ add_library(
   chainer_compiler_configs
   ${json_cs}
   backend_config.cc
+  json_repository.cc
   )
 
 add_executable(

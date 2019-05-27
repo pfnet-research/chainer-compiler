@@ -2,16 +2,10 @@
 
 #include <iostream>
 
-#include <nlohmann/json.hpp>
-
 #include <common/log.h>
-
-extern "C" const char* chxvm_json;
-extern "C" const char* chxvm_test_json;
+#include <configs/json_repository.h>
 
 namespace chainer_compiler {
-
-using json = nlohmann::json;
 
 class BackendConfigImpl : public BackendConfig {
 public:
@@ -48,15 +42,12 @@ private:
 };
 
 std::unique_ptr<BackendConfig> BackendConfig::FromName(const std::string& name) {
-    if (name == "chxvm_test") {
-        return FromJSON(chxvm_test_json);
-    }
-    CHECK_EQ("chxvm", name);
-    return FromJSON(chxvm_json);
+    json j = LoadJSONFromName(name);
+    return std::make_unique<BackendConfigImpl>(j);
 }
 
 std::unique_ptr<BackendConfig> BackendConfig::FromJSON(const std::string& json_str) {
-    json j = json::parse(json_str);
+    json j = LoadJSONFromString(json_str);
     return std::make_unique<BackendConfigImpl>(j);
 }
 
