@@ -31,6 +31,6 @@
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
         "ReplaceAveragePool": true,
-        "ReplaceSelectItem": true
+        "ReplaceLinear": true
     }
 }
