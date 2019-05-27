@@ -12,7 +12,11 @@ def main():
     # Strip comments.
     c = re.subn(r'//.*\n', '', c)[0]
     c = json.dumps(c)
+    print('namespace chainer_compiler {')
+    print('namespace builtin_configs {')
     print('const char* %s = %s;' % (n, c))
+    print('}  // namespace builtin_configs')
+    print('}  // namespace chainer_compiler')
 
 
 main()

@@ -2,17 +2,19 @@
 
 #include <common/log.h>
 
-extern "C" const char* chxvm_json;
-extern "C" const char* chxvm_test_json;
-
 namespace chainer_compiler {
+
+namespace builtin_configs {
+extern const char* chxvm_json;
+extern const char* chxvm_test_json;
+}  // namespace builtin_configs
 
 json LoadJSONFromName(const std::string& name) {
     const char* json_str = nullptr;
     if (name == "chxvm") {
-        json_str = chxvm_json;
+        json_str = builtin_configs::chxvm_json;
     } else if (name == "chxvm_test") {
-        json_str = chxvm_test_json;
+        json_str = builtin_configs::chxvm_test_json;
     } else {
         CHECK(false) << "Unknown JSON name: " << name;
     }
