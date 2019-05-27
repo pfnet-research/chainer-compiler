@@ -12,28 +12,28 @@ public:
     explicit BackendConfigImpl(const json& config) {
         CHECK(config.is_object()) << config;
         for (const auto& el : config.items()) {
-            if (el.key() == "simplify_always") {
-                ParseSimplify(el.value(), &simplify_always_);
-            } else if (el.key() == "simplify_full") {
-                ParseSimplify(el.value(), &simplify_full_);
+            if (el.key() == "simplify_preproc") {
+                ParseSimplify(el.value(), &simplify_preproc_);
+            } else if (el.key() == "simplify") {
+                ParseSimplify(el.value(), &simplify_);
             } else {
                 std::cerr << "WARNING: Unknown backend config: " << el.key() << std::endl;
             }
         }
 
-        for (const std::string& n : simplify_always_) {
-            simplify_full_.emplace(n);
+        for (const std::string& n : simplify_preproc_) {
+            simplify_.emplace(n);
         }
     }
 
     ~BackendConfigImpl() override = default;
 
-    const std::set<std::string>& GetSimplifyAlways() const override {
-        return simplify_always_;
+    const std::set<std::string>& GetSimplifyPreproc() const override {
+        return simplify_preproc_;
     }
 
-    const std::set<std::string>& GetSimplifyFull() const override {
-        return simplify_full_;
+    const std::set<std::string>& GetSimplify() const override {
+        return simplify_;
     }
 
 private:
@@ -48,8 +48,8 @@ private:
         }
     }
 
-    std::set<std::string> simplify_always_;
-    std::set<std::string> simplify_full_;
+    std::set<std::string> simplify_preproc_;
+    std::set<std::string> simplify_;
 };
 
 std::unique_ptr<BackendConfig> BackendConfig::FromName(const std::string& name) {

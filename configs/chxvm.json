@@ -1,5 +1,5 @@
 {
-    "simplify_always": {
+    "simplify_preproc": {
         "ReplaceChainerSelectItem": true,
         "ReplaceChainerSoftmaxCrossEntropy": true,
         "ReplaceIdentity": true,
@@ -7,7 +7,7 @@
         // "ReplaceScan": true,
         "ReplaceShape": true
     },
-    "simplify_full": {
+    "simplify": {
         "ReplaceArgMin": true,
         "ReplaceConstantLike": true,
         "ReplaceConstantOfShape": true,
