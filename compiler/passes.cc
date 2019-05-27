@@ -45,7 +45,9 @@ void Recursively(Fn fn, Graph* graph) {
 
 void CheckAllOpsSupported(const BackendConfig& backend_config, Graph* graph) {
     for (Node* node : graph->nodes()) {
-        CHECK(backend_config.HasOp(Node::OpTypeToString(node->op_type()))) << "Op not supported by backend (" << backend_config.name() << ")\n" << node->DebugString();
+        CHECK(backend_config.HasOp(Node::OpTypeToString(node->op_type())))
+                << "Op not supported by backend (" << backend_config.name() << ")\n"
+                << node->DebugString();
     }
 }
 

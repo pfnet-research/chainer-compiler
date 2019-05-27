@@ -9,8 +9,7 @@ namespace chainer_compiler {
 
 class BackendConfigImpl : public BackendConfig {
 public:
-    explicit BackendConfigImpl(const std::string& name, const json& config)
-        : name_(name) {
+    explicit BackendConfigImpl(const std::string& name, const json& config) : name_(name) {
         CHECK(config.is_object()) << config;
         for (const auto& el : config.items()) {
             if (el.key() == "simplify_preproc") {
