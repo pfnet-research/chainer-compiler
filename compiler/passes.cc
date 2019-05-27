@@ -34,12 +34,6 @@ void CollectGarbageNode(Graph* graph) {
     graph->DeleteDetached();
 }
 
-void CheckAllOpsSupported(const CompilerConfig& ccfg, Graph* graph) {
-    for (Node* node : graph->nodes()) {
-        CHECK(ccfg.HasOp(node->op_type())) << "Op not supported by backend (" << ccfg.name() << ")\n" << node->DebugString();
-    }
-}
-
 template <class Fn>
 void Recursively(Fn fn, Graph* graph) {
     fn(graph);
@@ -47,6 +41,21 @@ void Recursively(Fn fn, Graph* graph) {
         for (Graph* subgraph : node->GetSubGraphs()) {
             Recursively(fn, subgraph);
         }
+    }
+}
+
+void CheckAllOpsSupported(const CompilerConfig& ccfg, Graph* graph) {
+    for (Node* node : graph->nodes()) {
+        CHECK(ccfg.HasOp(node->op_type())) << "Op not supported by backend (" << ccfg.name() << ")\n" << node->DebugString();
+    }
+}
+
+void CheckAllOpsSupportedRecursively(const CompilerConfig& ccfg, Graph* graph) {
+    if (g_fuse_operations) {
+        // TODO(hamaji): Implement better sanitization for all backend types.
+        CheckAllOpsSupported(ccfg, graph);
+    } else {
+        Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(ccfg, g); }, graph);
     }
 }
 
@@ -93,7 +102,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     CanonicalizeSubGraphs(graph);
 
     if (!skip_scheduling) {
-        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(backend_config->GetSimplifyPreproc(), g, gen_backprop); }, graph);
+        Simplify(backend_config->GetSimplifyPreproc(), graph, gen_backprop);
 
         Recursively(MergeOperations, graph);
 
@@ -107,7 +116,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     }
 
     if (gen_backprop) {
-        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(backend_config->GetSimplify(), g, gen_backprop); }, graph);
+        Simplify(backend_config->GetSimplify(), graph, gen_backprop);
 
         if (g_computation_order.empty()) {
             // normal computation order
@@ -126,7 +135,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     // if (!g_skip_inference) graph->InferShapes();
 
     if (!skip_scheduling) {
-        Recursively([&backend_config, gen_backprop](Graph* g) { Simplify(backend_config->GetSimplify(), g, gen_backprop); }, graph);
+        Simplify(backend_config->GetSimplifyPreproc(), graph, gen_backprop);
 
         Recursively(PropagateConstants, graph);
 
@@ -146,6 +155,14 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
         }
     }
 
+    if (!skip_scheduling) {
+        Simplify(backend_config->GetSimplify(), graph, gen_backprop);
+
+        Recursively(PropagateConstants, graph);
+
+        Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
+    }
+
     int64_t order = 0;
     Recursively([&order](Graph* g) { order = ScheduleComputation(*g, order); }, graph);
 
@@ -158,7 +175,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 
-    Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
+    CheckAllOpsSupportedRecursively(*ccfg, graph);
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
@@ -166,10 +183,10 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively([&backend_config](Graph* g) { Simplify(backend_config->GetSimplify(), g, true); }, graph);
+    Simplify(backend_config->GetSimplify(), graph, true);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
-    Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(*ccfg, g); }, graph);
+    CheckAllOpsSupportedRecursively(*ccfg, graph);
 }
 
 }  // namespace chainer_compiler

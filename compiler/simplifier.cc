@@ -10,6 +10,7 @@
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
+#include <configs/backend_config.h>
 
 namespace chainer_compiler {
 namespace {
@@ -712,7 +713,9 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
         replaced = false;
         for (Node* node : graph->GetLiveNodes()) {
             auto found = simplifiers.find(node->op_type());
-            if (found == simplifiers.end()) continue;
+            if (found == simplifiers.end()) {
+                continue;
+            }
             const Simplifier& simplifier = found->second;
             if (!simplifier_names.count(simplifier.name)) {
                 continue;
@@ -721,6 +724,24 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
                 // std::cerr << node->op_type() << " removed" << std::endl;
                 graph->DetachNode(node);
                 replaced = true;
+            }
+        }
+    }
+
+    for (const Node* node : graph->nodes()) {
+        const std::vector<Graph*>& subgraphs = node->GetSubGraphs();
+        if (subgraphs.empty()) {
+            continue;
+        }
+
+        if (node->op_type() == Node::kChainerFusionGroup) {
+            std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(node->fusion_type()));
+            for (Graph* subgraph : node->GetSubGraphs()) {
+                Simplify(backend_config->GetSimplify(), subgraph, gen_backprop);
+            }
+        } else {
+            for (Graph* subgraph : node->GetSubGraphs()) {
+                Simplify(simplifier_names, subgraph, gen_backprop);
             }
         }
     }
