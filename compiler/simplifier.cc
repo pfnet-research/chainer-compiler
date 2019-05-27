@@ -703,9 +703,6 @@ void Simplify(const BackendConfig& backend_config, Graph* graph, bool gen_backpr
         CHECK(!gen_backprop);
         REGISTER_SIMPLIFIER(Constant);
     }
-#if 0
-    REGISTER_SIMPLIFIER(BatchNormalization);
-#endif
 
     if (gen_backprop) {
         REGISTER_SIMPLIFIER(Concat);
