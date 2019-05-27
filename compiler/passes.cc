@@ -44,18 +44,18 @@ void Recursively(Fn fn, Graph* graph) {
     }
 }
 
-void CheckAllOpsSupported(const CompilerConfig& ccfg, Graph* graph) {
+void CheckAllOpsSupported(const BackendConfig& backend_config, Graph* graph) {
     for (Node* node : graph->nodes()) {
-        CHECK(ccfg.HasOp(node->op_type())) << "Op not supported by backend (" << ccfg.name() << ")\n" << node->DebugString();
+        CHECK(backend_config.HasOp(Node::OpTypeToString(node->op_type()))) << "Op not supported by backend (" << backend_config.name() << ")\n" << node->DebugString();
     }
 }
 
-void CheckAllOpsSupportedRecursively(const CompilerConfig& ccfg, Graph* graph) {
+void CheckAllOpsSupportedRecursively(const BackendConfig& backend_config, Graph* graph) {
     if (g_fuse_operations) {
         // TODO(hamaji): Implement better sanitization for all backend types.
-        CheckAllOpsSupported(ccfg, graph);
+        CheckAllOpsSupported(backend_config, graph);
     } else {
-        Recursively([&ccfg](Graph* g) { CheckAllOpsSupported(ccfg, g); }, graph);
+        Recursively([&backend_config](Graph* g) { CheckAllOpsSupported(backend_config, g); }, graph);
     }
 }
 
@@ -85,8 +85,6 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
         graph->InferShapes();
         InferAllDtype(graph);
     }
-
-    std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
 
     auto dump_onnx = [&graph](bool cond, const char* msg) {
         if (cond) {
@@ -175,18 +173,17 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 
-    CheckAllOpsSupportedRecursively(*ccfg, graph);
+    CheckAllOpsSupportedRecursively(*backend_config, graph);
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
     std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
-    std::unique_ptr<CompilerConfig> ccfg{GetCompilerConfig(g_backend_name)};
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
     Simplify(backend_config->GetSimplify(), graph, true);
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
-    CheckAllOpsSupportedRecursively(*ccfg, graph);
+    CheckAllOpsSupportedRecursively(*backend_config, graph);
 }
 
 }  // namespace chainer_compiler
