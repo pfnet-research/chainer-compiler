@@ -18,11 +18,6 @@ extern bool g_skip_inference;
 // Similar to onnx/optimizer/passes/extract_constant_to_initializer.h
 extern bool g_replace_constant;
 
-// Modifies MaxPool and AveragePool with imbalanced pads (e.g., (0, 0,
-// 1, 1)) so these ops will be split into Pad and Pool. This is
-// for backends such as Chainer which do not support imbalanced pads.
-extern bool g_modify_pool_with_imbalanced_pads;
-
 // Use CUDA specific ops.
 extern bool g_use_cuda;
 
