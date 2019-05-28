@@ -141,6 +141,17 @@ bool IsComputationOrderSupported(const Graph& graph) {
     return true;
 }
 
+std::vector<Value*> GetStagedValues(const std::map<Value*, Value*>& staged,
+                                    const std::vector<Value*>& values) {
+    std::vector<Value*> ret;
+    for (Value* value : values) {
+        auto found = staged.find(value);
+        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
+        ret.push_back(found->second);
+    }
+    return ret;
+}
+
 bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
     if (!IsComputationOrderSupported(*fwd_graph) || !IsComputationOrderSupported(*bwd_graph)) {
         return false;
@@ -218,12 +229,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // Recomputation: current graph must be the backward part
                     CHECK_EQ(current_graph, bwd_graph);
                     // All inputs must be staged and may be recomputed.
-                    std::vector<Value*> inputs;
-                    for (Value* value : node->inputs()) {
-                        auto found = staged.find(value);
-                        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
-                        inputs.push_back(found->second);
-                    }
+                    const std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
 
                     // Recomputed values need different `Value`
                     // objects with different names.
@@ -271,20 +277,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 // Temporaliry replace the inputs/outputs of the node with staged values
                 // Note that the replacement of outputs is necessary because we may have to
                 // point to the retained value in two_phase mode.
-                std::vector<Value*> inputs = node->inputs();
-                std::vector<Value*> outputs = node->outputs();
-                std::vector<Value*> staged_inputs;
-                std::vector<Value*> staged_outputs;
-                for (Value* value : orig_node->inputs()) {
-                    auto found = staged.find(value);
-                    CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
-                    staged_inputs.push_back(found->second);
-                }
-                for (Value* value : orig_node->outputs()) {
-                    auto found = staged.find(value);
-                    CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
-                    staged_outputs.push_back(found->second);
-                }
+                const std::vector<Value*> inputs = node->inputs();
+                const std::vector<Value*> outputs = node->outputs();
+                const std::vector<Value*> staged_inputs = GetStagedValues(staged, orig_node->inputs());
+                const std::vector<Value*> staged_outputs = GetStagedValues(staged, orig_node->outputs());;
                 for (const auto& p : Zip(inputs, staged_inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
                     std::get<0>(p)->DetachUser(node);
