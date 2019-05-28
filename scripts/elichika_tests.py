@@ -26,6 +26,8 @@ TESTS = [
     Generator('model', 'Resnet_with_loss'),
     Generator('model', 'MyLSTM'),
 
+    Generator('model', 'EspNet_VGG2L'),
+
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
     Generator('node', 'BatchNorm'),

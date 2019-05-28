@@ -213,6 +213,9 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
     if instance is None:
         return ValueRef(NoneValue())
 
+    if utils.is_disabled_module(instance):
+        return None
+
     model_inst = UserDefinedInstance(default_module, instance, None)
     return ValueRef(model_inst)
 
@@ -439,6 +442,9 @@ class Module(Field):
             members_dict[member[0]] = member[1]
 
         if (key in members_dict.keys()):
+
+            attr_v = members_dict[key]
+
             return True
 
         return super().has_attribute(key)
@@ -460,6 +466,11 @@ class Module(Field):
 
         attribute.is_non_volatile = True
         v = parse_instance(self, key, attr_v, None)
+        
+        # failed to parse
+        if v is None:
+            return None
+
         attribute.revise(v)
 
         return attribute
