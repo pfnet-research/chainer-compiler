@@ -47,6 +47,14 @@ ChxVMOpaque* ChxVMVar::GetOpaque() const {
     return absl::get<std::shared_ptr<ChxVMOpaque>>(val_).get();
 }
 
+const chainerx::Scalar& ChxVMVar::GetScalar() const {
+    return absl::get<chainerx::Scalar>(val_);
+}
+
+const chainerx::Shape& ChxVMVar::GetShape() const {
+    return absl::get<chainerx::Shape>(val_);
+}
+
 int64_t ChxVMVar::GetNBytes() const {
     int64_t size = 0;
     switch (kind_) {

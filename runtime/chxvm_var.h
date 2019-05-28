@@ -54,8 +54,8 @@ public:
     const chainerx::Array& GetArray() const;
     ChxVMSequence* GetSequence() const;
     ChxVMOpaque* GetOpaque() const;
-    chainerx::Scalar GetScalar() const;
-    chainerx::Shape GetShape() const;
+    const chainerx::Scalar& GetScalar() const;
+    const chainerx::Shape& GetShape() const;
 
     Kind kind() const {
         return kind_;
