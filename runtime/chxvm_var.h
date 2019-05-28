@@ -1,5 +1,6 @@
 #pragma once
 
+#include <absl/types/variant.h>
 #include <nonstd/optional.hpp>
 
 #include <chainerx/array.h>
@@ -38,6 +39,8 @@ public:
         kArray,
         kSequence,
         kOpaque,
+        kScalar,
+        kShape,
         kNull,
     };
 
@@ -51,6 +54,8 @@ public:
     const chainerx::Array& GetArray() const;
     ChxVMSequence* GetSequence() const;
     ChxVMOpaque* GetOpaque() const;
+    chainerx::Scalar GetScalar() const;
+    chainerx::Shape GetShape() const;
 
     Kind kind() const {
         return kind_;
@@ -70,9 +75,9 @@ public:
 
 private:
     Kind kind_;
-    chainerx::Array array_;
-    std::shared_ptr<ChxVMSequence> sequence_;
-    std::shared_ptr<ChxVMOpaque> opaque_;
+    using VarInternalType =
+            absl::variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, chainerx::Scalar, chainerx::Shape>;
+    VarInternalType val_;
 };
 
 std::vector<chainerx::Array> NonOptional(const ChxVMSequence& seq);

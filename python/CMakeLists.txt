@@ -1,5 +1,6 @@
 get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_ROOT_DIR}/third_party/abseil)
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 

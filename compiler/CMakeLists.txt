@@ -118,6 +118,7 @@ target_link_libraries(compiler_test
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  absl::variant
   )
 
 add_test(

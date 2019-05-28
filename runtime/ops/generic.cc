@@ -21,6 +21,8 @@ int64_t GetSize(ChxVMVar* var) {
             return var->GetArray().shape()[0];
         case ChxVMVar::Kind::kSequence:
             return var->GetSequence()->size();
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -89,6 +91,8 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
             break;
         }
 
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -134,6 +138,8 @@ void GenericGetSliceOp::RunImpl(ChxVMState* st) {
             break;
         }
 
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -220,6 +226,8 @@ void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
             break;
         }
 
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var0->DebugString();

@@ -61,6 +61,7 @@ target_link_libraries(run_onnx
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  absl::variant
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
