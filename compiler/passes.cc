@@ -1,5 +1,6 @@
 #include "compiler/passes.h"
 
+#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -33,8 +34,7 @@ void CollectGarbageNode(Graph* graph) {
     graph->DeleteDetached();
 }
 
-template <class Fn>
-void Recursively(Fn fn, Graph* graph) {
+void Recursively(const std::function<void(Graph*)>& fn, Graph* graph) {
     fn(graph);
     for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
