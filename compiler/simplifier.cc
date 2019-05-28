@@ -636,10 +636,7 @@ bool ReplaceSplit(Graph* graph, Node* node) {
     for (size_t i = 0; i < node->outputs().size(); ++i) {
         int64_t end = start + split[i];
         Value* output = node->output(i);
-        gb.Op(Node::kSlice, {input}, output)->producer()
-            ->set_axes({axis})
-            ->set_starts({start})
-            ->set_ends({end});
+        gb.Op(Node::kSlice, {input}, output)->producer()->set_axes({axis})->set_starts({start})->set_ends({end});
         start = end;
     }
     return true;
