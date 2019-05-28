@@ -1,0 +1,7 @@
+{
+    "base": "chxvm",
+    "simplify_preproc": {
+        "ReplaceChainerLinear": true,
+        "ReplaceChainerSelectItem": null
+    }
+}

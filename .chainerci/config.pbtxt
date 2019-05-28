@@ -1,0 +1,15 @@
+configs {
+  key: "chainer-compiler"
+  value {
+    requirement {
+      cpu: 8
+      disk: 50
+      memory: 16
+      gpu: 1
+    }
+    time_limit {
+      seconds: 3600
+    }
+    command: "sh .chainerci/run-chainerci-tests.sh"
+  }
+}

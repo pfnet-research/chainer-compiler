@@ -1,10 +1,14 @@
 import os
 import numpy as np
+from elichika.parser import config
 
 current_id = 0
 
 slice_int_max = 2 ** 31 - 1
 
+dtype_float32 = np.array(1.0, dtype=np.float32).dtype
+dtype_float64 = np.array(1.0, dtype=np.float64).dtype
+dtype_int = np.array(1.0, dtype=np.int).dtype
 
 def get_guid():
     global current_id
@@ -17,6 +21,11 @@ def reset_guid():
     global current_id
     current_id = 0
 
+def print_warning(s, lineprop):
+    print('warning : {} in {}'.format(s, lineprop))
+
+def is_disabled_module(m):
+    return m in config.disabled_modules
 
 def numpy_type_2_int(t):
     if t == np.int32:

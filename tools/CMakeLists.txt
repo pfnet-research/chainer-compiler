@@ -24,6 +24,7 @@ target_link_libraries(dump
   onnx_proto
   chainer_compiler_tools
   chainer_compiler_compiler
+  chainer_compiler_configs
   chainer_compiler_runtime
   chainer_compiler_common
   chainerx
@@ -52,6 +53,7 @@ target_link_libraries(run_onnx
   run_onnx_lib
   chainer_compiler_tools
   chainer_compiler_compiler
+  chainer_compiler_configs
   chainer_compiler_runtime
   chainer_compiler_common
   chainerx
@@ -84,6 +86,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     train_imagenet_lib
     chainer_compiler_tools
     chainer_compiler_compiler
+    chainer_compiler_configs
     chainer_compiler_runtime
     chainer_compiler_common
     feeder
@@ -111,6 +114,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     run_onnx_lib
     chainer_compiler_tools
     chainer_compiler_compiler
+    chainer_compiler_configs
     chainer_compiler_runtime
     chainer_compiler_common
     chainerx
@@ -136,6 +140,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       train_imagenet_lib
       chainer_compiler_tools
       chainer_compiler_compiler
+      chainer_compiler_configs
       chainer_compiler_runtime
       chainer_compiler_common
       feeder

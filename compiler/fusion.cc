@@ -267,6 +267,11 @@ void FuseNGraphOperations(Graph* graph) {
             if (node.outputs().size() != 1) {
                 return false;
             }
+        } else if (node.op_type() == Node::kSlice) {
+            // nGraph does not support new slice.
+            if (node.inputs().size() > 1) {
+                return false;
+            }
         }
 
         return true;

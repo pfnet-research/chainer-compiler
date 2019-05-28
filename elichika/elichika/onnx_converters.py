@@ -275,6 +275,8 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
     binops[nodes.BinOpType.Add] = 'Add'
     binops[nodes.BinOpType.Sub] = 'Sub'
     binops[nodes.BinOpType.Mul] = 'Mul'
+    binops[nodes.BinOpType.Div] = 'Div'
+    binops[nodes.BinOpType.FloorDiv] = 'Div'
     binops[nodes.BinOpType.Unknown] = 'Add'
 
     if isinstance(node.left, values.ListValue) or isinstance(node.left, values.TupleValue):
@@ -290,10 +292,31 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
                             value2onnx_parameter[node.outputs[0]].onnx_name], None)
 
     else:
-        onnx_node = oh.make_node(binops[node.binop], [value2onnx_parameter[node.left].onnx_name,
-                                                      value2onnx_parameter[node.right].onnx_name], [value2onnx_parameter[node.outputs[0]].onnx_name])
-        onnx_graph.nodes.append(onnx_node)
+        if node.binop == nodes.BinOpType.FloorDiv:
 
+            left_ = ONNXValue(onnx_graph, node.left)
+            temp_ = ONNXValue(onnx_graph, None, [node.left, '/Temp'])
+            right_ = ONNXValue(onnx_graph, node.right)
+            output_ = ONNXValue(onnx_graph, node.outputs[0])
+
+            onnx_graph.add_node(
+                binops[node.binop], 
+                [left_, right_],
+                [temp_],
+                str(node.lineprop))
+
+            onnx_graph.add_node(
+                'Floor', 
+                [temp_],
+                [output_],
+                str(node.lineprop))
+        else:        
+            onnx_node = oh.make_node(
+                binops[node.binop], 
+                [value2onnx_parameter[node.left].onnx_name, value2onnx_parameter[node.right].onnx_name], 
+                [value2onnx_parameter[node.outputs[0]].onnx_name])
+
+            onnx_graph.nodes.append(onnx_node)
 
 def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
 

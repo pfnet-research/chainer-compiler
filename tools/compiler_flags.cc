@@ -9,7 +9,6 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add("compiler_log", '\0', "Show logs from compiler");
     args->add("permissive", '\0', "Relax checks to accept more kinds of ONNX");
     args->add("skip_inference", '\0', "Skip dtype/shape inference");
-    args->add("replace_constant", '\0', "Replace Constant ops");
     args->add("fuse_operations", '\0', "Fuse consecutive operations");
     args->add("use_nvrtc", '\0', "Use NVRTC");
     args->add("use_tvm", '\0', "Use TVM");
@@ -34,7 +33,6 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_compiler_log = args.exist("compiler_log");
     g_permissive = args.exist("permissive");
     g_skip_inference = args.exist("skip_inference");
-    g_replace_constant = args.exist("replace_constant");
     g_fuse_operations = args.exist("fuse_operations");
     g_use_nvrtc = args.exist("use_nvrtc");
     g_use_tvm = args.exist("use_tvm");
