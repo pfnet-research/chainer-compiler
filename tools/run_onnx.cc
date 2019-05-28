@@ -221,6 +221,8 @@ ChxVMVar* StageVar(ChxVMVar* var) {
             return out;
         }
 
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -563,6 +565,8 @@ void RunMain(const std::vector<std::string>& argv) {
                         return array_str(v->GetArray());
                     case ChxVMVar::Kind::kSequence:
                         return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
+                    case ChxVMVar::Kind::kScalar:
+                    case ChxVMVar::Kind::kShape:
                     case ChxVMVar::Kind::kOpaque:
                     case ChxVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
@@ -628,6 +632,8 @@ void RunMain(const std::vector<std::string>& argv) {
                     break;
                 }
 
+                case ChxVMVar::Kind::kScalar:
+                case ChxVMVar::Kind::kShape:
                 case ChxVMVar::Kind::kOpaque:
                 case ChxVMVar::Kind::kNull:
                     CHECK(false) << expected->DebugString();
