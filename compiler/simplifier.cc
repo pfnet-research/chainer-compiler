@@ -701,24 +701,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
         }
     }
 
-    for (const Node* node : graph->nodes()) {
-        const std::vector<Graph*>& subgraphs = node->GetSubGraphs();
-        if (subgraphs.empty()) {
-            continue;
-        }
-
-        if (node->op_type() == Node::kChainerFusionGroup) {
-            std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(node->fusion_type()));
-            for (Graph* subgraph : node->GetSubGraphs()) {
-                Simplify(backend_config->GetSimplify(), subgraph, gen_backprop);
-            }
-        } else {
-            for (Graph* subgraph : node->GetSubGraphs()) {
-                Simplify(simplifier_names, subgraph, gen_backprop);
-            }
-        }
-    }
-
     // Replace initializers by `Constant` for better optimization
     // (e.g., Conv+BN fusion).
     if (!gen_backprop && g_use_ngraph) {
