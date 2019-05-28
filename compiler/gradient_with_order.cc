@@ -268,9 +268,29 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     }
                 }
 
+                // Temporaliry replace the inputs of the node with staged values
+                std::vector<Value*> inputs = node->inputs();
+                std::vector<Value*> staged_inputs;
+                for (Value* value : orig_node->inputs()) {
+                    auto found = staged.find(value);
+                    CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
+                    staged_inputs.push_back(found->second);
+                }
+                for (const auto& p : Zip(inputs, staged_inputs)) {
+                    node->ReplaceInput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->DetachUser(node);
+                    std::get<1>(p)->AddUser(node);
+                }
+
                 ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
                 if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) {  // NOTE: first argument may be fwd_graph?
-                    break;
+                }
+
+                // Revert the inputs of the node
+                for (const auto& p : Zip(staged_inputs, inputs)) {
+                    node->ReplaceInput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->DetachUser(node);
+                    std::get<1>(p)->AddUser(node);
                 }
 
                 // Copy back gradients of inputs from the last forward
