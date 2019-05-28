@@ -16,10 +16,19 @@ class A(chainer.Chain):
         return chainer.Variable(x)
 
 
+class Self(chainer.Chain):
+    def __init__(self, x):
+        super(Self, self).__init__()
+        self.x = chainer.Variable(x)
+    def forward(self):
+        return self.x
+
 # ======================================
 
 def main():
     testtools.generate_testcase(A(), [np.array(42)])
+
+    testtools.generate_testcase(Self(np.array(42)), [], subname='self')
 
 if __name__ == '__main__':
     main()

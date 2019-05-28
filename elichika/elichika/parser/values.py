@@ -207,6 +207,12 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         tensorValue.shape = instance.shape
         return ValueRef(tensorValue)
 
+    if isinstance(instance, chainer.Variable):
+        tensorValue = TensorValue(instance.data)
+        tensorValue.value = instance.data
+        tensorValue.shape = instance.data.shape
+        return ValueRef(tensorValue)
+
     if instance == inspect._empty:
         return ValueRef(NoneValue())
 
