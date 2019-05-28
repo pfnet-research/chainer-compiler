@@ -1003,7 +1003,7 @@ class ONNXGenerator:
                 elif value_.generator is not None or not value_.has_constant_value():
                     tensor = onnx_graph.new_empty_tensor_with_value(value_)
                 else:
-                    if isinstance(value_, values.NumberValue):
+                    if isinstance(value_, values.NumberValue) or isinstance(value_, values.TensorValue) or isinstance(value_, values.BoolValue):
                         t = onnx_graph.new_empty_tensor_with_value(value_)
                         arr = np.array(value_.get_constant_value())
 
