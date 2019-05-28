@@ -43,20 +43,33 @@ void Recursively(const std::function<void(Graph*)>& fn, Graph* graph) {
     }
 }
 
+void Recursively(const BackendConfig& bc, Graph* graph, const std::function<void(const BackendConfig&, Graph*)>& fn) {
+    fn(bc, graph);
+
+    for (const Node* node : graph->nodes()) {
+        const std::vector<Graph*>& subgraphs = node->GetSubGraphs();
+        if (subgraphs.empty()) {
+            continue;
+        }
+
+        if (node->op_type() == Node::kChainerFusionGroup) {
+            std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(node->fusion_type()));
+            for (Graph* subgraph : node->GetSubGraphs()) {
+                Recursively(*backend_config, subgraph, fn);
+            }
+        } else {
+            for (Graph* subgraph : node->GetSubGraphs()) {
+                Recursively(bc, subgraph, fn);
+            }
+        }
+    }
+}
+
 void CheckAllOpsSupported(const BackendConfig& backend_config, Graph* graph) {
     for (Node* node : graph->nodes()) {
         CHECK(backend_config.HasOp(Node::OpTypeToString(node->op_type())))
                 << "Op not supported by backend (" << backend_config.name() << ")\n"
                 << node->DebugString();
-    }
-}
-
-void CheckAllOpsSupportedRecursively(const BackendConfig& backend_config, Graph* graph) {
-    if (g_fuse_operations) {
-        // TODO(hamaji): Implement better sanitization for all backend types.
-        CheckAllOpsSupported(backend_config, graph);
-    } else {
-        Recursively([&backend_config](Graph* g) { CheckAllOpsSupported(backend_config, g); }, graph);
     }
 }
 
@@ -98,7 +111,9 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     CanonicalizeSubGraphs(graph);
 
     if (!skip_scheduling) {
-        Simplify(backend_config->GetSimplifyPreproc(), graph, gen_backprop);
+        Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
+            Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
+        });
 
         Recursively(MergeOperations, graph);
 
@@ -112,7 +127,9 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     }
 
     if (gen_backprop) {
-        Simplify(backend_config->GetSimplify(), graph, gen_backprop);
+        Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
+            Simplify(bc.GetSimplify(), graph, gen_backprop);
+        });
 
         if (g_computation_order.empty()) {
             // normal computation order
@@ -131,7 +148,9 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     // if (!g_skip_inference) graph->InferShapes();
 
     if (!skip_scheduling) {
-        Simplify(backend_config->GetSimplifyPreproc(), graph, gen_backprop);
+        Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
+            Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
+        });
 
         Recursively(PropagateConstants, graph);
 
@@ -152,7 +171,9 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     }
 
     if (!skip_scheduling) {
-        Simplify(backend_config->GetSimplify(), graph, gen_backprop);
+        Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
+            Simplify(bc.GetSimplify(), graph, gen_backprop);
+        });
 
         Recursively(PropagateConstants, graph);
 
@@ -171,17 +192,17 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 
-    CheckAllOpsSupportedRecursively(*backend_config, graph);
+    Recursively(*backend_config, graph, CheckAllOpsSupported);
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
     std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Simplify(backend_config->GetSimplify(), graph, true);
+    Recursively(*backend_config, graph, [](const BackendConfig& bc, Graph* graph) { Simplify(bc.GetSimplify(), graph, true); });
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
-    CheckAllOpsSupportedRecursively(*backend_config, graph);
+    Recursively(*backend_config, graph, CheckAllOpsSupported);
 }
 
 }  // namespace chainer_compiler
