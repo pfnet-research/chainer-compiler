@@ -274,29 +274,47 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     }
                 }
 
-                // Temporaliry replace the inputs of the node with staged values
+                // Temporaliry replace the inputs/outputs of the node with staged values
+                // Note that the replacement of outputs is necessary because we may have to
+                // point to the retained value in two_phase mode.
                 std::vector<Value*> inputs = node->inputs();
+                std::vector<Value*> outputs = node->outputs();
                 std::vector<Value*> staged_inputs;
+                std::vector<Value*> staged_outputs;
                 for (Value* value : orig_node->inputs()) {
                     auto found = staged.find(value);
                     CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
                     staged_inputs.push_back(found->second);
+                }
+                for (Value* value : orig_node->outputs()) {
+                    auto found = staged.find(value);
+                    CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
+                    staged_outputs.push_back(found->second);
                 }
                 for (const auto& p : Zip(inputs, staged_inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
                     std::get<0>(p)->DetachUser(node);
                     std::get<1>(p)->AddUser(node);
                 }
-
-                ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) {  // NOTE: first argument may be fwd_graph?
+                for (const auto& p : Zip(outputs, staged_outputs)) {
+                    node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->SetProducer(nullptr);
+                    std::get<1>(p)->SetProducer(node);
                 }
 
-                // Revert the inputs of the node
+                ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+                AddGradientForNode(bwd_graph, bwd_graph, node, nullptr);
+
+                // Revert the inputs/outputs of the node
                 for (const auto& p : Zip(staged_inputs, inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
                     std::get<0>(p)->DetachUser(node);
                     std::get<1>(p)->AddUser(node);
+                }
+                for (const auto& p : Zip(staged_outputs, outputs)) {
+                    node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->SetProducer(nullptr);
+                    std::get<1>(p)->SetProducer(node);
                 }
 
                 // Copy back gradients of inputs from the last forward
