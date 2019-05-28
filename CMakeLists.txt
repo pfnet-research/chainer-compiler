@@ -209,6 +209,7 @@ set(ONNX_CHAINER_DEPS
 
 add_subdirectory(compiler)
 add_subdirectory(common)
+add_subdirectory(configs)
 add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(scripts)

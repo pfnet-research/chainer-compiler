@@ -8,10 +8,6 @@ bool g_permissive;
 
 bool g_skip_inference;
 
-bool g_replace_constant;
-
-bool g_modify_pool_with_imbalanced_pads;
-
 bool g_use_cuda;
 
 bool g_fuse_operations;
