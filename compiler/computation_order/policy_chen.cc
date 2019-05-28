@@ -135,7 +135,6 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
             }
         }
     }
-    for (auto s : must_remember) std::cout << "Must remember " << s->ToString() << std::endl;
 
     // Perform forward propagation with forgetting
     size_t last_split = 0;
@@ -166,7 +165,6 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
     size_t end_index = sorted.size();
     for (int64_t i = static_cast<int64_t>(split_indices.size()) - 1; i >= -1; --i) {
         int64_t begin_index = (i >= 0) ? (static_cast<int64_t>(split_indices[i]) + (i >= 0)) : 0;
-        std::cout << "####" << begin_index << " " << end_index << std::endl;
 
         for (int64_t j = begin_index; j < end_index; ++j) {
             // recomputation for [begin_index, end_index)
