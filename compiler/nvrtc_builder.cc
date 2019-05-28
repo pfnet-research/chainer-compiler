@@ -116,17 +116,17 @@ void BuildNvrtcProgram(
     std::ostringstream oss;
     CodeEmitter ce(oss);
     switch (dtype) {
-    case Dtype::kFloat16:
-        ce << "typedef half T;\n";
-        break;
-    case Dtype::kFloat32:
-        ce << "typedef float T;\n";
-        break;
-    case Dtype::kFloat64:
-        ce << "typedef double T;\n";
-        break;
-    default:
-        CHECK(false) << "Unknown dtype: " << dtype;
+        case Dtype::kFloat16:
+            ce << "typedef half T;\n";
+            break;
+        case Dtype::kFloat32:
+            ce << "typedef float T;\n";
+            break;
+        case Dtype::kFloat64:
+            ce << "typedef double T;\n";
+            break;
+        default:
+            CHECK(false) << "Unknown dtype: " << dtype;
     }
 
     if (seen_ops.count(Node::kSigmoid)) {
