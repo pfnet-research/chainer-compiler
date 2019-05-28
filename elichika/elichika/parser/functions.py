@@ -83,6 +83,35 @@ class SuffixType(Enum):
     Dummy = 2,
     Input = 3,
 
+def generate_value_with_type(value: 'values.Value', type_,  suffix_type = SuffixType.Unknown):
+    assert(isinstance(value, values.Value))
+    ret = None
+    if isinstance(value, values.TensorValue):
+        ret = values.TensorValue()
+        ret.shape = value.shape
+        ret.dtype = type_
+
+    elif isinstance(value, values.NumberValue):
+        ret = values.NumberValue(None)
+        ret.dtype = type_
+
+    else:
+        assert(False)
+
+    if suffix_type == SuffixType.Unknown:
+        ret.name = value.name + '_st'
+    elif suffix_type == SuffixType.Unused:
+        ret.name = value.name + '_unused'
+    elif suffix_type == SuffixType.Dummy:
+        ret.name = value.name + '_dummy'
+    elif suffix_type == SuffixType.Input:
+        ret.name = value.name + '_in'
+    else:
+        assert(False)
+
+    return ret
+
+
 def generate_value_with_same_type(value: 'values.Value', is_dummy_value = False, suffix_type = SuffixType.Unknown):
     assert(isinstance(value, values.Value))
     ret = None

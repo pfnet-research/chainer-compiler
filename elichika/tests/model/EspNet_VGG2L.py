@@ -92,7 +92,7 @@ class VGG2LBackprop(chainer.Chain):
 import testtools
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -110,7 +110,17 @@ if __name__ == '__main__':
     for l in ilens:
         xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
 
-    testtools.generate_testcase(lambda: VGG2L(1), [xs, ilens])
+    testtools.generate_testcase(VGG2L(1), [xs, ilens], subname='VGGL')
 
-    testtools.generate_testcase(lambda:  VGG2LBackprop(1),
-                           [xs, ilens], backprop=True)
+    # TODO (hamaji): support lambda
+    #testtools.generate_testcase(lambda: VGG2L(1), [xs, ilens], subname='VGGL_lambda')
+
+    testtools.generate_testcase(VGG2LBackprop(1),
+                           [xs, ilens], backprop=True, subname='VGGL_backprop')
+
+    # TODO (hamaji): support lambda
+    #testtools.generate_testcase(lambda:  VGG2LBackprop(1),
+    #                       [xs, ilens], backprop=True, subname='VGGL_backprop_lambda')
+
+if __name__ == '__main__':
+    main()

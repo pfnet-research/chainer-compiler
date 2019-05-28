@@ -17,14 +17,11 @@ import numpy as np
 
 def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
     if value is None:
-        if config.show_warnings:
-            print('Failed to get object {}. in {}'.format(name, lineprop))
+        utils.print_warning('Failed to get {}.'.format(name), lineprop)
         return None
 
     if isinstance(value, values.Value):
-        if config.show_warnings:
-            print('Failed to get object {}. in {}. value is Value.'.format(name, lineprop))
-        return None
+        assert(False)
 
     if isinstance(value, values.Attribute):
         if value.has_obj():
@@ -92,6 +89,11 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
     value_ref = try_get_ref(value, 'attribute', lineprop)
+
+    if(value_ref is None):
+        utils.print_warning('Unknown or disabled attribute "{}" is accessed'.format(get_ast_name_forcibly(astc.nast.value)), lineprop)
+        return None
+
     attr = value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
     # property(getter)
@@ -112,8 +114,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         return attr
         
     # value is unknown
-    if config.show_warnings:
-        print('Assigning value is not found in L.{}'.format(astc.lineno))
+    utils.print_warning('Assigning value {} is not found'.format(get_ast_name_forcibly(astc.nast.value)), lineprop)
     return None
 
 def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
@@ -182,8 +183,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     func = veval_ast(astc.c(astc.nast.func), local_field, graph)
     if func == None or not func.has_obj():
-        if config.show_warnings:
-            print('Unknown function {} is called in L.{}'.format(get_ast_name_forcibly(astc.nast.func) ,astc.lineno))
+        utils.print_warning('Unknown function "{}" is called'.format(get_ast_name_forcibly(astc.nast.func)), astc.lineno)
         return None
 
     func_obj = try_get_ref(func, 'call', lineprop)
@@ -666,14 +666,21 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
     binop = nodes.BinOpType.Unknown
     if isinstance(astc.nast.op, gast.Add):
         binop = nodes.BinOpType.Add
-    if isinstance(astc.nast.op, gast.Sub):
+    elif isinstance(astc.nast.op, gast.Sub):
         binop = nodes.BinOpType.Sub
-    if isinstance(astc.nast.op, gast.Mult):
+    elif isinstance(astc.nast.op, gast.Mult):
         binop = nodes.BinOpType.Mul
+    elif isinstance(astc.nast.op, gast.Div):
+        binop = nodes.BinOpType.Div
+    elif isinstance(astc.nast.op, gast.FloorDiv):
+        binop = nodes.BinOpType.FloorDiv
+    else:
+        utils.print_warning('Unknown binary operator {}'.format(astc.nast.op), lineprop)
+        return None
 
     node_bin_op = nodes.NodeBinOp(left_value, right_value, binop, astc.lineno)
 
-    ret_value = veval_bin.veval(binop, left_value, right_value)
+    ret_value = veval_bin.veval(binop, left_value, right_value, lineprop)
 
     node_bin_op.set_outputs([ret_value])
     graph.add_node(node_bin_op)
@@ -815,6 +822,11 @@ def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : '
         for v in astc.nast.elts:
             a_ = veval_ast(astc.c(v), local_field, graph, option=option)
             v_ = try_get_ref(a_, 'tuple', lineprop)
+            
+            if v_ is None:
+                utils.print_warning('Unknown tuple element {}'.format(v), lineprop)
+                return None
+
             vs_ref.append(v_)
             vs.append(v_.get_value())
             v_.in_container = True

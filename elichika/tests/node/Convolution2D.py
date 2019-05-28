@@ -16,6 +16,16 @@ class A(chainer.Chain):
         y1 = self.l1(x)
         return y1
 
+class SingleParam(chainer.Chain):
+
+    def __init__(self):
+        super(SingleParam, self).__init__()
+        with self.init_scope():
+            self.l1 = L.Convolution2D(20, 10, 3, stride=1, pad=1, nobias=True)
+
+    def forward(self, x):
+        y1 = self.l1(x)
+        return y1
 
 # ======================================
 
@@ -31,6 +41,10 @@ def main():
 
     testtools.generate_testcase(model, [x])
 
+    testtools.generate_testcase(SingleParam(), [x], subname='single_param')
+
+    # TODO (hamaji): support lambda
+    # testtools.generate_testcase(lambda : SingleParam(), [x], subname='single_param_lambda')
 
 if __name__ == '__main__':
     main()
