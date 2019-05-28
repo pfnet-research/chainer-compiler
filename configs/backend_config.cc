@@ -18,6 +18,7 @@ public:
                 ParseSimplify(el.value(), &simplify_);
             } else if (el.key() == "supported_ops") {
                 ParseSupportedOps(el.value(), &supported_ops_);
+                supported_ops_set_ = true;
             } else {
                 std::cerr << "WARNING: Unknown backend config: " << el.key() << std::endl;
             }
@@ -43,6 +44,7 @@ public:
     }
 
     bool HasOp(const std::string& op) const override {
+        if (!supported_ops_set_) return true;
         return supported_ops_.count(op) > 0;
     }
 
@@ -72,6 +74,7 @@ private:
     std::string name_;
     std::set<std::string> simplify_preproc_;
     std::set<std::string> simplify_;
+    bool supported_ops_set_{false};
     std::set<std::string> supported_ops_;
 };
 

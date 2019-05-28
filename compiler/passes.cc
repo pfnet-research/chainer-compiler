@@ -73,15 +73,6 @@ void CheckAllOpsSupported(const BackendConfig& backend_config, Graph* graph) {
     }
 }
 
-void CheckAllOpsSupportedRecursively(const BackendConfig& backend_config, Graph* graph) {
-    if (g_fuse_operations) {
-        // TODO(hamaji): Implement better sanitization for all backend types.
-        CheckAllOpsSupported(backend_config, graph);
-    } else {
-        Recursively([&backend_config](Graph* g) { CheckAllOpsSupported(backend_config, g); }, graph);
-    }
-}
-
 }  //  namespace
 
 void RunDefaultPasses(Model* model, bool gen_backprop) {
@@ -201,7 +192,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     dump_onnx(g_dump_after_scheduling, "after scheduling");
 
-    CheckAllOpsSupportedRecursively(*backend_config, graph);
+    Recursively(*backend_config, graph, CheckAllOpsSupported);
 }
 
 void RunDefaultPassesBeforeGradient(Graph* graph) {
@@ -211,7 +202,7 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     Recursively(*backend_config, graph, [](const BackendConfig& bc, Graph* graph) { Simplify(bc.GetSimplify(), graph, true); });
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
-    CheckAllOpsSupportedRecursively(*backend_config, graph);
+    Recursively(*backend_config, graph, CheckAllOpsSupported);
 }
 
 }  // namespace chainer_compiler
