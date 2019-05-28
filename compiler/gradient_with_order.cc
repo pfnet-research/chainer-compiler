@@ -260,8 +260,14 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 // computation node to the last forward computation.
                 // Copying inputs is necessary to accumulate gradients.
                 if (node != orig_node) {
+                    for (Value* input : node->inputs()) {
+                        CHECK(!input->grad()) << "the gradient of input should be empty: " << input->DebugString();
+                    }
+                    for (Value* input : orig_node->inputs()) {
+                        CHECK(!input->grad()) << "the gradient of input should be empty: " << input->DebugString();
+                    }
                     for (const auto& p : Zip(node->inputs(), orig_node->inputs())) {
-                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
+                        // std::get<0>(p)->set_grad(std::get<1>(p)->grad());
                     }
                     for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
                         std::get<0>(p)->set_grad(std::get<1>(p)->grad());
@@ -295,10 +301,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
 
                 // Copy back gradients of inputs from the last forward
                 // computation to the original node.
-                if (node != orig_node) {
-                    for (const auto& p : Zip(orig_node->inputs(), node->inputs())) {
-                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
-                    }
+                for (const auto& p : Zip(orig_node->inputs(), staged_inputs)) {
+                    std::get<0>(p)->set_grad(std::get<1>(p)->grad());
                 }
 
                 break;
