@@ -22,40 +22,50 @@ ChxVMVar::ChxVMVar(Kind kind) : kind_(kind) {
     CHECK_NE(kind_, Kind::kArray);
     CHECK_NE(kind_, Kind::kOpaque);
     if (kind_ == Kind::kSequence) {
-        sequence_.reset(new ChxVMSequence());
+        val_ = std::make_shared<ChxVMSequence>();
     }
 }
 
-ChxVMVar::ChxVMVar(chainerx::Array array) : kind_(Kind::kArray), array_(array) {
+ChxVMVar::ChxVMVar(chainerx::Array array) : kind_(Kind::kArray), val_(array) {
 }
 
-ChxVMVar::ChxVMVar(ChxVMOpaque* opaque) : kind_(Kind::kOpaque), opaque_(opaque) {
+ChxVMVar::ChxVMVar(ChxVMOpaque* opaque) : kind_(Kind::kOpaque), val_(std::shared_ptr<ChxVMOpaque>(opaque)) {
 }
 
 const chainerx::Array& ChxVMVar::GetArray() const {
     CHECK_EQ(kind_, Kind::kArray);
-    return array_;
+    return absl::get<chainerx::Array>(val_);
 }
 
 ChxVMSequence* ChxVMVar::GetSequence() const {
     CHECK_EQ(kind_, Kind::kSequence);
-    return sequence_.get();
+    return absl::get<std::shared_ptr<ChxVMSequence>>(val_).get();
 }
 
 ChxVMOpaque* ChxVMVar::GetOpaque() const {
     CHECK_EQ(kind_, Kind::kOpaque);
-    return opaque_.get();
+    return absl::get<std::shared_ptr<ChxVMOpaque>>(val_).get();
+}
+
+const chainerx::Scalar& ChxVMVar::GetScalar() const {
+    return absl::get<chainerx::Scalar>(val_);
+}
+
+const chainerx::Shape& ChxVMVar::GetShape() const {
+    return absl::get<chainerx::Shape>(val_);
 }
 
 int64_t ChxVMVar::GetNBytes() const {
     int64_t size = 0;
     switch (kind_) {
         case Kind::kArray:
-            size = array_.GetNBytes();
+            size = GetArray().GetNBytes();
             break;
         case Kind::kSequence:
-            for (const ChxVMVar& v : *sequence_) size += v.GetArray().GetNBytes();
+            for (const ChxVMVar& v : *GetSequence()) size += v.GetArray().GetNBytes();
             break;
+        case Kind::kShape:
+        case Kind::kScalar:
         case Kind::kOpaque:
         case Kind::kNull:
             CHECK(false) << DebugString();
@@ -66,10 +76,10 @@ int64_t ChxVMVar::GetNBytes() const {
 std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
     switch (kind_) {
         case Kind::kArray:
-            return {array_};
+            return {GetArray()};
         case Kind::kSequence: {
             std::vector<chainerx::Array> arrays;
-            for (const ChxVMVar& v : *sequence_) {
+            for (const ChxVMVar& v : *GetSequence()) {
                 for (const chainerx::Array a : v.GetArrays()) {
                     arrays.push_back(a);
                 }
@@ -77,7 +87,7 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
             return arrays;
         }
         case Kind::kOpaque:
-            return opaque_->GetArrays();
+            return GetOpaque()->GetArrays();
 
         case Kind::kNull:
             return {};
@@ -96,6 +106,8 @@ char ChxVMVar::Sigil() const {
             return '$';
         case Kind::kOpaque:
             return '*';
+        case Kind::kShape:
+        case Kind::kScalar:
         case Kind::kNull:
             CHECK(false);
     }
@@ -105,13 +117,16 @@ char ChxVMVar::Sigil() const {
 std::string ChxVMVar::ToString() const {
     switch (kind_) {
         case Kind::kArray:
-            return array_.shape().ToString();
+            return GetArray().shape().ToString();
         case Kind::kSequence:
-            return StrCat('[', JoinString(MapToString(*sequence_, [this](const ChxVMVar& v) { return v.ToString(); })), ']');
+            return StrCat('[', JoinString(MapToString(*GetSequence(), [this](const ChxVMVar& v) { return v.ToString(); })), ']');
         case Kind::kOpaque:
-            return opaque_->ToString();
+            return GetOpaque()->ToString();
         case Kind::kNull:
             return "(null)";
+        case Kind::kShape:
+        case Kind::kScalar:
+            break;
     }
     CHECK(false);
 }
@@ -119,13 +134,16 @@ std::string ChxVMVar::ToString() const {
 std::string ChxVMVar::DebugString() const {
     switch (kind_) {
         case Kind::kArray:
-            return array_.ToString();
+            return GetArray().ToString();
         case Kind::kSequence:
-            return StrCat('[', JoinString(MapToString(*sequence_, [this](const ChxVMVar& v) { return v.DebugString(); })), ']');
+            return StrCat('[', JoinString(MapToString(*GetSequence(), [this](const ChxVMVar& v) { return v.DebugString(); })), ']');
         case Kind::kOpaque:
-            return opaque_->DebugString();
+            return GetOpaque()->DebugString();
         case Kind::kNull:
             return "(null)";
+        case Kind::kShape:
+        case Kind::kScalar:
+            break;
     }
     CHECK(false);
 }

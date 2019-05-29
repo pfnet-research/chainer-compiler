@@ -207,6 +207,10 @@ set(ONNX_CHAINER_DEPS
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/pooling.py
   )
 
+add_subdirectory(third_party/abseil)
+set(ABSEIL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/abseil)
+include_directories(${ABSEIL_INCLUDE_DIRS})
+
 add_subdirectory(compiler)
 add_subdirectory(common)
 add_subdirectory(configs)

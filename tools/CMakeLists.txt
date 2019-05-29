@@ -63,6 +63,7 @@ target_link_libraries(run_onnx
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  absl::variant
   )
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
@@ -98,6 +99,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     ${CHAINER_COMPILER_TVM_LIBRARIES}
     ${CHAINER_COMPILER_CUDA_LIBRARIES}
     ${OpenCV_LIBS}
+    absl::variant
     )
   set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
 endif()
@@ -124,6 +126,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
     ${CHAINER_COMPILER_CUDA_LIBRARIES}
+    absl::variant
     )
   set_target_properties(run_onnx_core.so
     PROPERTIES
@@ -152,6 +155,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       ${CHAINER_COMPILER_TVM_LIBRARIES}
       ${CHAINER_COMPILER_CUDA_LIBRARIES}
       ${OpenCV_LIBS}
+      absl::variant
       )
     set_target_properties(train_imagenet_core.so
       PROPERTIES
