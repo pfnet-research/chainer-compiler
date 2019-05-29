@@ -10,6 +10,25 @@ import chainer.links as L
 
 import numpy as np
 
+class NDArrayInt32(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'int32'
+        self.dtype = np.int32
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        assert(inst is None)
+        return values.ValueRef(values.NoneValue)
+
+class NDArrayFloat32(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'float32'
+        self.dtype = np.float32
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        assert(inst is None)
+        return values.ValueRef(values.NoneValue)
+
 class NDArrayFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
@@ -31,7 +50,7 @@ class NDArrayFunction(functions.FunctionBase):
         dtype_value = vargs[1]
         if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
-            dtype = utils.int_2_numpy_type(dtype_value.internal_value)
+            dtype = np.array(1, dtype=dtype_value.func.dtype).dtype
         elif isinstance(vargs[0], values.TensorValue):
             dtype = vargs[0].dtype
         else:
@@ -62,7 +81,7 @@ class NDArrayZerosFunction(functions.FunctionBase):
         dtype_value = vargs[1]
         if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
-            dtype = utils.int_2_numpy_type(dtype_value.internal_value)
+            dtype = np.array(1, dtype=dtype_value.func.dtype).dtype
         else:
             dtype = np.array(vargs[1].internal_value).dtype
 

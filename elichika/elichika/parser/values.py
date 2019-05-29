@@ -84,10 +84,10 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         if ret is not None:
             return ValueRef(ret)
 
-    if inspect.ismethod(instance) or inspect.isfunction(instance):
-        if instance in function_converters.keys():
-            func = function_converters[instance]
-            return ValueRef(func)
+    #if inspect.ismethod(instance) or inspect.isfunction(instance) or isinstance(instance, np.ufunc):
+    if instance in function_converters.keys():
+        func = function_converters[instance]
+        return ValueRef(func)
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):

@@ -318,7 +318,13 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         func = init_func[0]
         self.inst = func
         self.name = func.__name__
-        self.lineno = inspect.getsourcelines(func)[1]
+
+        sourcelines = inspect.getsourcelines(func)
+        if sourcelines is None or len(sourcelines) < 1:
+            utils.print_warning('Failed to parase {}'.format(classinfo), utils.LineProperty())
+            return
+
+        self.lineno = sourcelines[1]
         self.classinfo = classinfo
 
         original_code = inspect.getsource(func)

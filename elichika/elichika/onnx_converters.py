@@ -1288,10 +1288,8 @@ class ONNXGenerator:
                     onnx_graph.nodes.append(onnx_node)
 
                 if node_.classtype == 'array':
-                    dtype_value = try_get_attribute(
-                        node.args.get_value('dtype'))
-                    if dtype_value is not None:
-                        dtype = utils.int_2_numpy_type(dtype_value)
+                    if isinstance(node.args.get_value('dtype'), values.FuncValue):
+                        dtype = node.args.get_value('dtype').func.dtype
                     else:
                         dtype = None
 
@@ -1338,10 +1336,8 @@ class ONNXGenerator:
                             str(node.lineprop))
 
                 if node_.classtype == 'zeros':
-                    dtype_value = try_get_attribute(
-                        node.args.get_value('dtype'))
-                    if dtype_value is not None:
-                        dtype = utils.int_2_numpy_type(dtype_value)
+                    if isinstance(node.args.get_value('dtype'), values.FuncValue):
+                        dtype = node.args.get_value('dtype').func.dtype
                     else:
                         dtype = None
                     order = try_get_attribute(node.args.get_value('order'))
@@ -1356,10 +1352,8 @@ class ONNXGenerator:
                         dtype=get_onnx_dtype(dtype))
 
                 if node_.classtype == 'full':
-                    dtype_value = try_get_attribute(
-                        node.args.get_value('dtype'))
-                    if dtype_value is not None:
-                        dtype = utils.int_2_numpy_type(dtype_value)
+                    if isinstance(node.args.get_value('dtype'), values.FuncValue):
+                        dtype = node.args.get_value('dtype').func.dtype
                     else:
                         dtype = None
                     order = try_get_attribute(node.args.get_value('order'))

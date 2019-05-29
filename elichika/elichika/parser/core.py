@@ -70,7 +70,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
         F, default_module.internal_module)
 
     if chainer_functions_module_name != '':
-        f_dict = values.ValueRef(values.ModuleValue())
+        #f_dict = values.ValueRef(values.ModuleValue())
 
         def add_chainer_funtion(name:'str', func, ret_value_func = None):
             if ret_value_func is None:
@@ -79,7 +79,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
             else:
                 f = values.FuncValue(
                     functions_builtin.ChainerFunction(func, ret_value_func=ret_value_func), None)
-            f_dict.get_field().get_attribute(name).revise(values.ValueRef(f))
+            #f_dict.get_field().get_attribute(name).revise(values.ValueRef(f))
 
             values.function_converters[func] = f
 
@@ -122,7 +122,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
         add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
 
-        default_module.set_default_value(chainer_functions_module_name, f_dict)
+        #default_module.set_default_value(chainer_functions_module_name, f_dict)
 
     # numpy
     numpy_module_name = get_module_name(np, default_module.internal_module)
@@ -144,12 +144,19 @@ def convert_model(model: 'chainer.Chain', args=[]):
         f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
         f_dict.get_field().get_attribute('cumsum').revise(values.ValueRef(f_cumsum))
 
-        f_dict.get_field().get_attribute('int32').revise(
-            values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))
-        f_dict.get_field().get_attribute('float32').revise(
-            values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.float32))))
+        f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
+        f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
 
-        default_module.set_default_value(numpy_module_name, f_dict)
+        values.function_converters[np.array] = f_array
+        values.function_converters[np.zeros] = f_zeros
+        values.function_converters[np.full] = f_full
+        values.function_converters[np.ceil] = f_ceil
+        values.function_converters[np.cumsum] = f_cumsum
+        values.function_converters[np.int32] = f_int32
+        values.function_converters[np.float32] = f_float32
+
+
+        #default_module.set_default_value(numpy_module_name, f_dict)
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     default_module.set_default_value('range', values.ValueRef(m_range))
