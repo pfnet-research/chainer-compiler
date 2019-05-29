@@ -143,6 +143,10 @@ def get_backprop_tests():
     #      lambda m: F.normalize(m.x, axis=1),
     #      x=aranges(2, 5, 3, 3))
 
+    # test case for computation_order
+    test('tanh2', lambda m: F.tanh(F.tanh(m.a)), a=[0.3, 0.6])
+    test('mul2', lambda m: (m.a * m.a) * m.a, a=[0.3, 0.6])
+
     return tests
 
 
