@@ -132,6 +132,10 @@ void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value
 
         // Update the staged value to the retained one
         p.second = i;
+        if (value->IsOutput()) {
+            // Set grad information for retained output
+            i->set_grad(value->grad());
+        }
     }
 }
 
