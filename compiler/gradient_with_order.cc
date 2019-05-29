@@ -141,8 +141,7 @@ bool IsComputationOrderSupported(const Graph& graph) {
     return true;
 }
 
-std::vector<Value*> GetStagedValues(const std::map<Value*, Value*>& staged,
-                                    const std::vector<Value*>& values) {
+std::vector<Value*> GetStagedValues(const std::map<Value*, Value*>& staged, const std::vector<Value*>& values) {
     std::vector<Value*> ret;
     for (Value* value : values) {
         auto found = staged.find(value);
@@ -280,7 +279,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 const std::vector<Value*> inputs = node->inputs();
                 const std::vector<Value*> outputs = node->outputs();
                 const std::vector<Value*> staged_inputs = GetStagedValues(staged, orig_node->inputs());
-                const std::vector<Value*> staged_outputs = GetStagedValues(staged, orig_node->outputs());;
+                const std::vector<Value*> staged_outputs = GetStagedValues(staged, orig_node->outputs());
+                ;
                 for (const auto& p : Zip(inputs, staged_inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
                     std::get<0>(p)->DetachUser(node);
