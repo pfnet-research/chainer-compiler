@@ -28,7 +28,6 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add("dump_subgraphs", '\0', "Dump the subgraph tree of the ONNX graph");
     args->add<std::string>("computation_order", '\0', "Run the specified policy of computation order (backprop only)", false);
     args->add<int>("chen_budget", '\0', "Memory budget of Chen's policy (in MB)", 0);
-    args->add<std::string>("custom_computation_order", '\0', "Computation order string in CustomPolicy", false);
 }
 
 void ApplyCompilerFlags(const cmdline::parser& args) {
@@ -54,7 +53,6 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_dump_subgraphs = args.exist("dump_subgraphs");
     g_computation_order = args.get<std::string>("computation_order");
     g_chen_budget = args.get<int>("chen_budget");
-    g_custom_computation_order = args.get<std::string>("custom_computation_order");
 }
 
 }  // namespace runtime

@@ -70,6 +70,5 @@ extern bool g_dump_subgraphs;
 // The policy of computation order.
 extern std::string g_computation_order;
 extern int g_chen_budget;
-extern std::string g_custom_computation_order;
 
 }  // namespace chainer_compiler

@@ -100,8 +100,8 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
         return DummyPolicy(graph);
     } else if (policy == "dummy2") {
         return DummyPolicy2(graph);
-    } else if (policy == "custom") {
-        return CustomPolicy(graph);
+    } else if (policy.find("custom_") != std::string::npos) {
+        return CustomPolicy(graph, policy.substr(7));
     } else if (policy == "chen") {
         return ChenPolicy(graph);
     } else {
