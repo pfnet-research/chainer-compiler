@@ -62,10 +62,11 @@ def get_ast_name_forcibly(ast):
     return ''
 
 class AstContext:
-    def __init__(self, nast, lineno_offset : 'int'):
+    def __init__(self, nast, lineno_offset : 'int', filename : 'str' = '' ):
         self.nast = nast
         self.lineno_offset = lineno_offset
         self.lineno = self.lineno_offset
+        self.filename = filename
         if hasattr(self.nast, 'lineno'):
             self.lineno = self.nast.lineno + self.lineno_offset
 
@@ -73,7 +74,7 @@ class AstContext:
         """
         get AstContext including value
         """
-        return AstContext(value, self.lineno_offset)
+        return AstContext(value, self.lineno_offset, filename=self.filename)
 
 class VEvalOption:
     def __init__(self):
@@ -81,7 +82,7 @@ class VEvalOption:
 
 def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Attribute))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     from_module = True
     if option is not None and option.eval_as_written_target:
@@ -119,7 +120,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
 
 def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.Assign))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
     value_obj = try_get_ref(value, 'assign', lineprop)
@@ -179,11 +180,11 @@ def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
 def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph') -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Call))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     func = veval_ast(astc.c(astc.nast.func), local_field, graph)
     if func == None or not func.has_obj():
-        utils.print_warning('Unknown function "{}" is called'.format(get_ast_name_forcibly(astc.nast.func)), astc.lineno)
+        utils.print_warning('Unknown function "{}" is called'.format(get_ast_name_forcibly(astc.nast.func)), lineprop)
         return None
 
     func_obj = try_get_ref(func, 'call', lineprop)
@@ -199,7 +200,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         arg_ = veval_ast(astc.c(keyword.value), local_field, graph)
         finput.keywords[keyword.arg] = try_get_ref(arg_, 'call', lineprop)
 
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     ret = None
     if isinstance(func_value, values.FuncValue):
@@ -209,7 +210,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     elif isinstance(func_value, values.Instance):
         # __call__
         call_func_ref = func_obj.try_get_and_store_obj('__call__', graph.root_graph)
-        if call_func_ref is not None:        
+        if call_func_ref is not None:
             ret = call_func_ref.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
             return ret
 
@@ -221,7 +222,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     
 def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph') -> 'None':
     assert(isinstance(astc.nast, gast.gast.Return))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
     value_obj = try_get_ref(value, 'return', lineprop)
@@ -238,7 +239,7 @@ def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 
 
 def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.If))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     # if condition
     test = veval_ast(astc.c(astc.nast.test), local_field, graph)
@@ -386,7 +387,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
 def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
     assert(isinstance(astc.nast, gast.gast.AugAssign))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     target = veval_ast(astc.c(astc.nast.target), local_field, graph)
     value = veval_ast(astc.c(astc.nast.value), local_field, graph)
@@ -422,7 +423,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
     Ex. x[1], x[y,z]
     '''
     assert(isinstance(astc.nast, gast.gast.Subscript))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     def veval_with_default(nast, default_value):
         if nast is None:
@@ -503,7 +504,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     [elt for target in iter]
     '''
     assert(isinstance(astc.nast, gast.gast.ListComp))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     listcomp_guid = str(utils.get_guid())
     listcomp_id = 'listcomp_' + listcomp_guid
@@ -655,7 +656,7 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
     Ex. a + b, b // c, etc
     """
     assert(isinstance(astc.nast, gast.gast.BinOp))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     left = veval_ast(astc.c(astc.nast.left), local_field, graph)
     right = veval_ast(astc.c(astc.nast.right), local_field, graph)
@@ -693,7 +694,7 @@ def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph 
     Ex. -xx
     """
     assert(isinstance(astc.nast, gast.gast.UnaryOp))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     unaryop = nodes.UnaryOpType.Unknown
     if isinstance(astc.nast.op, gast.UAdd):
@@ -722,7 +723,7 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
     Ex. a >= b, a != b, a is b, etc
     """
     assert(isinstance(astc.nast, gast.gast.Compare))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     left = veval_ast(astc.c(astc.nast.left), local_field, graph)
     right = veval_ast(astc.c(astc.nast.comparators[0]), local_field, graph)
@@ -763,7 +764,7 @@ def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     Ex. 1, 2, ...
     '''
     assert(isinstance(astc.nast, gast.gast.Num))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
     value = values.NumberValue(astc.nast.n)
     ret = values.ValueRef(value)
 
@@ -777,7 +778,7 @@ def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     Ex. "str"
     '''
     assert(isinstance(astc.nast, gast.gast.Str))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
     value = values.StrValue(astc.nast.s)
     ret = values.ValueRef(value)
 
@@ -791,7 +792,7 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     Ex. True
     '''
     assert(isinstance(astc.nast, gast.gast.NameConstant))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
     ret = None
     if astc.nast.value == True:
         ret = values.ValueRef(values.BoolValue(True))
@@ -807,7 +808,7 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
 
 def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     assert(isinstance(astc.nast, gast.gast.Tuple))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     if option is not None and option.eval_as_written_target:
         vs = []
@@ -845,7 +846,7 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     Ex. [],[x,y,z]
     TODO : Initializer
     '''
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     elts = []
     for elt in astc.nast.elts:
@@ -867,7 +868,7 @@ def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListV
     with unroll
     '''
     assert(isinstance(astc.nast, gast.gast.For))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     for element in iter_.get_constant_value():
         local_field.get_attribute(target_name).revise(element)
@@ -881,7 +882,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         ...
     '''
     assert(isinstance(astc.nast, gast.gast.For))
-    lineprop = utils.LineProperty(astc.lineno)
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     # for target in iter:
     iter_ = veval_ast(astc.c(astc.nast.iter), local_field, graph)
@@ -1027,7 +1028,7 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
     if isinstance(astc.nast, list):
         ret = None
         for nast_ in astc.nast:
-            ret = veval_ast(AstContext(nast_, astc.lineno_offset), local_field, graph)
+            ret = veval_ast(AstContext(nast_, astc.lineno_offset, filename=astc.filename), local_field, graph)
             if ret is not None:
                 break
         return ret

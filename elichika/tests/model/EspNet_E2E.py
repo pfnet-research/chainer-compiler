@@ -244,7 +244,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
 
-import ch2o
+import testtools
 
 
 class Args(object):
@@ -575,11 +575,11 @@ def gen_test():
         actual = model.forward(xs, ilens, ys)
         assert np.allclose(expected.array, actual.array)
 
-        ch2o.generate_testcase(model_fn, [xs, ilens, ys], subname=subname)
+        testtools.generate_testcase(model_fn, [xs, ilens, ys], subname=subname)
 
     gen_test(lambda: E2E(idim, odim, args))
 
-    ch2o.generate_testcase(lambda: E2E(idim, odim, args, nobias=True),
+    testtools.generate_testcase(lambda: E2E(idim, odim, args, nobias=True),
                            [xs, ilens, ys], backprop=True)
 
 
@@ -621,7 +621,7 @@ def gen(output, recipe, bwd=True, use_gpu=False):
     test_args.get_test_args([output, '--allow-unused-params'])
 
     (idim, odim, args), (xs, ilens, ys) = recipe
-    ch2o.generate_testcase(lambda: E2E(idim, odim, args),
+    testtools.generate_testcase(lambda: E2E(idim, odim, args),
                            [xs, ilens, ys], backprop=bwd, use_gpu=use_gpu)
 
 
