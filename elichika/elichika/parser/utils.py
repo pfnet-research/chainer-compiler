@@ -24,6 +24,9 @@ def reset_guid():
 def print_warning(s, lineprop):
     print('warning : {} in {}'.format(s, lineprop))
 
+def print_error(s, lineprop):
+    print('error : {} in {}'.format(s, lineprop))
+
 def is_disabled_module(m):
     return m in config.disabled_modules
 

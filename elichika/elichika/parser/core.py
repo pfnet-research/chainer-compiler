@@ -16,7 +16,7 @@ from elichika.parser import functions_ndarray
 from elichika.parser import utils
 from elichika.parser.graphs import Graph
 import numpy as np
-
+import six
 
 def get_module_name(target_module, parent_module):
     members = inspect.getmembers(parent_module)
@@ -125,6 +125,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     default_module.set_default_value('range', values.ValueRef(m_range))
+
+    #values.function_converters[range] = m_range
+    values.function_converters[six.moves.range] = m_range
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
     default_module.set_default_value('list', values.ValueRef(m_list))

@@ -48,7 +48,22 @@ class NDArrayFunction(functions.FunctionBase):
         vargs = funcArgs.get_value().inputs
 
         dtype_value = vargs[1]
-        if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
+        if isinstance(dtype_value, values.StrValue):
+            if not dtype_value.has_constant_value():
+                utils.print_error('Failed to get dtype str ', line)
+                return None
+
+            if dtype_value.get_constant_value() == 'q':
+                dtype = np.int64
+            elif dtype_value.get_constant_value() == 'i':
+                dtype = np.int32
+            elif dtype_value.get_constant_value() == 'g':
+                dtype = np.float64
+            elif dtype_value.get_constant_value() == 'f':
+                dtype = np.float32
+            else:
+                assert(False)
+        elif dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
             dtype = np.array(1, dtype=dtype_value.func.dtype).dtype
         elif isinstance(vargs[0], values.TensorValue):
@@ -79,7 +94,22 @@ class NDArrayZerosFunction(functions.FunctionBase):
         vargs = funcArgs.get_value().inputs
 
         dtype_value = vargs[1]
-        if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
+        if isinstance(dtype_value, values.StrValue):
+            if not dtype_value.has_constant_value():
+                utils.print_error('Failed to get dtype str ', line)
+                return None
+
+            if dtype_value.get_constant_value() == 'q':
+                dtype = np.int64
+            elif dtype_value.get_constant_value() == 'i':
+                dtype = np.int32
+            elif dtype_value.get_constant_value() == 'g':
+                dtype = np.float64
+            elif dtype_value.get_constant_value() == 'f':
+                dtype = np.float32
+            else:
+                assert(False)
+        elif dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
             dtype = np.array(1, dtype=dtype_value.func.dtype).dtype
         else:
@@ -109,7 +139,22 @@ class NDArrayFullFunction(functions.FunctionBase):
         vargs = funcArgs.get_value().inputs
 
         dtype_value = vargs[2]
-        if dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
+        if isinstance(dtype_value, values.StrValue):
+            if not dtype_value.has_constant_value():
+                utils.print_error('Failed to get dtype str ', line)
+                return None
+
+            if dtype_value.get_constant_value() == 'q':
+                dtype = np.int64
+            elif dtype_value.get_constant_value() == 'i':
+                dtype = np.int32
+            elif dtype_value.get_constant_value() == 'g':
+                dtype = np.float64
+            elif dtype_value.get_constant_value() == 'f':
+                dtype = np.float32
+            else:
+                assert(False)
+        elif dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
             dtype = utils.int_2_numpy_type(dtype_value.internal_value)
         else:
