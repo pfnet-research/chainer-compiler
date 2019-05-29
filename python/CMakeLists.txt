@@ -20,6 +20,7 @@ target_link_libraries(chainer_compiler_core.so
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  absl::variant
   )
 set_target_properties(chainer_compiler_core.so
     PROPERTIES
