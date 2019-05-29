@@ -16,7 +16,7 @@ from elichika.parser import functions_ndarray
 from elichika.parser import utils
 from elichika.parser.graphs import Graph
 import numpy as np
-
+import six
 
 def get_module_name(target_module, parent_module):
     members = inspect.getmembers(parent_module)
@@ -53,106 +53,81 @@ def convert_model(model: 'chainer.Chain', args=[]):
     default_module = values.Module(sys.modules[model.__module__])
 
     # chainer
-    chainer_module_name = get_module_name(
-        C, default_module.internal_module)
-
-    if chainer_module_name != '':
-        c_dict = values.ValueRef(values.ModuleValue())
-
-        # a substitute of Variable
-        c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
-        c_dict.get_field().get_attribute('Variable').revise(values.ValueRef(c_variable))
-
-        default_module.set_default_value(chainer_module_name, c_dict)
+    c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
+    values.function_converters[chainer.Variable] = c_variable
 
     # chainer.functions
-    chainer_functions_module_name = get_module_name(
-        F, default_module.internal_module)
+    def add_chainer_funtion(name:'str', func, ret_value_func = None):
+        if ret_value_func is None:
+            f = values.FuncValue(
+                functions_builtin.ChainerFunction(func), None)
+        else:
+            f = values.FuncValue(
+                functions_builtin.ChainerFunction(func, ret_value_func=ret_value_func), None)
 
-    if chainer_functions_module_name != '':
-        f_dict = values.ValueRef(values.ModuleValue())
+        values.function_converters[func] = f
 
-        def add_chainer_funtion(name:'str', func, ret_value_func = None):
-            if ret_value_func is None:
-                f = values.FuncValue(
-                    functions_builtin.ChainerFunction(func), None)
-            else:
-                f = values.FuncValue(
-                    functions_builtin.ChainerFunction(func, ret_value_func=ret_value_func), None)
-            f_dict.get_field().get_attribute(name).revise(values.ValueRef(f))
+    def ret_tuple():
+        return values.TupleValue()
 
-            values.function_converters[func] = f
+    add_chainer_funtion('relu', F.relu)
+    add_chainer_funtion('softmax', F.softmax)
+    add_chainer_funtion('softmax_cross_entropy', F.softmax_cross_entropy)
+    add_chainer_funtion('pad_sequence', F.pad_sequence)
+    add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
+    add_chainer_funtion('unpooling_2d', F.unpooling_2d)
+    add_chainer_funtion('reshape', F.reshape)
+    add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
+    add_chainer_funtion('hstack', F.hstack)
+    add_chainer_funtion('vstack', F.vstack)
+    add_chainer_funtion('stack', F.stack)
+    add_chainer_funtion('separate', F.separate, ret_value_func=ret_tuple)
+    add_chainer_funtion('squeeze', F.squeeze)        
+    add_chainer_funtion('swapaxes', F.swapaxes)
+    add_chainer_funtion('dropout', F.dropout)
+    add_chainer_funtion('concat', F.concat)
+    add_chainer_funtion('matmul', F.matmul)
+    add_chainer_funtion('max_pooling_2d', F.max_pooling_2d)
+    add_chainer_funtion('resize_images', F.resize_images)
+    add_chainer_funtion('tanh', F.tanh)
+    add_chainer_funtion('sigmoid', F.sigmoid)
+    add_chainer_funtion('broadcast_to', F.broadcast_to)
+    add_chainer_funtion('expand_dims', F.expand_dims)
+    add_chainer_funtion('local_response_normalization', F.local_response_normalization)
+    add_chainer_funtion('mean', F.mean)
+    add_chainer_funtion('average', F.average)
+    add_chainer_funtion('sum', F.sum)
 
-        def ret_tuple():
-            return values.TupleValue()
+    if int(chainer.__version__[0]) >= 6:
+        add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
+        add_chainer_funtion('roi_average_pooling_2d', F.roi_average_pooling_2d)
+        add_chainer_funtion('roi_max_align_2d', F.roi_max_align_2d)
 
-        add_chainer_funtion('relu', F.relu)
-        add_chainer_funtion('softmax', F.softmax)
-        add_chainer_funtion('softmax_cross_entropy', F.softmax_cross_entropy)
-        add_chainer_funtion('pad_sequence', F.pad_sequence)
-        add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
-        add_chainer_funtion('unpooling_2d', F.unpooling_2d)
-        add_chainer_funtion('reshape', F.reshape)
-        add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
-        add_chainer_funtion('hstack', F.hstack)
-        add_chainer_funtion('vstack', F.vstack)
-        add_chainer_funtion('stack', F.stack)
-        add_chainer_funtion('separate', F.separate, ret_value_func=ret_tuple)
-        add_chainer_funtion('squeeze', F.squeeze)        
-        add_chainer_funtion('reshape', F.reshape)
-        add_chainer_funtion('swapaxes', F.swapaxes)
-        add_chainer_funtion('dropout', F.dropout)
-        add_chainer_funtion('concat', F.concat)
-        add_chainer_funtion('matmul', F.matmul)
-        add_chainer_funtion('max_pooling_2d', F.max_pooling_2d)
-        add_chainer_funtion('resize_images', F.resize_images)
-        add_chainer_funtion('tanh', F.tanh)
-        add_chainer_funtion('sigmoid', F.sigmoid)
-        add_chainer_funtion('broadcast_to', F.broadcast_to)
-        add_chainer_funtion('expand_dims', F.expand_dims)
-        add_chainer_funtion('local_response_normalization', F.local_response_normalization)
-        add_chainer_funtion('mean', F.mean)
-        add_chainer_funtion('average', F.average)
-        add_chainer_funtion('sum', F.sum)
-
-        if int(chainer.__version__[0]) >= 6:
-            add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
-            add_chainer_funtion('roi_average_pooling_2d', F.roi_average_pooling_2d)
-            add_chainer_funtion('roi_max_align_2d', F.roi_max_align_2d)
-
-        add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
-
-        default_module.set_default_value(chainer_functions_module_name, f_dict)
+    add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
 
     # numpy
-    numpy_module_name = get_module_name(np, default_module.internal_module)
-    if numpy_module_name != '':
-        f_dict = values.ValueRef(values.ModuleValue())
+    f_array = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
+    f_zeros = values.FuncValue(functions_ndarray.NDArrayZerosFunction(), None)
+    f_full = values.FuncValue(functions_ndarray.NDArrayFullFunction(), None)
+    f_ceil = values.FuncValue(functions_ndarray.NDArrayCeilFunction(), None)
+    f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
 
-        f_array = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
-        f_dict.get_field().get_attribute('array').revise(values.ValueRef(f_array))
+    f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
+    f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
 
-        f_zeros = values.FuncValue(functions_ndarray.NDArrayZerosFunction(), None)
-        f_dict.get_field().get_attribute('zeros').revise(values.ValueRef(f_zeros))
-
-        f_full = values.FuncValue(functions_ndarray.NDArrayFullFunction(), None)
-        f_dict.get_field().get_attribute('full').revise(values.ValueRef(f_full))
-
-        f_ceil = values.FuncValue(functions_ndarray.NDArrayCeilFunction(), None)
-        f_dict.get_field().get_attribute('ceil').revise(values.ValueRef(f_ceil))
-
-        f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
-        f_dict.get_field().get_attribute('cumsum').revise(values.ValueRef(f_cumsum))
-
-        f_dict.get_field().get_attribute('int32').revise(
-            values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.int32))))
-        f_dict.get_field().get_attribute('float32').revise(
-            values.ValueRef(values.NumberValue(utils.numpy_type_2_int(np.float32))))
-
-        default_module.set_default_value(numpy_module_name, f_dict)
+    values.function_converters[np.array] = f_array
+    values.function_converters[np.zeros] = f_zeros
+    values.function_converters[np.full] = f_full
+    values.function_converters[np.ceil] = f_ceil
+    values.function_converters[np.cumsum] = f_cumsum
+    values.function_converters[np.int32] = f_int32
+    values.function_converters[np.float32] = f_float32
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     default_module.set_default_value('range', values.ValueRef(m_range))
+
+    #values.function_converters[range] = m_range
+    values.function_converters[six.moves.range] = m_range
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
     default_module.set_default_value('list', values.ValueRef(m_list))

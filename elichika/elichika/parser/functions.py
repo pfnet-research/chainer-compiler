@@ -318,7 +318,14 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         func = init_func[0]
         self.inst = func
         self.name = func.__name__
-        self.lineno = inspect.getsourcelines(func)[1]
+        self.filename = inspect.getfile(func)
+
+        sourcelines = inspect.getsourcelines(func)
+        if sourcelines is None or len(sourcelines) < 1:
+            utils.print_warning('Failed to parase {}'.format(classinfo), utils.LineProperty())
+            return
+
+        self.lineno = sourcelines[1]
         self.classinfo = classinfo
 
         original_code = inspect.getsource(func)
@@ -342,7 +349,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         for k, v in funcArgs.keywords.items():
             func_field.get_field().get_attribute(k).revise(v)
 
-        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1)
+        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         vevaluator.veval_ast(astc, func_field, graph)
 
         return ret
@@ -354,7 +361,9 @@ class UserDefinedFunction(FunctionBase):
 
         self.inst = func
         self.name = func.__name__
-        self.lineno = inspect.getsourcelines(func)[1]
+        self.filename = inspect.getfile(func)
+        sourcelines = inspect.getsourcelines(func)
+        self.lineno = sourcelines[1]
 
         code = utils.clip_head(inspect.getsource(func))
 
@@ -372,5 +381,5 @@ class UserDefinedFunction(FunctionBase):
         for k, v in funcArgs.keywords.items():
             func_field.get_field().get_attribute(k).revise(v)
 
-        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1)
+        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         return vevaluator.veval_ast(astc, func_field, graph)

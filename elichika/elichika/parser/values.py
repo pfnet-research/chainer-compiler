@@ -4,6 +4,8 @@ import chainer.links as L
 
 import numpy as np
 
+import collections
+
 import inspect
 import ast
 import gast
@@ -83,12 +85,13 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         ret = converter(default_module, instance)
         if ret is not None:
             return ValueRef(ret)
-
-    if inspect.ismethod(instance) or inspect.isfunction(instance):
+        
+    #if inspect.ismethod(instance) or inspect.isfunction(instance) or isinstance(instance, np.ufunc):
+    if isinstance(instance, collections.Hashable):
         if instance in function_converters.keys():
             func = function_converters[instance]
             return ValueRef(func)
-
+    
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
         return ValueRef(BoolValue(instance))
@@ -553,7 +556,7 @@ class ValueRef():
         self.value = value
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
-
+            
         attribute = self.attributes.get_attribute(name)
         if attribute.has_obj():
             return attribute.get_ref()
