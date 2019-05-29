@@ -94,6 +94,7 @@ add_executable(chainer_compiler_compiler_test
   model_test.cc
   scheduler_test.cc
   shape_evaluator_test.cc
+  simplifier_test.cc
   tensor_test.cc
   topology_test.cc
   chxvm/emitter_test.cc

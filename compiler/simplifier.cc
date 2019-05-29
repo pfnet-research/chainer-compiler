@@ -615,6 +615,33 @@ bool ReplaceMaxRoiPool(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSplit(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySplit", node->output(0));
+    Value* input = node->input(0);
+    CHECK(input->type().HasKnownShape()) << input->ToString();
+    int axis = node->axis();
+    CHECK_LT(axis, input->type().ndim());
+
+    std::vector<int64_t> split(node->split());
+    if (split.empty()) {
+        int dim = input->type().dims()[axis];
+        CHECK_EQ(0, dim % node->outputs().size());
+        for (size_t i = 0; i < node->outputs().size(); ++i) {
+            split.push_back(dim / node->outputs().size());
+        }
+    }
+
+    CHECK_EQ(node->outputs().size(), split.size());
+    int64_t start = 0;
+    for (size_t i = 0; i < node->outputs().size(); ++i) {
+        int64_t end = start + split[i];
+        Value* output = node->output(i);
+        gb.Op(Node::kSlice, {input}, output)->producer()->set_axes({axis})->set_starts({start})->set_ends({end});
+        start = end;
+    }
+    return true;
+}
+
 void ReplaceInitializers(Graph* graph) {
     std::map<Value*, Value*> initializers;
     for (Value* value : graph->input_values()) {
@@ -676,6 +703,7 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(Conv);
     REGISTER_SIMPLIFIER(MaxPool);
     REGISTER_SIMPLIFIER(AveragePool);
+    REGISTER_SIMPLIFIER(Split);
 
     if (gen_backprop) {
         REGISTER_SIMPLIFIER(Concat);
