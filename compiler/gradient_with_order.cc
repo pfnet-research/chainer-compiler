@@ -234,7 +234,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // objects with different names.
                     std::vector<Value*> outputs;
                     for (Value* value : node->outputs()) {
-                        Value* new_value = bwd_graph->AddValue("Recompute" + value->name());
+                        Value* new_value = bwd_graph->AddValue("Recompute" + value->name(), value->type());
                         outputs.push_back(new_value);
                     }
 
