@@ -175,7 +175,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
             if (!staged.emplace(std::get<1>(p), value).second) {
-                std::cerr << "Forward recompute without forgetting the output: " << orig_node->ToString() << std::endl;
+                CHECK(false) << "Forward recompute without forgetting the output: " << orig_node->ToString();
             }
         }
     };
