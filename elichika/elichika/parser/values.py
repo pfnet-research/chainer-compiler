@@ -4,6 +4,8 @@ import chainer.links as L
 
 import numpy as np
 
+import collections
+
 import inspect
 import ast
 import gast
@@ -83,12 +85,13 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         ret = converter(default_module, instance)
         if ret is not None:
             return ValueRef(ret)
-
+    
     #if inspect.ismethod(instance) or inspect.isfunction(instance) or isinstance(instance, np.ufunc):
-    if instance in function_converters.keys():
-        func = function_converters[instance]
-        return ValueRef(func)
-
+    if isinstance(instance, collections.Hashable):
+        if instance in function_converters.keys():
+            func = function_converters[instance]
+            return ValueRef(func)
+    
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
         return ValueRef(BoolValue(instance))
