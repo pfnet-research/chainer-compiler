@@ -50,6 +50,9 @@ std::vector<Order> DummyPolicy2(const Graph& graph) {
             }
         }
     }
+    for (auto value : nodes.back()->outputs()) {
+        orders.emplace_back(Order::kForgetForward, nullptr, value);
+    }
     for (auto node : nodes) {
         orders.emplace_back(Order::kComputeForward, node, nullptr);
     }

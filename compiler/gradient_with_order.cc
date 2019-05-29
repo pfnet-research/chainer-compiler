@@ -141,6 +141,16 @@ bool IsComputationOrderSupported(const Graph& graph) {
     return true;
 }
 
+std::vector<Value*> GetStagedValues(const std::map<Value*, Value*>& staged, const std::vector<Value*>& values) {
+    std::vector<Value*> ret;
+    for (Value* value : values) {
+        auto found = staged.find(value);
+        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
+        ret.push_back(found->second);
+    }
+    return ret;
+}
+
 bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
     if (!IsComputationOrderSupported(*fwd_graph) || !IsComputationOrderSupported(*bwd_graph)) {
         return false;
@@ -165,7 +175,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
         for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
             Value* value = std::get<0>(p);
             if (!staged.emplace(std::get<1>(p), value).second) {
-                std::cerr << "Forward recompute without forgetting the output: " << orig_node->ToString() << std::endl;
+                CHECK(false) << "Forward recompute without forgetting the output: " << orig_node->ToString();
             }
         }
     };
@@ -218,12 +228,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // Recomputation: current graph must be the backward part
                     CHECK_EQ(current_graph, bwd_graph);
                     // All inputs must be staged and may be recomputed.
-                    std::vector<Value*> inputs;
-                    for (Value* value : node->inputs()) {
-                        auto found = staged.find(value);
-                        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
-                        inputs.push_back(found->second);
-                    }
+                    const std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
 
                     // Recomputed values need different `Value`
                     // objects with different names.
@@ -268,17 +273,44 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     }
                 }
 
+                // Temporaliry replace the inputs/outputs of the node with staged values
+                // Note that the replacement of outputs is necessary because we may have to
+                // point to the retained value in two_phase mode.
+                const std::vector<Value*> inputs = node->inputs();
+                const std::vector<Value*> outputs = node->outputs();
+                const std::vector<Value*> staged_inputs = GetStagedValues(staged, orig_node->inputs());
+                const std::vector<Value*> staged_outputs = GetStagedValues(staged, orig_node->outputs());
+                ;
+                for (const auto& p : Zip(inputs, staged_inputs)) {
+                    node->ReplaceInput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->DetachUser(node);
+                    std::get<1>(p)->AddUser(node);
+                }
+                for (const auto& p : Zip(outputs, staged_outputs)) {
+                    node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->SetProducer(nullptr);
+                    std::get<1>(p)->SetProducer(node);
+                }
+
                 ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                if (!AddGradientForNode(bwd_graph, bwd_graph, node, nullptr)) {  // NOTE: first argument may be fwd_graph?
-                    break;
+                AddGradientForNode(bwd_graph, bwd_graph, node, nullptr);
+
+                // Revert the inputs/outputs of the node
+                for (const auto& p : Zip(staged_inputs, inputs)) {
+                    node->ReplaceInput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->DetachUser(node);
+                    std::get<1>(p)->AddUser(node);
+                }
+                for (const auto& p : Zip(staged_outputs, outputs)) {
+                    node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
+                    std::get<0>(p)->SetProducer(nullptr);
+                    std::get<1>(p)->SetProducer(node);
                 }
 
                 // Copy back gradients of inputs from the last forward
                 // computation to the original node.
-                if (node != orig_node) {
-                    for (const auto& p : Zip(orig_node->inputs(), node->inputs())) {
-                        std::get<0>(p)->set_grad(std::get<1>(p)->grad());
-                    }
+                for (const auto& p : Zip(orig_node->inputs(), staged_inputs)) {
+                    std::get<0>(p)->set_grad(std::get<1>(p)->grad());
                 }
 
                 break;
