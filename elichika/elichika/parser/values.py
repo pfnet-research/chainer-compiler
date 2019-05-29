@@ -85,7 +85,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         ret = converter(default_module, instance)
         if ret is not None:
             return ValueRef(ret)
-    
+        
     #if inspect.ismethod(instance) or inspect.isfunction(instance) or isinstance(instance, np.ufunc):
     if isinstance(instance, collections.Hashable):
         if instance in function_converters.keys():
@@ -556,7 +556,7 @@ class ValueRef():
         self.value = value
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
-
+            
         attribute = self.attributes.get_attribute(name)
         if attribute.has_obj():
             return attribute.get_ref()

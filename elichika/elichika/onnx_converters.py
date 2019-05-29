@@ -717,7 +717,10 @@ class ONNXValue:
                 [ret],
                 str('create_tensor'))
             return ret
-
+        elif(isinstance(self.value, values.Value)):
+            value = self.value  # type:values.Value
+            utils.print_warning('Unknown type value is converted into tensor.', utils.LineProperty())
+            return self
         else:
             assert(False)
 
