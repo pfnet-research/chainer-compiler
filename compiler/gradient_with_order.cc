@@ -1,6 +1,7 @@
 #include "compiler/computation_order/core.h"
 
 #include "compiler/computation_order/policy_chen.h"
+#include "compiler/computation_order/policy_custom.h"
 #include "compiler/computation_order/policy_dummy.h"
 
 #include <functional>
@@ -99,6 +100,8 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
         return DummyPolicy(graph);
     } else if (policy == "dummy2") {
         return DummyPolicy2(graph);
+    } else if (policy == "custom") {
+        return CustomPolicy(graph);
     } else if (policy == "chen") {
         return ChenPolicy(graph);
     } else {

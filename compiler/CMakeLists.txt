@@ -41,8 +41,9 @@ add_library(chainer_compiler_compiler
   constant_propagation.cc
   config.cc
   computation_order/core.cc
-  computation_order/policy_dummy.cc
   computation_order/policy_chen.cc
+  computation_order/policy_custom.cc
+  computation_order/policy_dummy.cc
   custom_onnx_ops.cc
   dtype.cc
   dtype_inference.cc
