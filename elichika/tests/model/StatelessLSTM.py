@@ -228,7 +228,7 @@ class StatelessLSTMBackprop(chainer.Chain):
 import testtools
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(43)
 
@@ -264,3 +264,7 @@ if __name__ == '__main__':
 
     # TODO (hamaji): support func
     # testtools.generate_testcase(model_fn, [c, h, x], backprop=True)
+
+
+if __name__ == '__main__':
+    main()
