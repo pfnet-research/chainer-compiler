@@ -28,6 +28,8 @@ std::string g_ngraph_device;
 
 std::string g_backend_name;
 
+int g_trace_level;
+
 bool g_reset_shape;
 
 bool g_reset_output_shape;

@@ -1019,6 +1019,14 @@ def gen_const_int_test(test_name):
     gb.gen_test()
 
 
+def gen_const_prop_use_twice_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    c = np.array(list(range(20)))
+    c_v = gb.const(c)
+    gb.output(gb.Add([c_v, c_v]), c * 2)
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1140,6 +1148,8 @@ def get_tests():
     test('extra_test_pad_batch_size', gen_pad_batch_size_test)
 
     test('extra_test_const_int', gen_const_int_test)
+
+    test('extra_test_const_prop_use_twice', gen_const_prop_use_twice_test)
 
     tests += gen_chainercv_test.get_tests()
 

@@ -11,6 +11,7 @@
 
 #include <common/strutil.h>
 #include <compiler/chxvm/emitter.h>
+#include <compiler/flags.h>
 #include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/tensor.h>
@@ -60,7 +61,15 @@ void Eval(
 
     runtime::ChxVM chxvm(program);
     runtime::ChxVMOptions chxvm_options;
+    chxvm_options.trace_level = g_trace_level;
     runtime::ChxVMState state(chxvm_options, chxvm.num_variables(), {});
+
+    if (g_trace_level) {
+        std::cerr << "Tracing compile time eval for following nodes:" << std::endl;
+        for (Node* node : nodes) {
+            std::cerr << "  " << node->ToString() << std::endl;
+        }
+    }
 
     for (size_t i = 0; i < feeds.size(); ++i) {
         int input_id = input_ids[i];

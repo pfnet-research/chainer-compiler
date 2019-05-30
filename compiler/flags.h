@@ -44,6 +44,9 @@ extern std::string g_ngraph_device;
 // The name of backend.
 extern std::string g_backend_name;
 
+// Enables ChainerX VM trace during constant propagation.
+extern int g_trace_level;
+
 // Reset all shapes.
 extern bool g_reset_shape;
 
