@@ -651,7 +651,7 @@ if not args.all:
 
 def _start_output(msg):
     if sys.stdout.isatty():
-        sys.stdout.write('\r' + ' ' * 120 + '\r' + msg)
+        sys.stdout.write('\r' + ' ' * 78 + '\r' + msg)
     else:
         sys.stdout.write(msg)
 
