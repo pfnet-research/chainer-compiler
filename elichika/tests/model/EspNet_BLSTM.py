@@ -90,7 +90,7 @@ class BLSTMBackprop(chainer.Chain):
 import testtools
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -120,3 +120,6 @@ if __name__ == '__main__':
 
     testtools.generate_testcase(BLSTMBackprop(idim, elayers, cdim, hdim, 0),
                            [xs, ilens], backprop=True)
+
+if __name__ == '__main__':
+    main()

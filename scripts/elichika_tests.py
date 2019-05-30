@@ -27,6 +27,7 @@ TESTS = [
     Generator('model', 'MyLSTM'),
 
     Generator('model', 'EspNet_VGG2L'),
+    Generator('model', 'EspNet_BLSTM'),
     Generator('model', 'StatelessLSTM'),
 
     Generator('node', 'AddMul'),

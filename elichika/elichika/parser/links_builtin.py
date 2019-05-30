@@ -49,10 +49,14 @@ def estimate_NStepBiLSTM_shape(inst: 'chainer.links.NStepBiLSTM', args: 'functio
     return ()
 
 def return_NStepLSTM():
-    return [values.TensorValue(), values.TensorValue(), values.TensorValue()]
+    list_tensor = values.ListValue()
+    list_tensor.vtype = values.TensorValue
+    return [values.TensorValue(), values.TensorValue(), list_tensor]
 
 def return_NStepBiLSTM():
-    return [values.TensorValue(), values.TensorValue(), values.TensorValue()]
+    list_tensor = values.ListValue()
+    list_tensor.vtype = values.TensorValue
+    return [values.TensorValue(), values.TensorValue(), list_tensor]
 
 chainer_links[chainer.links.Linear] = ChainerLinkDefinition(
     estimate_shape=estimate_linear_shape)
