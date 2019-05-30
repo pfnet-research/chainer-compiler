@@ -1309,7 +1309,7 @@ class ONNXGenerator:
                     value = ONNXValue(onnx_graph, node.inputs[0])
                     o = ONNXValue(onnx_graph, node.outputs[0])
 
-                    if isinstance(node.inputs[0], values.ListValue):
+                    if isinstance(node.inputs[0], values.ListValue) or isinstance(node.inputs[0], values.TupleValue):
                         if dtype is None:
                             onnx_node = onnx_graph.add_node(
                                 "ChainerSequenceStack",
