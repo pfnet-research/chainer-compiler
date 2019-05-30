@@ -30,6 +30,17 @@ class ChainerFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.ValueRef(value)
 
+class CopyFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = str(func)
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        node = nodes.NodeCopy(args.inputs[0].get_value())
+        graph.add_node(node)
+        ret = functions.generate_copied_value(args.inputs[0].get_value())
+        node.set_outputs([ret])
+        return values.ValueRef(ret)
 
 class RangeFunction(functions.FunctionBase):
     def __init__(self):

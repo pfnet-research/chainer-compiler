@@ -415,7 +415,7 @@ def convert_onnx_chainer_NStepBiLSTM(onnx_graph: 'ONNXGraph', node: 'nodes.NodeC
         "ChainerSequenceCreate", [sequence_length, minus1, out_size2], [None], str(node.lineprop),)
     sout_shape.onnx_type = oc.ONNXValueType.Sequence
 
-    out_shape = sout_shape.create_tensor()
+    out_shape = sout_shape.create_tensor(node.lineprop)
 
     for i in range(n_layers):
         h = oc.ONNXValue(onnx_graph, np.float32, [node, '/h'])
@@ -486,7 +486,7 @@ def convert_onnx_chainer_EmbedID(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'
     parser.add_def('x', oc.ParseType.In)
     parser.parse(onnx_graph, node)
 
-    x = parser.get('x').create_tensor()
+    x = parser.get('x').create_tensor(node.lineprop)
 
     onnx_graph.add_node(
         'Gather',

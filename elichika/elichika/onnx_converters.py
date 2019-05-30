@@ -381,7 +381,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         # a must be 1dim tensor
         # the number of element of a must be larger than 1
 
-        v = a.create_tensor()
+        v = a.create_tensor(node.lineprop)
 
         v_len = ONNXValue(onnx_graph, np.array(0).dtype, [a, '/v_Len'])
 
@@ -673,7 +673,7 @@ class ONNXValue:
         else:
             assert(False)
 
-    def create_tensor(self) -> 'ONNXValue':
+    def create_tensor(self, lineprop) -> 'ONNXValue':
         if(isinstance(self.value, values.TupleValue)):
             value = self.value  # type:values.TupleValue
 
@@ -719,7 +719,7 @@ class ONNXValue:
             return ret
         elif(isinstance(self.value, values.Value)):
             value = self.value  # type:values.Value
-            utils.print_warning('Unknown type value is converted into tensor.', utils.LineProperty())
+            utils.print_warning('Unknown type value is converted into tensor.', lineprop)
             return self
         else:
             assert(False)
@@ -1309,7 +1309,7 @@ class ONNXGenerator:
                     value = ONNXValue(onnx_graph, node.inputs[0])
                     o = ONNXValue(onnx_graph, node.outputs[0])
 
-                    if isinstance(node.inputs[0], values.ListValue):
+                    if isinstance(node.inputs[0], values.ListValue) or isinstance(node.inputs[0], values.TupleValue):
                         if dtype is None:
                             onnx_node = onnx_graph.add_node(
                                 "ChainerSequenceStack",
@@ -1348,7 +1348,7 @@ class ONNXGenerator:
                     onnx_node = onnx_graph.add_node(
                         "ConstantFill",
                         [ONNXValue(onnx_graph, node.args.get_value(
-                            'shape')).create_tensor()],
+                            'shape')).create_tensor(node.lineprop)],
                         [node.outputs[0]],
                         str(node.lineprop),
                         input_as_shape=1,
@@ -1368,7 +1368,7 @@ class ONNXGenerator:
                         onnx_node = onnx_graph.add_node(
                             "Expand",
                             [node.args.get_value('fill_value'), ONNXValue(
-                                onnx_graph, node.args.get_value('shape')).create_tensor()],
+                                onnx_graph, node.args.get_value('shape')).create_tensor(node.lineprop)],
                             [tensor_temp],
                             str(node.lineprop))
 
@@ -1382,7 +1382,7 @@ class ONNXGenerator:
                         onnx_node = onnx_graph.add_node(
                             "Expand",
                             [node.args.get_value('fill_value'), ONNXValue(
-                                onnx_graph, node.args.get_value('shape')).create_tensor()],
+                                onnx_graph, node.args.get_value('shape')).create_tensor(node.lineprop)],
                             [node.outputs[0]],
                             str(node.lineprop))
 

@@ -63,6 +63,12 @@ def veval(op: 'nodes.BinOpType', left: 'values.Value', right: 'values.Value', li
 
     initialize_lazy()
 
+    if isinstance(left, values.ListValue):
+        return functions.generate_value_with_same_type(left)
+
+    if isinstance(left, values.TupleValue):
+        return functions.generate_value_with_same_type(left)
+
     if isinstance(right, values.NumberValue) or isinstance(right, values.TensorValue):
 
         if not isinstance(left, values.NumberValue) and not isinstance(left, values.TensorValue):
@@ -97,18 +103,5 @@ def veval(op: 'nodes.BinOpType', left: 'values.Value', right: 'values.Value', li
             return functions.generate_value_with_type(right, type_ = result_type)
         else:
             return functions.generate_value_with_type(left, type_ = result_type)
-
-    if isinstance(left, values.ListValue) and isinstance(right, values.ListValue):
-        return functions.generate_value_with_same_type(left)
-
-    if isinstance(left, values.TupleValue) and isinstance(right, values.TupleValue):
-        return functions.generate_value_with_same_type(left)
-
-    # for .shape
-    if isinstance(left, values.ListValue) and isinstance(right, values.TupleValue):
-        return functions.generate_value_with_same_type(left)
-
-    if isinstance(left, values.TensorValue) and isinstance(right, values.TensorValue):
-        return functions.generate_value_with_same_type(left)
 
     return values.Value()

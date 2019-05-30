@@ -114,6 +114,16 @@ class IfBackprop(chainer.Chain):
             x = self.l(x)
         return x
 
+c = 2
+class Global(chainer.Chain):
+    def __init__(self):
+        super(Global, self).__init__()
+
+    def forward(self, c, x):
+        y = x
+        if c is None:
+            c = 1
+        return (y,c)
 
 # ======================================
 
@@ -169,7 +179,10 @@ def main():
     testtools.generate_testcase(model_IfBackprop,
                            [np.random.rand(3, 5).astype(np.float32), 1],
                            subname='if_bp', backprop=True)
-
+    
+    n = np.random.rand(2, 2).astype(np.float32)
+    c = np.random.rand(2, 2).astype(np.float32)
+    testtools.generate_testcase(Global(), [c,n], subname='global')
 
 if __name__ == '__main__':
     main()
