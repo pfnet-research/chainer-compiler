@@ -1,7 +1,6 @@
 #include "onnx/defs/schema.h"
 
-#define ONNX_CHAINER_OPERATOR_SET_SCHEMA(name, ver, impl) \
-  ONNX_OPERATOR_SET_SCHEMA_EX(name, Onnx, ONNX_DOMAIN, ver, false, impl)
+#define ONNX_CHAINER_OPERATOR_SET_SCHEMA(name, ver, impl) ONNX_OPERATOR_SET_SCHEMA_EX(name, Onnx, ONNX_DOMAIN, ver, false, impl)
 
 namespace ONNX_NAMESPACE {
 
