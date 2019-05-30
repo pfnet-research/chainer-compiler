@@ -1,14 +1,10 @@
-// TODO(hamaji): Remove this workaround after fixing the following issue:
-// https://github.com/pfnet-research/chainer-compiler/issues/220
-#ifndef NDEBUG
-#define NDEBUG 1
-#endif
-
 #include "onnx/defs/schema.h"
+
+#define ONNX_CHAINER_OPERATOR_SET_SCHEMA(name, ver, impl) ONNX_OPERATOR_SET_SCHEMA_EX(name, Onnx, ONNX_DOMAIN, ver, false, impl)
 
 namespace ONNX_NAMESPACE {
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerLinear,
         9,
         OpSchema()
@@ -29,7 +25,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                     updateOutputShape(ctx, 0, {first_input_shape.dim(0), second_input_shape.dim(0)});
                 }));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerSoftmaxCrossEntropy,
         9,
         OpSchema()
@@ -47,7 +43,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                     ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
                 }));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerSelectItem,
         9,
         OpSchema()
@@ -210,7 +206,7 @@ void convPoolTypeAndShapeInference(InferenceContext& ctx, bool use_dilation, boo
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         MaxPool,
         9,
         OpSchema()
@@ -256,7 +252,7 @@ void InferROI(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIAveragePool2D,
         9,
         OpSchema()
@@ -272,7 +268,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIMaxPool2D,
         9,
         OpSchema()
@@ -288,7 +284,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIAverageAlign2D,
         9,
         OpSchema()
@@ -304,7 +300,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIMaxAlign2D,
         9,
         OpSchema()
@@ -350,7 +346,7 @@ void InferResizeImages(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerResizeImages,
         9,
         OpSchema()
@@ -376,7 +372,7 @@ but the major difference is numpy.broadcast_to() does not allow shape to be smal
 It is possible that the output.shape is not equal to shape, when some dimensions in shape is equal to 1,
 or the shape.ndim < input.shape.ndim.
 )DOC";
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         Expand,
         9,
         OpSchema()
@@ -455,7 +451,7 @@ void InferPadBatchSize(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerPadBatchSize,
         9,
         OpSchema()
@@ -530,7 +526,7 @@ void InferSplit(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         Split,
         9,
         OpSchema()
