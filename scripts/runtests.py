@@ -594,16 +594,36 @@ for test in TEST_CASES:
 
     # computation_order is supported in limited test cases
     if test.name.startswith('backprop_test_oc'):
-        new_test = copy.copy(test)
-        new_test.name = test.name + '_computation_order'
-        new_test.computation_order = 'dummy'
-        new_tests.append(new_test)
+        for two_phase in [False, True]:
+            new_test = copy.copy(test)
+            new_test.name = test.name + '_computation_order'
+            new_test.computation_order = 'dummy'
+            new_test.is_backprop_two_phase = two_phase
+            new_tests.append(new_test)
 
-        new_test2 = copy.copy(test)
-        new_test2.name = test.name + '_computation_order_two_phase'
-        new_test2.computation_order = 'dummy'
-        new_test2.is_backprop_two_phase = True
-        new_tests.append(new_test2)
+    # add more tests for computation_order using CustomPolicy
+    if test.name.startswith('backprop_test_oc_tanh2') or\
+       test.name.startswith('backprop_test_oc_mul2'):
+        order_strings = [
+            'CF0,CF1,BF1,BF0',
+            'CF0,CF1,FFo0,CF1,BF1,BF0',
+            'CF0,CF1,FFo0,FFt0,CF0,CF1,BF1,BF0',
+            'CF0,CF1,FFt0,FFo0,CF0,CF1,BF1,BF0',
+            'CF0,CF1,FFt0,CF0,BF1,BF0',
+            'CF0,CF1,FFt0,CF0,FFt0,CF0,BF1,BF0',
+            'CF0,CF1,FFt0,CF0,FFo0,CF1,BF1,BF0',
+            'CF0,CF1,FFt0,CF0,FFo0,CF1,FFt0,CF0,BF1,BF0',
+            'CF0,CF1,BF1,FFt0,CF0,BF0',
+            'CF0,CF1,BF1,FFt0,CF0,FFo0,FFt0,CF0,CF1,BF0',
+        ]
+        for order_string in order_strings:
+            for two_phase in [False, True]:
+                new_test = copy.copy(test)
+                new_test.name = test.name + '_custom_computation_order_'\
+                    + order_string
+                new_test.computation_order = 'custom_' + order_string
+                new_test.is_backprop_two_phase = two_phase
+                new_tests.append(new_test)
 
 for test in new_tests:
     TEST_CASES.append(test)

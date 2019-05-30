@@ -1,6 +1,7 @@
 #include "compiler/computation_order/core.h"
 
 #include "compiler/computation_order/policy_chen.h"
+#include "compiler/computation_order/policy_custom.h"
 #include "compiler/computation_order/policy_dummy.h"
 
 #include <functional>
@@ -99,6 +100,8 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
         return DummyPolicy(graph);
     } else if (policy == "dummy2") {
         return DummyPolicy2(graph);
+    } else if (policy.find("custom_") != std::string::npos) {
+        return CustomPolicy(graph, policy.substr(7));
     } else if (policy == "chen") {
         return ChenPolicy(graph);
     } else {
@@ -129,6 +132,10 @@ void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value
 
         // Update the staged value to the retained one
         p.second = i;
+        if (value->IsOutput()) {
+            // Set grad information for retained output
+            i->set_grad(value->grad());
+        }
     }
 }
 
@@ -234,7 +241,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // objects with different names.
                     std::vector<Value*> outputs;
                     for (Value* value : node->outputs()) {
-                        Value* new_value = bwd_graph->AddValue("Recompute" + value->name());
+                        Value* new_value = bwd_graph->AddValue("Recompute" + value->name(), value->type());
                         outputs.push_back(new_value);
                     }
 
