@@ -2,6 +2,7 @@ import chainer
 import chainer as C
 import chainer.functions as F
 import chainer.links as L
+from chainer.backends import cuda
 import inspect
 import weakref
 import sys
@@ -134,6 +135,12 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     m_len = values.FuncValue(functions_builtin.LenFunction(), None)
     default_module.set_default_value('len', values.ValueRef(m_len))
+
+    m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
+    values.function_converters[cuda.to_gpu] = m_to_gpu
+
+    m_to_cpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_cpu), None)
+    values.function_converters[cuda.to_cpu] = m_to_cpu
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward', None)
