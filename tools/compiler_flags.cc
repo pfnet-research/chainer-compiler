@@ -51,6 +51,8 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_dump_subgraphs = args.exist("dump_subgraphs");
     g_computation_order = args.get<std::string>("computation_order");
     g_chen_budget = args.get<int>("chen_budget");
+    if (args.exist("trace")) g_trace_level = 1;
+    if (args.exist("verbose")) g_trace_level = 2;
 }
 
 }  // namespace runtime
