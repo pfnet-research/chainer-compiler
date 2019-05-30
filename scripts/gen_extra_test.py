@@ -1149,8 +1149,7 @@ def get_tests():
 
     test('extra_test_const_int', gen_const_int_test)
 
-    test('extra_test_const_prop_use_twice', gen_const_prop_use_twice_test,
-         fail=True)
+    test('extra_test_const_prop_use_twice', gen_const_prop_use_twice_test)
 
     tests += gen_chainercv_test.get_tests()
 

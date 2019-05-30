@@ -29,7 +29,12 @@ bool HasConstantInputsOnly(const Node& node) {
 void DoConstantPropagation(Graph* graph, Node* node) {
     CLOG() << "Propagate " << node->ToString() << std::endl;
     std::vector<Node*> inputs;
-    for (Value* input : node->inputs()) inputs.push_back(input->producer());
+    std::set<Value*> seen_inputs;
+    for (Value* input : node->inputs()) {
+        if (seen_inputs.insert(input).second) {
+            inputs.push_back(input->producer());
+        }
+    }
 
     std::vector<std::unique_ptr<EvaluatedValue>> next_values;
     std::vector<Node*> nodes = inputs;
