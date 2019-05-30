@@ -23,7 +23,7 @@ add_executable(chainer_compiler_feeder_test ${FEEDER_TEST_SRCS})
 target_link_libraries(chainer_compiler_feeder_test
   feeder
   chainer_compiler_common
-  chainerx
+  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   gtest
   gtest_main
   pthread

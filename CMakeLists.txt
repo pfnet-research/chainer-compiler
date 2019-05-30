@@ -49,6 +49,7 @@ set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
 set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
 set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
 
+option(CHAINER_COMPILER_PREBUILT_CHAINERX_DIR "The path to prebuilt ChainerX" OFF)
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
 
 option(CHAINER_COMPILER_BUILD_TESTS "Build C++ tests" ON)
@@ -83,6 +84,12 @@ if(${CHAINER_COMPILER_ENABLE_PYTHON})
   set_subdirectory_option_(CHAINERX_BUILD_PYTHON ON)
 endif()
 add_subdirectory(third_party/chainer/chainerx_cc)
+
+if(NOT ("${CHAINER_COMPILER_PREBUILT_CHAINERX_DIR}" STREQUAL "OFF"))
+  set(CHAINER_COMPILER_CHAINERX_LIBRARIES "${CHAINER_COMPILER_PREBUILT_CHAINERX_DIR}/libchainerx.so")
+else()
+  set(CHAINER_COMPILER_CHAINERX_LIBRARIES "chainerx")
+endif()
 
 # TODO(hamaji): Get `set_hidden_(libprotobuf)` work. CMP0063 should do
 # the trick, but `include` without NO_POLICY_SCOPE in protobuf's
