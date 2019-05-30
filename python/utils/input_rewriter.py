@@ -9,7 +9,7 @@ from onnx import mapping, numpy_helper, shape_inference
 
 class Type(object):
     def __init__(self, dtype=None, shape=None):
-        self.dtype = dtype
+        self.dtype = dtype if dtype is None else np.dtype(dtype)
         self.shape = shape if shape is None else tuple(shape)
 
 
