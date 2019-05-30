@@ -27,6 +27,7 @@ TESTS = [
     Generator('model', 'MyLSTM'),
 
     Generator('model', 'EspNet_VGG2L'),
+    Generator('model', 'StatelessLSTM'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),

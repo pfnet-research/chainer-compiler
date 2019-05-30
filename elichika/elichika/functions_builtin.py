@@ -156,7 +156,7 @@ def convert_matmul(onnx_graph, node):
 
     onnx_graph.add_node(
         "MatMul",
-        [parser.get('a').create_tensor(), parser.get('b').create_tensor()],
+        [parser.get('a').create_tensor(node.lineprop), parser.get('b').create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop),
         )
@@ -336,7 +336,7 @@ def convert_separate(onnx_graph, node):
 
     onnx_graph.add_node(
         "ChainerSequenceSeparate",
-        [parser.get('x').create_tensor()],
+        [parser.get('x').create_tensor(node.lineprop)],
         [node.outputs[0]],
         name=str(node.lineprop),
         axis=parser.get('axis'))
@@ -353,7 +353,7 @@ def convert_squeeze(onnx_graph, node):
 
     onnx_graph.add_node(
         "Squeeze",
-        [parser.get('x').create_tensor()],
+        [parser.get('x').create_tensor(node.lineprop)],
         [node.outputs[0]],
         name=str(node.lineprop),
         **kwargs)
@@ -361,7 +361,7 @@ def convert_squeeze(onnx_graph, node):
 def convert_reshape(onnx_graph, node):
     onnx_graph.add_node(
         "Reshape",
-        [node.inputs[0],oc.ONNXValue(onnx_graph,node.inputs[1]).create_tensor()],
+        [node.inputs[0],oc.ONNXValue(onnx_graph,node.inputs[1]).create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop))
 
@@ -371,7 +371,7 @@ def convert_split_axis(onnx_graph, node):
 
     onnx_graph.add_node(
         "ChainerSequenceSplitAxis",
-        [node.inputs[0],oc.ONNXValue(onnx_graph,node.args.keywords['indices_or_sections']).create_tensor()],
+        [node.inputs[0],oc.ONNXValue(onnx_graph,node.args.keywords['indices_or_sections']).create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop),
         axis = oc.try_get_attribute(node.attribute_args.keywords['axis']))
@@ -404,7 +404,7 @@ def convert_roi_max_pooling_2d(onnx_graph, node):
 
     onnx_graph.add_node(
         "ChainerROIMaxPool2D",
-        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        [x.create_tensor(node.lineprop), rois.create_tensor(node.lineprop), roi_indices.create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop),
         output_shape=_pair(oc.try_get_attribute(outsize.value)),
@@ -425,7 +425,7 @@ def convert_roi_average_pooling_2d(onnx_graph, node):
 
     onnx_graph.add_node(
         "ChainerROIAveragePool2D",
-        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        [x.create_tensor(node.lineprop), rois.create_tensor(node.lineprop), roi_indices.create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop),
         output_shape=_pair(oc.try_get_attribute(outsize.value)),
@@ -447,7 +447,7 @@ def convert_roi_max_align_2d(onnx_graph, node):
 
     onnx_graph.add_node(
         "ChainerROIMaxAlign2D",
-        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        [x.create_tensor(node.lineprop), rois.create_tensor(node.lineprop), roi_indices.create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop),
         output_shape=_pair(oc.try_get_attribute(outsize.value)),
@@ -470,7 +470,7 @@ def convert_roi_average_align_2d(onnx_graph, node):
 
     onnx_graph.add_node(
         "ChainerROIAverageAlign2D",
-        [x.create_tensor(), rois.create_tensor(), roi_indices.create_tensor()],
+        [x.create_tensor(node.lineprop), rois.create_tensor(node.lineprop), roi_indices.create_tensor(node.lineprop)],
         node.outputs,
         str(node.lineprop),
         output_shape=_pair(oc.try_get_attribute(outsize.value)),
@@ -484,7 +484,7 @@ def convert_broadcast_to(onnx_graph, node):
     shape = oc.ONNXValue(onnx_graph, node_.args.keywords['shape'])
     onnx_graph.add_node(
         "Expand",
-        [node_.inputs[0], shape.create_tensor()],
+        [node_.inputs[0], shape.create_tensor(node.lineprop)],
         node_.outputs,
         str(node.lineprop))
     return

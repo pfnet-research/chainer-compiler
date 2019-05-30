@@ -251,10 +251,16 @@ if __name__ == '__main__':
     for e, a in zip(expected, actual):
         assert np.allclose(e.array, a.array)
 
-    testtools.generate_testcase(model_fn, [c, h, x])
+    testtools.generate_testcase(model_fn(), [c, h, x])
+
+    # TODO (hamaji): support func
+    # testtools.generate_testcase(model_fn, [c, h, x])
 
     def model_fn():
         lstm = StatelessLSTMBackprop(in_size, out_size)
         return lstm
 
-    testtools.generate_testcase(model_fn, [c, h, x], backprop=True)
+    testtools.generate_testcase(model_fn(), [c, h, x], backprop=True)
+
+    # TODO (hamaji): support func
+    # testtools.generate_testcase(model_fn, [c, h, x], backprop=True)

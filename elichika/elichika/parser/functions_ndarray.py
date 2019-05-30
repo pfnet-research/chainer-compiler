@@ -223,11 +223,10 @@ class NDArrayShapeFunction(functions.FunctionBase):
 
         node = nodes.NodeCall(self, args, line)
 
-        value = values.ListValue()
+        value = values.TupleValue()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
 
-        # TODO should make tuple
         graph.add_node(node)
         return values.ValueRef(value)
 
