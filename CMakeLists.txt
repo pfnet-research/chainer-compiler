@@ -109,9 +109,6 @@ add_subdirectory(third_party/onnx)
 # It seems `onnx` target compiles onnx*.pb.cc. As this will let other
 # files produce warnings, we suppress all warnings from ONNX by -w.
 target_compile_definitions(onnx PRIVATE ONNX_API=)
-# TODO(hamaji): Remove this workaround after fixing the following issue:
-# https://github.com/pfnet-research/chainer-compiler/issues/220
-target_compile_definitions(onnx PRIVATE NDEBUG=1)
 target_compile_options(onnx PRIVATE -w)
 add_dependencies(gen_onnx_proto protoc)
 add_dependencies(gen_onnx_operators_proto protoc)
