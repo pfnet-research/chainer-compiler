@@ -84,6 +84,8 @@ def gen_gen_chxvm_ops_h():
                     args.append('ChxVMSequence* %s' % name)
                 elif typ == OPAQUE:
                     output_ctypes.append('ChxVMOpaque*')
+                elif typ == SHAPE:
+                    output_ctypes.append('chainerx::Shape')
                 else:
                     output_ctypes.append('chainerx::Array')
 
@@ -271,6 +273,8 @@ def gen_gen_chxvm_ops_cc():
                     lines.append('st->SetArrayList(%s, %s);' % (name, call))
                 elif typ == OPAQUE:
                     lines.append('st->SetOpaque(%s, %s);' % (name, call))
+                elif typ == SHAPE:
+                    lines.append('st->SetShape(%s, %s);' % (name, call))
                 else:
                     lines.append('st->SetArray(%s, %s);' % (name, call))
             elif outputs:
@@ -290,7 +294,7 @@ def gen_gen_chxvm_ops_cc():
 
         line = 'if (st->trace_level()) std::cerr'
         for typ, name in op.outputs:
-            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE]:
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE]:
                 line += ' << " " << %s << "="' % colored_name(typ, name)
                 line += ' << st->GetVarString(%s)' % name
             elif typ == ARRAY_LIST:

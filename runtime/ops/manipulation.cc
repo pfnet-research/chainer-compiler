@@ -8,8 +8,8 @@
 namespace chainer_compiler {
 namespace runtime {
 
-void ShapeOp::RunImpl(ChxVMState* st) {
-    return st->SetShape(shape, st->GetArray(data).shape());
+chainerx::Shape ShapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
+    return data.shape();
 }
 
 chainerx::Array SizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
