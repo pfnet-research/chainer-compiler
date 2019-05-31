@@ -1,8 +1,9 @@
 #include "runtime/chxvm_var.h"
-#include "runtime/chainerx_util.h"
 
 #include <common/log.h>
 #include <common/strutil.h>
+
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -107,6 +108,8 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
             return GetOpaque()->GetArrays();
 
         case Kind::kNull:
+        case Kind::kScalar:
+        case Kind::kShape:
             return {};
 
         default:
