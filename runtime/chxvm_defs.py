@@ -216,7 +216,7 @@ XC_OPS = [
     ('Elu', [Array('x'), Float('alpha')], ['y']),
     ('Floor', [Array('x')], ['y']),
     ('Ceil', [Array('x')], ['y']),
-    ('Shape', [Array('data')], ['shape']),
+    ('Shape', [Array('data')], ['shape'], False),
     ('Size', [Array('data')], ['size']),
     ('Reshape', [Array('data'), Array('shape')], ['reshaped']),
     ('Expand', [Array('input'), Array('shape')], ['output']),

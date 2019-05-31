@@ -79,6 +79,13 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
     int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
     if (i < 0) i += size;
     switch (var->kind()) {
+        case ChxVMVar::Kind::kShape: {
+            CHECK_LT(i, var->GetShape().size());
+            int64_t v = var->GetShape()[i];
+            st->SetArray(output, MakeHostArray(chainerx::Dtype::kInt64, {}, &v));
+            break;
+        }
+
         case ChxVMVar::Kind::kArray:
             CHECK_LT(i, var->GetArray().shape()[0]);
             st->SetArray(output, var->GetArray().At({i}));
@@ -92,7 +99,6 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
         }
 
         case ChxVMVar::Kind::kScalar:
-        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
