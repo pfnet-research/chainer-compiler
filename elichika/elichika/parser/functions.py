@@ -347,7 +347,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         funcArgs = self.args.merge_inputs(inst, args)
 
         for k, v in funcArgs.keywords.items():
-            func_field.get_field().get_attribute(k).revise(v)
+            func_field.get_field().get_attribute(k, from_module=False).revise(v)
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         vevaluator.veval_ast(astc, func_field, graph)
