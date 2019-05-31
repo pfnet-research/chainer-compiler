@@ -1,5 +1,5 @@
-#include "runtime/chxvm_var.h"
 #include "runtime/chainerx_util.h"
+#include "runtime/chxvm_var.h"
 
 #include <common/log.h>
 #include <common/strutil.h>
@@ -33,10 +33,10 @@ ChxVMVar::ChxVMVar(chainerx::Array array) : kind_(Kind::kArray), val_(array) {
 ChxVMVar::ChxVMVar(ChxVMOpaque* opaque) : kind_(Kind::kOpaque), val_(std::shared_ptr<ChxVMOpaque>(opaque)) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Scalar v) : kind_(Kind::kScalar), val_(v) {
+ChxVMVar::ChxVMVar(chainerx::Scalar scalar) : kind_(Kind::kScalar), val_(scalar) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Shape v) : kind_(Kind::kShape), val_(v) {
+ChxVMVar::ChxVMVar(chainerx::Shape shape) : kind_(Kind::kShape), val_(shape) {
 }
 
 const chainerx::Array& ChxVMVar::GetArray() const {

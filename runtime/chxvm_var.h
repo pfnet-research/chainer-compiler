@@ -49,8 +49,8 @@ public:
     explicit ChxVMVar(chainerx::Array array);
     // Takes the ownership of `opaque`.
     explicit ChxVMVar(ChxVMOpaque* opaque);
-    explicit ChxVMVar(chainerx::Shape opaque);
-    explicit ChxVMVar(chainerx::Scalar opaque);
+    explicit ChxVMVar(chainerx::Shape shape);
+    explicit ChxVMVar(chainerx::Scalar scalar);
     explicit ChxVMVar(const ChxVMVar&) = default;
 
     const chainerx::Array& GetArray() const;
