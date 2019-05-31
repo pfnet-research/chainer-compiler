@@ -482,20 +482,11 @@ class Module(Field):
         attribute = super().get_attribute(key)
         attribute.revise(value)
 
-
-class AttributeHistory:
-    def __init__(self, obj: 'ValueRef'):
-        self.obj = obj
-
-
 class Attribute:
     def __init__(self, name: 'str'):
         self.name = name
-        self.history = []
+        self.obj = None
         self.parent = None
-
-        # a obj which is contained in this attribute at first
-        self.initial_obj = None
 
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
@@ -509,18 +500,14 @@ class Attribute:
         obj.get_value().name = utils.create_obj_value_name_with_attribute(
             self.name, obj.get_value().name)
 
-        if self.initial_obj is None:
-            self.initial_obj = obj
-
-        hist = AttributeHistory(obj)
-        self.history.append(hist)
+        self.obj = obj
 
     def has_obj(self):
-        return len(self.history) > 0
+        return self.obj != None
 
-    def get_ref(self, inc_access=True):
-        assert len(self.history) > 0
-        return self.history[-1].obj
+    def get_ref(self):
+        assert self.has_obj()
+        return self.obj
 
     def __str__(self):
         return self.name
