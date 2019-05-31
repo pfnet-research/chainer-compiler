@@ -100,8 +100,8 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     attr = value_ref.get_field().get_attribute(astc.nast.attr, from_module)
 
     # property(getter)
-    if attr.has_obj() and isinstance(attr.get_ref(False).get_value(), values.FuncValue) and attr.get_ref(False).get_value().func.is_property:
-        func_value = attr.get_ref(False).get_value()
+    if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue) and attr.get_ref().get_value().func.is_property:
+        func_value = attr.get_ref().get_value()
         ret = func_value.func.vcall(local_field.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
         return ret
 
