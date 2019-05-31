@@ -89,6 +89,8 @@ class ValueInfo(_ValueInfo):
             return 'array_list'
         elif self.typ == OPAQUE:
             return 'opaque'
+        elif self.typ == SHAPE:
+            return 'shape'
         else:
             raise RuntimeError('Unknown type: %s' % self.typ)
 
@@ -224,7 +226,7 @@ XC_OPS = [
     ('Ceil', [Array('x')], ['y']),
     ('Shape', [Array('data')], [Shape('shape')]),
     ('Size', [Array('data')], ['size']),
-    ('Reshape', [Array('data'), Array('shape')], ['reshaped']),
+    ('Reshape', [Array('data'), Shape('shape')], ['reshaped']),
     ('Expand', [Array('input'), Array('shape')], ['output']),
     ('Squeeze', [Array('data'), Ints('axes')], ['squeezed']),
     ('Unsqueeze', [Array('data'), Ints('axes')], ['expanded']),

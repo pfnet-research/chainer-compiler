@@ -59,10 +59,16 @@ ChxVMOpaque* ChxVMVar::GetOpaque() const {
 }
 
 const chainerx::Scalar& ChxVMVar::GetScalar() const {
+    CHECK_EQ(kind_, Kind::kScalar);
     return absl::get<chainerx::Scalar>(val_);
 }
 
 const chainerx::Shape& ChxVMVar::GetShape() const {
+    if (kind_ == Kind::kArray) {
+        kind_ = Kind::kShape;
+        val_ = runtime::ArrayToShape(absl::get<chainerx::Array>(val_));
+    }
+    CHECK_EQ(kind_, Kind::kShape);
     return absl::get<chainerx::Shape>(val_);
 }
 

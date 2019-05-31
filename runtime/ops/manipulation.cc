@@ -17,8 +17,8 @@ chainerx::Array SizeOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     return MakeHostArray(chainerx::Dtype::kInt64, {}, &size);
 }
 
-chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
-    chainerx::Shape s{ArrayToShape(shape)};
+chainerx::Array ReshapeOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& shape) {
+    chainerx::Shape s = shape;
     int from_total_size = data.GetTotalSize();
     int to_total_size = 1;
     int to_minus_one_index = -1;

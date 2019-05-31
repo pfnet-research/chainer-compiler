@@ -47,6 +47,7 @@ public:
     ChxVMVar* GetVar(int index);
     void SetVar(int index, const ChxVMVar& var);
 
+    const chainerx::Shape& GetShape(int index);
     void SetShape(int index, chainerx::Shape s);
 
     std::string GetVarString(int index);

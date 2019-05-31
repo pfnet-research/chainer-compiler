@@ -73,6 +73,8 @@ def gen_gen_chxvm_ops_h():
                     args.append('const ChxVMSequence& %s' % name)
                 elif typ == OPAQUE:
                     args.append('const ChxVMOpaque& %s' % name)
+                elif typ == SHAPE:
+                    args.append('const chainerx::Shape& %s' % name)
                 else:
                     assert typ in FIELD_TYPES, 'Unknown type: %s' % typ
 
@@ -199,7 +201,7 @@ def gen_gen_chxvm_ops_cc():
         for i, (typ, name) in enumerate(op.inputs):
             if i:
                 line += ' << ", "'
-            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE]:
+            if typ in [ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE]:
                 line += ' << %s' % colored_name(typ, name)
             elif typ in (INT, FLOAT):
                 line += ' << %s' % name
@@ -257,6 +259,8 @@ def gen_gen_chxvm_ops_cc():
                     args.append('*st->GetSequence(%s)' % name)
                 elif typ == OPAQUE:
                     args.append('st->GetOpaque(%s)' % name)
+                elif typ == SHAPE:
+                    args.append('st->GetShape(%s)' % name)
 
             outputs = []
             for output in op.outputs:
