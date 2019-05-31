@@ -79,7 +79,7 @@ target_link_libraries(chainer_compiler_runtime_test
   chainer_compiler_runtime
   chainer_compiler_compiler
   chainer_compiler_common
-  chainerx
+  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   onnx_proto
   ${PROTOBUF_LIBRARY}
   gtest

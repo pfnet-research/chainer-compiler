@@ -17,7 +17,8 @@ cd build
 time cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
       -DPYTHON_EXECUTABLE=/usr/bin/python3 \
-      -DCHAINER_COMPILER_ENABLE_OPENCV=ON
+      -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
+      -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx
 time make -j2
 
 time make large_tests
