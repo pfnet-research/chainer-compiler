@@ -49,6 +49,8 @@ public:
     explicit ChxVMVar(chainerx::Array array);
     // Takes the ownership of `opaque`.
     explicit ChxVMVar(ChxVMOpaque* opaque);
+    explicit ChxVMVar(chainerx::Shape shape);
+    explicit ChxVMVar(chainerx::Scalar scalar);
     explicit ChxVMVar(const ChxVMVar&) = default;
 
     const chainerx::Array& GetArray() const;
@@ -74,10 +76,10 @@ public:
     std::string DebugString() const;
 
 private:
-    Kind kind_;
+    mutable Kind kind_;
     using VarInternalType =
             absl::variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, chainerx::Scalar, chainerx::Shape>;
-    VarInternalType val_;
+    mutable VarInternalType val_;
 };
 
 std::vector<chainerx::Array> NonOptional(const ChxVMSequence& seq);

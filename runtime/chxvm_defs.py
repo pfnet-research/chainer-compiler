@@ -12,6 +12,7 @@ INTS = 'INTS'
 INT_VALUES = 'INT_VALUES'
 STRING = 'STRING'
 DOUBLES = 'DOUBLES'
+SHAPE = 'SHAPE'
 
 ARG_TYPES = [
     ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, OPAQUE
@@ -34,7 +35,7 @@ class ValueInfo(_ValueInfo):
         return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES]
 
     def c_type(self):
-        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE]:
+        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE]:
             return 'int'
         elif self.typ == FLOAT:
             return 'float'
@@ -46,6 +47,8 @@ class ValueInfo(_ValueInfo):
             return 'std::vector<int64_t>'
         elif self.typ == DOUBLES:
             return 'std::vector<double>'
+        else:
+            raise RuntimeError('Unknown type: %s', self.typ)
 
     def c_storage_type(self):
         if self.typ == INTS:
@@ -60,7 +63,7 @@ class ValueInfo(_ValueInfo):
         return ctyp
 
     def c_codegen_type(self):
-        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE):
+        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE):
             return 'ChxVMValue'
         elif self.typ == ARRAY_LIST:
             return 'std::vector<ChxVMValue>'
@@ -86,6 +89,8 @@ class ValueInfo(_ValueInfo):
             return 'array_list'
         elif self.typ == OPAQUE:
             return 'opaque'
+        elif self.typ == SHAPE:
+            return 'shape'
         else:
             raise RuntimeError('Unknown type: %s' % self.typ)
 
@@ -133,9 +138,12 @@ def String(name):
 def Doubles(name):
     return ValueInfo(DOUBLES, name)
 
+def Shape(name):
+    return ValueInfo(SHAPE, name)
+
 
 def sigil(typ):
-    if typ in [ARRAY, OPTIONAL_ARRAY]:
+    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE]:
         return '$'
     elif typ == SEQUENCE:
         return '@'
@@ -216,9 +224,9 @@ XC_OPS = [
     ('Elu', [Array('x'), Float('alpha')], ['y']),
     ('Floor', [Array('x')], ['y']),
     ('Ceil', [Array('x')], ['y']),
-    ('Shape', [Array('data')], ['shape']),
+    ('Shape', [Array('data')], [Shape('shape')]),
     ('Size', [Array('data')], ['size']),
-    ('Reshape', [Array('data'), Array('shape')], ['reshaped']),
+    ('Reshape', [Array('data'), Shape('shape')], ['reshaped']),
     ('Expand', [Array('input'), Array('shape')], ['output']),
     ('Squeeze', [Array('data'), Ints('axes')], ['squeezed']),
     ('Unsqueeze', [Array('data'), Ints('axes')], ['expanded']),
