@@ -107,6 +107,8 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
             return GetOpaque()->GetArrays();
 
         case Kind::kNull:
+        case Kind::kScalar:
+        case Kind::kShape:
             return {};
 
         default:
