@@ -134,7 +134,7 @@ def generate_value_with_same_type(value: 'values.Value', is_dummy_value = False,
 
     elif isinstance(value, values.StrValue):
         ret = values.StrValue(None)
-            
+
     elif isinstance(value, values.BoolValue):
         ret = values.BoolValue(None)
 
@@ -214,7 +214,7 @@ class FunctionArgCollection():
     def __init__(self):
         self.args = {}  # Dict[str,FunctionArg]
         self.args_list = []
-        
+
     def add_arg(self, name, value):
 
         if isinstance(value, values.Value):
@@ -251,7 +251,7 @@ class FunctionArgCollection():
 
     def merge_inputs(self, self_valueref, inputs: 'FunctionArgInput') -> 'FunctionArgInput':
         ret = FunctionArgInput()
-        
+
         for fa in self.get_args():
             ret.inputs.append(fa.obj)
             ret.keywords[fa.name] = fa.obj
@@ -335,6 +335,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
 
+        self.ast = call_the_preprocessor(self.ast)
+
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
         ret = values.ValueRef(values.UserDefinedInstance(
             module, None, self.classinfo))
@@ -370,6 +372,8 @@ class UserDefinedFunction(FunctionBase):
         self.args.analyze_args(func)
 
         self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
+
+        self.ast = call_the_preprocessor(self.ast)
 
     def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
         func_field = values.Field()
