@@ -7,9 +7,11 @@ set -eux
 run() {
     local n=$1
     shift
-    echo travis_fold:start:$n
+    travis_fold start $n
+    travis_time_start
     /usr/bin/time "$@"
-    echo travis_fold:end:$n
+    travis_time_finish
+    travis_fold end $n
 }
 
 run pip_chainer sudo pip3 install third_party/chainer
