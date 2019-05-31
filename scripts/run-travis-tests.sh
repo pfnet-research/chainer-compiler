@@ -36,7 +36,7 @@ run large_tests make large_tests
 run unit_tests make test
 
 cd ..
-./scripts/runtests.py
+run runtests ./scripts/runtests.py 2>&1
 run pytest pytest -sv python
 
 run train_mnist python3 examples/mnist/train_mnist.py \
