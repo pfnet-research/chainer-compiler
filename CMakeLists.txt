@@ -83,7 +83,7 @@ set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
 if(${CHAINER_COMPILER_ENABLE_PYTHON})
   set_subdirectory_option_(CHAINERX_BUILD_PYTHON ON)
 endif()
-add_subdirectory(third_party/chainer/chainerx_cc)
+add_subdirectory(third_party/chainer/chainerx_cc EXCLUDE_FROM_ALL)
 
 if(NOT ("${CHAINER_COMPILER_PREBUILT_CHAINERX_DIR}" STREQUAL "OFF"))
   set(CHAINER_COMPILER_CHAINERX_LIBRARIES "${CHAINER_COMPILER_PREBUILT_CHAINERX_DIR}/libchainerx.so")
