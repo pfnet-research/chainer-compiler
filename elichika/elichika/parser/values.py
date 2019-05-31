@@ -275,14 +275,6 @@ class FieldAttributeCollection():
             return attribute
 
         # input
-
-        #value = parent_attribute.get_ref().get_value()
-
-        #copied_value = functions.generate_copied_value(value)
-        # attribute.revise(ValueRef(copied_value))
-
-        #self.attributes[key] = attribute
-
         attribute.revise(parent_attribute.get_ref())
         self.attributes[key] = attribute
 
@@ -390,8 +382,8 @@ class Field():
         self.collection = collection
 
     def pop_history(self):
-        self.collection = self.collection.parent
         self.collection.pop_history()
+        self.collection = self.collection.parent
 
         if self.collection is None:
             self.collection = FieldAttributeCollection('', None)
