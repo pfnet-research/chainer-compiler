@@ -293,6 +293,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         value_pairs[key]['name'] = v.name
         value_pairs[key]['true_input_value'] = v.input_value
         value_pairs[key]['true_input_body_value'] = v.value
+        value_pairs[key]['true_input_obj'] = v.obj
 
     for v in true_value_outputs:
         key = str(v.field.id) + '_' + v.name
@@ -302,6 +303,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         value_pairs[key]['field'] = v.field
         value_pairs[key]['name'] = v.name
         value_pairs[key]['true_output_body_value'] = v.value
+        value_pairs[key]['true_output_obj'] = v.obj
 
     for v in false_value_inputs:
         key = str(v.field.id) + '_' + v.name
@@ -312,6 +314,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         value_pairs[key]['name'] = v.name
         value_pairs[key]['false_input_value'] = v.input_value
         value_pairs[key]['false_input_body_value'] = v.value
+        value_pairs[key]['false_input_obj'] = v.obj
 
     for v in false_value_outputs:
         key = str(v.field.id) + '_' + v.name
@@ -321,6 +324,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         value_pairs[key]['field'] = v.field
         value_pairs[key]['name'] = v.name
         value_pairs[key]['false_output_body_value'] = v.value
+        value_pairs[key]['false_output_obj'] = v.obj
 
     inputs = []
     outputs = []
@@ -412,7 +416,19 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             true_graph.add_output_value(true_output_body_value)
             false_graph.add_output_value(false_output_body_value)
             
-            if field.get_attribute(name).has_obj():
+            if 'true_output_obj' in v and not 'false_output_obj' in v:
+                obj = v['true_output_obj']
+            elif not 'true_output_obj' in v and 'false_output_obj' in v:
+                obj = v['false_output_obj']
+            elif 'true_output_obj' in v and 'false_output_obj' in v:
+                obj = None
+            else:
+                assert(False)
+
+            if obj is not None:
+                obj.revise(output_value)
+                field.get_attribute(name).revise(obj)
+            elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
                 field.get_attribute(name).revise(values.ValueRef(output_value))
@@ -649,6 +665,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
         value_pairs[key]['field'] = v.field
         value_pairs[key]['name'] = v.name
         value_pairs[key]['output_body_value'] = v.value
+        value_pairs[key]['output_obj'] = v.obj
 
     # remove iterator
     removed_name = str(local_field.id) + '_' + target_value.name
@@ -672,7 +689,11 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
             body_graph.add_output_value(v['output_body_value'])
             output_value = functions.generate_value_with_same_type(v['output_body_value'])
             outputs.append(output_value)
-            if field.get_attribute(name).has_obj():
+            if 'output_obj' in v:
+                obj = v['output_obj']
+                obj.revise(output_value)
+                field.get_attribute(name).revise(obj)
+            elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
                 field.get_attribute(name).revise(values.ValueRef(output_value))
@@ -1024,6 +1045,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
         value_pairs[key]['field'] = v.field
         value_pairs[key]['name'] = v.name
         value_pairs[key]['output_body_value'] = v.value
+        value_pairs[key]['output_obj'] = v.obj
 
     for k, v in value_pairs.items():
         name = v['name']
@@ -1045,7 +1067,12 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             body_graph.add_output_value(v['output_body_value'])
             output_value = functions.generate_value_with_same_type(v['output_body_value'])
             outputs.append(output_value)
-            if field.get_attribute(name).has_obj():
+
+            if 'output_obj' in v:
+                obj = v['output_obj']
+                obj.revise(output_value)
+                field.get_attribute(name).revise(obj)
+            elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
                 field.get_attribute(name).revise(values.ValueRef(output_value))

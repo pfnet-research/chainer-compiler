@@ -235,7 +235,7 @@ class FieldInput:
         self.field = None
         self.name = None
         self.value = None
-
+        self.obj = None
 
 class FieldOutput:
     def __init__(self):
@@ -294,6 +294,7 @@ class FieldAttributeCollection():
     def pop_history(self):
         for att, input in self.inputs.items():
             input[0].revise(input[1])
+        self.inputs.clear()
 
     def get_inputs(self) -> 'List[FieldInput]':
         '''
@@ -306,6 +307,7 @@ class FieldAttributeCollection():
             fi.field = att.parent
             fi.input_value = input[2]
             fi.value = input[3]
+            fi.obj = input[0]
             ret.append(fi)
         return ret
 
