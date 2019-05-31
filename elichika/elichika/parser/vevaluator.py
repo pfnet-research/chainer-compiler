@@ -59,6 +59,8 @@ def get_ast_name_forcibly(ast):
         return ast.id
     if isinstance(ast, gast.gast.Attribute):
         return ast.attr
+    if isinstance(ast, str):
+        return ast
     return ''
 
 class AstContext:
@@ -115,7 +117,11 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         return attr
         
     # value is unknown
-    utils.print_warning('Assigning value {} is not found'.format(get_ast_name_forcibly(astc.nast.value)), lineprop)
+    if value is None:
+        utils.print_warning('Assigning value {} is not found'.format(get_ast_name_forcibly(astc.nast.value)), lineprop)
+    else:
+        utils.print_warning('Assigning value {} is not found'.format(get_ast_name_forcibly(astc.nast.attr)), lineprop)
+
     return None
 
 def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
@@ -256,7 +262,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     true_graph = Graph()
     true_graph.root_graph = graph.root_graph
     true_graph.name = 'True'
-    body = veval_ast(astc.c(astc.nast.body), local_field, true_graph)
+    true_body = veval_ast(astc.c(astc.nast.body), local_field, true_graph)
 
     true_value_inputs = values.get_inputs()
     true_value_outputs = values.get_outputs()
@@ -269,7 +275,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     false_graph = Graph()
     false_graph.root_graph = graph.root_graph
     false_graph.name = 'False'
-    body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
+    false_body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph)
 
     false_value_inputs = values.get_inputs()
     false_value_outputs = values.get_outputs()
@@ -327,6 +333,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         true_input_body_value = None
         false_input_body_value = None
             
+        # search input value
         if 'true_input_value' in v:
             input_value = v['true_input_value']
         elif 'false_input_value' in v:
@@ -347,20 +354,52 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         false_output_body_value = None
         output_value = None
 
+        # search output value
         if 'true_output_body_value' in v:
             true_output_body_value = v['true_output_body_value']
-        else:
-            true_output_body_value = true_input_body_value
 
         if 'false_output_body_value' in v:
             false_output_body_value = v['false_output_body_value']
-        else:
-            false_output_body_value = false_input_body_value
-
-        # TODO check types between true and false
 
         if true_output_body_value is not None or false_output_body_value is not None:
+
+            if true_output_body_value is None:
+                if true_input_body_value is not None:
+                    # e.x. not changed
+                    true_output_body_value = true_input_body_value
+                else:
+                    # e.x. make a value in false statement
+                    true_output_body_value = functions.generate_value_with_same_type(false_output_body_value, is_dummy_value=True)
+
+            if false_output_body_value is None:
+                if false_input_body_value is not None:
+                    # e.x. not changed
+                    false_output_body_value = false_input_body_value
+                else:
+                    # e.x. make a value in true statement
+                    false_output_body_value = functions.generate_value_with_same_type(true_output_body_value, is_dummy_value=True)
+
+        # check types between true and false
+        true_output_body_value_type = None
+        false_output_body_value_type = None
+        
+        if true_output_body_value is not None and true_output_body_value.is_not_none_or_any_value():
+            true_output_body_value_type = true_output_body_value
+
+        if false_output_body_value is not None and false_output_body_value.is_not_none_or_any_value():
+            false_output_body_value_type = false_output_body_value
+
+        if true_output_body_value_type is not None and false_output_body_value_type is not None and type(true_output_body_value_type) != type(false_output_body_value_type):
+            utils.print_warning('Values with differenet type were generated {} between true ande false'.format(k), lineprop)
+
+        if true_output_body_value_type != None:
+            output_value = functions.generate_value_with_same_type(true_output_body_value_type)
+        elif false_output_body_value_type != None:
+            output_value = functions.generate_value_with_same_type(false_output_body_value_type)
+        elif true_output_body_value is not None:
             output_value = functions.generate_value_with_same_type(true_output_body_value)
+        elif false_output_body_value is not None:
+            output_value = functions.generate_value_with_same_type(false_output_body_value)
 
         if input_value is not None:
             inputs.append(input_value)

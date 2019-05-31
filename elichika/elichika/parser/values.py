@@ -587,6 +587,9 @@ class Value():
     def get_constant_value(self):
         return self.internal_value
 
+    def is_not_none_or_any_value(self):
+        return False
+
     def is_iteratable(self):
         return False
 
@@ -638,6 +641,9 @@ class NumberValue(Value):
         if not config.float_restrict and self.dtype == np.float64:
             self.dtype = np.float32
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
@@ -648,6 +654,9 @@ class StrValue(Value):
     def __init__(self, string):
         super().__init__()
         self.internal_value = string
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def __str__(self):
         if self.internal_value == None:
@@ -660,6 +669,9 @@ class BoolValue(Value):
         super().__init__()
         self.internal_value = b
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(B.{})'.format('Any')
@@ -669,6 +681,9 @@ class BoolValue(Value):
 class RangeValue(Value):
     def __init__(self):
         super().__init__()
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def is_iteratable(self):
         return True
@@ -685,6 +700,9 @@ class TupleValue(Value):
         super().__init__()
         self.internal_value = values
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def __str__(self):
         return self.name + '(Tp{})'
 
@@ -694,6 +712,9 @@ class FuncValue(Value):
         super().__init__()
         self.func = func
         self.obj = obj
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def __str__(self):
         return self.name + '(F)'
@@ -706,6 +727,9 @@ class ListValue(Value):
         self.internal_value = values
         self.dtype = None
         self.vtype = None # type: Type
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def is_iteratable(self):
         return True
@@ -754,6 +778,9 @@ class ModuleValue(Value):
     def __init__(self):
         super().__init__()
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def __str__(self):
         return self.name + '(M)'
 
@@ -761,6 +788,9 @@ class ModuleValue(Value):
 class DictValue(Value):
     def __init__(self):
         super().__init__()
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def __str__(self):
         return self.name + '(D)'
@@ -780,6 +810,9 @@ class TensorValue(Value):
         if not config.float_restrict and self.dtype == np.float64:
             self.dtype = np.float32
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def is_iteratable(self):
         return True
 
@@ -791,12 +824,12 @@ class TensorValue(Value):
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(
-            FuncValue(functions_ndarray.NDArrayShapeFunction(self), obj))
-        obj.attributes.get_attribute('shape').revise(shape_func)
+            FuncValue(functions_ndarray.NDArrayShapeFunction(), obj))
+        obj.attributes.set_predefined_obj('shape', shape_func)
 
         size_func = ValueRef(
-            FuncValue(functions_ndarray.NDArraySizeFunction(self), obj))
-        obj.attributes.get_attribute('size').revise(size_func)
+            FuncValue(functions_ndarray.NDArraySizeFunction(), obj))
+        obj.attributes.set_predefined_obj('size', size_func)
 
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
@@ -807,6 +840,9 @@ class Type(Value):
         super().__init__()
         self.name = name
 
+    def is_not_none_or_any_value(self):
+        return True
+
 
 class Instance(Value):
     def __init__(self, module: 'Field', inst, classinfo):
@@ -815,7 +851,10 @@ class Instance(Value):
         self.func = None
         self.module = module
         self.classinfo = classinfo
-        
+
+    def is_not_none_or_any_value(self):
+        return True
+
 class UserDefinedInstance(Instance):
     def __init__(self, module: 'Field', inst, classinfo):
         super().__init__(module, inst, classinfo)

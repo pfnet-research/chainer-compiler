@@ -125,6 +125,38 @@ class Global(chainer.Chain):
             c = 1
         return (y,c)
 
+def func(y):
+    return y + 1
+
+class UserFunc(chainer.Chain):
+    def __init__(self):
+        super(UserFunc, self).__init__()
+        self.w = None
+
+    def forward(self, z):
+        if z is not None:
+            self.w = func(z)
+        return self.w
+
+class NpArrayShape(chainer.Chain):
+    def __init__(self):
+        super(NpArrayShape, self).__init__()
+
+    def forward(self, x):
+        if x is not None:
+            x = F.relu(x)
+        return list(x.shape)
+
+class NpArrayShapeSelf(chainer.Chain):
+    def __init__(self):
+        super(NpArrayShapeSelf, self).__init__()
+
+    def forward(self, x):
+        if x is not None:
+            self.x = F.relu(x)
+        return list(self.x.shape)
+
+
 # ======================================
 
 import testtools
@@ -141,7 +173,7 @@ def main():
 
     testtools.generate_testcase(StaticCondFalseNoElse(), [42],
                            subname='static_false_no_else')
-
+    
     testtools.generate_testcase(DynamicCond(), [42, False], subname='false')
 
     testtools.generate_testcase(DynamicCond(), [42, True], subname='true')
@@ -151,7 +183,7 @@ def main():
 
     testtools.generate_testcase(DynamicCondNoElse(), [42, True],
                            subname='true_no_else')
-
+    
     testtools.generate_testcase(DynamicCondLeak(), [42, False], subname='leak_false')
 
     testtools.generate_testcase(DynamicCondLeak(), [42, True], subname='leak_true')
@@ -183,6 +215,12 @@ def main():
     n = np.random.rand(2, 2).astype(np.float32)
     c = np.random.rand(2, 2).astype(np.float32)
     testtools.generate_testcase(Global(), [c,n], subname='global')
+
+    testtools.generate_testcase(UserFunc(), [42], subname='user_func')
+
+    testtools.generate_testcase(NpArrayShape, [n], subname='nparray_shape')
+
+    testtools.generate_testcase(NpArrayShapeSelf, [n], subname='nparray_shape_self')
 
 if __name__ == '__main__':
     main()
