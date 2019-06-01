@@ -34,8 +34,6 @@ run cmake cmake .. \
       -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx
 run make make -j2
 
-run large_tests make large_tests
-
 run unit_tests make test
 
 cd ..
