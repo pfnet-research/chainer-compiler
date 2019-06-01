@@ -4,38 +4,56 @@ set -eux
 
 ./scripts/run-clang-format.sh
 
-time sudo pip3 install third_party/chainer
-time sudo pip3 install third_party/onnx-chainer
+run() {
+    set +x
+    travis_fold start $1
+    travis_time_start
+    local n=$1
+    shift
+    echo "Command: $@"
+    /usr/bin/time "$@"
+    travis_time_finish
+    set -x
+    travis_fold end $n
+}
+
+run pip_chainer sudo pip3 install third_party/chainer
+run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer
 # TODO(hamaji): Remove this once ONNX-chainer becomes compatible with
 # ONNX-1.5.0.
-time sudo pip3 install onnx==1.4.1
+run pip_onnx sudo pip3 install onnx==1.4.1
 
-time bash setup.sh
+run setup_sh bash setup.sh
 
 mkdir build
 cd build
-time cmake .. \
+run cmake cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
       -DPYTHON_EXECUTABLE=/usr/bin/python3 \
       -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
       -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx
-time make -j2
+run make make -j2
 
-time make large_tests
+run large_tests make large_tests
 
-time make test
+run unit_tests make test
 
 cd ..
-./scripts/runtests.py
-time pytest -sv python
+run runtests ./scripts/runtests.py 2>&1
+run pytest pytest -sv python
 
-time python3 examples/mnist/train_mnist.py \
+run train_mnist python3 examples/mnist/train_mnist.py \
      -d native --compile -I 3 --use-fake-data
 
-time ./build/tools/dump out/ch2o_model_MLP_with_loss
+run tools_dump ./build/tools/dump out/ch2o_model_MLP_with_loss
 
-time ./build/tools/run_onnx --test out/ch2o_model_MLP_with_loss --verbose
-time ./build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace
+run run_onnx_verbose \
+    ./build/tools/run_onnx --test out/ch2o_model_MLP_with_loss \
+    --verbose --compiler_log
+run run_onnx_trace sh -c \
+    './build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace 2>&1 | head -100'
 
-time ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
-time ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
+run run_onnx_alex \
+    ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
+run run_onnx_googlenet \
+    ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss

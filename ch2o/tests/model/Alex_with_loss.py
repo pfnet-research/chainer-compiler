@@ -11,16 +11,17 @@ class Alex(chainer.Chain):
 
     insize = 227
 
-    def __init__(self):
+    def __init__(self, shrink_ratio=1):
         super(Alex, self).__init__()
+        sr = shrink_ratio
         with self.init_scope():
-            self.conv1 = L.Convolution2D(None,  96, 11, stride=4)
-            self.conv2 = L.Convolution2D(None, 256,  5, pad=2)
-            self.conv3 = L.Convolution2D(None, 384,  3, pad=1)
-            self.conv4 = L.Convolution2D(None, 384,  3, pad=1)
-            self.conv5 = L.Convolution2D(None, 256,  3, pad=1)
-            self.fc6 = L.Linear(None, 4096)
-            self.fc7 = L.Linear(None, 4096)
+            self.conv1 = L.Convolution2D(None,  96 // sr, 11, stride=4)
+            self.conv2 = L.Convolution2D(None, 256 // sr,  5, pad=2)
+            self.conv3 = L.Convolution2D(None, 384 // sr,  3, pad=1)
+            self.conv4 = L.Convolution2D(None, 384 // sr,  3, pad=1)
+            self.conv5 = L.Convolution2D(None, 256 // sr,  3, pad=1)
+            self.fc6 = L.Linear(None, 4096 // sr)
+            self.fc7 = L.Linear(None, 4096 // sr)
             self.fc8 = L.Linear(None, 1000)
 
     def forward(self, x, t):
@@ -48,7 +49,7 @@ class Alex(chainer.Chain):
 if __name__ == '__main__':
     np.random.seed(314)
 
-    model = Alex()
+    model = Alex(shrink_ratio=23)
 
     # batch * channel * H * W
     v = np.random.rand(2, 3, 227, 227).astype(np.float32)
