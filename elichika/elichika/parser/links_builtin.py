@@ -59,6 +59,7 @@ def return_NStepBiLSTM():
     return [values.TensorValue(), values.TensorValue(), list_tensor]
 
 chainer_links[chainer.links.Linear] = ChainerLinkDefinition(
+    args=[('self', values.NoneValue()), ('x', values.NoneValue()), ('n_batch_axes',values.NumberValue(1))],
     estimate_shape=estimate_linear_shape)
 chainer_links[chainer.links.Convolution2D] = ChainerLinkDefinition(
     estimate_shape=estimate_convolution2D_shape)

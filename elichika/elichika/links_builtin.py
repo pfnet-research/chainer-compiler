@@ -27,12 +27,29 @@ def convert_onnx_chainer_linear(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall')
     onnx_name = oc.node2onnx_parameter[node].onnx_name
 
     x = oc.ONNXValue(onnx_graph, node.args.get_value('x'))
+    axes = oc.try_get_attribute(node.args.get_value('n_batch_axes'), node)
     o = oc.ONNXValue(onnx_graph, node.outputs[0])
 
     if chainer_inst.W.data is None:
         print("W is unknown. Please infer this model.")
 
+
     w = oc.ONNXValue(onnx_graph, chainer_inst.W)
+
+    if axes != 1:
+        inputs = [x, w]
+
+        if chainer_inst.b is not None:
+            b = oc.ONNXValue(onnx_graph, chainer_inst.b)
+            inputs.append(b)
+
+        onnx_graph.add_node(
+            'ChainerLinear',
+            inputs,
+            [o],
+            str(node.lineprop),
+            n_batch_axes=axes)
+        return
 
     (x_shape,) = onnx_graph.add_node(
         'Shape',
