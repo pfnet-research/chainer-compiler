@@ -17,7 +17,7 @@ import numpy as np
 
 def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
     if value is None:
-        utils.print_warning('Failed to get {}.'.format(name), lineprop)
+        utils.print_warning('Failed to get value in "{}".'.format(name), lineprop)
         return None
 
     if isinstance(value, values.Value):
@@ -34,8 +34,7 @@ def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
 
 def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Value':
     if value is None:
-        if config.show_warnings:
-            print('Failed to get value {}. in {}'.format(name, lineprop))
+        utils.print_warning('Failed to get value in "{}".'.format(name), lineprop)
         return None
 
     if isinstance(value, values.NoneValue) and not is_none_allowed:
@@ -207,6 +206,12 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         finput.keywords[keyword.arg] = try_get_ref(arg_, 'call', lineprop)
 
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    # check arguments
+    for o in finput.inputs:
+        if o is None:
+            utils.print_warning('Invalid arguments exists in "{}"'.format(get_ast_name_forcibly(astc.nast.func)), lineprop)
+            return None
 
     ret = None
     if isinstance(func_value, values.FuncValue):

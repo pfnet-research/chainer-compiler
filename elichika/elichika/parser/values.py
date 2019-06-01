@@ -310,6 +310,9 @@ class FieldAttributeCollection():
         ret = []
 
         for key, att in self.attributes.items():
+            # has ref? (it causes with compile error in almost cases)
+            if not att.has_obj():
+                continue
 
             # instance or func
             if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
