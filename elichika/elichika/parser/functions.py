@@ -17,6 +17,7 @@ from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser import core
 from elichika.parser import config
+from elichika.parser import canonicalizer
 
 
 def generate_copied_value(value: 'values.Value'):
@@ -366,10 +367,10 @@ class UserDefinedFunction(FunctionBase):
         self.lineno = sourcelines[1]
 
         code = utils.clip_head(inspect.getsource(func))
-
+        processed_ast = canonicalizer.Canonicalizer().visit(ast.parse(code))
         self.args.analyze_args(func)
 
-        self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
+        self.ast = gast.ast_to_gast(processed_ast).body[0]
 
     def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
         func_field = values.Field()
