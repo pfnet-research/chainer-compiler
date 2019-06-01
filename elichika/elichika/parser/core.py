@@ -132,7 +132,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[six.moves.range] = m_range
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
-    values.function_converters[list] = m_list
+    values.builtin_function_converters['list'] = m_list
 
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
