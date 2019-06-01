@@ -26,6 +26,7 @@ histories = []
 
 function_converters = {}
 instance_converters = []
+builtin_function_converters = {}
 
 def create_ref_value_name_with_constant(value):
     if isinstance(value, ValueRef):
@@ -91,7 +92,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         if instance in function_converters.keys():
             func = function_converters[instance]
             return ValueRef(func)
-    
+
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
         return ValueRef(BoolValue(instance))
@@ -224,6 +225,10 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
 
     if utils.is_disabled_module(instance):
         return None
+
+    #if inspect.ismodule(instance):
+    #    value = Module(instance)
+    #    return ValueRef(value)
 
     model_inst = UserDefinedInstance(default_module, instance, None)
     return ValueRef(model_inst)
@@ -442,6 +447,10 @@ class Module(Field):
         self.internal_module = module
 
     def has_attribute(self, key) -> 'Boolean':
+        
+        if key in builtin_function_converters.keys():
+            return True
+            
         members = inspect.getmembers(self.internal_module)
         members_dict = {}
         for member in members:
@@ -458,6 +467,11 @@ class Module(Field):
     def get_attribute(self, key):
         attribute = super().get_attribute(key)
         if attribute is not None and attribute.has_obj():
+            return attribute
+
+        if key in builtin_function_converters.keys():
+            v = ValueRef(builtin_function_converters[key])
+            attribute.revise(v)
             return attribute
 
         members = inspect.getmembers(self.internal_module)
