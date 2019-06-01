@@ -50,8 +50,8 @@ run tools_dump ./build/tools/dump out/ch2o_model_MLP_with_loss
 run run_onnx_verbose \
     ./build/tools/run_onnx --test out/ch2o_model_MLP_with_loss \
     --verbose --compiler_log
-run run_onnx_trace \
-    ./build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace
+run run_onnx_trace sh -c \
+    './build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace 2>&1 | head -100'
 
 run run_onnx_alex \
     ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
