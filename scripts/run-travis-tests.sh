@@ -5,12 +5,15 @@ set -eux
 ./scripts/run-clang-format.sh
 
 run() {
+    set +x
+    travis_fold start $1
+    travis_time_start
     local n=$1
     shift
-    travis_fold start $n
-    travis_time_start
+    echo "Command: $@"
     /usr/bin/time "$@"
     travis_time_finish
+    set -x
     travis_fold end $n
 }
 
