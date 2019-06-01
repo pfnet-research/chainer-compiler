@@ -26,6 +26,20 @@ class ContinueNested(chainer.Chain):
         return ret
 
 
+class ContinueNestedMultiple(chainer.Chain):
+    def forward(self, x, y):
+        ret = 0
+        for i in range(x):
+            if i == y - 1:
+                continue
+            for j in range(x):
+                if i == y:
+                    if j == y:
+                        continue
+                ret = ret + j
+        return ret
+
+
 # ======================================
 
 
@@ -37,6 +51,7 @@ def main():
     x, y = 10, 5
     testtools.generate_testcase(Continue, [x, y], subname='continue')
     testtools.generate_testcase(ContinueNested, [x, y], subname='continue_nested')
+    testtools.generate_testcase(ContinueNestedMultiple, [x, y], subname='continue_nested_multiple')
 
 
 if __name__ == '__main__':

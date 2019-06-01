@@ -22,12 +22,11 @@ class Canonicalizer(NodeTransformer):
             return node
 
     def visit_For(self, node):
-        self.for_continue_stack.append([])
-        node = self.generic_visit(node)
+        modified_node = self.generic_visit(node)
         continue_flags = self.for_continue_stack.pop()
         for flag in continue_flags:
             node.body.insert(0, ast.Assign(targets=[ast.Name(id=flag, ctx=ast.Store())], value=ast.NameConstant(value=False)))
-        return node
+        return modified_node
 
     def generic_visit(self, node):
         if isinstance(node, ast.stmt):
@@ -35,15 +34,21 @@ class Canonicalizer(NodeTransformer):
                 bool_values = []
                 for flag in self.for_continue_stack[-1]:
                     bool_values.append(ast.UnaryOp(op=ast.Not(), operand=ast.Name(id=flag, ctx=ast.Load())))
+                if isinstance(node, ast.For):
+                    self.for_continue_stack.append([])
                 node = super().generic_visit(node)
                 replacement = ast.If(test=ast.BoolOp(op=ast.And, values=bool_values), body=[node], orelse=[])
                 ret = ast.copy_location(replacement, node)
             elif len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) == 1:
                 flag = self.for_continue_stack[-1][0]
+                if isinstance(node, ast.For):
+                    self.for_continue_stack.append([])
                 node = super().generic_visit(node)
                 replacement = ast.If(test=ast.UnaryOp(op=ast.Not(), operand=ast.Name(id=flag, ctx=ast.Load())), body=[node], orelse=[])
                 ret = ast.copy_location(replacement, node)
             else:
+                if isinstance(node, ast.For):
+                    self.for_continue_stack.append([])
                 ret = super().generic_visit(node)
         else:
             ret = super().generic_visit(node)
