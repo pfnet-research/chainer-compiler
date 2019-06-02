@@ -141,7 +141,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[cuda.to_cpu] = m_to_cpu
 
     # generate default module
-    default_module = values.Module(sys.modules[model.__module__])
+    default_module = values.ValueRef(values.Module(sys.modules[model.__module__]))
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward', None)

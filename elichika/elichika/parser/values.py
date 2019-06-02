@@ -123,18 +123,18 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
 
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
-        return ValueRef(FuncValue(func, self_instance))
+        return ValueRef(FuncValue(func, self_instance, default_module))
 
     if inspect.isfunction(instance):
         func = UserDefinedFunction(instance)
         if from_member:
-            return ValueRef(FuncValue(func, self_instance))
+            return ValueRef(FuncValue(func, self_instance, default_module))
         else:
-            return ValueRef(FuncValue(func, None))
+            return ValueRef(FuncValue(func, None, default_module))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
-        return ValueRef(FuncValue(func, None))
+        return ValueRef(FuncValue(func, None, default_module))
 
     if isinstance(instance, list):
         if root_graph is None:
@@ -226,9 +226,9 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
     if utils.is_disabled_module(instance):
         return None
 
-    #if inspect.ismodule(instance):
-    #    value = Module(instance)
-    #    return ValueRef(value)
+    if inspect.ismodule(instance):
+        value = Module(instance)
+        return ValueRef(value)
 
     model_inst = UserDefinedInstance(default_module, instance, None)
     return ValueRef(model_inst)
@@ -367,15 +367,15 @@ class Field():
 
         return False
 
-    def get_attribute(self, key: 'str', from_module=True) -> 'Attribute':
+    def get_attribute(self, key: 'str', root_graph : 'graphs.Graph' = None, from_module=False) -> 'Attribute':
         attribute = self.collection.try_get_attribute(key)
 
         if attribute is not None:
             return attribute
 
         # search an attribute from a module
-        if self.module is not None and self.module.has_attribute(key) and from_module:
-            attribute = self.module.get_attribute(key)
+        if self.module is not None and from_module and self.module.try_get_and_store_obj(key, root_graph):
+            attribute = self.module.attributes.get_attribute(key, root_graph)
 
         if attribute is not None:
             return attribute
@@ -401,10 +401,6 @@ class Field():
 
     def get_outputs(self):
         return self.collection.get_outputs()
-
-    def set_default_value(self, key, value):
-        attribute = self.get_attribute(key)
-        attribute.revise(value)
 
     def set_predefined_obj(self, key, obj):
         collections = []
@@ -440,65 +436,6 @@ class Field():
             #value = functions.generate_copied_value(old_value)
             #obj = ValueRef(value)
 
-
-class Module(Field):
-    def __init__(self, module):
-        super().__init__()
-        self.internal_module = module
-
-    def has_attribute(self, key) -> 'Boolean':
-        
-        if key in builtin_function_converters.keys():
-            return True
-            
-        members = inspect.getmembers(self.internal_module)
-        members_dict = {}
-        for member in members:
-            members_dict[member[0]] = member[1]
-
-        if (key in members_dict.keys()):
-
-            attr_v = members_dict[key]
-
-            return True
-
-        return super().has_attribute(key)
-
-    def get_attribute(self, key):
-        attribute = super().get_attribute(key)
-        if attribute is not None and attribute.has_obj():
-            return attribute
-
-        if key in builtin_function_converters.keys():
-            v = ValueRef(builtin_function_converters[key])
-            attribute.revise(v)
-            return attribute
-
-        members = inspect.getmembers(self.internal_module)
-        members_dict = {}
-        for member in members:
-            members_dict[member[0]] = member[1]
-
-        if not (key in members_dict.keys()):
-            return attribute
-
-        attr_v = members_dict[key]
-
-        attribute.is_non_volatile = True
-        v = parse_instance(self, key, attr_v, None)
-        
-        # failed to parse
-        if v is None:
-            return None
-
-        attribute.revise(v)
-
-        return attribute
-
-    def set_default_value(self, key, value):
-        attribute = super().get_attribute(key)
-        attribute.revise(value)
-
 class Attribute:
     def __init__(self, name: 'str'):
         self.name = name
@@ -529,12 +466,6 @@ class Attribute:
     def __str__(self):
         return self.name
 
-
-class ValueRefHistory():
-    def __init__(self, value):
-        self.value = value
-
-
 class ValueRef():
     def __init__(self, value: 'Value'):
         self.name = ""
@@ -555,7 +486,7 @@ class ValueRef():
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
             
-        attribute = self.attributes.get_attribute(name)
+        attribute = self.attributes.get_attribute(name, root_graph)
         if attribute.has_obj():
             return attribute.get_ref()
 
@@ -706,10 +637,11 @@ class TupleValue(Value):
 
 
 class FuncValue(Value):
-    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef'):
+    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef', module : 'ValueRef' = None):
         super().__init__()
         self.func = func
         self.obj = obj
+        self.module = module
 
     def is_not_none_or_any_value(self):
         return True
@@ -765,7 +697,7 @@ class ListValue(Value):
 
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
-            FuncValue(functions_builtin.AppendFunction(self), obj))
+            FuncValue(functions_builtin.AppendFunction(self), obj, None))
         obj.attributes.get_attribute('append').revise(append_func)
 
     def __str__(self):
@@ -822,11 +754,11 @@ class TensorValue(Value):
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(
-            FuncValue(functions_ndarray.NDArrayShapeFunction(), obj))
+            FuncValue(functions_ndarray.NDArrayShapeFunction(), obj, None))
         obj.attributes.set_predefined_obj('shape', shape_func)
 
         size_func = ValueRef(
-            FuncValue(functions_ndarray.NDArraySizeFunction(), obj))
+            FuncValue(functions_ndarray.NDArraySizeFunction(), obj, None))
         obj.attributes.set_predefined_obj('size', size_func)
 
     def __str__(self):
@@ -841,6 +773,31 @@ class Type(Value):
     def is_not_none_or_any_value(self):
         return True
 
+class Module(Value):
+    def __init__(self, module):
+        super().__init__()
+        self.internal_module = module
+
+
+    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
+
+        if name in builtin_function_converters.keys():
+            v = ValueRef(builtin_function_converters[name])
+            return v
+
+        members = inspect.getmembers(self.internal_module)
+        members_dict = {}
+        for member in members:
+            members_dict[member[0]] = member[1]
+
+        if not (name in members_dict.keys()):
+            return None
+
+        attr_v = members_dict[name]
+
+        v = parse_instance(inst, name, attr_v, None)
+        
+        return v
 
 class Instance(Value):
     def __init__(self, module: 'Field', inst, classinfo):
