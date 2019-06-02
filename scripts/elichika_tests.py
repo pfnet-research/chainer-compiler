@@ -75,6 +75,7 @@ TESTS = [
     Generator('node/Links', 'EmbedID'),
 
     Generator('syntax', 'Alias'),
+    Generator('syntax', 'Continue'),
     Generator('syntax', 'Cmp'),
     Generator('syntax', 'For'),
     Generator('syntax', 'ForAndIf'),
