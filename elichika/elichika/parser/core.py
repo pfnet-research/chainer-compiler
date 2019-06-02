@@ -34,24 +34,25 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.reset_field_and_attributes()
     utils.reset_guid()
 
+    values.function_converters.clear()
+    values.builtin_function_converters.clear()
     values.instance_converters.clear()
 
     def instance_converter(m, i):
         if links_builtin.is_builtin_chainer_link(i):
             return links_builtin.ChainerLinkInstance(m, i)
 
-        if isinstance(i, chainer.ChainList):
-            return links_builtin.ChainerChainListInstance(m, i)
+        if isinstance(i, chainer.ChainList):    
+            module = values.ValueRef(values.ModuleValue(sys.modules[i.__module__]))
+            return links_builtin.ChainerChainListInstance(module, i)
 
         if isinstance(i, chainer.Link):
-            return links_builtin.ChainerChainInstance(m, i)
+            module = values.ValueRef(values.ModuleValue(sys.modules[i.__module__]))
+            return links_builtin.ChainerChainInstance(module, i)
 
         return None
 
     values.instance_converters.append(instance_converter)
-
-    # generate default module
-    default_module = values.Module(sys.modules[model.__module__])
 
     # chainer
     c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
@@ -125,22 +126,24 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.float32] = f_float32
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
-    default_module.set_default_value('range', values.ValueRef(m_range))
+    values.builtin_function_converters['range'] = m_range
 
-    #values.function_converters[range] = m_range
+    m_len = values.FuncValue(functions_builtin.LenFunction(), None)
+    values.builtin_function_converters['len'] = m_len
+
     values.function_converters[six.moves.range] = m_range
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
-    default_module.set_default_value('list', values.ValueRef(m_list))
-
-    m_len = values.FuncValue(functions_builtin.LenFunction(), None)
-    default_module.set_default_value('len', values.ValueRef(m_len))
+    values.builtin_function_converters['list'] = m_list
 
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
 
     m_to_cpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_cpu), None)
     values.function_converters[cuda.to_cpu] = m_to_cpu
+
+    # generate default module
+    default_module = values.ValueRef(values.ModuleValue(sys.modules[model.__module__]))
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward', None)
@@ -159,10 +162,6 @@ def convert_model(model: 'chainer.Chain', args=[]):
         varg.get_value().name = 'in_' + str(ind)
 
         # make value unknown
-        # if isinstance(varg.get_value(), values.TupleValue):
-        #    for i in range(len(varg.get_value().internal_value)):
-        #        varg.get_value().internal_value[i] = None
-        # else:
         varg.get_value().internal_value = None
 
         finput.inputs.append(varg)

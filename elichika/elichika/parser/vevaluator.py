@@ -96,12 +96,12 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         utils.print_warning('Unknown or disabled attribute "{}" is accessed'.format(get_ast_name_forcibly(astc.nast.value)), lineprop)
         return None
 
-    attr = value_ref.get_field().get_attribute(astc.nast.attr, from_module)
+    attr = value_ref.get_field().get_attribute(astc.nast.attr, graph.root_graph, from_module)
 
     # property(getter)
     if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue) and attr.get_ref().get_value().func.is_property:
         func_value = attr.get_ref().get_value()
-        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+        ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
         return ret
 
     if attr.has_obj():
@@ -110,7 +110,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     # if attr is not found
     gotten_obj = value_ref.try_get_and_store_obj(astc.nast.attr, graph.root_graph)
     if gotten_obj is not None:
-        return value_ref.get_field().get_attribute(astc.nast.attr, from_module)
+        return value_ref.get_field().get_attribute(astc.nast.attr, graph.root_graph, from_module)
 
     if option is not None and option.eval_as_written_target:
         return attr
@@ -180,7 +180,7 @@ def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     if option is not None and option.eval_as_written_target:
         from_module = False
 
-    ret = local_field.get_attribute(astc.nast.id, from_module=from_module)
+    ret = local_field.get_attribute(astc.nast.id, graph.root_graph, from_module=from_module)
     return ret
 
 def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph') -> 'Attribute':
@@ -215,14 +215,15 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     ret = None
     if isinstance(func_value, values.FuncValue):
-        ret = func_value.func.vcall(local_field.module, graph, func_value.obj, finput, lineprop)
+        ret = func_value.func.vcall(func_value.module, graph, func_value.obj, finput, lineprop)
         return ret
 
     elif isinstance(func_value, values.Instance):
         # __call__
         call_func_ref = func_obj.try_get_and_store_obj('__call__', graph.root_graph)
         if call_func_ref is not None:
-            ret = call_func_ref.get_value().func.vcall(local_field.module, graph, func_obj, finput, lineprop)
+            func_value = call_func_ref.get_value()
+            ret = func_value.func.vcall(func_value.module, graph, func_obj, finput, lineprop)
             return ret
 
     
@@ -617,7 +618,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     target_value = target_ref.get_value()
 
     node_forgen.set_outputs([target_ref.get_value()])
-    local_field.get_attribute(target_name, from_module=False).revise(target_ref)
+    local_field.get_attribute(target_name).revise(target_ref)
     
     body_graph.add_node(node_forgen)
 
@@ -628,7 +629,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     finput.inputs.append(elt_obj)
 
     append_value = local_field.get_attribute(internal_list_id).get_ref().get_field().get_attribute('append').get_ref().get_value()
-    append_value.func.vcall(local_field.module, body_graph, local_field.get_attribute(internal_list_id).get_ref(), finput, lineprop)
+    append_value.func.vcall(None, body_graph, local_field.get_attribute(internal_list_id).get_ref(), finput, lineprop)
 
     value_inputs = values.get_inputs()
     value_outputs = values.get_outputs()

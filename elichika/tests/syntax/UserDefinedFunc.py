@@ -55,9 +55,8 @@ def main():
     b = np.random.rand(3, 4).astype(np.float32)
     c = np.random.rand(3, 4).astype(np.float32)
     testtools.generate_testcase(model, [a, b, c])
-    # TODO : fixed it
-    # testtools.generate_testcase(B(), [a, b, c], subname='external_func')
-    # testtools.generate_testcase(C(), [a, b, c], subname='external_class')
+    testtools.generate_testcase(B(), [a, b, c], subname='external_func')
+    testtools.generate_testcase(C(), [a, b, c], subname='external_class')
 
 if __name__ == '__main__':
     main()
