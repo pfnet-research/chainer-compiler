@@ -227,7 +227,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         return None
 
     if inspect.ismodule(instance):
-        value = Module(instance)
+        value = ModuleValue(instance)
         return ValueRef(value)
 
     model_inst = UserDefinedInstance(default_module, instance, None)
@@ -703,18 +703,6 @@ class ListValue(Value):
     def __str__(self):
         return self.name + '(L)'
 
-
-class ModuleValue(Value):
-    def __init__(self):
-        super().__init__()
-
-    def is_not_none_or_any_value(self):
-        return True
-
-    def __str__(self):
-        return self.name + '(M)'
-
-
 class DictValue(Value):
     def __init__(self):
         super().__init__()
@@ -773,7 +761,7 @@ class Type(Value):
     def is_not_none_or_any_value(self):
         return True
 
-class Module(Value):
+class ModuleValue(Value):
     def __init__(self, module):
         super().__init__()
         self.internal_module = module
