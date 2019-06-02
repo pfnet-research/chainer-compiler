@@ -792,7 +792,7 @@ class Instance(Value):
         super().__init__()
         self.inst = inst
         self.func = None
-        self.module = module
+        self.module = ValueRef(ModuleValue(sys.modules[inst.__module__]))
         self.classinfo = classinfo
 
     def is_not_none_or_any_value(self):
