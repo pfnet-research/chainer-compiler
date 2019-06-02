@@ -1,3 +1,10 @@
+# A module to canonicalize Python AST to a simplified one.
+#
+# Usage from commandline:
+#
+# $ python3 elichika/elichika/parser/canonicalizer.py test.py
+#
+
 import ast, gast
 from ast import NodeTransformer
 
@@ -61,5 +68,21 @@ class Canonicalizer(NodeTransformer):
         replacement = ast.Assign(targets=[ast.Name(id=flag, ctx=ast.Store())], value=ast.NameConstant(value=True))
         return ast.copy_location(replacement, node)
 
-        
 
+if __name__ == '__main__':
+    import ast
+    import gast
+    import sys
+
+    def dump_ast(mod):
+        mod = gast.ast_to_gast(mod)
+        for b in mod.body:
+            print(ast.dump(b))
+
+    code = open(sys.argv[1]).read()
+    orig_ast = ast.parse(code)
+    print('=== Original AST ===')
+    dump_ast(orig_ast)
+    print('=== Canonicalized AST ===')
+    canon_ast = Canonicalizer().visit(orig_ast)
+    dump_ast(canon_ast)
