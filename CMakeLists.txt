@@ -391,20 +391,21 @@ set(ELICHIKA_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/onnx_converters.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/canonicalizer.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/config.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/core.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_ndarray.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/graphs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/nodes.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/utils.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_bin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_unary.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/vevaluator.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/visualizer.py
-
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/__init__.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/initializer.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/test_args.py
