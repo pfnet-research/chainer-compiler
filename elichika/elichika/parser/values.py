@@ -1,7 +1,7 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
-
+import sys
 import numpy as np
 
 import collections
