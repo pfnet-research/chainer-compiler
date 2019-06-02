@@ -230,7 +230,8 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         value = ModuleValue(instance)
         return ValueRef(value)
 
-    model_inst = UserDefinedInstance(default_module, instance, None)
+    module = ValueRef(ModuleValue(sys.modules[instance.__module__]))
+    model_inst = UserDefinedInstance(module, instance, None)
     return ValueRef(model_inst)
 
 
@@ -788,18 +789,18 @@ class ModuleValue(Value):
         return v
 
 class Instance(Value):
-    def __init__(self, module: 'Field', inst, classinfo):
+    def __init__(self, module: 'ValueRef', inst, classinfo):
         super().__init__()
         self.inst = inst
         self.func = None
-        self.module = ValueRef(ModuleValue(sys.modules[inst.__module__]))
+        self.module = module
         self.classinfo = classinfo
 
     def is_not_none_or_any_value(self):
         return True
 
 class UserDefinedInstance(Instance):
-    def __init__(self, module: 'Field', inst, classinfo):
+    def __init__(self, module: 'ValueRef', inst, classinfo):
         super().__init__(module, inst, classinfo)
 
     def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':

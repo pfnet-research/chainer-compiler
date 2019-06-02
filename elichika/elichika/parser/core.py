@@ -42,11 +42,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
         if links_builtin.is_builtin_chainer_link(i):
             return links_builtin.ChainerLinkInstance(m, i)
 
-        if isinstance(i, chainer.ChainList):
-            return links_builtin.ChainerChainListInstance(m, i)
+        if isinstance(i, chainer.ChainList):    
+            module = values.ValueRef(values.ModuleValue(sys.modules[i.__module__]))
+            return links_builtin.ChainerChainListInstance(module, i)
 
         if isinstance(i, chainer.Link):
-            return links_builtin.ChainerChainInstance(m, i)
+            module = values.ValueRef(values.ModuleValue(sys.modules[i.__module__]))
+            return links_builtin.ChainerChainInstance(module, i)
 
         return None
 
