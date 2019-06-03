@@ -1,3 +1,5 @@
+#include <functional>
+
 #include <gtest/gtest.h>
 
 #include <common/iterator.h>
@@ -10,7 +12,7 @@ namespace chainer_compiler {
 namespace {
 
 void TestInference(
-    Node::OpType op_type, const std::vector<Type>& input_types, Dtype expected_dtype, const std::vector<int64_t>& expected_dims) {
+    Node::OpType op_type, const std::vector<Type>& input_types, std::function<void (Node*)> attr_fn, Dtype expected_dtype, const std::vector<int64_t>& expected_dims) {
     Graph graph("test");
     std::vector<Value*> inputs;
     for (const auto& type : Enumerate(input_types)) {
@@ -23,6 +25,7 @@ void TestInference(
     {
         GraphBuilder gb(&graph, "test", outputs[0]);
         node = gb.MOp(op_type, inputs, outputs);
+        attr_fn(node);
     }
 
     ASSERT_EQ(1, node->outputs().size());
@@ -41,7 +44,9 @@ std::vector<Type> Types(const std::vector<std::vector<int64_t>>& shapes) {
 
 TEST(ShapeInferenceTest, Linear) {
     RegisterCustomOnnxOperatorSetSchema();
-    TestInference(Node::kChainerLinear, Types({{3, 2}, {4, 2}}), Dtype::kFloat32, {3, 4});
+    TestInference(Node::kChainerLinear, Types({{3, 2}, {4, 2}}), [](Node* n){}, Dtype::kFloat32, {3, 4});
+    TestInference(Node::kChainerLinear, Types({{2, 4, 3}, {5, 3}}), [](Node* n){ n->set_n_batch_axes(2); }, Dtype::kFloat32, {2, 4, 5});
+    TestInference(Node::kChainerLinear, Types({{2, 4, 3}, {5, 3}}), [](Node* n){ n->set_n_batch_axes(1); }, Dtype::kFloat32, {2, 5});
 }
 
 }  // namespace

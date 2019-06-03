@@ -8,9 +8,22 @@ namespace {
 
 void InferLinear(InferenceContext& ctx) {
     propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    int n_batch_axes = getAttribute(ctx, "n_batch_axes", 1);
     auto& first_input_shape = getInputShape(ctx, 0);
     auto& second_input_shape = getInputShape(ctx, 1);
-    updateOutputShape(ctx, 0, {first_input_shape.dim(0), second_input_shape.dim(0)});
+
+    if (n_batch_axes > first_input_shape.dim_size()) {
+        return;
+    }
+    if (1 > second_input_shape.dim_size()) {
+        return;
+    }
+
+    auto* output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+    for (int i = 0; i < n_batch_axes; ++i) {
+        output_shape->add_dim()->CopyFrom(first_input_shape.dim(i));
+    }
+    output_shape->add_dim()->CopyFrom(second_input_shape.dim(0));
 }
 
 }  // namespace
