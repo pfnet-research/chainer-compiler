@@ -4,6 +4,17 @@
 
 namespace ONNX_NAMESPACE {
 
+namespace {
+
+void InferLinear(InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    auto& first_input_shape = getInputShape(ctx, 0);
+    auto& second_input_shape = getInputShape(ctx, 1);
+    updateOutputShape(ctx, 0, {first_input_shape.dim(0), second_input_shape.dim(0)});
+}
+
+}  // namespace
+
 ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerLinear,
         9,
@@ -18,12 +29,7 @@ ONNX_CHAINER_OPERATOR_SET_SCHEMA(
                         "T",
                         {"tensor(float)", "tensor(float16)", "tensor(double)"},
                         "Constrain input and output types to signed numeric tensors.")
-                .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-                    propagateElemTypeFromInputToOutput(ctx, 0, 0);
-                    auto& first_input_shape = getInputShape(ctx, 0);
-                    auto& second_input_shape = getInputShape(ctx, 1);
-                    updateOutputShape(ctx, 0, {first_input_shape.dim(0), second_input_shape.dim(0)});
-                }));
+                .TypeAndShapeInferenceFunction(InferLinear));
 
 ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerSoftmaxCrossEntropy,
