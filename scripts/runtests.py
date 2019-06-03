@@ -674,6 +674,8 @@ if not args.all:
 
 def _start_output(msg):
     if sys.stdout.isatty():
+        if len(msg) > 75:
+            msg = msg[:36] + '...' + msg[-36:]
         sys.stdout.write('\r' + ' ' * 78 + '\r' + msg)
     else:
         sys.stdout.write(msg)
