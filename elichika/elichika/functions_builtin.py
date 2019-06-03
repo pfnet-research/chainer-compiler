@@ -110,7 +110,8 @@ def convert_softmax(onnx_graph, node):
         [node.inputs[0]],
         [node.outputs[0]],
         str(node.lineprop),
-        axis=oc.try_get_attribute(node.inputs[1]))
+        axis=oc.try_get_attribute(node.inputs[1]),
+        chainer_is_onnx_semantics=False)
 
 
 def convert_pad_sequence(onnx_graph, node):
