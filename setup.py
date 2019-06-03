@@ -44,10 +44,7 @@ class CMakeBuild(build_ext.build_ext):
             '-DCHAINERX_BUILD_PYTHON=ON',
             '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]
-        build_args = [
-            '--', '-j4',
-        ]
-        build_args += ext.build_targets
+        build_args = ['--'] + ext.build_targets
 
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
