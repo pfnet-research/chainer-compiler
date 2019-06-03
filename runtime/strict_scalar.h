@@ -2,8 +2,8 @@
 
 #include "common/log.h"
 
-#include <chainerx/scalar.h>
 #include <chainerx/float16.h>
+#include <chainerx/scalar.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -23,14 +23,21 @@ public:
     } InternalType;
 
     StrictScalar() = default;
-    StrictScalar(chainerx::Dtype t, InternalType d, bool h = false) : data_(d), dtype_(t), host_(h) {}
+    StrictScalar(chainerx::Dtype t, InternalType d, bool h = false) : data_(d), dtype_(t), host_(h) {
+    }
 
-    chainerx::Dtype dtype() const { return dtype_; }
-    const InternalType& data() const { return data_; }
-    bool host() const { return host_; }
+    chainerx::Dtype dtype() const {
+        return dtype_;
+    }
+    const InternalType& data() const {
+        return data_;
+    }
+    bool host() const {
+        return host_;
+    }
 
     explicit operator chainerx::Scalar() const {
-        switch(dtype_) {
+        switch (dtype_) {
             case chainerx::Dtype::kBool:
                 return chainerx::Scalar(data_.bool_);
             case chainerx::Dtype::kInt8:
