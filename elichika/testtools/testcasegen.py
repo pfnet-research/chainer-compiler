@@ -150,11 +150,19 @@ def generate_testcase(model_or_model_gen, orig_xs,
 
     model = get_model()
     chainer.config.train = backprop
+    chainer.config.in_recomputing = True
     model.cleargrads()
     ys = model(*xs)
     chainer_out = validate_chainer_output(ys)
 
+    params = {}
+    for name, param in model.namedparams():
+        params[name] = param.array
+
     model = get_model()
+    for name, param in model.namedparams():
+        param.array = params[name]
+
     onnxmod = compile_model(model, xs)
     input_tensors = onnxmod.inputs
     output_tensors = onnxmod.outputs
