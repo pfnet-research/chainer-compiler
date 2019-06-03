@@ -4,6 +4,30 @@
 
 namespace ONNX_NAMESPACE {
 
+namespace {
+
+void InferLinear(InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    int n_batch_axes = getAttribute(ctx, "n_batch_axes", 1);
+    auto& first_input_shape = getInputShape(ctx, 0);
+    auto& second_input_shape = getInputShape(ctx, 1);
+
+    if (n_batch_axes > first_input_shape.dim_size()) {
+        return;
+    }
+    if (1 > second_input_shape.dim_size()) {
+        return;
+    }
+
+    auto* output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+    for (int i = 0; i < n_batch_axes; ++i) {
+        output_shape->add_dim()->CopyFrom(first_input_shape.dim(i));
+    }
+    output_shape->add_dim()->CopyFrom(second_input_shape.dim(0));
+}
+
+}  // namespace
+
 ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerLinear,
         9,
@@ -18,12 +42,7 @@ ONNX_CHAINER_OPERATOR_SET_SCHEMA(
                         "T",
                         {"tensor(float)", "tensor(float16)", "tensor(double)"},
                         "Constrain input and output types to signed numeric tensors.")
-                .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-                    propagateElemTypeFromInputToOutput(ctx, 0, 0);
-                    auto& first_input_shape = getInputShape(ctx, 0);
-                    auto& second_input_shape = getInputShape(ctx, 1);
-                    updateOutputShape(ctx, 0, {first_input_shape.dim(0), second_input_shape.dim(0)});
-                }));
+                .TypeAndShapeInferenceFunction(InferLinear));
 
 ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerSoftmaxCrossEntropy,
@@ -560,8 +579,19 @@ public:
 
 namespace chainer_compiler {
 
-void RegisterCustomOnnxOperatorSetSchema() {
+namespace {
+
+bool RegisterCustomOnnxOperatorSetSchemaImpl() {
     ONNX_NAMESPACE::RegisterOpSetSchema<ONNX_NAMESPACE::Custom_OpSet_Onnx_ver9>();
+    return true;
+}
+
+}  // namespace
+
+void RegisterCustomOnnxOperatorSetSchema() {
+    // Run just once.
+    static bool unused = RegisterCustomOnnxOperatorSetSchemaImpl();
+    (void)unused;
 }
 
 }  // namespace chainer_compiler

@@ -55,13 +55,10 @@ def main():
 
     model = A(3)
     x = np.random.rand(5, 7).astype(np.float32)
-
     testtools.generate_testcase(model, [x])
 
-    y = np.random.rand(3, 4, 3).astype(np.float32)
-
-    # TODO: chainer bug?
-    # testtools.generate_testcase(Axes(), [y], subname='axes')
+    y = np.random.rand(2, 4, 3).astype(np.float32)
+    testtools.generate_testcase(Axes(), [y], subname='axes')
 
     # Value mismatch bug.
     num_hidden = 5
