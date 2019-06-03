@@ -25,8 +25,7 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
     std::vector<Value*> outputs;
     std::vector<Value*> temps;
     ClassifyValues(std::vector<Node*>(nodes.begin(), nodes.end()), &inputs, &outputs, &temps);
-    CHECK(!inputs.empty());
-    if (outputs.empty()) {
+    if (inputs.empty() || outputs.empty()) {
         return;
     }
 
@@ -183,7 +182,6 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
 }
 
 void FuseNGraphOperations(Graph* graph) {
-    // TODO(hamaji): Use nGraph for softmax.
     const std::set<Node::OpType> fusable_ops = {
             Node::kAdd,
             Node::kAveragePool,
@@ -198,7 +196,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kGemm,
             Node::kIdentity,
             Node::kLeakyRelu,
-            // Node::kLogSoftmax,
+            Node::kLogSoftmax,
             Node::kMaxPool,
             Node::kMul,
             Node::kPad,
@@ -209,7 +207,7 @@ void FuseNGraphOperations(Graph* graph) {
             Node::kSlice,
             Node::kSqrt,
             Node::kSqueeze,
-            // Node::kSoftmax,
+            Node::kSoftmax,
             Node::kSplit,
             Node::kSub,
             Node::kSum,
@@ -264,6 +262,11 @@ void FuseNGraphOperations(Graph* graph) {
         } else if (node.op_type() == Node::kSlice) {
             // nGraph does not support new slice.
             if (node.inputs().size() > 1) {
+                return false;
+            }
+        } else if (node.op_type() == Node::kSoftmax || node.op_type() == Node::kLogSoftmax) {
+            // nGraph does not know Chainer's Softmax.
+            if (!node.chainer_is_onnx_semantics()) {
                 return false;
             }
         }
