@@ -74,13 +74,10 @@ public:
     const std::vector<Node*>& users() const {
         return users_;
     }
-    void AddUser(Node* user);
-    void DetachUser(const Node* user);
 
     Node* producer() const {
         return producer_;
     }
-    void SetProducer(Node* producer);
 
     Value* grad() const {
         return grad_;
@@ -93,6 +90,12 @@ public:
     }
 
 private:
+    friend class Graph;
+    friend class Node;
+    void SetProducer(Node* producer);
+    void AddUser(Node* user);
+    void DetachUser(const Node* user);
+
     Kind kind_{Kind::kTemp};
     std::string name_;
     std::unique_ptr<Type> type_;

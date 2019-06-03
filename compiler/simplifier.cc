@@ -173,8 +173,6 @@ bool ReplaceScan(Graph* graph, Node* scan) {
             Value* input_t = gb.Op(Node::kGather, {input, iter});
             input_t->producer()->set_axis(1);
             for (Node* user : users) {
-                input->DetachUser(user);
-                input_t->AddUser(user);
                 user->ReplaceInput(input, input_t);
             }
 
@@ -522,8 +520,7 @@ bool ReplaceIdentity(Graph* graph, Node* node) {
     Value* input = node->input(0);
     Value* output = node->output(0);
     if (!input->IsTemp() || !output->IsTemp()) return false;
-    for (Node* user : output->users()) {
-        input->AddUser(user);
+    for (Node* user : std::vector<Node*>(output->users())) {
         user->ReplaceInput(output, input);
     }
     return true;
@@ -659,8 +656,6 @@ void ReplaceInitializers(Graph* graph) {
         Value* value = p.first;
         Value* replaced = p.second;
         for (Node* node : std::vector<Node*>(value->users())) {
-            value->DetachUser(node);
-            replaced->AddUser(node);
             node->ReplaceInput(value, replaced);
         }
     }

@@ -32,14 +32,10 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
 
     GraphBuilder gb(graph, StrCat("Fusion", fusion_group_id), outputs.front());
 
-    // TODO(hamaji): Changing input/output values is extremely error
-    // prone. Come up with a better way.
     auto replace_value = [&nodes](Value* value, Value* new_value) {
         if (Node* node = value->producer()) {
             if (nodes.count(node)) {
                 node->ReplaceOutput(value, new_value);
-                value->SetProducer(nullptr);
-                new_value->SetProducer(node);
             }
         }
 
@@ -47,8 +43,6 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
         for (Node* node : users) {
             if (nodes.count(node)) {
                 node->ReplaceInput(value, new_value);
-                value->DetachUser(node);
-                new_value->AddUser(node);
             }
         }
     };
