@@ -84,7 +84,8 @@ chainerx::Array RunSoftmax(SoftmaxFn softmax_fn, const chainerx::Array& input, i
     }
     shape.push_back(rest);
     const chainerx::Array& reshaped = chainerx::Reshape(input, shape);
-    return softmax_fn(reshaped, chainerx::OptionalAxes{axis});
+    const chainerx::Array& output = softmax_fn(reshaped, chainerx::OptionalAxes{axis});
+    return chainerx::Reshape(output, input.shape());
 }
 
 }  // namespace
