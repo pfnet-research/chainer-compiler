@@ -112,6 +112,11 @@ const chainerx::Scalar& ChxVMState::GetScalar(int index) {
     return variables_[index]->GetScalar();
 }
 
+nonstd::optional<chainerx::Scalar> ChxVMState::GetOptionalScalar(int index) {
+    if (index < 0) return nonstd::nullopt;
+    return GetScalar(index);
+}
+
 int64_t ChxVMState::GetOptionalInt(int index, int64_t default_value) {
     nonstd::optional<ChxVMVar*> var = GetOptionalVar(index);
     if (var.has_value()) {

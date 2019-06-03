@@ -52,6 +52,7 @@ public:
     void SetShape(int index, chainerx::Shape s);
 
     const chainerx::Scalar& GetScalar(int index);
+    nonstd::optional<chainerx::Scalar> GetOptionalScalar(int index);
     int64_t GetOptionalInt(int index, int64_t default_value);
     void SetScalar(int index, chainerx::Scalar s);
 

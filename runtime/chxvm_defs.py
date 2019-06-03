@@ -14,6 +14,7 @@ STRING = 'STRING'
 DOUBLES = 'DOUBLES'
 SHAPE = 'SHAPE'
 SCALAR = 'SCALAR'
+OPTIONAL_SCALAR = 'OPTIONAL_SCALAR'
 
 ARG_TYPES = [
     ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, OPAQUE
@@ -36,7 +37,7 @@ class ValueInfo(_ValueInfo):
         return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES]
 
     def c_type(self):
-        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE, SCALAR]:
+        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE, SCALAR, OPTIONAL_SCALAR]:
             return 'int'
         elif self.typ == FLOAT:
             return 'float'
@@ -64,7 +65,7 @@ class ValueInfo(_ValueInfo):
         return ctyp
 
     def c_codegen_type(self):
-        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE, SCALAR):
+        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE, SCALAR, OPTIONAL_SCALAR):
             return 'ChxVMValue'
         elif self.typ == ARRAY_LIST:
             return 'std::vector<ChxVMValue>'
@@ -92,7 +93,7 @@ class ValueInfo(_ValueInfo):
             return 'opaque'
         elif self.typ == SHAPE:
             return 'shape'
-        elif self.typ == SCALAR:
+        elif self.typ in [SCALAR, OPTIONAL_SCALAR]:
             return 'scalar'
         else:
             raise RuntimeError('Unknown type: %s' % self.typ)
@@ -147,9 +148,12 @@ def Shape(name):
 def Scalar(name):
     return ValueInfo(SCALAR, name)
 
+def OptionalScalar(name):
+    return ValueInfo(OPTIONAL_SCALAR, name)
+
 
 def sigil(typ):
-    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE, SCALAR]:
+    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE, SCALAR, OPTIONAL_SCALAR]:
         return '$'
     elif typ == SEQUENCE:
         return '@'
@@ -416,12 +420,12 @@ XC_SEQ_OPS = [
     ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
     ('SequenceGetSlice',
-     [Sequence('seq'), OptionalArray('start'),
-      OptionalArray('end'), OptionalArray('step')],
+     [Sequence('seq'), OptionalScalar('start'),
+      OptionalScalar('end'), OptionalScalar('step')],
      [Sequence('output')]),
     ('SequenceGetSliceGrad',
      [Sequence('gy'), Array('size'),
-      OptionalArray('start'), OptionalArray('end'), OptionalArray('step')],
+      OptionalScalar('start'), OptionalScalar('end'), OptionalScalar('step')],
      [Sequence('gx')]),
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
     ('SequenceConcat', [Sequence('seq'), Int('axis')],
@@ -432,7 +436,7 @@ XC_SEQ_OPS = [
     ('SequencePad', [Sequence('seq'), Int('length'), Float('value')],
      ['output']),
     ('SequenceRange',
-     [Scalar('arg0'), OptionalArray('arg1'), OptionalArray('arg2')],
+     [Scalar('arg0'), OptionalScalar('arg1'), OptionalScalar('arg2')],
      [Sequence('output')]),
     ('SequenceSeparate', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceUnpad', [Array('input'), Sequence('lengths')],
@@ -462,8 +466,8 @@ XC_GENERIC_OPS = [
     ('GenericLen', [Array('v')], ['len']),
     ('GenericGetItem', [Array('v'), Scalar('index')], ['output']),
     ('GenericGetSlice',
-     [Array('v'), OptionalArray('start'),
-      OptionalArray('end'), OptionalArray('step')], ['output']),
+     [Array('v'), OptionalScalar('start'),
+      OptionalScalar('end'), OptionalScalar('step')], ['output']),
     ('GenericAdd', [Array('a'), Array('b')], ['output']),
     ('GenericIs', [Array('a'), Array('b')], ['output']),
     ('GenericAccumulateGrad', [Array('a'), Array('b')], ['output']),
