@@ -3,6 +3,7 @@
 #include <chainerx/kernels/math.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/hyperbolic.h>
+#include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 
 #include <common/log.h>
@@ -59,12 +60,41 @@ chainerx::Array SigmoidOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return Sigmoid(a);
 }
 
+namespace {
+
+typedef chainerx::Array (*SoftmaxFn)(const chainerx::Array& x, const chainerx::OptionalAxes& axis);
+
+chainerx::Array RunSoftmax(SoftmaxFn softmax_fn, const chainerx::Array& input, int8_t axis, bool is_onnx_semantics) {
+    if (axis < 0) {
+        axis += input.ndim();
+    }
+    CHECK_LE(0, axis);
+    CHECK_GT(input.ndim(), axis);
+
+    // Check if we can use Chainer's softmax directly.
+    if (!is_onnx_semantics || axis + 1 == input.ndim()) {
+        return softmax_fn(input, chainerx::OptionalAxes{axis});
+    }
+
+    // Collapse last axes to handle ONNX's semantics.
+    chainerx::Shape shape(input.shape().begin(), input.shape().begin() + axis);
+    int rest = 1;
+    for (int i = axis; i < input.ndim(); ++i) {
+        rest *= input.shape()[i];
+    }
+    shape.push_back(rest);
+    const chainerx::Array& reshaped = chainerx::Reshape(input, shape);
+    return softmax_fn(reshaped, chainerx::OptionalAxes{axis});
+}
+
+}  // namespace
+
 chainerx::Array SoftmaxOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
-    return chainerx::Softmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
+    return RunSoftmax(chainerx::Softmax, input, axis, is_onnx_semantics);
 }
 
 chainerx::Array LogSoftmaxOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
-    return chainerx::LogSoftmax(input, chainerx::OptionalAxes{static_cast<char>(axis)});
+    return RunSoftmax(chainerx::LogSoftmax, input, axis, is_onnx_semantics);
 }
 
 }  // namespace runtime

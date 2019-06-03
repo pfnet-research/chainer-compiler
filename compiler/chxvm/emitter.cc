@@ -441,17 +441,9 @@ private:
         } else if (node.op_type() == Node::kChainerPadBatchSize) {
             EMIT(PadBatchSize, out(0), in(0), node.size());
         } else if (node.op_type() == Node::kSoftmax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            int axis = node.axis();
-            if (axis < 0) axis = 1;
-            EMIT(Softmax, out(0), in(0), axis);
+            EMIT(Softmax, out(0), in(0), node.axis(), node.chainer_is_onnx_semantics());
         } else if (node.op_type() == Node::kLogSoftmax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
-            int axis = node.axis();
-            if (axis < 0) axis = 1;
-            EMIT(LogSoftmax, out(0), in(0), axis);
+            EMIT(LogSoftmax, out(0), in(0), node.axis(), node.chainer_is_onnx_semantics());
         } else if (node.op_type() == Node::kArgMax) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

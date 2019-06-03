@@ -257,8 +257,10 @@ XC_OPS = [
     ('DepthToSpace', [Array('input'), Int('blocksize')], ['output']),
     ('SpaceToDepth', [Array('input'), Int('blocksize')], ['output']),
 
-    ('Softmax', [Array('input'), Int('axis')], ['output']),
-    ('LogSoftmax', [Array('input'), Int('axis')], ['output']),
+    ('Softmax', [Array('input'), Int('axis'), Int('is_onnx_semantics')],
+     ['output']),
+    ('LogSoftmax', [Array('input'), Int('axis'), Int('is_onnx_semantics')],
+     ['output']),
 
     ('Dropout', [Array('data'), Float('ratio')], ['output', 'mask']),
 
