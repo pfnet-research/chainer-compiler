@@ -80,7 +80,6 @@ public:
     Node* producer() const {
         return producer_;
     }
-    void SetProducer(Node* producer);
 
     Value* grad() const {
         return grad_;
@@ -93,6 +92,10 @@ public:
     }
 
 private:
+    friend class Graph;
+    friend class Node;
+    void SetProducer(Node* producer);
+
     Kind kind_{Kind::kTemp};
     std::string name_;
     std::unique_ptr<Type> type_;
