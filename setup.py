@@ -27,17 +27,22 @@ class CMakeBuild(build_ext.build_ext):
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)))
 
-        print(extdir)
+        cuda_path = os.getenv('CUDA_PATH', '/usr/local/cuda')
+        python3_executable = subprocess.check_output(['which', 'python3'])\
+            .decode('utf-8').rstrip()
+        cudnn_root_dir = os.getenv('CUDNN_ROOT_DIR', None)
+        if cudnn_root_dir is None:
+            raise RuntimeError('CUDNN_ROOT_DIR must be set.')
 
         cmake_args = [
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DCHAINER_COMPILER_ENABLE_CUDA=ON',
             '-DCHAINERX_BUILD_CUDA=ON',
-            '-DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda',
+            '-DCUDA_TOOLKIT_ROOT_DIR=' + cuda_path,
             '-DCHAINER_COMPILER_ENABLE_PYTHON=ON',
-            '-DPYTHON_EXECUTABLE=/home/mkusumoto/py3.5/bin/python',
+            '-DPYTHON_EXECUTABLE=' + python3_executable,
             '-DCHAINERX_BUILD_PYTHON=ON',
-            '-DCUDNN_ROOT_DIR=/home/mkusumoto/.cudnn/active/cuda',
+            '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]
         build_args = [
             '--', '-j4',
