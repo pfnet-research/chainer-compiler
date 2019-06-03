@@ -37,7 +37,8 @@ def generate_copied_value(value: 'values.Value'):
 
     if isinstance(value, values.ListValue):
         copied = values.ListValue()
-        copied.is_any = value.is_any
+        copied.dtype = value.dtype
+        copied.vtype = value.vtype
         if value.internal_value is not None:
             copied.internal_value = value.internal_value.copy()
         return copied
@@ -63,6 +64,8 @@ def generate_copied_value(value: 'values.Value'):
             copied = values.TupleValue(value.internal_value.copy())
         else:
             copied = values.TupleValue(value.internal_value)
+        copied.dtype = value.dtype
+        copied.vtype = value.vtype
         return copied
 
     if config.show_warnings:
@@ -141,12 +144,16 @@ def generate_value_with_same_type(value: 'values.Value', is_dummy_value = False,
 
     elif isinstance(value, values.ListValue):
         ret = values.ListValue(None)
+        ret.dtype = value.dtype
+        ret.vtype = value.vtype
 
     elif isinstance(value, values.NoneValue):
         ret = values.NoneValue()
 
     elif isinstance(value, values.TupleValue):
         ret = values.TupleValue()
+        ret.dtype = value.dtype
+        ret.vtype = value.vtype
 
     elif isinstance(value, values.RangeValue):
         ret = values.RangeValue()

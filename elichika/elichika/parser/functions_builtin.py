@@ -117,6 +117,15 @@ class AppendFunction(functions.FunctionBase):
             
         old_v = inst.get_value()
         new_v = functions.generate_value_with_same_type(old_v)
+
+        # estimate a type contained
+        if old_v.has_constant_value():
+            new_v.internal_value = list(old_v.internal_value)
+
+        for v in funcArgs.inputs[1:]:
+            new_v.append(v)
+
+        # update value
         inst.revise(new_v)
 
         new_v.name = '@F.{}.{}'.format(line, self.name)

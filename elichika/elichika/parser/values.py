@@ -629,9 +629,44 @@ class TupleValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.internal_value = values
+        self.vtype = None # type: Type
 
     def is_not_none_or_any_value(self):
         return True
+
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':
+        if self.vtype is None:
+            return None
+
+        v = self.vtype()
+
+        if self.dtype is not None:
+            v.dtype = self.dtype
+            
+
+        return ValueRef(v)
+
+    def estimate_type(self):
+        if self.internal_value is None:
+            return
+
+        self.vtype = None
+        self.dtype = None
+
+        for v in self.internal_value:
+            if self.vtype is None:
+                self.vtype = type(v.get_value())
+                self.dtype = v.get_value().dtype
+            else:
+                if self.vtype != type(v.get_value()):
+                    self.vtype = None
+                    self.dtype = None
+                    return
+                if self.dtype != v.get_value().dtype:
+                    self.dtype = None
 
     def __str__(self):
         return self.name + '(Tp{})'
@@ -654,7 +689,6 @@ class FuncValue(Value):
 class ListValue(Value):
     def __init__(self, values=None):
         super().__init__()
-        self.is_any = values is None
         self.internal_value = values
         self.dtype = None
         self.vtype = None # type: Type
@@ -696,6 +730,23 @@ class ListValue(Value):
                 if self.dtype != v.get_value().dtype:
                     self.dtype = None
 
+    def append(self, v):
+        if self.internal_value is None:
+            if self.vtype is None:
+                self.vtype = type(v.get_value())
+                self.dtype = v.get_value().dtype
+            else:
+                if self.vtype != type(v.get_value()):
+                    self.vtype = None
+                    self.dtype = None
+                    return
+                if self.dtype != v.get_value().dtype:
+                    self.dtype = None
+
+        else:
+            self.internal_value.append(v)
+            self.estimate_type()
+
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
             FuncValue(functions_builtin.AppendFunction(self), obj, None))
@@ -704,23 +755,12 @@ class ListValue(Value):
     def __str__(self):
         return self.name + '(L)'
 
-class DictValue(Value):
-    def __init__(self):
-        super().__init__()
-
-    def is_not_none_or_any_value(self):
-        return True
-
-    def __str__(self):
-        return self.name + '(D)'
-
-
 class TensorValue(Value):
     def __init__(self, value = None):
         super().__init__()
         self.shape = ()
         self.internal_value = value
-        self.value = None
+        self.value = None   # not used?
         self.dtype = None
 
         if self.internal_value is not None:
