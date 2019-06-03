@@ -95,6 +95,7 @@ bool ReplaceLpNormalization(Graph* graph, Node* node) {
 bool ReplaceChainerSoftmaxCrossEntropy(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftmaxCrossEntropy", node->output(0));
     Value* log_softmax = gb.Op(Node::kLogSoftmax, {node->input(0)});
+    log_softmax->producer()->set_chainer_is_onnx_semantics(false);
     Value* log_prob = gb.Op(Node::kChainerSelectItem, {log_softmax, node->input(1)});
     // TODO(hamaji): Just use ReduceSum for all axes and then divide
     // the result by the batch_size.

@@ -473,12 +473,18 @@ void AveragePoolGradFn(GradientOpContext* gc) {
 void LogSoftmaxGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     GraphBuilder gb{gc->builder(0)};
-    // TODO(hamaji): This probably works as is. Test it.
-    CHECK_EQ(1, node->axis());
-
     Value* gy = gc->gy(0);
     Value* sum_val = gb.Op(Node::kReduceSum, {gy});
-    sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
+    if (node->chainer_is_onnx_semantics()) {
+        CHECK(node->input(0)->type().HasKnownShape());
+        std::vector<int64_t> axes;
+        for (int i = node->axis(); i < node->input(0)->type().ndim(); ++i) {
+            axes.push_back(i);
+        }
+        sum_val->producer()->set_axes(axes)->set_keepdims(true);
+    } else {
+        sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
+    }
     Value* exp_val = gb.Op(Node::kExp, {gc->y(0)});
     Value* mul_val = gb.Op(Node::kMul, {exp_val, sum_val});
     gc->GradOp(Node::kSub, 0, {gy, mul_val});
@@ -490,7 +496,16 @@ void SoftmaxGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     Value* gx = gb.Op(Node::kMul, {gc->y(0), gy});
     Value* sum_val = gb.Op(Node::kReduceSum, {gx});
-    sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
+    if (node->chainer_is_onnx_semantics()) {
+        CHECK(node->input(0)->type().HasKnownShape());
+        std::vector<int64_t> axes;
+        for (int i = node->axis(); i < node->input(0)->type().ndim(); ++i) {
+            axes.push_back(i);
+        }
+        sum_val->producer()->set_axes(axes)->set_keepdims(true);
+    } else {
+        sum_val->producer()->set_axes({node->axis()})->set_keepdims(true);
+    }
     Value* mul_val = gb.Op(Node::kMul, {gc->y(0), sum_val});
     gc->GradOp(Node::kSub, 0, {gx, mul_val});
 }

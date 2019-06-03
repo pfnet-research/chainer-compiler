@@ -25,8 +25,7 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
     std::vector<Value*> outputs;
     std::vector<Value*> temps;
     ClassifyValues(std::vector<Node*>(nodes.begin(), nodes.end()), &inputs, &outputs, &temps);
-    CHECK(!inputs.empty());
-    if (outputs.empty()) {
+    if (inputs.empty() || outputs.empty()) {
         return;
     }
 
@@ -183,38 +182,106 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
 }
 
 void FuseNGraphOperations(Graph* graph) {
-    // TODO(hamaji): Use nGraph for softmax.
+    // TODO(hamaji): Enable all ops.
     const std::set<Node::OpType> fusable_ops = {
+            Node::kAbs,
+            Node::kAcos,
+            Node::kAcosh,
             Node::kAdd,
+            Node::kAnd,
+            Node::kArgMax,
+            Node::kArgMin,
+            Node::kAsin,
+            Node::kAsinh,
+            Node::kAtan,
+            Node::kAtanh,
             Node::kAveragePool,
             Node::kBatchNormalization,
+            Node::kCeil,
             Node::kClip,
-            Node::kConstant,
             Node::kConcat,
+            Node::kConstant,
             Node::kConv,
             Node::kConvTranspose,
+            Node::kCos,
+            Node::kCosh,
             Node::kDiv,
+            Node::kDropout,
+            Node::kElu,
+            Node::kEqual,
             Node::kExp,
+            Node::kFlatten,
+            Node::kFloor,
             Node::kGemm,
+            Node::kGlobalAveragePool,
+            // Not supported yet.
+            // Node::kGlobalLpPool,
+            Node::kGlobalMaxPool,
+            Node::kGreater,
+            // Not supported yet.
+            // Node::kHardSigmoid,
             Node::kIdentity,
+            // There seem to be some restrictions:
+            // terminate called after throwing an instance of 'ngraph::NodeValidationFailure'
+            // what():  Check '(input_shape.rank().is_dynamic() || static_cast<size_t>(input_shape.rank()) >= 3)'
+            // Node::kLRN,
             Node::kLeakyRelu,
-            // Node::kLogSoftmax,
+            Node::kLess,
+            Node::kLog,
+            Node::kLogSoftmax,
+            Node::kMatMul,
+            Node::kMax,
             Node::kMaxPool,
+            Node::kMean,
+            Node::kMin,
             Node::kMul,
-            Node::kPad,
-            Node::kRelu,
+            Node::kNeg,
+            Node::kNot,
+            // Constant input only.
+            // Node::kOneHot,
+            Node::kOr,
+            // Not supported yet.
+            // Node::kPRelu,
+            Node::kPow,
+            Node::kReciprocal,
+            Node::kReduceL1,
+            Node::kReduceL2,
+            Node::kReduceLogSum,
+            Node::kReduceLogSumExp,
+            Node::kReduceMax,
+            Node::kReduceMean,
+            Node::kReduceMin,
+            // Not supported yet.
+            // Node::kReduceProd,
             Node::kReduceSum,
-            Node::kReshape,
+            Node::kReduceSumSquare,
+            Node::kRelu,
+            Node::kSelu,
+            Node::kShape,
             Node::kSigmoid,
+            Node::kSign,
+            Node::kSin,
+            Node::kSinh,
+            Node::kSize,
             Node::kSlice,
+            Node::kSoftmax,
+            Node::kSoftplus,
+            Node::kSoftsign,
+            Node::kSplit,
             Node::kSqrt,
             Node::kSqueeze,
-            // Node::kSoftmax,
-            Node::kSplit,
             Node::kSub,
             Node::kSum,
+            Node::kTan,
             Node::kTanh,
+            // Not supported yet.
+            // Node::kTopK,
             Node::kTranspose,
+            Node::kUnsqueeze,
+            Node::kXor,
+            Node::kWhere,
+            Node::kPad,
+            Node::kReshape,
     };
 
     auto is_fusable = [&fusable_ops](const Node& node) {
@@ -264,6 +331,11 @@ void FuseNGraphOperations(Graph* graph) {
         } else if (node.op_type() == Node::kSlice) {
             // nGraph does not support new slice.
             if (node.inputs().size() > 1) {
+                return false;
+            }
+        } else if (node.op_type() == Node::kSoftmax || node.op_type() == Node::kLogSoftmax) {
+            // nGraph does not know Chainer's Softmax.
+            if (!node.chainer_is_onnx_semantics()) {
                 return false;
             }
         }
