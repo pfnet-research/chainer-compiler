@@ -45,8 +45,6 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
         for (Node* node : users) {
             if (nodes.count(node)) {
                 node->ReplaceInput(value, new_value);
-                value->DetachUser(node);
-                new_value->AddUser(node);
             }
         }
     };

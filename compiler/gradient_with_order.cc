@@ -287,11 +287,9 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 const std::vector<Value*> outputs = node->outputs();
                 const std::vector<Value*> staged_inputs = GetStagedValues(staged, orig_node->inputs());
                 const std::vector<Value*> staged_outputs = GetStagedValues(staged, orig_node->outputs());
-                ;
+
                 for (const auto& p : Zip(inputs, staged_inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
-                    std::get<0>(p)->DetachUser(node);
-                    std::get<1>(p)->AddUser(node);
                 }
                 for (const auto& p : Zip(outputs, staged_outputs)) {
                     node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
@@ -303,8 +301,6 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 // Revert the inputs/outputs of the node
                 for (const auto& p : Zip(staged_inputs, inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
-                    std::get<0>(p)->DetachUser(node);
-                    std::get<1>(p)->AddUser(node);
                 }
                 for (const auto& p : Zip(staged_outputs, outputs)) {
                     node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
