@@ -1,4 +1,3 @@
-#include <chainerx/native/native_backend.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
@@ -9,14 +8,49 @@
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array IntScalarConstantOp::RunImpl(ChxVMState* st) {
-    chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
-    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
+StrictScalar IntScalarConstantOp::RunImpl(ChxVMState* st) {
+    StrictScalar::InternalType v;
+    switch (static_cast<chainerx::Dtype>(dtype)) {
+        case chainerx::Dtype::kBool:
+            v.bool_ = value;
+            break;
+        case chainerx::Dtype::kInt8:
+            v.int8_ = value;
+            break;
+        case chainerx::Dtype::kInt16:
+            v.int16_ = value;
+            break;
+        case chainerx::Dtype::kInt32:
+            v.int32_ = value;
+            break;
+        case chainerx::Dtype::kInt64:
+            v.int64_ = value;
+            break;
+        case chainerx::Dtype::kUInt8:
+            v.uint8_ = value;
+            break;
+        default:
+            CHECK(false) << "must be an integer type: " << static_cast<chainerx::Dtype>(dtype);
+    }
+    return StrictScalar(static_cast<chainerx::Dtype>(dtype), v, host);
 }
 
-chainerx::Array FloatScalarConstantOp::RunImpl(ChxVMState* st) {
-    chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
-    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
+StrictScalar FloatScalarConstantOp::RunImpl(ChxVMState* st) {
+    StrictScalar::InternalType v;
+    switch (static_cast<chainerx::Dtype>(dtype)) {
+        case chainerx::Dtype::kFloat16:
+            v.float16_ = chainerx::Float16(value).data();
+            break;
+        case chainerx::Dtype::kFloat32:
+            v.float32_ = value;
+            break;
+        case chainerx::Dtype::kFloat64:
+            v.float64_ = value;
+            break;
+        default:
+            CHECK(false) << "must be a float type: " << static_cast<chainerx::Dtype>(dtype);
+    }
+    return StrictScalar(static_cast<chainerx::Dtype>(dtype), v, host);
 }
 
 class IntConstantOp::IntConstantImpl {
@@ -60,9 +94,9 @@ chainerx::Array FloatConstantOp::RunImpl(ChxVMState* st) {
 }
 
 chainerx::Array OneHotOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& indices, const chainerx::Scalar& depth, const chainerx::Array& values) {
+        ChxVMState* st, const chainerx::Array& indices, const StrictScalar& depth, const chainerx::Array& values) {
     int rank = indices.ndim();
-    chainerx::Array depth_range = chainerx::Arange(depth, indices.device());
+    chainerx::Array depth_range = chainerx::Arange(static_cast<chainerx::Scalar>(depth), indices.device());
     int axis = this->axis;
     if (axis < 0) axis += rank + 1;
 

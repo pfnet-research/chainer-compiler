@@ -371,9 +371,9 @@ XC_OPS = [
     ('Cast', [Array('input'), Int('to')], ['output']),
 
     ('IntScalarConstant',
-     [Int('value'), Int('dtype'), Int('host')], ['output']),
+     [Int('value'), Int('dtype'), Int('host')], [Scalar('output')]),
     ('FloatScalarConstant',
-     [Float('value'), Int('dtype'), Int('host')], ['output']),
+     [Float('value'), Int('dtype'), Int('host')], [Scalar('output')]),
     ('ConstantFill',
      [OptionalArray('input'), Int('dtype'), Ints('extra_shape'),
       Ints('shape'), Float('value')],

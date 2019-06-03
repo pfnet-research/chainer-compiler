@@ -51,10 +51,10 @@ public:
     const chainerx::Shape& GetShape(int index);
     void SetShape(int index, chainerx::Shape s);
 
-    const chainerx::Scalar& GetScalar(int index);
-    nonstd::optional<chainerx::Scalar> GetOptionalScalar(int index);
+    const StrictScalar& GetScalar(int index);
+    nonstd::optional<StrictScalar> GetOptionalScalar(int index);
     int64_t GetOptionalInt(int index, int64_t default_value);
-    void SetScalar(int index, chainerx::Scalar s);
+    void SetScalar(int index, StrictScalar s);
 
     std::string GetVarString(int index);
     std::string GetVarListString(const std::vector<int>& indices);

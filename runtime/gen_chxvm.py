@@ -76,9 +76,9 @@ def gen_gen_chxvm_ops_h():
                 elif typ == SHAPE:
                     args.append('const chainerx::Shape& %s' % name)
                 elif typ == SCALAR:
-                    args.append('const chainerx::Scalar& %s' % name)
+                    args.append('const StrictScalar& %s' % name)
                 elif typ == OPTIONAL_SCALAR:
-                    args.append('const nonstd::optional<chainerx::Scalar>& %s' % name)
+                    args.append('const nonstd::optional<StrictScalar>& %s' % name)
                 else:
                     assert typ in FIELD_TYPES, 'Unknown type: %s' % typ
 
@@ -93,7 +93,7 @@ def gen_gen_chxvm_ops_h():
                 elif typ == SHAPE:
                     output_ctypes.append('chainerx::Shape')
                 elif typ == SCALAR:
-                    output_ctypes.append('chainerx::Scalar')
+                    output_ctypes.append('StrictScalar')
                 else:
                     output_ctypes.append('chainerx::Array')
 
