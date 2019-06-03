@@ -551,22 +551,46 @@ bool ReplaceChainerLinear(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyLinear", node->output(0));
     Value* x = node->input(0);
     Value* x_shape = gb.Op(Node::kShape, {x});
-    Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
-    Value* batch_size = gb.Op(Node::kGather, {x_shape, zero});
-    batch_size = gb.Op(Node::kUnsqueeze, {batch_size});
-    batch_size->producer()->set_axes({0});
+
+    Value* batch_size = nullptr;
+    std::vector<Value*> dims;
+    for (int i = 0; i < node->n_batch_axes(); ++i) {
+        Value* axis = gb.Const(Type(Dtype::kInt64, {}), {i});
+        Value* dim = gb.Op(Node::kGather, {x_shape, axis});
+        dim = gb.Op(Node::kUnsqueeze, {dim});
+        dim->producer()->set_axes({0});
+        dims.push_back(dim);
+        if (batch_size) {
+            batch_size = gb.Op(Node::kMul, {batch_size, dim});
+        } else {
+            batch_size = dim;
+        }
+    }
+    CHECK(batch_size) << node->DebugString();
     Value* neg_one = gb.Const(Type(Dtype::kInt64, {1}), {-1});
     Value* mat_shape = gb.Op(Node::kConcat, {batch_size, neg_one});
     mat_shape->producer()->set_axis(0);
     x = gb.Op(Node::kReshape, {x, mat_shape});
 
     Value* w = node->input(1);
+    Value* output = nullptr;
     if (node->inputs().size() == 2) {
         Value* wt = gb.Op(Node::kTranspose, {w});
-        gb.Op(Node::kMatMul, {x, wt}, node->output(0));
+        output = gb.Op(Node::kMatMul, {x, wt});
     } else {
-        gb.Op(Node::kGemm, {x, w, node->input(2)}, node->output(0))->producer()->set_trans_a(false)->set_trans_b(true);
+        output = gb.Op(Node::kGemm, {x, w, node->input(2)});
+        output->producer()->set_trans_a(false)->set_trans_b(true);
     }
+
+    if (node->n_batch_axes() == 1) {
+        gb.Op(Node::kIdentity, {output}, node->output(0));
+    } else {
+        dims.push_back(neg_one);
+        Value* y_shape = gb.Op(Node::kConcat, dims);
+        y_shape->producer()->set_axis(0);
+        gb.Op(Node::kReshape, {output, y_shape}, node->output(0));
+    }
+
     return true;
 }
 
