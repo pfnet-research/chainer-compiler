@@ -41,17 +41,17 @@ void SequencePopOp::RunImpl(ChxVMState* st) {
     v->pop_back();
 }
 
-chainerx::Array SequenceLookupOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const chainerx::Array& index) {
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
+chainerx::Array SequenceLookupOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const chainerx::Scalar& index) {
+    int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();
     CHECK_LT(i, seq.size());
     return seq[i].GetArray();
 }
 
 void SequenceLookupGradOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& size, const chainerx::Array& index, ChxVMSequence* gx) {
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
-    int64_t sz = static_cast<int64_t>(chainerx::AsScalar(size));
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Scalar& size, const chainerx::Scalar& index, ChxVMSequence* gx) {
+    int64_t i = static_cast<int64_t>(index);
+    int64_t sz = static_cast<int64_t>(size);
     if (i < 0) i += sz;
     CHECK_LT(i, sz);
     gx->resize(sz);
@@ -154,20 +154,20 @@ chainerx::Array SequencePadOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq)
 
 void SequenceRangeOp::RunImpl(
         ChxVMState* st,
-        const chainerx::Array& arg0,
+        const chainerx::Scalar& arg0,
         const nonstd::optional<chainerx::Array>& arg1,
         const nonstd::optional<chainerx::Array>& arg2,
         ChxVMSequence* output) {
     int64_t start, stop, step = 1;
     if (arg1.has_value()) {
-        start = static_cast<int64_t>(chainerx::AsScalar(arg0));
+        start = static_cast<int64_t>(arg0);
         stop = static_cast<int64_t>(chainerx::AsScalar(*arg1));
         if (arg2.has_value()) {
             step = static_cast<int64_t>(chainerx::AsScalar(*arg2));
         }
     } else {
         start = 0;
-        stop = static_cast<int64_t>(chainerx::AsScalar(arg0));
+        stop = static_cast<int64_t>(arg0);
     }
     CHECK_NE(step, 0);
 
@@ -195,7 +195,7 @@ void SequenceSeparateOp::RunImpl(ChxVMState* st, const chainerx::Array& input, C
 void SequenceUnpadOp::RunImpl(ChxVMState* st, const chainerx::Array& input, const ChxVMSequence& lengths, ChxVMSequence* output) {
     SplitToSequence(input, 0, output);
     for (size_t i = 0; i < output->size(); ++i) {
-        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(lengths[i].GetArray())));
+        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(lengths[i].GetScalar()));
         (*output)[i] = ChxVMVar((*output)[i].GetArray().At({index}));
     }
 }

@@ -13,6 +13,7 @@ INT_VALUES = 'INT_VALUES'
 STRING = 'STRING'
 DOUBLES = 'DOUBLES'
 SHAPE = 'SHAPE'
+SCALAR = 'SCALAR'
 
 ARG_TYPES = [
     ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, OPAQUE
@@ -35,7 +36,7 @@ class ValueInfo(_ValueInfo):
         return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES]
 
     def c_type(self):
-        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE]:
+        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE, SCALAR]:
             return 'int'
         elif self.typ == FLOAT:
             return 'float'
@@ -63,7 +64,7 @@ class ValueInfo(_ValueInfo):
         return ctyp
 
     def c_codegen_type(self):
-        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE):
+        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE, SCALAR):
             return 'ChxVMValue'
         elif self.typ == ARRAY_LIST:
             return 'std::vector<ChxVMValue>'
@@ -91,6 +92,8 @@ class ValueInfo(_ValueInfo):
             return 'opaque'
         elif self.typ == SHAPE:
             return 'shape'
+        elif self.typ == SCALAR:
+            return 'scalar'
         else:
             raise RuntimeError('Unknown type: %s' % self.typ)
 
@@ -141,9 +144,12 @@ def Doubles(name):
 def Shape(name):
     return ValueInfo(SHAPE, name)
 
+def Scalar(name):
+    return ValueInfo(SCALAR, name)
+
 
 def sigil(typ):
-    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE]:
+    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE, SCALAR]:
         return '$'
     elif typ == SEQUENCE:
         return '@'
@@ -369,13 +375,13 @@ XC_OPS = [
       Ints('shape'), Float('value')],
      ['output']),
     ('OneHot',
-     [Array('indices'), Array('depth'), Array('values'), Int('axis')],
+     [Array('indices'), Scalar('depth'), Array('values'), Int('axis')],
      ['output']),
     ('EyeLike', [Array('input'), Int('dtype'), Int('k')], ['output']),
 
     ('Jmp', [Int('pc')], []),
-    ('JmpTrue', [Array('cond'), Int('pc')], []),
-    ('JmpFalse', [Array('cond'), Int('pc')], []),
+    ('JmpTrue', [Scalar('cond'), Int('pc')], []),
+    ('JmpFalse', [Scalar('cond'), Int('pc')], []),
 
     ('ElementWiseNvrtc',
      [ArrayList('inputs'), Int('num_outputs'),
@@ -406,8 +412,8 @@ XC_CUSTOM_FIELD_OPS = [
 
 XC_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
-    ('SequenceLookup', [Sequence('seq'), Array('index')], [Array('output')]),
-    ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
+    ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
+    ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
     ('SequenceGetSlice',
      [Sequence('seq'), OptionalArray('start'),
@@ -426,7 +432,7 @@ XC_SEQ_OPS = [
     ('SequencePad', [Sequence('seq'), Int('length'), Float('value')],
      ['output']),
     ('SequenceRange',
-     [Array('arg0'), OptionalArray('arg1'), OptionalArray('arg2')],
+     [Scalar('arg0'), OptionalArray('arg1'), OptionalArray('arg2')],
      [Sequence('output')]),
     ('SequenceSeparate', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceUnpad', [Array('input'), Sequence('lengths')],
@@ -454,7 +460,7 @@ XC_GENERIC_OPS = [
     ('NullConstant', [], ['output']),
 
     ('GenericLen', [Array('v')], ['len']),
-    ('GenericGetItem', [Array('v'), Array('index')], ['output']),
+    ('GenericGetItem', [Array('v'), Scalar('index')], ['output']),
     ('GenericGetSlice',
      [Array('v'), OptionalArray('start'),
       OptionalArray('end'), OptionalArray('step')], ['output']),

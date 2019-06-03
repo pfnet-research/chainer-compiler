@@ -60,9 +60,9 @@ chainerx::Array FloatConstantOp::RunImpl(ChxVMState* st) {
 }
 
 chainerx::Array OneHotOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
+        ChxVMState* st, const chainerx::Array& indices, const chainerx::Scalar& depth, const chainerx::Array& values) {
     int rank = indices.ndim();
-    chainerx::Array depth_range = chainerx::Arange(chainerx::AsScalar(depth), indices.device());
+    chainerx::Array depth_range = chainerx::Arange(depth, indices.device());
     int axis = this->axis;
     if (axis < 0) axis += rank + 1;
 

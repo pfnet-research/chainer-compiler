@@ -1,5 +1,7 @@
 #include "runtime/chxvm_var.h"
 
+#include <chainerx/routines/manipulation.h>
+
 #include <common/log.h>
 #include <common/strutil.h>
 
@@ -41,9 +43,33 @@ ChxVMVar::ChxVMVar(chainerx::Shape shape) : kind_(Kind::kShape), val_(shape) {
 }
 
 const chainerx::Array& ChxVMVar::GetArray() const {
-    if (kind_ == Kind::kShape) {
-        kind_ = Kind::kArray;
-        val_ = runtime::ShapeToArray(absl::get<chainerx::Shape>(val_));
+    switch (kind_) {
+        case Kind::kShape:
+            kind_ = Kind::kArray;
+            val_ = runtime::ShapeToArray(absl::get<chainerx::Shape>(val_));
+            break;
+        case Kind::kScalar: {
+            const chainerx::Scalar& s = absl::get<chainerx::Scalar>(val_);
+            switch (s.kind()) {
+                case chainerx::DtypeKind::kBool: {
+                    bool b(s);
+                    val_ = runtime::MakeArray(chainerx::Dtype::kBool, {}, &b);
+                    break;
+                }
+                case chainerx::DtypeKind::kInt: {
+                    int64_t i(s);
+                    val_ = runtime::MakeArray(chainerx::Dtype::kInt64, {}, &i);
+                    break;
+                }
+                case chainerx::DtypeKind::kFloat: {
+                    double f(s);
+                    val_ = runtime::MakeArray(chainerx::Dtype::kFloat64, {}, &f);
+                    break;
+                }
+            }
+            kind_ = Kind::kArray;
+            break;
+        }
     }
     CHECK_EQ(kind_, Kind::kArray);
     return absl::get<chainerx::Array>(val_);
@@ -60,6 +86,10 @@ ChxVMOpaque* ChxVMVar::GetOpaque() const {
 }
 
 const chainerx::Scalar& ChxVMVar::GetScalar() const {
+    if (kind_ == Kind::kArray) {
+        val_ = chainerx::AsScalar(absl::get<chainerx::Array>(val_));
+        kind_ = Kind::kScalar;
+    }
     CHECK_EQ(kind_, Kind::kScalar);
     return absl::get<chainerx::Scalar>(val_);
 }

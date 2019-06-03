@@ -30,15 +30,6 @@ int64_t GetSize(ChxVMVar* var) {
     CHECK(false);
 }
 
-int64_t GetOptionalInt(ChxVMState* st, int index, int64_t default_value) {
-    nonstd::optional<chainerx::Array> var = st->GetOptionalArray(index);
-    if (var.has_value()) {
-        return static_cast<int64_t>(chainerx::AsScalar(*var));
-    } else {
-        return default_value;
-    }
-}
-
 }  // namespace
 
 void InOp::RunImpl(ChxVMState* st) {
@@ -76,7 +67,7 @@ void GenericLenOp::RunImpl(ChxVMState* st) {
 void GenericGetItemOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
+    int64_t i = static_cast<int64_t>(st->GetVar(index)->GetScalar());
     if (i < 0) i += size;
     switch (var->kind()) {
         case ChxVMVar::Kind::kShape: {
@@ -108,15 +99,15 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
 void GenericGetSliceOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
-    int64_t start = GetOptionalInt(st, this->start, 0);
+    int64_t start = st->GetOptionalInt(this->start, 0);
     if (start < 0) start += size;
     start = std::max<int64_t>(0, start);
     start = std::min<int64_t>(size, start);
-    int64_t end = GetOptionalInt(st, this->end, size);
+    int64_t end = st->GetOptionalInt(this->end, size);
     if (end < 0) end += size;
     end = std::max<int64_t>(0, end);
     end = std::min<int64_t>(size, end);
-    int64_t step = GetOptionalInt(st, this->step, 1);
+    int64_t step = st->GetOptionalInt(this->step, 1);
     CHECK_NE(0, step) << "Slice step cannot be zero";
 
     switch (var->kind()) {
