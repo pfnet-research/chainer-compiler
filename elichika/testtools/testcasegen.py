@@ -159,6 +159,17 @@ def generate_testcase(model_or_model_gen, orig_xs,
     for name, param in model.namedparams():
         params[name] = param.array
 
+    gradients = []
+    if backprop:
+        ys.grad = np.ones(ys.shape, ys.dtype)
+        ys.backward()
+
+        for name, param in sorted(model.namedparams()):
+            bp_name = 'param' + name.replace('/', '_')
+            vi = onnx.helper.make_tensor_value_info(
+                bp_name, onnx.TensorProto.FLOAT, ())
+            gradients.append((vi, param.grad))
+
     model = get_model()
     for name, param in model.namedparams():
         param.array = params[name]
@@ -167,23 +178,12 @@ def generate_testcase(model_or_model_gen, orig_xs,
     input_tensors = onnxmod.inputs
     output_tensors = onnxmod.outputs
 
-    if backprop:
-        ys.grad = np.ones(ys.shape, ys.dtype)
-        ys.backward()
-
     if len(output_tensors) < len(chainer_out):
         assert len(output_tensors) == 1
         chainer_out = [np.array(chainer_out)]
     assert len(output_tensors) == len(chainer_out)
 
     outputs = list(zip(output_tensors, chainer_out))
-    gradients = []
-    if backprop:
-        for name, param in sorted(model.namedparams()):
-            bp_name = 'param' + name.replace('/', '_')
-            vi = onnx.helper.make_tensor_value_info(
-                bp_name, onnx.TensorProto.FLOAT, ())
-            gradients.append((vi, param.grad))
 
     xs = list(map(lambda x: _validate_inout(x), orig_xs))
 
