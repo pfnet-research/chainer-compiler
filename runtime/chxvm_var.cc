@@ -121,9 +121,9 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
 char ChxVMVar::Sigil() const {
     switch (kind_) {
         case Kind::kArray:
-            return '@';
-        case Kind::kSequence:
             return '$';
+        case Kind::kSequence:
+            return '@';
         case Kind::kOpaque:
             return '*';
         case Kind::kShape:
