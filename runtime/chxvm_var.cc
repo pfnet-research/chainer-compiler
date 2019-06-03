@@ -150,14 +150,14 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
 
 char ChxVMVar::Sigil() const {
     switch (kind_) {
+        case Kind::kShape:
+        case Kind::kScalar:
         case Kind::kArray:
             return '@';
         case Kind::kSequence:
             return '$';
         case Kind::kOpaque:
             return '*';
-        case Kind::kShape:
-        case Kind::kScalar:
         case Kind::kNull:
             CHECK(false);
     }
@@ -180,7 +180,7 @@ std::string ChxVMVar::ToString() const {
             return oss.str();
         }
         case Kind::kScalar:
-            break;
+            return "(1)";
     }
     CHECK(false);
 }
@@ -198,7 +198,7 @@ std::string ChxVMVar::DebugString() const {
         case Kind::kShape:
             return absl::get<chainerx::Shape>(val_).ToString();
         case Kind::kScalar:
-            break;
+            return absl::get<chainerx::Scalar>(val_).ToString();
     }
     CHECK(false);
 }
