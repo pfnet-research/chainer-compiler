@@ -566,8 +566,19 @@ public:
 
 namespace chainer_compiler {
 
-void RegisterCustomOnnxOperatorSetSchema() {
+namespace {
+
+bool RegisterCustomOnnxOperatorSetSchemaImpl() {
     ONNX_NAMESPACE::RegisterOpSetSchema<ONNX_NAMESPACE::Custom_OpSet_Onnx_ver9>();
+    return true;
+}
+
+}  // namespace
+
+void RegisterCustomOnnxOperatorSetSchema() {
+    // Run just once.
+    static bool unused = RegisterCustomOnnxOperatorSetSchemaImpl();
+    (void)unused;
 }
 
 }  // namespace chainer_compiler
