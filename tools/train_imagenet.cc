@@ -113,8 +113,6 @@ void RunMain(const std::vector<std::string>& argv) {
 
     InOuts params(LoadParams(model.graph()));
 
-    chainerx::Array batch_size_array = MakeScalarArray(static_cast<float>(batch_size)).ToDevice(chainerx::GetDefaultDevice());
-
     int trace_level = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
 
     if (args.exist("dump_onnx")) {
@@ -183,7 +181,7 @@ void RunMain(const std::vector<std::string>& argv) {
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
                 inputs.emplace("Input_1", std::shared_ptr<ChxVMVar>(new ChxVMVar(onehot)));
-                inputs.emplace("Input_2", std::shared_ptr<ChxVMVar>(new ChxVMVar(batch_size_array)));
+                inputs.emplace("Input_2", std::shared_ptr<ChxVMVar>(new ChxVMVar(chainerx::Scalar(batch_size))));
             } else {
                 CHECK_EQ(2, data.size());
                 CHECK_EQ(2, infeed_values.size());
