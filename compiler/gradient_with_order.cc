@@ -295,8 +295,6 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 }
                 for (const auto& p : Zip(outputs, staged_outputs)) {
                     node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
-                    std::get<0>(p)->SetProducer(nullptr);
-                    std::get<1>(p)->SetProducer(node);
                 }
 
                 ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
@@ -310,8 +308,6 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 }
                 for (const auto& p : Zip(staged_outputs, outputs)) {
                     node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
-                    std::get<0>(p)->SetProducer(nullptr);
-                    std::get<1>(p)->SetProducer(node);
                 }
 
                 // Copy back gradients of inputs from the last forward

@@ -164,6 +164,8 @@ void Node::ReplaceOutput(Value* f, Value* t) {
     auto found = std::find(outputs_.begin(), outputs_.end(), f);
     CHECK(found != outputs_.end());
     *found = t;
+    f->SetProducer(nullptr);
+    t->SetProducer(this);
 }
 
 std::vector<Graph*> Node::GetSubGraphs() const {

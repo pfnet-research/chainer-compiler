@@ -38,8 +38,6 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
         if (Node* node = value->producer()) {
             if (nodes.count(node)) {
                 node->ReplaceOutput(value, new_value);
-                value->SetProducer(nullptr);
-                new_value->SetProducer(node);
             }
         }
 
