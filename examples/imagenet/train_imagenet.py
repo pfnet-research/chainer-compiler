@@ -10,9 +10,7 @@ ImageDataLayer).
 """
 import argparse
 import json
-import os
 import random
-import sys
 
 import numpy as np
 
@@ -31,11 +29,6 @@ import googlenetbn
 import nin
 import resnet50
 import resnext50
-
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.join(project_root, 'ch2o'))
-sys.path.append(os.path.join(project_root, 'python'))
-sys.path.append(os.path.join(project_root, 'build/python'))
 
 import chainer_compiler
 
