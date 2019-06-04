@@ -95,14 +95,14 @@ const chainerx::Shape& ChxVMVar::GetShape() const {
 int64_t ChxVMVar::GetNBytes() const {
     int64_t size = 0;
     switch (kind_) {
+        case Kind::kShape:
+        case Kind::kScalar:
         case Kind::kArray:
-            size = absl::get<chainerx::Array>(val_).GetNBytes();
+            size = GetArray().GetNBytes();
             break;
         case Kind::kSequence:
             for (const ChxVMVar& v : *GetSequence()) size += v.GetArray().GetNBytes();
             break;
-        case Kind::kShape:
-        case Kind::kScalar:
         case Kind::kOpaque:
         case Kind::kNull:
             CHECK(false) << DebugString();
@@ -112,6 +112,8 @@ int64_t ChxVMVar::GetNBytes() const {
 
 std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
     switch (kind_) {
+        case Kind::kScalar:
+        case Kind::kShape:
         case Kind::kArray:
             return {GetArray()};
         case Kind::kSequence: {
@@ -127,8 +129,6 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
             return GetOpaque()->GetArrays();
 
         case Kind::kNull:
-        case Kind::kScalar:
-        case Kind::kShape:
             return {};
 
         default:

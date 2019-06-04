@@ -77,7 +77,7 @@ void DumpOutput(ChxVMState* st, const ChxVMOp* op, const std::string& output_dir
         }
 
         ChxVMVar* var = st->GetVar(id);
-        if (var->kind() != ChxVMVar::Kind::kArray) {
+        if (var->IsArray()) {
             continue;
         }
 

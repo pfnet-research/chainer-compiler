@@ -221,11 +221,10 @@ bool HasElemInArray(chainerx::Array (*pred_fn)(const chainerx::Array&), const ch
 
 bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxVMVar& var) {
     switch (var.kind()) {
-        case ChxVMVar::Kind::kArray:
-            return HasElemInArray(pred_fn, var.GetArray());
         case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kScalar:
-            CHECK(false);
+        case ChxVMVar::Kind::kArray:
+            return HasElemInArray(pred_fn, var.GetArray());
         case ChxVMVar::Kind::kSequence:
             for (const ChxVMVar& v : *var.GetSequence()) {
                 if (HasElemInVar(pred_fn, v)) return true;
