@@ -289,13 +289,18 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_lstm_with_initial_bias'),
     TestCase(NODE_TEST, 'test_lstm_with_peepholes', rtol=5e-2),
 
-    # TODO(hamaji): Investigate 3D softmax ops do not agree (though
-    # ChainerX agrees with Chainer).
-    # TODO(hamaji): Relax equality check for "large_number" tests.
-    TestCase(NODE_TEST, 'test_softmax_example'),
+    TestCase(NODE_TEST, 'test_softmax_axis_0'),
+    TestCase(NODE_TEST, 'test_softmax_axis_1'),
     TestCase(NODE_TEST, 'test_softmax_axis_2'),
-    TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
+    TestCase(NODE_TEST, 'test_softmax_default_axis'),
+    TestCase(NODE_TEST, 'test_softmax_example'),
+    TestCase(NODE_TEST, 'test_softmax_large_number'),
+    TestCase(NODE_TEST, 'test_logsoftmax_axis_0'),
+    TestCase(NODE_TEST, 'test_logsoftmax_axis_1'),
     TestCase(NODE_TEST, 'test_logsoftmax_axis_2'),
+    TestCase(NODE_TEST, 'test_logsoftmax_default_axis'),
+    TestCase(NODE_TEST, 'test_logsoftmax_example_1'),
+    TestCase(NODE_TEST, 'test_logsoftmax_large_number', rtol=5e-3),
     TestCase(NODE_TEST, 'test_softplus'),
     TestCase(NODE_TEST, 'test_softplus_example'),
     TestCase(NODE_TEST, 'test_softsign'),
@@ -674,6 +679,8 @@ if not args.all:
 
 def _start_output(msg):
     if sys.stdout.isatty():
+        if len(msg) > 75:
+            msg = msg[:36] + '...' + msg[-36:]
         sys.stdout.write('\r' + ' ' * 78 + '\r' + msg)
     else:
         sys.stdout.write(msg)

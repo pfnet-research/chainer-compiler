@@ -70,7 +70,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
         values.function_converters[func] = f
 
     def ret_tuple():
-        return values.TupleValue()
+        ret = values.TupleValue()
+        ret.vtype = values.TensorValue
+        return ret
 
     add_chainer_funtion('relu', F.relu)
     add_chainer_funtion('softmax', F.softmax)

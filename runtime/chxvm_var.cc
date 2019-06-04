@@ -142,9 +142,9 @@ char ChxVMVar::Sigil() const {
         case Kind::kShape:
         case Kind::kScalar:
         case Kind::kArray:
-            return '@';
-        case Kind::kSequence:
             return '$';
+        case Kind::kSequence:
+            return '@';
         case Kind::kOpaque:
             return '*';
         case Kind::kNull:

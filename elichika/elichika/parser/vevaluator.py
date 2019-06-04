@@ -522,7 +522,16 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         else:
             # ex. x[1]
             node = nodes.NodeGetItem(value_value, [slice_value])
-        ret_value = values.Value()
+
+        if isinstance(value_value, values.ListValue) and value_value.vtype != None:
+            ret_value = value_value.vtype()
+            ret_value.dtype = value_value.dtype
+        elif isinstance(value_value, values.TupleValue) and value_value.vtype != None:
+            ret_value = value_value.vtype()
+            ret_value.dtype = value_value.dtype
+        else:
+            ret_value = values.UnknownValue()
+            
         node.set_outputs([ret_value])
         graph.add_node(node)
         return values.ValueRef(ret_value)
@@ -614,7 +623,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     if target_ref is None:
         target_ref = values.ValueRef(values.UnknownValue())
         if config.show_warnings:
-            print('unknown iteratable type in L.{}'.format(astc.lineno))
+            print('unknown iteratable type in L.{}'.format(lineprop))
     target_value = target_ref.get_value()
 
     node_forgen.set_outputs([target_ref.get_value()])

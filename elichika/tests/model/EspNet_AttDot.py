@@ -145,7 +145,8 @@ class AttDotBackprop(chainer.Chain):
 
 import testtools
 
-if __name__ == '__main__':
+
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -175,3 +176,7 @@ if __name__ == '__main__':
     testtools.generate_testcase(lambda: AttDotBackprop(eprojs, dunits, att_dim),
                            [xs, z, None],
                            backprop=True)
+
+
+if __name__ == '__main__':
+    main()

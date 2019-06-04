@@ -201,8 +201,8 @@ NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', 2, 1, mode='nearest')
 
-NodeDef('Softmax', 1, 1, axis=1)
-NodeDef('LogSoftmax', 1, 1, axis=1)
+NodeDef('Softmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
+NodeDef('LogSoftmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
 # Extension: it takes N+1 inputs.
 NodeDef('If', None, None, else_branch=Graph, then_branch=Graph)
 NodeDef('Loop', None, None, body=Graph, chainer_stack_axis=0)

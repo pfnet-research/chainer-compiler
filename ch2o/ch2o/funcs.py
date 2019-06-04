@@ -530,7 +530,8 @@ class Function_Softmax(Callable):
         return env.calc(
             'Softmax',
             inputs=[x.to_tensor(env).name],
-            axis=axis.to_int()
+            axis=axis.to_int(),
+            chainer_is_onnx_semantics=False
         )
 
 
