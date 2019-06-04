@@ -27,7 +27,10 @@ TESTS = [
     Generator('model', 'MyLSTM'),
 
     Generator('model', 'EspNet_VGG2L'),
+    Generator('model', 'EspNet_BLSTM'),
     Generator('model', 'StatelessLSTM'),
+    Generator('model', 'EspNet_AttDot'),
+    Generator('model', 'EspNet_AttLoc'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
@@ -74,6 +77,7 @@ TESTS = [
     Generator('node/Links', 'EmbedID'),
 
     Generator('syntax', 'Alias'),
+    Generator('syntax', 'Continue'),
     Generator('syntax', 'Cmp'),
     Generator('syntax', 'For'),
     Generator('syntax', 'ForAndIf'),

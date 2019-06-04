@@ -49,6 +49,7 @@ set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
 set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
 set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
 
+option(CHAINER_COMPILER_PREBUILT_CHAINERX_DIR "The path to prebuilt ChainerX" OFF)
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
 
 option(CHAINER_COMPILER_BUILD_TESTS "Build C++ tests" ON)
@@ -82,7 +83,13 @@ set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
 if(${CHAINER_COMPILER_ENABLE_PYTHON})
   set_subdirectory_option_(CHAINERX_BUILD_PYTHON ON)
 endif()
-add_subdirectory(third_party/chainer/chainerx_cc)
+add_subdirectory(third_party/chainer/chainerx_cc EXCLUDE_FROM_ALL)
+
+if(NOT ("${CHAINER_COMPILER_PREBUILT_CHAINERX_DIR}" STREQUAL "OFF"))
+  set(CHAINER_COMPILER_CHAINERX_LIBRARIES "${CHAINER_COMPILER_PREBUILT_CHAINERX_DIR}/libchainerx.so")
+else()
+  set(CHAINER_COMPILER_CHAINERX_LIBRARIES "chainerx")
+endif()
 
 # TODO(hamaji): Get `set_hidden_(libprotobuf)` work. CMP0063 should do
 # the trick, but `include` without NO_POLICY_SCOPE in protobuf's
@@ -109,9 +116,6 @@ add_subdirectory(third_party/onnx)
 # It seems `onnx` target compiles onnx*.pb.cc. As this will let other
 # files produce warnings, we suppress all warnings from ONNX by -w.
 target_compile_definitions(onnx PRIVATE ONNX_API=)
-# TODO(hamaji): Remove this workaround after fixing the following issue:
-# https://github.com/pfnet-research/chainer-compiler/issues/220
-target_compile_definitions(onnx PRIVATE NDEBUG=1)
 target_compile_options(onnx PRIVATE -w)
 add_dependencies(gen_onnx_proto protoc)
 add_dependencies(gen_onnx_operators_proto protoc)
@@ -387,20 +391,21 @@ set(ELICHIKA_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/onnx_converters.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/canonicalizer.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/config.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/core.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_ndarray.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/graphs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/nodes.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/utils.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/links_builtin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_bin.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_unary.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/vevaluator.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/visualizer.py
-
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/__init__.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/initializer.py
   ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/test_args.py

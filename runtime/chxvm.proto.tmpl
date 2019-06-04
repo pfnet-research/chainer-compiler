@@ -16,6 +16,7 @@ message XCValueProto {
         LONGS = 10;
         DOUBLES = 11;
         INT_VALUES = 12;
+        SHAPE = 13;
     }
 
     required Type type = 1;
@@ -28,6 +29,7 @@ message XCValueProto {
     optional int32 sequence = 8;
     repeated double doubles = 10;
     optional int32 opaque = 11;
+    optional int32 shape = 12;
 }
 
 message XCTypeProto {

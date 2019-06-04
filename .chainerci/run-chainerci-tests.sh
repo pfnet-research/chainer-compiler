@@ -32,6 +32,7 @@ cmake .. \
     -DCHAINER_COMPILER_ENABLE_TVM=ON \
     -DCHAINERX_BUILD_CUDA=ON \
     -DCHAINERX_BUILD_PYTHON=ON \
+    -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx \
     && \
     make -j8
 

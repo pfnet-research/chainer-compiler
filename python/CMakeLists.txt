@@ -12,7 +12,7 @@ target_link_libraries(_chainer_compiler_core.so
   chainer_compiler_runtime
   chainer_compiler_common
   chainer_compiler_configs
-  chainerx
+  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}

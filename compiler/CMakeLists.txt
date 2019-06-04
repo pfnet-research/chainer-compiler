@@ -86,6 +86,7 @@ set_hidden_(chainer_compiler_compiler)
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(chainer_compiler_compiler_test
   code_emitter_test.cc
+  custom_onnx_ops_test.cc
   dtype_inference_test.cc
   evaluator_test.cc
   flops_test.cc
@@ -109,7 +110,7 @@ target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_runtime
   chainer_compiler_common
   chainer_compiler_configs
-  chainerx
+  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}

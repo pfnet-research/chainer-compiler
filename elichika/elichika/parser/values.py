@@ -1,7 +1,7 @@
 import chainer
 import chainer.functions as F
 import chainer.links as L
-
+import sys
 import numpy as np
 
 import collections
@@ -26,6 +26,7 @@ histories = []
 
 function_converters = {}
 instance_converters = []
+builtin_function_converters = {}
 
 def create_ref_value_name_with_constant(value):
     if isinstance(value, ValueRef):
@@ -91,7 +92,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         if instance in function_converters.keys():
             func = function_converters[instance]
             return ValueRef(func)
-    
+
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
         return ValueRef(BoolValue(instance))
@@ -122,18 +123,18 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
 
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
-        return ValueRef(FuncValue(func, self_instance))
+        return ValueRef(FuncValue(func, self_instance, default_module))
 
     if inspect.isfunction(instance):
         func = UserDefinedFunction(instance)
         if from_member:
-            return ValueRef(FuncValue(func, self_instance))
+            return ValueRef(FuncValue(func, self_instance, default_module))
         else:
-            return ValueRef(FuncValue(func, None))
+            return ValueRef(FuncValue(func, None, default_module))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
-        return ValueRef(FuncValue(func, None))
+        return ValueRef(FuncValue(func, None, default_module))
 
     if isinstance(instance, list):
         if root_graph is None:
@@ -225,7 +226,12 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
     if utils.is_disabled_module(instance):
         return None
 
-    model_inst = UserDefinedInstance(default_module, instance, None)
+    if inspect.ismodule(instance):
+        value = ModuleValue(instance)
+        return ValueRef(value)
+
+    module = ValueRef(ModuleValue(sys.modules[instance.__module__]))
+    model_inst = UserDefinedInstance(module, instance, None)
     return ValueRef(model_inst)
 
 
@@ -235,7 +241,7 @@ class FieldInput:
         self.field = None
         self.name = None
         self.value = None
-
+        self.obj = None
 
 class FieldOutput:
     def __init__(self):
@@ -275,14 +281,6 @@ class FieldAttributeCollection():
             return attribute
 
         # input
-
-        #value = parent_attribute.get_ref().get_value()
-
-        #copied_value = functions.generate_copied_value(value)
-        # attribute.revise(ValueRef(copied_value))
-
-        #self.attributes[key] = attribute
-
         attribute.revise(parent_attribute.get_ref())
         self.attributes[key] = attribute
 
@@ -294,6 +292,7 @@ class FieldAttributeCollection():
     def pop_history(self):
         for att, input in self.inputs.items():
             input[0].revise(input[1])
+        self.inputs.clear()
 
     def get_inputs(self) -> 'List[FieldInput]':
         '''
@@ -306,6 +305,7 @@ class FieldAttributeCollection():
             fi.field = att.parent
             fi.input_value = input[2]
             fi.value = input[3]
+            fi.obj = input[0]
             ret.append(fi)
         return ret
 
@@ -316,6 +316,9 @@ class FieldAttributeCollection():
         ret = []
 
         for key, att in self.attributes.items():
+            # has ref? (it causes with compile error in almost cases)
+            if not att.has_obj():
+                continue
 
             # instance or func
             if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
@@ -365,15 +368,15 @@ class Field():
 
         return False
 
-    def get_attribute(self, key: 'str', from_module=True) -> 'Attribute':
+    def get_attribute(self, key: 'str', root_graph : 'graphs.Graph' = None, from_module=False) -> 'Attribute':
         attribute = self.collection.try_get_attribute(key)
 
         if attribute is not None:
             return attribute
 
         # search an attribute from a module
-        if self.module is not None and self.module.has_attribute(key) and from_module:
-            attribute = self.module.get_attribute(key)
+        if self.module is not None and from_module and self.module.try_get_and_store_obj(key, root_graph):
+            attribute = self.module.attributes.get_attribute(key, root_graph)
 
         if attribute is not None:
             return attribute
@@ -388,8 +391,8 @@ class Field():
         self.collection = collection
 
     def pop_history(self):
-        self.collection = self.collection.parent
         self.collection.pop_history()
+        self.collection = self.collection.parent
 
         if self.collection is None:
             self.collection = FieldAttributeCollection('', None)
@@ -399,10 +402,6 @@ class Field():
 
     def get_outputs(self):
         return self.collection.get_outputs()
-
-    def set_default_value(self, key, value):
-        attribute = self.get_attribute(key)
-        attribute.revise(value)
 
     def set_predefined_obj(self, key, obj):
         collections = []
@@ -438,70 +437,11 @@ class Field():
             #value = functions.generate_copied_value(old_value)
             #obj = ValueRef(value)
 
-
-class Module(Field):
-    def __init__(self, module):
-        super().__init__()
-        self.internal_module = module
-
-    def has_attribute(self, key) -> 'Boolean':
-        members = inspect.getmembers(self.internal_module)
-        members_dict = {}
-        for member in members:
-            members_dict[member[0]] = member[1]
-
-        if (key in members_dict.keys()):
-
-            attr_v = members_dict[key]
-
-            return True
-
-        return super().has_attribute(key)
-
-    def get_attribute(self, key):
-        attribute = super().get_attribute(key)
-        if attribute is not None and attribute.has_obj():
-            return attribute
-
-        members = inspect.getmembers(self.internal_module)
-        members_dict = {}
-        for member in members:
-            members_dict[member[0]] = member[1]
-
-        if not (key in members_dict.keys()):
-            return attribute
-
-        attr_v = members_dict[key]
-
-        attribute.is_non_volatile = True
-        v = parse_instance(self, key, attr_v, None)
-        
-        # failed to parse
-        if v is None:
-            return None
-
-        attribute.revise(v)
-
-        return attribute
-
-    def set_default_value(self, key, value):
-        attribute = super().get_attribute(key)
-        attribute.revise(value)
-
-
-class AttributeHistory:
-    def __init__(self, obj: 'ValueRef'):
-        self.obj = obj
-
-
 class Attribute:
     def __init__(self, name: 'str'):
         self.name = name
-        self.history = []
+        self.obj = None
         self.parent = None
-
-        # a obj which is contained in this attribute at first
-        self.initial_obj = None
 
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
@@ -515,27 +455,17 @@ class Attribute:
         obj.get_value().name = utils.create_obj_value_name_with_attribute(
             self.name, obj.get_value().name)
 
-        if self.initial_obj is None:
-            self.initial_obj = obj
-
-        hist = AttributeHistory(obj)
-        self.history.append(hist)
+        self.obj = obj
 
     def has_obj(self):
-        return len(self.history) > 0
+        return self.obj != None
 
-    def get_ref(self, inc_access=True):
-        assert len(self.history) > 0
-        return self.history[-1].obj
+    def get_ref(self):
+        assert self.has_obj()
+        return self.obj
 
     def __str__(self):
         return self.name
-
-
-class ValueRefHistory():
-    def __init__(self, value):
-        self.value = value
-
 
 class ValueRef():
     def __init__(self, value: 'Value'):
@@ -557,7 +487,7 @@ class ValueRef():
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
             
-        attribute = self.attributes.get_attribute(name)
+        attribute = self.attributes.get_attribute(name, root_graph)
         if attribute.has_obj():
             return attribute.get_ref()
 
@@ -586,6 +516,9 @@ class Value():
     
     def get_constant_value(self):
         return self.internal_value
+
+    def is_not_none_or_any_value(self):
+        return False
 
     def is_iteratable(self):
         return False
@@ -638,6 +571,9 @@ class NumberValue(Value):
         if not config.float_restrict and self.dtype == np.float64:
             self.dtype = np.float32
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
@@ -648,6 +584,9 @@ class StrValue(Value):
     def __init__(self, string):
         super().__init__()
         self.internal_value = string
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def __str__(self):
         if self.internal_value == None:
@@ -660,6 +599,9 @@ class BoolValue(Value):
         super().__init__()
         self.internal_value = b
 
+    def is_not_none_or_any_value(self):
+        return True
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(B.{})'.format('Any')
@@ -669,6 +611,9 @@ class BoolValue(Value):
 class RangeValue(Value):
     def __init__(self):
         super().__init__()
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def is_iteratable(self):
         return True
@@ -684,28 +629,10 @@ class TupleValue(Value):
     def __init__(self, values=None):
         super().__init__()
         self.internal_value = values
-
-    def __str__(self):
-        return self.name + '(Tp{})'
-
-
-class FuncValue(Value):
-    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef'):
-        super().__init__()
-        self.func = func
-        self.obj = obj
-
-    def __str__(self):
-        return self.name + '(F)'
-
-
-class ListValue(Value):
-    def __init__(self, values=None):
-        super().__init__()
-        self.is_any = values is None
-        self.internal_value = values
-        self.dtype = None
         self.vtype = None # type: Type
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def is_iteratable(self):
         return True
@@ -741,37 +668,99 @@ class ListValue(Value):
                 if self.dtype != v.get_value().dtype:
                     self.dtype = None
 
+    def __str__(self):
+        return self.name + '(Tp{})'
+
+
+class FuncValue(Value):
+    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef', module : 'ValueRef' = None):
+        super().__init__()
+        self.func = func
+        self.obj = obj
+        self.module = module
+
+    def is_not_none_or_any_value(self):
+        return True
+
+    def __str__(self):
+        return self.name + '(F)'
+
+
+class ListValue(Value):
+    def __init__(self, values=None):
+        super().__init__()
+        self.internal_value = values
+        self.dtype = None
+        self.vtype = None # type: Type
+
+    def is_not_none_or_any_value(self):
+        return True
+
+    def is_iteratable(self):
+        return True
+
+    def get_iterator(self) -> 'ValueRef':
+        if self.vtype is None:
+            return None
+
+        v = self.vtype()
+
+        if self.dtype is not None:
+            v.dtype = self.dtype
+            
+
+        return ValueRef(v)
+
+    def estimate_type(self):
+        if self.internal_value is None:
+            return
+
+        self.vtype = None
+        self.dtype = None
+
+        for v in self.internal_value:
+            if self.vtype is None:
+                self.vtype = type(v.get_value())
+                self.dtype = v.get_value().dtype
+            else:
+                if self.vtype != type(v.get_value()):
+                    self.vtype = None
+                    self.dtype = None
+                    return
+                if self.dtype != v.get_value().dtype:
+                    self.dtype = None
+
+    def append(self, v):
+        if self.internal_value is None:
+            if self.vtype is None:
+                self.vtype = type(v.get_value())
+                self.dtype = v.get_value().dtype
+            else:
+                if self.vtype != type(v.get_value()):
+                    self.vtype = None
+                    self.dtype = None
+                    return
+                if self.dtype != v.get_value().dtype:
+                    self.dtype = None
+
+        else:
+            self.internal_value.append(v)
+            self.estimate_type()
+
     def apply_to_object(self, obj: 'ValueRef'):
         append_func = ValueRef(
-            FuncValue(functions_builtin.AppendFunction(self), obj))
+            FuncValue(functions_builtin.AppendFunction(self), obj, None))
         obj.attributes.get_attribute('append').revise(append_func)
 
     def __str__(self):
         return self.name + '(L)'
-
-
-class ModuleValue(Value):
-    def __init__(self):
-        super().__init__()
-
-    def __str__(self):
-        return self.name + '(M)'
-
-
-class DictValue(Value):
-    def __init__(self):
-        super().__init__()
-
-    def __str__(self):
-        return self.name + '(D)'
-
 
 class TensorValue(Value):
     def __init__(self, value = None):
         super().__init__()
         self.shape = ()
         self.internal_value = value
-        self.value = None
+        self.value = None   # not used?
         self.dtype = None
 
         if self.internal_value is not None:
@@ -779,6 +768,9 @@ class TensorValue(Value):
 
         if not config.float_restrict and self.dtype == np.float64:
             self.dtype = np.float32
+
+    def is_not_none_or_any_value(self):
+        return True
 
     def is_iteratable(self):
         return True
@@ -791,12 +783,12 @@ class TensorValue(Value):
 
     def apply_to_object(self, obj: 'ValueRef'):
         shape_func = ValueRef(
-            FuncValue(functions_ndarray.NDArrayShapeFunction(self), obj))
-        obj.attributes.get_attribute('shape').revise(shape_func)
+            FuncValue(functions_ndarray.NDArrayShapeFunction(), obj, None))
+        obj.attributes.set_predefined_obj('shape', shape_func)
 
         size_func = ValueRef(
-            FuncValue(functions_ndarray.NDArraySizeFunction(self), obj))
-        obj.attributes.get_attribute('size').revise(size_func)
+            FuncValue(functions_ndarray.NDArraySizeFunction(), obj, None))
+        obj.attributes.set_predefined_obj('size', size_func)
 
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
@@ -807,17 +799,48 @@ class Type(Value):
         super().__init__()
         self.name = name
 
+    def is_not_none_or_any_value(self):
+        return True
+
+class ModuleValue(Value):
+    def __init__(self, module):
+        super().__init__()
+        self.internal_module = module
+
+
+    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
+
+        if name in builtin_function_converters.keys():
+            v = ValueRef(builtin_function_converters[name])
+            return v
+
+        members = inspect.getmembers(self.internal_module)
+        members_dict = {}
+        for member in members:
+            members_dict[member[0]] = member[1]
+
+        if not (name in members_dict.keys()):
+            return None
+
+        attr_v = members_dict[name]
+
+        v = parse_instance(inst, name, attr_v, None)
+        
+        return v
 
 class Instance(Value):
-    def __init__(self, module: 'Field', inst, classinfo):
+    def __init__(self, module: 'ValueRef', inst, classinfo):
         super().__init__()
         self.inst = inst
         self.func = None
         self.module = module
         self.classinfo = classinfo
-        
+
+    def is_not_none_or_any_value(self):
+        return True
+
 class UserDefinedInstance(Instance):
-    def __init__(self, module: 'Field', inst, classinfo):
+    def __init__(self, module: 'ValueRef', inst, classinfo):
         super().__init__(module, inst, classinfo)
 
     def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':

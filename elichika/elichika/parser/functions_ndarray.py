@@ -156,7 +156,7 @@ class NDArrayFullFunction(functions.FunctionBase):
                 assert(False)
         elif dtype_value is not None and not isinstance(dtype_value, values.NoneValue):
             # TODO : make better
-            dtype = utils.int_2_numpy_type(dtype_value.internal_value)
+            dtype = np.array(1, dtype=dtype_value.func.dtype).dtype
         else:
             dtype = np.array(vargs[1].internal_value).dtype
 
@@ -210,10 +210,9 @@ class NDArrayCumsumFunction(functions.FunctionBase):
         return values.ValueRef(value)
 
 class NDArrayShapeFunction(functions.FunctionBase):
-    def __init__(self, owner):
+    def __init__(self):
         super().__init__()
         self.name = 'shape'
-        self.owner = owner
         self.is_property = True
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
@@ -231,10 +230,9 @@ class NDArrayShapeFunction(functions.FunctionBase):
         return values.ValueRef(value)
 
 class NDArraySizeFunction(functions.FunctionBase):
-    def __init__(self, owner):
+    def __init__(self):
         super().__init__()
         self.name = 'size'
-        self.owner = owner
         self.is_property = True
 
     def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):

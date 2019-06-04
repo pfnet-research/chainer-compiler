@@ -17,6 +17,7 @@ from elichika.parser import functions
 from elichika.parser import utils
 from elichika.parser import core
 from elichika.parser import config
+from elichika.parser import canonicalizer
 
 
 def generate_copied_value(value: 'values.Value'):
@@ -36,7 +37,8 @@ def generate_copied_value(value: 'values.Value'):
 
     if isinstance(value, values.ListValue):
         copied = values.ListValue()
-        copied.is_any = value.is_any
+        copied.dtype = value.dtype
+        copied.vtype = value.vtype
         if value.internal_value is not None:
             copied.internal_value = value.internal_value.copy()
         return copied
@@ -62,6 +64,8 @@ def generate_copied_value(value: 'values.Value'):
             copied = values.TupleValue(value.internal_value.copy())
         else:
             copied = values.TupleValue(value.internal_value)
+        copied.dtype = value.dtype
+        copied.vtype = value.vtype
         return copied
 
     if config.show_warnings:
@@ -140,12 +144,16 @@ def generate_value_with_same_type(value: 'values.Value', is_dummy_value = False,
 
     elif isinstance(value, values.ListValue):
         ret = values.ListValue(None)
+        ret.dtype = value.dtype
+        ret.vtype = value.vtype
 
     elif isinstance(value, values.NoneValue):
         ret = values.NoneValue()
 
     elif isinstance(value, values.TupleValue):
         ret = values.TupleValue()
+        ret.dtype = value.dtype
+        ret.vtype = value.vtype
 
     elif isinstance(value, values.RangeValue):
         ret = values.RangeValue()
@@ -347,7 +355,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         funcArgs = self.args.merge_inputs(inst, args)
 
         for k, v in funcArgs.keywords.items():
-            func_field.get_field().get_attribute(k).revise(v)
+            func_field.get_field().get_attribute(k, from_module=False).revise(v)
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         vevaluator.veval_ast(astc, func_field, graph)
@@ -366,10 +374,10 @@ class UserDefinedFunction(FunctionBase):
         self.lineno = sourcelines[1]
 
         code = utils.clip_head(inspect.getsource(func))
-
+        processed_ast = canonicalizer.Canonicalizer().visit(ast.parse(code))
         self.args.analyze_args(func)
 
-        self.ast = gast.ast_to_gast(ast.parse(code)).body[0]
+        self.ast = gast.ast_to_gast(processed_ast).body[0]
 
     def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
         func_field = values.Field()

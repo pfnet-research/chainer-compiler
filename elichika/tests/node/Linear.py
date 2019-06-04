@@ -33,6 +33,16 @@ class B(chainer.Chain):
         gate = self.l(F.concat((inputs[:, 0], h), axis=1))
         return gate
 
+class Axes(chainer.Chain):
+
+    def __init__(self):
+        super(Axes, self).__init__()
+        with self.init_scope():
+            self.l1 = L.Linear(3, 5)
+
+    def forward(self, x):
+        y1 = self.l1(x, n_batch_axes=2)
+        return y1
 
 # ======================================
 
@@ -45,8 +55,10 @@ def main():
 
     model = A(3)
     x = np.random.rand(5, 7).astype(np.float32)
-
     testtools.generate_testcase(model, [x])
+
+    y = np.random.rand(2, 4, 3).astype(np.float32)
+    testtools.generate_testcase(Axes(), [y], subname='axes')
 
     # Value mismatch bug.
     num_hidden = 5

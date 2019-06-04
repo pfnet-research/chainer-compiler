@@ -86,6 +86,20 @@ void ChxVMState::SetVar(int index, const ChxVMVar& var) {
     variables_[index].reset(new ChxVMVar(var));
 }
 
+const chainerx::Shape& ChxVMState::GetShape(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get());
+    return variables_[index]->GetShape();
+}
+
+void ChxVMState::SetShape(int index, chainerx::Shape s) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(!variables_[index].get());
+    variables_[index].reset(new ChxVMVar(s));
+}
+
 std::string ChxVMState::GetVarString(int index) {
     if (index < 0) return "null";
     CHECK_GT(variables_.size(), index) << index;

@@ -1,14 +1,34 @@
-// TODO(hamaji): Remove this workaround after fixing the following issue:
-// https://github.com/pfnet-research/chainer-compiler/issues/220
-#ifndef NDEBUG
-#define NDEBUG 1
-#endif
-
 #include "onnx/defs/schema.h"
+
+#define ONNX_CHAINER_OPERATOR_SET_SCHEMA(name, ver, impl) ONNX_OPERATOR_SET_SCHEMA_EX(name, Onnx, ONNX_DOMAIN, ver, false, impl)
 
 namespace ONNX_NAMESPACE {
 
-ONNX_OPERATOR_SET_SCHEMA(
+namespace {
+
+void InferLinear(InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    int n_batch_axes = getAttribute(ctx, "n_batch_axes", 1);
+    auto& first_input_shape = getInputShape(ctx, 0);
+    auto& second_input_shape = getInputShape(ctx, 1);
+
+    if (n_batch_axes > first_input_shape.dim_size()) {
+        return;
+    }
+    if (1 > second_input_shape.dim_size()) {
+        return;
+    }
+
+    auto* output_shape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+    for (int i = 0; i < n_batch_axes; ++i) {
+        output_shape->add_dim()->CopyFrom(first_input_shape.dim(i));
+    }
+    output_shape->add_dim()->CopyFrom(second_input_shape.dim(0));
+}
+
+}  // namespace
+
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerLinear,
         9,
         OpSchema()
@@ -22,14 +42,9 @@ ONNX_OPERATOR_SET_SCHEMA(
                         "T",
                         {"tensor(float)", "tensor(float16)", "tensor(double)"},
                         "Constrain input and output types to signed numeric tensors.")
-                .TypeAndShapeInferenceFunction([](InferenceContext& ctx) {
-                    propagateElemTypeFromInputToOutput(ctx, 0, 0);
-                    auto& first_input_shape = getInputShape(ctx, 0);
-                    auto& second_input_shape = getInputShape(ctx, 1);
-                    updateOutputShape(ctx, 0, {first_input_shape.dim(0), second_input_shape.dim(0)});
-                }));
+                .TypeAndShapeInferenceFunction(InferLinear));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerSoftmaxCrossEntropy,
         9,
         OpSchema()
@@ -47,7 +62,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                     ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
                 }));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerSelectItem,
         9,
         OpSchema()
@@ -210,7 +225,7 @@ void convPoolTypeAndShapeInference(InferenceContext& ctx, bool use_dilation, boo
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         MaxPool,
         9,
         OpSchema()
@@ -256,7 +271,7 @@ void InferROI(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIAveragePool2D,
         9,
         OpSchema()
@@ -272,7 +287,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIMaxPool2D,
         9,
         OpSchema()
@@ -288,7 +303,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIAverageAlign2D,
         9,
         OpSchema()
@@ -304,7 +319,7 @@ ONNX_OPERATOR_SET_SCHEMA(
                 .TypeConstraint("I", {"tensor(int64)"}, "Constrain index tensor to int64")
                 .TypeAndShapeInferenceFunction(InferROI));
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerROIMaxAlign2D,
         9,
         OpSchema()
@@ -350,7 +365,7 @@ void InferResizeImages(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerResizeImages,
         9,
         OpSchema()
@@ -376,7 +391,7 @@ but the major difference is numpy.broadcast_to() does not allow shape to be smal
 It is possible that the output.shape is not equal to shape, when some dimensions in shape is equal to 1,
 or the shape.ndim < input.shape.ndim.
 )DOC";
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         Expand,
         9,
         OpSchema()
@@ -455,7 +470,7 @@ void InferPadBatchSize(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerPadBatchSize,
         9,
         OpSchema()
@@ -530,7 +545,7 @@ void InferSplit(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_OPERATOR_SET_SCHEMA(
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         Split,
         9,
         OpSchema()
@@ -564,8 +579,19 @@ public:
 
 namespace chainer_compiler {
 
-void RegisterCustomOnnxOperatorSetSchema() {
+namespace {
+
+bool RegisterCustomOnnxOperatorSetSchemaImpl() {
     ONNX_NAMESPACE::RegisterOpSetSchema<ONNX_NAMESPACE::Custom_OpSet_Onnx_ver9>();
+    return true;
+}
+
+}  // namespace
+
+void RegisterCustomOnnxOperatorSetSchema() {
+    // Run just once.
+    static bool unused = RegisterCustomOnnxOperatorSetSchemaImpl();
+    (void)unused;
 }
 
 }  // namespace chainer_compiler
