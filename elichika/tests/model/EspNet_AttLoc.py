@@ -197,7 +197,7 @@ class AttLoc(chainer.Chain):
 import testtools
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(314)
 
@@ -226,3 +226,7 @@ if __name__ == '__main__':
         assert np.allclose(e.array, a.array)
 
     testtools.generate_testcase(model_fn, [xs, None, None])
+
+
+if __name__ == '__main__':
+    main()
