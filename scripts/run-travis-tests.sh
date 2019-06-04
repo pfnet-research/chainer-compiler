@@ -28,7 +28,7 @@ cd ..
 ./scripts/runtests.py
 time pytest -sv python
 
-time python3 examples/mnist/train_mnist.py \
+time PYTHONPATH=./python:./build/python python3 examples/mnist/train_mnist.py \
      -d native --compile -I 3 --use-fake-data
 
 time ./build/tools/dump out/ch2o_model_MLP_with_loss
