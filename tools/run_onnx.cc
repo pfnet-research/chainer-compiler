@@ -213,6 +213,8 @@ chainerx::Array StageArray(chainerx::Array a) {
 
 ChxVMVar* StageVar(ChxVMVar* var) {
     switch (var->kind()) {
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kArray:
             return new ChxVMVar(StageArray(var->GetArray()));
         case ChxVMVar::Kind::kSequence: {
@@ -221,8 +223,6 @@ ChxVMVar* StageVar(ChxVMVar* var) {
             return out;
         }
 
-        case ChxVMVar::Kind::kScalar:
-        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -561,12 +561,12 @@ void RunMain(const std::vector<std::string>& argv) {
 
             auto var_str = [&args, array_str](ChxVMVar* v) {
                 switch (v->kind()) {
+                    case ChxVMVar::Kind::kScalar:
+                    case ChxVMVar::Kind::kShape:
                     case ChxVMVar::Kind::kArray:
                         return array_str(v->GetArray());
                     case ChxVMVar::Kind::kSequence:
                         return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
-                    case ChxVMVar::Kind::kScalar:
-                    case ChxVMVar::Kind::kShape:
                     case ChxVMVar::Kind::kOpaque:
                     case ChxVMVar::Kind::kNull:
                         CHECK(false) << v->DebugString();
@@ -612,6 +612,8 @@ void RunMain(const std::vector<std::string>& argv) {
 
             bool ok = false;
             switch (expected->kind()) {
+                case ChxVMVar::Kind::kScalar:
+                case ChxVMVar::Kind::kShape:
                 case ChxVMVar::Kind::kArray:
                     ok = check_array(expected->GetArray(), actual->GetArray());
                     break;
@@ -632,8 +634,6 @@ void RunMain(const std::vector<std::string>& argv) {
                     break;
                 }
 
-                case ChxVMVar::Kind::kScalar:
-                case ChxVMVar::Kind::kShape:
                 case ChxVMVar::Kind::kOpaque:
                 case ChxVMVar::Kind::kNull:
                     CHECK(false) << expected->DebugString();
