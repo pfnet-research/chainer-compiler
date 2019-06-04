@@ -3,7 +3,18 @@ import os
 import sys
 import tempfile
 
-from chainer_compiler import _chainer_compiler_core
+try:
+    from chainer_compiler import _chainer_compiler_core
+except ImportError:
+    # When testing the module without the installation of chainer_compiler via
+    # pip, `_chainer_compiler_core.so` is not accessible through
+    # `chainer_compiler` package.
+    # `_chainer_compiler_core.so` should be imported directly from
+    # `build/python`.
+    # TODO(mkusumoto): Seek more sophisticated way to import the .so file.
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(os.path.join(project_root, 'build/python'))
+    import _chainer_compiler_core
 
 try:
     import cupy
