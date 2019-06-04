@@ -57,12 +57,12 @@ chainerx::Array DynamicSliceOp::RunImpl(
 chainerx::Array DynamicSliceGradOp::RunImpl(
         ChxVMState* st,
         const chainerx::Array& gy,
-        const chainerx::Array& shape,
+        const chainerx::Shape& shape,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
         const nonstd::optional<chainerx::Array>& axes,
         const nonstd::optional<chainerx::Array>& steps) {
-    chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
+    chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes, steps);
     BlitArray(gy, out.At(indices));
     return out;
@@ -114,8 +114,8 @@ chainerx::Array GetItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, 
 }
 
 chainerx::Array GetItemGradOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& shape, const std::vector<chainerx::Array>& index_arrays) {
-    chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Shape& shape, const std::vector<chainerx::Array>& index_arrays) {
+    chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
     BlitArray(gy, out.At(indices));
     return out;
@@ -126,8 +126,8 @@ chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, c
 }
 
 chainerx::Array GatherGradOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape) {
-    chainerx::Array out = chainerx::Zeros(ArrayToShape(shape), gy.dtype());
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Shape& shape) {
+    chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     // TODO(hamaji): Ineffcient. Update the TODO is removed in ChainerX:
     // https://github.com/chainer/chainer/pull/6789
     return chainerx::AddAt(out, indices, axis, gy);
@@ -144,8 +144,7 @@ chainerx::Array SelectItemOp::RunImpl(ChxVMState* st, const chainerx::Array& dat
 }
 
 chainerx::Array SelectItemGradOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Array& shape_array) {
-    chainerx::Shape shape{ArrayToShape(shape_array)};
+        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Shape& shape) {
     CHECK_EQ(2, shape.size()) << "TODO(hamaji): Support SelectItem for non-2D array";
     int64_t batch_size = shape[0];
     int64_t num_classes = shape[1];
