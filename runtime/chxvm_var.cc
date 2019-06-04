@@ -76,8 +76,7 @@ ChxVMOpaque* ChxVMVar::GetOpaque() const {
 const StrictScalar& ChxVMVar::GetScalar() const {
     if (kind_ == Kind::kArray) {
         const chainerx::Array& ary = absl::get<chainerx::Array>(val_);
-        CHECK_EQ(1, ary.GetTotalSize());
-        val_ = StrictScalar(ary.dtype(), *reinterpret_cast<StrictScalar::InternalType*>(ary.data().get()));
+        val_ = StrictScalar(ary.dtype(), chainerx::AsScalar(ary));
         kind_ = Kind::kScalar;
     }
     CHECK_EQ(kind_, Kind::kScalar);
