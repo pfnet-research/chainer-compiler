@@ -323,10 +323,10 @@ VarPtr CreateValueFromArray(const ArrayBodyPtr& a) {
 }
 
 VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
-    auto var = std::make_shared<runtime::ChxVMVar>(runtime::ChxVMVar::Kind::kSequence);
-    runtime::ChxVMSequence* out = var->GetSequence();
+    auto out = std::make_shared<runtime::ChxVMSequence>();
+    out->reserve(seq.size());
     for (const VarPtr& var : seq) out->push_back(*var);
-    return var;
+    return std::make_shared<runtime::ChxVMVar>(out);
 }
 
 }  // namespace

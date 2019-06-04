@@ -35,6 +35,7 @@ protected:
 
 class ChxVMVar {
 public:
+    // Order of `Kind` must match with `VarInternalType` since `variant::index()` is used in `kind()` member function.
     enum class Kind {
         kArray,
         kSequence,
@@ -45,10 +46,10 @@ public:
     };
 
     ChxVMVar();
-    explicit ChxVMVar(Kind kind);
     explicit ChxVMVar(chainerx::Array array);
     // Takes the ownership of `opaque`.
     explicit ChxVMVar(ChxVMOpaque* opaque);
+    explicit ChxVMVar(std::shared_ptr<ChxVMSequence> seq);
     explicit ChxVMVar(chainerx::Shape shape);
     explicit ChxVMVar(chainerx::Scalar scalar);
     explicit ChxVMVar(const ChxVMVar&) = default;
@@ -60,10 +61,10 @@ public:
     const chainerx::Shape& GetShape() const;
 
     Kind kind() const {
-        return kind_;
+        return static_cast<Kind>(val_.index());
     }
     bool IsNull() const {
-        return kind_ == Kind::kNull;
+        return kind() == Kind::kNull;
     }
 
     int64_t GetNBytes() const;
@@ -76,9 +77,14 @@ public:
     std::string DebugString() const;
 
 private:
-    mutable Kind kind_;
-    using VarInternalType =
-            absl::variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, chainerx::Scalar, chainerx::Shape>;
+    struct NullType {};
+    using VarInternalType = absl::variant<
+            chainerx::Array,
+            std::shared_ptr<ChxVMSequence>,
+            std::shared_ptr<ChxVMOpaque>,
+            chainerx::Scalar,
+            chainerx::Shape,
+            NullType>;
     mutable VarInternalType val_;
 };
 

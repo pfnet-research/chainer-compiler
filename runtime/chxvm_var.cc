@@ -17,65 +17,53 @@ void ChxVMOpaque::SetRetainedArrays(const std::vector<chainerx::Array>& retained
     retained_arrays_.reset(new std::vector<chainerx::Array>(retained_arrays));
 }
 
-ChxVMVar::ChxVMVar() : kind_(Kind::kNull) {
+ChxVMVar::ChxVMVar() : val_(NullType{}) {
 }
 
-ChxVMVar::ChxVMVar(Kind kind) : kind_(kind) {
-    CHECK_NE(kind_, Kind::kArray);
-    CHECK_NE(kind_, Kind::kOpaque);
-    if (kind_ == Kind::kSequence) {
-        val_ = std::make_shared<ChxVMSequence>();
-    }
+ChxVMVar::ChxVMVar(chainerx::Array array) : val_(array) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Array array) : kind_(Kind::kArray), val_(array) {
+ChxVMVar::ChxVMVar(ChxVMOpaque* opaque) : val_(std::shared_ptr<ChxVMOpaque>(opaque)) {
 }
 
-ChxVMVar::ChxVMVar(ChxVMOpaque* opaque) : kind_(Kind::kOpaque), val_(std::shared_ptr<ChxVMOpaque>(opaque)) {
+ChxVMVar::ChxVMVar(chainerx::Scalar scalar) : val_(scalar) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Scalar scalar) : kind_(Kind::kScalar), val_(scalar) {
+ChxVMVar::ChxVMVar(chainerx::Shape shape) : val_(shape) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Shape shape) : kind_(Kind::kShape), val_(shape) {
+ChxVMVar::ChxVMVar(std::shared_ptr<ChxVMSequence> seq) : val_(seq) {
 }
 
 const chainerx::Array& ChxVMVar::GetArray() const {
-    if (kind_ == Kind::kShape) {
-        kind_ = Kind::kArray;
+    if (kind() == Kind::kShape) {
         val_ = runtime::ShapeToArray(absl::get<chainerx::Shape>(val_));
     }
-    CHECK_EQ(kind_, Kind::kArray);
     return absl::get<chainerx::Array>(val_);
 }
 
 ChxVMSequence* ChxVMVar::GetSequence() const {
-    CHECK_EQ(kind_, Kind::kSequence);
     return absl::get<std::shared_ptr<ChxVMSequence>>(val_).get();
 }
 
 ChxVMOpaque* ChxVMVar::GetOpaque() const {
-    CHECK_EQ(kind_, Kind::kOpaque);
     return absl::get<std::shared_ptr<ChxVMOpaque>>(val_).get();
 }
 
 const chainerx::Scalar& ChxVMVar::GetScalar() const {
-    CHECK_EQ(kind_, Kind::kScalar);
     return absl::get<chainerx::Scalar>(val_);
 }
 
 const chainerx::Shape& ChxVMVar::GetShape() const {
-    if (kind_ == Kind::kArray) {
-        kind_ = Kind::kShape;
+    if (kind() == Kind::kArray) {
         val_ = runtime::ArrayToShape(absl::get<chainerx::Array>(val_));
     }
-    CHECK_EQ(kind_, Kind::kShape);
     return absl::get<chainerx::Shape>(val_);
 }
 
 int64_t ChxVMVar::GetNBytes() const {
     int64_t size = 0;
-    switch (kind_) {
+    switch (kind()) {
         case Kind::kArray:
             size = absl::get<chainerx::Array>(val_).GetNBytes();
             break;
@@ -92,7 +80,7 @@ int64_t ChxVMVar::GetNBytes() const {
 }
 
 std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
-    switch (kind_) {
+    switch (kind()) {
         case Kind::kArray:
             return {GetArray()};
         case Kind::kSequence: {
@@ -119,7 +107,7 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
 }
 
 char ChxVMVar::Sigil() const {
-    switch (kind_) {
+    switch (kind()) {
         case Kind::kArray:
             return '$';
         case Kind::kSequence:
@@ -135,7 +123,7 @@ char ChxVMVar::Sigil() const {
 }
 
 std::string ChxVMVar::ToString() const {
-    switch (kind_) {
+    switch (kind()) {
         case Kind::kArray:
             return absl::get<chainerx::Array>(val_).shape().ToString();
         case Kind::kSequence:
@@ -156,7 +144,7 @@ std::string ChxVMVar::ToString() const {
 }
 
 std::string ChxVMVar::DebugString() const {
-    switch (kind_) {
+    switch (kind()) {
         case Kind::kArray:
             return absl::get<chainerx::Array>(val_).ToString();
         case Kind::kSequence:
