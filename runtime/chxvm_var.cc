@@ -26,6 +26,8 @@ ChxVMVar::ChxVMVar() : kind_(Kind::kNull) {
 
 ChxVMVar::ChxVMVar(Kind kind) : kind_(kind) {
     CHECK_NE(kind_, Kind::kArray);
+    CHECK_NE(kind_, Kind::kShape);
+    CHECK_NE(kind_, Kind::kScalar);
     CHECK_NE(kind_, Kind::kOpaque);
     if (kind_ == Kind::kSequence) {
         val_ = std::make_shared<ChxVMSequence>();

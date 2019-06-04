@@ -526,7 +526,7 @@ void RunMain(const std::vector<std::string>& argv) {
                 std::string msg;
                 for (auto& ch : *outputs.begin()->second->GetSequence()) {
                     if (ch.GetArray().GetNBytes() == 1) {
-                        msg += static_cast<uint8_t>(chainerx::AsScalar(ch.GetArray()));
+                        msg += static_cast<uint8_t>(ch.GetScalar());
                     } else {
                         msg.clear();
                         break;

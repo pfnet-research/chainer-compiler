@@ -33,6 +33,10 @@ public:
         return static_cast<int64_t>(static_cast<chainerx::Scalar>(*this));
     }
 
+    explicit operator uint8_t() const {
+        return static_cast<uint8_t>(static_cast<chainerx::Scalar>(*this));
+    }
+
 private:
     chainerx::Scalar data_;
     chainerx::Dtype dtype_;

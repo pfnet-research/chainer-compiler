@@ -87,6 +87,7 @@ void Eval(
 
         switch (var->kind()) {
             case runtime::ChxVMVar::Kind::kScalar:
+            case runtime::ChxVMVar::Kind::kShape:
             case runtime::ChxVMVar::Kind::kArray: {
                 outputs->emplace_back(new EvaluatedValue(new Tensor(name, state.GetArray(output_id))));
                 break;
