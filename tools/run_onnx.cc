@@ -605,7 +605,7 @@ void RunMain(const std::vector<std::string>& argv) {
                 return true;
             };
 
-            if (expected->kind() != actual->kind()) {
+            if (!expected->IsArray() && !actual->IsArray() && expected->kind() != actual->kind()) {
                 fail("kind");
                 continue;
             }
