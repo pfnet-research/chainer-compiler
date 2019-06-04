@@ -196,12 +196,12 @@ std::string ChxVMVar::DebugString() const {
 
 bool ChxVMVar::IsArray() const {
     switch (kind_) {
-    case runtime::ChxVMVar::Kind::kArray:
-    case runtime::ChxVMVar::Kind::kScalar:
-    case runtime::ChxVMVar::Kind::kShape:
-        return true;
-    default:
-        return false;
+        case runtime::ChxVMVar::Kind::kArray:
+        case runtime::ChxVMVar::Kind::kScalar:
+        case runtime::ChxVMVar::Kind::kShape:
+            return true;
+        default:
+            return false;
     }
 }
 
