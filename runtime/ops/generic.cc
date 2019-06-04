@@ -173,7 +173,7 @@ void GenericIsOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var1 = st->GetVar(b);
 
     bool result = false;
-    if (var0->kind() != var1->kind()) {
+    if (!(var0->IsArray() && var1->IsArray()) && var0->kind() != var1->kind()) {
         // We are sure the return value is false.
     } else if (var0->IsArray()) {
         chainerx::Array a = var0->GetArray();
