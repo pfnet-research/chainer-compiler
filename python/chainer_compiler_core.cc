@@ -290,7 +290,7 @@ void InitChxVM(py::module& m) {
 }
 
 bool IsArray(const VarPtr& v) {
-    return v->kind() == runtime::ChxVMVar::Kind::kArray;
+    return v->IsArray();
 }
 
 bool IsSequence(const VarPtr& v) {

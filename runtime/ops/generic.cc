@@ -147,9 +147,9 @@ void GenericAddOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var0 = st->GetVar(a);
     ChxVMVar* var1 = st->GetVar(b);
 
-    if (var0->kind() == ChxVMVar::Kind::kArray || var1->kind() == ChxVMVar::Kind::kArray) {
+    if (var0->IsArray() || var1->IsArray()) {
         auto to_a = [](ChxVMVar* v) {
-            if (v->kind() == ChxVMVar::Kind::kArray) {
+            if (v->IsArray()) {
                 return v->GetArray();
             }
             return Stack(NonOptional(*v->GetSequence()), 0);
@@ -169,7 +169,7 @@ void GenericIsOp::RunImpl(ChxVMState* st) {
     bool result = false;
     if (var0->kind() != var1->kind()) {
         // We are sure the return value is false.
-    } else if (var0->kind() == ChxVMVar::Kind::kArray) {
+    } else if (var0->IsArray()) {
         chainerx::Array a = var0->GetArray();
         chainerx::Array b = var1->GetArray();
         if (a.ndim() == 0 && b.ndim() == 0 && a.dtype() == chainerx::Dtype::kBool && b.dtype() == chainerx::Dtype::kBool) {

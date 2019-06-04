@@ -67,6 +67,7 @@ public:
     bool IsNull() const {
         return kind_ == Kind::kNull;
     }
+    bool IsArray() const;
 
     int64_t GetNBytes() const;
 

@@ -209,8 +209,8 @@ void RunMain(const std::vector<std::string>& argv) {
                 CHECK(found != inputs.end());
                 ChxVMVar* param = found->second.get();
                 ChxVMVar* grad = p.second.get();
-                CHECK_EQ(param->kind(), ChxVMVar::Kind::kArray) << "Only an array can be a parameter";
-                CHECK_EQ(grad->kind(), ChxVMVar::Kind::kArray) << "Only an array can be a parameter";
+                CHECK(param->IsArray()) << "Only an array can be a parameter";
+                CHECK(grad->IsArray()) << "Only an array can be a parameter";
                 param->GetArray() -= grad->GetArray() * args.get<float>("learning_rate");
             }
         }
