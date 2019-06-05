@@ -78,7 +78,7 @@ ChxVMOpaque* ChxVMVar::GetOpaque() const {
 const StrictScalar& ChxVMVar::GetScalar() const {
     if (kind_ == Kind::kArray) {
         const chainerx::Array& ary = absl::get<chainerx::Array>(val_);
-        val_ = StrictScalar(ary.dtype(), chainerx::AsScalar(ary));
+        val_ = StrictScalar(ary.dtype(), chainerx::AsScalar(ary), IsNativeDevice(&ary.device()));
         kind_ = Kind::kScalar;
     }
     CHECK_EQ(kind_, Kind::kScalar);

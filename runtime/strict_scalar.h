@@ -1,8 +1,5 @@
 #pragma once
 
-#include "common/log.h"
-
-#include <chainerx/float16.h>
 #include <chainerx/scalar.h>
 
 namespace chainer_compiler {
@@ -25,16 +22,9 @@ public:
         return data_;
     }
 
-    explicit operator bool() const {
-        return static_cast<bool>(static_cast<chainerx::Scalar>(*this));
-    }
-
-    explicit operator int64_t() const {
-        return static_cast<int64_t>(static_cast<chainerx::Scalar>(*this));
-    }
-
-    explicit operator uint8_t() const {
-        return static_cast<uint8_t>(static_cast<chainerx::Scalar>(*this));
+    template<class T>
+    explicit operator T() const {
+        return static_cast<T>(static_cast<chainerx::Scalar>(*this));
     }
 
 private:
