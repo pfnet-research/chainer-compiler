@@ -22,7 +22,7 @@ public:
         return data_;
     }
 
-    template<class T>
+    template <class T>
     explicit operator T() const {
         return static_cast<T>(static_cast<chainerx::Scalar>(*this));
     }
