@@ -1,5 +1,8 @@
 #include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>
@@ -542,9 +545,29 @@ void RunMain(const std::vector<std::string>& argv) {
     std::string test_path = args.get<std::string>("test");
 
     g_quiet = args.exist("quiet");
-    if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
+    if (!onnx_path.empty() && !test_path.empty()) {
         std::cerr << args.usage() << std::endl;
-        QFAIL() << "Either --onnx or --test must be specified!";
+        QFAIL() << "Specifying both --onnx and --test is invalid!";
+    } else if (onnx_path.empty() && test_path.empty()) {
+        if (args.rest().empty()) {
+            std::cerr << args.usage() << std::endl;
+            QFAIL() << "No target testdir/onnx is specified";
+        } else if (args.rest().size() == 1) {
+            const std::string& filename = args.rest()[0];
+            struct stat st;
+            CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+            if (S_IFDIR == (st.st_mode & S_IFMT)) {
+                test_path = filename;
+            } else {
+                onnx_path = filename;
+            }
+        } else {
+            std::cerr << args.usage() << std::endl;
+            QFAIL() << "Unknown extra arguments specified";
+        }
+    } else if (!args.rest().empty()) {
+        std::cerr << args.usage() << std::endl;
+        QFAIL() << "Unknown extra arguments specified";
     }
 
     LOG() << "Initializing ChainerX..." << std::endl;
