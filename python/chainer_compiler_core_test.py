@@ -11,7 +11,7 @@ sys.path.append(os.path.join(project_root, 'build/python'))
 sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'scripts'))
 
-import chainer_compiler_core
+import _chainer_compiler_core
 
 import onnx_script
 
@@ -22,7 +22,7 @@ def aranges(*shape):
 
 
 def test_inference():
-    graph = chainer_compiler_core.load('out/ch2o_node_Linear/model.onnx')
+    graph = _chainer_compiler_core.load('out/ch2o_node_Linear/model.onnx')
     params = graph.params()
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -33,7 +33,7 @@ def test_inference():
 
     inputs = dict(params)
     t1 = aranges(5, 7)
-    inputs[input_names[0]] = chainer_compiler_core.value(t1)
+    inputs[input_names[0]] = _chainer_compiler_core.value(t1)
 
     y1 = chainerx.dot(t1, params['/l1/W'].array().T) + params['/l1/b'].array()
     y2 = chainerx.dot(t1, params['/l2/W'].array().T)
@@ -48,7 +48,7 @@ def test_inference():
 
 
 def test_backprop():
-    graph = chainer_compiler_core.load('out/ch2o_node_Linear_backprop/model.onnx')
+    graph = _chainer_compiler_core.load('out/ch2o_node_Linear_backprop/model.onnx')
     params = graph.params()
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -66,7 +66,7 @@ def test_backprop():
 
     fwd_inputs = dict(params)
     t1 = aranges(5, 7)
-    fwd_inputs[input_names[0]] = chainer_compiler_core.value(t1)
+    fwd_inputs[input_names[0]] = _chainer_compiler_core.value(t1)
 
     loss = (chainerx.dot(t1, params['/l1/W'].array().T) +
             params['/l1/b'].array())
@@ -85,7 +85,7 @@ def test_backprop():
         value = fwd_outputs[name]
         if name in output_names:
             iname = 'grad_in@' + name
-            value = chainer_compiler_core.value(grad_loss)
+            value = _chainer_compiler_core.value(grad_loss)
         bwd_inputs[iname] = value
 
     bwd_outputs = bwd.run(bwd_inputs)
@@ -122,7 +122,7 @@ def test_custom_op():
 
     gb.gen_test()
 
-    graph = chainer_compiler_core.load('out/pytest_custom_op/model.onnx')
+    graph = _chainer_compiler_core.load('out/pytest_custom_op/model.onnx')
     params = graph.params()
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -133,7 +133,7 @@ def test_custom_op():
 
     inputs = {}
     for n, v in [('a', a), ('b', b), ('c', c)]:
-        inputs[n] = chainer_compiler_core.value(chainerx.array(v))
+        inputs[n] = _chainer_compiler_core.value(chainerx.array(v))
 
     outputs = chxvm.run(inputs, custom_funcs={'CustomFunction': custom_func})
     assert len(outputs) == 2

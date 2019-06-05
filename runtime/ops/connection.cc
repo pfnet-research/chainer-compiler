@@ -37,8 +37,7 @@ chainerx::Array ConvTransposeOp::RunImpl(
 }
 
 chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const chainerx::Array& output_shape) {
-    chainerx::Shape shape = ArrayToShape(output_shape);
+        ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const chainerx::Shape& shape) {
     chainerx::StackVector<int64_t, chainerx::kMaxNdim> out_size(shape.begin() + 2, shape.end());
     return chainerx::ConvTranspose(x, w, nonstd::nullopt, ComplementStride(strides, x), ComplementPad(pads, x), out_size);
 }

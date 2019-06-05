@@ -1,5 +1,9 @@
 #include "runtime/chxvm_var.h"
 
+#include <chainerx/native/native_backend.h>
+#include <chainerx/routines/creation.h>
+#include <chainerx/routines/manipulation.h>
+
 #include <common/log.h>
 #include <common/strutil.h>
 
@@ -26,18 +30,28 @@ ChxVMVar::ChxVMVar(chainerx::Array array) : val_(array) {
 ChxVMVar::ChxVMVar(ChxVMOpaque* opaque) : val_(std::shared_ptr<ChxVMOpaque>(opaque)) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Scalar scalar) : val_(scalar) {
+ChxVMVar::ChxVMVar(chainerx::Shape shape) : val_(shape) {
 }
 
-ChxVMVar::ChxVMVar(chainerx::Shape shape) : val_(shape) {
+ChxVMVar::ChxVMVar(StrictScalar scalar) : val_(scalar) {
 }
 
 ChxVMVar::ChxVMVar(std::shared_ptr<ChxVMSequence> seq) : val_(seq) {
 }
 
 const chainerx::Array& ChxVMVar::GetArray() const {
-    if (kind() == Kind::kShape) {
-        val_ = runtime::ShapeToArray(absl::get<chainerx::Shape>(val_));
+    switch (kind()) {
+        case Kind::kShape:
+            val_ = runtime::ShapeToArray(absl::get<chainerx::Shape>(val_));
+            break;
+        case Kind::kScalar: {
+            const StrictScalar& s = absl::get<StrictScalar>(val_);
+            chainerx::Device& device = s.host() ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
+            val_ = chainerx::Full({}, static_cast<chainerx::Scalar>(s), s.dtype(), device);
+            break;
+        }
+        default:
+            CHECK_EQ(kind(), Kind::kArray);
     }
     return absl::get<chainerx::Array>(val_);
 }
@@ -50,8 +64,12 @@ ChxVMOpaque* ChxVMVar::GetOpaque() const {
     return absl::get<std::shared_ptr<ChxVMOpaque>>(val_).get();
 }
 
-const chainerx::Scalar& ChxVMVar::GetScalar() const {
-    return absl::get<chainerx::Scalar>(val_);
+const StrictScalar& ChxVMVar::GetScalar() const {
+    if (kind() == Kind::kArray) {
+        const chainerx::Array& ary = absl::get<chainerx::Array>(val_);
+        val_ = StrictScalar(ary.dtype(), chainerx::AsScalar(ary), IsNativeDevice(&ary.device()));
+    }
+    return absl::get<StrictScalar>(val_);
 }
 
 const chainerx::Shape& ChxVMVar::GetShape() const {
@@ -64,14 +82,14 @@ const chainerx::Shape& ChxVMVar::GetShape() const {
 int64_t ChxVMVar::GetNBytes() const {
     int64_t size = 0;
     switch (kind()) {
+        case Kind::kShape:
+        case Kind::kScalar:
         case Kind::kArray:
-            size = absl::get<chainerx::Array>(val_).GetNBytes();
+            size = GetArray().GetNBytes();
             break;
         case Kind::kSequence:
             for (const ChxVMVar& v : *GetSequence()) size += v.GetArray().GetNBytes();
             break;
-        case Kind::kShape:
-        case Kind::kScalar:
         case Kind::kOpaque:
         case Kind::kNull:
             CHECK(false) << DebugString();
@@ -81,6 +99,8 @@ int64_t ChxVMVar::GetNBytes() const {
 
 std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
     switch (kind()) {
+        case Kind::kScalar:
+        case Kind::kShape:
         case Kind::kArray:
             return {GetArray()};
         case Kind::kSequence: {
@@ -96,8 +116,6 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
             return GetOpaque()->GetArrays();
 
         case Kind::kNull:
-        case Kind::kScalar:
-        case Kind::kShape:
             return {};
 
         default:
@@ -108,14 +126,14 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
 
 char ChxVMVar::Sigil() const {
     switch (kind()) {
+        case Kind::kShape:
+        case Kind::kScalar:
         case Kind::kArray:
             return '$';
         case Kind::kSequence:
             return '@';
         case Kind::kOpaque:
             return '*';
-        case Kind::kShape:
-        case Kind::kScalar:
         case Kind::kNull:
             CHECK(false);
     }
@@ -138,7 +156,7 @@ std::string ChxVMVar::ToString() const {
             return oss.str();
         }
         case Kind::kScalar:
-            break;
+            return "(1)";
     }
     CHECK(false);
 }
@@ -156,9 +174,20 @@ std::string ChxVMVar::DebugString() const {
         case Kind::kShape:
             return absl::get<chainerx::Shape>(val_).ToString();
         case Kind::kScalar:
-            break;
+            return static_cast<chainerx::Scalar>(absl::get<StrictScalar>(val_)).ToString();
     }
     CHECK(false);
+}
+
+bool ChxVMVar::IsArray() const {
+    switch (kind()) {
+        case runtime::ChxVMVar::Kind::kArray:
+        case runtime::ChxVMVar::Kind::kScalar:
+        case runtime::ChxVMVar::Kind::kShape:
+            return true;
+        default:
+            return false;
+    }
 }
 
 std::vector<chainerx::Array> NonOptional(const ChxVMSequence& seq) {

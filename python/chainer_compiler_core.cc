@@ -290,7 +290,7 @@ void InitChxVM(py::module& m) {
 }
 
 bool IsArray(const VarPtr& v) {
-    return v->kind() == runtime::ChxVMVar::Kind::kArray;
+    return v->IsArray();
 }
 
 bool IsSequence(const VarPtr& v) {
@@ -331,7 +331,7 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
 
 }  // namespace
 
-PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
+PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
     RegisterCustomOnnxOperatorSetSchema();
 
     m.doc() = "chainer_compiler";

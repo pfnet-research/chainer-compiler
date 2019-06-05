@@ -13,6 +13,8 @@ INT_VALUES = 'INT_VALUES'
 STRING = 'STRING'
 DOUBLES = 'DOUBLES'
 SHAPE = 'SHAPE'
+SCALAR = 'SCALAR'
+OPTIONAL_SCALAR = 'OPTIONAL_SCALAR'
 
 ARG_TYPES = [
     ARRAY, OPTIONAL_ARRAY, ARRAY_LIST, SEQUENCE, OPAQUE
@@ -35,7 +37,7 @@ class ValueInfo(_ValueInfo):
         return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES]
 
     def c_type(self):
-        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE]:
+        if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE, SCALAR, OPTIONAL_SCALAR]:
             return 'int'
         elif self.typ == FLOAT:
             return 'float'
@@ -63,7 +65,7 @@ class ValueInfo(_ValueInfo):
         return ctyp
 
     def c_codegen_type(self):
-        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE):
+        if self.typ in (ARRAY, OPTIONAL_ARRAY, SEQUENCE, OPAQUE, SHAPE, SCALAR, OPTIONAL_SCALAR):
             return 'ChxVMValue'
         elif self.typ == ARRAY_LIST:
             return 'std::vector<ChxVMValue>'
@@ -91,6 +93,8 @@ class ValueInfo(_ValueInfo):
             return 'opaque'
         elif self.typ == SHAPE:
             return 'shape'
+        elif self.typ in [SCALAR, OPTIONAL_SCALAR]:
+            return 'scalar'
         else:
             raise RuntimeError('Unknown type: %s' % self.typ)
 
@@ -141,9 +145,15 @@ def Doubles(name):
 def Shape(name):
     return ValueInfo(SHAPE, name)
 
+def Scalar(name):
+    return ValueInfo(SCALAR, name)
+
+def OptionalScalar(name):
+    return ValueInfo(OPTIONAL_SCALAR, name)
+
 
 def sigil(typ):
-    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE]:
+    if typ in [ARRAY, OPTIONAL_ARRAY, SHAPE, SCALAR, OPTIONAL_SCALAR]:
         return '$'
     elif typ == SEQUENCE:
         return '@'
@@ -196,7 +206,7 @@ XC_OPS = [
     ('ReduceSum', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
     ('ReduceSumSquare', [Array('data'), Ints('axes'), Int('keepdims')],
      ['reduced']),
-    ('ReduceSumTo', [Array('data'), Array('shape')], ['reduced']),
+    ('ReduceSumTo', [Array('data'), Shape('shape')], ['reduced']),
     ('ReduceMean', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
 
     ('Linear',
@@ -211,7 +221,7 @@ XC_OPS = [
      [Array('x'), Array('w'), OptionalArray('b'),
       Ints('strides'), Ints('pads'), Ints('output_shape')], ['y']),
     ('ConvTransposeWithDynamicShape',
-     [Array('x'), Array('w'), Array('output_shape'),
+     [Array('x'), Array('w'), Shape('shape'),
       Ints('strides'), Ints('pads')], ['y']),
     ('ConvGradWeight',
      [Array('w'), Array('x'), Array('gy'), Ints('strides'), Ints('pads')],
@@ -227,7 +237,7 @@ XC_OPS = [
     ('Shape', [Array('data')], [Shape('shape')]),
     ('Size', [Array('data')], ['size']),
     ('Reshape', [Array('data'), Shape('shape')], ['reshaped']),
-    ('Expand', [Array('input'), Array('shape')], ['output']),
+    ('Expand', [Array('input'), Shape('shape')], ['output']),
     ('Squeeze', [Array('data'), Ints('axes')], ['squeezed']),
     ('Unsqueeze', [Array('data'), Ints('axes')], ['expanded']),
     ('Slice', [Array('data'), Ints('axes'), Ints('starts'), Ints('ends')],
@@ -237,19 +247,19 @@ XC_OPS = [
       OptionalArray('axes'), OptionalArray('steps')],
      ['output']),
     ('DynamicSliceGrad',
-     [Array('gy'), Array('shape'), Array('starts'), Array('ends'),
+     [Array('gy'), Shape('shape'), Array('starts'), Array('ends'),
       OptionalArray('axes'), OptionalArray('steps')],
      ['gx']),
     ('GetItem', [Array('data'), ArrayList('slices'), Ints('slice_specs')],
      ['output']),
     ('GetItemGrad',
-     [Array('gy'), Array('shape'), ArrayList('slices'), Ints('slice_specs')],
+     [Array('gy'), Shape('shape'), ArrayList('slices'), Ints('slice_specs')],
      ['output']),
     ('Gather', [Array('data'), Array('indices'), Int('axis')], ['output']),
     ('GatherGrad',
-     [Array('gy'), Array('indices'), Array('shape'), Int('axis')], ['gx']),
+     [Array('gy'), Array('indices'), Shape('shape'), Int('axis')], ['gx']),
     ('SelectItem', [Array('data'), Array('indices')], ['output']),
-    ('SelectItemGrad', [Array('gy'), Array('indices'), Array('shape')], ['gx']),
+    ('SelectItemGrad', [Array('gy'), Array('indices'), Shape('shape')], ['gx']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
     ('Split', [Array('input'), Int('axis'), Ints('split')],
      [ArrayList('outputs')]),
@@ -363,21 +373,21 @@ XC_OPS = [
     ('Cast', [Array('input'), Int('to')], ['output']),
 
     ('IntScalarConstant',
-     [Int('value'), Int('dtype'), Int('host')], ['output']),
+     [Int('value'), Int('dtype'), Int('host')], [Scalar('output')]),
     ('FloatScalarConstant',
-     [Float('value'), Int('dtype'), Int('host')], ['output']),
+     [Float('value'), Int('dtype'), Int('host')], [Scalar('output')]),
     ('ConstantFill',
      [OptionalArray('input'), Int('dtype'), Ints('extra_shape'),
       Ints('shape'), Float('value')],
      ['output']),
     ('OneHot',
-     [Array('indices'), Array('depth'), Array('values'), Int('axis')],
+     [Array('indices'), Scalar('depth'), Array('values'), Int('axis')],
      ['output']),
     ('EyeLike', [Array('input'), Int('dtype'), Int('k')], ['output']),
 
     ('Jmp', [Int('pc')], []),
-    ('JmpTrue', [Array('cond'), Int('pc')], []),
-    ('JmpFalse', [Array('cond'), Int('pc')], []),
+    ('JmpTrue', [Scalar('cond'), Int('pc')], []),
+    ('JmpFalse', [Scalar('cond'), Int('pc')], []),
 
     ('ElementWiseNvrtc',
      [ArrayList('inputs'), Int('num_outputs'),
@@ -408,16 +418,16 @@ XC_CUSTOM_FIELD_OPS = [
 
 XC_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
-    ('SequenceLookup', [Sequence('seq'), Array('index')], [Array('output')]),
-    ('SequenceLookupGrad', [Array('gy'), Array('size'), Array('index')],
+    ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
+    ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
     ('SequenceGetSlice',
-     [Sequence('seq'), OptionalArray('start'),
-      OptionalArray('end'), OptionalArray('step')],
+     [Sequence('seq'), OptionalScalar('start'),
+      OptionalScalar('end'), OptionalScalar('step')],
      [Sequence('output')]),
     ('SequenceGetSliceGrad',
      [Sequence('gy'), Array('size'),
-      OptionalArray('start'), OptionalArray('end'), OptionalArray('step')],
+      OptionalScalar('start'), OptionalScalar('end'), OptionalScalar('step')],
      [Sequence('gx')]),
     ('SequenceStack', [Sequence('seq'), Int('axis')], ['output']),
     ('SequenceConcat', [Sequence('seq'), Int('axis')],
@@ -428,7 +438,7 @@ XC_SEQ_OPS = [
     ('SequencePad', [Sequence('seq'), Int('length'), Float('value')],
      ['output']),
     ('SequenceRange',
-     [Array('arg0'), OptionalArray('arg1'), OptionalArray('arg2')],
+     [Scalar('arg0'), OptionalScalar('arg1'), OptionalScalar('arg2')],
      [Sequence('output')]),
     ('SequenceSeparate', [Array('input'), Int('axis')], [Sequence('output')]),
     ('SequenceUnpad', [Array('input'), Sequence('lengths')],
@@ -456,10 +466,10 @@ XC_GENERIC_OPS = [
     ('NullConstant', [], ['output']),
 
     ('GenericLen', [Array('v')], ['len']),
-    ('GenericGetItem', [Array('v'), Array('index')], ['output']),
+    ('GenericGetItem', [Array('v'), Scalar('index')], ['output']),
     ('GenericGetSlice',
-     [Array('v'), OptionalArray('start'),
-      OptionalArray('end'), OptionalArray('step')], ['output']),
+     [Array('v'), OptionalScalar('start'),
+      OptionalScalar('end'), OptionalScalar('step')], ['output']),
     ('GenericAdd', [Array('a'), Array('b')], ['output']),
     ('GenericIs', [Array('a'), Array('b')], ['output']),
     ('GenericAccumulateGrad', [Array('a'), Array('b')], ['output']),

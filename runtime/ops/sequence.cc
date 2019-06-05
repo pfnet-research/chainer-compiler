@@ -11,9 +11,9 @@ namespace runtime {
 
 namespace {
 
-int64_t GetOptionalInt(const nonstd::optional<chainerx::Array>& array, int64_t default_value) {
+int64_t GetOptionalInt(const nonstd::optional<StrictScalar>& array, int64_t default_value) {
     if (array.has_value()) {
-        return static_cast<int64_t>(chainerx::AsScalar(*array));
+        return static_cast<int64_t>(*array);
     } else {
         return default_value;
     }
@@ -41,17 +41,17 @@ void SequencePopOp::RunImpl(ChxVMState* st) {
     v->pop_back();
 }
 
-chainerx::Array SequenceLookupOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const chainerx::Array& index) {
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
+chainerx::Array SequenceLookupOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index) {
+    int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();
     CHECK_LT(i, seq.size());
     return seq[i].GetArray();
 }
 
 void SequenceLookupGradOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& size, const chainerx::Array& index, ChxVMSequence* gx) {
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(index));
-    int64_t sz = static_cast<int64_t>(chainerx::AsScalar(size));
+        ChxVMState* st, const chainerx::Array& gy, const StrictScalar& size, const StrictScalar& index, ChxVMSequence* gx) {
+    int64_t i = static_cast<int64_t>(index);
+    int64_t sz = static_cast<int64_t>(size);
     if (i < 0) i += sz;
     CHECK_LT(i, sz);
     gx->resize(sz);
@@ -61,9 +61,9 @@ void SequenceLookupGradOp::RunImpl(
 void SequenceGetSliceOp::RunImpl(
         ChxVMState* st,
         const ChxVMSequence& seq,
-        const nonstd::optional<chainerx::Array>& start_array,
-        const nonstd::optional<chainerx::Array>& end_array,
-        const nonstd::optional<chainerx::Array>& step_array,
+        const nonstd::optional<StrictScalar>& start_array,
+        const nonstd::optional<StrictScalar>& end_array,
+        const nonstd::optional<StrictScalar>& step_array,
         ChxVMSequence* output) {
     int64_t size = seq.size();
     int64_t start = GetOptionalInt(start_array, 0);
@@ -88,9 +88,9 @@ void SequenceGetSliceGradOp::RunImpl(
         ChxVMState* st,
         const ChxVMSequence& gy,
         const chainerx::Array& size_array,
-        const nonstd::optional<chainerx::Array>& start_array,
-        const nonstd::optional<chainerx::Array>& end_array,
-        const nonstd::optional<chainerx::Array>& step_array,
+        const nonstd::optional<StrictScalar>& start_array,
+        const nonstd::optional<StrictScalar>& end_array,
+        const nonstd::optional<StrictScalar>& step_array,
         ChxVMSequence* gx) {
     int64_t size = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(this->size)));
     int64_t start = GetOptionalInt(start_array, 0);
@@ -154,20 +154,20 @@ chainerx::Array SequencePadOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq)
 
 void SequenceRangeOp::RunImpl(
         ChxVMState* st,
-        const chainerx::Array& arg0,
-        const nonstd::optional<chainerx::Array>& arg1,
-        const nonstd::optional<chainerx::Array>& arg2,
+        const StrictScalar& arg0,
+        const nonstd::optional<StrictScalar>& arg1,
+        const nonstd::optional<StrictScalar>& arg2,
         ChxVMSequence* output) {
     int64_t start, stop, step = 1;
     if (arg1.has_value()) {
-        start = static_cast<int64_t>(chainerx::AsScalar(arg0));
-        stop = static_cast<int64_t>(chainerx::AsScalar(*arg1));
+        start = static_cast<int64_t>(arg0);
+        stop = static_cast<int64_t>(*arg1);
         if (arg2.has_value()) {
-            step = static_cast<int64_t>(chainerx::AsScalar(*arg2));
+            step = static_cast<int64_t>(*arg2);
         }
     } else {
         start = 0;
-        stop = static_cast<int64_t>(chainerx::AsScalar(arg0));
+        stop = static_cast<int64_t>(arg0);
     }
     CHECK_NE(step, 0);
 
@@ -195,7 +195,7 @@ void SequenceSeparateOp::RunImpl(ChxVMState* st, const chainerx::Array& input, C
 void SequenceUnpadOp::RunImpl(ChxVMState* st, const chainerx::Array& input, const ChxVMSequence& lengths, ChxVMSequence* output) {
     SplitToSequence(input, 0, output);
     for (size_t i = 0; i < output->size(); ++i) {
-        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(chainerx::AsScalar(lengths[i].GetArray())));
+        chainerx::ArrayIndex index = chainerx::Slice(0, int64_t(lengths[i].GetScalar()));
         (*output)[i] = ChxVMVar((*output)[i].GetArray().At({index}));
     }
 }

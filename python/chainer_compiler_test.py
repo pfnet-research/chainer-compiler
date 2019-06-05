@@ -33,7 +33,7 @@ sys.path.append(os.path.join(project_root, 'ch2o'))
 sys.path.append(os.path.join(project_root, 'python'))
 sys.path.append(os.path.join(project_root, 'build/python'))
 
-import chainer_compiler  # noqa
+from chainer_compiler import chainer_compiler  # noqa
 
 
 def aranges(xp, *shape):

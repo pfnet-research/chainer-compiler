@@ -21,9 +21,9 @@ chainerx::Array ReduceSumSquareOp::RunImpl(ChxVMState* st, const chainerx::Array
     return chainerx::Sum(a * a, GetChainerXAxes(axes), keepdims != 0);
 }
 
-chainerx::Array ReduceSumToOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& shape) {
+chainerx::Array ReduceSumToOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Shape& shape) {
     const chainerx::Shape& from = data.shape();
-    const chainerx::Shape& to = ArrayToShape(shape);
+    const chainerx::Shape& to = shape;
     CHECK_GE(from.size(), to.size()) << "Reduce requested but shape actually expands: " << from << " to=" << to;
 
     chainerx::Axes axes;

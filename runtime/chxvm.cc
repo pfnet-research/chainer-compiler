@@ -77,7 +77,7 @@ void DumpOutput(ChxVMState* st, const ChxVMOp* op, const std::string& output_dir
         }
 
         ChxVMVar* var = st->GetVar(id);
-        if (var->kind() != ChxVMVar::Kind::kArray) {
+        if (var->IsArray()) {
             continue;
         }
 
@@ -128,7 +128,7 @@ InOuts ChxVM::Run(const InOuts& program_inputs, const ChxVMOptions& options) {
         auto found = program_inputs.find(input->name);
         CHECK(found != program_inputs.end()) << "Input '" << input->name << "' not found";
         const ChxVMVar& var = *found->second;
-        if (var.kind() == ChxVMVar::Kind::kArray) {
+        if (var.IsArray()) {
             const chainerx::Array& a = var.GetArray();
             if (static_cast<int>(input->dtype) == 0) {
                 continue;

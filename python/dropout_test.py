@@ -10,13 +10,13 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'build/python'))
 sys.path.append(os.path.join(project_root, 'python'))
 
-import chainer_compiler_core
+import _chainer_compiler_core
 
 ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 
 
 def test_dropout_inference():
-    graph = chainer_compiler_core.load(
+    graph = _chainer_compiler_core.load(
         os.path.join(ONNX_TEST_DATA, 'node/test_dropout_random/model.onnx'))
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -25,7 +25,7 @@ def test_dropout_inference():
 
     chxvm = graph.compile()
     input = chainerx.array(np.random.normal(size=(3, 4, 5)).astype(np.float32))
-    inputs = {input_names[0]: chainer_compiler_core.value(input)}
+    inputs = {input_names[0]: _chainer_compiler_core.value(input)}
     outputs = chxvm.run(inputs)
     output = outputs[output_names[0]].array()
 
@@ -33,7 +33,7 @@ def test_dropout_inference():
 
 
 def test_dropout_training():
-    graph = chainer_compiler_core.load(
+    graph = _chainer_compiler_core.load(
         os.path.join(ONNX_TEST_DATA, 'node/test_dropout_random/model.onnx'))
     input_names = graph.input_names()
     output_names = graph.output_names()
@@ -42,7 +42,7 @@ def test_dropout_training():
 
     chxvm = graph.compile()
     input = chainerx.array(np.random.normal(size=(3, 4, 5)).astype(np.float32))
-    inputs = {input_names[0]: chainer_compiler_core.value(input)}
+    inputs = {input_names[0]: _chainer_compiler_core.value(input)}
 
     num_retries = 3
     for i in range(num_retries):

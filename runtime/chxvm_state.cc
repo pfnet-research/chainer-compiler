@@ -79,6 +79,11 @@ ChxVMVar* ChxVMState::GetVar(int index) {
     return variables_[index].get();
 }
 
+nonstd::optional<ChxVMVar*> ChxVMState::GetOptionalVar(int index) {
+    if (index < 0) return nonstd::nullopt;
+    return GetVar(index);
+}
+
 void ChxVMState::SetVar(int index, const ChxVMVar& var) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
@@ -94,6 +99,34 @@ const chainerx::Shape& ChxVMState::GetShape(int index) {
 }
 
 void ChxVMState::SetShape(int index, chainerx::Shape s) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(!variables_[index].get());
+    variables_[index].reset(new ChxVMVar(s));
+}
+
+const StrictScalar& ChxVMState::GetScalar(int index) {
+    CHECK_LE(0, index) << index;
+    CHECK_GT(variables_.size(), index) << index;
+    CHECK(variables_[index].get());
+    return variables_[index]->GetScalar();
+}
+
+nonstd::optional<StrictScalar> ChxVMState::GetOptionalScalar(int index) {
+    if (index < 0) return nonstd::nullopt;
+    return GetScalar(index);
+}
+
+int64_t ChxVMState::GetOptionalInt(int index, int64_t default_value) {
+    nonstd::optional<ChxVMVar*> var = GetOptionalVar(index);
+    if (var.has_value()) {
+        return static_cast<int64_t>((*var)->GetScalar());
+    } else {
+        return default_value;
+    }
+}
+
+void ChxVMState::SetScalar(int index, StrictScalar s) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
     CHECK(!variables_[index].get());
@@ -188,11 +221,10 @@ bool HasElemInArray(chainerx::Array (*pred_fn)(const chainerx::Array&), const ch
 
 bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxVMVar& var) {
     switch (var.kind()) {
-        case ChxVMVar::Kind::kArray:
-            return HasElemInArray(pred_fn, var.GetArray());
         case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kScalar:
-            CHECK(false);
+        case ChxVMVar::Kind::kArray:
+            return HasElemInArray(pred_fn, var.GetArray());
         case ChxVMVar::Kind::kSequence:
             for (const ChxVMVar& v : *var.GetSequence()) {
                 if (HasElemInVar(pred_fn, v)) return true;
