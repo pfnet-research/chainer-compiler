@@ -3,8 +3,18 @@ import os
 import sys
 import tempfile
 
-import ch2o
-import chainer_compiler_core
+try:
+    from chainer_compiler import _chainer_compiler_core
+except ImportError:
+    # When testing the module without the installation of chainer_compiler via
+    # pip, `_chainer_compiler_core.so` is not accessible through
+    # `chainer_compiler` package.
+    # `_chainer_compiler_core.so` should be imported directly from
+    # `build/python`.
+    # TODO(mkusumoto): Seek more sophisticated way to import the .so file.
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(os.path.join(project_root, 'build/python'))
+    import _chainer_compiler_core
 
 try:
     import cupy
@@ -88,8 +98,8 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
                 self.chainerx_device_name = v.device
             else:
                 assert self.chainerx_device_name == v.device
-            return chainer_compiler_core.value(v)
-        return chainer_compiler_core.value([self._to_var(a) for a in v])
+            return _chainer_compiler_core.value(v)
+        return _chainer_compiler_core.value([self._to_var(a) for a in v])
 
     def forward(self, args):
         flat_inputs = args[:self.num_inputs]
@@ -169,6 +179,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
 
 def _run_translator(translator, mc, inputs):
     if translator == 'ch2o':
+        import ch2o
         xmodel = ch2o.compile_model(mc, inputs)
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(xmodel.SerializeToString())
@@ -183,7 +194,7 @@ def _run_translator(translator, mc, inputs):
         raise NotImplementedError('Unsupported translator:',
                                   translator)
 
-    graph = chainer_compiler_core.load(f.name)
+    graph = _chainer_compiler_core.load(f.name)
     os.unlink(f.name)
 
     return graph

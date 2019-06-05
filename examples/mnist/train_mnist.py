@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import os
-import sys
 
 import numpy as np
 
@@ -12,12 +10,8 @@ from chainer import training
 from chainer.training import extensions
 import chainerx
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(os.path.join(project_root, 'ch2o'))
-sys.path.append(os.path.join(project_root, 'python'))
-sys.path.append(os.path.join(project_root, 'build/python'))
-
 import chainer_compiler
+
 
 # Network definition
 class MLP(chainer.Chain):

@@ -331,7 +331,7 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
 
 }  // namespace
 
-PYBIND11_MODULE(chainer_compiler_core, m) {  // NOLINT
+PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
     RegisterCustomOnnxOperatorSetSchema();
 
     m.doc() = "chainer_compiler";
