@@ -139,18 +139,18 @@ void ReadTestDir(
             }
 
             std::string prefix = filename.substr(0, found + 1);
-            std::unique_ptr<ChxVMVar> seq(new ChxVMVar(ChxVMVar::Kind::kSequence));
+            auto seq = std::make_shared<ChxVMSequence>();
             for (; i < all_tensors.size(); ++i) {
                 const std::string& filename = std::get<0>(all_tensors[i]);
                 if (HasPrefix(filename, prefix)) {
                     CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
-                    seq->GetSequence()->emplace_back(std::get<2>(all_tensors[i]));
+                    seq->emplace_back(std::get<2>(all_tensors[i]));
                 } else {
                     --i;
                     break;
                 }
             }
-            all_vars.emplace_back(filename, tensor_name, seq.release());
+            all_vars.emplace_back(filename, tensor_name, new ChxVMVar(seq));
         }
 
         for (const auto& p : all_vars) {
@@ -218,9 +218,10 @@ ChxVMVar* StageVar(ChxVMVar* var) {
         case ChxVMVar::Kind::kArray:
             return new ChxVMVar(StageArray(var->GetArray()));
         case ChxVMVar::Kind::kSequence: {
-            ChxVMVar* out = new ChxVMVar(ChxVMVar::Kind::kSequence);
-            for (const ChxVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(StageArray(v.GetArray()));
-            return out;
+            auto seq = std::make_shared<runtime::ChxVMSequence>();
+            seq->reserve(var->GetSequence()->size());
+            for (const ChxVMVar& v : *var->GetSequence()) seq->emplace_back(StageArray(v.GetArray()));
+            return new ChxVMVar(seq);
         }
 
         case ChxVMVar::Kind::kOpaque:
