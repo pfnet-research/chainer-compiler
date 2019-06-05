@@ -22,21 +22,14 @@ int64_t GetSize(ChxVMVar* var) {
         case ChxVMVar::Kind::kSequence:
             return var->GetSequence()->size();
         case ChxVMVar::Kind::kScalar:
+            return 1;
         case ChxVMVar::Kind::kShape:
+            return var->GetShape().size();
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
-}
-
-int64_t GetOptionalInt(ChxVMState* st, int index, int64_t default_value) {
-    nonstd::optional<chainerx::Array> var = st->GetOptionalArray(index);
-    if (var.has_value()) {
-        return static_cast<int64_t>(chainerx::AsScalar(*var));
-    } else {
-        return default_value;
-    }
 }
 
 }  // namespace
@@ -76,15 +69,20 @@ void GenericLenOp::RunImpl(ChxVMState* st) {
 void GenericGetItemOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
-    int64_t i = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(index)));
+    int64_t i = static_cast<int64_t>(st->GetVar(index)->GetScalar());
     if (i < 0) i += size;
     switch (var->kind()) {
         case ChxVMVar::Kind::kShape: {
             CHECK_LT(i, var->GetShape().size());
             int64_t v = var->GetShape()[i];
-            st->SetArray(output, MakeHostArray(chainerx::Dtype::kInt64, {}, &v));
+            st->SetScalar(output, StrictScalar(chainerx::Dtype::kInt64, chainerx::Scalar(v), true));
             break;
         }
+
+        case ChxVMVar::Kind::kScalar:
+            CHECK_EQ(0, i);
+            st->SetScalar(output, var->GetScalar());
+            break;
 
         case ChxVMVar::Kind::kArray:
             CHECK_LT(i, var->GetArray().shape()[0]);
@@ -98,7 +96,6 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
             break;
         }
 
-        case ChxVMVar::Kind::kScalar:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -108,18 +105,20 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
 void GenericGetSliceOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);
-    int64_t start = GetOptionalInt(st, this->start, 0);
+    int64_t start = st->GetOptionalInt(this->start, 0);
     if (start < 0) start += size;
     start = std::max<int64_t>(0, start);
     start = std::min<int64_t>(size, start);
-    int64_t end = GetOptionalInt(st, this->end, size);
+    int64_t end = st->GetOptionalInt(this->end, size);
     if (end < 0) end += size;
     end = std::max<int64_t>(0, end);
     end = std::min<int64_t>(size, end);
-    int64_t step = GetOptionalInt(st, this->step, 1);
+    int64_t step = st->GetOptionalInt(this->step, 1);
     CHECK_NE(0, step) << "Slice step cannot be zero";
 
     switch (var->kind()) {
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kArray: {
             st->SetArray(output, var->GetArray().At({chainerx::Slice(start, end, step)}));
             break;
@@ -144,8 +143,6 @@ void GenericGetSliceOp::RunImpl(ChxVMState* st) {
             break;
         }
 
-        case ChxVMVar::Kind::kScalar:
-        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -156,9 +153,9 @@ void GenericAddOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var0 = st->GetVar(a);
     ChxVMVar* var1 = st->GetVar(b);
 
-    if (var0->kind() == ChxVMVar::Kind::kArray || var1->kind() == ChxVMVar::Kind::kArray) {
+    if (var0->IsArray() || var1->IsArray()) {
         auto to_a = [](ChxVMVar* v) {
-            if (v->kind() == ChxVMVar::Kind::kArray) {
+            if (v->IsArray()) {
                 return v->GetArray();
             }
             return Stack(NonOptional(*v->GetSequence()), 0);
@@ -176,9 +173,9 @@ void GenericIsOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var1 = st->GetVar(b);
 
     bool result = false;
-    if (var0->kind() != var1->kind()) {
+    if (!(var0->IsArray() && var1->IsArray()) && var0->kind() != var1->kind()) {
         // We are sure the return value is false.
-    } else if (var0->kind() == ChxVMVar::Kind::kArray) {
+    } else if (var0->IsArray()) {
         chainerx::Array a = var0->GetArray();
         chainerx::Array b = var1->GetArray();
         if (a.ndim() == 0 && b.ndim() == 0 && a.dtype() == chainerx::Dtype::kBool && b.dtype() == chainerx::Dtype::kBool) {
@@ -210,6 +207,8 @@ void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
     CHECK_EQ(var0->kind(), var1->kind()) << var0->DebugString() << " vs " << var1->DebugString();
 
     switch (var0->kind()) {
+        case ChxVMVar::Kind::kScalar:
+        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kArray: {
             st->SetArray(output, var0->GetArray() + var1->GetArray());
             break;
@@ -232,8 +231,6 @@ void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
             break;
         }
 
-        case ChxVMVar::Kind::kScalar:
-        case ChxVMVar::Kind::kShape:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var0->DebugString();

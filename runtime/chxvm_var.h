@@ -5,6 +5,8 @@
 
 #include <chainerx/array.h>
 
+#include <runtime/strict_scalar.h>
+
 namespace chainer_compiler {
 namespace runtime {
 
@@ -50,13 +52,13 @@ public:
     // Takes the ownership of `opaque`.
     explicit ChxVMVar(ChxVMOpaque* opaque);
     explicit ChxVMVar(chainerx::Shape shape);
-    explicit ChxVMVar(chainerx::Scalar scalar);
+    explicit ChxVMVar(StrictScalar scalar);
     explicit ChxVMVar(const ChxVMVar&) = default;
 
     const chainerx::Array& GetArray() const;
     ChxVMSequence* GetSequence() const;
     ChxVMOpaque* GetOpaque() const;
-    const chainerx::Scalar& GetScalar() const;
+    const StrictScalar& GetScalar() const;
     const chainerx::Shape& GetShape() const;
 
     Kind kind() const {
@@ -65,6 +67,7 @@ public:
     bool IsNull() const {
         return kind_ == Kind::kNull;
     }
+    bool IsArray() const;
 
     int64_t GetNBytes() const;
 
@@ -78,7 +81,7 @@ public:
 private:
     mutable Kind kind_;
     using VarInternalType =
-            absl::variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, chainerx::Scalar, chainerx::Shape>;
+            absl::variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, StrictScalar, chainerx::Shape>;
     mutable VarInternalType val_;
 };
 

@@ -1,4 +1,3 @@
-#include <chainerx/native/native_backend.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
@@ -9,14 +8,12 @@
 namespace chainer_compiler {
 namespace runtime {
 
-chainerx::Array IntScalarConstantOp::RunImpl(ChxVMState* st) {
-    chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
-    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
+StrictScalar IntScalarConstantOp::RunImpl(ChxVMState* st) {
+    return StrictScalar(static_cast<chainerx::Dtype>(dtype), chainerx::Scalar(value), host);
 }
 
-chainerx::Array FloatScalarConstantOp::RunImpl(ChxVMState* st) {
-    chainerx::Device& device = host ? chainerx::GetNativeBackend().GetDevice(0) : chainerx::GetDefaultDevice();
-    return chainerx::Full({}, value, static_cast<chainerx::Dtype>(dtype), device);
+StrictScalar FloatScalarConstantOp::RunImpl(ChxVMState* st) {
+    return StrictScalar(static_cast<chainerx::Dtype>(dtype), chainerx::Scalar(value), host);
 }
 
 class IntConstantOp::IntConstantImpl {
@@ -60,9 +57,9 @@ chainerx::Array FloatConstantOp::RunImpl(ChxVMState* st) {
 }
 
 chainerx::Array OneHotOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& indices, const chainerx::Array& depth, const chainerx::Array& values) {
+        ChxVMState* st, const chainerx::Array& indices, const StrictScalar& depth, const chainerx::Array& values) {
     int rank = indices.ndim();
-    chainerx::Array depth_range = chainerx::Arange(chainerx::AsScalar(depth), indices.device());
+    chainerx::Array depth_range = chainerx::Arange(static_cast<chainerx::Scalar>(depth), indices.device());
     int axis = this->axis;
     if (axis < 0) axis += rank + 1;
 
