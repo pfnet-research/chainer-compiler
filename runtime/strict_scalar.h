@@ -8,7 +8,7 @@ namespace runtime {
 class StrictScalar {
 public:
     StrictScalar() = default;
-    StrictScalar(chainerx::Dtype t, chainerx::Scalar d, bool h = false) : data_(d), dtype_(t), host_(h) {
+    StrictScalar(chainerx::Dtype t, chainerx::Scalar d, bool h) : data_(d), dtype_(t), host_(h) {
     }
 
     chainerx::Dtype dtype() const {

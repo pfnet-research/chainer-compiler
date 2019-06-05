@@ -75,7 +75,7 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
         case ChxVMVar::Kind::kShape: {
             CHECK_LT(i, var->GetShape().size());
             int64_t v = var->GetShape()[i];
-            st->SetScalar(output, StrictScalar(chainerx::Dtype::kInt64, chainerx::Scalar(v)));
+            st->SetScalar(output, StrictScalar(chainerx::Dtype::kInt64, chainerx::Scalar(v), true));
             break;
         }
 

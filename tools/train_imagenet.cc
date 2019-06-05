@@ -181,7 +181,7 @@ void RunMain(const std::vector<std::string>& argv) {
                 chainerx::Array labels = data[1].ToDevice(chainerx::GetDefaultDevice()).AsType(chainerx::Dtype::kInt64);
                 chainerx::Array onehot = chainerx::Eye(1000, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32).Take(labels, 0);
                 inputs.emplace("Input_1", std::shared_ptr<ChxVMVar>(new ChxVMVar(onehot)));
-                StrictScalar b(chainerx::Dtype::kInt64, chainerx::Scalar(batch_size));
+                StrictScalar b(chainerx::Dtype::kInt64, chainerx::Scalar(batch_size), true);
                 inputs.emplace("Input_2", std::shared_ptr<ChxVMVar>(new ChxVMVar(b)));
             } else {
                 CHECK_EQ(2, data.size());
