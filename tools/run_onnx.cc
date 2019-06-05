@@ -638,7 +638,8 @@ void RunMain(const std::vector<std::string>& argv) {
 
     if (args.exist("compile_only")) return;
 
-    double elapsed_total = 0;
+    double total_elapsed = 0;
+    double best_elapsed = 0;
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
@@ -682,20 +683,24 @@ void RunMain(const std::vector<std::string>& argv) {
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
 
         // The first iteration is for warm up.
-        if (test_case != test_cases.front()) elapsed_total += elapsed;
+        if (test_case != test_cases.front()) total_elapsed += elapsed;
+        if (best_elapsed == 0 || best_elapsed > elapsed) best_elapsed = elapsed;
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
     if (iterations > 1) {
         // The first iteration is for warm up.
-        double average_elapsed = elapsed_total / (iterations - 1);
+        double average_elapsed = total_elapsed / (iterations - 1);
         int num_unknown_ops = 0;
         int64_t flops = CalculateTotalFlops(model.graph(), &num_unknown_ops);
         if (num_unknown_ops) {
             std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
+            std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
         } else {
-            double gflops_sec = flops / average_elapsed / 1000 / 1000;
-            std::cerr << "Average elapsed: " << average_elapsed << " msec (" << gflops_sec << " GFLOPs/sec)" << std::endl;
+            double average_gflops_sec = flops / average_elapsed / 1000 / 1000;
+            std::cerr << "Average elapsed: " << average_elapsed << " msec (" << average_gflops_sec << " GFLOPs/sec)" << std::endl;
+            double best_gflops_sec = flops / best_elapsed / 1000 / 1000;
+            std::cerr << "Best elapsed: " << best_elapsed << " msec (" << best_gflops_sec << " GFLOPs/sec)" << std::endl;
         }
     }
 }
