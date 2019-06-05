@@ -4,6 +4,7 @@
 
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
+#include <chainerx/routines/reduction.h>
 
 #include <common/log.h>
 #include <common/strutil.h>

@@ -1,5 +1,5 @@
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
+#include <chainerx/routines/reduction.h>
 #include <chainerx/routines/statistics.h>
 
 #include <common/log.h>
