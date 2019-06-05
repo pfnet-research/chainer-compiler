@@ -81,13 +81,8 @@ public:
 
 private:
     struct NullType {};
-    using VarInternalType = absl::variant<
-            chainerx::Array,
-            std::shared_ptr<ChxVMSequence>,
-            std::shared_ptr<ChxVMOpaque>,
-            StrictScalar,
-            chainerx::Shape,
-            NullType>;
+    using VarInternalType = absl::
+            variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, StrictScalar, chainerx::Shape, NullType>;
     mutable VarInternalType val_;
 };
 
