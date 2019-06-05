@@ -1,6 +1,7 @@
 import os
 import pathlib
 import subprocess
+import sys
 
 import setuptools
 from setuptools.command import build_ext
@@ -28,8 +29,6 @@ class CMakeBuild(build_ext.build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)))
 
         cuda_path = os.getenv('CUDA_PATH', '/usr/local/cuda')
-        python3_executable = subprocess.check_output(['which', 'python3'])\
-            .decode('utf-8').rstrip()
         cudnn_root_dir = os.getenv('CUDNN_ROOT_DIR', None)
         if cudnn_root_dir is None:
             raise RuntimeError('CUDNN_ROOT_DIR must be set.')
@@ -40,7 +39,7 @@ class CMakeBuild(build_ext.build_ext):
             '-DCHAINERX_BUILD_CUDA=ON',
             '-DCUDA_TOOLKIT_ROOT_DIR=' + cuda_path,
             '-DCHAINER_COMPILER_ENABLE_PYTHON=ON',
-            '-DPYTHON_EXECUTABLE=' + python3_executable,
+            '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DCHAINERX_BUILD_PYTHON=ON',
             '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]
