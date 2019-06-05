@@ -28,6 +28,7 @@
 #include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
+#include <compiler/flops.h>
 #include <compiler/gradient.h>
 #include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
@@ -664,7 +665,15 @@ void RunMain(const std::vector<std::string>& argv) {
 
     if (iterations > 1) {
         // The first iteration is for warm up.
-        std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
+        double average_elapsed = elapsed_total / (iterations - 1);
+        int num_unknown_ops = 0;
+        int64_t flops = CalculateTotalFlops(model.graph(), &num_unknown_ops);
+        if (num_unknown_ops) {
+            std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
+        } else {
+            double gflops_sec = flops / average_elapsed / 1000 / 1000;
+            std::cerr << "Average elapsed: " << average_elapsed << " msec (" << gflops_sec << " GFLOPs/sec)" << std::endl;
+        }
     }
 }
 
