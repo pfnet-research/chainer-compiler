@@ -401,6 +401,111 @@ private:
     std::vector<std::string> backprop_ins_;
 };
 
+void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool strict_check) {
+    LOG() << "Verifying the result..." << std::endl;
+    size_t ok_cnt = 0;
+    for (const auto& p : test_case.outputs) {
+        const std::string key = p.first;
+        ChxVMVar* expected = p.second.get();
+        auto found = outputs.find(key);
+        CHECK(found != outputs.end()) << "Output does not contain " << key;
+        ChxVMVar* actual = found->second.get();
+
+        auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
+            int size = a->GetTotalSize();
+            if (size < 100 || args.exist("verbose")) return a->ToString();
+            return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
+        };
+
+        auto var_str = [&args, array_str](ChxVMVar* v) {
+            switch (v->kind()) {
+                case ChxVMVar::Kind::kScalar:
+                case ChxVMVar::Kind::kShape:
+                case ChxVMVar::Kind::kArray:
+                    return array_str(v->GetArray());
+                case ChxVMVar::Kind::kSequence:
+                    return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
+                case ChxVMVar::Kind::kOpaque:
+                case ChxVMVar::Kind::kNull:
+                    CHECK(false) << v->DebugString();
+            }
+            CHECK(false);
+        };
+
+        auto fail = [&](const std::string& type) {
+            LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
+                  << "\nActual: " << var_str(actual) << std::endl;
+        };
+
+        auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
+            if (expected.dtype() != actual.dtype()) {
+                fail("dtype");
+                return false;
+            }
+            if (expected.shape() != actual.shape()) {
+                fail("shape");
+                return false;
+            }
+            if (!strict_check) return true;
+
+            int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
+            if (mismatch) {
+                if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
+                    static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
+                    return true;
+                }
+                fail("value");
+                int total_size = expected.GetTotalSize();
+                LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
+                      << "%)" << std::endl;
+                return false;
+            }
+            return true;
+        };
+
+        if (!expected->IsArray() && !actual->IsArray() && expected->kind() != actual->kind()) {
+            fail("kind");
+            continue;
+        }
+
+        bool ok = false;
+        switch (expected->kind()) {
+            case ChxVMVar::Kind::kScalar:
+            case ChxVMVar::Kind::kShape:
+            case ChxVMVar::Kind::kArray:
+                ok = check_array(expected->GetArray(), actual->GetArray());
+                break;
+
+            case ChxVMVar::Kind::kSequence: {
+                const auto& expected_seq = *expected->GetSequence();
+                const auto& actual_seq = *actual->GetSequence();
+                if (expected_seq.size() != actual_seq.size()) {
+                    fail("seq_size");
+                    ok = false;
+                    break;
+                }
+
+                for (size_t i = 0; i < expected_seq.size(); ++i) {
+                    ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
+                    if (!ok) break;
+                }
+                break;
+            }
+
+            case ChxVMVar::Kind::kOpaque:
+            case ChxVMVar::Kind::kNull:
+                CHECK(false) << expected->DebugString();
+        }
+
+        if (!ok) continue;
+
+        LOG() << "OK: " << key << std::endl;
+        ++ok_cnt;
+    }
+
+    if (strict_check) CHECK_EQ(ok_cnt, test_case.outputs.size());
+}
+
 void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
@@ -541,109 +646,9 @@ void RunMain(const std::vector<std::string>& argv) {
                     LOG() << p.first << ": " << p.second->ToString() << std::endl;
                 }
             }
-            continue;
-        }
-
-        LOG() << "Verifying the result..." << std::endl;
-        size_t ok_cnt = 0;
-        for (const auto& p : test_case->outputs) {
+        } else {
             test_cnt++;
-            const std::string key = p.first;
-            ChxVMVar* expected = p.second.get();
-            auto found = outputs.find(key);
-            CHECK(found != outputs.end()) << "Output does not contain " << key;
-            ChxVMVar* actual = found->second.get();
-
-            auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
-                int size = a->GetTotalSize();
-                if (size < 100 || args.exist("verbose")) return a->ToString();
-                return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
-            };
-
-            auto var_str = [&args, array_str](ChxVMVar* v) {
-                switch (v->kind()) {
-                    case ChxVMVar::Kind::kScalar:
-                    case ChxVMVar::Kind::kShape:
-                    case ChxVMVar::Kind::kArray:
-                        return array_str(v->GetArray());
-                    case ChxVMVar::Kind::kSequence:
-                        return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
-                    case ChxVMVar::Kind::kOpaque:
-                    case ChxVMVar::Kind::kNull:
-                        CHECK(false) << v->DebugString();
-                }
-                CHECK(false);
-            };
-
-            auto fail = [&](const std::string& type) {
-                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
-                      << "\nActual: " << var_str(actual) << std::endl;
-            };
-
-            auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
-                if (expected.dtype() != actual.dtype()) {
-                    fail("dtype");
-                    return false;
-                }
-                if (expected.shape() != actual.shape()) {
-                    fail("shape");
-                    return false;
-                }
-                if (iterations > 1) return true;
-
-                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
-                if (mismatch) {
-                    if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
-                        static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
-                        return true;
-                    }
-                    fail("value");
-                    int total_size = expected.GetTotalSize();
-                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
-                          << "%)" << std::endl;
-                    return false;
-                }
-                return true;
-            };
-
-            if (!expected->IsArray() && !actual->IsArray() && expected->kind() != actual->kind()) {
-                fail("kind");
-                continue;
-            }
-
-            bool ok = false;
-            switch (expected->kind()) {
-                case ChxVMVar::Kind::kScalar:
-                case ChxVMVar::Kind::kShape:
-                case ChxVMVar::Kind::kArray:
-                    ok = check_array(expected->GetArray(), actual->GetArray());
-                    break;
-
-                case ChxVMVar::Kind::kSequence: {
-                    const auto& expected_seq = *expected->GetSequence();
-                    const auto& actual_seq = *actual->GetSequence();
-                    if (expected_seq.size() != actual_seq.size()) {
-                        fail("seq_size");
-                        ok = false;
-                        break;
-                    }
-
-                    for (size_t i = 0; i < expected_seq.size(); ++i) {
-                        ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
-                        if (!ok) break;
-                    }
-                    break;
-                }
-
-                case ChxVMVar::Kind::kOpaque:
-                case ChxVMVar::Kind::kNull:
-                    CHECK(false) << expected->DebugString();
-            }
-
-            if (!ok) continue;
-
-            LOG() << "OK: " << key << std::endl;
-            ++ok_cnt;
+            VerifyOutputs(outputs, *test_case, args, iterations == 1);
         }
 
         chainerx::GetDefaultDevice().Synchronize();
@@ -654,8 +659,6 @@ void RunMain(const std::vector<std::string>& argv) {
 
         // The first iteration is for warm up.
         if (test_case != test_cases.front()) elapsed_total += elapsed;
-
-        if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
