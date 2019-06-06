@@ -1,5 +1,8 @@
 #include <dirent.h>
+#include <errno.h>
+#include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>
@@ -28,6 +31,7 @@
 #include <compiler/computation_order/core.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
+#include <compiler/flops.h>
 #include <compiler/gradient.h>
 #include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
@@ -139,18 +143,18 @@ void ReadTestDir(
             }
 
             std::string prefix = filename.substr(0, found + 1);
-            std::unique_ptr<ChxVMVar> seq(new ChxVMVar(ChxVMVar::Kind::kSequence));
+            auto seq = std::make_shared<ChxVMSequence>();
             for (; i < all_tensors.size(); ++i) {
                 const std::string& filename = std::get<0>(all_tensors[i]);
                 if (HasPrefix(filename, prefix)) {
                     CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
-                    seq->GetSequence()->emplace_back(std::get<2>(all_tensors[i]));
+                    seq->emplace_back(std::get<2>(all_tensors[i]));
                 } else {
                     --i;
                     break;
                 }
             }
-            all_vars.emplace_back(filename, tensor_name, seq.release());
+            all_vars.emplace_back(filename, tensor_name, new ChxVMVar(seq));
         }
 
         for (const auto& p : all_vars) {
@@ -218,9 +222,10 @@ ChxVMVar* StageVar(ChxVMVar* var) {
         case ChxVMVar::Kind::kArray:
             return new ChxVMVar(StageArray(var->GetArray()));
         case ChxVMVar::Kind::kSequence: {
-            ChxVMVar* out = new ChxVMVar(ChxVMVar::Kind::kSequence);
-            for (const ChxVMVar& v : *var->GetSequence()) out->GetSequence()->emplace_back(StageArray(v.GetArray()));
-            return out;
+            auto seq = std::make_shared<runtime::ChxVMSequence>();
+            seq->reserve(var->GetSequence()->size());
+            for (const ChxVMVar& v : *var->GetSequence()) seq->emplace_back(StageArray(v.GetArray()));
+            return new ChxVMVar(seq);
         }
 
         case ChxVMVar::Kind::kOpaque:
@@ -400,6 +405,111 @@ private:
     std::vector<std::string> backprop_ins_;
 };
 
+void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool strict_check) {
+    LOG() << "Verifying the result..." << std::endl;
+    size_t ok_cnt = 0;
+    for (const auto& p : test_case.outputs) {
+        const std::string key = p.first;
+        ChxVMVar* expected = p.second.get();
+        auto found = outputs.find(key);
+        CHECK(found != outputs.end()) << "Output does not contain " << key;
+        ChxVMVar* actual = found->second.get();
+
+        auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
+            int size = a->GetTotalSize();
+            if (size < 100 || args.exist("verbose")) return a->ToString();
+            return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
+        };
+
+        auto var_str = [&args, array_str](ChxVMVar* v) {
+            switch (v->kind()) {
+                case ChxVMVar::Kind::kScalar:
+                case ChxVMVar::Kind::kShape:
+                case ChxVMVar::Kind::kArray:
+                    return array_str(v->GetArray());
+                case ChxVMVar::Kind::kSequence:
+                    return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
+                case ChxVMVar::Kind::kOpaque:
+                case ChxVMVar::Kind::kNull:
+                    CHECK(false) << v->DebugString();
+            }
+            CHECK(false);
+        };
+
+        auto fail = [&](const std::string& type) {
+            LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
+                  << "\nActual: " << var_str(actual) << std::endl;
+        };
+
+        auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
+            if (expected.dtype() != actual.dtype()) {
+                fail("dtype");
+                return false;
+            }
+            if (expected.shape() != actual.shape()) {
+                fail("shape");
+                return false;
+            }
+            if (!strict_check) return true;
+
+            int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
+            if (mismatch) {
+                if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
+                    static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
+                    return true;
+                }
+                fail("value");
+                int total_size = expected.GetTotalSize();
+                LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
+                      << "%)" << std::endl;
+                return false;
+            }
+            return true;
+        };
+
+        if (!expected->IsArray() && !actual->IsArray() && expected->kind() != actual->kind()) {
+            fail("kind");
+            continue;
+        }
+
+        bool ok = false;
+        switch (expected->kind()) {
+            case ChxVMVar::Kind::kScalar:
+            case ChxVMVar::Kind::kShape:
+            case ChxVMVar::Kind::kArray:
+                ok = check_array(expected->GetArray(), actual->GetArray());
+                break;
+
+            case ChxVMVar::Kind::kSequence: {
+                const auto& expected_seq = *expected->GetSequence();
+                const auto& actual_seq = *actual->GetSequence();
+                if (expected_seq.size() != actual_seq.size()) {
+                    fail("seq_size");
+                    ok = false;
+                    break;
+                }
+
+                for (size_t i = 0; i < expected_seq.size(); ++i) {
+                    ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
+                    if (!ok) break;
+                }
+                break;
+            }
+
+            case ChxVMVar::Kind::kOpaque:
+            case ChxVMVar::Kind::kNull:
+                CHECK(false) << expected->DebugString();
+        }
+
+        if (!ok) continue;
+
+        LOG() << "OK: " << key << std::endl;
+        ++ok_cnt;
+    }
+
+    if (strict_check) CHECK_EQ(ok_cnt, test_case.outputs.size());
+}
+
 void RunMain(const std::vector<std::string>& argv) {
     cmdline::parser args;
     args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
@@ -435,9 +545,29 @@ void RunMain(const std::vector<std::string>& argv) {
     std::string test_path = args.get<std::string>("test");
 
     g_quiet = args.exist("quiet");
-    if ((onnx_path.empty() && test_path.empty()) || (!onnx_path.empty() && !test_path.empty())) {
+    if (!onnx_path.empty() && !test_path.empty()) {
         std::cerr << args.usage() << std::endl;
-        QFAIL() << "Either --onnx or --test must be specified!";
+        QFAIL() << "Specifying both --onnx and --test is invalid!";
+    } else if (onnx_path.empty() && test_path.empty()) {
+        if (args.rest().empty()) {
+            std::cerr << args.usage() << std::endl;
+            QFAIL() << "No target testdir/onnx is specified";
+        } else if (args.rest().size() == 1) {
+            const std::string& filename = args.rest()[0];
+            struct stat st;
+            CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+            if (S_IFDIR == (st.st_mode & S_IFMT)) {
+                test_path = filename;
+            } else {
+                onnx_path = filename;
+            }
+        } else {
+            std::cerr << args.usage() << std::endl;
+            QFAIL() << "Unknown extra arguments specified";
+        }
+    } else if (!args.rest().empty()) {
+        std::cerr << args.usage() << std::endl;
+        QFAIL() << "Unknown extra arguments specified";
     }
 
     LOG() << "Initializing ChainerX..." << std::endl;
@@ -508,7 +638,8 @@ void RunMain(const std::vector<std::string>& argv) {
 
     if (args.exist("compile_only")) return;
 
-    double elapsed_total = 0;
+    double total_elapsed = 0;
+    double best_elapsed = 0;
     int test_cnt = 0;
     for (const std::unique_ptr<TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
@@ -540,109 +671,9 @@ void RunMain(const std::vector<std::string>& argv) {
                     LOG() << p.first << ": " << p.second->ToString() << std::endl;
                 }
             }
-            continue;
-        }
-
-        LOG() << "Verifying the result..." << std::endl;
-        size_t ok_cnt = 0;
-        for (const auto& p : test_case->outputs) {
+        } else {
             test_cnt++;
-            const std::string key = p.first;
-            ChxVMVar* expected = p.second.get();
-            auto found = outputs.find(key);
-            CHECK(found != outputs.end()) << "Output does not contain " << key;
-            ChxVMVar* actual = found->second.get();
-
-            auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
-                int size = a->GetTotalSize();
-                if (size < 100 || args.exist("verbose")) return a->ToString();
-                return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();
-            };
-
-            auto var_str = [&args, array_str](ChxVMVar* v) {
-                switch (v->kind()) {
-                    case ChxVMVar::Kind::kScalar:
-                    case ChxVMVar::Kind::kShape:
-                    case ChxVMVar::Kind::kArray:
-                        return array_str(v->GetArray());
-                    case ChxVMVar::Kind::kSequence:
-                        return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
-                    case ChxVMVar::Kind::kOpaque:
-                    case ChxVMVar::Kind::kNull:
-                        CHECK(false) << v->DebugString();
-                }
-                CHECK(false);
-            };
-
-            auto fail = [&](const std::string& type) {
-                LOG() << RED << "FAIL(" << type << "): " << key << RESET << "\nExpected: " << var_str(expected)
-                      << "\nActual: " << var_str(actual) << std::endl;
-            };
-
-            auto check_array = [&](const chainerx::Array& expected, const chainerx::Array& actual) {
-                if (expected.dtype() != actual.dtype()) {
-                    fail("dtype");
-                    return false;
-                }
-                if (expected.shape() != actual.shape()) {
-                    fail("shape");
-                    return false;
-                }
-                if (iterations > 1) return true;
-
-                int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
-                if (mismatch) {
-                    if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
-                        static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
-                        return true;
-                    }
-                    fail("value");
-                    int total_size = expected.GetTotalSize();
-                    LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
-                          << "%)" << std::endl;
-                    return false;
-                }
-                return true;
-            };
-
-            if (!expected->IsArray() && !actual->IsArray() && expected->kind() != actual->kind()) {
-                fail("kind");
-                continue;
-            }
-
-            bool ok = false;
-            switch (expected->kind()) {
-                case ChxVMVar::Kind::kScalar:
-                case ChxVMVar::Kind::kShape:
-                case ChxVMVar::Kind::kArray:
-                    ok = check_array(expected->GetArray(), actual->GetArray());
-                    break;
-
-                case ChxVMVar::Kind::kSequence: {
-                    const auto& expected_seq = *expected->GetSequence();
-                    const auto& actual_seq = *actual->GetSequence();
-                    if (expected_seq.size() != actual_seq.size()) {
-                        fail("seq_size");
-                        ok = false;
-                        break;
-                    }
-
-                    for (size_t i = 0; i < expected_seq.size(); ++i) {
-                        ok = check_array(expected_seq[i].GetArray(), actual_seq[i].GetArray());
-                        if (!ok) break;
-                    }
-                    break;
-                }
-
-                case ChxVMVar::Kind::kOpaque:
-                case ChxVMVar::Kind::kNull:
-                    CHECK(false) << expected->DebugString();
-            }
-
-            if (!ok) continue;
-
-            LOG() << "OK: " << key << std::endl;
-            ++ok_cnt;
+            VerifyOutputs(outputs, *test_case, args, iterations == 1);
         }
 
         chainerx::GetDefaultDevice().Synchronize();
@@ -652,15 +683,25 @@ void RunMain(const std::vector<std::string>& argv) {
         LOG() << "Elapsed: " << elapsed << " msec" << std::endl;
 
         // The first iteration is for warm up.
-        if (test_case != test_cases.front()) elapsed_total += elapsed;
-
-        if (iterations == 1) CHECK_EQ(ok_cnt, test_case->outputs.size());
+        if (test_case != test_cases.front()) total_elapsed += elapsed;
+        if (best_elapsed == 0 || best_elapsed > elapsed) best_elapsed = elapsed;
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
     if (iterations > 1) {
         // The first iteration is for warm up.
-        std::cerr << "Average elapsed: " << elapsed_total / (iterations - 1) << " msec" << std::endl;
+        double average_elapsed = total_elapsed / (iterations - 1);
+        int num_unknown_ops = 0;
+        int64_t flops = CalculateTotalFlops(model.graph(), &num_unknown_ops);
+        if (num_unknown_ops) {
+            std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
+            std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
+        } else {
+            double average_gflops_sec = flops / average_elapsed / 1000 / 1000;
+            std::cerr << "Average elapsed: " << average_elapsed << " msec (" << average_gflops_sec << " GFLOPs/sec)" << std::endl;
+            double best_gflops_sec = flops / best_elapsed / 1000 / 1000;
+            std::cerr << "Best elapsed: " << best_elapsed << " msec (" << best_gflops_sec << " GFLOPs/sec)" << std::endl;
+        }
     }
 }
 

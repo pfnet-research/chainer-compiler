@@ -4,6 +4,7 @@
 
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
+#include <chainerx/routines/reduction.h>
 
 #include <common/log.h>
 #include <common/strutil.h>
@@ -47,7 +48,7 @@ void ChxVMState::SetArrayList(const std::vector<int>& index, const std::vector<c
 ChxVMSequence* ChxVMState::CreateSequence(int index) {
     CHECK_LE(0, index) << index;
     CHECK_GT(variables_.size(), index) << index;
-    variables_[index].reset(new ChxVMVar(ChxVMVar::Kind::kSequence));
+    variables_[index].reset(new ChxVMVar(std::make_shared<ChxVMSequence>()));
     return GetSequence(index);
 }
 
