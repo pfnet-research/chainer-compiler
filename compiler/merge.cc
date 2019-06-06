@@ -183,11 +183,11 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
 
 bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
     Value* trans_gemm = trans->output(0);
-    if (trans_gemm->users().size() < 1) {
+    if (trans_gemm->users().size() != 1) {
         return false;
     }
     Node* gemm = trans_gemm->user(0);
-    if (trans->input(0) != trans_gemm || gemm->op_type() != Node::kGemm) {
+    if (trans->output(0) != trans_gemm || gemm->op_type() != Node::kGemm) {
         return false;
     }
 
@@ -198,7 +198,7 @@ bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
 
     GraphBuilder gb(graph, "MergeTransposeGemm", trans->input(0));
     std::vector<Value*> new_in = gemm->inputs();
-    for (Value** v : {&new_in[2], &new_in[3]}) {
+    for (Value** v : {&new_in[0], &new_in[1]}) {
         if (*v == trans_gemm) {
             *v = trans->input(0);
         }
@@ -206,8 +206,8 @@ bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
     Node* new_gemm = gb.MOp(Node::kGemm, new_in, gemm->outputs());
     new_gemm->set_alpha(gemm->alpha());
     new_gemm->set_beta(gemm->beta());
-    new_gemm->set_trans_a(new_in[2] == trans->input(0) ? !gemm->trans_a() : gemm->trans_a());
-    new_gemm->set_trans_b(new_in[3] == trans->input(0) ? !gemm->trans_b() : gemm->trans_b());
+    new_gemm->set_trans_a(new_in[0] == trans->input(0) ? !gemm->trans_a() : gemm->trans_a());
+    new_gemm->set_trans_b(new_in[1] == trans->input(0) ? !gemm->trans_b() : gemm->trans_b());
 
     graph->DetachNode(trans);
     graph->DetachNode(gemm);
