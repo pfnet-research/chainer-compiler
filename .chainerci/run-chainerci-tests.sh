@@ -9,6 +9,7 @@ python3 -m pip install gast
 python3 -m pip install --pre cupy-cuda100==7.0.0a1
 
 CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
+    CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip -q install --no-cache-dir third_party/chainer[test]
 python3 -m pip install --no-cache-dir third_party/onnx-chainer[test-gpu]
 
