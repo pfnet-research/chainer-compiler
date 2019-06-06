@@ -141,34 +141,35 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     Tensor const* name##_tns = in->input(idx)->initializer(); \
     if (!name##_tns) {                                        \
         return false;                                         \
-    }
+    }                                                         \
+    chainerx::Array const& name = name##_tns->chx()
 
     chainerx::Array bc;
     bool const has_conv_bias = conv->inputs().size() == 3;
 
     if (has_conv_bias) {
         GET_TENSOR(bias, conv, 2);
-        bc = bias_tns->chx();
+        bc = bias;
     }
 
     GET_TENSOR(scale, bn, 1);
     GET_TENSOR(bn_bias, bn, 2);
     GET_TENSOR(mean, bn, 3);
     GET_TENSOR(var, bn, 4);
-    GET_TENSOR(w, conv, 1)
+    GET_TENSOR(w, conv, 1);
     float epsilon = bn->epsilon();
 
-    chainerx::Array eps = chainerx::Full({scale_tns->chx().shape()[0]}, epsilon, scale_tns->chx().dtype());
+    chainerx::Array eps = chainerx::Full({scale.shape()[0]}, epsilon, scale.dtype());
     if (!has_conv_bias) {
-        bc = chainerx::Full({scale_tns->chx().shape()[0]}, chainerx::Scalar(0.f), scale_tns->chx().dtype());
+        bc = chainerx::Full({scale.shape()[0]}, chainerx::Scalar(0.f), scale.dtype());
     }
-    chainerx::Array s = scale_tns->chx() / chainerx::Sqrt(var_tns->chx() + eps);
+    chainerx::Array s = scale / chainerx::Sqrt(var + eps);
     std::vector<chainerx::Array> new_w_data;
-    for (int64_t i = 0; i < w_tns->chx().shape()[0]; ++i) {
-        new_w_data.push_back(w_tns->chx().At({i}) * s);
+    for (int64_t i = 0; i < w.shape()[0]; ++i) {
+        new_w_data.push_back(w.At({i}) * s);
     }
     chainerx::Array new_w = chainerx::Concatenate(new_w_data);
-    bc = (bc - mean_tns->chx()) * s + bn_bias_tns->chx();
+    bc = (bc - mean) * s + bn_bias;
 
     GraphBuilder gb(graph, "MergeConvBN", bn->input(0));
     gb.MOp(Node::kConv, {conv->input(0), gb.Const(new_w), gb.Const(bc)}, bn->outputs());
