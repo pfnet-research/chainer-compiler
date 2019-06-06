@@ -1,8 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <chainerx/routines/misc.h>
+#include <chainerx/testing/array_check.h>
+#include "chainerx/testing/array.h"
+
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/merge.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace {
@@ -15,6 +20,7 @@ TEST(MergeTest, SplitConcat) {
 
     {
         GraphBuilder gb(&graph, "test", output);
+
         std::vector<Value*> tmps;
         for (int i = 0; i < 4; ++i) {
             tmps.push_back(gb.Temp());
@@ -68,6 +74,47 @@ TEST(MergeTest, PadConv) {
     ASSERT_EQ(2, node.inputs().size());
     ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [pad_name](Value* v) { return v->name() == pad_name; }));
     graph.CheckSanity("merged");
+}
+
+TEST(MergeTest, ConvBN) {
+    Type type(Dtype::kFloat32, {});
+    Graph graph("test");
+    Value* input = graph.AddInputValue("input", type);
+    Value* output = graph.AddOutputValue("output", type);
+
+    chainerx::Array W = runtime::SlowRandom({3, 2, 5, 5}) + 2;
+    chainerx::Array B = runtime::SlowRandom({3}) + 2;
+    chainerx::Array scale = runtime::SlowRandom({3}) + 2;
+    chainerx::Array b = runtime::SlowRandom({3}) + 2;
+    chainerx::Array mean = runtime::SlowRandom({3}) + 2;
+    chainerx::Array var = chainerx::Absolute(runtime::SlowRandom({3})) + 2;
+
+    {
+        GraphBuilder gb(&graph, "test", input);
+
+        Value* y = graph.AddOutputValue("Y", type);
+        Node& conv_node = *gb.MOp(Node::kConv, {input, gb.Const(W), gb.Const(B)}, {y});
+        Node& bn_node = *gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
+    }
+
+    MergeOperations(&graph);
+    graph.DeleteDetached();
+    ASSERT_EQ(1, graph.nodes().size());
+    Node const& node = *graph.nodes()[0];
+    ASSERT_EQ(Node::kConv, node.op_type());
+
+    chainerx::Array new_w = node.input(1)->producer()->tensor_value()->chx();
+    chainerx::Array new_b = node.input(2)->producer()->tensor_value()->chx();
+    chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
+    EXPECT_ARRAY_ALL_CLOSE((B - mean) * f + b, new_b);
+    EXPECT_ARRAY_ALL_CLOSE(W * f, new_w);
+
+    /*
+    f = scale / np.sqrt(var + 1e-5);
+    np.testing.assert_almost_equal((B - mean) * f + b, new_b);
+    np.testing.assert_almost_equal(
+        W * f[:, np.newaxis, np.newaxis, np.newaxis], new_W);
+    */
 }
 
 TEST(MergeTest, TransposeGemmA) {

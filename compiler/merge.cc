@@ -1,14 +1,14 @@
 #include "compiler/merge.h"
 
+#include <chainerx/routines/creation.h>
+#include <chainerx/routines/manipulation.h>
+#include <chainerx/routines/misc.h>
+
 #include <common/iterator.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
-
-#include <chainerx/routines/creation.h>
-#include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 
 namespace chainer_compiler {
 
