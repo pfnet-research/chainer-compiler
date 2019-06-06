@@ -78,7 +78,7 @@ Node* GraphBuilder::MOp(Node::OpType op_type, const std::vector<Value*>& inputs,
 }
 
 Value* GraphBuilder::Const(chainerx::Array ary, Value* value) {
-    Value* v = value? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
+    Value* v = value ? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
     v->producer()->set_tensor_value(new Tensor(v->name(), ary));
     v->set_type(new Type(Dtype(ary.dtype())));
     return v;

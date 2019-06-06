@@ -7,8 +7,8 @@
 #include <compiler/value.h>
 
 #include <chainerx/routines/creation.h>
-#include <chainerx/routines/math.h>
 #include <chainerx/routines/manipulation.h>
+#include <chainerx/routines/math.h>
 
 namespace chainer_compiler {
 
@@ -137,10 +137,10 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
         return false;
     }
 
-#define GET_TENSOR(name, in, idx)                                   \
-    Tensor const* name ## _tns = in->input(idx)->initializer();     \
-    if (!name ## _tns) {                                            \
-        return false;                                               \
+#define GET_TENSOR(name, in, idx)                             \
+    Tensor const* name##_tns = in->input(idx)->initializer(); \
+    if (!name##_tns) {                                        \
+        return false;                                         \
     }
 
     chainerx::Array bc;
@@ -206,8 +206,8 @@ bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
     Node* new_gemm = gb.MOp(Node::kGemm, new_in, gemm->outputs());
     new_gemm->set_alpha(gemm->alpha());
     new_gemm->set_beta(gemm->beta());
-    new_gemm->set_trans_a(new_in[2] == trans->input(0)? !gemm->trans_a() : gemm->trans_a());
-    new_gemm->set_trans_b(new_in[3] == trans->input(0)? !gemm->trans_b() : gemm->trans_b());
+    new_gemm->set_trans_a(new_in[2] == trans->input(0) ? !gemm->trans_a() : gemm->trans_a());
+    new_gemm->set_trans_b(new_in[3] == trans->input(0) ? !gemm->trans_b() : gemm->trans_b());
 
     graph->DetachNode(trans);
     graph->DetachNode(gemm);
