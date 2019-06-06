@@ -6,6 +6,10 @@
 #include <compiler/node.h>
 #include <compiler/value.h>
 
+#include <chainerx/routines/creation.h>
+#include <chainerx/routines/math.h>
+#include <chainerx/routines/manipulation.h>
+
 namespace chainer_compiler {
 
 namespace {
@@ -119,6 +123,98 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     return true;
 }
 
+bool MaybeMergeConvBN(Graph* graph, Node* conv) {
+    if (conv->outputs().size() < 2) {
+        return false;
+    }
+
+    Value* conv_bn = conv->output(0);
+    if (conv_bn->users().size() < 1) {
+        return false;
+    }
+    Node* bn = conv_bn->user(0);
+    if (bn->input(0) != conv_bn || bn->op_type() != Node::kBatchNormalization) {
+        return false;
+    }
+
+#define GET_TENSOR(name, in, idx)                                   \
+    Tensor const* name ## _tns = in->input(idx)->initializer();     \
+    if (!name ## _tns) {                                            \
+        return false;                                               \
+    }
+
+    chainerx::Array bc;
+    bool const has_conv_bias = conv->inputs().size() == 3;
+
+    if (has_conv_bias) {
+        GET_TENSOR(bias, conv, 2);
+        bc = bias_tns->chx();
+    }
+
+    GET_TENSOR(scale, bn, 1);
+    GET_TENSOR(bn_bias, bn, 2);
+    GET_TENSOR(mean, bn, 3);
+    GET_TENSOR(var, bn, 4);
+    GET_TENSOR(w, conv, 1)
+    float epsilon = bn->epsilon();
+
+    chainerx::Array eps = chainerx::Full({scale_tns->chx().shape()[0]}, epsilon, scale_tns->chx().dtype());
+    if (!has_conv_bias) {
+        bc = chainerx::Full({scale_tns->chx().shape()[0]}, chainerx::Scalar(0.f), scale_tns->chx().dtype());
+    }
+    chainerx::Array s = scale_tns->chx() / chainerx::Sqrt(var_tns->chx() + eps);
+    std::vector<chainerx::Array> new_w_data;
+    for (int64_t i = 0; i < w_tns->chx().shape()[0]; ++i) {
+        new_w_data.push_back(w_tns->chx().At({i}) * s);
+    }
+    chainerx::Array new_w = chainerx::Concatenate(new_w_data);
+    bc = (bc - mean_tns->chx()) * s + bn_bias_tns->chx();
+
+    GraphBuilder gb(graph, "MergeConvBN", bn->input(0));
+    gb.MOp(Node::kConv, {conv->input(0), gb.Const(new_w), gb.Const(bc)}, bn->outputs());
+
+    graph->DetachNode(conv);
+    graph->DetachNode(bn);
+
+#undef GET_TENSOR
+
+    return true;
+}
+
+bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
+    Value* trans_gemm = trans->output(0);
+    if (trans_gemm->users().size() < 1) {
+        return false;
+    }
+    Node* gemm = trans_gemm->user(0);
+    if (trans->input(0) != trans_gemm || gemm->op_type() != Node::kGemm) {
+        return false;
+    }
+
+    std::vector<int64_t> opt_perm{1, 0};
+    if (trans->perm() != opt_perm) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "MergeTransposeGemm", trans->input(0));
+    std::vector<Value*> new_in = gemm->inputs();
+    for (Value** v : {&new_in[2], &new_in[3]}) {
+        if (*v == trans_gemm) {
+            *v = trans->input(0);
+        }
+    }
+    Node* new_gemm = gb.MOp(Node::kGemm, new_in, gemm->outputs());
+    new_gemm->set_alpha(gemm->alpha());
+    new_gemm->set_beta(gemm->beta());
+    new_gemm->set_trans_a(new_in[2] == trans->input(0)? !gemm->trans_a() : gemm->trans_a());
+    new_gemm->set_trans_b(new_in[3] == trans->input(0)? !gemm->trans_b() : gemm->trans_b());
+
+    graph->DetachNode(trans);
+    graph->DetachNode(gemm);
+
+    return true;
+}
+
 }  // namespace
 
 void MergeOperations(Graph* graph) {
@@ -129,10 +225,21 @@ void MergeOperations(Graph* graph) {
             // TODO(hamaji): Fix the implementation of Concat => Split
             // merge. Unlike Split => Concat merge, we should check
             // if the split dimensions are not changed.
-            if (node->op_type() == Node::kSplit) {
-                replaced |= MaybeMergeSplitConcat(graph, node);
-            } else if (node->op_type() == Node::kPad) {
-                replaced |= MaybeMergePadConv(graph, node);
+            switch (node->op_type()) {
+                case Node::kSplit:
+                    replaced |= MaybeMergeSplitConcat(graph, node);
+                    break;
+                case Node::kPad:
+                    replaced |= MaybeMergePadConv(graph, node);
+                    break;
+                case Node::kConv:
+                    replaced |= MaybeMergeConvBN(graph, node);
+                    break;
+                case Node::kTranspose:
+                    replaced |= MaybeMergeTransposeGemm(graph, node);
+                    break;
+                default:
+                    break;
             }
         }
     }
