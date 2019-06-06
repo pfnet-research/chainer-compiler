@@ -29,6 +29,8 @@ class CMakeBuild(build_ext.build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)))
 
         cuda_path = os.getenv('CUDA_PATH', '/usr/local/cuda')
+        chainerx_preduilt_path = os.getenv(
+            'CHAINER_COMPILER_PREBUILT_CHAINERX_DIR', None)
         cudnn_root_dir = os.getenv('CUDNN_ROOT_DIR', None)
         if cudnn_root_dir is None:
             raise RuntimeError('CUDNN_ROOT_DIR must be set.')
@@ -43,6 +45,9 @@ class CMakeBuild(build_ext.build_ext):
             '-DCHAINERX_BUILD_PYTHON=ON',
             '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]
+        if chainerx_preduilt_path is not None:
+            cmake_args.append('-DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=' +
+                              chainerx_preduilt_path)
         build_args = ['--'] + ext.build_targets
 
         if not os.path.exists(self.build_temp):
