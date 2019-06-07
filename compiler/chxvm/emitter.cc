@@ -292,11 +292,9 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in ChxVM.
-            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads());
+            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads(), node.group());
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());

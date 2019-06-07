@@ -24,6 +24,24 @@ chainerx::Array LinearGradWeightOp::RunImpl(ChxVMState* st, const chainerx::Arra
 
 chainerx::Array ConvOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const nonstd::optional<chainerx::Array>& b) {
+    if (group > 1) {
+        int64_t const chans = x.shape()[1];
+        std::vector<int64_t> const chan_split(group, chans / group);
+
+        std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, chan_split);
+        std::vector<chainerx::Array> weights = SplitByLengths(w, 0, chan_split);
+        std::vector<chainerx::Array> biases;
+        if (b.has_value()) {
+            biases = SplitByLengths(*b, 0, chan_split);
+        }
+        std::vector<chainerx::Array> outputs(group);
+        for (int i = 0; i < group; ++i) {
+            auto sub_bias = b.has_value() ? nonstd::optional<chainerx::Array>(biases[i]) : nonstd::nullopt;
+            outputs[i] =
+                    chainerx::Conv(inputs[i], weights[i], sub_bias, ComplementStride(strides, inputs[i]), ComplementPad(pads, inputs[i]));
+        }
+        return chainerx::Concatenate(outputs, 1);
+    }
     return chainerx::Conv(x, w, b, ComplementStride(strides, x), ComplementPad(pads, x));
 }
 
