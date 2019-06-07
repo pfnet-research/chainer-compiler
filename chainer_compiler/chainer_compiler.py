@@ -10,7 +10,7 @@ except ImportError:
     # pip, `_chainer_compiler_core.so` is not accessible through
     # `chainer_compiler` package.
     # `_chainer_compiler_core.so` should be imported directly from
-    # `build/python`.
+    # `build/chainer_compiler_cc`.
     # TODO(mkusumoto): Seek more sophisticated way to import the .so file.
     try:
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
