@@ -18,6 +18,7 @@ target_link_libraries(_chainer_compiler_core.so
   ${PROTOBUF_LIBRARY}
   pthread
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
+  ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant

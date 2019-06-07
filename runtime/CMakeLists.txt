@@ -86,6 +86,7 @@ target_link_libraries(chainer_compiler_runtime_test
   gtest_main
   pthread
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
+  ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant
