@@ -12,9 +12,12 @@ except ImportError:
     # `_chainer_compiler_core.so` should be imported directly from
     # `build/python`.
     # TODO(mkusumoto): Seek more sophisticated way to import the .so file.
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.append(os.path.join(project_root, 'build/python'))
-    import _chainer_compiler_core
+    try:
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.append(os.path.join(root, 'build/chainer_compiler_cc'))
+        import _chainer_compiler_core
+    except ImportError:
+        pass
 
 try:
     import cupy
@@ -179,7 +182,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
 
 def _run_translator(translator, mc, inputs):
     if translator == 'ch2o':
-        import chainer_compiler.ch2o
+        from chainer_compiler import ch2o
         xmodel = ch2o.compile_model(mc, inputs)
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(xmodel.SerializeToString())
