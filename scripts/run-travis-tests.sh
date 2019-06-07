@@ -40,7 +40,7 @@ run unit_tests make test
 
 cd ..
 PYTHONPATH=. run runtests ./scripts/runtests.py 2>&1
-run pytest pytest -sv python
+PYTHONPATH=. run pytest pytest -sv tests
 
 PYTHONPATH=. run train_mnist python3 examples/mnist/train_mnist.py \
      -d native --compile -I 3 --use-fake-data

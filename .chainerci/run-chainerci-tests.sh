@@ -48,7 +48,7 @@ cd ..
 
 PYTHONPATH=. python3 scripts/runtests.py -g --fuse
 PYTHONPATH=. python3 scripts/runtests.py --ngraph
-python3 -m pytest -sv python
+PYTHONPATH=. python3 -m pytest -sv python
 
 EOM
 
