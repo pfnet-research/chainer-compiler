@@ -182,6 +182,78 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
     }
 }
 
+void FuseDldtOperations(Graph* graph) {
+    // The list was created by
+    // $ grep 'op =' dldt/model-optimizer/extensions/front/onnx/*.py
+    const std::set<Node::OpType> fusable_ops = {
+            Node::kAdd,
+            // Node::kAffine,
+            Node::kArgMax,
+            Node::kAveragePool,
+            Node::kCast,
+            Node::kClip,
+            Node::kConstantFill,
+            Node::kConv,
+            Node::kConvTranspose,
+            // Node::kCrop,
+            // Node::kDetectionOutput,
+            Node::kDropout,
+            Node::kElu,
+            Node::kExp,
+            // Node::kExperimentalDetectronDetectionOutput,
+            // Node::kExperimentalDetectronGenerateProposalsSingleImage,
+            // Node::kExperimentalDetectronPriorGridGenerator,
+            // Node::kExperimentalDetectronROIFeatureExtractor,
+            // Node::kExperimentalDetectronTopKROIs,
+            Node::kFlatten,
+            Node::kGRU,
+            Node::kGather,
+            Node::kGlobalAveragePool,
+            Node::kGlobalMaxPool,
+            Node::kImageScaler,
+            // Node::kInstanceNormalization,
+            Node::kLRN,
+            Node::kLSTM,
+            Node::kLeakyRelu,
+            Node::kMatMul,
+            Node::kMaxPool,
+            Node::kMul,
+            Node::kNeg,
+            Node::kPad,
+            Node::kPow,
+            // Node::kPriorBox,
+            // Node::kQuantize,
+            Node::kRNN,
+            Node::kReduceMean,
+            Node::kReduceSum,
+            // Node::kScale,
+            Node::kSigmoid,
+            Node::kSlice,
+            Node::kSoftmax,
+            Node::kSplit,
+            Node::kSqueeze,
+            Node::kTanh,
+            Node::kTranspose,
+            Node::kUnsqueeze,
+            Node::kUpsample,
+    };
+
+    auto is_fusable = [&fusable_ops](const Node& node) {
+        if (!fusable_ops.count(node.op_type())) {
+            return false;
+        }
+        for (Value* value : node.inputs()) {
+            if (!value->type().HasKnownShape()) return false;
+        }
+        for (Value* value : node.outputs()) {
+            if (!value->type().HasKnownShape()) return false;
+        }
+        return true;
+    };
+
+    FuseAllConnectedNodes("dldt", graph, 1, is_fusable);
+}
+
 void FuseNGraphOperations(Graph* graph) {
     // TODO(hamaji): Enable all ops.
     const std::set<Node::OpType> fusable_ops = {
@@ -456,6 +528,9 @@ void FuseOperations(Graph* graph) {
         }
     }
 
+    if (g_use_dldt) {
+        FuseDldtOperations(graph);
+    }
     if (g_use_ngraph) {
         FuseNGraphOperations(graph);
     }
