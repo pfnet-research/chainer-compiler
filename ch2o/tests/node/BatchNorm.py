@@ -26,5 +26,5 @@ if __name__ == '__main__':
 
     v = np.random.rand(2, 3, 5, 5).astype(np.float32)
 
-    import chainer_compiler.ch2o
+    from chainer_compiler import ch2o
     ch2o.generate_testcase(model, [v])

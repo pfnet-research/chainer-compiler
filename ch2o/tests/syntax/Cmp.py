@@ -47,7 +47,7 @@ class LessEqual(chainer.Chain):
 # ======================================
 
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 import numpy as np
 
 

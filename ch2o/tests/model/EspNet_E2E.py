@@ -244,7 +244,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 
 
 class Args(object):

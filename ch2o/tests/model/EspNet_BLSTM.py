@@ -87,7 +87,7 @@ class BLSTMBackprop(chainer.Chain):
         return F.pad_sequence(xs)
 
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 
 
 if __name__ == '__main__':

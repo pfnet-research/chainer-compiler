@@ -281,7 +281,7 @@ class Decoder(chainer.Chain):
         return self.loss, acc
 
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 
 
 if __name__ == '__main__':

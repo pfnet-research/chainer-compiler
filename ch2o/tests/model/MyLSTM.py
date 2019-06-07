@@ -70,7 +70,7 @@ class MyLSTM(chainer.Chain):
 
 # from https://github.com/chainer/chainer/blob/master/examples/seq2seq/seq2seq.py
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 
 
 # TODO(hamaji): This is broken. Fix it.

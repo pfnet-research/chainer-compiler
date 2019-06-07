@@ -11,7 +11,7 @@ class Matmul(chainer.Chain):
 
 # ======================================
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 
 if __name__ == '__main__':
     import numpy as np

@@ -225,7 +225,7 @@ class StatelessLSTMBackprop(chainer.Chain):
         return c * h
 
 
-import chainer_compiler.ch2o
+from chainer_compiler import ch2o
 
 
 if __name__ == '__main__':

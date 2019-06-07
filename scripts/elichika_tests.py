@@ -111,7 +111,7 @@ def get_source_dir():
 
 
 def generate_tests(dirname):
-    from testtools import testcasegen
+    from chainer_compiler.elichika_testtools import testcasegen
 
     for gen in get_test_generators(dirname):
         py = os.path.join('tests', gen.dirname, gen.filename)
