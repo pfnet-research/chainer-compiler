@@ -102,7 +102,8 @@ def print_test_generators(dirname):
     tests = []
     for gen in get_test_generators(dirname):
         tests.append(
-            os.path.join('elichika/tests', gen.dirname, gen.filename + '.py'))
+            os.path.join('testcases/elichika_tests', gen.dirname,
+                         gen.filename + '.py'))
     print(';'.join(tests))
 
 
@@ -111,10 +112,11 @@ def get_source_dir():
 
 
 def generate_tests(dirname):
-    from chainer_compiler.elichika_testtools import testcasegen
+    from chainer_compiler.elichika.testtools import testcasegen
 
     for gen in get_test_generators(dirname):
-        py = os.path.join('tests', gen.dirname, gen.filename)
+        py = os.path.join('testcases', 'elichika_tests',
+                          gen.dirname, gen.filename)
         out_dir = os.path.join(get_source_dir(), 'out', 'elichika_%s_%s' %
                                (gen.category, gen.filename))
         print('Running %s' % py)
