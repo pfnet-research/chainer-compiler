@@ -3,6 +3,7 @@ get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PAT
 set(jsons
   chxvm.json
   chxvm_test.json
+  dldt.json
   ngraph.json
   nvrtc.json
   tvm.json

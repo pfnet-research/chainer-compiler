@@ -7,6 +7,7 @@ namespace chainer_compiler {
 namespace builtin_configs {
 extern const char* chxvm_json;
 extern const char* chxvm_test_json;
+extern const char* dldt_json;
 extern const char* ngraph_json;
 extern const char* nvrtc_json;
 extern const char* tvm_json;
@@ -18,6 +19,8 @@ json LoadJSONFromName(const std::string& name) {
         json_str = builtin_configs::chxvm_json;
     } else if (name == "chxvm_test") {
         json_str = builtin_configs::chxvm_test_json;
+    } else if (name == "dldt") {
+        json_str = builtin_configs::dldt_json;
     } else if (name == "ngraph") {
         json_str = builtin_configs::ngraph_json;
     } else if (name == "nvrtc") {
