@@ -2,7 +2,7 @@
 
 #include <chainerx/routines/misc.h>
 #include <chainerx/testing/array_check.h>
-#include "chainerx/testing/array.h"
+#include <chainerx/testing/context_session.h>
 
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -118,6 +118,8 @@ namespace {
 
 TEST(MergeTest, ConvBN) {
     using namespace chainer_compiler;
+
+    chainerx::testing::ContextSession sess;
 
     Type type(chainer_compiler::Dtype::kFloat32, {});
     Graph graph("test");
