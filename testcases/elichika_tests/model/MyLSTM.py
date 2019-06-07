@@ -15,7 +15,7 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
-from tests.utils import sequence_utils
+from testcases.elichika_tests.utils import sequence_utils
 
 
 class MyLSTM(chainer.Chain):

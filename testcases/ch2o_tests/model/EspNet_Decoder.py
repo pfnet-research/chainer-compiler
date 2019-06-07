@@ -18,10 +18,10 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
-from tests.utils import sequence_utils
-from tests.model.EspNet_AttDot import AttDot
-from tests.model.EspNet_AttLoc import AttLoc
-from tests.model.StatelessLSTM import StatelessLSTM
+from testcases.ch2o_tests.utils import sequence_utils
+from testcases.ch2o_tests.model.EspNet_AttDot import AttDot
+from testcases.ch2o_tests.model.EspNet_AttLoc import AttLoc
+from testcases.ch2o_tests.model.StatelessLSTM import StatelessLSTM
 
 
 def _mean(xs):

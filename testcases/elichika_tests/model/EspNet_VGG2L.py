@@ -16,7 +16,7 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
-from tests.utils import sequence_utils
+from testcases.elichika_tests.utils import sequence_utils
 
 
 # TODO(watanabe) explanation of VGG2L, VGG2B (Block) might be better

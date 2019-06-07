@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import chainer
-import tests.syntax.UserDefinedFuncSub1
+from testcases.elichika_tests.syntax import UserDefinedFuncSub1
 
 class F(object):
     def __init__(self, a):
@@ -30,7 +30,7 @@ class B(chainer.Chain):
         super(B, self).__init__()
 
     def forward(self, x, y, z):
-        return tests.syntax.UserDefinedFuncSub1.h(x, y)
+        return UserDefinedFuncSub1.h(x, y)
 
 
 class C(chainer.Chain):
@@ -39,7 +39,7 @@ class C(chainer.Chain):
         super(C, self).__init__()
 
     def forward(self, x, y, z):
-        p = tests.syntax.UserDefinedFuncSub1.F(x).g(y)
+        p = UserDefinedFuncSub1.F(x).g(y)
         return h(p, z)
 
 # ======================================

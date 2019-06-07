@@ -16,7 +16,7 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 
-from tests.utils import sequence_utils
+from testcases.ch2o_tests.utils import sequence_utils
 
 
 class BLSTM(chainer.Chain):
