@@ -23,7 +23,7 @@ extern bool g_fuse_operations;
 // Use NVRTC to execute fused operations.
 extern bool g_use_nvrtc;
 
-// Use TVM to execute fused operations.
+// Use TVM to execute operations.
 extern bool g_use_tvm;
 
 // Reuse existing TVM code. Unsafe.
@@ -35,8 +35,11 @@ extern std::string g_dump_autotvm_task_dir;
 // A tuning log of AutoTVM which contains best scheduling parameters.
 extern std::string g_autotvm_log;
 
-// Use nGraph to execute fused operations.
+// Use nGraph to execute operations.
 extern bool g_use_ngraph;
+
+// Use dldt to execute operations.
+extern bool g_use_dldt;
 
 // The device of nGraph (e.g., CPU and INTELGPU).
 extern std::string g_ngraph_device;
