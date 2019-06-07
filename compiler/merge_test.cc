@@ -29,7 +29,7 @@ TEST(MergeTest, SplitConcat) {
         gb.Op(Node::kConcat, tmps, output)->producer()->set_axis(1);
     }
 
-    MergeOperations(&graph);
+    MergeOperations(&graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
@@ -65,7 +65,7 @@ TEST(MergeTest, PadConv) {
         conv_node.set_strides({2, 2});
     }
 
-    MergeOperations(&graph);
+    MergeOperations(&graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
@@ -96,7 +96,7 @@ TEST(MergeTest, TransposeGemmA) {
         gb.Op(Node::kGemm, {&trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
     }
 
-    MergeOperations(&graph);
+    MergeOperations(&graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
@@ -142,7 +142,7 @@ TEST(MergeTest, ConvBN) {
     }
 
     EXPECT_EQ(8, graph.nodes().size());
-    MergeOperations(&graph);
+    MergeOperations(&graph, false);
     graph.DeleteDetached();
     EXPECT_EQ(3, graph.nodes().size());
     auto conv_checker = [](Node* nd) {

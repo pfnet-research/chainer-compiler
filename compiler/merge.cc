@@ -133,7 +133,7 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
         return false;
     }
     Node* bn = conv_bn->user(0);
-    if (bn->input(0) != conv_bn || bn->op_type() != Node::kBatchNormalization) {
+    if (bn->input(0) != conv_bn || bn->op_type() != Node::kBatchNormalization || bn->outputs().size() != 1) {
         return false;
     }
 
@@ -234,7 +234,7 @@ bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
 
 }  // namespace
 
-void MergeOperations(Graph* graph) {
+void MergeOperations(Graph* graph, bool gen_backprop) {
     bool replaced = true;
     while (replaced) {
         replaced = false;
@@ -250,7 +250,9 @@ void MergeOperations(Graph* graph) {
                     replaced |= MaybeMergePadConv(graph, node);
                     break;
                 case Node::kConv:
-                    replaced |= MaybeMergeConvBN(graph, node);
+                    if (!gen_backprop) {
+                        replaced |= MaybeMergeConvBN(graph, node);
+                    }
                     break;
                 case Node::kTranspose:
                     replaced |= MaybeMergeTransposeGemm(graph, node);
