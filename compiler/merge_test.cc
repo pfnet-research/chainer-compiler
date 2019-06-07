@@ -76,8 +76,50 @@ TEST(MergeTest, PadConv) {
     graph.CheckSanity("merged");
 }
 
-TEST(MergeTest, ConvBN) {
+TEST(MergeTest, TransposeGemmA) {
     Type type(Dtype::kFloat32, {});
+    Graph graph("test");
+    Value* input = graph.AddInputValue("input", type);
+    Value* output = graph.AddOutputValue("output", type);
+
+    std::string trans_name;
+    {
+        GraphBuilder gb(&graph, "test", input);
+
+        // Transpose node
+        Value& trans = *gb.Op(Node::kTranspose, {input});
+        trans_name = trans.name();
+        Node& trans_node = *trans.producer();
+        trans_node.set_perm({1, 0});
+
+        // Gemm node
+        gb.Op(Node::kGemm, {&trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
+    }
+
+    MergeOperations(&graph);
+    graph.DeleteDetached();
+    ASSERT_EQ(1, graph.nodes().size());
+    Node const& node = *graph.nodes()[0];
+    ASSERT_EQ(Node::kGemm, node.op_type());
+    ASSERT_EQ(3, node.inputs().size());
+    ASSERT_EQ(1, node.trans_a());
+    ASSERT_EQ(0, node.trans_b());
+    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
+    graph.CheckSanity("merged");
+}
+
+}  // namespace
+}  // namespace chainer_compiler
+
+// TODO(take-cheeze): EXPECT_ARRAY_* macros need to be used inside chainerx namespace.
+// These can move above when https://github.com/chainer/chainer/pull/7434 is merged.
+namespace chainerx {
+namespace {
+
+TEST(MergeTest, ConvBN) {
+    using namespace chainer_compiler;
+
+    Type type(chainer_compiler::Dtype::kFloat32, {});
     Graph graph("test");
     Value* input = graph.AddInputValue("input", type);
     Value* output = graph.AddOutputValue("output", type);
@@ -117,37 +159,5 @@ TEST(MergeTest, ConvBN) {
     */
 }
 
-TEST(MergeTest, TransposeGemmA) {
-    Type type(Dtype::kFloat32, {});
-    Graph graph("test");
-    Value* input = graph.AddInputValue("input", type);
-    Value* output = graph.AddOutputValue("output", type);
-
-    std::string trans_name;
-    {
-        GraphBuilder gb(&graph, "test", input);
-
-        // Transpose node
-        Value& trans = *gb.Op(Node::kTranspose, {input});
-        trans_name = trans.name();
-        Node& trans_node = *trans.producer();
-        trans_node.set_perm({1, 0});
-
-        // Gemm node
-        gb.Op(Node::kGemm, {&trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
-    }
-
-    MergeOperations(&graph);
-    graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
-    Node const& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kGemm, node.op_type());
-    ASSERT_EQ(3, node.inputs().size());
-    ASSERT_EQ(1, node.trans_a());
-    ASSERT_EQ(0, node.trans_b());
-    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
-    graph.CheckSanity("merged");
-}
-
 }  // namespace
-}  // namespace chainer_compiler
+}  // namespace chainerx
