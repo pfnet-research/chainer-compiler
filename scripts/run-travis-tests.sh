@@ -39,10 +39,10 @@ run large_tests make large_tests
 run unit_tests make test
 
 cd ..
-run runtests ./scripts/runtests.py 2>&1
+PYTHONPATH=. run runtests ./scripts/runtests.py 2>&1
 run pytest pytest -sv python
 
-PYTHONPATH=./python:./build/python:./ch2o run train_mnist python3 examples/mnist/train_mnist.py \
+PYTHONPATH=. run train_mnist python3 examples/mnist/train_mnist.py \
      -d native --compile -I 3 --use-fake-data
 
 run tools_dump ./build/tools/dump out/ch2o_model_MLP_with_loss
