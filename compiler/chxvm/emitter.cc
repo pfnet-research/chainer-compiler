@@ -1,5 +1,7 @@
 #include "compiler/chxvm/emitter.h"
 
+#include <stdlib.h>
+#include <fstream>
 #include <map>
 
 #include <common/log.h>
@@ -874,6 +876,56 @@ private:
                 ngraph_device = "CPU";
             }
             EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
+            return;
+        }
+
+        if (g_use_dldt && node.fusion_type() == "dldt") {
+#if 0
+            for (Node* node : body.nodes()) {
+                node->set_chainer_order(-1);
+                node->set_chainer_fusion_group(0);
+            }
+#endif
+
+            if (g_compiler_log) {
+                CLOG() << "Fusion group (dldt) " << GetFusionGroupSummary(node) << std::endl;
+            }
+
+            onnx::ModelProto xmodel;
+            body.ToONNX(xmodel.mutable_graph());
+
+            // TODO(hamaji): Change the path.
+            {
+                std::ofstream ofs("/tmp/tmp.onnx");
+                CHECK(ofs) << "Failed to open output file: " << "/tmp/tmp.onnx";
+                CHECK(xmodel.SerializeToOstream(&ofs));
+            }
+
+            const std::string cmdline = StrCat(
+                "python3 dldt/model-optimizer/mo_onnx.py "
+                "--input_model /tmp/tmp.onnx "
+                "--model_name /tmp/tmp");
+            CLOG() << "Run command: " << cmdline << std::endl;
+            int ret = system(cmdline.c_str());
+            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+
+            // TODO(hamaji): Implement.
+#if 0
+            std::vector<int> inputs;
+            std::vector<ChxVMValue> outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.emplace_back(GetValueId(value), value);
+            }
+
+            std::string ngraph_device = g_ngraph_device;
+            if (ngraph_device.empty()) {
+                ngraph_device = "CPU";
+            }
+            EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
+#endif
             return;
         }
 
