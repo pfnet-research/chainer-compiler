@@ -1,0 +1,1 @@
+from chainer_compiler.elichika.testtools.testcasegen import generate_testcase

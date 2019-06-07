@@ -191,7 +191,7 @@ add_custom_target(large_tests)
 
 if(${CHAINER_COMPILER_ENABLE_PYTHON})
   include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/pybind11/include)
-  add_subdirectory(python)
+  add_subdirectory(chainer_compiler_cc)
 endif()
 
 set(ONNX_CHAINER_DEPS
@@ -246,22 +246,22 @@ add_custom_target(
   )
 
 set(CH2O_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/builtin_funcs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/callable.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/chainer2onnx.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/funcs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/initializer.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/links.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/test_args.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/testcasegen.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/utils.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/ch2o/value.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/builtin_funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/callable.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/funcs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/initializer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/links.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/test_args.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/testcasegen.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/utils.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/ch2o/value.py
   )
 
 function(gen_ch2o_test dir ch2o_test all)
 
-  set(ch2o_test_py ${CMAKE_CURRENT_SOURCE_DIR}/ch2o/tests/${dir}/${ch2o_test}.py)
+  set(ch2o_test_py ${CMAKE_CURRENT_SOURCE_DIR}/testcases/ch2o_tests/${dir}/${ch2o_test}.py)
   set(out_dir ${CMAKE_CURRENT_SOURCE_DIR}/out/ch2o_${dir}_${ch2o_test}) # TODO: move to build/ directory
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/ch2o_${dir}_${ch2o_test})
 
@@ -269,7 +269,7 @@ function(gen_ch2o_test dir ch2o_test all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/ch2o python3 ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
     MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
@@ -385,31 +385,31 @@ foreach(
 endforeach()
 
 set(ELICHIKA_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/chainer2onnx.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/functions_builtin.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/links_builtin.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/onnx_converters.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/canonicalizer.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/config.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/core.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_builtin.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/functions_ndarray.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/graphs.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/links_builtin.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/nodes.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/utils.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/values.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_bin.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/veval_unary.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/vevaluator.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/elichika/parser/visualizer.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/__init__.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/initializer.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/test_args.py
-  ${CMAKE_CURRENT_SOURCE_DIR}/elichika/testtools/testcasegen.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/chainer2onnx.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/functions_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/links_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/onnx_converters.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/canonicalizer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/config.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/core.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/functions.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/functions_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/functions_ndarray.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/graphs.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/links_builtin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/nodes.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/utils.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/values.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/veval_bin.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/veval_unary.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/vevaluator.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/parser/visualizer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/testtools/__init__.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/testtools/initializer.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/testtools/test_args.py
+  ${CMAKE_CURRENT_SOURCE_DIR}/chainer_compiler/elichika/testtools/testcasegen.py
   )
 
 # Include elichika_tests so the build file will be regenerated when a
@@ -430,7 +430,7 @@ function(gen_elichika_test dir all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/elichika python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
     DEPENDS ${elichika_tests_py} ${ELICHIKA_FILES} ${test_files}
     )
 

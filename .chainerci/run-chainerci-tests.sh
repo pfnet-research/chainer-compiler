@@ -46,9 +46,9 @@ make large_tests
 make test
 cd ..
 
-python3 scripts/runtests.py -g --fuse
-python3 scripts/runtests.py --ngraph
-python3 -m pytest -sv python
+PYTHONPATH=. python3 scripts/runtests.py -g --fuse
+PYTHONPATH=. python3 scripts/runtests.py --ngraph
+PYTHONPATH=. python3 -m pytest -sv tests
 
 EOM
 

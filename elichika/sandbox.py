@@ -4,9 +4,9 @@ import chainer.links as L
 import numpy as np
 import os
 
-import elichika
-import elichika.parser as parser
-import elichika.parser.visualizer as visualizer
+import chainer_compiler.elichika
+import chainer_compiler.elichika.parser as parser
+import chainer_compiler.elichika.parser.visualizer as visualizer
 
 
 
