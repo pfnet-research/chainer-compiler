@@ -136,17 +136,15 @@ TEST(MergeTest, ConvBN) {
     {
         GraphBuilder gb(&graph, "test", input);
 
-        Value* y = graph.AddOutputValue("Y", type);
-        Node& conv_node = *gb.MOp(Node::kConv, {input, gb.Const(W), gb.Const(B)}, {y});
-        Node& bn_node = *gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
+        Value* y = graph.AddValue("Y", type);
+        gb.MOp(Node::kConv, {input, gb.Const(W), gb.Const(B)}, {y});
+        gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
     }
 
+    EXPECT_EQ(8, graph.nodes().size());
     MergeOperations(&graph);
     graph.DeleteDetached();
-    for (Node const* nd : graph.nodes()) {
-        std::cerr << nd->op_type() << std::endl;
-    }
-    EXPECT_EQ(4, graph.nodes().size());
+    EXPECT_EQ(3, graph.nodes().size());
     auto conv_checker = [](Node* nd) {
         EXPECT_TRUE(nd->op_type() == Node::kConv || nd->op_type() == Node::kConstant);
         return nd->op_type() == Node::kConv;
@@ -162,13 +160,6 @@ TEST(MergeTest, ConvBN) {
     chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
     EXPECT_ARRAY_ALL_CLOSE((B - mean) * f + b, new_b);
     EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({3, 1, 1, 1}), new_w);
-
-    /*
-    f = scale / np.sqrt(var + 1e-5);
-    np.testing.assert_almost_equal((B - mean) * f + b, new_b);
-    np.testing.assert_almost_equal(
-        W * f[:, np.newaxis, np.newaxis, np.newaxis], new_W);
-    */
 }
 
 }  // namespace

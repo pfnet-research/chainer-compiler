@@ -124,7 +124,7 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
 }
 
 bool MaybeMergeConvBN(Graph* graph, Node* conv) {
-    if (conv->outputs().size() < 2) {
+    if (conv->outputs().size() != 1) {
         return false;
     }
 
@@ -150,7 +150,7 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
         name##_tns = name##_nd->tensor_value().get();                \
         detaching_const_node.push_back(name##_nd);                   \
     }                                                                \
-    chainerx::Array const& name = name##_tns->chx()
+    chainerx::Array name = name##_tns->chx()
 
     chainerx::Array bc;
     bool const has_conv_bias = conv->inputs().size() == 3;
@@ -174,9 +174,9 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     chainerx::Array s = scale / chainerx::Sqrt(var + eps);
     std::vector<chainerx::Array> new_w_data;
     for (int64_t i = 0; i < w.shape()[0]; ++i) {
-        new_w_data.push_back(w.At({i}) * s);
+        new_w_data.push_back(w.At({i}) * s.At({i}));
     }
-    chainerx::Array new_w = chainerx::Concatenate(new_w_data);
+    chainerx::Array new_w = chainerx::Stack(new_w_data);
     bc = (bc - mean) * s + bn_bias;
 
     GraphBuilder gb(graph, "MergeConvBN", bn->input(0));
