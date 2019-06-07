@@ -165,7 +165,7 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     GET_TENSOR(mean, bn, 3);
     GET_TENSOR(var, bn, 4);
     GET_TENSOR(w, conv, 1);
-    float epsilon = bn->epsilon();
+    float const epsilon = bn->epsilon();
 
     chainerx::Array eps = chainerx::Full({scale.shape()[0]}, epsilon, scale.dtype());
     if (!has_conv_bias) {

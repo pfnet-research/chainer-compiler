@@ -143,10 +143,20 @@ TEST(MergeTest, ConvBN) {
 
     MergeOperations(&graph);
     graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
-    Node const& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kConv, node.op_type());
+    for (Node const* nd : graph.nodes()) {
+        std::cerr << nd->op_type() << std::endl;
+    }
+    EXPECT_EQ(4, graph.nodes().size());
+    auto conv_checker = [](Node* nd) {
+        EXPECT_TRUE(nd->op_type() == Node::kConv || nd->op_type() == Node::kConstant);
+        return nd->op_type() == Node::kConv;
+    };
+    auto node_it = std::find_if(graph.nodes().begin(), graph.nodes().end(), conv_checker);
+    EXPECT_NE(graph.nodes().end(), node_it);
+    Node const& node = **node_it;
 
+    EXPECT_EQ(Node::kConstant, node.input(1)->producer()->op_type());
+    EXPECT_EQ(Node::kConstant, node.input(2)->producer()->op_type());
     chainerx::Array new_w = node.input(1)->producer()->tensor_value()->chx();
     chainerx::Array new_b = node.input(2)->producer()->tensor_value()->chx();
     chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
