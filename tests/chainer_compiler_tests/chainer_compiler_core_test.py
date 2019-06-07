@@ -6,9 +6,10 @@ import chainerx.testing
 import numpy as np
 import onnx
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, 'build/python'))
-sys.path.append(os.path.join(project_root, 'python'))
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(project_root, 'build/chainer_compiler_cc'))
+sys.path.append(os.path.join(project_root, 'chainer_compiler'))
 sys.path.append(os.path.join(project_root, 'scripts'))
 
 import _chainer_compiler_core

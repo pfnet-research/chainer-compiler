@@ -28,10 +28,11 @@ except:
 
 all_computation_orders = [None, 'dummy', 'dummy2']
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, 'ch2o'))
-sys.path.append(os.path.join(project_root, 'python'))
-sys.path.append(os.path.join(project_root, 'build/python'))
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(project_root)
+sys.path.append(os.path.join(project_root, 'build/chainer_compiler_cc'))
+sys.path.append(os.path.join(project_root, 'chainer_compiler'))
 
 from chainer_compiler import chainer_compiler  # noqa
 
