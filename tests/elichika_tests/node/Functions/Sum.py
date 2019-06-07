@@ -4,7 +4,7 @@ import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
-import testtools
+from chainer_compiler.elichika import testtools
 
 class Sum(chainer.Chain):
     def forward(self, x):

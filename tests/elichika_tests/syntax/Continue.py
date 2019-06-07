@@ -43,7 +43,7 @@ class ContinueNestedMultiple(chainer.Chain):
 # ======================================
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 
 

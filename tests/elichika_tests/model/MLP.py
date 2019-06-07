@@ -23,7 +23,7 @@ class MLP(chainer.Chain):
         return loss
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 
 def main():

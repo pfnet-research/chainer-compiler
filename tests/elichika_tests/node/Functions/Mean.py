@@ -3,7 +3,7 @@
 import numpy as np
 import chainer
 import chainer.functions as F
-import testtools
+from chainer_compiler.elichika import testtools
 
 class Mean(chainer.Chain):
     def forward(self, x):

@@ -2,7 +2,7 @@
 
 import chainer
 import chainer.functions as F
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 
 # Network definition

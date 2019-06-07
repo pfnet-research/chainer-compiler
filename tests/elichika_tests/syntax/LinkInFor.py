@@ -22,7 +22,7 @@ class LinkInFor(chainer.Chain):
         return h
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 
 

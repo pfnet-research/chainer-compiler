@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 import chainer
 import chainer.functions as F

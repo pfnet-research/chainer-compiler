@@ -89,7 +89,7 @@ class VGG2LBackprop(chainer.Chain):
         return F.pad_sequence(xs)
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 
 
 def main():

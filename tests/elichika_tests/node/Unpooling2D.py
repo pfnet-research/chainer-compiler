@@ -19,7 +19,7 @@ class Unpooling2D_3x4(chainer.Chain):
 # ======================================
 
 import numpy as np
-import testtools
+from chainer_compiler.elichika import testtools
 
 def main():
     x = np.random.rand(2, 3, 11, 7).astype(np.float32)

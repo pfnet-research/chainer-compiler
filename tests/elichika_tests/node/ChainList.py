@@ -5,7 +5,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-import testtools
+from chainer_compiler.elichika import testtools
 
 class LinearBlockCall(chainer.Chain):
     def __init__(self):

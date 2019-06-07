@@ -82,7 +82,7 @@ class MyLSTM(chainer.Chain):
 # from https://github.com/chainer/chainer/blob/master/examples/seq2seq/seq2seq.py
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 
 

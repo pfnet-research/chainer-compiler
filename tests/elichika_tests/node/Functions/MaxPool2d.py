@@ -2,7 +2,7 @@
 
 import chainer
 import chainer.functions as F
-import testtools
+from chainer_compiler.elichika import testtools
 
 class MaxPool(chainer.Chain):
     def forward(self, x):
@@ -24,7 +24,7 @@ class MaxPoolNoStride(chainer.Chain):
 
 # ======================================
 
-import testtools
+from chainer_compiler.elichika import testtools
 import numpy as np
 
 def main():

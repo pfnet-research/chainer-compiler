@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import numpy as np
-import testtools
+from chainer_compiler.elichika import testtools
 import chainer
 import chainer.functions as F
 import chainer.links as L

@@ -14,14 +14,14 @@ import chainer
 from chainer_compiler.elichika.chainer2onnx import compile_model
 from chainer_compiler.elichika.onnx_converters import onnx_name
 
-from testtools.test_args import get_test_args
-from testtools.test_args import dprint
+from chainer_compiler.elichika.testtools.test_args import get_test_args
+from chainer_compiler.elichika.testtools.test_args import dprint
 
 import onnx
 from onnx import numpy_helper
 from onnx import TensorProto
 
-from testtools.initializer import edit_onnx_protobuf
+from chainer_compiler.elichika.testtools.initializer import edit_onnx_protobuf
 
 def _validate_inout(xs):
     # print(xs)

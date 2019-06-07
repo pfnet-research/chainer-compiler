@@ -3,7 +3,7 @@
 import chainer
 import chainer.functions as F
 import numpy as np
-import testtools
+from chainer_compiler.elichika import testtools
 
 class Separate(chainer.Chain):
     def forward(self, x):

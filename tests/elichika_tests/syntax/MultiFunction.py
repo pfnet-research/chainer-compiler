@@ -25,7 +25,7 @@ class A(chainer.Chain):
 
 # ======================================
 
-import testtools
+from chainer_compiler.elichika import testtools
 
 
 def main():

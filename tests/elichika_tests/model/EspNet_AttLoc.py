@@ -194,7 +194,7 @@ class AttLoc(chainer.Chain):
         return c, w
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 
 
 def main():

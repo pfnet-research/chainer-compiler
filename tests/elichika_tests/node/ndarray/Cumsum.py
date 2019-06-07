@@ -4,7 +4,7 @@ import chainer
 import chainer.links as L
 import chainer.functions as F
 import numpy as np
-import testtools
+from chainer_compiler.elichika import testtools
 
 class A(chainer.Chain):
 

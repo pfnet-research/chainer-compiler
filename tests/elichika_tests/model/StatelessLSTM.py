@@ -225,7 +225,7 @@ class StatelessLSTMBackprop(chainer.Chain):
         return c * h
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 
 
 def main():

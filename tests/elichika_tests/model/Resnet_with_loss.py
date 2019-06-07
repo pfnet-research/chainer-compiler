@@ -5,7 +5,7 @@ import chainer
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
-import testtools
+from chainer_compiler.elichika import testtools
 
 class BottleNeckA(chainer.Chain):
 

@@ -244,7 +244,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 
 
 class Args(object):

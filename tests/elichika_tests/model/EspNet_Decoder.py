@@ -281,7 +281,7 @@ class Decoder(chainer.Chain):
         return self.loss, acc
 
 
-import testtools
+from chainer_compiler.elichika import testtools
 
 
 if __name__ == '__main__':

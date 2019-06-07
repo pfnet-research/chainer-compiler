@@ -8,20 +8,20 @@ from onnx import numpy_helper
 from onnx import TensorProto
 from onnx import ModelProto
 
-import chainer_compiler.elichika.parser.core as core
-import chainer_compiler.elichika.parser.graphs as graphs
-import chainer_compiler.elichika.parser.values as values
-import chainer_compiler.elichika.parser.nodes as nodes
-import chainer_compiler.elichika.parser.functions as functions
-import chainer_compiler.elichika.parser.functions_builtin as functions_builtin
-import chainer_compiler.elichika.parser.utils as utils
+from chainer_compiler.elichika.parser import core
+from chainer_compiler.elichika.parser import graphs
+from chainer_compiler.elichika.parser import values
+from chainer_compiler.elichika.parser import nodes
+from chainer_compiler.elichika.parser import functions
+from chainer_compiler.elichika.parser import functions_builtin
+from chainer_compiler.elichika.parser import utils
 
 import numpy as np
 import collections
 
-import chainer_compiler.elichika.onnx_converters as oc
-import chainer_compiler.elichika.links_builtin as lb
-import chainer_compiler.elichika.functions_builtin as fb
+from chainer_compiler.elichika import onnx_converters as oc
+from chainer_compiler.elichika import links_builtin as lb
+from chainer_compiler.elichika import functions_builtin as fb
 
 
 class ONNXModel:
