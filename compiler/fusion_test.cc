@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <compiler/flags.h>
 #include <compiler/fusion.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
@@ -8,6 +9,8 @@ namespace chainer_compiler {
 namespace {
 
 TEST(FusionTest, Basic) {
+    // TODO(hamaji): Introduce something like CompilerContext.
+    g_fuse_operations = true;
     Type type(Dtype::kFloat32, {});
     Graph graph("test");
     Value* input = graph.AddInputValue("input", type);
@@ -23,6 +26,7 @@ TEST(FusionTest, Basic) {
     ASSERT_TRUE(node.subgraph());
     EXPECT_EQ(2, node.subgraph()->nodes().size());
     graph.CheckSanity("fused");
+    g_fuse_operations = false;
 }
 
 }  // namespace
