@@ -1,5 +1,5 @@
-from elichika.parser import nodes
-from elichika.parser import utils
+from chainer_compiler.elichika.parser import nodes
+from chainer_compiler.elichika.parser import utils
 
 
 class Graph:

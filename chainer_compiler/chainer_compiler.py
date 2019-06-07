@@ -179,7 +179,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
 
 def _run_translator(translator, mc, inputs):
     if translator == 'ch2o':
-        import ch2o
+        import chainer_compiler.ch2o
         xmodel = ch2o.compile_model(mc, inputs)
         f = tempfile.NamedTemporaryFile(delete=False)
         f.write(xmodel.SerializeToString())

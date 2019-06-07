@@ -19,7 +19,7 @@ class A(chainer.Chain):
 # ======================================
 
 
-import ch2o
+import chainer_compiler.ch2o
 
 
 if __name__ == '__main__':

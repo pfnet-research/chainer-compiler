@@ -1,7 +1,7 @@
 
 from graphviz import Digraph
-from elichika.parser.core import convert_model, Graph
-from elichika.parser.nodes import Node
+from chainer_compiler.elichika.parser.core import convert_model, Graph
+from chainer_compiler.elichika.parser.nodes import Node
 
 
 def get_valids(list_):

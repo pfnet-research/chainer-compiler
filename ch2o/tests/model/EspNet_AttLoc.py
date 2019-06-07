@@ -194,7 +194,7 @@ class AttLoc(chainer.Chain):
         return c, w
 
 
-import ch2o
+import chainer_compiler.ch2o
 
 
 if __name__ == '__main__':

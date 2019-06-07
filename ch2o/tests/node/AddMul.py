@@ -13,7 +13,7 @@ class A(chainer.Chain):
         return z
 
 
-import ch2o
+import chainer_compiler.ch2o
 import numpy as np
 if __name__ == '__main__':
     model = A()

@@ -10,7 +10,7 @@ from onnx import helper
 from onnx import numpy_helper
 from onnx import TensorProto
 
-from ch2o import value
+from chainer_compiler.ch2o import value
 
 def _get_trace_str():
     # TODO(hamaji): Use parsing context instead of CH2O codebase.

@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from elichika.parser import config
+from chainer_compiler.elichika.parser import config
 
 current_id = 0
 

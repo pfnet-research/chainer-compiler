@@ -10,16 +10,16 @@ import inspect
 import ast
 import gast
 import weakref
-from elichika.parser import vevaluator
-from elichika.parser import core
-from elichika.parser import nodes
-from elichika.parser import functions
-from elichika.parser import utils
-from elichika.parser import config
-from elichika.parser import functions_builtin
-from elichika.parser import functions_ndarray
+from chainer_compiler.elichika.parser import vevaluator
+from chainer_compiler.elichika.parser import core
+from chainer_compiler.elichika.parser import nodes
+from chainer_compiler.elichika.parser import functions
+from chainer_compiler.elichika.parser import utils
+from chainer_compiler.elichika.parser import config
+from chainer_compiler.elichika.parser import functions_builtin
+from chainer_compiler.elichika.parser import functions_ndarray
 
-from elichika.parser.functions import FunctionBase, UserDefinedFunction
+from chainer_compiler.elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
 histories = []

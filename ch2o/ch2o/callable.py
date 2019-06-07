@@ -1,6 +1,6 @@
 import inspect
 
-from ch2o.value import Value
+from chainer_compiler.ch2o.value import Value
 
 
 class Callable(object):

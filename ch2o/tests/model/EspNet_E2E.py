@@ -244,7 +244,7 @@ class E2E(chainer.Chain):
         return loss_ctc, loss_att, acc
 
 
-import ch2o
+import chainer_compiler.ch2o
 
 
 class Args(object):
@@ -617,7 +617,7 @@ def run(recipe, num_iterations, bwd=True, is_gpu=False):
 
 
 def gen(output, recipe, bwd=True, use_gpu=False):
-    from ch2o import test_args
+    from chainer_compiler.ch2o import test_args
     test_args.get_test_args([output, '--allow-unused-params'])
 
     (idim, odim, args), (xs, ilens, ys) = recipe

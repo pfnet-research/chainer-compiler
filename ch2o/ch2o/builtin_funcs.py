@@ -2,9 +2,9 @@
 
 from onnx import helper
 
-from ch2o.callable import Callable
-from ch2o.funcs import Func, totensor
-from ch2o.utils import istensor, new_tensor
+from chainer_compiler.ch2o.callable import Callable
+from chainer_compiler.ch2o.funcs import Func, totensor
+from chainer_compiler.ch2o.utils import istensor, new_tensor
 
 
 class Builtin_Len(Callable):

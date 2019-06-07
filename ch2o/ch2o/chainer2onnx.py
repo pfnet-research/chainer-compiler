@@ -18,13 +18,13 @@ import types
 import chainer
 import numpy
 
-from ch2o.test_args import dprint
-from ch2o.env import Env
-from ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, make_graph
-from ch2o.links import Link2NodeClass
-from ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
-from ch2o.builtin_funcs import builtin_functions
-from ch2o.value import Value
+from chainer_compiler.ch2o.test_args import dprint
+from chainer_compiler.ch2o.env import Env
+from chainer_compiler.ch2o.utils import new_tensor, new_sequence, clip_head, ValueReturn, istensor, totensor, make_graph
+from chainer_compiler.ch2o.links import Link2NodeClass
+from chainer_compiler.ch2o.funcs import Func, Func2NodeClass, Function_Concat, Function_Dummy, castto
+from chainer_compiler.ch2o.builtin_funcs import builtin_functions
+from chainer_compiler.ch2o.value import Value
 
 import builtins
 

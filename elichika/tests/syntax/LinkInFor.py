@@ -6,7 +6,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-#from ch2o.test_args import dprint
+#from chainer_compiler.ch2o.test_args import dprint
 
 
 class LinkInFor(chainer.Chain):

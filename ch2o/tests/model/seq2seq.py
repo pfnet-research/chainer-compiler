@@ -71,7 +71,7 @@ class Seq2seq(chainer.Chain):
 
 # from https://github.com/chainer/chainer/blob/master/examples/seq2seq/seq2seq.py
 
-import ch2o
+import chainer_compiler.ch2o
 
 if __name__ == '__main__':
     import numpy as np

@@ -11,16 +11,16 @@ from onnx import numpy_helper
 from onnx import TensorProto
 from onnx import ModelProto
 
-import elichika.parser.core as core
-import elichika.parser.graphs as graphs
-import elichika.parser.values as values
-import elichika.parser.nodes as nodes
-import elichika.parser.functions as functions
-import elichika.parser.functions_builtin as functions_builtin
-import elichika.parser.functions_ndarray as functions_ndarray
-import elichika.parser.utils as utils
-import elichika.parser.config as config
-import elichika.parser.links_builtin as links_builtin
+import chainer_compiler.elichika.parser.core as core
+import chainer_compiler.elichika.parser.graphs as graphs
+import chainer_compiler.elichika.parser.values as values
+import chainer_compiler.elichika.parser.nodes as nodes
+import chainer_compiler.elichika.parser.functions as functions
+import chainer_compiler.elichika.parser.functions_builtin as functions_builtin
+import chainer_compiler.elichika.parser.functions_ndarray as functions_ndarray
+import chainer_compiler.elichika.parser.utils as utils
+import chainer_compiler.elichika.parser.config as config
+import chainer_compiler.elichika.parser.links_builtin as links_builtin
 
 import numpy as np
 import collections

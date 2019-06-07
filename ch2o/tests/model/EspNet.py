@@ -1158,6 +1158,6 @@ if __name__ == '__main__':
     #a,b = model(xs,ilens,ys)
     #print(a,b)
 
-    import ch2o
+    import chainer_compiler.ch2o
     ch2o.generate_testcase(model, [xs,ilens,ys])
 

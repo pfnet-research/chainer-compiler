@@ -15,7 +15,7 @@ class A(chainer.Chain):
 
 
 import numpy as np
-import ch2o
+import chainer_compiler.ch2o
 if __name__ == '__main__':
 
     out_n = 2

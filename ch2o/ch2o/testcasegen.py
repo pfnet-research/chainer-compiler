@@ -10,15 +10,15 @@ import types
 import numpy as np
 import chainer
 
-from ch2o.chainer2onnx import compile_model
-from ch2o.test_args import get_test_args
-from ch2o.test_args import dprint
+from chainer_compiler.ch2o.chainer2onnx import compile_model
+from chainer_compiler.ch2o.test_args import get_test_args
+from chainer_compiler.ch2o.test_args import dprint
 
 import onnx
 from onnx import numpy_helper
 from onnx import TensorProto
 
-from ch2o.initializer import edit_onnx_protobuf, tensor_from_array
+from chainer_compiler.ch2o.initializer import edit_onnx_protobuf, tensor_from_array
 
 # variableを消す
 

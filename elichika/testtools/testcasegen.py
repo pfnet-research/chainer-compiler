@@ -11,8 +11,8 @@ import numpy as np
 
 import chainer
 
-from elichika.chainer2onnx import compile_model
-from elichika.onnx_converters import onnx_name
+from chainer_compiler.elichika.chainer2onnx import compile_model
+from chainer_compiler.elichika.onnx_converters import onnx_name
 
 from testtools.test_args import get_test_args
 from testtools.test_args import dprint

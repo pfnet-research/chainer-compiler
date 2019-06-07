@@ -174,5 +174,5 @@ if __name__ == '__main__':
     v = np.random.rand(2, 3, 227, 227).astype(np.float32)
     t = np.random.randint(1000, size=2)
 
-    import ch2o
+    import chainer_compiler.ch2o
     ch2o.generate_testcase(model, [v, t])

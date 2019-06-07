@@ -8,18 +8,18 @@ from onnx import numpy_helper
 from onnx import TensorProto
 from onnx import ModelProto
 
-import elichika.parser.core as core
-import elichika.parser.graphs as graphs
-import elichika.parser.values as values
-import elichika.parser.nodes as nodes
-import elichika.parser.functions as functions
-import elichika.parser.functions_builtin as functions_builtin
-import elichika.parser.utils as utils
+import chainer_compiler.elichika.parser.core as core
+import chainer_compiler.elichika.parser.graphs as graphs
+import chainer_compiler.elichika.parser.values as values
+import chainer_compiler.elichika.parser.nodes as nodes
+import chainer_compiler.elichika.parser.functions as functions
+import chainer_compiler.elichika.parser.functions_builtin as functions_builtin
+import chainer_compiler.elichika.parser.utils as utils
 
 import numpy as np
 import collections
 
-import elichika.onnx_converters as oc
+import chainer_compiler.elichika.onnx_converters as oc
 
 
 def convert_onnx_chainer_linear(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'):

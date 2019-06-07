@@ -6,7 +6,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-from ch2o.test_args import dprint
+from chainer_compiler.ch2o.test_args import dprint
 
 
 class LinkInFor(chainer.Chain):
@@ -22,7 +22,7 @@ class LinkInFor(chainer.Chain):
         return h
 
 
-import ch2o
+import chainer_compiler.ch2o
 
 if __name__ == '__main__':
     import numpy as np

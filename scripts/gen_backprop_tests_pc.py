@@ -10,7 +10,7 @@ import onnx
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(project_root, 'ch2o'))
-import ch2o  # noqa
+import chainer_compiler.ch2o  # noqa
 
 F = chainer.functions
 L = chainer.links

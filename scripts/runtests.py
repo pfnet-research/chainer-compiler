@@ -9,8 +9,8 @@ import re
 import sys
 import subprocess
 
-import ch2o_tests
-import elichika_tests
+import chainer_compiler.ch2o_tests
+import chainer_compiler.elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
 import gen_extra_test

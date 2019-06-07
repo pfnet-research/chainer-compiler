@@ -9,12 +9,12 @@ import chainer
 from chainer import functions as F
 import numpy as np
 
-from ch2o import array_devices
-from ch2o import utils
-from ch2o.env import Env
-from ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, clip_head
-from ch2o.callable import Callable
-from ch2o.value import Value
+from chainer_compiler.ch2o import array_devices
+from chainer_compiler.ch2o import utils
+from chainer_compiler.ch2o.env import Env
+from chainer_compiler.ch2o.utils import new_tensor, get_dims, size2d, istensor, totensor, clip_head
+from chainer_compiler.ch2o.callable import Callable
+from chainer_compiler.ch2o.value import Value
 
 import ast
 import code
