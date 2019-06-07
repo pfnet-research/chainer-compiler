@@ -151,7 +151,7 @@ TEST(MergeTest, ConvBN) {
     chainerx::Array new_b = node.input(2)->producer()->tensor_value()->chx();
     chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
     EXPECT_ARRAY_ALL_CLOSE((B - mean) * f + b, new_b);
-    EXPECT_ARRAY_ALL_CLOSE(W * f, new_w);
+    EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({3, 1, 1, 1}), new_w);
 
     /*
     f = scale / np.sqrt(var + 1e-5);
