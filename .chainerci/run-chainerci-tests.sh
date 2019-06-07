@@ -5,6 +5,10 @@ set -eux
 cat <<'EOM' >runtest.sh
 set -eux
 
+cat /proc/cpuinfo
+cat /proc/meminfo
+nvidia-smi
+
 python3 -m pip install gast
 python3 -m pip install --pre cupy-cuda100==7.0.0a1
 
