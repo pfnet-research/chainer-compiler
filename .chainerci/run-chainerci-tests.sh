@@ -10,7 +10,8 @@ cat /proc/meminfo
 nvidia-smi
 
 python3 -m pip install gast
-python3 -m pip install --pre cupy-cuda100==7.0.0a1
+CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','third_party/chainer/chainer/_version.py').__version__)")
+python3 -m pip install cupy-cuda100==$CHAINER_VERSION
 
 CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
