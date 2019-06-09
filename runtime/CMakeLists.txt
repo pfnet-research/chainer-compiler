@@ -26,6 +26,7 @@ add_custom_target(runtime_chxvm_pb_h DEPENDS chxvm.pb.h)
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
+include_directories(${CHAINER_COMPILER_DLDT_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_NGRAPH_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
@@ -46,6 +47,7 @@ add_library(chainer_compiler_runtime
   ops/controlflow.cc
   ops/creation.cc
   ops/cudnn_rnn.cc
+  ops/dldt.cc
   ops/generic.cc
   ops/indexing.cc
   ops/logic.cc

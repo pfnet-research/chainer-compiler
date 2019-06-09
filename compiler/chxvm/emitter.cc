@@ -909,8 +909,6 @@ private:
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
-            // TODO(hamaji): Implement.
-#if 0
             std::vector<int> inputs;
             std::vector<ChxVMValue> outputs;
             for (Value* value : node.inputs()) {
@@ -920,12 +918,8 @@ private:
                 outputs.emplace_back(GetValueId(value), value);
             }
 
-            std::string ngraph_device = g_ngraph_device;
-            if (ngraph_device.empty()) {
-                ngraph_device = "CPU";
-            }
-            EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
-#endif
+            std::string dldt_device = "";
+            EMIT(Dldt, outputs, inputs, "/tmp/tmp", dldt_device);
             return;
         }
 
