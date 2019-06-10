@@ -24,7 +24,24 @@ chainerx::Array LinearGradWeightOp::RunImpl(ChxVMState* st, const chainerx::Arra
 
 chainerx::Array ConvOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const nonstd::optional<chainerx::Array>& b) {
-    return chainerx::Conv(x, w, b, ComplementStride(strides, x), ComplementPad(pads, x));
+    Int64StackVector comp_strides = ComplementStride(strides, x);
+    Int64StackVector comp_pads = ComplementPad(pads, x);
+
+    if (group > 1) {
+        std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
+        std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));
+        std::vector<chainerx::Array> biases;
+        if (b.has_value()) {
+            biases = SplitByLengths(*b, 0, std::vector<int64_t>(group, b->shape()[0] / group));
+        }
+        std::vector<chainerx::Array> outputs(group);
+        for (int i = 0; i < group; ++i) {
+            auto sub_bias = b.has_value() ? nonstd::optional<chainerx::Array>(biases[i]) : nonstd::nullopt;
+            outputs[i] = chainerx::Conv(inputs[i], weights[i], sub_bias, comp_strides, comp_pads);
+        }
+        return chainerx::Concatenate(outputs, 1);
+    }
+    return chainerx::Conv(x, w, b, comp_strides, comp_pads);
 }
 
 chainerx::Array ConvTransposeOp::RunImpl(

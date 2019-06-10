@@ -323,53 +323,6 @@ bool ReplaceSoftsign(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceConv(Graph* graph, Node* node) {
-    CHECK_LT(0, node->group());
-    if (node->group() == 1) return false;
-    GraphBuilder gb(graph, "SimplifyConvGroup", node->output(0));
-
-    // Split the input.
-    std::vector<Value*> inputs;
-    for (int i = 0; i < node->group(); ++i) {
-        inputs.push_back(gb.Temp());
-    }
-    gb.MOp(Node::kSplit, {node->input(0)}, inputs)->set_axis(1);
-
-    std::vector<Value*> weights;
-    for (int i = 0; i < node->group(); ++i) {
-        weights.push_back(gb.Temp());
-    }
-    gb.MOp(Node::kSplit, {node->input(1)}, weights)->set_axis(0);
-
-    std::vector<Value*> biases;
-    if (node->inputs().size() >= 3) {
-        for (int i = 0; i < node->group(); ++i) {
-            biases.push_back(gb.Temp());
-        }
-        gb.MOp(Node::kSplit, {node->input(2)}, biases)->set_axis(0);
-    }
-
-    std::vector<Value*> outputs;
-    for (int i = 0; i < node->group(); ++i) {
-        std::vector<Value*> ins = {inputs[i], weights[i]};
-        if (!biases.empty()) {
-            ins.push_back(biases[i]);
-        }
-        Value* conv = gb.Op(Node::kConv, ins);
-        conv->producer()
-                ->set_auto_pad(node->auto_pad())
-                ->set_dilations(node->dilations())
-                ->set_kernel_shape(node->kernel_shape())
-                ->set_pads(node->pads())
-                ->set_strides(node->strides());
-        outputs.push_back(conv);
-    }
-
-    gb.Op(Node::kConcat, outputs, node->output(0))->producer()->set_axis(1);
-
-    return true;
-}
-
 bool HasImbalancedPad(const Node* node) {
     const std::vector<int64_t>& pads = node->pads();
     CHECK_EQ(pads.size() % 2, 0);
@@ -720,7 +673,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(Identity);
     REGISTER_SIMPLIFIER(ChainerLinear);
     REGISTER_SIMPLIFIER(ChainerSelectItem);
-    REGISTER_SIMPLIFIER(Conv);
     REGISTER_SIMPLIFIER(MaxPool);
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
