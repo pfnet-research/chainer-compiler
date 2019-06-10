@@ -22,7 +22,7 @@ for dir in model node syntax
 do
   for op in `ls testcases/ch2o_tests/$dir | sed 's/\.[^\.]*$//'`
   do
-    PYTHONPATH=. python3 testcases/ch2o_tests/${dir}/${op}.py out/ch2o_${dir}_${op} --quiet && true
+    PYTHONPATH=. python3 testcases/ch2o_tests/${dir}/${op}.py out/ch2o_${dir}_${op} --quiet
   done
 done
 
