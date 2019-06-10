@@ -32,7 +32,7 @@ The implementation of ChainerX VM, a Python/ONNX-free virtual machine based on C
 
 Again, the operations supported by ChainerX VM are managed by [chxvm_defs.py](/runtime/chxvm_defs.py), which acts as an IDL of ChainerX VM ops.
 
-## [chainer_compiler](/chainer_compiler)
+## [chainer_compiler](/chainer_compiler), [chainer_compiler_cc](/chainer_compiler_cc)
 
 This provides a thin wrapper interface of the compiler and the runtime.
 
