@@ -1,3 +1,4 @@
+#include <chainerx/routines/arithmetic.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/explog.h>

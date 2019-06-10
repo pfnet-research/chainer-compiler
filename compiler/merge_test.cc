@@ -107,14 +107,6 @@ TEST(MergeTest, TransposeGemmA) {
     graph.CheckSanity("merged");
 }
 
-}  // namespace
-}  // namespace chainer_compiler
-
-// TODO(take-cheeze): EXPECT_ARRAY_* macros need to be used inside chainerx namespace.
-// These can move above when https://github.com/chainer/chainer/pull/7434 is merged.
-namespace chainerx {
-namespace {
-
 TEST(MergeTest, ConvBN) {
     using namespace chainer_compiler;
 
@@ -162,4 +154,4 @@ TEST(MergeTest, ConvBN) {
 }
 
 }  // namespace
-}  // namespace chainerx
+}  // namespace chainer_compiler
