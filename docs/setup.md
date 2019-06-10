@@ -134,15 +134,6 @@ $ cmake -DCHAINER_COMPILER_ENABLE_CUDA=OFF ..
 $ make
 ```
 
-## Installing Chainer compiler via pip (optional)
-
-You can install Chainer compiler as a python package.
-In this case, you do not need to build Chainer compiler from source.
-
-```bash
-$ CUDA_PATH=/path/to/cuda CUDNN_ROOT_DIR=/path/to/cudnn_root pip3 install .
-```
-
 ### Setting up OpenCV (optional)
 
 Install OpenCV via the package manager or by building the source code.
@@ -168,6 +159,15 @@ TODO(hamaji): Document some of them. Notably,
 1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
 1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](../python/chainer_compiler.py).
 
+## Installing Chainer compiler via pip (optional)
+
+You can install Chainer compiler as a python package.
+In this case, you do not need to build Chainer compiler from source.
+
+```bash
+$ CUDA_PATH=/path/to/cuda CUDNN_ROOT_DIR=/path/to/cudnn_root pip3 install .
+```
+
 ## Run tests
 
 ```shell-session
@@ -175,7 +175,7 @@ $ cd build
 $ make test
 $ cd ..
 $ ./scripts/runtests.py
-$ pytest python  # If you set -DCHAINER_COMPILER_ENABLE_PYTHON=ON
+$ PYTHONPATH=. pytest tests  # If you set -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 ```
 
 Now you can proceed to [example usage](usage.md).
