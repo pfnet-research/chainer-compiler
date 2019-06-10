@@ -124,12 +124,8 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
 }
 
 bool MaybeMergeConvBN(Graph* graph, Node* conv) {
-    if (conv->outputs().size() != 1) {
-        return false;
-    }
-
     Value* conv_bn = conv->output(0);
-    if (conv_bn->users().size() < 1) {
+    if (conv_bn->users().size() != 1) {
         return false;
     }
     Node* bn = conv_bn->user(0);
@@ -153,7 +149,7 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     chainerx::Array name = name##_tns->chx()
 
     chainerx::Array bc;
-    bool const has_conv_bias = conv->inputs().size() == 3;
+    const bool has_conv_bias = conv->inputs().size() == 3;
 
     if (has_conv_bias) {
         GET_TENSOR(bias, conv, 2);
@@ -165,27 +161,27 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     GET_TENSOR(mean, bn, 3);
     GET_TENSOR(var, bn, 4);
     GET_TENSOR(w, conv, 1);
-    float const epsilon = bn->epsilon();
+    const float epsilon = bn->epsilon();
 
-    chainerx::Array eps = chainerx::Full({scale.shape()[0]}, epsilon, scale.dtype(), scale.device());
+    const chainerx::Array eps = chainerx::Full({scale.shape()[0]}, epsilon, scale.dtype(), scale.device());
     if (!has_conv_bias) {
         bc = chainerx::Full({scale.shape()[0]}, chainerx::Scalar(0.f), scale.dtype(), scale.device());
     }
-    chainerx::Array s = scale / chainerx::Sqrt(var + eps);
+    const chainerx::Array s = scale / chainerx::Sqrt(var + eps);
     std::vector<chainerx::Array> new_w_data;
     for (int64_t i = 0; i < w.shape()[0]; ++i) {
         new_w_data.push_back(w.At({i}) * s.At({i}));
     }
-    chainerx::Array new_w = chainerx::Stack(new_w_data);
+    const chainerx::Array new_w = chainerx::Stack(new_w_data);
     bc = (bc - mean) * s + bn_bias;
 
     GraphBuilder gb(graph, "MergeConvBN", bn->input(0));
-    Node& new_conv = *gb.MOp(Node::kConv, {conv->input(0), gb.Const(new_w), gb.Const(bc)}, bn->outputs());
-    new_conv.set_auto_pad(conv->auto_pad());
-    new_conv.set_dilations(conv->dilations());
-    new_conv.set_group(conv->group());
-    new_conv.set_pads(conv->pads());
-    new_conv.set_strides(conv->strides());
+    Node* new_conv = gb.MOp(Node::kConv, {conv->input(0), gb.Const(new_w), gb.Const(bc)}, bn->outputs());
+    new_conv->set_auto_pad(conv->auto_pad());
+    new_conv->set_dilations(conv->dilations());
+    new_conv->set_group(conv->group());
+    new_conv->set_pads(conv->pads());
+    new_conv->set_strides(conv->strides());
 
     for (Node* nd : detaching_const_node) {
         graph->DetachNode(nd);

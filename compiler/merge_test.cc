@@ -56,8 +56,7 @@ TEST(MergeTest, PadConv) {
         pad_node.set_value(0);
 
         // Conv node
-        Value& conv = *gb.Op(Node::kConv, {&pad, graph.AddInputValue("w", type)}, output);
-        Node& conv_node = *conv.producer();
+        Node& conv_node = *gb.MOp(Node::kConv, {&pad, graph.AddInputValue("w", type)}, {output});
         conv_node.set_dilations({1, 1});
         conv_node.set_group(1);
         conv_node.set_kernel_shape({3, 3});
@@ -68,7 +67,7 @@ TEST(MergeTest, PadConv) {
     MergeOperations(&graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
-    Node const& node = *graph.nodes()[0];
+    const Node& node = *graph.nodes()[0];
     ASSERT_EQ(Node::kConv, node.op_type());
     ASSERT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
     ASSERT_EQ(2, node.inputs().size());
@@ -87,13 +86,13 @@ TEST(MergeTest, TransposeGemmA) {
         GraphBuilder gb(&graph, "test", input);
 
         // Transpose node
-        Value& trans = *gb.Op(Node::kTranspose, {input});
-        trans_name = trans.name();
-        Node& trans_node = *trans.producer();
-        trans_node.set_perm({1, 0});
+        Value* trans = gb.Op(Node::kTranspose, {input});
+        trans_name = trans->name();
+        Node* trans_node = trans->producer();
+        trans_node->set_perm({1, 0});
 
         // Gemm node
-        gb.Op(Node::kGemm, {&trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
+        gb.Op(Node::kGemm, {trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
     }
 
     MergeOperations(&graph, false);

@@ -33,7 +33,7 @@ public:
     // Creates a new operation node which has multiple outputs.
     Node* MOp(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
 
-    Value* Const(chainerx::Array ary, Value* value = nullptr);
+    Value* Const(const chainerx::Array& ary, Value* value = nullptr);
 
     template <class T>
     Value* Const(const Type& type, const std::vector<T>& data, Value* value = nullptr);
