@@ -150,7 +150,7 @@ TEST(MergeTest, ConvBN) {
     };
     auto node_it = std::find_if(graph.nodes().begin(), graph.nodes().end(), conv_checker);
     EXPECT_NE(graph.nodes().end(), node_it);
-    Node const& node = **node_it;
+    const Node& node = **node_it;
 
     EXPECT_EQ(Node::kConstant, node.input(1)->producer()->op_type());
     EXPECT_EQ(Node::kConstant, node.input(2)->producer()->op_type());
