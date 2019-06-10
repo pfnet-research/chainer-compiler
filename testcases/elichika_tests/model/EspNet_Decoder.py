@@ -19,9 +19,9 @@ from chainer import training
 from chainer.training import extensions
 
 from testcases.elichika_tests.utils import sequence_utils
-from tests.model.EspNet_AttDot import AttDot
-from tests.model.EspNet_AttLoc import AttLoc
-from tests.model.StatelessLSTM import StatelessLSTM
+from testcases.elichika_tests.model.EspNet_AttDot import AttDot
+from testcases.elichika_tests.model.EspNet_AttLoc import AttLoc
+from testcases.elichika_tests.model.StatelessLSTM import StatelessLSTM
 
 
 def _mean(xs):

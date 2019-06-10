@@ -22,11 +22,11 @@ from chainer import training
 from chainer.training import extensions
 
 from testcases.elichika_tests.utils import sequence_utils
-from tests.model.EspNet_AttDot import AttDot
-from tests.model.EspNet_AttLoc import AttLoc
-from tests.model.EspNet_BLSTM import BLSTM
-from tests.model.EspNet_VGG2L import VGG2L
-from tests.model.EspNet_Decoder import Decoder
+from testcases.elichika_tests.model.EspNet_AttDot import AttDot
+from testcases.elichika_tests.model.EspNet_AttLoc import AttLoc
+from testcases.elichika_tests.model.EspNet_BLSTM import BLSTM
+from testcases.elichika_tests.model.EspNet_VGG2L import VGG2L
+from testcases.elichika_tests.model.EspNet_Decoder import Decoder
 
 
 def get_vgg2l_odim(idim, in_channel=3, out_channel=128):
