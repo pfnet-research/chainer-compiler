@@ -835,7 +835,11 @@ private:
 
     void EmitFusionGroup(const Node& node, XCProgramProto* prog) {
         const Graph& body = *node.subgraph();
-        CHECK_EQ(node.inputs().size(), body.input_values().size());
+        int num_input_values = 0;
+        for (Value* value : body.input_values()) {
+            if (!value->initializer()) ++num_input_values;
+        }
+        CHECK_EQ(node.inputs().size(), num_input_values);
         CHECK_EQ(node.outputs().size(), body.output_values().size());
         const std::string& debug_info = node.ToString();
 
@@ -897,14 +901,15 @@ private:
             // TODO(hamaji): Change the path.
             {
                 std::ofstream ofs("/tmp/tmp.onnx");
-                CHECK(ofs) << "Failed to open output file: " << "/tmp/tmp.onnx";
+                CHECK(ofs) << "Failed to open output file: "
+                           << "/tmp/tmp.onnx";
                 CHECK(xmodel.SerializeToOstream(&ofs));
             }
 
-            const std::string cmdline = StrCat(
-                "python3 dldt/model-optimizer/mo_onnx.py "
-                "--input_model /tmp/tmp.onnx "
-                "--model_name /tmp/tmp");
+            const std::string cmdline =
+                    StrCat("python3 dldt/model-optimizer/mo_onnx.py "
+                           "--input_model /tmp/tmp.onnx "
+                           "--model_name /tmp/tmp");
             CLOG() << "Run command: " << cmdline << std::endl;
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;

@@ -21,7 +21,8 @@ namespace chainer_compiler {
 
 namespace {
 
-void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id) {
+void CreateFusionGroup(
+        Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id, bool can_fuse_initializers) {
     std::vector<Value*> inputs;
     std::vector<Value*> outputs;
     std::vector<Value*> temps;
@@ -48,15 +49,26 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
     };
 
     Graph* subgraph = new Graph(StrCat("Fusion_", fusion_group_id));
+    std::vector<Value*> subgraph_inputs;
     for (Value* value : inputs) {
         Value* new_value = subgraph->AddInputValue("fi_" + value->name(), value->type());
         replace_value(value, new_value);
+
+        if (value->initializer() && value->users().empty()) {
+            new_value->ResetInitializer(std::make_unique<Tensor>("fi_" + value->name(), *value->initializer()));
+        } else {
+            if (value->initializer()) {
+                WARN_ONCE(StrCat(fusion_type, " fusion: moving initializers used more than once is not supported yet"));
+            }
+            subgraph_inputs.push_back(value);
+        }
     }
     for (Value* value : outputs) {
         Value* new_value = subgraph->AddOutputValue("fo_" + value->name(), value->type());
         replace_value(value, new_value);
     }
-    Node* fused = gb.MOp(Node::kChainerFusionGroup, inputs, outputs);
+
+    Node* fused = gb.MOp(Node::kChainerFusionGroup, subgraph_inputs, outputs);
     graph->MigrateNodes({nodes.begin(), nodes.end()}, temps, subgraph);
     fused->set_subgraph(subgraph);
     fused->set_fusion_type(fusion_type);
@@ -132,7 +144,8 @@ void RejectUnusedConstants(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
-void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, const std::function<bool(const Node&)>& is_fusable) {
+void FuseAllConnectedNodes(
+        const char* name, Graph* graph, int min_fuse_ops, bool can_fuse_initializers, const std::function<bool(const Node&)>& is_fusable) {
     int num_fusion_groups = 0;
     const std::vector<Node*> all_nodes(graph->nodes());
     for (Node* base_node : all_nodes) {
@@ -178,7 +191,7 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
             node->set_chainer_fusion_group(num_fusion_groups);
         }
 
-        CreateFusionGroup(graph, cands, name, num_fusion_groups);
+        CreateFusionGroup(graph, cands, name, num_fusion_groups, can_fuse_initializers);
     }
 }
 
@@ -251,7 +264,7 @@ void FuseDldtOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("dldt", graph, 1, is_fusable);
+    FuseAllConnectedNodes("dldt", graph, 1, true, is_fusable);
 }
 
 void FuseNGraphOperations(Graph* graph) {
@@ -416,7 +429,7 @@ void FuseNGraphOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("ngraph", graph, 1, is_fusable);
+    FuseAllConnectedNodes("ngraph", graph, 1, false, is_fusable);
 }
 
 void FuseTVMOperations(Graph* graph) {
@@ -482,7 +495,7 @@ void FuseTVMOperations(Graph* graph) {
         for (Node* node : fused_nodes) {
             node->set_chainer_fusion_group(num_fusion_groups);
         }
-        CreateFusionGroup(graph, fused_nodes, "tvm", num_fusion_groups);
+        CreateFusionGroup(graph, fused_nodes, "tvm", false, num_fusion_groups);
     }
 }
 
@@ -515,7 +528,7 @@ void FuseElementwiseOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("nvrtc", graph, 2, is_fusable);
+    FuseAllConnectedNodes("nvrtc", graph, 2, false, is_fusable);
 }
 
 }  // namespace

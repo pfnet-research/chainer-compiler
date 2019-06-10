@@ -102,7 +102,7 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
     CNNNetReader network_reader;
     network_reader.ReadNetwork(model_path + ".xml");
     network_reader.ReadWeights(model_path + ".bin");
-    //network_reader.getNetwork().setBatchSize(1);
+    // network_reader.getNetwork().setBatchSize(1);
     CNNNetwork network = network_reader.getNetwork();
 
     CHECK_EQ(num_inputs, network.getInputsInfo().size());
@@ -126,7 +126,7 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
         for (int i = 0; i < num_inputs; ++i, ++input_iter) {
             CHECK(input_iter != inputs_info.end());
             Blob::Ptr input = infer_request.GetBlob(input_iter->first);
-            auto input_data = input->buffer().as<PrecisionTrait<Precision::FP32>::value_type *>();
+            auto input_data = input->buffer().as<PrecisionTrait<Precision::FP32>::value_type*>();
             memcpy(input_data, inputs[i].raw_data(), inputs[i].GetNBytes());
         }
     }
