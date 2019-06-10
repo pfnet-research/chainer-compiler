@@ -33,7 +33,7 @@ git branch -D bump-${name} || echo 'Branch delete error ignored'
 git checkout -b bump-${name}
 
 pushd "${submodule}"
-git fetch
+git fetch origin
 git checkout origin/master
 commit=$(git log | head -1 | awk '{print $2}')
 popd

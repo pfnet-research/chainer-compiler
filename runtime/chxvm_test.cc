@@ -6,6 +6,7 @@
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/testing/array.h>
+#include <chainerx/testing/array_check.h>
 #include <chainerx/testing/context_session.h>
 
 #include <compiler/chxvm/chxvm_value.h>
@@ -36,8 +37,7 @@ TEST(ChxVMTest, Run) {
     InOuts outputs = chxvm.Run(inputs, ChxVMOptions());
     ASSERT_EQ(1, outputs.count("out"));
     chainerx::Array e = chainerx::testing::BuildArray({2, 2}).WithData<float>({2, 1, 1, 2});
-    // TODO(hamaji): Use EXPECT_ARRAY_EQ after fixing namespace?
-    EXPECT_TRUE(chainerx::AllClose(e, outputs["out"]->GetArray(), 0, 0));
+    EXPECT_ARRAY_EQ(e, outputs["out"]->GetArray());
 }
 
 }  // namespace
