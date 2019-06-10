@@ -90,12 +90,23 @@ And run:
 $ apt-get install python3 python3-pip
 $ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest onnxruntime
 $ git submodule update --init
-$ CHAINER_BUILD_CHAINERX=1 pip3 install third_party/chainer
+```
+
+You need to install Chainer in a submodule directory (`third_party/chainer`).
+
+```shell-session
+$ CHAINER_BUILD_CHAINERX=1 pip3 install third_party/chainer   # install ChainerX without cuda
+or
+$ CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1\
+  CUDNN_ROOT_DIR=/path/to/cudnn_root pip3 install third_party/chainer   # install ChainerX with cuda
 ```
 
 You need to install `third_party/chainer` to run its Python interface which requires ABI compatibility.
 
-## Building Chainer compiler
+## Building Chainer compiler from source
+
+You may build Chainer compiler from source or install a python package via pip.
+In this section, we explain how to build from source.
 
 1. Check out Chainer compiler repository to your local environment:
 
@@ -148,6 +159,15 @@ TODO(hamaji): Document some of them. Notably,
 1. `CHAINER_COMPILER_ENABLE_CUDNN` is important for EspNet.
 1. `CHAINER_COMPILER_ENABLE_PYTHON` is necessary for [Python interface](../python/chainer_compiler.py).
 
+## Installing Chainer compiler via pip (optional)
+
+You can install Chainer compiler as a python package.
+In this case, you do not need to build Chainer compiler from source.
+
+```bash
+$ CUDA_PATH=/path/to/cuda CUDNN_ROOT_DIR=/path/to/cudnn_root pip3 install .
+```
+
 ## Run tests
 
 ```shell-session
@@ -155,7 +175,7 @@ $ cd build
 $ make test
 $ cd ..
 $ ./scripts/runtests.py
-$ pytest python  # If you set -DCHAINER_COMPILER_ENABLE_PYTHON=ON
+$ PYTHONPATH=. pytest tests  # If you set -DCHAINER_COMPILER_ENABLE_PYTHON=ON
 ```
 
 Now you can proceed to [example usage](usage.md).
