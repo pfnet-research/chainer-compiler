@@ -2,11 +2,11 @@
 
 This document explains components of Chainer compiler by iterating the root directory of the project.
 
-## [ch2o](/ch2o)
+## [chainer_compiler/ch2o](/chainer_compiler/ch2o)
 
 CH2O is a Python library which translates Python code to an extended ONNX model.
 
-## [elichika](/elichika)
+## [chainer_compiler/elichika](/chainer_compiler/elichika)
 
 Elichika is yet another Python-to-ONNX compiler being developed to replace CH2O.
 
@@ -32,7 +32,7 @@ The implementation of ChainerX VM, a Python/ONNX-free virtual machine based on C
 
 Again, the operations supported by ChainerX VM are managed by [chxvm_defs.py](/runtime/chxvm_defs.py), which acts as an IDL of ChainerX VM ops.
 
-## [python](/python)
+## [chainer_compiler](/chainer_compiler)
 
 This provides a thin wrapper interface of the compiler and the runtime.
 
