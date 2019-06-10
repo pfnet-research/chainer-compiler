@@ -239,6 +239,10 @@ void MergeOperations(Graph* graph, bool gen_backprop) {
     while (replaced) {
         replaced = false;
         for (Node* node : graph->GetLiveNodes()) {
+            if (node->detached()) {
+                continue;
+            }
+
             // TODO(hamaji): Fix the implementation of Concat => Split
             // merge. Unlike Split => Concat merge, we should check
             // if the split dimensions are not changed.
