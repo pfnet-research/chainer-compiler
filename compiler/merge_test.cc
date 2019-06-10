@@ -1,8 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <chainerx/routines/misc.h>
+#include <chainerx/testing/array_check.h>
+#include <chainerx/testing/context_session.h>
+
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/merge.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace {
@@ -15,6 +20,7 @@ TEST(MergeTest, SplitConcat) {
 
     {
         GraphBuilder gb(&graph, "test", output);
+
         std::vector<Value*> tmps;
         for (int i = 0; i < 4; ++i) {
             tmps.push_back(gb.Temp());
@@ -23,7 +29,7 @@ TEST(MergeTest, SplitConcat) {
         gb.Op(Node::kConcat, tmps, output)->producer()->set_axis(1);
     }
 
-    MergeOperations(&graph);
+    MergeOperations(&graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
@@ -50,8 +56,7 @@ TEST(MergeTest, PadConv) {
         pad_node.set_value(0);
 
         // Conv node
-        Value& conv = *gb.Op(Node::kConv, {&pad, graph.AddInputValue("w", type)}, output);
-        Node& conv_node = *conv.producer();
+        Node& conv_node = *gb.MOp(Node::kConv, {&pad, graph.AddInputValue("w", type)}, {output});
         conv_node.set_dilations({1, 1});
         conv_node.set_group(1);
         conv_node.set_kernel_shape({3, 3});
@@ -59,15 +64,93 @@ TEST(MergeTest, PadConv) {
         conv_node.set_strides({2, 2});
     }
 
-    MergeOperations(&graph);
+    MergeOperations(&graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
-    Node const& node = *graph.nodes()[0];
+    const Node& node = *graph.nodes()[0];
     ASSERT_EQ(Node::kConv, node.op_type());
     ASSERT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
     ASSERT_EQ(2, node.inputs().size());
     ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [pad_name](Value* v) { return v->name() == pad_name; }));
     graph.CheckSanity("merged");
+}
+
+TEST(MergeTest, TransposeGemmA) {
+    Type type(Dtype::kFloat32, {});
+    Graph graph("test");
+    Value* input = graph.AddInputValue("input", type);
+    Value* output = graph.AddOutputValue("output", type);
+
+    std::string trans_name;
+    {
+        GraphBuilder gb(&graph, "test", input);
+
+        // Transpose node
+        Value* trans = gb.Op(Node::kTranspose, {input});
+        trans_name = trans->name();
+        Node* trans_node = trans->producer();
+        trans_node->set_perm({1, 0});
+
+        // Gemm node
+        gb.Op(Node::kGemm, {trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
+    }
+
+    MergeOperations(&graph, false);
+    graph.DeleteDetached();
+    ASSERT_EQ(1, graph.nodes().size());
+    Node const& node = *graph.nodes()[0];
+    ASSERT_EQ(Node::kGemm, node.op_type());
+    ASSERT_EQ(3, node.inputs().size());
+    ASSERT_EQ(1, node.trans_a());
+    ASSERT_EQ(0, node.trans_b());
+    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
+    graph.CheckSanity("merged");
+}
+
+TEST(MergeTest, ConvBN) {
+    using namespace chainer_compiler;
+
+    chainerx::testing::ContextSession sess;
+
+    Type type(chainer_compiler::Dtype::kFloat32, {});
+    Graph graph("test");
+    Value* input = graph.AddInputValue("input", type);
+    Value* output = graph.AddOutputValue("output", type);
+
+    chainerx::Array W = runtime::SlowRandom({3, 2, 5, 5}) + 2;
+    chainerx::Array B = runtime::SlowRandom({3}) + 2;
+    chainerx::Array scale = runtime::SlowRandom({3}) + 2;
+    chainerx::Array b = runtime::SlowRandom({3}) + 2;
+    chainerx::Array mean = runtime::SlowRandom({3}) + 2;
+    chainerx::Array var = chainerx::Absolute(runtime::SlowRandom({3})) + 2;
+
+    {
+        GraphBuilder gb(&graph, "test", input);
+
+        Value* y = graph.AddValue("Y", type);
+        gb.MOp(Node::kConv, {input, gb.Const(W), gb.Const(B)}, {y});
+        gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
+    }
+
+    EXPECT_EQ(8, graph.nodes().size());
+    MergeOperations(&graph, false);
+    graph.DeleteDetached();
+    EXPECT_EQ(3, graph.nodes().size());
+    auto conv_checker = [](Node* nd) {
+        EXPECT_TRUE(nd->op_type() == Node::kConv || nd->op_type() == Node::kConstant);
+        return nd->op_type() == Node::kConv;
+    };
+    auto node_it = std::find_if(graph.nodes().begin(), graph.nodes().end(), conv_checker);
+    EXPECT_NE(graph.nodes().end(), node_it);
+    const Node& node = **node_it;
+
+    EXPECT_EQ(Node::kConstant, node.input(1)->producer()->op_type());
+    EXPECT_EQ(Node::kConstant, node.input(2)->producer()->op_type());
+    chainerx::Array new_w = node.input(1)->producer()->tensor_value()->chx();
+    chainerx::Array new_b = node.input(2)->producer()->tensor_value()->chx();
+    chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
+    EXPECT_ARRAY_ALL_CLOSE((B - mean) * f + b, new_b);
+    EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({3, 1, 1, 1}), new_w);
 }
 
 }  // namespace

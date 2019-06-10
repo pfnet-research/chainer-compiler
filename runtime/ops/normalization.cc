@@ -1,4 +1,5 @@
 #include <chainerx/kernels/normalization.h>
+#include <chainerx/routines/arithmetic.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/math.h>
 #include <chainerx/routines/normalization.h>
