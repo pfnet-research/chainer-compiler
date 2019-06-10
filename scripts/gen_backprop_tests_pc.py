@@ -8,9 +8,7 @@ import numpy as np
 import onnx
 
 
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(project_root, 'ch2o'))
-import ch2o  # noqa
+from chainer_compiler import ch2o
 
 F = chainer.functions
 L = chainer.links

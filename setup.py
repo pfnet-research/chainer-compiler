@@ -7,6 +7,15 @@ import setuptools
 from setuptools.command import build_ext
 
 
+def get_chainerx_prebuilt_path():
+    try:
+        import chainerx
+        return os.path.dirname(chainerx.__file__)
+    except ImportError:
+        return os.getenv(
+            'CHAINER_COMPILER_PREBUILT_CHAINERX_DIR', None)
+
+
 class CMakeExtension(setuptools.Extension):
 
     def __init__(self, name, build_targets, sourcedir=''):
@@ -29,6 +38,7 @@ class CMakeBuild(build_ext.build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)))
 
         cuda_path = os.getenv('CUDA_PATH', '/usr/local/cuda')
+        chainerx_prebuilt_path = get_chainerx_prebuilt_path()
         cudnn_root_dir = os.getenv('CUDNN_ROOT_DIR', None)
         if cudnn_root_dir is None:
             raise RuntimeError('CUDNN_ROOT_DIR must be set.')
@@ -43,6 +53,9 @@ class CMakeBuild(build_ext.build_ext):
             '-DCHAINERX_BUILD_PYTHON=ON',
             '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]
+        if chainerx_prebuilt_path is not None:
+            cmake_args.append('-DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=' +
+                              chainerx_prebuilt_path)
         build_args = ['--'] + ext.build_targets
 
         if not os.path.exists(self.build_temp):
@@ -57,7 +70,6 @@ setuptools.setup(
     name='chainer-compiler',
     version='0.0.1',
     packages=['chainer_compiler'],
-    package_dir={'': 'python'},
     ext_modules=[CMakeExtension(
         name='chainer_compiler._core',
         build_targets=['_chainer_compiler_core.so'],

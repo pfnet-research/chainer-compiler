@@ -16,7 +16,7 @@ def main():
         sys.stderr.write('Usage: %s test.py\n' % sys.argv[0])
         sys.exit(1)
 
-    os.environ['PYTHONPATH'] = 'elichika'
+    os.environ['PYTHONPATH'] = '.'
     py = sys.argv[1]
     tmpdir = 'out/elichika_tmp'
 
