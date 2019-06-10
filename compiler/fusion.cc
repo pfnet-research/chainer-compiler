@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <common/strutil.h>
+#include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
@@ -447,21 +448,23 @@ void FuseElementwiseOperations(Graph* graph) {
 
 }  // namespace
 
-void FuseOperations(Graph* graph, bool use_tvm, bool use_ngraph) {
+void FuseOperations(Graph* graph) {
     // Fuse ops in subgraphs first to avoid infinite loop.
     for (const Node* node : graph->nodes()) {
         for (Graph* subgraph : node->GetSubGraphs()) {
-            FuseOperations(subgraph, use_tvm, use_ngraph);
+            FuseOperations(subgraph);
         }
     }
 
-    if (use_ngraph) {
+    if (g_use_ngraph) {
         FuseNGraphOperations(graph);
     }
-    if (use_tvm) {
+    if (g_use_tvm) {
         FuseTVMOperations(graph);
     }
-    FuseElementwiseOperations(graph);
+    if (g_fuse_operations) {
+        FuseElementwiseOperations(graph);
+    }
 }
 
 }  // namespace chainer_compiler

@@ -164,10 +164,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     }
 
     if (!skip_scheduling) {
-        if (g_fuse_operations) {
-            FuseOperations(graph, g_use_tvm, g_use_ngraph);
-            dump_onnx(g_dump_after_fusion, "after fusion");
-        }
+        FuseOperations(graph);
+        dump_onnx(g_dump_after_fusion, "after fusion");
     }
 
     if (!skip_scheduling) {

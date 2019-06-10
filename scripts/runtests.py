@@ -9,6 +9,9 @@ import re
 import sys
 import subprocess
 
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
 import ch2o_tests
 import elichika_tests
 import gen_backprop_tests_oc

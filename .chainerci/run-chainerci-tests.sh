@@ -5,10 +5,15 @@ set -eux
 cat <<'EOM' >runtest.sh
 set -eux
 
+cat /proc/cpuinfo
+cat /proc/meminfo
+nvidia-smi
+
 python3 -m pip install gast
 python3 -m pip install --pre cupy-cuda100==7.0.0a1
 
 CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
+    CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip -q install --no-cache-dir third_party/chainer[test]
 python3 -m pip install --no-cache-dir third_party/onnx-chainer[test-gpu]
 
@@ -41,9 +46,9 @@ make large_tests
 make test
 cd ..
 
-python3 scripts/runtests.py -g --fuse
-python3 scripts/runtests.py --ngraph
-python3 -m pytest -sv python
+PYTHONPATH=. python3 scripts/runtests.py -g --fuse
+PYTHONPATH=. python3 scripts/runtests.py --ngraph
+PYTHONPATH=. python3 -m pytest -sv tests
 
 EOM
 
