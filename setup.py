@@ -69,7 +69,9 @@ class CMakeBuild(build_ext.build_ext):
 setuptools.setup(
     name='chainer-compiler',
     version='0.0.1',
-    packages=['chainer_compiler'],
+    packages=['chainer_compiler',
+              'chainer_compiler.ch2o',
+              'chainer_compiler.elichika'],
     ext_modules=[CMakeExtension(
         name='chainer_compiler._core',
         build_targets=['_chainer_compiler_core.so'],
