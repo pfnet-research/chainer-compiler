@@ -5,7 +5,7 @@
 # $ python3 elichika/elichika/parser/canonicalizer.py test.py
 #
 
-import ast, gast
+import ast
 from ast import NodeTransformer
 
 class Canonicalizer(NodeTransformer):
@@ -37,21 +37,18 @@ class Canonicalizer(NodeTransformer):
 
     def generic_visit(self, node):
         if isinstance(node, ast.stmt):
-            if len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 1:
+            if len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0:
                 bool_values = []
                 for flag in self.for_continue_stack[-1]:
                     bool_values.append(ast.UnaryOp(op=ast.Not(), operand=ast.Name(id=flag, ctx=ast.Load())))
                 if isinstance(node, ast.For):
                     self.for_continue_stack.append([])
                 node = super().generic_visit(node)
-                replacement = ast.If(test=ast.BoolOp(op=ast.And, values=bool_values), body=[node], orelse=[])
-                ret = ast.copy_location(replacement, node)
-            elif len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) == 1:
-                flag = self.for_continue_stack[-1][0]
-                if isinstance(node, ast.For):
-                    self.for_continue_stack.append([])
-                node = super().generic_visit(node)
-                replacement = ast.If(test=ast.UnaryOp(op=ast.Not(), operand=ast.Name(id=flag, ctx=ast.Load())), body=[node], orelse=[])
+                if len(bool_values) == 1:
+                    cond = bool_values[0]
+                else:
+                    cond = ast.BoolOp(op=ast.And, values=bool_values)
+                replacement = ast.If(test=cond, body=[node], orelse=[])
                 ret = ast.copy_location(replacement, node)
             else:
                 if isinstance(node, ast.For):
