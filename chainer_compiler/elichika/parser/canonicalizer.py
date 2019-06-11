@@ -12,6 +12,7 @@ class Canonicalizer(gast.NodeTransformer):
     def __init__(self):
         super().__init__()
         self.for_continue_stack = []
+        self.for_breaked_stack = []
         self.flagid = -1
 
     def getflag(self):
@@ -21,8 +22,8 @@ class Canonicalizer(gast.NodeTransformer):
     def visit_UnaryOp(self, node):
         node = self.generic_visit(node)
         if isinstance(node.op, gast.USub) and isinstance(node.operand, gast.Num):
-            value = eval(compile(gast.Expression(node), '', 'eval'))
-            replacement = gast.Num(n=value)
+            value = node.operand.n
+            replacement = gast.Num(n=-value)
             return gast.copy_location(replacement, node)
         else:
             return node
@@ -32,16 +33,32 @@ class Canonicalizer(gast.NodeTransformer):
         continue_flags = self.for_continue_stack.pop()
         for flag in continue_flags:
             node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+        breaked_flags = self.for_breaked_stack.pop()
+        bool_values = []
+        for flag in breaked_flags:
+            bool_values.append(gast.Name(id=flag, ctx=gast.Load(), annotation=None))
+        # TODO: Declare the break flags before for loop.
+        if len(bool_values) > 0:
+            if len(bool_values) == 1:
+                cond = bool_values[0]
+            elif len(bool_values > 1):
+                cond = gast.BoolOp(op=gast.Or, values=bool_values)
+            modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
     def generic_visit(self, node):
         if isinstance(node, gast.stmt):
-            if len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0:
+            if (len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0) or (len(self.for_breaked_stack) > 0 and len(self.for_breaked_stack[-1]) > 0):
                 bool_values = []
-                for flag in self.for_continue_stack[-1]:
-                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
+                if (len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0):
+                    for flag in self.for_continue_stack[-1]:
+                        bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
+                if (len(self.for_breaked_stack) > 0 and len(self.for_breaked_stack[-1]) > 0):
+                    for flag in self.for_breaked_stack[-1]:
+                        bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
                 if isinstance(node, gast.For):
                     self.for_continue_stack.append([])
+                    self.for_breaked_stack.append([])
                 node = super().generic_visit(node)
                 if len(bool_values) == 1:
                     cond = bool_values[0]
@@ -52,6 +69,7 @@ class Canonicalizer(gast.NodeTransformer):
             else:
                 if isinstance(node, gast.For):
                     self.for_continue_stack.append([])
+                    self.for_breaked_stack.append([])
                 ret = super().generic_visit(node)
         else:
             ret = super().generic_visit(node)
@@ -64,6 +82,13 @@ class Canonicalizer(gast.NodeTransformer):
         replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
         return gast.copy_location(replacement, node)
 
+
+    def visit_Break(self, node):
+        node = self.generic_visit(node)
+        flag = 'breaked_' + str(self.getflag())
+        self.for_breaked_stack[-1].append(flag)
+        replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        return gast.copy_location(replacement, node)
 
 if __name__ == '__main__':
     import ast
