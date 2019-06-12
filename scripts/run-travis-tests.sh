@@ -41,6 +41,7 @@ run unit_tests make test
 cd ..
 PYTHONPATH=. run runtests ./scripts/runtests.py 2>&1
 PYTHONPATH=. run pytest pytest -sv tests
+PYTHONPATH=. run canonicalizer_tests pytest testcases/elichika_tests/canonicalizer
 
 PYTHONPATH=. run train_mnist python3 examples/mnist/train_mnist.py \
      -d native --compile -I 3 --use-fake-data

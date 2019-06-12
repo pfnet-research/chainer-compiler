@@ -36,12 +36,13 @@ class Canonicalizer(gast.NodeTransformer):
         breaked_flags = self.for_breaked_stack.pop()
         bool_values = []
         for flag in breaked_flags:
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
             bool_values.append(gast.Name(id=flag, ctx=gast.Load(), annotation=None))
         # TODO: Declare the break flags before for loop.
         if len(bool_values) > 0:
             if len(bool_values) == 1:
                 cond = bool_values[0]
-            elif len(bool_values > 1):
+            elif len(bool_values) > 1:
                 cond = gast.BoolOp(op=gast.Or, values=bool_values)
             modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node

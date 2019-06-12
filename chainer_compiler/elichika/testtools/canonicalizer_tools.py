@@ -14,3 +14,11 @@ def compare_ast(node1, node2):
         return all(compare_ast(n1, n2) for n1, n2 in zip(node1, node2))
     else:
         return node1 == node2
+
+def assert_semantically_equals(orig_code, target_code, result_keys):
+    exec(orig_code)
+    orig_results = locals().copy()
+    exec(target_code)
+    target_results = locals().copy()
+    for key in result_keys:
+        assert orig_results[key] == target_results[key]
