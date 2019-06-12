@@ -15,7 +15,7 @@ namespace runtime {
 
 namespace {
 
-constexpr double k_exp_clip = std::log(1000. / 16);
+const double k_exp_clip = std::log(1000. / 16);
 
 constexpr size_t k_anchor_size = 32;
 constexpr std::array<double, 3> k_anchor_ratios{{0.5, 1., 2.}};
