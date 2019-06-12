@@ -38,13 +38,16 @@ class Canonicalizer(gast.NodeTransformer):
         for flag in breaked_flags:
             node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
             bool_values.append(gast.Name(id=flag, ctx=gast.Load(), annotation=None))
-        # TODO: Declare the break flags before for loop.
         if len(bool_values) > 0:
             if len(bool_values) == 1:
                 cond = bool_values[0]
             elif len(bool_values) > 1:
-                cond = gast.BoolOp(op=gast.Or, values=bool_values)
-            modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
+                cond = gast.BoolOp(op=gast.Or(), values=bool_values)
+            if isinstance(modified_node, gast.For):
+                modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
+            elif isinstance(modified_node, gast.If):
+                if isinstance(modified_node.body[0], gast.For):
+                    modified_node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
     def generic_visit(self, node):
@@ -64,7 +67,7 @@ class Canonicalizer(gast.NodeTransformer):
                 if len(bool_values) == 1:
                     cond = bool_values[0]
                 else:
-                    cond = gast.BoolOp(op=gast.And, values=bool_values)
+                    cond = gast.BoolOp(op=gast.And(), values=bool_values)
                 replacement = gast.If(test=cond, body=[node], orelse=[])
                 ret = gast.copy_location(replacement, node)
             else:
