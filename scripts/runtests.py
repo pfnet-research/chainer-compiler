@@ -135,6 +135,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_acos_example'),
     TestCase(NODE_TEST, 'test_atan'),
     TestCase(NODE_TEST, 'test_atan_example'),
+    TestCase(NODE_TEST, 'test_erf'),
     TestCase(NODE_TEST, 'test_abs'),
     TestCase(NODE_TEST, 'test_relu'),
     TestCase(NODE_TEST, 'test_elu'),
