@@ -15,7 +15,7 @@
 namespace chainer_compiler {
 namespace runtime {
 
-class ChxVMOptions;
+struct ChxVMOptions;
 class ChxVMVar;
 
 class ChxVMState {

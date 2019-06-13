@@ -106,7 +106,7 @@ def gen_gen_chxvm_ops_h():
         else:
             rettype = 'void'
         lines.append('%s RunImpl(%s);' % (rettype, ', '.join(args)))
-        lines.append('virtual void Run(ChxVMState* st);')
+        lines.append('virtual void Run(ChxVMState* st) override;')
 
         lines.append('private:')
         for inp in op.inputs:
