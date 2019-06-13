@@ -725,7 +725,7 @@ class ONNXValue:
             assert(False)
 
 
-class ONNXInitrializer:
+class ONNXInitializer:
     def __init__(self):
         self.tensor_value = None
         self.tensor = None
@@ -822,7 +822,7 @@ class ONNXGraph:
 
         tensor_value = oh.make_tensor_value_info(name, dt, ndarray_.shape)
 
-        initializer = ONNXInitrializer()
+        initializer = ONNXInitializer()
         initializer.name = name
         initializer.tensor = tensor
         initializer.tensor_value = tensor_value
