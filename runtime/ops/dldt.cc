@@ -122,7 +122,6 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
     {
         auto inputs_info = network.getInputsInfo();
         auto input_iter = inputs_info.begin();
-        fprintf(stderr, "%d %d\n", (int)num_inputs, (int)inputs_info.size());
         for (int i = 0; i < num_inputs; ++i, ++input_iter) {
             CHECK(input_iter != inputs_info.end());
             Blob::Ptr input = infer_request.GetBlob(input_iter->first);
