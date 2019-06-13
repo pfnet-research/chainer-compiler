@@ -910,8 +910,10 @@ private:
 
             const std::string cmdline =
                     StrCat("python3 dldt/model-optimizer/mo_onnx.py"
-                           " --input_model ", onnx_path,
-                           " --model_name ", dldt_model);
+                           " --input_model ",
+                           onnx_path,
+                           " --model_name ",
+                           dldt_model);
             CLOG() << "Run command: " << cmdline << std::endl;
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
