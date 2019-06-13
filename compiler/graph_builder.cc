@@ -102,6 +102,14 @@ template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& 
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data, Value* value);
 
+Value* GraphBuilder::Param(const chainerx::Array& ary) {
+    const std::string& name = GenName();
+    std::unique_ptr<Tensor> tensor(new Tensor(name, ary));
+    Value* value = graph_->AddInputValue(name, Type(tensor->dtype(), tensor->dims()));
+    value->ResetInitializer(std::move(tensor));
+    return value;
+}
+
 Value* GraphBuilder::Temp() {
     return graph_->AddValue(GenName());
 }
