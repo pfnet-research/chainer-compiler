@@ -898,18 +898,20 @@ private:
             onnx::ModelProto xmodel;
             body.ToONNX(xmodel.mutable_graph());
 
-            // TODO(hamaji): Change the path.
+            // TODO(hamaji): Introduce cache for compiled models.
+            const std::string& dldt_model = StrCat("/tmp/dldt_tmp_", node.chainer_fusion_group());
+            const std::string& onnx_path = StrCat(dldt_model, ".onnx");
+
             {
-                std::ofstream ofs("/tmp/tmp.onnx");
-                CHECK(ofs) << "Failed to open output file: "
-                           << "/tmp/tmp.onnx";
+                std::ofstream ofs(onnx_path);
+                CHECK(ofs) << "Failed to open output file: " << onnx_path;
                 CHECK(xmodel.SerializeToOstream(&ofs));
             }
 
             const std::string cmdline =
-                    StrCat("python3 dldt/model-optimizer/mo_onnx.py "
-                           "--input_model /tmp/tmp.onnx "
-                           "--model_name /tmp/tmp");
+                    StrCat("python3 dldt/model-optimizer/mo_onnx.py"
+                           " --input_model ", onnx_path,
+                           " --model_name ", dldt_model);
             CLOG() << "Run command: " << cmdline << std::endl;
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
@@ -924,7 +926,7 @@ private:
             }
 
             std::string dldt_device = "";
-            EMIT(Dldt, outputs, inputs, "/tmp/tmp", dldt_device);
+            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device);
             return;
         }
 
