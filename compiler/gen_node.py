@@ -75,6 +75,7 @@ NodeDef('Acos', 1, 1)
 NodeDef('Acosh', 1, 1)
 NodeDef('Atan', 1, 1)
 NodeDef('Atanh', 1, 1)
+NodeDef('Erf', 1, 1)
 
 NodeDef('Abs', 1, 1)
 NodeDef('Relu', 1, 1)

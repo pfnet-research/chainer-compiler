@@ -121,6 +121,7 @@ DEFINE_UNARY_OP_TODO(Cosh);
 DEFINE_UNARY_OP_TODO(Arcsinh);
 DEFINE_UNARY_OP_TODO(Arccosh);
 DEFINE_UNARY_OP_TODO(Arctanh);
+DEFINE_UNARY_OP(Erf);
 
 chainerx::Array AbsOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return chainerx::Absolute(x);
