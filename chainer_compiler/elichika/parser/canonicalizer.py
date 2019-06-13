@@ -5,14 +5,14 @@
 # $ python3 elichika/elichika/parser/canonicalizer.py test.py
 #
 
-import ast, gast
-from ast import NodeTransformer
+import gast
 
-class Canonicalizer(NodeTransformer):
+class Canonicalizer(gast.NodeTransformer):
 
     def __init__(self):
         super().__init__()
         self.for_continue_stack = []
+        self.for_breaked_stack = []
         self.flagid = -1
 
     def getflag(self):
@@ -21,10 +21,10 @@ class Canonicalizer(NodeTransformer):
 
     def visit_UnaryOp(self, node):
         node = self.generic_visit(node)
-        if isinstance(node.op, ast.USub) and isinstance(node.operand, ast.Num):
-            value = eval(compile(ast.Expression(node), '', 'eval'))
-            replacement = ast.Num(n=value)
-            return ast.copy_location(replacement, node)
+        if isinstance(node.op, gast.USub) and isinstance(node.operand, gast.Num):
+            value = node.operand.n
+            replacement = gast.Num(n=-value)
+            return gast.copy_location(replacement, node)
         else:
             return node
 
@@ -32,30 +32,48 @@ class Canonicalizer(NodeTransformer):
         modified_node = self.generic_visit(node)
         continue_flags = self.for_continue_stack.pop()
         for flag in continue_flags:
-            node.body.insert(0, ast.Assign(targets=[ast.Name(id=flag, ctx=ast.Store())], value=ast.NameConstant(value=False)))
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+        breaked_flags = self.for_breaked_stack.pop()
+        bool_values = []
+        for flag in breaked_flags:
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+            bool_values.append(gast.Name(id=flag, ctx=gast.Load(), annotation=None))
+        if len(bool_values) > 0:
+            if len(bool_values) == 1:
+                cond = bool_values[0]
+            elif len(bool_values) > 1:
+                cond = gast.BoolOp(op=gast.Or(), values=bool_values)
+            if isinstance(modified_node, gast.For):
+                modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
+            elif isinstance(modified_node, gast.If):
+                if isinstance(modified_node.body[0], gast.For):
+                    modified_node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
     def generic_visit(self, node):
-        if isinstance(node, ast.stmt):
-            if len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 1:
+        if isinstance(node, gast.stmt):
+            if (len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0) or (len(self.for_breaked_stack) > 0 and len(self.for_breaked_stack[-1]) > 0):
                 bool_values = []
-                for flag in self.for_continue_stack[-1]:
-                    bool_values.append(ast.UnaryOp(op=ast.Not(), operand=ast.Name(id=flag, ctx=ast.Load())))
-                if isinstance(node, ast.For):
+                if (len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0):
+                    for flag in self.for_continue_stack[-1]:
+                        bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
+                if (len(self.for_breaked_stack) > 0 and len(self.for_breaked_stack[-1]) > 0):
+                    for flag in self.for_breaked_stack[-1]:
+                        bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
+                if isinstance(node, gast.For):
                     self.for_continue_stack.append([])
+                    self.for_breaked_stack.append([])
                 node = super().generic_visit(node)
-                replacement = ast.If(test=ast.BoolOp(op=ast.And, values=bool_values), body=[node], orelse=[])
-                ret = ast.copy_location(replacement, node)
-            elif len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) == 1:
-                flag = self.for_continue_stack[-1][0]
-                if isinstance(node, ast.For):
-                    self.for_continue_stack.append([])
-                node = super().generic_visit(node)
-                replacement = ast.If(test=ast.UnaryOp(op=ast.Not(), operand=ast.Name(id=flag, ctx=ast.Load())), body=[node], orelse=[])
-                ret = ast.copy_location(replacement, node)
+                if len(bool_values) == 1:
+                    cond = bool_values[0]
+                else:
+                    cond = gast.BoolOp(op=gast.And(), values=bool_values)
+                replacement = gast.If(test=cond, body=[node], orelse=[])
+                ret = gast.copy_location(replacement, node)
             else:
-                if isinstance(node, ast.For):
+                if isinstance(node, gast.For):
                     self.for_continue_stack.append([])
+                    self.for_breaked_stack.append([])
                 ret = super().generic_visit(node)
         else:
             ret = super().generic_visit(node)
@@ -65,24 +83,45 @@ class Canonicalizer(NodeTransformer):
         node = self.generic_visit(node)
         flag = 'continued_' + str(self.getflag())
         self.for_continue_stack[-1].append(flag)
-        replacement = ast.Assign(targets=[ast.Name(id=flag, ctx=ast.Store())], value=ast.NameConstant(value=True))
-        return ast.copy_location(replacement, node)
+        replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        return gast.copy_location(replacement, node)
 
+
+    def visit_Break(self, node):
+        node = self.generic_visit(node)
+        flag = 'breaked_' + str(self.getflag())
+        self.for_breaked_stack[-1].append(flag)
+        replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        return gast.copy_location(replacement, node)
 
 if __name__ == '__main__':
     import ast
     import gast
     import sys
+    from copy import deepcopy
+    try:
+        from astmonkey import transformers, visitors
+        IMPORT_ASTMONKEY = True
+    except ImportError:
+        IMPORT_ASTMONKEY = False
 
-    def dump_ast(mod):
-        mod = gast.ast_to_gast(mod)
-        for b in mod.body:
-            print(ast.dump(b))
+    def dump_ast(mod, name):
+        print(gast.dump(mod))
+        if IMPORT_ASTMONKEY:
+            mod = deepcopy(mod)
+            mod = transformers.ParentChildNodeTransformer().visit(deepcopy(mod))
+            visitor = visitors.GraphNodeVisitor()
+            visitor.visit(mod)
+            visitor.graph.write_png(name + '.png')
+            print("\033[1;32;40mAST visualization saved as \033[94m%s.png\033[0m" % name)
+        else:
+            print("\033[93mInstall astmonkey for visualization.\033[0m")
 
     code = open(sys.argv[1]).read()
-    orig_ast = ast.parse(code)
+    orig_ast = gast.ast_to_gast(ast.parse(code))
     print('=== Original AST ===')
-    dump_ast(orig_ast)
+    dump_ast(orig_ast, 'original')
+
     print('=== Canonicalized AST ===')
     canon_ast = Canonicalizer().visit(orig_ast)
-    dump_ast(canon_ast)
+    dump_ast(canon_ast, 'canonicalized')
