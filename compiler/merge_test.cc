@@ -99,11 +99,11 @@ TEST(MergeTest, TransposeGemmA) {
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kGemm, node.op_type());
+    EXPECT_EQ(Node::kGemm, node.op_type());
     ASSERT_EQ(3, node.inputs().size());
-    ASSERT_EQ(1, node.trans_a());
-    ASSERT_EQ(0, node.trans_b());
-    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
+    EXPECT_EQ(1, node.trans_a());
+    EXPECT_EQ(0, node.trans_b());
+    EXPECT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
     graph.CheckSanity("merged");
 }
 
