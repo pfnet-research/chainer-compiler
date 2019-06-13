@@ -238,6 +238,7 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kAcosh, Arccosh);
         EMIT_SIMPLE_UNARY_OP(Node::kAtan, Arctan);
         EMIT_SIMPLE_UNARY_OP(Node::kAtanh, Arctanh);
+        EMIT_SIMPLE_UNARY_OP(Node::kErf, Erf);
         EMIT_SIMPLE_UNARY_OP(Node::kAbs, Abs);
         EMIT_SIMPLE_UNARY_OP(Node::kRelu, Relu);
         EMIT_SIMPLE_UNARY_OP(Node::kFloor, Floor);

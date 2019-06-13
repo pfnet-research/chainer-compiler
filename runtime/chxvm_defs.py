@@ -194,6 +194,7 @@ XC_OPS = [
     ('Arccosh', [Array('x')], ['y']),
     ('Arctan', [Array('x')], ['y']),
     ('Arctanh', [Array('x')], ['y']),
+    ('Erf', [Array('x')], ['y']),
     ('Sigmoid', [Array('x')], ['y']),
 
     ('ArgMax', [Array('x'), Int('axis'), Int('keepdims')], ['y']),

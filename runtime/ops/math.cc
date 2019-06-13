@@ -2,6 +2,7 @@
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/explog.h>
+#include <chainerx/routines/hyperbolic.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
@@ -116,11 +117,12 @@ DEFINE_UNARY_OP(Tan);
 DEFINE_UNARY_OP(Arcsin);
 DEFINE_UNARY_OP(Arccos);
 DEFINE_UNARY_OP(Arctan);
-DEFINE_UNARY_OP_TODO(Sinh);
-DEFINE_UNARY_OP_TODO(Cosh);
-DEFINE_UNARY_OP_TODO(Arcsinh);
-DEFINE_UNARY_OP_TODO(Arccosh);
+DEFINE_UNARY_OP(Sinh);
+DEFINE_UNARY_OP(Cosh);
+DEFINE_UNARY_OP(Arcsinh);
+DEFINE_UNARY_OP(Arccosh);
 DEFINE_UNARY_OP_TODO(Arctanh);
+DEFINE_UNARY_OP(Erf);
 
 chainerx::Array AbsOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return chainerx::Absolute(x);

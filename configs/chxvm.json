@@ -114,6 +114,7 @@
         "DynamicSlice": true,
         "Elu": true,
         "Equal": true,
+        "Erf": true,
         "Exp": true,
         "Expand": true,
         "EyeLike": true,
