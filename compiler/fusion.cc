@@ -445,7 +445,7 @@ void FuseNGraphOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("ngraph", graph, 1, false, is_fusable);
+    FuseAllConnectedNodes("ngraph", graph, 1, true, is_fusable);
 }
 
 void FuseTVMOperations(Graph* graph) {
