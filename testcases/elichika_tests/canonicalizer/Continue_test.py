@@ -97,8 +97,10 @@ class Continue(unittest.TestCase):
                         breaked_2 = True
                     if not breaked_2:
                         x += i * j
+                    keepgoing = not breaked_2
                     if breaked_2:
                         break
+            keepgoing = not breaked_1
             if breaked_1:
                 break
         """)

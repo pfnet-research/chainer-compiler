@@ -25,6 +25,7 @@ class Break(unittest.TestCase):
                 breaked_0 = True
             if not breaked_0:
                 x += i
+            keepgoing = not breaked_0
             if breaked_0:
                 break
         """)
@@ -60,8 +61,10 @@ class Break(unittest.TestCase):
                         breaked_1 = True
                     if not breaked_1:
                         x += i * j
+                    keepgoing = not breaked_1
                     if breaked_1:
                         break
+            keepgoing = not breaked_0
             if breaked_0:
                 break
         """)

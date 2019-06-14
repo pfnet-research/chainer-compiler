@@ -44,9 +44,11 @@ class Canonicalizer(gast.NodeTransformer):
             elif len(bool_values) > 1:
                 cond = gast.BoolOp(op=gast.Or(), values=bool_values)
             if isinstance(modified_node, gast.For):
+                modified_node.body.append(gast.Assign(targets=[gast.Name(id='keepgoing', ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
                 modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
             elif isinstance(modified_node, gast.If):
                 if isinstance(modified_node.body[0], gast.For):
+                    modified_node.body[0].body.append(gast.Assign(targets=[gast.Name(id='keepgoing', ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
                     modified_node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
