@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/variant.h>
+
 #include <chainerx/array.h>
 
 #include <common/log.h>
@@ -52,20 +54,20 @@ public:
     template <typename T>
     T Get(int index) const {
         CHECK_EQ(dtype().SizeOf(), sizeof(T));
-        return static_cast<T*>(array_.raw_data())[index];
+        return static_cast<T*>(chx().raw_data())[index];
     }
 
     const void* GetRawData() const {
-        return array_.raw_data();
+        return chx().raw_data();
     }
 
     chainerx::Array const& chx() const {
-        return array_;
+        return absl::get<0>(data_);
     }
 
 private:
     // Must be a C-contiguous array.
-    const chainerx::Array array_;
+    const absl::variant<chainerx::Array, std::vector<std::string>> data_;
     std::string name_;
     std::string doc_string_;
 };

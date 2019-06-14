@@ -22,6 +22,7 @@ public:
         kFloat16,
         kFloat32,
         kFloat64,
+        kString,
     };
 
     Dtype() = default;
