@@ -26,6 +26,8 @@ bool g_use_ngraph;
 
 bool g_use_dldt;
 
+bool g_use_dldt_fp16;
+
 std::string g_ngraph_device;
 
 std::string g_backend_name;

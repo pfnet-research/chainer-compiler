@@ -913,7 +913,8 @@ private:
                            " --input_model ",
                            onnx_path,
                            " --model_name ",
-                           dldt_model);
+                           dldt_model,
+                           g_use_dldt_fp16 ? " --data_type=FP16" : "");
             CLOG() << "Run command: " << cmdline << std::endl;
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
