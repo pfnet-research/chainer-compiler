@@ -474,6 +474,32 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         chainer_l_converter[type(original_inst)](onnx_graph, node)
 
 
+def convert_node_multiary_op(onnx_graph, node: 'nodes.NodeMultiaryOp'):
+
+    if node.multiaryop == nodes.MultiaryOpType.And:
+        op = 'And'
+    elif node.multiaryop == nodes.MultiaryOpType.Or:
+        op = 'Or'
+    else:
+        assert(False)
+
+    temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
+    for idx, value_ in enumerate(node.values_list):
+        temp = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/temp%d' % idx])
+        onnx_graph.add_node(
+            op,
+            [temp_prev.name, value2onnx_parameter[value_].onnx_name],
+            [temp.name],
+            str(node.lineprop))
+        temp_prev = temp
+
+    onnx_graph.add_node(
+        "Identity",
+        [temp_prev.name],
+        [value2onnx_parameter[node.outputs[0]].onnx_name],
+        str(node.lineprop))
+
+
 def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
 
     if node.unaryop == nodes.UnaryOpType.UAdd:
@@ -1058,6 +1084,9 @@ class ONNXGenerator:
 
             if isinstance(node, nodes.NodeUnaryOp):
                 convert_node_unary_op(onnx_graph, node)
+
+            if isinstance(node, nodes.NodeMultiaryOp):
+                convert_node_multiary_op(onnx_graph, node)
 
             if isinstance(node, nodes.NodeCompare):
                 node_ = node  # type: nodes.NodeCompare
