@@ -41,6 +41,12 @@ extern bool g_use_ngraph;
 // Use dldt to execute operations.
 extern bool g_use_dldt;
 
+// Use fp16 with dldt.
+extern bool g_use_dldt_fp16;
+
+// The device of dldt (e.g., CPU and GPU).
+extern std::string g_dldt_device;
+
 // The device of nGraph (e.g., CPU and INTELGPU).
 extern std::string g_ngraph_device;
 

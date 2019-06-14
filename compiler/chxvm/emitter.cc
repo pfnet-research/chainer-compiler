@@ -913,7 +913,8 @@ private:
                            " --input_model ",
                            onnx_path,
                            " --model_name ",
-                           dldt_model);
+                           dldt_model,
+                           g_use_dldt_fp16 ? " --data_type=FP16" : "");
             CLOG() << "Run command: " << cmdline << std::endl;
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
@@ -927,7 +928,10 @@ private:
                 outputs.emplace_back(GetValueId(value), value);
             }
 
-            std::string dldt_device = "";
+            std::string dldt_device = g_dldt_device;
+            if (dldt_device.empty()) {
+                dldt_device = "CPU";
+            }
             EMIT(Dldt, outputs, inputs, dldt_model, dldt_device);
             return;
         }
