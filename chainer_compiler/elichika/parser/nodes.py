@@ -304,9 +304,10 @@ class NodeIf(Node):
 
 
 class NodeFor(Node):
-    def __init__(self, iter_value, input_values, body_graph, line=-1):
+    def __init__(self, iter_value, input_values, body_graph, exit_cond, line=-1):
         super().__init__(line)
         self.iter_value = iter_value
+        self.exit_cond = exit_cond
         self.input_values = input_values
         self.append_inputs(iter_value)
         self.extend_inputs(self.input_values)

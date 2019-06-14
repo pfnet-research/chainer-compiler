@@ -1022,6 +1022,10 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     value_inputs = values.get_inputs()
     value_outputs = values.get_outputs()
 
+    break_attribute = local_field.get_attribute('keepgoing')
+    break_attribute_ref = break_attribute.get_ref()
+    break_attribute_value = break_attribute_ref.get_value()
+
     values.pop_history()
 
     inputs = []
@@ -1034,7 +1038,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     body_graph.add_input_value(body_iter_value)
 
     # default output for subgraph's output
-    body_graph.add_output_value(body_cond_value)
+    body_graph.add_output_value(break_attribute_value)
     body_graph.add_output_value(body_iter_value)
 
     # default output
@@ -1097,12 +1101,20 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             body_graph.add_output_value(temp_value1)
             outputs.append(temp_value2)
 
-    node = nodes.NodeFor(input_iter_value, inputs, body_graph, astc.lineno)
+    node = nodes.NodeFor(input_iter_value, inputs, body_graph, body_cond_value, astc.lineno)
     node.set_outputs(outputs)
     node_input.set_outputs(node_input_outputs)
 
     graph.add_node(node)
 
+    return None
+
+def veval_ast_continue(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    assert(isinstance(astc.nast, gast.gast.Continue))
+    return None
+
+def veval_ast_break(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    assert(isinstance(astc.nast, gast.gast.Break))
     return None
 
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
@@ -1185,6 +1197,15 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
     elif isinstance(astc.nast, gast.gast.For):
         veval_ast_for(astc, local_field, graph)
         return None
+
+    elif isinstance(astc.nast, gast.gast.Continue):
+        veval_ast_continue(astc, local_field, graph)
+        return None
+
+    elif isinstance(astc.nast, gast.gast.Break):
+        veval_ast_break(astc, local_field, graph)
+        return None
+
     else:
         if config.show_warnings:
             print('Unknown ast is found : {} in L.{}'.format(type(astc.nast),astc.lineno))

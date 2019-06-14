@@ -1206,10 +1206,18 @@ class ONNXGenerator:
                 body_graph = self.generate_graph(
                     node_.body_graph.input_values, node_.body_graph.output_values, node_.body_graph, onnx_graph)
 
+                t = onnx_graph.new_empty_tensor_with_value(node_.exit_cond)
+                tensor = numpy_helper.from_array(np.array(True, dtype=np.bool),
+                    name=value2onnx_parameter[node_.exit_cond].onnx_name)
+
+                onnx_node = oh.make_node(
+                    'Constant', [], [t.name], value=tensor)
+                onnx_graph.nodes.append(onnx_node)
+
                 # for
                 onnx_node = onnx_graph.add_node(
                     'Loop',
-                    [v_len] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] +
+                    [v_len, value2onnx_parameter[node_.exit_cond].onnx_name, value2onnx_parameter[node_.iter_value].onnx_name] +
                     [value2onnx_parameter[x].onnx_name for x in node.input_values],
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     str(node.lineprop),
