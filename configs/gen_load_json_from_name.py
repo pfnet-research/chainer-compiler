@@ -4,6 +4,9 @@ import sys
 
 
 def main(argv):
+    argv.remove('chxvm')
+    argv.insert(1, 'chxvm')
+
     print('#include <configs/json_repository.h>')
     print('#include <common/log.h>')
     print('namespace chainer_compiler {')
