@@ -2,6 +2,8 @@
 
 #include <sstream>
 
+#include <nonstd/optional.hpp>
+
 #include <chainerx/routines/creation.h>
 
 #include <inference_engine.hpp>
@@ -66,6 +68,11 @@ chainerx::Shape GetShape(const ngraph::Shape& nshape) {
 
 class DldtOp::DldtImpl {
 public:
+    DldtImpl() : plugin(InferenceEngine::PluginDispatcher().getSuitablePlugin(InferenceEngine::TargetDevice::eCPU)) {
+    }
+    InferenceEngine::InferencePlugin plugin;
+    InferenceEngine::CNNNetwork network;
+    InferenceEngine::ExecutableNetwork executable_network;
 };
 
 #endif
@@ -73,6 +80,14 @@ public:
 void DldtOp::InitImpl() {
 #if CHAINER_COMPILER_ENABLE_DLDT
     impl_ = new DldtImpl();
+
+    InferenceEngine::CNNNetReader network_reader;
+    network_reader.ReadNetwork(model_path + ".xml");
+    network_reader.ReadWeights(model_path + ".bin");
+    // network_reader.getNetwork().setBatchSize(1);
+    impl_->network = network_reader.getNetwork();
+
+    impl_->executable_network = impl_->plugin.LoadNetwork(impl_->network, {});
 #endif
 }
 
@@ -88,24 +103,7 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
 
     size_t num_inputs = orig_inputs.size();
 
-    // Validate inputs.
-    chainerx::Array inputs[num_inputs];
-    for (size_t i = 0; i < num_inputs; ++i) {
-        const chainerx::Array& input = orig_inputs[i];
-        inputs[i] = chainerx::AsContiguous(input);
-    }
-
-    using namespace InferenceEngine;
-
-    InferencePlugin plugin(PluginDispatcher().getSuitablePlugin(TargetDevice::eCPU));
-
-    CNNNetReader network_reader;
-    network_reader.ReadNetwork(model_path + ".xml");
-    network_reader.ReadWeights(model_path + ".bin");
-    // network_reader.getNetwork().setBatchSize(1);
-    CNNNetwork network = network_reader.getNetwork();
-
-    CHECK_EQ(num_inputs, network.getInputsInfo().size());
+    CHECK_EQ(num_inputs, impl_->network.getInputsInfo().size());
 #if 0
     // set layout and precision?
     {
@@ -115,12 +113,19 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
     }
 #endif
 
-    ExecutableNetwork executable_network = plugin.LoadNetwork(network, {});
+    // Validate inputs.
+    chainerx::Array inputs[num_inputs];
+    for (size_t i = 0; i < num_inputs; ++i) {
+        const chainerx::Array& input = orig_inputs[i];
+        inputs[i] = chainerx::AsContiguous(input);
+    }
 
-    InferRequest infer_request = executable_network.CreateInferRequest();
+    using namespace InferenceEngine;
+
+    InferRequest infer_request = impl_->executable_network.CreateInferRequest();
 
     {
-        auto inputs_info = network.getInputsInfo();
+        auto inputs_info = impl_->network.getInputsInfo();
         auto input_iter = inputs_info.begin();
         for (int i = 0; i < num_inputs; ++i, ++input_iter) {
             CHECK(input_iter != inputs_info.end());
@@ -132,7 +137,7 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
 
     infer_request.Infer();
 
-    Blob::Ptr output = infer_request.GetBlob(network.getOutputsInfo().begin()->first);
+    Blob::Ptr output = infer_request.GetBlob(impl_->network.getOutputsInfo().begin()->first);
 
     chainerx::Shape output_shape;
     // TODO(hamaji): Fix the shape.
