@@ -35,7 +35,7 @@ run make make -j2
 
 run large_tests make large_tests
 
-run unit_tests make test
+run unit_tests ctest -V
 
 cd ..
 PYTHONPATH=. run runtests ./scripts/runtests.py 2>&1
