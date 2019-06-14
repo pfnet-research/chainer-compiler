@@ -658,6 +658,7 @@ if args.ngraph:
         'ch2o_node_Linear_backprop_diversed',
         'backprop_test_oc_mul_same_float32_two_phase',
         'backprop_test_oc_mul_same_float64_two_phase',
+        'backprop_test_oc_sigmoid_float64_two_phase',
         'extra_backprop_test_need_stack_loop_two_phase',
     ]
     for test in TEST_CASES:
