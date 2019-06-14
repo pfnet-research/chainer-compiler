@@ -88,8 +88,8 @@ And run:
 
 ```shell-session
 $ apt-get install python3 python3-pip
-$ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest onnxruntime
 $ git submodule update --init
+$ ONNX_ML=1 pip3 install gast numpy third_party/onnx-chainer pytest
 ```
 
 You need to install Chainer in a submodule directory (`third_party/chainer`).
