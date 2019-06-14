@@ -928,7 +928,10 @@ private:
                 outputs.emplace_back(GetValueId(value), value);
             }
 
-            std::string dldt_device = "";
+            std::string dldt_device = g_dldt_device;
+            if (dldt_device.empty()) {
+                dldt_device = "CPU";
+            }
             EMIT(Dldt, outputs, inputs, dldt_model, dldt_device);
             return;
         }

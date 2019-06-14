@@ -17,6 +17,7 @@ void AddCompilerFlags(cmdline::parser* args) {
     args->add<std::string>("ngraph_device", '\0', "The device of nGraph (e.g., CPU and INTELGPU)", false);
     args->add("use_dldt", '\0', "Use dldt");
     args->add("use_dldt_fp16", '\0', "Use fp16 with dldt");
+    args->add<std::string>("dldt_device", '\0', "The device of dldt (e.g., CPU and GPU)", false);
     args->add("reset_shape", '\0', "Reset all shape information");
     args->add("reset_output_shape", '\0', "Reset output shape information");
     args->add<std::string>("dump_autotvm_task_dir", '\0', "Output AutoTVM tasks in this directory", false);
@@ -43,6 +44,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
     g_ngraph_device = args.get<std::string>("ngraph_device");
     g_use_dldt = args.exist("use_dldt");
     g_use_dldt_fp16 = args.exist("use_dldt_fp16");
+    g_dldt_device = args.get<std::string>("dldt_device");
     g_reset_shape = args.exist("reset_shape");
     g_reset_output_shape = args.exist("reset_output_shape");
     g_dump_autotvm_task_dir = args.get<std::string>("dump_autotvm_task_dir");

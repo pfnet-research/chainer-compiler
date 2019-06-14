@@ -24,11 +24,13 @@ std::string g_autotvm_log;
 
 bool g_use_ngraph;
 
+std::string g_ngraph_device;
+
 bool g_use_dldt;
 
 bool g_use_dldt_fp16;
 
-std::string g_ngraph_device;
+std::string g_dldt_device;
 
 std::string g_backend_name;
 
