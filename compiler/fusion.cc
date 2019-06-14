@@ -21,7 +21,8 @@ namespace chainer_compiler {
 
 namespace {
 
-void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id) {
+void CreateFusionGroup(
+        Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id, bool can_fuse_initializers) {
     std::vector<Value*> inputs;
     std::vector<Value*> outputs;
     std::vector<Value*> temps;
@@ -47,16 +48,34 @@ void CreateFusionGroup(Graph* graph, const std::set<Node*>& nodes, const std::st
         }
     };
 
+    auto maybe_fuse_initializer = [&can_fuse_initializers, &fusion_type](Value* value, Value* new_value) {
+        if (!can_fuse_initializers || !value->initializer()) {
+            return false;
+        }
+        if (!value->users().empty()) {
+            WARN_ONCE(StrCat(fusion_type, " fusion: moving initializers used more than once is not supported yet"));
+            return false;
+        }
+        new_value->ResetInitializer(std::make_unique<Tensor>("fi_" + value->name(), *value->initializer()));
+        return true;
+    };
+
     Graph* subgraph = new Graph(StrCat("Fusion_", fusion_group_id));
+    std::vector<Value*> subgraph_inputs;
     for (Value* value : inputs) {
         Value* new_value = subgraph->AddInputValue("fi_" + value->name(), value->type());
         replace_value(value, new_value);
+
+        if (!maybe_fuse_initializer(value, new_value)) {
+            subgraph_inputs.push_back(value);
+        }
     }
     for (Value* value : outputs) {
         Value* new_value = subgraph->AddOutputValue("fo_" + value->name(), value->type());
         replace_value(value, new_value);
     }
-    Node* fused = gb.MOp(Node::kChainerFusionGroup, inputs, outputs);
+
+    Node* fused = gb.MOp(Node::kChainerFusionGroup, subgraph_inputs, outputs);
     graph->MigrateNodes({nodes.begin(), nodes.end()}, temps, subgraph);
     fused->set_subgraph(subgraph);
     fused->set_fusion_type(fusion_type);
@@ -132,7 +151,8 @@ void RejectUnusedConstants(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
-void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, const std::function<bool(const Node&)>& is_fusable) {
+void FuseAllConnectedNodes(
+        const char* name, Graph* graph, int min_fuse_ops, bool can_fuse_initializers, const std::function<bool(const Node&)>& is_fusable) {
     int num_fusion_groups = 0;
     const std::vector<Node*> all_nodes(graph->nodes());
     for (Node* base_node : all_nodes) {
@@ -178,8 +198,89 @@ void FuseAllConnectedNodes(const char* name, Graph* graph, int min_fuse_ops, con
             node->set_chainer_fusion_group(num_fusion_groups);
         }
 
-        CreateFusionGroup(graph, cands, name, num_fusion_groups);
+        CreateFusionGroup(graph, cands, name, num_fusion_groups, can_fuse_initializers);
     }
+}
+
+void FuseDldtOperations(Graph* graph) {
+    // The list was created by
+    // $ grep 'op =' dldt/model-optimizer/extensions/front/onnx/*.py
+    // and `onnx_op_extractors` in mo/front/onnx/extractor.py.
+    const std::set<Node::OpType> fusable_ops = {
+            Node::kAdd,
+            // Node::kAffine,
+            Node::kArgMax,
+            Node::kAveragePool,
+            Node::kBatchNormalization,
+            Node::kCast,
+            Node::kClip,
+            Node::kConcat,
+            Node::kConstant,
+            Node::kConstantFill,
+            Node::kConv,
+            Node::kConvTranspose,
+            // Node::kCrop,
+            // Node::kDetectionOutput,
+            Node::kDropout,
+            Node::kElu,
+            Node::kExp,
+            // Node::kExperimentalDetectronDetectionOutput,
+            // Node::kExperimentalDetectronGenerateProposalsSingleImage,
+            // Node::kExperimentalDetectronPriorGridGenerator,
+            // Node::kExperimentalDetectronROIFeatureExtractor,
+            // Node::kExperimentalDetectronTopKROIs,
+            Node::kFlatten,
+            Node::kGRU,
+            Node::kGather,
+            Node::kGemm,
+            Node::kGlobalAveragePool,
+            Node::kGlobalMaxPool,
+            Node::kIdentity,
+            Node::kImageScaler,
+            // Node::kInstanceNormalization,
+            Node::kLRN,
+            Node::kLSTM,
+            Node::kLeakyRelu,
+            Node::kMatMul,
+            Node::kMaxPool,
+            Node::kMul,
+            Node::kNeg,
+            Node::kPad,
+            Node::kPow,
+            // Node::kPriorBox,
+            // Node::kQuantize,
+            Node::kRNN,
+            Node::kReduceMean,
+            Node::kReduceSum,
+            Node::kRelu,
+            Node::kReshape,
+            // Node::kScale,
+            Node::kSigmoid,
+            Node::kSlice,
+            Node::kSoftmax,
+            Node::kSplit,
+            Node::kSqueeze,
+            Node::kSum,
+            Node::kTanh,
+            Node::kTranspose,
+            Node::kUnsqueeze,
+            Node::kUpsample,
+    };
+
+    auto is_fusable = [&fusable_ops](const Node& node) {
+        if (!fusable_ops.count(node.op_type())) {
+            return false;
+        }
+        for (Value* value : node.inputs()) {
+            if (!value->type().HasKnownShape()) return false;
+        }
+        for (Value* value : node.outputs()) {
+            if (!value->type().HasKnownShape()) return false;
+        }
+        return true;
+    };
+
+    FuseAllConnectedNodes("dldt", graph, 1, true, is_fusable);
 }
 
 void FuseNGraphOperations(Graph* graph) {
@@ -344,7 +445,7 @@ void FuseNGraphOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("ngraph", graph, 1, is_fusable);
+    FuseAllConnectedNodes("ngraph", graph, 1, false, is_fusable);
 }
 
 void FuseTVMOperations(Graph* graph) {
@@ -410,7 +511,7 @@ void FuseTVMOperations(Graph* graph) {
         for (Node* node : fused_nodes) {
             node->set_chainer_fusion_group(num_fusion_groups);
         }
-        CreateFusionGroup(graph, fused_nodes, "tvm", num_fusion_groups);
+        CreateFusionGroup(graph, fused_nodes, "tvm", false, num_fusion_groups);
     }
 }
 
@@ -443,7 +544,7 @@ void FuseElementwiseOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("nvrtc", graph, 2, is_fusable);
+    FuseAllConnectedNodes("nvrtc", graph, 2, false, is_fusable);
 }
 
 }  // namespace
@@ -456,6 +557,9 @@ void FuseOperations(Graph* graph) {
         }
     }
 
+    if (g_use_dldt) {
+        FuseDldtOperations(graph);
+    }
     if (g_use_ngraph) {
         FuseNGraphOperations(graph);
     }

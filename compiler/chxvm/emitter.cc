@@ -1,5 +1,7 @@
 #include "compiler/chxvm/emitter.h"
 
+#include <stdlib.h>
+#include <fstream>
 #include <map>
 
 #include <common/log.h>
@@ -833,7 +835,11 @@ private:
 
     void EmitFusionGroup(const Node& node, XCProgramProto* prog) {
         const Graph& body = *node.subgraph();
-        CHECK_EQ(node.inputs().size(), body.input_values().size());
+        int num_input_values = 0;
+        for (Value* value : body.input_values()) {
+            if (!value->initializer()) ++num_input_values;
+        }
+        CHECK_EQ(node.inputs().size(), num_input_values);
         CHECK_EQ(node.outputs().size(), body.output_values().size());
         const std::string& debug_info = node.ToString();
 
@@ -874,6 +880,55 @@ private:
                 ngraph_device = "CPU";
             }
             EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
+            return;
+        }
+
+        if (g_use_dldt && node.fusion_type() == "dldt") {
+#if 0
+            for (Node* node : body.nodes()) {
+                node->set_chainer_order(-1);
+                node->set_chainer_fusion_group(0);
+            }
+#endif
+
+            if (g_compiler_log) {
+                CLOG() << "Fusion group (dldt) " << GetFusionGroupSummary(node) << std::endl;
+            }
+
+            onnx::ModelProto xmodel;
+            body.ToONNX(xmodel.mutable_graph());
+
+            // TODO(hamaji): Introduce cache for compiled models.
+            const std::string& dldt_model = StrCat("/tmp/dldt_tmp_", node.chainer_fusion_group());
+            const std::string& onnx_path = StrCat(dldt_model, ".onnx");
+
+            {
+                std::ofstream ofs(onnx_path);
+                CHECK(ofs) << "Failed to open output file: " << onnx_path;
+                CHECK(xmodel.SerializeToOstream(&ofs));
+            }
+
+            const std::string cmdline =
+                    StrCat("python3 dldt/model-optimizer/mo_onnx.py"
+                           " --input_model ",
+                           onnx_path,
+                           " --model_name ",
+                           dldt_model);
+            CLOG() << "Run command: " << cmdline << std::endl;
+            int ret = system(cmdline.c_str());
+            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+
+            std::vector<int> inputs;
+            std::vector<ChxVMValue> outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.emplace_back(GetValueId(value), value);
+            }
+
+            std::string dldt_device = "";
+            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device);
             return;
         }
 

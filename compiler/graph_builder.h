@@ -43,6 +43,8 @@ public:
         return Const(type, std::vector<T>{data}, value);
     }
 
+    Value* Param(const chainerx::Array& ary);
+
     Value* Temp();
     Value* Temp(const Type& type);
 

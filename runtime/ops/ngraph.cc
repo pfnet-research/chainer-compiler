@@ -113,8 +113,6 @@ NGraphOp::~NGraphOp() {
 
 std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_NGRAPH
-    CHECK(!inputs.empty());
-
     size_t num_inputs = orig_inputs.size();
 
     // Validate inputs.

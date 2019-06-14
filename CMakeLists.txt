@@ -51,6 +51,7 @@ set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the 
 
 option(CHAINER_COMPILER_PREBUILT_CHAINERX_DIR "The path to prebuilt ChainerX" OFF)
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
+option(CHAINER_COMPILER_DLDT_DIR "The path to dldt" OFF)
 
 option(CHAINER_COMPILER_BUILD_TESTS "Build C++ tests" ON)
 option(CHAINER_COMPILER_GENERATE_TESTS "Generate tests for scripts/runtests.py" ON)
@@ -176,6 +177,14 @@ if(NOT ("${CHAINER_COMPILER_NGRAPH_DIR}" STREQUAL "OFF"))
   set(CHAINER_COMPILER_NGRAPH_LINK_DIRS ${CHAINER_COMPILER_NGRAPH_DIR}/lib)
   set(CHAINER_COMPILER_NGRAPH_LIBRARIES ngraph)
   link_directories(AFTER ${CHAINER_COMPILER_NGRAPH_LINK_DIRS})
+endif()
+
+if(NOT ("${CHAINER_COMPILER_DLDT_DIR}" STREQUAL "OFF"))
+  add_definitions(-DCHAINER_COMPILER_ENABLE_DLDT=1)
+  set(CHAINER_COMPILER_DLDT_INCLUDE_DIRS ${CHAINER_COMPILER_DLDT_DIR}/inference-engine/include)
+  set(CHAINER_COMPILER_DLDT_LINK_DIRS ${CHAINER_COMPILER_DLDT_DIR}/inference-engine/bin/intel64/Release/lib)
+  set(CHAINER_COMPILER_DLDT_LIBRARIES inference_engine)
+  link_directories(AFTER ${CHAINER_COMPILER_DLDT_LINK_DIRS})
 endif()
 
 if(${CHAINER_COMPILER_ENABLE_TVM})
