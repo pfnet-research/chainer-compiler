@@ -18,7 +18,7 @@ run() {
 }
 
 run pip_chainer sudo pip3 install third_party/chainer
-run pip_onnx_chainer sudo pip3 install -e third_party/onnx-chainer
+run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer onnx==1.5.0
 
 run pip_list pip3 list -v
 
