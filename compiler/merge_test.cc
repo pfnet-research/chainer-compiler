@@ -99,11 +99,11 @@ TEST(MergeTest, TransposeGemmA) {
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kGemm, node.op_type());
+    EXPECT_EQ(Node::kGemm, node.op_type());
     ASSERT_EQ(3, node.inputs().size());
-    ASSERT_EQ(1, node.trans_a());
-    ASSERT_EQ(0, node.trans_b());
-    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
+    EXPECT_EQ(1, node.trans_a());
+    EXPECT_EQ(0, node.trans_b());
+    EXPECT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
     graph.CheckSanity("merged");
 }
 
@@ -132,22 +132,16 @@ TEST(MergeTest, ConvBN) {
         gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
     }
 
-    EXPECT_EQ(8, graph.nodes().size());
+    ASSERT_EQ(8, graph.nodes().size());
     MergeOperations(&graph, false);
     graph.DeleteDetached();
-    EXPECT_EQ(3, graph.nodes().size());
-    auto conv_checker = [](Node* nd) {
-        EXPECT_TRUE(nd->op_type() == Node::kConv || nd->op_type() == Node::kConstant);
-        return nd->op_type() == Node::kConv;
-    };
-    auto node_it = std::find_if(graph.nodes().begin(), graph.nodes().end(), conv_checker);
-    EXPECT_NE(graph.nodes().end(), node_it);
-    const Node& node = **node_it;
+    ASSERT_EQ(1, graph.nodes().size());
+    const Node& node = *graph.nodes()[0];
 
-    EXPECT_EQ(Node::kConstant, node.input(1)->producer()->op_type());
-    EXPECT_EQ(Node::kConstant, node.input(2)->producer()->op_type());
-    chainerx::Array new_w = node.input(1)->producer()->tensor_value()->chx();
-    chainerx::Array new_b = node.input(2)->producer()->tensor_value()->chx();
+    ASSERT_TRUE(node.input(1)->initializer());
+    ASSERT_TRUE(node.input(2)->initializer());
+    chainerx::Array new_w = node.input(1)->initializer()->chx();
+    chainerx::Array new_b = node.input(2)->initializer()->chx();
     chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
     EXPECT_ARRAY_ALL_CLOSE((B - mean) * f + b, new_b);
     EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({3, 1, 1, 1}), new_w);

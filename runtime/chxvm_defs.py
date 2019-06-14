@@ -415,6 +415,9 @@ XC_CUSTOM_FIELD_OPS = [
     ('NGraph',
      [ArrayList('inputs'), String('onnx'), String('backend')],
      [ArrayList('outputs')]),
+    ('Dldt',
+     [ArrayList('inputs'), String('model_path'), String('backend')],
+     [ArrayList('outputs')]),
 ]
 
 XC_SEQ_OPS = [
