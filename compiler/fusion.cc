@@ -48,18 +48,25 @@ void CreateFusionGroup(
         }
     };
 
+    auto maybe_fuse_initializer = [&can_fuse_initializers, &fusion_type](Value* value, Value* new_value) {
+        if (!can_fuse_initializers || !value->initializer()) {
+            return false;
+        }
+        if (!value->users().empty()) {
+            WARN_ONCE(StrCat(fusion_type, " fusion: moving initializers used more than once is not supported yet"));
+            return false;
+        }
+        new_value->ResetInitializer(std::make_unique<Tensor>("fi_" + value->name(), *value->initializer()));
+        return true;
+    };
+
     Graph* subgraph = new Graph(StrCat("Fusion_", fusion_group_id));
     std::vector<Value*> subgraph_inputs;
     for (Value* value : inputs) {
         Value* new_value = subgraph->AddInputValue("fi_" + value->name(), value->type());
         replace_value(value, new_value);
 
-        if (value->initializer() && value->users().empty()) {
-            new_value->ResetInitializer(std::make_unique<Tensor>("fi_" + value->name(), *value->initializer()));
-        } else {
-            if (value->initializer()) {
-                WARN_ONCE(StrCat(fusion_type, " fusion: moving initializers used more than once is not supported yet"));
-            }
+        if (!maybe_fuse_initializer(value, new_value)) {
             subgraph_inputs.push_back(value);
         }
     }
