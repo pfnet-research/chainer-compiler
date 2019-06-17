@@ -478,12 +478,13 @@ def convert_node_multiary_op(onnx_graph, node: 'nodes.NodeMultiaryOp'):
 
     if node.multiaryop == nodes.MultiaryOpType.And:
         op = 'And'
+        temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
     elif node.multiaryop == nodes.MultiaryOpType.Or:
         op = 'Or'
+        temp_prev = ONNXValue(onnx_graph, np.array(False, dtype=np.bool), [node, '/False'], is_constant=True)
     else:
         assert(False)
 
-    temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
     for idx, value_ in enumerate(node.values_list):
         temp = ONNXValue(onnx_graph, np.array(True).dtype, [node, '/temp%d' % idx])
         onnx_graph.add_node(
