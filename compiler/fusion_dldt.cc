@@ -69,7 +69,9 @@ void FuseDldtOperations(Graph* graph) {
             Node::kTanh,
             Node::kTranspose,
             Node::kUnsqueeze,
-            Node::kUpsample,
+            // TODO(hamaji): Need to set `width_scale` and `height_scale`.
+            // https://github.com/opencv/dldt/blob/2019/model-optimizer/extensions/front/onnx/upsample_ext.py#L35
+            // Node::kUpsample,
     };
 
     auto is_fusable = [&fusable_ops](const Node& node) {
