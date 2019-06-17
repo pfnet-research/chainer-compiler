@@ -303,7 +303,7 @@ private:
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(hamaji): Support grouped conv in ChxVM.
-            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
+            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv transpose";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
