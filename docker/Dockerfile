@@ -128,7 +128,7 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
     make -j4 && make install
 RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
 
-FROM nvidia/cuda:10.0-cudnn7-devel AS ci-base
+FROM nvidia/cuda:10.0-cudnn7-runtime AS ci-base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
