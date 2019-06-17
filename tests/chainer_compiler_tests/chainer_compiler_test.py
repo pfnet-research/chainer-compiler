@@ -178,6 +178,44 @@ def test_mnist(device_name, translator, computation_order):
         chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
 
 
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('computation_order', all_computation_orders)
+def test_bn(device_name, translator, computation_order):
+    if skip_check(device_name, translator, computation_order):
+        pytest.skip()
+
+    np.random.seed(40)
+    if has_cupy:
+        cupy.random.seed(40)
+
+    batch_size = 3
+    in_size = 5
+    n_out = 10
+
+    device = chainer.get_device(device_name)
+    device.use()
+
+    bn = chainer.Sequential(
+        L.BatchNormalization(in_size),
+        L.Linear(None, n_out)
+    )
+    bn_compiled = chainer_compiler.compile(
+        bn, translator=translator,
+        computation_order=computation_order)
+    model = L.Classifier(bn_compiled)
+    model.to_device(device)
+
+    input = np.random.rand(batch_size, in_size).astype(np.float32)
+    input = device.xp.array(input)
+    target = device.xp.array(np.random.randint(n_out, size=batch_size))
+
+    loss, grads = _run_fwd_bwd(model, [input, target])
+
+    print('####', type(loss))
+    print('####', type(grads))
+
+
 class MultiInOuts(chainer.Chain):
 
     def forward(self, x, y):
