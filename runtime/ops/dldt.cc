@@ -121,24 +121,22 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
         inputs[i] = chainerx::AsContiguous(input);
     }
 
-    using namespace InferenceEngine;
-
-    InferRequest infer_request = impl_->executable_network.CreateInferRequest();
+    InferenceEngine::InferRequest infer_request = impl_->executable_network.CreateInferRequest();
 
     {
         auto inputs_info = impl_->network.getInputsInfo();
         auto input_iter = inputs_info.begin();
         for (int i = 0; i < num_inputs; ++i, ++input_iter) {
             CHECK(input_iter != inputs_info.end());
-            Blob::Ptr input = infer_request.GetBlob(input_iter->first);
-            auto input_data = input->buffer().as<PrecisionTrait<Precision::FP32>::value_type*>();
+            InferenceEngine::Blob::Ptr input = infer_request.GetBlob(input_iter->first);
+            auto input_data = input->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
             memcpy(input_data, inputs[i].raw_data(), inputs[i].GetNBytes());
         }
     }
 
     infer_request.Infer();
 
-    Blob::Ptr output = infer_request.GetBlob(impl_->network.getOutputsInfo().begin()->first);
+    InferenceEngine::Blob::Ptr output = infer_request.GetBlob(impl_->network.getOutputsInfo().begin()->first);
 
     chainerx::Shape output_shape;
     // TODO(hamaji): Fix the shape.
