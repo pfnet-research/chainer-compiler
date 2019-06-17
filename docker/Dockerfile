@@ -193,6 +193,7 @@ RUN mkdir -p chainer-compiler/build && \
         -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
         -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
         -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
+        -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt_dist \
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCHAINER_COMPILER_ENABLE_TVM=ON \
         -DCHAINERX_BUILD_CUDA=ON \
