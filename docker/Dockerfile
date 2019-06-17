@@ -125,7 +125,7 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
         -DGEMM=OPENBLAS \
         -DENABLE_PYTHON=ON \
     && \
-    make -j4 && make install && ls -laR $HOME/dldt_dist
+    make -j4 && make install
 RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
 
 FROM nvidia/cuda:10.0-cudnn7-devel AS ci-base
