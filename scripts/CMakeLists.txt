@@ -14,6 +14,7 @@ endfunction()
 gen_onnx_by_onnx_chainer_(backprop_tests_oc)
 gen_onnx_by_onnx_chainer_(large_tests_oc)
 gen_onnx_by_onnx_chainer_(mnist_mlp)
+gen_onnx_by_onnx_chainer_(chainercv_model_tests)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/backprop_tests_pc_stamp
@@ -38,6 +39,7 @@ add_custom_target(
   backprop_tests_pc_stamp
   extra_test_stamp
   mnist_mlp_stamp
+  chainercv_model_tests_stamp
   )
 
 add_custom_target(
