@@ -1,5 +1,6 @@
 #if CHAINER_COMPILER_ENABLE_DLDT
 
+#include <map>
 #include <sstream>
 
 #include <nonstd/optional.hpp>
@@ -74,6 +75,11 @@ public:
     InferenceEngine::InferencePlugin plugin;
     InferenceEngine::CNNNetwork network;
     InferenceEngine::ExecutableNetwork executable_network;
+    std::vector<chainerx::Array> output_arrays;
+    // As of June 2019, dldt seems to have no way to reliably retrieve
+    // the list of output blobs in the original order. We rely on byte
+    // size of each array to distinguish output blobs.
+    std::map<int64_t, chainerx::Array> array_by_size;
 };
 
 #endif
@@ -89,6 +95,16 @@ void DldtOp::InitImpl() {
     impl_->network = network_reader.getNetwork();
 
     impl_->executable_network = impl_->plugin.LoadNetwork(impl_->network, {});
+
+    CHECK_EQ(inst_.output_types().size(), inst_.output_names().size());
+    for (const XCTypeProto& type : inst_.output_types()) {
+        CHECK_NE(type.dtype(), 0);
+        chainerx::Shape shape(type.shape().begin(), type.shape().end());
+        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
+        chainerx::Array array = chainerx::Empty(shape, dtype);
+        impl_->output_arrays.push_back(array);
+        CHECK(impl_->array_by_size.emplace(array.GetNBytes(), array).second) << "Multiple outputs with the same size is not supported yet";
+    }
 #endif
 }
 
@@ -121,36 +137,30 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
         inputs[i] = chainerx::AsContiguous(input);
     }
 
-    using namespace InferenceEngine;
-
-    InferRequest infer_request = impl_->executable_network.CreateInferRequest();
+    InferenceEngine::InferRequest infer_request = impl_->executable_network.CreateInferRequest();
 
     {
         auto inputs_info = impl_->network.getInputsInfo();
         auto input_iter = inputs_info.begin();
         for (int i = 0; i < num_inputs; ++i, ++input_iter) {
             CHECK(input_iter != inputs_info.end());
-            Blob::Ptr input = infer_request.GetBlob(input_iter->first);
-            auto input_data = input->buffer().as<PrecisionTrait<Precision::FP32>::value_type*>();
+            InferenceEngine::Blob::Ptr input = infer_request.GetBlob(input_iter->first);
+            auto input_data = input->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
             memcpy(input_data, inputs[i].raw_data(), inputs[i].GetNBytes());
         }
     }
 
     infer_request.Infer();
 
-    Blob::Ptr output = infer_request.GetBlob(impl_->network.getOutputsInfo().begin()->first);
-
-    chainerx::Shape output_shape;
-    // TODO(hamaji): Fix the shape.
-    // for (int64_t d : output->dims()) {
-    for (int i = output->dims().size(); --i >= 0;) {
-        output_shape.push_back(output->dims()[i]);
+    for (auto& p : impl_->network.getOutputsInfo()) {
+        InferenceEngine::Blob::Ptr output = infer_request.GetBlob(p.first);
+        auto found = impl_->array_by_size.find(output->byteSize());
+        CHECK(found != impl_->array_by_size.end());
+        const chainerx::Array& output_array = found->second;
+        memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
     }
 
-    chainerx::Array output_array = chainerx::Empty(output_shape, chainerx::Dtype::kFloat32);
-    memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
-
-    return {output_array};
+    return impl_->output_arrays;
 
 #else
     CHECK(false) << "Set -DCHAINER_COMPILER_DLDT_DIR";

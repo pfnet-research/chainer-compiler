@@ -50,6 +50,10 @@ add_library(chainer_compiler_compiler
   flags.cc
   flops.cc
   fusion.cc
+  fusion_dldt.cc
+  fusion_elementwise.cc
+  fusion_ngraph.cc
+  fusion_tvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
   gradient.cc
