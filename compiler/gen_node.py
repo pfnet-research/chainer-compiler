@@ -201,6 +201,7 @@ NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', 2, 1, mode='nearest')
+NodeDef('Resize', 2, 1, mode='nearest')
 
 NodeDef('Softmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
 NodeDef('LogSoftmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
