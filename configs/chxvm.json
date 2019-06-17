@@ -153,6 +153,7 @@
         "ReduceSumSquare": true,
         "Relu": true,
         "Reshape": true,
+        "Resize": true,
         "Selu": true,
         "Shape": true,
         "Sigmoid": true,

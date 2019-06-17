@@ -303,7 +303,7 @@ private:
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(hamaji): Support grouped conv in ChxVM.
-            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
+            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv transpose";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
@@ -403,7 +403,7 @@ private:
             EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kChainerLRNGrad) {
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
-        } else if (node.op_type() == Node::kUpsample) {
+        } else if (node.op_type() == Node::kUpsample || node.op_type() == Node::kResize) {
             CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
             EMIT(Upsample, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kPad) {

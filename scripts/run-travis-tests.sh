@@ -18,10 +18,9 @@ run() {
 }
 
 run pip_chainer sudo pip3 install third_party/chainer
-run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer
-# TODO(hamaji): Remove this once ONNX-chainer becomes compatible with
-# ONNX-1.5.0.
-run pip_onnx sudo pip3 install onnx==1.4.1
+run pip_onnx_chainer sudo pip3 install -U -e third_party/onnx-chainer[travis]
+
+run pip_list pip3 list -v
 
 run setup_sh bash setup.sh
 
@@ -36,7 +35,7 @@ run make make -j2
 
 run large_tests make large_tests
 
-run unit_tests make test
+run unit_tests ctest -V
 
 cd ..
 PYTHONPATH=. run runtests ./scripts/runtests.py 2>&1
