@@ -14,6 +14,7 @@ endfunction()
 gen_onnx_by_onnx_chainer_(backprop_tests_oc)
 gen_onnx_by_onnx_chainer_(large_tests_oc)
 gen_onnx_by_onnx_chainer_(mnist_mlp)
+gen_onnx_by_onnx_chainer_(chainercv_model_tests)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/backprop_tests_pc_stamp
@@ -27,7 +28,7 @@ add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/extra_test_stamp
   COMMAND PYTHONPATH=${CHAINER_COMPILER_ROOT_DIR} python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_extra_test.py && touch ${CMAKE_CURRENT_BINARY_DIR}/extra_test_stamp > /dev/null
   MAIN_DEPENDENCY gen_extra_test.py
-  DEPENDS onnx_script.py sentiment.py gen_chainercv_test.py chainercv_rpn.py
+  DEPENDS onnx_script.py sentiment.py gen_chainercv_op_tests.py chainercv_rpn.py
   WORKING_DIRECTORY ${CHAINER_COMPILER_ROOT_DIR}
   )
 
@@ -38,6 +39,7 @@ add_custom_target(
   backprop_tests_pc_stamp
   extra_test_stamp
   mnist_mlp_stamp
+  chainercv_model_tests_stamp
   )
 
 add_custom_target(

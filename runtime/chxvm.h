@@ -46,6 +46,8 @@ public:
 
     bool check_infs{false};
 
+    bool catch_exception{true};
+
     bool dump_memory_usage{false};
     int64_t base_memory_usage{0};
 

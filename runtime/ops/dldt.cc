@@ -68,7 +68,8 @@ chainerx::Shape GetShape(const ngraph::Shape& nshape) {
 
 class DldtOp::DldtImpl {
 public:
-    DldtImpl() : plugin(InferenceEngine::PluginDispatcher().getSuitablePlugin(InferenceEngine::TargetDevice::eCPU)) {
+    explicit DldtImpl(const std::string& device)
+        : plugin(InferenceEngine::PluginDispatcher().getSuitablePlugin(InferenceEngine::TargetDeviceInfo::fromStr(device))) {
     }
     InferenceEngine::InferencePlugin plugin;
     InferenceEngine::CNNNetwork network;
@@ -79,7 +80,7 @@ public:
 
 void DldtOp::InitImpl() {
 #if CHAINER_COMPILER_ENABLE_DLDT
-    impl_ = new DldtImpl();
+    impl_ = new DldtImpl(device);
 
     InferenceEngine::CNNNetReader network_reader;
     network_reader.ReadNetwork(model_path + ".xml");

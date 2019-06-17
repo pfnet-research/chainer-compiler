@@ -281,6 +281,7 @@ public:
         chxvm_opts_.check_types = true;
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
+        chxvm_opts_.catch_exception = !args_.exist("no_catch");
         chxvm_opts_.dump_memory_usage = args_.exist("trace");
         chxvm_opts_.base_memory_usage = initial_free_bytes_;
         chxvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
@@ -523,6 +524,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
+    args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
