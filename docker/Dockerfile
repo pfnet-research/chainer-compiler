@@ -159,6 +159,18 @@ COPY --from=tvm /root/tvm_dist /usr/local/
 COPY --from=tvm /root/dmlc_core_dist /usr/local/
 COPY --from=tvm /root/dlpack_dist /usr/local/
 COPY --from=tvm /usr/tvm/include/tvm/runtime /usr/local/include/tvm/runtime
+RUN mkdir neo && cd neo && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-opencl_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
+    sudo dpkg -i *.deb
+COPY --from=dldt /dldt/inference-engine/include /root/dldt_dist/inference-engine/include
+COPY --from=dldt /dldt/inference-engine/bin/intel64/Release/lib /root/dldt_dist/inference-engine/bin/intel64/Release/lib
+COPY --from=dldt /root/.local /root/.local
+COPY --from=dldt /dldt/model-optimizer /root/dldt_dist/model-optimizer
+ENV PYTHONPATH=/root/dldt_dist/model-optimizer:${PYTHONPATH}
 RUN python3 -m pip install --user decorator attrs
 ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
 ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/root/.local/bin:${PATH}
