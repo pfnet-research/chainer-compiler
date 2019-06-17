@@ -485,7 +485,7 @@ def convert_node_multiary_op(onnx_graph, node: 'nodes.NodeMultiaryOp'):
 
     temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
     for idx, value_ in enumerate(node.values_list):
-        temp = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/temp%d' % idx])
+        temp = ONNXValue(onnx_graph, np.array(True).dtype, [node, '/temp%d' % idx])
         onnx_graph.add_node(
             op,
             [temp_prev.name, value2onnx_parameter[value_].onnx_name],
@@ -666,7 +666,7 @@ class ONNXValue:
                 self.tensor = onnx_graph.new_tensor_with_np(
                     self.np_value, self.name)
 
-        elif(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64):
+        elif(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64 or any_value == np.bool):
             self.name = generate_name()
             self.tensor = self.onnx_graph.new_empty_tensor(
                 ['TODO'], any_value, self.name)

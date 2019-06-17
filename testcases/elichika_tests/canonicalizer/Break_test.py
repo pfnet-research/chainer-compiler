@@ -7,7 +7,7 @@ from chainer_compiler.elichika.testtools import compare_ast, assert_semantically
 
 class Break(unittest.TestCase):
     def setUp(self):
-        self.canonicalizer = canonicalizer.Canonicalizer()
+        self.canonicalizer = canonicalizer.Canonicalizer(use_illegal_identifier=False)
 
     def test_break(self):
         orig_code = utils.clip_head("""

@@ -1048,7 +1048,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     value_inputs = values.get_inputs()
     value_outputs = values.get_outputs()
 
-    break_attribute = local_field.get_attribute('keepgoing')
+    break_attribute = local_field.get_attribute('#keepgoing')
     if break_attribute.has_obj():
         break_attribute_ref = break_attribute.get_ref()
         break_attribute_value = break_attribute_ref.get_value()
