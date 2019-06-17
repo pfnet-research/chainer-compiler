@@ -125,7 +125,8 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
         -DGEMM=OPENBLAS \
         -DENABLE_PYTHON=ON \
     && \
-    make -j4 && make install
+    make -j4 && make install && \
+    cd .. && rm -rf build
 RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
 
 FROM nvidia/cuda:10.0-cudnn7-runtime AS ci-base
@@ -166,11 +167,12 @@ RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
     sudo dpkg -i *.deb
-COPY --from=dldt /dldt/inference-engine/include /root/dldt_dist/inference-engine/include
-COPY --from=dldt /dldt/inference-engine/bin/intel64/Release/lib /root/dldt_dist/inference-engine/bin/intel64/Release/lib
+COPY --from=dldt /root/dldt_dist /usr/local/
+COPY --from=dldt /dldt/inference-engine/include /root/dldt/inference-engine/include
+COPY --from=dldt /dldt/inference-engine/bin/intel64/Release/lib /root/dldt/inference-engine/bin/intel64/Release/lib
 COPY --from=dldt /root/.local /root/.local
-COPY --from=dldt /dldt/model-optimizer /root/dldt_dist/model-optimizer
-ENV PYTHONPATH=/root/dldt_dist/model-optimizer:${PYTHONPATH}
+COPY --from=dldt /dldt/model-optimizer /root/dldt/model-optimizer
+ENV PYTHONPATH=/root/dldt/model-optimizer:${PYTHONPATH}
 RUN python3 -m pip install --user decorator attrs
 ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
 ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/root/.local/bin:${PATH}
@@ -185,6 +187,7 @@ RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip install --user chainer-compiler/third_party/chainer[test]
 RUN python3 -m pip install --user chainer-compiler/third_party/onnx-chainer[test-gpu]
+RUN sed -i -e '186 s/inference_engine)/inference_engine ${CMAKE_DL_LIBS})/g' chainer-compiler/CMakeLists.txt
 RUN mkdir -p chainer-compiler/build && \
     cd chainer-compiler/build && \
     cmake .. \
@@ -193,7 +196,7 @@ RUN mkdir -p chainer-compiler/build && \
         -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
         -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
         -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
-        -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt_dist \
+        -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCHAINER_COMPILER_ENABLE_TVM=ON \
         -DCHAINERX_BUILD_CUDA=ON \
