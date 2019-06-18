@@ -93,8 +93,9 @@ add_custom_command(
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
   COMMAND rm -rf data/mnist* &&
   (mkdir -p data && cd data &&
-      wget https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
+      wget https://onnxzoo.blob.core.windows.net/models/opset_8/mnist/mnist.tar.gz &&
       tar -xvzf mnist.tar.gz)
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
   )
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
@@ -103,6 +104,7 @@ add_custom_command(
   (mkdir -p data && cd data &&
       wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
       tar -xvzf resnet50.tar.gz)
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
   )
 add_custom_target(
   test_models
