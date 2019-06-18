@@ -129,7 +129,7 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
     cd .. && rm -rf build
 RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
 
-FROM nvidia/cuda:10.0-cudnn7-runtime AS ci-base
+FROM nvidia/cuda:10.0-cudnn7-devel AS ci-base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -187,7 +187,6 @@ RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip install --user chainer-compiler/third_party/chainer[test]
 RUN python3 -m pip install --user chainer-compiler/third_party/onnx-chainer[test-gpu]
-RUN sed -i -e '186 s/inference_engine)/inference_engine ${CMAKE_DL_LIBS})/g' chainer-compiler/CMakeLists.txt
 RUN mkdir -p chainer-compiler/build && \
     cd chainer-compiler/build && \
     cmake .. \
