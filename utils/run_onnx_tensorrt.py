@@ -98,7 +98,10 @@ def run(args):
     builder.max_batch_size = args.batch_size
     network = builder.create_network()
     parser = tensorrt.OnnxParser(network, logger)
-    parser.parse(onnx_proto)
+    if not parser.parse(onnx_proto):
+        for i in range(parser.num_errors):
+             sys.stderr.write('ONNX import failure: %s\n' % parser.get_error(i))
+             raise RuntimeError('ONNX import failed')
     engine = builder.build_cuda_engine(network)
     context = engine.create_execution_context()
 
