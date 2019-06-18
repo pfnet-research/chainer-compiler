@@ -94,6 +94,8 @@ def run(args):
     else:
         logger = tensorrt.Logger()
     builder = tensorrt.Builder(logger)
+    if args.fp16_mode:
+        builder.fp16_mode = True
     # TODO(hamaji): Infer batch_size from inputs.
     builder.max_batch_size = args.batch_size
     network = builder.create_network()
@@ -131,14 +133,16 @@ def run(args):
         print('%s: OK' % name)
     print('ALL OK')
 
+    elapsed_times = []
     if args.iterations > 1:
         num_iterations = args.iterations - 1
-        start = time.time()
         for t in range(num_iterations):
+            start = time.time()
             context.execute(args.batch_size, bindings)
             cupy.cuda.device.Device().synchronize()
-        elapsed = time.time() - start
-        print('Elapsed: %.3f msec' % (elapsed * 1000 / num_iterations))
+            elapsed_times.append(time.time() - start)
+        print('Elapsed: %.3f msec' % (sum(elapsed_times) * 1000 / num_iterations))
+    return elapsed_times
 
 
 def main():
@@ -147,6 +151,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--debug', '-g', action='store_true')
     parser.add_argument('--iterations', '-I', type=int, default=1)
+    parser.add_argument('--fp16_mode', action='store_true')
     args = parser.parse_args()
 
     if args.debug:
