@@ -5,9 +5,10 @@ import copy
 import glob
 import multiprocessing
 import os
+from pathlib import Path
 import re
-import sys
 import subprocess
+import sys
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
@@ -54,6 +55,8 @@ parser.add_argument('--computation_order', default=None,
                     help='Force setting --computation_order flag')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
+parser.add_argument('--full_onnx_node_test', action='store_true',
+                    help='Run full ONNX node tests to see ONNX coverage')
 args = parser.parse_args()
 
 
@@ -428,6 +431,10 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_where_example'),
 ]
+
+if args.full_onnx_node_test:
+    p = Path(NODE_TEST)
+    TEST_CASES = [TestCase(NODE_TEST, t.name) for t in p.glob('test_*')]
 
 TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-converted/test_AvgPool1d'),
