@@ -30,7 +30,7 @@ chainerx::Array ConvOp::RunImpl(
     if (auto_pad == "SAME_UPPER") {
         for (size_t i = 0; i < comp_pads.size(); ++i) {
             int64_t& pad = comp_pads[i];
-            const int64_t in_dim = x.shape()[i];
+            const int64_t in_dim = x.shape()[2 + i];
             const int64_t stride = comp_strides[i];
             const int64_t kernel = w.shape()[2 + i];
 
