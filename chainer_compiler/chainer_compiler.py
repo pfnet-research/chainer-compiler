@@ -203,6 +203,34 @@ def _run_translator(translator, mc, inputs):
     return graph
 
 
+def _resolve_name_correspondence(mc, params, name, param_values):
+    for running_mean_name in ('avg_mean', 'running_mean'):
+        if not name.endswith(running_mean_name):
+            continue
+        parent = name[:-len(running_mean_name)]
+        mean = params[parent + 'beta']
+        for link in mc.links():
+            if not hasattr(link, 'avg_mean'):
+                continue
+            if any(id(p) == id(mean) for p in link.params()):
+                param_values.append(link.avg_mean)
+                return True
+
+    for running_var_name in ('avg_var', 'running_var'):
+        if not name.endswith(running_var_name):
+            continue
+        parent = name[:-len(running_var_name)]
+        var = params[parent + 'beta']
+        for link in mc.links():
+            if not hasattr(link, 'avg_var'):
+                continue
+            if any(id(p) == id(var) for p in link.params()):
+                param_values.append(link.avg_var)
+                return True
+
+    return False
+
+
 class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
@@ -265,22 +293,32 @@ class CompiledModel(chainer.Chain):
 
         self.compiled = True
 
+        params = dict(self.mc.namedparams())
+        if self.translator == 'onnx_chainer':
+            params = {'param' + key.replace('/', '_'): value for key, value
+                      in params.items()}
+        self.param_values = []
+
+        fwd_chxvm_vars = fwd_graph.params()
+        for name in self.param_names:
+            print(name)
+            if name in params:
+                self.param_values.append(params[name])
+            elif name in fwd_chxvm_vars:
+                array = fwd_chxvm_vars[name].array()
+                array = chainer.backend.from_chx(array)
+                self.param_values.append(array)
+            else:
+                out = _resolve_name_correspondence(
+                    self.mc, params, name, self.param_values)
+                if not out:
+                    raise NotImplementedError('Unknown name: ' + name)
+
     def forward(self, *args):
         if not self.compiled:
             outputs = self.mc(*args)
             self.compile(args)
             return outputs
-
-        if self.param_values is None:
-            assert self.param_names is not None
-            params = dict(self.mc.namedparams())
-            if self.translator == 'onnx_chainer':
-                params = {'param' + key.replace('/', '_'): value for key, value
-                          in params.items()}
-            self.param_values = []
-            for name in self.param_names:
-                assert name in params
-                self.param_values.append(params[name])
 
         inputs = list(args)
         flat_inputs = _flatten(inputs)
