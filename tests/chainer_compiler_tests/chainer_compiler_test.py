@@ -178,6 +178,19 @@ def test_mnist(device_name, translator, computation_order):
         chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
 
 
+class BN(chainer.Chain):
+
+    def __init__(self, n_units, n_out):
+        super(BN, self).__init__()
+        with self.init_scope():
+            self.bn = L.BatchNormalization(n_units)
+            self.linear = L.Linear(n_units, n_out)
+
+    def forward(self, x):
+        return self.linear(self.bn(x))
+        # return self.linear(x)
+
+
 @pytest.mark.parametrize('device_name', all_device_names)
 @pytest.mark.parametrize('translator', all_translators)
 @pytest.mark.parametrize('computation_order', all_computation_orders)
@@ -196,24 +209,19 @@ def test_bn(device_name, translator, computation_order):
     device = chainer.get_device(device_name)
     device.use()
 
-    bn = chainer.Sequential(
-        L.BatchNormalization(in_size),
-        L.Linear(None, n_out)
-    )
-    bn_compiled = chainer_compiler.compile(
-        bn, translator=translator,
-        computation_order=computation_order)
-    model = L.Classifier(bn_compiled)
-    model.to_device(device)
+    bn = BN(in_size, n_out)
 
     input = np.random.rand(batch_size, in_size).astype(np.float32)
     input = device.xp.array(input)
     target = device.xp.array(np.random.randint(n_out, size=batch_size))
 
-    loss, grads = _run_fwd_bwd(model, [input, target])
+    bn_compiled = chainer_compiler.compile(
+        bn, [input], translator=translator,
+        computation_order=computation_order)
+    model = L.Classifier(bn_compiled)
+    model.to_device(device)
 
-    print('####', type(loss))
-    print('####', type(grads))
+    loss, grads = _run_fwd_bwd(model, [input, target])
 
 
 class MultiInOuts(chainer.Chain):
