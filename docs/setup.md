@@ -114,14 +114,7 @@ In this section, we explain how to build from source.
 $ git clone https://github.com/pfnet-research/chainer-compiler.git
 ```
 
-2. Run `setup.sh` (You may need to add `-DPYTHON_EXECUTABLE=python3` manually to `cmake` for ONNX):
-
-```shell-session
-$ cd chainer-compiler
-$ ./setup.sh
-```
-
-3. Build Chainer compiler
+2. Build Chainer compiler
 
 ```bash
 $ mkdir -p build
