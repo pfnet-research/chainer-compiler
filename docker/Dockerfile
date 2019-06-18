@@ -94,6 +94,41 @@ RUN mkdir -p /usr/tvm/3rdparty/dlpack/build && \
     cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/dlpack_dist && \
     make && make install
 
+FROM ubuntu:18.04 AS dldt
+ARG DLDT_VERSION="2019_R1.1"
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    python3-dev \
+    python3-pip \
+    python3-wheel \
+    python3-setuptools \
+    git \
+    wget \
+    sudo && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+RUN mkdir neo && cd neo && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-opencl_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
+    sudo dpkg -i *.deb
+RUN python3 -m pip install cython
+RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} && \
+    cd dldt/inference-engine && \
+    bash install_dependencies.sh && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* && \
+    mkdir build && cd build && \
+    cmake .. \
+        -DCMAKE_INSTALL_PREFIX=$HOME/dldt_dist \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DGEMM=OPENBLAS \
+        -DENABLE_PYTHON=ON \
+    && \
+    make -j4 && make install && \
+    cd .. && rm -rf build
+RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
+
 FROM nvidia/cuda:10.0-cudnn7-devel AS ci-base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
@@ -125,6 +160,19 @@ COPY --from=tvm /root/tvm_dist /usr/local/
 COPY --from=tvm /root/dmlc_core_dist /usr/local/
 COPY --from=tvm /root/dlpack_dist /usr/local/
 COPY --from=tvm /usr/tvm/include/tvm/runtime /usr/local/include/tvm/runtime
+RUN mkdir neo && cd neo && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-opencl_18.50.1270_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
+    wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
+    sudo dpkg -i *.deb
+COPY --from=dldt /root/dldt_dist /usr/local/
+COPY --from=dldt /dldt/inference-engine/include /root/dldt/inference-engine/include
+COPY --from=dldt /dldt/inference-engine/bin/intel64/Release/lib /root/dldt/inference-engine/bin/intel64/Release/lib
+COPY --from=dldt /root/.local /root/.local
+COPY --from=dldt /dldt/model-optimizer /root/dldt/model-optimizer
+ENV PYTHONPATH=/root/dldt/model-optimizer:${PYTHONPATH}
 RUN python3 -m pip install --user decorator attrs
 ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
 ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/root/.local/bin:${PATH}
@@ -147,6 +195,7 @@ RUN mkdir -p chainer-compiler/build && \
         -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
         -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
         -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
+        -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
         -DPYTHON_EXECUTABLE=$(which python3) \
         -DCHAINER_COMPILER_ENABLE_TVM=ON \
         -DCHAINERX_BUILD_CUDA=ON \
