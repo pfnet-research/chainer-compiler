@@ -22,8 +22,6 @@ run pip_onnx_chainer sudo pip3 install -U -e third_party/onnx-chainer[travis]
 
 run pip_list pip3 list -v
 
-run setup_sh bash setup.sh
-
 mkdir build
 cd build
 run cmake cmake .. \

@@ -19,5 +19,5 @@ __pycache__
 build/
 out/
 
-# exclude the data directory created by setup.sh
+# exclude the data directory created by test model downloader
 data/
