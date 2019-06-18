@@ -176,7 +176,7 @@ ENV PYTHONPATH=/root/dldt/model-optimizer:${PYTHONPATH}
 RUN python3 -m pip install --user decorator attrs
 ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
 ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/root/.local/bin:${PATH}
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/nvidia/lib64:/root/ngraph_dist/lib:${LD_LIBRARY_PATH}
 
 FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git
