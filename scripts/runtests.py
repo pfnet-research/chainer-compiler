@@ -64,6 +64,7 @@ RESET = '\033[0m'
 
 ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
+PREBUILT_ONNX_DATA = 'data'
 
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
@@ -545,6 +546,9 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_symbolic_override', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_symbolic_override_nested'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_view', fail=True),
+
+    TestCase(PREBUILT_ONNX_DATA, 'mnist'),
+    TestCase(PREBUILT_ONNX_DATA, 'resnet50'),
 ]
 
 TEST_PATHS = set()
