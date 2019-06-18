@@ -183,7 +183,7 @@ if(NOT ("${CHAINER_COMPILER_DLDT_DIR}" STREQUAL "OFF"))
   add_definitions(-DCHAINER_COMPILER_ENABLE_DLDT=1)
   set(CHAINER_COMPILER_DLDT_INCLUDE_DIRS ${CHAINER_COMPILER_DLDT_DIR}/inference-engine/include)
   set(CHAINER_COMPILER_DLDT_LINK_DIRS ${CHAINER_COMPILER_DLDT_DIR}/inference-engine/bin/intel64/Release/lib)
-  set(CHAINER_COMPILER_DLDT_LIBRARIES inference_engine)
+  set(CHAINER_COMPILER_DLDT_LIBRARIES inference_engine ${CMAKE_DL_LIBS})
   link_directories(AFTER ${CHAINER_COMPILER_DLDT_LINK_DIRS})
 endif()
 
@@ -234,7 +234,7 @@ add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py

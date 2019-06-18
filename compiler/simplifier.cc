@@ -617,28 +617,6 @@ bool ReplaceSplit(Graph* graph, Node* node) {
     return true;
 }
 
-void ReplaceInitializers(Graph* graph) {
-    std::map<Value*, Value*> initializers;
-    for (Value* value : graph->input_values()) {
-        if (!value->initializer()) {
-            continue;
-        }
-
-        GraphBuilder gb(graph, "SimplifyInitializers", value);
-        Value* replaced = gb.Op(Node::kConstant, {});
-        replaced->producer()->set_tensor_value(value->ReleaseInitializer());
-        CHECK(initializers.emplace(value, replaced).second);
-    }
-
-    for (const auto& p : initializers) {
-        Value* value = p.first;
-        Value* replaced = p.second;
-        for (Node* node : std::vector<Node*>(value->users())) {
-            node->ReplaceInput(value, replaced);
-        }
-    }
-}
-
 }  // namespace
 
 void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
@@ -699,12 +677,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
                 replaced = true;
             }
         }
-    }
-
-    // Replace initializers by `Constant` for better optimization
-    // (e.g., Conv+BN fusion).
-    if (!gen_backprop && g_use_ngraph) {
-        ReplaceInitializers(graph);
     }
 }
 

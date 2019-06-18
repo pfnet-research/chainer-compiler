@@ -64,7 +64,7 @@ chainerx::Shape GetShape(const ngraph::Shape& nshape) {
 class NGraphOp::NGraphImpl {
 public:
     std::shared_ptr<ngraph::Function> func;
-    std::unique_ptr<ngraph::runtime::Backend> backend;
+    std::shared_ptr<ngraph::runtime::Backend> backend;
     std::shared_ptr<ngraph::runtime::Executable> handle;
     std::vector<std::shared_ptr<ngraph::runtime::Tensor>> result_tensors;
     std::vector<chainerx::Array> outputs;
@@ -90,7 +90,7 @@ void NGraphOp::InitImpl() {
         }
     }
 
-    impl_->backend = std::move(ngraph::runtime::Backend::create(backend));
+    impl_->backend = ngraph::runtime::Backend::create(backend);
 
     impl_->handle = impl_->backend->compile(impl_->func);
 

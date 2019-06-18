@@ -161,11 +161,15 @@ void ChxVM::Run(ChxVMState* state) {
 #ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePush(op->name().c_str());
 #endif
-            try {
+            if (options.catch_exception) {
+                try {
+                    op->Run(state);
+                } catch (...) {
+                    std::cerr << "Exception in " << op->debug_info() << std::endl;
+                    throw;
+                }
+            } else {
                 op->Run(state);
-            } catch (...) {
-                std::cerr << "Exception in " << op->debug_info() << std::endl;
-                throw;
             }
 #ifdef CHAINER_COMPILER_ENABLE_NVTX
             nvtxRangePop();

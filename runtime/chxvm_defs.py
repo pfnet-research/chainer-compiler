@@ -416,7 +416,7 @@ XC_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), String('onnx'), String('backend')],
      [ArrayList('outputs')]),
     ('Dldt',
-     [ArrayList('inputs'), String('model_path'), String('backend')],
+     [ArrayList('inputs'), String('model_path'), String('device')],
      [ArrayList('outputs')]),
 ]
 
