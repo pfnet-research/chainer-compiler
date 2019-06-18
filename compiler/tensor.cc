@@ -81,11 +81,15 @@ void DumpDataToRepeated(const Tensor& t, ::google::protobuf::RepeatedField<To>* 
     DumpDataToRepeated<To, To>(t, a);
 }
 
-chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
+absl::variant<chainerx::Array, std::vector<std::string>> TensorProtoToArray(onnx::TensorProto const& xtensor) {
     CHECK(!xtensor.has_segment()) << "Segmented TensorProto not supported";
 
     Dtype dtype(xtensor.data_type());
     chainerx::Shape shape(xtensor.dims().begin(), xtensor.dims().end());
+
+    if (xtensor.data_type() == onnx::TensorProto::STRING) {
+        return std::vector<std::string>(xtensor.string_data().begin(), xtensor.string_data().end());
+    }
 
     if (xtensor.has_raw_data()) {
         CHECK_EQ(0, xtensor.float_data_size());
@@ -141,17 +145,29 @@ chainerx::Array TensorProtoToArray(onnx::TensorProto const& xtensor) {
 }  // namespace
 
 Tensor::Tensor(const onnx::TensorProto& xtensor)
-    : array_(TensorProtoToArray(xtensor)), name_(xtensor.name()), doc_string_(xtensor.doc_string()) {
+    : data_(TensorProtoToArray(xtensor)), name_(xtensor.name()), doc_string_(xtensor.doc_string()) {
 }
 
-Tensor::Tensor(std::string const& name, chainerx::Array ary) : array_(chainerx::AsContiguous(ary)), name_(name) {
+Tensor::Tensor(std::string const& name, chainerx::Array ary) : data_(chainerx::AsContiguous(ary)), name_(name) {
 }
 
 Tensor::~Tensor() {
-    CHECK(array_.IsContiguous());
+    if (data_.index() == 0) {
+        CHECK(chx().IsContiguous());
+    }
 }
 
 void Tensor::ToONNX(onnx::TensorProto* xtensor) const {
+    if (data_.index() == 1) {
+        xtensor->set_data_type(onnx::TensorProto::STRING);
+        DUMP_STRING(xtensor, name);
+        DUMP_STRING(xtensor, doc_string);
+        for (const std::string& s : absl::get<1>(data_)) {
+            xtensor->add_string_data(s);
+        }
+        return;
+    }
+
     for (int64_t d : dims()) xtensor->add_dims(d);
     xtensor->set_data_type(dtype().ToONNX());
     DUMP_STRING(xtensor, name);
@@ -201,12 +217,15 @@ std::string Tensor::DebugString() const {
 }
 
 const std::vector<int64_t> Tensor::dims() const {
-    chainerx::Shape const& s = array_.shape();
+    chainerx::Shape const& s = chx().shape();
     return std::vector<int64_t>(s.begin(), s.end());
 }
 
 Dtype Tensor::dtype() const {
-    return Dtype(array_.dtype());
+    if (data_.index() == 1) {
+        return Dtype(onnx::TensorProto::STRING);
+    }
+    return Dtype(chx().dtype());
 }
 
 int Tensor::ElementSize() const {
@@ -214,12 +233,12 @@ int Tensor::ElementSize() const {
 }
 
 int64_t Tensor::NumElements() const {
-    return array_.shape().GetTotalSize();
+    return chx().shape().GetTotalSize();
 }
 
 template <typename T>
 Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<T>& data)
-    : array_(runtime::MakeHostArray(
+    : data_(runtime::MakeHostArray(
               dtype.chx(), chainerx::Shape(dims.begin(), dims.end()), LoadDataFromTypedData<T>(dtype, data.data(), data.size()).get())),
       name_(name) {
 }
@@ -229,7 +248,7 @@ template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<int>& data);
 template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<int64_t>& dims, const std::vector<long>& data);
 
-Tensor::Tensor(const std::string& name, const Tensor& t) : array_(t.array_), name_(name), doc_string_(t.doc_string_) {
+Tensor::Tensor(const std::string& name, const Tensor& t) : data_(t.data_), name_(name), doc_string_(t.doc_string_) {
 }
 
 }  // namespace chainer_compiler

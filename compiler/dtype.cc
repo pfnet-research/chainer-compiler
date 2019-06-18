@@ -29,6 +29,8 @@ Dtype::DataType FromONNX(int xtype) {
             return Dtype::DataType::kFloat64;
         case onnx::TensorProto::UNDEFINED:
             return Dtype::DataType::kUnknown;
+        case onnx::TensorProto::STRING:
+            return Dtype::DataType::kString;
         default:
             CHECK(false) << "Unsupported ONNX data type: " << xtype;
     }
@@ -115,6 +117,8 @@ std::string Dtype::ToString() const {
             return "FLOAT32";
         case kFloat64:
             return "FLOAT64";
+        case kString:
+            return "STRING";
         case kUnknown:
             return "UNKNOWN";
         default:
@@ -142,6 +146,8 @@ onnx::TensorProto::DataType Dtype::ToONNX() const {
             return onnx::TensorProto::FLOAT;
         case kFloat64:
             return onnx::TensorProto::DOUBLE;
+        case kString:
+            return onnx::TensorProto::STRING;
         case kUnknown:
             return onnx::TensorProto::UNDEFINED;
         default:

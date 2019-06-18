@@ -886,6 +886,10 @@ class ONNXGraph:
             arr = np.array(value.internal_value)
             return self.new_tensor_with_np(arr, name)
 
+        if isinstance(value, values.StrValue):
+            arr = np.array(value.internal_value, dtype=np.object)
+            return self.new_tensor_with_np(arr, name)
+
         if isinstance(value, values.NoneValue):
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
@@ -894,8 +898,8 @@ class ONNXGraph:
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
 
-        print('Warning : Found unknown type {} in new_tensor_with_value. Float is stored.'.format(
-            type(value)))
+        print('Warning : Found unknown type {} in new_tensor_with_value. "{}" is stored.'.format(
+            type(value), value))
         arr = np.array(0.0, dtype=np.float32)
         return self.new_tensor_with_np(arr, name)
 
