@@ -301,7 +301,6 @@ class CompiledModel(chainer.Chain):
 
         fwd_chxvm_vars = fwd_graph.params()
         for name in self.param_names:
-            print(name)
             if name in params:
                 self.param_values.append(params[name])
             elif name in fwd_chxvm_vars:

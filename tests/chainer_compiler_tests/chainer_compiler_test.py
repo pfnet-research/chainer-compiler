@@ -3,6 +3,7 @@ import pytest
 import sys
 
 import chainer
+from chainer.backend import CpuDevice
 import chainer.functions as F
 import chainer.links as L
 import chainerx.testing
@@ -221,7 +222,17 @@ def test_bn(device_name, translator, computation_order):
     model = L.Classifier(bn_compiled)
     model.to_device(device)
 
+    old_avg_mean = CpuDevice().send(model.predictor.mc.bn.avg_mean.copy())
+    old_avg_var = CpuDevice().send(model.predictor.mc.bn.avg_var.copy())
+
     loss, grads = _run_fwd_bwd(model, [input, target])
+
+    new_avg_mean = CpuDevice().send(model.predictor.mc.bn.avg_mean.copy())
+    new_avg_var = CpuDevice().send(model.predictor.mc.bn.avg_var.copy())
+
+    # running_mean and running_var should be updated
+    assert not np.allclose(old_avg_mean, new_avg_mean)
+    assert not np.allclose(old_avg_var, new_avg_var)
 
 
 class MultiInOuts(chainer.Chain):
