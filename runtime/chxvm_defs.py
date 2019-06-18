@@ -217,7 +217,7 @@ XC_OPS = [
 
     ('Conv',
      [Array('x'), Array('w'), OptionalArray('b'),
-      Ints('strides'), Ints('pads'), Int('group')], ['y']),
+      Ints('strides'), Ints('pads'), Int('group'), String('auto_pad')], ['y']),
     ('ConvTranspose',
      [Array('x'), Array('w'), OptionalArray('b'),
       Ints('strides'), Ints('pads'), Ints('output_shape')], ['y']),

@@ -297,7 +297,9 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads(), node.group());
+            // Support auto_pad only for MNIST
+            CHECK(node.auto_pad() == "NOTSET" || node.auto_pad() == "SAME_UPPER");
+            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads(), node.group(), node.auto_pad());
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
