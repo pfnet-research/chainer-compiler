@@ -37,7 +37,7 @@ chainerx::Array ConvOp::RunImpl(
             int64_t legacy_target_size = (in_dim + stride - 1) / stride;
             int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
 
-            pad += pad_needed / 2;
+            pad = pad_needed / 2;
         }
     } else {
         CHECK_EQ("NOTSET", auto_pad);
