@@ -93,7 +93,7 @@ add_custom_command(
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
   COMMAND rm -rf data/mnist* &&
   (mkdir -p data && cd data &&
-      wget https://onnxzoo.blob.core.windows.net/models/opset_8/mnist/mnist.tar.gz &&
+      wget https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
       tar -xvzf mnist.tar.gz)
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
   )
