@@ -1,7 +1,7 @@
 ## How to test
 
 ```
-python3 ./scripts/elichikacheck.py elichika/tests/node/Linear.py
+python3 scripts/elichikacheck.py testcases/elichika_tests/node/Linear.py
 ```
 
 - Option
