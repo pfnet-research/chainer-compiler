@@ -231,8 +231,9 @@ bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxV
                 if (HasElemInVar(pred_fn, v)) return true;
             }
             return false;
+        case ChxVMVar::Kind::kNone:
         case ChxVMVar::Kind::kOpaque:
-        case ChxVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kUndefined:
             return false;
     }
     CHECK(false);

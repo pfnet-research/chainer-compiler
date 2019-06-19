@@ -26,12 +26,9 @@ from chainer_compiler.elichika.testtools.initializer import edit_onnx_protobuf
 def _validate_inout(xs):
     # print(xs)
 
-    # We use a scalar false as a None.
-    # TODO(hamaji): Revisit to check if this decision is OK.
     if xs is None:
-        xs = False
-
-    if isinstance(xs, chainer.Variable):
+        pass
+    elif isinstance(xs, chainer.Variable):
         xs = xs.array
     elif isinstance(xs, np.ndarray):
         pass
@@ -93,13 +90,15 @@ def dump_test_inputs_outputs(inputs, outputs, gradients, test_data_dir):
                 #sequence_type = value_info.type.sequence_type
                 #tensor_type = sequence_type.elem_type.tensor_type
                 #tensor_type.elem_type = tensor.data_type
+            elif value is None:
+                filename = os.path.join(test_data_dir,
+                                        '%s_%d.pb' % (typ, i))
+                tensor = numpy_helper.from_array(np.array([], dtype=np.object), name)
+                with open(filename, 'wb') as f:
+                    f.write(tensor.SerializeToString())
             else:
                 filename = os.path.join(test_data_dir,
                                         '%s_%d.pb' % (typ, i))
-                if value is None:
-                    if get_test_args().allow_unused_params:
-                        continue
-                    raise RuntimeError('Unused parameter: %s' % name)
                 tensor = numpy_helper.from_array(value, name)
                 with open(filename, 'wb') as f:
                     f.write(tensor.SerializeToString())

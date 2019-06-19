@@ -70,6 +70,7 @@ if __name__ == '__main__':
                      (True, False),
                      (True, True),
                      (False, False),
+                     (False, None),
                      (True, [42]),
                      ([42], [42]),
                      (np.array(42), np.array(42))]:

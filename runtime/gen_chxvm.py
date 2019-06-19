@@ -243,7 +243,7 @@ def gen_gen_chxvm_ops_cc():
             conds = []
             for typ, name in op.inputs:
                 if typ in ARG_TYPES and typ != ARRAY_LIST:
-                    conds.append('(%s >= 0 && st->GetVar(%s)->IsNull())' %
+                    conds.append('(%s >= 0 && st->GetVar(%s)->IsUndefined())' %
                                  (name, name))
             if conds:
                 lines.append('if (%s) {' % (' || '.join(conds)))

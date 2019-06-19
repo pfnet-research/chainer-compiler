@@ -44,10 +44,14 @@ public:
         kOpaque,
         kScalar,
         kShape,
-        kNull,
+        kUndefined,
+        kNone,
     };
 
+    struct NoneType {};
+
     ChxVMVar();
+    explicit ChxVMVar(NoneType n);
     explicit ChxVMVar(chainerx::Array array);
     // Takes the ownership of `opaque`.
     explicit ChxVMVar(ChxVMOpaque* opaque);
@@ -65,8 +69,8 @@ public:
     Kind kind() const {
         return static_cast<Kind>(val_.index());
     }
-    bool IsNull() const {
-        return kind() == Kind::kNull;
+    bool IsUndefined() const {
+        return kind() == Kind::kUndefined;
     }
     bool IsArray() const;
 
@@ -80,9 +84,15 @@ public:
     std::string DebugString() const;
 
 private:
-    struct NullType {};
-    using VarInternalType = absl::
-            variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, StrictScalar, chainerx::Shape, NullType>;
+    struct UndefinedType {};
+    using VarInternalType = absl::variant<
+            chainerx::Array,
+            std::shared_ptr<ChxVMSequence>,
+            std::shared_ptr<ChxVMOpaque>,
+            StrictScalar,
+            chainerx::Shape,
+            UndefinedType,
+            NoneType>;
     mutable VarInternalType val_;
 };
 

@@ -75,7 +75,11 @@ std::vector<std::string> ListDir(const std::string& dirname) {
     return filenames;
 }
 
-chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
+nonstd::optional<chainerx::Array> MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
+    if (xtensor.string_data_size() == 0 && xtensor.data_type() == onnx::TensorProto::STRING) {
+        return nonstd::nullopt;
+    }
+
     Tensor tensor(xtensor);
     int64_t size = tensor.ElementSize() * tensor.NumElements();
     std::shared_ptr<void> data(new char[size], std::default_delete<char[]>());
@@ -122,11 +126,11 @@ void ReadTestDir(
         size_t input_index = 0;
         size_t output_index = 0;
 
-        std::vector<std::tuple<std::string, std::string, chainerx::Array>> all_tensors;
+        std::vector<std::tuple<std::string, std::string, nonstd::optional<chainerx::Array>>> all_tensors;
         for (const std::string& tensor_pb : ListDir(data_set_dir)) {
             if (!HasSuffix(tensor_pb, ".pb")) continue;
             onnx::TensorProto xtensor(LoadLargeProto<onnx::TensorProto>(tensor_pb));
-            chainerx::Array tensor(MakeArrayFromONNX(xtensor));
+            nonstd::optional<chainerx::Array> tensor(MakeArrayFromONNX(xtensor));
             all_tensors.emplace_back(Basename(tensor_pb), xtensor.name(), tensor);
         }
 
@@ -138,7 +142,12 @@ void ReadTestDir(
             if (first_found == std::string::npos) continue;
             size_t found = filename.find('_', first_found + 1);
             if (found == std::string::npos) {
-                all_vars.emplace_back(filename, tensor_name, new ChxVMVar(std::get<2>(all_tensors[i])));
+                nonstd::optional<chainerx::Array> t = std::get<2>(all_tensors[i]);
+                if (t.has_value()) {
+                    all_vars.emplace_back(filename, tensor_name, new ChxVMVar(*t));
+                } else {
+                    all_vars.emplace_back(filename, tensor_name, new ChxVMVar(ChxVMVar::NoneType{}));
+                }
                 continue;
             }
 
@@ -148,7 +157,12 @@ void ReadTestDir(
                 const std::string& filename = std::get<0>(all_tensors[i]);
                 if (HasPrefix(filename, prefix)) {
                     CHECK_EQ(tensor_name, std::get<1>(all_tensors[i]));
-                    seq->emplace_back(std::get<2>(all_tensors[i]));
+                    nonstd::optional<chainerx::Array> t = std::get<2>(all_tensors[i]);
+                    if (t.has_value()) {
+                        seq->emplace_back(*t);
+                    } else {
+                        seq->emplace_back(ChxVMVar::NoneType{});
+                    }
                 } else {
                     --i;
                     break;
@@ -228,8 +242,9 @@ ChxVMVar* StageVar(ChxVMVar* var) {
             return new ChxVMVar(seq);
         }
 
+        case ChxVMVar::Kind::kNone:
         case ChxVMVar::Kind::kOpaque:
-        case ChxVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
@@ -430,8 +445,9 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                     return array_str(v->GetArray());
                 case ChxVMVar::Kind::kSequence:
                     return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
+                case ChxVMVar::Kind::kNone:
                 case ChxVMVar::Kind::kOpaque:
-                case ChxVMVar::Kind::kNull:
+                case ChxVMVar::Kind::kUndefined:
                     CHECK(false) << v->DebugString();
             }
             CHECK(false);
@@ -497,8 +513,9 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 break;
             }
 
+            case ChxVMVar::Kind::kNone:
             case ChxVMVar::Kind::kOpaque:
-            case ChxVMVar::Kind::kNull:
+            case ChxVMVar::Kind::kUndefined:
                 CHECK(false) << expected->DebugString();
         }
 

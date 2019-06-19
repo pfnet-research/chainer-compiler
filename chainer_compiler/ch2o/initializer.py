@@ -10,6 +10,9 @@ from chainer import links as L
 
 
 def tensor_from_array(array, name):
+    if array is None:
+        return onnx.numpy_helper.from_array(
+            np.array([], dtype=np.object), name=name)
     array = chainer.cuda.to_cpu(array)
     return onnx.numpy_helper.from_array(array, name)
 

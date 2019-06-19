@@ -26,7 +26,8 @@ int64_t GetSize(ChxVMVar* var) {
         case ChxVMVar::Kind::kShape:
             return var->GetShape().size();
         case ChxVMVar::Kind::kOpaque:
-        case ChxVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kNone:
+        case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var->DebugString();
     }
     CHECK(false);
@@ -96,8 +97,9 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
             break;
         }
 
+        case ChxVMVar::Kind::kNone:
         case ChxVMVar::Kind::kOpaque:
-        case ChxVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var->DebugString();
     }
 }
@@ -144,7 +146,8 @@ void GenericGetSliceOp::RunImpl(ChxVMState* st) {
         }
 
         case ChxVMVar::Kind::kOpaque:
-        case ChxVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kUndefined:
+        case ChxVMVar::Kind::kNone:
             CHECK(false) << var->DebugString();
     }
 }
@@ -196,11 +199,11 @@ void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var1 = st->GetVar(b);
 
     // TODO(hamaji): Add testcases which require these checks.
-    if (var0->kind() == ChxVMVar::Kind::kNull) {
+    if (var0->kind() == ChxVMVar::Kind::kUndefined) {
         st->SetVar(output, *var1);
         return;
     }
-    if (var1->kind() == ChxVMVar::Kind::kNull) {
+    if (var1->kind() == ChxVMVar::Kind::kUndefined) {
         st->SetVar(output, *var0);
         return;
     }
@@ -220,19 +223,20 @@ void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
             CHECK_EQ(seq0.size(), seq1.size()) << var0->DebugString() << " vs " << var1->DebugString();
             out->resize(seq0.size());
             for (size_t i = 0; i < seq0.size(); ++i) {
-                if (!seq0[i].IsNull() && !seq1[i].IsNull()) {
+                if (!seq0[i].IsUndefined() && !seq1[i].IsUndefined()) {
                     (*out)[i] = ChxVMVar(seq0[i].GetArray() + seq1[i].GetArray());
-                } else if (!seq0[i].IsNull()) {
+                } else if (!seq0[i].IsUndefined()) {
                     (*out)[i] = seq0[i];
-                } else if (!seq1[i].IsNull()) {
+                } else if (!seq1[i].IsUndefined()) {
                     (*out)[i] = seq1[i];
                 }
             }
             break;
         }
 
+        case ChxVMVar::Kind::kNone:
         case ChxVMVar::Kind::kOpaque:
-        case ChxVMVar::Kind::kNull:
+        case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var0->DebugString();
     }
 }

@@ -26,12 +26,9 @@ from chainer_compiler.ch2o.initializer import edit_onnx_protobuf, tensor_from_ar
 def _validate_inout(xs):
     # print(xs)
 
-    # We use a scalar false as a None.
-    # TODO(hamaji): Revisit to check if this decision is OK.
     if xs is None:
-        xs = False
-
-    if isinstance(xs, chainer.Variable):
+        pass
+    elif isinstance(xs, chainer.Variable):
         xs = xs.array
     elif isinstance(xs, chainer.get_array_types()):
         xs = chainer.cuda.to_cpu(xs)
@@ -91,10 +88,10 @@ def dump_test_inputs_outputs(inputs, outputs, test_data_dir):
             else:
                 filename = os.path.join(test_data_dir,
                                         '%s_%d.pb' % (typ, i))
-                if value is None:
-                    if get_test_args().allow_unused_params:
-                        continue
-                    raise RuntimeError('Unused parameter: %s' % name)
+                # if value is None:
+                #     if get_test_args().allow_unused_params:
+                #         continue
+                #     raise RuntimeError('Unused parameter: %s' % name)
                 tensor = tensor_from_array(value, name)
                 with open(filename, 'wb') as f:
                     f.write(tensor.SerializeToString())

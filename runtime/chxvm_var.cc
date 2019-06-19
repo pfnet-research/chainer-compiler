@@ -21,7 +21,10 @@ void ChxVMOpaque::SetRetainedArrays(const std::vector<chainerx::Array>& retained
     retained_arrays_.reset(new std::vector<chainerx::Array>(retained_arrays));
 }
 
-ChxVMVar::ChxVMVar() : val_(NullType{}) {
+ChxVMVar::ChxVMVar() : val_(UndefinedType{}) {
+}
+
+ChxVMVar::ChxVMVar(ChxVMVar::NoneType n) : val_(n) {
 }
 
 ChxVMVar::ChxVMVar(chainerx::Array array) : val_(array) {
@@ -91,7 +94,8 @@ int64_t ChxVMVar::GetNBytes() const {
             for (const ChxVMVar& v : *GetSequence()) size += v.GetArray().GetNBytes();
             break;
         case Kind::kOpaque:
-        case Kind::kNull:
+        case Kind::kNone:
+        case Kind::kUndefined:
             CHECK(false) << DebugString();
     }
     return size;
@@ -115,7 +119,8 @@ std::vector<chainerx::Array> ChxVMVar::GetArrays() const {
         case Kind::kOpaque:
             return GetOpaque()->GetArrays();
 
-        case Kind::kNull:
+        case Kind::kNone:
+        case Kind::kUndefined:
             return {};
 
         default:
@@ -132,9 +137,10 @@ char ChxVMVar::Sigil() const {
             return '$';
         case Kind::kSequence:
             return '@';
+        case Kind::kNone:
         case Kind::kOpaque:
             return '*';
-        case Kind::kNull:
+        case Kind::kUndefined:
             CHECK(false);
     }
     CHECK(false);
@@ -148,8 +154,10 @@ std::string ChxVMVar::ToString() const {
             return StrCat('[', JoinString(MapToString(*GetSequence(), [this](const ChxVMVar& v) { return v.ToString(); })), ']');
         case Kind::kOpaque:
             return GetOpaque()->ToString();
-        case Kind::kNull:
-            return "(null)";
+        case Kind::kNone:
+            return "None";
+        case Kind::kUndefined:
+            return "(undefined)";
         case Kind::kShape: {
             std::ostringstream oss;
             oss << "(" << absl::get<chainerx::Shape>(val_).size() << ")";
@@ -169,8 +177,10 @@ std::string ChxVMVar::DebugString() const {
             return StrCat('[', JoinString(MapToString(*GetSequence(), [this](const ChxVMVar& v) { return v.DebugString(); })), ']');
         case Kind::kOpaque:
             return GetOpaque()->DebugString();
-        case Kind::kNull:
-            return "(null)";
+        case Kind::kUndefined:
+            return "(undefined)";
+        case Kind::kNone:
+            return "None";
         case Kind::kShape:
             return absl::get<chainerx::Shape>(val_).ToString();
         case Kind::kScalar:

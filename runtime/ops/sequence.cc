@@ -31,7 +31,7 @@ void SequenceAppendOp::RunImpl(ChxVMState* st) {
 
 void SequencePopOp::RunImpl(ChxVMState* st) {
     // TODO(hamaji): Remove this code by removing null gradients.
-    if (st->GetVar(seq)->IsNull()) {
+    if (st->GetVar(seq)->IsUndefined()) {
         st->SetVar(output, ChxVMVar());
         return;
     }
@@ -224,7 +224,7 @@ void SequenceCopyOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, ChxVMSequ
 
 void SequenceMoveOp::RunImpl(ChxVMState* st) {
     // TODO(hamaji): Remove this code by removing null gradients.
-    if (st->GetVar(seq)->IsNull()) {
+    if (st->GetVar(seq)->IsUndefined()) {
         st->SetVar(output, ChxVMVar());
         return;
     }

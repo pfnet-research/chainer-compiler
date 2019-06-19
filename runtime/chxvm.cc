@@ -47,7 +47,7 @@ void CheckType(ChxVMState* st, const ChxVMOp* op) {
         CHECK_LT(0, id);
         ChxVMVar* var = st->GetVar(id);
         // Null values are OK as they can be used to accumulate gradients.
-        if (var->kind() == ChxVMVar::Kind::kNull) {
+        if (var->kind() == ChxVMVar::Kind::kUndefined) {
             continue;
         }
 
