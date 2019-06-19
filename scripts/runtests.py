@@ -427,6 +427,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_isinf'),
 
     TestCase(NODE_TEST, 'test_where_example'),
+    TestCase(NODE_TEST, 'test_quantizelinear'),
 ]
 
 TEST_CASES += [

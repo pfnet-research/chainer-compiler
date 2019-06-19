@@ -652,6 +652,11 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Where, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kQuantizeLinear) {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(QuantizeLinear, out(0), in(0), in(1), in(2));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
