@@ -656,7 +656,7 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(QuantizeLinear, out(0), in(0), in(1), in(2));
+            EMIT(QuantizeLinear, out(0), in(0), in(1), oin(2));
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

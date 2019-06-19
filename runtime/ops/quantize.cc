@@ -9,7 +9,9 @@ namespace chainer_compiler {
 namespace runtime {
 
 chainerx::Array QuantizeLinearOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& x, const StrictScalar& y_scale, const StrictScalar& y_zero_point) {
+        ChxVMState* st, const chainerx::Array& x, const StrictScalar& y_scale, const nonstd::optional<StrictScalar>& y_zero_point_opt) {
+    const StrictScalar y_zero_point =
+            y_zero_point_opt.has_value() ? *y_zero_point_opt : StrictScalar(chainerx::Dtype::kUInt8, chainerx::Scalar(0u), false);
     chainerx::Dtype as_type = chainerx::Dtype::kUInt8;
     chainerx::Scalar min(0u), max(255u);
     if (y_zero_point.dtype() == chainerx::Dtype::kInt8) {
@@ -27,7 +29,7 @@ chainerx::Array QuantizeLinearOp::RunImpl(
         scaled += chainerx::Scalar(y_zero_point);
     }
     // TODO(take-cheeze): Better rounding method
-    return (chainerx::Maximum(min, chainerx::Minimum(scaled, max)) + 0.5).AsType(as_type);
+    return (chainerx::Maximum(min, chainerx::Minimum(scaled, max)) + 0.5f).AsType(as_type);
 }
 
 }  // namespace runtime
