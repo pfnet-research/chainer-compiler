@@ -400,6 +400,10 @@ XC_OPS = [
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],
      [ArrayList('outputs')]),
+
+    ('QuantizeLinear',
+     [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
+     [Array('y')]),
 ]
 
 XC_CUSTOM_FIELD_OPS = [
