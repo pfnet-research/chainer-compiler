@@ -3,7 +3,6 @@ import glob
 import logging
 import os
 import sys
-import time
 
 import chainer
 import cupy
@@ -11,6 +10,8 @@ import numpy as np
 import onnx
 import onnx.numpy_helper
 import tensorrt
+
+import run_onnx_util
 
 
 def to_gpu(arrays):
@@ -136,16 +137,11 @@ def run(args):
         print('%s: OK' % name)
     print('ALL OK')
 
-    elapsed_times = []
-    if args.iterations > 1:
-        num_iterations = args.iterations - 1
-        for t in range(num_iterations):
-            start = time.time()
-            context.execute(args.batch_size, bindings)
-            cupy.cuda.device.Device().synchronize()
-            elapsed_times.append(time.time() - start)
-        print('Elapsed: %.3f msec' % (sum(elapsed_times) * 1000 / num_iterations))
-    return elapsed_times
+    def compute():
+        context.execute(args.batch_size, bindings)
+        cupy.cuda.device.Device().synchronize()
+
+    return run_onnx_util.run_benchmark(compute, args.iterations)
 
 
 def main():
