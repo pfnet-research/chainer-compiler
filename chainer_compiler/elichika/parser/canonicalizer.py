@@ -51,13 +51,13 @@ class Canonicalizer(gast.NodeTransformer):
                 cond = bool_values[0]
             elif len(bool_values) > 1:
                 cond = gast.BoolOp(op=gast.Or(), values=bool_values)
-            if isinstance(modified_node, gast.For):
-                modified_node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
-                modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
-            elif isinstance(modified_node, gast.If):
-                if isinstance(modified_node.body[0], gast.For):
-                    modified_node.body[0].body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
-                    modified_node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
+            if isinstance(node, gast.For):
+                node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
+                node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
+            elif isinstance(node, gast.If):
+                if isinstance(node.body[0], gast.For):
+                    node.body[0].body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
+                    node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
     def generic_visit(self, node):
@@ -73,12 +73,12 @@ class Canonicalizer(gast.NodeTransformer):
                 if isinstance(node, gast.For):
                     self.for_continue_stack.append([])
                     self.for_breaked_stack.append([])
-                node = super().generic_visit(node)
+                modified_node = super().generic_visit(node)
                 if len(bool_values) == 1:
                     cond = bool_values[0]
                 else:
                     cond = gast.BoolOp(op=gast.And(), values=bool_values)
-                replacement = gast.If(test=cond, body=[node], orelse=[])
+                replacement = gast.If(test=cond, body=[modified_node], orelse=[])
                 ret = gast.copy_location(replacement, node)
             else:
                 if isinstance(node, gast.For):
