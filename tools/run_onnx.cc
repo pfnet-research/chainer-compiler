@@ -717,7 +717,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (!report_json.empty()) {
         std::ofstream ofs(report_json);
         // TODO(hamaji): Output more information using nlohmann/json.
-        ofs << "{\"elapsed_times\": [ " << JoinString(MapToString(elapsed_times, [](double t){ return StrCat(t);})) << " ]}";
+        ofs << "{\"elapsed_times\": [ " << JoinString(MapToString(elapsed_times, [](double t) { return StrCat(t); })) << " ]}";
     }
 }
 
