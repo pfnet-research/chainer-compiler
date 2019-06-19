@@ -29,6 +29,7 @@
 #include <tools/util.h>
 
 namespace py = pybind11;
+using py::operator""_a;
 
 namespace chainer_compiler {
 namespace {
@@ -184,27 +185,27 @@ void InitGraph(py::module& m) {
     c.def("compile",
           &Compile,
           "Compile a model",
-          py::arg("compiler_log") = false,
-          py::arg("permissive") = false,
-          py::arg("skip_inference") = false,
-          py::arg("use_cuda") = false,
-          py::arg("fuse_operations") = false,
-          py::arg("use_nvrtc") = false,
-          py::arg("use_tvm") = false,
-          py::arg("reuse_tvm_code") = false,
-          py::arg("dump_autotvm_task_dir") = "",
-          py::arg("autotvm_log") = "",
-          py::arg("use_ngraph") = false,
-          py::arg("ngraph_device") = "",
-          py::arg("backend_name") = "",
-          py::arg("reset_shape") = false,
-          py::arg("reset_output_shape") = false,
-          py::arg("dump_after_inference") = false,
-          py::arg("dump_after_simplification") = false,
-          py::arg("dump_after_gradient") = false,
-          py::arg("dump_after_fusion") = false,
-          py::arg("dump_after_scheduling") = false,
-          py::arg("dump_subgraphs") = false);
+          "compiler_log"_a = false,
+          "permissive"_a = false,
+          "skip_inference"_a = false,
+          "use_cuda"_a = false,
+          "fuse_operations"_a = false,
+          "use_nvrtc"_a = false,
+          "use_tvm"_a = false,
+          "reuse_tvm_code"_a = false,
+          "dump_autotvm_task_dir"_a = "",
+          "autotvm_log"_a = "",
+          "use_ngraph"_a = false,
+          "ngraph_device"_a = "",
+          "backend_name"_a = "",
+          "reset_shape"_a = false,
+          "reset_output_shape"_a = false,
+          "dump_after_inference"_a = false,
+          "dump_after_simplification"_a = false,
+          "dump_after_gradient"_a = false,
+          "dump_after_fusion"_a = false,
+          "dump_after_scheduling"_a = false,
+          "dump_subgraphs"_a = false);
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("param_names", &GetParamNames, "Names of params");
     c.def("output_names", &GetOutputNames, "Names of outputs");
@@ -278,15 +279,15 @@ void InitChxVM(py::module& m) {
     c.def("run",
           &Run,
           "Run the model",
-          py::arg("inputs"),
-          py::arg("trace") = false,
-          py::arg("verbose") = false,
-          py::arg("training") = false,
-          py::arg("check_nans") = false,
-          py::arg("check_infs") = false,
-          py::arg("dump_memory_usage") = false,
-          py::arg("chrome_tracing") = "",
-          py::arg("custom_funcs") = py::dict());
+          "inputs"_a,
+          "trace"_a = false,
+          "verbose"_a = false,
+          "training"_a = false,
+          "check_nans"_a = false,
+          "check_infs"_a = false,
+          "dump_memory_usage"_a = false,
+          "chrome_tracing"_a = "",
+          "custom_funcs"_a = py::dict());
 }
 
 bool IsArray(const VarPtr& v) {
