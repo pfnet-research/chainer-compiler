@@ -109,6 +109,7 @@
         "Cos": true,
         "Cosh": true,
         "DepthToSpace": true,
+        "DequantizeLinear": true,
         "Div": true,
         "Dropout": true,
         "DynamicSlice": true,

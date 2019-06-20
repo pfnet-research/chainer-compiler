@@ -404,6 +404,9 @@ XC_OPS = [
     ('QuantizeLinear',
      [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
      [Array('y')]),
+    ('DequantizeLinear',
+     [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
+     [Array('y')]),
 ]
 
 XC_CUSTOM_FIELD_OPS = [

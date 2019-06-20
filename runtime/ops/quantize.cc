@@ -32,5 +32,19 @@ chainerx::Array QuantizeLinearOp::RunImpl(
     return (chainerx::Maximum(min, chainerx::Minimum(scaled, max)) + 0.5f).AsType(as_type);
 }
 
+chainerx::Array DequantizeLinearOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& x, const StrictScalar& x_scale, const nonstd::optional<StrictScalar>& x_zero_point_opt) {
+    const StrictScalar x_zero_point =
+            x_zero_point_opt.has_value() ? *x_zero_point_opt : StrictScalar(chainerx::Dtype::kUInt8, chainerx::Scalar(0u), false);
+
+    chainerx::Array zero_pointed_x = x.AsType(chainerx::Dtype::kFloat32);
+    if (int64_t(x_zero_point) != 0) {
+        zero_pointed_x -= chainerx::Scalar(x_zero_point);
+    }
+
+    chainerx::Array y = zero_pointed_x * chainerx::Scalar(x_scale);
+    return y;
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
