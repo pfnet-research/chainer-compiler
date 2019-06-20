@@ -7,7 +7,7 @@ from chainer_compiler.elichika.testtools import compare_ast, assert_semantically
 
 class Continue(unittest.TestCase):
     def setUp(self):
-        self.canonicalizer = canonicalizer.Canonicalizer()
+        self.canonicalizer = canonicalizer.Canonicalizer(use_illegal_identifier=False)
 
     def test_continue(self):
         orig_code = utils.clip_head("""
@@ -97,8 +97,10 @@ class Continue(unittest.TestCase):
                         breaked_2 = True
                     if not breaked_2:
                         x += i * j
+                    keepgoing = not breaked_2
                     if breaked_2:
                         break
+            keepgoing = not breaked_1
             if breaked_1:
                 break
         """)

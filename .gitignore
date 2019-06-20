@@ -13,10 +13,11 @@
 .pytest_cache/
 /TAGS
 /tags
+chainer_compiler.egg-info/
 \#*\#
 __pycache__
 build/
 out/
 
-# exclude the data directory created by setup.sh
+# exclude the data directory created by test model downloader
 data/

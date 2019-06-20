@@ -26,6 +26,10 @@ class UnaryOpType(Enum):
     Not = 2,
     Unknown = 255,
 
+class MultiaryOpType(Enum):
+    And = 0,
+    Or = 1,
+    Unknown = 255,
 
 class CompareType(Enum):
     Eq = 0,
@@ -208,6 +212,16 @@ class NodeUnaryOp(Node):
     def __str__(self):
         return 'UnaryOp({},{})'.format(self.lineprop, self.unaryop)
 
+class NodeMultiaryOp(Node):
+    def __init__(self, values_list: 'values.Value', multiaryop: 'MultiaryOpType', line=-1):
+        super().__init__(line)
+        self.values_list = values_list
+        self.multiaryop = multiaryop
+
+        self.extend_inputs(values_list)
+
+    def __str__(self):
+        return 'MultiaryOp({},{})'.format(self.lineprop, self.multiaryop)
 
 class NodeCompare(Node):
     def __init__(self, left: 'values.Value', right: 'values.Value', compare: 'CompareType', line=-1):
@@ -304,9 +318,10 @@ class NodeIf(Node):
 
 
 class NodeFor(Node):
-    def __init__(self, iter_value, input_values, body_graph, line=-1):
+    def __init__(self, iter_value, input_values, body_graph, exit_cond, line=-1):
         super().__init__(line)
         self.iter_value = iter_value
+        self.exit_cond = exit_cond
         self.input_values = input_values
         self.append_inputs(iter_value)
         self.extend_inputs(self.input_values)

@@ -50,6 +50,10 @@ add_library(chainer_compiler_compiler
   flags.cc
   flops.cc
   fusion.cc
+  fusion_dldt.cc
+  fusion_elementwise.cc
+  fusion_ngraph.cc
+  fusion_tvm.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
   ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
   gradient.cc
@@ -83,6 +87,34 @@ add_dependencies(
   )
 set_hidden_(chainer_compiler_compiler)
 
+# Download and extract test data
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+  COMMAND
+  rm -rf data/mnist* &&
+  mkdir -p data && cd data &&
+  wget https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
+  tar -xvzf mnist.tar.gz
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
+  )
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+  COMMAND
+  rm -rf data/resnet50* &&
+  mkdir -p data && cd data &&
+  wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
+  tar -xvzf resnet50.tar.gz
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
+  )
+add_custom_target(
+  test_models
+  DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
+  )
+
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(chainer_compiler_compiler_test
   code_emitter_test.cc
@@ -103,7 +135,7 @@ add_executable(chainer_compiler_compiler_test
   )
 add_dependencies(
   chainer_compiler_compiler_test
-  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h gen_onnx_proto
+  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h gen_onnx_proto test_models
   )
 target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler

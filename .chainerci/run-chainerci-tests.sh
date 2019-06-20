@@ -15,7 +15,8 @@ cmake .. \
     -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
     -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
     -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
-    -DPYTHON_EXECUTABLE=/usr/bin/python3 \
+    -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
+    -DPYTHON_EXECUTABLE=$(which python3) \
     -DCHAINER_COMPILER_ENABLE_TVM=ON \
     -DCHAINERX_BUILD_CUDA=ON \
     -DCHAINERX_BUILD_PYTHON=ON \
@@ -35,4 +36,4 @@ PYTHONPATH=. python3 -m pytest -sv tests
 EOM
 
 docker run --runtime=nvidia --memory-swap=-1 --rm -v=$(pwd):/chainer-compiler --workdir=/chainer-compiler \
-    disktnk/chainer-compiler:ci-cuda100-ngraph0.19.0-tvm0.5 /bin/bash /chainer-compiler/runtest.sh
+    disktnk/chainer-compiler:ci-base-7c293fc /bin/bash /chainer-compiler/runtest.sh

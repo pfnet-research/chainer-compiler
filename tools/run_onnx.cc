@@ -521,6 +521,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_chxvm", '\0', "Output ChxVM program", false);
     args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of ChxVM ops to this directory", false);
+    args.add<std::string>("report_json", '\0', "Dump report in a JSON", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
@@ -640,6 +641,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
     if (args.exist("compile_only")) return;
 
+    std::vector<double> elapsed_times;
     double total_elapsed = 0;
     double best_elapsed = 0;
     int test_cnt = 0;
@@ -687,8 +689,13 @@ void RunMain(const std::vector<std::string>& argv) {
         // The first iteration is for warm up.
         if (test_case != test_cases.front()) total_elapsed += elapsed;
         if (best_elapsed == 0 || best_elapsed > elapsed) best_elapsed = elapsed;
+        elapsed_times.push_back(elapsed);
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
+
+    if (elapsed_times.size() > 1) {
+        elapsed_times.erase(elapsed_times.begin());
+    }
 
     if (iterations > 1) {
         // The first iteration is for warm up.
@@ -704,6 +711,13 @@ void RunMain(const std::vector<std::string>& argv) {
             double best_gflops_sec = flops / best_elapsed / 1000 / 1000;
             std::cerr << "Best elapsed: " << best_elapsed << " msec (" << best_gflops_sec << " GFLOPs/sec)" << std::endl;
         }
+    }
+
+    const std::string& report_json = args.get<std::string>("report_json");
+    if (!report_json.empty()) {
+        std::ofstream ofs(report_json);
+        // TODO(hamaji): Output more information using nlohmann/json.
+        ofs << "{\"elapsed_times\": [ " << JoinString(MapToString(elapsed_times, [](double t) { return StrCat(t); })) << " ]}";
     }
 }
 

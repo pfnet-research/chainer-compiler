@@ -88,8 +88,8 @@ And run:
 
 ```shell-session
 $ apt-get install python3 python3-pip
-$ ONNX_ML=1 pip3 install gast numpy onnx==1.3.0 onnx_chainer pytest onnxruntime
 $ git submodule update --init
+$ ONNX_ML=1 pip3 install gast numpy third_party/onnx-chainer pytest
 ```
 
 You need to install Chainer in a submodule directory (`third_party/chainer`).
@@ -114,14 +114,7 @@ In this section, we explain how to build from source.
 $ git clone https://github.com/pfnet-research/chainer-compiler.git
 ```
 
-2. Run `setup.sh` (You may need to add `-DPYTHON_EXECUTABLE=python3` manually to `cmake` for ONNX):
-
-```shell-session
-$ cd chainer-compiler
-$ ./setup.sh
-```
-
-3. Build Chainer compiler
+2. Build Chainer compiler
 
 ```bash
 $ mkdir -p build

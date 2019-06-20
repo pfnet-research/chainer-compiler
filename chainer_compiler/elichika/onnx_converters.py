@@ -474,6 +474,33 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         chainer_l_converter[type(original_inst)](onnx_graph, node)
 
 
+def convert_node_multiary_op(onnx_graph, node: 'nodes.NodeMultiaryOp'):
+
+    if node.multiaryop == nodes.MultiaryOpType.And:
+        op = 'And'
+        temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
+    elif node.multiaryop == nodes.MultiaryOpType.Or:
+        op = 'Or'
+        temp_prev = ONNXValue(onnx_graph, np.array(False, dtype=np.bool), [node, '/False'], is_constant=True)
+    else:
+        assert(False)
+
+    for idx, value_ in enumerate(node.values_list):
+        temp = ONNXValue(onnx_graph, np.array(True).dtype, [node, '/temp%d' % idx])
+        onnx_graph.add_node(
+            op,
+            [temp_prev.name, value2onnx_parameter[value_].onnx_name],
+            [temp.name],
+            str(node.lineprop))
+        temp_prev = temp
+
+    onnx_graph.add_node(
+        "Identity",
+        [temp_prev.name],
+        [value2onnx_parameter[node.outputs[0]].onnx_name],
+        str(node.lineprop))
+
+
 def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
 
     if node.unaryop == nodes.UnaryOpType.UAdd:
@@ -640,7 +667,7 @@ class ONNXValue:
                 self.tensor = onnx_graph.new_tensor_with_np(
                     self.np_value, self.name)
 
-        elif(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64):
+        elif(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64 or any_value == np.bool):
             self.name = generate_name()
             self.tensor = self.onnx_graph.new_empty_tensor(
                 ['TODO'], any_value, self.name)
@@ -859,6 +886,10 @@ class ONNXGraph:
             arr = np.array(value.internal_value)
             return self.new_tensor_with_np(arr, name)
 
+        if isinstance(value, values.StrValue):
+            arr = np.array(value.internal_value, dtype=np.object)
+            return self.new_tensor_with_np(arr, name)
+
         if isinstance(value, values.NoneValue):
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
@@ -867,8 +898,8 @@ class ONNXGraph:
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
 
-        print('Warning : Found unknown type {} in new_tensor_with_value. Float is stored.'.format(
-            type(value)))
+        print('Warning : Found unknown type {} in new_tensor_with_value. "{}" is stored.'.format(
+            type(value), value))
         arr = np.array(0.0, dtype=np.float32)
         return self.new_tensor_with_np(arr, name)
 
@@ -1059,6 +1090,9 @@ class ONNXGenerator:
             if isinstance(node, nodes.NodeUnaryOp):
                 convert_node_unary_op(onnx_graph, node)
 
+            if isinstance(node, nodes.NodeMultiaryOp):
+                convert_node_multiary_op(onnx_graph, node)
+
             if isinstance(node, nodes.NodeCompare):
                 node_ = node  # type: nodes.NodeCompare
 
@@ -1206,10 +1240,18 @@ class ONNXGenerator:
                 body_graph = self.generate_graph(
                     node_.body_graph.input_values, node_.body_graph.output_values, node_.body_graph, onnx_graph)
 
+                t = onnx_graph.new_empty_tensor_with_value(node_.exit_cond)
+                tensor = numpy_helper.from_array(np.array(True, dtype=np.bool),
+                    name=value2onnx_parameter[node_.exit_cond].onnx_name)
+
+                onnx_node = oh.make_node(
+                    'Constant', [], [t.name], value=tensor)
+                onnx_graph.nodes.append(onnx_node)
+
                 # for
                 onnx_node = onnx_graph.add_node(
                     'Loop',
-                    [v_len] + [""] + [value2onnx_parameter[node_.iter_value].onnx_name] +
+                    [v_len, value2onnx_parameter[node_.exit_cond].onnx_name, value2onnx_parameter[node_.iter_value].onnx_name] +
                     [value2onnx_parameter[x].onnx_name for x in node.input_values],
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     str(node.lineprop),

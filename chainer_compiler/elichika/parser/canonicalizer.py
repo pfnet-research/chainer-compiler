@@ -9,8 +9,16 @@ import gast
 
 class Canonicalizer(gast.NodeTransformer):
 
-    def __init__(self):
+    def __init__(self, use_illegal_identifier=True):
         super().__init__()
+        if use_illegal_identifier:
+            self.keepgoing_flag = '#keepgoing'
+            self.breaked_flag = '#breaked_'
+            self.continued_flag = '#continued_'
+        else:
+            self.keepgoing_flag = 'keepgoing'
+            self.breaked_flag = 'breaked_'
+            self.continued_flag = 'continued_'
         self.for_continue_stack = []
         self.for_breaked_stack = []
         self.flagid = -1
@@ -44,9 +52,11 @@ class Canonicalizer(gast.NodeTransformer):
             elif len(bool_values) > 1:
                 cond = gast.BoolOp(op=gast.Or(), values=bool_values)
             if isinstance(modified_node, gast.For):
+                modified_node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
                 modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
             elif isinstance(modified_node, gast.If):
                 if isinstance(modified_node.body[0], gast.For):
+                    modified_node.body[0].body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
                     modified_node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
@@ -81,7 +91,7 @@ class Canonicalizer(gast.NodeTransformer):
 
     def visit_Continue(self, node):
         node = self.generic_visit(node)
-        flag = 'continued_' + str(self.getflag())
+        flag = self.continued_flag + str(self.getflag())
         self.for_continue_stack[-1].append(flag)
         replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
         return gast.copy_location(replacement, node)
@@ -89,7 +99,7 @@ class Canonicalizer(gast.NodeTransformer):
 
     def visit_Break(self, node):
         node = self.generic_visit(node)
-        flag = 'breaked_' + str(self.getflag())
+        flag = self.breaked_flag + str(self.getflag())
         self.for_breaked_stack[-1].append(flag)
         replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
         return gast.copy_location(replacement, node)

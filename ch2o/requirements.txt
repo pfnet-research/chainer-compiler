@@ -1,5 +1,0 @@
-chainer
-cupy
-gast
-numpy
-onnx

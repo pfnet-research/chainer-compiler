@@ -201,6 +201,7 @@ NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
 NodeDef('Upsample', 2, 1, mode='nearest')
+NodeDef('Resize', 2, 1, mode='nearest')
 
 NodeDef('Softmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
 NodeDef('LogSoftmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
@@ -213,6 +214,8 @@ NodeDef('Where', 3, 1)
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
 NodeDef('MaxRoiPool', 2, 1, pooled_shape=Required([int]), spatial_scale=1.0)
+
+NodeDef('QuantizeLinear', (2, 3), 1)
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)

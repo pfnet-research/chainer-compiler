@@ -6,10 +6,10 @@ This document assumes you have successfully built the code by following [set up 
 
 In this section, we run an existing ONNX model by the runtime of Chainer compiler.
 
-To run ResNet50 model downloaded by [setup.sh](/setup.sh), run
+To run ResNet50 model downloaded by build system, run
 
 ```shell-session
-$ ./setup.sh
+$ make -C build ../data/resnet50/model.onnx
 $ ./build/tools/run_onnx --device cuda --test data/resnet50 --trace
 ```
 

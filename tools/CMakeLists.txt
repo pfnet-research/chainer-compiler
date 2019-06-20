@@ -37,6 +37,7 @@ target_link_libraries(dump
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   ${OpenCV_LIBS}
+  absl::variant
   )
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 

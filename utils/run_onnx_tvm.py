@@ -3,7 +3,6 @@ import glob
 import logging
 import os
 import sys
-import time
 
 import cupy
 import nnvm
@@ -15,6 +14,8 @@ import tvm
 
 from tvm.contrib import graph_runtime
 from tvm.contrib.debugger import debug_runtime
+
+import run_onnx_util
 
 
 def load_test_data(data_dir, input_names, output_names):
@@ -113,14 +114,11 @@ def run(args):
         print('%s: OK' % name)
     print('ALL OK')
 
-    if args.iterations > 1:
-        num_iterations = args.iterations - 1
-        start = time.time()
-        for t in range(num_iterations):
-            graph_module.run()
-            cupy.cuda.device.Device().synchronize()
-        elapsed = time.time() - start
-        print('Elapsed: %.3f msec' % (elapsed * 1000 / num_iterations))
+    def compute():
+        graph_module.run()
+        cupy.cuda.device.Device().synchronize()
+
+    return run_onnx_util.run_benchmark(compute, args.iterations)
 
 
 def main():

@@ -132,7 +132,8 @@ TEST(ModelTest, CompileCH2OResNet50) {
 
     std::string path = "out/ch2o_model_Resnet_with_loss/model.onnx";
     onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(path));
-    onnx::shape_inference::InferShapes(xmodel);
+    // TODO(take-cheeze): This should be allowed anytimes
+    // onnx::shape_inference::InferShapes(xmodel);
     Model model(xmodel);
     RunDefaultPasses(&model, true);
 

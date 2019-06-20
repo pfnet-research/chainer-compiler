@@ -217,7 +217,7 @@ XC_OPS = [
 
     ('Conv',
      [Array('x'), Array('w'), OptionalArray('b'),
-      Ints('strides'), Ints('pads'), Int('group')], ['y']),
+      Ints('strides'), Ints('pads'), Int('group'), String('auto_pad')], ['y']),
     ('ConvTranspose',
      [Array('x'), Array('w'), OptionalArray('b'),
       Ints('strides'), Ints('pads'), Ints('output_shape')], ['y']),
@@ -400,6 +400,10 @@ XC_OPS = [
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],
      [ArrayList('outputs')]),
+
+    ('QuantizeLinear',
+     [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
+     [Array('y')]),
 ]
 
 XC_CUSTOM_FIELD_OPS = [

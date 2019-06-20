@@ -2,7 +2,7 @@
 #
 # Example usage:
 #
-# $ ./scripts/nikucheck.py ch2o/tests/node/Linear.py
+# $ python3 scripts/ch2ocheck.py testcases/ch2o_tests/node/Linear.py
 
 import glob
 import os
@@ -16,7 +16,7 @@ def main():
         sys.stderr.write('Usage: %s test.py\n' % sys.argv[0])
         sys.exit(1)
 
-    os.environ['PYTHONPATH'] = 'ch2o'
+    os.environ['PYTHONPATH'] = '.'
     py = sys.argv[1]
     tmpdir = 'out/ch2o_tmp'
 

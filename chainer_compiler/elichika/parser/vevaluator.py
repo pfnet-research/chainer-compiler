@@ -12,6 +12,7 @@ from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import veval_bin
 from chainer_compiler.elichika.parser import veval_unary
+from chainer_compiler.elichika.parser import veval_multiary
 
 import numpy as np
 
@@ -763,6 +764,31 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     return values.ValueRef(ret_value)
 
+def veval_ast_bool_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph'):
+    """
+    eval bool operations.
+    Ex. x and y
+    """
+    assert(isinstance(astc.nast, gast.gast.BoolOp))
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    multiaryop = nodes.MultiaryOpType.Unknown
+    if isinstance(astc.nast.op, gast.And):
+        multiaryop = nodes.MultiaryOpType.And
+    if isinstance(astc.nast.op, gast.Or):
+        multiaryop = nodes.MultiaryOpType.Or
+
+    values_list = [veval_ast(astc.c(value_), local_field, graph) for value_ in astc.nast.values]
+    values_list_value = [try_get_value(value_, 'multiary', lineprop) for value_ in values_list]
+
+    node = nodes.NodeMultiaryOp(values_list_value, multiaryop)
+
+    ret_value = veval_multiary.veval(multiaryop, values_list_value)
+    node.set_outputs([ret_value])
+    graph.add_node(node)
+
+    return values.ValueRef(ret_value)
+
 def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph'):
     """
     eval unary operation.
@@ -1022,6 +1048,13 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     value_inputs = values.get_inputs()
     value_outputs = values.get_outputs()
 
+    break_attribute = local_field.get_attribute('#keepgoing')
+    if break_attribute.has_obj():
+        break_attribute_ref = break_attribute.get_ref()
+        break_attribute_value = break_attribute_ref.get_value()
+    else:
+        break_attribute_value = body_cond_value 
+
     values.pop_history()
 
     inputs = []
@@ -1034,7 +1067,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     body_graph.add_input_value(body_iter_value)
 
     # default output for subgraph's output
-    body_graph.add_output_value(body_cond_value)
+    body_graph.add_output_value(break_attribute_value)
     body_graph.add_output_value(body_iter_value)
 
     # default output
@@ -1097,12 +1130,20 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             body_graph.add_output_value(temp_value1)
             outputs.append(temp_value2)
 
-    node = nodes.NodeFor(input_iter_value, inputs, body_graph, astc.lineno)
+    node = nodes.NodeFor(input_iter_value, inputs, body_graph, body_cond_value, astc.lineno)
     node.set_outputs(outputs)
     node_input.set_outputs(node_input_outputs)
 
     graph.add_node(node)
 
+    return None
+
+def veval_ast_continue(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    assert(isinstance(astc.nast, gast.gast.Continue))
+    return None
+
+def veval_ast_break(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    assert(isinstance(astc.nast, gast.gast.Break))
     return None
 
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
@@ -1185,6 +1226,19 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
     elif isinstance(astc.nast, gast.gast.For):
         veval_ast_for(astc, local_field, graph)
         return None
+
+    elif isinstance(astc.nast, gast.gast.Continue):
+        veval_ast_continue(astc, local_field, graph)
+        return None
+
+    elif isinstance(astc.nast, gast.gast.Break):
+        veval_ast_break(astc, local_field, graph)
+        return None
+
+    elif isinstance(astc.nast, gast.gast.BoolOp):
+        ret = veval_ast_bool_op(astc, local_field, graph)
+        return ret
+
     else:
         if config.show_warnings:
             print('Unknown ast is found : {} in L.{}'.format(type(astc.nast),astc.lineno))

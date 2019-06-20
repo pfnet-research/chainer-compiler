@@ -16,6 +16,7 @@ import ch2o_tests
 import elichika_tests
 import gen_backprop_tests_oc
 import gen_backprop_tests_pc
+import gen_chainercv_model_tests
 import gen_extra_test
 import gen_large_tests_oc
 import onnx_chainer_tests
@@ -426,6 +427,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_isinf'),
 
     TestCase(NODE_TEST, 'test_where_example'),
+    TestCase(NODE_TEST, 'test_quantizelinear'),
 ]
 
 TEST_CASES += [
@@ -591,6 +593,7 @@ for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
 TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'mnist'))
 
 TEST_CASES.extend(ch2o_tests.get())
 
@@ -599,6 +602,8 @@ TEST_CASES.extend(elichika_tests.get())
 TEST_CASES.extend(onnx_chainer_tests.get())
 
 TEST_CASES.extend(onnx_real_tests.get())
+
+TEST_CASES.extend(gen_chainercv_model_tests.get_tests())
 
 new_tests = []
 for test in TEST_CASES:

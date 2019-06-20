@@ -58,6 +58,7 @@ add_library(chainer_compiler_runtime
   ops/normalization.cc
   ops/nvrtc.cc
   ops/pooling.cc
+  ops/quantize.cc
   ops/rnn.cc
   ops/sequence.cc
   ops/something.cc
