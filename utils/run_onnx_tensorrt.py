@@ -133,7 +133,7 @@ def run(args):
     for i, (name, expected, actual) in enumerate(
             zip(output_names, outputs, actual_outputs)):
         np.testing.assert_allclose(expected, actual,
-                                   rtol=1e-3, atol=1e-4), name
+                                   rtol=args.rtol, atol=args.atol), name
         print('%s: OK' % name)
     print('ALL OK')
 
@@ -151,6 +151,8 @@ def main():
     parser.add_argument('--debug', '-g', action='store_true')
     parser.add_argument('--iterations', '-I', type=int, default=1)
     parser.add_argument('--fp16_mode', action='store_true')
+    parser.add_argument('--rtol', type=float, default=1e-3)
+    parser.add_argument('--atol', type=float, default=1e-4)
     args = parser.parse_args()
 
     if args.debug:
