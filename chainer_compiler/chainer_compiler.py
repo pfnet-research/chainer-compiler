@@ -271,11 +271,11 @@ class CompiledModel(chainer.Chain):
             convert_rule = lambda key: 'param' + key.replace('/', '_')  # noqa
 
         params = {convert_rule(key): value for key, value
-                  in dict(self.mc.namedparams()).items()}
+                  in self.mc.namedparams()}
 
         # Since avg_mean and avg_var in BatchNormalization are not parameters
-        # in chianer link, we need an additional handling.
-        for link_name, link in dict(self.mc.namedlinks()).items():
+        # in chainer link, we need an additional handling.
+        for link_name, link in self.mc.namedlinks():
             if not isinstance(link, chainer.links.BatchNormalization):
                 continue
             for avg_name in ['avg_mean', 'avg_var']:
@@ -290,6 +290,9 @@ class CompiledModel(chainer.Chain):
                 self.param_values.append(params[name])
             elif name in fwd_chxvm_vars:
                 # Retrieve the initial value from ONNX initializer
+
+                # TODO(hamaji): Emit `Constant` in onnx-chainer so we will not
+                # need this branch.
                 array = fwd_chxvm_vars[name].array()
                 array = self.device.send(array)
                 self.param_values.append(array)
