@@ -431,6 +431,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_dequantizelinear'),
     TestCase(NODE_TEST, 'test_qlinearmatmul_2D'),
     TestCase(NODE_TEST, 'test_qlinearmatmul_3D'),
+    TestCase(NODE_TEST, 'test_qlinearconv'),
 ]
 
 TEST_CASES += [

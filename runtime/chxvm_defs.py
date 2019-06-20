@@ -407,6 +407,11 @@ XC_OPS = [
     ('DequantizeLinear',
      [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
      [Array('y')]),
+    ('QLinearConv',
+     [Array('x'), Scalar('x_scale'), Scalar('x_zerp_point'),
+      Array('w'), Array('w_scale'), Array('w_zero_point'),
+      Scalar('y_scale'), Scalar('y_zero_point'), OptionalArray('b'),
+      Ints('strides'), Ints('pads'), Int('group')], ['y']),
 ]
 
 XC_CUSTOM_FIELD_OPS = [
