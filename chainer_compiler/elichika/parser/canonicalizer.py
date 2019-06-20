@@ -51,6 +51,7 @@ class Canonicalizer(gast.NodeTransformer):
         for flag in returned_flags:
             node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
         if isinstance(node, gast.FunctionDef):
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=None)))
             node.body.append(gast.Return(value=gast.Name(id=self.returned_value_key, ctx=gast.Load(), annotation=None)))
         return modified_node
 
