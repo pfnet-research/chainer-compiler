@@ -9,6 +9,33 @@ class Return(unittest.TestCase):
     def setUp(self):
         self.canonicalizer = canonicalizer.Canonicalizer(use_illegal_identifier=False)
 
+    def test_return_simple(self):
+        orig_code = utils.clip_head("""
+        def func(a, b):
+            return a + b
+
+        value = func(3, 39)
+        """)
+        target_code = utils.clip_head("""
+        def func(a, b):
+            returned_value = None
+            returned_1 = False
+
+            returned_1 = True
+            returned_value = a + b
+            
+            return returned_value
+
+        value = func(3, 39)
+        """)
+        orig_ast = gast.ast_to_gast(ast.parse(orig_code))
+        target_ast = gast.ast_to_gast(ast.parse(target_code))
+        converted_ast = self.canonicalizer.visit(orig_ast)
+
+        assert_semantically_equals(orig_code, target_code, ['value'])
+        assert compare_ast(converted_ast, target_ast)
+        assert compare_ast(target_ast, converted_ast)
+
     def test_return(self):
         orig_code = utils.clip_head("""
         def func(a, b):
