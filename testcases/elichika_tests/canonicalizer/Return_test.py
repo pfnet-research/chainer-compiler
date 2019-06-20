@@ -26,15 +26,14 @@ class Return(unittest.TestCase):
         def func(a, b):
             returned_value = None
             returned_1 = False
-            returned_0 = False
             for i in range(a):
                 if i == b:
-                    returned_0 = True
+                    returned_1 = True
                     returned_value = i
-                keepgoing = not returned_0
-                if returned_0:
+                keepgoing = not returned_1
+                if returned_1:
                     break
-            if not returned_0:
+            if not returned_1:
                 returned_1 = True
                 returned_value = 0
             return returned_value
@@ -76,33 +75,32 @@ class Return(unittest.TestCase):
         target_code = utils.clip_head("""
         def func(a, b, c):
             returned_value = None
-            returned_3 = False
-            returned_2 = False
+            returned_1 = False
             x = 0
             for i in range(a):
-                continued_0 = False
+                continued_1 = False
                 if i == b:
-                    continued_0 = True
-                if not continued_0:
+                    continued_1 = True
+                if not continued_1:
                     for j in range(a):
-                        continued_1 = False
+                        continued_2 = False
                         if j == c:
-                            continued_1 = True
-                        if not continued_1:
+                            continued_2 = True
+                        if not continued_2:
                             if j == b:
-                                if not continued_1:
-                                    returned_2 = True
+                                if not continued_2:
+                                    returned_1 = True
                                     returned_value = x
-                        if not continued_1 and not returned_2:
+                        if not continued_2 and not returned_1:
                             x += i * j
-                        keepgoing = not returned_2
-                        if returned_2:
+                        keepgoing = not returned_1
+                        if returned_1:
                             break
-                keepgoing = not returned_2
-                if returned_2:
+                keepgoing = not returned_1
+                if returned_1:
                     break
-            if not returned_2:
-                returned_3 = True
+            if not returned_1:
+                returned_1 = True
                 returned_value = x
             return returned_value
 
@@ -145,33 +143,32 @@ class Return(unittest.TestCase):
         target_code = utils.clip_head("""
         def func(a, b, c):
             returned_value = None
-            returned_3 = False
-            returned_2 = False
+            returned_1 = False
             x = 0
             for i in range(a):
-                continued_0 = False
+                continued_1 = False
                 if i == b:
-                    continued_0 = True
-                if not continued_0:
+                    continued_1 = True
+                if not continued_1:
                     for j in range(a):
-                        breaked_1 = False
+                        breaked_2 = False
                         if j == c:
-                            breaked_1 = True
-                        if not breaked_1:
+                            breaked_2 = True
+                        if not breaked_2:
                             if j == b:
-                                if not breaked_1:
-                                    returned_2 = True
+                                if not breaked_2:
+                                    returned_1 = True
                                     returned_value = x
-                        if not breaked_1 and not returned_2:
+                        if not breaked_2 and not returned_1:
                             x += i * j
-                        keepgoing = not (breaked_1 or returned_2)
-                        if breaked_1 or returned_2:
+                        keepgoing = not (breaked_2 or returned_1)
+                        if breaked_2 or returned_1:
                             break
-                keepgoing = not returned_2
-                if returned_2:
+                keepgoing = not returned_1
+                if returned_1:
                     break
-            if not returned_2:
-                returned_3 = True
+            if not returned_1:
+                returned_1 = True
                 returned_value = x
             return returned_value
 
@@ -210,35 +207,33 @@ class Return(unittest.TestCase):
         target_code = utils.clip_head("""
         def func(a, b):
             returned_value = None
-            returned_3 = False
-            returned_2 = False
+            returned_1 = False
 
             def func1(a, b):
                 returned_value = None
-                returned_1 = False
-                returned_0 = False
+                returned_2 = False
                 for i in range(a):
                     if i == b:
-                        returned_0 = True
+                        returned_2 = True
                         returned_value = i + 1
-                    keepgoing = not returned_0
-                    if returned_0:
+                    keepgoing = not returned_2
+                    if returned_2:
                         break
-                if not returned_0:
-                    returned_1 = True
+                if not returned_2:
+                    returned_2 = True
                     returned_value = 0
                 return returned_value
 
             for i in range(func1(a, b)):
                 if i == b:
-                    returned_2 = True
+                    returned_1 = True
                     returned_value = i
-                keepgoing = not returned_2
-                if returned_2:
+                keepgoing = not returned_1
+                if returned_1:
                     break
 
-            if not returned_2:
-                returned_3 = True
+            if not returned_1:
+                returned_1 = True
                 returned_value = 0
             return returned_value
 
