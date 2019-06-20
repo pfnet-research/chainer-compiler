@@ -299,6 +299,7 @@ class CompiledModel(chainer.Chain):
                       in params.items()}
         self.param_values = []
 
+        fwd_chxvm_vars = fwd_graph.params()
         for name in self.param_names:
             if name in params:
                 self.param_values.append(params[name])
@@ -306,7 +307,14 @@ class CompiledModel(chainer.Chain):
                 out = _resolve_name_correspondence(
                     self.mc, params, name, self.param_values)
                 if not out:
-                    raise NotImplementedError('Unknown name: ' + name)
+                    # Retrieve the initial value from ONNX initializer
+                    if name in fwd_chxvm_vars:
+                        array = fwd_chxvm_vars[name].array()
+                        array = self.device.send(array)
+                        self.param_values.append(array)
+                    else:
+                        raise NotImplementedError('Initial value is uknown: '
+                                                  + name)
 
     def forward(self, *args):
         if not self.compiled:
