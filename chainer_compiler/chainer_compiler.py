@@ -203,7 +203,7 @@ def _run_translator(translator, mc, inputs):
     return graph
 
 
-def _resolve_name_correspondence(mc, params, name, param_values):
+def _resolve_name_correspondence_bn(mc, params, name, param_values):
     if name.endswith('avg_mean'):
         parent = name[:-len('avg_mean')]
         mean = params[parent + 'beta']
@@ -300,7 +300,7 @@ class CompiledModel(chainer.Chain):
             if name in params:
                 self.param_values.append(params[name])
             else:
-                out = _resolve_name_correspondence(
+                out = _resolve_name_correspondence_bn(
                     self.mc, params, name, self.param_values)
                 if not out:
                     # Retrieve the initial value from ONNX initializer
