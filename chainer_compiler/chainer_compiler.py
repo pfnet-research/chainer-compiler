@@ -203,32 +203,6 @@ def _run_translator(translator, mc, inputs):
     return graph
 
 
-def _resolve_name_correspondence_bn(mc, params, name, param_values):
-    if name.endswith('avg_mean'):
-        parent = name[:-len('avg_mean')]
-        mean = params[parent + 'beta']
-        for link in mc.links():
-            if not isinstance(link, chainer.links.BatchNormalization) or\
-               not hasattr(link, 'avg_mean'):
-                continue
-            if any(id(p) == id(mean) for p in link.params()):
-                param_values.append(link.avg_mean)
-                return True
-
-    if name.endswith('avg_var'):
-        parent = name[:-len('avg_var')]
-        var = params[parent + 'beta']
-        for link in mc.links():
-            if not isinstance(link, chainer.links.BatchNormalization) or\
-               not hasattr(link, 'avg_var'):
-                continue
-            if any(id(p) == id(var) for p in link.params()):
-                param_values.append(link.avg_var)
-                return True
-
-    return False
-
-
 class CompiledModel(chainer.Chain):
 
     def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
@@ -291,28 +265,36 @@ class CompiledModel(chainer.Chain):
 
         self.compiled = True
 
-        params = dict(self.mc.namedparams())
-        if self.translator == 'onnx_chainer':
-            params = {'param' + key.replace('/', '_'): value for key, value
-                      in params.items()}
-        self.param_values = []
+        if self.translator == 'ch2o':
+            convert_rule = lambda key: key  # noqa
+        elif self.translator == 'onnx_chainer':
+            convert_rule = lambda key: 'param' + key.replace('/', '_')  # noqa
 
+        params = {convert_rule(key): value for key, value
+                  in dict(self.mc.namedparams()).items()}
+
+        # Since avg_mean and avg_var in BatchNormalization are not parameters
+        # in chianer link, we need an additional handling.
+        for link_name, link in dict(self.mc.namedlinks()).items():
+            if not isinstance(link, chainer.links.BatchNormalization):
+                continue
+            for avg_name in ['avg_mean', 'avg_var']:
+                key = convert_rule(link_name + '/' + avg_name)
+                assert key not in params
+                params[key] = getattr(link, avg_name)
+
+        self.param_values = []
         fwd_chxvm_vars = fwd_graph.params()
         for name in self.param_names:
             if name in params:
                 self.param_values.append(params[name])
+            elif name in fwd_chxvm_vars:
+                # Retrieve the initial value from ONNX initializer
+                array = fwd_chxvm_vars[name].array()
+                array = self.device.send(array)
+                self.param_values.append(array)
             else:
-                out = _resolve_name_correspondence_bn(
-                    self.mc, params, name, self.param_values)
-                if not out:
-                    # Retrieve the initial value from ONNX initializer
-                    if name in fwd_chxvm_vars:
-                        array = fwd_chxvm_vars[name].array()
-                        array = self.device.send(array)
-                        self.param_values.append(array)
-                    else:
-                        raise NotImplementedError('Initial value is uknown: '
-                                                  + name)
+                raise NotImplementedError('Initial value is uknown: ' + name)
 
     def forward(self, *args):
         if not self.compiled:
