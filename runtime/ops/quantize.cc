@@ -67,26 +67,21 @@ chainerx::Array QLinearConvOp::RunImpl(
         const StrictScalar& y_zero_point,
         const nonstd::optional<chainerx::Array>& b) {
     // Dequantize
-    chainerx::Array x = (q_x - chainerx::Scalar(x_zero_point)) * chainerx::Scalar(x_scale);
-    chainerx::Array w;
+    const chainerx::Array x = (q_x.AsType(chainerx::Dtype::kFloat32) - chainerx::Scalar(x_zero_point)).Copy() * chainerx::Scalar(x_scale);
+    chainerx::Array w = q_w.AsType(chainerx::Dtype::kFloat32);
     CHECK_EQ(w_scale.GetTotalSize(), w_zero_point.GetTotalSize());
     CHECK_EQ(w_scale.shape().size(), w_zero_point.shape().size());
     if (w_scale.shape().size() == 1) {
-        CHECK_EQ(q_w.shape()[0], w_scale.shape()[0]);
-        std::vector<chainerx::Array> stack(q_w.shape()[0]);
-        for (int64_t i = 0; i < q_w.shape()[0]; ++i) {
-            stack[i] = (q_w.At({i}) - chainerx::AsScalar(w_zero_point.At({i}))) * chainerx::AsScalar(w_scale.At({i}));
-            std::cerr << chainerx::AsScalar(w_zero_point.At({i})) << ", " << chainerx::AsScalar(w_scale.At({i})) << std::endl;
+        CHECK_EQ(w.shape()[0], w_scale.shape()[0]);
+        std::vector<chainerx::Array> stack(w.shape()[0]);
+        for (int64_t i = 0; i < w.shape()[0]; ++i) {
+            stack[i] = (w.At({i}) - chainerx::AsScalar(w_zero_point.At({i}))).Copy() * chainerx::AsScalar(w_scale.At({i}));
         }
         w = chainerx::Stack(stack);
     } else {
         CHECK_EQ(0, w_scale.shape().size());
-        w = (q_w - chainerx::AsScalar(w_zero_point)) * chainerx::AsScalar(w_scale);
+        w = (w - chainerx::AsScalar(w_zero_point)).Copy() * chainerx::AsScalar(w_scale);
     }
-    std::cerr << q_w << std::endl;
-    std::cerr << w << std::endl;
-    std::cerr << q_x << std::endl;
-    std::cerr << x << std::endl;
 
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
@@ -94,11 +89,7 @@ chainerx::Array QLinearConvOp::RunImpl(
     CHECK_EQ(1, group);
     chainerx::Array y = chainerx::Conv(x, w, b, comp_strides, comp_pads);
 
-    std::cerr << chainerx::Scalar(y_scale) << ", " << chainerx::Scalar(y_zero_point) << std::endl;
-    std::cerr << y << std::endl;
-    std::cerr << quantize_array(y, y_scale, y_zero_point) << std::endl;
-
-    return quantize_array(y, y_scale, y_zero_point);
+    return quantize_array(y.Copy(), y_scale, y_zero_point);
 }
 
 }  // namespace runtime
