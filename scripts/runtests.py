@@ -193,10 +193,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_DOUBLE'),
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
 
-    # TODO(ChainerX): Support non-2D dot.
-    # terminate called after throwing an instance of 'chainerx::NotImplementedError'
-    #   what():  dot does not support rhs operand with ndim > 2
     TestCase(NODE_TEST, 'test_matmul_2d'),
+    TestCase(NODE_TEST, 'test_matmul_3d'),
+    TestCase(NODE_TEST, 'test_matmul_4d'),
 
     TestCase(NODE_TEST, 'test_basic_conv_with_padding'),
     TestCase(NODE_TEST, 'test_basic_conv_without_padding'),

@@ -165,7 +165,9 @@ chainerx::Array MatMulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, cons
     for (int i = 0; i < stack_len; ++i) {
         stack[i] = Dot(reshaped_a.At({i}), reshaped_b.At({i}));
     }
-    return chainerx::Stack(stack);
+    chainerx::Shape new_shape(a.shape().begin(), a.shape().end() - 2);
+    new_shape.insert(new_shape.end(), stack.front().shape().begin(), stack.front().shape().end());
+    return chainerx::Stack(stack).Reshape(new_shape);
 }
 
 chainerx::Array GemmOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
