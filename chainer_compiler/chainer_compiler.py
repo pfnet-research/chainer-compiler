@@ -208,7 +208,8 @@ def _resolve_name_correspondence_bn(mc, params, name, param_values):
         parent = name[:-len('avg_mean')]
         mean = params[parent + 'beta']
         for link in mc.links():
-            if not hasattr(link, 'avg_mean'):
+            if not isinstance(link, chainer.links.BatchNormalization) or\
+               not hasattr(link, 'avg_mean'):
                 continue
             if any(id(p) == id(mean) for p in link.params()):
                 param_values.append(link.avg_mean)
@@ -218,7 +219,8 @@ def _resolve_name_correspondence_bn(mc, params, name, param_values):
         parent = name[:-len('avg_var')]
         var = params[parent + 'beta']
         for link in mc.links():
-            if not hasattr(link, 'avg_var'):
+            if not isinstance(link, chainer.links.BatchNormalization) or\
+               not hasattr(link, 'avg_var'):
                 continue
             if any(id(p) == id(var) for p in link.params()):
                 param_values.append(link.avg_var)
