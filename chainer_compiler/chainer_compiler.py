@@ -204,10 +204,8 @@ def _run_translator(translator, mc, inputs):
 
 
 def _resolve_name_correspondence(mc, params, name, param_values):
-    for running_mean_name in ('avg_mean', 'running_mean'):
-        if not name.endswith(running_mean_name):
-            continue
-        parent = name[:-len(running_mean_name)]
+    if name.endswith('avg_mean'):
+        parent = name[:-len('avg_mean')]
         mean = params[parent + 'beta']
         for link in mc.links():
             if not hasattr(link, 'avg_mean'):
@@ -216,10 +214,8 @@ def _resolve_name_correspondence(mc, params, name, param_values):
                 param_values.append(link.avg_mean)
                 return True
 
-    for running_var_name in ('avg_var', 'running_var'):
-        if not name.endswith(running_var_name):
-            continue
-        parent = name[:-len(running_var_name)]
+    if name.endswith('avg_var'):
+        parent = name[:-len('avg_var')]
         var = params[parent + 'beta']
         for link in mc.links():
             if not hasattr(link, 'avg_var'):
