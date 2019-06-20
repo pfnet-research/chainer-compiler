@@ -24,6 +24,7 @@ class Return(unittest.TestCase):
         """)
         target_code = utils.clip_head("""
         def func(a, b):
+            returned_value = None
             returned_1 = False
             returned_0 = False
             for i in range(a):
@@ -74,6 +75,7 @@ class Return(unittest.TestCase):
         """)
         target_code = utils.clip_head("""
         def func(a, b, c):
+            returned_value = None
             returned_3 = False
             returned_2 = False
             x = 0
@@ -142,6 +144,7 @@ class Return(unittest.TestCase):
         """)
         target_code = utils.clip_head("""
         def func(a, b, c):
+            returned_value = None
             returned_3 = False
             returned_2 = False
             x = 0
@@ -206,10 +209,12 @@ class Return(unittest.TestCase):
         """)
         target_code = utils.clip_head("""
         def func(a, b):
+            returned_value = None
             returned_3 = False
             returned_2 = False
 
             def func1(a, b):
+                returned_value = None
                 returned_1 = False
                 returned_0 = False
                 for i in range(a):
