@@ -59,7 +59,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[chainer.Variable] = c_variable
 
     # chainer.functions
-    def add_chainer_funtion(name:'str', func, ret_value_func = None):
+    def add_chainer_function(name:'str', func, ret_value_func = None):
         if ret_value_func is None:
             f = values.FuncValue(
                 functions_builtin.ChainerFunction(func), None)
@@ -74,40 +74,40 @@ def convert_model(model: 'chainer.Chain', args=[]):
         ret.vtype = values.TensorValue
         return ret
 
-    add_chainer_funtion('relu', F.relu)
-    add_chainer_funtion('softmax', F.softmax)
-    add_chainer_funtion('softmax_cross_entropy', F.softmax_cross_entropy)
-    add_chainer_funtion('pad_sequence', F.pad_sequence)
-    add_chainer_funtion('average_pooling_2d', F.average_pooling_2d)
-    add_chainer_funtion('unpooling_2d', F.unpooling_2d)
-    add_chainer_funtion('reshape', F.reshape)
-    add_chainer_funtion('split_axis', F.split_axis, ret_value_func=ret_tuple)
-    add_chainer_funtion('hstack', F.hstack)
-    add_chainer_funtion('vstack', F.vstack)
-    add_chainer_funtion('stack', F.stack)
-    add_chainer_funtion('separate', F.separate, ret_value_func=ret_tuple)
-    add_chainer_funtion('squeeze', F.squeeze)        
-    add_chainer_funtion('swapaxes', F.swapaxes)
-    add_chainer_funtion('dropout', F.dropout)
-    add_chainer_funtion('concat', F.concat)
-    add_chainer_funtion('matmul', F.matmul)
-    add_chainer_funtion('max_pooling_2d', F.max_pooling_2d)
-    add_chainer_funtion('resize_images', F.resize_images)
-    add_chainer_funtion('tanh', F.tanh)
-    add_chainer_funtion('sigmoid', F.sigmoid)
-    add_chainer_funtion('broadcast_to', F.broadcast_to)
-    add_chainer_funtion('expand_dims', F.expand_dims)
-    add_chainer_funtion('local_response_normalization', F.local_response_normalization)
-    add_chainer_funtion('mean', F.mean)
-    add_chainer_funtion('average', F.average)
-    add_chainer_funtion('sum', F.sum)
+    add_chainer_function('relu', F.relu)
+    add_chainer_function('softmax', F.softmax)
+    add_chainer_function('softmax_cross_entropy', F.softmax_cross_entropy)
+    add_chainer_function('pad_sequence', F.pad_sequence)
+    add_chainer_function('average_pooling_2d', F.average_pooling_2d)
+    add_chainer_function('unpooling_2d', F.unpooling_2d)
+    add_chainer_function('reshape', F.reshape)
+    add_chainer_function('split_axis', F.split_axis, ret_value_func=ret_tuple)
+    add_chainer_function('hstack', F.hstack)
+    add_chainer_function('vstack', F.vstack)
+    add_chainer_function('stack', F.stack)
+    add_chainer_function('separate', F.separate, ret_value_func=ret_tuple)
+    add_chainer_function('squeeze', F.squeeze)
+    add_chainer_function('swapaxes', F.swapaxes)
+    add_chainer_function('dropout', F.dropout)
+    add_chainer_function('concat', F.concat)
+    add_chainer_function('matmul', F.matmul)
+    add_chainer_function('max_pooling_2d', F.max_pooling_2d)
+    add_chainer_function('resize_images', F.resize_images)
+    add_chainer_function('tanh', F.tanh)
+    add_chainer_function('sigmoid', F.sigmoid)
+    add_chainer_function('broadcast_to', F.broadcast_to)
+    add_chainer_function('expand_dims', F.expand_dims)
+    add_chainer_function('local_response_normalization', F.local_response_normalization)
+    add_chainer_function('mean', F.mean)
+    add_chainer_function('average', F.average)
+    add_chainer_function('sum', F.sum)
 
     if int(chainer.__version__[0]) >= 6:
-        add_chainer_funtion('roi_max_pooling_2d', F.roi_max_pooling_2d)
-        add_chainer_funtion('roi_average_pooling_2d', F.roi_average_pooling_2d)
-        add_chainer_funtion('roi_max_align_2d', F.roi_max_align_2d)
+        add_chainer_function('roi_max_pooling_2d', F.roi_max_pooling_2d)
+        add_chainer_function('roi_average_pooling_2d', F.roi_average_pooling_2d)
+        add_chainer_function('roi_max_align_2d', F.roi_max_align_2d)
 
-    add_chainer_funtion('roi_average_align_2d', F.roi_average_align_2d)
+    add_chainer_function('roi_average_align_2d', F.roi_average_align_2d)
 
     # numpy
     f_array = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
