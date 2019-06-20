@@ -189,7 +189,6 @@ class BN(chainer.Chain):
 
     def forward(self, x):
         return self.linear(self.bn(x))
-        # return self.linear(x)
 
 
 @pytest.mark.parametrize('device_name', all_device_names)

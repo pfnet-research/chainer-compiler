@@ -299,14 +299,9 @@ class CompiledModel(chainer.Chain):
                       in params.items()}
         self.param_values = []
 
-        fwd_chxvm_vars = fwd_graph.params()
         for name in self.param_names:
             if name in params:
                 self.param_values.append(params[name])
-            elif name in fwd_chxvm_vars:
-                array = fwd_chxvm_vars[name].array()
-                array = chainer.backend.from_chx(array)
-                self.param_values.append(array)
             else:
                 out = _resolve_name_correspondence(
                     self.mc, params, name, self.param_values)
