@@ -32,6 +32,15 @@ chainerx::Array quantize_array(const chainerx::Array& y, const StrictScalar& y_s
     return (chainerx::Maximum(min, chainerx::Minimum(scaled, max)) + 0.5f).AsType(as_type);
 }
 
+chainerx::Array dequantize_array(const chainerx::Array& x, const chainerx::Scalar& x_scale, const chainerx::Scalar& x_zero_point) {
+    chainerx::Array zero_pointed_x = x.AsType(chainerx::Dtype::kFloat32);
+    if (int64_t(x_zero_point) != 0) {
+        zero_pointed_x -= x_zero_point;
+    }
+
+    return zero_pointed_x * x_scale;
+}
+
 }  // namespace
 
 chainerx::Array QuantizeLinearOp::RunImpl(
@@ -45,14 +54,7 @@ chainerx::Array DequantizeLinearOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const StrictScalar& x_scale, const nonstd::optional<StrictScalar>& x_zero_point_opt) {
     const StrictScalar x_zero_point =
             x_zero_point_opt.has_value() ? *x_zero_point_opt : StrictScalar(chainerx::Dtype::kUInt8, chainerx::Scalar(0u), false);
-
-    chainerx::Array zero_pointed_x = x.AsType(chainerx::Dtype::kFloat32);
-    if (int64_t(x_zero_point) != 0) {
-        zero_pointed_x -= chainerx::Scalar(x_zero_point);
-    }
-
-    chainerx::Array y = zero_pointed_x * chainerx::Scalar(x_scale);
-    return y;
+    return dequantize_array(x, chainerx::Scalar(x_scale), chainerx::Scalar(x_zero_point));
 }
 
 chainerx::Array QLinearConvOp::RunImpl(
@@ -66,8 +68,8 @@ chainerx::Array QLinearConvOp::RunImpl(
         const StrictScalar& y_scale,
         const StrictScalar& y_zero_point,
         const nonstd::optional<chainerx::Array>& b) {
-    // Dequantize
-    const chainerx::Array x = (q_x.AsType(chainerx::Dtype::kFloat32) - chainerx::Scalar(x_zero_point)).Copy() * chainerx::Scalar(x_scale);
+    // Dequantize q_x and q_w
+    const chainerx::Array x = dequantize_array(q_x, chainerx::Scalar(x_scale), chainerx::Scalar(x_zero_point));
     chainerx::Array w = q_w.AsType(chainerx::Dtype::kFloat32);
     CHECK_EQ(w_scale.GetTotalSize(), w_zero_point.GetTotalSize());
     CHECK_EQ(w_scale.shape().size(), w_zero_point.shape().size());
@@ -75,12 +77,12 @@ chainerx::Array QLinearConvOp::RunImpl(
         CHECK_EQ(w.shape()[0], w_scale.shape()[0]);
         std::vector<chainerx::Array> stack(w.shape()[0]);
         for (int64_t i = 0; i < w.shape()[0]; ++i) {
-            stack[i] = (w.At({i}) - chainerx::AsScalar(w_zero_point.At({i}))).Copy() * chainerx::AsScalar(w_scale.At({i}));
+            stack[i] = dequantize_array(w.At({i}), chainerx::AsScalar(w_scale.At({i})), chainerx::AsScalar(w_zero_point.At({i})));
         }
         w = chainerx::Stack(stack);
     } else {
         CHECK_EQ(0, w_scale.shape().size());
-        w = (w - chainerx::AsScalar(w_zero_point)).Copy() * chainerx::AsScalar(w_scale);
+        w = dequantize_array(w, chainerx::AsScalar(w_scale), chainerx::AsScalar(w_zero_point));
     }
 
     // Run convolution normally
@@ -89,7 +91,7 @@ chainerx::Array QLinearConvOp::RunImpl(
     CHECK_EQ(1, group);
     chainerx::Array y = chainerx::Conv(x, w, b, comp_strides, comp_pads);
 
-    return quantize_array(y.Copy(), y_scale, y_zero_point);
+    return quantize_array(y, y_scale, y_zero_point);
 }
 
 }  // namespace runtime

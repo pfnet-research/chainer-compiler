@@ -405,7 +405,7 @@ XC_OPS = [
      [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
      [Array('y')]),
     ('DequantizeLinear',
-     [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
+     [Array('x'), Scalar('x_scale'), OptionalScalar('x_zero_point')],
      [Array('y')]),
     ('QLinearConv',
      [Array('x'), Scalar('x_scale'), Scalar('x_zerp_point'),
