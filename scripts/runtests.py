@@ -431,6 +431,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_qlinearmatmul_2D'),
     TestCase(NODE_TEST, 'test_qlinearmatmul_3D'),
     TestCase(NODE_TEST, 'test_qlinearconv'),
+    TestCase(NODE_TEST, 'test_convinteger_with_padding'),
+    TestCase(NODE_TEST, 'test_basic_convinteger'),
+    TestCase(NODE_TEST, 'test_matmulinteger'),
 ]
 
 TEST_CASES += [

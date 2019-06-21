@@ -1,3 +1,4 @@
+#include <chainerx/numeric_limits.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/misc.h>
@@ -92,6 +93,56 @@ chainerx::Array QLinearConvOp::RunImpl(
     chainerx::Array y = chainerx::Conv(x, w, b, comp_strides, comp_pads);
 
     return quantize_array(y, y_scale, y_zero_point);
+}
+
+chainerx::Array MatMulIntegerOp::RunImpl(
+        ChxVMState* st,
+        const chainerx::Array& q_a,
+        const chainerx::Array& q_b,
+        const nonstd::optional<chainerx::Array>& a_zero_point,
+        const nonstd::optional<chainerx::Array>& b_zero_point) {
+    chainerx::Array a = q_a.AsType(chainerx::Dtype::kFloat64), b = q_b.AsType(chainerx::Dtype::kFloat64);
+
+    if (a_zero_point.has_value()) {
+        CHECK_GE(1, a_zero_point->shape().size());
+        a -= *a_zero_point;
+    }
+    if (b_zero_point.has_value()) {
+        CHECK_GE(1, b_zero_point->shape().size());
+        b -= *b_zero_point;
+    }
+
+    return chainerx::Maximum(
+            chainerx::Scalar(chainerx::NumericLimits<int32_t>::LowestOrInf()),
+            chainerx::Minimum(
+                    MatMul(a, b).AsType(chainerx::Dtype::kInt32), chainerx::Scalar(chainerx::NumericLimits<int32_t>::MaxOrInf())));
+}
+
+chainerx::Array ConvIntegerOp::RunImpl(
+        ChxVMState* st,
+        const chainerx::Array& q_x,
+        const chainerx::Array& q_w,
+        const nonstd::optional<StrictScalar>& x_zero_point,
+        const nonstd::optional<chainerx::Array>& w_zero_point) {
+    chainerx::Array x = q_x.AsType(chainerx::Dtype::kFloat64), w = q_w.AsType(chainerx::Dtype::kFloat64);
+
+    if (x_zero_point.has_value()) {
+        x -= chainerx::Scalar(*x_zero_point);
+    }
+    if (w_zero_point.has_value()) {
+        CHECK_GE(1, w_zero_point->shape().size());
+        w -= *w_zero_point;
+    }
+
+    // Run convolution normally
+    Int64StackVector comp_strides = ComplementStride(strides, x);
+    Int64StackVector comp_pads = ComplementPad(pads, x);
+    CHECK_EQ(1, group);
+    chainerx::Array y = chainerx::Conv(x, w, nonstd::nullopt, comp_strides, comp_pads);
+
+    return chainerx::Maximum(
+            chainerx::Scalar(chainerx::NumericLimits<int32_t>::LowestOrInf()),
+            chainerx::Minimum(y.AsType(chainerx::Dtype::kInt32), chainerx::Scalar(chainerx::NumericLimits<int32_t>::MaxOrInf())));
 }
 
 }  // namespace runtime

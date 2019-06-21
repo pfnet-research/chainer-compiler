@@ -224,6 +224,13 @@ NodeDef('QLinearConv', (8, 9), 1,
         pads=[int],
         strides=[int])
 NodeDef('QLinearMatMul', 8, 1)
+NodeDef('MatMulInteger', (2, 3, 4), 1)
+NodeDef('ConvInteger', (2, 3, 4), 1,
+        dilations=[int],
+        group=1,
+        kernel_shape=[int],
+        pads=[int],
+        strides=[int])
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)

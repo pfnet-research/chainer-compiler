@@ -43,5 +43,7 @@ bool IsFloat(chainerx::Dtype dtype);
 
 void BlitArray(const chainerx::Array& src, const chainerx::Array& dst);
 
+chainerx::Array MatMul(const chainerx::Array& a, const chainerx::Array& b);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

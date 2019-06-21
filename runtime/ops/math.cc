@@ -149,25 +149,7 @@ chainerx::Array ClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array MatMulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    if (a.shape().size() <= 2) {
-        return chainerx::Dot(a, b);
-    }
-
-    // TODO(take-cheeze): Better broadcasting compatibility with numpy
-    if (chainerx::Shape(a.shape().begin(), a.shape().end() - 2) != chainerx::Shape(b.shape().begin(), b.shape().end() - 2)) {
-        return chainerx::Dot(a, b);
-    }
-
-    const int64_t stack_len = std::accumulate(a.shape().begin(), a.shape().end() - 2, 1, std::multiplies<int64_t>());
-    std::vector<chainerx::Array> stack(stack_len);
-    chainerx::Array reshaped_a = a.Reshape({stack_len, *(a.shape().end() - 2), *(a.shape().end() - 1)});
-    chainerx::Array reshaped_b = b.Reshape({stack_len, *(b.shape().end() - 2), *(b.shape().end() - 1)});
-    for (int i = 0; i < stack_len; ++i) {
-        stack[i] = Dot(reshaped_a.At({i}), reshaped_b.At({i}));
-    }
-    chainerx::Shape new_shape(a.shape().begin(), a.shape().end() - 2);
-    new_shape.insert(new_shape.end(), stack.front().shape().begin(), stack.front().shape().end());
-    return chainerx::Stack(stack).Reshape(new_shape);
+    return MatMul(a, b);
 }
 
 chainerx::Array GemmOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {
