@@ -3,6 +3,7 @@ import pytest
 import sys
 
 import chainer
+from chainer.backend import CpuDevice
 import chainer.functions as F
 import chainer.links as L
 import chainerx.testing
@@ -176,6 +177,61 @@ def test_mnist(device_name, translator, computation_order):
         assert e_grad is not None, e_name
         assert a_grad is not None, a_name
         chainerx.testing.assert_allclose(e_grad, a_grad, rtol=1e-4)
+
+
+class BN(chainer.Chain):
+
+    def __init__(self, n_units, n_out):
+        super(BN, self).__init__()
+        with self.init_scope():
+            self.bn = L.BatchNormalization(n_units)
+            self.linear = L.Linear(n_units, n_out)
+
+    def forward(self, x):
+        return self.linear(self.bn(x))
+
+
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', all_translators)
+@pytest.mark.parametrize('computation_order', all_computation_orders)
+def test_bn(device_name, translator, computation_order):
+    if skip_check(device_name, translator, computation_order):
+        pytest.skip()
+
+    np.random.seed(40)
+    if has_cupy:
+        cupy.random.seed(40)
+
+    batch_size = 3
+    in_size = 5
+    n_out = 10
+
+    device = chainer.get_device(device_name)
+    device.use()
+
+    bn = BN(in_size, n_out)
+
+    input = np.random.rand(batch_size, in_size).astype(np.float32)
+    input = device.xp.array(input)
+    target = device.xp.array(np.random.randint(n_out, size=batch_size))
+
+    bn_compiled = chainer_compiler.compile(
+        bn, [input], translator=translator,
+        computation_order=computation_order)
+    model = L.Classifier(bn_compiled)
+    model.to_device(device)
+
+    old_avg_mean = CpuDevice().send(model.predictor.mc.bn.avg_mean.copy())
+    old_avg_var = CpuDevice().send(model.predictor.mc.bn.avg_var.copy())
+
+    loss, grads = _run_fwd_bwd(model, [input, target])
+
+    new_avg_mean = CpuDevice().send(model.predictor.mc.bn.avg_mean.copy())
+    new_avg_var = CpuDevice().send(model.predictor.mc.bn.avg_var.copy())
+
+    # running_mean and running_var should be updated
+    assert not np.allclose(old_avg_mean, new_avg_mean)
+    assert not np.allclose(old_avg_var, new_avg_var)
 
 
 class MultiInOuts(chainer.Chain):
