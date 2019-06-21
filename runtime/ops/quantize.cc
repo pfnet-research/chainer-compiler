@@ -14,10 +14,10 @@ namespace {
 
 chainerx::Array quantize_array(const chainerx::Array& y, const StrictScalar& y_scale, const StrictScalar& y_zero_point) {
     chainerx::Dtype as_type = chainerx::Dtype::kUInt8;
-    chainerx::Scalar min(0u), max(255u);
+    chainerx::Scalar min(chainerx::NumericLimits<uint8_t>::LowestOrInf()), max(chainerx::NumericLimits<uint8_t>::MaxOrInf());
     if (y_zero_point.dtype() == chainerx::Dtype::kInt8) {
-        min = -128;
-        max = 127;
+        min = chainerx::NumericLimits<int8_t>::LowestOrInf();
+        max = chainerx::NumericLimits<int8_t>::MaxOrInf();
         as_type = chainerx::Dtype::kInt8;
     } else {
         CHECK_EQ(chainerx::Dtype::kUInt8, y_zero_point.dtype());
@@ -89,10 +89,7 @@ chainerx::Array QLinearConvOp::RunImpl(
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    CHECK_EQ(1, group);
-    chainerx::Array y = chainerx::Conv(x, w, b, comp_strides, comp_pads);
-
-    return quantize_array(y, y_scale, y_zero_point);
+    return quantize_array(chainerx::Conv(x, w, b, comp_strides, comp_pads, group), y_scale, y_zero_point);
 }
 
 chainerx::Array MatMulIntegerOp::RunImpl(
@@ -112,10 +109,7 @@ chainerx::Array MatMulIntegerOp::RunImpl(
         b -= *b_zero_point;
     }
 
-    return chainerx::Maximum(
-            chainerx::Scalar(chainerx::NumericLimits<int32_t>::LowestOrInf()),
-            chainerx::Minimum(
-                    MatMul(a, b).AsType(chainerx::Dtype::kInt32), chainerx::Scalar(chainerx::NumericLimits<int32_t>::MaxOrInf())));
+    return MatMul(a, b).AsType(chainerx::Dtype::kInt32);
 }
 
 chainerx::Array ConvIntegerOp::RunImpl(
@@ -137,12 +131,7 @@ chainerx::Array ConvIntegerOp::RunImpl(
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    CHECK_EQ(1, group);
-    chainerx::Array y = chainerx::Conv(x, w, nonstd::nullopt, comp_strides, comp_pads);
-
-    return chainerx::Maximum(
-            chainerx::Scalar(chainerx::NumericLimits<int32_t>::LowestOrInf()),
-            chainerx::Minimum(y.AsType(chainerx::Dtype::kInt32), chainerx::Scalar(chainerx::NumericLimits<int32_t>::MaxOrInf())));
+    return Conv(x, w, nonstd::nullopt, comp_strides, comp_pads, group).AsType(chainerx::Dtype::kInt32);
 }
 
 }  // namespace runtime

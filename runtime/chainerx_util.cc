@@ -9,6 +9,7 @@
 #include <chainerx/kernels/creation.h>
 #include <chainerx/native/native_backend.h>
 #include <chainerx/native/native_device.h>
+#include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/manipulation.h>
@@ -221,6 +222,30 @@ chainerx::Array MatMul(const chainerx::Array& a, const chainerx::Array& b) {
     chainerx::Shape new_shape(a.shape().begin(), a.shape().end() - 2);
     new_shape.insert(new_shape.end(), stack.front().shape().begin(), stack.front().shape().end());
     return chainerx::Stack(stack).Reshape(new_shape);
+}
+
+chainerx::Array Conv(
+        const chainerx::Array& x,
+        const chainerx::Array& w,
+        const nonstd::optional<chainerx::Array>& b,
+        const Int64StackVector& strides,
+        const Int64StackVector& pads,
+        int group) {
+    if (group > 1) {
+        std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
+        std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));
+        std::vector<chainerx::Array> biases;
+        if (b.has_value()) {
+            biases = SplitByLengths(*b, 0, std::vector<int64_t>(group, b->shape()[0] / group));
+        }
+        std::vector<chainerx::Array> outputs(group);
+        for (int i = 0; i < group; ++i) {
+            auto sub_bias = b.has_value() ? nonstd::optional<chainerx::Array>(biases[i]) : nonstd::nullopt;
+            outputs[i] = chainerx::Conv(inputs[i], weights[i], sub_bias, strides, pads);
+        }
+        return chainerx::Concatenate(outputs, 1);
+    }
+    return chainerx::Conv(x, w, b, strides, pads);
 }
 
 }  // namespace runtime
