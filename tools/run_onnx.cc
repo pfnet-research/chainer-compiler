@@ -456,10 +456,6 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
             int mismatch =
                     MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"), args.exist("equal_nan"));
             if (mismatch) {
-                if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
-                    static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
-                    return true;
-                }
                 fail("value");
                 int total_size = expected.GetTotalSize();
                 LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
