@@ -98,7 +98,7 @@ chainerx::Array MatMulIntegerOp::RunImpl(
         const chainerx::Array& q_b,
         const nonstd::optional<chainerx::Array>& a_zero_point,
         const nonstd::optional<chainerx::Array>& b_zero_point) {
-    chainerx::Array a = q_a.AsType(chainerx::Dtype::kFloat64), b = q_b.AsType(chainerx::Dtype::kFloat64);
+    chainerx::Array a = q_a.AsType(chainerx::Dtype::kInt32), b = q_b.AsType(chainerx::Dtype::kInt32);
 
     if (a_zero_point.has_value()) {
         CHECK_GE(1, a_zero_point->shape().size());
@@ -118,7 +118,7 @@ chainerx::Array ConvIntegerOp::RunImpl(
         const chainerx::Array& q_w,
         const nonstd::optional<StrictScalar>& x_zero_point,
         const nonstd::optional<chainerx::Array>& w_zero_point) {
-    chainerx::Array x = q_x.AsType(chainerx::Dtype::kFloat64), w = q_w.AsType(chainerx::Dtype::kFloat64);
+    chainerx::Array x = q_x.AsType(chainerx::Dtype::kInt32), w = q_w.AsType(chainerx::Dtype::kInt32);
 
     if (x_zero_point.has_value()) {
         x -= chainerx::Scalar(*x_zero_point);
