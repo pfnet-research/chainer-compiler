@@ -137,8 +137,8 @@ def main():
     Add mo directory path to `$PYTHONPATH` to use mo module. Options are same
     with model-optimizer(mo), see "common" group parser. Picked up:
 
-      - --input_model: get model path from 'test_dir'
-      - --output_dir: set path automatically
+      - --input_model: get model path from 'test_dir', don't use.
+      - --output_dir: set path automatically, don't use.
       - --log_level: default: ERROR, if set '-g', overwritten by 'DEBUG'
       - --data_type: choose  from 'FP16', 'FP32', 'half', 'float'
       - --disable_fusing, --disablegfusing, --move-to-process,
