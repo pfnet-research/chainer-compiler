@@ -149,7 +149,7 @@ chainerx::Array ClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array MatMulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    return MatMul(a, b);
+    return NumpyMatMul(a, b);
 }
 
 chainerx::Array GemmOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b, const chainerx::Array& c) {

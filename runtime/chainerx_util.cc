@@ -202,7 +202,7 @@ void BlitArray(const chainerx::Array& src, const chainerx::Array& dst) {
     src.device().backend().CallKernel<chainerx::CopyKernel>(src, dst);
 }
 
-chainerx::Array MatMul(const chainerx::Array& a, const chainerx::Array& b) {
+chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b) {
     if (a.shape().size() <= 2) {
         return chainerx::Dot(a, b);
     }
@@ -224,7 +224,7 @@ chainerx::Array MatMul(const chainerx::Array& a, const chainerx::Array& b) {
     return chainerx::Stack(stack).Reshape(new_shape);
 }
 
-chainerx::Array Conv(
+chainerx::Array GroupedConv(
         const chainerx::Array& x,
         const chainerx::Array& w,
         const nonstd::optional<chainerx::Array>& b,

@@ -109,7 +109,7 @@ chainerx::Array MatMulIntegerOp::RunImpl(
         b -= *b_zero_point;
     }
 
-    return MatMul(a, b).AsType(chainerx::Dtype::kInt32);
+    return NumpyMatMul(a, b).AsType(chainerx::Dtype::kInt32);
 }
 
 chainerx::Array ConvIntegerOp::RunImpl(
