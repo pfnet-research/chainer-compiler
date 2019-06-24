@@ -191,6 +191,7 @@ class BN(chainer.Chain):
         return self.linear(self.bn(x))
 
 
+# TODO(hamaji): Enable this test again.
 # @pytest.mark.parametrize('device_name', all_device_names)
 # @pytest.mark.parametrize('translator', all_translators)
 # @pytest.mark.parametrize('computation_order', all_computation_orders)
@@ -234,218 +235,217 @@ class BN(chainer.Chain):
 #     assert not np.allclose(old_avg_var, new_avg_var)
 
 
-# class MultiInOuts(chainer.Chain):
+class MultiInOuts(chainer.Chain):
 
-#     def forward(self, x, y):
-#         return x + y, x * y
-
-
-# @pytest.mark.parametrize('device_name', all_device_names)
-# @pytest.mark.parametrize('translator', ['ch2o'])
-# def test_multi_in_outs(device_name, translator):
-#     device = chainer.get_device(device_name)
-#     device.use()
-
-#     model = MultiInOuts()
-#     model.to_device(device)
-
-#     inputs = [np.array(3, dtype=np.float32), np.array(39, dtype=np.float32)]
-
-#     expected = model(*inputs)
-
-#     model = chainer_compiler.compile(model, inputs, translator=translator)
-#     model.to_device(device)
-
-#     actual = model(*inputs)
-
-#     assert len(expected) == len(actual)
-#     for e, a in zip(expected, actual):
-#         e = _array(e)
-#         a = _array(a)
-#         assert _get_device(e) == _get_device(a)
-#         _assert_allclose(e, a)
+    def forward(self, x, y):
+        return x + y, x * y
 
 
-# class ConstMul(chainer.Chain):
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', ['ch2o'])
+def test_multi_in_outs(device_name, translator):
+    device = chainer.get_device(device_name)
+    device.use()
 
-#     def forward(self, x):
-#         return x * np.array(42.0, dtype=np.float32)
+    model = MultiInOuts()
+    model.to_device(device)
 
+    inputs = [np.array(3, dtype=np.float32), np.array(39, dtype=np.float32)]
 
-# @pytest.mark.parametrize('device_name', all_device_names)
-# @pytest.mark.parametrize('translator', ['ch2o'])
-# def test_const_mul(device_name, translator):
-#     device = chainer.get_device(device_name)
-#     device.use()
+    expected = model(*inputs)
 
-#     # This checks if the default ChainerX device is set properly by
-#     # Constant op, whose result will be placed on the default device.
-#     model = ConstMul()
-#     model.to_device(device)
+    model = chainer_compiler.compile(model, inputs, translator=translator)
+    model.to_device(device)
 
-#     inputs = [np.array(3, dtype=np.float32)]
+    actual = model(*inputs)
 
-#     expected = model(*inputs)
-
-#     model = chainer_compiler.compile(model, inputs, translator=translator)
-#     model.to_device(device)
-
-#     actual = model(*inputs)
-
-#     e = _array(expected)
-#     a = _array(actual)
-#     assert _get_device(e) == _get_device(a)
-#     _assert_allclose(e, a)
+    assert len(expected) == len(actual)
+    for e, a in zip(expected, actual):
+        e = _array(e)
+        a = _array(a)
+        assert _get_device(e) == _get_device(a)
+        _assert_allclose(e, a)
 
 
-# class Sequence(chainer.Chain):
+class ConstMul(chainer.Chain):
 
-#     def forward(self, xs):
-#         s = xs[0]
-#         ys = [s]
-#         for x in xs[1:]:
-#             s = F.relu(s) * x
-#             ys.append(s)
-#         return ys
+    def forward(self, x):
+        return x * np.array(42.0, dtype=np.float32)
 
 
-# @pytest.mark.parametrize('device_name', all_device_names)
-# @pytest.mark.parametrize('translator', ['ch2o'])
-# def test_sequence(device_name, translator):
-#     device = chainer.get_device(device_name)
-#     device.use()
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', ['ch2o'])
+def test_const_mul(device_name, translator):
+    device = chainer.get_device(device_name)
+    device.use()
 
-#     model = Sequence()
-#     model.to_device(device)
+    # This checks if the default ChainerX device is set properly by
+    # Constant op, whose result will be placed on the default device.
+    model = ConstMul()
+    model.to_device(device)
 
-#     xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
-#     expected = model(xs)
+    inputs = [np.array(3, dtype=np.float32)]
 
-#     model = chainer_compiler.compile(model, [xs], translator=translator)
-#     model.to_device(device)
+    expected = model(*inputs)
 
-#     xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
-#     actual = model(xs)
+    model = chainer_compiler.compile(model, inputs, translator=translator)
+    model.to_device(device)
 
-#     assert len(expected) == len(actual)
-#     for e, a in zip(expected, actual):
-#         e = _array(e)
-#         a = _array(a)
-#         assert _get_device(e) == _get_device(a)
-#         _assert_allclose(e, a)
+    actual = model(*inputs)
 
-
-# class SequenceGrad(chainer.Chain):
-
-#     def __init__(self, n_units):
-#         super(SequenceGrad, self).__init__()
-#         with self.init_scope():
-#             self.l = L.Linear(n_units, n_units)
-
-#     def forward(self, xs):
-#         s = xs[0]
-#         ys = [chainer.Variable(s)]
-#         for x in xs[1:]:
-#             s = self.l(s) + x
-#             ys.append(s)
-#         return ys
+    e = _array(expected)
+    a = _array(actual)
+    assert _get_device(e) == _get_device(a)
+    _assert_allclose(e, a)
 
 
-# @pytest.mark.parametrize('device_name', all_device_names)
-# @pytest.mark.parametrize('translator', ['ch2o'])
-# def test_sequence_grad(device_name, translator):
-#     device = chainer.get_device(device_name)
-#     device.use()
+class Sequence(chainer.Chain):
 
-#     seq_length = 4
-#     batch_size = 2
-#     n_units = 3
-#     model = SequenceGrad(n_units)
-#     model.to_device(device)
-
-#     xs = aranges(device.xp, seq_length, batch_size, n_units)
-#     xs = [device.xp.array(x) for x in xs]
-
-#     expected_ys, expected_grads = _run_fwd_bwd(model, [xs])
-
-#     model = chainer_compiler.compile(model, [xs], translator=translator)
-#     model.to_device(device)
-#     actual_ys, actual_grads = _run_fwd_bwd(model, [xs])
-
-#     assert len(expected_ys) == len(actual_ys)
-#     for e, a in zip(expected_ys, actual_ys):
-#         e = _array(e)
-#         a = _array(a)
-#         assert _get_device(e) == _get_device(a)
-#         _assert_allclose(e, a, rtol=1e-4)
-
-#     assert len(expected_grads) == len(actual_grads)
-#     for (e_name, e_grad), (a_name, a_grad) in zip(
-#             expected_grads, actual_grads):
-#         assert e_name == a_name
-#         assert e_grad is not None, e_name
-#         assert a_grad is not None, a_name
-#         _assert_allclose(e_grad, a_grad, rtol=1e-4)
+    def forward(self, xs):
+        s = xs[0]
+        ys = [s]
+        for x in xs[1:]:
+            s = F.relu(s) * x
+            ys.append(s)
+        return ys
 
 
-# class PartiallyDifferentiable(chainer.Chain):
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', ['ch2o'])
+def test_sequence(device_name, translator):
+    device = chainer.get_device(device_name)
+    device.use()
 
-#     def __init__(self, n_units):
-#         super(PartiallyDifferentiable, self).__init__()
-#         with self.init_scope():
-#             self.l = L.Linear(n_units, n_units)
+    model = Sequence()
+    model.to_device(device)
 
-#     def forward(self, xs, indices):
-#         r = xs[0]
-#         for i in indices:
-#             x = xs[i]
-#             r = self.l(r) * x
-#         return r
+    xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
+    expected = model(xs)
+
+    model = chainer_compiler.compile(model, [xs], translator=translator)
+    model.to_device(device)
+
+    xs = [device.xp.array(i + 1, dtype=np.float32) for i in range(3)]
+    actual = model(xs)
+
+    assert len(expected) == len(actual)
+    for e, a in zip(expected, actual):
+        e = _array(e)
+        a = _array(a)
+        assert _get_device(e) == _get_device(a)
+        _assert_allclose(e, a)
 
 
-# TODO(hamaji): Enable this test again.
-# @pytest.mark.parametrize('device_name', ['@numpy'])
-# @pytest.mark.parametrize('translator', ['ch2o'])
-# def test_partially_differentiable(device_name, translator):
-#     np.random.seed(40)
-#     device = chainer.get_device(device_name)
-#     device.use()
+class SequenceGrad(chainer.Chain):
 
-#     n_units = 3
-#     batch_size = 2
-#     seq_length = 7
+    def __init__(self, n_units):
+        super(SequenceGrad, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(n_units, n_units)
 
-#     xs = aranges(device.xp, seq_length, batch_size, n_units)
-#     xs = [chainer.Variable(device.xp.array(x)) for x in xs]
-#     indices = [np.array(i, dtype=np.int32) for i in [2, 3, 5, 1]]
+    def forward(self, xs):
+        s = xs[0]
+        ys = [chainer.Variable(s)]
+        for x in xs[1:]:
+            s = self.l(s) + x
+            ys.append(s)
+        return ys
 
-#     model = PartiallyDifferentiable(n_units)
-#     model.to_device(device)
 
-#     expected_loss, expected_grads = _run_fwd_bwd(model, [xs, indices])
-#     # expected_gxs = [x.grad for x in xs]
+@pytest.mark.parametrize('device_name', all_device_names)
+@pytest.mark.parametrize('translator', ['ch2o'])
+def test_sequence_grad(device_name, translator):
+    device = chainer.get_device(device_name)
+    device.use()
 
-#     xs = aranges(device.xp, seq_length, batch_size, n_units)
-#     xs = [chainer.Variable(device.xp.array(x)) for x in xs]
+    seq_length = 4
+    batch_size = 2
+    n_units = 3
+    model = SequenceGrad(n_units)
+    model.to_device(device)
 
-#     model = chainer_compiler.compile(model, [xs, indices],
-#                                      translator=translator)
-#     model.to_device(device)
-#     actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
-#     # actual_gxs = [x.grad for x in xs]
+    xs = aranges(device.xp, seq_length, batch_size, n_units)
+    xs = [device.xp.array(x) for x in xs]
 
-#     chainerx.testing.assert_allclose(expected_loss, actual_loss, rtol=1e-5)
+    expected_ys, expected_grads = _run_fwd_bwd(model, [xs])
 
-#     assert len(expected_grads) == len(actual_grads)
-#     for (e_name, e_grad), (a_name, a_grad) in zip(
-#             expected_grads, actual_grads):
-#         assert e_name == a_name
-#         assert e_grad is not None, e_name
-#         assert a_grad is not None, a_name
-#         _assert_allclose(e_grad, a_grad, rtol=1e-4)
+    model = chainer_compiler.compile(model, [xs], translator=translator)
+    model.to_device(device)
+    actual_ys, actual_grads = _run_fwd_bwd(model, [xs])
 
-#     # TODO(hamaji): Fix this test.
-#     # for e, a in zip(expected_gxs, actual_gxs):
-#     #     assert e is not None
-#     #     assert a is not None
-#     #     _assert_allclose(e, a)
+    assert len(expected_ys) == len(actual_ys)
+    for e, a in zip(expected_ys, actual_ys):
+        e = _array(e)
+        a = _array(a)
+        assert _get_device(e) == _get_device(a)
+        _assert_allclose(e, a, rtol=1e-4)
+
+    assert len(expected_grads) == len(actual_grads)
+    for (e_name, e_grad), (a_name, a_grad) in zip(
+            expected_grads, actual_grads):
+        assert e_name == a_name
+        assert e_grad is not None, e_name
+        assert a_grad is not None, a_name
+        _assert_allclose(e_grad, a_grad, rtol=1e-4)
+
+
+class PartiallyDifferentiable(chainer.Chain):
+
+    def __init__(self, n_units):
+        super(PartiallyDifferentiable, self).__init__()
+        with self.init_scope():
+            self.l = L.Linear(n_units, n_units)
+
+    def forward(self, xs, indices):
+        r = xs[0]
+        for i in indices:
+            x = xs[i]
+            r = self.l(r) * x
+        return r
+
+
+@pytest.mark.parametrize('device_name', ['@numpy'])
+@pytest.mark.parametrize('translator', ['ch2o'])
+def test_partially_differentiable(device_name, translator):
+    np.random.seed(40)
+    device = chainer.get_device(device_name)
+    device.use()
+
+    n_units = 3
+    batch_size = 2
+    seq_length = 7
+
+    xs = aranges(device.xp, seq_length, batch_size, n_units)
+    xs = [chainer.Variable(device.xp.array(x)) for x in xs]
+    indices = [np.array(i, dtype=np.int32) for i in [2, 3, 5, 1]]
+
+    model = PartiallyDifferentiable(n_units)
+    model.to_device(device)
+
+    expected_loss, expected_grads = _run_fwd_bwd(model, [xs, indices])
+    # expected_gxs = [x.grad for x in xs]
+
+    xs = aranges(device.xp, seq_length, batch_size, n_units)
+    xs = [chainer.Variable(device.xp.array(x)) for x in xs]
+
+    model = chainer_compiler.compile(model, [xs, indices],
+                                     translator=translator)
+    model.to_device(device)
+    actual_loss, actual_grads = _run_fwd_bwd(model, [xs, indices])
+    # actual_gxs = [x.grad for x in xs]
+
+    chainerx.testing.assert_allclose(expected_loss, actual_loss, rtol=1e-5)
+
+    assert len(expected_grads) == len(actual_grads)
+    for (e_name, e_grad), (a_name, a_grad) in zip(
+            expected_grads, actual_grads):
+        assert e_name == a_name
+        assert e_grad is not None, e_name
+        assert a_grad is not None, a_name
+        _assert_allclose(e_grad, a_grad, rtol=1e-4)
+
+    # TODO(hamaji): Fix this test.
+    # for e, a in zip(expected_gxs, actual_gxs):
+    #     assert e is not None
+    #     assert a is not None
+    #     _assert_allclose(e, a)
