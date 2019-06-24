@@ -78,6 +78,12 @@ class UpdateSelfLiteral(chainer.Chain):
             self.x += i
         return self.x
 
+class UnrollBasic(chainer.Chain):
+    def forward(self):
+        self.x = 42
+        for i in [0, 1, 2, 3, 4]:
+            self.x += i
+        return self.x
 
 class UpdateSelfLiteralInInit(chainer.Chain):
     def __init__(self):
@@ -176,6 +182,8 @@ def main():
     testtools.generate_testcase(UpdateSelf(), [42], subname='update_self')
 
     # testtools.generate_testcase(UpdateSelfLocal(), [], subname='update_self_local')
+
+    testtools.generate_testcase(UnrollBasic(), [], subname='for_unroll')
 
     testtools.generate_testcase(UpdateSelfLiteral(), [],
                                 subname='update_self_literal')
