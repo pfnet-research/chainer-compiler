@@ -15,17 +15,25 @@ class Canonicalizer(gast.NodeTransformer):
             self.keepgoing_flag = '#keepgoing'
             self.breaked_flag = '#breaked_'
             self.continued_flag = '#continued_'
+            self.returned_flag = '#returned_'
+            self.returned_value_key = '#returned_value'
         else:
             self.keepgoing_flag = 'keepgoing'
             self.breaked_flag = 'breaked_'
             self.continued_flag = 'continued_'
-        self.for_continue_stack = []
+            self.returned_flag = 'returned_'
+            self.returned_value_key = 'returned_value'
+        self.for_continued_stack = []
         self.for_breaked_stack = []
+        self.func_returned_stack = []
         self.flagid = -1
 
-    def getflag(self):
-        self.flagid += 1
-        return self.flagid
+    def get_id(self, stack):
+        return len(stack)
+
+    def stack_has_flags(self, stack):
+        assert isinstance(stack, list)
+        return len(stack) > 0 and stack[-1]
 
     def visit_UnaryOp(self, node):
         node = self.generic_visit(node)
@@ -36,72 +44,112 @@ class Canonicalizer(gast.NodeTransformer):
         else:
             return node
 
+    def visit_FunctionDef(self, node):
+        modified_node = self.generic_visit(node)
+        returned_id = len(self.func_returned_stack)
+        returned_flags = self.func_returned_stack.pop()
+        if returned_flags:
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+        node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=None)))
+        node.body.append(gast.Return(value=gast.Name(id=self.returned_value_key, ctx=gast.Load(), annotation=None)))
+        return modified_node
+
     def visit_For(self, node):
         modified_node = self.generic_visit(node)
-        continue_flags = self.for_continue_stack.pop()
-        for flag in continue_flags:
-            node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+        continued_id = len(self.for_continued_stack)
+        continued_flags = self.for_continued_stack.pop()
+        if continued_flags:
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+        breaked_id = len(self.for_breaked_stack)
         breaked_flags = self.for_breaked_stack.pop()
         bool_values = []
-        for flag in breaked_flags:
-            node.body.insert(0, gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
-            bool_values.append(gast.Name(id=flag, ctx=gast.Load(), annotation=None))
+        if breaked_flags:
+            node.body.insert(0, gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=False)))
+            bool_values.append(gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None))
+
+        if len(self.func_returned_stack) > 0:
+            returned_id = len(self.func_returned_stack)
+            returned_flags = self.func_returned_stack[-1]
+            if returned_flags:
+                bool_values.append(gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Load(), annotation=None))
+
         if len(bool_values) > 0:
             if len(bool_values) == 1:
                 cond = bool_values[0]
             elif len(bool_values) > 1:
                 cond = gast.BoolOp(op=gast.Or(), values=bool_values)
-            if isinstance(modified_node, gast.For):
-                modified_node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
-                modified_node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
-            elif isinstance(modified_node, gast.If):
-                if isinstance(modified_node.body[0], gast.For):
-                    modified_node.body[0].body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
-                    modified_node.body[0].body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
+            
+            node.body.append(gast.Assign(targets=[gast.Name(id=self.keepgoing_flag, ctx=gast.Store(), annotation=None)], value=gast.UnaryOp(op=gast.Not(), operand=cond)))
+            node.body.append(gast.If(test=cond, body=[gast.Break()], orelse=[]))
         return modified_node
 
     def generic_visit(self, node):
         if isinstance(node, gast.stmt):
-            if (len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0) or (len(self.for_breaked_stack) > 0 and len(self.for_breaked_stack[-1]) > 0):
+            if self.stack_has_flags(self.for_continued_stack) or self.stack_has_flags(self.for_breaked_stack) or self.stack_has_flags(self.func_returned_stack):
                 bool_values = []
-                if (len(self.for_continue_stack) > 0 and len(self.for_continue_stack[-1]) > 0):
-                    for flag in self.for_continue_stack[-1]:
-                        bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
-                if (len(self.for_breaked_stack) > 0 and len(self.for_breaked_stack[-1]) > 0):
-                    for flag in self.for_breaked_stack[-1]:
-                        bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=flag, ctx=gast.Load(), annotation=None)))
+                if self.stack_has_flags(self.for_continued_stack):
+                    continued_id = len(self.for_continued_stack)
+                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Load(), annotation=None)))
+                if self.stack_has_flags(self.for_breaked_stack):
+                    breaked_id = len(self.for_breaked_stack)
+                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Load(), annotation=None)))
+                if self.stack_has_flags(self.func_returned_stack):
+                    returned_id = len(self.func_returned_stack)
+                    bool_values.append(gast.UnaryOp(op=gast.Not(), operand=gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Load(), annotation=None)))
+
                 if isinstance(node, gast.For):
-                    self.for_continue_stack.append([])
-                    self.for_breaked_stack.append([])
-                node = super().generic_visit(node)
+                    self.for_continued_stack.append(False)
+                    self.for_breaked_stack.append(False)
+                elif isinstance(node, gast.FunctionDef):
+                    self.func_returned_stack.append(False)
+
+                modified_node = super().generic_visit(node)
                 if len(bool_values) == 1:
                     cond = bool_values[0]
                 else:
                     cond = gast.BoolOp(op=gast.And(), values=bool_values)
-                replacement = gast.If(test=cond, body=[node], orelse=[])
+                replacement = gast.If(test=cond, body=[modified_node], orelse=[])
                 ret = gast.copy_location(replacement, node)
             else:
                 if isinstance(node, gast.For):
-                    self.for_continue_stack.append([])
-                    self.for_breaked_stack.append([])
+                    self.for_continued_stack.append(False)
+                    self.for_breaked_stack.append(False)
+                elif isinstance(node, gast.FunctionDef):
+                    self.func_returned_stack.append(False)
                 ret = super().generic_visit(node)
         else:
             ret = super().generic_visit(node)
         return ret
 
+    def visit_Return(self, node):
+        modified_node = self.generic_visit(node)
+        if node.value is None:
+            node_value = gast.NameConstant(value=None)
+        else:
+            node_value = node.value
+        self.func_returned_stack[-1] = True
+        returned_id = len(self.func_returned_stack)
+        replacement  = [gast.Assign(targets=[gast.Name(id=self.returned_flag + str(returned_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True)),
+                        gast.Assign(targets=[gast.Name(id=self.returned_value_key, ctx=gast.Store(), annotation=None)], value=node_value)]
+        if isinstance(modified_node, gast.If):  #TODO: Add location to returned value.
+            modified_node.body = replacement
+            return modified_node
+        else:
+            return replacement  
+
     def visit_Continue(self, node):
-        node = self.generic_visit(node)
-        flag = self.continued_flag + str(self.getflag())
-        self.for_continue_stack[-1].append(flag)
-        replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        modified_node = self.generic_visit(node)
+        self.for_continued_stack[-1] = True
+        continued_id = len(self.for_continued_stack)
+        replacement = gast.Assign(targets=[gast.Name(id=self.continued_flag + str(continued_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
         return gast.copy_location(replacement, node)
 
 
     def visit_Break(self, node):
-        node = self.generic_visit(node)
-        flag = self.breaked_flag + str(self.getflag())
-        self.for_breaked_stack[-1].append(flag)
-        replacement = gast.Assign(targets=[gast.Name(id=flag, ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
+        modified_node = self.generic_visit(node)
+        self.for_breaked_stack[-1] = True
+        breaked_id = len(self.for_breaked_stack)
+        replacement = gast.Assign(targets=[gast.Name(id=self.breaked_flag + str(breaked_id), ctx=gast.Store(), annotation=None)], value=gast.NameConstant(value=True))
         return gast.copy_location(replacement, node)
 
 if __name__ == '__main__':

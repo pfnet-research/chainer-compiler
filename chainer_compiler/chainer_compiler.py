@@ -17,6 +17,8 @@ except ImportError:
         sys.path.append(os.path.join(root, 'build/chainer_compiler_cc'))
         import _chainer_compiler_core
     except ImportError:
+        # We need to allow this failure for build time (e.g., elichika
+        # testgen) import where the shared object is not ready yet.
         pass
 
 try:
@@ -265,22 +267,45 @@ class CompiledModel(chainer.Chain):
 
         self.compiled = True
 
+        if self.translator == 'ch2o':
+            convert_rule = lambda key: key  # noqa
+        elif self.translator == 'onnx_chainer':
+            convert_rule = lambda key: 'param' + key.replace('/', '_')  # noqa
+
+        params = {convert_rule(key): value for key, value
+                  in self.mc.namedparams()}
+
+        # Since avg_mean and avg_var in BatchNormalization are not parameters
+        # in chainer link, we need an additional handling.
+        for link_name, link in self.mc.namedlinks():
+            if not isinstance(link, chainer.links.BatchNormalization):
+                continue
+            for avg_name in ['avg_mean', 'avg_var']:
+                key = convert_rule(link_name + '/' + avg_name)
+                assert key not in params
+                params[key] = getattr(link, avg_name)
+
+        self.param_values = []
+        fwd_chxvm_vars = fwd_graph.params()
+        for name in self.param_names:
+            if name in params:
+                self.param_values.append(params[name])
+            elif name in fwd_chxvm_vars:
+                # Retrieve the initial value from ONNX initializer
+
+                # TODO(hamaji): Emit `Constant` in onnx-chainer so we will not
+                # need this branch.
+                array = fwd_chxvm_vars[name].array()
+                array = self.device.send(array)
+                self.param_values.append(array)
+            else:
+                raise NotImplementedError('Initial value is uknown: ' + name)
+
     def forward(self, *args):
         if not self.compiled:
             outputs = self.mc(*args)
             self.compile(args)
             return outputs
-
-        if self.param_values is None:
-            assert self.param_names is not None
-            params = dict(self.mc.namedparams())
-            if self.translator == 'onnx_chainer':
-                params = {'param' + key.replace('/', '_'): value for key, value
-                          in params.items()}
-            self.param_values = []
-            for name in self.param_names:
-                assert name in params
-                self.param_values.append(params[name])
 
         inputs = list(args)
         flat_inputs = _flatten(inputs)

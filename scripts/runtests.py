@@ -540,7 +540,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_pad', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_params'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_permute2'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_pow', fail=True),
+    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_pow', equal_nan=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_mean'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_mean_keepdim'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_sum'),
@@ -548,7 +548,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_repeat', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_repeat_dim_overflow', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_selu'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_sqrt', fail=True),
+    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_sqrt', equal_nan=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_symbolic_override', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_symbolic_override_nested'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_view', fail=True),
@@ -796,6 +796,8 @@ def main():
             test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.atol is not None:
             test_case.args += ['--atol', str(test_case.atol)]
+        if test_case.equal_nan:
+            test_case.args += ['--equal_nan']
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
         if test_case.is_backprop_two_phase:

@@ -1043,7 +1043,7 @@ def get_tests():
 
     test('extra_test_negative_reshape', gen_negative_reshape_test)
 
-    test('extra_test_inf_nan', gen_inf_nan_test)
+    test('extra_test_inf_nan', gen_inf_nan_test, equal_nan=True)
 
     test('extra_test_select_item', gen_select_item_test, diversed=True)
 
