@@ -12,12 +12,9 @@ except ImportError:
     # `_chainer_compiler_core.so` should be imported directly from
     # `build/chainer_compiler_cc`.
     # TODO(mkusumoto): Seek more sophisticated way to import the .so file.
-    try:
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        sys.path.append(os.path.join(root, 'build/chainer_compiler_cc'))
-        import _chainer_compiler_core
-    except ImportError:
-        pass
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(os.path.join(root, 'build/chainer_compiler_cc'))
+    import _chainer_compiler_core
 
 try:
     import cupy
