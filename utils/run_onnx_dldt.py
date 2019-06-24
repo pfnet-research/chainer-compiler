@@ -1,12 +1,11 @@
-import argparse
 import glob
 import logging as log
 import os
 import sys
 
+import numpy as np
 import onnx
 import onnx.numpy_helper
-import numpy as np
 
 import run_onnx_util
 
@@ -49,7 +48,8 @@ def onnx_input_output_names(onnx_filename):
 
 
 def inference(args, model_xml, model_bin, inputs, outputs):
-    from openvino.inference_engine import IENetwork, IEPlugin
+    from openvino.inference_engine import IENetwork
+    from openvino.inference_engine import IEPlugin
     plugin = IEPlugin(device=args.device, plugin_dirs=args.plugin_dir)
     if args.cpu_extension and 'CPU' in args.device:
         plugin.add_cpu_extension(args.cpu_extension)
