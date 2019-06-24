@@ -453,12 +453,9 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
             }
             if (!strict_check) return true;
 
-            int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
+            int mismatch =
+                    MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"), args.exist("equal_nan"));
             if (mismatch) {
-                if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
-                    static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
-                    return true;
-                }
                 fail("value");
                 int total_size = expected.GetTotalSize();
                 LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
@@ -525,6 +522,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
+    args.add("equal_nan", '\0', "Treats NaN equal");
     args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");

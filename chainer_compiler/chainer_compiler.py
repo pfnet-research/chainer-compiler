@@ -17,6 +17,8 @@ except ImportError:
         sys.path.append(os.path.join(root, 'build/chainer_compiler_cc'))
         import _chainer_compiler_core
     except ImportError:
+        # We need to allow this failure for build time (e.g., elichika
+        # testgen) import where the shared object is not ready yet.
         pass
 
 try:
