@@ -3,6 +3,17 @@
 import chainer
 import chainer.functions as F
 
+class ReturnInMiddle(chainer.Chain):
+    def __init__(self):
+        super(ReturnInMiddle, self).__init__()
+
+    def forward(self, x):
+        a = F.relu(x)
+        b = F.relu(a)
+        return b
+        c = F.relu(a * 2)
+        return a + b
+
 
 class Return(chainer.Chain):
     def forward(self, x, y):
@@ -63,6 +74,11 @@ import numpy as np
 
 def main():
     x, y, z = 10, 5, 4
+    n = np.random.rand(2, 2).astype(np.float32)
+
+    # TODO(durswd) : an error causes
+    # testtools.generate_testcase(ReturnInMiddle, [n], subname='return_middle')
+
     testtools.generate_testcase(Return, [x, y], subname='return')
     # testtools.generate_testcase(ReturnNested, [x, y], subname='return_nested')  #TODO: Nested function declaration is not supported.
     testtools.generate_testcase(ReturnContinueMixed, [x, y, z], subname='return_continue_mixed')
