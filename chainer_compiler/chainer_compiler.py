@@ -227,6 +227,8 @@ class CompiledModel(chainer.Chain):
         self.compiled = False
         self.param_names = None
         self.param_values = None
+        # Propagate device from `model` before compiling it.
+        self.to_device(model.device)
         if inputs is not None:
             self.compile(inputs)
 
