@@ -228,6 +228,8 @@ ChxVMVar* StageVar(ChxVMVar* var) {
             return new ChxVMVar(seq);
         }
 
+        case ChxVMVar::Kind:
+        kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -430,6 +432,8 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                     return array_str(v->GetArray());
                 case ChxVMVar::Kind::kSequence:
                     return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
+                case ChxVMVar::Kind:
+                kString:
                 case ChxVMVar::Kind::kOpaque:
                 case ChxVMVar::Kind::kNull:
                     CHECK(false) << v->DebugString();
@@ -494,6 +498,8 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 break;
             }
 
+            case ChxVMVar::Kind:
+            kString:
             case ChxVMVar::Kind::kOpaque:
             case ChxVMVar::Kind::kNull:
                 CHECK(false) << expected->DebugString();

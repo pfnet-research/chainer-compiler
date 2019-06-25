@@ -48,6 +48,11 @@ InOuts LoadParams(const Graph& graph) {
     for (const Value* input : graph.input_values()) {
         if (input->users().empty()) continue;
         if (const Tensor* initializer = input->initializer()) {
+            if (initializer->dtype().ToONNX() == onnx::TensorProto::STRING) {
+                CHECK(params.emplace(initializer->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(initializer->str()))).second)
+                        << "Duplicate input tensor: " << initializer->name();
+            }
+
             chainerx::Dtype dtype = ChainerXTypeFromONNX(initializer->dtype().ToONNX());
             chainerx::Shape shape(initializer->dims());
             const void* data = initializer->GetRawData();

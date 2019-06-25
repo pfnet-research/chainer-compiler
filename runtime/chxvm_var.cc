@@ -39,6 +39,9 @@ ChxVMVar::ChxVMVar(StrictScalar scalar) : val_(scalar) {
 ChxVMVar::ChxVMVar(std::shared_ptr<ChxVMSequence> seq) : val_(seq) {
 }
 
+ChxVMVar::ChxVMVar(const std::vector<std::string>& str) : val_(str) {
+}
+
 const chainerx::Array& ChxVMVar::GetArray() const {
     switch (kind()) {
         case Kind::kShape:
@@ -90,6 +93,7 @@ int64_t ChxVMVar::GetNBytes() const {
         case Kind::kSequence:
             for (const ChxVMVar& v : *GetSequence()) size += v.GetArray().GetNBytes();
             break;
+        case Kind::kString:
         case Kind::kOpaque:
         case Kind::kNull:
             CHECK(false) << DebugString();
@@ -129,6 +133,7 @@ char ChxVMVar::Sigil() const {
         case Kind::kShape:
         case Kind::kScalar:
         case Kind::kArray:
+        case Kind::kString:
             return '$';
         case Kind::kSequence:
             return '@';

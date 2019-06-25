@@ -332,6 +332,14 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             node.outputs,
             str(node.lineprop))
 
+    if isinstance(node.func, functions_builtin.PrintFunction):
+        # print
+        onnx_graph.add_node(
+            'ChainerPrint',
+            node.inputs,
+            node.outputs,
+            str(node.lineprop))
+
     if isinstance(node.func, functions_ndarray.NDArrayShapeFunction):
         # shape
         op_shape_temp = onnx_graph.new_empty_tensor(

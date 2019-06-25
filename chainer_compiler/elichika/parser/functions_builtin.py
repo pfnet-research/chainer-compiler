@@ -74,6 +74,19 @@ class LenFunction(functions.FunctionBase):
         return values.ValueRef(value)
 
 
+class PrintFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'print'
+        self.args.add_arg('self', None)
+        self.args.add_arg('v', None)
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+
 class ListFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
