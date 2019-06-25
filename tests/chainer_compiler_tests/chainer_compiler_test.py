@@ -191,7 +191,6 @@ class BN(chainer.Chain):
         return self.linear(self.bn(x))
 
 
-# TODO(hamaji): Enable this test again.
 @pytest.mark.parametrize('device_name', all_device_names)
 @pytest.mark.parametrize('translator', all_translators)
 @pytest.mark.parametrize('computation_order', all_computation_orders)
