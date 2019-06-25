@@ -43,7 +43,7 @@ chainerx::Array ConvOp::RunImpl(
         CHECK_EQ("NOTSET", auto_pad);
     }
 
-    return Conv(x, w, b, comp_strides, comp_pads, group);
+    return GroupedConv(x, w, b, comp_strides, comp_pads, group);
 }
 
 chainerx::Array ConvTransposeOp::RunImpl(
