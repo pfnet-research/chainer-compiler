@@ -156,6 +156,30 @@ class NpArrayShapeSelf(chainer.Chain):
             self.x = F.relu(x)
         return list(self.x.shape)
 
+def func_array(arg0):
+    y = F.relu(arg0)
+    return y
+
+class LazyInitWithFunc(chainer.Chain):
+    def __init__(self):
+        super(LazyInitWithFunc, self).__init__()
+        self.x = None
+
+    def forward(self, x):
+        if self.x is None:
+            self.x = func_array(x)
+        return self.x
+
+class LazyInitWithFuncUse(chainer.Chain):
+    def __init__(self):
+        super(LazyInitWithFuncUse, self).__init__()
+        with self.init_scope():
+            self.li = LazyInitWithFunc()
+
+    def forward(self, x):
+        a = self.li(x)
+        b = self.li(a * 2)
+        return a + b
 
 # ======================================
 
@@ -221,6 +245,8 @@ def main():
     testtools.generate_testcase(NpArrayShape, [n], subname='nparray_shape')
 
     testtools.generate_testcase(NpArrayShapeSelf, [n], subname='nparray_shape_self')
+
+    testtools.generate_testcase(LazyInitWithFuncUse, [n], subname='lazy_init_with_func_use')
 
 if __name__ == '__main__':
     main()

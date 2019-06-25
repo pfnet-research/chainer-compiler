@@ -361,6 +361,9 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         vevaluator.veval_ast(astc, func_field, graph)
 
+        # dispose because of exit from function
+        func_field.dispose()
+
         return ret
 
 
@@ -391,4 +394,9 @@ class UserDefinedFunction(FunctionBase):
             func_field.get_field().get_attribute(k, from_module=False).revise(v)
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
-        return vevaluator.veval_ast(astc, func_field, graph)
+        ret = vevaluator.veval_ast(astc, func_field, graph)
+
+        # dispose because of exit from function
+        func_field.dispose()
+
+        return ret

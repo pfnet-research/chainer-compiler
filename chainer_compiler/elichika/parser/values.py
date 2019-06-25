@@ -45,6 +45,9 @@ def reset_field_and_attributes():
 def register_field(field: 'Field'):
     fields.append(weakref.ref(field))
 
+def unregister_field(field: 'Field'):
+    global fields
+    fields = [f for f in fields if f() != field]
 
 def push_history(history_id: 'str'):
     histories.append(history_id)
@@ -351,6 +354,14 @@ class Field():
         self.id = utils.get_guid()
 
         register_field(self)
+
+    def dispose(self):
+        '''
+        dispose this field because of exit function
+        don't touch after dispose
+        '''
+        self.collection = FieldAttributeCollection('', None)
+        unregister_field(self)
 
     def set_module(self, module):
         self.module = module
