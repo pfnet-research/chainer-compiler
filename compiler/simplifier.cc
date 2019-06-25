@@ -617,6 +617,27 @@ bool ReplaceSplit(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceQLinearMatMul(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifyQLinearMatMul", node->output(0));
+
+    Value* a = node->input(0);
+    Value* a_scale = node->input(1);
+    Value* a_zero_point = node->input(2);
+    Value* b = node->input(3);
+    Value* b_scale = node->input(4);
+    Value* b_zero_point = node->input(5);
+    Value* y_scale = node->input(6);
+    Value* y_zero_point = node->input(7);
+
+    Value* a_dl = gb.Op(Node::kDequantizeLinear, {a, a_scale, a_zero_point});
+    Value* b_dl = gb.Op(Node::kDequantizeLinear, {b, b_scale, b_zero_point});
+    Value* mm = gb.Op(Node::kMatMul, {a_dl, b_dl});
+
+    gb.Op(Node::kQuantizeLinear, {mm, y_scale, y_zero_point}, node->output(0));
+
+    return true;
+}
+
 }  // namespace
 
 void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
@@ -654,6 +675,7 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(MaxPool);
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
+    REGISTER_SIMPLIFIER(QLinearMatMul);
 
     if (gen_backprop) {
         REGISTER_SIMPLIFIER(Concat);

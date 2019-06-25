@@ -43,21 +43,7 @@ chainerx::Array ConvOp::RunImpl(
         CHECK_EQ("NOTSET", auto_pad);
     }
 
-    if (group > 1) {
-        std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
-        std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));
-        std::vector<chainerx::Array> biases;
-        if (b.has_value()) {
-            biases = SplitByLengths(*b, 0, std::vector<int64_t>(group, b->shape()[0] / group));
-        }
-        std::vector<chainerx::Array> outputs(group);
-        for (int i = 0; i < group; ++i) {
-            auto sub_bias = b.has_value() ? nonstd::optional<chainerx::Array>(biases[i]) : nonstd::nullopt;
-            outputs[i] = chainerx::Conv(inputs[i], weights[i], sub_bias, comp_strides, comp_pads);
-        }
-        return chainerx::Concatenate(outputs, 1);
-    }
-    return chainerx::Conv(x, w, b, comp_strides, comp_pads);
+    return GroupedConv(x, w, b, comp_strides, comp_pads, group);
 }
 
 chainerx::Array ConvTransposeOp::RunImpl(
