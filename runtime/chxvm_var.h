@@ -44,6 +44,7 @@ public:
         kOpaque,
         kScalar,
         kShape,
+        kString,
         kNull,
     };
 
@@ -54,6 +55,7 @@ public:
     explicit ChxVMVar(std::shared_ptr<ChxVMSequence> seq);
     explicit ChxVMVar(chainerx::Shape shape);
     explicit ChxVMVar(StrictScalar scalar);
+    explicit ChxVMVar(const std::vector<std::string>& str);
     explicit ChxVMVar(const ChxVMVar&) = default;
 
     const chainerx::Array& GetArray() const;
@@ -81,8 +83,14 @@ public:
 
 private:
     struct NullType {};
-    using VarInternalType = absl::
-            variant<chainerx::Array, std::shared_ptr<ChxVMSequence>, std::shared_ptr<ChxVMOpaque>, StrictScalar, chainerx::Shape, NullType>;
+    using VarInternalType = absl::variant<
+            chainerx::Array,
+            std::shared_ptr<ChxVMSequence>,
+            std::shared_ptr<ChxVMOpaque>,
+            StrictScalar,
+            chainerx::Shape,
+            std::vector<std::string>,
+            NullType>;
     mutable VarInternalType val_;
 };
 
