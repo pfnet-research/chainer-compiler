@@ -434,6 +434,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_convinteger_with_padding'),
     TestCase(NODE_TEST, 'test_basic_convinteger'),
     TestCase(NODE_TEST, 'test_matmulinteger'),
+    TestCase(NODE_TEST, 'test_round'),
 ]
 
 TEST_CASES += [

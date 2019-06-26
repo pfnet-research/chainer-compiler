@@ -134,5 +134,16 @@ chainerx::Array ConvIntegerOp::RunImpl(
     return Conv(x, w, nonstd::nullopt, comp_strides, comp_pads, group).AsType(chainerx::Dtype::kInt32);
 }
 
+chainerx::Array RoundOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    // TODO(take-cheeze): Implement in ChainerX
+    std::vector<double> result_data(x.GetTotalSize());
+    chainerx::Array double_x = x.AsType(chainerx::Dtype::kFloat64);
+    const double* x_ptr = reinterpret_cast<const double*>(double_x.raw_data());
+    for (size_t i = 0; i < result_data.size(); ++i) {
+        result_data[i] = std::rint(x_ptr[i]);
+    }
+    return MakeArray(chainerx::Dtype::kFloat64, x.shape(), result_data.data()).AsType(x.dtype());
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

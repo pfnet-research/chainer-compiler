@@ -420,6 +420,7 @@ XC_OPS = [
      [Array('x'), Array('w'),
       OptionalScalar('x_zero_point'), OptionalArray('w_zero_point'),
       Ints('strides'), Ints('pads'), Int('group')], ['y']),
+    ('Round', [Array('x')], ['y']),
 ]
 
 XC_CUSTOM_FIELD_OPS = [
