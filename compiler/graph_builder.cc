@@ -1,5 +1,7 @@
 #include "compiler/graph_builder.h"
 
+#include <stdint.h>
+
 #include <compiler/onnx.h>
 #include <onnx/shape_inference/implementation.h>
 
@@ -100,7 +102,7 @@ Value* GraphBuilder::Const(const Type& type, const std::vector<T>& data, Value* 
 template Value* GraphBuilder::Const(const Type& type, const std::vector<double>& data, Value* value);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& data, Value* value);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
-template Value* GraphBuilder::Const(const Type& type, const std::vector<long>& data, Value* value);
+template Value* GraphBuilder::Const(const Type& type, const std::vector<int64_t>& data, Value* value);
 
 Value* GraphBuilder::Param(const chainerx::Array& ary) {
     const std::string& name = GenName();
