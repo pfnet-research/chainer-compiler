@@ -52,7 +52,7 @@ RUN cd ngraph && \
     cd ngraph-onnx && \
     python3 -m pip install --user -r requirements.txt && \
     python3 -m pip install --user -r requirements_test.txt && \
-    python3 -m pip install --user -e .
+    python3 -m pip install --user .
 
 FROM nvidia/cuda:10.0-cudnn7-devel AS tvm
 # TVM Build, referenced Dockerfile.demo_gpu
@@ -93,6 +93,18 @@ RUN mkdir -p /usr/tvm/3rdparty/dlpack/build && \
     cd /usr/tvm/3rdparty/dlpack/build && \
     cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/dlpack_dist && \
     make && make install
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    python3-dev \
+    python3-pip \
+    python3-setuptools && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+# hot fix to enable topi module
+RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
+ENV LD_LIBRARY_PATH=/root/tvm_dist/lib:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH
+RUN cd /usr/tvm/python && python3 setup.py install --user && \
+    cd ../topi/python && python3 setup.py install --user && \
+    cd ../../nnvm/python && python3 setup.py install --user
 
 FROM ubuntu:18.04 AS dldt
 ARG DLDT_VERSION="2019_R1.1"
@@ -123,6 +135,7 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
         -DCMAKE_INSTALL_PREFIX=$HOME/dldt_dist \
         -DCMAKE_BUILD_TYPE=Release \
         -DGEMM=OPENBLAS \
+        -DPYTHON_EXECUTABLE=$(which python3) \
         -DENABLE_PYTHON=ON \
     && \
     make -j4 && make install && \
@@ -156,10 +169,11 @@ RUN echo deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 COPY --from=ngraph /root/ngraph_dist /root/ngraph_dist
 COPY --from=ngraph /root/.local /root/.local
-COPY --from=tvm /root/tvm_dist /usr/local/
-COPY --from=tvm /root/dmlc_core_dist /usr/local/
-COPY --from=tvm /root/dlpack_dist /usr/local/
+COPY --from=tvm /root/tvm_dist /root/tvm_dist
+COPY --from=tvm /root/dmlc_core_dist /root/dmlc_core_dist
+COPY --from=tvm /root/dlpack_dist /root/dlpack_dist
 COPY --from=tvm /usr/tvm/include/tvm/runtime /usr/local/include/tvm/runtime
+COPY --from=tvm /root/.local /root/.local
 RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
@@ -167,16 +181,14 @@ RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
     sudo dpkg -i *.deb
-COPY --from=dldt /root/dldt_dist /usr/local/
+COPY --from=dldt /root/dldt_dist /root/dldt_dist
 COPY --from=dldt /dldt/inference-engine/include /root/dldt/inference-engine/include
 COPY --from=dldt /dldt/inference-engine/bin/intel64/Release/lib /root/dldt/inference-engine/bin/intel64/Release/lib
 COPY --from=dldt /root/.local /root/.local
 COPY --from=dldt /dldt/model-optimizer /root/dldt/model-optimizer
-ENV PYTHONPATH=/root/dldt/model-optimizer:${PYTHONPATH}
 RUN python3 -m pip install --user decorator attrs
-ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
-ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/root/.local/bin:${PATH}
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/nvidia/lib64:/root/ngraph_dist/lib:${LD_LIBRARY_PATH}
+ENV PATH=/usr/local/cuda/bin:/root/.local/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH}
 
 FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git

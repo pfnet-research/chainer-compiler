@@ -28,3 +28,64 @@ configs {
     command: "sh .chainerci/run-chainerci-pip-tests.sh"
   }
 }
+configs {
+  key: "chainer-compiler.run-onnx.dldt"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "RUNTIME" value: "dldt" }
+    command: "sh .chainerci/run-onnx.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.ngraph"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "RUNTIME" value: "ngraph" }
+    command: "sh .chainerci/run-onnx.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.onnxruntime"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "RUNTIME" value: "onnxruntime" }
+    command: "sh .chainerci/run-onnx.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.tvm"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+      gpu: 1
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "RUNTIME" value: "tvm" }
+    command: "sh .chainerci/run-onnx.sh"
+  }
+}
