@@ -680,6 +680,10 @@ private:
             CHECK_GE(4UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group());
+        } else if (node.op_type() == Node::kBitShift) {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(BitShift, out(0), in(0), in(1), node.direction());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

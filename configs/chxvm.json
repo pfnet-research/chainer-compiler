@@ -49,6 +49,7 @@
         "Atanh": true,
         "AveragePool": true,
         "BatchNormalization": true,
+        "BitShift": true,
         "Cast": true,
         "Ceil": true,
         "ChainerAveragePoolGrad": true,

@@ -145,5 +145,26 @@ chainerx::Array RoundOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return MakeArray(chainerx::Dtype::kFloat64, x.shape(), result_data.data()).AsType(x.dtype());
 }
 
+chainerx::Array BitShiftOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& in_y) {
+    chainerx::Array int64_y = in_y.BroadcastTo(x.shape()).AsType(chainerx::Dtype::kInt64);
+    chainerx::Array int64_x = x.AsType(chainerx::Dtype::kInt64);
+    const int64_t* x_ptr = reinterpret_cast<const int64_t*>(int64_x.raw_data());
+    const int64_t* y_ptr = reinterpret_cast<const int64_t*>(int64_y.raw_data());
+    std::vector<int64_t> result_data(x.GetTotalSize());
+
+    if (direction == "LEFT") {
+        for (size_t i = 0; i < result_data.size(); ++i) {
+            result_data[i] = x_ptr[i] << y_ptr[i];
+        }
+    } else {
+        CHECK_EQ("RIGHT", direction);
+        for (size_t i = 0; i < result_data.size(); ++i) {
+            result_data[i] = x_ptr[i] >> y_ptr[i];
+        }
+    }
+
+    return MakeArray(chainerx::Dtype::kInt64, x.shape(), result_data.data()).AsType(x.dtype());
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
