@@ -162,6 +162,8 @@ std::string ChxVMVar::ToString() const {
         }
         case Kind::kScalar:
             return "(1)";
+        case Kind::kString:
+            return absl::get<int(Kind::kString)>(val_).front();
     }
     CHECK(false);
 }
@@ -180,6 +182,8 @@ std::string ChxVMVar::DebugString() const {
             return absl::get<chainerx::Shape>(val_).ToString();
         case Kind::kScalar:
             return static_cast<chainerx::Scalar>(absl::get<StrictScalar>(val_)).ToString();
+        case Kind::kString:
+            return absl::get<int(Kind::kString)>(val_).front();
     }
     CHECK(false);
 }
