@@ -52,9 +52,7 @@ void FreeOp::RunImpl(ChxVMState* st) {
 }
 
 void PrintOp::RunImpl(ChxVMState* st) {
-    std::cerr << "Printing!!!" << std::endl;
     for (int v : values) {
-        std::cerr << "Printing!!!" << std::endl;
         std::cout << st->GetVar(v)->DebugString() << std::endl;
     }
 }

@@ -29,9 +29,6 @@ namespace {
 
 void CollectGarbageNode(Graph* graph) {
     for (Node* node : graph->nodes()) {
-        if (node->op_type() == Node::kChainerPrint) {
-            continue;
-        }
         if (node->chainer_order() <= 0) graph->DetachNode(node);
     }
     graph->DeleteDetached();
