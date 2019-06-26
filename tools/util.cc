@@ -51,6 +51,7 @@ InOuts LoadParams(const Graph& graph) {
             if (initializer->dtype().ToONNX() == onnx::TensorProto::STRING) {
                 CHECK(params.emplace(initializer->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(initializer->str()))).second)
                         << "Duplicate input tensor: " << initializer->name();
+                continue;
             }
 
             chainerx::Dtype dtype = ChainerXTypeFromONNX(initializer->dtype().ToONNX());
