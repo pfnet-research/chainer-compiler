@@ -40,6 +40,7 @@ configs {
       seconds: 3600
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "dldt" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
     command: "sh .chainerci/run_onnx.sh"
   }
 }
@@ -55,6 +56,7 @@ configs {
       seconds: 3600
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "ngraph" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
     command: "sh .chainerci/run_onnx.sh"
   }
 }
@@ -70,6 +72,7 @@ configs {
       seconds: 3600
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "onnxruntime" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
     command: "sh .chainerci/run_onnx.sh"
   }
 }
