@@ -231,6 +231,8 @@ NodeDef('ConvInteger', (2, 3, 4), 1,
         kernel_shape=[int],
         pads=[int],
         strides=[int])
+NodeDef('Round', 1, 1)
+NodeDef('BitShift', 2, 1, direction='LEFT')
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
