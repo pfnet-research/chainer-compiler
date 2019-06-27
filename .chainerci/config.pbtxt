@@ -10,7 +10,7 @@ configs {
     time_limit {
       seconds: 3600
     }
-    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "onnxruntime" }
+    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "tvm" }
     command: "sh .chainerci/run_onnx.sh"
   }
 }
@@ -60,7 +60,7 @@ configs {
   }
 }
 configs {
-  key: "chainer-compiler.run-onnx.onnxruntime"
+  key: "chainer-compiler.run-onnx.oxrt"
   value {
     requirement {
       cpu: 8
