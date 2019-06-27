@@ -10,7 +10,7 @@ configs {
     time_limit {
       seconds: 3600
     }
-    command: "sh .chainerci/run-chainerci-tests.sh"
+    command: "sh .chainerci/run_chainerci_tests.sh"
   }
 }
 configs {
@@ -25,6 +25,71 @@ configs {
     time_limit {
       seconds: 3600
     }
-    command: "sh .chainerci/run-chainerci-pip-tests.sh"
+    command: "sh .chainerci/run_chainerci_pip_tests.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.dldt"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "dldt" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
+    command: "sh .chainerci/run_onnx.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.ngrp"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "ngraph" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
+    command: "sh .chainerci/run_onnx.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.oxrt"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "onnxruntime" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
+    command: "sh .chainerci/run_onnx.sh"
+  }
+}
+configs {
+  key: "chainer-compiler.run-onnx.tvm"
+  value {
+    requirement {
+      cpu: 8
+      disk: 10
+      memory: 16
+      gpu: 1
+    }
+    time_limit {
+      seconds: 3600
+    }
+    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "tvm" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "--runtime=nvidia" }
+    command: "sh .chainerci/run_onnx.sh"
   }
 }
