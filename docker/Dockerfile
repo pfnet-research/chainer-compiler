@@ -95,7 +95,10 @@ RUN mkdir -p /usr/tvm/3rdparty/dlpack/build && \
     make && make install
 
 FROM ubuntu:18.04 AS dldt
-ARG DLDT_VERSION="2019_R1.1"
+# TODO(hamaji): Use the official repository again once the
+# ShuffleNet units issue is fixed. See:
+# https://github.com/opencv/dldt/pull/193 
+ARG DLDT_VERSION="fuse-split-fix"
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     python3-dev \
@@ -114,7 +117,7 @@ RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
     sudo dpkg -i *.deb
 RUN python3 -m pip install cython
-RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} && \
+RUN git clone https://github.com/shinh/dldt.git --recursive -b ${DLDT_VERSION} && \
     cd dldt/inference-engine && \
     bash install_dependencies.sh && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* && \
