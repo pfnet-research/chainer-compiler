@@ -23,7 +23,7 @@ RUN apt-get update -y && \
 # NOTE(disktnk): failed with '-DNGRAPH_GPU_ENABLE=TRUE', stop using CUDA enabled
 # NOTE(disktnk): cannot build python bind with multiprocess
 RUN ln -s /usr/bin/python3 /usr/bin/python
-ARG NGRAPH_VERSION="0.19.0"
+ARG NGRAPH_VERSION="0.21.0"
 RUN git clone https://github.com/NervanaSystems/ngraph.git -b v${NGRAPH_VERSION} && \
     mkdir ngraph/build && cd ngraph/build && \
     cmake .. \
@@ -46,7 +46,7 @@ RUN cd ngraph/python && \
     python3 -m pip install --user numpy && \
     python3 setup_.py bdist_wheel && \
     python3 -m pip install --user -U dist/*.whl && rm -rf build
-ARG NGRAPH_ONNX_VERSION="0.14.0"
+ARG NGRAPH_ONNX_VERSION="0.21.0"
 RUN cd ngraph && \
     git clone https://github.com/NervanaSystems/ngraph-onnx.git -b v${NGRAPH_ONNX_VERSION} && \
     cd ngraph-onnx && \
