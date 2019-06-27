@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel AS ngraph
+FROM nvidia/cuda:10.1-cudnn7-devel AS ngraph
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -54,7 +54,7 @@ RUN cd ngraph && \
     python3 -m pip install --user -r requirements_test.txt && \
     python3 -m pip install --user .
 
-FROM nvidia/cuda:10.0-cudnn7-devel AS tvm
+FROM nvidia/cuda:10.1-cudnn7-devel AS tvm
 # TVM Build, referenced Dockerfile.demo_gpu
 # NOTE(disktnk): official installer does not copy header file
 ARG TVM_VERSION="0.5"
@@ -142,7 +142,7 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
     cd .. && rm -rf build
 RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
 
-FROM nvidia/cuda:10.0-cudnn7-devel AS ci-base
+FROM nvidia/cuda:10.1-cudnn7-devel AS ci-base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -172,7 +172,6 @@ COPY --from=ngraph /root/.local /root/.local
 COPY --from=tvm /root/tvm_dist /root/tvm_dist
 COPY --from=tvm /root/dmlc_core_dist /root/dmlc_core_dist
 COPY --from=tvm /root/dlpack_dist /root/dlpack_dist
-COPY --from=tvm /usr/tvm/include/tvm/runtime /usr/local/include/tvm/runtime
 COPY --from=tvm /root/.local /root/.local
 RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
@@ -206,6 +205,7 @@ RUN mkdir -p chainer-compiler/build && \
         -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
         -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
         -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
+        -DCHAINER_COMPILER_TVM_INCLUDE_DIRS=$HOME/tvm_dist/include \
         -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
         -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
         -DPYTHON_EXECUTABLE=$(which python3) \

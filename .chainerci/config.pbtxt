@@ -10,7 +10,8 @@ configs {
     time_limit {
       seconds: 3600
     }
-    command: "sh .chainerci/run_chainerci_tests.sh"
+    environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "onnxruntime" }
+    command: "sh .chainerci/run_onnx.sh"
   }
 }
 configs {
