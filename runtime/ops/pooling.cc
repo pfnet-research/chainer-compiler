@@ -6,7 +6,6 @@
 #include <chainerx/kernels/pooling.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 #include <chainerx/routines/pooling.h>
 #include <chainerx/routines/statistics.h>
 
