@@ -35,7 +35,6 @@ configs {
       cpu: 8
       disk: 10
       memory: 16
-      gpu: 1
     }
     time_limit {
       seconds: 3600
@@ -51,7 +50,6 @@ configs {
       cpu: 8
       disk: 10
       memory: 16
-      gpu: 1
     }
     time_limit {
       seconds: 3600
@@ -67,7 +65,6 @@ configs {
       cpu: 8
       disk: 10
       memory: 16
-      gpu: 1
     }
     time_limit {
       seconds: 3600
@@ -89,6 +86,7 @@ configs {
       seconds: 3600
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "tvm" }
+    environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "--runtime=nvidia" }
     command: "sh .chainerci/run_onnx.sh"
   }
 }
