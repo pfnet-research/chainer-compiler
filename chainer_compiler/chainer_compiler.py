@@ -1,4 +1,5 @@
 import chainer
+import chainerx
 import os
 import sys
 import tempfile
@@ -182,65 +183,52 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
-def _run_translator(translator, mc, inputs):
+def export(model, inputs, filename=None, translator='onnx_chainer'):
     if translator == 'ch2o':
         from chainer_compiler import ch2o
-        xmodel = ch2o.compile_model(mc, inputs)
-        f = tempfile.NamedTemporaryFile(delete=False)
+        xmodel = ch2o.compile_model(model, inputs)
+        if filename is None:
+            f = tempfile.NamedTemporaryFile(delete=False)
+        else:
+            f = open(filename, 'wb')
         f.write(xmodel.SerializeToString())
         f.close()
         del xmodel
     elif translator == 'onnx_chainer':
         import onnx_chainer
-        f = tempfile.NamedTemporaryFile(delete=False)
-        onnx_chainer.export(mc, inputs, filename=f)
+        if filename is None:
+            f = tempfile.NamedTemporaryFile(delete=False)
+        else:
+            f = open(filename, 'wb')
+        onnx_chainer.export(model, inputs, filename=f)
         f.close()
     else:
         raise NotImplementedError('Unsupported translator:',
                                   translator)
 
-    graph = _chainer_compiler_core.load(f.name)
-    os.unlink(f.name)
-
-    return graph
+    return f.name
 
 
 class CompiledModel(chainer.Chain):
 
-    def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
-                 computation_order=None,
-                 export_allocator=None,
-                 runtime_allocator=None):
+    def __init__(self, model, onnx_file, used_translator, dump_onnx=False,
+                 computation_order=None):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
-        self.translator = translator
+        self.used_translator = used_translator
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
-        self.export_allocator = export_allocator
-        self.runtime_allocator = runtime_allocator
-
-        if export_allocator is not None and runtime_allocator is None:
-            raise ValueError('`runtime_allocator` must be set when '
-                             ' `export_allocator` is set')
 
         self.compiled = False
         self.param_names = None
         self.param_values = None
         # Propagate device from `model` before compiling it.
         self.to_device(model.device)
-        if inputs is not None:
-            self.compile(inputs)
+        self.compile(onnx_file)
 
-    def compile(self, inputs):
-        if self.export_allocator is not None:
-            cupy.cuda.set_allocator(self.export_allocator)
-        try:
-            graph = _run_translator(self.translator, self.mc, inputs)
-        finally:
-            if self.runtime_allocator is not None:
-                cupy.cuda.set_allocator(self.runtime_allocator)
-
+    def compile(self, onnx_file):
+        graph = _chainer_compiler_core.load(onnx_file)
         self.orig_output_names = graph.output_names()
 
         if self.computation_order is None:
@@ -269,9 +257,9 @@ class CompiledModel(chainer.Chain):
 
         self.compiled = True
 
-        if self.translator == 'ch2o':
+        if self.used_translator == 'ch2o':
             convert_rule = lambda key: key  # noqa
-        elif self.translator == 'onnx_chainer':
+        elif self.used_translator == 'onnx_chainer':
             convert_rule = lambda key: 'param' + key.replace('/', '_')  # noqa
 
         params = {convert_rule(key): value for key, value
@@ -320,5 +308,20 @@ class CompiledModel(chainer.Chain):
         return outputs
 
 
-def compile(model, inputs=None, **kwargs):
-    return CompiledModel(model, inputs, **kwargs)
+def compile(model, inputs, translator='ch2o', **kwargs):
+    # Run translator internally
+    onnx_file = export(model, inputs, filename=None, translator=translator)
+    compiled_model = CompiledModel(model, onnx_file, translator, **kwargs)
+    return compiled_model
+
+
+def compile_onnx(model, onnx_file, used_translator, **kwargs):
+    return CompiledModel(model, onnx_file, used_translator, **kwargs)
+
+
+def use_unified_memory_allocator():
+    cupy.cuda.set_allocator(cupy.cuda.memory.malloc_managed)
+
+
+def use_chainerx_shared_allocator():
+    chainerx._cuda.cupy_share_allocator()
