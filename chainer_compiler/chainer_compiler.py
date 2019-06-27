@@ -324,4 +324,6 @@ def use_unified_memory_allocator():
 
 
 def use_chainerx_shared_allocator():
+    if cupy is None:
+        return
     chainerx._cuda.cupy_share_allocator()
