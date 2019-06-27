@@ -41,7 +41,7 @@ PYTHONPATH=. run pytest pytest -sv tests
 PYTHONPATH=. run canonicalizer_tests pytest testcases/elichika_tests/canonicalizer
 
 PYTHONPATH=. run train_mnist_export python3 examples/mnist/train_mnist.py \
-     -d native --export /tmp/tmp_mnist_model.onnx -I 3 --use-fake-data
+     -d -1 --export /tmp/tmp_mnist_model.onnx -I 3 --use-fake-data
 PYTHONPATH=. run train_mnist_compile python3 examples/mnist/train_mnist.py \
      -d native --compile /tmp/tmp_mnist_model.onnx -I 3 --use-fake-data
 
