@@ -95,6 +95,9 @@ RUN mkdir -p /usr/tvm/3rdparty/dlpack/build && \
     make && make install
 
 FROM ubuntu:18.04 AS dldt
+# TODO(hamaji): Use the official repository again once the
+# ShuffleNet units issue is fixed. See:
+# https://github.com/opencv/dldt/pull/193 
 ARG DLDT_VERSION="fuse-split-fix"
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
