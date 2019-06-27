@@ -220,7 +220,6 @@ class CompiledModel(chainer.Chain):
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
 
-        self.compiled = False
         self.param_names = None
         self.param_values = None
         # Propagate device from `model` before compiling it.
@@ -254,8 +253,6 @@ class CompiledModel(chainer.Chain):
         self.fwd = fwd_graph.compile(skip_inference=True)
         self.bwd = bwd_graph.compile(skip_inference=True)
         self.param_names = fwd_graph.param_names()
-
-        self.compiled = True
 
         if self.used_translator == 'ch2o':
             convert_rule = lambda key: key  # noqa
@@ -292,11 +289,6 @@ class CompiledModel(chainer.Chain):
                 raise NotImplementedError('Initial value is uknown: ' + name)
 
     def forward(self, *args):
-        if not self.compiled:
-            outputs = self.mc(*args)
-            self.compile(args)
-            return outputs
-
         inputs = list(args)
         flat_inputs = _flatten(inputs)
         runner = RunCompiledModel(self, inputs)
