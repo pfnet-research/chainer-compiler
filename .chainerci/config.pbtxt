@@ -35,6 +35,7 @@ configs {
       cpu: 8
       disk: 10
       memory: 16
+      gpu: 1
     }
     time_limit {
       seconds: 3600
@@ -50,6 +51,7 @@ configs {
       cpu: 8
       disk: 10
       memory: 16
+      gpu: 1
     }
     time_limit {
       seconds: 3600
@@ -65,6 +67,7 @@ configs {
       cpu: 8
       disk: 10
       memory: 16
+      gpu: 1
     }
     time_limit {
       seconds: 3600
