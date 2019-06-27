@@ -517,7 +517,7 @@ void BatchNormalizationGradFn(GradientOpContext* gc) {
     Value* gx0 = gc->AddGradValue(0);
     Value* gx1 = gc->AddGradValue(1);
     Value* gx2 = gc->AddGradValue(2);
-    gc->graph()->AddNode(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2}, __func__);
+    gb.MOp(Node::kChainerBatchNormalizationGrad, {gy, context}, {gx0, gx1, gx2});
 }
 
 void LRNGradFn(GradientOpContext* gc) {

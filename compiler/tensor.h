@@ -61,8 +61,12 @@ public:
         return chx().raw_data();
     }
 
-    chainerx::Array const& chx() const {
+    const chainerx::Array& chx() const {
         return absl::get<0>(data_);
+    }
+
+    const std::vector<std::string>& str() const {
+        return absl::get<1>(data_);
     }
 
 private:
