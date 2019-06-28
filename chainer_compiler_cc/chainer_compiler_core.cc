@@ -53,6 +53,7 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
 
 std::shared_ptr<runtime::ChxVM> Compile(
         const std::shared_ptr<Graph>& graph,
+        bool skip_scheduling,
         bool compiler_log,
         bool permissive,
         bool skip_inference,
@@ -97,7 +98,7 @@ std::shared_ptr<runtime::ChxVM> Compile(
     g_dump_subgraphs = dump_subgraphs;
 
     constexpr bool kBackprop = false;
-    RunDefaultPasses(graph.get(), kBackprop);
+    RunDefaultPasses(graph.get(), kBackprop, skip_scheduling);
     runtime::XCProgramProto chxvm_prog;
     constexpr bool kDumpValueNames = false;
     chxvm::Emit(*graph, &chxvm_prog, kDumpValueNames);
@@ -185,6 +186,7 @@ void InitGraph(py::module& m) {
     c.def("compile",
           &Compile,
           "Compile a model",
+          "skip_scheduling"_a = false,
           "compiler_log"_a = false,
           "permissive"_a = false,
           "skip_inference"_a = false,
