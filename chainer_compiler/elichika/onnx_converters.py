@@ -1343,6 +1343,8 @@ class ONNXGenerator:
                 if node_.classtype == 'array':
                     if isinstance(node.args.get_value('dtype'), values.FuncValue):
                         dtype = node.args.get_value('dtype').func.dtype
+                    elif isinstance(node.args.get_value('dtype'), values.StrValue):
+                        dtype = utils.str_2_dtype(node.args.get_value('dtype').get_constant_value())
                     else:
                         dtype = None
 
