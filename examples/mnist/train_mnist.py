@@ -35,7 +35,7 @@ def fake_dataset():
         inputs = []
         labels = []
         for i in range(size):
-            inputs.append(np.random.rand(224).astype(np.float32))
+            inputs.append(np.random.rand(784).astype(np.float32))
             labels.append(np.random.randint(10))
         return inputs, labels
     train = chainer.datasets.TupleDataset(*gen(150))
@@ -68,14 +68,20 @@ def main():
     group.add_argument('--gpu', '-g', dest='device',
                        type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--compile', action='store_true',
+
+    parser.add_argument('--export', type=str, default=None,
+                        help='Export the model to ONNX')
+    parser.add_argument('--compile', type=str, default=None,
                         help='Compile the model')
+
     parser.add_argument('--dump_onnx', action='store_true',
                         help='Dump ONNX model after optimization')
     parser.add_argument('--iterations', '-I', type=int, default=None,
                         help='Number of iterations to train')
     parser.add_argument('--use-fake-data', action='store_true',
                         help='Use fake data')
+    parser.add_argument('--translator', type=str, default='onnx_chainer',
+                        help='ch2o or onnx_chainer')
     parser.add_argument('--computation_order', type=str, default=None,
                         help='Computation order in backpropagation')
     parser.add_argument('--use_unified_memory', dest='use_unified_memory',
@@ -95,25 +101,29 @@ def main():
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
     mlp = MLP(args.unit, 10)
-    if args.compile:
-        if args.computation_order is None:
-            translator = 'ch2o'
-        else:
-            translator = 'onnx_chainer'
-        export_allocator = None
-        runtime_allocator = None
-        if args.use_unified_memory:
-            import cupy
-            # unified memory
-            export_allocator = cupy.cuda.memory.malloc_managed
-            runtime_allocator = cupy.get_default_memory_pool().malloc
 
-        mlp = chainer_compiler.compile(
-            mlp, dump_onnx=args.dump_onnx,
-            translator=translator,
-            computation_order=args.computation_order,
-            export_allocator=export_allocator,
-            runtime_allocator=runtime_allocator)
+    if args.export is not None:
+        if args.use_unified_memory:
+            chainer_compiler.use_unified_memory_allocator()
+        mlp.to_device(device)
+        x = mlp.xp.zeros((args.batchsize, 784)).astype(np.float32)
+        chainer_compiler.export(mlp, [x], args.export, args.translator)
+        return
+
+    if args.compile is not None:
+        chainer_compiler.use_chainerx_shared_allocator()
+        mlp.to_device(device)
+        with chainer.using_config('enable_backprop', False),\
+                chainer.using_config('train', False):
+            x = mlp.xp.zeros((1, 784)).astype(np.float32)
+            mlp(x)  # initialize model parameters before compile
+        mlp = chainer_compiler.compile_onnx(
+            mlp,
+            args.compile,
+            args.translator,
+            dump_onnx=args.dump_onnx,
+            computation_order=args.computation_order)
+
     model = L.Classifier(mlp)
     model.to_device(device)
     device.use()
