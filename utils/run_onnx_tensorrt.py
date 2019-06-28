@@ -144,7 +144,7 @@ def run(args):
     return run_onnx_util.run_benchmark(compute, args.iterations)
 
 
-def main():
+def get_args(args=None):
     parser = argparse.ArgumentParser(description='Run ONNX by TensorRT')
     parser.add_argument('test_dir')
     parser.add_argument('--batch_size', type=int, default=1)
@@ -153,7 +153,11 @@ def main():
     parser.add_argument('--fp16_mode', action='store_true')
     parser.add_argument('--rtol', type=float, default=1e-3)
     parser.add_argument('--atol', type=float, default=1e-4)
-    args = parser.parse_args()
+    return parser.parse_args(args=args)
+
+
+def main():
+    args = get_args()
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)

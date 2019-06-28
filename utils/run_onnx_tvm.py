@@ -121,8 +121,8 @@ def run(args):
     return run_onnx_util.run_benchmark(compute, args.iterations)
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Run ONNX by TVM')
+def get_args(args=None):
+    parser = argparse.ArgumentParser(description='Run ONNX by TensorRT')
     parser.add_argument('test_dir')
     parser.add_argument('--dump_nnvm', action='store_true')
     parser.add_argument('--target', type=str, default='cuda')
@@ -130,7 +130,11 @@ def main():
     parser.add_argument('--iterations', '-I', type=int, default=1)
     parser.add_argument('--opt_level', '-O', type=int, default=3)
     parser.add_argument('--autotvm_log', type=str)
-    args = parser.parse_args()
+    return parser.parse_args(args=args)
+
+
+def main():
+    args = get_args()
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
