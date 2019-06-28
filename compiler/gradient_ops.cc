@@ -204,8 +204,12 @@ void SubGradFn(GradientOpContext* gc) {
 
 void MulGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
-    gc->GradOp(Node::kMul, 0, {gc->x(1), gy});
-    gc->GradOp(Node::kMul, 1, {gc->x(0), gy});
+    for (size_t i = 0; i <= 1; ++i) {
+        GraphBuilder gb{gc->builder(i)};
+        Value* mul = gb.Op(Node::kMul, {gy, gc->x(1 - i)});
+        Value* shape = gb.Op(Node::kShape, {gc->x(i)});
+        gc->GradOp(Node::kChainerReduceSumTo, i, {mul, shape});
+    }
 }
 
 void DivGradFn(GradientOpContext* gc) {
