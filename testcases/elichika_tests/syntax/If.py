@@ -4,6 +4,13 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
+class DuplicateInput(chainer.Chain):
+    def forward(self):
+        a = 1
+        b = a
+        if True:
+            b = a + 1
+        return a
 
 class StaticCondTrue(chainer.Chain):
     def forward(self, x):
@@ -188,6 +195,9 @@ import numpy as np
 
 
 def main():
+    
+    testtools.generate_testcase(DuplicateInput(), [], subname='duplicate_input')
+
     testtools.generate_testcase(StaticCondTrue(), [42], subname='static_true')
 
     testtools.generate_testcase(StaticCondFalse(), [42], subname='static_false')
@@ -202,9 +212,11 @@ def main():
 
     testtools.generate_testcase(DynamicCond(), [42, True], subname='true')
 
+    
     testtools.generate_testcase(DynamicCondNoElse(), [42, False],
                            subname='false_no_else')
 
+    
     testtools.generate_testcase(DynamicCondNoElse(), [42, True],
                            subname='true_no_else')
     
@@ -247,6 +259,6 @@ def main():
     testtools.generate_testcase(NpArrayShapeSelf, [n], subname='nparray_shape_self')
 
     testtools.generate_testcase(LazyInitWithFuncUse, [n], subname='lazy_init_with_func_use')
-
+    
 if __name__ == '__main__':
     main()

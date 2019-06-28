@@ -13,6 +13,7 @@ from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import veval_bin
 from chainer_compiler.elichika.parser import veval_unary
 from chainer_compiler.elichika.parser import veval_multiary
+from chainer_compiler.elichika.parser import veval_aug_assign
 
 import numpy as np
 
@@ -487,15 +488,22 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
     binop = nodes.BinOpType.Unknown
     if isinstance(astc.nast.op, gast.Add):
         binop = nodes.BinOpType.Add
-    if isinstance(astc.nast.op, gast.Sub):
+    elif isinstance(astc.nast.op, gast.Sub):
         binop = nodes.BinOpType.Sub
+    elif isinstance(astc.nast.op, gast.Mult):
+        binop = nodes.BinOpType.Mul
+    elif isinstance(astc.nast.op, gast.Div):
+        binop = nodes.BinOpType.Div
+    elif isinstance(astc.nast.op, gast.FloorDiv):
+        binop = nodes.BinOpType.FloorDiv
+    else:
+        utils.print_warning('Unknown binary operator {}'.format(astc.nast.op), lineprop)
+        return None
 
     node_aug_assign = nodes.NodeAugAssign(target_value, value_value, binop, astc.lineno)
     graph.add_node(node_aug_assign)
 
-    # TODO : estimate type
-
-    new_value = functions.generate_value_with_same_type(target_value)
+    new_value = veval_aug_assign.veval(binop, target_value, value_value, lineprop)
     node_aug_assign.set_outputs([new_value])
     target.get_ref().revise(new_value)
 
