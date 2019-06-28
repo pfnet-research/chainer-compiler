@@ -30,10 +30,11 @@ make large_tests
 
 ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
 make test
+unlink /usr/local/cuda/lib64/stubs/libcuda.so.1
 cd ..
 
 PYTHONPATH=. python3 scripts/runtests.py -g --fuse
-PYTHONPATH=. python3 scripts/runtests.py --ngraph
+LD_LIBRARY_PATH=$HOME/ngraph_dist/lib:$LD_LIBRARY_PATH PYTHONPATH=. python3 scripts/runtests.py --ngraph
 PYTHONPATH=. python3 -m pytest -sv tests
 
 EOM
