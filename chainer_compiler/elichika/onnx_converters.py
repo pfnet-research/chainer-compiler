@@ -244,8 +244,11 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
     binops = {}
     binops[nodes.BinOpType.Add] = 'Add'
     binops[nodes.BinOpType.Sub] = 'Sub'
-    binops[nodes.BinOpType.Unknown] = 'Add'
+    binops[nodes.BinOpType.Unknown] = ''
 
+    if node.binop == nodes.BinOpType.Unknown:
+        raise utils.UnimplementedError('{} is not implemented'.format(node.binop), node.lineprop)
+    
     # TODO: fix for reference types
 
     if isinstance(node.target, values.ListValue) or isinstance(node.target, values.TupleValue):
@@ -277,7 +280,10 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
     binops[nodes.BinOpType.Mul] = 'Mul'
     binops[nodes.BinOpType.Div] = 'Div'
     binops[nodes.BinOpType.FloorDiv] = 'Div'
-    binops[nodes.BinOpType.Unknown] = 'Add'
+    binops[nodes.BinOpType.Unknown] = ''
+
+    if node.binop == nodes.BinOpType.Unknown:
+        raise utils.UnimplementedError('{} is not implemented'.format(node.binop), node.lineprop)
 
     if isinstance(node.left, values.ListValue) or isinstance(node.left, values.TupleValue):
         assert(isinstance(node.right, values.ListValue)
@@ -520,7 +526,7 @@ def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
             [value2onnx_parameter[node.outputs[0]].onnx_name])
         onnx_graph.nodes.append(onnx_node)
 
-    if node.unaryop == nodes.UnaryOpType.USub:
+    elif node.unaryop == nodes.UnaryOpType.USub:
         zero_ = ONNXValue(onnx_graph, np.array(0, dtype=np.float), [
                           node, '/Zero'], is_constant=True)
         onnx_node = oh.make_node(
@@ -529,12 +535,15 @@ def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
             [value2onnx_parameter[node.outputs[0]].onnx_name])
         onnx_graph.nodes.append(onnx_node)
 
-    if node.unaryop == nodes.UnaryOpType.Not:
+    elif node.unaryop == nodes.UnaryOpType.Not:
         onnx_node = oh.make_node(
             'Not',
             [value2onnx_parameter[node.operand].onnx_name],
             [value2onnx_parameter[node.outputs[0]].onnx_name])
         onnx_graph.nodes.append(onnx_node)
+
+    else:
+        raise utils.UnimplementedError('{} is not implemented'.format(type(node.unaryop)), node.lineprop)
 
 
 def try_get_attribute(value, calling_node: 'nodes.Node' = None):
