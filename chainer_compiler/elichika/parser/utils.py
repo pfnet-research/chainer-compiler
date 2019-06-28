@@ -45,6 +45,19 @@ def int_2_numpy_type(n):
         return np.float32
     assert(False)
 
+def str_2_dtype(str_dtype):
+    if str_dtype == 'q':
+        dtype = np.int64
+    elif str_dtype == 'i':
+        dtype = np.int32
+    elif str_dtype == 'g':
+        dtype = np.float64
+    elif str_dtype == 'f':
+        dtype = np.float32
+    else:
+        assert(False)
+    return dtype
+
 def create_obj_value_name_with_attribute(name: "str", pre_name: "str"):
     if len(pre_name) > 0 and pre_name[0] != '@':
         return pre_name

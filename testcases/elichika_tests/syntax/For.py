@@ -64,6 +64,12 @@ class UpdateSelf(chainer.Chain):
             self.x += i
         return self.x
 
+class UpdateSelfLocal(chainer.Chain):
+    def forward(self):
+        y = 0
+        for i in range(5):
+            y += i
+        return y
 
 class UpdateSelfLiteral(chainer.Chain):
     def forward(self):
@@ -168,6 +174,8 @@ def main():
     testtools.generate_testcase(D(), [], subname='leak')
 
     testtools.generate_testcase(UpdateSelf(), [42], subname='update_self')
+
+    # testtools.generate_testcase(UpdateSelfLocal(), [], subname='update_self_local')
 
     testtools.generate_testcase(UpdateSelfLiteral(), [],
                                 subname='update_self_literal')

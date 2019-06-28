@@ -76,8 +76,7 @@ def main():
     x, y, z = 10, 5, 4
     n = np.random.rand(2, 2).astype(np.float32)
 
-    # TODO(durswd) : an error causes
-    # testtools.generate_testcase(ReturnInMiddle, [n], subname='return_middle')
+    testtools.generate_testcase(ReturnInMiddle, [n], subname='return_middle')
 
     testtools.generate_testcase(Return, [x, y], subname='return')
     # testtools.generate_testcase(ReturnNested, [x, y], subname='return_nested')  #TODO: Nested function declaration is not supported.
