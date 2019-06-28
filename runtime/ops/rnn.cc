@@ -1,10 +1,10 @@
 #include <chainerx/backprop_mode.h>
+#include <chainerx/routines/activation.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/hyperbolic.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 
 #include <common/log.h>
 #include <runtime/backward_context.h>

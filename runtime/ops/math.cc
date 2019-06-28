@@ -1,3 +1,4 @@
+#include <chainerx/routines/activation.h>
 #include <chainerx/routines/arithmetic.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
@@ -6,8 +7,8 @@
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 #include <chainerx/routines/misc.h>
+#include <chainerx/routines/rounding.h>
 #include <chainerx/routines/trigonometric.h>
 
 #include <common/log.h>

@@ -151,7 +151,9 @@ class Function_Unpooling2d(Callable):
 
 
 class Function_ResizeImages(Callable):
-    def call_impl(self, env, x, output_shape):
+    def call_impl(self, env, x, output_shape, mode, align_corners):
+        assert mode.value == 'bilinear'
+        assert align_corners.value is True
         return env.calc(
             'ChainerResizeImages',
             inputs=[x.to_tensor(env).name],

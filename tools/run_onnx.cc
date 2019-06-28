@@ -22,7 +22,6 @@
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>

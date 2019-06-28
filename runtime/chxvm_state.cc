@@ -2,8 +2,8 @@
 
 #include <map>
 
+#include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 #include <chainerx/routines/reduction.h>
 
 #include <common/log.h>

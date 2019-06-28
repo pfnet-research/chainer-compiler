@@ -12,8 +12,8 @@
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/linalg.h>
+#include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 
 #ifdef CHAINER_COMPILER_ENABLE_CUDA
 #include <chainerx/cuda/cuda_device.h>
