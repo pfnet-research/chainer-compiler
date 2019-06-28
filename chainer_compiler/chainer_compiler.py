@@ -233,9 +233,11 @@ class CompiledModel(chainer.Chain):
         if self.computation_order is None:
             fwd_graph, bwd_graph = graph.backward_to(
                 graph.input_names() + graph.param_names())
+            skip_scheduling = False
         else:
             fwd_graph, bwd_graph = graph.backward_to_with_order(
                 self.computation_order)
+            skip_scheduling = True
         if self.dump_onnx:
             sys.stderr.write('=== vvv forward vvv ===\n' +
                              fwd_graph.dump() +
@@ -250,8 +252,10 @@ class CompiledModel(chainer.Chain):
         self.bwd_input_names = bwd_graph.input_names()
         self.bwd_output_names = bwd_graph.output_names()
         # TODO(hamaji): Revive shape inference.
-        self.fwd = fwd_graph.compile(skip_inference=True)
-        self.bwd = bwd_graph.compile(skip_inference=True)
+        self.fwd = fwd_graph.compile(skip_scheduling=skip_scheduling,
+                                     skip_inference=True)
+        self.bwd = bwd_graph.compile(skip_scheduling=skip_scheduling,
+                                     skip_inference=True)
         self.param_names = fwd_graph.param_names()
 
         if self.used_translator == 'ch2o':
