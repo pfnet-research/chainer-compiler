@@ -336,30 +336,63 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     inputs = []
     outputs = []
 
+    def get_input_value(v) -> "values.Value":
+        if 'true_input_value' in v:
+            return v['true_input_value']
+        elif 'false_input_value' in v:
+            return v['false_input_value']
+        else:
+            return None
+
+    def get_body_input_value(v, input_value) -> "values.Value":
+        if v is None:
+            return (None, None)
+
+        true_input_body_value = None
+        false_input_body_value = None
+
+        if 'true_input_body_value' in v:
+            true_input_body_value = v['true_input_body_value']
+        else:
+            true_input_body_value = functions.generate_value_with_same_type(input_value)
+
+        if 'false_input_body_value' in v:
+            false_input_body_value = v['false_input_body_value']
+        else:
+            false_input_body_value = functions.generate_value_with_same_type(input_value)
+
+        return (true_input_body_value, false_input_body_value)
+
+    # collect inputs
+    input_2_body_inputs = {}
+    for k, v in value_pairs.items():
+        input_value = get_input_value(v)
+
+        if input_value is None:
+            continue
+
+        if not (input_value in input_2_body_inputs.keys()):
+            body_input_value = get_body_input_value(v, input_value)
+            input_2_body_inputs[input_value] = body_input_value
+
+    for k, v in input_2_body_inputs.items():
+        inputs.append(k)
+        true_graph.add_input_value(v[0])
+        false_graph.add_input_value(v[1])
+
+
     for k, v in value_pairs.items():
         name = v['name']
         field = v['field']
 
-        input_value = None
+        input_value = get_input_value(v)
+
         true_input_body_value = None
         false_input_body_value = None
-            
-        # search input value
-        if 'true_input_value' in v:
-            input_value = v['true_input_value']
-        elif 'false_input_value' in v:
-            input_value = v['false_input_value']
 
-        if input_value is not None:
-            if 'true_input_body_value' in v:
-                true_input_body_value = v['true_input_body_value']
-            else:
-                true_input_body_value = functions.generate_value_with_same_type(input_value)
-
-            if 'false_input_body_value' in v:
-                false_input_body_value = v['false_input_body_value']
-            else:
-                false_input_body_value = functions.generate_value_with_same_type(input_value)
+        if input_value in input_2_body_inputs.keys():
+            true_input_body_value = input_2_body_inputs[input_value][0]
+            false_input_body_value = input_2_body_inputs[input_value][1]
 
         true_output_body_value = None
         false_output_body_value = None
@@ -411,12 +444,6 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             output_value = functions.generate_value_with_same_type(true_output_body_value)
         elif false_output_body_value is not None:
             output_value = functions.generate_value_with_same_type(false_output_body_value)
-
-        if input_value is not None:
-            inputs.append(input_value)
-
-            true_graph.add_input_value(true_input_body_value)
-            false_graph.add_input_value(false_input_body_value)
 
         if output_value is not None:
             outputs.append(output_value)
