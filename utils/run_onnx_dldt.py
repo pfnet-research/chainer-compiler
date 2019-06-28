@@ -126,7 +126,7 @@ def run(args):
             stream=sys.stdout)
 
     # compute inference engine
-    inference(args, mo_model_xml, mo_model_bin, inputs, outputs)
+    return inference(args, mo_model_xml, mo_model_bin, inputs, outputs)
 
 
 def get_args(args=None):
