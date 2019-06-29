@@ -70,6 +70,15 @@ TEST(SimplifyTest, Split) {
             TestSimplify("ReplaceSplit", Node::kSplit, Types({{3}}), Types({{1}, {1}, {1}})));
 }
 
+TEST(SimplifyTest, ReduceSumTo) {
+    EXPECT_EQ(
+            Ops({Node::kChainerReduceSumTo}),
+            TestSimplify("ReplaceChainerReduceSumTo", Node::kChainerReduceSumTo, Types({{2, 3, 4, 5}, {2}}), Types({{3, 5}})));
+    EXPECT_EQ(
+            Ops({Node::kIdentity}),
+            TestSimplify("ReplaceChainerReduceSumTo", Node::kChainerReduceSumTo, Types({{2, 3, 4, 5}, {2}}), Types({{2, 3, 4, 5}})));
+}
+
 // TODO(hamaji): Write tests for other ops.
 
 }  // namespace

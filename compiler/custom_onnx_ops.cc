@@ -557,10 +557,48 @@ ONNX_CHAINER_OPERATOR_SET_SCHEMA(
                 .SetDoc(Split_ver9_doc)
                 .TypeAndShapeInferenceFunction(InferSplit));
 
+namespace {
+
+void InferReduceSumTo(InferenceContext& ctx) {
+    propagateElemTypeFromInputToOutput(ctx, 0, 0);
+    const TensorProto* targetShapeInitializer = ctx.getInputData(1);
+    if (!targetShapeInitializer) {
+        return;
+    }
+    std::vector<int64_t> targetShape;
+    if (targetShapeInitializer->has_raw_data()) {
+        const std::string& bytes = targetShapeInitializer->raw_data();
+        targetShape.insert(
+                targetShape.end(),
+                reinterpret_cast<const int64_t*>(bytes.c_str()),
+                reinterpret_cast<const int64_t*>(bytes.c_str() + bytes.size()));
+    } else {
+        const auto& data = targetShapeInitializer->int64_data();
+        targetShape.insert(targetShape.end(), data.begin(), data.end());
+    }
+    auto* outputShape = ctx.getOutputType(0)->mutable_tensor_type()->mutable_shape();
+    for (int i = 0; i < static_cast<int>(targetShape.size()); ++i) {
+        outputShape->add_dim()->set_dim_value(targetShape[i]);
+    }
+}
+
+}  // namespace
+
+ONNX_CHAINER_OPERATOR_SET_SCHEMA(
+        ChainerReduceSumTo,
+        9,
+        OpSchema()
+                .Input(0, "input", "An input tensor", "T")
+                .Input(1, "shape", "An output shape", "T")
+                .Output(0, "output", "Reduced output tensor", "T")
+                .TypeConstraint("T", OpSchema::all_tensor_types(), "Constrain input and output types to all tensor types.")
+                .TypeAndShapeInferenceFunction(InferReduceSumTo));
+
 class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerPadBatchSize)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerReduceSumTo)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAverageAlign2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAveragePool2D)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxAlign2D)>());

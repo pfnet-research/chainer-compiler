@@ -9,6 +9,7 @@
     },
     "simplify": {
         "ReplaceArgMin": true,
+        "ReplaceChainerReduceSumTo": true,
         "ReplaceConstantLike": true,
         "ReplaceConstantOfShape": true,
         "ReplaceFlatten": true,
