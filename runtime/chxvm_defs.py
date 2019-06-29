@@ -480,7 +480,7 @@ XC_SEQ_OPS_UNTYPED = [
     ('SequenceClear', [Sequence('seq')], []),
     ('SequenceAppend', [Sequence('seq'), Array('value')],
      []),
-    ('SequencePop', [Sequence('seq')], [Sequence('output')]),
+    ('SequencePop', [Sequence('seq')], ['output']),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 
