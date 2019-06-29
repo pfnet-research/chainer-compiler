@@ -229,6 +229,7 @@ std::map<std::string, VarPtr> Run(
         bool trace,
         bool verbose,
         bool training,
+        bool check_types,
         bool check_nans,
         bool check_infs,
         bool dump_memory_usage,
@@ -238,6 +239,7 @@ std::map<std::string, VarPtr> Run(
     if (trace) chxvm_opts.trace_level = 1;
     if (verbose) chxvm_opts.trace_level = 2;
     chxvm_opts.is_training = training;
+    chxvm_opts.check_types = check_types;
     chxvm_opts.check_nans = check_nans;
     chxvm_opts.check_infs = check_infs;
     chxvm_opts.dump_memory_usage = dump_memory_usage;
@@ -285,6 +287,7 @@ void InitChxVM(py::module& m) {
           "trace"_a = false,
           "verbose"_a = false,
           "training"_a = false,
+          "check_types"_a = true,
           "check_nans"_a = false,
           "check_infs"_a = false,
           "dump_memory_usage"_a = false,
