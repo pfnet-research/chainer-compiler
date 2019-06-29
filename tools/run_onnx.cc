@@ -287,7 +287,7 @@ public:
         }
         chxvm_opts_.trace_level = trace_level();
         chxvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
-        chxvm_opts_.check_types = true;
+        chxvm_opts_.check_types = !args_.exist("skip_runtime_type_check");
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
@@ -535,6 +535,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("equal_nan", '\0', "Treats NaN equal");
     args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
+    args.add("skip_runtime_type_check", '\0', "Skip runtime type check");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
