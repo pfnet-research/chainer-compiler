@@ -62,8 +62,15 @@ bool g_quiet;
 #define LOG() \
     if (!g_quiet) std::cerr
 
+bool IsDir(const std::string& filename) {
+    struct stat st;
+    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+    return S_IFDIR == (st.st_mode & S_IFMT);
+}
+
 std::vector<std::string> ListDir(const std::string& dirname) {
     DIR* dir = opendir(dirname.c_str());
+    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
     std::vector<std::string> filenames;
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
@@ -115,7 +122,9 @@ void ReadTestDir(
         const std::vector<std::string>& output_names,
         std::vector<std::unique_ptr<TestCase>>* test_cases) {
     for (const std::string& data_set_dir : ListDir(test_path)) {
-        if (!HasPrefix(Basename(data_set_dir), "test_data_set_")) continue;
+        if (!HasPrefix(Basename(data_set_dir), "test_data_set_") || !IsDir(data_set_dir)) {
+            continue;
+        }
         std::unique_ptr<TestCase> test_case(new TestCase);
         test_case->name = data_set_dir;
         size_t input_index = 0;
@@ -557,9 +566,7 @@ void RunMain(const std::vector<std::string>& argv) {
             QFAIL() << "No target testdir/onnx is specified";
         } else if (args.rest().size() == 1) {
             const std::string& filename = args.rest()[0];
-            struct stat st;
-            CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
-            if (S_IFDIR == (st.st_mode & S_IFMT)) {
+            if (IsDir(filename)) {
                 test_path = filename;
             } else {
                 onnx_path = filename;
