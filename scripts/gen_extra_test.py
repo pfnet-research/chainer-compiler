@@ -1124,7 +1124,7 @@ def get_tests():
     test('extra_test_sequence_pop', gen_sequence_pop_test)
     test('extra_test_sequence_constants', gen_sequence_constants_test)
     test('extra_test_sequence_create', gen_sequence_create_test)
-    test('extra_test_sequence_extend', gen_sequence_extend_test, fail=True)
+    test('extra_test_sequence_extend', gen_sequence_extend_test)
 
     test('extra_test_sentiment_lstm',
          sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2)

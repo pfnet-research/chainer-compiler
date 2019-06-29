@@ -29,6 +29,11 @@ void SequenceAppendOp::RunImpl(ChxVMState* st) {
     st->GetSequence(seq)->emplace_back(*st->GetVar(value));
 }
 
+void SequenceExtendOp::RunImpl(ChxVMState* st, const ChxVMSequence& a, const ChxVMSequence& b, ChxVMSequence* output) {
+    *output = a;
+    for (const auto& a : b) output->push_back(a);
+}
+
 void SequencePopOp::RunImpl(ChxVMState* st) {
     // TODO(hamaji): Remove this code by removing null gradients.
     if (st->GetVar(seq)->IsNull()) {

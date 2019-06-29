@@ -444,6 +444,7 @@ XC_CUSTOM_FIELD_OPS = [
 
 XC_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
+    ('SequenceExtend', [Sequence('a'), Sequence('b')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
