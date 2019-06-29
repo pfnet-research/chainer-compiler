@@ -644,10 +644,11 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
-#define REGISTER_SIMPLIFIER(op) do {                                    \
+#define REGISTER_SIMPLIFIER(op)                                                                 \
+    do {                                                                                        \
         CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second); \
-        CHECK(all_simplifier_names.emplace("Replace" #op).second);      \
-    } while(0)
+        CHECK(all_simplifier_names.emplace("Replace" #op).second);                              \
+    } while (0)
 
     REGISTER_SIMPLIFIER(Sum);
     REGISTER_SIMPLIFIER(Less);

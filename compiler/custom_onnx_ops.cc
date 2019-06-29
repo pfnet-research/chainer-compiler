@@ -569,9 +569,9 @@ void InferReduceSumTo(InferenceContext& ctx) {
     if (targetShapeInitializer->has_raw_data()) {
         const std::string& bytes = targetShapeInitializer->raw_data();
         targetShape.insert(
-            targetShape.end(),
-            reinterpret_cast<const int64_t*>(bytes.c_str()),
-            reinterpret_cast<const int64_t*>(bytes.c_str() + bytes.size()));
+                targetShape.end(),
+                reinterpret_cast<const int64_t*>(bytes.c_str()),
+                reinterpret_cast<const int64_t*>(bytes.c_str() + bytes.size()));
     } else {
         const auto& data = targetShapeInitializer->int64_data();
         targetShape.insert(targetShape.end(), data.begin(), data.end());
@@ -582,7 +582,7 @@ void InferReduceSumTo(InferenceContext& ctx) {
     }
 }
 
-}
+}  // namespace
 
 ONNX_CHAINER_OPERATOR_SET_SCHEMA(
         ChainerReduceSumTo,
