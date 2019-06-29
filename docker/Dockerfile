@@ -208,16 +208,19 @@ RUN mkdir -p chainer-compiler/build && \
         -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
         -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
         -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
-        -DCHAINER_COMPILER_TVM_INCLUDE_DIRS=$HOME/tvm_dist/include \
+        -DCHAINER_COMPILER_ENABLE_TVM=ON \
+        -DCHAINER_COMPILER_TVM_DIR=$HOME/tvm_dist \
+        -DCHAINER_COMPILER_TVM_INCLUDE_DIRS="/root/tvm_dist/include;/root/dmlc_core_dist/include;/root/dlpack/include;/root/tvm_dist/include/HalideIR" \
         -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
         -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
         -DPYTHON_EXECUTABLE=$(which python3) \
-        -DCHAINER_COMPILER_ENABLE_TVM=ON \
         -DCHAINERX_BUILD_CUDA=ON \
         -DCHAINERX_BUILD_PYTHON=ON \
         -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx \
         && \
     make -j8
+# NOTE(disktnk): to run tvm module, required libcuda.so.1
+# $ ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
 
 FROM dev-base
 LABEL author="Daisuke Tanaka <duaipp@gmail.com>"
