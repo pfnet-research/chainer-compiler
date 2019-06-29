@@ -869,6 +869,34 @@ void SequenceStackGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kChainerSequenceSeparate, 0, {gy})->producer()->set_axis(node->axis());
 }
 
+void SequenceCreateGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    const Node* node = gc->node();
+    if (node->inputs().empty()) {
+        return;
+    }
+    if (node->inputs().size() == 1) {
+        gc->SetGrad(0, gc->gy(0));
+        return;
+    }
+
+    Value* prev_index = nullptr;
+    for (size_t i = 0; i < node->inputs().size(); ++i) {
+        GraphBuilder gb{gc->builder(i)};
+        Value* start = nullptr;
+        Value* end = nullptr;
+        if (prev_index) {
+            start = prev_index;
+            Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(i)});
+            end = gb.Op(Node::kAdd, {start, len});
+        } else {
+            start = gb.Const(Type(Dtype::kInt64, {}), {0});
+            end = gb.Op(Node::kChainerGenericLen, {gc->x(i)});
+        }
+        gc->GradOp(Node::kChainerSequenceGetSlice, i, {gy, start, end});
+    }
+}
+
 void SequenceAppendGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Value* gy = gc->gy(0);
@@ -1037,6 +1065,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kDynamicSlice, &DynamicSliceGradFn);
         register_grad_fn(Node::kChainerGetItem, &GetItemGradFn);
 
+        register_grad_fn(Node::kChainerSequenceCreate, &SequenceCreateGradFn);
         register_grad_fn(Node::kChainerSequenceStack, &SequenceStackGradFn);
         register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);
         register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
