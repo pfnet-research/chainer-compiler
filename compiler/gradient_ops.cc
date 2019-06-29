@@ -879,6 +879,22 @@ void SequenceAppendGradFn(GradientOpContext* gc) {
     gb.MOp(Node::kChainerSequencePop, {gy}, gxs);
 }
 
+void SequenceExtendGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    {
+        GraphBuilder gb{gc->builder(0)};
+        Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
+        Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(0)});
+        gc->GradOp(Node::kChainerSequenceGetSlice, 0, {gy, zero, len});
+    }
+    {
+        GraphBuilder gb{gc->builder(1)};
+        Value* minus_one = gb.Const(Type(Dtype::kInt64, {}), {-1});
+        Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(0)});
+        gc->GradOp(Node::kChainerSequenceGetSlice, 1, {gy, len, minus_one});
+    }
+}
+
 void SequenceConcatGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
@@ -1023,6 +1039,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
 
         register_grad_fn(Node::kChainerSequenceStack, &SequenceStackGradFn);
         register_grad_fn(Node::kChainerSequenceAppend, &SequenceAppendGradFn);
+        register_grad_fn(Node::kChainerSequenceExtend, &SequenceExtendGradFn);
         register_grad_fn(Node::kChainerSequenceConcat, &SequenceConcatGradFn);
         register_grad_fn(Node::kChainerSequenceSplitAxis, &SequenceSplitAxisGradFn);
         register_grad_fn(Node::kChainerSequencePad, &SequencePadGradFn);
