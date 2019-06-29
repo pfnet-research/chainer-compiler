@@ -302,6 +302,9 @@ NodeDef('ChainerSequenceCreate', None, 1)
 # Appends an element to a sequence: ([T], T) -> ([T])
 NodeDef('ChainerSequenceAppend', 2, 1)
 
+# Extends a sequence to another sequence: ([T], [T]) -> ([T])
+NodeDef('ChainerSequenceExtend', 2, 1)
+
 # Pops an element from a sequence: ([T]) -> ([T], T)
 NodeDef('ChainerSequencePop', 1, 2)
 
