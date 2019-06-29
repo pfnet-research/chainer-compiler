@@ -2,11 +2,14 @@
 
 #include <gtest/gtest.h>
 
+#include <chainerx/testing/context_session.h>
+
 #include <common/iterator.h>
 #include <common/strutil.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace {
@@ -51,6 +54,29 @@ TEST(ShapeInferenceTest, Linear) {
     TestInference(Node::kChainerLinear, Types({{3, 2}, {4, 2}}), [](Node* n) {}, Dtype::kFloat32, {3, 4});
     TestInference(Node::kChainerLinear, Types({{2, 4, 3}, {5, 3}}), [](Node* n) { n->set_n_batch_axes(2); }, Dtype::kFloat32, {2, 4, 5});
     TestInference(Node::kChainerLinear, Types({{2, 4, 3}, {5, 3}}), [](Node* n) { n->set_n_batch_axes(1); }, Dtype::kFloat32, {2, 5});
+}
+
+TEST(ShapeInferenceTest, ReduceSumTo) {
+    RegisterCustomOnnxOperatorSetSchema();
+    chainerx::testing::ContextSession sess;
+    Graph graph("test");
+    Node* node = nullptr;
+    std::vector<Value*> inputs;
+    inputs.push_back(graph.AddInputValue("input", Type(Dtype::kFloat32, {3, 4, 2, 5})));
+    {
+        GraphBuilder gb(&graph, "test", inputs[0]);
+        inputs.push_back(gb.Const(runtime::MakeHostArray(chainerx::Dtype::kInt64, {2}, std::vector<int64_t>({3, 5}).data())));
+
+        std::vector<Value*> outputs;
+        outputs.push_back(graph.AddOutputValue(StrCat("output", 0), Type()));
+
+        node = gb.MOp(Node::kChainerReduceSumTo, inputs, outputs);
+    }
+
+    ASSERT_EQ(1, node->outputs().size());
+    const Type& output_type = node->output(0)->type();
+    EXPECT_EQ(Dtype::kFloat32, output_type.dtype());
+    EXPECT_EQ(std::vector<int64_t>({3, 5}), output_type.dims());
 }
 
 }  // namespace
