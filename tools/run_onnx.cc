@@ -64,6 +64,7 @@ bool g_quiet;
 
 std::vector<std::string> ListDir(const std::string& dirname) {
     DIR* dir = opendir(dirname.c_str());
+    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
     std::vector<std::string> filenames;
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
