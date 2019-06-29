@@ -700,6 +700,23 @@ def gen_sequence_create_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_extend_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    input1 = aranges(3, 4)
+    input2 = aranges(3, 1) * 2
+    seq1 = [np.squeeze(i, 0) for i in np.split(input1, 3)]
+    seq2 = [np.squeeze(i, 0) for i in np.split(input2, 3)]
+
+    input1_v = gb.input('input1', input1)
+    input2_v = gb.input('input2', input2)
+    seq1_v = gb.ChainerSequenceSeparate([input1_v])
+    seq2_v = gb.ChainerSequenceSeparate([input2_v])
+
+    gb.output(gb.ChainerSequenceExtend([seq1_v, seq2_v]), Seq(seq1 + seq2))
+
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -1107,6 +1124,7 @@ def get_tests():
     test('extra_test_sequence_pop', gen_sequence_pop_test)
     test('extra_test_sequence_constants', gen_sequence_constants_test)
     test('extra_test_sequence_create', gen_sequence_create_test)
+    test('extra_test_sequence_extend', gen_sequence_extend_test, fail=True)
 
     test('extra_test_sentiment_lstm',
          sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2)
