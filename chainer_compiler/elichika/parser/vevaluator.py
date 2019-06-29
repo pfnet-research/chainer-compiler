@@ -1181,6 +1181,56 @@ def veval_ast_break(astc : 'AstContext', local_field : 'values.Field', graph : '
     assert(isinstance(astc.nast, gast.gast.Break))
     return None
 
+def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    assert(isinstance(astc.nast, gast.gast.With))
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    for item in astc.nast.items:
+        veval_ast(astc.c(item), local_field, graph)
+
+    veval_ast(astc.c(astc.nast.body), local_field, graph)
+
+
+def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'):
+    assert(isinstance(astc.nast, gast.gast.withitem))
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    value = veval_ast(astc.c(astc.nast.context_expr), local_field, graph)
+    value_obj = try_get_ref(value, 'withitem', lineprop)
+
+    if value is None:
+        if config.show_warnings:
+            print('It is possible that one of those withitem is invalid in L.{}'.format(astc.lineno))
+        return None
+
+    def return_value_or_ref(obj : 'value.Object'):
+            if isinstance(obj.get_value(), values.NumberValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.StrValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.BoolValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.NoneValue):
+                return values.ValueRef(obj.get_value())
+
+            if isinstance(obj.get_value(), values.TupleValue):
+                return values.ValueRef(obj.get_value())
+
+            return obj
+    
+    if astc.nast.optional_vars is not None:
+        optional_vars_option = VEvalOption()
+        optional_vars_option.eval_as_written_target = True
+        optional_vars = veval_ast(astc.c(astc.nast.optional_vars), local_field, graph, optional_vars_option)
+
+        assigned_obj = return_value_or_ref(value_obj)
+        node_assign = nodes.NodeAssign(optional_vars, assigned_obj, astc.lineno)
+        optional_vars.revise(assigned_obj)
+        graph.add_node(node_assign)
+
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     if isinstance(astc.nast, list):
         ret = None
@@ -1273,6 +1323,14 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
     elif isinstance(astc.nast, gast.gast.BoolOp):
         ret = veval_ast_bool_op(astc, local_field, graph)
         return ret
+
+    elif isinstance(astc.nast, gast.gast.With):
+        veval_ast_with(astc, local_field, graph)
+        return None
+
+    elif isinstance(astc.nast, gast.gast.withitem):
+        veval_ast_withitem(astc, local_field, graph)
+        return None
 
     else:
         if config.show_warnings:
