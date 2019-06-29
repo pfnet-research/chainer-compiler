@@ -641,9 +641,13 @@ bool ReplaceQLinearMatMul(Graph* graph, Node* node) {
 }  // namespace
 
 void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
+    std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
-#define REGISTER_SIMPLIFIER(op) CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second)
+#define REGISTER_SIMPLIFIER(op) do {                                    \
+        CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second); \
+        CHECK(all_simplifier_names.emplace("Replace" #op).second);      \
+    } while(0)
 
     REGISTER_SIMPLIFIER(Sum);
     REGISTER_SIMPLIFIER(Less);
@@ -676,9 +680,11 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
+    REGISTER_SIMPLIFIER(Concat);
 
-    if (gen_backprop) {
-        REGISTER_SIMPLIFIER(Concat);
+    // Validate `simplifier_names`.
+    for (const std::string& name : simplifier_names) {
+        CHECK_EQ(1, all_simplifier_names.count(name)) << name;
     }
 
     bool replaced = true;
@@ -691,6 +697,9 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
             }
             const Simplifier& simplifier = found->second;
             if (!simplifier_names.count(simplifier.name)) {
+                continue;
+            }
+            if (node->op_type() == Node::kConcat && !gen_backprop) {
                 continue;
             }
             if (simplifier.fn(graph, node)) {
