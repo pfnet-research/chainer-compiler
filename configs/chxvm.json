@@ -90,6 +90,7 @@
         "ChainerSequenceConcat": true,
         "ChainerSequenceConstants": true,
         "ChainerSequenceCreate": true,
+        "ChainerSequenceExtend": true,
         "ChainerSequenceGetSlice": true,
         "ChainerSequenceGetSliceGrad": true,
         "ChainerSequenceLengths": true,

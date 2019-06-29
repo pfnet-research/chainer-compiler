@@ -605,6 +605,8 @@ private:
                 EMIT(SequenceCopy, o, in(0));
                 EMIT(SequenceAppend, o.id(), in(1));
             }
+        } else if (node.op_type() == Node::kChainerSequenceExtend) {
+            EMIT(SequenceExtend, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kChainerSequencePop) {
             ChxVMValue o0(out(0));
             if (node.input(0)->users().size() == 1) {
