@@ -257,7 +257,7 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
     if isinstance(node.target, values.ListValue) or isinstance(node.target, values.TupleValue):
         assert(isinstance(node.value, values.ListValue)
                or isinstance(node.value, values.TupleValue))
-        binops[nodes.BinOpType.Add] = 'ChainerGenericAdd'
+        binops[nodes.BinOpType.Add] = 'ChainerSequenceExtend'
 
         target = ONNXValue(onnx_graph, node.target)
         value = ONNXValue(onnx_graph, node.value)
@@ -309,7 +309,7 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
     if isinstance(node.left, values.ListValue) or isinstance(node.left, values.TupleValue):
         assert(isinstance(node.right, values.ListValue)
                or isinstance(node.right, values.TupleValue))
-        binops[nodes.BinOpType.Add] = 'ChainerGenericAdd'
+        binops[nodes.BinOpType.Add] = 'ChainerSequenceExtend'
 
         left = ONNXValue(onnx_graph, node.left)
         right = ONNXValue(onnx_graph, node.right)
