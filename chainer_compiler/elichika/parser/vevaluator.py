@@ -1260,7 +1260,7 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     with ExitStack() as stack:
         managers = [stack.enter_context(getattr(option, flag)()) for flag in common_flags_cache]
-        if option._ignore_branch:
+        if not option._ignore_branch:
             veval_ast(astc.c(astc.nast.body), local_field, graph, option)
 
 def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
