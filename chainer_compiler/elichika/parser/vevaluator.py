@@ -79,9 +79,77 @@ class AstContext:
         """
         return AstContext(value, self.lineno_offset, filename=self.filename)
 
+from functools import wraps
+
+def auto_set_unset(func):
+    @wraps(func)
+    def decorated(self, *args, **kwargs):
+        self.history.append((func.__name__, self.flags[func.__name__]))
+        ret = func(self, *args, **kwargs)
+        return ret
+    return decorated
+
 class VEvalOption:
     def __init__(self):
-        self.eval_as_written_target = False
+        self.history = []
+        self.flags = {
+            "eval_as_written_target": False,
+            "ignore_branch": False,
+            "for_unroll": False
+        }
+
+    # eval_as_written_target flag
+    @property
+    def _eval_as_written_target(self):
+        return self.flags["eval_as_written_target"]
+
+    @_eval_as_written_target.setter
+    def _eval_as_written_target(self, value = True):
+        self.flags["eval_as_written_target"] = value
+        return self
+
+    @auto_set_unset
+    def eval_as_written_target(self):
+      self.flags["eval_as_written_target"] = True
+      return self
+
+    # ignore_branch flag
+    @property
+    def _ignore_branch(self):
+        return self.flags["ignore_branch"]
+
+    @_ignore_branch.setter
+    def _ignore_branch(self, value = True):
+        self.flags["ignore_branch"] = value
+        return self
+
+    @auto_set_unset
+    def ignore_branch(self):
+      self.flags["ignore_branch"] = True
+      return self
+
+    # for_unroll flag
+    @property
+    def _for_unroll(self):
+        return self.flags["for_unroll"]
+
+    @_for_unroll.setter
+    def _for_unroll(self, value = True):
+        self.flags["for_unroll"] = value
+        return self
+
+    @auto_set_unset
+    def for_unroll(self):
+      self.flags["for_unroll"] = True
+      return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        flag, saved_value = self.history.pop()
+        self.flags[flag] = saved_value
+        return False
 
 def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Attribute))
