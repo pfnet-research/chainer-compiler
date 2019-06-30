@@ -158,7 +158,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
     from_module = True
-    if option is not None and option.eval_as_written_target:
+    if option is not None and option._eval_as_written_target:
         from_module = False
 
     value = veval_ast(astc.c(astc.nast.value), local_field, graph, option)
@@ -184,7 +184,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
     if gotten_obj is not None:
         return value_ref.get_field().get_attribute(astc.nast.attr, graph.root_graph, from_module)
 
-    if option is not None and option.eval_as_written_target:
+    if option is not None and option._eval_as_written_target:
         return attr
         
     # value is unknown
