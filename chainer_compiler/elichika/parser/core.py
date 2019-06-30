@@ -16,6 +16,7 @@ from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
+from chainer_compiler.elichika.parser import flags
 import numpy as np
 import six
 
@@ -146,6 +147,15 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     m_to_cpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_cpu), None)
     values.function_converters[cuda.to_cpu] = m_to_cpu
+
+    # generate VEvalFlag functions
+    def add_veval_flag_function(name:'str', func):
+        f = values.FuncValue(functions_builtin.VEvalOptionFunction(func, vevaluator.common_flags_cache), None)
+        values.builtin_function_converters[name] = f
+
+    add_veval_flag_function('eval_as_written_target', flags.eval_as_written_target)
+    add_veval_flag_function('ignore_branch', flags.ignore_branch)
+    add_veval_flag_function('for_unroll', flags.for_unroll)
 
     # generate default module
     default_module = values.ValueRef(values.ModuleValue(sys.modules[model.__module__]))

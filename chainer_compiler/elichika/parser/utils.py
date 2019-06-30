@@ -107,3 +107,10 @@ class UnimplementedError(Exception):
 
     def __str__(self):
         return self.message + ' in ' + str(self.lineprop)
+
+class DummyFlag:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        return False

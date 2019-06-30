@@ -3,6 +3,8 @@ import chainer.functions as F
 import chainer.links as L
 import inspect
 import ast, gast
+from functools import wraps
+from contextlib import ExitStack
 
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import nodes
@@ -16,6 +18,8 @@ from chainer_compiler.elichika.parser import veval_multiary
 from chainer_compiler.elichika.parser import veval_aug_assign
 
 import numpy as np
+
+common_flags_cache = []
 
 def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
     if value is None:
@@ -64,6 +68,14 @@ def get_ast_name_forcibly(ast):
         return ast
     return ''
 
+def auto_set_unset(func):
+    @wraps(func)
+    def decorated(self, *args, **kwargs):
+        self.history.append((func.__name__, self.flags[func.__name__]))
+        ret = func(self, *args, **kwargs)
+        return ret
+    return decorated
+
 class AstContext:
     def __init__(self, nast, lineno_offset : 'int', filename : 'str' = '' ):
         self.nast = nast
@@ -78,16 +90,6 @@ class AstContext:
         get AstContext including value
         """
         return AstContext(value, self.lineno_offset, filename=self.filename)
-
-from functools import wraps
-
-def auto_set_unset(func):
-    @wraps(func)
-    def decorated(self, *args, **kwargs):
-        self.history.append((func.__name__, self.flags[func.__name__]))
-        ret = func(self, *args, **kwargs)
-        return ret
-    return decorated
 
 class VEvalOption:
     def __init__(self):
@@ -1252,11 +1254,14 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     assert(isinstance(astc.nast, gast.gast.With))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
+    common_flags_cache.clear()
     for item in astc.nast.items:
         veval_ast(astc.c(item), local_field, graph, option)
 
-    veval_ast(astc.c(astc.nast.body), local_field, graph, option)
-
+    with ExitStack() as stack:
+        managers = [stack.enter_context(getattr(option, flag)()) for flag in common_flags_cache]
+        if option._ignore_branch:
+            veval_ast(astc.c(astc.nast.body), local_field, graph, option)
 
 def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     assert(isinstance(astc.nast, gast.gast.withitem))

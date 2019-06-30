@@ -146,3 +146,20 @@ class AppendFunction(functions.FunctionBase):
 
         graph.add_node(node)
         return values.NoneValue()
+
+
+class VEvalOptionFunction(functions.FunctionBase):
+    def __init__(self, func, flags = None):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func)
+        self.flags = flags
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        assert(inst is None)
+
+        funcArgs = self.args.merge_inputs(inst, args)
+        if self.flags is not None:
+            self.flags.append(self.name)
+
+        return values.ValueRef(values.NoneValue())
