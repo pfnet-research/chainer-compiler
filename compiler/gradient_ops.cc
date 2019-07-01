@@ -872,28 +872,10 @@ void SequenceStackGradFn(GradientOpContext* gc) {
 void SequenceCreateGradFn(GradientOpContext* gc) {
     Value* gy = gc->gy(0);
     const Node* node = gc->node();
-    if (node->inputs().empty()) {
-        return;
-    }
-    if (node->inputs().size() == 1) {
-        gc->SetGrad(0, gc->gy(0));
-        return;
-    }
-
-    Value* prev_index = nullptr;
-    for (size_t i = 0; i < node->inputs().size(); ++i) {
+    for (int64_t i = 0; i < node->inputs().size(); ++i) {
         GraphBuilder gb{gc->builder(i)};
-        Value* start = nullptr;
-        Value* end = nullptr;
-        if (prev_index) {
-            start = prev_index;
-            Value* len = gb.Op(Node::kChainerGenericLen, {gc->x(i)});
-            end = gb.Op(Node::kAdd, {start, len});
-        } else {
-            start = gb.Const(Type(Dtype::kInt64, {}), {0});
-            end = gb.Op(Node::kChainerGenericLen, {gc->x(i)});
-        }
-        gc->GradOp(Node::kChainerSequenceGetSlice, i, {gy, start, end});
+        Value* index = gb.Const(Type(Dtype::kInt64, {}), {i});
+        gc->GradOp(Node::kChainerSequenceLookup, i, {gy, index});
     }
 }
 
