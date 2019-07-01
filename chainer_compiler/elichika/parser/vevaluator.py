@@ -1227,28 +1227,20 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     common_flags_cache.clear()
 
-    item_attrs_enter = []
-    item_attrs_exit = []
+    exit_attrs = []
     for item in astc.nast.items:
         item_ref = veval_ast(astc.c(item), local_field, graph, option)
-        item_attr_enter = item_ref.get_field().get_attribute('__enter__', graph.root_graph, from_module)
-        item_attr_exit = item_ref.get_field().get_attribute('__exit__', graph.root_graph, from_module)
-        item_attrs_enter.append(item_attr_enter)
-        item_attrs_exit.append(item_attr_exit)
-
-    for item_attr in item_attrs_enter:
-        if item_attr.has_obj() and isinstance(item_attr.get_ref().get_value(), values.FuncValue):
-            func_value = item_attr.get_ref().get_value()
-            func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+        exit_attr = item_ref.get_field().get_attribute('__exit__', graph.root_graph, from_module)
+        exit_attrs.append(exit_attr)
 
     with ExitStack() as stack:
         managers = [stack.enter_context(getattr(option, flag)()) for flag in common_flags_cache]
         if not option._ignore_branch:
             veval_ast(astc.c(astc.nast.body), local_field, graph, option)
 
-    for item_attr in item_attrs_exit:
-        if item_attr.has_obj() and isinstance(item_attr.get_ref().get_value(), values.FuncValue):
-            func_value = item_attr.get_ref().get_value()
+    for attr in exit_attrs:
+        if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue):
+            func_value = attr.get_ref().get_value()
             finput = functions.FunctionArgInput()
 
             # Adding exception_type, exception_value & traceback dummy arguments (None)
@@ -1260,8 +1252,19 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
     assert(isinstance(astc.nast, gast.gast.withitem))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
+    from_module = True
+    if option is not None and option._eval_as_written_target:
+        from_module = False
+
     value = veval_ast(astc.c(astc.nast.context_expr), local_field, graph, option)
     value_obj = try_get_ref(value, 'withitem', lineprop)
+
+    enter_attr = value_obj.get_field().get_attribute('__enter__', graph.root_graph, from_module)
+    if enter_attr.has_obj() and isinstance(enter_attr.get_ref().get_value(), values.FuncValue):
+        func_value = enter_attr.get_ref().get_value()
+        value_obj_ = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+
+    value_obj = value_obj_
 
     if value is None:
         if config.show_warnings:
