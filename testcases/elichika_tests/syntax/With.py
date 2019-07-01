@@ -8,9 +8,11 @@ class F(object):
         self.a = a
 
     def __enter__(self):
+        self.a = self.a + 1
         return self
 
     def __exit__(self, type, value, traceback):
+        self.a = self.a + 2
         return False
 
 class A(chainer.Chain):
@@ -23,6 +25,14 @@ class B(chainer.Chain):
         ret = 0
         with F(3) as obj1, F(4) as obj2:
             ret = obj1.a + obj2.a
+        return ret
+
+class C(chainer.Chain):
+    def forward(self):
+        ret = 0
+        with F(3) as obj1, F(4) as obj2:
+            ret += obj1.a
+        ret +=  obj2.a
         return ret
 
 class IgnoreBranch(chainer.Chain):
@@ -43,6 +53,7 @@ import numpy as np
 def main():
     testtools.generate_testcase(A(), [], 'basic')
     testtools.generate_testcase(B(), [], 'multiple')
+    testtools.generate_testcase(C(), [], 'enter_exit')
     # testtools.generate_testcase(IgnoreBranch(), [], 'ignore_branch')
 
 

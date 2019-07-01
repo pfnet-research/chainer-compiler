@@ -875,3 +875,14 @@ class UserDefinedInstance(Instance):
             obj = parse_instance(self.module, name, members_dict[name], inst, from_member=True, root_graph=root_graph)
 
         return obj
+
+    def apply_to_object(self, obj: 'values.ValueRef'):
+        super().apply_to_object(obj)
+
+        enter_func = obj.try_get_and_store_obj('__enter__', None)
+        if enter_func is not None:
+            obj.get_field().get_attribute('__enter__').revise(enter_func)
+
+        exit_func = obj.try_get_and_store_obj('__exit__', None)
+        if exit_func is not None:
+            obj.get_field().get_attribute('__exit__').revise(exit_func)

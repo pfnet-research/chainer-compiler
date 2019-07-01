@@ -1254,14 +1254,40 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     assert(isinstance(astc.nast, gast.gast.With))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
+    from_module = True
+    if option is not None and option._eval_as_written_target:
+        from_module = False
+
     common_flags_cache.clear()
+
+    item_attrs_enter = []
+    item_attrs_exit = []
     for item in astc.nast.items:
-        veval_ast(astc.c(item), local_field, graph, option)
+        item_ref = veval_ast(astc.c(item), local_field, graph, option)
+        item_attr_enter = item_ref.get_field().get_attribute('__enter__', graph.root_graph, from_module)
+        item_attr_exit = item_ref.get_field().get_attribute('__exit__', graph.root_graph, from_module)
+        item_attrs_enter.append(item_attr_enter)
+        item_attrs_exit.append(item_attr_exit)
+
+    for item_attr in item_attrs_enter:
+        if item_attr.has_obj() and isinstance(item_attr.get_ref().get_value(), values.FuncValue):
+            func_value = item_attr.get_ref().get_value()
+            func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
 
     with ExitStack() as stack:
         managers = [stack.enter_context(getattr(option, flag)()) for flag in common_flags_cache]
         if not option._ignore_branch:
             veval_ast(astc.c(astc.nast.body), local_field, graph, option)
+
+    for item_attr in item_attrs_exit:
+        if item_attr.has_obj() and isinstance(item_attr.get_ref().get_value(), values.FuncValue):
+            func_value = item_attr.get_ref().get_value()
+            finput = functions.FunctionArgInput()
+
+            # Adding exception_type, exception_value & traceback dummy arguments (None)
+            finput.inputs.extend([values.ValueRef(values.NoneValue())] * 3)
+            func_value.func.vcall(func_value.module, graph, func_value.obj, finput, lineprop)
+
 
 def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     assert(isinstance(astc.nast, gast.gast.withitem))
@@ -1275,32 +1301,15 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
             print('It is possible that one of those withitem is invalid in L.{}'.format(astc.lineno))
         return None
 
-    def return_value_or_ref(obj : 'value.Object'):
-            if isinstance(obj.get_value(), values.NumberValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.StrValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.BoolValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.NoneValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.TupleValue):
-                return values.ValueRef(obj.get_value())
-
-            return obj
-    
     if astc.nast.optional_vars is not None:
         with option.eval_as_written_target():
             optional_vars = veval_ast(astc.c(astc.nast.optional_vars), local_field, graph, option)
 
-        assigned_obj = return_value_or_ref(value_obj)
-        node_assign = nodes.NodeAssign(optional_vars, assigned_obj, astc.lineno)
-        optional_vars.revise(assigned_obj)
+        node_assign = nodes.NodeAssign(optional_vars, value_obj, astc.lineno)
+        optional_vars.revise(value_obj)
         graph.add_node(node_assign)
+
+    return value_obj
 
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     if option is None:
@@ -1403,8 +1412,8 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
         return None
 
     elif isinstance(astc.nast, gast.gast.withitem):
-        veval_ast_withitem(astc, local_field, graph, option)
-        return None
+        ret = veval_ast_withitem(astc, local_field, graph, option)
+        return ret
 
     else:
         if config.show_warnings:
