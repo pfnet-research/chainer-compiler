@@ -3,8 +3,8 @@ import chainer.functions as F
 import chainer.links as L
 import inspect
 import ast, gast
-from functools import wraps
 from contextlib import ExitStack
+from collections import deque
 
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import nodes
@@ -68,10 +68,9 @@ def get_ast_name_forcibly(ast):
         return ast
     return ''
 
-def auto_set_unset(func):
-    @wraps(func)
+def auto_set_unset(func, flag):
     def decorated(self, *args, **kwargs):
-        self.history.append((func.__name__, self.flags[func.__name__]))
+        self.history.append((flag, self.flags[flag]))
         ret = func(self, *args, **kwargs)
         return ret
     return decorated
@@ -100,50 +99,18 @@ class VEvalOption:
             "for_unroll": False
         }
 
-    # eval_as_written_target flag
-    @property
-    def _eval_as_written_target(self):
-        return self.flags["eval_as_written_target"]
+        deque(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalOption.generic_setter(obj, flag, value),
+                                                                            fget=lambda obj: VEvalOption.generic_getter(obj, flag))),
+                  self.flags.keys()))
+        deque(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj: VEvalOption.generic_setter(obj, flag, True), flag)),
+                  self.flags.keys()))
 
-    @_eval_as_written_target.setter
-    def _eval_as_written_target(self, value = True):
-        self.flags["eval_as_written_target"] = value
+    def generic_setter(self, name, value = True):
+        self.flags[name] = value
         return self
 
-    @auto_set_unset
-    def eval_as_written_target(self):
-      self.flags["eval_as_written_target"] = True
-      return self
-
-    # ignore_branch flag
-    @property
-    def _ignore_branch(self):
-        return self.flags["ignore_branch"]
-
-    @_ignore_branch.setter
-    def _ignore_branch(self, value = True):
-        self.flags["ignore_branch"] = value
-        return self
-
-    @auto_set_unset
-    def ignore_branch(self):
-      self.flags["ignore_branch"] = True
-      return self
-
-    # for_unroll flag
-    @property
-    def _for_unroll(self):
-        return self.flags["for_unroll"]
-
-    @_for_unroll.setter
-    def _for_unroll(self, value = True):
-        self.flags["for_unroll"] = value
-        return self
-
-    @auto_set_unset
-    def for_unroll(self):
-      self.flags["for_unroll"] = True
-      return self
+    def generic_getter(self, name):
+        return self.flags[name]
 
     def __enter__(self):
         return self
