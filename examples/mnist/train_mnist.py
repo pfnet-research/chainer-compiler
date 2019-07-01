@@ -30,6 +30,22 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
+class FixedBatchDataset(chainer.dataset.DatasetMixin):
+    # Make the dataset size multiple of the batch-size by augmentation
+
+    def __init__(self, dataset, batchsize):
+        self.dataset = dataset
+        self.batchsize = batchsize
+        d = len(self.dataset)
+        self._len = ((d + batchsize - 1) // batchsize) * batchsize
+
+    def __len__(self):
+        return self._len
+
+    def get_example(self, idx):
+        return self.dataset[idx % len(self.dataset)]
+
+
 def fake_dataset():
     def gen(size):
         inputs = []
@@ -137,6 +153,11 @@ def main():
         train, test = fake_dataset()
     else:
         train, test = chainer.datasets.get_mnist()
+
+    # WARN: The use of FixedBatchDataset to validation data will slightly alter
+    # the evaluation of validation loss and accuracy.
+    train = FixedBatchDataset(train, args.batchsize)
+    test = FixedBatchDataset(test, args.batchsize)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,

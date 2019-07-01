@@ -68,6 +68,22 @@ class ValTransform(object):
         return img, label
 
 
+class FixedBatchDataset(chainer.dataset.DatasetMixin):
+    # Make the dataset size multiple of the batch-size by augmentation
+
+    def __init__(self, dataset, batchsize):
+        self.dataset = dataset
+        self.batchsize = batchsize
+        d = len(self.dataset)
+        self._len = ((d + batchsize - 1) // batchsize) * batchsize
+
+    def __len__(self):
+        return self._len
+
+    def get_example(self, idx):
+        return self.dataset[idx % len(self.dataset)]
+
+
 def main():
     model_cfgs = {
         'resnet50': {'class': ResNet50, 'score_layer_name': 'fc6',
@@ -181,6 +197,8 @@ def main():
     val_indices = chainermn.scatter_dataset(val_indices, comm, shuffle=True)
     train_data = train_data.slice[train_indices]
     val_data = val_data.slice[val_indices]
+    train_data = FixedBatchDataset(train_data, args.batchsize)
+    val_data = FixedBatchDataset(val_data, args.batchsize)
     train_iter = chainer.iterators.MultiprocessIterator(
         train_data, args.batchsize, n_processes=args.loaderjob)
     val_iter = iterators.MultiprocessIterator(
