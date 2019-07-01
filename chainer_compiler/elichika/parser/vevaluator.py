@@ -1262,9 +1262,7 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
     enter_attr = value_obj.get_field().get_attribute('__enter__', graph.root_graph, from_module)
     if enter_attr.has_obj() and isinstance(enter_attr.get_ref().get_value(), values.FuncValue):
         func_value = enter_attr.get_ref().get_value()
-        value_obj_ = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
-
-    value_obj = value_obj_
+        value_obj = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
 
     if value is None:
         if config.show_warnings:
