@@ -71,9 +71,12 @@ class ValTransform(object):
 class FixedBatchDataset(chainer.dataset.DatasetMixin):
     # Make the dataset size multiple of the batch-size by augmentation
 
-    def __init__(self, dataset, batchsize):
+    def __init__(self, dataset, batchsize, ignore_label=-1):
+        # `ignore_label` should be consistent with
+        # https://docs.chainer.org/en/stable/reference/generated/chainer.functions.softmax_cross_entropy.html
         self.dataset = dataset
         self.batchsize = batchsize
+        self.ignore_label = ignore_label
         d = len(self.dataset)
         self._len = ((d + batchsize - 1) // batchsize) * batchsize
 
@@ -85,7 +88,7 @@ class FixedBatchDataset(chainer.dataset.DatasetMixin):
             return self.dataset[idx]
         else:
             x_dummy, _ = self.dataset[0]
-            t_dummy = -1
+            t_dummy = self.ignore_label
             return x_dummy, t_dummy
 
 
