@@ -33,7 +33,7 @@ class DictionaryAssignByValueRef(chainer.Chain):
 
 class DictonaryIterateKeys(chainer.Chain):
     def forward(self):
-        x = {"one": 1, "two": 2, "three": 3, "four": 4}
+        x = {1: 1, "two": 2, 3: 3, "four": 4, True: 5}
         ret = 0
         for key in x.keys():
             ret += x[key]
@@ -42,7 +42,7 @@ class DictonaryIterateKeys(chainer.Chain):
 
 class DictonaryIterateValues(chainer.Chain):
     def forward(self):
-        x = {"one": 1, "two": 2, "three": 3, "four": 4}
+        x = {1: 1, "two": 2, 3: 3, "four": 4, True: 5}
         ret = 0
         for value in x.values():
             ret += value

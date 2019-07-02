@@ -178,7 +178,7 @@ class KeysFunction(functions.FunctionBase):
         if inst.in_container:
             raise Exception('Invalid operation')
 
-        keys = inst.get_value().internal_keys
+        keys = inst.get_value().internal_keys.values()
 
         vargs = []
         vargs_value = []
@@ -208,11 +208,11 @@ class ValuesFunction(functions.FunctionBase):
         if inst.in_container:
             raise Exception('Invalid operation')
 
-        key_refs = inst.get_value().internal_keys
+        key_hashes = inst.get_value().internal_keys.keys()
         attributes = inst.get_value().internal_values
         vargs = []
-        for key in key_refs:
-            varg = attributes.get_attribute(key.get_value().encode())
+        for hash in key_hashes:
+            varg = attributes.get_attribute(hash)
             if varg.has_obj():
                 vargs.append(varg.get_ref().get_value())
             else:

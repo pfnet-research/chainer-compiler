@@ -836,8 +836,7 @@ class ListValue(Value):
 class DictValue(Value):
     def __init__(self, keys=None, values=None):
         super().__init__()
-        # TODO(rchouras): Keys like 'True' and 1 map to same hash. This redundance need to be removed.
-        self.internal_keys = keys
+        self.internal_keys = {}
         self.internal_values = Field()
         self.key_dtype = None
         self.key_vtype = None # type: Type
@@ -846,6 +845,7 @@ class DictValue(Value):
             if key.get_value().is_hashable():
                 key_hash = key.get_value().encode()
                 self.internal_values.get_attribute(key_hash).revise(value)
+                self.internal_keys[key_hash] = key
             else:
                 assert False  # Non hashable types not supported
 
