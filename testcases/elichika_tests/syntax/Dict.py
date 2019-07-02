@@ -6,14 +6,18 @@ import chainer
 class SimpleDictionary(chainer.Chain):
     def forward(self):
         x = {"one": 1, "two": 2}
-        return x["one"] * x["two"]
+        y = {1: 1, 2: 2, 1.0: 3}
+        return x["one"] * y[1]
 
 
 class DictionarySubscript(chainer.Chain):
-    def forward(self, key, value):
-        test_dict = {key: None}
-        test_dict[key] = value
-        return test_dict[key]
+    def forward(self):
+        test_dict = {}
+        value = 1
+        for key in [True, 2, "Three", 2, True, 1]:
+            test_dict[key] = value
+            value += 1
+        return test_dict[True] * test_dict[2] * test_dict["Three"]
 
 
 class DictonaryIterateKeys(chainer.Chain):
@@ -52,13 +56,10 @@ from itertools import product
 
 def main():
     testtools.generate_testcase(SimpleDictionary(), [], subname='simple_dictionary')
-    testtools.generate_testcase(DictonaryIterateKeys(), [], subname='dictionary_iterate_keys')
-    testtools.generate_testcase(DictonaryIterateValues(), [], subname='dictionary_iterate_values')
-    testtools.generate_testcase(DictonaryIterateItems(), [], subname='dictionary_iterate_items')
-
-    for key, value in product([1, "one", True], repeat=2):
-        testtools.generate_testcase(DictionarySubscript, [key, value], subname='dictionary_subscript_%s_%s' % (str(key), str(value)))
-
+    testtools.generate_testcase(DictionarySubscript, [], subname='dictionary_subscript')
+    # testtools.generate_testcase(DictonaryIterateKeys(), [], subname='dictionary_iterate_keys')
+    # testtools.generate_testcase(DictonaryIterateValues(), [], subname='dictionary_iterate_values')
+    # testtools.generate_testcase(DictonaryIterateItems(), [], subname='dictionary_iterate_items')
 
 
 if __name__ == '__main__':
