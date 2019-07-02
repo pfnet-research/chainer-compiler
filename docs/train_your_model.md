@@ -7,7 +7,7 @@ First of all, please install chainer-compiler as described in the **Installing C
 Now, you will have to modify your code a little to use chainer-compiler.
 In the [examples](../examples) directory, [an MNIST example](../examples/mnist/train_mnist.py) and [an ImageNet example](../examples/imagenet/train_imagenet_multi.py) are available.
 
-You need to implement the export part and the compile part.
+You need to implement **the export part** and **the compile part**.
 In the export part, you will dump your model in ONNX format. Basically, this can be done using a function `chainer_compiler.export`.
 In the compile part, you will compile the dumped ONNX model to generate ChainerX VM.
 We recommend that these two parts run in a separate process because memory allocators should be different in them.
