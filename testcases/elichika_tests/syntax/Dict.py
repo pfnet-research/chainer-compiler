@@ -19,6 +19,17 @@ class DictionarySubscript(chainer.Chain):
             value += 1
         return test_dict[True] * test_dict[2] * test_dict["Three"]
 
+class DictionaryAssignByValueRef(chainer.Chain):
+    def forward(self):
+        # shared reference
+        list_ = [1]
+        test_dict1 = {"x": list_, "y": list_}
+        test_dict1["x"].append(2)
+        # shared value
+        num_ = 1
+        test_dict2 = {"x": num_, "y": num_}
+        test_dict2["x"] += 1
+        return test_dict1["y"][1] * test_dict2["y"]
 
 class DictonaryIterateKeys(chainer.Chain):
     def forward(self):
@@ -57,6 +68,7 @@ from itertools import product
 def main():
     testtools.generate_testcase(SimpleDictionary(), [], subname='simple_dictionary')
     testtools.generate_testcase(DictionarySubscript, [], subname='dictionary_subscript')
+    testtools.generate_testcase(DictionaryAssignByValueRef, [], subname='assign_by_value_ref')
     # testtools.generate_testcase(DictonaryIterateKeys(), [], subname='dictionary_iterate_keys')
     # testtools.generate_testcase(DictonaryIterateValues(), [], subname='dictionary_iterate_values')
     # testtools.generate_testcase(DictonaryIterateItems(), [], subname='dictionary_iterate_items')

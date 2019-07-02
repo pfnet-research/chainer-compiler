@@ -606,10 +606,10 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
                 node = nodes.NodeGetItem(value_value, [slice_value])
 
             if isinstance(value_value, values.ListValue) and value_value.vtype != None:
-                ret_value = value_value.vtype()
+                ret_value = value_value.vtype(None)
                 ret_value.dtype = value_value.dtype
             elif isinstance(value_value, values.TupleValue) and value_value.vtype != None:
-                ret_value = value_value.vtype()
+                ret_value = value_value.vtype(None)
                 ret_value.dtype = value_value.dtype
             else:
                 ret_value = values.UnknownValue()
@@ -1047,6 +1047,24 @@ def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     assert(isinstance(astc.nast, gast.gast.Dict))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
+    def return_value_or_ref(obj : 'value.Object'):
+        if isinstance(obj.get_value(), values.NumberValue):
+            return values.ValueRef(obj.get_value())
+
+        if isinstance(obj.get_value(), values.StrValue):
+            return values.ValueRef(obj.get_value())
+
+        if isinstance(obj.get_value(), values.BoolValue):
+            return values.ValueRef(obj.get_value())
+
+        if isinstance(obj.get_value(), values.NoneValue):
+            return values.ValueRef(obj.get_value())
+
+        if isinstance(obj.get_value(), values.TupleValue):
+            return values.ValueRef(obj.get_value())
+
+        return obj
+
     keys = []
     elts = []
 
@@ -1056,7 +1074,7 @@ def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         key_obj = try_get_ref(key_, 'dict', lineprop)
         elt_obj = try_get_ref(elt_,'dict', lineprop)
         keys.append(key_obj)
-        elts.append(elt_obj)
+        elts.append(return_value_or_ref(elt_obj))
 
     value = values.DictValue(keys, elts)
 
