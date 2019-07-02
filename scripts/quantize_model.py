@@ -7,17 +7,23 @@ import quantize
 def main():
     parser = argparse.ArgumentParser(
         description='Quantize model with specified parameters')
-    parser.add_argument('model')
-    parser.add_argument('output')
-    parser.add_argument('--per_channel', default=True)
+    parser.add_argument('--no_per_channel', '-t',
+                        action='store_true', default=False)
     parser.add_argument('--nbits', type=int, default=8)
     parser.add_argument('--quantization_mode', default='Integer',
                         choices=('Integer', 'QLinear'))
-    parser.add_argument('--static', default=False)
-    parser.add_argument('--asymmetric_input_types', default=False)
+    parser.add_argument('--static', '-s', action='store_true', default=False)
+    parser.add_argument('--asymmetric_input_types',
+                        action='store_true', default=False)
     parser.add_argument('--input_quantization_params', default='')
     parser.add_argument('--output_quantization_params', default='')
+    parser.add_argument('model')
+    parser.add_argument('output')
     args = parser.parse_args()
+
+    if args.no_per_channel:
+        args.per_channel = False
+    del args.no_per_channel
 
     if args.quantization_mode == 'QLinear':
         args.quantization_mode = quantize.QuantizationMode.QLinearOps
@@ -45,6 +51,7 @@ def main():
     del args.output
 
     # Quantize
+    print('Quantize config: {}'.format(vars(args)))
     quantized_model = quantize.quantize(model, **vars(args))
 
     print('Saving "{}" to "{}"'.format(model_file, output_file))
