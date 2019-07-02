@@ -123,6 +123,10 @@ def main():
     parser.add_argument('--weight-decay', type=float, default=0.0001)
     parser.add_argument('--out', type=str, default='result')
     parser.add_argument('--epoch', type=int, default=90)
+    parser.add_argument('--no_use_fixed_batch_dataset',
+                        dest='use_fixed_batch_dataset',
+                        action='store_false',
+                        help='Disable the use of FixedBatchDataset')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -202,8 +206,9 @@ def main():
     val_indices = chainermn.scatter_dataset(val_indices, comm, shuffle=True)
     train_data = train_data.slice[train_indices]
     val_data = val_data.slice[val_indices]
-    train_data = FixedBatchDataset(train_data, args.batchsize)
-    val_data = FixedBatchDataset(val_data, args.batchsize)
+    if args.use_fixed_batch_dataset:
+        train_data = FixedBatchDataset(train_data, args.batchsize)
+        val_data = FixedBatchDataset(val_data, args.batchsize)
     train_iter = chainer.iterators.MultiprocessIterator(
         train_data, args.batchsize, n_processes=args.loaderjob)
     val_iter = iterators.MultiprocessIterator(

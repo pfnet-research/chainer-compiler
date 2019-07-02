@@ -108,6 +108,10 @@ def main():
     parser.add_argument('--use_unified_memory', dest='use_unified_memory',
                         action='store_true',
                         help='Use unified memory for large model')
+    parser.add_argument('--no_use_fixed_batch_dataset',
+                        dest='use_fixed_batch_dataset',
+                        action='store_false',
+                        help='Disable the use of FixedBatchDataset')
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
@@ -159,10 +163,9 @@ def main():
     else:
         train, test = chainer.datasets.get_mnist()
 
-    # WARN: The use of FixedBatchDataset to validation data will slightly alter
-    # the evaluation of validation loss and accuracy.
-    train = FixedBatchDataset(train, args.batchsize)
-    test = FixedBatchDataset(test, args.batchsize)
+    if args.use_fixed_batch_dataset:
+        train = FixedBatchDataset(train, args.batchsize)
+        test = FixedBatchDataset(test, args.batchsize)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
