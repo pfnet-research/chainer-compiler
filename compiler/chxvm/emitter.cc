@@ -668,7 +668,21 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            EMIT(QLinearConv, out(0), in(0), in(1), in(2), in(3), in(4), in(5), in(6), in(7), oin(8), strides(), pads(), node.group());
+            EMIT(QLinearConv,
+                 out(0),
+                 in(0),
+                 in(1),
+                 in(2),
+                 in(3),
+                 in(4),
+                 in(5),
+                 in(6),
+                 in(7),
+                 oin(8),
+                 strides(),
+                 pads(),
+                 node.group(),
+                 node.auto_pad());
         } else if (node.op_type() == Node::kMatMulInteger) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(4UL, node.inputs().size());
@@ -678,7 +692,7 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(4UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group());
+            EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group(), node.auto_pad());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }

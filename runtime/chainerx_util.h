@@ -50,7 +50,8 @@ chainerx::Array GroupedConv(
         const nonstd::optional<chainerx::Array>& b,
         const Int64StackVector& strides,
         const Int64StackVector& pads,
-        int group);
+        int group,
+        const std::string& auto_pad);
 
 }  // namespace runtime
 }  // namespace chainer_compiler

@@ -27,23 +27,7 @@ chainerx::Array ConvOp::RunImpl(
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
 
-    if (auto_pad == "SAME_UPPER") {
-        for (size_t i = 0; i < comp_pads.size(); ++i) {
-            int64_t& pad = comp_pads[i];
-            const int64_t in_dim = x.shape()[2 + i];
-            const int64_t stride = comp_strides[i];
-            const int64_t kernel = w.shape()[2 + i];
-
-            int64_t legacy_target_size = (in_dim + stride - 1) / stride;
-            int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
-
-            pad = pad_needed / 2;
-        }
-    } else {
-        CHECK_EQ("NOTSET", auto_pad);
-    }
-
-    return GroupedConv(x, w, b, comp_strides, comp_pads, group);
+    return GroupedConv(x, w, b, comp_strides, comp_pads, group, auto_pad);
 }
 
 chainerx::Array ConvTransposeOp::RunImpl(

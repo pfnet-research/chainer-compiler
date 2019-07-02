@@ -89,7 +89,7 @@ chainerx::Array QLinearConvOp::RunImpl(
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    return quantize_array(chainerx::Conv(x, w, b, comp_strides, comp_pads, group), y_scale, y_zero_point);
+    return quantize_array(GroupedConv(x, w, b, comp_strides, comp_pads, group, auto_pad), y_scale, y_zero_point);
 }
 
 chainerx::Array MatMulIntegerOp::RunImpl(
@@ -131,7 +131,7 @@ chainerx::Array ConvIntegerOp::RunImpl(
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    return Conv(x, w, nonstd::nullopt, comp_strides, comp_pads, group).AsType(chainerx::Dtype::kInt32);
+    return GroupedConv(x, w, nonstd::nullopt, comp_strides, comp_pads, group, auto_pad).AsType(chainerx::Dtype::kInt32);
 }
 
 }  // namespace runtime
