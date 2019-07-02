@@ -1,5 +1,9 @@
 # Train your model with chainer-compiler
 
+This documentation explains how to train your model with chainer-compiler backend.
+
+## Setup
+
 First of all, please install chainer-compiler as described in the **Installing Chainer compiler via pip** section of [setup.md](setup.md).
 
 ## Modify your code
@@ -14,7 +18,7 @@ We recommend that these two parts run in a separate process because memory alloc
 
 NOTE: Current interface is tentative, and possibly changed in the future.
 
-## 1. Export part
+### 1. Export part
 
 We will explain the way to modify code using the MNIST example.
 
@@ -52,7 +56,7 @@ The export can be done using `chainer_compiler.export` function. You will have t
 
 After running the export part, you will terminate the process.
 
-## 2. Compile part
+### 2. Compile part
 
 In the compile part, you launch another process and specify the dumped ONNX file in `--compile` option.
 
@@ -78,7 +82,7 @@ Before that, however, you will have to initialize all the model parameters. This
 In `chainer_compiler.compile_onnx`, you will specify a model instance, an ONNX file path, and the translator's name.
 In the method, you may specify `computation_order` argument to enable recomputation method to trade memory consumption and computational time.
 
-## 3. Slight tweak on dataset 
+### 3. Slight tweak on dataset 
 
 Unfortunately, current our implementation can handle only inputs with fixed batch-size.
 Due to this restriction, the number of dataset should be multiple of the batch-size during training.
