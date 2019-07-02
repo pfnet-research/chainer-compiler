@@ -578,65 +578,75 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
     value = veval_ast(astc.c(astc.nast.value), local_field, graph, option)
     value_value = try_get_value(value, 'subscript', lineprop)
 
-    if isinstance(astc.nast.slice, gast.gast.Index):
-        slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, option)
-        slice_value = try_get_value(slice_, 'subscript', lineprop)
+    if isinstance(value_value, values.DictValue):
 
-        if isinstance(slice_value, values.TupleValue):
-            # ex. x[1,2]
-            if slice_value.has_constant_value():
-                values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.get_constant_value()]
-                node = nodes.NodeGetItem(value_value, values_, line=lineprop)
+        if isinstance(astc.nast.slice, gast.gast.Index):
+            slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, option)
+            slice_value = try_get_value(slice_, 'subscript', lineprop)
+
+            ret = value_value.internal_values.get_attribute(slice_value.encode())
+            return ret
+
+    else:
+        if isinstance(astc.nast.slice, gast.gast.Index):
+            slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, option)
+            slice_value = try_get_value(slice_, 'subscript', lineprop)
+
+            if isinstance(slice_value, values.TupleValue):
+                # ex. x[1,2]
+                if slice_value.has_constant_value():
+                    values_ = [try_get_value(x, 'subscript', lineprop) for x in slice_value.get_constant_value()]
+                    node = nodes.NodeGetItem(value_value, values_, line=lineprop)
+                else:
+                    if config.show_warnings:
+                        print('This subscript is not supported. in L.{}'.format(astc.lineno))
+                    node = nodes.NodeInvalid(line=lineprop)
             else:
-                if config.show_warnings:
-                    print('This subscript is not supported. in L.{}'.format(astc.lineno))
-                node = nodes.NodeInvalid(line=lineprop)
-        else:
-            # ex. x[1]
-            node = nodes.NodeGetItem(value_value, [slice_value])
+                # ex. x[1]
+                node = nodes.NodeGetItem(value_value, [slice_value])
 
-        if isinstance(value_value, values.ListValue) and value_value.vtype != None:
-            ret_value = value_value.vtype()
-            ret_value.dtype = value_value.dtype
-        elif isinstance(value_value, values.TupleValue) and value_value.vtype != None:
-            ret_value = value_value.vtype()
-            ret_value.dtype = value_value.dtype
-        else:
-            ret_value = values.UnknownValue()
-            
-        node.set_outputs([ret_value])
-        graph.add_node(node)
-        return values.ValueRef(ret_value)
-
-    elif isinstance(astc.nast.slice, gast.gast.Slice):
-
-        indices = get_slice_indices(astc.nast.slice)
-
-        node = nodes.NodeSlice(value_value, indices, [len(indices)])
-        ret_value = functions.generate_value_with_same_type(value_value)
-        node.set_outputs([ret_value])
-        graph.add_node(node)
-        return values.ValueRef(ret_value)
-
-    elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
-        indices = []
-        slice_specs = []
-        for dim in astc.nast.slice.dims:
-            if isinstance(dim, gast.gast.Index):
-                indices.append(try_get_value(veval_ast(astc.c(dim.value), local_field, graph, option), 'subscript', lineprop))
-                slice_specs.append(1)
-            elif isinstance(dim, gast.gast.Slice):
-                ni = get_slice_indices(dim)
-                indices.extend(ni)
-                slice_specs.append(len(ni))
+            if isinstance(value_value, values.ListValue) and value_value.vtype != None:
+                ret_value = value_value.vtype()
+                ret_value.dtype = value_value.dtype
+            elif isinstance(value_value, values.TupleValue) and value_value.vtype != None:
+                ret_value = value_value.vtype()
+                ret_value.dtype = value_value.dtype
             else:
-                assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
+                ret_value = values.UnknownValue()
 
-        node = nodes.NodeSlice(value_value, indices, slice_specs)
-        ret_value = functions.generate_value_with_same_type(value_value)
-        node.set_outputs([ret_value])
-        graph.add_node(node)
-        return values.ValueRef(ret_value)
+            node.set_outputs([ret_value])
+            graph.add_node(node)
+            return values.ValueRef(ret_value)
+
+        elif isinstance(astc.nast.slice, gast.gast.Slice):
+
+            indices = get_slice_indices(astc.nast.slice)
+
+            node = nodes.NodeSlice(value_value, indices, [len(indices)])
+            ret_value = functions.generate_value_with_same_type(value_value)
+            node.set_outputs([ret_value])
+            graph.add_node(node)
+            return values.ValueRef(ret_value)
+
+        elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
+            indices = []
+            slice_specs = []
+            for dim in astc.nast.slice.dims:
+                if isinstance(dim, gast.gast.Index):
+                    indices.append(try_get_value(veval_ast(astc.c(dim.value), local_field, graph, option), 'subscript', lineprop))
+                    slice_specs.append(1)
+                elif isinstance(dim, gast.gast.Slice):
+                    ni = get_slice_indices(dim)
+                    indices.extend(ni)
+                    slice_specs.append(len(ni))
+                else:
+                    assert False, 'Unknown slice: %s in %s' % (dim, nast.slice)
+
+            node = nodes.NodeSlice(value_value, indices, slice_specs)
+            ret_value = functions.generate_value_with_same_type(value_value)
+            node.set_outputs([ret_value])
+            graph.add_node(node)
+            return values.ValueRef(ret_value)
 
     return None
 
@@ -1033,6 +1043,25 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     return values.ValueRef(value)
 
+def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+    assert(isinstance(astc.nast, gast.gast.Dict))
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    keys = []
+    elts = []
+
+    for key, elt in zip(astc.nast.keys, astc.nast.values):
+        key_ = veval_ast(astc.c(key), local_field, graph, option)
+        elt_ = veval_ast(astc.c(elt), local_field, graph, option)
+        key_obj = try_get_ref(key_, 'dict', lineprop)
+        elt_obj = try_get_ref(elt_,'dict', lineprop)
+        keys.append(key_obj)
+        elts.append(elt_obj)
+
+    value = values.DictValue(keys, elts)
+
+    return values.ValueRef(value)
+
 def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListValue', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     '''
     for target in iter: 
@@ -1381,6 +1410,10 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     elif isinstance(astc.nast, gast.gast.withitem):
         ret = veval_ast_withitem(astc, local_field, graph, option)
+        return ret
+
+    elif isinstance(astc.nast, gast.gast.Dict):
+        ret = veval_ast_dict(astc, local_field, graph, option)
         return ret
 
     else:
