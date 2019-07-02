@@ -75,6 +75,23 @@ def auto_set_unset(func, flag):
         return ret
     return decorated
 
+def return_value_or_ref(obj : 'value.Object'):
+    if isinstance(obj.get_value(), values.NumberValue):
+        return values.ValueRef(obj.get_value())
+
+    if isinstance(obj.get_value(), values.StrValue):
+        return values.ValueRef(obj.get_value())
+
+    if isinstance(obj.get_value(), values.BoolValue):
+        return values.ValueRef(obj.get_value())
+
+    if isinstance(obj.get_value(), values.NoneValue):
+        return values.ValueRef(obj.get_value())
+
+    if isinstance(obj.get_value(), values.TupleValue):
+        return values.ValueRef(obj.get_value())
+
+    return obj
 class AstContext:
     def __init__(self, nast, lineno_offset : 'int', filename : 'str' = '' ):
         self.nast = nast
@@ -176,24 +193,6 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     with option.eval_as_written_target():
         targets = veval_ast(astc.c(astc.nast.targets[0]), local_field, graph, option)
-
-    def return_value_or_ref(obj : 'value.Object'):
-            if isinstance(obj.get_value(), values.NumberValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.StrValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.BoolValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.NoneValue):
-                return values.ValueRef(obj.get_value())
-
-            if isinstance(obj.get_value(), values.TupleValue):
-                return values.ValueRef(obj.get_value())
-
-            return obj
 
     if isinstance(targets, list):
         # ex. a,b = (1,2)
@@ -1047,24 +1046,6 @@ def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     assert(isinstance(astc.nast, gast.gast.Dict))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
-    def return_value_or_ref(obj : 'value.Object'):
-        if isinstance(obj.get_value(), values.NumberValue):
-            return values.ValueRef(obj.get_value())
-
-        if isinstance(obj.get_value(), values.StrValue):
-            return values.ValueRef(obj.get_value())
-
-        if isinstance(obj.get_value(), values.BoolValue):
-            return values.ValueRef(obj.get_value())
-
-        if isinstance(obj.get_value(), values.NoneValue):
-            return values.ValueRef(obj.get_value())
-
-        if isinstance(obj.get_value(), values.TupleValue):
-            return values.ValueRef(obj.get_value())
-
-        return obj
-
     keys = []
     elts = []
 
@@ -1315,6 +1296,8 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
         if config.show_warnings:
             print('It is possible that one of those withitem is invalid in L.{}'.format(astc.lineno))
         return None
+
+    value_obj = return_value_or_ref(value_obj)
 
     if astc.nast.optional_vars is not None:
         with option.eval_as_written_target():
