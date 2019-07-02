@@ -69,8 +69,8 @@ def main():
     testtools.generate_testcase(SimpleDictionary(), [], subname='simple_dictionary')
     testtools.generate_testcase(DictionarySubscript, [], subname='dictionary_subscript')
     testtools.generate_testcase(DictionaryAssignByValueRef, [], subname='assign_by_value_ref')
-    # testtools.generate_testcase(DictonaryIterateKeys(), [], subname='dictionary_iterate_keys')
-    # testtools.generate_testcase(DictonaryIterateValues(), [], subname='dictionary_iterate_values')
+    testtools.generate_testcase(DictonaryIterateKeys(), [], subname='dictionary_iterate_keys')
+    testtools.generate_testcase(DictonaryIterateValues(), [], subname='dictionary_iterate_values')
     # testtools.generate_testcase(DictonaryIterateItems(), [], subname='dictionary_iterate_items')
 
 
