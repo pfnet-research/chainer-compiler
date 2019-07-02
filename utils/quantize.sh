@@ -1,8 +1,12 @@
 #!/bin/bash
 
-set -ex
+set -eu
 
 SCRIPT_DIR=$(dirname "$0")
 
-export PYTHONPATH="$SCRIPT_DIR/../third_party/onnxruntime/onnxruntime/python/tools/quantization"
-python "$SCRIPT_DIR/../scripts/quantize_model.py" $1 $2
+if [ ! -f "$SCRIPT_DIR/../scripts/quantize.py" ] ; then
+    curl -L 'https://raw.githubusercontent.com/microsoft/onnxruntime/master/onnxruntime/python/tools/quantization/quantize.py' -o "$SCRIPT_DIR/../build/quantize.py"
+fi
+
+export PYTHONPATH="$SCRIPT_DIR/../build"
+python "$SCRIPT_DIR/../scripts/quantize_model.py" $@
