@@ -81,7 +81,12 @@ class FixedBatchDataset(chainer.dataset.DatasetMixin):
         return self._len
 
     def get_example(self, idx):
-        return self.dataset[idx % len(self.dataset)]
+        if idx < len(self.dataset):
+            return self.dataset[idx]
+        else:
+            x_dummy, _ = self.dataset[0]
+            t_dummy = -1
+            return x_dummy, t_dummy
 
 
 def main():
