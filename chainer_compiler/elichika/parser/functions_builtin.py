@@ -11,6 +11,23 @@ import chainer.links as L
 def create_return_value_in_chainer_function():
     return values.TensorValue()
 
+def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
+    if value is None:
+        utils.print_warning('Failed to get value in "{}".'.format(name), lineprop)
+        return None
+
+    if isinstance(value, values.Value):
+        assert(False)
+
+    if isinstance(value, values.Attribute):
+        if value.has_obj():
+            return value.get_ref()
+
+    if isinstance(value, values.ValueRef):
+        return value
+
+    return None
+
 class ChainerFunction(functions.FunctionBase):
     def __init__(self, func, ret_value_func = create_return_value_in_chainer_function):
         super().__init__()
@@ -146,6 +163,68 @@ class AppendFunction(functions.FunctionBase):
 
         graph.add_node(node)
         return values.NoneValue()
+
+
+class KeysFunction(functions.FunctionBase):
+    def __init__(self, owner):
+        super().__init__()
+        self.name = 'keys'
+        self.owner = owner
+        self.args.add_arg('self', None)
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        if inst.in_container:
+            raise Exception('Invalid operation')
+
+        keys = inst.get_value().internal_keys
+
+        vargs = []
+        vargs_value = []
+        for varg in keys:
+            vargs.append(try_get_ref(varg, 'keys', utils.LineProperty()))
+            vargs_value.append(try_get_ref(varg, 'keys', utils.LineProperty()).get_value())
+
+        node = nodes.NodeGenerate('List', vargs_value , line)
+        graph.add_node(node)
+
+        value = values.ListValue(vargs)
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return value
+
+
+class ValuesFunction(functions.FunctionBase):
+    def __init__(self, owner):
+        super().__init__()
+        self.name = 'values'
+        self.owner = owner
+        self.args.add_arg('self', None)
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        if inst.in_container:
+            raise Exception('Invalid operation')
+
+        key_refs = inst.get_value().internal_keys
+        attributes = inst.get_value().internal_values
+        vargs = []
+        for key in key_refs:
+            varg = attributes.get_attribute(key.get_value().encode())
+            if varg.has_obj():
+                vargs.append(varg.get_ref().get_value())
+            else:
+                assert(False)
+
+        node = nodes.NodeGenerate('List', vargs , line)
+        graph.add_node(node)
+
+        value = values.ListValue()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return value
 
 
 class VEvalOptionFunction(functions.FunctionBase):

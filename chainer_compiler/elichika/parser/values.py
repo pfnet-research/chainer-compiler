@@ -836,6 +836,7 @@ class ListValue(Value):
 class DictValue(Value):
     def __init__(self, keys=None, values=None):
         super().__init__()
+        # TODO(rchouras): Keys like 'True' and 1 map to same hash. This redundance need to be removed.
         self.internal_keys = keys
         self.internal_values = Field()
         self.key_dtype = None
@@ -859,7 +860,13 @@ class DictValue(Value):
     #     return
 
     def apply_to_object(self, obj: 'ValueRef'):
-        return
+        keys_func = ValueRef(
+            FuncValue(functions_builtin.KeysFunction(self), obj, None))
+        obj.attributes.get_attribute('keys').revise(keys_func)
+
+        values_func = ValueRef(
+            FuncValue(functions_builtin.ValuesFunction(self), obj, None))
+        obj.attributes.get_attribute('values').revise(values_func)
 
     def __str__(self):
         return self.name + '(D)'
