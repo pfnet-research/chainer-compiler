@@ -68,6 +68,30 @@ class ValTransform(object):
         return img, label
 
 
+class FixedBatchDataset(chainer.dataset.DatasetMixin):
+    # Make the dataset size multiple of the batch-size by augmentation
+
+    def __init__(self, dataset, batchsize, ignore_label=-1):
+        # `ignore_label` should be consistent with
+        # https://docs.chainer.org/en/stable/reference/generated/chainer.functions.softmax_cross_entropy.html
+        self.dataset = dataset
+        self.batchsize = batchsize
+        self.ignore_label = ignore_label
+        d = len(self.dataset)
+        self._len = ((d + batchsize - 1) // batchsize) * batchsize
+
+    def __len__(self):
+        return self._len
+
+    def get_example(self, idx):
+        if idx < len(self.dataset):
+            return self.dataset[idx]
+        else:
+            x_dummy, _ = self.dataset[0]
+            t_dummy = self.ignore_label
+            return x_dummy, t_dummy
+
+
 def main():
     model_cfgs = {
         'resnet50': {'class': ResNet50, 'score_layer_name': 'fc6',
@@ -102,6 +126,10 @@ def main():
     parser.add_argument('--weight-decay', type=float, default=0.0001)
     parser.add_argument('--out', type=str, default='result')
     parser.add_argument('--epoch', type=int, default=90)
+    parser.add_argument('--no_use_fixed_batch_dataset',
+                        dest='use_fixed_batch_dataset',
+                        action='store_false',
+                        help='Disable the use of FixedBatchDataset')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -181,6 +209,9 @@ def main():
     val_indices = chainermn.scatter_dataset(val_indices, comm, shuffle=True)
     train_data = train_data.slice[train_indices]
     val_data = val_data.slice[val_indices]
+    if args.use_fixed_batch_dataset:
+        train_data = FixedBatchDataset(train_data, args.batchsize)
+        val_data = FixedBatchDataset(val_data, args.batchsize)
     train_iter = chainer.iterators.MultiprocessIterator(
         train_data, args.batchsize, n_processes=args.loaderjob)
     val_iter = iterators.MultiprocessIterator(

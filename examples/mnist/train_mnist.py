@@ -30,6 +30,30 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
+class FixedBatchDataset(chainer.dataset.DatasetMixin):
+    # Make the dataset size multiple of the batch-size by augmentation
+
+    def __init__(self, dataset, batchsize, ignore_label=-1):
+        # `ignore_label` should be consistent with
+        # https://docs.chainer.org/en/stable/reference/generated/chainer.functions.softmax_cross_entropy.html
+        self.dataset = dataset
+        self.batchsize = batchsize
+        self.ignore_label = ignore_label
+        d = len(self.dataset)
+        self._len = ((d + batchsize - 1) // batchsize) * batchsize
+
+    def __len__(self):
+        return self._len
+
+    def get_example(self, idx):
+        if idx < len(self.dataset):
+            return self.dataset[idx]
+        else:
+            x_dummy, _ = self.dataset[0]
+            t_dummy = self.ignore_label
+            return x_dummy, t_dummy
+
+
 def fake_dataset():
     def gen(size):
         inputs = []
@@ -87,6 +111,10 @@ def main():
     parser.add_argument('--use_unified_memory', dest='use_unified_memory',
                         action='store_true',
                         help='Use unified memory for large model')
+    parser.add_argument('--no_use_fixed_batch_dataset',
+                        dest='use_fixed_batch_dataset',
+                        action='store_false',
+                        help='Disable the use of FixedBatchDataset')
     args = parser.parse_args()
 
     device = chainer.get_device(args.device)
@@ -137,6 +165,10 @@ def main():
         train, test = fake_dataset()
     else:
         train, test = chainer.datasets.get_mnist()
+
+    if args.use_fixed_batch_dataset:
+        train = FixedBatchDataset(train, args.batchsize)
+        test = FixedBatchDataset(test, args.batchsize)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
