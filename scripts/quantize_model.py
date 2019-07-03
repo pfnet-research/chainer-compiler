@@ -21,8 +21,7 @@ def main():
     parser.add_argument('output')
     args = parser.parse_args()
 
-    if args.no_per_channel:
-        args.per_channel = False
+    args.per_channel = not args.no_per_channel
     del args.no_per_channel
 
     if args.quantization_mode == 'QLinear':
