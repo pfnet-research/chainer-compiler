@@ -66,6 +66,9 @@ std::shared_ptr<runtime::ChxVM> Compile(
         const std::string& autotvm_log,
         bool use_ngraph,
         const std::string& ngraph_device,
+        bool use_dldt,
+        bool use_dldt_fp16,
+        const std::string& dldt_device,
         const std::string& backend_name,
         bool reset_shape,
         bool reset_output_shape,
@@ -87,6 +90,9 @@ std::shared_ptr<runtime::ChxVM> Compile(
     g_autotvm_log = autotvm_log;
     g_use_ngraph = use_ngraph;
     g_ngraph_device = ngraph_device;
+    g_use_dldt = use_dldt;
+    g_use_dldt_fp16 = use_dldt_fp16;
+    g_dldt_device = dldt_device;
     g_backend_name = backend_name;
     g_reset_shape = reset_shape;
     g_reset_output_shape = reset_output_shape;
@@ -199,6 +205,9 @@ void InitGraph(py::module& m) {
           "autotvm_log"_a = "",
           "use_ngraph"_a = false,
           "ngraph_device"_a = "",
+          "use_dldt"_a = false,
+          "use_dldt_fp16"_a = false,
+          "dldt_device"_a = "",
           "backend_name"_a = "",
           "reset_shape"_a = false,
           "reset_output_shape"_a = false,
