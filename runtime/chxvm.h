@@ -49,7 +49,6 @@ public:
     bool catch_exception{true};
 
     bool dump_memory_usage{false};
-    bool dump_peak_memory_usage{false};
     int64_t base_memory_usage{0};
 
     ChromeTracingEmitter* chrome_tracing{nullptr};
