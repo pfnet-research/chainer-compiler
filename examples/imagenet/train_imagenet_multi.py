@@ -130,6 +130,18 @@ def main():
                         dest='use_fixed_batch_dataset',
                         action='store_false',
                         help='Disable the use of FixedBatchDataset')
+    parser.add_argument('--compiler-log', action='store_true',
+                        help='Enables compile-time logging')
+    parser.add_argument('--trace', action='store_true',
+                        help='Enables runtime tracing')
+    parser.add_argument('--verbose', action='store_true',
+                        help='Enables runtime verbose log')
+    parser.add_argument('--skip_runtime_type_check', action='store_true',
+                        help='Skip runtime type check')
+    parser.add_argument('--dump_memory_usage', action='store_true',
+                        help='Dump memory usage')
+    parser.add_argument('--quiet_period', type=int, default=0,
+                        help='Quiet period after runtime report')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -179,11 +191,28 @@ def main():
                 chainer.using_config('train', False):
             x = extractor.xp.zeros((1, 3, 224, 224)).astype('f')
             extractor(x)
+
+        compiler_kwargs = {}
+        if args.compiler_log:
+            compiler_kwargs['compiler_log'] = True
+        runtime_kwargs = {}
+        if args.trace:
+            runtime_kwargs['trace'] = True
+        if args.verbose:
+            runtime_kwargs['verbose'] = True
+        if args.skip_runtime_type_check:
+            runtime_kwargs['check_types'] = False
+        if args.dump_memory_usage:
+            runtime_kwargs['dump_memory_usage'] = True
+
         extractor_cc = chainer_compiler.compile_onnx(
             extractor,
             args.compile,
             'onnx_chainer',
-            computation_order=args.computation_order)
+            computation_order=args.computation_order,
+            compiler_kwargs=compiler_kwargs,
+            runtime_kwargs=runtime_kwargs,
+            quiet_period=args.quiet_period)
         model = Classifier(extractor_cc)
     else:
         print('run vanilla chainer model')

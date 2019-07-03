@@ -195,7 +195,9 @@ void ChxVM::Run(ChxVMState* state) {
                 peak_total_mbs = std::max(total_mbs, peak_total_mbs);
                 report = StrCat(report, " allocated=", total_mbs, "MB");
             }
-            std::cerr << report << std::endl;
+            if (options.dump_memory_usage) {
+                std::cerr << report << std::endl;
+            }
         }
     }
 
