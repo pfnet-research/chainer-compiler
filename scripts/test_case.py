@@ -9,7 +9,7 @@ def makedirs(d):
 class TestCase(object):
 
     def __init__(self, basedir=None, name=None, test_dir=None,
-                 rtol=None, atol=None, fail=False,
+                 rtol=None, atol=None, equal_nan=False, fail=False,
                  skip_shape_inference=False,
                  want_gpu=False,
                  prepare_func=None,
@@ -25,6 +25,7 @@ class TestCase(object):
 
         self.rtol = rtol
         self.atol = atol
+        self.equal_nan = equal_nan
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
         self.args = None

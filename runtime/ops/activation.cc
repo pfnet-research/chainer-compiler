@@ -1,11 +1,11 @@
 #include <limits>
 
 #include <chainerx/kernels/misc.h>
+#include <chainerx/routines/activation.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/explog.h>
 #include <chainerx/routines/hyperbolic.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 #include <chainerx/routines/reduction.h>
 
 #include <common/log.h>

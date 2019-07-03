@@ -22,7 +22,6 @@
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -63,8 +62,15 @@ bool g_quiet;
 #define LOG() \
     if (!g_quiet) std::cerr
 
+bool IsDir(const std::string& filename) {
+    struct stat st;
+    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+    return S_IFDIR == (st.st_mode & S_IFMT);
+}
+
 std::vector<std::string> ListDir(const std::string& dirname) {
     DIR* dir = opendir(dirname.c_str());
+    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
     std::vector<std::string> filenames;
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
@@ -120,7 +126,9 @@ void ReadTestDir(
         const std::vector<std::string>& output_names,
         std::vector<std::unique_ptr<TestCase>>* test_cases) {
     for (const std::string& data_set_dir : ListDir(test_path)) {
-        if (!HasPrefix(Basename(data_set_dir), "test_data_set_")) continue;
+        if (!HasPrefix(Basename(data_set_dir), "test_data_set_") || !IsDir(data_set_dir)) {
+            continue;
+        }
         std::unique_ptr<TestCase> test_case(new TestCase);
         test_case->name = data_set_dir;
         size_t input_index = 0;
@@ -243,6 +251,7 @@ ChxVMVar* StageVar(ChxVMVar* var) {
         }
 
         case ChxVMVar::Kind::kNone:
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var->DebugString();
@@ -293,7 +302,7 @@ public:
         }
         chxvm_opts_.trace_level = trace_level();
         chxvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
-        chxvm_opts_.check_types = true;
+        chxvm_opts_.check_types = !args_.exist("skip_runtime_type_check");
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
@@ -446,6 +455,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 case ChxVMVar::Kind::kSequence:
                     return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
                 case ChxVMVar::Kind::kNone:
+                case ChxVMVar::Kind::kString:
                 case ChxVMVar::Kind::kOpaque:
                 case ChxVMVar::Kind::kUndefined:
                     CHECK(false) << v->DebugString();
@@ -469,12 +479,9 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
             }
             if (!strict_check) return true;
 
-            int mismatch = MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"));
+            int mismatch =
+                    MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"), args.exist("equal_nan"));
             if (mismatch) {
-                if (expected.GetTotalSize() == 1 && static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(expected))) &&
-                    static_cast<bool>(chainerx::AsScalar(chainerx::IsNan(actual)))) {
-                    return true;
-                }
                 fail("value");
                 int total_size = expected.GetTotalSize();
                 LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
@@ -514,6 +521,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
             }
 
             case ChxVMVar::Kind::kNone:
+            case ChxVMVar::Kind::kString:
             case ChxVMVar::Kind::kOpaque:
             case ChxVMVar::Kind::kUndefined:
                 CHECK(false) << expected->DebugString();
@@ -538,10 +546,13 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
     args.add<std::string>("out_chxvm", '\0', "Output ChxVM program", false);
     args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of ChxVM ops to this directory", false);
+    args.add<std::string>("report_json", '\0', "Dump report in a JSON", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
+    args.add("equal_nan", '\0', "Treats NaN equal");
     args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
+    args.add("skip_runtime_type_check", '\0', "Skip runtime type check");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
@@ -573,9 +584,7 @@ void RunMain(const std::vector<std::string>& argv) {
             QFAIL() << "No target testdir/onnx is specified";
         } else if (args.rest().size() == 1) {
             const std::string& filename = args.rest()[0];
-            struct stat st;
-            CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
-            if (S_IFDIR == (st.st_mode & S_IFMT)) {
+            if (IsDir(filename)) {
                 test_path = filename;
             } else {
                 onnx_path = filename;
@@ -657,6 +666,7 @@ void RunMain(const std::vector<std::string>& argv) {
 
     if (args.exist("compile_only")) return;
 
+    std::vector<double> elapsed_times;
     double total_elapsed = 0;
     double best_elapsed = 0;
     int test_cnt = 0;
@@ -704,8 +714,13 @@ void RunMain(const std::vector<std::string>& argv) {
         // The first iteration is for warm up.
         if (test_case != test_cases.front()) total_elapsed += elapsed;
         if (best_elapsed == 0 || best_elapsed > elapsed) best_elapsed = elapsed;
+        elapsed_times.push_back(elapsed);
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
+
+    if (elapsed_times.size() > 1) {
+        elapsed_times.erase(elapsed_times.begin());
+    }
 
     if (iterations > 1) {
         // The first iteration is for warm up.
@@ -721,6 +736,13 @@ void RunMain(const std::vector<std::string>& argv) {
             double best_gflops_sec = flops / best_elapsed / 1000 / 1000;
             std::cerr << "Best elapsed: " << best_elapsed << " msec (" << best_gflops_sec << " GFLOPs/sec)" << std::endl;
         }
+    }
+
+    const std::string& report_json = args.get<std::string>("report_json");
+    if (!report_json.empty()) {
+        std::ofstream ofs(report_json);
+        // TODO(hamaji): Output more information using nlohmann/json.
+        ofs << "{\"elapsed_times\": [ " << JoinString(MapToString(elapsed_times, [](double t) { return StrCat(t); })) << " ]}";
     }
 }
 

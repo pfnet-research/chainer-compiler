@@ -46,5 +46,9 @@ protected:
 
 ChxVMOp* MakeChxVMOp(const XCInstructionProto& inst);
 
+inline std::ostream& operator<<(std::ostream& os, XCInstructionProto::Op op) {
+    return os << XCInstructionProto::Op_Name(op);
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

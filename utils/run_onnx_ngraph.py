@@ -3,13 +3,14 @@ import glob
 import logging
 import os
 import sys
-import time
 
 import numpy as np
 import onnx
 import onnx.numpy_helper
 import ngraph as ng
 from ngraph_onnx.onnx_importer.importer import import_onnx_model
+
+import run_onnx_util
 
 
 def load_test_data(data_dir, input_names, output_names):
@@ -90,22 +91,23 @@ def run(args):
         print('%s: OK' % name)
     print('ALL OK')
 
-    if args.iterations > 1:
-        num_iterations = args.iterations - 1
-        start = time.time()
-        for t in range(num_iterations):
-            computation(*inputs)
-        elapsed = time.time() - start
-        print('Elapsed: %.3f msec' % (elapsed * 1000 / num_iterations))
+    def compute():
+        computation(*inputs)
+
+    return run_onnx_util.run_benchmark(compute, args.iterations)
 
 
-def main():
+def get_args(args=None):
     parser = argparse.ArgumentParser(description='Run ONNX by TensorRT')
     parser.add_argument('test_dir')
     parser.add_argument('--backend', '-b', default='CPU')
     parser.add_argument('--debug', '-g', action='store_true')
     parser.add_argument('--iterations', '-I', type=int, default=1)
-    args = parser.parse_args()
+    return parser.parse_args(args=args)
+
+
+def main():
+    args = get_args()
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)

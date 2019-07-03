@@ -2,8 +2,8 @@
 
 #include <map>
 
+#include <chainerx/routines/logic.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 #include <chainerx/routines/reduction.h>
 
 #include <common/log.h>
@@ -232,6 +232,7 @@ bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxV
             }
             return false;
         case ChxVMVar::Kind::kNone:
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kUndefined:
             return false;

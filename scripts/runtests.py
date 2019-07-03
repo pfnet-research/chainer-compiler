@@ -193,10 +193,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_DOUBLE'),
     TestCase(NODE_TEST, 'test_cast_FLOAT_to_FLOAT16'),
 
-    # TODO(ChainerX): Support non-2D dot.
-    # terminate called after throwing an instance of 'chainerx::NotImplementedError'
-    #   what():  dot does not support rhs operand with ndim > 2
     TestCase(NODE_TEST, 'test_matmul_2d'),
+    TestCase(NODE_TEST, 'test_matmul_3d'),
+    TestCase(NODE_TEST, 'test_matmul_4d'),
 
     TestCase(NODE_TEST, 'test_basic_conv_with_padding'),
     TestCase(NODE_TEST, 'test_basic_conv_without_padding'),
@@ -427,6 +426,24 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_isinf'),
 
     TestCase(NODE_TEST, 'test_where_example'),
+    TestCase(NODE_TEST, 'test_quantizelinear'),
+    TestCase(NODE_TEST, 'test_dequantizelinear'),
+    TestCase(NODE_TEST, 'test_qlinearmatmul_2D'),
+    TestCase(NODE_TEST, 'test_qlinearmatmul_3D'),
+    TestCase(NODE_TEST, 'test_qlinearconv'),
+    TestCase(NODE_TEST, 'test_convinteger_with_padding'),
+    TestCase(NODE_TEST, 'test_basic_convinteger'),
+    TestCase(NODE_TEST, 'test_matmulinteger'),
+    TestCase(NODE_TEST, 'test_round'),
+    TestCase(NODE_TEST, 'test_bitshift_left_uint8'),
+    TestCase(NODE_TEST, 'test_bitshift_right_uint8'),
+    # TODO(take-cheeze): Support larger unsigned int types
+    # TestCase(NODE_TEST, 'test_bitshift_left_uint64'),
+    # TestCase(NODE_TEST, 'test_bitshift_left_uint32'),
+    # TestCase(NODE_TEST, 'test_bitshift_left_uint16'),
+    # TestCase(NODE_TEST, 'test_bitshift_right_uint64'),
+    # TestCase(NODE_TEST, 'test_bitshift_right_uint32'),
+    # TestCase(NODE_TEST, 'test_bitshift_right_uint16'),
 ]
 
 TEST_CASES += [
@@ -533,7 +550,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_pad', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_params'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_permute2'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_pow', fail=True),
+    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_pow', equal_nan=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_mean'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_mean_keepdim'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_reduced_sum'),
@@ -541,7 +558,7 @@ TEST_CASES += [
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_repeat', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_repeat_dim_overflow', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_selu'),
-    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_sqrt', fail=True),
+    TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_sqrt', equal_nan=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_symbolic_override', fail=True),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_symbolic_override_nested'),
     TestCase(ONNX_TEST_DATA, 'pytorch-operator/test_operator_view', fail=True),
@@ -789,6 +806,8 @@ def main():
             test_case.args += ['--rtol', str(test_case.rtol)]
         if test_case.atol is not None:
             test_case.args += ['--atol', str(test_case.atol)]
+        if test_case.equal_nan:
+            test_case.args += ['--equal_nan']
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
         if test_case.is_backprop_two_phase:

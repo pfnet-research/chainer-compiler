@@ -45,6 +45,7 @@ public:
         kScalar,
         kShape,
         kUndefined,
+        kString,
         kNone,
     };
 
@@ -58,6 +59,7 @@ public:
     explicit ChxVMVar(std::shared_ptr<ChxVMSequence> seq);
     explicit ChxVMVar(chainerx::Shape shape);
     explicit ChxVMVar(StrictScalar scalar);
+    explicit ChxVMVar(const std::vector<std::string>& str);
     explicit ChxVMVar(const ChxVMVar&) = default;
 
     const chainerx::Array& GetArray() const;
@@ -92,6 +94,7 @@ private:
             StrictScalar,
             chainerx::Shape,
             UndefinedType,
+            std::vector<std::string>,
             NoneType>;
     mutable VarInternalType val_;
 };

@@ -247,7 +247,8 @@ def gen_gen_chxvm_ops_cc():
                                  (name, name))
             if conds:
                 lines.append('if (%s) {' % (' || '.join(conds)))
-                lines.append('WARN_ONCE("%s skipped\\n");' % op.name)
+                lines.append('WARN_ONCE("%s skipped due to null gradients");' %
+                             op.name)
                 for typ, oname in op.outputs:
                     if typ in ARG_TYPES and typ != ARRAY_LIST:
                         lines.append('st->SetVar(%s, ChxVMVar());' % oname)

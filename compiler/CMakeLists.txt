@@ -8,6 +8,8 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   add_definitions(-DCHAINER_COMPILER_ENABLE_PYTHON=1)
 endif()
 
+add_definitions(-DCHAINER_COMPILER_DLDT_DIR=\"${CHAINER_COMPILER_DLDT_DIR}\")
+
 add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.h
@@ -92,9 +94,8 @@ add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
   COMMAND
-  rm -rf data/mnist* &&
   mkdir -p data && cd data &&
-  wget https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
+  wget --continue https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
   tar -xvzf mnist.tar.gz
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
   )
@@ -102,9 +103,8 @@ add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
   COMMAND
-  rm -rf data/resnet50* &&
   mkdir -p data && cd data &&
-  wget https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
+  wget --continue https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
   tar -xvzf resnet50.tar.gz
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt"
   )

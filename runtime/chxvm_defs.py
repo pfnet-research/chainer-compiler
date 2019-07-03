@@ -400,6 +400,28 @@ XC_OPS = [
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],
      [ArrayList('outputs')]),
+
+    ('QuantizeLinear',
+     [Array('x'), Scalar('y_scale'), OptionalScalar('y_zero_point')],
+     [Array('y')]),
+    ('DequantizeLinear',
+     [Array('x'), Scalar('x_scale'), OptionalScalar('x_zero_point')],
+     [Array('y')]),
+    ('QLinearConv',
+     [Array('x'), Scalar('x_scale'), Scalar('x_zero_point'),
+      Array('w'), Array('w_scale'), Array('w_zero_point'),
+      Scalar('y_scale'), Scalar('y_zero_point'), OptionalArray('b'),
+      Ints('strides'), Ints('pads'), Int('group')], ['y']),
+    ('MatMulInteger',
+     [Array('a'), Array('b'),
+      OptionalArray('a_zero_point'), OptionalArray('b_zero_point')],
+     [Array('y')]),
+    ('ConvInteger',
+     [Array('x'), Array('w'),
+      OptionalScalar('x_zero_point'), OptionalArray('w_zero_point'),
+      Ints('strides'), Ints('pads'), Int('group')], ['y']),
+    ('Round', [Array('x')], ['y']),
+    ('BitShift', [Array('x'), Array('y'), String('direction')], ['z']),
 ]
 
 XC_CUSTOM_FIELD_OPS = [
@@ -422,6 +444,7 @@ XC_CUSTOM_FIELD_OPS = [
 
 XC_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
+    ('SequenceExtend', [Sequence('a'), Sequence('b')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
@@ -457,7 +480,7 @@ XC_SEQ_OPS_UNTYPED = [
     ('SequenceClear', [Sequence('seq')], []),
     ('SequenceAppend', [Sequence('seq'), Array('value')],
      []),
-    ('SequencePop', [Sequence('seq')], [Sequence('output')]),
+    ('SequencePop', [Sequence('seq')], ['output']),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 

@@ -20,13 +20,13 @@ class Break(unittest.TestCase):
         target_code = utils.clip_head("""
         x = 0
         for i in range(10):
-            breaked_0 = False
+            breaked_1 = False
             if i == 5:
-                breaked_0 = True
-            if not breaked_0:
+                breaked_1 = True
+            if not breaked_1:
                 x += i
-            keepgoing = not breaked_0
-            if breaked_0:
+            keepgoing = not breaked_1
+            if breaked_1:
                 break
         """)
         orig_ast = gast.ast_to_gast(ast.parse(orig_code))
@@ -51,21 +51,21 @@ class Break(unittest.TestCase):
         target_code = utils.clip_head("""
         x = 0
         for i in range(10):
-            breaked_0 = False
+            breaked_1 = False
             if i == 5:
-                breaked_0 = True
-            if not breaked_0:
+                breaked_1 = True
+            if not breaked_1:
                 for j in range(10):
-                    breaked_1 = False
+                    breaked_2 = False
                     if j == 5:
-                        breaked_1 = True
-                    if not breaked_1:
+                        breaked_2 = True
+                    if not breaked_2:
                         x += i * j
-                    keepgoing = not breaked_1
-                    if breaked_1:
+                    keepgoing = not breaked_2
+                    if breaked_2:
                         break
-            keepgoing = not breaked_0
-            if breaked_0:
+            keepgoing = not breaked_1
+            if breaked_1:
                 break
         """)
         orig_ast = gast.ast_to_gast(ast.parse(orig_code))

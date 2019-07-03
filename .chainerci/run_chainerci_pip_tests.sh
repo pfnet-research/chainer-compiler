@@ -33,4 +33,4 @@ python3 -m pytest -sv tests
 EOM
 
 docker run --runtime=nvidia --memory-swap=-1 --rm -v=$(pwd):/chainer-compiler --workdir=/chainer-compiler \
-    disktnk/chainer-compiler:ci-base-7c293fc /bin/bash /chainer-compiler/runtest.sh
+    disktnk/chainer-compiler:ci-base-22b692b /bin/bash /chainer-compiler/runtest.sh

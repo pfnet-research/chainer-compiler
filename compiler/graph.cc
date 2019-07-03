@@ -226,6 +226,13 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         q.push(value->producer());
     }
 
+    // Nodes without any outputs are always necessary (e.g., ChainerPrint).
+    for (Node* node : nodes_) {
+        if (node->outputs().empty()) {
+            q.push(node);
+        }
+    }
+
     // All node in this graph for sanity check.
     std::set<Node*> node_set(nodes_.begin(), nodes_.end());
 
@@ -244,13 +251,6 @@ std::map<Node*, int> Graph::GetNecessaryNodesAndInputCounts(const std::vector<Va
         for (const Value* input : node->inputs()) {
             q.push(input->producer());
             for (Node* node : input->users()) {
-                if (node->outputs().empty()) q.push(node);
-            }
-        }
-
-        // Nodes without any outputs are always necessary (e.g., ChainerPrint).
-        for (const Value* output : node->outputs()) {
-            for (Node* node : output->users()) {
                 if (node->outputs().empty()) q.push(node);
             }
         }

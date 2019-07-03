@@ -3,7 +3,6 @@ import glob
 import logging
 import os
 import sys
-import time
 
 import chainer
 import cupy
@@ -11,6 +10,8 @@ import numpy as np
 import onnx
 import onnx.numpy_helper
 import tensorrt
+
+import run_onnx_util
 
 
 def to_gpu(arrays):
@@ -132,30 +133,31 @@ def run(args):
     for i, (name, expected, actual) in enumerate(
             zip(output_names, outputs, actual_outputs)):
         np.testing.assert_allclose(expected, actual,
-                                   rtol=1e-3, atol=1e-4), name
+                                   rtol=args.rtol, atol=args.atol), name
         print('%s: OK' % name)
     print('ALL OK')
 
-    elapsed_times = []
-    if args.iterations > 1:
-        num_iterations = args.iterations - 1
-        for t in range(num_iterations):
-            start = time.time()
-            context.execute(args.batch_size, bindings)
-            cupy.cuda.device.Device().synchronize()
-            elapsed_times.append(time.time() - start)
-        print('Elapsed: %.3f msec' % (sum(elapsed_times) * 1000 / num_iterations))
-    return elapsed_times
+    def compute():
+        context.execute(args.batch_size, bindings)
+        cupy.cuda.device.Device().synchronize()
+
+    return run_onnx_util.run_benchmark(compute, args.iterations)
 
 
-def main():
+def get_args(args=None):
     parser = argparse.ArgumentParser(description='Run ONNX by TensorRT')
     parser.add_argument('test_dir')
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--debug', '-g', action='store_true')
     parser.add_argument('--iterations', '-I', type=int, default=1)
     parser.add_argument('--fp16_mode', action='store_true')
-    args = parser.parse_args()
+    parser.add_argument('--rtol', type=float, default=1e-3)
+    parser.add_argument('--atol', type=float, default=1e-4)
+    return parser.parse_args(args=args)
+
+
+def main():
+    args = get_args()
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)

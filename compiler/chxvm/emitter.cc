@@ -251,6 +251,7 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
         EMIT_SIMPLE_UNARY_OP(Node::kIsInf, IsInf);
         EMIT_SIMPLE_UNARY_OP(Node::kSign, Sign);
+        EMIT_SIMPLE_UNARY_OP(Node::kRound, Round);
 
         EMIT_SIMPLE_BINARY_OP(Node::kAdd, Add);
         EMIT_SIMPLE_BINARY_OP(Node::kSub, Sub);
@@ -604,6 +605,8 @@ private:
                 EMIT(SequenceCopy, o, in(0));
                 EMIT(SequenceAppend, o.id(), in(1));
             }
+        } else if (node.op_type() == Node::kChainerSequenceExtend) {
+            EMIT(SequenceExtend, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kChainerSequencePop) {
             ChxVMValue o0(out(0));
             if (node.input(0)->users().size() == 1) {
@@ -652,6 +655,37 @@ private:
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(Where, out(0), in(0), in(1), in(2));
+        } else if (node.op_type() == Node::kQuantizeLinear) {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(QuantizeLinear, out(0), in(0), in(1), oin(2));
+        } else if (node.op_type() == Node::kDequantizeLinear) {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(3UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(DequantizeLinear, out(0), in(0), in(1), oin(2));
+        } else if (node.op_type() == Node::kQLinearConv) {
+            CHECK_LE(8UL, node.inputs().size());
+            CHECK_GE(9UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            // TODO(ChainerX): Support dilation.
+            for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
+            EMIT(QLinearConv, out(0), in(0), in(1), in(2), in(3), in(4), in(5), in(6), in(7), oin(8), strides(), pads(), node.group());
+        } else if (node.op_type() == Node::kMatMulInteger) {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(4UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(MatMulInteger, out(0), in(0), in(1), oin(2), oin(3));
+        } else if (node.op_type() == Node::kConvInteger) {
+            CHECK_LE(2UL, node.inputs().size());
+            CHECK_GE(4UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group());
+        } else if (node.op_type() == Node::kBitShift) {
+            CHECK_EQ(2UL, node.inputs().size());
+            CHECK_EQ(1UL, node.outputs().size());
+            EMIT(BitShift, out(0), in(0), in(1), node.direction());
         } else {
             CHECK(false) << "Unsupported op: " << node.op_type();
         }
@@ -910,8 +944,13 @@ private:
                 CHECK(xmodel.SerializeToOstream(&ofs));
             }
 
+            const char* dldt_dir_env = getenv("CHAINER_COMPILER_DLDT_DIR");
+            std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
+            CHECK(!dldt_dir.empty()) << "CHAINER_COMPILER_DLDT_DIR is not set properly";
             const std::string cmdline =
-                    StrCat("python3 dldt/model-optimizer/mo_onnx.py"
+                    StrCat("python3 ",
+                           dldt_dir,
+                           "/model-optimizer/mo_onnx.py"
                            " --input_model ",
                            onnx_path,
                            " --model_name ",

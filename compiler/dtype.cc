@@ -175,6 +175,9 @@ int Dtype::SizeOf() const {
             return 4;
         case kFloat64:
             return 8;
+        case kString:
+            // TODO(take-cheeze): Make size accurate
+            return 0;
         default:
             CHECK(false) << "Unknown data type: " << ToString();
     }

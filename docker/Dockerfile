@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-cudnn7-devel AS ngraph
+FROM nvidia/cuda:10.1-cudnn7-devel AS ngraph
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -23,7 +23,7 @@ RUN apt-get update -y && \
 # NOTE(disktnk): failed with '-DNGRAPH_GPU_ENABLE=TRUE', stop using CUDA enabled
 # NOTE(disktnk): cannot build python bind with multiprocess
 RUN ln -s /usr/bin/python3 /usr/bin/python
-ARG NGRAPH_VERSION="0.19.0"
+ARG NGRAPH_VERSION="0.21.0"
 RUN git clone https://github.com/NervanaSystems/ngraph.git -b v${NGRAPH_VERSION} && \
     mkdir ngraph/build && cd ngraph/build && \
     cmake .. \
@@ -46,15 +46,15 @@ RUN cd ngraph/python && \
     python3 -m pip install --user numpy && \
     python3 setup_.py bdist_wheel && \
     python3 -m pip install --user -U dist/*.whl && rm -rf build
-ARG NGRAPH_ONNX_VERSION="0.14.0"
+ARG NGRAPH_ONNX_VERSION="0.21.0"
 RUN cd ngraph && \
     git clone https://github.com/NervanaSystems/ngraph-onnx.git -b v${NGRAPH_ONNX_VERSION} && \
     cd ngraph-onnx && \
     python3 -m pip install --user -r requirements.txt && \
     python3 -m pip install --user -r requirements_test.txt && \
-    python3 -m pip install --user -e .
+    python3 -m pip install --user .
 
-FROM nvidia/cuda:10.0-cudnn7-devel AS tvm
+FROM nvidia/cuda:10.1-cudnn7-devel AS tvm
 # TVM Build, referenced Dockerfile.demo_gpu
 # NOTE(disktnk): official installer does not copy header file
 ARG TVM_VERSION="0.5"
@@ -93,9 +93,24 @@ RUN mkdir -p /usr/tvm/3rdparty/dlpack/build && \
     cd /usr/tvm/3rdparty/dlpack/build && \
     cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/dlpack_dist && \
     make && make install
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+    python3-dev \
+    python3-pip \
+    python3-setuptools && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+# hot fix to enable topi module
+RUN ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
+ENV LD_LIBRARY_PATH=/root/tvm_dist/lib:/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH
+RUN cd /usr/tvm/python && python3 setup.py install --user && \
+    cd ../topi/python && python3 setup.py install --user && \
+    cd ../../nnvm/python && python3 setup.py install --user
 
 FROM ubuntu:18.04 AS dldt
-ARG DLDT_VERSION="2019_R1.1"
+# TODO(hamaji): Use the official repository again once the
+# ShuffleNet units issue is fixed. See:
+# https://github.com/opencv/dldt/pull/193 
+ARG DLDT_VERSION="fuse-split-fix"
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
     python3-dev \
@@ -114,7 +129,7 @@ RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
     sudo dpkg -i *.deb
 RUN python3 -m pip install cython
-RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} && \
+RUN git clone https://github.com/shinh/dldt.git --recursive -b ${DLDT_VERSION} && \
     cd dldt/inference-engine && \
     bash install_dependencies.sh && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* && \
@@ -123,13 +138,14 @@ RUN git clone https://github.com/opencv/dldt.git --recursive -b ${DLDT_VERSION} 
         -DCMAKE_INSTALL_PREFIX=$HOME/dldt_dist \
         -DCMAKE_BUILD_TYPE=Release \
         -DGEMM=OPENBLAS \
+        -DPYTHON_EXECUTABLE=$(which python3) \
         -DENABLE_PYTHON=ON \
     && \
     make -j4 && make install && \
     cd .. && rm -rf build
 RUN cd dldt/model-optimizer && python3 -m pip install --user -r requirements_onnx.txt
 
-FROM nvidia/cuda:10.0-cudnn7-devel AS ci-base
+FROM nvidia/cuda:10.1-cudnn7-devel AS ci-base
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -156,10 +172,10 @@ RUN echo deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 COPY --from=ngraph /root/ngraph_dist /root/ngraph_dist
 COPY --from=ngraph /root/.local /root/.local
-COPY --from=tvm /root/tvm_dist /usr/local/
-COPY --from=tvm /root/dmlc_core_dist /usr/local/
-COPY --from=tvm /root/dlpack_dist /usr/local/
-COPY --from=tvm /usr/tvm/include/tvm/runtime /usr/local/include/tvm/runtime
+COPY --from=tvm /root/tvm_dist /root/tvm_dist
+COPY --from=tvm /root/dmlc_core_dist /root/dmlc_core_dist
+COPY --from=tvm /root/dlpack_dist /root/dlpack_dist
+COPY --from=tvm /root/.local /root/.local
 RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-gmmlib_18.4.1_amd64.deb && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-igc-core_18.50.1270_amd64.deb && \
@@ -167,22 +183,20 @@ RUN mkdir neo && cd neo && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-opencl_19.04.12237_amd64.deb && \
     wget https://github.com/intel/compute-runtime/releases/download/19.04.12237/intel-ocloc_19.04.12237_amd64.deb &&\
     sudo dpkg -i *.deb
-COPY --from=dldt /root/dldt_dist /usr/local/
+COPY --from=dldt /root/dldt_dist /root/dldt_dist
 COPY --from=dldt /dldt/inference-engine/include /root/dldt/inference-engine/include
 COPY --from=dldt /dldt/inference-engine/bin/intel64/Release/lib /root/dldt/inference-engine/bin/intel64/Release/lib
 COPY --from=dldt /root/.local /root/.local
 COPY --from=dldt /dldt/model-optimizer /root/dldt/model-optimizer
-ENV PYTHONPATH=/root/dldt/model-optimizer:${PYTHONPATH}
 RUN python3 -m pip install --user decorator attrs
-ENV PYTHONPATH=/usr/tvm/python:/usr/tvm/topi/python:/usr/tvm/nnvm/python/:/usr/tvm/vta/python:${PYTHONPATH}
-ENV PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/root/.local/bin:${PATH}
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/nvidia/lib64:/root/ngraph_dist/lib:${LD_LIBRARY_PATH}
+ENV PATH=/usr/local/cuda/bin:/root/.local/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH}
 
 FROM ci-base AS dev-base
 RUN git clone --recursive https://github.com/pfnet-research/chainer-compiler.git
 RUN python3 -m pip install --user gast
 RUN export CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','chainer-compiler/third_party/chainer/chainer/_version.py').__version__)") && \
-    python3 -m pip install --user cupy-cuda100==$CHAINER_VERSION
+    python3 -m pip install --user cupy-cuda101==$CHAINER_VERSION
 RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS=-j8 \
     CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
     python3 -m pip install --user chainer-compiler/third_party/chainer[test]
@@ -194,15 +208,19 @@ RUN mkdir -p chainer-compiler/build && \
         -DCHAINER_COMPILER_ENABLE_CUDNN=ON \
         -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
         -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
+        -DCHAINER_COMPILER_ENABLE_TVM=ON \
+        -DCHAINER_COMPILER_TVM_DIR=$HOME/tvm_dist \
+        -DCHAINER_COMPILER_TVM_INCLUDE_DIRS="/root/tvm_dist/include;/root/dmlc_core_dist/include;/root/dlpack/include;/root/tvm_dist/include/HalideIR" \
         -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \
         -DCHAINER_COMPILER_DLDT_DIR=$HOME/dldt \
         -DPYTHON_EXECUTABLE=$(which python3) \
-        -DCHAINER_COMPILER_ENABLE_TVM=ON \
         -DCHAINERX_BUILD_CUDA=ON \
         -DCHAINERX_BUILD_PYTHON=ON \
         -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx \
         && \
     make -j8
+# NOTE(disktnk): to run tvm module, required libcuda.so.1
+# $ ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
 
 FROM dev-base
 LABEL author="Daisuke Tanaka <duaipp@gmail.com>"

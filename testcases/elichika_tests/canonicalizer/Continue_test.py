@@ -20,10 +20,10 @@ class Continue(unittest.TestCase):
         target_code = utils.clip_head("""
         x = 0
         for i in range(10):
-            continued_0 = False
+            continued_1 = False
             if i == 5:
-                continued_0 = True
-            if not continued_0:
+                continued_1 = True
+            if not continued_1:
                 x += i
         """)
         orig_ast = gast.ast_to_gast(ast.parse(orig_code))
@@ -48,15 +48,15 @@ class Continue(unittest.TestCase):
         target_code = utils.clip_head("""
         x = 0
         for i in range(10):
-            continued_0 = False
+            continued_1 = False
             if i == 5:
-                continued_0 = True
-            if not continued_0:
+                continued_1 = True
+            if not continued_1:
                 for j in range(10):
-                    continued_1 = False
+                    continued_2 = False
                     if j == 5:
-                        continued_1 = True
-                    if not continued_1:
+                        continued_2 = True
+                    if not continued_2:
                         x += i * j
         """)
         orig_ast = gast.ast_to_gast(ast.parse(orig_code))
@@ -84,13 +84,13 @@ class Continue(unittest.TestCase):
         x = 0
         for i in range(10):
             breaked_1 = False
-            continued_0 = False
+            continued_1 = False
             if i == 5:
-                continued_0 = True
-            if not continued_0:
+                continued_1 = True
+            if not continued_1:
                 if i == 6:
                     breaked_1 = True
-            if not continued_0 and not breaked_1:
+            if not continued_1 and not breaked_1:
                 for j in range(10):
                     breaked_2 = False
                     if j == 5:

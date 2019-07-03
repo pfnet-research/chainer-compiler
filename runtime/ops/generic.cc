@@ -25,6 +25,7 @@ int64_t GetSize(ChxVMVar* var) {
             return 1;
         case ChxVMVar::Kind::kShape:
             return var->GetShape().size();
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNone:
         case ChxVMVar::Kind::kUndefined:
@@ -98,6 +99,7 @@ void GenericGetItemOp::RunImpl(ChxVMState* st) {
         }
 
         case ChxVMVar::Kind::kNone:
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var->DebugString();
@@ -145,6 +147,7 @@ void GenericGetSliceOp::RunImpl(ChxVMState* st) {
             break;
         }
 
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kUndefined:
         case ChxVMVar::Kind::kNone:
@@ -235,6 +238,7 @@ void GenericAccumulateGradOp::RunImpl(ChxVMState* st) {
         }
 
         case ChxVMVar::Kind::kNone:
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kUndefined:
             CHECK(false) << var0->DebugString();

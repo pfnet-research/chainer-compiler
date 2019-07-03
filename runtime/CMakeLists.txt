@@ -28,6 +28,7 @@ include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CHAINER_COMPILER_DLDT_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_NGRAPH_INCLUDE_DIRS})
+include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 add_library(chainer_compiler_runtime
@@ -58,6 +59,7 @@ add_library(chainer_compiler_runtime
   ops/normalization.cc
   ops/nvrtc.cc
   ops/pooling.cc
+  ops/quantize.cc
   ops/rnn.cc
   ops/sequence.cc
   ops/something.cc

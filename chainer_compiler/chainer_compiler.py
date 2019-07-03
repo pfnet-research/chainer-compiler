@@ -1,4 +1,5 @@
 import chainer
+import chainerx
 import os
 import sys
 import tempfile
@@ -17,6 +18,8 @@ except ImportError:
         sys.path.append(os.path.join(root, 'build/chainer_compiler_cc'))
         import _chainer_compiler_core
     except ImportError:
+        # We need to allow this failure for build time (e.g., elichika
+        # testgen) import where the shared object is not ready yet.
         pass
 
 try:
@@ -180,71 +183,61 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         return gxs
 
 
-def _run_translator(translator, mc, inputs):
+def export(model, inputs, filename=None, translator='onnx_chainer'):
     if translator == 'ch2o':
         from chainer_compiler import ch2o
-        xmodel = ch2o.compile_model(mc, inputs)
-        f = tempfile.NamedTemporaryFile(delete=False)
+        xmodel = ch2o.compile_model(model, inputs)
+        if filename is None:
+            f = tempfile.NamedTemporaryFile(delete=False)
+        else:
+            f = open(filename, 'wb')
         f.write(xmodel.SerializeToString())
         f.close()
         del xmodel
     elif translator == 'onnx_chainer':
         import onnx_chainer
-        f = tempfile.NamedTemporaryFile(delete=False)
-        onnx_chainer.export(mc, inputs, filename=f)
+        if filename is None:
+            f = tempfile.NamedTemporaryFile(delete=False)
+        else:
+            f = open(filename, 'wb')
+        onnx_chainer.export(model, inputs, filename=f)
         f.close()
     else:
         raise NotImplementedError('Unsupported translator:',
                                   translator)
 
-    graph = _chainer_compiler_core.load(f.name)
-    os.unlink(f.name)
-
-    return graph
+    return f.name
 
 
 class CompiledModel(chainer.Chain):
 
-    def __init__(self, model, inputs, translator='ch2o', dump_onnx=False,
-                 computation_order=None,
-                 export_allocator=None,
-                 runtime_allocator=None):
+    def __init__(self, model, onnx_file, used_translator, dump_onnx=False,
+                 computation_order=None):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
-        self.translator = translator
+        self.used_translator = used_translator
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
-        self.export_allocator = export_allocator
-        self.runtime_allocator = runtime_allocator
 
-        if export_allocator is not None and runtime_allocator is None:
-            raise ValueError('`runtime_allocator` must be set when '
-                             ' `export_allocator` is set')
-
-        self.compiled = False
         self.param_names = None
         self.param_values = None
-        if inputs is not None:
-            self.compile(inputs)
+        # Propagate device from `model` before compiling it.
+        self.to_device(model.device)
+        self.compile(onnx_file)
 
-    def compile(self, inputs):
-        if self.export_allocator is not None:
-            cupy.cuda.set_allocator(self.export_allocator)
-        try:
-            graph = _run_translator(self.translator, self.mc, inputs)
-        finally:
-            if self.runtime_allocator is not None:
-                cupy.cuda.set_allocator(self.runtime_allocator)
-
+    def compile(self, onnx_file):
+        graph = _chainer_compiler_core.load(onnx_file)
         self.orig_output_names = graph.output_names()
 
         if self.computation_order is None:
             fwd_graph, bwd_graph = graph.backward_to(
                 graph.input_names() + graph.param_names())
+            skip_scheduling = False
         else:
             fwd_graph, bwd_graph = graph.backward_to_with_order(
                 self.computation_order)
+            skip_scheduling = True
         if self.dump_onnx:
             sys.stderr.write('=== vvv forward vvv ===\n' +
                              fwd_graph.dump() +
@@ -259,29 +252,47 @@ class CompiledModel(chainer.Chain):
         self.bwd_input_names = bwd_graph.input_names()
         self.bwd_output_names = bwd_graph.output_names()
         # TODO(hamaji): Revive shape inference.
-        self.fwd = fwd_graph.compile(skip_inference=True)
-        self.bwd = bwd_graph.compile(skip_inference=True)
+        self.fwd = fwd_graph.compile(skip_scheduling=skip_scheduling,
+                                     skip_inference=True)
+        self.bwd = bwd_graph.compile(skip_scheduling=skip_scheduling,
+                                     skip_inference=True)
         self.param_names = fwd_graph.param_names()
 
-        self.compiled = True
+        if self.used_translator == 'ch2o':
+            convert_rule = lambda key: key  # noqa
+        elif self.used_translator == 'onnx_chainer':
+            convert_rule = lambda key: 'param' + key.replace('/', '_')  # noqa
+
+        params = {convert_rule(key): value for key, value
+                  in self.mc.namedparams()}
+
+        # Since avg_mean and avg_var in BatchNormalization are not parameters
+        # in chainer link, we need an additional handling.
+        for link_name, link in self.mc.namedlinks():
+            if not isinstance(link, chainer.links.BatchNormalization):
+                continue
+            for avg_name in ['avg_mean', 'avg_var']:
+                key = convert_rule(link_name + '/' + avg_name)
+                assert key not in params
+                params[key] = getattr(link, avg_name)
+
+        self.param_values = []
+        fwd_chxvm_vars = fwd_graph.params()
+        for name in self.param_names:
+            if name in params:
+                self.param_values.append(params[name])
+            elif name in fwd_chxvm_vars:
+                # Retrieve the initial value from ONNX initializer
+
+                # TODO(hamaji): Emit `Constant` in onnx-chainer so we will not
+                # need this branch.
+                array = fwd_chxvm_vars[name].array()
+                array = self.device.send(array)
+                self.param_values.append(array)
+            else:
+                raise NotImplementedError('Initial value is uknown: ' + name)
 
     def forward(self, *args):
-        if not self.compiled:
-            outputs = self.mc(*args)
-            self.compile(args)
-            return outputs
-
-        if self.param_values is None:
-            assert self.param_names is not None
-            params = dict(self.mc.namedparams())
-            if self.translator == 'onnx_chainer':
-                params = {'param' + key.replace('/', '_'): value for key, value
-                          in params.items()}
-            self.param_values = []
-            for name in self.param_names:
-                assert name in params
-                self.param_values.append(params[name])
-
         inputs = list(args)
         flat_inputs = _flatten(inputs)
         runner = RunCompiledModel(self, inputs)
@@ -293,5 +304,22 @@ class CompiledModel(chainer.Chain):
         return outputs
 
 
-def compile(model, inputs=None, **kwargs):
-    return CompiledModel(model, inputs, **kwargs)
+def compile(model, inputs, translator='ch2o', **kwargs):
+    # Run translator internally
+    onnx_file = export(model, inputs, filename=None, translator=translator)
+    compiled_model = CompiledModel(model, onnx_file, translator, **kwargs)
+    return compiled_model
+
+
+def compile_onnx(model, onnx_file, used_translator, **kwargs):
+    return CompiledModel(model, onnx_file, used_translator, **kwargs)
+
+
+def use_unified_memory_allocator():
+    cupy.cuda.set_allocator(cupy.cuda.memory.malloc_managed)
+
+
+def use_chainerx_shared_allocator():
+    if cupy is None:
+        return
+    chainerx._cuda.cupy_share_allocator()
