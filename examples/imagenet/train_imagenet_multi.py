@@ -140,6 +140,8 @@ def main():
                         help='Skip runtime type check')
     parser.add_argument('--dump_memory_usage', action='store_true',
                         help='Dump memory usage')
+    parser.add_argument('--quiet_period', type=int, default=0,
+                        help='Quiet period after runtime report')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -209,7 +211,8 @@ def main():
             'onnx_chainer',
             computation_order=args.computation_order,
             compiler_kwargs=compiler_kwargs,
-            runtime_kwargs=runtime_kwargs)
+            runtime_kwargs=runtime_kwargs,
+            quiet_period=args.quiet_period)
         model = Classifier(extractor_cc)
     else:
         print('run vanilla chainer model')

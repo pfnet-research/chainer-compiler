@@ -215,7 +215,8 @@ class CompiledModel(chainer.Chain):
     def __init__(self, model, onnx_file, used_translator, dump_onnx=False,
                  computation_order=None,
                  compiler_kwargs=None,
-                 runtime_kwargs=None):
+                 runtime_kwargs=None,
+                 quiet_period=0):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
@@ -224,6 +225,8 @@ class CompiledModel(chainer.Chain):
         self.computation_order = computation_order
         self.compiler_kwargs = compiler_kwargs
         self.runtime_kwargs = runtime_kwargs
+        self.quiet_period = quiet_period
+        self.num_iterations = 0
 
         self.param_names = None
         self.param_values = None
@@ -304,9 +307,13 @@ class CompiledModel(chainer.Chain):
     def forward(self, *args):
         inputs = list(args)
         flat_inputs = _flatten(inputs)
+
         runtime_kwargs = {}
-        if self.runtime_kwargs is not None:
+        if (self.runtime_kwargs is not None and
+            self.num_iterations % (self.quiet_period + 1) == 0):
             runtime_kwargs.update(self.runtime_kwargs)
+        self.num_iterations += 1
+
         runner = RunCompiledModel(self, inputs, runtime_kwargs)
         outputs = runner.apply(flat_inputs + self.param_values)
         outputs = runner.unflatten_outputs(outputs)
