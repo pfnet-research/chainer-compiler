@@ -582,7 +582,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
         if isinstance(astc.nast.slice, gast.gast.Index):
             slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, option)
             slice_value = try_get_value(slice_, 'subscript', lineprop)
-
+            value_value.internal_keys[slice_value.encode()] = slice_
             ret = value_value.internal_values.get_attribute(slice_value.encode())
             return ret
 
