@@ -199,7 +199,7 @@ void ChxVM::Run(ChxVMState* state) {
         }
     }
 
-    if (options.dump_memory_usage) {
+    if (options.dump_memory_usage || options.dump_peak_memory_usage) {
         state->ShowVariableStatus();
         std::string report = StrCat("Peak memory usage=", peak_used_mbs, "MB");
         if (options.base_memory_usage >= 0) {
