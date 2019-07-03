@@ -52,9 +52,38 @@ bool MaybeEvaluateShape(Node* node) {
             return true;
         }
 
+        case Node::kQuantizeLinear: {
+            if (node->input(0)->type().HasKnownShape() && !node->output(0)->type().HasKnownShape()) {
+                Dtype dt = node->inputs().size() >= 3 ? node->input(2)->type().dtype() : Dtype(chainerx::Dtype::kUInt8);
+                node->output(0)->set_type(new Type(dt, node->input(0)->type().dims()));
+                return true;
+            }
+            break;
+        }
+
+        case Node::kMatMulInteger: {
+            if (node->input(0)->type().HasKnownShape() && !node->output(0)->type().HasKnownShape()) {
+                std::vector<int64_t> dims = node->input(0)->type().dims();
+                const std::vector<int64_t>& b_dims = node->input(1)->type().dims();
+                dims[dims.size() - 1] = b_dims[b_dims.size() - 1];
+                node->output(0)->set_type(new Type(Dtype(chainerx::Dtype::kInt32), dims));
+                return true;
+            }
+            break;
+        }
+
+        case Node::kCast: {
+            if (node->input(0)->type().HasKnownShape() && !node->output(0)->type().HasKnownShape()) {
+                node->output(0)->set_type(new Type(node->output(0)->type().dtype(), node->input(0)->type().dims()));
+                return true;
+            }
+            break;
+        }
+
         default:
-            CLOG() << "Not evaluate shape: " << node->ToString() << std::endl;
+            break;
     }
+    CLOG() << "Not evaluate shape: " << node->ToString() << std::endl;
     return false;
 }
 
