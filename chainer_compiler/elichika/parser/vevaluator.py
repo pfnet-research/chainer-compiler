@@ -284,7 +284,7 @@ def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 
 
     node = nodes.NodeReturn(value_value,astc.lineno)
     graph.add_node(node)
-    return value_obj
+    return value
 
 def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
     assert(isinstance(astc.nast, gast.gast.If))
@@ -585,7 +585,18 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             value_value.internal_keys[slice_value.encode()] = slice_
             ret = value_value.internal_values.get_attribute(slice_value.encode())
             return ret
+    elif isinstance(value_value, values.UserDefinedInstance):
+        if isinstance(astc.nast.slice, gast.gast.Index):
+            slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, option)
 
+            finput = functions.FunctionArgInput()
+            finput.inputs.append(slice_)
+
+            value_ref = try_get_ref(value, 'subscript', lineprop)
+            getitem_func = value_ref.get_field().get_attribute('__getitem__', graph.root_graph, False)
+            getitem_func_value = getitem_func.get_ref().get_value()
+            ret = getitem_func_value.func.vcall(getitem_func_value.module, graph, getitem_func_value.obj, finput, lineprop)
+            return ret
     else:
         if isinstance(astc.nast.slice, gast.gast.Index):
             slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, option)
@@ -1291,6 +1302,7 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
     if enter_attr.has_obj() and isinstance(enter_attr.get_ref().get_value(), values.FuncValue):
         func_value = enter_attr.get_ref().get_value()
         value_obj = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+        value_obj = try_get_ref(value_obj, 'withitem', lineprop)
 
     if value is None:
         if config.show_warnings:

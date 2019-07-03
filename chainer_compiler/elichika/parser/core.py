@@ -142,6 +142,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
     m_print = values.FuncValue(functions_builtin.PrintFunction(), None)
     values.builtin_function_converters['print'] = m_print
 
+    m_getattr = values.FuncValue(functions_builtin.GetAttrFunction(), None)
+    values.builtin_function_converters['getattr'] = m_getattr
+
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
 
@@ -191,7 +194,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     forward_func_value = forward_func.get_value()
     ret = forward_func_value.func.vcall(
-        default_module, graph, forward_func_value.obj, finput)
+        default_module, graph, forward_func_value.obj, finput).get_ref()
     assert(ret is None or isinstance(ret, values.ValueRef))
 
     def try_get_value(value) -> 'values.Value':

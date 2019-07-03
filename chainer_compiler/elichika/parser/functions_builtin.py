@@ -242,3 +242,34 @@ class VEvalOptionFunction(functions.FunctionBase):
             self.flags.append(self.name)
 
         return values.ValueRef(values.NoneValue())
+
+
+class GetAttrFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'getattr'
+        self.args.add_arg('object', None)
+        self.args.add_arg('name', None)
+
+    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+        func_args = self.args.merge_inputs(inst, args)
+        name = func_args.get_value().get_value(key='name')
+        obj = func_args.keywords['object']
+
+        attr = obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
+
+        # property(getter)
+        if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue) and attr.get_ref().get_value().func.is_property:
+            func_value = attr.get_ref().get_value()
+            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+            return ret
+
+        if attr.has_obj():
+            return attr
+
+        # if attr is not found
+        gotten_obj = obj.try_get_and_store_obj(name.internal_value, graph.root_graph)
+        if gotten_obj is not None:
+            return obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
+
+        return None

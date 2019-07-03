@@ -1000,3 +1000,7 @@ class UserDefinedInstance(Instance):
         exit_func = obj.try_get_and_store_obj('__exit__', None)
         if exit_func is not None:
             obj.get_field().get_attribute('__exit__').revise(exit_func)
+
+        getitem_func = obj.try_get_and_store_obj('__getitem__', None)
+        if getitem_func is not None:
+            obj.get_field().get_attribute('__getitem__').revise(getitem_func)
