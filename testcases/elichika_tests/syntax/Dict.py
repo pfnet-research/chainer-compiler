@@ -59,6 +59,21 @@ class DictonaryIterateItems(chainer.Chain):
             ret += value
         return ret
 
+class DictionaryInConstructor(chainer.Chain):
+    def __init__(self):
+        super(DictionaryInConstructor, self).__init__()
+        self.test_dict = {"x": 1, "y" : 2}
+
+    def forward(self):
+        return self.test_dict["x"]
+
+class DictionaryInfinitelyNested(chainer.Chain):
+    def forward(self):
+        x = {"one": 1}
+        x["two"] = x
+        return x["two"]["two"]["two"]["one"]
+
+
 # ======================================
 
 
@@ -73,6 +88,8 @@ def main():
     testtools.generate_testcase(DictionaryAssignByValueRef, [], subname='assign_by_value_ref')
     testtools.generate_testcase(DictonaryIterateKeys(), [], subname='dictionary_iterate_keys')
     testtools.generate_testcase(DictonaryIterateValues(), [], subname='dictionary_iterate_values')
+    testtools.generate_testcase(DictionaryInfinitelyNested(), [], subname='dictionary_nested')
+    testtools.generate_testcase(DictionaryInConstructor(), [], subname='dictionary_in_constructor')
     # testtools.generate_testcase(DictonaryIterateItems(), [], subname='dictionary_iterate_items')
 
 

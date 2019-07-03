@@ -182,6 +182,15 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         ret.estimate_type()
         return ValueRef(ret)
 
+    if isinstance(instance, dict):
+        keys = []
+        values = []
+        for key, value in instance.items():
+            keys.append(parse_instance(default_module, '', key))
+            values.append(parse_instance(default_module, '', value))
+        ret = DictValue(keys, values)
+        return ValueRef(ret)
+
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
         shape = -1 if shape == 'Undefined' else shape
