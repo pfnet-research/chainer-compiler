@@ -3,6 +3,8 @@
 from __future__ import division
 import argparse
 import multiprocessing
+import os
+
 import numpy as np
 
 import chainer
@@ -32,6 +34,7 @@ from chainercv.links import ResNet50
 import chainermn
 
 import chainer_compiler
+from chainer_compiler.utils import input_rewriter
 
 # https://docs.chainer.org/en/stable/tips.html#my-training-process-gets-stuck-when-using-multiprocessiterator
 try:
@@ -142,6 +145,8 @@ def main():
                         help='Dump memory usage')
     parser.add_argument('--quiet_period', type=int, default=0,
                         help='Quiet period after runtime report')
+    parser.add_argument('--overwrite_batchsize', action='store_true',
+                        help='Overwrite batch size')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -205,9 +210,21 @@ def main():
         if args.dump_memory_usage:
             runtime_kwargs['dump_memory_usage'] = True
 
+        onnx_filename = args.compile
+        if args.overwrite_batchsize:
+            new_onnx_filename = ('/tmp/overwrite_batchsize_' +
+                                 os.path.basename(onnx_filename))
+            new_input_types = [
+                input_rewriter.Type(shape=(args.batchsize, 3, 224, 224))
+            ]
+            input_rewriter.rewrite_onnx_file(onnx_filename,
+                                             new_onnx_filename,
+                                             new_input_types)
+            onnx_filename = new_onnx_filename
+
         extractor_cc = chainer_compiler.compile_onnx(
             extractor,
-            args.compile,
+            onnx_filename,
             'onnx_chainer',
             computation_order=args.computation_order,
             compiler_kwargs=compiler_kwargs,
