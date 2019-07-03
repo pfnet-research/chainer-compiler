@@ -82,7 +82,7 @@ def _from_var(v, device):
 
 class RunCompiledModel(chainer.function_node.FunctionNode):
 
-    def __init__(self, compiled_model, input_tmpl, run_kwargs):
+    def __init__(self, compiled_model, input_tmpl, runtime_kwargs):
         self.fwd_input_names = compiled_model.fwd_input_names
         self.fwd_output_names = compiled_model.fwd_output_names
         self.bwd_input_names = compiled_model.bwd_input_names
@@ -94,7 +94,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         self.input_tmpl = input_tmpl
         self.num_inputs = len(_flatten(input_tmpl))
         self.chainerx_device_name = None
-        self.run_kwargs = run_kwargs
+        self.runtime_kwargs = runtime_kwargs
 
     def _to_var(self, v):
         if _is_array(v):
@@ -124,7 +124,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
             entire_inputs[name] = self._to_var(value)
 
         with chainer.using_device(self.chainerx_device_name):
-            outputs = self.fwd.run(entire_inputs, **self.run_kwargs)
+            outputs = self.fwd.run(entire_inputs, **self.runtime_kwargs)
         outputs_and_retained = []
         for name in self.fwd_output_names:
             outputs_and_retained.append(outputs[name])
@@ -157,7 +157,7 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
             inputs[name] = value
 
         with chainer.using_device(self.chainerx_device_name):
-            outputs = self.bwd.run(inputs, **self.run_kwargs)
+            outputs = self.bwd.run(inputs, **self.runtime_kwargs)
         gxs = []
         assert len(self.input_tmpl) == len(self.fwd_input_names)
         for name, tmpl in zip(self.fwd_input_names, self.input_tmpl):
@@ -214,16 +214,16 @@ class CompiledModel(chainer.Chain):
 
     def __init__(self, model, onnx_file, used_translator, dump_onnx=False,
                  computation_order=None,
-                 compile_kwargs=None,
-                 run_kwargs=None):
+                 compiler_kwargs=None,
+                 runtime_kwargs=None):
         super(CompiledModel, self).__init__()
         with self.init_scope():
             self.mc = model
         self.used_translator = used_translator
         self.dump_onnx = dump_onnx
         self.computation_order = computation_order
-        self.compile_kwargs = compile_kwargs
-        self.run_kwargs = run_kwargs
+        self.compiler_kwargs = compiler_kwargs
+        self.runtime_kwargs = runtime_kwargs
 
         self.param_names = None
         self.param_values = None
@@ -256,15 +256,15 @@ class CompiledModel(chainer.Chain):
         self.fwd_output_names = fwd_graph.output_names()
         self.bwd_input_names = bwd_graph.input_names()
         self.bwd_output_names = bwd_graph.output_names()
-        compile_kwargs = {
+        compiler_kwargs = {
             'skip_scheduling': skip_scheduling,
             'skip_inference': True
         }
-        if self.compile_kwargs is not None:
-            compile_kwargs.update(self.compile_kwargs)
+        if self.compiler_kwargs is not None:
+            compiler_kwargs.update(self.compiler_kwargs)
         # TODO(hamaji): Revive shape inference.
-        self.fwd = fwd_graph.compile(**compile_kwargs)
-        self.bwd = bwd_graph.compile(**compile_kwargs)
+        self.fwd = fwd_graph.compile(**compiler_kwargs)
+        self.bwd = bwd_graph.compile(**compiler_kwargs)
         self.param_names = fwd_graph.param_names()
 
         if self.used_translator == 'ch2o':
@@ -304,10 +304,10 @@ class CompiledModel(chainer.Chain):
     def forward(self, *args):
         inputs = list(args)
         flat_inputs = _flatten(inputs)
-        run_kwargs = {}
-        if self.run_kwargs is not None:
-            run_kwargs.update(self.run_kwargs)
-        runner = RunCompiledModel(self, inputs, run_kwargs)
+        runtime_kwargs = {}
+        if self.runtime_kwargs is not None:
+            runtime_kwargs.update(self.runtime_kwargs)
+        runner = RunCompiledModel(self, inputs, runtime_kwargs)
         outputs = runner.apply(flat_inputs + self.param_values)
         outputs = runner.unflatten_outputs(outputs)
         outputs = outputs[:len(self.orig_output_names)]
