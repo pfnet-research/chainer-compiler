@@ -140,8 +140,6 @@ def main():
                         help='Skip runtime type check')
     parser.add_argument('--dump_memory_usage', action='store_true',
                         help='Dump memory usage')
-    parser.add_argument('--dump_peak_memory_usage', action='store_true',
-                        help='Dump memory usage')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -204,8 +202,6 @@ def main():
             runtime_kwargs['check_types'] = False
         if args.dump_memory_usage:
             runtime_kwargs['dump_memory_usage'] = True
-        if args.dump_peak_memory_usage:
-            runtime_kwargs['dump_peak_memory_usage'] = True
 
         extractor_cc = chainer_compiler.compile_onnx(
             extractor,
