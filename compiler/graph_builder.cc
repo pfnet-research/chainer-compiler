@@ -49,7 +49,7 @@ GraphBuilder::~GraphBuilder() {
             value->ToONNX(xgraph.add_value_info());
         }
         std::unordered_map<std::string, int> opset_imports;
-        opset_imports[""] = 9;
+        opset_imports[""] = 10;
         onnx::shape_inference::InferShapes(&xgraph, opset_imports);
 
         for (size_t i = 0; i < outputs.size(); ++i) {

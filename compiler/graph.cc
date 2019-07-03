@@ -314,7 +314,7 @@ void Graph::InferShapes() {
     nodes_.clear();
     nodes_buf_.clear();
     std::unordered_map<std::string, int> opset_imports;
-    opset_imports[""] = 9;
+    opset_imports[""] = 10;
     onnx::shape_inference::InferShapes(&xgraph, opset_imports);
     Construct(xgraph);
 }
