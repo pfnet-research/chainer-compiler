@@ -8,6 +8,8 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
   add_definitions(-DCHAINER_COMPILER_ENABLE_PYTHON=1)
 endif()
 
+add_definitions(-DCHAINER_COMPILER_DLDT_DIR=\"${CHAINER_COMPILER_DLDT_DIR}\")
+
 add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.h

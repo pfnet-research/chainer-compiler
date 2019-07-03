@@ -8,6 +8,7 @@
 #include <compiler/flags.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
+#include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
 #include <configs/backend_config.h>
@@ -302,6 +303,18 @@ bool ReplaceReduceLogSumExp(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyReduceLogSumExp", node->output(0));
     Value* v = gb.Op(Node::kExp, node->inputs());
     gb.Op(Node::kReduceLogSum, {v}, node->output(0))->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
+    return true;
+}
+
+bool ReplaceChainerReduceSumTo(Graph* graph, Node* node) {
+    const Type& in_type = node->input(0)->type();
+    const Type& out_type = node->output(0)->type();
+    if (!in_type.HasKnownShape() || !out_type.HasKnownShape() || in_type.dims() != out_type.dims()) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "SimplifyReduceSumTo", node->output(0));
+    gb.Op(Node::kIdentity, {node->input(0)}, node->output(0));
     return true;
 }
 
@@ -641,9 +654,14 @@ bool ReplaceQLinearMatMul(Graph* graph, Node* node) {
 }  // namespace
 
 void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
+    std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
-#define REGISTER_SIMPLIFIER(op) CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second)
+#define REGISTER_SIMPLIFIER(op)                                                                 \
+    do {                                                                                        \
+        CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second); \
+        CHECK(all_simplifier_names.emplace("Replace" #op).second);                              \
+    } while (0)
 
     REGISTER_SIMPLIFIER(Sum);
     REGISTER_SIMPLIFIER(Less);
@@ -661,6 +679,7 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(ReduceL2);
     REGISTER_SIMPLIFIER(ReduceLogSum);
     REGISTER_SIMPLIFIER(ReduceLogSumExp);
+    REGISTER_SIMPLIFIER(ChainerReduceSumTo);
     REGISTER_SIMPLIFIER(Softplus);
     REGISTER_SIMPLIFIER(Softsign);
     REGISTER_SIMPLIFIER(ConstantOfShape);
@@ -676,9 +695,11 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
+    REGISTER_SIMPLIFIER(Concat);
 
-    if (gen_backprop) {
-        REGISTER_SIMPLIFIER(Concat);
+    // Validate `simplifier_names`.
+    for (const std::string& name : simplifier_names) {
+        CHECK_EQ(1, all_simplifier_names.count(name)) << name;
     }
 
     bool replaced = true;
@@ -693,8 +714,11 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
             if (!simplifier_names.count(simplifier.name)) {
                 continue;
             }
+            if (node->op_type() == Node::kConcat && !gen_backprop) {
+                continue;
+            }
             if (simplifier.fn(graph, node)) {
-                // std::cerr << node->op_type() << " removed" << std::endl;
+                CLOG() << node->op_type() << " simplified" << std::endl;
                 graph->DetachNode(node);
                 replaced = true;
             }

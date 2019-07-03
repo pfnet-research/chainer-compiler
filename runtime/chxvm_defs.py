@@ -420,6 +420,8 @@ XC_OPS = [
      [Array('x'), Array('w'),
       OptionalScalar('x_zero_point'), OptionalArray('w_zero_point'),
       Ints('strides'), Ints('pads'), Int('group'), String('auto_pad')], ['y']),
+    ('Round', [Array('x')], ['y']),
+    ('BitShift', [Array('x'), Array('y'), String('direction')], ['z']),
 ]
 
 XC_CUSTOM_FIELD_OPS = [
@@ -442,6 +444,7 @@ XC_CUSTOM_FIELD_OPS = [
 
 XC_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
+    ('SequenceExtend', [Sequence('a'), Sequence('b')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
@@ -477,7 +480,7 @@ XC_SEQ_OPS_UNTYPED = [
     ('SequenceClear', [Sequence('seq')], []),
     ('SequenceAppend', [Sequence('seq'), Array('value')],
      []),
-    ('SequencePop', [Sequence('seq')], [Sequence('output')]),
+    ('SequencePop', [Sequence('seq')], ['output']),
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 

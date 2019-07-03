@@ -13,6 +13,7 @@ from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import veval_bin
 from chainer_compiler.elichika.parser import veval_unary
 from chainer_compiler.elichika.parser import veval_multiary
+from chainer_compiler.elichika.parser import veval_aug_assign
 
 import numpy as np
 
@@ -336,30 +337,63 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     inputs = []
     outputs = []
 
+    def get_input_value(v) -> "values.Value":
+        if 'true_input_value' in v:
+            return v['true_input_value']
+        elif 'false_input_value' in v:
+            return v['false_input_value']
+        else:
+            return None
+
+    def get_body_input_value(v, input_value) -> "values.Value":
+        if v is None:
+            return (None, None)
+
+        true_input_body_value = None
+        false_input_body_value = None
+
+        if 'true_input_body_value' in v:
+            true_input_body_value = v['true_input_body_value']
+        else:
+            true_input_body_value = functions.generate_value_with_same_type(input_value)
+
+        if 'false_input_body_value' in v:
+            false_input_body_value = v['false_input_body_value']
+        else:
+            false_input_body_value = functions.generate_value_with_same_type(input_value)
+
+        return (true_input_body_value, false_input_body_value)
+
+    # collect inputs
+    input_2_body_inputs = {}
+    for k, v in value_pairs.items():
+        input_value = get_input_value(v)
+
+        if input_value is None:
+            continue
+
+        if not (input_value in input_2_body_inputs.keys()):
+            body_input_value = get_body_input_value(v, input_value)
+            input_2_body_inputs[input_value] = body_input_value
+
+    for k, v in input_2_body_inputs.items():
+        inputs.append(k)
+        true_graph.add_input_value(v[0])
+        false_graph.add_input_value(v[1])
+
+
     for k, v in value_pairs.items():
         name = v['name']
         field = v['field']
 
-        input_value = None
+        input_value = get_input_value(v)
+
         true_input_body_value = None
         false_input_body_value = None
-            
-        # search input value
-        if 'true_input_value' in v:
-            input_value = v['true_input_value']
-        elif 'false_input_value' in v:
-            input_value = v['false_input_value']
 
-        if input_value is not None:
-            if 'true_input_body_value' in v:
-                true_input_body_value = v['true_input_body_value']
-            else:
-                true_input_body_value = functions.generate_value_with_same_type(input_value)
-
-            if 'false_input_body_value' in v:
-                false_input_body_value = v['false_input_body_value']
-            else:
-                false_input_body_value = functions.generate_value_with_same_type(input_value)
+        if input_value in input_2_body_inputs.keys():
+            true_input_body_value = input_2_body_inputs[input_value][0]
+            false_input_body_value = input_2_body_inputs[input_value][1]
 
         true_output_body_value = None
         false_output_body_value = None
@@ -412,12 +446,6 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
         elif false_output_body_value is not None:
             output_value = functions.generate_value_with_same_type(false_output_body_value)
 
-        if input_value is not None:
-            inputs.append(input_value)
-
-            true_graph.add_input_value(true_input_body_value)
-            false_graph.add_input_value(false_input_body_value)
-
         if output_value is not None:
             outputs.append(output_value)
             true_graph.add_output_value(true_output_body_value)
@@ -460,15 +488,22 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
     binop = nodes.BinOpType.Unknown
     if isinstance(astc.nast.op, gast.Add):
         binop = nodes.BinOpType.Add
-    if isinstance(astc.nast.op, gast.Sub):
+    elif isinstance(astc.nast.op, gast.Sub):
         binop = nodes.BinOpType.Sub
+    elif isinstance(astc.nast.op, gast.Mult):
+        binop = nodes.BinOpType.Mul
+    elif isinstance(astc.nast.op, gast.Div):
+        binop = nodes.BinOpType.Div
+    elif isinstance(astc.nast.op, gast.FloorDiv):
+        binop = nodes.BinOpType.FloorDiv
+    else:
+        utils.print_warning('Unknown binary operator {}'.format(astc.nast.op), lineprop)
+        return None
 
     node_aug_assign = nodes.NodeAugAssign(target_value, value_value, binop, astc.lineno)
     graph.add_node(node_aug_assign)
 
-    # TODO : estimate type
-
-    new_value = functions.generate_value_with_same_type(target_value)
+    new_value = veval_aug_assign.veval(binop, target_value, value_value, lineprop)
     node_aug_assign.set_outputs([new_value])
     target.get_ref().revise(new_value)
 

@@ -22,7 +22,6 @@
 #include <chainerx/numeric.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
-#include <chainerx/routines/math.h>
 
 #include <common/log.h>
 #include <common/protoutil.h>
@@ -63,8 +62,15 @@ bool g_quiet;
 #define LOG() \
     if (!g_quiet) std::cerr
 
+bool IsDir(const std::string& filename) {
+    struct stat st;
+    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+    return S_IFDIR == (st.st_mode & S_IFMT);
+}
+
 std::vector<std::string> ListDir(const std::string& dirname) {
     DIR* dir = opendir(dirname.c_str());
+    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
     std::vector<std::string> filenames;
     struct dirent* ent;
     while ((ent = readdir(dir)) != nullptr) {
@@ -116,7 +122,9 @@ void ReadTestDir(
         const std::vector<std::string>& output_names,
         std::vector<std::unique_ptr<TestCase>>* test_cases) {
     for (const std::string& data_set_dir : ListDir(test_path)) {
-        if (!HasPrefix(Basename(data_set_dir), "test_data_set_")) continue;
+        if (!HasPrefix(Basename(data_set_dir), "test_data_set_") || !IsDir(data_set_dir)) {
+            continue;
+        }
         std::unique_ptr<TestCase> test_case(new TestCase);
         test_case->name = data_set_dir;
         size_t input_index = 0;
@@ -228,6 +236,7 @@ ChxVMVar* StageVar(ChxVMVar* var) {
             return new ChxVMVar(seq);
         }
 
+        case ChxVMVar::Kind::kString:
         case ChxVMVar::Kind::kOpaque:
         case ChxVMVar::Kind::kNull:
             CHECK(false) << var->DebugString();
@@ -278,7 +287,7 @@ public:
         }
         chxvm_opts_.trace_level = trace_level();
         chxvm_opts_.is_training = args_.exist("backprop") || args_.exist("backprop_two_phase");
-        chxvm_opts_.check_types = true;
+        chxvm_opts_.check_types = !args_.exist("skip_runtime_type_check");
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
@@ -430,6 +439,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                     return array_str(v->GetArray());
                 case ChxVMVar::Kind::kSequence:
                     return '[' + JoinString(MapToString(NonOptional(*v->GetSequence()), array_str)) + ']';
+                case ChxVMVar::Kind::kString:
                 case ChxVMVar::Kind::kOpaque:
                 case ChxVMVar::Kind::kNull:
                     CHECK(false) << v->DebugString();
@@ -494,6 +504,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 break;
             }
 
+            case ChxVMVar::Kind::kString:
             case ChxVMVar::Kind::kOpaque:
             case ChxVMVar::Kind::kNull:
                 CHECK(false) << expected->DebugString();
@@ -524,6 +535,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("equal_nan", '\0', "Treats NaN equal");
     args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
+    args.add("skip_runtime_type_check", '\0', "Skip runtime type check");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
     args.add("compile_only", '\0', "Exit after compilation");
@@ -555,9 +567,7 @@ void RunMain(const std::vector<std::string>& argv) {
             QFAIL() << "No target testdir/onnx is specified";
         } else if (args.rest().size() == 1) {
             const std::string& filename = args.rest()[0];
-            struct stat st;
-            CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
-            if (S_IFDIR == (st.st_mode & S_IFMT)) {
+            if (IsDir(filename)) {
                 test_path = filename;
             } else {
                 onnx_path = filename;

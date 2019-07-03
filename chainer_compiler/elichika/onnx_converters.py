@@ -244,14 +244,20 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
     binops = {}
     binops[nodes.BinOpType.Add] = 'Add'
     binops[nodes.BinOpType.Sub] = 'Sub'
-    binops[nodes.BinOpType.Unknown] = 'Add'
+    binops[nodes.BinOpType.Mul] = 'Mul'
+    binops[nodes.BinOpType.Div] = 'Div'
+    binops[nodes.BinOpType.FloorDiv] = 'Div'
+    binops[nodes.BinOpType.Unknown] = ''
 
+    if node.binop == nodes.BinOpType.Unknown:
+        raise utils.UnimplementedError('{} is not implemented'.format(node.binop), node.lineprop)
+    
     # TODO: fix for reference types
 
     if isinstance(node.target, values.ListValue) or isinstance(node.target, values.TupleValue):
         assert(isinstance(node.value, values.ListValue)
                or isinstance(node.value, values.TupleValue))
-        binops[nodes.BinOpType.Add] = 'ChainerGenericAdd'
+        binops[nodes.BinOpType.Add] = 'ChainerSequenceExtend'
 
         target = ONNXValue(onnx_graph, node.target)
         value = ONNXValue(onnx_graph, node.value)
@@ -261,13 +267,31 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
                             value2onnx_parameter[node.outputs[0]].onnx_name], None)
 
     else:
+        if node.binop == nodes.BinOpType.FloorDiv:
 
-        onnx_node = oh.make_node(
-            binops[node.binop],
-            [value2onnx_parameter[node.target].onnx_name,
-             value2onnx_parameter[node.value].onnx_name],
-            [value2onnx_parameter[node.outputs[0]].onnx_name])
-        onnx_graph.nodes.append(onnx_node)
+            left_ = ONNXValue(onnx_graph, node.target)
+            temp_ = ONNXValue(onnx_graph, None, [node.target, '/Temp'])
+            right_ = ONNXValue(onnx_graph, node.value)
+            output_ = ONNXValue(onnx_graph, node.outputs[0])
+
+            onnx_graph.add_node(
+                binops[node.binop], 
+                [left_, right_],
+                [temp_],
+                str(node.lineprop))
+
+            onnx_graph.add_node(
+                'Floor', 
+                [temp_],
+                [output_],
+                str(node.lineprop))
+        else:
+            onnx_node = oh.make_node(
+                binops[node.binop],
+                [value2onnx_parameter[node.target].onnx_name,
+                 value2onnx_parameter[node.value].onnx_name],
+                [value2onnx_parameter[node.outputs[0]].onnx_name])
+            onnx_graph.nodes.append(onnx_node)
 
 
 def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
@@ -277,12 +301,15 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
     binops[nodes.BinOpType.Mul] = 'Mul'
     binops[nodes.BinOpType.Div] = 'Div'
     binops[nodes.BinOpType.FloorDiv] = 'Div'
-    binops[nodes.BinOpType.Unknown] = 'Add'
+    binops[nodes.BinOpType.Unknown] = ''
+
+    if node.binop == nodes.BinOpType.Unknown:
+        raise utils.UnimplementedError('{} is not implemented'.format(node.binop), node.lineprop)
 
     if isinstance(node.left, values.ListValue) or isinstance(node.left, values.TupleValue):
         assert(isinstance(node.right, values.ListValue)
                or isinstance(node.right, values.TupleValue))
-        binops[nodes.BinOpType.Add] = 'ChainerGenericAdd'
+        binops[nodes.BinOpType.Add] = 'ChainerSequenceExtend'
 
         left = ONNXValue(onnx_graph, node.left)
         right = ONNXValue(onnx_graph, node.right)
@@ -328,6 +355,14 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         # append
         onnx_graph.add_node(
             "ChainerSequenceAppend",
+            node.inputs,
+            node.outputs,
+            str(node.lineprop))
+
+    if isinstance(node.func, functions_builtin.PrintFunction):
+        # print
+        onnx_graph.add_node(
+            'ChainerPrint',
             node.inputs,
             node.outputs,
             str(node.lineprop))
@@ -512,7 +547,7 @@ def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
             [value2onnx_parameter[node.outputs[0]].onnx_name])
         onnx_graph.nodes.append(onnx_node)
 
-    if node.unaryop == nodes.UnaryOpType.USub:
+    elif node.unaryop == nodes.UnaryOpType.USub:
         zero_ = ONNXValue(onnx_graph, np.array(0, dtype=np.float), [
                           node, '/Zero'], is_constant=True)
         onnx_node = oh.make_node(
@@ -521,12 +556,15 @@ def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
             [value2onnx_parameter[node.outputs[0]].onnx_name])
         onnx_graph.nodes.append(onnx_node)
 
-    if node.unaryop == nodes.UnaryOpType.Not:
+    elif node.unaryop == nodes.UnaryOpType.Not:
         onnx_node = oh.make_node(
             'Not',
             [value2onnx_parameter[node.operand].onnx_name],
             [value2onnx_parameter[node.outputs[0]].onnx_name])
         onnx_graph.nodes.append(onnx_node)
+
+    else:
+        raise utils.UnimplementedError('{} is not implemented'.format(type(node.unaryop)), node.lineprop)
 
 
 def try_get_attribute(value, calling_node: 'nodes.Node' = None):
@@ -1335,6 +1373,8 @@ class ONNXGenerator:
                 if node_.classtype == 'array':
                     if isinstance(node.args.get_value('dtype'), values.FuncValue):
                         dtype = node.args.get_value('dtype').func.dtype
+                    elif isinstance(node.args.get_value('dtype'), values.StrValue):
+                        dtype = utils.str_2_dtype(node.args.get_value('dtype').get_constant_value())
                     else:
                         dtype = None
 

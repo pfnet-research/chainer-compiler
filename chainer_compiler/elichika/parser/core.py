@@ -138,6 +138,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
     values.builtin_function_converters['list'] = m_list
 
+    m_print = values.FuncValue(functions_builtin.PrintFunction(), None)
+    values.builtin_function_converters['print'] = m_print
+
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
 

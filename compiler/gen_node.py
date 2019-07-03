@@ -233,6 +233,8 @@ NodeDef('ConvInteger', (2, 3, 4), 1,
         kernel_shape=[int],
         pads=[int],
         strides=[int])
+NodeDef('Round', 1, 1)
+NodeDef('BitShift', 2, 1, direction='LEFT')
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
@@ -301,6 +303,9 @@ NodeDef('ChainerSequenceCreate', None, 1)
 
 # Appends an element to a sequence: ([T], T) -> ([T])
 NodeDef('ChainerSequenceAppend', 2, 1)
+
+# Extends a sequence to another sequence: ([T], [T]) -> ([T])
+NodeDef('ChainerSequenceExtend', 2, 1)
 
 # Pops an element from a sequence: ([T]) -> ([T], T)
 NodeDef('ChainerSequencePop', 1, 2)

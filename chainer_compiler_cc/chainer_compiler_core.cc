@@ -53,6 +53,7 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
 
 std::shared_ptr<runtime::ChxVM> Compile(
         const std::shared_ptr<Graph>& graph,
+        bool skip_scheduling,
         bool compiler_log,
         bool permissive,
         bool skip_inference,
@@ -97,7 +98,7 @@ std::shared_ptr<runtime::ChxVM> Compile(
     g_dump_subgraphs = dump_subgraphs;
 
     constexpr bool kBackprop = false;
-    RunDefaultPasses(graph.get(), kBackprop);
+    RunDefaultPasses(graph.get(), kBackprop, skip_scheduling);
     runtime::XCProgramProto chxvm_prog;
     constexpr bool kDumpValueNames = false;
     chxvm::Emit(*graph, &chxvm_prog, kDumpValueNames);
@@ -185,6 +186,7 @@ void InitGraph(py::module& m) {
     c.def("compile",
           &Compile,
           "Compile a model",
+          "skip_scheduling"_a = false,
           "compiler_log"_a = false,
           "permissive"_a = false,
           "skip_inference"_a = false,
@@ -227,6 +229,7 @@ std::map<std::string, VarPtr> Run(
         bool trace,
         bool verbose,
         bool training,
+        bool check_types,
         bool check_nans,
         bool check_infs,
         bool dump_memory_usage,
@@ -236,6 +239,7 @@ std::map<std::string, VarPtr> Run(
     if (trace) chxvm_opts.trace_level = 1;
     if (verbose) chxvm_opts.trace_level = 2;
     chxvm_opts.is_training = training;
+    chxvm_opts.check_types = check_types;
     chxvm_opts.check_nans = check_nans;
     chxvm_opts.check_infs = check_infs;
     chxvm_opts.dump_memory_usage = dump_memory_usage;
@@ -283,6 +287,7 @@ void InitChxVM(py::module& m) {
           "trace"_a = false,
           "verbose"_a = false,
           "training"_a = false,
+          "check_types"_a = true,
           "check_nans"_a = false,
           "check_infs"_a = false,
           "dump_memory_usage"_a = false,

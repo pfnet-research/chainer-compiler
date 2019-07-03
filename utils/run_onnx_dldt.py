@@ -126,7 +126,33 @@ def run(args):
             stream=sys.stdout)
 
     # compute inference engine
-    inference(args, mo_model_xml, mo_model_bin, inputs, outputs)
+    return inference(args, mo_model_xml, mo_model_bin, inputs, outputs)
+
+
+def get_args(args=None):
+    from mo.utils.cli_parser import get_onnx_cli_parser
+    parser = get_onnx_cli_parser(parser=None)  # setup for mo
+    parser.add_argument('test_dir')
+    parser.add_argument('--debug', '-g', action='store_true')
+    parser.add_argument('--force_mo', action='store_true')
+    parser.add_argument('--iterations', '-I', type=int, default=1)
+    # for inference-engine
+    parser.add_argument(
+        '--device', choices=['CPU', 'GPU', 'MYRIAD'], default='CPU')
+    parser.add_argument(
+        '--plugin_dir', help='Path to a plugin folder', default=None)
+    parser.add_argument(
+        '--cpu_extension', help='Required for CPU custom layers. '
+        'MKLDNN (CPU)-targeted custom layers. Absolute path to a shared '
+        'library with the kernels implementations', default=None
+    )
+    args = parser.parse_args(args=args)
+
+    args.framework = 'onnx'
+    if args.debug:
+        args.log_level = 'DEBUG'
+
+    return args
 
 
 def main():
@@ -153,28 +179,7 @@ def main():
     references ie_bridges example.
 
     """
-    from mo.utils.cli_parser import get_onnx_cli_parser
-    parser = get_onnx_cli_parser(parser=None)  # setup for mo
-    parser.add_argument('test_dir')
-    parser.add_argument('--debug', '-g', action='store_true')
-    parser.add_argument('--force_mo', action='store_true')
-    parser.add_argument('--iterations', '-I', type=int, default=1)
-    # for inference-engine
-    parser.add_argument(
-        '--device', choices=['CPU', 'GPU', 'MYRIAD'], default='CPU')
-    parser.add_argument(
-        '--plugin_dir', help='Path to a plugin folder', default=None)
-    parser.add_argument(
-        '--cpu_extension', help='Required for CPU custom layers. '
-        'MKLDNN (CPU)-targeted custom layers. Absolute path to a shared '
-        'library with the kernels implementations', default=None
-    )
-    args = parser.parse_args()
-
-    args.framework = 'onnx'
-    if args.debug:
-        args.log_level = 'DEBUG'
-
+    args = get_args()
     run(args)
 
 

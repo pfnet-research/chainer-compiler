@@ -144,5 +144,48 @@ chainerx::Array ConvIntegerOp::RunImpl(
     return GroupedConv(x, w, nonstd::nullopt, comp_strides, comp_pads, group, auto_pad).AsType(chainerx::Dtype::kInt32);
 }
 
+// TODO(take-cheeze): Implement in ChainerX
+chainerx::Array RoundOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    CHECK(IsFloat(x.dtype()));
+    std::vector<double> result_data(x.GetTotalSize());
+    chainerx::Array double_x = x.AsType(chainerx::Dtype::kFloat64);
+    const double* x_ptr = reinterpret_cast<const double*>(double_x.raw_data());
+    for (size_t i = 0; i < result_data.size(); ++i) {
+        result_data[i] = std::rint(x_ptr[i]);
+    }
+
+    chainerx::Array y = MakeArray(chainerx::Dtype::kFloat64, x.shape(), result_data.data());
+
+    // Back to input(x) dtype
+    return y.AsType(x.dtype());
+}
+
+// TODO(take-cheeze): Implement in ChainerX
+chainerx::Array BitShiftOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& y) {
+    CHECK(!IsFloat(x.dtype()));
+    CHECK(!IsFloat(y.dtype()));
+    chainerx::Array int64_x = x.AsType(chainerx::Dtype::kInt64);
+    chainerx::Array int64_y = y.BroadcastTo(x.shape()).AsType(chainerx::Dtype::kInt64);
+    const int64_t* x_ptr = reinterpret_cast<const int64_t*>(int64_x.raw_data());
+    const int64_t* y_ptr = reinterpret_cast<const int64_t*>(int64_y.raw_data());
+    std::vector<int64_t> result_data(x.GetTotalSize());
+
+    if (direction == "LEFT") {
+        for (size_t i = 0; i < result_data.size(); ++i) {
+            result_data[i] = x_ptr[i] << y_ptr[i];
+        }
+    } else {
+        CHECK_EQ("RIGHT", direction);
+        for (size_t i = 0; i < result_data.size(); ++i) {
+            result_data[i] = x_ptr[i] >> y_ptr[i];
+        }
+    }
+
+    chainerx::Array z = MakeArray(chainerx::Dtype::kInt64, x.shape(), result_data.data());
+
+    // Back to input(x) dtype
+    return z.AsType(x.dtype());
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
