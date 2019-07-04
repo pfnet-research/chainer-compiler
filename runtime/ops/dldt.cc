@@ -88,6 +88,7 @@ void DldtOp::InitImpl() {
 #if CHAINER_COMPILER_ENABLE_DLDT
     impl_ = new DldtImpl(device);
 
+    std::cerr << "Loading dldt model from " << model_path << std::endl;
     InferenceEngine::CNNNetReader network_reader;
     network_reader.ReadNetwork(model_path + ".xml");
     network_reader.ReadWeights(model_path + ".bin");
