@@ -229,8 +229,25 @@ chainerx::Array GroupedConv(
         const chainerx::Array& w,
         const nonstd::optional<chainerx::Array>& b,
         const Int64StackVector& strides,
-        const Int64StackVector& pads,
-        int group) {
+        const Int64StackVector& in_pads,
+        int group,
+        const std::string& auto_pad) {
+    Int64StackVector pads = in_pads;
+    if (auto_pad == "SAME_UPPER") {
+        for (size_t i = 0; i < pads.size(); ++i) {
+            const int64_t in_dim = x.shape()[2 + i];
+            const int64_t stride = strides[i];
+            const int64_t kernel = w.shape()[2 + i];
+
+            int64_t legacy_target_size = (in_dim + stride - 1) / stride;
+            int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
+
+            pads[i] = pad_needed / 2;
+        }
+    } else {
+        CHECK_EQ("NOTSET", auto_pad);
+    }
+
     if (group > 1) {
         std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
         std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));

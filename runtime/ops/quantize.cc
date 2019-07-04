@@ -89,7 +89,7 @@ chainerx::Array QLinearConvOp::RunImpl(
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    return quantize_array(chainerx::Conv(x, w, b, comp_strides, comp_pads, group), y_scale, y_zero_point);
+    return quantize_array(GroupedConv(x, w, b, comp_strides, comp_pads, group, auto_pad), y_scale, y_zero_point);
 }
 
 chainerx::Array MatMulIntegerOp::RunImpl(
@@ -117,21 +117,31 @@ chainerx::Array ConvIntegerOp::RunImpl(
         const chainerx::Array& q_x,
         const chainerx::Array& q_w,
         const nonstd::optional<StrictScalar>& x_zero_point,
-        const nonstd::optional<chainerx::Array>& w_zero_point) {
+        const nonstd::optional<chainerx::Array>& w_zero_point_opt) {
     chainerx::Array x = q_x.AsType(chainerx::Dtype::kInt32), w = q_w.AsType(chainerx::Dtype::kInt32);
 
     if (x_zero_point.has_value()) {
         x -= chainerx::Scalar(*x_zero_point);
     }
-    if (w_zero_point.has_value()) {
-        CHECK_GE(1, w_zero_point->shape().size());
-        w -= *w_zero_point;
+    if (w_zero_point_opt.has_value()) {
+        const chainerx::Array& w_zero_point = *w_zero_point_opt;
+        if (w_zero_point.shape().size() == 1) {
+            CHECK_EQ(w.shape()[0], w_zero_point.shape()[0]);
+            std::vector<chainerx::Array> stack(w.shape()[0]);
+            for (int64_t i = 0; i < w.shape()[0]; ++i) {
+                stack[i] = w.At({i}) - w_zero_point.At({i});
+            }
+            w = chainerx::Stack(stack);
+        } else {
+            CHECK_GE(0, w_zero_point.shape().size());
+            w -= w_zero_point;
+        }
     }
 
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    return Conv(x, w, nonstd::nullopt, comp_strides, comp_pads, group).AsType(chainerx::Dtype::kInt32);
+    return GroupedConv(x, w, nonstd::nullopt, comp_strides, comp_pads, group, auto_pad).AsType(chainerx::Dtype::kInt32);
 }
 
 // TODO(take-cheeze): Implement in ChainerX

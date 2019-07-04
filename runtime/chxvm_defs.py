@@ -411,7 +411,7 @@ XC_OPS = [
      [Array('x'), Scalar('x_scale'), Scalar('x_zero_point'),
       Array('w'), Array('w_scale'), Array('w_zero_point'),
       Scalar('y_scale'), Scalar('y_zero_point'), OptionalArray('b'),
-      Ints('strides'), Ints('pads'), Int('group')], ['y']),
+      Ints('strides'), Ints('pads'), Int('group'), String('auto_pad')], ['y']),
     ('MatMulInteger',
      [Array('a'), Array('b'),
       OptionalArray('a_zero_point'), OptionalArray('b_zero_point')],
@@ -419,7 +419,7 @@ XC_OPS = [
     ('ConvInteger',
      [Array('x'), Array('w'),
       OptionalScalar('x_zero_point'), OptionalArray('w_zero_point'),
-      Ints('strides'), Ints('pads'), Int('group')], ['y']),
+      Ints('strides'), Ints('pads'), Int('group'), String('auto_pad')], ['y']),
     ('Round', [Array('x')], ['y']),
     ('BitShift', [Array('x'), Array('y'), String('direction')], ['z']),
 ]

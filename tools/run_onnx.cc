@@ -557,10 +557,7 @@ void RunMain(const std::vector<std::string>& argv) {
     std::string test_path = args.get<std::string>("test");
 
     g_quiet = args.exist("quiet");
-    if (!onnx_path.empty() && !test_path.empty()) {
-        std::cerr << args.usage() << std::endl;
-        QFAIL() << "Specifying both --onnx and --test is invalid!";
-    } else if (onnx_path.empty() && test_path.empty()) {
+    if (onnx_path.empty() && test_path.empty()) {
         if (args.rest().empty()) {
             std::cerr << args.usage() << std::endl;
             QFAIL() << "No target testdir/onnx is specified";
