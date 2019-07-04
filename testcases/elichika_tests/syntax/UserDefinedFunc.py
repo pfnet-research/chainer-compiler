@@ -71,6 +71,18 @@ class D(chainer.Chain):
         return ret
 
 
+class E(chainer.Chain):
+    def __init__(self):
+        super(E, self).__init__()
+        self.a = 1
+    
+    def test(self):
+        self.a += 1
+
+    def forward(self):
+        self.test()
+        return self.a
+
 # ======================================
 
 from chainer_compiler.elichika import testtools
@@ -87,6 +99,7 @@ def main():
     testtools.generate_testcase(B(), [a, b, c], subname='external_func')
     testtools.generate_testcase(C(), [a, b, c], subname='external_class')
     # testtools.generate_testcase(D(), [], subname='bug')
+    # testtools.generate_testcase(E(), [], subname='class_func_bug')
 
 if __name__ == '__main__':
     main()
