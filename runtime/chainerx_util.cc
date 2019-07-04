@@ -237,7 +237,6 @@ chainerx::Array GroupedConv(
         for (size_t i = 0; i < pads.size(); ++i) {
             const int64_t in_dim = x.shape()[2 + i];
             const int64_t stride = strides[i];
-
             const int64_t kernel = w.shape()[2 + i];
 
             int64_t legacy_target_size = (in_dim + stride - 1) / stride;
