@@ -92,7 +92,7 @@ void RunMain(const std::vector<std::string>& argv) {
             g_meminfo_enabled = true;
         }
     }
-    int64_t initial_free_bytes = GetMemoryUsageInBytes();
+    int64_t initial_used_bytes = GetUsedMemory();
 
     LOG() << "Constructing model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
@@ -143,9 +143,9 @@ void RunMain(const std::vector<std::string>& argv) {
     chxvm_opts.check_nans = args.exist("check_nans");
     chxvm_opts.check_infs = args.exist("check_infs");
     chxvm_opts.dump_memory_usage = args.exist("trace");
-    chxvm_opts.base_memory_usage = initial_free_bytes;
+    chxvm_opts.base_memory_usage = initial_used_bytes;
 
-    int64_t param_bytes = initial_free_bytes - GetMemoryUsageInBytes();
+    int64_t param_bytes = GetUsedMemory() - initial_used_bytes;
 
     int height = 0, width = 0;
     for (Value* value : infeed_values) {
@@ -227,9 +227,8 @@ void RunMain(const std::vector<std::string>& argv) {
         double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() * 0.001;
         start = end;
         std::cout << train_iter.GetStatus() << " loss=" << loss << " elapsed=" << elapsed << "ms";
-        if (initial_free_bytes >= 0) {
-            int64_t free_bytes = GetMemoryUsageInBytes();
-            size_t used_bytes = initial_free_bytes - free_bytes;
+        if (initial_used_bytes >= 0) {
+            size_t used_bytes = GetUsedMemory() - initial_used_bytes;
             size_t param_mbs = param_bytes / 1000 / 1000;
             size_t used_mbs = used_bytes / 1000 / 1000;
             std::cout << " param=" << param_mbs << "MB used=" << used_mbs << "MB";

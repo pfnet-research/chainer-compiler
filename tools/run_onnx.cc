@@ -62,11 +62,6 @@ bool g_quiet;
 #define LOG() \
     if (!g_quiet) std::cerr
 
-int GetUsedMemory() {
-    auto usage = GetMemoryUsageInBytes();
-    return usage.has_value() ? usage->first : -1;
-}
-
 bool IsDir(const std::string& filename) {
     struct stat st;
     CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
