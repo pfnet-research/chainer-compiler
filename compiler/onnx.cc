@@ -3,10 +3,10 @@
 namespace chainer_compiler {
 
 std::unordered_map<std::string, int> OpsetImports() {
-  return {
-    {onnx::ONNX_DOMAIN, 9},
-    {CHAINER_ONNX_DOMAIN, 9},
-  };
+    return {
+            {onnx::ONNX_DOMAIN, DEFAULT_OPSET_VERSION},
+            {CHAINER_ONNX_DOMAIN, 9},
+    };
 }
 
-}
+}  // namespace chainer_compiler

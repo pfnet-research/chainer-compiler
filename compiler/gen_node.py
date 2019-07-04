@@ -218,6 +218,7 @@ NodeDef('MaxRoiPool', 2, 1, pooled_shape=Required([int]), spatial_scale=1.0)
 NodeDef('QuantizeLinear', (2, 3), 1)
 NodeDef('DequantizeLinear', (2, 3), 1)
 NodeDef('QLinearConv', (8, 9), 1,
+        auto_pad='NOTSET',
         dilations=[int],
         group=1,
         kernel_shape=[int],
@@ -226,6 +227,7 @@ NodeDef('QLinearConv', (8, 9), 1,
 NodeDef('QLinearMatMul', 8, 1)
 NodeDef('MatMulInteger', (2, 3, 4), 1)
 NodeDef('ConvInteger', (2, 3, 4), 1,
+        auto_pad='NOTSET',
         dilations=[int],
         group=1,
         kernel_shape=[int],

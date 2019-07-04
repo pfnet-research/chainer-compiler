@@ -26,6 +26,7 @@
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
+#include <runtime/meminfo.h>
 #include <tools/util.h>
 
 namespace py = pybind11;
@@ -241,6 +242,7 @@ std::map<std::string, VarPtr> Run(
         bool check_nans,
         bool check_infs,
         bool dump_memory_usage,
+        int64_t base_memory_usage,
         const std::string& chrome_tracing,
         const std::map<std::string, py::function>& custom_funcs) {
     runtime::ChxVMOptions chxvm_opts;
@@ -251,6 +253,10 @@ std::map<std::string, VarPtr> Run(
     chxvm_opts.check_nans = check_nans;
     chxvm_opts.check_infs = check_infs;
     chxvm_opts.dump_memory_usage = dump_memory_usage;
+    if (base_memory_usage >= 0) {
+        runtime::g_meminfo_enabled = true;
+    }
+    chxvm_opts.base_memory_usage = base_memory_usage;
     if (!chrome_tracing.empty()) {
         chxvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
     }
@@ -299,6 +305,7 @@ void InitChxVM(py::module& m) {
           "check_nans"_a = false,
           "check_infs"_a = false,
           "dump_memory_usage"_a = false,
+          "base_memory_usage"_a = -1,
           "chrome_tracing"_a = "",
           "custom_funcs"_a = py::dict());
 }

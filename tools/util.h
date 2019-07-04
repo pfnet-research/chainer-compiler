@@ -20,5 +20,7 @@ InOuts LoadParams(const Graph& graph);
 // Returns Mis-match Count
 int MismatchInAllClose(const chainerx::Array& a, const chainerx::Array& b, double rtol, double atol, bool equal_nan = false);
 
+int GetUsedMemory();
+
 }  // namespace runtime
 }  // namespace chainer_compiler

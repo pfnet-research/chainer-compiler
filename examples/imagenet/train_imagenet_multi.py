@@ -5,6 +5,7 @@ import argparse
 import multiprocessing
 import os
 
+import cupy
 import numpy as np
 
 import chainer
@@ -211,6 +212,9 @@ def main():
             runtime_kwargs['check_types'] = False
         if args.dump_memory_usage:
             runtime_kwargs['dump_memory_usage'] = True
+            free, total = cupy.cuda.runtime.memGetInfo()
+            used = total - free
+            runtime_kwargs['base_memory_usage'] = used
 
         onnx_filename = args.compile
         if args.overwrite_batchsize:

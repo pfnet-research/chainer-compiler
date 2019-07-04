@@ -230,7 +230,7 @@ void convPoolTypeAndShapeInference(InferenceContext& ctx, bool use_dilation, boo
 
 ONNX_WORKAROUND_OPERATOR_SET_SCHEMA(
         MaxPool,
-        9,
+        11,
         OpSchema()
                 .SetDoc("TBD")
                 .Input(0, "X", "Input tensor", "T")
@@ -612,7 +612,7 @@ public:
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerSoftmaxCrossEntropy)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerSelectItem)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Expand)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, MaxPool)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 11, MaxPool)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Split)>());
     }
 };
