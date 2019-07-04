@@ -3,6 +3,8 @@
 from __future__ import division
 import argparse
 import multiprocessing
+import os
+
 import numpy as np
 
 import chainer
@@ -32,6 +34,7 @@ from chainercv.links import ResNet50
 import chainermn
 
 import chainer_compiler
+from chainer_compiler.utils import input_rewriter
 
 # https://docs.chainer.org/en/stable/tips.html#my-training-process-gets-stuck-when-using-multiprocessiterator
 try:
@@ -126,10 +129,26 @@ def main():
     parser.add_argument('--weight-decay', type=float, default=0.0001)
     parser.add_argument('--out', type=str, default='result')
     parser.add_argument('--epoch', type=int, default=90)
+    parser.add_argument('--iterations', '-I', type=int, default=None,
+                        help='Number of iterations to train')
     parser.add_argument('--no_use_fixed_batch_dataset',
                         dest='use_fixed_batch_dataset',
                         action='store_false',
                         help='Disable the use of FixedBatchDataset')
+    parser.add_argument('--compiler-log', action='store_true',
+                        help='Enables compile-time logging')
+    parser.add_argument('--trace', action='store_true',
+                        help='Enables runtime tracing')
+    parser.add_argument('--verbose', action='store_true',
+                        help='Enables runtime verbose log')
+    parser.add_argument('--skip_runtime_type_check', action='store_true',
+                        help='Skip runtime type check')
+    parser.add_argument('--dump_memory_usage', action='store_true',
+                        help='Dump memory usage')
+    parser.add_argument('--quiet_period', type=int, default=0,
+                        help='Quiet period after runtime report')
+    parser.add_argument('--overwrite_batchsize', action='store_true',
+                        help='Overwrite batch size')
     args = parser.parse_args()
 
     # https://docs.chainer.org/en/stable/chainermn/tutorial/tips_faqs.html#using-multiprocessiterator
@@ -179,11 +198,40 @@ def main():
                 chainer.using_config('train', False):
             x = extractor.xp.zeros((1, 3, 224, 224)).astype('f')
             extractor(x)
+
+        compiler_kwargs = {}
+        if args.compiler_log:
+            compiler_kwargs['compiler_log'] = True
+        runtime_kwargs = {}
+        if args.trace:
+            runtime_kwargs['trace'] = True
+        if args.verbose:
+            runtime_kwargs['verbose'] = True
+        if args.skip_runtime_type_check:
+            runtime_kwargs['check_types'] = False
+        if args.dump_memory_usage:
+            runtime_kwargs['dump_memory_usage'] = True
+
+        onnx_filename = args.compile
+        if args.overwrite_batchsize:
+            new_onnx_filename = ('/tmp/overwrite_batchsize_' +
+                                 os.path.basename(onnx_filename))
+            new_input_types = [
+                input_rewriter.Type(shape=(args.batchsize, 3, 224, 224))
+            ]
+            input_rewriter.rewrite_onnx_file(onnx_filename,
+                                             new_onnx_filename,
+                                             new_input_types)
+            onnx_filename = new_onnx_filename
+
         extractor_cc = chainer_compiler.compile_onnx(
             extractor,
-            args.compile,
+            onnx_filename,
             'onnx_chainer',
-            computation_order=args.computation_order)
+            computation_order=args.computation_order,
+            compiler_kwargs=compiler_kwargs,
+            runtime_kwargs=runtime_kwargs,
+            quiet_period=args.quiet_period)
         model = Classifier(extractor_cc)
     else:
         print('run vanilla chainer model')
@@ -232,8 +280,12 @@ def main():
     updater = chainer.training.StandardUpdater(
         train_iter, optimizer, device=device)
 
+    if args.iterations:
+        stop_trigger = (args.iterations, 'iteration')
+    else:
+        stop_trigger = (args.epoch, 'epoch')
     trainer = training.Trainer(
-        updater, (args.epoch, 'epoch'), out=args.out)
+        updater, stop_trigger, out=args.out)
 
     @make_shift('lr')
     def warmup_and_exponential_shift(trainer):

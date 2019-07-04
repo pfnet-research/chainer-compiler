@@ -22,6 +22,7 @@ except ImportError:
 
 def chainercv_model_test(model):
     def fn(test_name):
+        np.random.seed(42)
         x = np.random.rand(1, 3, 224, 224).astype(np.float32)
         onnx_chainer.export_testcase(model, [x],
                                      os.path.join('out', test_name),
@@ -40,6 +41,7 @@ def get_tests():
         case.func = func
         tests.append(case)
 
+    np.random.seed(42)
     test('chainercv_test_yolo_v2_tiny',
          chainercv_model_test(chainercv.experimental.links.YOLOv2Tiny(1000)))
 
