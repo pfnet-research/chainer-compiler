@@ -62,6 +62,11 @@ bool g_quiet;
 #define LOG() \
     if (!g_quiet) std::cerr
 
+int GetUsedMemory() {
+    auto usage = GetMemoryUsageInBytes();
+    return usage.has_value() ? usage->first : -1;
+}
+
 bool IsDir(const std::string& filename) {
     struct stat st;
     CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
@@ -246,8 +251,8 @@ ChxVMVar* StageVar(ChxVMVar* var) {
 
 class ModelRunner {
 public:
-    ModelRunner(const cmdline::parser& args, int64_t initial_free_bytes, Model* model)
-        : model_(model), args_(args), initial_free_bytes_(initial_free_bytes) {
+    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, Model* model)
+        : model_(model), args_(args), initial_used_bytes_(initial_used_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
@@ -292,14 +297,14 @@ public:
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
         chxvm_opts_.dump_memory_usage = args_.exist("trace");
-        chxvm_opts_.base_memory_usage = initial_free_bytes_;
+        chxvm_opts_.base_memory_usage = initial_used_bytes_;
         chxvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
             chxvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
 
         params_ = LoadParams(model->graph());
-        param_bytes_ = initial_free_bytes - GetMemoryUsageInBytes();
+        param_bytes_ = GetUsedMemory() - initial_used_bytes;
     }
 
     void CompileModel(Model* model, std::unique_ptr<ChxVM>* chxvm, const char* name = nullptr, bool gen_backprop = false) {
@@ -394,9 +399,8 @@ private:
     }
 
     void MaybeShowGPUMemory() const {
-        if (initial_free_bytes_ >= 0) {
-            int64_t free_bytes = GetMemoryUsageInBytes();
-            size_t used_bytes = initial_free_bytes_ - free_bytes;
+        if (initial_used_bytes_ >= 0) {
+            size_t used_bytes = GetUsedMemory() - initial_used_bytes_;
             size_t param_mbs = param_bytes_ / 1000 / 1000;
             size_t used_mbs = used_bytes / 1000 / 1000;
             LOG() << "GPU memory: param=" << param_mbs << "MB used=" << used_mbs << "MB" << std::endl;
@@ -408,7 +412,7 @@ private:
     std::unique_ptr<ChxVM> chxvm_;
     ChxVMOptions chxvm_opts_;
     InOuts params_;
-    const int64_t initial_free_bytes_;
+    const int64_t initial_used_bytes_;
     int64_t param_bytes_;
 
     std::unique_ptr<ChxVM> chxvm_bp_;
@@ -594,7 +598,7 @@ void RunMain(const std::vector<std::string>& argv) {
             g_meminfo_enabled = true;
         }
     }
-    int64_t initial_free_bytes = GetMemoryUsageInBytes();
+    int64_t initial_used_bytes = GetUsedMemory();
 
     if (onnx_path.empty()) {
         onnx_path = test_path + "/model.onnx";
@@ -645,7 +649,7 @@ void RunMain(const std::vector<std::string>& argv) {
         test_cases.swap(new_test_cases);
     }
 
-    ModelRunner model_runner(args, initial_free_bytes, &model);
+    ModelRunner model_runner(args, initial_used_bytes, &model);
 
     if (args.exist("compile_only")) return;
 

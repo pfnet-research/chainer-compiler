@@ -190,8 +190,9 @@ void ChxVM::Run(ChxVMState* state) {
             int64_t used_mbs = InMbs(state->GetTotalVariableSize());
             peak_used_mbs = std::max(used_mbs, peak_used_mbs);
             std::string report = StrCat(" Memory usage=", used_mbs, "MB");
-            if (options.base_memory_usage >= 0) {
-                int64_t total_mbs = InMbs(options.base_memory_usage - GetMemoryUsageInBytes());
+            auto usage = GetMemoryUsageInBytes();
+            if (options.base_memory_usage >= 0 && usage.has_value()) {
+                int64_t total_mbs = InMbs(usage->first - options.base_memory_usage);
                 peak_total_mbs = std::max(total_mbs, peak_total_mbs);
                 report = StrCat(report, " allocated=", total_mbs, "MB");
             }
