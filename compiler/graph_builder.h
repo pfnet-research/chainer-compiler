@@ -5,6 +5,7 @@
 
 #include <chainerx/array.h>
 #include <compiler/node.h>
+#include <compiler/onnx.h>
 
 namespace chainer_compiler {
 
@@ -28,10 +29,15 @@ public:
 
     // Creates a new operation node which has a single output. A new
     // temporary `Value` will be created if `output` is nullptr.
-    Value* Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output = nullptr);
+    Value*
+    Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output = nullptr, const std::string& domain = onnx::ONNX_DOMAIN);
 
     // Creates a new operation node which has multiple outputs.
-    Node* MOp(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    Node* MOp(
+            Node::OpType op_type,
+            const std::vector<Value*>& inputs,
+            const std::vector<Value*>& outputs,
+            const std::string& domain = onnx::ONNX_DOMAIN);
 
     Value* Const(const chainerx::Array& ary, Value* value = nullptr);
 

@@ -43,7 +43,7 @@ NODES = []
 
 class NodeDef(object):
 
-    def __init__(self, op_type, num_inputs, num_outputs, **kwargs):
+    def __init__(self, op_type, num_inputs, num_outputs, domain="", **kwargs):
         self.op_type = op_type
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs

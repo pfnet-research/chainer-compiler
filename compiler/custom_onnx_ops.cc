@@ -1,6 +1,9 @@
+#include "compiler/onnx.h"
 #include "onnx/defs/schema.h"
 
-#define ONNX_CHAINER_OPERATOR_SET_SCHEMA(name, ver, impl) ONNX_OPERATOR_SET_SCHEMA_EX(name, Onnx, ONNX_DOMAIN, ver, false, impl)
+#define ONNX_CHAINER_OPERATOR_SET_SCHEMA(name, ver, impl) \
+    ONNX_OPERATOR_SET_SCHEMA_EX(name, Chainer, chainer_compiler::CHAINER_ONNX_DOMAIN, ver, false, impl)
+#define ONNX_WORKAROUND_OPERATOR_SET_SCHEMA(name, ver, impl) ONNX_OPERATOR_SET_SCHEMA_EX(name, Onnx, ONNX_DOMAIN, ver, false, impl)
 
 namespace ONNX_NAMESPACE {
 
@@ -225,7 +228,7 @@ void convPoolTypeAndShapeInference(InferenceContext& ctx, bool use_dilation, boo
 
 }  // namespace
 
-ONNX_CHAINER_OPERATOR_SET_SCHEMA(
+ONNX_WORKAROUND_OPERATOR_SET_SCHEMA(
         MaxPool,
         9,
         OpSchema()
@@ -391,7 +394,7 @@ but the major difference is numpy.broadcast_to() does not allow shape to be smal
 It is possible that the output.shape is not equal to shape, when some dimensions in shape is equal to 1,
 or the shape.ndim < input.shape.ndim.
 )DOC";
-ONNX_CHAINER_OPERATOR_SET_SCHEMA(
+ONNX_WORKAROUND_OPERATOR_SET_SCHEMA(
         Expand,
         9,
         OpSchema()
@@ -545,7 +548,7 @@ void InferSplit(InferenceContext& ctx) {
 
 }  // namespace
 
-ONNX_CHAINER_OPERATOR_SET_SCHEMA(
+ONNX_WORKAROUND_OPERATOR_SET_SCHEMA(
         Split,
         9,
         OpSchema()
@@ -597,16 +600,17 @@ ONNX_CHAINER_OPERATOR_SET_SCHEMA(
 class Custom_OpSet_Onnx_ver9 {
 public:
     static void ForEachSchema(std::function<void(OpSchema&&)> fn) {
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerPadBatchSize)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerReduceSumTo)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAverageAlign2D)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIAveragePool2D)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxAlign2D)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerROIMaxPool2D)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerLinear)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerResizeImages)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSoftmaxCrossEntropy)>());
-        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, ChainerSelectItem)>());
+        ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().AddDomainToVersion(chainer_compiler::CHAINER_ONNX_DOMAIN, 9, 9);
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerPadBatchSize)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerReduceSumTo)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerROIAverageAlign2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerROIAveragePool2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerROIMaxAlign2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerROIMaxPool2D)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerLinear)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerResizeImages)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerSoftmaxCrossEntropy)>());
+        fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Chainer, 9, ChainerSelectItem)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Expand)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, MaxPool)>());
         fn(GetOpSchema<ONNX_OPERATOR_SET_SCHEMA_CLASS_NAME(Onnx, 9, Split)>());
