@@ -43,13 +43,16 @@ NODES = []
 
 class NodeDef(object):
 
-    def __init__(self, op_type, num_inputs, num_outputs, domain="", **kwargs):
+    def __init__(self, op_type, num_inputs, num_outputs, domain='', **kwargs):
         self.op_type = op_type
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.attributes = kwargs
         self.attributes.update(CHAINER_COMPILERX_GLOBAL_ATTRS)
         self.attr_defs = {}  # To be filled after parsed.
+        self.domain = domain
+        if op_type.startswith('Chainer') and len(domain) == 0:
+            self.domain = 'org.chainer'
         NODES.append(self)
 
 
