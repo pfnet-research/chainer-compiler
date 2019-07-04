@@ -55,11 +55,14 @@ class D(chainer.Chain):
         with Z(3) as obj:
             return obj
 
+def func_elichika_dislike():
+    yield 42
+
 class IgnoreBranch(chainer.Chain):
     def forward(self):
         ret = 0
         with flags.ignore_branch():
-            ret += 1
+            func_elichika_dislike()
         ret += 1
         return ret
 
@@ -100,7 +103,7 @@ def main():
     testtools.generate_testcase(B(), [], 'multiple')
     testtools.generate_testcase(C(), [], 'enter_exit')
     testtools.generate_testcase(D(), [], 'self_not_returned')
-    # testtools.generate_testcase(IgnoreBranch(), [], 'ignore_branch')
+    testtools.generate_testcase(IgnoreBranch(), [], 'ignore_branch')
     testtools.generate_testcase(ForUnroll(), [], 'for_unroll')
 
 if __name__ == '__main__':
