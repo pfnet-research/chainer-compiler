@@ -15,7 +15,7 @@ std::tuple<chainerx::Array, chainerx::Array> DropoutOp::RunImpl(ChxVMState* st, 
         chainerx::Array out = data * mask;
         return std::tuple<chainerx::Array, chainerx::Array>{out, mask};
     } else {
-        chainerx::Array mask = chainerx::OnesLike(data);
+        chainerx::Array mask = chainerx::OnesLike(data).AsType(chainerx::Dtype::kBool);
         return std::tuple<chainerx::Array, chainerx::Array>{data, mask};
     }
 }
