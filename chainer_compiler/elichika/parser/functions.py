@@ -311,7 +311,8 @@ class FunctionBase():
 
         self.base_func = None
 
-    def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.Value', args=[], line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         return None
 
 
@@ -344,7 +345,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         ret = values.ValueRef(values.UserDefinedInstance(
             module, None, self.classinfo))
         inst = ret
@@ -383,7 +385,8 @@ class UserDefinedFunction(FunctionBase):
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'core.Graph', inst: 'values.ValueRef', args: 'FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         func_field = values.Field()
         func_field.set_module(module)
 
@@ -391,7 +394,7 @@ class UserDefinedFunction(FunctionBase):
         funcArgs = self.args.merge_inputs(inst, args)
 
         for k, v in funcArgs.keywords.items():
-            func_field.get_field().get_attribute(k, from_module=False).revise(v)
+            func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_ref(v, self.name, utils.LineProperty()))
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         ret = vevaluator.veval_ast(astc, func_field, graph)

@@ -1,7 +1,7 @@
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import values
 from chainer_compiler.elichika.parser import functions
-from chainer_compiler.elichika.parser.graphs import Graph
+from chainer_compiler.elichika.parser import graphs
 
 import chainer.links
 
@@ -89,7 +89,8 @@ class ChainerLinkFunction(functions.FunctionBase):
         self.name = '__call__'
         self.owner = owner
 
-    def vcall(self, module: 'values.Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
 
         chainer_link = chainer_links[type(self.owner.inst)]
 
@@ -140,7 +141,8 @@ class ChainerChainListChildrenFunction(functions.FunctionBase):
         self.name = 'children'
         self.owner = owner
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         args = functions.FunctionArgInput()
         args.inputs.append(inst)
         args.keywords['self'] = inst

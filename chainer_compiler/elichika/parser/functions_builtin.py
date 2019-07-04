@@ -11,22 +11,6 @@ import chainer.links as L
 def create_return_value_in_chainer_function():
     return values.TensorValue()
 
-def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
-    if value is None:
-        utils.print_warning('Failed to get value in "{}".'.format(name), lineprop)
-        return None
-
-    if isinstance(value, values.Value):
-        assert(False)
-
-    if isinstance(value, values.Attribute):
-        if value.has_obj():
-            return value.get_ref()
-
-    if isinstance(value, values.ValueRef):
-        return value
-
-    return None
 
 class ChainerFunction(functions.FunctionBase):
     def __init__(self, func, ret_value_func = create_return_value_in_chainer_function):
@@ -36,7 +20,8 @@ class ChainerFunction(functions.FunctionBase):
         self.base_func = func
         self.ret_value_func = ret_value_func
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -52,7 +37,8 @@ class CopyFunction(functions.FunctionBase):
         super().__init__()
         self.name = str(func)
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         node = nodes.NodeCopy(args.inputs[0].get_value())
         graph.add_node(node)
         ret = functions.generate_copied_value(args.inputs[0].get_value())
@@ -64,14 +50,28 @@ class RangeFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'range'
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
-        node = nodes.NodeGenerate(
-            'range', [v.get_value() for v in args.inputs], line)
-        graph.add_node(node)
-        value = values.RangeValue()
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return values.ValueRef(value)
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
+
+        if option._for_unroll:
+            for ref in args.inputs:
+                if not ref.get_value().has_constant_value():
+                    assert False
+
+            refs = []
+            for num in range(*(ref.get_value().internal_value for ref in args.inputs)):
+                refs.append(values.ValueRef(values.NumberValue(num)))
+
+            value = values.ListValue(refs)
+            return values.ValueRef(value)
+        else:
+            node = nodes.NodeGenerate(
+                'range', [v.get_value() for v in args.inputs], line)
+            graph.add_node(node)
+            value = values.RangeValue()
+            value.name = '@F.{}.{}'.format(line, self.name)
+            node.set_outputs([value])
+            return values.ValueRef(value)
 
 
 class LenFunction(functions.FunctionBase):
@@ -79,7 +79,8 @@ class LenFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'len'
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         node = nodes.NodeLen(
             args.inputs[0].get_value(),  # TODO: Check this.
             line
@@ -98,7 +99,8 @@ class PrintFunction(functions.FunctionBase):
         self.args.add_arg('self', None)
         self.args.add_arg('v', None)
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -110,7 +112,8 @@ class ListFunction(functions.FunctionBase):
         self.name = 'list'
         self.args.add_arg('value', values.ValueRef(values.NoneValue()))
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
@@ -123,6 +126,13 @@ class ListFunction(functions.FunctionBase):
         else:
             node = nodes.NodeConvert('List', vargs[0], line)
             graph.add_node(node)
+
+            if vargs[0].has_constant_value():
+                refs = []
+                for attr_or_ref in vargs[0].internal_value:
+                    refs.append(utils.try_get_ref(attr_or_ref, 'list', utils.LineProperty()))
+
+                value.internal_value = refs
 
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
@@ -137,7 +147,8 @@ class AppendFunction(functions.FunctionBase):
         self.args.add_arg('self', None)
         self.args.add_arg('elmnt', None)
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -172,7 +183,8 @@ class KeysFunction(functions.FunctionBase):
         self.owner = owner
         self.args.add_arg('self', None)
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         if inst.in_container:
@@ -183,8 +195,8 @@ class KeysFunction(functions.FunctionBase):
         vargs = []
         vargs_value = []
         for varg in keys:
-            vargs.append(try_get_ref(varg, 'keys', utils.LineProperty()))
-            vargs_value.append(try_get_ref(varg, 'keys', utils.LineProperty()).get_value())
+            vargs.append(utils.try_get_ref(varg, 'dict_keys', utils.LineProperty()))
+            vargs_value.append(utils.try_get_ref(varg, 'dict_keys', utils.LineProperty()).get_value())
 
         node = nodes.NodeGenerate('List', vargs_value , line)
         graph.add_node(node)
@@ -202,7 +214,8 @@ class ValuesFunction(functions.FunctionBase):
         self.owner = owner
         self.args.add_arg('self', None)
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         if inst.in_container:
@@ -211,17 +224,19 @@ class ValuesFunction(functions.FunctionBase):
         key_hashes = inst.get_value().internal_keys.keys()
         attributes = inst.get_value().internal_values
         vargs = []
+        vargs_ref = []
         for hash in key_hashes:
             varg = attributes.get_attribute(hash)
             if varg.has_obj():
-                vargs.append(varg.get_ref().get_value())
+                vargs.append(utils.try_get_ref(varg, 'dict_values', utils.LineProperty()).get_value())
+                vargs_ref.append(utils.try_get_ref(varg, 'dict_values', utils.LineProperty()))
             else:
                 assert(False)
 
         node = nodes.NodeGenerate('List', vargs , line)
         graph.add_node(node)
 
-        value = values.ListValue()
+        value = values.ListValue(vargs_ref)
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return value
@@ -234,7 +249,8 @@ class VEvalOptionFunction(functions.FunctionBase):
         self.args.analyze_args(func)
         self.flags = flags
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
@@ -251,7 +267,8 @@ class GetAttrFunction(functions.FunctionBase):
         self.args.add_arg('object', None)
         self.args.add_arg('name', None)
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         func_args = self.args.merge_inputs(inst, args)
         name = func_args.get_value().get_value(key='name')
         obj = func_args.keywords['object']
@@ -261,7 +278,7 @@ class GetAttrFunction(functions.FunctionBase):
         # property(getter)
         if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue) and attr.get_ref().get_value().func.is_property:
             func_value = attr.get_ref().get_value()
-            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), lineprop)
+            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, lineprop)
             return ret
 
         if attr.has_obj():

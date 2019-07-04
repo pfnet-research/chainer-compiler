@@ -63,6 +63,31 @@ class IgnoreBranch(chainer.Chain):
         ret += 1
         return ret
 
+class ForUnroll(chainer.Chain):
+    def __init__(self):
+        super(ForUnroll, self).__init__()
+        self.x1 = 1
+        self.x2 = 2
+        self.x3 = 3
+        self.dict = {'x1': 1, 'x2': 2, 'x3': 3}
+
+    def forward(self):
+        ret = 0
+
+        with flags.for_unroll():
+            for i in list([1, 2, 3]):
+                ret += 1 * self['x%d' % i]
+
+            for i in range(1, 4):
+                ret += 2 * self['x%d' % i]
+
+            for i in self.dict.keys():
+                ret += 3 * self[i]
+
+            for i in self.dict.values():
+                ret += 4 * self['x%d' % i]
+
+        return ret
 
 # ======================================
 
@@ -76,7 +101,7 @@ def main():
     testtools.generate_testcase(C(), [], 'enter_exit')
     testtools.generate_testcase(D(), [], 'self_not_returned')
     # testtools.generate_testcase(IgnoreBranch(), [], 'ignore_branch')
-
+    testtools.generate_testcase(ForUnroll(), [], 'for_unroll')
 
 if __name__ == '__main__':
     main()
