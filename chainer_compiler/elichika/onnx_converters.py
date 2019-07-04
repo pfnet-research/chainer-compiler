@@ -317,7 +317,9 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
         seq_right = right.create_sequence()
         onnx_graph.add_node(binops[node.binop], [seq_left, seq_right], [
                             value2onnx_parameter[node.outputs[0]].onnx_name], None)
-
+    elif isinstance(node.left, values.StrValue):
+        # Constant propagation, string concatenation, etc.
+        pass
     else:
         if node.binop == nodes.BinOpType.FloorDiv:
 

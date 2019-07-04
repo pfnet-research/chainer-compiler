@@ -47,6 +47,21 @@ class GetItemGetter(chainer.Chain):
     def forward(self):
         return self['x']
 
+class StrConstantPropagation(chainer.Chain):
+    def __init__(self):
+        super(StrConstantPropagation, self).__init__()
+        self.x1 = 1
+        self.x2 = 2
+        self.x3 = 3
+        self.x121hello1 = 4
+
+    def forward(self):
+        ret = 0
+        for i in [1, 2, 3]:
+            ret += self['x%d' % i]
+        ret += self['x%s' % '%d%s' % (121, "%s%d" % ("hello", True))]
+        return ret
+
 
 # ======================================
 
@@ -60,6 +75,7 @@ def main():
     # testtools.generate_testcase(GetItemCustom(), [], subname='GetItemCustom')  # Bug in UserDefinedFunctions.
     testtools.generate_testcase(GetItemFunction(), [], subname='GetItemFunction')
     testtools.generate_testcase(GetItemGetter(), [], subname='GetItemGetter')
+    testtools.generate_testcase(StrConstantPropagation(), [], subname='StrConstantPropagation')
 
 
 if __name__ == '__main__':

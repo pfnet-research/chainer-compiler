@@ -842,6 +842,8 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
         binop = nodes.BinOpType.Div
     elif isinstance(astc.nast.op, gast.FloorDiv):
         binop = nodes.BinOpType.FloorDiv
+    elif isinstance(astc.nast.op, gast.Mod):
+        binop = nodes.BinOpType.Mod
     else:
         utils.print_warning('Unknown binary operator {}'.format(astc.nast.op), lineprop)
         return None
