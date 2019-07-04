@@ -14,6 +14,7 @@
 #include <compiler/model.h>
 #include <runtime/chainerx_util.h>
 #include <runtime/chxvm_var.h>
+#include <runtime/meminfo.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -108,6 +109,11 @@ int MismatchInAllClose(const chainerx::Array& a, const chainerx::Array& b, doubl
         }
         return error_count;
     });
+}
+
+int GetUsedMemory() {
+    auto usage = GetMemoryUsageInBytes();
+    return usage.has_value() ? usage->first : -1;
 }
 
 }  // namespace runtime

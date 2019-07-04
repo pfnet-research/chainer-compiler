@@ -9,16 +9,16 @@ namespace runtime {
 
 bool g_meminfo_enabled = false;
 
-int64_t GetMemoryUsageInBytes() {
+nonstd::optional<std::pair<int64_t, int64_t>> GetMemoryUsageInBytes() {
 #ifdef CHAINER_COMPILER_ENABLE_CUDA
-    if (!g_meminfo_enabled) return -1;
-    size_t bytes;
-    if (cudaMemGetInfo(&bytes, nullptr) != cudaSuccess) {
-        return -1;
+    if (!g_meminfo_enabled) return nonstd::nullopt;
+    size_t free, total;
+    if (cudaMemGetInfo(&free, &total) != cudaSuccess) {
+        return nonstd::nullopt;
     }
-    return bytes;
+    return std::pair<int64_t, int64_t>(total - free, total);
 #else
-    return -1;
+    return nonstd::nullopt;
 #endif  // CHAINER_COMPILER_ENABLE_CUDA
 }
 
