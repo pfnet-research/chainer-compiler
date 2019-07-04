@@ -129,6 +129,8 @@ def main():
     parser.add_argument('--weight-decay', type=float, default=0.0001)
     parser.add_argument('--out', type=str, default='result')
     parser.add_argument('--epoch', type=int, default=90)
+    parser.add_argument('--iterations', '-I', type=int, default=None,
+                        help='Number of iterations to train')
     parser.add_argument('--no_use_fixed_batch_dataset',
                         dest='use_fixed_batch_dataset',
                         action='store_false',
@@ -278,8 +280,12 @@ def main():
     updater = chainer.training.StandardUpdater(
         train_iter, optimizer, device=device)
 
+    if args.iterations:
+        stop_trigger = (args.iterations, 'iteration')
+    else:
+        stop_trigger = (args.epoch, 'epoch')
     trainer = training.Trainer(
-        updater, (args.epoch, 'epoch'), out=args.out)
+        updater, stop_trigger, out=args.out)
 
     @make_shift('lr')
     def warmup_and_exponential_shift(trainer):
