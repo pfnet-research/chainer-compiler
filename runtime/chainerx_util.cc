@@ -235,15 +235,15 @@ chainerx::Array GroupedConv(
     Int64StackVector pads = in_pads;
     if (auto_pad == "SAME_UPPER") {
         for (size_t i = 0; i < pads.size(); ++i) {
-            int64_t& pad = pads[i];
             const int64_t in_dim = x.shape()[2 + i];
             const int64_t stride = strides[i];
+
             const int64_t kernel = w.shape()[2 + i];
 
             int64_t legacy_target_size = (in_dim + stride - 1) / stride;
             int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
 
-            pad = pad_needed / 2;
+            pads[i] = pad_needed / 2;
         }
     } else {
         CHECK_EQ("NOTSET", auto_pad);
