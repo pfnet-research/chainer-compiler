@@ -379,6 +379,9 @@ class Field():
 
         return False
 
+    def try_get_attribute(self, key : 'str') -> 'Attribute':
+        return self.collection.try_get_attribute(key)
+
     def get_attribute(self, key: 'str', root_graph : 'graphs.Graph' = None, from_module=False) -> 'Attribute':
         attribute = self.collection.try_get_attribute(key)
 
@@ -452,7 +455,7 @@ class Attribute:
     def __init__(self, name: 'str'):
         self.name = name
         self.obj = None
-        self.parent = None
+        self.parent = None # type: Field
 
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
@@ -498,8 +501,8 @@ class ValueRef():
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
             
-        attribute = self.attributes.get_attribute(name, root_graph)
-        if attribute.has_obj():
+        attribute = self.attributes.try_get_attribute(name)
+        if attribute is not None and attribute.has_obj():
             return attribute.get_ref()
 
         obj = self.value.try_get_ref(name, self, root_graph)
