@@ -51,6 +51,7 @@ class NodeDef(object):
         self.attributes.update(CHAINER_COMPILERX_GLOBAL_ATTRS)
         self.attr_defs = {}  # To be filled after parsed.
         self.domain = domain
+        # TODO(take-cheeze): Remove this when domain is specified correctly
         if op_type.startswith('Chainer') and len(domain) == 0:
             self.domain = 'org.chainer'
         NODES.append(self)
