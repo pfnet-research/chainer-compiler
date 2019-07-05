@@ -109,10 +109,6 @@ void CreateFusionGroup(
         if (!can_fuse_initializers || !value->initializer()) {
             return false;
         }
-        if (!value->users().empty()) {
-            WARN_ONCE(StrCat(fusion_type, " fusion: moving initializers used more than once is not supported yet"));
-            return false;
-        }
         new_value->ResetInitializer(std::make_unique<Tensor>("fi_" + value->name(), *value->initializer()));
         return true;
     };
