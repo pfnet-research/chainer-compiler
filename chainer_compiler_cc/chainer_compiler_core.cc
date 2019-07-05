@@ -384,6 +384,10 @@ void InitChxVM(py::module& m) {
           "state"_a);
 }
 
+void InitChxVMState(py::module& m) {
+    py::class_<runtime::ChxVMState, std::shared_ptr<runtime::ChxVMState>> c{m, "ChxVMState"};
+}
+
 bool IsArray(const VarPtr& v) {
     return v->IsArray();
 }
@@ -436,6 +440,8 @@ PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
     InitChxVMVar(m);
 
     InitChxVM(m);
+
+    InitChxVMState(m);
 
     m.def("load", &LoadGraph, "Load an ONNX model");
     m.def("value", &CreateValueFromArray, "Create an ChxVMVar from a ChainerX Array");
