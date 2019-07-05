@@ -91,22 +91,23 @@ class Encoder(chainer.Chain):
         xs, ilens = self.enc2(xs, ilens)
         return xs, ilens
 
-        if self.etype == 'blstm':
-            xs, ilens = self.enc1(xs, ilens)
-        elif self.etype == 'blstmp':
-            xs, ilens = self.enc1(xs, ilens)
-        elif self.etype == 'vggblstmp':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
-        elif self.etype == 'vggblstm':
-            xs, ilens = self.enc1(xs, ilens)
-            xs, ilens = self.enc2(xs, ilens)
-        else:
-            logging.error(
-                "Error: need to specify an appropriate encoder archtecture")
-            sys.exit()
+        # Edit(rchouras): Commenting this out as it is No-op because of above return.
+        # if self.etype == 'blstm':
+        #     xs, ilens = self.enc1(xs, ilens)
+        # elif self.etype == 'blstmp':
+        #     xs, ilens = self.enc1(xs, ilens)
+        # elif self.etype == 'vggblstmp':
+        #     xs, ilens = self.enc1(xs, ilens)
+        #     xs, ilens = self.enc2(xs, ilens)
+        # elif self.etype == 'vggblstm':
+        #     xs, ilens = self.enc1(xs, ilens)
+        #     xs, ilens = self.enc2(xs, ilens)
+        # else:
+        #     logging.error(
+        #         "Error: need to specify an appropriate encoder archtecture")
+        #     sys.exit()
 
-        return xs, ilens
+        # return xs, ilens
 
 
 class E2E(chainer.Chain):
@@ -207,14 +208,15 @@ class E2E(chainer.Chain):
         # EDIT(hamaji): Decoder only returns loss.
         return self.dec(hs, ys)
 
+        # Edit(rchouras): Commenting this out as it is No-op because of above return.
         # 4. attention loss
-        if self.mtlalpha == 1:
-            loss_att = None
-            acc = None
-        else:
-            loss_att, acc = self.dec(hs, ys)
+        # if self.mtlalpha == 1:
+        #     loss_att = None
+        #     acc = None
+        # else:
+        #     loss_att, acc = self.dec(hs, ys)
 
-        return loss_ctc, loss_att, acc
+        # return loss_ctc, loss_att, acc
 
     def original(self, xs, ilens, ys):
         '''E2E forward
