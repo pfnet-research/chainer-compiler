@@ -157,7 +157,10 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
             inputs[name] = value
 
         with chainer.using_device(self.chainerx_device_name):
-            outputs = self.bwd.run(inputs, **self.runtime_kwargs)
+            state = self.bwd.prepare(inputs, **self.runtime_kwargs)
+            del inputs
+            del values
+            outputs = self.bwd.run(state)
         gxs = []
         assert len(self.input_tmpl) == len(self.fwd_input_names)
         for name, tmpl in zip(self.fwd_input_names, self.input_tmpl):
