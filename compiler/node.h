@@ -15,7 +15,11 @@ class Value;
 class Node : public NodeBase {
 public:
     Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
-    Node(const std::string& name, OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs);
+    Node(const std::string& name,
+         OpType op_type,
+         const std::vector<Value*>& inputs,
+         const std::vector<Value*>& outputs,
+         const std::string& domain);
     ~Node();
 
     Node(const Node&) = delete;

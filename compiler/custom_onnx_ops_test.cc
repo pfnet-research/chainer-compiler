@@ -31,12 +31,13 @@ void TestInference(
     Node* node = nullptr;
     {
         GraphBuilder gb(&graph, "test", outputs[0]);
-        node = gb.MOp(op_type, inputs, outputs);
+        node = gb.MOp(op_type, inputs, outputs, CHAINER_ONNX_DOMAIN);
         attr_fn(node);
     }
 
     ASSERT_EQ(1, node->outputs().size());
     const Type& output_type = node->output(0)->type();
+    EXPECT_EQ(CHAINER_ONNX_DOMAIN, node->domain());
     EXPECT_EQ(expected_dtype, output_type.dtype());
     EXPECT_EQ(expected_dims, output_type.dims());
 }
@@ -70,7 +71,7 @@ TEST(ShapeInferenceTest, ReduceSumTo) {
         std::vector<Value*> outputs;
         outputs.push_back(graph.AddOutputValue(StrCat("output", 0), Type()));
 
-        node = gb.MOp(Node::kChainerReduceSumTo, inputs, outputs);
+        node = gb.MOp(Node::kChainerReduceSumTo, inputs, outputs, CHAINER_ONNX_DOMAIN);
     }
 
     ASSERT_EQ(1, node->outputs().size());

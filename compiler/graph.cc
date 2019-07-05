@@ -194,8 +194,13 @@ Value* Graph::AddNullValue() {
     return AddValue("", Value::Kind::kNull);
 }
 
-Node* Graph::AddNode(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base) {
-    Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs);
+Node* Graph::AddNode(
+        Node::OpType op_type,
+        const std::vector<Value*>& inputs,
+        const std::vector<Value*>& outputs,
+        const std::string& base,
+        const std::string& domain) {
+    Node* node = new Node(GenSym(base.empty() ? Node::OpTypeToString(op_type) : base), op_type, inputs, outputs, domain);
     AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
     return node;
 }
@@ -313,9 +318,7 @@ void Graph::InferShapes() {
     all_values_.clear();
     nodes_.clear();
     nodes_buf_.clear();
-    std::unordered_map<std::string, int> opset_imports;
-    opset_imports[""] = OPSET_VERSION;
-    onnx::shape_inference::InferShapes(&xgraph, opset_imports);
+    onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
     Construct(xgraph);
 }
 

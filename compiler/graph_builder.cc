@@ -48,9 +48,7 @@ GraphBuilder::~GraphBuilder() {
         for (Value* value : temps) {
             value->ToONNX(xgraph.add_value_info());
         }
-        std::unordered_map<std::string, int> opset_imports;
-        opset_imports[""] = OPSET_VERSION;
-        onnx::shape_inference::InferShapes(&xgraph, opset_imports);
+        onnx::shape_inference::InferShapes(&xgraph, OpsetImports());
 
         for (size_t i = 0; i < outputs.size(); ++i) {
             if (xgraph.output(i).type().has_tensor_type()) outputs[i]->set_type(new Type(xgraph.output(i).type()));
@@ -65,16 +63,17 @@ GraphBuilder::~GraphBuilder() {
     }
 }
 
-Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output) {
+Value* GraphBuilder::Op(Node::OpType op_type, const std::vector<Value*>& inputs, Value* output, const std::string& domain) {
     const std::string name = GenName();
     if (!output) output = graph_->AddValue(name);
-    added_nodes_.push_back(graph_->AddNode(op_type, inputs, {output}, name));
+    added_nodes_.push_back(graph_->AddNode(op_type, inputs, {output}, name, domain));
     return output;
 }
 
-Node* GraphBuilder::MOp(Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+Node* GraphBuilder::MOp(
+        Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& domain) {
     const std::string name = GenName();
-    Node* node = graph_->AddNode(op_type, inputs, outputs, name);
+    Node* node = graph_->AddNode(op_type, inputs, outputs, name, domain);
     added_nodes_.push_back(node);
     return node;
 }

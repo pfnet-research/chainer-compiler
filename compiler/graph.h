@@ -64,7 +64,11 @@ public:
     Value* AddNullValue();
 
     Node* AddNode(
-            Node::OpType op_type, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& base = "");
+            Node::OpType op_type,
+            const std::vector<Value*>& inputs,
+            const std::vector<Value*>& outputs,
+            const std::string& base = "",
+            const std::string& domain = onnx::ONNX_DOMAIN);
 
     void DetachNode(Node* node);
 

@@ -68,6 +68,7 @@ add_library(chainer_compiler_compiler
   model.cc
   node.cc
   nvrtc_builder.cc
+  onnx.cc
   passes.cc
   scheduler.cc
   shape_evaluator.cc
