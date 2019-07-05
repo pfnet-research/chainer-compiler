@@ -45,11 +45,12 @@ def main():
         filename2 = files_map2.get(name)
         if filename2 is None:
             continue
-        print('Comparing %s' % name)
+        sys.stderr.write('Comparing %s...' % name)
         n1 = np.load(filename1)
         n2 = np.load(filename2)
         try:
             np.testing.assert_allclose(n1, n2, rtol=args.rtol, atol=args.atol)
+            sys.stderr.write(' OK\n')
         except AssertionError as e:
             sys.stderr.write('%s\n\n' % e)
             sys.stderr.write('=== %s ===\n%s\n' % (filename1, n1))
