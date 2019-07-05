@@ -244,6 +244,7 @@ std::map<std::string, VarPtr> Run(
         bool dump_memory_usage,
         int64_t base_memory_usage,
         const std::string& chrome_tracing,
+        const std::string& dump_outputs_dir,
         const std::map<std::string, py::function>& custom_funcs) {
     runtime::ChxVMOptions chxvm_opts;
     if (trace) chxvm_opts.trace_level = 1;
@@ -260,6 +261,7 @@ std::map<std::string, VarPtr> Run(
     if (!chrome_tracing.empty()) {
         chxvm_opts.chrome_tracing = new runtime::ChromeTracingEmitter();
     }
+    chxvm_opts.dump_outputs_dir = dump_outputs_dir;
 
     for (const auto& p : custom_funcs) {
         const std::string& name = p.first;
@@ -307,6 +309,7 @@ void InitChxVM(py::module& m) {
           "dump_memory_usage"_a = false,
           "base_memory_usage"_a = -1,
           "chrome_tracing"_a = "",
+          "dump_outputs_dir"_a = "",
           "custom_funcs"_a = py::dict());
 }
 
