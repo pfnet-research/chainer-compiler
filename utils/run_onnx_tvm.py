@@ -122,7 +122,7 @@ def run(args):
 
 
 def get_args(args=None):
-    parser = argparse.ArgumentParser(description='Run ONNX by TensorRT')
+    parser = argparse.ArgumentParser(description='Run ONNX by TVM')
     parser.add_argument('test_dir')
     parser.add_argument('--dump_nnvm', action='store_true')
     parser.add_argument('--target', type=str, default='cuda')
