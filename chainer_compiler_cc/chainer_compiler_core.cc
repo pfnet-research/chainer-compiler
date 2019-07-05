@@ -235,17 +235,17 @@ void InitGraph(py::module& m) {
 }
 
 runtime::ChxVMOptions CreateOptions(
-    bool trace,
-    bool verbose,
-    bool training,
-    bool check_types,
-    bool check_nans,
-    bool check_infs,
-    bool dump_memory_usage,
-    int64_t base_memory_usage,
-    const std::string& chrome_tracing,
-    const std::string& dump_outputs_dir,
-    const std::map<std::string, py::function>& custom_funcs) {
+        bool trace,
+        bool verbose,
+        bool training,
+        bool check_types,
+        bool check_nans,
+        bool check_infs,
+        bool dump_memory_usage,
+        int64_t base_memory_usage,
+        const std::string& chrome_tracing,
+        const std::string& dump_outputs_dir,
+        const std::map<std::string, py::function>& custom_funcs) {
     runtime::ChxVMOptions chxvm_opts;
     if (trace) chxvm_opts.trace_level = 1;
     if (verbose) chxvm_opts.trace_level = 2;
@@ -303,7 +303,18 @@ std::shared_ptr<runtime::ChxVMState> Prepare(
         const std::string& chrome_tracing,
         const std::string& dump_outputs_dir,
         const std::map<std::string, py::function>& custom_funcs) {
-    runtime::ChxVMOptions chxvm_opts = CreateOptions(trace, verbose, training, check_types, check_nans, check_infs, dump_memory_usage, base_memory_usage, chrome_tracing, dump_outputs_dir, custom_funcs);
+    runtime::ChxVMOptions chxvm_opts = CreateOptions(
+            trace,
+            verbose,
+            training,
+            check_types,
+            check_nans,
+            check_infs,
+            dump_memory_usage,
+            base_memory_usage,
+            chrome_tracing,
+            dump_outputs_dir,
+            custom_funcs);
 
     std::shared_ptr<runtime::ChxVMState> state(chxvm->Prepare(inputs, chxvm_opts));
     return state;
@@ -323,7 +334,18 @@ std::map<std::string, VarPtr> Run(
         const std::string& chrome_tracing,
         const std::string& dump_outputs_dir,
         const std::map<std::string, py::function>& custom_funcs) {
-    runtime::ChxVMOptions chxvm_opts = CreateOptions(trace, verbose, training, check_types, check_nans, check_infs, dump_memory_usage, base_memory_usage, chrome_tracing, dump_outputs_dir, custom_funcs);
+    runtime::ChxVMOptions chxvm_opts = CreateOptions(
+            trace,
+            verbose,
+            training,
+            check_types,
+            check_nans,
+            check_infs,
+            dump_memory_usage,
+            base_memory_usage,
+            chrome_tracing,
+            dump_outputs_dir,
+            custom_funcs);
 
     runtime::InOuts outputs(chxvm->Run(inputs, chxvm_opts));
 
@@ -378,10 +400,7 @@ void InitChxVM(py::module& m) {
           "chrome_tracing"_a = "",
           "dump_outputs_dir"_a = "",
           "custom_funcs"_a = py::dict());
-    c.def("run",
-          &RunState,
-          "Run the model",
-          "state"_a);
+    c.def("run", &RunState, "Run the model", "state"_a);
 }
 
 void InitChxVMState(py::module& m) {

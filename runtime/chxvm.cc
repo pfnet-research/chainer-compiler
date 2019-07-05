@@ -143,7 +143,6 @@ std::unique_ptr<ChxVMState> ChxVM::Prepare(const InOuts& program_inputs, const C
 }
 
 InOuts ChxVM::Run(const InOuts& program_inputs, const ChxVMOptions& options) {
-
     std::unique_ptr<ChxVMState> state(Prepare(program_inputs, options));
     Run(state.get());
     return state->GetOutputs();
