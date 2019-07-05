@@ -859,10 +859,9 @@ private:
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
                 if (todo_outputs.erase(output)) continue;
-                if (output->IsTemp() && !output->IsNull() && output->users().empty() &&
-                    // TODO(hamaji): Figure out how we should handle batch norm.
-                    node->op_type() != Node::kBatchNormalization)
+                if (output->IsTemp() && !output->IsNull() && output->users().empty()) {
                     FREE(GetValueId(output));
+                }
             }
 
             for (const Value* input : node->inputs()) {
