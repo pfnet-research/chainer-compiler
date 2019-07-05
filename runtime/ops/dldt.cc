@@ -76,10 +76,6 @@ public:
     InferenceEngine::CNNNetwork network;
     InferenceEngine::ExecutableNetwork executable_network;
     std::vector<chainerx::Array> output_arrays;
-    // As of June 2019, dldt seems to have no way to reliably retrieve
-    // the list of output blobs in the original order. We rely on byte
-    // size of each array to distinguish output blobs.
-    std::map<int64_t, chainerx::Array> array_by_size;
 };
 
 #endif
@@ -104,7 +100,6 @@ void DldtOp::InitImpl() {
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
         chainerx::Array array = chainerx::Empty(shape, dtype);
         impl_->output_arrays.push_back(array);
-        CHECK(impl_->array_by_size.emplace(array.GetNBytes(), array).second) << "Multiple outputs with the same size is not supported yet";
     }
 #endif
 }
@@ -153,12 +148,13 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
 
     infer_request.Infer();
 
+    // We assume output values are alphabetically sorted in ONNX.
+    size_t i = 0;
     for (auto& p : impl_->network.getOutputsInfo()) {
         InferenceEngine::Blob::Ptr output = infer_request.GetBlob(p.first);
-        auto found = impl_->array_by_size.find(output->byteSize());
-        CHECK(found != impl_->array_by_size.end());
-        const chainerx::Array& output_array = found->second;
+        const chainerx::Array& output_array = impl_->output_arrays[i];
         memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
+        ++i;
     }
 
     return impl_->output_arrays;

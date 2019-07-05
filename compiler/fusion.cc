@@ -1,6 +1,7 @@
 #include "compiler/fusion.h"
 
 #include <limits.h>
+#include <stdio.h>
 
 #include <algorithm>
 #include <functional>
@@ -9,6 +10,7 @@
 #include <stack>
 #include <vector>
 
+#include <common/iterator.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
 #include <compiler/graph.h>
@@ -76,6 +78,13 @@ void RejectUnusedConstants(std::set<Node*>* cands) {
     for (Node* node : rejected) cands->erase(node);
 }
 
+std::string MakeValueName(const char* prefix, int index, const std::string& name) {
+    CHECK_LT(index, 1000);
+    char buf[5];
+    sprintf(buf, "%03d", index);
+    return StrCat(prefix, buf, "_", name);
+}
+
 }  // namespace
 
 void CreateFusionGroup(
@@ -105,30 +114,30 @@ void CreateFusionGroup(
         }
     };
 
-    auto maybe_fuse_initializer = [&can_fuse_initializers, &fusion_type](Value* value, Value* new_value) {
+    auto maybe_fuse_initializer = [&can_fuse_initializers, &fusion_type](Value* value, const std::string& new_name, Value* new_value) {
         if (!can_fuse_initializers || !value->initializer()) {
             return false;
         }
-        if (!value->users().empty()) {
-            WARN_ONCE(StrCat(fusion_type, " fusion: moving initializers used more than once is not supported yet"));
-            return false;
-        }
-        new_value->ResetInitializer(std::make_unique<Tensor>("fi_" + value->name(), *value->initializer()));
+        new_value->ResetInitializer(std::make_unique<Tensor>(new_name, *value->initializer()));
         return true;
     };
 
     Graph* subgraph = new Graph(StrCat("Fusion_", fusion_group_id));
     std::vector<Value*> subgraph_inputs;
-    for (Value* value : inputs) {
-        Value* new_value = subgraph->AddInputValue("fi_" + value->name(), value->type());
+    for (const auto& e : Enumerate(inputs)) {
+        Value* value = e.value;
+        const std::string& new_name = MakeValueName("fi", e.index, value->name());
+        Value* new_value = subgraph->AddInputValue(new_name, value->type());
         replace_value(value, new_value);
 
-        if (!maybe_fuse_initializer(value, new_value)) {
+        if (!maybe_fuse_initializer(value, new_name, new_value)) {
             subgraph_inputs.push_back(value);
         }
     }
-    for (Value* value : outputs) {
-        Value* new_value = subgraph->AddOutputValue("fo_" + value->name(), value->type());
+    for (const auto& e : Enumerate(outputs)) {
+        Value* value = e.value;
+        const std::string& new_name = MakeValueName("fo", e.index, value->name());
+        Value* new_value = subgraph->AddOutputValue(new_name, value->type());
         replace_value(value, new_value);
     }
 
