@@ -130,8 +130,8 @@ class ChainerLinkInstance(values.Instance):
         callable_func = values.ValueRef(
             values.FuncValue(ChainerLinkFunction(self), obj))
 
-        obj.get_field().get_attribute('__call__').revise(callable_func)
-        obj.get_field().get_attribute('forward').revise(callable_func)
+        obj.attributes.set_predefined_obj('__call__', callable_func)
+        obj.attributes.set_predefined_obj('forward', callable_func)
 
 
 class ChainerChainListChildrenFunction(functions.FunctionBase):
@@ -163,12 +163,12 @@ class ChainerChainListInstance(values.UserDefinedInstance):
         super().apply_to_object(obj)
         children = values.ValueRef(
             values.FuncValue(ChainerChainListChildrenFunction(self), obj))
-        obj.get_field().get_attribute('children').revise(children)
+        obj.attributes.set_predefined_obj('children', children)
 
         forward_func = obj.try_get_and_store_obj('forward', None)
         if forward_func is not None:
-            obj.get_field().get_attribute('__call__').revise(forward_func)
-            obj.get_field().get_attribute('forward').revise(forward_func)
+            obj.attributes.set_predefined_obj('__call__', forward_func)
+            obj.attributes.set_predefined_obj('forward', forward_func)
 
 
 class ChainerChainInstance(values.UserDefinedInstance):
@@ -189,5 +189,5 @@ class ChainerChainInstance(values.UserDefinedInstance):
 
         forward_func = obj.try_get_and_store_obj('forward', None)
         if forward_func is not None:
-            obj.get_field().get_attribute('__call__').revise(forward_func)
-            obj.get_field().get_attribute('forward').revise(forward_func)
+            obj.attributes.set_predefined_obj('__call__', forward_func)
+            obj.attributes.set_predefined_obj('forward', forward_func)
