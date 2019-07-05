@@ -166,6 +166,8 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
             assert(False)   # not supported
         
         for i in range(len(targets)):
+            assert(value_obj.get_value().get_constant_value() is not None)
+
             node_assign = nodes.NodeAssign(targets[i], value_obj.get_value().get_constant_value()[i], astc.lineno)
             targets[i].revise(try_get_ref(value_obj.get_value().get_constant_value()[i],'assign', lineprop))
             graph.add_node(node_assign)
