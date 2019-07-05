@@ -227,6 +227,7 @@ void InitGraph(py::module& m) {
           &GenerateBackwardToWithOrder,
           "Generate a pair of graphs for forward and back propagation with specified computation order policy");
     c.def("flops", &GetFlops, "Get estimated flops");
+    c.def("peak_memory_usage", &GetPeakMemoryUsage, "Get estimated peak memory usage");
     c.def("all_memory_usage", &GetAllMemoryUsage, "Get estimated all memory usage");
     c.def("param_memory_usage", &GetParamMemoryUsage, "Get estimated param memory usage");
     c.def("dump", &Dump, "Dump a model to a string");
