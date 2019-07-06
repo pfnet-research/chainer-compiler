@@ -725,14 +725,19 @@ class ListValue(Value):
 
         return ValueRef(v)
 
+    def __filter_internal_values(self):
+        return [v for v in self.internal_value if v is not None and not isinstance(v.get_value(), NoneValue)]
+
     def estimate_type(self):
         if self.internal_value is None:
             return
 
+        internal_values = self.__filter_internal_values()
+
         self.vtype = None
         self.dtype = None
 
-        for v in self.internal_value:
+        for v in internal_values:
             if self.vtype is None:
                 self.vtype = type(v.get_value())
                 self.dtype = v.get_value().dtype
@@ -746,7 +751,7 @@ class ListValue(Value):
 
     def append(self, v):
         if self.internal_value is None:
-            if self.vtype is None:
+            if self.vtype is None and not isinstance(v.get_value(), NoneValue):
                 self.vtype = type(v.get_value())
                 self.dtype = v.get_value().dtype
             else:
