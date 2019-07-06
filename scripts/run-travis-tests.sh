@@ -55,7 +55,9 @@ run tools_dump ./build/tools/dump out/ch2o_model_MLP_with_loss
 
 run run_onnx_verbose \
     ./build/tools/run_onnx --test out/ch2o_model_MLP_with_loss \
-    --verbose --compiler_log
+    --verbose --compiler_log --chrome_tracing mlp.json
+ls -l mlp.json
+
 run run_onnx_trace sh -c \
     './build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace 2>&1 | head -100'
 

@@ -188,8 +188,8 @@ void ChxVMState::Input(const std::string& name, int index) {
     CHECK(!variables_[index].get()) << index;
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;
-    inputs_.erase(found);
     variables_[index].reset(new ChxVMVar(*found->second.get()));
+    inputs_.erase(found);
 }
 
 void ChxVMState::Output(const std::string& name, int index) {

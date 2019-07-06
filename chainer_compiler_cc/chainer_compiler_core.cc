@@ -25,6 +25,7 @@
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
+#include <runtime/chxvm_state.h>
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
 #include <tools/util.h>
@@ -233,9 +234,7 @@ void InitGraph(py::module& m) {
     c.def("dump", &Dump, "Dump a model to a string");
 }
 
-std::map<std::string, VarPtr> Run(
-        const std::shared_ptr<runtime::ChxVM>& chxvm,
-        const std::map<std::string, VarPtr>& inputs,
+runtime::ChxVMOptions CreateOptions(
         bool trace,
         bool verbose,
         bool training,
@@ -287,6 +286,67 @@ std::map<std::string, VarPtr> Run(
         CHECK(chxvm_opts.custom_op_funcs.emplace(name, func).second) << "Duplicate custom op name: " << name;
     }
 
+    return chxvm_opts;
+}
+
+std::shared_ptr<runtime::ChxVMState> Prepare(
+        const std::shared_ptr<runtime::ChxVM>& chxvm,
+        const std::map<std::string, VarPtr>& inputs,
+        bool trace,
+        bool verbose,
+        bool training,
+        bool check_types,
+        bool check_nans,
+        bool check_infs,
+        bool dump_memory_usage,
+        int64_t base_memory_usage,
+        const std::string& chrome_tracing,
+        const std::string& dump_outputs_dir,
+        const std::map<std::string, py::function>& custom_funcs) {
+    runtime::ChxVMOptions chxvm_opts = CreateOptions(
+            trace,
+            verbose,
+            training,
+            check_types,
+            check_nans,
+            check_infs,
+            dump_memory_usage,
+            base_memory_usage,
+            chrome_tracing,
+            dump_outputs_dir,
+            custom_funcs);
+
+    std::shared_ptr<runtime::ChxVMState> state(chxvm->Prepare(inputs, chxvm_opts));
+    return state;
+}
+
+std::map<std::string, VarPtr> Run(
+        const std::shared_ptr<runtime::ChxVM>& chxvm,
+        const std::map<std::string, VarPtr>& inputs,
+        bool trace,
+        bool verbose,
+        bool training,
+        bool check_types,
+        bool check_nans,
+        bool check_infs,
+        bool dump_memory_usage,
+        int64_t base_memory_usage,
+        const std::string& chrome_tracing,
+        const std::string& dump_outputs_dir,
+        const std::map<std::string, py::function>& custom_funcs) {
+    runtime::ChxVMOptions chxvm_opts = CreateOptions(
+            trace,
+            verbose,
+            training,
+            check_types,
+            check_nans,
+            check_infs,
+            dump_memory_usage,
+            base_memory_usage,
+            chrome_tracing,
+            dump_outputs_dir,
+            custom_funcs);
+
     runtime::InOuts outputs(chxvm->Run(inputs, chxvm_opts));
 
     if (chxvm_opts.chrome_tracing) {
@@ -295,8 +355,36 @@ std::map<std::string, VarPtr> Run(
     return outputs;
 }
 
+std::map<std::string, VarPtr> RunState(const std::shared_ptr<runtime::ChxVM>& chxvm, const std::shared_ptr<runtime::ChxVMState>& state) {
+    chxvm->Run(state.get());
+    // TODO(hamaji): Revive this.
+#if 0
+    const runtime::ChxVMOptions& chxvm_opts = state->options();
+    if (chxvm_opts.chrome_tracing) {
+        chxvm_opts.chrome_tracing->Emit(chxvm_opts.chrome_tracing);
+    }
+#endif
+    return state->GetOutputs();
+}
+
 void InitChxVM(py::module& m) {
     py::class_<runtime::ChxVM, std::shared_ptr<runtime::ChxVM>> c{m, "ChxVM"};
+    // TODO(hamaji): Expose ChxVMOptions to Python.
+    c.def("prepare",
+          &Prepare,
+          "Prepare the model",
+          "inputs"_a,
+          "trace"_a = false,
+          "verbose"_a = false,
+          "training"_a = false,
+          "check_types"_a = true,
+          "check_nans"_a = false,
+          "check_infs"_a = false,
+          "dump_memory_usage"_a = false,
+          "base_memory_usage"_a = -1,
+          "chrome_tracing"_a = "",
+          "dump_outputs_dir"_a = "",
+          "custom_funcs"_a = py::dict());
     c.def("run",
           &Run,
           "Run the model",
@@ -312,6 +400,11 @@ void InitChxVM(py::module& m) {
           "chrome_tracing"_a = "",
           "dump_outputs_dir"_a = "",
           "custom_funcs"_a = py::dict());
+    c.def("run", &RunState, "Run the model", "state"_a);
+}
+
+void InitChxVMState(py::module& m) {
+    py::class_<runtime::ChxVMState, std::shared_ptr<runtime::ChxVMState>> c{m, "ChxVMState"};
 }
 
 bool IsArray(const VarPtr& v) {
@@ -366,6 +459,8 @@ PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
     InitChxVMVar(m);
 
     InitChxVM(m);
+
+    InitChxVMState(m);
 
     m.def("load", &LoadGraph, "Load an ONNX model");
     m.def("value", &CreateValueFromArray, "Create an ChxVMVar from a ChainerX Array");
