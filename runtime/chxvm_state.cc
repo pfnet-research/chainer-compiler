@@ -279,6 +279,16 @@ int64_t ChxVMState::GetTotalVariableSize() const {
             array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
         }
     }
+    for (const auto& p : inputs_) {
+        for (const chainerx::Array& a : p.second->GetArrays()) {
+            array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
+        }
+    }
+    for (const auto& p : outputs_) {
+        for (const chainerx::Array& a : p.second->GetArrays()) {
+            array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
+        }
+    }
 
     int64_t total_size = 0;
     for (const auto& p : array_sizes) {
