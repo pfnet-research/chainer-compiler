@@ -133,12 +133,12 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
         return false;
     }
 
-#define GET_TENSOR(name, in, idx)                                    \
-    Value* name##_val = in->input(idx);                              \
-    const Tensor* name##_tns = name##_val->GetConstTensor();         \
-    if (!name##_tns) {                                               \
-        return false;                                                \
-    }                                                                \
+#define GET_TENSOR(name, in, idx)                            \
+    Value* name##_val = in->input(idx);                      \
+    const Tensor* name##_tns = name##_val->GetConstTensor(); \
+    if (!name##_tns) {                                       \
+        return false;                                        \
+    }                                                        \
     chainerx::Array name = name##_tns->chx()
 
     chainerx::Array bc;
