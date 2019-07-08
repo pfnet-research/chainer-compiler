@@ -135,8 +135,14 @@ TEST(MergeTest, ConvBN) {
     ASSERT_EQ(8, graph.nodes().size());
     MergeOperations(&graph, false);
     graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
-    const Node& node = *graph.nodes()[0];
+    std::vector<Node*> nodes;
+    for (Node* node : graph.nodes()) {
+        if (node->op_type() != Node::kConstant) {
+            nodes.push_back(node);
+        }
+    }
+    ASSERT_EQ(1, nodes.size());
+    const Node& node = *nodes[0];
 
     ASSERT_TRUE(node.input(1)->initializer());
     ASSERT_TRUE(node.input(2)->initializer());
