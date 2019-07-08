@@ -19,6 +19,7 @@ message XCValueProto {
         SHAPE = 13;
         SCALAR = 14;
         OPTIONAL_SCALAR = 15;
+        STRINGS = 16;
     }
 
     required Type type = 1;
@@ -33,6 +34,7 @@ message XCValueProto {
     optional int32 opaque = 11;
     optional int32 shape = 12;
     optional int32 scalar = 13;
+    repeated string strings = 14;
 }
 
 message XCTypeProto {
