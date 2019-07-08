@@ -133,10 +133,71 @@ void DiscretizeFlops(SimpleGraph* sg) {
   }
 }
 
-std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets) {
+bool IsIncreasing(const NodeSet& ls, const NodeSet& ls_next) {
+  return true;
 }
 
-std::vector<Order> ComputeOrder(const SimpleGraph& sg, const std::vector<NodesSet>& seq) {
+std::tuple<int64_t, int64_t, size_t>
+ComputeConsumptionInfo(const SimpleGraph& sg, const NodeSet& ls, const NodeSet& ls_next) {
+  return std::make_tuple(0L, 0L, 0UL);
+}
+
+std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets, const size_t& budget) {
+  size_t nl = lower_sets.size();
+  // opt[lower_set_index][flops] := <minimum memory consumption, prev_ls, prev_flops>
+  std::map<size_t, std::tuple<int64_t, size_t, size_t>> opt[nl];
+  opt[0][0] = std::make_tuple(0, nl + 1, 0);
+
+  for (size_t i = 0; i < nl; ++i) {
+    const NodeSet& ls = lower_sets[i];
+    for (size_t i_next = 0; i_next < nl; ++i_next) {
+      const NodeSet& ls_next = lower_sets[i_next];
+      if (!IsIncreasing(ls, ls_next)) continue;
+
+      const auto info = ComputeConsumptionInfo(sg, ls, ls_next);
+      const int64_t additional_memory1 = std::get<0>(info);
+      const int64_t additional_memory234 = std::get<1>(info);
+      const size_t additional_flops = std::get<2>(info);
+
+      for (const auto& p : opt[i]) {
+        const size_t flops = p.first;
+        const int64_t memopt = std::get<0>(p.second);
+        const int64_t total_memory = memopt + additional_memory234;
+        if (total_memory > budget) continue;
+
+        const size_t flops_next = flops + additional_flops;
+        const int64_t memopt_next = memopt + additional_memory1;
+
+        auto next_opt_it = opt[i_next].find(flops_next);
+
+        if (next_opt_it == opt[i_next].end()) {
+          opt[i_next].insert({flops_next, std::make_tuple(memopt_next, i, flops)});
+        } else if (std::get<0>(next_opt_it->second) > memopt_next) {
+          next_opt_it->second = std::make_tuple(memopt_next, i, flops);
+        }
+      }
+    }
+  }
+
+  std::vector<NodeSet> seq;
+  const auto last_it = opt[nl - 1].begin();
+  if (last_it != opt[nl - 1].end()) {
+    size_t i = nl - 1;
+    size_t flops = last_it->first;
+
+    while (i < nl) {
+      seq.push_back(lower_sets[i]);
+      const auto it = opt[i].find(flops);
+      i = std::get<1>(it->second);
+      flops = std::get<2>(it->second);
+    }
+    std::reverse(seq.begin(), seq.end());
+  }
+  return seq;
+}
+
+std::vector<Order> ComputeOrder(const SimpleGraph& sg, const std::vector<NodeSet>& seq) {
+  return {};
 }
 
 std::vector<Order> GTPolicy(const Graph& graph) {
