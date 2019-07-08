@@ -57,6 +57,16 @@ Tensor* Value::ReleaseInitializer() {
     return initializer_.release();
 }
 
+const Tensor* Value::GetConstTensor() const {
+    if (initializer()) {
+        return initializer();
+    }
+    if (producer() && producer()->op_type() == Node::kConstant) {
+        return producer()->tensor_value().get();
+    }
+    return nullptr;
+}
+
 void Value::set_type(Type* type) {
     type_.reset(type);
 }

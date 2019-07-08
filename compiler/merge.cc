@@ -133,19 +133,12 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
         return false;
     }
 
-    std::vector<Node*> detaching_const_node;
-
-#define GET_TENSOR(name, in, idx)                                    \
-    Value* name##_val = in->input(idx);                              \
-    Tensor const* name##_tns = name##_val->initializer();            \
-    if (!name##_tns) {                                               \
-        Node* name##_nd = name##_val->producer();                    \
-        if (!name##_nd || name##_nd->op_type() != Node::kConstant) { \
-            return false;                                            \
-        }                                                            \
-        name##_tns = name##_nd->tensor_value().get();                \
-        detaching_const_node.push_back(name##_nd);                   \
-    }                                                                \
+#define GET_TENSOR(name, in, idx)                            \
+    Value* name##_val = in->input(idx);                      \
+    const Tensor* name##_tns = name##_val->GetConstTensor(); \
+    if (!name##_tns) {                                       \
+        return false;                                        \
+    }                                                        \
     chainerx::Array name = name##_tns->chx()
 
     chainerx::Array bc;
@@ -183,9 +176,6 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     new_conv->set_pads(conv->pads());
     new_conv->set_strides(conv->strides());
 
-    for (Node* nd : detaching_const_node) {
-        graph->DetachNode(nd);
-    }
     graph->DetachNode(conv);
     graph->DetachNode(bn);
 
