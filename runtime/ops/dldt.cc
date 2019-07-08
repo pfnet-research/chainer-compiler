@@ -51,14 +51,6 @@ chainerx::Dtype GetDtype(InferenceEngine::Precision::ePrecision type) {
     }
 }
 
-chainerx::Shape GetShape(const InferenceEngine::SizeVector& nshape) {
-    chainerx::Shape shape;
-    for (size_t d : nshape) {
-        shape.push_back(d);
-    }
-    return shape;
-}
-
 }  // namespace
 
 class DldtOp::DldtImpl {
