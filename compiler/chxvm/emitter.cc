@@ -986,7 +986,15 @@ private:
             if (dldt_device.empty()) {
                 dldt_device = "CPU";
             }
-            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device);
+
+            std::vector<std::string> output_names;
+            for (Value* output : body.output_values()) {
+                CHECK(output->producer());
+                CHECK_EQ(1, output->producer()->outputs().size());
+                output_names.push_back(output->producer()->name());
+            }
+
+            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device, output_names);
             return;
         }
 

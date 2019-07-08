@@ -91,9 +91,14 @@ void DldtOp::InitImpl() {
     // network_reader.getNetwork().setBatchSize(1);
     impl_->network = network_reader.getNetwork();
 
+    for (const std::string& name : output_names) {
+        impl_->network.addOutput(name, 0);
+    }
+
     impl_->executable_network = impl_->plugin.LoadNetwork(impl_->network, {});
 
     CHECK_EQ(inst_.output_types().size(), inst_.output_names().size());
+    CHECK_EQ(output_names.size(), inst_.output_names().size());
     for (const XCTypeProto& type : inst_.output_types()) {
         CHECK_NE(type.dtype(), 0);
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
@@ -148,13 +153,11 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
 
     infer_request.Infer();
 
-    // We assume output values are alphabetically sorted in ONNX.
-    size_t i = 0;
-    for (auto& p : impl_->network.getOutputsInfo()) {
-        InferenceEngine::Blob::Ptr output = infer_request.GetBlob(p.first);
+    for (size_t i = 0; i < output_names.size(); ++i) {
+        const std::string& output_name = output_names[i];
+        InferenceEngine::Blob::Ptr output = infer_request.GetBlob(output_name);
         const chainerx::Array& output_array = impl_->output_arrays[i];
         memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
-        ++i;
     }
 
     return impl_->output_arrays;

@@ -11,6 +11,7 @@ FLOAT = 'FLOAT'
 INTS = 'INTS'
 INT_VALUES = 'INT_VALUES'
 STRING = 'STRING'
+STRINGS = 'STRINGS'
 DOUBLES = 'DOUBLES'
 SHAPE = 'SHAPE'
 SCALAR = 'SCALAR'
@@ -21,7 +22,7 @@ ARG_TYPES = [
 ]
 
 FIELD_TYPES = [
-    INT, FLOAT, INTS, INT_VALUES, STRING, DOUBLES
+    INT, FLOAT, INTS, INT_VALUES, STRING, STRINGS, DOUBLES
 ]
 
 XC_TYPES = ARG_TYPES + FIELD_TYPES
@@ -34,7 +35,7 @@ _ValueInfo = collections.namedtuple('_ValueInfo', ('typ', 'name'))
 
 class ValueInfo(_ValueInfo):
     def is_repeated(self):
-        return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES]
+        return self.typ in [INTS, INT_VALUES, ARRAY_LIST, DOUBLES, STRINGS]
 
     def c_type(self):
         if self.typ in [ARRAY, OPTIONAL_ARRAY, INT, SEQUENCE, OPAQUE, SHAPE, SCALAR, OPTIONAL_SCALAR]:
@@ -43,6 +44,8 @@ class ValueInfo(_ValueInfo):
             return 'float'
         elif self.typ == STRING:
             return 'std::string'
+        elif self.typ == STRINGS:
+            return 'std::vector<std::string>'
         elif self.typ == ARRAY_LIST:
             return 'std::vector<int>'
         elif self.typ == INTS or self.typ == INT_VALUES:
@@ -87,6 +90,8 @@ class ValueInfo(_ValueInfo):
             return 'ints'
         elif self.typ == DOUBLES:
             return 'doubles'
+        elif self.typ == STRINGS:
+            return 'strings'
         elif self.typ == ARRAY_LIST:
             return 'array_list'
         elif self.typ == OPAQUE:
@@ -137,6 +142,10 @@ def IntValues(name):
 
 def String(name):
     return ValueInfo(STRING, name)
+
+
+def Strings(name):
+    return ValueInfo(STRINGS, name)
 
 
 def Doubles(name):
@@ -438,7 +447,8 @@ XC_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), String('onnx'), String('backend')],
      [ArrayList('outputs')]),
     ('Dldt',
-     [ArrayList('inputs'), String('model_path'), String('device')],
+     [ArrayList('inputs'), String('model_path'), String('device'),
+      Strings('output_names')],
      [ArrayList('outputs')]),
 ]
 
