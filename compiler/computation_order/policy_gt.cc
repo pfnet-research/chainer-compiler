@@ -84,12 +84,18 @@ NodeSet Boundary(const SimpleGraph& sg, const NodeSet& ls) {
 }
 
 SimpleGraph GetSimpleFormGraph(const Graph& graph) {
+  // Extract only temporary&output values
   SimpleGraph sg;
 
-  for (const std::unique_ptr<Value>& value : graph.all_values()) {
+  std::vector<Value*> intermediate_values(graph.temp_values());
+  for (Value* output : graph.output_values()) {
+    intermediate_values.push_back(output);
+  }
+
+  for (Value* value : intermediate_values) {
     const size_t id = sg.value_ids.size();
-    sg.value_ids[value.get()] = id;
-    sg.value_list.push_back(value.get());
+    sg.value_ids[value] = id;
+    sg.value_list.push_back(value);
   }
   sg.n = sg.value_ids.size();
 
@@ -98,16 +104,18 @@ SimpleGraph GetSimpleFormGraph(const Graph& graph) {
   for (Node* node : graph.nodes()) {
     for (Value* input : node->inputs()) {
       for (Value* output : node->outputs()) {
-        const size_t in_id = sg.value_ids[input];
-        const size_t out_id = sg.value_ids[output];
-        sg.adj[in_id].push_back(out_id);
+        const auto in_it = sg.value_ids.find(input);
+        const auto out_it = sg.value_ids.find(output);
+        if (in_it != sg.value_ids.end() && out_it != sg.value_ids.end()) {
+          sg.adj[in_it->second].push_back(out_it->second);
+        }
       }
     }
   }
 
   sg.memories.assign(sg.n, -1);
-  for (const std::unique_ptr<Value>& value : graph.all_values()) {
-    const size_t id = sg.value_ids[value.get()];
+  for (Value* value : intermediate_values) {
+    const size_t id = sg.value_ids[value];
     sg.memories[id] = value->GetNBytes();
   }
 
