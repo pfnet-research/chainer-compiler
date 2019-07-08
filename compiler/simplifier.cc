@@ -674,7 +674,9 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
     CHECK_EQ(1, scales[1]);
     CHECK_EQ(scales[2], scales[3]);
 
-    gb.MOp(Node::kUpsample, {node->input(0)}, node->outputs())->set_mode(node->mode())->set_height_scale(scales[2])->set_width_scale(scales[3]);
+    // Use chainer domain to disable shape inference. Otherwise,
+    // ONNX's shape inference will access the second input.
+    gb.MOp(Node::kUpsample, {node->input(0)}, node->outputs(), CHAINER_ONNX_DOMAIN)->set_mode(node->mode())->set_height_scale(scales[2])->set_width_scale(scales[3]);
     return true;
 }
 
