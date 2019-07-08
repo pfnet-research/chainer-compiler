@@ -183,7 +183,7 @@ XC_OPS = [
     ('Or', [Array('a'), Array('b')], ['c']),
     ('Xor', [Array('a'), Array('b')], ['c']),
     ('IsNaN', [Array('x')], ['y']),
-    ('IsInf', [Array('x')], ['y']),
+    ('IsInf', [Array('x'), Int('detect_negative'), Int('detect_positive')], ['y']),
     ('Sign', [Array('input')], ['output']),
 
     ('Reciprocal', [Array('x')], ['y']),
