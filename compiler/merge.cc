@@ -137,14 +137,12 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
 
 #define GET_TENSOR(name, in, idx)                                    \
     Value* name##_val = in->input(idx);                              \
-    Tensor const* name##_tns = name##_val->initializer();            \
+    const Tensor* name##_tns = name##_val->GetConstTensor();         \
     if (!name##_tns) {                                               \
-        Node* name##_nd = name##_val->producer();                    \
-        if (!name##_nd || name##_nd->op_type() != Node::kConstant) { \
-            return false;                                            \
-        }                                                            \
-        name##_tns = name##_nd->tensor_value().get();                \
-        detaching_const_node.push_back(name##_nd);                   \
+        return false;                                                \
+    }                                                                \
+    if (!name##_val->initializer()) {                                \
+        detaching_const_node.push_back(name##_val->producer());      \
     }                                                                \
     chainerx::Array name = name##_tns->chx()
 
