@@ -1,9 +1,13 @@
 #include <set>
 
+#include <chainerx/array.h>
+#include <chainerx/routines/manipulation.h>
+
 #include <compiler/fusion.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 
@@ -72,9 +76,8 @@ void FuseDldtOperations(Graph* graph) {
             Node::kTanh,
             Node::kTranspose,
             Node::kUnsqueeze,
-            // TODO(hamaji): Need to set `width_scale` and `height_scale`.
-            // https://github.com/opencv/dldt/blob/2019/model-optimizer/extensions/front/onnx/upsample_ext.py#L35
-            // Node::kUpsample,
+            Node::kResize,
+            Node::kUpsample,
     };
 
     auto is_fusable = [&fusable_ops](const Node& node) {
@@ -87,6 +90,31 @@ void FuseDldtOperations(Graph* graph) {
         for (Value* value : node.outputs()) {
             if (!value->type().HasKnownShape()) return false;
         }
+
+        if (node.op_type() == Node::kResize || node.op_type() == Node::kUpsample) {
+            if (node.inputs().size() != 2) {
+                return false;
+            }
+            if (node.mode() != "nearest") {
+                return false;
+            }
+            const Tensor* scales_tensor = node.input(1)->GetConstTensor();
+            if (!scales_tensor) {
+                return false;
+            }
+            const chainerx::Array& a = scales_tensor->chx();
+            if (a.shape().size() != 1) {
+                return false;
+            }
+            std::vector<double> scales;
+            for (int64_t i = 0; i < a.GetTotalSize(); ++i) {
+                scales.emplace_back(chainerx::AsScalar(a.At({i})));
+            }
+            if (scales.size() != 4 || scales[0] != 1 || scales[1] != 1 || scales[2] != scales[3]) {
+                return false;
+            }
+        }
+
         return true;
     };
 
