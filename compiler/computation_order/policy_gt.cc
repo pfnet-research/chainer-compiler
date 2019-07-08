@@ -34,6 +34,10 @@ struct SimpleGraph {
   }
 };
 
+size_t Size(const NodeSet& set) {
+  return std::accumulate(set.begin(), set.end(), 0UL);
+}
+
 bool IsIncreasing(const NodeSet& ls, const NodeSet& ls_next) {
   // Check if ls < ls_next.
   for (size_t i = 0; i < ls.size(); ++i) {
@@ -279,30 +283,98 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
   return seq;
 }
 
-std::vector<Order> ComputeOrder(const SimpleGraph& sg, const std::vector<NodeSet>& seq) {
-  return {};
+std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const std::vector<NodeSet>& seq) {
+  CHECK_GT(seq.size(), 0) << "seq should be non-empty";
+
+  std::map<Value*, size_t> block_index;
+  for (size_t i = 0; i + 1 < seq.size(); ++i) {
+    NodeSet set = SetMinus(seq[i + 1], seq[i]);
+    for (size_t k = 0; k < sg.n; ++k) {
+      if (!set[k]) continue;
+      block_index.insert({sg.value_list[k], i});
+    }
+  }
+
+  const std::vector<Node*> sorted = graph.GetTopologicallySortedNodes();
+  const size_t len = seq.size() - 1;
+  std::vector<std::vector<Value*>> blocks(len);
+  for (Node* node : sorted) {
+    for (Value* value : node->outputs()) {
+      const size_t idx = block_index[value];
+      blocks[idx].push_back(value);
+    }
+  }
+
+  std::vector<NodeSet> forget_sets(len);
+  for (size_t i = 0; i < len; ++i) {
+    if (i + 1 == len) {
+      // Do not forget any values in the last block
+      forget_sets[i] = NodeSet(sg.n);
+      continue;
+    }
+    const NodeSet boundary = Boundary(sg, seq[i + 1]);
+    const NodeSet nonboundary = SetMinus(seq[i + 1], boundary);
+    forget_sets[i] = SetMinus(nonboundary, seq[i]);
+  }
+
+  std::vector<Order> orders;
+  // forward part
+  for (size_t i = 0; i < len; ++i) {
+    // compute as usual
+    for (Value* value : blocks[i]) {
+      Node* producer = value->producer();
+      CHECK(producer);
+      orders.emplace_back(Order::kComputeForward, producer, nullptr);
+    }
+    // forget non-boundary values
+    for (size_t k = 0; k < sg.n; ++k) {
+      if (!forget_sets[i][k]) continue;
+      Value* forget_value = sg.value_list[k];
+      orders.emplace_back(Order::kForgetForward, nullptr, forget_value);
+    }
+  }
+
+  // backward part
+  for (size_t i = len; i-- > 0; ) {
+    // recompute forgotten values
+    for (Value* value : blocks[i]) {
+      const size_t k = sg.value_ids.find(value)->second;
+      if (!forget_sets[i][k]) continue;
+
+      Node* producer = value->producer();
+      CHECK(producer);
+      orders.emplace_back(Order::kComputeForward, producer, nullptr);
+    }
+
+    // backward as usual
+    for (auto it = blocks[i].rbegin(); it != blocks[i].rend(); it++) {
+      Node* producer = (*it)->producer();
+      CHECK(producer);
+      orders.emplace_back(Order::kComputeBackward, producer, nullptr);
+    }
+  }
+
+  return orders;
 }
 
 std::vector<Order> GTPolicy(const Graph& graph) {
-  const int64_t budget = g_gt_budget * 1000000LL;
+  const int64_t budget = (g_gt_budget ? g_gt_budget : 10000) * 1000000LL;
   SimpleGraph sg = GetSimpleFormGraph(graph);
 
   DiscretizeFlops(&sg);
 
   const std::vector<NodeSet> lower_sets = EnumerateLowerSets(sg);
-  for (auto ls : lower_sets) {
-    int t = 0;
-    for (char c : ls) t += c;
-    std::cout << t << std::endl;
-  }
-
   const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget);
 
-  std::cout << "#=" << seq.size() << std::endl;
+  // std::cout << "#=" << seq.size() << std::endl;
+  // for (auto s : seq) std::cout << Size(s) << " ";
+  // std::cout << std::endl;
 
-  CHECK(0);
+  const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
 
-  return {};
+  // for (auto order : orders) std::cout << order << "\n";
+
+  return orders;
 }
 
 }  // namespace chainer_compiler
