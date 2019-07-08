@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include <chainerx/array.h>
+#include <chainerx/routines/creation.h>
 
 #include <common/log.h>
 #include <common/strutil.h>
@@ -11,7 +12,7 @@ namespace chainer_compiler {
 namespace runtime {
 
 void SaveNpy(const chainerx::Array& orig_a, const std::string& filename) {
-    const chainerx::Array a = orig_a.ToNative();
+    const chainerx::Array a = chainerx::AsContiguous(orig_a.ToNative());
     std::string header("\x93NUMPY\x01\x00\x00\x00", 10);
     header += "{'descr': '";
 
