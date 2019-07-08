@@ -3,6 +3,9 @@
 #include <iostream>
 #include <limits>
 
+#include <chainerx/array.h>
+#include <chainerx/routines/manipulation.h>
+
 #include <common/log.h>
 #include <common/strutil.h>
 #include <compiler/flags.h>
@@ -651,16 +654,44 @@ bool ReplaceQLinearMatMul(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceResizeForDldt(Graph* graph, Node* node) {
+    if (node->inputs().size() != 2) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "SimplifyResizeForDldt", node->output(0));
+
+    const Tensor* scales_tensor = node->input(1)->GetConstTensor();
+    CHECK(scales_tensor);
+    const chainerx::Array& a = scales_tensor->chx();
+    CHECK_EQ(chainerx::Shape({4}), a.shape());
+    std::vector<double> scales;
+    for (int64_t i = 0; i < a.GetTotalSize(); ++i) {
+        scales.emplace_back(chainerx::AsScalar(a.At({i})));
+    }
+    CHECK_EQ(4, scales.size());
+    CHECK_EQ(1, scales[0]);
+    CHECK_EQ(1, scales[1]);
+    CHECK_EQ(scales[2], scales[3]);
+
+    gb.MOp(Node::kUpsample, {node->input(0)}, node->outputs())->set_mode(node->mode())->set_height_scale(scales[2])->set_width_scale(scales[3]);
+    return true;
+}
+
 }  // namespace
 
 void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
     std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
-#define REGISTER_SIMPLIFIER(op)                                                                 \
-    do {                                                                                        \
-        CHECK(simplifiers.emplace(Node::k##op, Simplifier("Replace" #op, Replace##op)).second); \
-        CHECK(all_simplifier_names.emplace("Replace" #op).second);                              \
+    auto register_simplifier = [&simplifiers, &all_simplifier_names](const Node::OpType& op, const char* name, SimplifierFn func) {
+        CHECK(simplifiers.emplace(op, Simplifier(name, func)).second);
+        CHECK(all_simplifier_names.emplace(name).second);
+    };
+
+#define REGISTER_SIMPLIFIER(op)                                         \
+    do {                                                                \
+        register_simplifier(Node::k##op, "Replace" #op, Replace##op);   \
     } while (0)
 
     REGISTER_SIMPLIFIER(Sum);
@@ -696,6 +727,9 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
     REGISTER_SIMPLIFIER(Concat);
+
+    register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
+    register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
 
     // Validate `simplifier_names`.
     for (const std::string& name : simplifier_names) {

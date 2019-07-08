@@ -1,6 +1,8 @@
 {
     "simplify": {
-        "ReplaceLpNormalization": true
+        "ReplaceLpNormalization": true,
+        "ReplaceResizeForDldt": true,
+        "ReplaceUpsampleForDldt": true
     },
     "supported_ops": {
         "Add": true,
