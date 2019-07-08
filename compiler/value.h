@@ -70,6 +70,8 @@ public:
     void ResetInitializer(std::unique_ptr<Tensor>&& tensor);
     Tensor* ReleaseInitializer();
 
+    const Tensor* GetConstTensor() const;
+
     Node* user(int index) const;
     const std::vector<Node*>& users() const {
         return users_;
