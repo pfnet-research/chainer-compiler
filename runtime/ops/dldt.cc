@@ -26,44 +26,38 @@ namespace runtime {
 
 namespace {
 
-#if 0
-
-chainerx::Dtype GetDtype(ngraph::element::Type type) {
-    switch (type.get_type_enum()) {
-        case ngraph::element::Type_t::boolean:
-            return chainerx::Dtype::kBool;
-        case ngraph::element::Type_t::f32:
+chainerx::Dtype GetDtype(InferenceEngine::Precision::ePrecision type) {
+    switch (type) {
+        case InferenceEngine::Precision::FP32:
             return chainerx::Dtype::kFloat32;
-        case ngraph::element::Type_t::f64:
-            return chainerx::Dtype::kFloat64;
-        case ngraph::element::Type_t::i8:
-            return chainerx::Dtype::kInt8;
-        case ngraph::element::Type_t::i16:
+        case InferenceEngine::Precision::FP16:
+            return chainerx::Dtype::kFloat16;
+        case InferenceEngine::Precision::I16:
             return chainerx::Dtype::kInt16;
-        case ngraph::element::Type_t::i32:
-            return chainerx::Dtype::kInt32;
-        case ngraph::element::Type_t::i64:
-            return chainerx::Dtype::kInt64;
-        case ngraph::element::Type_t::u8:
+        case InferenceEngine::Precision::U8:
             return chainerx::Dtype::kUInt8;
+        case InferenceEngine::Precision::I8:
+            return chainerx::Dtype::kInt8;
+        case InferenceEngine::Precision::I32:
+            return chainerx::Dtype::kInt32;
+        case InferenceEngine::Precision::BIN:
+            return chainerx::Dtype::kBool;
         default:
-            // bf16,
-            // u16,
-            // u32,
-            // u64
-            CHECK(false) << "Not supported ngraph dtype: " << type;
+            // UNSPECIFIED,
+            // MIXED,
+            // Q78,
+            // uU16,
+            CHECK(false) << "Not supported dldt dtype: " << type;
     }
 }
 
-chainerx::Shape GetShape(const ngraph::Shape& nshape) {
+chainerx::Shape GetShape(const InferenceEngine::SizeVector& nshape) {
     chainerx::Shape shape;
     for (size_t d : nshape) {
         shape.push_back(d);
     }
     return shape;
 }
-
-#endif
 
 }  // namespace
 
@@ -153,14 +147,22 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
 
     infer_request.Infer();
 
+    std::vector<chainerx::Array> output_arrays;
     for (size_t i = 0; i < output_names.size(); ++i) {
         const std::string& output_name = output_names[i];
         InferenceEngine::Blob::Ptr output = infer_request.GetBlob(output_name);
-        const chainerx::Array& output_array = impl_->output_arrays[i];
+        const InferenceEngine::TensorDesc& desc = output->getTensorDesc();
+        chainerx::Dtype dtype = GetDtype(desc.getPrecision());
+        chainerx::Shape shape = GetShape(desc.getDims());
+        chainerx::Array output_array = chainerx::Empty(shape, dtype);
         memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
+        if (dtype != impl_->output_arrays[i].dtype()) {
+            output_array = output_array.AsType(impl_->output_arrays[i].dtype());
+        }
+        output_arrays.push_back(output_array);
     }
 
-    return impl_->output_arrays;
+    return output_arrays;
 
 #else
     CHECK(false) << "Set -DCHAINER_COMPILER_DLDT_DIR";
