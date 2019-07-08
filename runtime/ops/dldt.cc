@@ -93,10 +93,18 @@ void DldtOp::InitImpl() {
 
     CHECK_EQ(inst_.output_types().size(), inst_.output_names().size());
     CHECK_EQ(output_names.size(), inst_.output_names().size());
-    for (const XCTypeProto& type : inst_.output_types()) {
+    InferenceEngine::OutputsDataMap outputs_info(impl_->network.getOutputsInfo());
+    for (size_t i = 0; i < output_names.size(); ++i) {
+        const std::string& name = output_names[i];
+        const XCTypeProto& type = inst_.output_types(i);
         CHECK_NE(type.dtype(), 0);
+
+        auto found = outputs_info.find(name);
+        CHECK(found != outputs_info.end()) << name;
+        const InferenceEngine::DataPtr& data = found->second;
+        chainerx::Dtype dtype = GetDtype(data->precision);
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
-        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
+        CHECK_EQ(chainerx::Shape(data->dims.rbegin(), data->dims.rend()), shape);
         chainerx::Array array = chainerx::Empty(shape, dtype);
         impl_->output_arrays.push_back(array);
     }
@@ -151,15 +159,14 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
     for (size_t i = 0; i < output_names.size(); ++i) {
         const std::string& output_name = output_names[i];
         InferenceEngine::Blob::Ptr output = infer_request.GetBlob(output_name);
-        const InferenceEngine::TensorDesc& desc = output->getTensorDesc();
-        chainerx::Dtype dtype = GetDtype(desc.getPrecision());
-        chainerx::Shape shape = GetShape(desc.getDims());
-        chainerx::Array output_array = chainerx::Empty(shape, dtype);
+        const chainerx::Array& output_array = impl_->output_arrays[i];
         memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
-        if (dtype != impl_->output_arrays[i].dtype()) {
-            output_array = output_array.AsType(impl_->output_arrays[i].dtype());
+        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(inst_.output_types(i).dtype());
+        if (output_array.dtype() != dtype) {
+            output_arrays.push_back(output_array.AsType(dtype));
+        } else {
+            output_arrays.push_back(output_array);
         }
-        output_arrays.push_back(output_array);
     }
 
     return output_arrays;
