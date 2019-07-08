@@ -61,10 +61,13 @@ void FuseDldtOperations(Graph* graph) {
             Node::kReshape,
             // Node::kScale,
             Node::kSigmoid,
-            Node::kSlice,
+            // TODO(hamaji): We should be able to support this through
+            // simplifier, but the naming scheme will be confused.
+            // Node::kSlice,
             Node::kSoftmax,
             Node::kSplit,
-            Node::kSqueeze,
+            // TODO(hamaji): Implement simplifier.
+            // Node::kSqueeze,
             Node::kSum,
             Node::kTanh,
             Node::kTranspose,
