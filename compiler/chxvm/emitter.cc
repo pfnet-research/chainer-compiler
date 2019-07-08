@@ -249,7 +249,6 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
         EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
         EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
-        EMIT_SIMPLE_UNARY_OP(Node::kIsInf, IsInf);
         EMIT_SIMPLE_UNARY_OP(Node::kSign, Sign);
         EMIT_SIMPLE_UNARY_OP(Node::kRound, Round);
 
@@ -280,6 +279,8 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
             EMIT(Selu, out(0), in(0), node.alpha(), node.gamma());
+        } else if (node.op_type() == Node::kIsInf) {
+            EMIT(IsInf, out(0), in(0), node.detect_negative(), node.detect_positive());
         } else if (node.op_type() == Node::kLeakyRelu) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());

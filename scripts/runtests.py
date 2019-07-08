@@ -424,6 +424,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_isnan'),
     TestCase(NODE_TEST, 'test_isinf'),
+    TestCase(NODE_TEST, 'test_isinf_negative'),
+    TestCase(NODE_TEST, 'test_isinf_positive'),
 
     TestCase(NODE_TEST, 'test_where_example'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
