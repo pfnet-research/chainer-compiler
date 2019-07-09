@@ -676,7 +676,10 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
 
     // Use chainer domain to disable shape inference. Otherwise,
     // ONNX's shape inference will access the second input.
-    gb.MOp(Node::kUpsample, {node->input(0)}, node->outputs(), CHAINER_ONNX_DOMAIN)->set_mode(node->mode())->set_height_scale(scales[2])->set_width_scale(scales[3]);
+    gb.MOp(Node::kUpsample, {node->input(0)}, node->outputs(), CHAINER_ONNX_DOMAIN)
+            ->set_mode(node->mode())
+            ->set_height_scale(scales[2])
+            ->set_width_scale(scales[3]);
     return true;
 }
 
@@ -691,9 +694,9 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
         CHECK(all_simplifier_names.emplace(name).second);
     };
 
-#define REGISTER_SIMPLIFIER(op)                                         \
-    do {                                                                \
-        register_simplifier(Node::k##op, "Replace" #op, Replace##op);   \
+#define REGISTER_SIMPLIFIER(op)                                       \
+    do {                                                              \
+        register_simplifier(Node::k##op, "Replace" #op, Replace##op); \
     } while (0)
 
     REGISTER_SIMPLIFIER(Sum);
