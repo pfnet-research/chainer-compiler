@@ -646,7 +646,8 @@ for test in TEST_CASES:
 
     # add more tests for computation_order using CustomPolicy
     if test.name.startswith('backprop_test_oc_tanh2') or\
-       test.name.startswith('backprop_test_oc_mul2'):
+       test.name.startswith('backprop_test_oc_mul2') or\
+       test.name.startswith('backprop_test_oc_max_pool2'):
         order_strings = [
             'CF0,CF1,BF1,BF0',
             'CF0,CF1,FFo0,CF1,BF1,BF0',
