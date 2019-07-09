@@ -168,7 +168,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     std::map<Node*, Node*> last_forward_map;
     std::vector<Node*> scheduled_nodes;
 
-    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](Node* node, Node* orig_node, int chainer_order_offset = 100000000) {
+    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](
+                                      Node* node, Node* orig_node, int chainer_order_offset = 100000000) {
         scheduled_nodes.push_back(node);
         const int chainer_order = chainer_order_offset + static_cast<int>(scheduled_nodes.size());
         node->set_chainer_order(chainer_order);
