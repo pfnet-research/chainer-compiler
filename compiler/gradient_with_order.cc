@@ -117,25 +117,17 @@ void AddGradInputs(Graph* fwd_graph, Graph* bwd_graph) {
     }
 }
 
-void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, std::map<Value*, Value*>* staged) {
-    for (auto& p : *staged) {
-        Value* value = p.first;
+void AddRetainedParts(Graph* fwd_graph, Graph* bwd_graph, const std::map<Value*, Value*>& retained) {
+    for (const auto& p : retained) {
+        if (p.first == p.second) continue;
 
-        GraphBuilder gbf(fwd_graph, "retain", value);
-        GraphBuilder gbb(bwd_graph, "retain", value);
-        const std::string& name = "retained_" + value->name();
-
-        Value* o = fwd_graph->AddOutputValue(name, value->type());
-        gbf.Op(Node::kIdentity, {value}, o);
-
-        Value* i = bwd_graph->AddInputValue(name, value->type());
-
-        // Update the staged value to the retained one
-        p.second = i;
-        if (value->IsOutput()) {
-            // Set grad information for retained output
-            i->set_grad(value->grad());
-        }
+        GraphBuilder gbs(fwd_graph, "retain", p.first);
+        GraphBuilder gbd(bwd_graph, "retain", p.second);
+        const std::string& name = "retained_" + p.first->name();
+        Value* o = fwd_graph->AddOutputValue(name, p.first->type());
+        gbs.Op(Node::kIdentity, {p.first}, o);
+        Value* i = bwd_graph->AddInputValue(name, p.second->type());
+        gbd.Op(Node::kIdentity, {i}, p.second);
     }
 }
 
@@ -175,14 +167,19 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     // backward computation.
     std::map<Node*, Node*> last_forward_map;
     std::vector<Node*> scheduled_nodes;
-    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](Node* node, Node* orig_node) {
+
+    auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](Node* node, Node* orig_node, int chainer_order_offset = 100000000) {
         scheduled_nodes.push_back(node);
-        node->set_chainer_order(scheduled_nodes.size());
+        const int chainer_order = chainer_order_offset + static_cast<int>(scheduled_nodes.size());
+        node->set_chainer_order(chainer_order);
         last_forward_map[orig_node] = node;
-        for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
-            Value* value = std::get<0>(p);
-            if (!staged.emplace(std::get<1>(p), value).second) {
-                CHECK(false) << "Forward recompute without forgetting the output: " << orig_node->ToString();
+
+        if (chainer_order_offset >= 100000000) {
+            for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
+                Value* value = std::get<0>(p);
+                if (!staged.emplace(std::get<1>(p), value).second) {
+                    CHECK(false) << "Forward recompute without forgetting the output: " << orig_node->ToString();
+                }
             }
         }
     };
@@ -196,9 +193,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
 
     std::set<Node*> scheduled_forward;
     Graph* current_graph = fwd_graph;
+    std::map<Value*, Value*> retained;
 
     for (const Order& order : orders) {
-        // Check if we should turn to the backward part
+        // (In two phase mode) check if we should turn to the backward part
         if (fwd_graph != bwd_graph && current_graph == fwd_graph) {
             bool output_all_staged = true;
             for (Value* output : fwd_graph->output_values()) {
@@ -210,7 +208,18 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
                     ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node);
                     AddGradInputs(fwd_graph, bwd_graph);
-                    AddRetainedParts(fwd_graph, bwd_graph, &staged);
+
+                    // Create a retained value for the backward part
+                    for (auto& p : staged) {
+                        Value* new_value = bwd_graph->AddValue("RetainedForRecompute_" + p.first->name(), p.first->type());
+                        p.second = new_value;
+                        retained.insert({p.first, new_value});
+                        retained.insert({new_value, new_value});  // Avoid retaining new_value during backward computation
+
+                        if (p.first->IsOutput()) {
+                            new_value->set_grad(p.first->grad());
+                        }
+                    }
                 }
             }
         }
@@ -243,6 +252,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     for (Value* value : node->outputs()) {
                         Value* new_value = bwd_graph->AddValue("Recompute" + value->name(), value->type());
                         outputs.push_back(new_value);
+                        retained.insert({new_value, new_value});  // Avoid retaining new_value during backward computation
                     }
 
                     // Copy the original computation node to generate
@@ -296,7 +306,13 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 }
 
                 ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                AddGradientForNode(bwd_graph, bwd_graph, node, nullptr);
+                if (fwd_graph != bwd_graph && node == orig_node) {
+                    // Two phase mode & node is in forward part.
+                    // In this case, retained must be updated.
+                    AddGradientForNode(fwd_graph, bwd_graph, node, &retained);
+                } else {
+                    AddGradientForNode(bwd_graph, bwd_graph, node, nullptr);
+                }
 
                 // Revert the inputs/outputs of the node
                 for (const auto& p : Zip(staged_inputs, inputs)) {
@@ -331,6 +347,12 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
         }
     }
 
+    auto schedule_node_first = [&schedule_recompute](Node* node) { schedule_recompute(node, node, 0); };
+    {
+        ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
+        ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node_first);
+        AddRetainedParts(fwd_graph, bwd_graph, retained);
+    }
     {
         ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
         ExposeParamGradsAsOutputs(fwd_graph, bwd_graph, GetParamValues(fwd_graph));
