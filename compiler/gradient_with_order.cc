@@ -351,6 +351,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     auto schedule_node_first = [&schedule_recompute](Node* node) { schedule_recompute(node, node, 0); };
     {
         ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
+        // Because retained part in backward computation must be executed earlier than other computations,
+        // we use a schedule scope with small offset here.
         ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node_first);
         AddRetainedParts(fwd_graph, bwd_graph, retained);
     }
