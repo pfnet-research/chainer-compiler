@@ -658,8 +658,11 @@ for test in TEST_CASES:
             'CF0,CF1,FFt0,CF0,FFo0,CF1,BF1,BF0',
             'CF0,CF1,FFt0,CF0,FFo0,CF1,FFt0,CF0,BF1,BF0',
             'CF0,CF1,BF1,FFt0,CF0,BF0',
-            'CF0,CF1,BF1,FFt0,CF0,FFo0,FFt0,CF0,CF1,BF0',
         ]
+        if not test.name.startswith('backprop_test_oc_max_pool2'):
+            order_strings.append(
+                'CF0,CF1,BF1,FFt0,CF0,FFo0,FFt0,CF0,CF1,BF0'
+            )
         for order_string in order_strings:
             for two_phase in [False, True]:
                 new_test = copy.copy(test)
