@@ -3,6 +3,7 @@
 #include <chainerx/array.h>
 #include <chainerx/routines/manipulation.h>
 
+#include <compiler/flags.h>
 #include <compiler/fusion.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
@@ -15,7 +16,7 @@ void FuseDldtOperations(Graph* graph) {
     // The list was created by
     // $ grep 'op =' dldt/model-optimizer/extensions/front/onnx/*.py
     // and `onnx_op_extractors` in mo/front/onnx/extractor.py.
-    const std::set<Node::OpType> fusable_ops = {
+    std::set<Node::OpType> fusable_ops = {
             Node::kAdd,
             // Node::kAffine,
             Node::kArgMax,
@@ -76,9 +77,12 @@ void FuseDldtOperations(Graph* graph) {
             Node::kTanh,
             Node::kTranspose,
             Node::kUnsqueeze,
-            Node::kResize,
-            Node::kUpsample,
     };
+
+    if (g_dldt_device == "GPU") {
+        CHECK(fusable_ops.emplace(Node::kResize).second);
+        CHECK(fusable_ops.emplace(Node::kUpsample).second);
+    }
 
     auto is_fusable = [&fusable_ops](const Node& node) {
         if (!fusable_ops.count(node.op_type())) {
