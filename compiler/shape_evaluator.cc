@@ -21,6 +21,9 @@ namespace {
 bool HasKnownInputsAndUnknownOutputs(const Node& node) {
     bool has_unknown_outputs = false;
     for (Value* output : node.outputs()) {
+        if (output->IsNull()) {
+            continue;
+        }
         const Type& type = output->type();
         if (type.kind() == Type::Kind::kTensor && !type.HasKnownShape()) {
             has_unknown_outputs = true;
