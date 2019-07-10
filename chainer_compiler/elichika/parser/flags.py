@@ -7,5 +7,5 @@ def eval_as_written_target():
 def ignore_branch():
     return DummyFlag()
 
-def for_unroll():
+def for_unroll(unroll=True):
     return DummyFlag()

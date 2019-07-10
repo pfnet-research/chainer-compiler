@@ -56,7 +56,7 @@ class RangeFunction(functions.FunctionBase):
         if option._for_unroll:
             for ref in args.inputs:
                 if not ref.get_value().has_constant_value():
-                    assert False
+                    assert False, 'Loop unrolling was requested for non-constant sequence at %s' % line
 
             refs = []
             for num in range(*(ref.get_value().internal_value for ref in args.inputs)):
@@ -243,19 +243,23 @@ class ValuesFunction(functions.FunctionBase):
 
 
 class VEvalOptionFunction(functions.FunctionBase):
-    def __init__(self, func, flags = None):
+    def __init__(self, func):
         super().__init__()
         self.name = func.__name__
         self.args.analyze_args(func)
-        self.flags = flags
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
-        if self.flags is not None:
-            self.flags.append(self.name)
+        args = []
+        for value in funcArgs.get_value().inputs:
+            assert value.has_constant_value(), "Arguments for elichika.flags were non-constant at %s" % line
+            args.append(value.internal_value)
+
+        if option is not None:
+            option.flags_cache.append((self.name, args))
 
         return values.ValueRef(values.NoneValue())
 

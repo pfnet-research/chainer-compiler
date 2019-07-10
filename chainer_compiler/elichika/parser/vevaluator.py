@@ -4,7 +4,6 @@ import chainer.links as L
 import inspect
 import ast, gast
 from contextlib import ExitStack
-from collections import deque
 
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import nodes
@@ -18,8 +17,6 @@ from chainer_compiler.elichika.parser import veval_multiary
 from chainer_compiler.elichika.parser import veval_aug_assign
 
 import numpy as np
-
-common_flags_cache = []
 
 
 def get_ast_name_forcibly(ast):
@@ -78,12 +75,13 @@ class VEvalOption:
             "ignore_branch": False,
             "for_unroll": False
         }
+        self.flags_cache = []
 
-        deque(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalOption.generic_setter(obj, flag, value),
-                                                                            fget=lambda obj: VEvalOption.generic_getter(obj, flag))),
-                  self.flags.keys()))
-        deque(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj: VEvalOption.generic_setter(obj, flag, True), flag)),
-                  self.flags.keys()))
+        list(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalOption.generic_setter(obj, flag, value),
+                                                                           fget=lambda obj: VEvalOption.generic_getter(obj, flag))),
+                 self.flags.keys()))
+        list(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj, default=True: VEvalOption.generic_setter(obj, flag, default), flag)),
+                 self.flags.keys()))
 
     def generic_setter(self, name, value = True):
         self.flags[name] = value
@@ -1229,7 +1227,7 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     if option is not None and option._eval_as_written_target:
         from_module = False
 
-    common_flags_cache.clear()
+    option.flags_cache.clear()
 
     exit_attrs = []
     for item in astc.nast.items:
@@ -1238,7 +1236,7 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         exit_attrs.append(exit_attr)
 
     with ExitStack() as stack:
-        managers = [stack.enter_context(getattr(option, flag)()) for flag in common_flags_cache]
+        managers = [stack.enter_context(getattr(option, flag)(*args)) for flag, args in option.flags_cache]
         if not option._ignore_branch:
             veval_ast(astc.c(astc.nast.body), local_field, graph, option)
 

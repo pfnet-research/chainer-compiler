@@ -90,6 +90,10 @@ class ForUnroll(chainer.Chain):
             for i in self.dict.values():
                 ret += 4 * self['x%d' % i]
 
+            with flags.for_unroll(unroll=False):
+                for i in range(5):
+                    ret += i
+
         return ret
 
 # ======================================
