@@ -98,7 +98,7 @@ def run(args):
 
 
 def get_args(args=None):
-    parser = argparse.ArgumentParser(description='Run ONNX by TensorRT')
+    parser = argparse.ArgumentParser(description='Run ONNX by nGraph')
     parser.add_argument('test_dir')
     parser.add_argument('--backend', '-b', default='CPU')
     parser.add_argument('--debug', '-g', action='store_true')

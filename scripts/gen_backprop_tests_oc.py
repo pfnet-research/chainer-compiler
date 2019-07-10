@@ -149,6 +149,11 @@ def get_backprop_tests():
     # test case for computation_order
     test('tanh2', lambda m: F.tanh(F.tanh(m.a)), a=[0.3, 0.6])
     test('mul2', lambda m: (m.a * m.a) * m.a, a=[0.3, 0.6])
+    test('max_pool2',
+         lambda m: F.max_pooling_2d(
+             F.max_pooling_2d(m.a, 2, stride=1, cover_all=False),
+             2, stride=1, cover_all=False),
+         a=aranges(2, 3, 5, 5) % 9)
 
     return tests
 

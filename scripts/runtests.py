@@ -424,6 +424,8 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_isnan'),
     TestCase(NODE_TEST, 'test_isinf'),
+    TestCase(NODE_TEST, 'test_isinf_negative'),
+    TestCase(NODE_TEST, 'test_isinf_positive'),
 
     TestCase(NODE_TEST, 'test_where_example'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
@@ -644,7 +646,8 @@ for test in TEST_CASES:
 
     # add more tests for computation_order using CustomPolicy
     if test.name.startswith('backprop_test_oc_tanh2') or\
-       test.name.startswith('backprop_test_oc_mul2'):
+       test.name.startswith('backprop_test_oc_mul2') or\
+       test.name.startswith('backprop_test_oc_max_pool2'):
         order_strings = [
             'CF0,CF1,BF1,BF0',
             'CF0,CF1,FFo0,CF1,BF1,BF0',
@@ -655,8 +658,11 @@ for test in TEST_CASES:
             'CF0,CF1,FFt0,CF0,FFo0,CF1,BF1,BF0',
             'CF0,CF1,FFt0,CF0,FFo0,CF1,FFt0,CF0,BF1,BF0',
             'CF0,CF1,BF1,FFt0,CF0,BF0',
-            'CF0,CF1,BF1,FFt0,CF0,FFo0,FFt0,CF0,CF1,BF0',
         ]
+        if not test.name.startswith('backprop_test_oc_max_pool2'):
+            order_strings.append(
+                'CF0,CF1,BF1,FFt0,CF0,FFo0,FFt0,CF0,CF1,BF0'
+            )
         for order_string in order_strings:
             for two_phase in [False, True]:
                 new_test = copy.copy(test)

@@ -77,7 +77,7 @@ void DumpOutput(ChxVMState* st, const ChxVMOp* op, const std::string& output_dir
         }
 
         ChxVMVar* var = st->GetVar(id);
-        if (var->IsArray()) {
+        if (!var->IsArray()) {
             continue;
         }
 
@@ -123,7 +123,7 @@ ChxVM::ChxVM(const XCProgramProto& program) {
 ChxVM::~ChxVM() {
 }
 
-InOuts ChxVM::Run(const InOuts& program_inputs, const ChxVMOptions& options) {
+std::unique_ptr<ChxVMState> ChxVM::Prepare(const InOuts& program_inputs, const ChxVMOptions& options) {
     for (const std::unique_ptr<ChxVMInputDesc>& input : input_descs_) {
         auto found = program_inputs.find(input->name);
         CHECK(found != program_inputs.end()) << "Input '" << input->name << "' not found";
@@ -139,10 +139,13 @@ InOuts ChxVM::Run(const InOuts& program_inputs, const ChxVMOptions& options) {
             CHECK_EQ(static_cast<int>(input->dtype), 0) << "Input '" << input->name << "' must be a tensor";
         }
     }
+    return std::make_unique<ChxVMState>(options, num_variables_, program_inputs);
+}
 
-    ChxVMState state(options, num_variables_, program_inputs);
-    Run(&state);
-    return state.GetOutputs();
+InOuts ChxVM::Run(const InOuts& program_inputs, const ChxVMOptions& options) {
+    std::unique_ptr<ChxVMState> state(Prepare(program_inputs, options));
+    Run(state.get());
+    return state->GetOutputs();
 }
 
 void ChxVM::Run(ChxVMState* state) {

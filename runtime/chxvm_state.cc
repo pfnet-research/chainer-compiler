@@ -189,6 +189,7 @@ void ChxVMState::Input(const std::string& name, int index) {
     auto found = inputs_.find(name);
     CHECK(found != inputs_.end()) << "Input value not exist: " << name;
     variables_[index].reset(new ChxVMVar(*found->second.get()));
+    inputs_.erase(found);
 }
 
 void ChxVMState::Output(const std::string& name, int index) {
@@ -242,19 +243,27 @@ bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxV
 }  // namespace
 
 void ChxVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
-    for (int output : outputs) {
+    bool found = false;
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        int output = outputs[i];
         if (!HasElemInVar(chainerx::IsNan, *GetVar(output))) continue;
-
-        std::cerr << "NaN detected!\n";
+        std::cerr << "NaN detected in output #" << i << " of " << (*program_)[pc()]->debug_info() << "\n";
+        found = true;
+    }
+    if (found) {
         ReportInvalidInOuts(inputs, outputs);
     }
 }
 
 void ChxVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
-    for (int output : outputs) {
+    bool found = false;
+    for (size_t i = 0; i < outputs.size(); ++i) {
+        int output = outputs[i];
         if (!HasElemInVar(chainerx::IsInf, *GetVar(output))) continue;
-
-        std::cerr << "Inf detected!\n";
+        std::cerr << "Inf detected in output #" << i << " of " << (*program_)[pc()]->debug_info() << "\n";
+        found = true;
+    }
+    if (found) {
         ReportInvalidInOuts(inputs, outputs);
     }
 }
@@ -275,6 +284,16 @@ int64_t ChxVMState::GetTotalVariableSize() const {
             continue;
         }
         for (const chainerx::Array& a : v->GetArrays()) {
+            array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
+        }
+    }
+    for (const auto& p : inputs_) {
+        for (const chainerx::Array& a : p.second->GetArrays()) {
+            array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
+        }
+    }
+    for (const auto& p : outputs_) {
+        for (const chainerx::Array& a : p.second->GetArrays()) {
             array_sizes[a.raw_data()] = std::max(array_sizes[a.raw_data()], a.GetNBytes());
         }
     }

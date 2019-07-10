@@ -45,11 +45,19 @@ PYTHONPATH=. run train_mnist_export python3 examples/mnist/train_mnist.py \
 PYTHONPATH=. run train_mnist_compile python3 examples/mnist/train_mnist.py \
      -d native --compile /tmp/tmp_mnist_model.onnx -I 3 --use-fake-data
 
+mkdir -p npy_outputs
+run dump_outputs_dir ./build/tools/run_onnx out/elichika_syntax_For_basic1 \
+    --dump_outputs_dir=npy_outputs
+# There should be at least a single output dump.
+ls -l npy_outputs/*.npy
+
 run tools_dump ./build/tools/dump out/ch2o_model_MLP_with_loss
 
 run run_onnx_verbose \
     ./build/tools/run_onnx --test out/ch2o_model_MLP_with_loss \
-    --verbose --compiler_log
+    --verbose --compiler_log --chrome_tracing mlp.json
+ls -l mlp.json
+
 run run_onnx_trace sh -c \
     './build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace 2>&1 | head -100'
 

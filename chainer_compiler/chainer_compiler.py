@@ -144,9 +144,8 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
     def backward(self, indexes, flat_gys):
         device = chainer.backend.get_device_from_array(flat_gys[0].array)
         gys, _ = _unflatten(flat_gys, self.nested_outputs)
-        retained = self.retained
         gys = [self._to_var(gy) for gy in gys]
-        values = gys + retained
+        values = gys + self.retained
 
         del self.retained
         del self.nested_outputs
@@ -156,8 +155,11 @@ class RunCompiledModel(chainer.function_node.FunctionNode):
         for name, value in zip(self.bwd_input_names, values):
             inputs[name] = value
 
+        state = self.bwd.prepare(inputs, **self.runtime_kwargs)
+        del inputs
+        del values
         with chainer.using_device(self.chainerx_device_name):
-            outputs = self.bwd.run(inputs, **self.runtime_kwargs)
+            outputs = self.bwd.run(state)
         gxs = []
         assert len(self.input_tmpl) == len(self.fwd_input_names)
         for name, tmpl in zip(self.fwd_input_names, self.input_tmpl):

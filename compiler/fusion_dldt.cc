@@ -1,9 +1,14 @@
 #include <set>
 
+#include <chainerx/array.h>
+#include <chainerx/routines/manipulation.h>
+
+#include <compiler/flags.h>
 #include <compiler/fusion.h>
 #include <compiler/graph.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 
@@ -11,7 +16,7 @@ void FuseDldtOperations(Graph* graph) {
     // The list was created by
     // $ grep 'op =' dldt/model-optimizer/extensions/front/onnx/*.py
     // and `onnx_op_extractors` in mo/front/onnx/extractor.py.
-    const std::set<Node::OpType> fusable_ops = {
+    std::set<Node::OpType> fusable_ops = {
             Node::kAdd,
             // Node::kAffine,
             Node::kArgMax,
@@ -61,18 +66,23 @@ void FuseDldtOperations(Graph* graph) {
             Node::kReshape,
             // Node::kScale,
             Node::kSigmoid,
-            Node::kSlice,
+            // TODO(hamaji): We should be able to support this through
+            // simplifier, but the naming scheme will be confused.
+            // Node::kSlice,
             Node::kSoftmax,
             Node::kSplit,
-            Node::kSqueeze,
+            // TODO(hamaji): Implement simplifier.
+            // Node::kSqueeze,
             Node::kSum,
             Node::kTanh,
             Node::kTranspose,
             Node::kUnsqueeze,
-            // TODO(hamaji): Need to set `width_scale` and `height_scale`.
-            // https://github.com/opencv/dldt/blob/2019/model-optimizer/extensions/front/onnx/upsample_ext.py#L35
-            // Node::kUpsample,
     };
+
+    if (g_dldt_device == "GPU") {
+        CHECK(fusable_ops.emplace(Node::kResize).second);
+        CHECK(fusable_ops.emplace(Node::kUpsample).second);
+    }
 
     auto is_fusable = [&fusable_ops](const Node& node) {
         if (!fusable_ops.count(node.op_type())) {
@@ -84,6 +94,31 @@ void FuseDldtOperations(Graph* graph) {
         for (Value* value : node.outputs()) {
             if (!value->type().HasKnownShape()) return false;
         }
+
+        if (node.op_type() == Node::kResize || node.op_type() == Node::kUpsample) {
+            if (node.inputs().size() != 2) {
+                return false;
+            }
+            if (node.mode() != "nearest") {
+                return false;
+            }
+            const Tensor* scales_tensor = node.input(1)->GetConstTensor();
+            if (!scales_tensor) {
+                return false;
+            }
+            const chainerx::Array& a = scales_tensor->chx();
+            if (a.shape().size() != 1) {
+                return false;
+            }
+            std::vector<double> scales;
+            for (int64_t i = 0; i < a.GetTotalSize(); ++i) {
+                scales.emplace_back(chainerx::AsScalar(a.At({i})));
+            }
+            if (scales.size() != 4 || scales[0] != 1 || scales[1] != 1 || scales[2] != scales[3]) {
+                return false;
+            }
+        }
+
         return true;
     };
 

@@ -249,7 +249,6 @@ private:
         EMIT_SIMPLE_UNARY_OP(Node::kNot, Not);
         EMIT_SIMPLE_UNARY_OP(Node::kIdentity, Identity);
         EMIT_SIMPLE_UNARY_OP(Node::kIsNaN, IsNaN);
-        EMIT_SIMPLE_UNARY_OP(Node::kIsInf, IsInf);
         EMIT_SIMPLE_UNARY_OP(Node::kSign, Sign);
         EMIT_SIMPLE_UNARY_OP(Node::kRound, Round);
 
@@ -280,6 +279,8 @@ private:
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
             EMIT(Selu, out(0), in(0), node.alpha(), node.gamma());
+        } else if (node.op_type() == Node::kIsInf) {
+            EMIT(IsInf, out(0), in(0), node.detect_negative(), node.detect_positive());
         } else if (node.op_type() == Node::kLeakyRelu) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_LE(1UL, node.outputs().size());
@@ -859,10 +860,9 @@ private:
             for (const Value* output : node->outputs()) {
                 // Do not free output values.
                 if (todo_outputs.erase(output)) continue;
-                if (output->IsTemp() && !output->IsNull() && output->users().empty() &&
-                    // TODO(hamaji): Figure out how we should handle batch norm.
-                    node->op_type() != Node::kBatchNormalization)
+                if (output->IsTemp() && !output->IsNull() && output->users().empty()) {
                     FREE(GetValueId(output));
+                }
             }
 
             for (const Value* input : node->inputs()) {
@@ -987,7 +987,15 @@ private:
             if (dldt_device.empty()) {
                 dldt_device = "CPU";
             }
-            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device);
+
+            std::vector<std::string> output_names;
+            for (Value* output : body.output_values()) {
+                CHECK(output->producer());
+                CHECK_EQ(1, output->producer()->outputs().size());
+                output_names.push_back(output->producer()->name());
+            }
+
+            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device, output_names);
             return;
         }
 

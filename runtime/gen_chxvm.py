@@ -211,7 +211,7 @@ def gen_gen_chxvm_ops_cc():
                 line += ' << %s' % colored_name(typ, name)
             elif typ in (INT, FLOAT):
                 line += ' << %s' % name
-            elif typ in [STRING, INT_VALUES, DOUBLES]:
+            elif typ in [STRING, INT_VALUES, DOUBLES, STRINGS]:
                 line += ' << "%s"' % name
             elif typ == INTS:
                 line += ' << StackVectorToString(%s)' % name

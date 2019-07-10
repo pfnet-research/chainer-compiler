@@ -97,7 +97,19 @@ chainerx::Array IsNaNOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
 }
 
 chainerx::Array IsInfOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
-    return chainerx::IsInf(a);
+    chainerx::Array ret = chainerx::IsInf(a);
+    if (detect_negative && detect_positive) {
+        return ret;
+    }
+
+    const chainerx::Array zeros = chainerx::Zeros(ret.shape(), a.dtype(), a.device());
+    if (detect_negative) {
+        ret = LogicalAnd(ret, a < zeros);
+    }
+    if (detect_positive) {
+        ret = LogicalAnd(ret, a > zeros);
+    }
+    return ret;
 }
 
 #define DEFINE_UNARY_OP(op)                                                     \

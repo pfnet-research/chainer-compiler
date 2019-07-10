@@ -65,6 +65,7 @@ public:
     explicit ChxVM(const XCProgramProto& program);
     ~ChxVM();
 
+    std::unique_ptr<ChxVMState> Prepare(const InOuts& program_inputs, const ChxVMOptions& options);
     InOuts Run(const InOuts& program_inputs, const ChxVMOptions& options);
     void Run(ChxVMState* state);
 

@@ -64,7 +64,7 @@ NodeDef('Exp', 1, 1)
 NodeDef('Log', 1, 1)
 NodeDef('Sqrt', 1, 1)
 NodeDef('IsNaN', 1, 1)
-NodeDef('IsInf', 1, 1)
+NodeDef('IsInf', 1, 1, detect_negative=1, detect_positive=1)
 NodeDef('Sign', 1, 1)
 
 NodeDef('Sin', 1, 1)
@@ -204,7 +204,8 @@ NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
 NodeDef('GlobalAveragePool', 1, 1)
 NodeDef('Pad', 1, 1, mode='constant', pads=[int], value=0.0)
-NodeDef('Upsample', 2, 1, mode='nearest')
+NodeDef('Upsample', (1, 2), 1, mode='nearest',
+        width_scale=float, height_scale=float)
 NodeDef('Resize', 2, 1, mode='nearest')
 
 NodeDef('Softmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)

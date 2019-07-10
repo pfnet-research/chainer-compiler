@@ -26,44 +26,30 @@ namespace runtime {
 
 namespace {
 
-#if 0
-
-chainerx::Dtype GetDtype(ngraph::element::Type type) {
-    switch (type.get_type_enum()) {
-        case ngraph::element::Type_t::boolean:
-            return chainerx::Dtype::kBool;
-        case ngraph::element::Type_t::f32:
+chainerx::Dtype GetDtype(InferenceEngine::Precision::ePrecision type) {
+    switch (type) {
+        case InferenceEngine::Precision::FP32:
             return chainerx::Dtype::kFloat32;
-        case ngraph::element::Type_t::f64:
-            return chainerx::Dtype::kFloat64;
-        case ngraph::element::Type_t::i8:
-            return chainerx::Dtype::kInt8;
-        case ngraph::element::Type_t::i16:
+        case InferenceEngine::Precision::FP16:
+            return chainerx::Dtype::kFloat16;
+        case InferenceEngine::Precision::I16:
             return chainerx::Dtype::kInt16;
-        case ngraph::element::Type_t::i32:
-            return chainerx::Dtype::kInt32;
-        case ngraph::element::Type_t::i64:
-            return chainerx::Dtype::kInt64;
-        case ngraph::element::Type_t::u8:
+        case InferenceEngine::Precision::U8:
             return chainerx::Dtype::kUInt8;
+        case InferenceEngine::Precision::I8:
+            return chainerx::Dtype::kInt8;
+        case InferenceEngine::Precision::I32:
+            return chainerx::Dtype::kInt32;
+        case InferenceEngine::Precision::BIN:
+            return chainerx::Dtype::kBool;
         default:
-            // bf16,
-            // u16,
-            // u32,
-            // u64
-            CHECK(false) << "Not supported ngraph dtype: " << type;
+            // UNSPECIFIED,
+            // MIXED,
+            // Q78,
+            // uU16,
+            CHECK(false) << "Not supported dldt dtype: " << type;
     }
 }
-
-chainerx::Shape GetShape(const ngraph::Shape& nshape) {
-    chainerx::Shape shape;
-    for (size_t d : nshape) {
-        shape.push_back(d);
-    }
-    return shape;
-}
-
-#endif
 
 }  // namespace
 
@@ -76,10 +62,6 @@ public:
     InferenceEngine::CNNNetwork network;
     InferenceEngine::ExecutableNetwork executable_network;
     std::vector<chainerx::Array> output_arrays;
-    // As of June 2019, dldt seems to have no way to reliably retrieve
-    // the list of output blobs in the original order. We rely on byte
-    // size of each array to distinguish output blobs.
-    std::map<int64_t, chainerx::Array> array_by_size;
 };
 
 #endif
@@ -95,16 +77,28 @@ void DldtOp::InitImpl() {
     // network_reader.getNetwork().setBatchSize(1);
     impl_->network = network_reader.getNetwork();
 
+    for (const std::string& name : output_names) {
+        impl_->network.addOutput(name, 0);
+    }
+
     impl_->executable_network = impl_->plugin.LoadNetwork(impl_->network, {});
 
     CHECK_EQ(inst_.output_types().size(), inst_.output_names().size());
-    for (const XCTypeProto& type : inst_.output_types()) {
+    CHECK_EQ(output_names.size(), inst_.output_names().size());
+    InferenceEngine::OutputsDataMap outputs_info(impl_->network.getOutputsInfo());
+    for (size_t i = 0; i < output_names.size(); ++i) {
+        const std::string& name = output_names[i];
+        const XCTypeProto& type = inst_.output_types(i);
         CHECK_NE(type.dtype(), 0);
+
+        auto found = outputs_info.find(name);
+        CHECK(found != outputs_info.end()) << name;
+        const InferenceEngine::DataPtr& data = found->second;
+        chainerx::Dtype dtype = GetDtype(data->precision);
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
-        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
+        CHECK_EQ(chainerx::Shape(data->dims.rbegin(), data->dims.rend()), shape);
         chainerx::Array array = chainerx::Empty(shape, dtype);
         impl_->output_arrays.push_back(array);
-        CHECK(impl_->array_by_size.emplace(array.GetNBytes(), array).second) << "Multiple outputs with the same size is not supported yet";
     }
 #endif
 }
@@ -153,15 +147,21 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
 
     infer_request.Infer();
 
-    for (auto& p : impl_->network.getOutputsInfo()) {
-        InferenceEngine::Blob::Ptr output = infer_request.GetBlob(p.first);
-        auto found = impl_->array_by_size.find(output->byteSize());
-        CHECK(found != impl_->array_by_size.end());
-        const chainerx::Array& output_array = found->second;
+    std::vector<chainerx::Array> output_arrays;
+    for (size_t i = 0; i < output_names.size(); ++i) {
+        const std::string& output_name = output_names[i];
+        InferenceEngine::Blob::Ptr output = infer_request.GetBlob(output_name);
+        const chainerx::Array& output_array = impl_->output_arrays[i];
         memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
+        chainerx::Dtype dtype = static_cast<chainerx::Dtype>(inst_.output_types(i).dtype());
+        if (output_array.dtype() != dtype) {
+            output_arrays.push_back(output_array.AsType(dtype));
+        } else {
+            output_arrays.push_back(output_array);
+        }
     }
 
-    return impl_->output_arrays;
+    return output_arrays;
 
 #else
     CHECK(false) << "Set -DCHAINER_COMPILER_DLDT_DIR";
