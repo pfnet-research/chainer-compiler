@@ -32,6 +32,25 @@ add_custom_target(
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.h
   )
 
+add_custom_command(
+  OUTPUT
+  "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
+  COMMAND
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode flags.h
+  --output "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
+  )
+add_custom_command(
+  OUTPUT
+  "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  COMMAND
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode flags.cc
+  --output "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  )
+add_custom_target(
+  compiler_flags_h
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/flags.h" "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  )
+
 include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
@@ -49,7 +68,7 @@ add_library(chainer_compiler_compiler
   dtype.cc
   dtype_inference.cc
   evaluator.cc
-  flags.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/flags.cc
   flops.cc
   fusion.cc
   fusion_dldt.cc
@@ -85,7 +104,7 @@ add_library(chainer_compiler_compiler
   )
 add_dependencies(
   chainer_compiler_compiler
-  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h
+  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h compiler_flags_h
   gen_onnx_proto gen_onnx_operators_proto
   )
 set_hidden_(chainer_compiler_compiler)
