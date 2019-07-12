@@ -72,6 +72,9 @@ void Value::set_type(Type* type) {
 }
 
 int64_t Value::GetNBytes() const {
+    if (IsNull()) {
+        return 0;
+    }
     return type_->GetNBytes();
 }
 
