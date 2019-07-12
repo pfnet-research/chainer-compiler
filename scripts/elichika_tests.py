@@ -95,6 +95,9 @@ TESTS = [
     Generator('syntax', 'UserDefinedFunc'),
     Generator('syntax', 'Tuple'),
     Generator('syntax', 'Print'),
+    Generator('syntax', 'With'),
+    Generator('syntax', 'Dict'),
+    Generator('syntax', 'GetItem')
 ]
 
 

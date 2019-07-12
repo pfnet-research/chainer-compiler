@@ -69,6 +69,37 @@ def veval(op: 'nodes.BinOpType', left: 'values.Value', right: 'values.Value', li
     if isinstance(left, values.TupleValue):
         return functions.generate_value_with_same_type(left)
 
+    if isinstance(left, values.StrValue):
+        if not (isinstance(right, values.NumberValue) or isinstance(right, values.StrValue) or isinstance(right, values.BoolValue)
+            or isinstance(right, values.TupleValue)):
+            assert False
+
+        if not(left.has_constant_value() or right.has_constant_value()):
+            assert False
+
+        if op == nodes.BinOpType.Add:
+            if not isinstance(right, values.StrValue):
+                assert False
+            return values.StrValue(left.internal_value + right.internal_value)
+
+        elif op == nodes.BinOpType.Mod:
+            right_internal_value = right.internal_value
+
+            if isinstance(right, values.TupleValue):
+                values_ = []
+                for ref in right_internal_value:
+                    if not (isinstance(ref.get_value(), values.NumberValue) or isinstance(ref.get_value(), values.StrValue)
+                        or isinstance(ref.get_value(), values.BoolValue)):
+                        assert False
+                    if not ref.get_value().has_constant_value():
+                        assert False
+                    values_.append(ref.get_value())
+
+                right_internal_value = tuple(value.internal_value for value in values_)
+            return values.StrValue(left.internal_value % right_internal_value)
+
+        return values.StrValue("")
+
     if isinstance(right, values.NumberValue) or isinstance(right, values.TensorValue):
 
         if not isinstance(left, values.NumberValue) and not isinstance(left, values.TensorValue):

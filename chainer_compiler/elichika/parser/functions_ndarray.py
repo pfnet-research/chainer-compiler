@@ -15,7 +15,8 @@ class NDArrayInt32(functions.FunctionBase):
         super().__init__()
         self.name = 'int32'
         self.dtype = np.int32
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
         return values.ValueRef(values.NoneValue)
 
@@ -25,7 +26,8 @@ class NDArrayFloat32(functions.FunctionBase):
         self.name = 'float32'
         self.dtype = np.float32
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
         return values.ValueRef(values.NoneValue)
 
@@ -41,7 +43,8 @@ class NDArrayFunction(functions.FunctionBase):
         self.args.add_arg('subok', values.BoolValue(False))
         self.args.add_arg('ndmin', values.NumberValue(0))
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -79,7 +82,8 @@ class NDArrayZerosFunction(functions.FunctionBase):
         self.args.add_arg('dtype', values.NoneValue())
         self.args.add_arg('order', values.StrValue('C'))
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -116,7 +120,8 @@ class NDArrayFullFunction(functions.FunctionBase):
         self.args.add_arg('dtype', values.NoneValue())
         self.args.add_arg('order', values.StrValue('C'))
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -158,7 +163,8 @@ class NDArrayCeilFunction(functions.FunctionBase):
         self.name = 'ceil'
         self.args.add_arg('x', values.NoneValue())
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -180,7 +186,8 @@ class NDArrayCumsumFunction(functions.FunctionBase):
         self.args.add_arg('dtype', values.NoneValue())
         self.args.add_arg('out', values.NoneValue())
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -199,7 +206,8 @@ class NDArrayShapeFunction(functions.FunctionBase):
         self.name = 'shape'
         self.is_property = True
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         args = functions.FunctionArgInput()
         args.inputs.append(inst)
         args.keywords['self'] = inst
@@ -219,7 +227,8 @@ class NDArraySizeFunction(functions.FunctionBase):
         self.name = 'size'
         self.is_property = True
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalOption' = None, line=-1):
         args = functions.FunctionArgInput()
         args.inputs.append(inst)
         args.keywords['self'] = inst

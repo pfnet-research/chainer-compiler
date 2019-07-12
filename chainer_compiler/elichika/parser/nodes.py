@@ -17,6 +17,7 @@ class BinOpType(Enum):
     Mul = 2,
     Div = 3,
     FloorDiv = 4,
+    Mod = 5,
     Unknown = 255,
 
 
