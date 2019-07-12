@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include <chainerx/array.h>
 
@@ -31,7 +31,7 @@ public:
     }
 
     chainerx::Array GetArray(int index);
-    nonstd::optional<chainerx::Array> GetOptionalArray(int index);
+    absl::optional<chainerx::Array> GetOptionalArray(int index);
     void SetArray(int index, const chainerx::Array& value);
     void FreeVar(int index);
 
@@ -45,14 +45,14 @@ public:
     void SetOpaque(int index, ChxVMOpaque* opaque);
 
     ChxVMVar* GetVar(int index);
-    nonstd::optional<ChxVMVar*> GetOptionalVar(int index);
+    absl::optional<ChxVMVar*> GetOptionalVar(int index);
     void SetVar(int index, const ChxVMVar& var);
 
     const chainerx::Shape& GetShape(int index);
     void SetShape(int index, chainerx::Shape s);
 
     const StrictScalar& GetScalar(int index);
-    nonstd::optional<StrictScalar> GetOptionalScalar(int index);
+    absl::optional<StrictScalar> GetOptionalScalar(int index);
     int64_t GetOptionalInt(int index, int64_t default_value);
     void SetScalar(int index, StrictScalar s);
 

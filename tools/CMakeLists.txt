@@ -1,9 +1,7 @@
 get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
 set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
-set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
-include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
