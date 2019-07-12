@@ -39,6 +39,19 @@ def convert_relu(onnx_graph, node):
                         name=str(node.lineprop))
     return
 
+def convert_elu(onnx_graph, node):
+    parser = oc.NodeParse()
+    parser.add_def('x', oc.ParseType.In)
+    parser.add_def('alpha', oc.ParseType.Att)
+    parser.parse(onnx_graph, node)
+
+    onnx_graph.add_node(
+        "Elu",
+        [node.inputs[0]],
+        [node.outputs[0]],
+        str(node.lineprop),
+        alpha=parser.get('alpha'))
+
 def convert_tanh(onnx_graph, node):
     onnx_graph.add_node('Tanh',
                         [node.inputs[0]],
