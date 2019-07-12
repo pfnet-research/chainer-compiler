@@ -1,4 +1,5 @@
 #include <chainerx/numeric_limits.h>
+#include <chainerx/routines/binary.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/misc.h>
@@ -165,15 +166,10 @@ chainerx::Array BitShiftOp::RunImpl(ChxVMState* st, const chainerx::Array& x, co
     CHECK(!IsFloat(y.dtype()));
 
     if (direction == "LEFT") {
-        return LeftShift(x, y);
+        return chainerx::LeftShift(x, y);
     } else {
-        return RightShift(x, y);
+        return chainerx::RightShift(x, y);
     }
-
-    chainerx::Array z = MakeArray(chainerx::Dtype::kInt64, x.shape(), result_data.data());
-
-    // Back to input(x) dtype
-    return z.AsType(x.dtype());
 }
 
 }  // namespace runtime
