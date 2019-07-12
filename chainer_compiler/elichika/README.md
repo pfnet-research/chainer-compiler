@@ -38,6 +38,7 @@ else:
 ### Function
 
 - relu
+- elu
 - softmax
 - softmax_cross_entropy
 - pad_sequence

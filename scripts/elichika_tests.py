@@ -72,6 +72,8 @@ TESTS = [
     Generator('node/Functions', 'Mean'),
     Generator('node/Functions', 'Sum'),
 
+    Generator('node/Functions/Activation', 'Elu'),
+
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),
     Generator('node/Links', 'EmbedID'),
