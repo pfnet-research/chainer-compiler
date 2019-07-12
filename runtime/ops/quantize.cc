@@ -160,25 +160,14 @@ chainerx::Array RoundOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return y.AsType(x.dtype());
 }
 
-// TODO(take-cheeze): Implement in ChainerX
 chainerx::Array BitShiftOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& y) {
     CHECK(!IsFloat(x.dtype()));
     CHECK(!IsFloat(y.dtype()));
-    chainerx::Array int64_x = x.AsType(chainerx::Dtype::kInt64);
-    chainerx::Array int64_y = y.BroadcastTo(x.shape()).AsType(chainerx::Dtype::kInt64);
-    const int64_t* x_ptr = reinterpret_cast<const int64_t*>(int64_x.raw_data());
-    const int64_t* y_ptr = reinterpret_cast<const int64_t*>(int64_y.raw_data());
-    std::vector<int64_t> result_data(x.GetTotalSize());
 
     if (direction == "LEFT") {
-        for (size_t i = 0; i < result_data.size(); ++i) {
-            result_data[i] = x_ptr[i] << y_ptr[i];
-        }
+        return LeftShift(x, y);
     } else {
-        CHECK_EQ("RIGHT", direction);
-        for (size_t i = 0; i < result_data.size(); ++i) {
-            result_data[i] = x_ptr[i] >> y_ptr[i];
-        }
+        return RightShift(x, y);
     }
 
     chainerx::Array z = MakeArray(chainerx::Dtype::kInt64, x.shape(), result_data.data());
