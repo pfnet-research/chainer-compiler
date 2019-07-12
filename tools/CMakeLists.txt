@@ -9,8 +9,17 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 include_directories(${CUDA_INCLUDE_DIRS})
 
+add_custom_command(
+  OUTPUT
+    "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
+  COMMAND
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode compiler_flags.cc
+  --output "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py"
+  )
+
 add_library(chainer_compiler_tools
-  compiler_flags.cc
+  "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
   util.cc
   )
 add_dependencies(

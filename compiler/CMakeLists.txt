@@ -38,6 +38,7 @@ add_custom_command(
   COMMAND
   python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode flags.h
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py"
   )
 add_custom_command(
   OUTPUT
@@ -45,6 +46,7 @@ add_custom_command(
   COMMAND
   python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode flags.cc
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py"
   )
 add_custom_target(
   compiler_flags_h
@@ -55,6 +57,7 @@ include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 
 add_library(chainer_compiler_compiler

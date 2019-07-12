@@ -6,7 +6,7 @@ FLAGS = {
         'type': 'bool',
         'doc': 'Enables logging.'
     },
-    'premissive': {
+    'permissive': {
         'type': 'bool',
         'doc': 'The compiler will accept some kinds of invalid operations to support older ONNX, etc.'
     },
@@ -27,13 +27,13 @@ FLAGS = {
         'doc': 'Use NVRTC to execute fused operations.'
     },
 
-    'use_nvrtc': {
+    'use_tvm': {
         'type': 'bool',
         'doc': 'Use TVM to execute operations.'
     },
     'reuse_tvm_code': {
         'type': 'bool',
-        'doc': 'Reuse existing TVM code. Unsafe.'
+        'doc': 'Reuse existing TVM code.(Unsafe)'
     },
     'dump_autotvm_task_dir': {
         'type': 'std::string',
@@ -106,15 +106,16 @@ FLAGS = {
     },
     'dump_subgraphs': {
         'type': 'bool',
-        'doc': 'Dump the ONNX subgraphs'
+        'doc': 'Dump the subgraph tree of the ONNX graph'
     },
 
     'computation_order': {
         'type': 'std::string',
-        'doc': 'The policy of computation order.'
+        'doc': 'Run the specified policy of computation order (backprop only)'
     },
     'chen_budget': {
         'type': 'int',
+        'doc': 'Memory budget of Chen\'s policy (in MB)'
     },
 }
 
@@ -124,44 +125,105 @@ parser.add_argument('--mode')
 parser.add_argument('--output')
 args = parser.parse_args()
 
-f = open(args.output)
+f = open(args.output, mode='w')
 
 if args.mode == 'flags.h':
-    f.write("#pragma once\n")
     f.write('''
-    #pragma once
+#pragma once
 
-    #include <string>
+#include <string>
 
-    namespace chainer_compiler {
+namespace chainer_compiler {
 
-    ''')
-    for name, v in FLAGS:
+''')
+    for name, v in FLAGS.items():
         f.write('''
-        // {}
-        extern {} g_{};
+// {}
+extern {} g_{};
         '''.format(v['doc'], v['type'], name))
     f.write('''
 
-    }  // namespace chainer_compiler
-    ''')
+}  // namespace chainer_compiler
+''')
 
 elif args.mode == 'flags.cc':
     f.write('''
-    #include "compiler/flags.h"
+#include "compiler/flags.h"
 
-    namespace chainer_compiler {
-    ''')
-    for name, v in FLAGS:
+namespace chainer_compiler {
+''')
+    for name, v in FLAGS.items():
         f.write('''
 
-        // {}
-        {} g_{};
-        '''.format(v['doc'], v['type'], name))
+// {}
+{} g_{};
+'''.format(v['doc'], v['type'], name))
+
     f.write('''
+struct Flags {
+''')
+    for name, v in FLAGS.items():
+        f.write('''
+{} {};
+'''.format(v['type'], name))
+    f.write('''
+    void ApplyToGlobal() const;
+};
 
-    }  // namespace chainer_compiler
-    ''')
+}  // namespace chainer_compiler
+''')
 
-elif args.mode == 'run_onnx_flags.inc':
-    f.write
+elif args.mode == 'compiler_flags.cc':
+    f.write('''
+#include "tools/compiler_flags.h"
+
+#include <compiler/flags.h>
+
+namespace chainer_compiler {
+namespace runtime {
+
+void AddCompilerFlags(cmdline::parser* args) {
+''')
+    for name, info in FLAGS.items():
+        type_param = '' if info['type'] == 'bool' else '<{}>'.format(info['type'])
+        def_arg = '' if info['type'] == 'bool' else ', false'
+        f.write('''
+    args->add{}("{}", '\\0', "{}"{});
+'''.format(type_param, name, info['doc'], def_arg))
+
+    f.write('''
+}
+
+void ApplyCompilerFlags(const cmdline::parser& args) {
+''')
+    for name, info in FLAGS.items():
+        func = 'exist' if info['type'] == 'bool' else 'get<{}>'.format(info['type'])
+        f.write('''
+    g_{} = args.{}("{}");
+'''.format(name, func, name))
+    f.write('''
+    if (args.exist("trace")) g_trace_level = 1;
+    if (args.exist("verbose")) g_trace_level = 2;
+}
+
+}  // namespace runtime
+}  // namespace chainer_compiler
+''')
+elif args.mode == 'chainer_compiler_core.cxx_args.inc':
+    for name, info in FLAGS.items():
+        f.write('''
+        {} {},
+'''.format(info['type'], name))
+elif args.mode == 'chainer_compiler_core.apply_cxx_args.inc':
+    for name, info in FLAGS.items():
+        f.write('''
+        g_{} = {};
+'''.format(name, name))
+elif args.mode == 'chainer_compiler_core.pybind_args.inc':
+    for name, info in FLAGS.items():
+        def_val = 'false' if info['type'] == 'bool' else '""' if info['type'] == 'std::string' else '0'
+        f.write('''
+        "{}"_a = {},
+'''.format(name, def_val))
+else:
+    raise('Invalid mode: {}'.format(args.mode))
