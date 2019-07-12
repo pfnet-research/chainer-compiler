@@ -75,7 +75,32 @@ int64_t Value::GetNBytes() const {
     if (IsNull()) {
         return 0;
     }
-    return type_->GetNBytes();
+    if (type_->kind() != Type::Kind::kOpaque) {
+        return type_->GetNBytes();
+    }
+
+    CHECK(producer()) << DebugString();
+    const Node& node = *producer();
+    std::vector<Value*> retained;
+    if (node.op_type() == Node::kBatchNormalization) {
+        retained = node.inputs();
+    } else if (node.op_type() == Node::kMaxPool) {
+        retained = {node.input(0), node.output(0)};
+    } else if (node.op_type() == Node::kAveragePool) {
+        retained = {node.input(0), node.output(0)};
+    } else {
+        return -1;
+    }
+
+    int64_t total = 0;
+    for (Value* value : retained) {
+        int64_t nbytes = value->GetNBytes();
+        if (nbytes < 0) {
+            return -1;
+        }
+        total += nbytes;
+    }
+    return total;
 }
 
 Node* Value::user(int index) const {
