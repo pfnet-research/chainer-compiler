@@ -27,7 +27,6 @@
         "ReplaceReduceLogSumExp": true,
         "ReplaceReduceMin": true,
         "ReplaceSlice": true,
-        "ReplaceSoftplus": true,
         "ReplaceSoftsign": true,
         "ReplaceSum": true,
         // These passes are workarounds for Chainer which does not
@@ -174,6 +173,7 @@
         "Size": true,
         "Slice": true,
         "Softmax": true,
+        "Softplus": true,
         "SpaceToDepth": true,
         "Split": true,
         "Sqrt": true,
