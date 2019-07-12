@@ -54,7 +54,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, con
     const Int64StackVector& strides = ComplementStride(this->strides, x);
     const Int64StackVector& pads = ComplementPad(this->pads, x);
     std::tie(out, state) =
-            x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, nonstd::nullopt);
+            x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
@@ -68,7 +68,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> AveragePoolOp::RunImpl(ChxVMState* st,
     std::shared_ptr<chainerx::AveragePoolGradState> state;
     chainerx::Array out;
     std::tie(out, state) =
-            x.device().backend().CallKernel<chainerx::AveragePoolKernel>(x, kernel_shape, strides, pads, pad_mode, true, nonstd::nullopt);
+            x.device().backend().CallKernel<chainerx::AveragePoolKernel>(x, kernel_shape, strides, pads, pad_mode, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, out});
@@ -79,14 +79,14 @@ std::tuple<chainerx::Array, ChxVMOpaque*> AveragePoolOp::RunImpl(ChxVMState* st,
 chainerx::Array MaxPoolGradOp::RunImpl(ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     auto& context = dynamic_cast<const BackwardContext<chainerx::MaxPoolGradState>&>(ctx);
     return std::get<0>(gy.device().backend().CallKernel<chainerx::MaxPoolGradKernel>(
-            gy, kernel_shape, context.strides(), context.pads(), context.state(), true, nonstd::nullopt));
+            gy, kernel_shape, context.strides(), context.pads(), context.state(), true, absl::nullopt));
 }
 
 chainerx::Array AveragePoolGradOp::RunImpl(ChxVMState* st, const chainerx::Array& gy, const ChxVMOpaque& ctx) {
     chainerx::AveragePoolPadMode pad_mode = count_include_pad ? chainerx::AveragePoolPadMode::kZero : chainerx::AveragePoolPadMode::kIgnore;
     auto& context = dynamic_cast<const BackwardContext<chainerx::AveragePoolGradState>&>(ctx);
     return gy.device().backend().CallKernel<chainerx::AveragePoolGradKernel>(
-            gy, kernel_shape, context.strides(), context.pads(), pad_mode, context.state(), nonstd::nullopt);
+            gy, kernel_shape, context.strides(), context.pads(), pad_mode, context.state(), absl::nullopt);
 }
 
 // A faithful re-implementation of Chainer's ROI ops.
@@ -151,9 +151,9 @@ chainerx::Array ROIPool2D(
     return top_data;
 }
 
-nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int64_t limit) {
+absl::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int64_t limit) {
     if (p < -1 || limit < p) {
-        return nonstd::nullopt;
+        return absl::nullopt;
     }
     if (p < 0.0) {
         p = 0.0;
@@ -165,7 +165,7 @@ nonstd::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int6
     } else {
         high = low + 1;
     }
-    return nonstd::make_optional(std::make_tuple(p, low, high));
+    return absl::make_optional(std::make_tuple(p, low, high));
 }
 
 using ArrayIndices = chainerx::StackVector<int64_t, chainerx::kMaxNdim>;

@@ -26,8 +26,8 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes,
-        const nonstd::optional<chainerx::Array>& steps) {
+        const absl::optional<chainerx::Array>& axes,
+        const absl::optional<chainerx::Array>& steps) {
     CHECK_EQ(1, starts.ndim());
     CHECK_EQ(1, ends.ndim());
     std::vector<chainerx::ArrayIndex> indices(data.ndim(), chainerx::Slice());
@@ -48,8 +48,8 @@ chainerx::Array DynamicSliceOp::RunImpl(
         const chainerx::Array& data,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes,
-        const nonstd::optional<chainerx::Array>& steps) {
+        const absl::optional<chainerx::Array>& axes,
+        const absl::optional<chainerx::Array>& steps) {
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(data, starts, ends, axes, steps);
     return data.At(indices);
 }
@@ -60,8 +60,8 @@ chainerx::Array DynamicSliceGradOp::RunImpl(
         const chainerx::Shape& shape,
         const chainerx::Array& starts,
         const chainerx::Array& ends,
-        const nonstd::optional<chainerx::Array>& axes,
-        const nonstd::optional<chainerx::Array>& steps) {
+        const absl::optional<chainerx::Array>& axes,
+        const absl::optional<chainerx::Array>& steps) {
     chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForDynamicSlice(out, starts, ends, axes, steps);
     BlitArray(gy, out.At(indices));

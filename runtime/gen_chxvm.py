@@ -66,7 +66,7 @@ def gen_gen_chxvm_ops_h():
                     args.append('const chainerx::Array& %s' % name)
                 elif typ == OPTIONAL_ARRAY:
                     args.append(
-                        'const nonstd::optional<chainerx::Array>& %s' % name)
+                        'const absl::optional<chainerx::Array>& %s' % name)
                 elif typ == ARRAY_LIST:
                     args.append('const std::vector<chainerx::Array>& %s' % name)
                 elif typ == SEQUENCE:
@@ -78,7 +78,7 @@ def gen_gen_chxvm_ops_h():
                 elif typ == SCALAR:
                     args.append('const StrictScalar& %s' % name)
                 elif typ == OPTIONAL_SCALAR:
-                    args.append('const nonstd::optional<StrictScalar>& %s' % name)
+                    args.append('const absl::optional<StrictScalar>& %s' % name)
                 else:
                     assert typ in FIELD_TYPES, 'Unknown type: %s' % typ
 

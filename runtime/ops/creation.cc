@@ -85,7 +85,7 @@ chainerx::Array OneHotOp::RunImpl(
     return mask * (on_value + (-off_value)) + off_value;
 }
 
-chainerx::Array ConstantFillOp::RunImpl(ChxVMState* st, const nonstd::optional<chainerx::Array>& input) {
+chainerx::Array ConstantFillOp::RunImpl(ChxVMState* st, const absl::optional<chainerx::Array>& input) {
     CHECK(extra_shape.empty()) << "extra_shape not implemented yet";
     chainerx::Dtype dtype = this->dtype ? static_cast<chainerx::Dtype>(this->dtype) : chainerx::Dtype::kFloat32;
     chainerx::Shape shape;

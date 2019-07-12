@@ -3,7 +3,7 @@
 #include <map>
 #include <sstream>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include <chainerx/routines/creation.h>
 
