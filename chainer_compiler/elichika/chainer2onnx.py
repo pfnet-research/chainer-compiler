@@ -43,42 +43,42 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_l_converter[L.NStepBiLSTM] = lb.convert_onnx_chainer_NStepBiLSTM
     oc.chainer_l_converter[L.EmbedID] = lb.convert_onnx_chainer_EmbedID
 
-    oc.chainer_f_converter[F.relu] = fb.convert_relu
-    oc.chainer_f_converter[F.elu] = fb.convert_elu
-    oc.chainer_f_converter[F.softmax] = fb.convert_softmax
-    oc.chainer_f_converter[F.pad_sequence] = fb.convert_pad_sequence
-    oc.chainer_f_converter[F.softmax_cross_entropy] = fb.convert_softmax_cross_entropy
-    oc.chainer_f_converter[F.average_pooling_2d] = fb.convert_average_pool_2d
-    oc.chainer_f_converter[F.unpooling_2d] = fb.convert_unpooling_2d
+    oc.chainer_f_converter[F.relu] = fb.ConverterRelu()
+    oc.chainer_f_converter[F.elu] = fb.ConverterElu()
+    oc.chainer_f_converter[F.softmax] = fb.ConverterSoftmax()
+    oc.chainer_f_converter[F.pad_sequence] = fb.ConverterPadSequence()
+    oc.chainer_f_converter[F.softmax_cross_entropy] = fb.ConverterSoftmaxCrossEntropy()
+    oc.chainer_f_converter[F.average_pooling_2d] = fb.ConverterAveragePool2D()
+    oc.chainer_f_converter[F.unpooling_2d] = fb.ConverterUnpooling2D()
 
-    oc.chainer_f_converter[F.vstack] = fb.convert_vstack
-    oc.chainer_f_converter[F.hstack] = fb.convert_hstack
-    oc.chainer_f_converter[F.stack] = fb.convert_stack
-    oc.chainer_f_converter[F.separate] = fb.convert_separate
-    oc.chainer_f_converter[F.squeeze] = fb.convert_squeeze
+    oc.chainer_f_converter[F.vstack] = fb.ConverterVstack()
+    oc.chainer_f_converter[F.hstack] = fb.ConverterHstack()
+    oc.chainer_f_converter[F.stack] = fb.ConverterStack()
+    oc.chainer_f_converter[F.separate] = fb.ConverterSeparate()
+    oc.chainer_f_converter[F.squeeze] =  fb.ConverterSqueeze()
     
-    oc.chainer_f_converter[F.reshape] = fb.convert_reshape
-    oc.chainer_f_converter[F.split_axis] = fb.convert_split_axis
-    oc.chainer_f_converter[F.swapaxes] = fb.convert_swapaxes
-    oc.chainer_f_converter[F.dropout] = fb.convert_dropout
-    oc.chainer_f_converter[F.matmul] = fb.convert_matmul
-    oc.chainer_f_converter[F.concat] = fb.convert_concat
-    oc.chainer_f_converter[F.max_pooling_2d] = fb.convert_max_pooling_2d
-    oc.chainer_f_converter[F.resize_images] = fb.convert_resize_images
-    oc.chainer_f_converter[F.tanh] = fb.convert_tanh
-    oc.chainer_f_converter[F.sigmoid] = fb.convert_sigmoid
-    oc.chainer_f_converter[F.broadcast_to] = fb.convert_broadcast_to
-    oc.chainer_f_converter[F.expand_dims] = fb.convert_expand_dims
-    oc.chainer_f_converter[F.local_response_normalization] = fb.convert_local_response_normalization
-    oc.chainer_f_converter[F.average] = fb.convert_average
-    oc.chainer_f_converter[F.sum] = fb.convert_sum
+    oc.chainer_f_converter[F.reshape] = fb.ConverterReshape()
+    oc.chainer_f_converter[F.split_axis] = fb.ConverterSplitAxis()
+    oc.chainer_f_converter[F.swapaxes] = fb.ConverterSwapaxes()
+    oc.chainer_f_converter[F.dropout] = fb.ConverterDropout()
+    oc.chainer_f_converter[F.matmul] = fb.ConverterMatMul()
+    oc.chainer_f_converter[F.concat] = fb.ConverterConcat()
+    oc.chainer_f_converter[F.max_pooling_2d] = fb.ConverterMaxPooling2D()
+    oc.chainer_f_converter[F.resize_images] = fb.ConverterResizeImages()
+    oc.chainer_f_converter[F.tanh] = fb.ConverterTanh()
+    oc.chainer_f_converter[F.sigmoid] = fb.ConverterSigmoid()
+    oc.chainer_f_converter[F.broadcast_to] = fb.ConverterBroadcastTo()
+    oc.chainer_f_converter[F.expand_dims] = fb.ConverterExpandDims()
+    oc.chainer_f_converter[F.local_response_normalization] = fb.ConverterResponseNormalization()
+    oc.chainer_f_converter[F.average] = fb.ConverterAverage()
+    oc.chainer_f_converter[F.sum] = fb.ConverterSum()
 
     if int(chainer.__version__[0]) >= 6:
-        oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.convert_roi_max_pooling_2d
-        oc.chainer_f_converter[F.roi_average_pooling_2d] = fb.convert_roi_average_pooling_2d
-        oc.chainer_f_converter[F.roi_max_align_2d] = fb.convert_roi_max_align_2d
+        oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.ConverterRoiMaxPooling2D()
+        oc.chainer_f_converter[F.roi_average_pooling_2d] = fb.ConverterRoiAveragePooling2D()
+        oc.chainer_f_converter[F.roi_max_align_2d] = fb.ConverterRoiMaxAlign2D()
 
-    oc.chainer_f_converter[F.roi_average_align_2d] = fb.convert_roi_average_align_2d
+    oc.chainer_f_converter[F.roi_average_align_2d] = fb.ConverterRoiAverageAlign2D()
 
     # assign names
     oc.assigned_names.clear()
