@@ -18,6 +18,7 @@ from chainer_compiler.elichika.parser import utils
 
 import numpy as np
 import collections
+import inspect
 
 from chainer_compiler.elichika import onnx_converters as oc
 from chainer_compiler.elichika import links_builtin as lb
@@ -29,6 +30,14 @@ class ONNXModel:
         self.model = None
         self.inputs = []
         self.outputs = []
+
+def validate_args(func, converter):
+    if len(inspect.signature(func).parameters) != len(converter.expected_args):
+        print("Warning : Mismatch in number of parameters while registering {}".format(func.__name__))
+    else:
+        for func_arg, converter_arg in zip(inspect.signature(func).parameters, converter.expected_args):
+            if func_arg != converter_arg[0]:
+                print("Warning : Function argument {} didn't match while registering {}".format(func_arg, func.__name__))
 
 
 def compile_model(model, inputs) -> 'ONNXModel':
@@ -79,6 +88,10 @@ def compile_model(model, inputs) -> 'ONNXModel':
         oc.chainer_f_converter[F.roi_max_align_2d] = fb.ConverterRoiMaxAlign2D()
 
     oc.chainer_f_converter[F.roi_average_align_2d] = fb.ConverterRoiAverageAlign2D()
+
+    # validate function args
+    for key, value in oc.chainer_f_converter.items():
+        validate_args(key, value)
 
     # assign names
     oc.assigned_names.clear()

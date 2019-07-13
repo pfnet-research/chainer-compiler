@@ -208,7 +208,8 @@ class ConverterDropout(BaseConverter):
     def __init__(self):
         self.expected_args = (
             ('x', oc.ParseType.In),
-            ('ratio', oc.ParseType.Att))
+            ('ratio', oc.ParseType.Att),
+            ('kwargs', oc.ParseType.Ignore))
 
     def __call__(self, onnx_graph, node):
         parser = self.parse_args(onnx_graph, node)
@@ -391,10 +392,15 @@ class ConverterResizeImages(BaseConverter):
     def __init__(self):
         self.expected_args = (
             ('x', oc.ParseType.In),
-            ('output_shape', oc.ParseType.Att))
+            ('output_shape', oc.ParseType.Att),
+            ('mode', oc.ParseType.Att),
+            ('align_corners', oc.ParseType.Att))
 
     def __call__(self, onnx_graph, node):
         parser = self.parse_args(onnx_graph, node)
+
+        assert(parser.get('mode') == 'bilinear')  # TODO(hamaji): Not supported yet.
+        assert(parser.get('align_corners') == True)  # TODO(hamaji): Not supported yet.
 
         onnx_graph.add_node(
             "ChainerResizeImages",
