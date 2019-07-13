@@ -44,6 +44,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_l_converter[L.EmbedID] = lb.convert_onnx_chainer_EmbedID
 
     oc.chainer_f_converter[F.relu] = fb.convert_relu
+    oc.chainer_f_converter[F.elu] = fb.convert_elu
     oc.chainer_f_converter[F.softmax] = fb.convert_softmax
     oc.chainer_f_converter[F.pad_sequence] = fb.convert_pad_sequence
     oc.chainer_f_converter[F.softmax_cross_entropy] = fb.convert_softmax_cross_entropy
