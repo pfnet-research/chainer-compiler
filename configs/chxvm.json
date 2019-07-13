@@ -164,6 +164,7 @@
         "Relu": true,
         "Reshape": true,
         "Resize": true,
+        "RoiAlign": true,
         "Round": true,
         "Selu": true,
         "Shape": true,

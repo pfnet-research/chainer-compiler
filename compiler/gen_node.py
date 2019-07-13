@@ -219,6 +219,8 @@ NodeDef('Where', 3, 1)
 
 NodeDef('ImageScaler', 1, 1, scale=1.0, bias_list=[float])
 NodeDef('MaxRoiPool', 2, 1, pooled_shape=Required([int]), spatial_scale=1.0)
+NodeDef('RoiAlign', 3, 1, mode='avg', output_height=1, output_width=1,
+        sampling_ratio=0, spatial_scale=1.0)
 
 NodeDef('QuantizeLinear', (2, 3), 1)
 NodeDef('DequantizeLinear', (2, 3), 1)
@@ -251,9 +253,11 @@ NodeDef('ChainerROIMaxPool2D', 3, 1,
 NodeDef('ChainerROIAveragePool2D', 3, 1,
         output_shape=[int], spatial_scale=Required(float))
 NodeDef('ChainerROIMaxAlign2D', 3, 1,
-        output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
+        output_shape=[int], spatial_scale=Required(float),
+        sampling_ratio_list=[int])
 NodeDef('ChainerROIAverageAlign2D', 3, 1,
-        output_shape=[int], spatial_scale=Required(float), sampling_ratio=[int])
+        output_shape=[int], spatial_scale=Required(float),
+        sampling_ratio_list=[int])
 NodeDef('ChainerResizeImages', 1, 1, output_shape=[int])
 
 NodeDef('ChainerPadBatchSize', 1, 1, size=Required(int))
@@ -394,6 +398,8 @@ class AttrDef(object):
         self.onnx_name = self.name
         if self.onnx_name == 'tensor_value':
             self.onnx_name = 'value'
+        if self.onnx_name == 'sampling_ratio_list':
+            self.onnx_name = 'sampling_ratio'
         elif self.onnx_name == 'bias_list':
             self.onnx_name = 'bias'
         self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m.group(0).lower(), name)

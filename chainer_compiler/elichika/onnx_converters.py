@@ -872,6 +872,16 @@ class ONNXGraph:
 
                     return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
 
+        if isinstance(value, values.StrValue):
+            if value.internal_value is not None:
+                # In case the generator of the string is a BinaryOp, use the internal value.
+                if isinstance(value.generator, nodes.NodeBinOp):
+                    name = self.get_value_name(value)
+                    arr = np.array(value.internal_value, dtype=np.object)
+                    return self.new_tensor_with_np(arr, name)
+
+            return self.new_empty_tensor(None, np.array(np.object).dtype, value2onnx_parameter[value].onnx_name)
+
         return self.new_empty_tensor(None, np.float32, value2onnx_parameter[value].onnx_name)
 
     def new_tensor_with_np(self, ndarray_, name):
