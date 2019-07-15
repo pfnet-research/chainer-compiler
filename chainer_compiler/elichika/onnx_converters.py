@@ -42,12 +42,13 @@ class ParseType(Enum):
     In = 0,
     Att = 1,
     AttPad = 2,
+    Ignore = 255
 
 
 class NodeParse:
     def __init__(self):
-        self.args = {}
-        self.defs = {}
+        self.args = collections.OrderedDict()
+        self.defs = collections.OrderedDict()
 
     def get(self, name: 'str'):
         if not name in self.args.keys():
@@ -60,6 +61,9 @@ class NodeParse:
 
     def parse(self, onnx_graph, node):
         for k, v in self.defs.items():
+            if v[0] == ParseType.Ignore:
+                return
+
             arg = node.args.keywords[k]
             att_arg = node.attribute_args.keywords[k]
 
