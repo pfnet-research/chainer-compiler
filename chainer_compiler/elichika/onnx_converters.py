@@ -47,8 +47,8 @@ class ParseType(Enum):
 
 class NodeParse:
     def __init__(self):
-        self.args = {}
-        self.defs = {}
+        self.args = collections.OrderedDict()
+        self.defs = collections.OrderedDict()
 
     def get(self, name: 'str'):
         if not name in self.args.keys():
