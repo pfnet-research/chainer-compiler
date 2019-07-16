@@ -36,6 +36,7 @@ include_directories(${GSLLITE_INCLUDE_DIRS})
 include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
+include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 
 add_library(chainer_compiler_compiler
