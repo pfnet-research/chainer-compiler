@@ -54,9 +54,9 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
 }
 
 std::shared_ptr<runtime::ChxVM> Compile(
-        const std::shared_ptr<Graph>& graph,
+        const std::shared_ptr<Graph>& graph, bool skip_scheduling,
 #include "chainer_compiler_cc/cxx_args.inc"
-        bool skip_scheduling) {
+) {
 #include "chainer_compiler_cc/apply_cxx_args.inc"
 
     constexpr bool kBackprop = false;
@@ -145,11 +145,9 @@ std::string Dump(const std::shared_ptr<Graph>& graph) {
 void InitGraph(py::module& m) {
     py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
-    c.def("compile",
-          &Compile,
-          "Compile a model",
+    c.def("compile", &Compile, "Compile a model", "skip_scheduling"_a = false,
 #include "chainer_compiler_cc/pybind_args.inc"
-          "skip_scheduling"_a = false);
+    );
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("param_names", &GetParamNames, "Names of params");
     c.def("output_names", &GetOutputNames, "Names of outputs");

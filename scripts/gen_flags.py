@@ -210,20 +210,20 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
 }  // namespace chainer_compiler
 ''')
 elif args.mode == 'chainer_compiler_core.cxx_args.inc':
+    res = []
     for name, info in FLAGS.items():
-        f.write('''
-        {} {},
-'''.format(info['type'], name))
+        res.append('{} {}'.format(info['type'], name))
+    f.write(', '.join(res))
 elif args.mode == 'chainer_compiler_core.apply_cxx_args.inc':
     for name, info in FLAGS.items():
         f.write('''
         g_{} = {};
 '''.format(name, name))
 elif args.mode == 'chainer_compiler_core.pybind_args.inc':
+    res = []
     for name, info in FLAGS.items():
         def_val = 'false' if info['type'] == 'bool' else '""' if info['type'] == 'std::string' else '0'
-        f.write('''
-        "{}"_a = {},
-'''.format(name, def_val))
+        res.append('"{}"_a = {}'.format(name, def_val))
+    f.write(', '.join(res))
 else:
     raise('Invalid mode: {}'.format(args.mode))
