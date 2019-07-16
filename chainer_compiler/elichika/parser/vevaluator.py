@@ -1277,12 +1277,12 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
 
     value_obj = return_value_or_obj(value_obj)
 
-    if astc.nast.optinal_vars is not None:
+    if astc.nast.optional_vars is not None:
         with context.eval_as_written_target():
-            optinal_vars = veval_ast(astc.c(astc.nast.optinal_vars), local_field, graph, context)
+            optional_vars = veval_ast(astc.c(astc.nast.optional_vars), local_field, graph, context)
 
-        node_assign = nodes.NodeAssign(optinal_vars, value_obj, astc.lineno)
-        optinal_vars.revise(value_obj)
+        node_assign = nodes.NodeAssign(optional_vars, value_obj, astc.lineno)
+        optional_vars.revise(value_obj)
         graph.add_node(node_assign)
 
     return value_obj
