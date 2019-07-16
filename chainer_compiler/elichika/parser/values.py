@@ -83,6 +83,18 @@ def get_outputs() -> 'List[FieldOutput]':
     return ret
 
 
+def compare(value1, value2):
+    if type(value1) != type(value2):
+        return False
+    else:
+        if isinstance(value1, NumberValue):
+            return value1.internal_value == value2.internal_value and value1.internal_value is not None
+        if isinstance(value1, StrValue):
+            return value1.internal_value == value2.internal_value and value1.internal_value is not None
+        else:
+            return False
+
+
 def parse_instance(default_module, name, instance, self_instance=None, from_member = False, root_graph : 'graphs.Graph' = None) -> "ValueRef":
 
     for converter in instance_converters:
@@ -168,6 +180,15 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
             root_graph.add_initial_node(node)
 
         ret.estimate_type()
+        return ValueRef(ret)
+
+    if isinstance(instance, dict):
+        keys = []
+        values = []
+        for key, value in instance.items():
+            keys.append(parse_instance(default_module, '', key))
+            values.append(parse_instance(default_module, '', value))
+        ret = DictValue(keys, values)
         return ValueRef(ret)
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
@@ -537,6 +558,9 @@ class Value():
     def is_iteratable(self):
         return False
 
+    def is_hashable(self):
+        return False
+
     def get_iterator(self) -> 'ValueRef':
         return None
 
@@ -546,6 +570,11 @@ class Value():
         this function is only called when an object is generated
         '''
         return None
+
+    def encode(self):
+        if not self.is_hashable():
+            assert(False)
+        return ""
 
     def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
         return None
@@ -560,6 +589,15 @@ class NoneValue(Value):
 
     def has_constant_value(self) -> 'bool':
         return True
+
+    def is_hashable(self):
+        return True
+
+    def encode(self):
+        ret = super().encode()
+        ret += 'None'
+        ret += str(hash(None))
+        return ret
 
     def get_constant_value(self):
         return None
@@ -588,6 +626,15 @@ class NumberValue(Value):
     def is_not_none_or_any_value(self):
         return True
 
+    def is_hashable(self):
+        return self.has_constant_value()
+
+    def encode(self):
+        ret = super().encode()
+        ret += 'Num'
+        ret += str(hash(self.internal_value))
+        return ret
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(N.{})'.format('Any')
@@ -602,6 +649,15 @@ class StrValue(Value):
     def is_not_none_or_any_value(self):
         return True
 
+    def is_hashable(self):
+        return self.has_constant_value()
+
+    def encode(self):
+        ret = super().encode()
+        ret += 'Str'
+        ret += str(hash(self.internal_value))
+        return ret
+
     def __str__(self):
         if self.internal_value == None:
             return self.name + '(S.{})'.format('Any')
@@ -615,6 +671,15 @@ class BoolValue(Value):
 
     def is_not_none_or_any_value(self):
         return True
+
+    def is_hashable(self):
+        return self.has_constant_value()
+
+    def encode(self):
+        ret = super().encode()
+        ret += 'Num'
+        ret += str(hash(self.internal_value))
+        return ret
 
     def __str__(self):
         if self.internal_value == None:
@@ -650,6 +715,17 @@ class TupleValue(Value):
 
     def is_iteratable(self):
         return True
+
+    def is_hashable(self):
+        self.estimate_type()
+        return self.has_constant_value() and self.vtype is not None
+
+    def encode(self):
+        ret = super().encode()
+        ret += 'Tuple'
+        tup = tuple(v.get_value().internal_value for v in self.internal_value)
+        ret += str(hash(tup))
+        return ret
 
     def get_iterator(self) -> 'ValueRef':
         if self.vtype is None:
@@ -774,6 +850,44 @@ class ListValue(Value):
     def __str__(self):
         return self.name + '(L)'
 
+class DictValue(Value):
+    def __init__(self, keys=None, values=None):
+        super().__init__()
+        self.internal_keys = {}
+        self.internal_values = Field()
+        self.key_dtype = None
+        self.key_vtype = None # type: Type
+
+        for key, value in zip(keys, values):
+            if key.get_value().is_hashable():
+                key_hash = key.get_value().encode()
+                self.internal_values.get_attribute(key_hash).revise(value)
+                self.internal_keys[key_hash] = key
+            else:
+                assert False  # Non hashable types not supported
+
+    def is_not_none_or_any_value(self):
+        return True
+
+    def is_iteratable(self):
+        return False
+
+    # TODO(rchouras): Add iterator for dictionary keys.
+    # def get_iterator(self) -> 'ValueRef':
+    #     return
+
+    def apply_to_object(self, obj: 'ValueRef'):
+        keys_func = ValueRef(
+            FuncValue(functions_builtin.KeysFunction(self), obj, None))
+        obj.attributes.get_attribute('keys').revise(keys_func)
+
+        values_func = ValueRef(
+            FuncValue(functions_builtin.ValuesFunction(self), obj, None))
+        obj.attributes.get_attribute('values').revise(values_func)
+
+    def __str__(self):
+        return self.name + '(D)'
+
 class TensorValue(Value):
     def __init__(self, value = None):
         super().__init__()
@@ -883,3 +997,18 @@ class UserDefinedInstance(Instance):
             obj = parse_instance(self.module, name, members_dict[name], inst, from_member=True, root_graph=root_graph)
 
         return obj
+
+    def apply_to_object(self, obj: 'values.ValueRef'):
+        super().apply_to_object(obj)
+
+        enter_func = obj.try_get_and_store_obj('__enter__', None)
+        if enter_func is not None:
+            obj.get_field().get_attribute('__enter__').revise(enter_func)
+
+        exit_func = obj.try_get_and_store_obj('__exit__', None)
+        if exit_func is not None:
+            obj.get_field().get_attribute('__exit__').revise(exit_func)
+
+        getitem_func = obj.try_get_and_store_obj('__getitem__', None)
+        if getitem_func is not None:
+            obj.get_field().get_attribute('__getitem__').revise(getitem_func)

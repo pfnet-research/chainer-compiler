@@ -16,6 +16,7 @@ from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
+from chainer_compiler.elichika.parser import flags
 import numpy as np
 import six
 
@@ -59,7 +60,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[chainer.Variable] = c_variable
 
     # chainer.functions
-    def add_chainer_function(name:'str', func, ret_value_func = None):
+    def add_chainer_function(func, ret_value_func = None):
         if ret_value_func is None:
             f = values.FuncValue(
                 functions_builtin.ChainerFunction(func), None)
@@ -74,40 +75,46 @@ def convert_model(model: 'chainer.Chain', args=[]):
         ret.vtype = values.TensorValue
         return ret
 
-    add_chainer_function('relu', F.relu)
-    add_chainer_function('softmax', F.softmax)
-    add_chainer_function('softmax_cross_entropy', F.softmax_cross_entropy)
-    add_chainer_function('pad_sequence', F.pad_sequence)
-    add_chainer_function('average_pooling_2d', F.average_pooling_2d)
-    add_chainer_function('unpooling_2d', F.unpooling_2d)
-    add_chainer_function('reshape', F.reshape)
-    add_chainer_function('split_axis', F.split_axis, ret_value_func=ret_tuple)
-    add_chainer_function('hstack', F.hstack)
-    add_chainer_function('vstack', F.vstack)
-    add_chainer_function('stack', F.stack)
-    add_chainer_function('separate', F.separate, ret_value_func=ret_tuple)
-    add_chainer_function('squeeze', F.squeeze)
-    add_chainer_function('swapaxes', F.swapaxes)
-    add_chainer_function('dropout', F.dropout)
-    add_chainer_function('concat', F.concat)
-    add_chainer_function('matmul', F.matmul)
-    add_chainer_function('max_pooling_2d', F.max_pooling_2d)
-    add_chainer_function('resize_images', F.resize_images)
-    add_chainer_function('tanh', F.tanh)
-    add_chainer_function('sigmoid', F.sigmoid)
-    add_chainer_function('broadcast_to', F.broadcast_to)
-    add_chainer_function('expand_dims', F.expand_dims)
-    add_chainer_function('local_response_normalization', F.local_response_normalization)
-    add_chainer_function('mean', F.mean)
-    add_chainer_function('average', F.average)
-    add_chainer_function('sum', F.sum)
+    # register unsupported functions to show error when unsupported functions are called
+    for f in F.__dict__.items():
+        if inspect.isfunction(f[1]):
+            values.function_converters[f[1]] = values.FuncValue(functions_builtin.UnimplementedFunction(f[1]), None)
+
+    add_chainer_function(F.relu)
+    add_chainer_function(F.elu)
+    add_chainer_function(F.softmax)
+    add_chainer_function(F.softmax_cross_entropy)
+    add_chainer_function(F.pad_sequence)
+    add_chainer_function(F.average_pooling_2d)
+    add_chainer_function(F.unpooling_2d)
+    add_chainer_function(F.reshape)
+    add_chainer_function(F.split_axis, ret_value_func=ret_tuple)
+    add_chainer_function(F.hstack)
+    add_chainer_function(F.vstack)
+    add_chainer_function(F.stack)
+    add_chainer_function(F.separate, ret_value_func=ret_tuple)
+    add_chainer_function(F.squeeze)
+    add_chainer_function(F.swapaxes)
+    add_chainer_function(F.dropout)
+    add_chainer_function(F.concat)
+    add_chainer_function(F.matmul)
+    add_chainer_function(F.max_pooling_2d)
+    add_chainer_function(F.resize_images)
+    add_chainer_function(F.tanh)
+    add_chainer_function(F.sigmoid)
+    add_chainer_function(F.broadcast_to)
+    add_chainer_function(F.expand_dims)
+    add_chainer_function(F.local_response_normalization)
+    add_chainer_function(F.mean)
+    add_chainer_function(F.average)
+    add_chainer_function(F.sum)
 
     if int(chainer.__version__[0]) >= 6:
-        add_chainer_function('roi_max_pooling_2d', F.roi_max_pooling_2d)
-        add_chainer_function('roi_average_pooling_2d', F.roi_average_pooling_2d)
-        add_chainer_function('roi_max_align_2d', F.roi_max_align_2d)
+        add_chainer_function(F.roi_max_pooling_2d)
+        add_chainer_function(F.roi_average_pooling_2d)
+        add_chainer_function(F.roi_max_align_2d)
 
-    add_chainer_function('roi_average_align_2d', F.roi_average_align_2d)
+    add_chainer_function(F.roi_average_align_2d)
 
     # numpy
     f_array = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
@@ -141,11 +148,23 @@ def convert_model(model: 'chainer.Chain', args=[]):
     m_print = values.FuncValue(functions_builtin.PrintFunction(), None)
     values.builtin_function_converters['print'] = m_print
 
+    m_getattr = values.FuncValue(functions_builtin.GetAttrFunction(), None)
+    values.builtin_function_converters['getattr'] = m_getattr
+
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
 
     m_to_cpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_cpu), None)
     values.function_converters[cuda.to_cpu] = m_to_cpu
+
+    # generate VEvalFlag functions
+    def add_veval_flag_function(name:'str', func):
+        f = values.FuncValue(functions_builtin.VEvalOptionFunction(func), None)
+        values.builtin_function_converters[name] = f
+
+    add_veval_flag_function('eval_as_written_target', flags.eval_as_written_target)
+    add_veval_flag_function('ignore_branch', flags.ignore_branch)
+    add_veval_flag_function('for_unroll', flags.for_unroll)
 
     # generate default module
     default_module = values.ValueRef(values.ModuleValue(sys.modules[model.__module__]))
@@ -181,7 +200,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     forward_func_value = forward_func.get_value()
     ret = forward_func_value.func.vcall(
-        default_module, graph, forward_func_value.obj, finput)
+        default_module, graph, forward_func_value.obj, finput).get_ref()
     assert(ret is None or isinstance(ret, values.ValueRef))
 
     def try_get_value(value) -> 'values.Value':

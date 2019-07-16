@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from chainer_compiler.elichika.parser import config
+from chainer_compiler.elichika.parser import values
 
 current_id = 0
 
@@ -83,6 +84,43 @@ def clip_head(s: 'str'):
     strs = map(lambda x: x[ls:], splitted)
     return '\n'.join(strs)
 
+def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
+    if value is None:
+        print_warning('Failed to get value in "{}".'.format(name), lineprop)
+        return None
+
+    if isinstance(value, values.Value):
+        assert(False)
+
+    if isinstance(value, values.Attribute):
+        if value.has_obj():
+            return value.get_ref()
+
+    if isinstance(value, values.ValueRef):
+        return value
+
+    return None
+
+def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Value':
+    if value is None:
+        utils.print_warning('Failed to get value in "{}".'.format(name), lineprop)
+        return None
+
+    if isinstance(value, values.NoneValue) and not is_none_allowed:
+        if config.show_warnings:
+            print('Value {} is none. in {}'.format(name, lineprop))
+        return None
+
+    if isinstance(value, values.Value):
+        return value
+
+    if isinstance(value, values.ValueRef):
+        return value.get_value()
+
+    if isinstance(value, values.Attribute):
+        return value.get_ref().get_value()
+
+    raise Exception('Value {} is invalid. in L.{}'.format(name, lineprop))
 
 class LineProperty():
     def __init__(self, lineno=-1, filename=''):
@@ -107,3 +145,10 @@ class UnimplementedError(Exception):
 
     def __str__(self):
         return self.message + ' in ' + str(self.lineprop)
+
+class DummyFlag:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        return False
