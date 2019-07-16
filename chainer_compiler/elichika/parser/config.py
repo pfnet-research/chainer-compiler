@@ -1,9 +1,11 @@
 import sys
 import logging
 
+# whether it shows warnings while compiling
 show_warnings = True
-float_restrict = False
 
+# whether float64 isn't regarded as float32
+float_restrict = False
 
 # registerd module are ignored while parsing
 disabled_modules = set()
