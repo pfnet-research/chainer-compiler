@@ -151,6 +151,7 @@ target_link_libraries(chainer_compiler_compiler_test
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant
+  absl::optional
   )
 
 add_test(
