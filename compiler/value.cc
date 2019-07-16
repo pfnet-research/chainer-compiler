@@ -78,8 +78,11 @@ int64_t Value::GetNBytes() const {
     if (type_->kind() != Type::Kind::kOpaque) {
         return type_->GetNBytes();
     }
+    // TODO(hamaji): Put the expected size in `Value` for two phase backprop.
+    if (!producer()) {
+        return -1;
+    }
 
-    CHECK(producer()) << DebugString();
     const Node& node = *producer();
     std::vector<Value*> retained;
     if (node.op_type() == Node::kBatchNormalization) {
