@@ -379,6 +379,14 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
             node.outputs,
             str(node.lineprop))
 
+    if isinstance(node.func, functions_builtin.LenFunction):
+        # len
+        onnx_graph.add_node(
+            'ChainerGenericLen',
+            node.inputs,
+            node.outputs,
+            str(node.lineprop))
+
     if isinstance(node.func, functions_ndarray.NDArrayShapeFunction):
         # shape
         op_shape_temp = onnx_graph.new_empty_tensor(
@@ -1269,18 +1277,6 @@ class ONNXGenerator:
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     then_branch=true_graph,
                     else_branch=false_graph)
-
-                onnx_graph.nodes.append(onnx_node)
-
-            if isinstance(node, nodes.NodeLen):
-                node_ = node  # type: nodes.NodeLen
-
-                onnx_node = oh.make_node(
-                    'ChainerGenericLen',
-                    [value2onnx_parameter[node_.iter_value].onnx_name],
-                    [value2onnx_parameter[node_.outputs[0]].onnx_name],
-                    str(node.lineprop)
-                )
 
                 onnx_graph.nodes.append(onnx_node)
 

@@ -80,10 +80,7 @@ class LenFunction(functions.FunctionBase):
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalContext' = None, line=-1):
-        node = nodes.NodeLen(
-            args.inputs[0].get_value(),  # TODO: Check this.
-            line
-        )
+        node = nodes.NodeCall(self, args, line)
         graph.add_node(node)
         value = values.NumberValue(None)
         value.name = '@F.{}.{}'.format(line, self.name)
