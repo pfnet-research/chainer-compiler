@@ -44,11 +44,11 @@ def convert_model(model: 'chainer.Chain', args=[]):
             return links_builtin.ChainerLinkInstance(m, i)
 
         if isinstance(i, chainer.ChainList):    
-            module = values.ValueRef(values.ModuleValue(sys.modules[i.__module__]))
+            module = values.Object(values.ModuleValue(sys.modules[i.__module__]))
             return links_builtin.ChainerChainListInstance(module, i)
 
         if isinstance(i, chainer.Link):
-            module = values.ValueRef(values.ModuleValue(sys.modules[i.__module__]))
+            module = values.Object(values.ModuleValue(sys.modules[i.__module__]))
             return links_builtin.ChainerChainInstance(module, i)
 
         return None
@@ -159,7 +159,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     # generate VEvalFlag functions
     def add_veval_flag_function(name:'str', func):
-        f = values.FuncValue(functions_builtin.VEvalOptionFunction(func), None)
+        f = values.FuncValue(functions_builtin.VEvalContextFunction(func), None)
         values.builtin_function_converters[name] = f
 
     add_veval_flag_function('eval_as_written_target', flags.eval_as_written_target)
@@ -167,7 +167,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_veval_flag_function('for_unroll', flags.for_unroll)
 
     # generate default module
-    default_module = values.ValueRef(values.ModuleValue(sys.modules[model.__module__]))
+    default_module = values.Object(values.ModuleValue(sys.modules[model.__module__]))
 
     model_inst = values.parse_instance(default_module, '', model)
     forward_func = model_inst.try_get_and_store_obj('forward', None)
@@ -201,13 +201,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
     forward_func_value = forward_func.get_value()
     ret = forward_func_value.func.vcall(
         default_module, graph, forward_func_value.obj, finput).get_ref()
-    assert(ret is None or isinstance(ret, values.ValueRef))
+    assert(ret is None or isinstance(ret, values.Object))
 
     def try_get_value(value) -> 'values.Value':
         if isinstance(value, values.Value):
             return value
 
-        if isinstance(value, values.ValueRef):
+        if isinstance(value, values.Object):
             return value.get_value()
 
         if isinstance(value, values.Attribute):

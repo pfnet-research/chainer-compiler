@@ -70,7 +70,7 @@ def make_attribute(value):
     if isinstance(value, values.TupleValue) and value.internal_value is not None:
         vs = []
         for v in value.internal_value:
-            if isinstance(v, values.ValueRef):
+            if isinstance(v, values.Object):
                 v = v.get_value()
             vs.append(v)
 
@@ -80,7 +80,7 @@ def make_attribute(value):
 
         return ret
 
-    if isinstance(value, values.ValueRef):
+    if isinstance(value, values.Object):
         return value.get_value()
 
     return value
@@ -156,8 +156,8 @@ class NodeNonVolatileAssign(Node):
 
 
 class NodeAssign(Node):
-    def __init__(self, attr: 'values.Attribute', obj: 'values.ValueRef', line=-1):
-        assert(isinstance(obj, values.ValueRef))
+    def __init__(self, attr: 'values.Attribute', obj: 'values.Object', line=-1):
+        assert(isinstance(obj, values.Object))
         super().__init__(line)
 
         self.targets = []
@@ -273,10 +273,10 @@ class NodeCall(Node):
 
         self.func = func
 
-        # args (it somtimes contains tuple(valueref))
+        # args (it somtimes contains tuple(Object))
         self.args = args_ # functions.FunctionArgValueInput
 
-        # args for attributes (valuerefs are removed)
+        # args for attributes (Objects are removed)
         self.attribute_args = make_attribute(attribute_args_)
         self.inputs.extend(self.args.inputs)
 

@@ -37,19 +37,19 @@ def auto_set_unset(func, flag):
 
 def return_value_or_ref(obj : 'value.Object'):
     if isinstance(obj.get_value(), values.NumberValue):
-        return values.ValueRef(obj.get_value())
+        return values.Object(obj.get_value())
 
     if isinstance(obj.get_value(), values.StrValue):
-        return values.ValueRef(obj.get_value())
+        return values.Object(obj.get_value())
 
     if isinstance(obj.get_value(), values.BoolValue):
-        return values.ValueRef(obj.get_value())
+        return values.Object(obj.get_value())
 
     if isinstance(obj.get_value(), values.NoneValue):
-        return values.ValueRef(obj.get_value())
+        return values.Object(obj.get_value())
 
     if isinstance(obj.get_value(), values.TupleValue):
-        return values.ValueRef(obj.get_value())
+        return values.Object(obj.get_value())
 
     return obj
 class AstContext:
@@ -67,7 +67,7 @@ class AstContext:
         """
         return AstContext(value, self.lineno_offset, filename=self.filename)
 
-class VEvalOption:
+class VEvalContext:
     def __init__(self):
         self.history = []
         self.flags = {
@@ -77,10 +77,10 @@ class VEvalOption:
         }
         self.flags_cache = []
 
-        list(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalOption.generic_setter(obj, flag, value),
-                                                                           fget=lambda obj: VEvalOption.generic_getter(obj, flag))),
+        list(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalContext.generic_setter(obj, flag, value),
+                                                                           fget=lambda obj: VEvalContext.generic_getter(obj, flag))),
                  self.flags.keys()))
-        list(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj, default=True: VEvalOption.generic_setter(obj, flag, default), flag)),
+        list(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj, default=True: VEvalContext.generic_setter(obj, flag, default), flag)),
                  self.flags.keys()))
 
     def generic_setter(self, name, value = True):
@@ -98,7 +98,7 @@ class VEvalOption:
         self.flags[flag] = saved_value
         return False
 
-def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
+def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Attribute))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -140,7 +140,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
 
     return None
 
-def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.Assign))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -173,7 +173,7 @@ def veval_ast_assign(astc : 'AstContext', local_field : 'values.Field', graph : 
         targets.revise(assigned_obj)
         graph.add_node(node_assign)
 
-def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
+def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Name))
 
     from_module = True
@@ -183,7 +183,7 @@ def veval_ast_name(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     ret = local_field.get_attribute(astc.nast.id, graph.root_graph, from_module=from_module)
     return ret
 
-def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'Attribute':
+def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None) -> 'Attribute':
     assert(isinstance(astc.nast, gast.gast.Call))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -232,7 +232,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     return None
 
     
-def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None) -> 'None':
+def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None) -> 'None':
     assert(isinstance(astc.nast, gast.gast.Return))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -249,7 +249,7 @@ def veval_ast_return(astc : 'AstContext', local_field : 'values.Field', graph : 
     graph.add_node(node)
     return value
 
-def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.If))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -464,7 +464,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
-                field.get_attribute(name).revise(values.ValueRef(output_value))
+                field.get_attribute(name).revise(values.Object(output_value))
 
     node = nodes.NodeIf(test_value, inputs, true_graph, false_graph, astc.lineno)
     node.set_outputs(outputs)
@@ -473,7 +473,7 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
 
     return None
 
-def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.AugAssign))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -505,7 +505,7 @@ def veval_ast_aug_assign(astc : 'AstContext', local_field : 'values.Field', grap
     node_aug_assign.set_outputs([new_value])
     target.get_ref().revise(new_value)
 
-def veval_ast_expr(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_expr(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     call a function without not assigning
     Ex. b.x()
@@ -513,7 +513,7 @@ def veval_ast_expr(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     assert(isinstance(astc.nast, gast.gast.Expr))
     return veval_ast(astc.c(astc.nast.value), local_field, graph, option)
 
-def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     Ex. x[1], x[y,z]
     '''
@@ -589,7 +589,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.ValueRef(ret_value)
+            return values.Object(ret_value)
 
         elif isinstance(astc.nast.slice, gast.gast.Slice):
 
@@ -599,7 +599,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             ret_value = functions.generate_value_with_same_type(value_value)
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.ValueRef(ret_value)
+            return values.Object(ret_value)
 
         elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
             indices = []
@@ -619,11 +619,11 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             ret_value = functions.generate_value_with_same_type(value_value)
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.ValueRef(ret_value)
+            return values.Object(ret_value)
 
     return None
 
-def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     Ex. [x for x in xx]
     [elt for target in iter]
@@ -641,7 +641,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
     generator = astc.nast.generators[0]
     iter_value = utils.try_get_value(veval_ast(astc.c(generator.iter), local_field, graph, option), 'generator', lineprop)
     list_value = values.ListValue()
-    list_obj = values.ValueRef(list_value)
+    list_obj = values.Object(list_value)
 
     node_generate_list = nodes.NodeGenerate('List', [], lineprop)
     node_generate_list.set_outputs([list_value])
@@ -676,7 +676,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     target_ref = iter_value.get_iterator()
     if target_ref is None:
-        target_ref = values.ValueRef(values.UnknownValue())
+        target_ref = values.Object(values.UnknownValue())
         if config.show_warnings:
             print('unknown iteratable type in L.{}'.format(lineprop))
     target_value = target_ref.get_value()
@@ -766,7 +766,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
-                field.get_attribute(name).revise(values.ValueRef(output_value))
+                field.get_attribute(name).revise(values.Object(output_value))
         else:
             temp_value1 = v['input_body_value']
             temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
@@ -780,7 +780,7 @@ def veval_ast_listcomp(astc : 'AstContext', local_field : 'values.Field', graph 
 
     return local_field.get_attribute(internal_list_id).get_ref()
 
-def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     """
     eval binary operation.
     Ex. a + b, b // c, etc
@@ -818,9 +818,9 @@ def veval_ast_bin_op(astc : 'AstContext', local_field : 'values.Field', graph : 
     node_bin_op.set_outputs([ret_value])
     graph.add_node(node_bin_op)
 
-    return values.ValueRef(ret_value)
+    return values.Object(ret_value)
 
-def veval_ast_bool_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph', option : 'VEvalOption' = None):
+def veval_ast_bool_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph', option : 'VEvalContext' = None):
     """
     eval bool operations.
     Ex. x and y
@@ -843,9 +843,9 @@ def veval_ast_bool_op(astc : 'AstContext', local_field : 'values.Field', graph :
     node.set_outputs([ret_value])
     graph.add_node(node)
 
-    return values.ValueRef(ret_value)
+    return values.Object(ret_value)
 
-def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph', option : 'VEvalOption' = None):
+def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph : 'graphs.Graph', option : 'VEvalContext' = None):
     """
     eval unary operation.
     Ex. -xx
@@ -871,10 +871,10 @@ def veval_ast_unary_op(astc : 'AstContext', local_field : 'values.Field', graph 
     node.set_outputs([ret_value])
     graph.add_node(node)
 
-    return values.ValueRef(ret_value)
+    return values.Object(ret_value)
 
 
-def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     """
     eval Compare.
     Ex. a >= b, a != b, a is b, etc
@@ -913,38 +913,38 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
     node_compare.set_outputs([ret_value])
     graph.add_node(node_compare)
 
-    return values.ValueRef(ret_value)
+    return values.Object(ret_value)
 
 
-def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_num(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     Ex. 1, 2, ...
     '''
     assert(isinstance(astc.nast, gast.gast.Num))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
     value = values.NumberValue(astc.nast.n)
-    ret = values.ValueRef(value)
+    ret = values.Object(value)
 
     name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
 
-def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_str(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     Ex. "str"
     '''
     assert(isinstance(astc.nast, gast.gast.Str))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
     value = values.StrValue(astc.nast.s)
-    ret = values.ValueRef(value)
+    ret = values.Object(value)
 
     name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
 
-def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     Ex. True
     '''
@@ -952,18 +952,18 @@ def veval_ast_name_constant(astc : 'AstContext', local_field : 'values.Field', g
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
     ret = None
     if astc.nast.value == True:
-        ret = values.ValueRef(values.BoolValue(True))
+        ret = values.Object(values.BoolValue(True))
     if astc.nast.value == False:
-        ret = values.ValueRef(values.BoolValue(False))
+        ret = values.Object(values.BoolValue(False))
     if astc.nast.value is None:
-        ret = values.ValueRef(values.NoneValue())
+        ret = values.Object(values.NoneValue())
 
     name = values.create_ref_value_name_with_constant(ret)
     ret.name = name
     ret.get_value().name = name
     return ret
 
-def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.Tuple))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -995,9 +995,9 @@ def veval_ast_tuple(astc : 'AstContext', local_field : 'values.Field', graph : '
         node.set_outputs([tuple_value])
         graph.add_node(node)
         
-        return values.ValueRef(tuple_value)
+        return values.Object(tuple_value)
 
-def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.List))
     '''
     Ex. [],[x,y,z]
@@ -1016,9 +1016,9 @@ def veval_ast_list(astc : 'AstContext', local_field : 'values.Field', graph : 'G
     value = values.ListValue(elts)
     node.set_outputs([value])
 
-    return values.ValueRef(value)
+    return values.Object(value)
 
-def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.Dict))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -1035,9 +1035,9 @@ def veval_ast_dict(astc : 'AstContext', local_field : 'values.Field', graph : 'G
 
     value = values.DictValue(keys, elts)
 
-    return values.ValueRef(value)
+    return values.Object(value)
 
-def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListValue', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListValue', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     for target in iter: 
         ...
@@ -1052,7 +1052,7 @@ def veval_ast_for_unroll(astc : 'AstContext', target_name, iter_ : 'values.ListV
     
     return None
 
-def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     '''
     for target in iter:
         ...
@@ -1106,7 +1106,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
     # generate iterator
     target_ref = input_iter_value.get_iterator()
     if target_ref is None:
-        target_ref = values.ValueRef(values.UnknownValue())
+        target_ref = values.Object(values.UnknownValue())
         if config.show_warnings:
             print('unknown iteratable type in L.{}'.format(astc.lineno))
     target_value = target_ref.get_value()
@@ -1198,7 +1198,7 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
             elif field.get_attribute(name).has_obj():
                 field.get_attribute(name).get_ref().revise(output_value)
             else:
-                field.get_attribute(name).revise(values.ValueRef(output_value))
+                field.get_attribute(name).revise(values.Object(output_value))
         else:
             temp_value1 = v['input_body_value']
             temp_value2 = functions.generate_value_with_same_type(v['input_body_value'])
@@ -1213,15 +1213,15 @@ def veval_ast_for(astc : 'AstContext', local_field : 'values.Field', graph : 'Gr
 
     return None
 
-def veval_ast_continue(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_continue(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.Continue))
     return None
 
-def veval_ast_break(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_break(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.Break))
     return None
 
-def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.With))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -1248,11 +1248,11 @@ def veval_ast_with(astc : 'AstContext', local_field : 'values.Field', graph : 'G
             finput = functions.FunctionArgInput()
 
             # Adding exception_type, exception_value & traceback dummy arguments (None)
-            finput.inputs.extend([values.ValueRef(values.NoneValue())] * 3)
+            finput.inputs.extend([values.Object(values.NoneValue())] * 3)
             func_value.func.vcall(func_value.module, graph, func_value.obj, finput, option, lineprop)
 
 
-def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     assert(isinstance(astc.nast, gast.gast.withitem))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
@@ -1286,9 +1286,9 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
 
     return value_obj
 
-def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalOption' = None):
+def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', option : 'VEvalContext' = None):
     if option is None:
-        option = VEvalOption()
+        option = VEvalContext()
 
     if isinstance(astc.nast, list):
         ret = None
