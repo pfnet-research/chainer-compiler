@@ -80,7 +80,7 @@ void RejectUnusedConstants(std::set<Node*>* cands) {
 
 std::string MakeValueName(const char* prefix, int index, const std::string& name) {
     CHECK_LT(index, 1000);
-    char buf[5];
+    char buf[12];
     sprintf(buf, "%03d", index);
     return StrCat(prefix, buf, "_", name);
 }
