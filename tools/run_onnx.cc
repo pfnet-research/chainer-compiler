@@ -105,8 +105,8 @@ chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
         default:
             CHECK(false) << "Unknown data type: " << static_cast<int>(tensor.dtype());
     }
-    chainerx::Array array(chainerx::FromData(
-            shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
+    chainerx::Array array(
+            chainerx::FromData(shape, dtype, data, absl::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
     return array;
 }
 
@@ -424,7 +424,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
         CHECK(found != outputs.end()) << "Output does not contain " << key;
         ChxVMVar* actual = found->second.get();
 
-        auto array_str = [&args](const nonstd::optional<chainerx::Array>& a) {
+        auto array_str = [&args](const absl::optional<chainerx::Array>& a) {
             int size = a->GetTotalSize();
             if (size < 100 || args.exist("verbose")) return a->ToString();
             return a->shape().ToString() + " [0,20]=" + a->Reshape({size}).At({chainerx::Slice{20}}).ToString();

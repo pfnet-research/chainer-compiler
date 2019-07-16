@@ -11,7 +11,7 @@ namespace runtime {
 
 namespace {
 
-int64_t GetOptionalInt(const nonstd::optional<StrictScalar>& array, int64_t default_value) {
+int64_t GetOptionalInt(const absl::optional<StrictScalar>& array, int64_t default_value) {
     if (array.has_value()) {
         return static_cast<int64_t>(*array);
     } else {
@@ -66,9 +66,9 @@ void SequenceLookupGradOp::RunImpl(
 void SequenceGetSliceOp::RunImpl(
         ChxVMState* st,
         const ChxVMSequence& seq,
-        const nonstd::optional<StrictScalar>& start_array,
-        const nonstd::optional<StrictScalar>& end_array,
-        const nonstd::optional<StrictScalar>& step_array,
+        const absl::optional<StrictScalar>& start_array,
+        const absl::optional<StrictScalar>& end_array,
+        const absl::optional<StrictScalar>& step_array,
         ChxVMSequence* output) {
     int64_t size = seq.size();
     int64_t start = GetOptionalInt(start_array, 0);
@@ -93,9 +93,9 @@ void SequenceGetSliceGradOp::RunImpl(
         ChxVMState* st,
         const ChxVMSequence& gy,
         const chainerx::Array& size_array,
-        const nonstd::optional<StrictScalar>& start_array,
-        const nonstd::optional<StrictScalar>& end_array,
-        const nonstd::optional<StrictScalar>& step_array,
+        const absl::optional<StrictScalar>& start_array,
+        const absl::optional<StrictScalar>& end_array,
+        const absl::optional<StrictScalar>& step_array,
         ChxVMSequence* gx) {
     int64_t size = static_cast<int64_t>(chainerx::AsScalar(st->GetArray(this->size)));
     int64_t start = GetOptionalInt(start_array, 0);
@@ -160,8 +160,8 @@ chainerx::Array SequencePadOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq)
 void SequenceRangeOp::RunImpl(
         ChxVMState* st,
         const StrictScalar& arg0,
-        const nonstd::optional<StrictScalar>& arg1,
-        const nonstd::optional<StrictScalar>& arg2,
+        const absl::optional<StrictScalar>& arg1,
+        const absl::optional<StrictScalar>& arg2,
         ChxVMSequence* output) {
     int64_t start, stop, step = 1;
     if (arg1.has_value()) {

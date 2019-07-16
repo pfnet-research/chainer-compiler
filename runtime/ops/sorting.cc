@@ -25,7 +25,7 @@ chainerx::Array HardmaxOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
         shape[i >= axis] *= x.shape()[i];
     }
     chainerx::Array r = chainerx::ArgMax(chainerx::Reshape(x, shape), 1);
-    chainerx::Array e = chainerx::Eye(shape[1], nonstd::nullopt, nonstd::nullopt, x.dtype());
+    chainerx::Array e = chainerx::Eye(shape[1], absl::nullopt, absl::nullopt, x.dtype());
     return chainerx::Reshape(chainerx::Take(e, r, 0), x.shape());
 }
 

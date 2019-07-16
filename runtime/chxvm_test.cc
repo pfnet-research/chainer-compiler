@@ -31,7 +31,7 @@ TEST(ChxVMTest, Run) {
 
     ChxVM chxvm(program);
     InOuts inputs;
-    chainerx::Array in1 = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
+    chainerx::Array in1 = chainerx::Eye(2, absl::nullopt, absl::nullopt, chainerx::Dtype::kFloat32);
     inputs.emplace("in1", std::shared_ptr<ChxVMVar>(new ChxVMVar(in1)));
     inputs.emplace("in2", std::shared_ptr<ChxVMVar>(new ChxVMVar(chainerx::OnesLike(in1))));
     InOuts outputs = chxvm.Run(inputs, ChxVMOptions());

@@ -19,7 +19,7 @@ namespace {
 
 class SequenceLengthMask {
 public:
-    SequenceLengthMask(const nonstd::optional<chainerx::Array>& sequence_lens, chainerx::Dtype dtype, int seq_length, int batch_size)
+    SequenceLengthMask(const absl::optional<chainerx::Array>& sequence_lens, chainerx::Dtype dtype, int seq_length, int batch_size)
         : batch_size_(batch_size) {
         has_mask_ = sequence_lens.has_value();
         if (!has_mask_) return;
@@ -69,9 +69,9 @@ std::tuple<chainerx::Array, chainerx::Array> RNNOp::RunImpl(
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
-        const nonstd::optional<chainerx::Array>& b,
-        const nonstd::optional<chainerx::Array>& sequence_lens,
-        const nonstd::optional<chainerx::Array>& initial_h) {
+        const absl::optional<chainerx::Array>& b,
+        const absl::optional<chainerx::Array>& sequence_lens,
+        const absl::optional<chainerx::Array>& initial_h) {
     // X: [seq_length, batch_size, input_size]
     // W: [num_directions, hidden_size, input_size]
     // R: [num_directions, hidden_size, hidden_size]
@@ -124,9 +124,9 @@ std::tuple<chainerx::Array, chainerx::Array> GRUOp::RunImpl(
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
-        const nonstd::optional<chainerx::Array>& b,
-        const nonstd::optional<chainerx::Array>& sequence_lens,
-        const nonstd::optional<chainerx::Array>& initial_h) {
+        const absl::optional<chainerx::Array>& b,
+        const absl::optional<chainerx::Array>& sequence_lens,
+        const absl::optional<chainerx::Array>& initial_h) {
     // X: [seq_length, batch_size, input_size]
     // W: [num_directions, 3 * hidden_size, input_size]
     // R: [num_directions, 3 * hidden_size, hidden_size]
@@ -222,11 +222,11 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, ChxVMOpaque*> LSTM
         const chainerx::Array& x,
         const chainerx::Array& w,
         const chainerx::Array& r,
-        const nonstd::optional<chainerx::Array>& b,
-        const nonstd::optional<chainerx::Array>& sequence_lens,
-        const nonstd::optional<chainerx::Array>& initial_h,
-        const nonstd::optional<chainerx::Array>& initial_c,
-        const nonstd::optional<chainerx::Array>& p) {
+        const absl::optional<chainerx::Array>& b,
+        const absl::optional<chainerx::Array>& sequence_lens,
+        const absl::optional<chainerx::Array>& initial_h,
+        const absl::optional<chainerx::Array>& initial_c,
+        const absl::optional<chainerx::Array>& p) {
 #if CHAINER_COMPILER_ENABLE_CUDNN
     // TODO(hamaji): Handle more cases.
     if ((direction == 0 || direction == 2) && b.has_value() && !initial_h.has_value() && !initial_c.has_value() && !p.has_value()) {
