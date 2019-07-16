@@ -321,15 +321,6 @@ bool ReplaceChainerReduceSumTo(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceSoftplus(Graph* graph, Node* node) {
-    GraphBuilder gb(graph, "SimplifySoftplus", node->output(0));
-    Value* v0 = gb.Op(Node::kExp, node->inputs());
-    Value* one = gb.Const(Type(node->input(0)->type().dtype(), {}), {1});
-    Value* v1 = gb.Op(Node::kAdd, {v0, one});
-    gb.Op(Node::kLog, {v1}, node->output(0));
-    return true;
-}
-
 bool ReplaceSoftsign(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySoftsign", node->output(0));
     Value* v0 = gb.Op(Node::kAbs, node->inputs());
@@ -716,7 +707,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(ReduceLogSum);
     REGISTER_SIMPLIFIER(ReduceLogSumExp);
     REGISTER_SIMPLIFIER(ChainerReduceSumTo);
-    REGISTER_SIMPLIFIER(Softplus);
     REGISTER_SIMPLIFIER(Softsign);
     REGISTER_SIMPLIFIER(ConstantOfShape);
     REGISTER_SIMPLIFIER(ConstantLike);

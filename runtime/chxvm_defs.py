@@ -281,6 +281,7 @@ XC_OPS = [
      ['output']),
     ('LogSoftmax', [Array('input'), Int('axis'), Int('is_onnx_semantics')],
      ['output']),
+    ('Softplus', [Array('x')], ['y']),
 
     ('Dropout', [Array('data'), Float('ratio')], ['output', 'mask']),
 
