@@ -432,9 +432,19 @@ private:
         } else if (node.op_type() == Node::kChainerROIAveragePool2D) {
             EMIT(ROIAveragePool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
         } else if (node.op_type() == Node::kChainerROIMaxAlign2D) {
-            EMIT(ROIMaxAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio());
+            EMIT(ROIMaxAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio_list());
         } else if (node.op_type() == Node::kChainerROIAverageAlign2D) {
-            EMIT(ROIAverageAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio());
+            EMIT(ROIAverageAlign2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale(), node.sampling_ratio_list());
+        } else if (node.op_type() == Node::kRoiAlign) {
+            std::vector<int64_t> sampling_ratio = {node.sampling_ratio(), node.sampling_ratio()};
+            std::vector<int64_t> output_shape = {node.output_height(), node.output_width()};
+            if (node.mode() == "avg") {
+                EMIT(ROIAverageAlign2D, out(0), in(0), in(1), in(2), output_shape, node.spatial_scale(), sampling_ratio);
+            } else if (node.mode() == "max") {
+                EMIT(ROIMaxAlign2D, out(0), in(0), in(1), in(2), output_shape, node.spatial_scale(), sampling_ratio);
+            } else {
+                CHECK(false) << "Unknown RoiAlign mode: " << node.mode();
+            }
         } else if (node.op_type() == Node::kChainerResizeImages) {
             EMIT(ResizeImages, out(0), in(0), node.output_shape());
         } else if (node.op_type() == Node::kAveragePool) {

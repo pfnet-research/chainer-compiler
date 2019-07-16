@@ -42,12 +42,13 @@ class ParseType(Enum):
     In = 0,
     Att = 1,
     AttPad = 2,
+    Ignore = 255
 
 
 class NodeParse:
     def __init__(self):
-        self.args = {}
-        self.defs = {}
+        self.args = collections.OrderedDict()
+        self.defs = collections.OrderedDict()
 
     def get(self, name: 'str'):
         if not name in self.args.keys():
@@ -60,6 +61,9 @@ class NodeParse:
 
     def parse(self, onnx_graph, node):
         for k, v in self.defs.items():
+            if v[0] == ParseType.Ignore:
+                return
+
             arg = node.args.keywords[k]
             att_arg = node.attribute_args.keywords[k]
 
@@ -871,6 +875,16 @@ class ONNXGraph:
                         dtype = np.float32
 
                     return self.new_empty_tensor(None, dtype, value2onnx_parameter[value].onnx_name)
+
+        if isinstance(value, values.StrValue):
+            if value.internal_value is not None:
+                # In case the generator of the string is a BinaryOp, use the internal value.
+                if isinstance(value.generator, nodes.NodeBinOp):
+                    name = self.get_value_name(value)
+                    arr = np.array(value.internal_value, dtype=np.object)
+                    return self.new_tensor_with_np(arr, name)
+
+            return self.new_empty_tensor(None, np.array(np.object).dtype, value2onnx_parameter[value].onnx_name)
 
         return self.new_empty_tensor(None, np.float32, value2onnx_parameter[value].onnx_name)
 
