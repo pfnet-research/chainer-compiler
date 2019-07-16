@@ -29,8 +29,8 @@ chainerx::Array ChxVMState::GetArray(int index) {
     return variables_[index]->GetArray();
 }
 
-nonstd::optional<chainerx::Array> ChxVMState::GetOptionalArray(int index) {
-    if (index < 0) return nonstd::nullopt;
+absl::optional<chainerx::Array> ChxVMState::GetOptionalArray(int index) {
+    if (index < 0) return absl::nullopt;
     return GetArray(index);
 }
 
@@ -80,8 +80,8 @@ ChxVMVar* ChxVMState::GetVar(int index) {
     return variables_[index].get();
 }
 
-nonstd::optional<ChxVMVar*> ChxVMState::GetOptionalVar(int index) {
-    if (index < 0) return nonstd::nullopt;
+absl::optional<ChxVMVar*> ChxVMState::GetOptionalVar(int index) {
+    if (index < 0) return absl::nullopt;
     return GetVar(index);
 }
 
@@ -113,13 +113,13 @@ const StrictScalar& ChxVMState::GetScalar(int index) {
     return variables_[index]->GetScalar();
 }
 
-nonstd::optional<StrictScalar> ChxVMState::GetOptionalScalar(int index) {
-    if (index < 0) return nonstd::nullopt;
+absl::optional<StrictScalar> ChxVMState::GetOptionalScalar(int index) {
+    if (index < 0) return absl::nullopt;
     return GetScalar(index);
 }
 
 int64_t ChxVMState::GetOptionalInt(int index, int64_t default_value) {
-    nonstd::optional<ChxVMVar*> var = GetOptionalVar(index);
+    absl::optional<ChxVMVar*> var = GetOptionalVar(index);
     if (var.has_value()) {
         return static_cast<int64_t>((*var)->GetScalar());
     } else {
@@ -243,27 +243,19 @@ bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxV
 }  // namespace
 
 void ChxVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
-    bool found = false;
-    for (size_t i = 0; i < outputs.size(); ++i) {
-        int output = outputs[i];
+    for (int output : outputs) {
         if (!HasElemInVar(chainerx::IsNan, *GetVar(output))) continue;
-        std::cerr << "NaN detected in output #" << i << " of " << (*program_)[pc()]->debug_info() << "\n";
-        found = true;
-    }
-    if (found) {
+
+        std::cerr << "NaN detected!\n";
         ReportInvalidInOuts(inputs, outputs);
     }
 }
 
 void ChxVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
-    bool found = false;
-    for (size_t i = 0; i < outputs.size(); ++i) {
-        int output = outputs[i];
+    for (int output : outputs) {
         if (!HasElemInVar(chainerx::IsInf, *GetVar(output))) continue;
-        std::cerr << "Inf detected in output #" << i << " of " << (*program_)[pc()]->debug_info() << "\n";
-        found = true;
-    }
-    if (found) {
+
+        std::cerr << "Inf detected!\n";
         ReportInvalidInOuts(inputs, outputs);
     }
 }

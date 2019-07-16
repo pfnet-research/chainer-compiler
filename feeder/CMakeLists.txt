@@ -1,10 +1,8 @@
 get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
 set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
 set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
-set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include)
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
-include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
@@ -29,6 +27,8 @@ target_link_libraries(chainer_compiler_feeder_test
   pthread
   ${OpenCV_LIBS}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  absl::variant
+  absl::optional
   )
 
 add_test(

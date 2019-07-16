@@ -15,7 +15,7 @@ namespace {
 TEST(NpyTest, SaveNpy) {
     chainerx::testing::ContextSession sess;
 
-    chainerx::Array a = chainerx::Eye(2, nonstd::nullopt, nonstd::nullopt, chainerx::Dtype::kFloat32);
+    chainerx::Array a = chainerx::Eye(2, absl::nullopt, absl::nullopt, chainerx::Dtype::kFloat32);
     SaveNpy(a, "out/t.npy");
 
     std::string actual(144, '\0');

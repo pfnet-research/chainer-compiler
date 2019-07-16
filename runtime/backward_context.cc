@@ -27,7 +27,7 @@ std::vector<chainerx::Array> BackwardContext::Backward(const std::vector<chainer
 
     std::vector<chainerx::Array> gxs;
     for (chainerx::Array x : xs_) {
-        nonstd::optional<chainerx::Array> gx = x.GetGrad(backprop_id());
+        absl::optional<chainerx::Array> gx = x.GetGrad(backprop_id());
         CHECK(gx.has_value());
         gxs.push_back(*gx);
     }

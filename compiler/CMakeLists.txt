@@ -2,7 +2,6 @@ get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PAT
 set(CHAINER_COMPILER_COMMON_DIR ${CHAINER_COMPILER_ROOT_DIR}/common)
 set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
 set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
-set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include)
 
 if (${CHAINER_COMPILER_ENABLE_PYTHON})
   add_definitions(-DCHAINER_COMPILER_ENABLE_PYTHON=1)
@@ -33,7 +32,6 @@ add_custom_target(
   )
 
 include_directories(${GSLLITE_INCLUDE_DIRS})
-include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
@@ -153,6 +151,7 @@ target_link_libraries(chainer_compiler_compiler_test
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant
+  absl::optional
   )
 
 add_test(

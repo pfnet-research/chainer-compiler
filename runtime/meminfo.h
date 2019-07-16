@@ -4,7 +4,7 @@
 
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -12,7 +12,7 @@ namespace runtime {
 extern bool g_meminfo_enabled;
 
 // Returns a pair of used memory and total memory.
-nonstd::optional<std::pair<int64_t, int64_t>> GetMemoryUsageInBytes();
+absl::optional<std::pair<int64_t, int64_t>> GetMemoryUsageInBytes();
 
 }  // namespace runtime
 }  // namespace chainer_compiler
