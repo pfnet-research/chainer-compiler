@@ -100,5 +100,9 @@ chainerx::Array LogSoftmaxOp::RunImpl(ChxVMState* st, const chainerx::Array& inp
     return RunSoftmax(chainerx::LogSoftmax, input, axis, is_onnx_semantics);
 }
 
+chainerx::Array SoftplusOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    return chainerx::Softplus(x);
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
