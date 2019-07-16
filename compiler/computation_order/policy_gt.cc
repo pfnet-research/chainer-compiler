@@ -4,6 +4,7 @@
 
 #include <compiler/flags.h>
 #include <compiler/flops.h>
+#include <runtime/meminfo.h>
 
 typedef std::vector<char> NodeSet;  // Here, I use vector<bool> by taking some risk.
 
@@ -357,8 +358,18 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
   return orders;
 }
 
+int64_t AutomaticBudgetDetection() {
+  const auto info = runtime::GetMemoryUsageInBytes();
+  if (!info) return 100000000000LL; // CPU mode
+  const size_t used = info->first;
+  const size_t total = info->second;
+
+  return total - 3 * used;
+}
+
 std::vector<Order> GTPolicy(const Graph& graph) {
-  const int64_t budget = (g_gt_budget ? g_gt_budget : 10000) * 1000000LL;
+  const int64_t budget = (g_gt_budget ? (g_gt_budget * 1000000LL) : AutomaticBudgetDetection());
+  std::cout << "budget=" << budget << std::endl;
   SimpleGraph sg = GetSimpleFormGraph(graph);
 
   DiscretizeFlops(&sg);
