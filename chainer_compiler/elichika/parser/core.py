@@ -159,7 +159,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     # generate VEvalFlag functions
     def add_veval_flag_function(name:'str', func):
-        f = values.FuncValue(functions_builtin.VEvalOptionFunction(func), None)
+        f = values.FuncValue(functions_builtin.VEvalContextFunction(func), None)
         values.builtin_function_converters[name] = f
 
     add_veval_flag_function('eval_as_written_target', flags.eval_as_written_target)
