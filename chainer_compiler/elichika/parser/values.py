@@ -29,7 +29,7 @@ instance_converters = []
 builtin_function_converters = {}
 
 def create_ref_value_name_with_constant(value):
-    if isinstance(value, ValueRef):
+    if isinstance(value, Object):
         value = value.get_value()
 
     if value.has_constant_value():
@@ -95,61 +95,61 @@ def compare(value1, value2):
             return False
 
 
-def parse_instance(default_module, name, instance, self_instance=None, from_member = False, root_graph : 'graphs.Graph' = None) -> "ValueRef":
+def parse_instance(default_module, name, instance, self_instance=None, from_member = False, root_graph : 'graphs.Graph' = None) -> "Object":
 
     for converter in instance_converters:
         ret = converter(default_module, instance)
         if ret is not None:
-            return ValueRef(ret)
+            return Object(ret)
         
     #if inspect.ismethod(instance) or inspect.isfunction(instance) or isinstance(instance, np.ufunc):
     if isinstance(instance, collections.Hashable):
         if instance in function_converters.keys():
             func = function_converters[instance]
-            return ValueRef(func)
+            return Object(func)
 
     # need to check whether is value bool before check whether is value int
     if isinstance(instance, bool):
-        return ValueRef(BoolValue(instance))
+        return Object(BoolValue(instance))
 
     if isinstance(instance, int):
-        return ValueRef(NumberValue(instance))
+        return Object(NumberValue(instance))
 
     if isinstance(instance, np.int32):
-        return ValueRef(NumberValue(instance))
+        return Object(NumberValue(instance))
 
     if isinstance(instance, np.int64):
-        return ValueRef(NumberValue(instance))
+        return Object(NumberValue(instance))
 
     if isinstance(instance, float):
-        return ValueRef(NumberValue(instance))
+        return Object(NumberValue(instance))
 
     if isinstance(instance, np.float32):
-        return ValueRef(NumberValue(instance))
+        return Object(NumberValue(instance))
 
     if isinstance(instance, np.float64):
-        return ValueRef(NumberValue(instance))
+        return Object(NumberValue(instance))
 
     if isinstance(instance, str):
-        return ValueRef(StrValue(instance))
+        return Object(StrValue(instance))
 
     if instance is inspect._empty:
         return None
 
     if inspect.ismethod(instance):
         func = UserDefinedFunction(instance)
-        return ValueRef(FuncValue(func, self_instance, default_module))
+        return Object(FuncValue(func, self_instance, default_module))
 
     if inspect.isfunction(instance):
         func = UserDefinedFunction(instance)
         if from_member:
-            return ValueRef(FuncValue(func, self_instance, default_module))
+            return Object(FuncValue(func, self_instance, default_module))
         else:
-            return ValueRef(FuncValue(func, None, default_module))
+            return Object(FuncValue(func, None, default_module))
 
     if inspect.isclass(instance):
         func = functions.UserDefinedClassConstructorFunction(instance)
-        return ValueRef(FuncValue(func, None, default_module))
+        return Object(FuncValue(func, None, default_module))
 
     if isinstance(instance, list):
         if root_graph is None:
@@ -180,7 +180,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
             root_graph.add_initial_node(node)
 
         ret.estimate_type()
-        return ValueRef(ret)
+        return Object(ret)
 
     if isinstance(instance, dict):
         keys = []
@@ -189,14 +189,14 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
             keys.append(parse_instance(default_module, '', key))
             values.append(parse_instance(default_module, '', value))
         ret = DictValue(keys, values)
-        return ValueRef(ret)
+        return Object(ret)
 
     if isinstance(instance, tuple) and 'Undefined' in instance:
         shape = list(instance)
         shape = -1 if shape == 'Undefined' else shape
         tensorValue = TensorValue()
         tensorValue.shape = tuple(shape)
-        return ValueRef(tensorValue)
+        return Object(tensorValue)
 
     if isinstance(instance, tuple):
         if root_graph is None:
@@ -205,7 +205,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
                 o = parse_instance(default_module, '', v)
                 value_in_tuple.append(o)
 
-            return ValueRef(TupleValue(value_in_tuple))
+            return Object(TupleValue(value_in_tuple))
         else:
             value_in_tuple = []
             vs = []
@@ -226,37 +226,37 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
             ret = TupleValue(value_in_tuple)
             node.set_outputs([ret])
             root_graph.add_initial_node(node)
-            return ValueRef(ret)
+            return Object(ret)
 
 
     if isinstance(instance, np.ndarray):
         tensorValue = TensorValue(instance)
         tensorValue.value = instance
         tensorValue.shape = instance.shape
-        return ValueRef(tensorValue)
+        return Object(tensorValue)
 
     if isinstance(instance, chainer.Variable):
         tensorValue = TensorValue(instance.data)
         tensorValue.value = instance.data
         tensorValue.shape = instance.data.shape
-        return ValueRef(tensorValue)
+        return Object(tensorValue)
 
     if instance == inspect._empty:
-        return ValueRef(NoneValue())
+        return Object(NoneValue())
 
     if instance is None:
-        return ValueRef(NoneValue())
+        return Object(NoneValue())
 
     if utils.is_disabled_module(instance):
         return None
 
     if inspect.ismodule(instance):
         value = ModuleValue(instance)
-        return ValueRef(value)
+        return Object(value)
 
-    module = ValueRef(ModuleValue(sys.modules[instance.__module__]))
+    module = Object(ModuleValue(sys.modules[instance.__module__]))
     model_inst = UserDefinedInstance(module, instance, None)
-    return ValueRef(model_inst)
+    return Object(model_inst)
 
 
 class FieldInput:
@@ -470,7 +470,7 @@ class Field():
 
             #old_value = obj.get_value()
             #value = functions.generate_copied_value(old_value)
-            #obj = ValueRef(value)
+            #obj = Object(value)
 
 class Attribute:
     def __init__(self, name: 'str'):
@@ -481,8 +481,8 @@ class Attribute:
         # if it is non-volatile, an object in this attribute is saved after running
         self.is_non_volatile = False
 
-    def revise(self, obj: 'ValueRef'):
-        assert(isinstance(obj, ValueRef))
+    def revise(self, obj: 'Object'):
+        assert(isinstance(obj, Object))
 
         # assgin name to the object
         obj.name = utils.create_obj_value_name_with_attribute(
@@ -502,7 +502,7 @@ class Attribute:
     def __str__(self):
         return self.name
 
-class ValueRef():
+class Object():
     def __init__(self, value: 'Value'):
         self.name = ""
         self.value = value
@@ -520,7 +520,7 @@ class ValueRef():
     def revise(self, value):
         self.value = value
 
-    def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'ValueRef':
+    def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'Object':
             
         attribute = self.attributes.try_get_attribute(name)
         if attribute is not None and attribute.has_obj():
@@ -561,10 +561,10 @@ class Value():
     def is_hashable(self):
         return False
 
-    def get_iterator(self) -> 'ValueRef':
+    def get_iterator(self) -> 'Object':
         return None
 
-    def apply_to_object(self, obj: 'ValueRef'):
+    def apply_to_object(self, obj: 'Object'):
         '''
         register functions to an object
         this function is only called when an object is generated
@@ -576,7 +576,7 @@ class Value():
             assert(False)
         return ""
 
-    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
         return None
 
     def __str__(self):
@@ -697,8 +697,8 @@ class RangeValue(Value):
     def is_iteratable(self):
         return True
 
-    def get_iterator(self) -> 'ValueRef':
-        return ValueRef(NumberValue(None))
+    def get_iterator(self) -> 'Object':
+        return Object(NumberValue(None))
 
     def __str__(self):
         return self.name + '(R)'
@@ -727,7 +727,7 @@ class TupleValue(Value):
         ret += str(hash(tup))
         return ret
 
-    def get_iterator(self) -> 'ValueRef':
+    def get_iterator(self) -> 'Object':
         if self.vtype is None:
             return None
 
@@ -737,7 +737,7 @@ class TupleValue(Value):
             v.dtype = self.dtype
             
 
-        return ValueRef(v)
+        return Object(v)
 
     def estimate_type(self):
         if self.internal_value is None:
@@ -763,7 +763,7 @@ class TupleValue(Value):
 
 
 class FuncValue(Value):
-    def __init__(self, func: 'functions.FunctionBase', obj: 'ValueRef', module : 'ValueRef' = None):
+    def __init__(self, func: 'functions.FunctionBase', obj: 'Object', module : 'Object' = None):
         super().__init__()
         self.func = func
         self.obj = obj
@@ -789,7 +789,7 @@ class ListValue(Value):
     def is_iteratable(self):
         return True
 
-    def get_iterator(self) -> 'ValueRef':
+    def get_iterator(self) -> 'Object':
         if self.vtype is None:
             return None
 
@@ -799,7 +799,7 @@ class ListValue(Value):
             v.dtype = self.dtype
             
 
-        return ValueRef(v)
+        return Object(v)
 
     def __filter_internal_values(self):
         return [v for v in self.internal_value if v is not None and not isinstance(v.get_value(), NoneValue)]
@@ -842,8 +842,8 @@ class ListValue(Value):
             self.internal_value.append(v)
             self.estimate_type()
 
-    def apply_to_object(self, obj: 'ValueRef'):
-        append_func = ValueRef(
+    def apply_to_object(self, obj: 'Object'):
+        append_func = Object(
             FuncValue(functions_builtin.AppendFunction(self), obj, None))
         obj.attributes.get_attribute('append').revise(append_func)
 
@@ -873,15 +873,15 @@ class DictValue(Value):
         return False
 
     # TODO(rchouras): Add iterator for dictionary keys.
-    # def get_iterator(self) -> 'ValueRef':
+    # def get_iterator(self) -> 'Object':
     #     return
 
-    def apply_to_object(self, obj: 'ValueRef'):
-        keys_func = ValueRef(
+    def apply_to_object(self, obj: 'Object'):
+        keys_func = Object(
             FuncValue(functions_builtin.KeysFunction(self), obj, None))
         obj.attributes.get_attribute('keys').revise(keys_func)
 
-        values_func = ValueRef(
+        values_func = Object(
             FuncValue(functions_builtin.ValuesFunction(self), obj, None))
         obj.attributes.get_attribute('values').revise(values_func)
 
@@ -908,18 +908,18 @@ class TensorValue(Value):
     def is_iteratable(self):
         return True
 
-    def get_iterator(self) -> 'ValueRef':            
+    def get_iterator(self) -> 'Object':            
         v = TensorValue()
         v.dtype = self.dtype
-        return ValueRef(v)
+        return Object(v)
 
 
-    def apply_to_object(self, obj: 'ValueRef'):
-        shape_func = ValueRef(
+    def apply_to_object(self, obj: 'Object'):
+        shape_func = Object(
             FuncValue(functions_ndarray.NDArrayShapeFunction(), obj, None))
         obj.attributes.set_predefined_obj('shape', shape_func)
 
-        size_func = ValueRef(
+        size_func = Object(
             FuncValue(functions_ndarray.NDArraySizeFunction(), obj, None))
         obj.attributes.set_predefined_obj('size', size_func)
 
@@ -941,10 +941,10 @@ class ModuleValue(Value):
         self.internal_module = module
 
 
-    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
 
         if name in builtin_function_converters.keys():
-            v = ValueRef(builtin_function_converters[name])
+            v = Object(builtin_function_converters[name])
             return v
 
         members = inspect.getmembers(self.internal_module)
@@ -962,7 +962,7 @@ class ModuleValue(Value):
         return v
 
 class Instance(Value):
-    def __init__(self, module: 'ValueRef', inst, classinfo):
+    def __init__(self, module: 'Object', inst, classinfo):
         super().__init__()
         self.inst = inst
         self.func = None
@@ -973,10 +973,10 @@ class Instance(Value):
         return True
 
 class UserDefinedInstance(Instance):
-    def __init__(self, module: 'ValueRef', inst, classinfo):
+    def __init__(self, module: 'Object', inst, classinfo):
         super().__init__(module, inst, classinfo)
 
-    def try_get_ref(self, name: 'str', inst: 'ValueRef', root_graph : 'graphs.Graph') -> 'ValueRef':
+    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):
@@ -998,7 +998,7 @@ class UserDefinedInstance(Instance):
 
         return obj
 
-    def apply_to_object(self, obj: 'values.ValueRef'):
+    def apply_to_object(self, obj: 'values.Object'):
         super().apply_to_object(obj)
 
         enter_func = obj.try_get_and_store_obj('__enter__', None)

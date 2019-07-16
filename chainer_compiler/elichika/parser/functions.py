@@ -213,7 +213,7 @@ class FunctionArgValueInput():
 
 
 class FunctionArg():
-    def __init__(self, name: 'str' = '', obj: 'values.ValueRef' = None):
+    def __init__(self, name: 'str' = '', obj: 'values.Object' = None):
         self.name = name
         self.obj = obj
 
@@ -226,7 +226,7 @@ class FunctionArgCollection():
     def add_arg(self, name, value):
 
         if isinstance(value, values.Value):
-            value = values.ValueRef(value)
+            value = values.Object(value)
 
         assert not(name in self.args.keys())
 
@@ -257,7 +257,7 @@ class FunctionArgCollection():
 
             self.add_arg(v.name, values.parse_instance(None, v.name, v.default))
 
-    def merge_inputs(self, self_valueref, inputs: 'FunctionArgInput') -> 'FunctionArgInput':
+    def merge_inputs(self, self_Object, inputs: 'FunctionArgInput') -> 'FunctionArgInput':
         ret = FunctionArgInput()
         
         for fa in self.get_args():
@@ -267,9 +267,9 @@ class FunctionArgCollection():
         inputs_ = inputs.inputs.copy()
         keywords_ = inputs.keywords.copy()
 
-        if self_valueref is not None:
-            inputs_ = [self_valueref] + inputs_
-            keywords_[self.args_list[0].name] = self_valueref
+        if self_Object is not None:
+            inputs_ = [self_Object] + inputs_
+            keywords_[self.args_list[0].name] = self_Object
 
         for i in range(len(inputs_)):
             ret.inputs[i] = inputs_[i]
@@ -311,8 +311,8 @@ class FunctionBase():
 
         self.base_func = None
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         return None
 
 
@@ -345,9 +345,9 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
-        ret = values.ValueRef(values.UserDefinedInstance(
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        ret = values.Object(values.UserDefinedInstance(
             module, None, self.classinfo))
         inst = ret
 
@@ -385,8 +385,8 @@ class UserDefinedFunction(FunctionBase):
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         func_field = values.Field()
         func_field.set_module(module)
 

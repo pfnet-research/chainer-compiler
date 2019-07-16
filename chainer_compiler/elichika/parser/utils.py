@@ -84,7 +84,7 @@ def clip_head(s: 'str'):
     strs = map(lambda x: x[ls:], splitted)
     return '\n'.join(strs)
 
-def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
+def try_get_ref(value, name, lineprop) -> 'values.Object':
     if value is None:
         print_warning('Failed to get value in "{}".'.format(name), lineprop)
         return None
@@ -96,7 +96,7 @@ def try_get_ref(value, name, lineprop) -> 'values.ValueRef':
         if value.has_obj():
             return value.get_ref()
 
-    if isinstance(value, values.ValueRef):
+    if isinstance(value, values.Object):
         return value
 
     return None
@@ -114,7 +114,7 @@ def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Val
     if isinstance(value, values.Value):
         return value
 
-    if isinstance(value, values.ValueRef):
+    if isinstance(value, values.Object):
         return value.get_value()
 
     if isinstance(value, values.Attribute):

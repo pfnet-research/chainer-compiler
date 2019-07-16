@@ -16,8 +16,8 @@ class UnimplementedFunction(functions.FunctionBase):
         super().__init__()
         self.name = func.__name__
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         raise utils.UnimplementedError('{} is unimplemented.'.format(self.name), utils.LineProperty(line))
 
 class ChainerFunction(functions.FunctionBase):
@@ -28,8 +28,8 @@ class ChainerFunction(functions.FunctionBase):
         self.base_func = func
         self.ret_value_func = ret_value_func
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -38,28 +38,28 @@ class ChainerFunction(functions.FunctionBase):
         value = self.ret_value_func()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
-        return values.ValueRef(value)
+        return values.Object(value)
 
 class CopyFunction(functions.FunctionBase):
     def __init__(self, func):
         super().__init__()
         self.name = str(func)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         node = nodes.NodeCopy(args.inputs[0].get_value())
         graph.add_node(node)
         ret = functions.generate_copied_value(args.inputs[0].get_value())
         node.set_outputs([ret])
-        return values.ValueRef(ret)
+        return values.Object(ret)
 
 class RangeFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
         self.name = 'range'
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
 
         if option._for_unroll:
             for ref in args.inputs:
@@ -68,10 +68,10 @@ class RangeFunction(functions.FunctionBase):
 
             refs = []
             for num in range(*(ref.get_value().internal_value for ref in args.inputs)):
-                refs.append(values.ValueRef(values.NumberValue(num)))
+                refs.append(values.Object(values.NumberValue(num)))
 
             value = values.ListValue(refs)
-            return values.ValueRef(value)
+            return values.Object(value)
         else:
             node = nodes.NodeGenerate(
                 'range', [v.get_value() for v in args.inputs], line)
@@ -79,7 +79,7 @@ class RangeFunction(functions.FunctionBase):
             value = values.RangeValue()
             value.name = '@F.{}.{}'.format(line, self.name)
             node.set_outputs([value])
-            return values.ValueRef(value)
+            return values.Object(value)
 
 
 class LenFunction(functions.FunctionBase):
@@ -87,8 +87,8 @@ class LenFunction(functions.FunctionBase):
         super().__init__()
         self.name = 'len'
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         node = nodes.NodeLen(
             args.inputs[0].get_value(),  # TODO: Check this.
             line
@@ -97,7 +97,7 @@ class LenFunction(functions.FunctionBase):
         value = values.NumberValue(None)
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
-        return values.ValueRef(value)
+        return values.Object(value)
 
 
 class PrintFunction(functions.FunctionBase):
@@ -107,8 +107,8 @@ class PrintFunction(functions.FunctionBase):
         self.args.add_arg('self', None)
         self.args.add_arg('v', None)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -118,10 +118,10 @@ class ListFunction(functions.FunctionBase):
     def __init__(self):
         super().__init__()
         self.name = 'list'
-        self.args.add_arg('value', values.ValueRef(values.NoneValue()))
+        self.args.add_arg('value', values.Object(values.NoneValue()))
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
@@ -144,7 +144,7 @@ class ListFunction(functions.FunctionBase):
 
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
-        return values.ValueRef(value)
+        return values.Object(value)
 
 
 class AppendFunction(functions.FunctionBase):
@@ -155,8 +155,8 @@ class AppendFunction(functions.FunctionBase):
         self.args.add_arg('self', None)
         self.args.add_arg('elmnt', None)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -191,8 +191,8 @@ class KeysFunction(functions.FunctionBase):
         self.owner = owner
         self.args.add_arg('self', None)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         if inst.in_container:
@@ -222,8 +222,8 @@ class ValuesFunction(functions.FunctionBase):
         self.owner = owner
         self.args.add_arg('self', None)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         if inst.in_container:
@@ -250,14 +250,14 @@ class ValuesFunction(functions.FunctionBase):
         return value
 
 
-class VEvalOptionFunction(functions.FunctionBase):
+class VEvalContextFunction(functions.FunctionBase):
     def __init__(self, func):
         super().__init__()
         self.name = func.__name__
         self.args.analyze_args(func)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
@@ -269,7 +269,7 @@ class VEvalOptionFunction(functions.FunctionBase):
         if option is not None:
             option.flags_cache.append((self.name, args))
 
-        return values.ValueRef(values.NoneValue())
+        return values.Object(values.NoneValue())
 
 
 class GetAttrFunction(functions.FunctionBase):
@@ -279,8 +279,8 @@ class GetAttrFunction(functions.FunctionBase):
         self.args.add_arg('object', None)
         self.args.add_arg('name', None)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalOption' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         func_args = self.args.merge_inputs(inst, args)
         name = func_args.get_value().get_value(key='name')
         obj = func_args.keywords['object']
