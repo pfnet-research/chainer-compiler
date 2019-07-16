@@ -211,7 +211,7 @@ void ApplyCompilerFlags(const cmdline::parser& args) {
 ''')
 elif args.mode == 'chainer_compiler_core.cxx_args.inc':
     res = []
-    for name, info in FLAGS.items():
+    for name, info in sorted(FLAGS.items()):
         res.append('{} {}'.format(info['type'], name))
     f.write(', '.join(res))
 elif args.mode == 'chainer_compiler_core.apply_cxx_args.inc':
