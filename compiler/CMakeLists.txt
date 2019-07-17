@@ -35,17 +35,17 @@ add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode flags.h
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.h
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
 add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py" --mode flags.cc
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.cc
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/gen_flags.py"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
 add_custom_target(
   compiler_flags_h
