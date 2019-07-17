@@ -414,7 +414,7 @@ private:
     std::vector<std::string> backprop_ins_;
 };
 
-void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool strict_check) {
+void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool strict_check, bool show_diff) {
     LOG() << "Verifying the result..." << std::endl;
     size_t ok_cnt = 0;
     for (const auto& p : test_case.outputs) {
@@ -460,7 +460,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 fail("shape");
                 return false;
             }
-            if (!strict_check) return true;
+            if (!strict_check && !show_diff) return true;
 
             int mismatch =
                     MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"), args.exist("equal_nan"));
@@ -469,6 +469,9 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 int total_size = expected.GetTotalSize();
                 LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
                       << "%)" << std::endl;
+                if (show_diff && !strict_check) {
+                    return true;
+                }
                 return false;
             }
             return true;
@@ -534,6 +537,8 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("equal_nan", '\0', "Treats NaN equal");
     args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
+    args.add("no_strict_check", '\0', "Disable strict check of node output");
+    args.add("show_diff", '\0', "Show diff of strict check without stopping");
     args.add("skip_runtime_type_check", '\0', "Skip runtime type check");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
@@ -681,7 +686,7 @@ void RunMain(const std::vector<std::string>& argv) {
             }
         } else {
             test_cnt++;
-            VerifyOutputs(outputs, *test_case, args, iterations == 1);
+            VerifyOutputs(outputs, *test_case, args, !args.exist("no_strict_check") && iterations == 1, args.exist("show_diff"));
         }
 
         chainerx::GetDefaultDevice().Synchronize();
