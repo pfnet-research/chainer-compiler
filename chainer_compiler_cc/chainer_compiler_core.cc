@@ -54,56 +54,10 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
 }
 
 std::shared_ptr<runtime::ChxVM> Compile(
-        const std::shared_ptr<Graph>& graph,
-        bool skip_scheduling,
-        bool compiler_log,
-        bool permissive,
-        bool skip_inference,
-        bool use_cuda,
-        bool fuse_operations,
-        bool use_nvrtc,
-        bool use_tvm,
-        bool reuse_tvm_code,
-        const std::string& dump_autotvm_task_dir,
-        const std::string& autotvm_log,
-        bool use_ngraph,
-        const std::string& ngraph_device,
-        bool use_dldt,
-        bool use_dldt_fp16,
-        const std::string& dldt_device,
-        const std::string& backend_name,
-        bool reset_shape,
-        bool reset_output_shape,
-        bool dump_after_inference,
-        bool dump_after_simplification,
-        bool dump_after_gradient,
-        bool dump_after_fusion,
-        bool dump_after_scheduling,
-        bool dump_subgraphs) {
-    g_compiler_log = compiler_log;
-    g_permissive = permissive;
-    g_skip_inference = skip_inference;
-    g_use_cuda = use_cuda;
-    g_fuse_operations = fuse_operations;
-    g_use_nvrtc = use_nvrtc;
-    g_use_tvm = use_tvm;
-    g_reuse_tvm_code = reuse_tvm_code;
-    g_dump_autotvm_task_dir = dump_autotvm_task_dir;
-    g_autotvm_log = autotvm_log;
-    g_use_ngraph = use_ngraph;
-    g_ngraph_device = ngraph_device;
-    g_use_dldt = use_dldt;
-    g_use_dldt_fp16 = use_dldt_fp16;
-    g_dldt_device = dldt_device;
-    g_backend_name = backend_name;
-    g_reset_shape = reset_shape;
-    g_reset_output_shape = reset_output_shape;
-    g_dump_after_inference = dump_after_inference;
-    g_dump_after_simplification = dump_after_simplification;
-    g_dump_after_gradient = dump_after_gradient;
-    g_dump_after_fusion = dump_after_fusion;
-    g_dump_after_scheduling = dump_after_scheduling;
-    g_dump_subgraphs = dump_subgraphs;
+        const std::shared_ptr<Graph>& graph, bool skip_scheduling,
+#include "chainer_compiler_cc/cxx_args.inc"
+) {
+#include "chainer_compiler_cc/apply_cxx_args.inc"
 
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop, skip_scheduling);
@@ -191,34 +145,9 @@ std::string Dump(const std::shared_ptr<Graph>& graph) {
 void InitGraph(py::module& m) {
     py::class_<Graph, std::shared_ptr<Graph>> c{m, "Graph"};
     c.def("params", &LoadParams, "Load parameters of a model");
-    c.def("compile",
-          &Compile,
-          "Compile a model",
-          "skip_scheduling"_a = false,
-          "compiler_log"_a = false,
-          "permissive"_a = false,
-          "skip_inference"_a = false,
-          "use_cuda"_a = false,
-          "fuse_operations"_a = false,
-          "use_nvrtc"_a = false,
-          "use_tvm"_a = false,
-          "reuse_tvm_code"_a = false,
-          "dump_autotvm_task_dir"_a = "",
-          "autotvm_log"_a = "",
-          "use_ngraph"_a = false,
-          "ngraph_device"_a = "",
-          "use_dldt"_a = false,
-          "use_dldt_fp16"_a = false,
-          "dldt_device"_a = "",
-          "backend_name"_a = "",
-          "reset_shape"_a = false,
-          "reset_output_shape"_a = false,
-          "dump_after_inference"_a = false,
-          "dump_after_simplification"_a = false,
-          "dump_after_gradient"_a = false,
-          "dump_after_fusion"_a = false,
-          "dump_after_scheduling"_a = false,
-          "dump_subgraphs"_a = false);
+    c.def("compile", &Compile, "Compile a model", "skip_scheduling"_a = false,
+#include "chainer_compiler_cc/pybind_args.inc"
+    );
     c.def("input_names", &GetInputNames, "Names of inputs");
     c.def("param_names", &GetParamNames, "Names of params");
     c.def("output_names", &GetOutputNames, "Names of outputs");
