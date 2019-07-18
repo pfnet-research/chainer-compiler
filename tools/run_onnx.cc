@@ -414,7 +414,7 @@ private:
     std::vector<std::string> backprop_ins_;
 };
 
-void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool strict_check, bool show_diff) {
+void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdline::parser& args, bool check_values, bool show_diff) {
     LOG() << "Verifying the result..." << std::endl;
     size_t ok_cnt = 0;
     for (const auto& p : test_case.outputs) {
@@ -460,7 +460,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 fail("shape");
                 return false;
             }
-            if (!strict_check && !show_diff) return true;
+            if (!check_values && !show_diff) return true;
 
             int mismatch =
                     MismatchInAllClose(expected, actual, args.get<double>("rtol"), args.get<double>("atol"), args.exist("equal_nan"));
@@ -469,7 +469,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
                 int total_size = expected.GetTotalSize();
                 LOG() << "Mismatch: " << mismatch << " / " << total_size << " (" << static_cast<double>(mismatch) * 100.0 / total_size
                       << "%)" << std::endl;
-                if (show_diff && !strict_check) {
+                if (show_diff && !check_values) {
                     return true;
                 }
                 return false;
@@ -518,7 +518,7 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
         ++ok_cnt;
     }
 
-    if (strict_check) CHECK_EQ(ok_cnt, test_case.outputs.size());
+    if (check_values) CHECK_EQ(ok_cnt, test_case.outputs.size());
 }
 
 void RunMain(const std::vector<std::string>& argv) {
@@ -537,8 +537,8 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("equal_nan", '\0', "Treats NaN equal");
     args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
-    args.add("no_strict_check", '\0', "Disable strict check of node output");
-    args.add("show_diff", '\0', "Show diff of strict check without stopping");
+    args.add("no_check_values", '\0', "Disable value checking of node output");
+    args.add("always_show_diff", '\0', "Show diff even though value check is skipped");
     args.add("skip_runtime_type_check", '\0', "Skip runtime type check");
     args.add("check_nans", '\0', "Check for NaNs after each operation");
     args.add("check_infs", '\0', "Check for infinities after each operation");
