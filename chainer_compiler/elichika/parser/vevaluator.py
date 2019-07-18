@@ -829,18 +829,24 @@ def veval_ast_bool_op(astc : 'AstContext', local_field : 'values.Field', graph :
     assert(isinstance(astc.nast, gast.gast.BoolOp))
     lineprop = utils.LineProperty(astc.lineno, astc.filename)
 
-    multiaryop = nodes.MultiaryOpType.Unknown
+    aggregateop = nodes.AggregateOpType.Unknown
     if isinstance(astc.nast.op, gast.And):
-        multiaryop = nodes.MultiaryOpType.And
+        aggregateop = nodes.AggregateOpType.And
     if isinstance(astc.nast.op, gast.Or):
-        multiaryop = nodes.MultiaryOpType.Or
+        aggregateop = nodes.AggregateOpType.Or
 
-    values_list = [veval_ast(astc.c(value_), local_field, graph, context) for value_ in astc.nast.values]
-    values_list_value = [utils.try_get_value(value_, 'multiary', lineprop) for value_ in values_list]
+    refs = [veval_ast(astc.c(value_), local_field, graph, context) for value_ in astc.nast.values]
+    values_list = [utils.try_get_value(value_, 'bool_op', lineprop) for value_ in refs]
 
-    node = nodes.NodeMultiaryOp(values_list_value, multiaryop)
+    # generate list of operands
+    node = nodes.NodeGenerate('List', values_list, lineprop)
+    ret_value = values.ListValue([utils.try_get_ref(ref, 'bool_op', lineprop) for ref in refs])
+    node.set_outputs([ret_value])
+    graph.add_node(node)
 
-    ret_value = veval_multiary.veval(multiaryop, values_list_value)
+    # aggregate the list
+    node = nodes.NodeAggregate(ret_value, aggregateop, astc.lineno)
+    ret_value = veval_multiary.veval(aggregateop, values_list, lineprop)
     node.set_outputs([ret_value])
     graph.add_node(node)
 

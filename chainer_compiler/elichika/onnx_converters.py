@@ -529,22 +529,57 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         chainer_l_converter[type(original_inst)](onnx_graph, node)
 
 
-def convert_node_multiary_op(onnx_graph, node: 'nodes.NodeMultiaryOp'):
-
-    if node.multiaryop == nodes.MultiaryOpType.And:
+def convert_node_aggregate(onnx_graph, node: 'nodes.NodeAggregate'):
+    if node.aggregateop == nodes.AggregateOpType.And:
         op = 'And'
         temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
-    elif node.multiaryop == nodes.MultiaryOpType.Or:
+
+    elif node.aggregateop == nodes.AggregateOpType.Or:
         op = 'Or'
         temp_prev = ONNXValue(onnx_graph, np.array(False, dtype=np.bool), [node, '/False'], is_constant=True)
-    else:
+
+    elif node.aggregateop == nodes.AggregateOpType.Min:
+
+        temp_tensor = ONNXValue(onnx_graph, np.float32, [node, '/tensor'])
+
+        onnx_graph.add_node(
+            "ChainerSequenceStack",
+            node.inputs,
+            [temp_tensor],
+            str('create_tensor'))
+
+        onnx_graph.add_node(
+            'Min',
+            [temp_tensor],
+            node.outputs,
+            str(node.lineprop))
+        return
+
+    elif node.aggregateop == nodes.AggregateOpType.Max:
+
+        temp_tensor = ONNXValue(onnx_graph, np.float32, [node, '/tensor'])
+
+        onnx_graph.add_node(
+            "ChainerSequenceStack",
+            node.inputs,
+            [temp_tensor],
+            str('create_tensor'))
+
+        onnx_graph.add_node(
+            'Max',
+            [temp_tensor],
+            node.outputs,
+            str(node.lineprop))
+        return
+
+    elif node.aggregateop == nodes.AggregateOpType.Unknown:
         assert(False)
 
-    for idx, value_ in enumerate(node.values_list):
+    for idx, ref_ in enumerate(node.values_list.internal_value):
         temp = ONNXValue(onnx_graph, np.array(True).dtype, [node, '/temp%d' % idx])
         onnx_graph.add_node(
             op,
-            [temp_prev.name, value2onnx_parameter[value_].onnx_name],
+            [temp_prev.name, value2onnx_parameter[ref_.get_value()].onnx_name],
             [temp.name],
             str(node.lineprop))
         temp_prev = temp
@@ -1158,8 +1193,8 @@ class ONNXGenerator:
             if isinstance(node, nodes.NodeUnaryOp):
                 convert_node_unary_op(onnx_graph, node)
 
-            if isinstance(node, nodes.NodeMultiaryOp):
-                convert_node_multiary_op(onnx_graph, node)
+            if isinstance(node, nodes.NodeAggregate):
+                convert_node_aggregate(onnx_graph, node)
 
             if isinstance(node, nodes.NodeCompare):
                 node_ = node  # type: nodes.NodeCompare

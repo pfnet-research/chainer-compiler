@@ -26,9 +26,12 @@ class UnaryOpType(Enum):
     Not = 2,
     Unknown = 255,
 
-class MultiaryOpType(Enum):
+class AggregateOpType(Enum):
     And = 0,
     Or = 1,
+    Sum = 2,
+    Min = 3,
+    Max = 4,
     Unknown = 255,
 
 class CompareType(Enum):
@@ -212,16 +215,15 @@ class NodeUnaryOp(Node):
     def __str__(self):
         return 'UnaryOp({},{})'.format(self.lineprop, self.unaryop)
 
-class NodeMultiaryOp(Node):
-    def __init__(self, values_list: 'values.Value', multiaryop: 'MultiaryOpType', line=-1):
+class NodeAggregate(Node):
+    def __init__(self, values_list: 'values.Value', aggregateop: 'MultiaryOpType', line=-1):
         super().__init__(line)
         self.values_list = values_list
-        self.multiaryop = multiaryop
-
-        self.extend_inputs(values_list)
+        self.aggregateop = aggregateop
+        self.append_inputs(values_list)
 
     def __str__(self):
-        return 'MultiaryOp({},{})'.format(self.lineprop, self.multiaryop)
+        return 'AggregateOp({},{})'.format(self.lineprop, self.aggregateop)
 
 class NodeCompare(Node):
     def __init__(self, left: 'values.Value', right: 'values.Value', compare: 'CompareType', line=-1):

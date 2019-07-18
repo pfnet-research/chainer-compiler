@@ -143,6 +143,12 @@ def convert_model(model: 'chainer.Chain', args=[]):
     m_len = values.FuncValue(functions_builtin.LenFunction(), None)
     values.builtin_function_converters['len'] = m_len
 
+    m_max = values.FuncValue(functions_builtin.MaxFunction(), None)
+    values.builtin_function_converters['max'] = m_max
+
+    m_min = values.FuncValue(functions_builtin.MinFunction(), None)
+    values.builtin_function_converters['min'] = m_min
+
     values.function_converters[six.moves.range] = m_range
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
