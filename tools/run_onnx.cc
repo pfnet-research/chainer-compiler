@@ -686,7 +686,7 @@ void RunMain(const std::vector<std::string>& argv) {
             }
         } else {
             test_cnt++;
-            VerifyOutputs(outputs, *test_case, args, !args.exist("no_strict_check") && iterations == 1, args.exist("show_diff"));
+            VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values") && iterations == 1, args.exist("always_show_diff"));
         }
 
         chainerx::GetDefaultDevice().Synchronize();
