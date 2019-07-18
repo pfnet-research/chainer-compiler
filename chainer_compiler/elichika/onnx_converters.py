@@ -572,6 +572,23 @@ def convert_node_aggregate(onnx_graph, node: 'nodes.NodeAggregate'):
             str(node.lineprop))
         return
 
+    elif node.aggregateop == nodes.AggregateOpType.Sum:
+
+        temp_tensor = ONNXValue(onnx_graph, np.float32, [node, '/tensor'])
+
+        onnx_graph.add_node(
+            "ChainerSequenceStack",
+            node.inputs,
+            [temp_tensor],
+            str('create_tensor'))
+
+        onnx_graph.add_node(
+            'Sum',
+            [temp_tensor],
+            node.outputs,
+            str(node.lineprop))
+        return
+
     elif node.aggregateop == nodes.AggregateOpType.Unknown:
         assert(False)
 

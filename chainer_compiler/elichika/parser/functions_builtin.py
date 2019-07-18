@@ -145,6 +145,33 @@ class MaxFunction(functions.FunctionBase):
         graph.add_node(node)
         return values.Object(value)
 
+class SumFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'sum'
+        self.aggregateop = nodes.AggregateOpType.Sum
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        if len(args.inputs) == 1 and isinstance(args.get_value().inputs[0], values.ListValue):
+            list_value = args.get_value().inputs[0]
+            if list_value.internal_value:
+                values_list = [ref.get_value() for ref in list_value.internal_value]
+            else:
+                values_list = []
+        else:
+            values_list = args.get_value().inputs
+            node = nodes.NodeGenerate('List', values_list, line)
+            list_value = values.ListValue([utils.try_get_ref(ref, self.name, line) for ref in args.inputs])
+            node.set_outputs([list_value])
+            graph.add_node(node)
+
+        node = nodes.NodeAggregate(list_value, self.aggregateop, line)
+        value = veval_multiary.veval(self.aggregateop, values_list, line)
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        graph.add_node(node)
+        return values.Object(value)
 
 class PrintFunction(functions.FunctionBase):
     def __init__(self):

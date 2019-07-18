@@ -149,6 +149,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
     m_min = values.FuncValue(functions_builtin.MinFunction(), None)
     values.builtin_function_converters['min'] = m_min
 
+    m_sum = values.FuncValue(functions_builtin.SumFunction(), None)
+    values.builtin_function_converters['sum'] = m_sum
+
     values.function_converters[six.moves.range] = m_range
 
     m_list = values.FuncValue(functions_builtin.ListFunction(), None)
