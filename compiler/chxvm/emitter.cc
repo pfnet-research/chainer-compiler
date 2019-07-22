@@ -411,6 +411,8 @@ private:
         } else if (node.op_type() == Node::kUpsample || node.op_type() == Node::kResize) {
             CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
             EMIT(Resize, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kChainerResizeGrad) {
+            EMIT(ResizeGrad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kPad) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

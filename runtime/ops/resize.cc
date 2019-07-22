@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include <chainerx/array.h>
+#include <chainerx/routines/arithmetic.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/pooling.h>
@@ -101,13 +102,11 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
 }
 
 chainerx::Array Downsample(const chainerx::Array& x, const std::vector<int64_t> scales) {
-    int64_t total_scale = 1;
     chainerx::Shape to_shape(x.shape());
     for (size_t i = 0; i < scales.size(); ++i) {
         int64_t scale = scales[i];
         CHECK_EQ(0, to_shape[i] % scale) << "Unsupported downsampling: shape=" << x.shape() << " scale=" << scale;
         to_shape[i] /= scale;
-        total_scale *= scale;
     }
     CHECK_EQ(4, to_shape.size());
     CHECK_EQ(1, scales[0]);
@@ -116,7 +115,6 @@ chainerx::Array Downsample(const chainerx::Array& x, const std::vector<int64_t> 
     chainerx::Dims stride{scales[2], scales[3]};
     chainerx::Dims pad{0, 0};
     chainerx::Array y = chainerx::AveragePool(x, ksize, stride, pad);
-    y *= total_scale;
     return y;
 }
 
@@ -141,37 +139,42 @@ chainerx::Array Upsample(const chainerx::Array& x, const std::vector<int64_t> sc
     return y;
 }
 
-}  // namespace
-
-chainerx::Array ResizeOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+void GetIntScales(const chainerx::Array& scales, std::vector<int64_t>* int_scales, bool* has_upsample, bool* has_downsample) {
     CHECK_EQ(1, scales.ndim());
 
-    bool has_upsample = false;
-    bool has_downsample = false;
-
-    std::vector<int64_t> int_scales;
+    *has_upsample = false;
+    *has_downsample = false;
     for (int64_t i = 0; i < scales.shape()[0]; ++i) {
         chainerx::Scalar scale = chainerx::AsScalar(scales.At({i}));
         int64_t int_scale;
         if (scale.kind() == chainerx::DtypeKind::kFloat) {
             double double_scale = static_cast<double>(scale);
             if (double_scale > 1.0) {
-                has_upsample = true;
+                *has_upsample = true;
             } else if (double_scale < 1.0) {
                 double_scale = 1.0 / double_scale;
-                has_downsample = true;
+                *has_downsample = true;
             }
             int_scale = static_cast<int64_t>(std::round(double_scale));
             CHECK_EQ(double_scale, int_scale) << "Only int scale is supported: " << scales;
         } else {
             int_scale = static_cast<int64_t>(scale);
-            has_upsample = int_scale > 1;
+            *has_upsample = int_scale > 1;
         }
         CHECK_LE(1, int_scale) << "scales must be greater than or equal to 1: " << scales;
-        int_scales.push_back(int_scale);
+        int_scales->push_back(int_scale);
     }
 
-    CHECK(!has_upsample || !has_downsample) << "Resize with both upsampling and downsampling is not supported: scales=" << scales;
+    CHECK(!*has_upsample || !*has_downsample) << "Resize with both upsampling and downsampling is not supported: scales=" << scales;
+}
+
+}  // namespace
+
+chainerx::Array ResizeOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+    std::vector<int64_t> int_scales;
+    bool has_upsample = false;
+    bool has_downsample = false;
+    GetIntScales(scales, &int_scales, &has_upsample, &has_downsample);
 
     if (has_downsample) {
         return Downsample(x, int_scales);
@@ -180,6 +183,33 @@ chainerx::Array ResizeOp::RunImpl(ChxVMState* st, const chainerx::Array& x, cons
         return Upsample(x, int_scales);
     }
     CHECK(false);
+}
+
+chainerx::Array ResizeGradOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+    std::vector<int64_t> int_scales;
+    bool has_upsample = false;
+    bool has_downsample = false;
+    GetIntScales(chainerx::Reciprocal(scales), &int_scales, &has_upsample, &has_downsample);
+
+    chainerx::Array y;
+    if (has_downsample) {
+        y = Downsample(x, int_scales);
+    } else if (has_upsample) {
+        y = Upsample(x, int_scales);
+    } else {
+        CHECK(false);
+    }
+
+    int64_t total_scale = 1;
+    for (int64_t scale : int_scales) {
+        total_scale *= scale;
+    }
+    if (has_downsample) {
+        y *= total_scale;
+    } else if (has_upsample) {
+        y /= total_scale;
+    }
+    return y;
 }
 
 namespace {

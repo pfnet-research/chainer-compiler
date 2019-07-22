@@ -478,8 +478,7 @@ void ResizeGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
     CHECK_EQ(2, node->inputs().size());
-    Value* scale = gb.Op(Node::kReciprocal, {gc->x(1)});
-    gc->GradOp(Node::kResize, 0, {gc->gy(0), scale});
+    gc->GradOp(Node::kChainerResizeGrad, 0, {gc->gy(0), gc->x(1)});
 }
 
 void LogSoftmaxGradFn(GradientOpContext* gc) {
