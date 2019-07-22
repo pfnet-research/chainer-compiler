@@ -356,8 +356,10 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
 int64_t AutomaticBudgetDetection() {
     g_meminfo_enabled = true;
     auto info = runtime::GetMemoryUsageInBytes();
-    if (!info) return 100000000000LL;
-    else return info->second - 3 * info->first;
+    if (!info)
+        return 100000000000LL;
+    else
+        return info->second - 3 * info->first;
 }
 
 std::vector<Order> GTPolicy(const Graph& graph) {
