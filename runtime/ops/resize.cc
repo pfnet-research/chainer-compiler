@@ -120,6 +120,27 @@ chainerx::Array Downsample(const chainerx::Array& x, const std::vector<int64_t> 
     return y;
 }
 
+chainerx::Array Upsample(const chainerx::Array& x, const std::vector<int64_t> scales) {
+    chainerx::Shape to_shape(x.shape());
+    for (size_t i = 0; i < scales.size(); ++i) {
+        to_shape[i] *= scales[i];
+    }
+
+    if (scales.size() == 4 && scales[0] == 1 && scales[1] == 1 && x.GetItemSize() == 4) {
+        if (IsNativeDevice(&x.device())) {
+            return Upsample2D32bitForCPU(x, to_shape, scales);
+        } else {
+            chainerx::Array x_cpu = x.ToNative();
+            chainerx::Array y = Upsample2D32bitForCPU(x_cpu, to_shape, scales);
+            return y.ToDevice(x.device());
+        }
+    }
+
+    chainerx::Array y = chainerx::Zeros(to_shape, x.dtype());
+    NaiveUpsample(x, y, scales);
+    return y;
+}
+
 }  // namespace
 
 chainerx::Array UpsampleOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
@@ -155,25 +176,10 @@ chainerx::Array UpsampleOp::RunImpl(ChxVMState* st, const chainerx::Array& x, co
     if (has_downsample) {
         return Downsample(x, int_scales);
     }
-
-    chainerx::Shape to_shape(x.shape());
-    for (size_t i = 0; i < int_scales.size(); ++i) {
-        to_shape[i] *= int_scales[i];
+    if (has_upsample) {
+        return Upsample(x, int_scales);
     }
-
-    if (int_scales.size() == 4 && int_scales[0] == 1 && int_scales[1] == 1 && x.GetItemSize() == 4) {
-        if (IsNativeDevice(&x.device())) {
-            return Upsample2D32bitForCPU(x, to_shape, int_scales);
-        } else {
-            chainerx::Array x_cpu = x.ToNative();
-            chainerx::Array y = Upsample2D32bitForCPU(x_cpu, to_shape, int_scales);
-            return y.ToDevice(x.device());
-        }
-    }
-
-    chainerx::Array y = chainerx::Zeros(to_shape, x.dtype());
-    NaiveUpsample(x, y, int_scales);
-    return y;
+    CHECK(false);
 }
 
 namespace {
