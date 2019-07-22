@@ -53,5 +53,7 @@ chainerx::Array GroupedConv(
         int group,
         const std::string& auto_pad);
 
+chainerx::Array SlowRound(const chainerx::Array& a);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

@@ -265,5 +265,20 @@ chainerx::Array GroupedConv(
     return chainerx::Conv(x, w, b, strides, pads);
 }
 
+// TODO(take-cheeze): Implement in ChainerX
+chainerx::Array SlowRound(const chainerx::Array& x) {
+    std::vector<double> result_data(x.GetTotalSize());
+    chainerx::Array double_x = x.AsType(chainerx::Dtype::kFloat64);
+    const double* x_ptr = reinterpret_cast<const double*>(double_x.raw_data());
+    for (size_t i = 0; i < result_data.size(); ++i) {
+        result_data[i] = std::rint(x_ptr[i]);
+    }
+
+    chainerx::Array y = MakeArray(chainerx::Dtype::kFloat64, x.shape(), result_data.data());
+
+    // Back to input(x) dtype
+    return y.AsType(x.dtype());
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
