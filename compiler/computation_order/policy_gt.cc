@@ -6,10 +6,7 @@
 
 #include <compiler/flags.h>
 #include <compiler/flops.h>
-
-#ifdef CHAINER_COMPILER_ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif  // CHAINER_COMPILER_ENABLE_CUDA
+#include <runtime/meminfo.h>
 
 typedef std::vector<char> NodeSet;
 
@@ -357,16 +354,10 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
 }
 
 int64_t AutomaticBudgetDetection() {
-#ifdef CHAINER_COMPILER_ENABLE_CUDA
-    size_t free, total;
-    if (cudaMemGetInfo(&free, &total) != cudaSuccess) {
-        return 100000000000LL;
-    }
-    const size_t used = total - free;
-    return total - 3 * used;
-#else
-    return absl::nullopt;
-#endif  // CHAINER_COMPILER_ENABLE_CUDA
+    g_meminfo_enabled = true;
+    auto info = runtime::GetMemoryUsageInBytes();
+    if (!info) return 100000000000LL;
+    else return info->second - 3 * info->first;
 }
 
 std::vector<Order> GTPolicy(const Graph& graph) {
