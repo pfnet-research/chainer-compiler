@@ -151,6 +151,7 @@ NodeDef('ReduceL1', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceL2', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceLogSum', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceLogSumExp', 1, 1, axes=[int], keepdims=True)
+NodeDef('ReduceProd', 1, 1, axes=[int], keepdims=True)
 
 NodeDef('ArgMax', 1, 1, axis=0, keepdims=True)
 NodeDef('ArgMin', 1, 1, axis=0, keepdims=True)

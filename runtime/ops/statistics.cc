@@ -1,3 +1,4 @@
+#include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/reduction.h>
 #include <chainerx/routines/statistics.h>
@@ -42,6 +43,36 @@ chainerx::Array ReduceSumToOp::RunImpl(ChxVMState* st, const chainerx::Array& da
 
 chainerx::Array ReduceMeanOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::Mean(a, GetChainerXAxes(axes), keepdims != 0);
+}
+
+namespace {
+
+chainerx::Scalar ReduceProdAllAxes(const chainerx::Array& x) {
+    const int64_t num = x.GetTotalSize();
+    CHECK_LT(0, num);
+    chainerx::Array t = chainerx::Reshape(x, {num});
+    chainerx::Scalar y = chainerx::AsScalar(t.At({0}));
+    for (int64_t i = 1; i < num; ++i) {
+        y = y * chainerx::AsScalar(t.At({i}));
+    }
+    return y;
+}
+
+}  // namespace
+
+chainerx::Array ReduceProdOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+    CHECK(axes.empty()) << "ReduceProd is supported only for all dimensions";
+
+    chainerx::Array y = chainerx::Zeros({}, x.dtype());
+    y += ReduceProdAllAxes(x);
+    if (keepdims) {
+        chainerx::Shape to_shape = x.shape();
+        for (size_t i = 0; i < to_shape.size(); ++i) {
+            to_shape[i] = 1;
+        }
+        y = y.Reshape(to_shape);
+    }
+    return y;
 }
 
 }  // namespace runtime
