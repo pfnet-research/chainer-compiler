@@ -474,6 +474,14 @@ void AveragePoolGradFn(GradientOpContext* gc) {
             ->set_count_include_pad(node->count_include_pad());
 }
 
+void ResizeGradFn(GradientOpContext* gc) {
+    GraphBuilder gb{gc->builder(0)};
+    Node* node = gc->node();
+    CHECK_EQ(2, node->inputs().size());
+    Value* scale = gb.Op(Node::kReciprocal, {gc->x(1)});
+    gc->GradOp(Node::kResize, 0, {gc->gy(0), scale});
+}
+
 void LogSoftmaxGradFn(GradientOpContext* gc) {
     const Node* node = gc->node();
     GraphBuilder gb{gc->builder(0)};
@@ -1021,6 +1029,8 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kConv, &ConvGradFn);
         register_grad_fn(Node::kMaxPool, &MaxPoolGradFn);
         register_grad_fn(Node::kAveragePool, &AveragePoolGradFn);
+        register_grad_fn(Node::kUpsample, &ResizeGradFn);
+        register_grad_fn(Node::kResize, &ResizeGradFn);
         register_grad_fn(Node::kLogSoftmax, &LogSoftmaxGradFn);
         register_grad_fn(Node::kSoftmax, &SoftmaxGradFn);
 
