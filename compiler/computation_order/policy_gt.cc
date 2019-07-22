@@ -365,7 +365,7 @@ int64_t AutomaticBudgetDetection() {
     const size_t used = total - free;
     return total - 3 * used;
 #else
-    return nonstd::nullopt;
+    return absl::nullopt;
 #endif  // CHAINER_COMPILER_ENABLE_CUDA
 }
 
