@@ -1,4 +1,5 @@
 #include <chainerx/numeric_limits.h>
+#include <chainerx/routines/binary.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/misc.h>
@@ -45,14 +46,14 @@ chainerx::Array dequantize_array(const chainerx::Array& x, const chainerx::Scala
 }  // namespace
 
 chainerx::Array QuantizeLinearOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& x, const StrictScalar& y_scale, const nonstd::optional<StrictScalar>& y_zero_point_opt) {
+        ChxVMState* st, const chainerx::Array& x, const StrictScalar& y_scale, const absl::optional<StrictScalar>& y_zero_point_opt) {
     const StrictScalar y_zero_point =
             y_zero_point_opt.has_value() ? *y_zero_point_opt : StrictScalar(chainerx::Dtype::kUInt8, chainerx::Scalar(0u), false);
     return quantize_array(x, y_scale, y_zero_point);
 }
 
 chainerx::Array DequantizeLinearOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& x, const StrictScalar& x_scale, const nonstd::optional<StrictScalar>& x_zero_point_opt) {
+        ChxVMState* st, const chainerx::Array& x, const StrictScalar& x_scale, const absl::optional<StrictScalar>& x_zero_point_opt) {
     const StrictScalar x_zero_point =
             x_zero_point_opt.has_value() ? *x_zero_point_opt : StrictScalar(chainerx::Dtype::kUInt8, chainerx::Scalar(0u), false);
     return dequantize_array(x, chainerx::Scalar(x_scale), chainerx::Scalar(x_zero_point));
@@ -68,7 +69,7 @@ chainerx::Array QLinearConvOp::RunImpl(
         const chainerx::Array& w_zero_point,
         const StrictScalar& y_scale,
         const StrictScalar& y_zero_point,
-        const nonstd::optional<chainerx::Array>& b) {
+        const absl::optional<chainerx::Array>& b) {
     // Dequantize q_x and q_w
     const chainerx::Array x = dequantize_array(q_x, chainerx::Scalar(x_scale), chainerx::Scalar(x_zero_point));
     chainerx::Array w = q_w.AsType(chainerx::Dtype::kFloat32);
@@ -96,8 +97,8 @@ chainerx::Array MatMulIntegerOp::RunImpl(
         ChxVMState* st,
         const chainerx::Array& q_a,
         const chainerx::Array& q_b,
-        const nonstd::optional<chainerx::Array>& a_zero_point,
-        const nonstd::optional<chainerx::Array>& b_zero_point) {
+        const absl::optional<chainerx::Array>& a_zero_point,
+        const absl::optional<chainerx::Array>& b_zero_point) {
     chainerx::Array a = q_a.AsType(chainerx::Dtype::kInt32), b = q_b.AsType(chainerx::Dtype::kInt32);
 
     if (a_zero_point.has_value()) {
@@ -116,8 +117,8 @@ chainerx::Array ConvIntegerOp::RunImpl(
         ChxVMState* st,
         const chainerx::Array& q_x,
         const chainerx::Array& q_w,
-        const nonstd::optional<StrictScalar>& x_zero_point,
-        const nonstd::optional<chainerx::Array>& w_zero_point_opt) {
+        const absl::optional<StrictScalar>& x_zero_point,
+        const absl::optional<chainerx::Array>& w_zero_point_opt) {
     chainerx::Array x = q_x.AsType(chainerx::Dtype::kInt32), w = q_w.AsType(chainerx::Dtype::kInt32);
 
     if (x_zero_point.has_value()) {
@@ -141,7 +142,7 @@ chainerx::Array ConvIntegerOp::RunImpl(
     // Run convolution normally
     Int64StackVector comp_strides = ComplementStride(strides, x);
     Int64StackVector comp_pads = ComplementPad(pads, x);
-    return GroupedConv(x, w, nonstd::nullopt, comp_strides, comp_pads, group, auto_pad).AsType(chainerx::Dtype::kInt32);
+    return GroupedConv(x, w, absl::nullopt, comp_strides, comp_pads, group, auto_pad).AsType(chainerx::Dtype::kInt32);
 }
 
 // TODO(take-cheeze): Implement in ChainerX
@@ -160,31 +161,15 @@ chainerx::Array RoundOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return y.AsType(x.dtype());
 }
 
-// TODO(take-cheeze): Implement in ChainerX
 chainerx::Array BitShiftOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& y) {
     CHECK(!IsFloat(x.dtype()));
     CHECK(!IsFloat(y.dtype()));
-    chainerx::Array int64_x = x.AsType(chainerx::Dtype::kInt64);
-    chainerx::Array int64_y = y.BroadcastTo(x.shape()).AsType(chainerx::Dtype::kInt64);
-    const int64_t* x_ptr = reinterpret_cast<const int64_t*>(int64_x.raw_data());
-    const int64_t* y_ptr = reinterpret_cast<const int64_t*>(int64_y.raw_data());
-    std::vector<int64_t> result_data(x.GetTotalSize());
 
     if (direction == "LEFT") {
-        for (size_t i = 0; i < result_data.size(); ++i) {
-            result_data[i] = x_ptr[i] << y_ptr[i];
-        }
+        return chainerx::LeftShift(x, y);
     } else {
-        CHECK_EQ("RIGHT", direction);
-        for (size_t i = 0; i < result_data.size(); ++i) {
-            result_data[i] = x_ptr[i] >> y_ptr[i];
-        }
+        return chainerx::RightShift(x, y);
     }
-
-    chainerx::Array z = MakeArray(chainerx::Dtype::kInt64, x.shape(), result_data.data());
-
-    // Back to input(x) dtype
-    return z.AsType(x.dtype());
 }
 
 }  // namespace runtime

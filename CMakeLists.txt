@@ -123,7 +123,6 @@ add_dependencies(gen_onnx_operators_proto protoc)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/chainer/chainerx_cc)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/gsl-lite/include)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/optional-lite/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/googletest-src/googletest/include)
 
 enable_testing()
@@ -222,8 +221,7 @@ set(ONNX_CHAINER_DEPS
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/onnx-chainer/onnx_chainer/functions/pooling.py
   )
 
-add_subdirectory(third_party/abseil)
-set(ABSEIL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/abseil)
+set(ABSEIL_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/third_party/chainer/chainerx_cc/abseil)
 include_directories(${ABSEIL_INCLUDE_DIRS})
 
 add_subdirectory(compiler)
@@ -460,5 +458,6 @@ gen_elichika_test(model "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/ndarray "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Functions "${CHAINER_COMPILER_TEST_ALL}")
+gen_elichika_test(node/Functions/Activation "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Links "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(syntax "${CHAINER_COMPILER_TEST_ALL}")

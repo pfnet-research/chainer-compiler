@@ -162,7 +162,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*, chainerx::Array, chainerx::Array, chai
     std::shared_ptr<chainerx::BatchNormGradState> state;
     chainerx::Array out;
     std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
-            x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, nonstd::nullopt);
+            x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, absl::nullopt);
     ChxVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
     if (st->options().dump_memory_usage) {
         ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
@@ -210,9 +210,9 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array> BatchNormalization
             context.epsilon(),
             context.sorted_axis(),
             context.state(),
-            nonstd::nullopt,
-            nonstd::nullopt,
-            nonstd::nullopt);
+            absl::nullopt,
+            absl::nullopt,
+            absl::nullopt);
     chainerx::Array gx1 = chainerx::Reshape(ggamma, context.x1_shape());
     chainerx::Array gx2 = chainerx::Reshape(gbeta, context.x2_shape());
     return std::forward_as_tuple(gx, gx1, gx2);

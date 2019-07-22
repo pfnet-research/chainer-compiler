@@ -69,8 +69,8 @@ chainerx::Array MakeScalarArray(float f) {
 
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src) {
     std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
-    chainerx::Array array(chainerx::FromData(
-            shape, dtype, data, nonstd::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
+    chainerx::Array array(
+            chainerx::FromData(shape, dtype, data, absl::nullopt /* strides */, 0 /* offset */, chainerx::GetNativeBackend().GetDevice(0)));
     return array;
 }
 
@@ -153,7 +153,7 @@ chainerx::Array CastTo(const chainerx::Array& input, chainerx::Dtype dtype) {
 }
 
 chainerx::OptionalAxes GetChainerXAxes(chainerx::StackVector<int64_t, chainerx::kMaxNdim> axes) {
-    if (axes.empty()) return nonstd::nullopt;
+    if (axes.empty()) return absl::nullopt;
     chainerx::Axes xc_axes{axes.begin(), axes.end()};
     return xc_axes;
 }
@@ -227,7 +227,7 @@ chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b) 
 chainerx::Array GroupedConv(
         const chainerx::Array& x,
         const chainerx::Array& w,
-        const nonstd::optional<chainerx::Array>& b,
+        const absl::optional<chainerx::Array>& b,
         const Int64StackVector& strides,
         const Int64StackVector& in_pads,
         int group,
@@ -257,7 +257,7 @@ chainerx::Array GroupedConv(
         }
         std::vector<chainerx::Array> outputs(group);
         for (int i = 0; i < group; ++i) {
-            auto sub_bias = b.has_value() ? nonstd::optional<chainerx::Array>(biases[i]) : nonstd::nullopt;
+            auto sub_bias = b.has_value() ? absl::optional<chainerx::Array>(biases[i]) : absl::nullopt;
             outputs[i] = chainerx::Conv(inputs[i], weights[i], sub_bias, strides, pads);
         }
         return chainerx::Concatenate(outputs, 1);

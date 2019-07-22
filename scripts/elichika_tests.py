@@ -72,6 +72,8 @@ TESTS = [
     Generator('node/Functions', 'Mean'),
     Generator('node/Functions', 'Sum'),
 
+    Generator('node/Functions/Activation', 'Elu'),
+
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),
     Generator('node/Links', 'EmbedID'),
@@ -95,6 +97,9 @@ TESTS = [
     Generator('syntax', 'UserDefinedFunc'),
     Generator('syntax', 'Tuple'),
     Generator('syntax', 'Print'),
+    Generator('syntax', 'With'),
+    Generator('syntax', 'Dict'),
+    Generator('syntax', 'GetItem')
 ]
 
 

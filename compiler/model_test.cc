@@ -152,8 +152,8 @@ TEST(ModelTest, CompileCH2OResNet50) {
     EXPECT_LT(100 * 1000 * 1000, usage.param);
     EXPECT_GT(110 * 1000 * 1000, usage.param);
     // Followings could require some tweaks after some optimizations.
-    EXPECT_LT(200 * 1000 * 1000, usage.peak);
-    EXPECT_LT(500 * 1000 * 1000, usage.all);
+    EXPECT_LT(250 * 1000 * 1000, usage.peak);
+    EXPECT_LT(300 * 1000 * 1000, usage.all);
 }
 
 }  // namespace

@@ -2,7 +2,6 @@ get_filename_component(CHAINER_COMPILER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PAT
 set(CHAINER_COMPILER_COMMON_DIR ${CHAINER_COMPILER_ROOT_DIR}/common)
 set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
 set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
-set(OPTIONALLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/optional-lite/include)
 
 if (${CHAINER_COMPILER_ENABLE_PYTHON})
   add_definitions(-DCHAINER_COMPILER_ENABLE_PYTHON=1)
@@ -32,10 +31,31 @@ add_custom_target(
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.h
   )
 
+add_custom_command(
+  OUTPUT
+  "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
+  COMMAND
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.h
+  --output "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
+  )
+add_custom_command(
+  OUTPUT
+  "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  COMMAND
+  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.cc
+  --output "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
+  )
+add_custom_target(
+  compiler_flags_h
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/flags.h" "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
+  )
+
 include_directories(${GSLLITE_INCLUDE_DIRS})
-include_directories(${OPTIONALLITE_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_ROOT_DIR})
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${CHAINER_COMPILER_TVM_INCLUDE_DIRS})
 
@@ -51,7 +71,7 @@ add_library(chainer_compiler_compiler
   dtype.cc
   dtype_inference.cc
   evaluator.cc
-  flags.cc
+  ${CMAKE_CURRENT_BINARY_DIR}/flags.cc
   flops.cc
   fusion.cc
   fusion_dldt.cc
@@ -87,7 +107,7 @@ add_library(chainer_compiler_compiler
   )
 add_dependencies(
   chainer_compiler_compiler
-  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h
+  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h compiler_flags_h
   gen_onnx_proto gen_onnx_operators_proto
   )
 set_hidden_(chainer_compiler_compiler)
@@ -155,6 +175,7 @@ target_link_libraries(chainer_compiler_compiler_test
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant
+  absl::optional
   )
 
 add_test(

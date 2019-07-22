@@ -1,7 +1,7 @@
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import values
 from chainer_compiler.elichika.parser import functions
-from chainer_compiler.elichika.parser.graphs import Graph
+from chainer_compiler.elichika.parser import graphs
 
 import chainer.links
 
@@ -89,7 +89,8 @@ class ChainerLinkFunction(functions.FunctionBase):
         self.name = '__call__'
         self.owner = owner
 
-    def vcall(self, module: 'values.Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
 
         chainer_link = chainer_links[type(self.owner.inst)]
 
@@ -109,7 +110,7 @@ class ChainerLinkFunction(functions.FunctionBase):
         if chainer_link.get_ret is not None:
             ret = chainer_link.get_ret()
             node.set_outputs(ret)
-            return values.ValueRef(values.TupleValue([values.ValueRef(v) for v in ret]))
+            return values.Object(values.TupleValue([values.Object(v) for v in ret]))
         else:
             value = values.TensorValue()
 
@@ -119,15 +120,15 @@ class ChainerLinkFunction(functions.FunctionBase):
                 value.shape = estimate_shape(self.owner.inst, vargs)
 
             node.set_outputs([value])
-            return values.ValueRef(value)
+            return values.Object(value)
 
 
 class ChainerLinkInstance(values.Instance):
     def __init__(self, module: 'Field', inst):
         super().__init__(module, inst, None)
 
-    def apply_to_object(self, obj: 'values.ValueRef'):
-        callable_func = values.ValueRef(
+    def apply_to_object(self, obj: 'values.Object'):
+        callable_func = values.Object(
             values.FuncValue(ChainerLinkFunction(self), obj))
 
         obj.attributes.set_predefined_obj('__call__', callable_func)
@@ -140,13 +141,14 @@ class ChainerChainListChildrenFunction(functions.FunctionBase):
         self.name = 'children'
         self.owner = owner
 
-    def vcall(self, module: 'Field', graph: 'Graph', inst: 'values.ValueRef', args: 'functions.FunctionArgInput', line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
         args = functions.FunctionArgInput()
         args.inputs.append(inst)
         args.keywords['self'] = inst
 
         value = values.ListValue(self.owner.children)
-        return values.ValueRef(value)
+        return values.Object(value)
 
 
 class ChainerChainListInstance(values.UserDefinedInstance):
@@ -159,9 +161,9 @@ class ChainerChainListInstance(values.UserDefinedInstance):
             child_ = values.parse_instance(module, '', child, inst)
             self.children.append(child_)
 
-    def apply_to_object(self, obj: 'values.ValueRef'):
+    def apply_to_object(self, obj: 'values.Object'):
         super().apply_to_object(obj)
-        children = values.ValueRef(
+        children = values.Object(
             values.FuncValue(ChainerChainListChildrenFunction(self), obj))
         obj.attributes.set_predefined_obj('children', children)
 
@@ -181,9 +183,9 @@ class ChainerChainInstance(values.UserDefinedInstance):
             child_ = values.parse_instance(module, '', child, inst)
             self.children.append(child_)
 
-    def apply_to_object(self, obj: 'values.ValueRef'):
+    def apply_to_object(self, obj: 'values.Object'):
         super().apply_to_object(obj)
-        children = values.ValueRef(
+        children = values.Object(
             values.FuncValue(ChainerChainListChildrenFunction(self), obj))
         obj.get_field().get_attribute('children').revise(children)
 
