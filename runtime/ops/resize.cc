@@ -143,7 +143,7 @@ chainerx::Array Upsample(const chainerx::Array& x, const std::vector<int64_t> sc
 
 }  // namespace
 
-chainerx::Array UpsampleOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
+chainerx::Array ResizeOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const chainerx::Array& scales) {
     CHECK_EQ(1, scales.ndim());
 
     bool has_upsample = false;
