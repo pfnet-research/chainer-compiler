@@ -40,6 +40,11 @@ void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<V
         if (!input->type().dtype().IsFloat()) continue;
         if (!input->grad()) {
             if (input->users().size() == 1 && input->user(0)->op_type() == Node::kBatchNormalization) continue;
+            // TODO(hamaji): Use the following patch instead of this hack.
+            // https://github.com/pfnet-research/chainer-compiler/pull/497/commits/2678099b4912a1b42edc53a079848699af735608
+            if (input->users().size() > 1 && input->user(0)->op_type() == Node::kResize && input->user(0)->inputs().size() == 2 &&
+                input->user(0)->input(1) == input)
+                continue;
             std::cerr << "No gradient for parameter: " << input->name() << std::endl;
             ok = false;
             continue;
