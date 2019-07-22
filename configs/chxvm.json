@@ -158,6 +158,7 @@
         "Reciprocal": true,
         "ReduceMax": true,
         "ReduceMean": true,
+        "ReduceProd": true,
         "ReduceSum": true,
         "ReduceSumSquare": true,
         "Relu": true,

@@ -461,20 +461,12 @@ private:
         } else if (node.op_type() == Node::kLogSoftmax) {
             EMIT(LogSoftmax, out(0), in(0), node.axis(), node.chainer_is_onnx_semantics());
         } else if (node.op_type() == Node::kArgMax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ArgMax, out(0), in(0), node.axis(), node.keepdims());
         } else if (node.op_type() == Node::kHardmax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(Hardmax, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kReduceMax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceMax, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSum) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSumSquare) {
             CHECK_EQ(1UL, node.inputs().size());
@@ -485,9 +477,9 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumTo, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kReduceMean) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == Node::kReduceProd) {
+            EMIT(ReduceProd, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kCast) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());

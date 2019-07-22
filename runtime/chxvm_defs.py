@@ -218,6 +218,7 @@ XC_OPS = [
      ['reduced']),
     ('ReduceSumTo', [Array('data'), Shape('shape')], ['reduced']),
     ('ReduceMean', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
+    ('ReduceProd', [Array('data'), Ints('axes'), Int('keepdims')], ['reduced']),
 
     ('Linear',
      [Array('x'), Array('w'), OptionalArray('b'), Int('n_batch_axes')],
