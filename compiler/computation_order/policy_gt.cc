@@ -1,3 +1,5 @@
+// Implementation of "A Graph Theoretic Framework of Recomputation Algorithms"
+// https://arxiv.org/abs/1905.11722
 #include "compiler/computation_order/policy_gt.h"
 
 #include <queue>
@@ -9,7 +11,7 @@
 #include <cuda_runtime.h>
 #endif  // CHAINER_COMPILER_ENABLE_CUDA
 
-typedef std::vector<char> NodeSet;  // Here, I use vector<bool> by taking some risk.
+typedef std::vector<char> NodeSet;
 
 namespace chainer_compiler {
 
@@ -233,11 +235,6 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
   opt[0][0] = std::make_tuple(0, nl + 1, 0);
 
   for (size_t i = 0; i < nl; ++i) {
-    // std::cout << "#SIZE[" << i << "]=" << opt[i].size() << std::endl;
-    // if (opt[i].size()) {
-      // std::cout << "   " << opt[i].begin()->first << " " << opt[i].rbegin()->first << std::endl;
-      // std::cout << "   " << std::get<0>(opt[i].begin()->second) / 1000000 << " MB" << std::endl;
-    // }
     const NodeSet& ls = lower_sets[i];
     for (size_t i_next = i + 1; i_next < nl; ++i_next) {
       const NodeSet& ls_next = lower_sets[i_next];
@@ -247,8 +244,6 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
       const int64_t additional_memory1 = std::get<0>(info);
       const int64_t additional_memory234 = std::get<1>(info);
       const size_t additional_flops = std::get<2>(info);
-
-      // std::cout << "#### = " << (double)(additional_memory1 / 1000) / 1000 << "MB, " << additional_memory234 / 1000000 << "MB" << std::endl;
 
       for (const auto& p : opt[i]) {
         const size_t flops = p.first;
@@ -322,15 +317,15 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
   }
 
   std::vector<Order> orders;
-  // forward part
+  // Forward part
   for (size_t i = 0; i < len; ++i) {
-    // compute as usual
+    // Compute as usual
     for (Value* value : blocks[i]) {
       Node* producer = value->producer();
       CHECK(producer);
       orders.emplace_back(Order::kComputeForward, producer, nullptr);
     }
-    // forget non-boundary values
+    // Forget non-boundary values
     for (size_t k = 0; k < sg.n; ++k) {
       if (!forget_sets[i][k]) continue;
       Value* forget_value = sg.value_list[k];
@@ -338,9 +333,9 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
     }
   }
 
-  // backward part
+  // Backward part
   for (size_t i = len; i-- > 0; ) {
-    // recompute forgotten values
+    // Recompute forgotten values
     for (Value* value : blocks[i]) {
       const size_t k = sg.value_ids.find(value)->second;
       if (!forget_sets[i][k]) continue;
@@ -350,7 +345,7 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
       orders.emplace_back(Order::kComputeForward, producer, nullptr);
     }
 
-    // backward as usual
+    // Backward as usual
     for (auto it = blocks[i].rbegin(); it != blocks[i].rend(); it++) {
       Node* producer = (*it)->producer();
       CHECK(producer);
@@ -370,13 +365,13 @@ int64_t AutomaticBudgetDetection() {
   const size_t used = total - free;
   return total - 3 * used;
 #else
-    return nonstd::nullopt;
+  return nonstd::nullopt;
 #endif  // CHAINER_COMPILER_ENABLE_CUDA
 }
 
 std::vector<Order> GTPolicy(const Graph& graph) {
   const int64_t budget = (g_gt_budget ? (g_gt_budget * 1000000LL) : AutomaticBudgetDetection());
-  std::cout << "budget=" << budget << std::endl;
+  std::cerr << "GT budget=" << budget << " bytes" << std::endl;
   SimpleGraph sg = GetSimpleFormGraph(graph);
 
   DiscretizeFlops(&sg);
@@ -384,13 +379,7 @@ std::vector<Order> GTPolicy(const Graph& graph) {
   const std::vector<NodeSet> lower_sets = EnumerateLowerSets(sg);
   const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget);
 
-  // std::cout << "#=" << seq.size() << std::endl;
-  // for (auto s : seq) std::cout << Size(s) << " ";
-  // std::cout << std::endl;
-
   const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
-
-  // for (auto order : orders) std::cout << order << "\n";
 
   return orders;
 }
