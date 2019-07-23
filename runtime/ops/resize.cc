@@ -101,7 +101,7 @@ chainerx::Array Upsample2D32bitForCPU(chainerx::Array x, const chainerx::Shape& 
     return y;
 }
 
-chainerx::Array Downsample(const chainerx::Array& x, const std::vector<int64_t> scales) {
+chainerx::Array Downsample(const chainerx::Array& x, const std::vector<int64_t>& scales) {
     chainerx::Shape to_shape(x.shape());
     for (size_t i = 0; i < scales.size(); ++i) {
         int64_t scale = scales[i];
@@ -118,20 +118,35 @@ chainerx::Array Downsample(const chainerx::Array& x, const std::vector<int64_t> 
     return y;
 }
 
-chainerx::Array Upsample(const chainerx::Array& x, const std::vector<int64_t> scales) {
+chainerx::Array Upsample2D(const chainerx::Array& x, const std::vector<int64_t>& scales) {
+    const chainerx::Shape& shape = x.shape();
+    chainerx::Array t = x;
+    CHECK_EQ(4, scales.size());
+    for (size_t si = 2; si < 4; ++si) {
+        std::vector<chainerx::Array> xs;
+        for (int64_t i = 0; i < scales[si]; ++i) {
+            xs.push_back(t);
+        }
+        t = chainerx::Concatenate(xs, si);
+    }
+
+    t = t.Reshape({shape[0], shape[1], scales[2], shape[2], scales[3], shape[3]});
+    t = chainerx::Transpose(t, {0, 1, 3, 2, 5, 4});
+    t = t.Reshape({shape[0], shape[1], scales[2] * shape[2], scales[3] * shape[3]});
+    return t;
+}
+
+chainerx::Array Upsample(const chainerx::Array& x, const std::vector<int64_t>& scales) {
     chainerx::Shape to_shape(x.shape());
     for (size_t i = 0; i < scales.size(); ++i) {
         to_shape[i] *= scales[i];
     }
 
-    if (scales.size() == 4 && scales[0] == 1 && scales[1] == 1 && x.GetItemSize() == 4) {
-        if (IsNativeDevice(&x.device())) {
+    if (scales.size() == 4 && scales[0] == 1 && scales[1] == 1) {
+        if (x.GetItemSize() == 4 && IsNativeDevice(&x.device())) {
             return Upsample2D32bitForCPU(x, to_shape, scales);
-        } else {
-            chainerx::Array x_cpu = x.ToNative();
-            chainerx::Array y = Upsample2D32bitForCPU(x_cpu, to_shape, scales);
-            return y.ToDevice(x.device());
         }
+        return Upsample2D(x, scales);
     }
 
     chainerx::Array y = chainerx::Zeros(to_shape, x.dtype());
