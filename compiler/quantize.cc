@@ -145,10 +145,6 @@ std::vector<QuantizedInput> QuantizeInputs(
                 weight = QuantizeWeight(opts, gb, initializer->chx(), qType);
             }
 
-            if (!IsQuantized(weight)) {
-                UpdateUnsupportedNodesUsingWeight(weight);
-            }
-
             result.push_back(weight);
         } else {
             // Add QuantizeLiner
