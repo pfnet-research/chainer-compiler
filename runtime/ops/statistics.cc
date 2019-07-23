@@ -14,6 +14,10 @@ chainerx::Array ReduceMaxOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::AMax(a, GetChainerXAxes(axes), keepdims != 0);
 }
 
+chainerx::Array ReduceMinOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
+    return chainerx::AMin(a, GetChainerXAxes(axes), keepdims != 0);
+}
+
 chainerx::Array ReduceSumOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
     return chainerx::Sum(a, GetChainerXAxes(axes), keepdims != 0);
 }
