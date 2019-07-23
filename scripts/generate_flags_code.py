@@ -117,6 +117,10 @@ FLAGS = {
         'type': 'int',
         'doc': 'Memory budget of Chen\'s policy (in MB)'
     },
+    'gt_budget': {
+        'type': 'int',
+        'doc': 'Memory budget of GT policy (in MB)'
+    },
 }
 
 

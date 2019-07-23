@@ -65,6 +65,7 @@ add_library(chainer_compiler_compiler
   computation_order/policy_chen.cc
   computation_order/policy_custom.cc
   computation_order/policy_dummy.cc
+  computation_order/policy_gt.cc
   custom_onnx_ops.cc
   dtype.cc
   dtype_inference.cc

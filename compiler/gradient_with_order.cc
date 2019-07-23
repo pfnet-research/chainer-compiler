@@ -3,6 +3,7 @@
 #include "compiler/computation_order/policy_chen.h"
 #include "compiler/computation_order/policy_custom.h"
 #include "compiler/computation_order/policy_dummy.h"
+#include "compiler/computation_order/policy_gt.h"
 
 #include <functional>
 #include <iostream>
@@ -104,6 +105,8 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
         return CustomPolicy(graph, policy.substr(7));
     } else if (policy == "chen") {
         return ChenPolicy(graph);
+    } else if (policy == "gt") {
+        return GTPolicy(graph);
     } else {
         CHECK(false) << "Unknown policy of computation order: " << policy;
         return {};
