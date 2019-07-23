@@ -55,7 +55,7 @@ std::map<std::string, VarPtr> LoadParams(const std::shared_ptr<Graph>& graph) {
 
 void Configure(
 #include "chainer_compiler_cc/cxx_args.inc"
-) {
+){
 #include "chainer_compiler_cc/apply_cxx_args.inc"
 }
 
