@@ -235,6 +235,10 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_globalaveragepool'),
     TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
     TestCase(NODE_TEST, 'test_upsample_nearest'),
+    TestCase(NODE_TEST, 'test_resize_upsample_nearest'),
+    # TestCase(NODE_TEST, 'test_resize_upsample_linear'),
+    # TestCase(NODE_TEST, 'test_resize_downsample_nearest'),
+    # TestCase(NODE_TEST, 'test_resize_downsample_linear'),
     # The second ROI values mismatch. Let the test pass with
     # ridiculously large tolerance.
     TestCase(NODE_TEST, 'test_roialign', rtol=0.5, atol=0.5),
@@ -376,6 +380,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_reduce_min_do_not_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_min_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_min_keepdims_random'),
+    TestCase(NODE_TEST, 'test_reduce_prod_default_axes_keepdims_example'),
+    TestCase(NODE_TEST, 'test_reduce_prod_default_axes_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_example'),
     TestCase(NODE_TEST, 'test_reduce_sum_default_axes_keepdims_random'),
     TestCase(NODE_TEST, 'test_reduce_sum_do_not_keepdims_example'),

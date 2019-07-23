@@ -10,6 +10,9 @@ configs {
     time_limit {
       seconds: 3600
     }
+    checkout_strategy {
+      ignore_gitignore: true
+    }
     command: "sh .chainerci/run_chainerci_tests.sh"
   }
 }
@@ -24,6 +27,9 @@ configs {
     }
     time_limit {
       seconds: 3600
+    }
+    checkout_strategy {
+      ignore_gitignore: true
     }
     command: "sh .chainerci/run_chainerci_pip_tests.sh"
   }

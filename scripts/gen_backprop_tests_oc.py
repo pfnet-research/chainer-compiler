@@ -155,6 +155,10 @@ def get_backprop_tests():
              2, stride=1, cover_all=False),
          a=aranges(2, 3, 5, 5) % 9)
 
+    test('unpool',
+         lambda m: F.unpooling_2d(m.a, 2, stride=2, cover_all=False),
+         a=aranges(2, 3, 11, 11))
+
     return tests
 
 

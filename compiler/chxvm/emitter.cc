@@ -410,7 +410,9 @@ private:
             EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
         } else if (node.op_type() == Node::kUpsample || node.op_type() == Node::kResize) {
             CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
-            EMIT(Upsample, out(0), in(0), in(1));
+            EMIT(Resize, out(0), in(0), in(1));
+        } else if (node.op_type() == Node::kChainerResizeGrad) {
+            EMIT(ResizeGrad, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kPad) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
@@ -461,20 +463,12 @@ private:
         } else if (node.op_type() == Node::kLogSoftmax) {
             EMIT(LogSoftmax, out(0), in(0), node.axis(), node.chainer_is_onnx_semantics());
         } else if (node.op_type() == Node::kArgMax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ArgMax, out(0), in(0), node.axis(), node.keepdims());
         } else if (node.op_type() == Node::kHardmax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(Hardmax, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kReduceMax) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceMax, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSum) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSumSquare) {
             CHECK_EQ(1UL, node.inputs().size());
@@ -485,9 +479,9 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceSumTo, out(0), in(0), in(1));
         } else if (node.op_type() == Node::kReduceMean) {
-            CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ(1UL, node.outputs().size());
             EMIT(ReduceMean, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == Node::kReduceProd) {
+            EMIT(ReduceProd, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kCast) {
             CHECK_EQ(1UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
