@@ -82,6 +82,7 @@
         "ChainerROIMaxPool2D": true,
         "ChainerReduceSumTo": true,
         "ChainerReluGrad": true,
+        "ChainerResizeGrad": true,
         "ChainerResizeImages": true,
         "ChainerSelectItem": true,
         "ChainerSelectItemGrad": true,

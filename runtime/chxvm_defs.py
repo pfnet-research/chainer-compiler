@@ -286,7 +286,8 @@ XC_OPS = [
 
     ('Dropout', [Array('data'), Float('ratio')], ['output', 'mask']),
 
-    ('Upsample', [Array('x'), Array('scales')], ['y']),
+    ('Resize', [Array('x'), Array('scales')], ['y']),
+    ('ResizeGrad', [Array('x'), Array('scales')], ['y']),
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
