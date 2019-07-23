@@ -17,6 +17,7 @@ chainerx::Array ShapeToArray(const chainerx::Shape& s);
 chainerx::Array MakeArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
 chainerx::Array MakeScalarArray(float f);
+chainerx::Array MakeDtypeScalarArray(chainerx::Dtype dtype, chainerx::Scalar scalar);
 
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 

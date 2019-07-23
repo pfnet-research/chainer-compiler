@@ -23,6 +23,7 @@ enum class QuantizationMode {
 };
 
 struct QuantizationParams {
+    Dtype zero_point_dtype;
     float zero_point, scale;
 };
 

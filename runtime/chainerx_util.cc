@@ -67,6 +67,10 @@ chainerx::Array MakeScalarArray(float f) {
     return MakeArray(chainerx::Dtype::kFloat32, {}, &f);
 }
 
+chainerx::Array MakeDtypeScalarArray(chainerx::Dtype dtype, chainerx::Scalar s) {
+    return chainerx::Full({}, s, dtype);
+}
+
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src) {
     std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
     chainerx::Array array(

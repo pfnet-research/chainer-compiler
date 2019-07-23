@@ -116,7 +116,14 @@ QuantizedInput QuantizeWeightConvolution(const QuantizationOptions& opts, GraphB
 }
 
 QuantizedOutput QuantizeOutput(const QuantizationOptions& opts, GraphBuilder* gb, Value* output) {
-    if (opts.output_quantization_params.)
+    auto it = opts.output_quantization_params.find(output->name());
+    CHECK(it != opts.output_quantization_params.end());
+
+    const QuantizationParams& param = it->second;
+
+    Value* scale = gb->Const(runtime::MakeScalarArray(param.scale));
+    Value* zero_point = gb->Const(runtime::MakeDtypeScalarArray(param.zero_point_dtype.chx(), param.zero_point));
+    return {output, scale, zero_point, {}, {}};
 }
 
 std::vector<QuantizedInput> QuantizeInputs(
@@ -145,14 +152,43 @@ std::vector<QuantizedInput> QuantizeInputs(
             result.push_back(weight);
         } else {
             // Add QuantizeLiner
-            Value* scale, zero_point;
+            Value* scale;
+            Value* zero_point;
             if (opts.is_static) {
                 auto it = opts.input_quantization_params.find(node_input->name());
                 CHECK(it != opts.input_quantization_params.end());
                 const QuantizationParams& param = it->second;
-                scale = gb->Const();
+                scale = gb->Const(runtime::MakeScalarArray(param.scale));
+                zero_point = gb->Const(runtime::MakeDtypeScalarArray(qType.chx(), param.zero_point));
             } else {
-                
+                // Graph for dynamic quantize parameter
+                DataMode mode = ModeForDataType(qType);
+
+                Value* rmin = gb->Op(Node::kReduceMin, {node_input});
+                rmin->producer()->set_keep_dims(0);
+                Value* rmax = gb->Op(Node::kReduceMax, {node_input});
+                rmax->producer()->set_keep_dims(0);
+
+                Value* fixed_qrange_scaled = gb->Const(runtime::MakeScalarArray(QRangeForQtype(qType)));
+
+                if (mode == DataMode::Linear_Scaled) {
+                    Value* abs_rmin = gb->Op(Node::kAbs, rmin);
+                    Value* abs_rmax = gb->Op(Node::kAbs, rmax);
+                    Value* abs_max = gb->Op(NOde::kMax, {abs_rmin, abs_rmax});
+                    scale = gb->Op(Node::kDiv, {abs_max, fixed_qrange_scaled});
+
+                    zero_point = gb->Const(runtime::MakeScalarArray(0.f));
+                } else {
+                    CHECK_EQ(DataMode::Linear_NonScaled, mode);
+
+                    Value* scale_sub = gb->Op(Node::kSub, {rmax, rmin});
+                    scale = gb->Op(Node::kDiv, {scale_sub, fixed_qrange_scaled});
+
+                    Value* zp_sub = gb->Op(Node::kSub, {gb->Const(gb->Const(runtime::MakeScalarArray(0.f))), rmin});
+                    Value* zp_div = gb->Op(Node::kDiv, {zp_sub, scale});
+                    Value* zp_floor = gb->Op(Node::kFloor, {zp_div});
+                    zero_point = gb->Op(Node::kCast, {zp_floor});
+                }
             }
 
             Value* qlinear_out = gb->Op(Node::kQuantizeLinear, {node_input, scale, zero_point});
@@ -250,7 +286,7 @@ bool QuantizeConvolutionQLinear(const QuantizationOptions& opts, Graph* graph, N
             ->set_auto_pad(conv->auto_pad())
             ->set_pads(conv->pads());
 
-    gb.Op(Node::kDequantizeLinear, {qlinear_conv_out, quantized_output.scale, quantized_output.zero_point}, conv->outputs());
+    gb.Op(Node::kDequantizeLinear, {qlinear_conv_out, quantized_output.scale, quantized_output.zero_point}, conv->output(0));
 
     conv->Detach();
 
@@ -260,10 +296,11 @@ bool QuantizeConvolutionQLinear(const QuantizationOptions& opts, Graph* graph, N
 bool QuantizeMatMulQLinear(const QuantizationOptions& opts, Graph* graph, Node* matmul) {
     CHECK_EQ(Node::kMatMul, matmul->op_type());
 
-    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(opts, graph, matmul, {0, 1}, 1);
-    QuantizedOutput quantized_output = QuantizeOutput(opts, graph, matmul->output(0));
-
     GraphBuilder gb(graph, "QuantizeMatMulWithQLinear", matmul->input(0));
+
+    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(opts, &gb, matmul, {0, 1}, 1);
+    QuantizedOutput quantized_output = QuantizeOutput(opts, &gb, matmul->output(0));
+
     Value* qlinear_matmul_out =
             gb.Op(Node::kQLinearMatMul,
                   {
