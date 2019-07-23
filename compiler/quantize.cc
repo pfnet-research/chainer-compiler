@@ -165,16 +165,16 @@ std::vector<QuantizedInput> QuantizeInputs(
                 DataMode mode = ModeForDataType(qType);
 
                 Value* rmin = gb->Op(Node::kReduceMin, {node_input});
-                rmin->producer()->set_keep_dims(0);
+                rmin->producer()->set_keepdims(0);
                 Value* rmax = gb->Op(Node::kReduceMax, {node_input});
-                rmax->producer()->set_keep_dims(0);
+                rmax->producer()->set_keepdims(0);
 
                 Value* fixed_qrange_scaled = gb->Const(runtime::MakeScalarArray(QRangeForQtype(qType)));
 
                 if (mode == DataMode::Linear_Scaled) {
-                    Value* abs_rmin = gb->Op(Node::kAbs, rmin);
-                    Value* abs_rmax = gb->Op(Node::kAbs, rmax);
-                    Value* abs_max = gb->Op(NOde::kMax, {abs_rmin, abs_rmax});
+                    Value* abs_rmin = gb->Op(Node::kAbs, {rmin});
+                    Value* abs_rmax = gb->Op(Node::kAbs, {rmax});
+                    Value* abs_max = gb->Op(Node::kMax, {abs_rmin, abs_rmax});
                     scale = gb->Op(Node::kDiv, {abs_max, fixed_qrange_scaled});
 
                     zero_point = gb->Const(runtime::MakeScalarArray(0.f));
@@ -184,7 +184,7 @@ std::vector<QuantizedInput> QuantizeInputs(
                     Value* scale_sub = gb->Op(Node::kSub, {rmax, rmin});
                     scale = gb->Op(Node::kDiv, {scale_sub, fixed_qrange_scaled});
 
-                    Value* zp_sub = gb->Op(Node::kSub, {gb->Const(gb->Const(runtime::MakeScalarArray(0.f))), rmin});
+                    Value* zp_sub = gb->Op(Node::kSub, {gb->Const(runtime::MakeScalarArray(0.f)), rmin});
                     Value* zp_div = gb->Op(Node::kDiv, {zp_sub, scale});
                     Value* zp_floor = gb->Op(Node::kFloor, {zp_div});
                     zero_point = gb->Op(Node::kCast, {zp_floor});
