@@ -20,3 +20,4 @@ build/
 out/
 
 # exclude the data directory created by test model downloader
+data/
