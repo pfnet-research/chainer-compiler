@@ -2,6 +2,7 @@
 // https://arxiv.org/abs/1905.11722
 #include "compiler/computation_order/policy_gt.h"
 
+#include <numeric>
 #include <queue>
 
 #include <compiler/flags.h>
