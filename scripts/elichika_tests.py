@@ -73,6 +73,7 @@ TESTS = [
     Generator('node/Functions', 'Sum'),
 
     Generator('node/Functions/Activation', 'Elu'),
+    Generator('node/Functions/Activation', 'LeakyRelu'),
 
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),
