@@ -138,6 +138,33 @@ def convert_onnx_chainer_convolution2d(onnx_graph: 'ONNXGraph', node: 'nodes.Nod
         strides=stride)
 
 
+def convert_onnx_chainer_convolutionnd(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'):
+    chainer_inst = node.func.owner.inst  # type: chainer.links.ConvolutionND
+
+    nd = chainer_inst.W.ndim - 2
+    ksize = oc.size_nd(chainer_inst.ksize, nd)
+    stride = oc.size_nd(chainer_inst.stride, nd)
+    ps = oc.size_nd(chainer_inst.pad, nd)
+    pads = ps + ps
+
+    x = oc.ONNXValue(onnx_graph, node.args.get_value('x'))
+    o = oc.ONNXValue(onnx_graph, node.outputs[0])
+    w = oc.ONNXValue(onnx_graph, chainer_inst.W)
+    b = None
+
+    if chainer_inst.b is not None:
+        b = oc.ONNXValue(onnx_graph, chainer_inst.b)
+
+    onnx_graph.add_node(
+        'Conv',
+        [x, w] + ([] if b is None else [b]),
+        [o],
+        str(node.lineprop),
+        kernel_shape=ksize,
+        pads=pads,
+        strides=stride)
+
+
 def convert_onnx_chainer_batch_normalization(onnx_graph: 'ONNXGraph', node: 'nodes.NodeCall'):
     chainer_inst = node.func.owner.inst  # type: chainer.links.BatchNormalization
 
