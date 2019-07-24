@@ -103,7 +103,7 @@ def try_get_ref(value, name, lineprop) -> 'values.Object':
 
 def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Value':
     if value is None:
-        utils.print_warning('Failed to get value in "{}".'.format(name), lineprop)
+        print_warning('Failed to get value in "{}".'.format(name), lineprop)
         return None
 
     if isinstance(value, values.NoneValue) and not is_none_allowed:
