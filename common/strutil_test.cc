@@ -21,5 +21,12 @@ TEST(StrUtilTest, StrCat) {
     EXPECT_EQ("99", StrCat(99));
 }
 
+TEST(StrUtilTest, JoinString) {
+    EXPECT_EQ("foo,bar,baz", JoinString({"foo", "bar", "baz"}, ","));
+    EXPECT_EQ("foo, bar", JoinString({"foo", "bar"}, ", "));
+    EXPECT_EQ("foo", JoinString({"foo"}, ", "));
+    EXPECT_EQ("", JoinString({}, ", "));
+}
+
 }  // namespace
 }  // namespace chainer_compiler
