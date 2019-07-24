@@ -47,6 +47,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
 
     oc.chainer_l_converter[L.Linear] = lb.convert_onnx_chainer_linear
     oc.chainer_l_converter[L.Convolution2D] = lb.convert_onnx_chainer_convolution2d
+    oc.chainer_l_converter[L.ConvolutionND] = lb.convert_onnx_chainer_convolutionnd
     oc.chainer_l_converter[L.BatchNormalization] = lb.convert_onnx_chainer_batch_normalization
     oc.chainer_l_converter[L.NStepLSTM] = lb.convert_onnx_chainer_NStepLSTM
     oc.chainer_l_converter[L.NStepBiLSTM] = lb.convert_onnx_chainer_NStepBiLSTM

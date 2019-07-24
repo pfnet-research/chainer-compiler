@@ -26,6 +26,11 @@ def estimate_convolution2D_shape(inst: 'chainer.links.Convolution2D', args: 'fun
     return functions.generate_tensor_value_with_undefined_shape_size(args.get_value().get_value('x')).shape
 
 
+def estimate_convolutionND_shape(inst: 'chainer.links.ConvolutionND', args: 'functions.FunctionArgInput'):
+    # TODO make correct
+    return functions.generate_tensor_value_with_undefined_shape_size(args.get_value().get_value('x')).shape
+
+
 def estimate_batch_norm_shape(inst: 'chainer.links.BatchNormalization', args: 'functions.FunctionArgInput'):
     if isinstance(args.get_value().get_value('x'), values.TensorValue):
         return args.get_value().get_value('x').shape
@@ -63,6 +68,8 @@ chainer_links[chainer.links.Linear] = ChainerLinkDefinition(
     estimate_shape=estimate_linear_shape)
 chainer_links[chainer.links.Convolution2D] = ChainerLinkDefinition(
     estimate_shape=estimate_convolution2D_shape)
+chainer_links[chainer.links.ConvolutionND] = ChainerLinkDefinition(
+    estimate_shape=estimate_convolutionND_shape)
 chainer_links[chainer.links.BatchNormalization] = ChainerLinkDefinition(
     estimate_shape=estimate_batch_norm_shape)
 chainer_links[chainer.links.NStepLSTM] = ChainerLinkDefinition(
