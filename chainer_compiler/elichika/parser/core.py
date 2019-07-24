@@ -82,6 +82,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     add_chainer_function(F.relu)
     add_chainer_function(F.elu)
+    add_chainer_function(F.leaky_relu)
     add_chainer_function(F.softmax)
     add_chainer_function(F.softmax_cross_entropy)
     add_chainer_function(F.pad_sequence)

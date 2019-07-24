@@ -54,6 +54,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
 
     oc.chainer_f_converter[F.relu] = fb.ConverterRelu()
     oc.chainer_f_converter[F.elu] = fb.ConverterElu()
+    oc.chainer_f_converter[F.leaky_relu] = fb.ConverterLeakyRelu()
     oc.chainer_f_converter[F.softmax] = fb.ConverterSoftmax()
     oc.chainer_f_converter[F.pad_sequence] = fb.ConverterPadSequence()
     oc.chainer_f_converter[F.softmax_cross_entropy] = fb.ConverterSoftmaxCrossEntropy()
