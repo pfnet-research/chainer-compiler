@@ -6,7 +6,7 @@ cat /proc/cpuinfo
 cat /proc/meminfo
 nvidia-smi
 
-python3 -m pip install gast chainercv
+python3 -m pip install gast chainercv packaging
 CHAINER_VERSION=$(python3 -c "import imp;print(imp.load_source('_version','third_party/chainer/chainer/_version.py').__version__)")
 python3 -m pip install cupy-cuda100==$CHAINER_VERSION
 
