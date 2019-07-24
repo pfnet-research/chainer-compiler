@@ -237,6 +237,7 @@ class CompiledModel(chainer.Chain):
         self.compile(onnx_file)
 
     def compile(self, onnx_file):
+        # TODO(hamaji): Revive shape inference.
         compiler_kwargs = {'skip_inference': True}
         if self.compiler_kwargs is not None:
             compiler_kwargs.update(self.compiler_kwargs)
@@ -266,7 +267,6 @@ class CompiledModel(chainer.Chain):
         self.fwd_output_names = fwd_graph.output_names()
         self.bwd_input_names = bwd_graph.input_names()
         self.bwd_output_names = bwd_graph.output_names()
-        # TODO(hamaji): Revive shape inference.
         self.fwd = fwd_graph.compile(skip_scheduling)
         self.bwd = bwd_graph.compile(skip_scheduling)
         self.param_names = fwd_graph.param_names()
