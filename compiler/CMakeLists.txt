@@ -155,7 +155,8 @@ add_executable(chainer_compiler_compiler_test
   )
 add_dependencies(
   chainer_compiler_compiler_test
-  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h gen_onnx_proto test_models
+  runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h compiler_flags_h
+  gen_onnx_proto test_models
   )
 target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler
