@@ -219,7 +219,7 @@ bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
 }
 
 bool MaybeMergeMatMulAdd(Graph* graph, Node* matmul) {
-    if (matmul->input(0)->type().ndim() > 2 || matmul->input(1)->type().ndim() > 2) {
+    if (matmul->input(0)->type().ndim() != 2 || matmul->input(1)->type().ndim() != 2) {
         return false;
     }
 
@@ -236,7 +236,7 @@ bool MaybeMergeMatMulAdd(Graph* graph, Node* matmul) {
     GraphBuilder gb(graph, "MergeMatMulAdd", matmul->input(0));
 
     Value* c = add->input(add->input(0) == matmul->output(0) ? 1 : 0);
-    if (c->type().ndim() > 2) {
+    if (c->type().ndim() != 2) {
         return false;
     }
     gb.Op(Node::kGemm, {matmul->input(0), matmul->input(1), c}, add->output(0));
