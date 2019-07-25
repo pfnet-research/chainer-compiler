@@ -17,6 +17,7 @@
 #include <compiler/memory_simulator.h>
 #include <compiler/merge.h>
 #include <compiler/model.h>
+#include <compiler/quantize.h>
 #include <compiler/scheduler.h>
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
@@ -120,6 +121,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
         Recursively(PropagateConstants, graph);
 
         Recursively(EvaluateShapes, graph);
+
+        if (g_quantize) {
+            QuantizationOptions q_opts;
+            Recursively([q_opts](Graph* graph) { Quantize(q_opts, graph); }, graph);
+        }
 
         Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 

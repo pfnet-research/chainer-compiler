@@ -377,4 +377,31 @@ bool Quantize(const QuantizationOptions& opts, Graph* graph) {
     return QuantizeModel(ctx);
 }
 
+std::ostream& operator<<(std::ostream& os, QuantizationMode mode) {
+    switch (mode) {
+        case QuantizationMode::IntegerOps:
+            os << "IntegerOps";
+            break;
+        case QuantizationMode::QLinearOps:
+            os << "QLinearOps";
+            break;
+        default:
+            os << "(Unknown)";
+            break;
+    }
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, QuantizationMethod meth) {
+    switch (meth) {
+        case QuantizationMethod::OnnxRuntime:
+            os << "ONNX Runtime";
+            break;
+        default:
+            os << "(Unknown)";
+            break;
+    }
+    return os;
+}
+
 }  // namespace chainer_compiler
