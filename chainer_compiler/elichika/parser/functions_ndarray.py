@@ -188,7 +188,6 @@ class NDArrayCumsumFunction(functions.FunctionBase):
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalContext' = None, line=-1):
-        assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
         vargs = funcArgs.get_value().inputs
@@ -241,4 +240,27 @@ class NDArraySizeFunction(functions.FunctionBase):
         node.set_outputs([value])
 
         graph.add_node(node)
+        return values.Object(value)
+
+def create_return_value_in_chainer_function():
+    return values.TensorValue()
+
+class NDArrayChainerFunction(functions.FunctionBase):
+    def __init__(self, func, ret_value_func = create_return_value_in_chainer_function):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func)
+        self.base_func = func
+        self.ret_value_func = ret_value_func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        #value = functions.generate_value_with_same_type(vargs[0])
+        value = self.ret_value_func()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
         return values.Object(value)

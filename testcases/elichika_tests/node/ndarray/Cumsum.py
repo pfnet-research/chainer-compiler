@@ -15,6 +15,15 @@ class A(chainer.Chain):
         y1 = np.cumsum(ps)
         return y1
 
+class Self(chainer.Chain):
+
+    def __init__(self):
+        super(Self, self).__init__()
+
+    def forward(self, ps):
+        y1 = ps.cumsum()
+        return y1
+
 # ======================================
 
 def main():
@@ -26,6 +35,8 @@ def main():
     ps = [3, 1, 4, 1, 5, 9, 2]
 
     testtools.generate_testcase(model, [ps])
+
+    testtools.generate_testcase(Self(), [np.array(ps)], subname='self')
 
 if __name__ == '__main__':
     main()

@@ -11,6 +11,10 @@ class Sum(chainer.Chain):
         return F.sum(x, axis=1)
 
 
+class SumSelf(chainer.Chain):
+    def forward(self, x):
+        return x.sum(axis=1)
+
 class SumKeepdims(chainer.Chain):
     def forward(self, x):
         return F.sum(x, axis=0, keepdims=True)
@@ -48,6 +52,8 @@ def main():
     a = np.random.rand(6, 2, 3).astype(np.float32)
 
     testtools.generate_testcase(Sum(), [a])
+
+    testtools.generate_testcase(SumSelf(), [a], subname='self')
 
     testtools.generate_testcase(SumKeepdims(), [a], subname='keepdims')
 
