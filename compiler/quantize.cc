@@ -371,7 +371,7 @@ bool Quantize(const QuantizationOptions& opts, Graph* graph) {
     CHECK_EQ(QuantizationMethod::OnnxRuntime, opts.method);
     QuantizationContext ctx(opts);
     ctx.graph = graph;
-    ctx.input_qdtype = Dtype(Dtype::kUInt8);
+    ctx.input_qdtype = Dtype::kUInt8;
     ctx.weight_qdtype = opts.asymmertic_input_types ? Dtype::kInt8 : Dtype::kUInt8;
 
     return QuantizeModel(ctx);
