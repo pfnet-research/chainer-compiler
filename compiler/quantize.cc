@@ -191,6 +191,7 @@ std::vector<QuantizedInput> QuantizeInputs(
                     Value* zp_div = gb->Op(Node::kDiv, {zp_sub, scale});
                     Value* zp_floor = gb->Op(Node::kFloor, {zp_div});
                     zero_point = gb->Op(Node::kCast, {zp_floor});
+                    zero_point->producer()->set_to(qType);
                 }
             }
 
@@ -203,7 +204,7 @@ std::vector<QuantizedInput> QuantizeInputs(
 }
 
 bool QuantizeConvolutionInteger(const QuantizationContext& ctx, Node* conv) {
-    CHECK_EQ(Node::kMatMul, conv->op_type());
+    CHECK_EQ(Node::kConv, conv->op_type());
 
     GraphBuilder gb(ctx.graph, "QuantizeConvWithInteger", conv->input(0));
 
