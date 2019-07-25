@@ -12,6 +12,13 @@ namespace chainer_compiler {
 
 namespace {
 
+struct QuantizationContext : public QuantizationOptions {
+    QuantizationContext(const QuantizationOptions& opts) : QuantizationOptions(opts) {
+    }
+    Graph* graph;
+    Dtype input_qdtype, weight_qdtype;
+};
+
 struct QuantizedInput {
     Value* input;
     Value* scale;
@@ -59,7 +66,7 @@ struct QuantizedData {
     chainerx::Array data;
 };
 
-QuantizedData QuantizeData(const QuantizationOptions& opts, const chainerx::Array& data, float quantize_range, DataMode mode) {
+QuantizedData QuantizeData(const QuantizationContext& ctx, const chainerx::Array& data, float quantize_range, DataMode mode) {
     float rmin = std::min(float(chainerx::AsScalar(data.Min())), 0.f);
     float rmax = std::max(float(chainerx::AsScalar(data.Max())), 0.f);
 
@@ -80,16 +87,16 @@ QuantizedData QuantizeData(const QuantizationOptions& opts, const chainerx::Arra
     return {rmin, rmax, scale, zero_point, quantized};
 }
 
-QuantizedInput QuantizeWeight(const QuantizationOptions& opts, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
-    QuantizedData quantized = QuantizeData(opts, w, QRangeForQtype(dtype), ModeForDataType(dtype));
+QuantizedInput QuantizeWeight(const QuantizationContext& ctx, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
+    QuantizedData quantized = QuantizeData(ctx, w, QRangeForQtype(dtype), ModeForDataType(dtype));
     Value* scale = gb->Const(chainerx::Full({}, quantized.scale, chainerx::Dtype::kFloat32, w.device()));
     Value* zero_point = gb->Const(chainerx::Full({}, quantized.zero_point, chainerx::Dtype::kFloat32, w.device()));
     return {gb->Const(quantized.data), scale, zero_point};
 }
 
-QuantizedInput QuantizeWeightConvolution(const QuantizationOptions& opts, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
-    if (opts.per_channel) {
-        return QuantizeWeight(opts, gb, w, dtype);
+QuantizedInput QuantizeWeightConvolution(const QuantizationContext& ctx, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
+    if (ctx.per_channel) {
+        return QuantizeWeight(ctx, gb, w, dtype);
     }
 
     int64_t channel_count = w.shape()[0];
@@ -100,7 +107,7 @@ QuantizedInput QuantizeWeightConvolution(const QuantizationOptions& opts, GraphB
 
     for (int64_t i = 0; i < channel_count; ++i) {
         chainerx::Array per_channel_data = w.At({i});
-        QuantizedData quantized = QuantizeData(opts, per_channel_data, QRangeForQtype(dtype), ModeForDataType(dtype));
+        QuantizedData quantized = QuantizeData(ctx, per_channel_data, QRangeForQtype(dtype), ModeForDataType(dtype));
         rmin_list.push_back(quantized.rmin);
         rmax_list.push_back(quantized.rmax);
         zero_point_list.push_back(quantized.zero_point);
@@ -115,9 +122,9 @@ QuantizedInput QuantizeWeightConvolution(const QuantizationOptions& opts, GraphB
     return {gb->Const(chainerx::Stack(quantized_weights)), scale, zero_point};
 }
 
-QuantizedOutput QuantizeOutput(const QuantizationOptions& opts, GraphBuilder* gb, Value* output) {
-    auto it = opts.output_quantization_params.find(output->name());
-    CHECK(it != opts.output_quantization_params.end());
+QuantizedOutput QuantizeOutput(const QuantizationOptions& ctx, GraphBuilder* gb, Value* output) {
+    auto it = ctx.output_quantization_params.find(output->name());
+    CHECK(it != ctx.output_quantization_params.end());
 
     const QuantizationParams& param = it->second;
 
@@ -127,22 +134,22 @@ QuantizedOutput QuantizeOutput(const QuantizationOptions& opts, GraphBuilder* gb
 }
 
 std::vector<QuantizedInput> QuantizeInputs(
-        const QuantizationOptions& opts, GraphBuilder* gb, Node* node, const std::vector<int64_t>& indices, int64_t weight_index) {
+        const QuantizationContext& ctx, GraphBuilder* gb, Node* node, const std::vector<int64_t>& indices, int64_t weight_index) {
     CHECK(node->op_type() == Node::kConv || node->op_type() == Node::kMatMul);
 
     std::vector<QuantizedInput> result;
 
     for (int64_t input_index : indices) {
-        Dtype qType = input_index == weight_index ? opts.weight_qdtype : opts.input_qdtype;
+        Dtype qType = input_index == weight_index ? ctx.weight_qdtype : ctx.input_qdtype;
         Value* node_input = node->input(input_index);
         const Tensor* initializer = node_input->GetConstTensor();
         if (initializer) {
             // Treat input with initializer as weight
             QuantizedInput weight;
             if (node->op_type() == Node::kConv && input_index == weight_index) {
-                weight = QuantizeWeightConvolution(opts, gb, initializer->chx(), qType);
+                weight = QuantizeWeightConvolution(ctx, gb, initializer->chx(), qType);
             } else {
-                weight = QuantizeWeight(opts, gb, initializer->chx(), qType);
+                weight = QuantizeWeight(ctx, gb, initializer->chx(), qType);
             }
 
             result.push_back(weight);
@@ -150,9 +157,9 @@ std::vector<QuantizedInput> QuantizeInputs(
             // Add QuantizeLiner
             Value* scale;
             Value* zero_point;
-            if (opts.is_static) {
-                auto it = opts.input_quantization_params.find(node_input->name());
-                CHECK(it != opts.input_quantization_params.end());
+            if (ctx.is_static) {
+                auto it = ctx.input_quantization_params.find(node_input->name());
+                CHECK(it != ctx.input_quantization_params.end());
                 const QuantizationParams& param = it->second;
                 scale = gb->Const(runtime::MakeScalarArray(param.scale));
                 zero_point = gb->Const(runtime::MakeDtypeScalarArray(qType.chx(), param.zero_point));
@@ -195,12 +202,12 @@ std::vector<QuantizedInput> QuantizeInputs(
     return result;
 }
 
-bool QuantizeConvolutionInteger(const QuantizationOptions& opts, Graph* graph, Node* conv) {
+bool QuantizeConvolutionInteger(const QuantizationContext& ctx, Node* conv) {
     CHECK_EQ(Node::kMatMul, conv->op_type());
 
-    GraphBuilder gb(graph, "QuantizeConvWithInteger", conv->input(0));
+    GraphBuilder gb(ctx.graph, "QuantizeConvWithInteger", conv->input(0));
 
-    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(opts, &gb, conv, {0, 1}, 1);
+    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(ctx, &gb, conv, {0, 1}, 1);
 
     Value* conv_int_out =
             gb.Op(Node::kConvInteger,
@@ -224,12 +231,12 @@ bool QuantizeConvolutionInteger(const QuantizationOptions& opts, Graph* graph, N
     return true;
 }
 
-bool QuantizeMatMulInteger(const QuantizationOptions& opts, Graph* graph, Node* matmul) {
+bool QuantizeMatMulInteger(const QuantizationContext& ctx, Node* matmul) {
     CHECK_EQ(Node::kMatMul, matmul->op_type());
 
-    GraphBuilder gb(graph, "QuantizeMatMulWithInteger", matmul->input(0));
+    GraphBuilder gb(ctx.graph, "QuantizeMatMulWithInteger", matmul->input(0));
 
-    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(opts, &gb, matmul, {0, 1}, 1);
+    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(ctx, &gb, matmul, {0, 1}, 1);
 
     Value* matmul_int_out =
             gb.Op(Node::kMatMulInteger,
@@ -253,13 +260,13 @@ bool QuantizeMatMulInteger(const QuantizationOptions& opts, Graph* graph, Node* 
     return true;
 }
 
-bool QuantizeConvolutionQLinear(const QuantizationOptions& opts, Graph* graph, Node* conv) {
+bool QuantizeConvolutionQLinear(const QuantizationContext& ctx, Node* conv) {
     CHECK_EQ(Node::kConv, conv->op_type());
 
-    GraphBuilder gb(graph, "QuantizeConvWithQLinear", conv->input(0));
+    GraphBuilder gb(ctx.graph, "QuantizeConvWithQLinear", conv->input(0));
 
-    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(opts, &gb, conv, {0, 1}, 1);
-    QuantizedOutput quantized_output = QuantizeOutput(opts, &gb, conv->output(0));
+    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(ctx, &gb, conv, {0, 1}, 1);
+    QuantizedOutput quantized_output = QuantizeOutput(ctx, &gb, conv->output(0));
 
     Value* qlinear_conv_out =
             gb.Op(Node::kQLinearConv,
@@ -289,13 +296,13 @@ bool QuantizeConvolutionQLinear(const QuantizationOptions& opts, Graph* graph, N
     return true;
 }
 
-bool QuantizeMatMulQLinear(const QuantizationOptions& opts, Graph* graph, Node* matmul) {
+bool QuantizeMatMulQLinear(const QuantizationContext& ctx, Node* matmul) {
     CHECK_EQ(Node::kMatMul, matmul->op_type());
 
-    GraphBuilder gb(graph, "QuantizeMatMulWithQLinear", matmul->input(0));
+    GraphBuilder gb(ctx.graph, "QuantizeMatMulWithQLinear", matmul->input(0));
 
-    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(opts, &gb, matmul, {0, 1}, 1);
-    QuantizedOutput quantized_output = QuantizeOutput(opts, &gb, matmul->output(0));
+    std::vector<QuantizedInput> quantized_inputs = QuantizeInputs(ctx, &gb, matmul, {0, 1}, 1);
+    QuantizedOutput quantized_output = QuantizeOutput(ctx, &gb, matmul->output(0));
 
     Value* qlinear_matmul_out =
             gb.Op(Node::kQLinearMatMul,
@@ -316,38 +323,38 @@ bool QuantizeMatMulQLinear(const QuantizationOptions& opts, Graph* graph, Node* 
     return true;
 }
 
-bool QuantizeConvolution(const QuantizationOptions& opts, Graph* graph, Node* conv) {
+bool QuantizeConvolution(const QuantizationContext& ctx, Node* conv) {
     CHECK_EQ(Node::kConv, conv->op_type());
 
-    if (opts.mode == QuantizationMode::IntegerOps) {
-        return QuantizeConvolutionInteger(opts, graph, conv);
+    if (ctx.mode == QuantizationMode::IntegerOps) {
+        return QuantizeConvolutionInteger(ctx, conv);
     }
 
-    CHECK_EQ(QuantizationMode::QLinearOps, opts.mode);
-    return QuantizeConvolutionQLinear(opts, graph, conv);
+    CHECK_EQ(QuantizationMode::QLinearOps, ctx.mode);
+    return QuantizeConvolutionQLinear(ctx, conv);
 }
 
-bool QuantizeMatMul(const QuantizationOptions& opts, Graph* graph, Node* matmul) {
+bool QuantizeMatMul(const QuantizationContext& ctx, Node* matmul) {
     CHECK_EQ(Node::kMatMul, matmul->op_type());
 
-    if (opts.mode == QuantizationMode::IntegerOps) {
-        return QuantizeMatMulInteger(opts, graph, matmul);
+    if (ctx.mode == QuantizationMode::IntegerOps) {
+        return QuantizeMatMulInteger(ctx, matmul);
     }
 
-    CHECK_EQ(QuantizationMode::QLinearOps, opts.mode);
-    return QuantizeMatMulQLinear(opts, graph, matmul);
+    CHECK_EQ(QuantizationMode::QLinearOps, ctx.mode);
+    return QuantizeMatMulQLinear(ctx, matmul);
 }
 
-bool QuantizeModel(const QuantizationOptions& opts, Graph* graph) {
+bool QuantizeModel(const QuantizationContext& ctx) {
     bool result = false;
 
-    for (Node* node : graph->GetLiveNodes()) {
+    for (Node* node : ctx.graph->GetLiveNodes()) {
         switch (node->op_type()) {
             case Node::kConv:
-                result = result || QuantizeConvolution(opts, graph, node);
+                result = result || QuantizeConvolution(ctx, node);
                 break;
             case Node::kMatMul:
-                result = result || QuantizeMatMul(opts, graph, node);
+                result = result || QuantizeMatMul(ctx, node);
                 break;
             default:
                 break;
@@ -359,18 +366,15 @@ bool QuantizeModel(const QuantizationOptions& opts, Graph* graph) {
 
 }  // namespace
 
-bool Quantize(const QuantizationOptions& opts_, Graph* graph) {
-    QuantizationOptions opts = opts_;
+bool Quantize(const QuantizationOptions& opts, Graph* graph) {
     CHECK_EQ(8, opts.nbits);
     CHECK_EQ(QuantizationMethod::OnnxRuntime, opts.method);
-    if (opts.input_qdtype == Dtype::kUnknown) {
-        opts.input_qdtype = Dtype(Dtype::kInt8);
-    }
-    if (opts.weight_qdtype == Dtype::kUnknown) {
-        opts.weight_qdtype = opts.asymmertic_input_types ? Dtype::kInt8 : Dtype::kUInt8;
-    }
+    QuantizationContext ctx(opts);
+    ctx.graph = graph;
+    ctx.input_qdtype = Dtype(Dtype::kUInt8);
+    ctx.weight_qdtype = opts.asymmertic_input_types ? Dtype::kInt8 : Dtype::kUInt8;
 
-    return QuantizeModel(opts, graph);
+    return QuantizeModel(ctx);
 }
 
 }  // namespace chainer_compiler

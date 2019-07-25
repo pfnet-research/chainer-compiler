@@ -38,8 +38,6 @@ struct QuantizationOptions {
 
     std::unordered_map<std::string, QuantizationParams> input_quantization_params;
     std::unordered_map<std::string, QuantizationParams> output_quantization_params;
-
-    Dtype input_qdtype, weight_qdtype;
 };
 
 bool Quantize(const QuantizationOptions& opts, Graph* graph);
