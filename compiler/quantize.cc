@@ -90,7 +90,7 @@ QuantizedData QuantizeData(const QuantizationContext& ctx, const chainerx::Array
 QuantizedInput QuantizeWeight(const QuantizationContext& ctx, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
     QuantizedData quantized = QuantizeData(ctx, w, QRangeForQtype(dtype), ModeForDataType(dtype));
     Value* scale = gb->Const(chainerx::Full({}, quantized.scale, chainerx::Dtype::kFloat32, w.device()));
-    Value* zero_point = gb->Const(chainerx::Full({}, quantized.zero_point, chainerx::Dtype::kFloat32, w.device()));
+    Value* zero_point = gb->Const(chainerx::Full({}, quantized.zero_point, dtype.chx(), w.device()));
     return {gb->Const(quantized.data), scale, zero_point};
 }
 
@@ -180,7 +180,7 @@ std::vector<QuantizedInput> QuantizeInputs(
                     Value* abs_max = gb->Op(Node::kMax, {abs_rmin, abs_rmax});
                     scale = gb->Op(Node::kDiv, {abs_max, fixed_qrange_scaled});
 
-                    zero_point = gb->Const(runtime::MakeScalarArray(0.f));
+                    zero_point = gb->Const(runtime::MakeScalarArray(0.f).AsType(qType.chx()));
                 } else {
                     CHECK_EQ(DataMode::Linear_NonScaled, mode);
 
