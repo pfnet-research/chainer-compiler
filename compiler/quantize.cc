@@ -218,6 +218,13 @@ bool QuantizeConvolutionInteger(const QuantizationContext& ctx, Node* conv) {
                           quantized_inputs[0].zero_point,
                           quantized_inputs[1].zero_point,
                   });
+    conv_int_out->producer()
+            ->set_dilations(conv->dilations())
+            ->set_group(conv->group())
+            ->set_kernel_shape(conv->kernel_shape())
+            ->set_strides(conv->strides())
+            ->set_auto_pad(conv->auto_pad())
+            ->set_pads(conv->pads());
 
     // Cast ConvInteger output to float
     Value* cast_out = gb.Op(Node::kCast, {conv_int_out});
