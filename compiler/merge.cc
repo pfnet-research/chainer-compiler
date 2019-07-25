@@ -218,6 +218,35 @@ bool MaybeMergeTransposeGemm(Graph* graph, Node* trans) {
     return true;
 }
 
+bool MaybeMergeMatMulAdd(Graph* graph, Node* matmul) {
+    if (matmul->input(0)->type().ndim() > 2 || matmul->input(1)->type().ndim() > 2) {
+        return false;
+    }
+
+    Node* add;
+    const std::vector<Node*>& users = matmul->output(0)->users();
+    if (users.size() != 1) {
+        return false;
+    }
+    add = users.front();
+    if (add->op_type() != Node::kAdd) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "MergeMatMulAdd", matmul->input(0));
+
+    Value* c = add->input(add->input(0) == matmul->output(0) ? 1 : 0);
+    if (c->type().ndim() > 2) {
+        return false;
+    }
+    gb.Op(Node::kGemm, {matmul->input(0), matmul->input(1), c}, add->output(0));
+
+    graph->DetachNode(matmul);
+    graph->DetachNode(add);
+
+    return true;
+}
+
 }  // namespace
 
 void MergeOperations(Graph* graph, bool gen_backprop) {
@@ -246,6 +275,9 @@ void MergeOperations(Graph* graph, bool gen_backprop) {
                     break;
                 case Node::kTranspose:
                     replaced |= MaybeMergeTransposeGemm(graph, node);
+                    break;
+                case Node::kMatMul:
+                    replaced |= MaybeMergeMatMulAdd(graph, node);
                     break;
                 default:
                     break;
