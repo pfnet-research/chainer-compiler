@@ -26,10 +26,14 @@ import numpy as np
 import collections
 
 
-def size2d(x):
+def size_nd(x, nd):
     if isinstance(x, collections.Iterable):
-        return list(x)
-    return (x, x)
+        return tuple(x)
+    return (x,) * nd
+
+
+def size2d(x):
+    return size_nd(x, 2)
 
 
 def get_onnx_dtype(dtype):

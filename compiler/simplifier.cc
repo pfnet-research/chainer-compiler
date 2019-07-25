@@ -70,17 +70,6 @@ bool ReplaceArgMin(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceReduceMin(Graph* graph, Node* node) {
-    CHECK_EQ(1UL, node->inputs().size());
-    CHECK_EQ(1UL, node->outputs().size());
-    GraphBuilder gb(graph, "SimplifyReduceMin", node->output(0));
-    Value* t0 = gb.Op(Node::kNeg, node->inputs());
-    Value* t1 = gb.Op(Node::kReduceMax, {t0});
-    t1->producer()->set_axes(node->axes())->set_keepdims(node->keepdims());
-    gb.Op(Node::kNeg, {t1}, node->output(0));
-    return true;
-}
-
 bool ReplaceLpNormalization(Graph* graph, Node* node) {
     CHECK_EQ(2, node->p()) << "TODO(hamaji): Implement other norms";
     CHECK_LE(0, node->axis()) << "TODO(hamaji): Implement axis=-1";
@@ -693,7 +682,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(Sum);
     REGISTER_SIMPLIFIER(Less);
     REGISTER_SIMPLIFIER(ArgMin);
-    REGISTER_SIMPLIFIER(ReduceMin);
     REGISTER_SIMPLIFIER(LpNormalization);
     REGISTER_SIMPLIFIER(ChainerSoftmaxCrossEntropy);
     // TODO(hamaji): Revive Scan.

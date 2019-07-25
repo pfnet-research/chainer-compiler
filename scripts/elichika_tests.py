@@ -36,6 +36,7 @@ TESTS = [
     Generator('node', 'AveragePool2d'),
     Generator('node', 'BatchNorm'),
     Generator('node', 'Convolution2D'),
+    Generator('node', 'ConvolutionND'),
     Generator('node', 'Id'),
     Generator('node', 'Linear'),
     Generator('node', 'PadSequence'),
@@ -73,6 +74,7 @@ TESTS = [
     Generator('node/Functions', 'Sum'),
 
     Generator('node/Functions/Activation', 'Elu'),
+    Generator('node/Functions/Activation', 'LeakyRelu'),
 
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),

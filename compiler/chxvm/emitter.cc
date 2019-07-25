@@ -468,6 +468,8 @@ private:
             EMIT(Hardmax, out(0), in(0), node.axis());
         } else if (node.op_type() == Node::kReduceMax) {
             EMIT(ReduceMax, out(0), in(0), node.axes(), node.keepdims());
+        } else if (node.op_type() == Node::kReduceMin) {
+            EMIT(ReduceMin, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSum) {
             EMIT(ReduceSum, out(0), in(0), node.axes(), node.keepdims());
         } else if (node.op_type() == Node::kReduceSumSquare) {

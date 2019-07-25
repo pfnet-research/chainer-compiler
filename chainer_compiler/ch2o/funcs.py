@@ -482,6 +482,15 @@ class Function_Squeeze(Callable):
         )
 
 
+class Function_LeakyRelu(Callable):
+    def call_impl(self, env, x, slope):
+        return env.calc(
+            'LeakyRelu',
+            inputs=[x.to_tensor(env).name],
+            alpha=slope.to_float(),
+        )
+
+
 class Function_Sum(Callable):
     def call_impl(self, env, x, axis, keepdims):
         if not axis.has_py_value:
@@ -606,6 +615,7 @@ for fn, cls in [(F.expand_dims, Function_ExpandDims),
                 (F.softmax, Function_Softmax),
                 (F.squeeze, Function_Squeeze),
                 (chainer.Variable, Function_Chainer_Variable),
+                (F.leaky_relu, Function_LeakyRelu),
 ]:
     Func2NodeClass[fn] = cls(fn)
 

@@ -237,6 +237,12 @@ class CompiledModel(chainer.Chain):
         self.compile(onnx_file)
 
     def compile(self, onnx_file):
+        # TODO(hamaji): Revive shape inference.
+        compiler_kwargs = {'skip_inference': True}
+        if self.compiler_kwargs is not None:
+            compiler_kwargs.update(self.compiler_kwargs)
+        _chainer_compiler_core.configure(**compiler_kwargs)
+
         graph = _chainer_compiler_core.load(onnx_file)
         self.orig_output_names = graph.output_names()
 
@@ -261,15 +267,8 @@ class CompiledModel(chainer.Chain):
         self.fwd_output_names = fwd_graph.output_names()
         self.bwd_input_names = bwd_graph.input_names()
         self.bwd_output_names = bwd_graph.output_names()
-        compiler_kwargs = {
-            'skip_scheduling': skip_scheduling,
-            'skip_inference': True
-        }
-        if self.compiler_kwargs is not None:
-            compiler_kwargs.update(self.compiler_kwargs)
-        # TODO(hamaji): Revive shape inference.
-        self.fwd = fwd_graph.compile(**compiler_kwargs)
-        self.bwd = bwd_graph.compile(**compiler_kwargs)
+        self.fwd = fwd_graph.compile(skip_scheduling)
+        self.bwd = bwd_graph.compile(skip_scheduling)
         self.param_names = fwd_graph.param_names()
 
         if self.used_translator == 'ch2o':
