@@ -11,15 +11,6 @@ import chainer.links as L
 def create_return_value_in_chainer_function():
     return values.TensorValue()
 
-class UnimplementedFunction(functions.FunctionBase):
-    def __init__(self, func):
-        super().__init__()
-        self.name = func.__name__
-
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
-        raise utils.UnimplementedError('{} is unimplemented.'.format(self.name), utils.LineProperty(line))
-
 class ChainerFunction(functions.FunctionBase):
     def __init__(self, func, ret_value_func = create_return_value_in_chainer_function):
         super().__init__()

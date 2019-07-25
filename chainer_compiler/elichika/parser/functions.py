@@ -403,3 +403,12 @@ class UserDefinedFunction(FunctionBase):
         func_field.dispose()
 
         return ret
+
+class UnimplementedFunction(FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        raise utils.UnimplementedError('{} is unimplemented.'.format(self.name), utils.LineProperty(line))

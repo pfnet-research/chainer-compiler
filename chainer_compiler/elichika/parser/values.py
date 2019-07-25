@@ -923,6 +923,18 @@ class TensorValue(Value):
             FuncValue(functions_ndarray.NDArraySizeFunction(), obj, None))
         obj.attributes.set_predefined_obj('size', size_func)
 
+        cumsum_func = Object(
+            FuncValue(functions_ndarray.NDArrayCumsumFunction(), obj, None))
+        obj.attributes.set_predefined_obj('cumsum', cumsum_func)
+
+        def add_chainer_function(func):
+            func_ = Object(
+                FuncValue(functions_ndarray.NDArrayChainerFunction(func), obj, None))
+            obj.attributes.set_predefined_obj(func.__name__, func_)
+
+        add_chainer_function(F.reshape)
+        add_chainer_function(F.sum)
+
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
 
