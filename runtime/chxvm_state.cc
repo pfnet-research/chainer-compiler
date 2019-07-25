@@ -244,6 +244,7 @@ bool HasElemInVar(chainerx::Array (*pred_fn)(const chainerx::Array&), const ChxV
 
 void ChxVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
+        if (output < 0) continue;
         if (!HasElemInVar(chainerx::IsNan, *GetVar(output))) continue;
 
         std::cerr << "NaN detected!\n";
@@ -253,6 +254,7 @@ void ChxVMState::CheckNans(const std::vector<int>& inputs, const std::vector<int
 
 void ChxVMState::CheckInfs(const std::vector<int>& inputs, const std::vector<int>& outputs) {
     for (int output : outputs) {
+        if (output < 0) continue;
         if (!HasElemInVar(chainerx::IsInf, *GetVar(output))) continue;
 
         std::cerr << "Inf detected!\n";

@@ -62,6 +62,7 @@ run run_onnx_trace sh -c \
     './build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace 2>&1 | head -100'
 
 run run_onnx_alex \
-    ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss
+    ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss \
+    --check_infs --check_nans
 run run_onnx_googlenet \
     ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
