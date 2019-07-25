@@ -311,7 +311,7 @@ class CompiledModel(chainer.Chain):
 
         runtime_kwargs = {}
         if (self.runtime_kwargs is not None and
-            self.num_iterations % (self.quiet_period + 1) == 0):
+           self.num_iterations % (self.quiet_period + 1) == 0):
             runtime_kwargs.update(self.runtime_kwargs)
         self.num_iterations += 1
 
