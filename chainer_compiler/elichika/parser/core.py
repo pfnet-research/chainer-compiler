@@ -201,7 +201,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     forward_func_value = forward_func.get_value()
     ret = forward_func_value.func.vcall(
-        default_module, graph, forward_func_value.obj, finput).get_ref()
+        default_module, graph, forward_func_value.obj, finput).get_obj()
     assert(ret is None or isinstance(ret, values.Object))
 
     def try_get_value(value) -> 'values.Value':
@@ -212,7 +212,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
             return value.get_value()
 
         if isinstance(value, values.Attribute):
-            return value.get_ref().get_value()
+            return value.get_obj().get_value()
 
     if ret is None or isinstance(ret, values.NoneValue):
         if config.show_warnings:

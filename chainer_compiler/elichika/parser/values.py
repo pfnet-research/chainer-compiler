@@ -299,17 +299,17 @@ class FieldAttributeCollection():
         attribute.parent = parent_attribute.parent
 
         # instance or func
-        if isinstance(parent_attribute.get_ref().get_value(), Instance) or isinstance(parent_attribute.get_ref().get_value(), FuncValue) or isinstance(parent_attribute.get_ref().get_value(), ModuleValue):
-            attribute.revise(parent_attribute.get_ref())
+        if isinstance(parent_attribute.get_obj().get_value(), Instance) or isinstance(parent_attribute.get_obj().get_value(), FuncValue) or isinstance(parent_attribute.get_obj().get_value(), ModuleValue):
+            attribute.revise(parent_attribute.get_obj())
             self.attributes[key] = attribute
             return attribute
 
         # input
-        attribute.revise(parent_attribute.get_ref())
+        attribute.revise(parent_attribute.get_obj())
         self.attributes[key] = attribute
 
-        self.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(
-        ), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+        self.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(
+        ), attribute.get_obj().get_value(), attribute.get_obj().get_value())
 
         return attribute
 
@@ -345,17 +345,17 @@ class FieldAttributeCollection():
                 continue
 
             # instance or func
-            if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
+            if isinstance(att.get_obj().get_value(), Instance) or isinstance(att.get_obj().get_value(), FuncValue) or isinstance(att.get_obj().get_value(), ModuleValue):
                 continue
 
-            if (not (att in self.inputs.keys())) or att.get_ref() != self.inputs[att][0] or att.get_ref().get_value() != self.inputs[att][1]:
+            if (not (att in self.inputs.keys())) or att.get_obj() != self.inputs[att][0] or att.get_obj().get_value() != self.inputs[att][1]:
                 fo = FieldOutput()
                 fo.name = att.name
                 fo.field = att.parent
-                fo.obj = att.get_ref()
+                fo.obj = att.get_obj()
                 if att in self.inputs.keys():
                     fo.old_value = self.inputs[att][1]
-                fo.value = att.get_ref().get_value()
+                fo.value = att.get_obj().get_value()
                 ret.append(fo)
 
         return ret
@@ -462,11 +462,11 @@ class Field():
             if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
                 continue
 
-            collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref(
-            ).get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+            collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj(
+            ).get_value(), attribute.get_obj().get_value(), attribute.get_obj().get_value())
 
            # if old_value is not None:
-           #     collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), old_value, value)
+           #     collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), old_value, value)
 
             #old_value = obj.get_value()
             #value = functions.generate_copied_value(old_value)
@@ -495,7 +495,7 @@ class Attribute:
     def has_obj(self):
         return self.obj != None
 
-    def get_ref(self):
+    def get_obj(self):
         assert self.has_obj()
         return self.obj
 
@@ -524,9 +524,9 @@ class Object():
             
         attribute = self.attributes.try_get_attribute(name)
         if attribute is not None and attribute.has_obj():
-            return attribute.get_ref()
+            return attribute.get_obj()
 
-        obj = self.value.try_get_ref(name, self, root_graph)
+        obj = self.value.try_get_obj(name, self, root_graph)
 
         if obj is None:
             return None
@@ -576,7 +576,7 @@ class Value():
             assert(False)
         return ""
 
-    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
+    def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
         return None
 
     def __str__(self):
@@ -953,7 +953,7 @@ class ModuleValue(Value):
         self.internal_module = module
 
 
-    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
+    def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
 
         if name in builtin_function_converters.keys():
             v = Object(builtin_function_converters[name])
@@ -988,7 +988,7 @@ class UserDefinedInstance(Instance):
     def __init__(self, module: 'Object', inst, classinfo):
         super().__init__(module, inst, classinfo)
 
-    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
+    def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):

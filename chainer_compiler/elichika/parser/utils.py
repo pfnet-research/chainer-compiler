@@ -31,21 +31,6 @@ def print_error(s, lineprop):
 def is_disabled_module(m):
     return m in config.disabled_modules
 
-def numpy_type_2_int(t):
-    if t == np.int32:
-        return 0
-    if t == np.float32:
-        return 1
-    assert(False)
-
-
-def int_2_numpy_type(n):
-    if n == 0:
-        return np.int32
-    if n == 1:
-        return np.float32
-    assert(False)
-
 def str_2_dtype(str_dtype):
     if str_dtype == 'q':
         dtype = np.int64
@@ -84,7 +69,7 @@ def clip_head(s: 'str'):
     strs = map(lambda x: x[ls:], splitted)
     return '\n'.join(strs)
 
-def try_get_ref(value, name, lineprop) -> 'values.Object':
+def try_get_obj(value, name, lineprop) -> 'values.Object':
     if value is None:
         print_warning('Failed to get value in "{}".'.format(name), lineprop)
         return None
@@ -94,7 +79,7 @@ def try_get_ref(value, name, lineprop) -> 'values.Object':
 
     if isinstance(value, values.Attribute):
         if value.has_obj():
-            return value.get_ref()
+            return value.get_obj()
 
     if isinstance(value, values.Object):
         return value
@@ -118,7 +103,7 @@ def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Val
         return value.get_value()
 
     if isinstance(value, values.Attribute):
-        return value.get_ref().get_value()
+        return value.get_obj().get_value()
 
     raise Exception('Value {} is invalid. in L.{}'.format(name, lineprop))
 
