@@ -153,5 +153,32 @@ TEST(MergeTest, ConvBN) {
     EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({3, 1, 1, 1}), new_w);
 }
 
+TEST(MergeTest, MatMulAdd) {
+    chainerx::testing::ContextSession sess;
+
+    Type type(Dtype::kFloat32, {2, 2});
+    Graph graph("test");
+    Value* a = graph.AddInputValue("a", type);
+    Value* b = graph.AddInputValue("b", type);
+    Value* c = graph.AddInputValue("c", type);
+    Value* output = graph.AddOutputValue("output", type);
+
+    {
+        GraphBuilder gb(&graph, "test", a);
+        gb.Op(Node::kAdd, {gb.Op(Node::kMatMul, {a, b}), c}, output);
+    }
+
+    MergeOperations(&graph, false);
+    graph.DeleteDetached();
+    ASSERT_EQ(1, graph.nodes().size());
+    Node const& node = *graph.nodes()[0];
+    EXPECT_EQ(Node::kGemm, node.op_type());
+    EXPECT_EQ(a, node.input(0));
+    EXPECT_EQ(b, node.input(1));
+    EXPECT_EQ(c, node.input(2));
+    EXPECT_EQ(output, node.output(0));
+    graph.CheckSanity("merged");
+}
+
 }  // namespace
 }  // namespace chainer_compiler

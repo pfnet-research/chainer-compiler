@@ -78,7 +78,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     # register unsupported functions to show error when unsupported functions are called
     for f in F.__dict__.items():
         if inspect.isfunction(f[1]):
-            values.function_converters[f[1]] = values.FuncValue(functions_builtin.UnimplementedFunction(f[1]), None)
+            values.function_converters[f[1]] = values.FuncValue(functions.UnimplementedFunction(f[1]), None)
 
     add_chainer_function(F.relu)
     add_chainer_function(F.elu)
