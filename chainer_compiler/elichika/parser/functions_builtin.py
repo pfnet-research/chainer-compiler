@@ -281,7 +281,7 @@ class GetAttrFunction(functions.FunctionBase):
         # property(getter)
         if attr.has_obj() and isinstance(attr.get_obj().get_value(), values.FuncValue) and attr.get_obj().get_value().func.is_property:
             func_value = attr.get_obj().get_value()
-            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, lineprop)
+            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, utils.LineProperty(line))
             return ret
 
         if attr.has_obj():
