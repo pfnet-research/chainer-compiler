@@ -4,7 +4,6 @@ import chainer.links as L
 import inspect
 from enum import Enum
 
-from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import values
 from chainer_compiler.elichika.parser import functions
