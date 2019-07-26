@@ -18,6 +18,8 @@ from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
+from chainer_compiler.elichika.parser import functions_list
+from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import links_builtin
@@ -361,7 +363,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         chainer_f_converter[node.func.base_func](onnx_graph, node)
         return
 
-    if isinstance(node.func, functions_builtin.AppendFunction):
+    if isinstance(node.func, functions_list.AppendFunction):
         # append
         onnx_graph.add_node(
             "ChainerSequenceAppend",

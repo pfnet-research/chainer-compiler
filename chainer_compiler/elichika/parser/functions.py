@@ -407,7 +407,11 @@ class UserDefinedFunction(FunctionBase):
 class UnimplementedFunction(FunctionBase):
     def __init__(self, func):
         super().__init__()
-        self.name = func.__name__
+
+        if isinstance(func, str):
+            self.name = func
+        else:
+            self.name = func.__name__
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalContext' = None, line=-1):

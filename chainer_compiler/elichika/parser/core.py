@@ -14,6 +14,8 @@ from chainer_compiler.elichika.parser import links_builtin
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
+from chainer_compiler.elichika.parser import functions_list
+from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import flags

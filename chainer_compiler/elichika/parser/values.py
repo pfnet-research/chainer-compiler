@@ -16,7 +16,6 @@ from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import config
-from chainer_compiler.elichika.parser import functions_builtin
 
 from chainer_compiler.elichika.parser.functions import FunctionBase, UserDefinedFunction
 
@@ -864,9 +863,7 @@ class ListValue(Value):
             self.estimate_type()
 
     def apply_to_object(self, obj: 'Object'):
-        append_func = Object(
-            FuncValue(functions_builtin.AppendFunction(self), obj, None))
-        obj.attributes.get_attribute('append').revise(append_func)
+        apply_predefined_value_assigners(type(ListValue), obj)
 
     def __str__(self):
         return self.name + '(L)'
@@ -898,6 +895,8 @@ class DictValue(Value):
     #     return
 
     def apply_to_object(self, obj: 'Object'):
+        apply_predefined_value_assigners(type(ListValue), obj)
+        '''
         keys_func = Object(
             FuncValue(functions_builtin.KeysFunction(self), obj, None))
         obj.attributes.get_attribute('keys').revise(keys_func)
@@ -905,7 +904,7 @@ class DictValue(Value):
         values_func = Object(
             FuncValue(functions_builtin.ValuesFunction(self), obj, None))
         obj.attributes.get_attribute('values').revise(values_func)
-
+        '''
     def __str__(self):
         return self.name + '(D)'
 
