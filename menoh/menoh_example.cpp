@@ -126,7 +126,7 @@ int main(int argc, char** argv) {
     */
 
     // Build model
-    auto model = model_builder.build_model(model_data, "");
+    auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true, \"trace_level\":1}");
     //model_data.reset();  // you can delete model_data explicitly after model building
     std::cout << __LINE__ << std::endl;
     model.run();

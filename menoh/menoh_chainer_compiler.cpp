@@ -174,14 +174,13 @@ void menoh_delete_model_data(menoh_model_data_handle model_data) {
 menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
         chainerx::Context ctx;
-        chainerx::SetGlobalDefaultContext(&ctx);
+        chainerx::ContextScope ctx_scope(ctx);
         {
             chainerx::NoBackpropModeScope scope;
             *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{std::make_unique<chainer_compiler::Graph>(
                                                                      LoadLargeProto<onnx::ModelProto>(onnx_filename).graph())})
                                   .release();
         }
-        chainerx::SetGlobalDefaultContext(nullptr);
         return menoh_error_code_success;
     });
 }
@@ -296,12 +295,11 @@ menoh_error_code menoh_build_variable_profile_table(
         }
 
         chainerx::Context ctx;
-        chainerx::SetGlobalDefaultContext(&ctx);
+        chainerx::ContextScope ctx_scope(ctx);
         {
             chainerx::NoBackpropModeScope scope;
             model_data->graph->InferShapes();
         }
-        chainerx::SetGlobalDefaultContext(nullptr);
         *dst_handle = std::make_unique<menoh_variable_profile_table>(
                               menoh_variable_profile_table{model_data->graph, builder->input_name_and_profile_list})
                               .release();
@@ -350,8 +348,9 @@ void menoh_delete_model(menoh_model_handle model) {
     delete model;
 }
 
-bool value_or(nlohmann::json const& j, std::string const& name, bool default_value) {
-    return j.find(name) == j.end() ? default_value : j[name].get<bool>();
+template<typename T>
+T value_or(nlohmann::json const& j, std::string const& name, T default_value) {
+    return j.find(name) == j.end() ? default_value : j[name].get<T>();
 }
 
 /* You can (and should) delete model_data after the model creation. */
@@ -362,8 +361,8 @@ menoh_error_code menoh_build_model(
         const char* backend_config,
         menoh_model_handle* dst_model_handle) {
     return check_error([&]() {
-        auto j = nlohmann::json(backend_config);
-        chainer_compiler::g_compiler_log = value_or(j, "compiler_log", true);
+        auto j = nlohmann::json::parse(backend_config);
+        chainer_compiler::g_compiler_log = value_or(j, "compiler_log", false);
         chainer_compiler::g_permissive = value_or(j, "permissive", false);
         chainer_compiler::g_skip_inference = value_or(j, "skip_inference", false);
         chainer_compiler::g_use_cuda = value_or(j, "use_cuda", false);
@@ -421,10 +420,8 @@ menoh_error_code menoh_build_model(
                     if (p == builder->input_profile_table.end()) {
                         assert(!"aaaa");
                     }
-                    std::cout << "total size" << menoh_impl::total_size(p->second.dims()) << std::endl;
                     std::shared_ptr<void> data(new float[menoh_impl::total_size(p->second.dims())]);
                     user_input_buffer_handle_list.push_back(data);
-                    // auto datap = new float[menoh_impl::total_size(p->second.dims())];
 
                     auto arr = chainer_compiler::runtime::MakeHostArray(
                             chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), data.get());
@@ -433,9 +430,8 @@ menoh_error_code menoh_build_model(
                     inputs.emplace(input->name(), std::move(var));
                 }
             }
-            int trace_level = 2;
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
-            chxvm_opts.trace_level = trace_level;
+            chxvm_opts.trace_level = value_or(j, "trace_level", 0);
             chxvm_opts.is_training = false;
             chxvm_opts.check_types = true;
             // chxvm_opts.check_nans = true;
@@ -457,6 +453,7 @@ menoh_error_code menoh_build_model(
 
 menoh_error_code menoh_model_run(menoh_model_handle model) {
     return check_error([&]() {
+        chainerx::SetDefaultContext(model->context.get());
         chainerx::ContextScope(*(model->context));
         {
             chainerx::NoBackpropModeScope scope;
@@ -466,6 +463,7 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                 std::cout << output.first << std::endl;
             }
         }
+        chainerx::SetDefaultContext(nullptr);
         return menoh_error_code_success;
     });
 }

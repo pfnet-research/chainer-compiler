@@ -368,7 +368,7 @@ namespace menoh {
          * \warning
          * Do not call this function asynchronously.
          */
-        void run() { menoh_model_run(impl_.get()); }
+        void run() { MENOH_CPP_API_ERROR_CHECK(menoh_model_run(impl_.get())); }
 
     private:
         std::unique_ptr<menoh_model, decltype(&menoh_delete_model)> impl_;
