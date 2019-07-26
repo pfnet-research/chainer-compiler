@@ -83,7 +83,13 @@ class LenFunction(functions.FunctionBase):
               option: 'vevaluator.VEvalContext' = None, line=-1):
         node = nodes.NodeCall(self, args, line)
         graph.add_node(node)
-        value = values.NumberValue(None)
+        item = args.get_value().inputs[0]
+        default_value = None
+        # constant propagation whenever possible
+        if item.has_constant_value():
+            default_value = len(item.internal_value)
+
+        value = values.NumberValue(default_value)
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)

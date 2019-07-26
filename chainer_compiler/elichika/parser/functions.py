@@ -7,7 +7,7 @@ import ast
 import gast
 import weakref
 from enum import Enum
-
+import re
 import numpy as np
 
 from chainer_compiler.elichika.parser import vevaluator
@@ -236,7 +236,8 @@ class FunctionArgCollection():
 
     def analyze_args(self, func):
         sig = inspect.signature(func)
-        argspec = inspect.getargspec(func)
+        # TODO: replace with https://docs.python.org/3.4/library/inspect.html#inspect.getfullargspec
+        argspec = inspect.getargspec(func)  # TODO: Doesn't support keyword only args.
 
         parameter_count = 0
         for k, v in sig.parameters.items():
@@ -378,12 +379,17 @@ class UserDefinedFunction(FunctionBase):
         self.filename = inspect.getfile(func)
         sourcelines = inspect.getsourcelines(func)
         self.lineno = sourcelines[1]
-
-        code = utils.clip_head(inspect.getsource(func))
         self.args.analyze_args(func)
 
-        ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
-        self.ast = canonicalizer.Canonicalizer().visit(ast_)
+        if (func.__name__ == (lambda: None).__name__):
+            original_code = utils.lambda_source(func)
+            code = 'return ' + original_code[re.search('lambda.*?:', original_code).end():]
+            self.ast = gast.ast_to_gast(ast.parse(code))
+        else:
+            original_code = inspect.getsource(func)
+            code = utils.clip_head(original_code)
+            ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
+            self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalContext' = None, line=-1):
@@ -404,6 +410,7 @@ class UserDefinedFunction(FunctionBase):
 
         return ret
 
+
 class UnimplementedFunction(FunctionBase):
     def __init__(self, func):
         super().__init__()
@@ -416,3 +423,36 @@ class UnimplementedFunction(FunctionBase):
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalContext' = None, line=-1):
         raise utils.UnimplementedError('{} is unimplemented.'.format(self.name), utils.LineProperty(line))
+
+
+class UserDefinedFunctionFromAst(FunctionBase):
+    def __init__(self, astc, args, func_field):
+        super().__init__()
+        assert isinstance(astc.nast, (gast.FunctionDef, gast.Lambda))
+
+        self.name = astc.gast.name if isinstance(astc.nast, gast.FunctionDef) else (lambda: None).__name__
+        self.args = args
+        self.func_field = func_field
+        if isinstance(astc.nast, gast.Lambda):
+            astc.nast.body = gast.Return(value=astc.nast.body) # Add return to the body
+        self.ast = astc.nast
+        self.filename = astc.filename
+        self.lineno = astc.lineno
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        self.func_field.set_module(module)
+
+        # add args
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        for k, v in funcArgs.keywords.items():
+            self.func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_ref(v, self.name, utils.LineProperty()))
+
+        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
+        ret = vevaluator.veval_ast(astc, self.func_field, graph)
+
+        # dispose because of exit from function
+        self.func_field.dispose()
+
+        return ret
