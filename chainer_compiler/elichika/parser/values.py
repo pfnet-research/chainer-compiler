@@ -17,16 +17,37 @@ from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import functions_builtin
-from chainer_compiler.elichika.parser import functions_ndarray
 
 from chainer_compiler.elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
 histories = []
 
+# hashable function. key is python function, value is FuncValue
 function_converters = {}
-instance_converters = []
+
+# unhashable function. key is str, value is FuncValue
 builtin_function_converters = {}
+
+# an array of convertter from python instance into Value
+# first argument is module, second argument is python instance
+instance_converters = []
+
+# assign predefined values
+predefined_value_assigners = [] # type: List[PredefinedValueAssigner]
+
+class PredefinedValueAssigner:
+    def __init__(self):
+        self.target_type = None # type: type
+
+    def assign(self, target : 'Object'):
+        return
+
+def apply_predefined_value_assigners(target_type : 'type', target : 'Object'):
+    for assigner in predefined_value_assigners:
+        if assigner.target_type != target_type:
+            continue
+        assigner.assign(target)
 
 def create_ref_value_name_with_constant(value):
     if isinstance(value, Object):
@@ -913,27 +934,8 @@ class TensorValue(Value):
         v.dtype = self.dtype
         return Object(v)
 
-
     def apply_to_object(self, obj: 'Object'):
-        shape_func = Object(
-            FuncValue(functions_ndarray.NDArrayShapeFunction(), obj, None))
-        obj.attributes.set_predefined_obj('shape', shape_func)
-
-        size_func = Object(
-            FuncValue(functions_ndarray.NDArraySizeFunction(), obj, None))
-        obj.attributes.set_predefined_obj('size', size_func)
-
-        cumsum_func = Object(
-            FuncValue(functions_ndarray.NDArrayCumsumFunction(), obj, None))
-        obj.attributes.set_predefined_obj('cumsum', cumsum_func)
-
-        def add_chainer_function(func):
-            func_ = Object(
-                FuncValue(functions_ndarray.NDArrayChainerFunction(func), obj, None))
-            obj.attributes.set_predefined_obj(func.__name__, func_)
-
-        add_chainer_function(F.reshape)
-        add_chainer_function(F.sum)
+        apply_predefined_value_assigners(type(TensorValue), obj)
 
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
