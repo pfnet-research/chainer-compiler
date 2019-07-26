@@ -6,22 +6,24 @@ target_include_directories(menoh_chainer_compiler PRIVATE
   "${PYTHON_INCLUDE_DIRS}"
   "${CMAKE_CURRENT_BINARY_DIR}/.."
 )
-target_link_libraries(menoh_chainer_compiler PRIVATE
+target_link_libraries(menoh_chainer_compiler
   chainer_compiler_tools
   chainer_compiler_compiler
   chainer_compiler_configs
   chainer_compiler_runtime
   chainer_compiler_common
-  chainerx
+  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
   pthread
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
+  ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant
-)
+  absl::optional
+  )
 
 if(OpenCV_FOUND)
     add_executable(menoh_example menoh_example.cpp)
