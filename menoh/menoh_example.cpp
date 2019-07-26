@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
     a.add<std::string>("input_image", 'i', "input image path", false, "../data/Light_sussex_hen.jpg");
     a.add<std::string>("model", 'm', "onnx model path", false, "../data/vgg16.onnx");
     a.add<std::string>("synset_words", 's', "synset words path", false, "../data/synset_words.txt");
+    a.add<int>("trace-level", '\0', "", false, 1);
     a.parse_check(argc, argv);
 
     auto input_image_path = a.get<std::string>("input_image");
@@ -89,35 +90,36 @@ int main(int argc, char** argv) {
     }
 
     // Preprocess
+    std::cout << "Input preprocess..." << std::endl;
     cv::resize(image_mat, image_mat, cv::Size(width, height));
     image_mat.convertTo(image_mat, CV_32FC3);
     image_mat -= cv::Scalar(103.939, 116.779, 123.68);  // subtract BGR mean
     auto image_data = reorder_bgr_hwc_to_rgb_chw(image_mat);
-    std::cout << __LINE__ << std::endl;
 
     // Load ONNX model data
+    std::cout << "Load ONNX file..." << std::endl;
     auto model_data = menoh::make_model_data_from_onnx(onnx_model_path);
 
-    std::cout << __LINE__ << std::endl;
+    std::cout << "Prepare VPT builder..." << std::endl;
     // Define input profile (name, dtype, dims) and output profile (name, dtype)
     // dims of output is automatically calculated later
     menoh::variable_profile_table_builder vpt_builder;
     vpt_builder.add_input_profile(conv1_1_in_name, menoh::dtype_t::float_, {batch_size, channel_num, height, width});
     vpt_builder.add_output_name(fc6_out_name);
     vpt_builder.add_output_name(softmax_out_name);
-    std::cout << __LINE__ << std::endl;
 
+    std::cout << "Build VPT..." << std::endl;
     // Build variable_profile_table and get variable dims (if needed)
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
     //auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
     //std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
-    std::cout << __LINE__ << std::endl;
 
     // model_data.optimize(vpt);
 
     // Make model_builder and attach extenal memory buffer
     // Variables which are not attached external memory buffer here are attached
     // internal memory buffers which are automatically allocated
+    std::cout << "Prepare model builder..." << std::endl;
     menoh::model_builder model_builder(vpt);
     /*
     //model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
@@ -125,10 +127,11 @@ int main(int argc, char** argv) {
     std::cout << __LINE__ << std::endl;
     */
 
+    std::cout << "Build model..." << std::endl;
     // Build model
-    auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true, \"trace_level\":1}");
-    //model_data.reset();  // you can delete model_data explicitly after model building
-    std::cout << __LINE__ << std::endl;
+    auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true, \"trace_level\":"+std::to_string(a.get<int>("trace-level"))+"}");
+    std::cout << "Model run..." << std::endl;
     model.run();
+    std::cout << "Finish!" << std::endl;
     return 0;
 }
