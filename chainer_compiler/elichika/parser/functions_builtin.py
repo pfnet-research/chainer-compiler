@@ -129,7 +129,7 @@ class ListFunction(functions.FunctionBase):
             if vargs[0].has_constant_value():
                 refs = []
                 for attr_or_ref in vargs[0].internal_value:
-                    refs.append(utils.try_get_ref(attr_or_ref, 'list', utils.LineProperty()))
+                    refs.append(utils.try_get_obj(attr_or_ref, 'list', utils.LineProperty()))
 
                 value.internal_value = refs
 
@@ -194,8 +194,8 @@ class KeysFunction(functions.FunctionBase):
         vargs = []
         vargs_value = []
         for varg in keys:
-            vargs.append(utils.try_get_ref(varg, 'dict_keys', utils.LineProperty()))
-            vargs_value.append(utils.try_get_ref(varg, 'dict_keys', utils.LineProperty()).get_value())
+            vargs.append(utils.try_get_obj(varg, 'dict_keys', utils.LineProperty()))
+            vargs_value.append(utils.try_get_obj(varg, 'dict_keys', utils.LineProperty()).get_value())
 
         node = nodes.NodeGenerate('List', vargs_value , line)
         graph.add_node(node)
@@ -227,8 +227,8 @@ class ValuesFunction(functions.FunctionBase):
         for hash in key_hashes:
             varg = attributes.get_attribute(hash)
             if varg.has_obj():
-                vargs.append(utils.try_get_ref(varg, 'dict_values', utils.LineProperty()).get_value())
-                vargs_ref.append(utils.try_get_ref(varg, 'dict_values', utils.LineProperty()))
+                vargs.append(utils.try_get_obj(varg, 'dict_values', utils.LineProperty()).get_value())
+                vargs_ref.append(utils.try_get_obj(varg, 'dict_values', utils.LineProperty()))
             else:
                 assert(False)
 
@@ -279,8 +279,8 @@ class GetAttrFunction(functions.FunctionBase):
         attr = obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
 
         # property(getter)
-        if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue) and attr.get_ref().get_value().func.is_property:
-            func_value = attr.get_ref().get_value()
+        if attr.has_obj() and isinstance(attr.get_obj().get_value(), values.FuncValue) and attr.get_obj().get_value().func.is_property:
+            func_value = attr.get_obj().get_value()
             ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, lineprop)
             return ret
 

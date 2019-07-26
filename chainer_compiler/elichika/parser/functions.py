@@ -394,7 +394,7 @@ class UserDefinedFunction(FunctionBase):
         funcArgs = self.args.merge_inputs(inst, args)
 
         for k, v in funcArgs.keywords.items():
-            func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_ref(v, self.name, utils.LineProperty()))
+            func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_obj(v, self.name, utils.LineProperty()))
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
         ret = vevaluator.veval_ast(astc, func_field, graph)
