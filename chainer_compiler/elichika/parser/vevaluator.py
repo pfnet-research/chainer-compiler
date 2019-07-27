@@ -936,7 +936,31 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
 
     node_compare = nodes.NodeCompare(left_value, right_value, compare, astc.lineno)
 
-    ret_value = values.BoolValue(None)
+    # constant propagation when possible
+    default_value = None
+    if left_value.has_constant_value() and right_value.has_constant_value():
+        if isinstance(astc.nast.ops[0], gast.Eq):
+            default_value = left_value.internal_value == right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.NotEq):
+            default_value = left_value.internal_value != right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.Is):
+            default_value = left_value.internal_value is right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.IsNot):
+            default_value = left_value.internal_value is not right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.Gt):
+            default_value = left_value.internal_value > right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.GtE):
+            default_value = left_value.internal_value >= right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.Lt):
+            default_value = left_value.internal_value < right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.LtE):
+            default_value = left_value.internal_value <= right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.In):
+            default_value = left_value.internal_value in right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.NotIn):
+            default_value = left_value.internal_value not in right_value.internal_value
+
+    ret_value = values.BoolValue(default_value)
     ret_value.name = '@{}'.format(lineprop)
     node_compare.set_outputs([ret_value])
     graph.add_node(node_compare)
