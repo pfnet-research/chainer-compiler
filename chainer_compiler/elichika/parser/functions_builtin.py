@@ -277,3 +277,29 @@ class GetAttrFunction(functions.FunctionBase):
             return obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
 
         return None
+
+
+class HasAttrFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'hasattr'
+        self.args.add_arg('obj', None)
+        self.args.add_arg('name', None)
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        func_args = self.args.merge_inputs(inst, args)
+        name = func_args.get_value().get_value(key='name')
+        obj = func_args.keywords['obj']
+
+        attr = obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
+
+        if attr.has_obj():
+            return values.Object(values.BoolValue(True))
+
+        # if attr is not found
+        gotten_obj = obj.try_get_and_store_obj(name.internal_value, graph.root_graph)
+        if gotten_obj is not None:
+            return values.Object(values.BoolValue(True))
+
+        return values.Object(values.BoolValue(False))

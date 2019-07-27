@@ -270,7 +270,11 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     true_graph = Graph()
     true_graph.root_graph = graph.root_graph
     true_graph.name = 'True'
-    true_body = veval_ast(astc.c(astc.nast.body), local_field, true_graph, context)
+    # Skip true body when the test_value is decidably False.
+    if test_value.has_constant_value() and test_value.internal_value == False:
+        true_body = []
+    else:
+        true_body = veval_ast(astc.c(astc.nast.body), local_field, true_graph, context)
 
     true_value_inputs = values.get_inputs()
     true_value_outputs = values.get_outputs()
@@ -283,7 +287,11 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     false_graph = Graph()
     false_graph.root_graph = graph.root_graph
     false_graph.name = 'False'
-    false_body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph, context)
+    # Skip false body when the test_value is decidably True.
+    if test_value.has_constant_value() and test_value.internal_value == True:
+        false_body = []
+    else:
+        false_body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph, context)
 
     false_value_inputs = values.get_inputs()
     false_value_outputs = values.get_outputs()
@@ -921,6 +929,10 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
         compare = nodes.CompareType.Lt
     if isinstance(astc.nast.ops[0], gast.LtE):
         compare = nodes.CompareType.LtE
+    if isinstance(astc.nast.ops[0], gast.In):
+        compare = nodes.CompareType.In
+    if isinstance(astc.nast.ops[0], gast.NotIn):
+        compare = nodes.CompareType.NotIn
 
     node_compare = nodes.NodeCompare(left_value, right_value, compare, astc.lineno)
 
