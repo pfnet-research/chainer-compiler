@@ -112,7 +112,7 @@ class MinFunction(functions.FunctionBase):
         else:
             values_list = args.get_value().inputs
             node = nodes.NodeGenerate('List', values_list, line)
-            list_value = values.ListValue([utils.try_get_ref(ref, self.name, line) for ref in args.inputs])
+            list_value = values.ListValue([utils.try_get_obj(ref, self.name, line) for ref in args.inputs])
             node.set_outputs([list_value])
             graph.add_node(node)
 
@@ -140,7 +140,7 @@ class MaxFunction(functions.FunctionBase):
         else:
             values_list = args.get_value().inputs
             node = nodes.NodeGenerate('List', values_list, line)
-            list_value = values.ListValue([utils.try_get_ref(ref, self.name, line) for ref in args.inputs])
+            list_value = values.ListValue([utils.try_get_obj(ref, self.name, line) for ref in args.inputs])
             node.set_outputs([list_value])
             graph.add_node(node)
 
@@ -168,7 +168,7 @@ class SumFunction(functions.FunctionBase):
         else:
             values_list = args.get_value().inputs
             node = nodes.NodeGenerate('List', values_list, line)
-            list_value = values.ListValue([utils.try_get_ref(ref, self.name, line) for ref in args.inputs])
+            list_value = values.ListValue([utils.try_get_obj(ref, self.name, line) for ref in args.inputs])
             node.set_outputs([list_value])
             graph.add_node(node)
 

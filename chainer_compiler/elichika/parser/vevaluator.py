@@ -857,7 +857,7 @@ def veval_ast_bool_op(astc : 'AstContext', local_field : 'values.Field', graph :
 
     # generate list of operands
     node = nodes.NodeGenerate('List', values_list, lineprop)
-    ret_value = values.ListValue([utils.try_get_ref(ref, 'bool_op', lineprop) for ref in refs])
+    ret_value = values.ListValue([utils.try_get_obj(ref, 'bool_op', lineprop) for ref in refs])
     node.set_outputs([ret_value])
     graph.add_node(node)
 
