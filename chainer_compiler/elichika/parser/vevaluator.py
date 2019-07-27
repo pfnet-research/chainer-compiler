@@ -114,7 +114,7 @@ def veval_ast_attribute(astc : 'AstContext', local_field : 'values.Field', graph
         utils.print_warning('Unknown or disabled attribute "{}" is accessed'.format(get_ast_name_forcibly(astc.nast.value)), lineprop)
         return None
 
-    attr = value_ref.get_field().get_attribute(astc.nast.attr, graph.root_graph, from_module)
+    attr = value_ref.get_field().get_attribute(astc.nast.attr, graph.root_graph, False)
 
     # property(getter)
     if attr.has_obj() and isinstance(attr.get_obj().get_value(), values.FuncValue) and attr.get_obj().get_value().func.is_property:
