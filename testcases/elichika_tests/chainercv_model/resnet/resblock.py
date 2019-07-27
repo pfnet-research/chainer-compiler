@@ -131,3 +131,20 @@ class Bottleneck(chainer.Chain):
         h += residual
         h = F.relu(h)
         return h
+
+
+from chainer_compiler.elichika import testtools
+from chainer import initializers
+import numpy as np
+
+def main():
+    np.random.seed(314)
+
+    model = ResBlock(3, None, 64, 256, 1, initialW=initializers.HeNormal(scale=1., fan_option='fan_out'), stride_first=False)
+
+    v = np.random.rand(2, 64, 56, 56).astype(np.float32)
+
+    testtools.generate_testcase(model, [v])
+
+if __name__ == '__main__':
+    main()
