@@ -147,8 +147,9 @@ class PickableSequentialChain(chainer.Chain):
         with flags.for_unroll():
             for name in self.layer_names[:last_index]:
                 h = self[name](h)
-                if name in pick:
-                    layers[name] = h
+                with flags.ignore_branch():
+                    if name in pick:
+                        layers[name] = h
 
         with flags.ignore_branch():
             if self._return_tuple:

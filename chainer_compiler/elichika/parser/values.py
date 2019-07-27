@@ -786,6 +786,7 @@ class FuncValue(Value):
     def __init__(self, func: 'functions.FunctionBase', obj: 'Object', module : 'Object' = None):
         super().__init__()
         self.func = func
+        self.internal_value = func  # TODO(rchours): So that has_constant_type() succeeds on FuncValue.
         self.obj = obj
         self.module = module
 
