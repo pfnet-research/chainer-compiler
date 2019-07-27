@@ -13,7 +13,7 @@ for gen in `ls scripts | grep -E "^gen_.*\.py$"`
 do
   python3 scripts/${gen}
 done
-for dir in model node node/ndarray node/Functions node/Links syntax
+for dir in model node node/ndarray node/Functions node/Links syntax chainercv_model/resnet
 do
   python3 scripts/elichika_tests.py --generate ${dir}
 done
