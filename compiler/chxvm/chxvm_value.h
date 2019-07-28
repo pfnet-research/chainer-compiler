@@ -4,7 +4,7 @@ namespace chainer_compiler {
 
 namespace runtime {
 
-class XCInstructionProto;
+class ChxVMInstructionProto;
 
 }  // namespace runtime
 
@@ -27,7 +27,7 @@ public:
         return id_;
     }
 
-    void AddOutput(runtime::XCInstructionProto* inst) const;
+    void AddOutput(runtime::ChxVMInstructionProto* inst) const;
 
 private:
     int id_;

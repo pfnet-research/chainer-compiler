@@ -16,7 +16,7 @@ args = parser.parse_args()
 
 
 def make_codegen_signature(op, inputs, outputs):
-    args = ['runtime::XCProgramProto* program']
+    args = ['runtime::ChxVMProgramProto* program']
     for out in outputs:
         args.append('%s %s' % (out.c_codegen_type(), out.name))
     for inp in inputs:
@@ -27,7 +27,7 @@ def make_codegen_signature(op, inputs, outputs):
 
 def gen_chxvm_codegen_h():
     lines = []
-    for op in XC_ALL_OPS:
+    for op in CHX_ALL_OPS:
         signature = make_codegen_signature(op.name, op.inputs, op.outputs)
         lines.append(signature + ';')
 
@@ -52,18 +52,18 @@ namespace chxvm {
 
 def gen_chxvm_codegen_cc():
     lines = []
-    for op in XC_ALL_OPS:
+    for op in CHX_ALL_OPS:
         signature = make_codegen_signature(op.name, op.inputs, op.outputs)
         lines.append(signature + ' {')
 
-        lines.append('XCInstructionProto* inst = program->add_instructions();')
-        lines.append('inst->set_op(XCInstructionProto::%s);' % op.name)
+        lines.append('ChxVMInstructionProto* inst = program->add_instructions();')
+        lines.append('inst->set_op(ChxVMInstructionProto::%s);' % op.name)
 
         for inp in op.inputs:
             lines.append('{')
-            lines.append('XCValueProto* input_proto = inst->add_inputs();')
+            lines.append('ChxVMValueProto* input_proto = inst->add_inputs();')
             enum = inp.typ.replace('OPTIONAL_', '')
-            lines.append('input_proto->set_type(XCValueProto::%s);' % enum)
+            lines.append('input_proto->set_type(ChxVMValueProto::%s);' % enum)
             pfn = inp.proto_field_name()
             name = inp.name
             if inp.is_repeated():
@@ -90,8 +90,8 @@ def gen_chxvm_codegen_cc():
 namespace chainer_compiler {
 namespace chxvm {
 
-using runtime::XCInstructionProto;
-using runtime::XCValueProto;
+using runtime::ChxVMInstructionProto;
+using runtime::ChxVMValueProto;
 
 ''')
         f.writelines(codegen_util.format_code(lines))

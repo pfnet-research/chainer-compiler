@@ -9,9 +9,9 @@
 namespace chainer_compiler {
 namespace chxvm {
 
-void ChxVMValue::AddOutput(runtime::XCInstructionProto* inst) const {
+void ChxVMValue::AddOutput(runtime::ChxVMInstructionProto* inst) const {
     inst->add_outputs(id_);
-    runtime::XCTypeProto* type = inst->add_output_types();
+    runtime::ChxVMTypeProto* type = inst->add_output_types();
     if (value_ && value_->type().kind() == Type::Kind::kTensor && value_->type().HasKnownShape()) {
         type->set_dtype(value_->type().dtype());
         for (int d : value_->type().dims()) {

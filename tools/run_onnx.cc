@@ -281,8 +281,8 @@ public:
         }
 
         for (const std::string& op_name : SplitString(args_.get<std::string>("verbose_ops"), ",")) {
-            XCInstructionProto::Op op;
-            CHECK(XCInstructionProto::Op_Parse(op_name, &op)) << "Unknown op: " << op_name;
+            ChxVMInstructionProto::Op op;
+            CHECK(ChxVMInstructionProto::Op_Parse(op_name, &op)) << "Unknown op: " << op_name;
             chxvm_opts_.verbose_ops[op] = true;
         }
         chxvm_opts_.trace_level = trace_level();
@@ -323,7 +323,7 @@ public:
         }
 
         LOG() << "Generate code..." << std::endl;
-        XCProgramProto chxvm_prog;
+        ChxVMProgramProto chxvm_prog;
         chxvm::Emit(*model, &chxvm_prog, trace_level() > 0);
 
         if (args_.exist("strip_chxvm")) {
@@ -332,7 +332,7 @@ public:
 
         if (args_.exist("dump_chxvm")) {
             int pc = 0;
-            for (XCInstructionProto inst : chxvm_prog.instructions()) {
+            for (ChxVMInstructionProto inst : chxvm_prog.instructions()) {
                 std::cerr << '#' << pc << ": " << inst.DebugString();
                 pc++;
             }

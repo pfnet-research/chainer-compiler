@@ -39,7 +39,7 @@ def gen_chxvm_proto():
         chxvm_proto = f.read()
 
     chxvm_ops = ''
-    for i, op in enumerate(XC_ALL_OPS):
+    for i, op in enumerate(CHX_ALL_OPS):
         chxvm_ops += '        %s = %d;\n' % (op.name, i + 1)
 
     chxvm_proto = chxvm_proto.replace('%ChxVM_OPS%', chxvm_ops)
@@ -54,10 +54,10 @@ def gen_chxvm_proto():
 def gen_gen_chxvm_ops_h():
     lines = []
 
-    for op in XC_ALL_OPS:
+    for op in CHX_ALL_OPS:
         lines.append('class %sOp : public ChxVMOp {' % op.name)
         lines.append('public:')
-        lines.append('explicit %sOp(const XCInstructionProto& inst);' % op.name)
+        lines.append('explicit %sOp(const ChxVMInstructionProto& inst);' % op.name)
 
         args = ['ChxVMState* st']
         if op.typed:
@@ -153,14 +153,14 @@ namespace runtime {
 def gen_gen_chxvm_ops_cc():
     lines = []
 
-    for op in XC_ALL_OPS:
+    for op in CHX_ALL_OPS:
         # Emit constructor.
-        lines.append('%sOp::%sOp(const XCInstructionProto& inst)'
+        lines.append('%sOp::%sOp(const ChxVMInstructionProto& inst)'
                      ': ChxVMOp(inst) {' %
                      (op.name, op.name))
         for i, inp in enumerate(op.inputs):
             enum = inp.typ.replace('OPTIONAL_', '')
-            lines.append('CHECK_EQ(XCValueProto::%s, ' % enum +
+            lines.append('CHECK_EQ(ChxVMValueProto::%s, ' % enum +
                          'inst.inputs(%d).type()) ' % i +
                          '<< "Unexpected type for input#%d of %s";' % (i, op.name))
             pfn = inp.proto_field_name()
@@ -332,10 +332,10 @@ def gen_gen_chxvm_ops_cc():
 
         lines.append('}')
 
-    lines.append('ChxVMOp* MakeChxVMOp(const XCInstructionProto& inst) {')
+    lines.append('ChxVMOp* MakeChxVMOp(const ChxVMInstructionProto& inst) {')
     lines.append('switch (inst.op()) {')
-    for op in XC_ALL_OPS:
-        lines.append('case XCInstructionProto::%s:' % (op.name))
+    for op in CHX_ALL_OPS:
+        lines.append('case ChxVMInstructionProto::%s:' % (op.name))
         lines.append('return new %sOp(inst);' % (op.name))
     lines.append('default:')
     lines.append('CHECK(false) << "Unknown op: " ' +

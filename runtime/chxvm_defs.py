@@ -25,7 +25,7 @@ FIELD_TYPES = [
     INT, FLOAT, INTS, INT_VALUES, STRING, STRINGS, DOUBLES
 ]
 
-XC_TYPES = ARG_TYPES + FIELD_TYPES
+CHX_TYPES = ARG_TYPES + FIELD_TYPES
 
 STACK_VECTOR = 'chainerx::StackVector<int64_t, chainerx::kMaxNdim>'
 
@@ -172,7 +172,7 @@ def sigil(typ):
         raise RuntimeError('Not a varaible: %s' % typ)
 
 
-XC_OPS = [
+CHX_OPS = [
     ('Add', [Array('a'), Array('b')], ['c']),
     ('Sub', [Array('a'), Array('b')], ['c']),
     ('Mul', [Array('a'), Array('b')], ['c']),
@@ -437,7 +437,7 @@ XC_OPS = [
     ('BitShift', [Array('x'), Array('y'), String('direction')], ['z']),
 ]
 
-XC_CUSTOM_FIELD_OPS = [
+CHX_CUSTOM_FIELD_OPS = [
     ('IntConstant',
      [IntValues('value'), Int('dtype'), Ints('shape'), Int('host')],
      ['output']),
@@ -456,7 +456,7 @@ XC_CUSTOM_FIELD_OPS = [
      [ArrayList('outputs')]),
 ]
 
-XC_SEQ_OPS = [
+CHX_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
     ('SequenceExtend', [Sequence('a'), Sequence('b')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
@@ -490,7 +490,7 @@ XC_SEQ_OPS = [
 ]
 
 # Ops which modify the input in-place.
-XC_SEQ_OPS_UNTYPED = [
+CHX_SEQ_OPS_UNTYPED = [
     ('SequenceClear', [Sequence('seq')], []),
     ('SequenceAppend', [Sequence('seq'), Array('value')],
      []),
@@ -498,7 +498,7 @@ XC_SEQ_OPS_UNTYPED = [
     ('SequenceMove', [Sequence('seq')], [Sequence('output')]),
 ]
 
-XC_GENERIC_OPS = [
+CHX_GENERIC_OPS = [
     ('Identity', [Array('x')], ['y']),
     ('Free', [Array('v')], []),
     ('In', [String('name')], ['v']),
@@ -536,8 +536,8 @@ class Op(object):
         self.has_custom_field = has_custom_field
 
 
-XC_ALL_OPS = [Op(*op) for op in XC_OPS]
-XC_ALL_OPS += [Op(*op, has_custom_field=True) for op in XC_CUSTOM_FIELD_OPS]
-XC_ALL_OPS += [Op(*op) for op in XC_SEQ_OPS]
-XC_ALL_OPS += [Op(*op, typed=False) for op in XC_SEQ_OPS_UNTYPED]
-XC_ALL_OPS += [Op(*op, typed=False) for op in XC_GENERIC_OPS]
+CHX_ALL_OPS = [Op(*op) for op in CHX_OPS]
+CHX_ALL_OPS += [Op(*op, has_custom_field=True) for op in CHX_CUSTOM_FIELD_OPS]
+CHX_ALL_OPS += [Op(*op) for op in CHX_SEQ_OPS]
+CHX_ALL_OPS += [Op(*op, typed=False) for op in CHX_SEQ_OPS_UNTYPED]
+CHX_ALL_OPS += [Op(*op, typed=False) for op in CHX_GENERIC_OPS]

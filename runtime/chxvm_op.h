@@ -12,12 +12,12 @@ class ChxVMState;
 
 class ChxVMOp {
 public:
-    explicit ChxVMOp(const XCInstructionProto& inst);
+    explicit ChxVMOp(const ChxVMInstructionProto& inst);
     virtual ~ChxVMOp() = default;
 
     virtual void Run(ChxVMState* state) = 0;
 
-    const XCInstructionProto& instruction() const {
+    const ChxVMInstructionProto& instruction() const {
         return inst_;
     }
 
@@ -25,7 +25,7 @@ public:
         return id_;
     }
 
-    XCInstructionProto::Op op() const {
+    ChxVMInstructionProto::Op op() const {
         return op_;
     }
 
@@ -38,16 +38,16 @@ public:
     }
 
 protected:
-    XCInstructionProto inst_;
+    ChxVMInstructionProto inst_;
     const int64_t id_;
-    const XCInstructionProto::Op op_;
+    const ChxVMInstructionProto::Op op_;
     const std::string name_;
 };
 
-ChxVMOp* MakeChxVMOp(const XCInstructionProto& inst);
+ChxVMOp* MakeChxVMOp(const ChxVMInstructionProto& inst);
 
-inline std::ostream& operator<<(std::ostream& os, XCInstructionProto::Op op) {
-    return os << XCInstructionProto::Op_Name(op);
+inline std::ostream& operator<<(std::ostream& os, ChxVMInstructionProto::Op op) {
+    return os << ChxVMInstructionProto::Op_Name(op);
 }
 
 }  // namespace runtime

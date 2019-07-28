@@ -11,14 +11,14 @@ class Node;
 class Value;
 
 namespace runtime {
-class XCProgramProto;
+class ChxVMProgramProto;
 }
 
 namespace chxvm {
 
-void Emit(const Model& model, runtime::XCProgramProto* program, bool dump_value_names = false);
+void Emit(const Model& model, runtime::ChxVMProgramProto* program, bool dump_value_names = false);
 
-void Emit(const Graph& graph, runtime::XCProgramProto* program, bool dump_value_names = false);
+void Emit(const Graph& graph, runtime::ChxVMProgramProto* program, bool dump_value_names = false);
 
 void Emit(const Model& model, std::ostream& out, bool dump_value_names = false);
 
@@ -26,7 +26,7 @@ void Emit(
         const std::vector<Node*>& nodes,
         const std::vector<Value*>& feeds,
         const std::vector<Value*>& fetches,
-        runtime::XCProgramProto* program,
+        runtime::ChxVMProgramProto* program,
         std::vector<int>* input_ids,
         std::vector<int>* output_ids);
 

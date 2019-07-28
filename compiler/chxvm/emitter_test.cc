@@ -27,18 +27,18 @@ TEST(ChxVMTest, Compile) {
     std::ostringstream oss;
     chxvm::Emit(model, oss);
 
-    runtime::XCProgramProto program;
+    runtime::ChxVMProgramProto program;
     program.ParseFromString(oss.str());
     // std::cerr << program.DebugString() << std::endl;
 
     ASSERT_EQ(7, program.instructions_size());
-    ASSERT_EQ(runtime::XCInstructionProto::In, program.instructions(0).op());
-    ASSERT_EQ(runtime::XCInstructionProto::In, program.instructions(1).op());
-    ASSERT_EQ(runtime::XCInstructionProto::Add, program.instructions(2).op());
-    ASSERT_EQ(runtime::XCInstructionProto::Free, program.instructions(3).op());
-    ASSERT_EQ(runtime::XCInstructionProto::Free, program.instructions(4).op());
-    ASSERT_EQ(runtime::XCInstructionProto::Out, program.instructions(5).op());
-    ASSERT_EQ(runtime::XCInstructionProto::Free, program.instructions(6).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::In, program.instructions(0).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::In, program.instructions(1).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::Add, program.instructions(2).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::Free, program.instructions(3).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::Free, program.instructions(4).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::Out, program.instructions(5).op());
+    ASSERT_EQ(runtime::ChxVMInstructionProto::Free, program.instructions(6).op());
 }
 
 }  // namespace
