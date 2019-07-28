@@ -22,7 +22,7 @@ namespace {
 TEST(ChxVMTest, Run) {
     chainerx::testing::ContextSession sess;
 
-    XCProgramProto program;
+    ChxVMProgramProto program;
     chxvm::AddInOp(&program, chxvm::ChxVMValue(0), "in1");
     chxvm::AddInOp(&program, chxvm::ChxVMValue(1), "in2");
     chxvm::AddAddOp(&program, chxvm::ChxVMValue(2), 0, 1);

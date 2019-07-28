@@ -62,7 +62,7 @@ void Configure(
 std::shared_ptr<runtime::ChxVM> Compile(const std::shared_ptr<Graph>& graph, bool skip_scheduling) {
     constexpr bool kBackprop = false;
     RunDefaultPasses(graph.get(), kBackprop, skip_scheduling);
-    runtime::XCProgramProto chxvm_prog;
+    runtime::ChxVMProgramProto chxvm_prog;
     constexpr bool kDumpValueNames = false;
     chxvm::Emit(*graph, &chxvm_prog, kDumpValueNames);
     return std::make_shared<runtime::ChxVM>(chxvm_prog);
