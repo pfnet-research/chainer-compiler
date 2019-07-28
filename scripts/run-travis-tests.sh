@@ -63,6 +63,6 @@ run run_onnx_trace sh -c \
 
 run run_onnx_alex \
     ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss \
-    --check_infs --check_nans
+    --check_infs --check_nans --strip_chxvm
 run run_onnx_googlenet \
     ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss

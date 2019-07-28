@@ -119,6 +119,11 @@ void StripChxVMProgram(ChxVMProgramProto* program) {
         inst->clear_output_names();
         inst->clear_flops();
     }
+    for (int i = 0; i < program->input_types_size(); ++i) {
+        ChxVMTypeProto* input_type = program->mutable_input_types(i);
+        input_type->set_dtype(0);
+        input_type->clear_shape();
+    }
 }
 
 }  // namespace runtime
