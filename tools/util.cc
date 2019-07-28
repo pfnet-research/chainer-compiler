@@ -55,20 +55,15 @@ InOuts LoadParams(const Graph& graph) {
                 continue;
             }
 
-            chainerx::Dtype dtype = ChainerXTypeFromONNX(initializer->dtype().ToONNX());
-            chainerx::Shape shape(initializer->dims());
-            const void* data = initializer->GetRawData();
-            chainerx::Array tensor;
+            chainerx::Array tensor = initializer->chx();
             // If the input is used only by Reshape as a shape, place
             // it on host memory.
             // TODO(hamaji): Introduce more sophisticated approach to
             // decide the device to be used.
             if (std::find_if(input->users().begin(), input->users().end(), [input](const Node* node) {
                     return node->op_type() != Node::kReshape || node->input(1) != input;
-                }) == input->users().end()) {
-                tensor = MakeHostArray(dtype, shape, data);
-            } else {
-                tensor = MakeArray(dtype, shape, data);
+                }) != input->users().end()) {
+                tensor = tensor.ToDevice(chainerx::GetDefaultDevice());
             }
             CHECK(params.emplace(initializer->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(tensor))).second)
                     << "Duplicate input tensor: " << initializer->name();
