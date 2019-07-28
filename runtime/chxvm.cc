@@ -36,6 +36,9 @@ namespace {
 
 void CheckType(ChxVMState* st, const ChxVMOp* op) {
     const XCInstructionProto& inst = op->instruction();
+    if (inst.output_names().empty()) {
+        return;
+    }
     CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
     for (size_t i = 0; i < inst.outputs().size(); ++i) {
         const XCTypeProto& type = inst.output_types(i);
