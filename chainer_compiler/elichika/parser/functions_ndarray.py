@@ -266,6 +266,12 @@ class NDArrayChainerFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.Object(value)
 
+def dummy_maximum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
+    return
+
+def dummy_minimum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
+    return
+
 class Assigner(values.PredefinedValueAssigner):
     def __init__(self):
         super().__init__()
@@ -300,5 +306,5 @@ class Assigner(values.PredefinedValueAssigner):
         add_chainer_function(F.reshape)
         add_chainer_function(F.sum)
         add_chainer_function(F.swapaxes)
-
+        
 values.predefined_value_assigners.append(Assigner())

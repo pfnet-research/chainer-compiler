@@ -111,6 +111,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.mean)
     add_chainer_function(F.average)
     add_chainer_function(F.sum)
+    add_chainer_function(F.maximum)
+    add_chainer_function(F.minimum)
 
     if int(chainer.__version__[0]) >= 6:
         add_chainer_function(F.roi_max_pooling_2d)
@@ -125,6 +127,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     f_full = values.FuncValue(functions_ndarray.NDArrayFullFunction(), None)
     f_ceil = values.FuncValue(functions_ndarray.NDArrayCeilFunction(), None)
     f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
+    f_maximum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_maximum), None)
+    f_minimum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_minimum), None)
 
     f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
     f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
@@ -136,6 +140,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.cumsum] = f_cumsum
     values.function_converters[np.int32] = f_int32
     values.function_converters[np.float32] = f_float32
+    values.function_converters[np.maximum] = f_maximum
+    values.function_converters[np.minimum] = f_minimum
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range

@@ -68,6 +68,8 @@ else:
 - roi_average_pooling_2d
 - roi_max_align_2d
 - roi_average_align_2d
+- maximum
+- minimum
 
 ### Link
 
@@ -85,6 +87,8 @@ else:
 - numpy.full
 - numpy.ceil
 - numpy.cumsum
+- numpy.maximum
+- numpy.minimum
 - numpy.int32
 - numpy.float32
 

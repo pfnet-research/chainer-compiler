@@ -72,6 +72,8 @@ TESTS = [
     Generator('node/Functions', 'Separate'),
     Generator('node/Functions', 'Mean'),
     Generator('node/Functions', 'Sum'),
+    Generator('node/Functions', 'Maximum'),
+    Generator('node/Functions', 'Minimum'),
 
     Generator('node/Functions/Activation', 'Elu'),
     Generator('node/Functions/Activation', 'LeakyRelu'),
