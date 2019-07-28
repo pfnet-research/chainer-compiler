@@ -10,12 +10,14 @@ import inspect
 import ast
 import gast
 import weakref
+import types
 from chainer_compiler.elichika.parser import vevaluator
 from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import config
+from chainer_compiler.elichika.parser import flags
 
 from chainer_compiler.elichika.parser.functions import FunctionBase, UserDefinedFunction
 
@@ -957,22 +959,30 @@ class ModuleValue(Value):
 
     def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
 
-        if name in builtin_function_converters.keys():
-            v = Object(builtin_function_converters[name])
-            return v
-
         members = inspect.getmembers(self.internal_module)
         members_dict = {}
         for member in members:
             members_dict[member[0]] = member[1]
 
         if not (name in members_dict.keys()):
+            if name in builtin_function_converters.keys():
+                v = Object(builtin_function_converters[name])
+                return v
             return None
 
         attr_v = members_dict[name]
 
+        dummy_flags_members_dict = {}
+        dummy_flags_members = inspect.getmembers(flags)
+        for member in dummy_flags_members:
+            if isinstance(member[1], types.FunctionType):
+                dummy_flags_members_dict[member[0]] = member[1]
+
+        if name in dummy_flags_members_dict.keys():
+            v = Object(builtin_function_converters[name])
+            return v
+
         v = parse_instance(inst, name, attr_v, None)
-        
         return v
 
 class Instance(Value):
