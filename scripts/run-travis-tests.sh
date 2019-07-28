@@ -17,8 +17,8 @@ run() {
     travis_fold end $n
 }
 
-run pip_chainer sudo pip3 install third_party/chainer
-run pip_onnx_chainer sudo pip3 install -U -e third_party/onnx-chainer[travis]
+run pip_chainer sudo pip3 install third_party/chainer[test]
+run pip_onnx_chainer sudo pip3 install -U -e third_party/onnx-chainer[test]
 
 run pip_list pip3 list -v
 
