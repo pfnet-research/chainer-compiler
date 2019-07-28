@@ -326,6 +326,10 @@ public:
         XCProgramProto chxvm_prog;
         chxvm::Emit(*model, &chxvm_prog, trace_level() > 0);
 
+        if (args_.exist("strip_chxvm")) {
+            StripChxVMProgram(&chxvm_prog);
+        }
+
         if (args_.exist("dump_chxvm")) {
             int pc = 0;
             for (XCInstructionProto inst : chxvm_prog.instructions()) {
@@ -548,6 +552,7 @@ void RunMain(const std::vector<std::string>& argv) {
     args.add("backprop", 'b', "Add backprop outputs");
     args.add("backprop_two_phase", '\0', "Backprop using different graphs for forward and backward");
     args.add("skip_shape_inference", '\0', "Skip shape inference");
+    args.add("strip_chxvm", '\0', "Strip ChxVM proto");
     args.add("trace", 't', "Tracing mode");
     args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);

@@ -116,5 +116,15 @@ int GetUsedMemory() {
     return usage.has_value() ? usage->first : -1;
 }
 
+void StripChxVMProgram(XCProgramProto* program) {
+    for (int i = 0; i < program->instructions_size(); ++i) {
+        XCInstructionProto* inst = program->mutable_instructions(i);
+        inst->clear_debug_info();
+        inst->clear_output_types();
+        inst->clear_output_names();
+        inst->clear_flops();
+    }
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler
