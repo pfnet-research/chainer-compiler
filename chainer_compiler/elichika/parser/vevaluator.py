@@ -3,6 +3,7 @@ import chainer.functions as F
 import chainer.links as L
 import inspect
 import ast, gast
+import itertools
 from contextlib import ExitStack
 
 from chainer_compiler.elichika.parser import config
@@ -269,7 +270,11 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     true_graph = Graph()
     true_graph.root_graph = graph.root_graph
     true_graph.name = 'True'
-    true_body = veval_ast(astc.c(astc.nast.body), local_field, true_graph, context)
+    # Skip true body when the test_value is decidably False.
+    if test_value.has_constant_value() and test_value.internal_value == False:
+        true_body = []
+    else:
+        true_body = veval_ast(astc.c(astc.nast.body), local_field, true_graph, context)
 
     true_value_inputs = values.get_inputs()
     true_value_outputs = values.get_outputs()
@@ -282,7 +287,11 @@ def veval_ast_if(astc : 'AstContext', local_field : 'values.Field', graph : 'Gra
     false_graph = Graph()
     false_graph.root_graph = graph.root_graph
     false_graph.name = 'False'
-    false_body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph, context)
+    # Skip false body when the test_value is decidably True.
+    if test_value.has_constant_value() and test_value.internal_value == True:
+        false_body = []
+    else:
+        false_body = veval_ast(astc.c(astc.nast.orelse), local_field, false_graph, context)
 
     false_value_inputs = values.get_inputs()
     false_value_outputs = values.get_outputs()
@@ -598,6 +607,14 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node = nodes.NodeSlice(value_value, indices, [len(indices)])
             ret_value = functions.generate_value_with_same_type(value_value)
+
+            # for constant propagation, populate ret_value when possible
+            if value_value.has_constant_value():
+                if all([value.has_constant_value() for value in indices]):
+                    start, end = (indice.internal_value for indice in indices[:2])
+                    step = indices[2].internal_value if len(indices) == 3 else None
+                    ret_value.internal_value = value_value.internal_value[start:end:step]
+
             node.set_outputs([ret_value])
             graph.add_node(node)
             return values.Object(ret_value)
@@ -906,10 +923,38 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
         compare = nodes.CompareType.Lt
     if isinstance(astc.nast.ops[0], gast.LtE):
         compare = nodes.CompareType.LtE
+    if isinstance(astc.nast.ops[0], gast.In):
+        compare = nodes.CompareType.In
+    if isinstance(astc.nast.ops[0], gast.NotIn):
+        compare = nodes.CompareType.NotIn
 
     node_compare = nodes.NodeCompare(left_value, right_value, compare, astc.lineno)
 
-    ret_value = values.BoolValue(None)
+    # constant propagation when possible
+    default_value = None
+    if left_value.has_constant_value() and right_value.has_constant_value():
+        if isinstance(astc.nast.ops[0], gast.Eq):
+            default_value = left_value.internal_value == right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.NotEq):
+            default_value = left_value.internal_value != right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.Is):
+            default_value = left_value.internal_value is right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.IsNot):
+            default_value = left_value.internal_value is not right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.Gt):
+            default_value = left_value.internal_value > right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.GtE):
+            default_value = left_value.internal_value >= right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.Lt):
+            default_value = left_value.internal_value < right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.LtE):
+            default_value = left_value.internal_value <= right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.In):
+            default_value = left_value.internal_value in right_value.internal_value
+        if isinstance(astc.nast.ops[0], gast.NotIn):
+            default_value = left_value.internal_value not in right_value.internal_value
+
+    ret_value = values.BoolValue(default_value)
     ret_value.name = '@{}'.format(lineprop)
     node_compare.set_outputs([ret_value])
     graph.add_node(node_compare)
@@ -1287,6 +1332,46 @@ def veval_ast_withitem(astc : 'AstContext', local_field : 'values.Field', graph 
 
     return value_obj
 
+def veval_ast_lambda(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'VEvalContext' = None):
+    '''
+    lambda x, y, z=2: ...
+    Note: kwonly_args are not supported
+    '''
+    assert(isinstance(astc.nast, gast.gast.Lambda))
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    lambda_id = 'lambda_' + str(utils.get_guid())
+    values.push_history(lambda_id)
+    args = veval_ast(astc.c(astc.nast.args), local_field, graph, context)
+    func = functions.UserDefinedFunctionFromAst(astc, args, local_field)
+    values.pop_history()
+
+    return values.Object(values.FuncValue(func, None))
+
+def veval_ast_arguments(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'VEvalContext' = None):
+    assert(isinstance(astc.nast, gast.gast.arguments))
+    lineprop = utils.LineProperty(astc.lineno, astc.filename)
+
+    ret = functions.FunctionArgCollection()
+
+    argspec = inspect.FullArgSpec(astc.nast.args, astc.nast.vararg, astc.nast.kwarg,
+                                  astc.nast.defaults, astc.nast.kwonlyargs, astc.nast.kw_defaults, None)
+
+    assert not argspec.kwonlyargs, "Keyword only args are not supported"
+    assert not argspec.varargs, "Varaibale arguments *args is not supported"
+    assert not argspec.varkw, "Variable keywords **kwargs is not supported"
+
+    defaults = [veval_ast(astc.c(default), local_field, graph, context) for default in argspec.defaults]
+    arg_list = []
+    for k, v in itertools.zip_longest(reversed(argspec.args), defaults):
+        arg_list.append((k.id, v))
+
+    # reverse the list
+    for k, v in reversed(arg_list):
+        ret.add_arg(k, v)
+
+    return ret
+
 def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph', context : 'VEvalContext' = None):
     if context is None:
         context = VEvalContext()
@@ -1393,6 +1478,14 @@ def veval_ast(astc : 'AstContext', local_field : 'values.Field', graph : 'Graph'
 
     elif isinstance(astc.nast, gast.gast.Dict):
         ret = veval_ast_dict(astc, local_field, graph, context)
+        return ret
+
+    elif isinstance(astc.nast, gast.gast.Lambda):
+        ret = veval_ast_lambda(astc, local_field, graph, context)
+        return ret
+
+    elif isinstance(astc.nast, gast.gast.arguments):
+        ret = veval_ast_arguments(astc, local_field, graph, context)
         return ret
 
     else:

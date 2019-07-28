@@ -40,6 +40,8 @@ class CompareType(Enum):
     LtE = 5,
     Is = 6,
     IsNot = 7,
+    In = 8,
+    NotIn = 9,
     unknown = 255,
 
 def make_attribute(value):

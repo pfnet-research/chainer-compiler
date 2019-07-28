@@ -2,6 +2,8 @@ import os
 import numpy as np
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import values
+import inspect
+import re
 
 current_id = 0
 
@@ -49,6 +51,21 @@ def create_obj_value_name_with_attribute(name: "str", pre_name: "str"):
         return pre_name
     else:
         return name
+
+def lambda_source(l):
+    s = inspect.getsource(l)
+    if len(re.findall('lambda.*?:', s)) > 1:
+        return None
+
+    s = s[re.search('lambda.*?:', s).start():]
+    min_length = len('lambda:_')  # shortest possible lambda expression
+    while len(s) > min_length:
+        try:
+            code = compile(s, '<unused filename>', 'eval')
+            return s.strip()
+        except SyntaxError:
+            s = s[:-1]
+    return None
 
 def clip_head(s: 'str'):
     splitted = s.split('\n')

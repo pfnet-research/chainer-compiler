@@ -160,6 +160,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
     m_getattr = values.FuncValue(functions_builtin.GetAttrFunction(), None)
     values.builtin_function_converters['getattr'] = m_getattr
 
+    m_hasattr = values.FuncValue(functions_builtin.HasAttrFunction(), None)
+    values.builtin_function_converters['hasattr'] = m_hasattr
+
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
 
