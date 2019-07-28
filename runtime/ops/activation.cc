@@ -43,15 +43,11 @@ chainerx::Array SeluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array LeakyReluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = alpha * x;
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs) + xn * negs;
+    return chainerx::LeakyRelu(x, alpha);
 }
 
 chainerx::Array EluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = alpha * (chainerx::Exp(x) - 1);
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs) + xn * negs;
+    return chainerx::Elu(x, alpha);
 }
 
 chainerx::Array TanhOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {
