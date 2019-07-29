@@ -86,9 +86,13 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.chainer_f_converter[F.sum] = fb.ConverterSum()
     oc.chainer_f_converter[F.maximum] = fb.ConverterChainerMaximum()
     oc.chainer_f_converter[F.minimum] = fb.ConverterChainerMinimum()
+    oc.chainer_f_converter[F.argmax] = fb.ConverterChainerArgMax()
+    oc.chainer_f_converter[F.argmin] = fb.ConverterChainerArgMin()
 
     oc.chainer_f_converter[functions_ndarray.dummy_maximum] = fb.ConverterMaximum()
     oc.chainer_f_converter[functions_ndarray.dummy_minimum] = fb.ConverterMinimum()
+    oc.chainer_f_converter[functions_ndarray.dummy_argmax] = fb.ConverterArgMax()
+    oc.chainer_f_converter[functions_ndarray.dummy_argmin] = fb.ConverterArgMin()
 
     if int(chainer.__version__[0]) >= 6:
         oc.chainer_f_converter[F.roi_max_pooling_2d] = fb.ConverterRoiMaxPooling2D()

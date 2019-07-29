@@ -113,6 +113,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.sum)
     add_chainer_function(F.maximum)
     add_chainer_function(F.minimum)
+    values.function_converters[F.argmax] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmax), None)
+    values.function_converters[F.argmin] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmin), None)
 
     if int(chainer.__version__[0]) >= 6:
         add_chainer_function(F.roi_max_pooling_2d)
@@ -129,6 +131,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
     f_maximum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_maximum), None)
     f_minimum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_minimum), None)
+    f_argmax = values.FuncValue(functions_ndarray.NDarrayArgminmaxFunction(functions_ndarray.dummy_argmax), None)
+    f_argmin = values.FuncValue(functions_ndarray.NDarrayArgminmaxFunction(functions_ndarray.dummy_argmin), None)
 
     f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
     f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
@@ -142,6 +146,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.float32] = f_float32
     values.function_converters[np.maximum] = f_maximum
     values.function_converters[np.minimum] = f_minimum
+    values.function_converters[np.argmax] = f_argmax
+    values.function_converters[np.argmin] = f_argmin
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range

@@ -266,6 +266,38 @@ class NDArrayChainerFunction(functions.FunctionBase):
         node.set_outputs([value])
         return values.Object(value)
 
+class NDarrayArgminmaxFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        
+        axis = funcArgs.keywords['axis']
+        if isinstance(axis, values.NoneValue):
+            value = values.NumberValue(None)
+            value.dtype = np.int64
+        else:
+            value = values.TensorValue()
+            value.dtype = np.int64
+
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+def dummy_argmin(a, axis=None, out=None):
+    return
+
+def dummy_argmax(a, axis=None, out=None):
+    return
+
 def dummy_maximum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
     return
 

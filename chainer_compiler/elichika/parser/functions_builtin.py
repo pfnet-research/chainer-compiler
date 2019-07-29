@@ -4,6 +4,7 @@ from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import graphs
 from chainer_compiler.elichika.parser import utils
 
+import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -27,6 +28,32 @@ class ChainerFunction(functions.FunctionBase):
         graph.add_node(node)
         #value = functions.generate_value_with_same_type(vargs[0])
         value = self.ret_value_func()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+class ChainerArgminmaxFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        
+        axis = funcArgs.keywords['axis']
+        if isinstance(axis, values.NoneValue):
+            value = values.NumberValue(None)
+            value.dtype = np.int32
+        else:
+            value = values.TensorValue()
+            value.dtype = np.int32
+
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)

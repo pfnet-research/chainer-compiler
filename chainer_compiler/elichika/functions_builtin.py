@@ -31,6 +31,11 @@ def _list(v) -> 'List[int]':
         return list(x for x in v)
     return [v]
 
+def get_onnx_dtype(dtype):
+    a = np.zeros((), dtype=dtype)
+    dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[a.dtype]
+    return dt
+
 
 class BaseConverter(object):
     def parse_args(self, onnx_graph, node):
@@ -122,6 +127,98 @@ class ConverterSigmoid(BaseConverter):
             [parser.get('x')],
             node.outputs,
             name=str(node.lineprop))
+
+def convert_argminmax(onnx_graph, node, parser, tensor, operator, dtype):
+    axis = parser.get('axis')
+
+    if axis is None:
+        (reshaped,) = onnx_graph.add_node(
+        'Reshape',
+        [parser.get(tensor), oc.ONNXValue(onnx_graph, np.array([-1], dtype=np.int64), [node, '/Minus1'])],
+        [None],
+        str(node.lineprop))
+
+        (minmax,) = onnx_graph.add_node(
+            operator,
+            [reshaped],
+            [None],
+            str(node.lineprop),
+            axis=0)
+
+        (squeesed,) = onnx_graph.add_node(
+            'Squeeze',
+            [minmax],
+            [None],
+            str(node.lineprop))
+
+        onnx_graph.add_node(
+            "Cast",
+            [squeesed],
+            node.outputs,
+            str(node.lineprop),
+            to=get_onnx_dtype(dtype))
+
+    else:
+        (minmax,) = onnx_graph.add_node(
+            operator,
+            [parser.get(tensor)],
+            [None],
+            str(node.lineprop),
+            keepdims=False,
+            axis=axis)
+
+        onnx_graph.add_node(
+            "Cast",
+            [minmax],
+            node.outputs,
+            str(node.lineprop),
+            to=get_onnx_dtype(dtype))
+
+class ConverterChainerArgMax(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        convert_argminmax(onnx_graph, node, parser, 'x', 'ArgMax', np.int32)
+
+class ConverterArgMax(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('a', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('out', oc.ParseType.Att, None),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        convert_argminmax(onnx_graph, node, parser, 'a', 'ArgMax', np.int64)
+
+class ConverterChainerArgMin(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        convert_argminmax(onnx_graph, node, parser, 'x', 'ArgMin', np.int32)
+
+class ConverterArgMin(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('a', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('out', oc.ParseType.Att, None),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        convert_argminmax(onnx_graph, node, parser, 'a', 'ArgMin', np.int64)
 
 class ConverterChainerMaximum(BaseConverter):
     def __init__(self):
