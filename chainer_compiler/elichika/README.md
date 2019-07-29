@@ -70,6 +70,8 @@ else:
 - roi_average_align_2d
 - maximum
 - minimum
+- argmax
+- argmin
 
 ### Link
 
@@ -89,6 +91,8 @@ else:
 - numpy.cumsum
 - numpy.maximum
 - numpy.minimum
+- numpy.argmax
+- numpy.argmin
 - numpy.int32
 - numpy.float32
 
