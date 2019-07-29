@@ -46,10 +46,10 @@ class CMakeBuild(build_ext.build_ext):
         cmake_args = [
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DCHAINER_COMPILER_ENABLE_CUDA=ON',
+            '-DCMAKE_BUILD_TYPE=Release',
             '-DCHAINERX_BUILD_CUDA=ON',
             '-DCUDA_TOOLKIT_ROOT_DIR=' + cuda_path,
             '-DCHAINER_COMPILER_ENABLE_PYTHON=ON',
-            '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DCHAINERX_BUILD_PYTHON=ON',
             '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]

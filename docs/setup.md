@@ -120,9 +120,9 @@ $ git clone https://github.com/pfnet-research/chainer-compiler.git
 $ mkdir -p build
 $ cd build
 
-$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
+$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=ON -DCMAKE_BUILD_TYPE=Release -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 ..
 or
-$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=OFF ..
+$ cmake -DCHAINER_COMPILER_ENABLE_CUDA=OFF -DCMAKE_BUILD_TYPE=Release ..
 
 $ make
 ```

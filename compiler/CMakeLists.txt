@@ -9,11 +9,13 @@ endif()
 
 add_definitions(-DCHAINER_COMPILER_DLDT_DIR=\"${CHAINER_COMPILER_DLDT_DIR}\")
 
+find_package(PythonInterp 3)
+
 add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
   MAIN_DEPENDENCY gen_node.py
   DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py)
 add_custom_target(gen_node_base_h DEPENDS gen_node_base.h)
@@ -22,7 +24,7 @@ add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/chxvm/gen_chxvm_codegen.py
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/chxvm/gen_chxvm_codegen.py
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY chxvm/gen_chxvm_codegen.py
   DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py ${CHAINER_COMPILER_ROOT_DIR}/runtime/chxvm_defs.py)
@@ -35,7 +37,7 @@ add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.h
+  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.h
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
@@ -43,7 +45,7 @@ add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.cc
+  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.cc
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
