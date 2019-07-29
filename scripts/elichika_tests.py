@@ -31,6 +31,7 @@ TESTS = [
     Generator('model', 'StatelessLSTM'),
     Generator('model', 'EspNet_AttDot'),
     Generator('model', 'EspNet_AttLoc'),
+    Generator('chainercv_model/resnet', 'resnet'),
 
     Generator('node', 'AddMul'),
     Generator('node', 'AveragePool2d'),
@@ -72,6 +73,8 @@ TESTS = [
     Generator('node/Functions', 'Separate'),
     Generator('node/Functions', 'Mean'),
     Generator('node/Functions', 'Sum'),
+    Generator('node/Functions', 'Maximum'),
+    Generator('node/Functions', 'Minimum'),
 
     Generator('node/Functions/Activation', 'Elu'),
     Generator('node/Functions/Activation', 'LeakyRelu'),
@@ -101,7 +104,9 @@ TESTS = [
     Generator('syntax', 'Print'),
     Generator('syntax', 'With'),
     Generator('syntax', 'Dict'),
-    Generator('syntax', 'GetItem')
+    Generator('syntax', 'GetItem'),
+    Generator('syntax', 'HasItem'),
+    Generator('syntax', 'Lambda')
 ]
 
 

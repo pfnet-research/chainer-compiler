@@ -123,6 +123,103 @@ class ConverterSigmoid(BaseConverter):
             node.outputs,
             name=str(node.lineprop))
 
+class ConverterChainerMaximum(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x1', oc.ParseType.In),
+            ('x2', oc.ParseType.In),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        onnx_graph.add_node(
+            "Max",
+            [parser.get('x1'), parser.get('x2')],
+            node.outputs,
+            str(node.lineprop))
+
+class ConverterMaximum(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x1', oc.ParseType.In),
+            ('x2', oc.ParseType.In),
+            ('out', oc.ParseType.Att, None),
+            ('where', oc.ParseType.Att, True),
+            ('casting', oc.ParseType.Att, 'same_kind'),
+            ('order', oc.ParseType.Att, 'K'),
+            ('dtype', oc.ParseType.Att, None),
+            ('subok', oc.ParseType.Att, True),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        onnx_graph.add_node(
+            "Max",
+            [parser.get('x1'), parser.get('x2')],
+            node.outputs,
+            str(node.lineprop))
+
+class ConverterChainerMinimum(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x1', oc.ParseType.In),
+            ('x2', oc.ParseType.In),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        onnx_graph.add_node(
+            "Min",
+            [parser.get('x1'), parser.get('x2')],
+            node.outputs,
+            str(node.lineprop))
+
+class ConverterMinimum(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x1', oc.ParseType.In),
+            ('x2', oc.ParseType.In),
+            ('out', oc.ParseType.Att, None),
+            ('where', oc.ParseType.Att, True),
+            ('casting', oc.ParseType.Att, 'same_kind'),
+            ('order', oc.ParseType.Att, 'K'),
+            ('dtype', oc.ParseType.Att, None),
+            ('subok', oc.ParseType.Att, True),
+            )
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+        onnx_graph.add_node(
+            "Min",
+            [parser.get('x1'), parser.get('x2')],
+            node.outputs,
+            str(node.lineprop))
+
+class ConverterSum(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('keepdims', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        kwargs = {}
+        axis = parser.get('axis')
+
+        if isinstance(axis, int):
+            kwargs['axes'] = [axis]
+        elif axis is not None:
+            kwargs['axes'] = list(axis)
+
+        onnx_graph.add_node(
+            "ReduceSum",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            keepdims=parser.get('keepdims'),
+            **kwargs)
 
 class ConverterSum(BaseConverter):
     def __init__(self):

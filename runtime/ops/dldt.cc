@@ -88,7 +88,7 @@ void DldtOp::InitImpl() {
     InferenceEngine::OutputsDataMap outputs_info(impl_->network.getOutputsInfo());
     for (size_t i = 0; i < output_names.size(); ++i) {
         const std::string& name = output_names[i];
-        const XCTypeProto& type = inst_.output_types(i);
+        const ChxVMTypeProto& type = inst_.output_types(i);
         CHECK_NE(type.dtype(), 0);
 
         auto found = outputs_info.find(name);

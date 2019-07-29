@@ -14,6 +14,8 @@ from chainer_compiler.elichika.parser import links_builtin
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
+from chainer_compiler.elichika.parser import functions_list
+from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import flags
@@ -109,6 +111,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.mean)
     add_chainer_function(F.average)
     add_chainer_function(F.sum)
+    add_chainer_function(F.maximum)
+    add_chainer_function(F.minimum)
 
     if int(chainer.__version__[0]) >= 6:
         add_chainer_function(F.roi_max_pooling_2d)
@@ -123,6 +127,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     f_full = values.FuncValue(functions_ndarray.NDArrayFullFunction(), None)
     f_ceil = values.FuncValue(functions_ndarray.NDArrayCeilFunction(), None)
     f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
+    f_maximum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_maximum), None)
+    f_minimum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_minimum), None)
 
     f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
     f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
@@ -134,6 +140,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.cumsum] = f_cumsum
     values.function_converters[np.int32] = f_int32
     values.function_converters[np.float32] = f_float32
+    values.function_converters[np.maximum] = f_maximum
+    values.function_converters[np.minimum] = f_minimum
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range
@@ -151,6 +159,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     m_getattr = values.FuncValue(functions_builtin.GetAttrFunction(), None)
     values.builtin_function_converters['getattr'] = m_getattr
+
+    m_hasattr = values.FuncValue(functions_builtin.HasAttrFunction(), None)
+    values.builtin_function_converters['hasattr'] = m_hasattr
 
     m_to_gpu = values.FuncValue(functions_builtin.CopyFunction(cuda.to_gpu), None)
     values.function_converters[cuda.to_gpu] = m_to_gpu
@@ -201,7 +212,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     forward_func_value = forward_func.get_value()
     ret = forward_func_value.func.vcall(
-        default_module, graph, forward_func_value.obj, finput).get_ref()
+        default_module, graph, forward_func_value.obj, finput).get_obj()
     assert(ret is None or isinstance(ret, values.Object))
 
     def try_get_value(value) -> 'values.Value':
@@ -212,7 +223,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
             return value.get_value()
 
         if isinstance(value, values.Attribute):
-            return value.get_ref().get_value()
+            return value.get_obj().get_value()
 
     if ret is None or isinstance(ret, values.NoneValue):
         if config.show_warnings:

@@ -45,7 +45,7 @@ void Eval(
         const std::vector<std::pair<Value*, Tensor*>>& feeds,
         const std::vector<Value*>& fetches,
         std::vector<std::unique_ptr<EvaluatedValue>>* outputs) {
-    runtime::XCProgramProto program;
+    runtime::ChxVMProgramProto program;
     std::vector<int> input_ids;
     std::vector<int> output_ids;
     {

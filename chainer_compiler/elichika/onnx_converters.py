@@ -18,6 +18,8 @@ from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import functions_builtin
 from chainer_compiler.elichika.parser import functions_ndarray
+from chainer_compiler.elichika.parser import functions_list
+from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import links_builtin
@@ -361,7 +363,7 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         chainer_f_converter[node.func.base_func](onnx_graph, node)
         return
 
-    if isinstance(node.func, functions_builtin.AppendFunction):
+    if isinstance(node.func, functions_list.AppendFunction):
         # append
         onnx_graph.add_node(
             "ChainerSequenceAppend",
@@ -373,6 +375,14 @@ def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
         # print
         onnx_graph.add_node(
             'ChainerPrint',
+            node.inputs,
+            node.outputs,
+            str(node.lineprop))
+
+    if isinstance(node.func, functions_builtin.LenFunction):
+        # len
+        onnx_graph.add_node(
+            'ChainerGenericLen',
             node.inputs,
             node.outputs,
             str(node.lineprop))
@@ -1178,19 +1188,23 @@ class ONNXGenerator:
                     op_str = 'ChainerGenericIs'
                     op_not = True
 
-                if op_not:
-                    op_not_temp = onnx_graph.new_empty_tensor(
-                        ['TODO'], np.bool, value2onnx_parameter[node.outputs[0]].onnx_name + '/NotTemp')
-                    onnx_node1 = oh.make_node(op_str, [
-                                              value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [op_not_temp.name])
-                    onnx_node2 = oh.make_node('Not', [op_not_temp.name], [
-                                              value2onnx_parameter[node.outputs[0]].onnx_name])
-                    onnx_graph.nodes.append(onnx_node1)
-                    onnx_graph.nodes.append(onnx_node2)
+                if node_.compare == nodes.CompareType.In or node_.compare == nodes.CompareType.NotIn:
+                    # TODO(rchouras): Add case for CompareType.In and CompareType.NotIn ops
+                    pass
                 else:
-                    onnx_node = oh.make_node(op_str, [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [
-                                             value2onnx_parameter[node.outputs[0]].onnx_name])
-                    onnx_graph.nodes.append(onnx_node)
+                    if op_not:
+                        op_not_temp = onnx_graph.new_empty_tensor(
+                            ['TODO'], np.bool, value2onnx_parameter[node.outputs[0]].onnx_name + '/NotTemp')
+                        onnx_node1 = oh.make_node(op_str, [
+                                                value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [op_not_temp.name])
+                        onnx_node2 = oh.make_node('Not', [op_not_temp.name], [
+                                                value2onnx_parameter[node.outputs[0]].onnx_name])
+                        onnx_graph.nodes.append(onnx_node1)
+                        onnx_graph.nodes.append(onnx_node2)
+                    else:
+                        onnx_node = oh.make_node(op_str, [value2onnx_parameter[node_.left].onnx_name, value2onnx_parameter[node_.right].onnx_name], [
+                                                value2onnx_parameter[node.outputs[0]].onnx_name])
+                        onnx_graph.nodes.append(onnx_node)
 
             if isinstance(node, nodes.NodeGetItem):
                 node_ = node  # type: nodes.NodeGetItem
@@ -1267,18 +1281,6 @@ class ONNXGenerator:
                     [value2onnx_parameter[x].onnx_name for x in node.outputs],
                     then_branch=true_graph,
                     else_branch=false_graph)
-
-                onnx_graph.nodes.append(onnx_node)
-
-            if isinstance(node, nodes.NodeLen):
-                node_ = node  # type: nodes.NodeLen
-
-                onnx_node = oh.make_node(
-                    'ChainerGenericLen',
-                    [value2onnx_parameter[node_.iter_value].onnx_name],
-                    [value2onnx_parameter[node_.outputs[0]].onnx_name],
-                    str(node.lineprop)
-                )
 
                 onnx_graph.nodes.append(onnx_node)
 

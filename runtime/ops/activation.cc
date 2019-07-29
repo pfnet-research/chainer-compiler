@@ -5,8 +5,10 @@
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/explog.h>
 #include <chainerx/routines/hyperbolic.h>
+#include <chainerx/routines/indexing.h>
 #include <chainerx/routines/manipulation.h>
 #include <chainerx/routines/reduction.h>
+#include <chainerx/routines/type_util.h>
 
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
@@ -43,15 +45,17 @@ chainerx::Array SeluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
 }
 
 chainerx::Array LeakyReluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = alpha * x;
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs) + xn * negs;
+    // TODO(hamaji): Use ChainerX's after
+    // https://github.com/chainer/chainer/pull/7816
+    // return chainerx::LeakyRelu(x, alpha);
+    chainerx::Dtype dtype = chainerx::internal::GetMathResultDtype(x.dtype());
+    const chainerx::Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    chainerx::Array zero = Zeros({}, x_cast.dtype(), x_cast.device());
+    return chainerx::Where(x_cast >= zero, x_cast, alpha * x_cast);
 }
 
 chainerx::Array EluOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
-    chainerx::Array xn = alpha * (chainerx::Exp(x) - 1);
-    chainerx::Array negs = (x < chainerx::Zeros({}, x.dtype(), x.device())).AsType(x.dtype());
-    return x * (1 - negs) + xn * negs;
+    return chainerx::Elu(x, alpha);
 }
 
 chainerx::Array TanhOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {

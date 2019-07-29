@@ -10,23 +10,45 @@ import inspect
 import ast
 import gast
 import weakref
+import types
 from chainer_compiler.elichika.parser import vevaluator
 from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import config
-from chainer_compiler.elichika.parser import functions_builtin
-from chainer_compiler.elichika.parser import functions_ndarray
+from chainer_compiler.elichika.parser import flags
 
 from chainer_compiler.elichika.parser.functions import FunctionBase, UserDefinedFunction
 
 fields = []
 histories = []
 
+# hashable function. key is python function, value is FuncValue
 function_converters = {}
-instance_converters = []
+
+# unhashable function. key is str, value is FuncValue
 builtin_function_converters = {}
+
+# an array of convertter from python instance into Value
+# first argument is module, second argument is python instance
+instance_converters = []
+
+# assign predefined values
+predefined_value_assigners = [] # type: List[PredefinedValueAssigner]
+
+class PredefinedValueAssigner:
+    def __init__(self):
+        self.target_type = None # type: type
+
+    def assign(self, target : 'Object'):
+        return
+
+def apply_predefined_value_assigners(target_type : 'type', target : 'Object'):
+    for assigner in predefined_value_assigners:
+        if assigner.target_type != target_type:
+            continue
+        assigner.assign(target)
 
 def create_ref_value_name_with_constant(value):
     if isinstance(value, Object):
@@ -299,17 +321,17 @@ class FieldAttributeCollection():
         attribute.parent = parent_attribute.parent
 
         # instance or func
-        if isinstance(parent_attribute.get_ref().get_value(), Instance) or isinstance(parent_attribute.get_ref().get_value(), FuncValue) or isinstance(parent_attribute.get_ref().get_value(), ModuleValue):
-            attribute.revise(parent_attribute.get_ref())
+        if isinstance(parent_attribute.get_obj().get_value(), Instance) or isinstance(parent_attribute.get_obj().get_value(), FuncValue) or isinstance(parent_attribute.get_obj().get_value(), ModuleValue):
+            attribute.revise(parent_attribute.get_obj())
             self.attributes[key] = attribute
             return attribute
 
         # input
-        attribute.revise(parent_attribute.get_ref())
+        attribute.revise(parent_attribute.get_obj())
         self.attributes[key] = attribute
 
-        self.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(
-        ), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+        self.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(
+        ), attribute.get_obj().get_value(), attribute.get_obj().get_value())
 
         return attribute
 
@@ -345,17 +367,17 @@ class FieldAttributeCollection():
                 continue
 
             # instance or func
-            if isinstance(att.get_ref().get_value(), Instance) or isinstance(att.get_ref().get_value(), FuncValue) or isinstance(att.get_ref().get_value(), ModuleValue):
+            if isinstance(att.get_obj().get_value(), Instance) or isinstance(att.get_obj().get_value(), FuncValue) or isinstance(att.get_obj().get_value(), ModuleValue):
                 continue
 
-            if (not (att in self.inputs.keys())) or att.get_ref() != self.inputs[att][0] or att.get_ref().get_value() != self.inputs[att][1]:
+            if (not (att in self.inputs.keys())) or att.get_obj() != self.inputs[att][0] or att.get_obj().get_value() != self.inputs[att][1]:
                 fo = FieldOutput()
                 fo.name = att.name
                 fo.field = att.parent
-                fo.obj = att.get_ref()
+                fo.obj = att.get_obj()
                 if att in self.inputs.keys():
                     fo.old_value = self.inputs[att][1]
-                fo.value = att.get_ref().get_value()
+                fo.value = att.get_obj().get_value()
                 ret.append(fo)
 
         return ret
@@ -462,11 +484,11 @@ class Field():
             if isinstance(obj.get_value(), Instance) or isinstance(obj.get_value(), FuncValue) or isinstance(obj.get_value(), ModuleValue):
                 continue
 
-            collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref(
-            ).get_value(), attribute.get_ref().get_value(), attribute.get_ref().get_value())
+            collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj(
+            ).get_value(), attribute.get_obj().get_value(), attribute.get_obj().get_value())
 
            # if old_value is not None:
-           #     collection.inputs[attribute] = (attribute.get_ref(), attribute.get_ref().get_value(), old_value, value)
+           #     collection.inputs[attribute] = (attribute.get_obj(), attribute.get_obj().get_value(), old_value, value)
 
             #old_value = obj.get_value()
             #value = functions.generate_copied_value(old_value)
@@ -495,7 +517,7 @@ class Attribute:
     def has_obj(self):
         return self.obj != None
 
-    def get_ref(self):
+    def get_obj(self):
         assert self.has_obj()
         return self.obj
 
@@ -524,9 +546,9 @@ class Object():
             
         attribute = self.attributes.try_get_attribute(name)
         if attribute is not None and attribute.has_obj():
-            return attribute.get_ref()
+            return attribute.get_obj()
 
-        obj = self.value.try_get_ref(name, self, root_graph)
+        obj = self.value.try_get_obj(name, self, root_graph)
 
         if obj is None:
             return None
@@ -576,7 +598,7 @@ class Value():
             assert(False)
         return ""
 
-    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
+    def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
         return None
 
     def __str__(self):
@@ -766,6 +788,7 @@ class FuncValue(Value):
     def __init__(self, func: 'functions.FunctionBase', obj: 'Object', module : 'Object' = None):
         super().__init__()
         self.func = func
+        self.internal_value = func  # TODO(rchours): So that has_constant_type() succeeds on FuncValue.
         self.obj = obj
         self.module = module
 
@@ -843,9 +866,7 @@ class ListValue(Value):
             self.estimate_type()
 
     def apply_to_object(self, obj: 'Object'):
-        append_func = Object(
-            FuncValue(functions_builtin.AppendFunction(self), obj, None))
-        obj.attributes.get_attribute('append').revise(append_func)
+        apply_predefined_value_assigners(type(ListValue), obj)
 
     def __str__(self):
         return self.name + '(L)'
@@ -877,6 +898,8 @@ class DictValue(Value):
     #     return
 
     def apply_to_object(self, obj: 'Object'):
+        apply_predefined_value_assigners(type(ListValue), obj)
+        '''
         keys_func = Object(
             FuncValue(functions_builtin.KeysFunction(self), obj, None))
         obj.attributes.get_attribute('keys').revise(keys_func)
@@ -884,7 +907,7 @@ class DictValue(Value):
         values_func = Object(
             FuncValue(functions_builtin.ValuesFunction(self), obj, None))
         obj.attributes.get_attribute('values').revise(values_func)
-
+        '''
     def __str__(self):
         return self.name + '(D)'
 
@@ -913,27 +936,8 @@ class TensorValue(Value):
         v.dtype = self.dtype
         return Object(v)
 
-
     def apply_to_object(self, obj: 'Object'):
-        shape_func = Object(
-            FuncValue(functions_ndarray.NDArrayShapeFunction(), obj, None))
-        obj.attributes.set_predefined_obj('shape', shape_func)
-
-        size_func = Object(
-            FuncValue(functions_ndarray.NDArraySizeFunction(), obj, None))
-        obj.attributes.set_predefined_obj('size', size_func)
-
-        cumsum_func = Object(
-            FuncValue(functions_ndarray.NDArrayCumsumFunction(), obj, None))
-        obj.attributes.set_predefined_obj('cumsum', cumsum_func)
-
-        def add_chainer_function(func):
-            func_ = Object(
-                FuncValue(functions_ndarray.NDArrayChainerFunction(func), obj, None))
-            obj.attributes.set_predefined_obj(func.__name__, func_)
-
-        add_chainer_function(F.reshape)
-        add_chainer_function(F.sum)
+        apply_predefined_value_assigners(type(TensorValue), obj)
 
     def __str__(self):
         return self.name + '(T.{})'.format(self.shape)
@@ -953,11 +957,7 @@ class ModuleValue(Value):
         self.internal_module = module
 
 
-    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
-
-        if name in builtin_function_converters.keys():
-            v = Object(builtin_function_converters[name])
-            return v
+    def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
 
         members = inspect.getmembers(self.internal_module)
         members_dict = {}
@@ -965,12 +965,24 @@ class ModuleValue(Value):
             members_dict[member[0]] = member[1]
 
         if not (name in members_dict.keys()):
+            if name in builtin_function_converters.keys():
+                v = Object(builtin_function_converters[name])
+                return v
             return None
 
         attr_v = members_dict[name]
 
+        dummy_flags_members_dict = {}
+        dummy_flags_members = inspect.getmembers(flags)
+        for member in dummy_flags_members:
+            if isinstance(member[1], types.FunctionType):
+                dummy_flags_members_dict[member[0]] = member[1]
+
+        if name in dummy_flags_members_dict.keys():
+            v = Object(builtin_function_converters[name])
+            return v
+
         v = parse_instance(inst, name, attr_v, None)
-        
         return v
 
 class Instance(Value):
@@ -988,7 +1000,7 @@ class UserDefinedInstance(Instance):
     def __init__(self, module: 'Object', inst, classinfo):
         super().__init__(module, inst, classinfo)
 
-    def try_get_ref(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
+    def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
         obj = None
         if self.inst is not None:
             if not hasattr(self.inst, name):

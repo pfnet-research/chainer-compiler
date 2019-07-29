@@ -2,7 +2,7 @@ syntax = "proto2";
 
 package chainer_compiler.runtime;
 
-message XCValueProto {
+message ChxVMValueProto {
     enum Type {
         ARRAY = 1;
         OPTIONAL_ARRAY = 2;
@@ -37,29 +37,29 @@ message XCValueProto {
     repeated string strings = 14;
 }
 
-message XCTypeProto {
+message ChxVMTypeProto {
     // ChainerX's. Non-positive indicates the type is not known.
     optional int32 dtype = 1;
     repeated int32 shape = 2;
 }
 
-message XCInstructionProto {
+message ChxVMInstructionProto {
     enum Op {
 %ChxVM_OPS%
     }
 
     required Op op = 1;
-    repeated XCValueProto inputs = 2;
+    repeated ChxVMValueProto inputs = 2;
     repeated int32 outputs = 3;
     optional string debug_info = 4;
     optional int64 id = 5;
-    repeated XCTypeProto output_types = 6;
+    repeated ChxVMTypeProto output_types = 6;
     repeated string output_names = 7;
     optional int64 flops = 8;
 }
 
-message XCProgramProto {
-    repeated XCInstructionProto instructions = 1;
+message ChxVMProgramProto {
+    repeated ChxVMInstructionProto instructions = 1;
     repeated string input_names = 2;
-    repeated XCTypeProto input_types = 3;
+    repeated ChxVMTypeProto input_types = 3;
 }

@@ -22,5 +22,7 @@ int MismatchInAllClose(const chainerx::Array& a, const chainerx::Array& b, doubl
 
 int GetUsedMemory();
 
+void StripChxVMProgram(ChxVMProgramProto* program);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

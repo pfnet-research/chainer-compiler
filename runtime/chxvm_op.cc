@@ -5,8 +5,8 @@
 namespace chainer_compiler {
 namespace runtime {
 
-ChxVMOp::ChxVMOp(const XCInstructionProto& inst)
-    : inst_(inst), id_(inst.id()), op_(inst.op()), name_(StrCat(XCInstructionProto_Op_Name(inst.op()), inst.id())) {
+ChxVMOp::ChxVMOp(const ChxVMInstructionProto& inst)
+    : inst_(inst), id_(inst.id()), op_(inst.op()), name_(StrCat(ChxVMInstructionProto_Op_Name(inst.op()), inst.id())) {
 }
 
 }  // namespace runtime

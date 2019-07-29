@@ -7,6 +7,7 @@ from chainer_compiler.elichika.parser import utils
 import chainer
 import chainer.functions as F
 import chainer.links as L
+import inspect
 
 import numpy as np
 
@@ -264,3 +265,46 @@ class NDArrayChainerFunction(functions.FunctionBase):
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
+
+def dummy_maximum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
+    return
+
+def dummy_minimum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
+    return
+
+class Assigner(values.PredefinedValueAssigner):
+    def __init__(self):
+        super().__init__()
+        self.target_type = type(values.TensorValue)
+
+    def assign(self, target : 'Object'):
+
+        # unimplemented
+        temp = np.array(0)
+        for v in dir(temp):
+            func = values.Object(
+                values.FuncValue(functions.UnimplementedFunction(v), target, None))
+            target.attributes.set_predefined_obj(str(v), func)
+
+        shape_func = values.Object(
+            values.FuncValue(NDArrayShapeFunction(), target, None))
+        target.attributes.set_predefined_obj('shape', shape_func)
+
+        size_func = values.Object(
+            values.FuncValue(NDArraySizeFunction(), target, None))
+        target.attributes.set_predefined_obj('size', size_func)
+
+        cumsum_func = values.Object(
+            values.FuncValue(NDArrayCumsumFunction(), target, None))
+        target.attributes.set_predefined_obj('cumsum', cumsum_func)
+
+        def add_chainer_function(func):
+            func_ = values.Object(
+                values.FuncValue(NDArrayChainerFunction(func), target, None))
+            target.attributes.set_predefined_obj(func.__name__, func_)
+
+        add_chainer_function(F.reshape)
+        add_chainer_function(F.sum)
+        add_chainer_function(F.swapaxes)
+        
+values.predefined_value_assigners.append(Assigner())

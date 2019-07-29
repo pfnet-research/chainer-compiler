@@ -234,7 +234,7 @@ add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py
@@ -461,3 +461,4 @@ gen_elichika_test(node/Functions "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Functions/Activation "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Links "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(syntax "${CHAINER_COMPILER_TEST_ALL}")
+gen_elichika_test(chainercv_model/resnet "${CHAINER_COMPILER_TEST_ALL}")

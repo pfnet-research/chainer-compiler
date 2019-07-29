@@ -62,7 +62,7 @@ class ChxVMInputDesc;
 
 class ChxVM {
 public:
-    explicit ChxVM(const XCProgramProto& program);
+    explicit ChxVM(const ChxVMProgramProto& program);
     ~ChxVM();
 
     std::unique_ptr<ChxVMState> Prepare(const InOuts& program_inputs, const ChxVMOptions& options);

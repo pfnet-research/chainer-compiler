@@ -36,7 +36,7 @@ namespace {
         FREE(src);                \
     } while (0)
 
-using chainer_compiler::runtime::XCProgramProto;
+using chainer_compiler::runtime::ChxVMProgramProto;
 
 // TODO(hamaji): Move this to the middle end, not codegen.
 std::vector<int64_t> ComplementStrideOrPad(const std::vector<int64_t>& orig, const Value* input, int64_t default_value) {
@@ -53,8 +53,8 @@ std::vector<int64_t> ComplementStrideOrPad(const std::vector<int64_t>& orig, con
     return filled;
 }
 
-void FillOpInfo(const Node& node, const std::string& debug_info, XCProgramProto* prog) {
-    runtime::XCInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
+void FillOpInfo(const Node& node, const std::string& debug_info, ChxVMProgramProto* prog) {
+    runtime::ChxVMInstructionProto* inst = prog->mutable_instructions(prog->instructions_size() - 1);
     inst->set_debug_info(debug_info);
     inst->set_id(node.chainer_order());
     inst->set_flops(CalculateFlops(node));
@@ -65,7 +65,7 @@ public:
     ChxVMEmitter() {
     }
 
-    void EmitModel(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
+    void EmitModel(const Graph& graph, ChxVMProgramProto* program, bool dump_value_names) {
         EmitInputTypes(graph, program);
         AssignValueIds(graph);
         EmitGraph(graph, program, false /* in_loop */, graph.output_values());
@@ -95,7 +95,7 @@ public:
         }
     }
 
-    void EmitNodes(const std::vector<Node*>& nodes, runtime::XCProgramProto* program) {
+    void EmitNodes(const std::vector<Node*>& nodes, runtime::ChxVMProgramProto* program) {
         for (Node* node : nodes) {
             EmitNode(nullptr /* graph */, *node, program);
         }
@@ -138,13 +138,13 @@ private:
         return found->second;
     }
 
-    void EmitStackQuit(XCProgramProto* prog) {
+    void EmitStackQuit(ChxVMProgramProto* prog) {
         for (auto p : stack_ids_) {
             FREE(p.second);
         }
     }
 
-    void EmitNode(const Graph* graph, const Node& node, XCProgramProto* prog) {
+    void EmitNode(const Graph* graph, const Node& node, ChxVMProgramProto* prog) {
         auto in = [this, &node](int i) {
             CHECK_LT(i, node.inputs().size()) << i << "th input of " << node.op_type() << " is mandatory: " << node.DebugString();
             Value* input = node.input(i);
@@ -713,7 +713,7 @@ private:
         }
     }
 
-    void EmitConstantImpl(const Node& node, const Tensor* value, ChxVMValue out, bool host, XCProgramProto* prog) {
+    void EmitConstantImpl(const Node& node, const Tensor* value, ChxVMValue out, bool host, ChxVMProgramProto* prog) {
         Dtype dtype = value->dtype();
         std::vector<int64_t> shape;
         for (int64_t d : value->dims()) {
@@ -762,14 +762,14 @@ private:
         }
     }
 
-    void EmitConstant(const Node& node, XCProgramProto* prog) {
+    void EmitConstant(const Node& node, ChxVMProgramProto* prog) {
         CHECK_EQ(1, node.outputs().size());
         ChxVMValue out = GetOutputValue(node, 0);
         Tensor* value = node.tensor_value().get();
         EmitConstantImpl(node, value, out, node.chainer_host(), prog);
     }
 
-    void EmitConstantSequence(const Node& node, XCProgramProto* prog) {
+    void EmitConstantSequence(const Node& node, ChxVMProgramProto* prog) {
         CHECK_EQ(1, node.outputs().size());
         std::vector<int> const_values;
         for (const auto& tensor : node.tensor_values()) {
@@ -786,7 +786,7 @@ private:
         }
     }
 
-    void EmitBatchNormalization(const Node& node, XCProgramProto* prog) {
+    void EmitBatchNormalization(const Node& node, ChxVMProgramProto* prog) {
         CHECK_EQ(5UL, node.inputs().size());
         CHECK_EQ(1, node.spatial()) << "`spatial` for BatchNormalization was removed from ONNX";
         size_t num_onnx_outputs = node.outputs().size();
@@ -835,7 +835,7 @@ private:
 
 #undef EMIT
 
-    void EmitGraph(const Graph& graph, XCProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values) {
+    void EmitGraph(const Graph& graph, ChxVMProgramProto* prog, bool in_loop, const std::vector<Value*>& output_values) {
         std::map<const Value*, int> num_users;
         if (!in_loop) {
             for (const Value* value : graph.input_values()) {
@@ -890,7 +890,7 @@ private:
         return ret;
     }
 
-    void EmitFusionGroup(const Node& node, XCProgramProto* prog) {
+    void EmitFusionGroup(const Node& node, ChxVMProgramProto* prog) {
         const Graph& body = *node.subgraph();
         int num_input_values = 0;
         for (Value* value : body.input_values()) {
@@ -1091,7 +1091,7 @@ private:
             Graph* else_body,
             const std::vector<Value*>& else_input_values,
             const std::vector<Value*>& else_output_values,
-            XCProgramProto* prog) {
+            ChxVMProgramProto* prog) {
         const std::string& debug_info = cond.ToString();
 
 #define EMIT(op, ...)                                               \
@@ -1137,18 +1137,18 @@ private:
         int done_jmp = prog->instructions_size();
         EMIT(Jmp, -1);
 
-        runtime::XCInstructionProto* branch = prog->mutable_instructions(branch_jmp);
+        runtime::ChxVMInstructionProto* branch = prog->mutable_instructions(branch_jmp);
         branch->mutable_inputs(1)->set_i(prog->instructions_size());
 
         emit_branch(then_body, then_input_values, then_output_values);
 
-        runtime::XCInstructionProto* done = prog->mutable_instructions(done_jmp);
+        runtime::ChxVMInstructionProto* done = prog->mutable_instructions(done_jmp);
         done->mutable_inputs(0)->set_i(prog->instructions_size());
 
 #undef EMIT
     }
 
-    void EmitIf(const Node& cond, XCProgramProto* prog) {
+    void EmitIf(const Node& cond, ChxVMProgramProto* prog) {
         AssignValueIds(*cond.then_branch());
         AssignValueIds(*cond.else_branch());
         EmitIfImpl(
@@ -1167,7 +1167,7 @@ private:
             Graph* body,
             const std::vector<Value*>& body_input_values,
             const std::vector<Value*>& body_output_values,
-            XCProgramProto* prog) {
+            ChxVMProgramProto* prog) {
         int num_loop_inputs = loop.inputs().size();
         int num_loop_outputs = loop.outputs().size();
         int num_body_inputs = body_input_values.size();
@@ -1285,7 +1285,7 @@ private:
         EMIT(JmpTrue, cond_id, loop_begin);
 
         if (skip_loop_jmp >= 0) {
-            runtime::XCInstructionProto* jmp = prog->mutable_instructions(skip_loop_jmp);
+            runtime::ChxVMInstructionProto* jmp = prog->mutable_instructions(skip_loop_jmp);
             jmp->mutable_inputs(1)->set_i(prog->instructions_size());
             FREE(skip_loop_cond_id);
         }
@@ -1317,12 +1317,12 @@ private:
 #undef EMIT
     }
 
-    void EmitLoop(const Node& loop, XCProgramProto* prog) {
+    void EmitLoop(const Node& loop, ChxVMProgramProto* prog) {
         AssignValueIds(*loop.body());
         EmitLoopImpl(loop, loop.body().get(), loop.body()->input_values(), loop.body()->output_values(), prog);
     }
 
-    void EmitOutputs(const std::vector<Value*>& output_values, XCProgramProto* prog) {
+    void EmitOutputs(const std::vector<Value*>& output_values, ChxVMProgramProto* prog) {
         for (const Value* value : output_values) {
             AddOutOp(prog, value->name(), GetValueId(value));
             prog->mutable_instructions(prog->instructions_size() - 1)->set_debug_info(value->name());
@@ -1330,14 +1330,14 @@ private:
         }
     }
 
-    void EmitInputTypes(const Graph& graph, XCProgramProto* program) {
+    void EmitInputTypes(const Graph& graph, ChxVMProgramProto* program) {
         const std::set<Value*>& necessary_values = graph.GetNecessaryValues();
         for (Value* value : graph.input_values()) {
             if (!necessary_values.count(value)) {
                 continue;
             }
             program->add_input_names(value->name());
-            runtime::XCTypeProto* type = program->add_input_types();
+            runtime::ChxVMTypeProto* type = program->add_input_types();
             if (value->type().kind() == Type::Kind::kTensor && value->type().HasKnownShape()) {
                 type->set_dtype(value->type().dtype());
                 for (int d : value->type().dims()) {
@@ -1355,17 +1355,17 @@ private:
 
 }  // namespace
 
-void Emit(const Model& model, XCProgramProto* program, bool dump_value_names) {
+void Emit(const Model& model, ChxVMProgramProto* program, bool dump_value_names) {
     Emit(model.graph(), program, dump_value_names);
 }
 
-void Emit(const Graph& graph, XCProgramProto* program, bool dump_value_names) {
+void Emit(const Graph& graph, ChxVMProgramProto* program, bool dump_value_names) {
     ChxVMEmitter emitter;
     emitter.EmitModel(graph, program, dump_value_names);
 }
 
 void Emit(const Model& model, std::ostream& out, bool dump_value_names) {
-    XCProgramProto program;
+    ChxVMProgramProto program;
     Emit(model, &program, dump_value_names);
     CHECK(program.SerializeToOstream(&out));
 }
@@ -1374,7 +1374,7 @@ void Emit(
         const std::vector<Node*>& nodes,
         const std::vector<Value*>& feeds,
         const std::vector<Value*>& fetches,
-        runtime::XCProgramProto* program,
+        runtime::ChxVMProgramProto* program,
         std::vector<int>* input_ids,
         std::vector<int>* output_ids) {
     ChxVMEmitter emitter;

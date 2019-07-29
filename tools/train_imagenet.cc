@@ -124,12 +124,12 @@ void RunMain(const std::vector<std::string>& argv) {
     }
 
     LOG() << "Generate code..." << std::endl;
-    XCProgramProto chxvm_prog;
+    ChxVMProgramProto chxvm_prog;
     chxvm::Emit(model, &chxvm_prog, trace_level > 0);
 
     if (args.exist("dump_chxvm")) {
         int pc = 0;
-        for (XCInstructionProto inst : chxvm_prog.instructions()) {
+        for (ChxVMInstructionProto inst : chxvm_prog.instructions()) {
             std::cerr << '#' << pc << ": " << inst.DebugString();
             pc++;
         }

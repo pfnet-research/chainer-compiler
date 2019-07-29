@@ -4,7 +4,6 @@ import chainer.links as L
 import inspect
 from enum import Enum
 
-from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import values
 from chainer_compiler.elichika.parser import functions
@@ -41,6 +40,8 @@ class CompareType(Enum):
     LtE = 5,
     Is = 6,
     IsNot = 7,
+    In = 8,
+    NotIn = 9,
     unknown = 255,
 
 def make_attribute(value):

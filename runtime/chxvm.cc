@@ -35,10 +35,13 @@ struct ChxVMInputDesc {
 namespace {
 
 void CheckType(ChxVMState* st, const ChxVMOp* op) {
-    const XCInstructionProto& inst = op->instruction();
+    const ChxVMInstructionProto& inst = op->instruction();
+    if (inst.output_names().empty()) {
+        return;
+    }
     CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
     for (size_t i = 0; i < inst.outputs().size(); ++i) {
-        const XCTypeProto& type = inst.output_types(i);
+        const ChxVMTypeProto& type = inst.output_types(i);
         if (type.dtype() == 0) {
             continue;
         }
@@ -64,7 +67,7 @@ int64_t InMbs(int64_t bytes) {
 }
 
 void DumpOutput(ChxVMState* st, const ChxVMOp* op, const std::string& output_dir) {
-    const XCInstructionProto& inst = op->instruction();
+    const ChxVMInstructionProto& inst = op->instruction();
     CHECK_EQ(inst.outputs().size(), inst.output_types().size()) << inst.DebugString();
     for (size_t i = 0; i < inst.outputs().size(); ++i) {
         int id = inst.outputs(i);
@@ -91,21 +94,21 @@ void DumpOutput(ChxVMState* st, const ChxVMOp* op, const std::string& output_dir
 
 ChxVMOptions::ChxVMOptions() {
     int num_ops = 1;
-    while (XCInstructionProto::Op_IsValid(num_ops)) {
+    while (ChxVMInstructionProto::Op_IsValid(num_ops)) {
         ++num_ops;
     }
     verbose_ops.resize(num_ops);
 }
 
-ChxVM::ChxVM(const XCProgramProto& program) {
+ChxVM::ChxVM(const ChxVMProgramProto& program) {
     num_variables_ = 0;
-    for (const XCInstructionProto& inst : program.instructions()) {
+    for (const ChxVMInstructionProto& inst : program.instructions()) {
         for (int output : inst.outputs()) {
             num_variables_ = std::max(num_variables_, output + 1);
         }
     }
 
-    for (const XCInstructionProto& inst : program.instructions()) {
+    for (const ChxVMInstructionProto& inst : program.instructions()) {
         ChxVMOp* op = MakeChxVMOp(inst);
         program_.emplace_back(op);
     }
@@ -113,7 +116,7 @@ ChxVM::ChxVM(const XCProgramProto& program) {
     CHECK_EQ(program.input_names_size(), program.input_types_size());
     for (int i = 0; i < program.input_names_size(); ++i) {
         const std::string& name = program.input_names(i);
-        const XCTypeProto& type = program.input_types(i);
+        const ChxVMTypeProto& type = program.input_types(i);
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(type.dtype());
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
         input_descs_.emplace_back(new ChxVMInputDesc(name, dtype, shape));

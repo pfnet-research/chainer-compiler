@@ -80,12 +80,15 @@ class LenFunction(functions.FunctionBase):
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
               option: 'vevaluator.VEvalContext' = None, line=-1):
-        node = nodes.NodeLen(
-            args.inputs[0].get_value(),  # TODO: Check this.
-            line
-        )
+        node = nodes.NodeCall(self, args, line)
         graph.add_node(node)
-        value = values.NumberValue(None)
+        item = args.get_value().inputs[0]
+        default_value = None
+        # constant propagation whenever possible
+        if item.has_constant_value():
+            default_value = len(item.internal_value)
+
+        value = values.NumberValue(default_value)
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
@@ -129,117 +132,13 @@ class ListFunction(functions.FunctionBase):
             if vargs[0].has_constant_value():
                 refs = []
                 for attr_or_ref in vargs[0].internal_value:
-                    refs.append(utils.try_get_ref(attr_or_ref, 'list', utils.LineProperty()))
+                    refs.append(utils.try_get_obj(attr_or_ref, 'list', utils.LineProperty()))
 
                 value.internal_value = refs
 
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
-
-
-class AppendFunction(functions.FunctionBase):
-    def __init__(self, owner):
-        super().__init__()
-        self.name = 'append'
-        self.owner = owner
-        self.args.add_arg('self', None)
-        self.args.add_arg('elmnt', None)
-
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
-        funcArgs = self.args.merge_inputs(inst, args)
-
-        node = nodes.NodeCall(self, funcArgs, line)
-
-        if inst.in_container:
-            raise Exception('Invalid operation')
-            
-        old_v = inst.get_value()
-        new_v = functions.generate_value_with_same_type(old_v)
-
-        # estimate a type contained
-        if old_v.has_constant_value():
-            new_v.internal_value = list(old_v.internal_value)
-
-        for v in funcArgs.inputs[1:]:
-            new_v.append(v)
-
-        # update value
-        inst.revise(new_v)
-
-        new_v.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([new_v])
-
-        graph.add_node(node)
-        return values.NoneValue()
-
-
-class KeysFunction(functions.FunctionBase):
-    def __init__(self, owner):
-        super().__init__()
-        self.name = 'keys'
-        self.owner = owner
-        self.args.add_arg('self', None)
-
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
-        funcArgs = self.args.merge_inputs(inst, args)
-
-        if inst.in_container:
-            raise Exception('Invalid operation')
-
-        keys = inst.get_value().internal_keys.values()
-
-        vargs = []
-        vargs_value = []
-        for varg in keys:
-            vargs.append(utils.try_get_ref(varg, 'dict_keys', utils.LineProperty()))
-            vargs_value.append(utils.try_get_ref(varg, 'dict_keys', utils.LineProperty()).get_value())
-
-        node = nodes.NodeGenerate('List', vargs_value , line)
-        graph.add_node(node)
-
-        value = values.ListValue(vargs)
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return value
-
-
-class ValuesFunction(functions.FunctionBase):
-    def __init__(self, owner):
-        super().__init__()
-        self.name = 'values'
-        self.owner = owner
-        self.args.add_arg('self', None)
-
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
-        funcArgs = self.args.merge_inputs(inst, args)
-
-        if inst.in_container:
-            raise Exception('Invalid operation')
-
-        key_hashes = inst.get_value().internal_keys.keys()
-        attributes = inst.get_value().internal_values
-        vargs = []
-        vargs_ref = []
-        for hash in key_hashes:
-            varg = attributes.get_attribute(hash)
-            if varg.has_obj():
-                vargs.append(utils.try_get_ref(varg, 'dict_values', utils.LineProperty()).get_value())
-                vargs_ref.append(utils.try_get_ref(varg, 'dict_values', utils.LineProperty()))
-            else:
-                assert(False)
-
-        node = nodes.NodeGenerate('List', vargs , line)
-        graph.add_node(node)
-
-        value = values.ListValue(vargs_ref)
-        value.name = '@F.{}.{}'.format(line, self.name)
-        node.set_outputs([value])
-        return value
-
 
 class VEvalContextFunction(functions.FunctionBase):
     def __init__(self, func):
@@ -279,9 +178,9 @@ class GetAttrFunction(functions.FunctionBase):
         attr = obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
 
         # property(getter)
-        if attr.has_obj() and isinstance(attr.get_ref().get_value(), values.FuncValue) and attr.get_ref().get_value().func.is_property:
-            func_value = attr.get_ref().get_value()
-            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, lineprop)
+        if attr.has_obj() and isinstance(attr.get_obj().get_value(), values.FuncValue) and attr.get_obj().get_value().func.is_property:
+            func_value = attr.get_obj().get_value()
+            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, utils.LineProperty(line))
             return ret
 
         if attr.has_obj():
@@ -293,3 +192,29 @@ class GetAttrFunction(functions.FunctionBase):
             return obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
 
         return None
+
+
+class HasAttrFunction(functions.FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'hasattr'
+        self.args.add_arg('obj', None)
+        self.args.add_arg('name', None)
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              option: 'vevaluator.VEvalContext' = None, line=-1):
+        func_args = self.args.merge_inputs(inst, args)
+        name = func_args.get_value().get_value(key='name')
+        obj = func_args.keywords['obj']
+
+        attr = obj.get_field().get_attribute(name.internal_value, graph.root_graph, False)
+
+        if attr.has_obj():
+            return values.Object(values.BoolValue(True))
+
+        # if attr is not found
+        gotten_obj = obj.try_get_and_store_obj(name.internal_value, graph.root_graph)
+        if gotten_obj is not None:
+            return values.Object(values.BoolValue(True))
+
+        return values.Object(values.BoolValue(False))

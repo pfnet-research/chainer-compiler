@@ -2,6 +2,8 @@ import os
 import numpy as np
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import values
+import inspect
+import re
 
 current_id = 0
 
@@ -31,21 +33,6 @@ def print_error(s, lineprop):
 def is_disabled_module(m):
     return m in config.disabled_modules
 
-def numpy_type_2_int(t):
-    if t == np.int32:
-        return 0
-    if t == np.float32:
-        return 1
-    assert(False)
-
-
-def int_2_numpy_type(n):
-    if n == 0:
-        return np.int32
-    if n == 1:
-        return np.float32
-    assert(False)
-
 def str_2_dtype(str_dtype):
     if str_dtype == 'q':
         dtype = np.int64
@@ -64,6 +51,21 @@ def create_obj_value_name_with_attribute(name: "str", pre_name: "str"):
         return pre_name
     else:
         return name
+
+def lambda_source(l):
+    s = inspect.getsource(l)
+    if len(re.findall('lambda.*?:', s)) > 1:
+        return None
+
+    s = s[re.search('lambda.*?:', s).start():]
+    min_length = len('lambda:_')  # shortest possible lambda expression
+    while len(s) > min_length:
+        try:
+            code = compile(s, '<unused filename>', 'eval')
+            return s.strip()
+        except SyntaxError:
+            s = s[:-1]
+    return None
 
 def clip_head(s: 'str'):
     splitted = s.split('\n')
@@ -84,7 +86,7 @@ def clip_head(s: 'str'):
     strs = map(lambda x: x[ls:], splitted)
     return '\n'.join(strs)
 
-def try_get_ref(value, name, lineprop) -> 'values.Object':
+def try_get_obj(value, name, lineprop) -> 'values.Object':
     if value is None:
         print_warning('Failed to get value in "{}".'.format(name), lineprop)
         return None
@@ -94,7 +96,7 @@ def try_get_ref(value, name, lineprop) -> 'values.Object':
 
     if isinstance(value, values.Attribute):
         if value.has_obj():
-            return value.get_ref()
+            return value.get_obj()
 
     if isinstance(value, values.Object):
         return value
@@ -118,7 +120,7 @@ def try_get_value(value, name, lineprop, is_none_allowed = False) -> 'values.Val
         return value.get_value()
 
     if isinstance(value, values.Attribute):
-        return value.get_ref().get_value()
+        return value.get_obj().get_value()
 
     raise Exception('Value {} is invalid. in L.{}'.format(name, lineprop))
 
