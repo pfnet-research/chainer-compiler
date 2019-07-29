@@ -111,8 +111,8 @@ int main(int argc, char** argv) {
     std::cout << "Build VPT..." << std::endl;
     // Build variable_profile_table and get variable dims (if needed)
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
-    //auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
-    //std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
+    auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
+    std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
 
     // model_data.optimize(vpt);
 
@@ -122,10 +122,7 @@ int main(int argc, char** argv) {
     std::cout << "Prepare model builder..." << std::endl;
     menoh::model_builder model_builder(vpt);
     model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
-    /*
-    //model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
-    std::cout << __LINE__ << std::endl;
-    */
+    model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
 
     std::cout << "Build model..." << std::endl;
     // Build model
@@ -133,5 +130,22 @@ int main(int argc, char** argv) {
     std::cout << "Model run..." << std::endl;
     model.run();
     std::cout << "Finish!" << std::endl;
+    for(size_t i = 0; i < 10; ++i) {
+        std::cout << fc6_out_data.at(i) << " ";
+    }
+    auto softmax_output_var = model.get_variable(softmax_out_name);
+    float* softmax_output_buff =
+      static_cast<float*>(softmax_output_var.buffer_handle);
+    std::cout << "\n";
+    auto categories = load_category_list(synset_words_path);
+    auto top_k = 5;
+    auto top_k_indices = extract_top_k_index_list(
+      softmax_output_buff, softmax_output_buff + softmax_output_var.dims.at(1),
+      top_k);
+    std::cout << "top " << top_k << " categories are\n";
+    for(auto ki : top_k_indices) {
+        std::cout << ki << " " << *(softmax_output_buff + ki) << " "
+                  << categories.at(ki) << std::endl;
+    }
     return 0;
 }
