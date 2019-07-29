@@ -121,8 +121,8 @@ int main(int argc, char** argv) {
     // internal memory buffers which are automatically allocated
     std::cout << "Prepare model builder..." << std::endl;
     menoh::model_builder model_builder(vpt);
+    model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
     /*
-    //model_builder.attach_external_buffer(conv1_1_in_name, static_cast<void*>(image_data.data()));
     //model_builder.attach_external_buffer(fc6_out_name, static_cast<void*>(fc6_out_data.data()));
     std::cout << __LINE__ << std::endl;
     */
