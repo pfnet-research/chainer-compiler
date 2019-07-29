@@ -51,6 +51,7 @@ class CMakeBuild(build_ext.build_ext):
             '-DCUDA_TOOLKIT_ROOT_DIR=' + cuda_path,
             '-DCHAINER_COMPILER_ENABLE_PYTHON=ON',
             '-DCHAINERX_BUILD_PYTHON=ON',
+            '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DCUDNN_ROOT_DIR=' + cudnn_root_dir,
         ]
         if chainerx_prebuilt_path is not None:

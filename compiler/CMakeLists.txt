@@ -9,7 +9,9 @@ endif()
 
 add_definitions(-DCHAINER_COMPILER_DLDT_DIR=\"${CHAINER_COMPILER_DLDT_DIR}\")
 
-find_package(PythonInterp 3)
+if(MSVC)
+    find_package(PythonInterp 3)
+endif()
 
 add_custom_command(
   OUTPUT

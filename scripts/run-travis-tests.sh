@@ -27,6 +27,7 @@ cd build
 run cmake cmake .. \
       -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
       -DCMAKE_BUILD_TYPE=Release \
+      -DPYTHON_EXECUTABLE=/usr/bin/python3 \
       -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
       -DCHAINER_COMPILER_PREBUILT_CHAINERX_DIR=$(pip3 show chainer | awk '/^Location: / {print $2}')/chainerx
 run make make -j2
