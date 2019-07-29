@@ -1,5 +1,10 @@
 #include "strutil.h"
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 namespace chainer_compiler {
 
 std::vector<std::string> SplitString(const std::string& str, const std::string& sep) {
