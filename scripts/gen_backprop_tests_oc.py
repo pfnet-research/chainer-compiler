@@ -159,6 +159,13 @@ def get_backprop_tests():
          lambda m: F.unpooling_2d(m.a, 2, stride=2, cover_all=False),
          a=aranges(2, 3, 11, 11))
 
+    test('concat_axis0',
+         lambda m: F.concat((m.x, m.y), axis=0),
+         x=aranges(2, 3, 2), y=aranges(3, 3, 2))
+    test('concat_axis1',
+         lambda m: F.concat((m.x, m.y), axis=1),
+         x=aranges(2, 2, 2), y=aranges(2, 3, 2))
+
     return tests
 
 
