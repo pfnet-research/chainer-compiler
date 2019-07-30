@@ -31,15 +31,6 @@
 
 #include <nlohmann/json.hpp>
 
-const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";
-const char* RESET = "\033[0m";
-
-bool g_quiet;
-
-#define LOG() \
-    if (!g_quiet) std::cerr
-
 namespace menoh_impl {
 using fixed_array = std::array<char, MENOH_ERROR_MESSAGE_MAX_LENGTH>;
 fixed_array& get_error_message_singleton() noexcept {
@@ -263,7 +254,6 @@ menoh_error_code menoh_variable_profile_table_builder_add_output_name(
 }
 
 struct menoh_variable_profile_table {
-    std::shared_ptr<chainer_compiler::Graph> graph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profiles;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
 };
@@ -359,7 +349,7 @@ menoh_error_code menoh_build_variable_profile_table(
             output_profiles.emplace(value->name(), menoh_impl::array_profile(menoh_dtype_float32, value->type().dims()));  // TODO elem_type
         }
         *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                              menoh_variable_profile_table{model_data->graph, builder->input_profiles, std::move(output_profiles)})
+                              menoh_variable_profile_table{builder->input_profiles, std::move(output_profiles)})
                               .release();
         return menoh_error_code_success;
     });
@@ -450,7 +440,6 @@ menoh_error_code menoh_model_builder_attach_external_buffer(menoh_model_builder_
 /*
  * model
  */
-
 struct menoh_model {
     std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles;
     std::unique_ptr<chainerx::Context> context;
@@ -506,8 +495,8 @@ menoh_error_code menoh_build_model(
             constexpr bool kBackprop = false;
             chainer_compiler::RunDefaultPasses(&graph, kBackprop);
             chainer_compiler::runtime::XCProgramProto chxvm_prog;
-            constexpr bool kDumpValueNames = true;
-            LOG() << "Generate code..." << std::endl;
+            constexpr bool kDumpValueNames = false;
+            std::cout << "Generate code..." << std::endl;
 
             chainer_compiler::chxvm::Emit(graph, &chxvm_prog, kDumpValueNames);
             auto chxvm = std::make_unique<chainer_compiler::runtime::ChxVM>(chxvm_prog);
@@ -530,12 +519,11 @@ menoh_error_code menoh_build_model(
                     }
                     auto arr =
                             chainer_compiler::runtime::MakeHostArray(chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), datap);
-                    // arr.ToDevice(chainerx::GetDefaultDevice());
                     auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
                     inputs.emplace(input->name(), std::move(var));
                 }
             }
-            std::unordered_map<std::string, void*> outputs;  // TODO
+            std::unordered_map<std::string, void*> outputs;
             for (chainer_compiler::Value* output : graph.output_values()) {
                 void* datap = nullptr;
                 auto found = builder->external_buffer_handle_table.find(output->name());
@@ -557,7 +545,6 @@ menoh_error_code menoh_build_model(
             chxvm_opts.check_types = true;
             // chxvm_opts.check_nans = true;
             // chxvm_opts.check_infs = true;
-            g_quiet = false;
 
             std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles(
                     builder->input_profile_table.begin(), builder->input_profile_table.end());

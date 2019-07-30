@@ -56,11 +56,6 @@ auto load_category_list(std::string const& synset_words_path) {
 
 int main(int argc, char** argv) {
     std::cout << "vgg16 example" << std::endl;
-    /*
-    chainerx::Context ctx;
-    chainerx::SetGlobalDefaultContext(&ctx);
-    */
-
     // Aliases to onnx's node input and output tensor name
     // Please use [Netron](https://github.com/lutzroeder/Netron)
     // See Menoh tutorial for more information.
@@ -113,8 +108,6 @@ int main(int argc, char** argv) {
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
     auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
     std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
-
-    // model_data.optimize(vpt);
 
     // Make model_builder and attach extenal memory buffer
     // Variables which are not attached external memory buffer here are attached
