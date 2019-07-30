@@ -12,6 +12,7 @@
 #include <menoh/menoh.hpp>
 
 #include <tools/cmdline.h>
+#include <nlohmann/json.hpp>
 
 auto reorder_bgr_hwc_to_rgb_chw(cv::Mat const& mat) {
     assert(mat.channels() == 3);
@@ -72,7 +73,9 @@ int main(int argc, char** argv) {
     a.add<std::string>("input_image", 'i', "input image path", false, "../data/Light_sussex_hen.jpg");
     a.add<std::string>("model", 'm', "onnx model path", false, "../data/vgg16.onnx");
     a.add<std::string>("synset_words", 's', "synset words path", false, "../data/synset_words.txt");
-    a.add<int>("trace-level", '\0', "", false, 1);
+    a.add<std::string>("config", 'c', "config json file path", false, "menoh/menoh_example_default_config.json");
+    a.add<int>("trace-level", '\0', "", false, 0);
+
     a.parse_check(argc, argv);
 
     auto input_image_path = a.get<std::string>("input_image");
@@ -119,26 +122,29 @@ int main(int argc, char** argv) {
 
     std::cout << "Build model..." << std::endl;
     // Build model
-    auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true, \"trace_level\":"+std::to_string(a.get<int>("trace-level"))+"}");
+    std::ifstream config_file(a.get<std::string>("config"));
+    nlohmann::json config;
+    config_file >> config;
+    std::cout << config << std::endl;
+    //config["trace_level"] = a.get<int>("trace-level");
+    auto model = model_builder.build_model(model_data, "", config.dump());
+    // auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true,
+    // \"trace_level\":"+std::to_string(a.get<int>("trace-level"))+"}");
     std::cout << "Model run..." << std::endl;
     model.run();
     std::cout << "Finish!" << std::endl;
-    for(size_t i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
         std::cout << fc6_out_data.at(i) << " ";
     }
     auto softmax_output_var = model.get_variable(softmax_out_name);
-    float* softmax_output_buff =
-      static_cast<float*>(softmax_output_var.buffer_handle);
+    float* softmax_output_buff = static_cast<float*>(softmax_output_var.buffer_handle);
     std::cout << "\n";
     auto categories = load_category_list(synset_words_path);
     auto top_k = 5;
-    auto top_k_indices = extract_top_k_index_list(
-      softmax_output_buff, softmax_output_buff + softmax_output_var.dims.at(1),
-      top_k);
+    auto top_k_indices = extract_top_k_index_list(softmax_output_buff, softmax_output_buff + softmax_output_var.dims.at(1), top_k);
     std::cout << "top " << top_k << " categories are\n";
-    for(auto ki : top_k_indices) {
-        std::cout << ki << " " << *(softmax_output_buff + ki) << " "
-                  << categories.at(ki) << std::endl;
+    for (auto ki : top_k_indices) {
+        std::cout << ki << " " << *(softmax_output_buff + ki) << " " << categories.at(ki) << std::endl;
     }
     return 0;
 }

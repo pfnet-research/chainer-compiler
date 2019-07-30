@@ -467,25 +467,7 @@ menoh_error_code menoh_build_model(
         menoh_model_handle* dst_model_handle) {
     return check_error([&]() {
         auto j = nlohmann::json::parse(backend_config);
-        chainer_compiler::g_compiler_log = value_or(j, "compiler_log", false);
-        chainer_compiler::g_permissive = value_or(j, "permissive", false);
-        chainer_compiler::g_skip_inference = value_or(j, "skip_inference", false);
-        chainer_compiler::g_use_cuda = value_or(j, "use_cuda", false);
-        chainer_compiler::g_fuse_operations = value_or(j, "fuse_operations", false);
-        chainer_compiler::g_use_nvrtc = value_or(j, "use_nvrtc", false);
-        chainer_compiler::g_use_tvm = value_or(j, "use_tvm", false);
-        chainer_compiler::g_reuse_tvm_code = value_or(j, "reuse_tvm_code", false);
-        chainer_compiler::g_dump_autotvm_task_dir = value_or(j, "dump_autotvm_task_dir", false);
-        chainer_compiler::g_autotvm_log = value_or(j, "autotvm_log", false);
-        chainer_compiler::g_use_ngraph = value_or(j, "use_ngraph", false);
-        chainer_compiler::g_backend_name = "chxvm";  // value_or(j, "backend_name", false);
-        chainer_compiler::g_reset_shape = value_or(j, "reset_shape", false);
-        chainer_compiler::g_dump_after_inference = value_or(j, "dump_after_inference", false);
-        chainer_compiler::g_dump_after_simplification = value_or(j, "dump_after_simplification", false);
-        chainer_compiler::g_dump_after_gradient = value_or(j, "dump_after_gradient", false);
-        chainer_compiler::g_dump_after_fusion = value_or(j, "dump_after_fusion", false);
-        chainer_compiler::g_dump_after_scheduling = value_or(j, "dump_after_scheduling", false);
-        chainer_compiler::g_dump_subgraphs = value_or(j, "dump_subgraphs", false);
+#include <menoh/json_args.inc>  // initialize global flags with `j`
         auto& graph = *(model_data->graph);
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
