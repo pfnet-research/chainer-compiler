@@ -476,7 +476,7 @@ menoh_error_code menoh_build_model(
 
             constexpr bool kBackprop = false;
             chainer_compiler::RunDefaultPasses(&graph, kBackprop);
-            chainer_compiler::runtime::XCProgramProto chxvm_prog;
+            chainer_compiler::runtime::ChxVMProgramProto chxvm_prog;
             constexpr bool kDumpValueNames = false;
             std::cout << "Generate code..." << std::endl;
 
