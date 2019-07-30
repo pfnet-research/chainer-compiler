@@ -113,6 +113,20 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.sum)
     add_chainer_function(F.maximum)
     add_chainer_function(F.minimum)
+    
+    add_chainer_function(F.sin)
+    add_chainer_function(F.sinh)
+    add_chainer_function(F.sign)
+    add_chainer_function(F.cos)
+    add_chainer_function(F.cosh)
+    add_chainer_function(F.tan)
+    add_chainer_function(F.tanh)
+    add_chainer_function(F.arcsin)
+    add_chainer_function(F.arccos)
+    add_chainer_function(F.arctan)
+    add_chainer_function(F.exp)
+    add_chainer_function(F.log)
+    
     values.function_converters[F.argmax] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmax), None)
     values.function_converters[F.argmin] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmin), None)
 
