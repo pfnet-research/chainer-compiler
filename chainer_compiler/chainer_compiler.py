@@ -260,7 +260,10 @@ class CompiledModel(chainer.Chain):
                              '\n=== ^^^ backward ^^^ ===\n')
 
         # TODO(hamaji): Revive shape inference.
-        _chainer_compiler_core.configure(skip_inference=True)
+        compiler_kwargs = {'skip_inference': True}
+        if self.compiler_kwargs is not None:
+            compiler_kwargs.update(self.compiler_kwargs)
+        _chainer_compiler_core.configure(**compiler_kwargs)
 
         assert graph.input_names() == fwd_graph.input_names()
         self.fwd_input_names = fwd_graph.input_names()
