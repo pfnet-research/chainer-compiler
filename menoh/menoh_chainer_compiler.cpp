@@ -478,7 +478,6 @@ menoh_error_code menoh_build_model(
             chainer_compiler::RunDefaultPasses(&graph, kBackprop);
             chainer_compiler::runtime::ChxVMProgramProto chxvm_prog;
             constexpr bool kDumpValueNames = false;
-            std::cout << "Generate code..." << std::endl;
 
             chainer_compiler::chxvm::Emit(graph, &chxvm_prog, kDumpValueNames);
             auto chxvm = std::make_unique<chainer_compiler::runtime::ChxVM>(chxvm_prog);
@@ -487,7 +486,6 @@ menoh_error_code menoh_build_model(
             std::vector<std::shared_ptr<void>> buffer_holder;
             for (const chainer_compiler::Value* input : graph.input_values()) {
                 if (!input->initializer()) {  // user input is input which doesn't have initializer
-                    std::cout << "model user input: " << input->name() << std::endl;
                     auto p = builder->input_profile_table.find(input->name());
                     assert(p != builder->input_profile_table.end());
                     void* datap = nullptr;
