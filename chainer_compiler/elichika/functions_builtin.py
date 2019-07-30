@@ -99,20 +99,20 @@ class ConverterLeakyRelu(BaseConverter):
             alpha=parser.get('slope'))
 
 
-class ConverterTanh(BaseConverter):
-    def __init__(self):
+class ConverterChainerMathMisc(BaseConverter):
+    def __init__(self, operator):
         self.expected_args = (
             ('x', oc.ParseType.In),)
+        self.operator = operator
 
     def __call__(self, onnx_graph, node):
         parser = self.parse_args(onnx_graph, node)
 
         onnx_graph.add_node(
-            'Tanh',
+            self.operator,
             [parser.get('x')],
             node.outputs,
             name=str(node.lineprop))
-
 
 class ConverterSigmoid(BaseConverter):
     def __init__(self):

@@ -39,6 +39,7 @@ else:
 
 - relu
 - elu
+- leaky_relu
 - softmax
 - softmax_cross_entropy
 - pad_sequence
@@ -56,7 +57,6 @@ else:
 - matmul
 - max_pooling_2d
 - resize_images
-- tanh
 - sigmoid
 - broadcast_to
 - expand_dims
@@ -72,6 +72,18 @@ else:
 - minimum
 - argmax
 - argmin
+- sin
+- sign
+- sinh
+- cos
+- cosh
+- tan
+- tanh
+- arcsin
+- arccos
+- arctan
+- exp
+- log
 
 ### Link
 
