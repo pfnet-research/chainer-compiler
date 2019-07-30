@@ -279,6 +279,7 @@ NodeDef('ChainerLRNGrad', 4, 1,
 NodeDef('ChainerLSTMGrad', 2, 4)
 NodeDef('ChainerConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('ChainerGatherGrad', 3, 1, axis=0)
+NodeDef('ChainerConcatGrad', None, None, axis=0)
 NodeDef('ChainerDynamicSliceGrad', (4, 5, 6), 1)
 NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 

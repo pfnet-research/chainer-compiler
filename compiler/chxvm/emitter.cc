@@ -534,6 +534,12 @@ private:
             std::vector<int> ins;
             for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
             EMIT(Concat, out(0), ins, node.axis());
+        } else if (node.op_type() == Node::kChainerConcatGrad) {
+            std::vector<int> shapes;
+            for (size_t i = 1; i < node.inputs().size(); ++i) shapes.push_back(in(i));
+            std::vector<ChxVMValue> outs;
+            for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
+            EMIT(ConcatGrad, outs, in(0), shapes, node.axis());
         } else if (node.op_type() == Node::kSplit) {
             CHECK_EQ(1UL, node.inputs().size());
             std::vector<ChxVMValue> outs;
