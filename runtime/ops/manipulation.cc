@@ -61,6 +61,17 @@ chainerx::Array ConcatOp::RunImpl(ChxVMState* st, const std::vector<chainerx::Ar
     return chainerx::Concatenate(inputs, axis);
 }
 
+std::vector<chainerx::Array> ConcatGradOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& input, const std::vector<chainerx::Array>& shape_arrays) {
+    std::vector<int64_t> lens;
+    for (const chainerx::Array& shape_array : shape_arrays) {
+        const chainerx::Shape& shape = ArrayToShape(shape_array);
+        CHECK_LT(axis, shape.size());
+        lens.push_back(shape[axis]);
+    }
+    return SplitByLengths(input, axis, lens);
+}
+
 std::vector<chainerx::Array> SplitOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     std::vector<int64_t> lens{split.begin(), split.end()};
     if (lens.empty()) {

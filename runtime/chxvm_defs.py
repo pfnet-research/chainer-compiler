@@ -273,6 +273,8 @@ CHX_OPS = [
     ('SelectItem', [Array('data'), Array('indices')], ['output']),
     ('SelectItemGrad', [Array('gy'), Array('indices'), Shape('shape')], ['gx']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
+    ('ConcatGrad', [Array('input'), ArrayList('shapes'), Int('axis')],
+     [ArrayList('outputs')]),
     ('Split', [Array('input'), Int('axis'), Ints('split')],
      [ArrayList('outputs')]),
     ('Transpose', [Array('data'), Ints('perm')], ['transposed']),

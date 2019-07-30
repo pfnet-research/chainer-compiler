@@ -295,6 +295,20 @@ void PadGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kPad, 0, {gy})->producer()->set_pads(negated_pads);
 }
 
+void ConcatGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    std::vector<Value*> grad_ins = {gy};
+    std::vector<int> xis;
+    for (size_t i = 0; i < gc->node()->inputs().size(); ++i) {
+        GraphBuilder gb{gc->builder(0)};
+        xis.push_back(i);
+        grad_ins.push_back(gb.Op(Node::kShape, {gc->x(i)}));
+    }
+    const std::vector<Value*> gxs = gc->GradMOp(Node::kChainerConcatGrad, xis, grad_ins);
+    CHECK(!gxs.empty());
+    gxs[0]->producer()->set_axis(gc->node()->axis());
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -1019,6 +1033,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kGather, &GatherGradFn);
         register_grad_fn(Node::kExpand, &ExpandGradFn);
         register_grad_fn(Node::kPad, &PadGradFn);
+        register_grad_fn(Node::kConcat, &ConcatGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);

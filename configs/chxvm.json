@@ -31,9 +31,7 @@
         // These passes are workarounds for Chainer which does not
         // support pooling with imbalanced padding.
         "ReplaceMaxPool": true,
-        "ReplaceAveragePool": true,
-        // Backprop only.
-        "ReplaceConcat": true
+        "ReplaceAveragePool": true
     },
     "supported_ops": {
         "Abs": true,
@@ -53,6 +51,7 @@
         "Ceil": true,
         "ChainerAveragePoolGrad": true,
         "ChainerBatchNormalizationGrad": true,
+        "ChainerConcatGrad": true,
         "ChainerConvGradWeight": true,
         "ChainerConvTransposeWithDynamicOutputShape": true,
         "ChainerDoSomething": true,
