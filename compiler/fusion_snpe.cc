@@ -8,7 +8,7 @@ namespace chainer_compiler {
 void FuseSNPEOperations(Graph* graph) {
     static std::set<Node::OpType> fusable_ops = {
             // Node::kDropout,
-            Node::kAveragePool,
+            // Node::kAveragePool,
             Node::kMaxPool,
             Node::kBatchNormalization,
             Node::kConv,
@@ -39,11 +39,11 @@ void FuseSNPEOperations(Graph* graph) {
             Node::kConstant,
             Node::kFlatten,
             Node::kGather,
-            Node::kPad,
+            // Node::kPad,
             Node::kReshape,
             Node::kShape,
             Node::kSlice,
-            Node::kSplit,
+            // Node::kSplit,
             Node::kSqueeze,
             Node::kTranspose,
             Node::kUnsqueeze,
@@ -64,12 +64,18 @@ void FuseSNPEOperations(Graph* graph) {
                     return false;
                 }
                 break;
+            case Node::kConvTranspose:
+                if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                break;
             default:
                 break;
         }
 
         for (Value* value : node.inputs()) {
             if (!value->type().HasKnownShape()) return false;
+            if (value->name().find('@') != std::string::npos) return false;
         }
         for (Value* value : node.outputs()) {
             if (!value->type().HasKnownShape()) return false;
