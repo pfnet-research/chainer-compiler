@@ -155,7 +155,8 @@ menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size
  * model_data
  */
 struct menoh_model_data {
-    std::shared_ptr<chainer_compiler::Graph> graph;
+    chainer_compiler_onnx::GraphProto xgraph;
+    // std::shared_ptr<chainer_compiler::Graph> graph;
 };
 
 void menoh_delete_model_data(menoh_model_data_handle model_data) {
@@ -168,9 +169,8 @@ menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, meno
         chainerx::ContextScope ctx_scope(ctx);
         {
             chainerx::NoBackpropModeScope scope;
-            *dst_handle = std::make_unique<menoh_model_data>(menoh_model_data{std::make_unique<chainer_compiler::Graph>(
-                                                                     LoadLargeProto<onnx::ModelProto>(onnx_filename).graph())})
-                                  .release();
+            *dst_handle =
+                    std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename).graph()}).release();
         }
         return menoh_error_code_success;
     });
@@ -254,6 +254,7 @@ menoh_error_code menoh_variable_profile_table_builder_add_output_name(
 }
 
 struct menoh_variable_profile_table {
+    std::shared_ptr<const chainer_compiler_onnx::GraphProto> xgraph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profiles;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
 };
@@ -267,14 +268,29 @@ menoh_error_code menoh_build_variable_profile_table(
         const menoh_model_data_handle model_data,
         menoh_variable_profile_table_handle* dst_handle) {
     return check_error([&]() {
+        chainerx::Context ctx;
+        chainerx::ContextScope ctx_scope(ctx);
+
+        // Construct graph without initializer
+        std::unique_ptr<chainer_compiler::Graph> graph;
+        {
+            onnx::GraphProto xgraph;
+            xgraph.set_doc_string(model_data->xgraph.doc_string());
+            xgraph.mutable_node()->CopyFrom(model_data->xgraph.node());
+            // xgraph.mutable_initializer()->CopyFrom(model_data->xgraph.initializer()); // Skip
+            xgraph.mutable_input()->CopyFrom(model_data->xgraph.input());
+            xgraph.mutable_output()->CopyFrom(model_data->xgraph.output());
+            xgraph.mutable_value_info()->CopyFrom(model_data->xgraph.value_info());
+            graph = std::make_unique<chainer_compiler::Graph>(xgraph);
+        }
+
         // Check output is contained in the model
         std::vector<chainer_compiler::Value*> required_output_values;
         for (std::string required_output_name : builder->required_output_names) {
-            auto found = std::find_if(
-                    model_data->graph->all_values().begin(), model_data->graph->all_values().end(), [&required_output_name](auto const& v) {
-                        return v->name() == required_output_name;
-                    });
-            if (found == model_data->graph->all_values().end()) {
+            auto found = std::find_if(graph->all_values().begin(), graph->all_values().end(), [&required_output_name](auto const& v) {
+                return v->name() == required_output_name;
+            });
+            if (found == graph->all_values().end()) {
                 auto message = std::string("required output is not contained in the model: ") + required_output_name;
                 menoh_impl::set_last_error_message(message.c_str());
                 return menoh_error_code_unknown_error;  // TODO
@@ -283,7 +299,7 @@ menoh_error_code menoh_build_variable_profile_table(
         }
 
         // Extract necessary values
-        std::set<chainer_compiler::Value*> necessary_values_set = model_data->graph->GetNecessaryValues(required_output_values);
+        std::set<chainer_compiler::Value*> necessary_values_set = graph->GetNecessaryValues(required_output_values);
         std::vector<chainer_compiler::Value*> necessary_values(necessary_values_set.begin(), necessary_values_set.end());
         auto end_iter = std::remove_if(necessary_values.begin(), necessary_values.end(), [builder](chainer_compiler::Value* v) {
             return std::find_if(builder->input_profiles.begin(), builder->input_profiles.end(), [v](auto const& p) {
@@ -292,8 +308,9 @@ menoh_error_code menoh_build_variable_profile_table(
         });
         std::vector<chainer_compiler::Value*> necessary_input_values(necessary_values.begin(), end_iter);
 
+        // Modify xgraph
         onnx::GraphProto xgraph;
-        model_data->graph->ToONNX(&xgraph, true);
+        graph->ToONNX(&xgraph);
         for (chainer_compiler::Value* input_value : necessary_input_values) {
             auto found = std::find_if(builder->input_profiles.begin(), builder->input_profiles.end(), [input_value](auto const& p) {
                 return p.first == input_value->name();
@@ -303,7 +320,6 @@ menoh_error_code menoh_build_variable_profile_table(
             auto value_info = std::find_if(xgraph.mutable_input()->begin(), xgraph.mutable_input()->end(), [&name](auto const& input) {
                 return input.name() == name;
             });
-            value_info->set_name(name);
             auto type = std::make_unique<chainer_compiler_onnx::TypeProto>();
             auto tensor_type = std::make_unique<chainer_compiler_onnx::TypeProto_Tensor>();
             auto shape = std::make_unique<chainer_compiler_onnx::TensorShapeProto>();
@@ -327,6 +343,7 @@ menoh_error_code menoh_build_variable_profile_table(
             value_info->set_allocated_type(type.release());
         }
 
+        // Remove value_info element contained in output
         auto value_info_end_iter =
                 std::remove_if(xgraph.mutable_value_info()->begin(), xgraph.mutable_value_info()->end(), [builder](auto const& value_info) {
                     return std::find_if(
@@ -337,20 +354,24 @@ menoh_error_code menoh_build_variable_profile_table(
                 });
         xgraph.mutable_value_info()->erase(value_info_end_iter, xgraph.mutable_value_info()->end());
 
-        chainerx::Context ctx;
-        chainerx::ContextScope ctx_scope(ctx);
-        model_data->graph = std::make_unique<chainer_compiler::Graph>(xgraph);  // Reset graph
+        // InferShape
+        graph = std::make_unique<chainer_compiler::Graph>(xgraph);  // Reset graph
         {
             chainerx::NoBackpropModeScope scope;
-            model_data->graph->InferShapes();
+            graph->InferShapes();
         }
+
         std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
-        for (chainer_compiler::Value* value : model_data->graph->output_values()) {
+        for (chainer_compiler::Value* value : graph->output_values()) {
             output_profiles.emplace(value->name(), menoh_impl::array_profile(menoh_dtype_float32, value->type().dims()));  // TODO elem_type
         }
-        *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                              menoh_variable_profile_table{builder->input_profiles, std::move(output_profiles)})
-                              .release();
+        {
+            auto xgraph = std::make_unique<onnx::GraphProto>();
+            graph->ToONNX(xgraph.get());
+            *dst_handle = std::make_unique<menoh_variable_profile_table>(
+                                  menoh_variable_profile_table{std::move(xgraph), builder->input_profiles, std::move(output_profiles)})
+                                  .release();
+        }
         return menoh_error_code_success;
     });
 }
@@ -406,6 +427,7 @@ menoh_error_code menoh_variable_profile_table_get_dims(
  * model builder
  */
 struct menoh_model_builder {
+    std::shared_ptr<const chainer_compiler_onnx::GraphProto> xgraph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profile_table;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profile_table;
     std::unordered_map<std::string, void*> external_buffer_handle_table;
@@ -413,7 +435,8 @@ struct menoh_model_builder {
 
 menoh_error_code menoh_make_model_builder(const menoh_variable_profile_table_handle vpt, menoh_model_builder_handle* dst_handle) {
     return check_error([&]() {
-        *dst_handle = std::make_unique<menoh_model_builder>(menoh_model_builder{vpt->input_profiles, vpt->output_profiles, {}}).release();
+        *dst_handle = std::make_unique<menoh_model_builder>(menoh_model_builder{vpt->xgraph, vpt->input_profiles, vpt->output_profiles, {}})
+                              .release();
         return menoh_error_code_success;
     });
 }
@@ -467,10 +490,22 @@ menoh_error_code menoh_build_model(
         menoh_model_handle* dst_model_handle) {
     return check_error([&]() {
         auto j = nlohmann::json::parse(backend_config);
+
 #include <menoh/json_args.inc>  // initialize global flags with `j`
-        auto& graph = *(model_data->graph);
+
         auto ctx = std::make_unique<chainerx::Context>();
         chainerx::ContextScope context_scope(*ctx);
+
+        auto xgraph = *(builder->xgraph);
+
+        // Set initializer
+        assert(xgraph.initializer().Empty());
+        for (chainer_compiler_onnx::TensorProto const& xtensor : model_data->xgraph.initializer()) {
+            *(xgraph.add_initializer()) = xtensor;
+        }
+
+        // Compile graph
+        chainer_compiler::Graph graph(xgraph);
         {
             chainerx::NoBackpropModeScope scope;
 
@@ -482,6 +517,7 @@ menoh_error_code menoh_build_model(
             chainer_compiler::chxvm::Emit(graph, &chxvm_prog, kDumpValueNames);
             auto chxvm = std::make_unique<chainer_compiler::runtime::ChxVM>(chxvm_prog);
 
+            // Setup inputs
             chainer_compiler::runtime::InOuts inputs(chainer_compiler::runtime::LoadParams(graph));
             std::vector<std::shared_ptr<void>> buffer_holder;
             for (const chainer_compiler::Value* input : graph.input_values()) {
@@ -498,11 +534,13 @@ menoh_error_code menoh_build_model(
                         datap = data.get();
                     }
                     auto arr =
-                            chainer_compiler::runtime::MakeHostArray(chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), datap);
+                            chainer_compiler::runtime::MakeHostArray(chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), datap); //TODO elem_type
                     auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
                     inputs.emplace(input->name(), std::move(var));
                 }
             }
+
+            // Setup outputs (buffer)
             std::unordered_map<std::string, void*> outputs;
             for (chainer_compiler::Value* output : graph.output_values()) {
                 void* datap = nullptr;
@@ -515,7 +553,6 @@ menoh_error_code menoh_build_model(
                     std::shared_ptr<void> data(new float[menoh_impl::total_size(p->second.dims())]);
                     buffer_holder.push_back(data);
                     datap = data.get();
-                    buffer_holder.push_back(std::move(data));
                 }
                 outputs.emplace(output->name(), datap);
             }

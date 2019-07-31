@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     // Please use [Netron](https://github.com/lutzroeder/Netron)
     // See Menoh tutorial for more information.
     const std::string conv1_1_in_name = "Input_0";
-    const std::string fc6_out_name = "Gemm_0";
+    const std::string fc6_out_name = "LinearFunction_0";
     const std::string softmax_out_name = "Softmax_0";
 
     const int batch_size = 1;
@@ -110,6 +110,11 @@ int main(int argc, char** argv) {
     // Build variable_profile_table and get variable dims (if needed)
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
     auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
+    std::cout << "(";
+    for(auto d : fc6_dims) {
+        std::cout << d << ", ";
+    }
+    std::cout << ")" << std::endl;
     std::vector<float> fc6_out_data(std::accumulate(fc6_dims.begin(), fc6_dims.end(), 1, std::multiplies<int32_t>()));
 
     // Make model_builder and attach extenal memory buffer
