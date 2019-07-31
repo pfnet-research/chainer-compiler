@@ -47,7 +47,7 @@ void FuseSNPEOperations(Graph* graph) {
             Node::kSqueeze,
             Node::kTranspose,
             Node::kUnsqueeze,
-            Node::kUpsample,
+            // Node::kUpsample,
             Node::kGRU,
             Node::kLSTM,
             Node::kRNN,
@@ -57,6 +57,17 @@ void FuseSNPEOperations(Graph* graph) {
         if (!fusable_ops.count(node.op_type())) {
             return false;
         }
+
+        switch (node.op_type()) {
+            case Node::kConv:
+                if (!node.input(1)->initializer()) {
+                    return false;
+                }
+                break;
+            default:
+                break;
+        }
+
         for (Value* value : node.inputs()) {
             if (!value->type().HasKnownShape()) return false;
         }
