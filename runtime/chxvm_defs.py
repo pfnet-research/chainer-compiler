@@ -455,7 +455,8 @@ CHX_CUSTOM_FIELD_OPS = [
       Strings('output_names')],
      [ArrayList('outputs')]),
     ('SnpeDlc',
-     [Array('input'), String('model_data'), String('device')],
+     [ArrayList('inputs'), Strings('input_names'),
+      String('model_data'), String('device')],
      [ArrayList('outputs')]),
 ]
 

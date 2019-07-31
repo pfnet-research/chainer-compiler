@@ -1044,18 +1044,18 @@ private:
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
-            CHECK_EQ(1, node.inputs().size());
-
             std::vector<int> inputs;
+            std::vector<std::string> input_names;
             std::vector<ChxVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
+                input_names.push_back(value->name());
             }
             for (Value* value : node.outputs()) {
                 outputs.emplace_back(GetValueId(value), value);
             }
 
-            // TODO(take-cheeze): Support GPU
+            // TODO(take-cheeze): Support other devices
             std::string snpe_device = "CPU";
 
             std::vector<std::string> output_names;
@@ -1070,7 +1070,7 @@ private:
             ss << ifs.rdbuf();
             std::string snpe_model = ss.str();
 
-            EMIT(SnpeDlc, outputs, inputs.front(), snpe_model, snpe_device);
+            EMIT(SnpeDlc, outputs, inputs, input_names, snpe_model, snpe_device);
             return;
         }
 

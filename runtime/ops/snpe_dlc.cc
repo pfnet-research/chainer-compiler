@@ -37,7 +37,8 @@ SnpeDlcOp::~SnpeDlcOp() {
 void SnpeDlcOp::InitImpl() {
 }
 
-std::vector<chainerx::Array> SnpeDlcOp::RunImpl(chainer_compiler::runtime::ChxVMState* st, const chainerx::Array& orig_input) {
+std::vector<chainerx::Array> SnpeDlcOp::RunImpl(
+        chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_SNPE
     // Load dlc file
     auto dlc_it = dlc_cache.find(model_data);
@@ -70,14 +71,22 @@ std::vector<chainerx::Array> SnpeDlcOp::RunImpl(chainer_compiler::runtime::ChxVM
     zdl::SNPE::SNPE& snpe = *snpe_it->second;
     auto& tensor_factory = zdl::SNPE::SNPEFactory::getTensorFactory();
 
-    // Build input tensor
-    std::vector<zdl::DlSystem::Dimension> input_shape(orig_input.shape().begin(), orig_input.shape().end());
-    auto input = tensor_factory.createTensor(input_shape, reinterpret_cast<const uint8_t*>(orig_input.raw_data()), orig_input.GetNBytes());
+    // Build input tensors
+    zdl::DlSystem::TensorMap input_map;
+    std::vector<std::unique_ptr<zdl::DlSystem::ITensor>> input_tensors;
+    for (size_t i = 0; i < input_names.size(); ++i) {
+        const chainerx::Array& orig_input = orig_inputs[i];
+        std::vector<zdl::DlSystem::Dimension> input_shape(orig_input.shape().begin(), orig_input.shape().end());
+        auto input =
+                tensor_factory.createTensor(input_shape, reinterpret_cast<const uint8_t*>(orig_input.raw_data()), orig_input.GetNBytes());
+        input_map.add(input_names[i].c_str(), input.get());
+        input_tensors.push_back(std::move(input));
+    }
 
     // Build output tensor map
     zdl::DlSystem::TensorMap output_map;
 
-    snpe.execute(input.get(), output_map);
+    snpe.execute(input_map, output_map);
 
     std::vector<chainerx::Array> ret;
     for (auto name : output_map.getTensorNames()) {
