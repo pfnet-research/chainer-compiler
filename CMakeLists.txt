@@ -73,6 +73,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    add_compile_options(/wd4125) # for protobuf
+    add_compile_options(/wd4127) # for protobuf
+    add_compile_options(/wd4244) # for protobuf
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")

@@ -1,6 +1,8 @@
 // Dump an ONNX proto
 
+#ifndef _WIN32
 #include <glob.h>
+#endif
 
 #include <algorithm>
 #include <cstdlib>
