@@ -1015,7 +1015,7 @@ private:
             body.ToONNX(xmodel.mutable_graph());
 
             // TODO(hamaji): Introduce cache for compiled models.
-            const std::string& snpe_model_file = StrCat("/tmp/snpe_tmp_", node.chainer_fusion_group());
+            const std::string& snpe_model_file = StrCat("/tmp/snpe_tmp_", node.chainer_fusion_group(), ".dlc");
             const std::string& onnx_path = StrCat(snpe_model_file, ".onnx");
 
             {
