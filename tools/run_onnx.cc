@@ -1,8 +1,16 @@
+
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#undef OPAQUE
+#else
 #include <dirent.h>
+#include <unistd.h>
+#endif
+
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>

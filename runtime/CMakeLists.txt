@@ -93,7 +93,6 @@ target_link_libraries(chainer_compiler_runtime_test
   ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
-  pthread
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
@@ -101,6 +100,12 @@ target_link_libraries(chainer_compiler_runtime_test
   absl::variant
   absl::optional
   )
+
+if (!WIN32)
+  target_link_libraries(chainer_compiler_runtime_test
+  pthread
+  )
+endif()
 
 add_test(
   NAME chainer_compiler_runtime_test

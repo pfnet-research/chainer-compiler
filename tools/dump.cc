@@ -1,6 +1,10 @@
 // Dump an ONNX proto
 
-#ifndef _WIN32
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#undef OPAQUE
+#else
 #include <glob.h>
 #endif
 
