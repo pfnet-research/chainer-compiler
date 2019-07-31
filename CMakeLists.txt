@@ -10,6 +10,18 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
+find_package(PythonInterp 3)
+
+if(WIN32)
+  set(RM_RF rd /s /q)
+  set(ENV_SET set)
+  set(TOUCH echo.>)
+else()
+  set(RM_RF rm -rf)
+  set(ENV_SET )
+  set(TOUCH touch)
+endif()
+
 # Sets default settings from the associated env-var if existed.
 # Usage:
 #   set_option_(FOO "Option FOO" OFF)
@@ -73,6 +85,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
 if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    add_compile_options(/wd4125) # for protobuf
+    add_compile_options(/wd4127) # for protobuf
+    add_compile_options(/wd4244) # for protobuf
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -86,6 +101,20 @@ endif()
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(PythonInterp 3)
+
+if(MSVC)
+    # gtest for Windows
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+        # TODO(durswd): Remove it. It is hack for MSVC+LLVM
+        target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
+    else()
+        # ChainerX is linked with MultiThreaded DLL, including gtest
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+
+    # gtest for protobuf
+    set(protobuf_MSVC_STATIC_RUNTIME OFF)
+endif()
 
 # Make both chainer-compiler and ChainerX consistent.
 set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
@@ -116,6 +145,8 @@ else()
   set_subdirectory_option_(protobuf_BUILD_TESTS OFF)
   add_subdirectory(third_party/protobuf/cmake EXCLUDE_FROM_ALL)
   include_directories(third_party/protobuf/src)
+  SET_TARGET_PROPERTIES(protoc PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/)
+  SET_TARGET_PROPERTIES(protoc PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/)
   set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
   set(PROTOBUF_LIBRARY libprotobuf)
 endif()
@@ -250,7 +281,7 @@ add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py
@@ -294,7 +325,7 @@ function(gen_ch2o_test dir ch2o_test all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && ${TOUCH} ${out_stamp}
     MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
@@ -442,6 +473,7 @@ set(ELICHIKA_FILES
 include(scripts/elichika_tests.py)
 
 function(gen_elichika_test dir all)
+
   string(REPLACE "/" "_" name ${dir})
   set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${name})
@@ -455,7 +487,7 @@ function(gen_elichika_test dir all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && ${TOUCH} ${out_stamp}
     DEPENDS ${elichika_tests_py} ${ELICHIKA_FILES} ${test_files}
     )
 

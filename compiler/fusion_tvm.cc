@@ -1,4 +1,5 @@
 #include <set>
+#include <string>
 
 #include <compiler/fusion.h>
 #include <compiler/graph.h>

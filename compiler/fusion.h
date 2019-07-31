@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <set>
+#include <string>
 
 namespace chainer_compiler {
 
