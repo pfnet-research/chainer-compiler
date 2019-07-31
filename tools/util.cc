@@ -106,7 +106,7 @@ int MismatchInAllClose(const chainerx::Array& a, const chainerx::Array& b, doubl
     });
 }
 
-int GetUsedMemory() {
+int64_t GetUsedMemory() {
     auto usage = GetMemoryUsageInBytes();
     return usage.has_value() ? usage->first : -1;
 }
