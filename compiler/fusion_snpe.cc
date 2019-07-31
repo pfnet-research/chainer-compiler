@@ -7,7 +7,7 @@ namespace chainer_compiler {
 
 void FuseSNPEOperations(Graph* graph) {
     static std::set<Node::OpType> fusable_ops = {
-            Node::kDropout,
+            // Node::kDropout,
             Node::kAveragePool,
             Node::kMaxPool,
             Node::kBatchNormalization,
@@ -60,7 +60,7 @@ void FuseSNPEOperations(Graph* graph) {
 
         switch (node.op_type()) {
             case Node::kConv:
-                if (!node.input(1)->initializer()) {
+                if (!node.input(1)->initializer() || node.auto_pad() == "NOTSET") {
                     return false;
                 }
                 break;
