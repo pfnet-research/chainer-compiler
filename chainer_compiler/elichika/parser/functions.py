@@ -303,6 +303,44 @@ class FunctionArgCollection():
             ret.append(FunctionArg(fa.name, fa.obj))
         return ret
 
+def auto_set_unset(func, flag):
+    def decorated(self, *args, **kwargs):
+        self.history.append((flag, self.flags[flag]))
+        ret = func(self, *args, **kwargs)
+        return ret
+    return decorated
+
+class VEvalContext:
+    def __init__(self):
+        self.history = []
+        self.flags = {
+            "eval_as_written_target": False,
+            "ignore_branch": False,
+            "for_unroll": False
+        }
+        self.flags_cache = []
+
+        list(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalContext.generic_setter(obj, flag, value),
+                                                                           fget=lambda obj: VEvalContext.generic_getter(obj, flag))),
+                 self.flags.keys()))
+        list(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj, default=True: VEvalContext.generic_setter(obj, flag, default), flag)),
+                 self.flags.keys()))
+
+    def generic_setter(self, name, value = True):
+        self.flags[name] = value
+        return self
+
+    def generic_getter(self, name):
+        return self.flags[name]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        flag, saved_value = self.history.pop()
+        self.flags[flag] = saved_value
+        return False
+
 
 class FunctionBase():
     def __init__(self):
@@ -312,8 +350,8 @@ class FunctionBase():
 
         self.base_func = None
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         return None
 
 
@@ -346,8 +384,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         ret = values.Object(values.UserDefinedInstance(
             module, None, self.classinfo))
         inst = ret
@@ -391,8 +429,8 @@ class UserDefinedFunction(FunctionBase):
             ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
             self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         func_field = values.Field()
         func_field.set_module(module)
 
@@ -420,8 +458,8 @@ class UnimplementedFunction(FunctionBase):
         else:
             self.name = func.__name__
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         raise utils.UnimplementedError('{} is unimplemented.'.format(self.name), utils.LineProperty(line))
 
 
@@ -439,8 +477,8 @@ class UserDefinedFunctionFromAst(FunctionBase):
         self.filename = astc.filename
         self.lineno = astc.lineno
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         self.func_field.set_module(module)
 
         # add args
