@@ -11,7 +11,6 @@ import ast
 import gast
 import weakref
 import types
-from chainer_compiler.elichika.parser import vevaluator
 from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
