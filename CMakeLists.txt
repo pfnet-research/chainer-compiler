@@ -10,6 +10,10 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
+if(MSVC)
+  find_package(PythonInterp 3)
+endif()
+
 # Sets default settings from the associated env-var if existed.
 # Usage:
 #   set_option_(FOO "Option FOO" OFF)

@@ -229,8 +229,7 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
 std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets, const int64_t& budget) {
     size_t nl = lower_sets.size();
     // opt[lower_set_index][flops] := <minimum memory consumption, prev_ls, prev_flops>
-    std::vector<std::map<size_t, std::tuple<int64_t, size_t, size_t>>> opt;
-    opt.resize(nl);
+    std::vector<std::map<size_t, std::tuple<int64_t, size_t, size_t>>> opt(nl);
     opt[0][0] = std::make_tuple(0, nl + 1, 0);
 
     for (size_t i = 0; i < nl; ++i) {

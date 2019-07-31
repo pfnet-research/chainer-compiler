@@ -7,10 +7,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 include_directories(${CUDA_INCLUDE_DIRS})
 
-if(MSVC)
-  find_package(PythonInterp 3)
-endif()
-
 add_custom_command(
   OUTPUT
     "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"

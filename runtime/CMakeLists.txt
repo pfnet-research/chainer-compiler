@@ -3,10 +3,6 @@ set(CHAINER_COMPILER_COMMON_DIR ${CHAINER_COMPILER_ROOT_DIR}/common)
 set(GOOGLETEST_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/googletest/googletest/include)
 set(GSLLITE_INCLUDE_DIRS ${CHAINER_COMPILER_ROOT_DIR}/gsl-lite/include)
 
-if(MSVC)
-    find_package(PythonInterp 3)
-endif()
-
 add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_ops.cc

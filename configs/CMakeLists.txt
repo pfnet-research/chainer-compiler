@@ -10,10 +10,6 @@ set(jsons
   )
 set(json_cs)
 
-if(MSVC)
-  find_package(PythonInterp 3)
-endif()
-
 foreach(json ${jsons})
   set(json "${json}.json")
   set(out ${CMAKE_CURRENT_BINARY_DIR}/${json}.cc)

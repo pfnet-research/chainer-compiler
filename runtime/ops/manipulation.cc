@@ -98,10 +98,10 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices1, indices2;
     for (int i = 0; i < shape.size(); ++i) {
         new_shape[i] += pads[i] + pads[i + shape.size()];
-        auto len = shape[i] + std::min(0LL, pads[i]) + std::min(0LL, pads[i + shape.size()]);
+        auto len = shape[i] + std::min(static_cast<int64_t>(0), pads[i]) + std::min(static_cast<int64_t>(0), pads[i + shape.size()]);
 
-        const auto start1 = std::max(-pads[i], 0LL);
-        const auto start2 = std::max(pads[i], 0LL);
+        const auto start1 = std::max(-pads[i], static_cast<int64_t>(0));
+        const auto start2 = std::max(pads[i], static_cast<int64_t>(0));
         const auto end1 = std::min(shape[i] + pads[i + shape.size()], shape[i]);
         const auto end2 = std::min(new_shape[i] - pads[i + shape.size()], new_shape[i]);
 
