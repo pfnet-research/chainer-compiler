@@ -237,11 +237,8 @@ class CompiledModel(chainer.Chain):
         self.compile(onnx_file)
 
     def compile(self, onnx_file):
-        # TODO(hamaji): Revive shape inference.
-        compiler_kwargs = {'skip_inference': True}
         if self.compiler_kwargs is not None:
-            compiler_kwargs.update(self.compiler_kwargs)
-        _chainer_compiler_core.configure(**compiler_kwargs)
+            _chainer_compiler_core.configure(**self.compiler_kwargs)
 
         graph = _chainer_compiler_core.load(onnx_file)
         self.orig_output_names = graph.output_names()
@@ -261,6 +258,12 @@ class CompiledModel(chainer.Chain):
             sys.stderr.write('=== vvv backward vvv ===\n' +
                              bwd_graph.dump() +
                              '\n=== ^^^ backward ^^^ ===\n')
+
+        # TODO(hamaji): Revive shape inference.
+        compiler_kwargs = {'skip_inference': True}
+        if self.compiler_kwargs is not None:
+            compiler_kwargs.update(self.compiler_kwargs)
+        _chainer_compiler_core.configure(**compiler_kwargs)
 
         assert graph.input_names() == fwd_graph.input_names()
         self.fwd_input_names = fwd_graph.input_names()
