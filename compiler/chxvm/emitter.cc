@@ -1006,6 +1006,74 @@ private:
             return;
         }
 
+        if (g_use_snpe && node.fusion_type() == "snpe") {
+            if (g_compiler_log) {
+                CLOG() << "Fusion group (snpe) " << GetFusionGroupSummary(node) << std::endl;
+            }
+
+            onnx::ModelProto xmodel;
+            body.ToONNX(xmodel.mutable_graph());
+
+            // TODO(hamaji): Introduce cache for compiled models.
+            const std::string& snpe_model_file = StrCat("/tmp/snpe_tmp_", node.chainer_fusion_group());
+            const std::string& onnx_path = StrCat(snpe_model_file, ".onnx");
+
+            {
+                std::ofstream ofs(onnx_path);
+                CHECK(ofs) << "Failed to open output file: " << onnx_path;
+                CHECK(xmodel.SerializeToOstream(&ofs));
+            }
+
+            // TODO(take-cheeze): Embed SNPE_ROOT
+            const char* snpe_dir = getenv("SNPE_ROOT");
+            CHECK(snpe_dir) << "SNPE_ROOT is not set properly";
+
+            // TODO(take-cheeze): Support quantization
+            const std::string cmdline =
+                    StrCat("PYTHONPATH=",
+                           snpe_dir,
+                           "/lib/python",
+                           " python2.7 ",
+                           snpe_dir,
+                           "/bin/x86_64-linux-clang/snpe-onnx-to-dlc"
+                           " --model_path ",
+                           onnx_path,
+                           " --output_path ",
+                           snpe_model_file);
+            CLOG() << "Run command: " << cmdline << std::endl;
+            int ret = system(cmdline.c_str());
+            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+
+            CHECK_EQ(1, node.inputs().size());
+
+            std::vector<int> inputs;
+            std::vector<ChxVMValue> outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.emplace_back(GetValueId(value), value);
+            }
+
+            // TODO(take-cheeze): Support GPU
+            std::string snpe_device = "CPU";
+
+            std::vector<std::string> output_names;
+            for (Value* output : body.output_values()) {
+                CHECK(output->producer());
+                CHECK_EQ(1, output->producer()->outputs().size());
+                output_names.push_back(output->producer()->name());
+            }
+
+            std::ifstream ifs(snpe_model_file);
+            std::stringstream ss;
+            ss << ifs.rdbuf();
+            std::string snpe_model = ss.str();
+
+            EMIT(SnpeDlc, outputs, inputs.front(), snpe_model, snpe_device);
+            return;
+        }
+
         if (g_use_tvm && node.fusion_type() == "tvm") {
             std::string dso_filename;
             std::string func_name;

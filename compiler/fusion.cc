@@ -230,6 +230,9 @@ void FuseOperations(Graph* graph) {
     if (g_use_tvm) {
         FuseTVMOperations(graph);
     }
+    if (g_use_snpe) {
+        FuseSNPEOperations(graph);
+    }
     if (g_fuse_operations) {
         FuseElementwiseOperations(graph);
     }
