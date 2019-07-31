@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include <zdl/DlContainer/IDlContainer.hpp>
+#include <zdl/DlSystem/DlError.hpp>
 #include <zdl/DlSystem/ITensorFactory.hpp>
 #include <zdl/DlSystem/TensorMap.hpp>
 #include <zdl/SNPE/SNPEBuilder.hpp>
@@ -28,6 +29,8 @@ std::unordered_map<std::string, std::shared_ptr<zdl::SNPE::SNPE>> snpe_cache;
 zdl::DlSystem::Runtime_t snpe_runtime_type = zdl::DlSystem::Runtime_t::UNSET;
 
 }  // namespace
+
+#define SNPE_ENFORCE(condition) CHECK(condition) << "SNPE Error: " << zdl::DlSystem::getLastErrorString();
 
 #endif
 
@@ -86,7 +89,7 @@ std::vector<chainerx::Array> SnpeDlcOp::RunImpl(
     // Build output tensor map
     zdl::DlSystem::TensorMap output_map;
 
-    snpe.execute(input_map, output_map);
+    SNPE_ENFORCE(snpe.execute(input_map, output_map));
 
     std::vector<chainerx::Array> ret;
     for (auto name : output_map.getTensorNames()) {
