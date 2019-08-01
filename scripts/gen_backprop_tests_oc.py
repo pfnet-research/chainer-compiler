@@ -120,6 +120,9 @@ def get_backprop_tests():
          b=aranges(2, 5, 3, 3),
          c=aranges(5),
          d=aranges(1, 5, 9, 9))
+    test('grouped_conv', lambda m: F.convolution_2d(m.a, m.b, groups=3),
+         a=aranges(1, 6, 11, 11),
+         b=aranges(6, 2, 3, 3))
 
     test('max_pool', lambda m: F.max_pooling_2d(m.a, 3, stride=1,
                                                 cover_all=False) * m.b,
