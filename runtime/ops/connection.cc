@@ -32,6 +32,7 @@ chainerx::Array ConvOp::RunImpl(
 
 chainerx::Array ConvTransposeOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const absl::optional<chainerx::Array>& b) {
+    CHECK_EQ(1, group);
     absl::optional<chainerx::StackVector<int64_t, chainerx::kMaxNdim>> out_size = absl::nullopt;
     if (!output_shape.empty()) {
         out_size = output_shape;
@@ -41,11 +42,13 @@ chainerx::Array ConvTransposeOp::RunImpl(
 
 chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const chainerx::Shape& shape) {
+    CHECK_EQ(1, group);
     chainerx::StackVector<int64_t, chainerx::kMaxNdim> out_size(shape.begin() + 2, shape.end());
     return chainerx::ConvTranspose(x, w, absl::nullopt, ComplementStride(strides, x), ComplementPad(pads, x), out_size);
 }
 
 chainerx::Array ConvGradWeightOp::RunImpl(ChxVMState* st, const chainerx::Array& w, const chainerx::Array& x, const chainerx::Array& gy) {
+    CHECK_EQ(1, group);
     return x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
             w.dtype(), w.shape(), x, gy, ComplementStride(strides, x), ComplementPad(pads, x), false /* cover_all */, absl::nullopt);
 }
