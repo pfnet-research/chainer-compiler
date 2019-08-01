@@ -88,7 +88,7 @@ std::vector<std::string> ListDir(const std::string& dirname) {
     }
 
     fs::directory_iterator iter(dirname);
-    
+
     for (auto it : iter) {
         filenames.push_back(it.path().generic_string());
     }
