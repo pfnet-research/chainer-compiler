@@ -49,7 +49,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, con
     std::shared_ptr<chainerx::MaxPoolGradState> state;
     chainerx::Array out;
     const Int64StackVector& strides = ComplementStride(this->strides, x);
-    const Int64StackVector& pads = ComplementPad(this->pads, x);
+    Int64StackVector pads = CalculateAutoPad(auto_pad, x, kernel_shape, strides, ComplementPad(this->pads, x));
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
