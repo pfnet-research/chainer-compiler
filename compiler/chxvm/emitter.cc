@@ -1049,7 +1049,9 @@ private:
             std::vector<ChxVMValue> outputs;
             for (Value* value : node.inputs()) {
                 inputs.push_back(GetValueId(value));
-                input_names.push_back(value->name());
+            }
+            for (size_t i = 0; i < node.inputs().size(); ++i) {
+                input_names.push_back(xmodel.graph().input()[i].name());
             }
             for (Value* value : node.outputs()) {
                 outputs.emplace_back(GetValueId(value), value);
