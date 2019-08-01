@@ -220,6 +220,10 @@ chainer_compiler::Dtype menoh_dtype_to_cc_dtype(menoh_dtype mdtype) {
     return chainer_compiler::Dtype::kUnknown;
 }
 
+chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype) {
+    return static_cast<chainerx::Dtype>(static_cast<int>(menoh_dtype_to_cc_dtype(mdtype)));
+}
+
 /*
  * model_data
  */
@@ -551,6 +555,15 @@ T value_or(nlohmann::json const& j, std::string const& name, T default_value) {
     return j.find(name) == j.end() ? default_value : j[name].get<T>();
 }
 
+std::shared_ptr<void> allocate_buffer(chainerx::Shape const& shape, chainerx::Dtype dtype) {
+    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * chainerx::GetItemSize(dtype));
+    return std::shared_ptr<uint8_t>{new uint8_t[bytesize], std::default_delete<uint8_t[]>()};
+}
+
+std::shared_ptr<void> allocate_buffer(menoh_impl::array_profile const& profile) {
+    return allocate_buffer(chainerx::Shape(profile.dims()), menoh_dtype_to_chx_dtype(profile.dtype()));
+}
+
 /* You can (and should) delete model_data after the model creation. */
 menoh_error_code menoh_build_model(
         const menoh_model_builder_handle builder,
@@ -599,14 +612,12 @@ menoh_error_code menoh_build_model(
                     if (found != builder->external_buffer_handle_table.end()) {
                         datap = found->second;
                     } else {
-                        std::shared_ptr<void> data(new float[menoh_impl::total_size(p->second.dims())]);
+                        auto data = allocate_buffer(p->second);
                         buffer_holder.push_back(data);
                         datap = data.get();
                     }
                     auto arr = chainer_compiler::runtime::MakeHostArray(
-                            static_cast<chainerx::Dtype>(static_cast<int>(menoh_dtype_to_cc_dtype(p->second.dtype()))),
-                            chainerx::Shape(p->second.dims()),
-                            datap);
+                            menoh_dtype_to_chx_dtype(p->second.dtype()), chainerx::Shape(p->second.dims()), datap);
                     auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
                     inputs.emplace(input->name(), std::move(var));
                 }
@@ -622,7 +633,7 @@ menoh_error_code menoh_build_model(
                 } else {
                     auto p = builder->output_profile_table.find(output->name());
                     assert(p != builder->output_profile_table.end());
-                    std::shared_ptr<void> data(new float[menoh_impl::total_size(p->second.dims())]);
+                    auto data = allocate_buffer(p->second);
                     buffer_holder.push_back(data);
                     datap = data.get();
                 }
