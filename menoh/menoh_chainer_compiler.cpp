@@ -151,6 +151,75 @@ menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size
     return menoh_error_code_success;
 }
 
+onnx::TensorProto::DataType menoh_dtype_to_xtensor_dtype(menoh_dtype mdtype) {
+    if (mdtype == menoh_dtype_undefined) {
+        return onnx::TensorProto::UNDEFINED;
+    } else if (mdtype == menoh_dtype_float) {
+        return onnx::TensorProto::FLOAT;
+    } else if (mdtype == menoh_dtype_float16) {
+        return onnx::TensorProto::FLOAT16;
+    } else if (mdtype == menoh_dtype_float64) {
+        return onnx::TensorProto::DOUBLE;
+    } else if (mdtype == menoh_dtype_int8) {
+        return onnx::TensorProto::INT8;
+    } else if (mdtype == menoh_dtype_int16) {
+        return onnx::TensorProto::INT16;
+    } else if (mdtype == menoh_dtype_int32) {
+        return onnx::TensorProto::INT32;
+    } else if (mdtype == menoh_dtype_int64) {
+        return onnx::TensorProto::INT64;
+    } else {
+        assert(!"Not Implemeneted");
+    }
+    return onnx::TensorProto::UNDEFINED;
+}
+
+menoh_dtype cc_dtype_to_menoh_dtype(chainer_compiler::Dtype ccdtype) {
+    if (ccdtype == chainer_compiler::Dtype::kUnknown) {
+        return menoh_dtype_undefined;
+    } else if (ccdtype == chainer_compiler::Dtype::kInt8) {
+        return menoh_dtype_int8;
+    } else if (ccdtype == chainer_compiler::Dtype::kInt16) {
+        return menoh_dtype_int16;
+    } else if (ccdtype == chainer_compiler::Dtype::kInt32) {
+        return menoh_dtype_int32;
+    } else if (ccdtype == chainer_compiler::Dtype::kInt64) {
+        return menoh_dtype_int64;
+    } else if (ccdtype == chainer_compiler::Dtype::kFloat16) {
+        return menoh_dtype_float16;
+    } else if (ccdtype == chainer_compiler::Dtype::kFloat32) {
+        return menoh_dtype_float32;
+    } else if (ccdtype == chainer_compiler::Dtype::kFloat64) {
+        return menoh_dtype_float64;
+    } else {
+        assert(!"Not Implemeneted");
+    }
+    return menoh_dtype_undefined;
+}
+
+chainer_compiler::Dtype menoh_dtype_to_cc_dtype(menoh_dtype mdtype) {
+    if (mdtype == menoh_dtype_undefined) {
+        return chainer_compiler::Dtype::kUnknown;
+    } else if (mdtype == menoh_dtype_int8) {
+        return chainer_compiler::Dtype::kInt8;
+    } else if (mdtype == menoh_dtype_int16) {
+        return chainer_compiler::Dtype::kInt16;
+    } else if (mdtype == menoh_dtype_int32) {
+        return chainer_compiler::Dtype::kInt32;
+    } else if (mdtype == menoh_dtype_int64) {
+        return chainer_compiler::Dtype::kInt64;
+    } else if (mdtype == menoh_dtype_float16) {
+        return chainer_compiler::Dtype::kFloat16;
+    } else if (mdtype == menoh_dtype_float32) {
+        return chainer_compiler::Dtype::kFloat32;
+    } else if (mdtype == menoh_dtype_float64) {
+        return chainer_compiler::Dtype::kFloat64;
+    } else {
+        assert(!"Not Implemeneted");
+    }
+    return chainer_compiler::Dtype::kUnknown;
+}
+
 /*
  * model_data
  */
@@ -328,7 +397,7 @@ menoh_error_code menoh_build_variable_profile_table(
                 shape->mutable_dim(i)->set_dim_value(profile.dims()[i]);
             }
             tensor_type->set_allocated_shape(shape.release());
-            tensor_type->set_elem_type(onnx::TensorProto::FLOAT);  // TODO elem_type
+            tensor_type->set_elem_type(menoh_dtype_to_xtensor_dtype(profile.dtype()));
             type->set_allocated_tensor_type(tensor_type.release());
             value_info->set_allocated_type(type.release());
         }
@@ -363,7 +432,8 @@ menoh_error_code menoh_build_variable_profile_table(
 
         std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
         for (chainer_compiler::Value* value : graph->output_values()) {
-            output_profiles.emplace(value->name(), menoh_impl::array_profile(menoh_dtype_float32, value->type().dims()));  // TODO elem_type
+            output_profiles.emplace(
+                    value->name(), menoh_impl::array_profile(cc_dtype_to_menoh_dtype(value->type().dtype()), value->type().dims()));
         }
         {
             auto xgraph = std::make_unique<onnx::GraphProto>();
@@ -534,7 +604,9 @@ menoh_error_code menoh_build_model(
                         datap = data.get();
                     }
                     auto arr = chainer_compiler::runtime::MakeHostArray(
-                            chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), datap);  // TODO elem_type
+                            static_cast<chainerx::Dtype>(static_cast<int>(menoh_dtype_to_cc_dtype(p->second.dtype()))),
+                            chainerx::Shape(p->second.dims()),
+                            datap);
                     auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
                     inputs.emplace(input->name(), std::move(var));
                 }
