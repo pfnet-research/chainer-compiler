@@ -268,9 +268,19 @@ add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 
+if(WIN32)
+  set(RM_RF rm\ -rf)
+  set(ENV_SET set)
+  set(TOUCH echo.>)
+else()
+  set(RM_RF rd\ /s\ /q)
+  set(ENV_SET \ )
+  set(TOUCH touch)
+endif()
+
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py
@@ -314,7 +324,7 @@ function(gen_ch2o_test dir ch2o_test all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && ${TOUCH} ${out_stamp}
     MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
@@ -475,7 +485,7 @@ function(gen_elichika_test dir all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && ${TOUCH} ${out_stamp}
     DEPENDS ${elichika_tests_py} ${ELICHIKA_FILES} ${test_files}
     )
 

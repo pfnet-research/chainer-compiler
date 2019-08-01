@@ -83,6 +83,13 @@ target_link_libraries(run_onnx
   absl::variant
   absl::optional
   )
+
+if (WIN32)
+  target_link_libraries(run_onnx
+    Dbghelp
+  )
+endif()
+
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
 if(${CHAINER_COMPILER_ENABLE_OPENCV})
