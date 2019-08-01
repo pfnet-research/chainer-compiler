@@ -6,6 +6,7 @@
 
 #include <chainerx/array.h>
 #include <chainerx/context.h>
+#include <chainerx/kernels/connection.h>
 #include <chainerx/kernels/creation.h>
 #include <chainerx/native/native_backend.h>
 #include <chainerx/native/native_device.h>
@@ -248,21 +249,77 @@ chainerx::Array GroupedConv(
         CHECK_EQ("NOTSET", auto_pad);
     }
 
-    if (group > 1) {
-        std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
-        std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));
-        std::vector<chainerx::Array> biases;
-        if (b.has_value()) {
-            biases = SplitByLengths(*b, 0, std::vector<int64_t>(group, b->shape()[0] / group));
-        }
-        std::vector<chainerx::Array> outputs(group);
-        for (int i = 0; i < group; ++i) {
-            auto sub_bias = b.has_value() ? absl::optional<chainerx::Array>(biases[i]) : absl::nullopt;
-            outputs[i] = chainerx::Conv(inputs[i], weights[i], sub_bias, strides, pads);
-        }
-        return chainerx::Concatenate(outputs, 1);
+    if (group == 1) {
+        return chainerx::Conv(x, w, b, strides, pads);
     }
-    return chainerx::Conv(x, w, b, strides, pads);
+
+    std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
+    std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));
+    std::vector<chainerx::Array> biases;
+    if (b.has_value()) {
+        biases = SplitByLengths(*b, 0, std::vector<int64_t>(group, b->shape()[0] / group));
+    }
+    std::vector<chainerx::Array> outputs(group);
+    for (int i = 0; i < group; ++i) {
+        auto sub_bias = b.has_value() ? absl::optional<chainerx::Array>(biases[i]) : absl::nullopt;
+        outputs[i] = chainerx::Conv(inputs[i], weights[i], sub_bias, strides, pads);
+    }
+    return chainerx::Concatenate(outputs, 1);
+}
+
+chainerx::Array GroupedConvTranspose(
+        const chainerx::Array& x,
+        const chainerx::Array& w,
+        const absl::optional<chainerx::Array>& b,
+        const Int64StackVector& strides,
+        const Int64StackVector& pads,
+        const Int64StackVector& output_shape,
+        int group) {
+    absl::optional<Int64StackVector> out_size = absl::nullopt;
+    if (!output_shape.empty()) {
+        out_size = output_shape;
+    }
+    if (group == 1) {
+        return chainerx::ConvTranspose(x, w, b, strides, pads, out_size);
+    }
+
+    std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
+    std::vector<chainerx::Array> weights = SplitByLengths(w, 0, std::vector<int64_t>(group, w.shape()[0] / group));
+    std::vector<chainerx::Array> biases;
+    if (b.has_value()) {
+        biases = SplitByLengths(*b, 0, std::vector<int64_t>(group, b->shape()[0] / group));
+    }
+    std::vector<chainerx::Array> outputs(group);
+    for (int i = 0; i < group; ++i) {
+        auto sub_bias = b.has_value() ? absl::optional<chainerx::Array>(biases[i]) : absl::nullopt;
+        outputs[i] = chainerx::ConvTranspose(inputs[i], weights[i], sub_bias, strides, pads, out_size);
+    }
+    return chainerx::Concatenate(outputs, 1);
+}
+
+chainerx::Array GroupedConvGradWeight(
+    const chainerx::Array& w,
+    const chainerx::Array& x,
+    const chainerx::Array& gy,
+    const Int64StackVector& strides,
+    const Int64StackVector& pads,
+    int group) {
+    if (group == 1) {
+        return x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
+            w.dtype(), w.shape(), x, gy, strides, pads, false /* cover_all */, absl::nullopt);
+    }
+
+    chainerx::Shape ws_shape = w.shape();
+    ws_shape[0] /= group;
+    ws_shape[1] /= group;
+    std::vector<chainerx::Array> xs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
+    std::vector<chainerx::Array> gys = SplitByLengths(gy, 1, std::vector<int64_t>(group, gy.shape()[1] / group));
+    std::vector<chainerx::Array> gws(group);
+    for (int i = 0; i < group; ++i) {
+        gws[i] = x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
+            w.dtype(), ws_shape, xs[i], gys[i], strides, pads, false /* cover_all */, absl::nullopt);
+    }
+    return chainerx::Concatenate(gws, 0);
 }
 
 }  // namespace runtime

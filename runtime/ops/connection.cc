@@ -1,4 +1,3 @@
-#include <chainerx/kernels/connection.h>
 #include <chainerx/routines/connection.h>
 #include <chainerx/routines/linalg.h>
 #include <chainerx/routines/manipulation.h>
@@ -32,25 +31,19 @@ chainerx::Array ConvOp::RunImpl(
 
 chainerx::Array ConvTransposeOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const absl::optional<chainerx::Array>& b) {
-    CHECK_EQ(1, group);
-    absl::optional<chainerx::StackVector<int64_t, chainerx::kMaxNdim>> out_size = absl::nullopt;
-    if (!output_shape.empty()) {
-        out_size = output_shape;
-    }
-    return chainerx::ConvTranspose(x, w, b, ComplementStride(strides, x), ComplementPad(pads, x), out_size);
+    return GroupedConvTranspose(x, w, b, ComplementStride(strides, x), ComplementPad(pads, x), output_shape, group);
 }
 
 chainerx::Array ConvTransposeWithDynamicShapeOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& w, const chainerx::Shape& shape) {
-    CHECK_EQ(1, group);
     chainerx::StackVector<int64_t, chainerx::kMaxNdim> out_size(shape.begin() + 2, shape.end());
-    return chainerx::ConvTranspose(x, w, absl::nullopt, ComplementStride(strides, x), ComplementPad(pads, x), out_size);
+    return GroupedConvTranspose(x, w, absl::nullopt, ComplementStride(strides, x), ComplementPad(pads, x), out_size, group);
 }
 
 chainerx::Array ConvGradWeightOp::RunImpl(ChxVMState* st, const chainerx::Array& w, const chainerx::Array& x, const chainerx::Array& gy) {
-    CHECK_EQ(1, group);
-    return x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
-            w.dtype(), w.shape(), x, gy, ComplementStride(strides, x), ComplementPad(pads, x), false /* cover_all */, absl::nullopt);
+    // TODO(hamaji): Remove `w` from the input of ConvGradWeight. We
+    // only need its shape.
+    return GroupedConvGradWeight(w, x, gy, ComplementStride(strides, x), ComplementPad(pads, x), group);
 }
 
 }  // namespace runtime
