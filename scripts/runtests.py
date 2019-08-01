@@ -619,7 +619,6 @@ for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
-TEST_CASES.append(TestCase('data', 'tinyyolo_v2', want_gpu=True))
 TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
 TEST_CASES.append(TestCase('data', 'mnist'))
 
