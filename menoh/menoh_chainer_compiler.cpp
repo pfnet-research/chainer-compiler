@@ -155,7 +155,7 @@ menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size
  * model_data
  */
 struct menoh_model_data {
-    chainer_compiler_onnx::GraphProto xgraph;
+    onnx::GraphProto xgraph;
     // std::shared_ptr<chainer_compiler::Graph> graph;
 };
 
@@ -254,7 +254,7 @@ menoh_error_code menoh_variable_profile_table_builder_add_output_name(
 }
 
 struct menoh_variable_profile_table {
-    std::shared_ptr<const chainer_compiler_onnx::GraphProto> xgraph;
+    std::shared_ptr<const onnx::GraphProto> xgraph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profiles;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
 };
@@ -320,15 +320,15 @@ menoh_error_code menoh_build_variable_profile_table(
             auto value_info = std::find_if(xgraph.mutable_input()->begin(), xgraph.mutable_input()->end(), [&name](auto const& input) {
                 return input.name() == name;
             });
-            auto type = std::make_unique<chainer_compiler_onnx::TypeProto>();
-            auto tensor_type = std::make_unique<chainer_compiler_onnx::TypeProto_Tensor>();
-            auto shape = std::make_unique<chainer_compiler_onnx::TensorShapeProto>();
+            auto type = std::make_unique<onnx::TypeProto>();
+            auto tensor_type = std::make_unique<onnx::TypeProto_Tensor>();
+            auto shape = std::make_unique<onnx::TensorShapeProto>();
             for (size_t i = 0; i < profile.dims().size(); ++i) {
                 shape->add_dim();
                 shape->mutable_dim(i)->set_dim_value(profile.dims()[i]);
             }
             tensor_type->set_allocated_shape(shape.release());
-            tensor_type->set_elem_type(chainer_compiler_onnx::TensorProto::FLOAT);  // TODO elem_type
+            tensor_type->set_elem_type(onnx::TensorProto::FLOAT);  // TODO elem_type
             type->set_allocated_tensor_type(tensor_type.release());
             value_info->set_allocated_type(type.release());
         }
@@ -337,8 +337,8 @@ menoh_error_code menoh_build_variable_profile_table(
         for (std::string const& output_name : builder->required_output_names) {
             auto* value_info = xgraph.add_output();
             value_info->set_name(output_name);
-            auto type = std::make_unique<chainer_compiler_onnx::TypeProto>();
-            auto tensor_type = std::make_unique<chainer_compiler_onnx::TypeProto_Tensor>();
+            auto type = std::make_unique<onnx::TypeProto>();
+            auto tensor_type = std::make_unique<onnx::TypeProto_Tensor>();
             type->set_allocated_tensor_type(tensor_type.release());
             value_info->set_allocated_type(type.release());
         }
@@ -427,7 +427,7 @@ menoh_error_code menoh_variable_profile_table_get_dims(
  * model builder
  */
 struct menoh_model_builder {
-    std::shared_ptr<const chainer_compiler_onnx::GraphProto> xgraph;
+    std::shared_ptr<const onnx::GraphProto> xgraph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profile_table;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profile_table;
     std::unordered_map<std::string, void*> external_buffer_handle_table;
@@ -500,7 +500,7 @@ menoh_error_code menoh_build_model(
 
         // Set initializer
         assert(xgraph.initializer().Empty());
-        for (chainer_compiler_onnx::TensorProto const& xtensor : model_data->xgraph.initializer()) {
+        for (onnx::TensorProto const& xtensor : model_data->xgraph.initializer()) {
             *(xgraph.add_initializer()) = xtensor;
         }
 
@@ -533,8 +533,8 @@ menoh_error_code menoh_build_model(
                         buffer_holder.push_back(data);
                         datap = data.get();
                     }
-                    auto arr =
-                            chainer_compiler::runtime::MakeHostArray(chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), datap); //TODO elem_type
+                    auto arr = chainer_compiler::runtime::MakeHostArray(
+                            chainerx::Dtype::kFloat32, chainerx::Shape(p->second.dims()), datap);  // TODO elem_type
                     auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
                     inputs.emplace(input->name(), std::move(var));
                 }
