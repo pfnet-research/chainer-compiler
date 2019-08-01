@@ -31,6 +31,8 @@ TESTS = [
     Generator('model', 'StatelessLSTM'),
     Generator('model', 'EspNet_AttDot'),
     Generator('model', 'EspNet_AttLoc'),
+    Generator('model', 'EspNet_Decoder'),
+    Generator('model', 'EspNet_E2E'),
     Generator('chainercv_model/resnet', 'resnet'),
 
     Generator('node', 'AddMul'),
@@ -161,6 +163,11 @@ def get():
 
         if gen.fail:
             kwargs['fail'] = True
+
+        # TODO(hamaji): Remove this once type inference is improved.
+        if ('EspNet_Decoder' in test_name or
+            'EspNet_E2E' in test_name):
+            kwargs['skip_runtime_type_check'] = True
 
         diversed = False
         for substr in diversed_whitelist:
