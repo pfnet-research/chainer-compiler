@@ -60,6 +60,8 @@ def main():
     y = np.random.rand(2, 4, 3).astype(np.float32)
     testtools.generate_testcase(Axes(), [y], subname='axes')
 
+    testtools.generate_testcase(Axes(), [y], subname='axes', backprop=True)
+
     # Value mismatch bug.
     num_hidden = 5
     model = lambda: B(num_hidden)
