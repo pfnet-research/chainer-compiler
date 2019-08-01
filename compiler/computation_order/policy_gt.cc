@@ -264,10 +264,10 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
     }
 
     std::vector<NodeSet> seq;
-    const auto last_it = opt[nl - 1].begin();
-    if (last_it != opt[nl - 1].end()) {
+    if (opt[nl - 1].size()) {
         size_t i = nl - 1;
-        size_t flops = last_it->first;
+        size_t flops = g_gt_memory_centric ? opt[nl - 1].rbegin()->first
+            : opt[nl - 1].begin()->first;
 
         while (i < nl) {
             seq.push_back(lower_sets[i]);
