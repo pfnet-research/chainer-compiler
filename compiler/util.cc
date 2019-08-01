@@ -1,5 +1,5 @@
 #include "compiler/util.h"
-
+#include <locale>
 #include <common/strutil.h>
 
 #include <compiler/tensor.h>
@@ -55,8 +55,9 @@ void StripONNXModel(onnx::ModelProto* model) {
 
 std::string CleanseIdent(const std::string& s) {
     std::string o;
+    std::locale loc;
     for (char c : s) {
-        if (std::isalnum(c)) {
+        if (std::isalnum(c, loc)) {
             o += c;
         } else {
             o += '_';

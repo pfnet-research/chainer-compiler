@@ -92,6 +92,20 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 
+if(MSVC)
+    # gtest for Windows
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+        # TODO(durswd): Remove it. It is hack for MSVC+LLVM
+        target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
+    else()
+        # ChainerX is linked with MultiThreaded DLL, including gtest
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+
+    # gtest for protobuf
+    set(protobuf_MSVC_STATIC_RUNTIME OFF)
+endif()
+
 # Make both chainer-compiler and ChainerX consistent.
 set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
 
