@@ -453,11 +453,11 @@ void ConvGradFn(GradientOpContext* gc) {
         }
     }
     gc->GradOp(Node::kChainerConvGradWeight, 1, {w, gc->x(0), gy})
-        ->producer()
-        ->set_dilations(node->dilations())
-        ->set_group(node->group())
-        ->set_pads(node->pads())
-        ->set_strides(node->strides());
+            ->producer()
+            ->set_dilations(node->dilations())
+            ->set_group(node->group())
+            ->set_pads(node->pads())
+            ->set_strides(node->strides());
     if (node->inputs().size() == 3) {
         std::vector<int64_t> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
@@ -482,11 +482,11 @@ void ConvTransposeGradFn(GradientOpContext* gc) {
                 ->set_strides(node->strides());
     }
     gc->GradOp(Node::kChainerConvGradWeight, 1, {w, gy, gc->x(0)})
-        ->producer()
-        ->set_dilations(node->dilations())
-        ->set_group(node->group())
-        ->set_pads(node->pads())
-        ->set_strides(node->strides());
+            ->producer()
+            ->set_dilations(node->dilations())
+            ->set_group(node->group())
+            ->set_pads(node->pads())
+            ->set_strides(node->strides());
     if (node->inputs().size() == 3) {
         std::vector<int64_t> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";

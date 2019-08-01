@@ -298,15 +298,15 @@ chainerx::Array GroupedConvTranspose(
 }
 
 chainerx::Array GroupedConvGradWeight(
-    const chainerx::Array& w,
-    const chainerx::Array& x,
-    const chainerx::Array& gy,
-    const Int64StackVector& strides,
-    const Int64StackVector& pads,
-    int group) {
+        const chainerx::Array& w,
+        const chainerx::Array& x,
+        const chainerx::Array& gy,
+        const Int64StackVector& strides,
+        const Int64StackVector& pads,
+        int group) {
     if (group == 1) {
         return x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
-            w.dtype(), w.shape(), x, gy, strides, pads, false /* cover_all */, absl::nullopt);
+                w.dtype(), w.shape(), x, gy, strides, pads, false /* cover_all */, absl::nullopt);
     }
 
     chainerx::Shape ws_shape = w.shape();
@@ -317,7 +317,7 @@ chainerx::Array GroupedConvGradWeight(
     std::vector<chainerx::Array> gws(group);
     for (int i = 0; i < group; ++i) {
         gws[i] = x.device().backend().CallKernel<chainerx::ConvGradWeightKernel>(
-            w.dtype(), ws_shape, xs[i], gys[i], strides, pads, false /* cover_all */, absl::nullopt);
+                w.dtype(), ws_shape, xs[i], gys[i], strides, pads, false /* cover_all */, absl::nullopt);
     }
     return chainerx::Concatenate(gws, 0);
 }
