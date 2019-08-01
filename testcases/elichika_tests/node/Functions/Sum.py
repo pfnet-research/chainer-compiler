@@ -61,14 +61,12 @@ def main():
 
     testtools.generate_testcase(SumAllAxis(), [a], subname='all_axis')
 
-    # TODO(hamaji): support L.Linear(None,5)
-    '''
     for axis in [0, 1, 2, (0, 2), (1, 2), None]:
         for keepdims in [False, True]:
             name = 'axis%s_kd%s' % (axis, keepdims)
             testtools.generate_testcase(lambda: SumBackprop(axis, keepdims), [a],
                                    subname=name, backprop=True)
-    '''
+
 
 if __name__ == '__main__':
     main()
