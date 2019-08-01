@@ -1,6 +1,6 @@
 #include "compiler/util.h"
-#include <locale>
 #include <common/strutil.h>
+#include <locale>
 
 #include <compiler/tensor.h>
 
