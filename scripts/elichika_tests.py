@@ -50,6 +50,7 @@ TESTS = [
     Generator('node', 'Variable'),
     Generator('node', 'ChainList'),
     Generator('node', 'LRN'),
+    Generator('node', 'Len'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),
