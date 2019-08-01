@@ -6,11 +6,13 @@ import numpy as np
 
 import collections
 
-import inspect
 import ast
 import gast
-import weakref
+import inspect
+import six
 import types
+import weakref
+from chainer_compiler.elichika.parser import vevaluator
 from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import nodes
 from chainer_compiler.elichika.parser import functions
@@ -122,7 +124,7 @@ def parse_instance(default_module, name, instance, self_instance=None, from_memb
         ret = converter(default_module, instance)
         if ret is not None:
             return Object(ret)
-        
+
     #if inspect.ismethod(instance) or inspect.isfunction(instance) or isinstance(instance, np.ufunc):
     if isinstance(instance, collections.Hashable):
         if instance in function_converters.keys():
@@ -531,7 +533,7 @@ class Object():
         self.attributes = Field()
         self.value.apply_to_object(self)
         self.in_container = False
-        
+
     def get_field(self) -> 'Field':
         return self.attributes
 
@@ -542,7 +544,7 @@ class Object():
         self.value = value
 
     def try_get_and_store_obj(self, name: 'str', root_graph : 'graphs.Graph') -> 'Object':
-            
+
         attribute = self.attributes.try_get_attribute(name)
         if attribute is not None and attribute.has_obj():
             return attribute.get_obj()
@@ -569,7 +571,7 @@ class Value():
 
     def has_constant_value(self) -> 'bool':
         return self.internal_value is not None
-    
+
     def get_constant_value(self):
         return self.internal_value
 
@@ -756,7 +758,7 @@ class TupleValue(Value):
 
         if self.dtype is not None:
             v.dtype = self.dtype
-            
+
 
         return Object(v)
 
@@ -819,7 +821,7 @@ class ListValue(Value):
 
         if self.dtype is not None:
             v.dtype = self.dtype
-            
+
 
         return Object(v)
 
@@ -930,7 +932,7 @@ class TensorValue(Value):
     def is_iteratable(self):
         return True
 
-    def get_iterator(self) -> 'Object':            
+    def get_iterator(self) -> 'Object':
         v = TensorValue()
         v.dtype = self.dtype
         return Object(v)
@@ -958,7 +960,17 @@ class ModuleValue(Value):
 
     def try_get_obj(self, name: 'str', inst: 'Object', root_graph : 'graphs.Graph') -> 'Object':
 
-        members = inspect.getmembers(self.internal_module)
+
+        if self.internal_module == six.moves:
+            # Calling `inspect.getmembers` for `six.moves` causes
+            # eager load for potentially non-existent libraries such
+            # as tkinter or gdbm. To workaround this issue, we
+            # retrieve only whitelisted members in `six.moves`.
+            # TODO(hamaji): Figure out a better workaround.
+            safe_keys = ['range', 'xrange', 'map', 'filter', 'zip']
+            members = [(k, getattr(self.internal_module, k)) for k in safe_keys]
+        else:
+            members = inspect.getmembers(self.internal_module)
         members_dict = {}
         for member in members:
             members_dict[member[0]] = member[1]

@@ -33,10 +33,10 @@ def main():
     np.random.seed(314)
 
     x = np.random.rand(6, 4, 1).astype(np.float32) - 0.5
-    testtools.generate_testcase(BroadcastTo(), [x], subname='basic')
+    testtools.generate_testcase(BroadcastTo(), [x])
 
     x = np.random.rand(6, 3).astype(np.float32) - 0.5
-    testtools.generate_testcase(BroadcastToBackprop(), [x], backprop=True, subname='with_backprop')
+    testtools.generate_testcase(BroadcastToBackprop(), [x], backprop=True)
 
 
 if __name__ == '__main__':
