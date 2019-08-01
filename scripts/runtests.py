@@ -707,6 +707,8 @@ if args.ngraph:
         if test.name.endswith('_sigmoid_float64'):
             # TODO(hamaji): nGraph seems not to support fp64 sigmoid.
             test.fail = True
+        if re.search(r'grouped_conv_.*float64', test.name):
+            test.fail = True
 
 if args.failed:
     if not os.path.exists(args.failure_log):
