@@ -641,10 +641,10 @@ menoh_error_code menoh_build_model(
             }
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
             chxvm_opts.trace_level = value_or(j, "trace_level", 0);
-            chxvm_opts.is_training = false;
-            chxvm_opts.check_types = true;
-            // chxvm_opts.check_nans = true;
-            // chxvm_opts.check_infs = true;
+            chxvm_opts.is_training = value_or(j, "is_training", false);
+            chxvm_opts.check_types = value_or(j, "check_types", false);
+            chxvm_opts.check_nans = value_or(j, "check_nans", false);
+            chxvm_opts.check_infs = value_or(j, "check_infs", false);
 
             std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles(
                     builder->input_profile_table.begin(), builder->input_profile_table.end());
