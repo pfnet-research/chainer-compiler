@@ -366,7 +366,7 @@ menoh_error_code menoh_build_variable_profile_table(
             if (found == graph->all_values().end()) {
                 auto message = std::string("required output is not contained in the model: ") + required_output_name;
                 menoh_impl::set_last_error_message(message.c_str());
-                return menoh_error_code_unknown_error;  // TODO
+                return menoh_error_code_output_not_found_error;
             }
             required_output_values.push_back(found->get());
         }
