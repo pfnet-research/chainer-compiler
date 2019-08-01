@@ -136,11 +136,22 @@ add_custom_command(
   wget --continue https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
   tar -xvzf resnet50.tar.gz
   )
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/tiny_yolov2/model.onnx"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+  COMMAND
+  mkdir -p data && cd data &&
+  wget --continue https://onnxzoo.blob.core.windows.net/models/opset_8/tiny_yolov2/tiny_yolov2.tar.gz &&
+  tar -xvzf tiny_yolov2.tar.gz &&
+  mv tiny_yolov2/Model.onnx tiny_yolov2/model.onnx
+  )
+
 add_custom_target(
   test_models
   DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
   "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../data/tiny_yolov2/model.onnx"
   )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
