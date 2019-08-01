@@ -726,10 +726,11 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                 assert(found != model->outputs.end() && "output buffer not found");
                 auto const& array = output.second->GetArray();
                 auto const& shape = array.shape();
+                auto bytesize = shape.GetTotalSize() * chainerx::GetItemSize(array.dtype());
                 std::copy(
-                        static_cast<float*>(array.raw_data()),
-                        static_cast<float*>(array.raw_data()) + std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<float>()),
-                        static_cast<float*>(found->second));  // TODO elem_type
+                        static_cast<uint8_t*>(array.raw_data()),
+                        static_cast<uint8_t*>(array.raw_data()) + bytesize,
+                        static_cast<uint8_t*>(found->second));
             }
         }
         chainerx::SetDefaultContext(nullptr);
