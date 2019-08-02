@@ -14,6 +14,16 @@ if(MSVC)
   find_package(PythonInterp 3)
 endif()
 
+if(WIN32)
+  set(RM_RF rd /s /q)
+  set(ENV_SET set)
+  set(TOUCH echo.>)
+else()
+  set(RM_RF rm -rf)
+  set(ENV_SET )
+  set(TOUCH touch)
+endif()
+
 # Sets default settings from the associated env-var if existed.
 # Usage:
 #   set_option_(FOO "Option FOO" OFF)
@@ -267,16 +277,6 @@ add_subdirectory(feeder)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
-
-if(WIN32)
-  set(RM_RF rd /s /q)
-  set(ENV_SET set)
-  set(TOUCH echo.>)
-else()
-  set(RM_RF rm -rf)
-  set(ENV_SET )
-  set(TOUCH touch)
-endif()
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
