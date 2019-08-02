@@ -85,6 +85,8 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 
+find_package(PythonInterp 3)
+
 # Make both chainer-compiler and ChainerX consistent.
 set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
 
@@ -291,7 +293,7 @@ function(gen_ch2o_test dir ch2o_test all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
     MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
@@ -452,7 +454,7 @@ function(gen_elichika_test dir all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
     DEPENDS ${elichika_tests_py} ${ELICHIKA_FILES} ${test_files}
     )
 

@@ -11,7 +11,7 @@ add_custom_command(
   OUTPUT
     "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode compiler_flags.cc
+  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode compiler_flags.cc
   --output "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )

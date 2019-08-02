@@ -9,7 +9,7 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.cc
     ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_ops.h
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_chxvm.py
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_chxvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
     --protoc-exe ${PROTOC_EXECUTABLE}
