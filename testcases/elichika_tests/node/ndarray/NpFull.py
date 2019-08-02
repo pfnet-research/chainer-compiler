@@ -24,7 +24,7 @@ class FullDtype(chainer.Chain):
 def main():
     testtools.generate_testcase(Full, [], subname='none')
 
-    #testtools.generate_testcase(FullDtype, [], subname='dtype')
+    testtools.generate_testcase(FullDtype, [], subname='dtype')
 
 
 if __name__ == '__main__':

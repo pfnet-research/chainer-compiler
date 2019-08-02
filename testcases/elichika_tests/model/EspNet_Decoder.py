@@ -284,7 +284,7 @@ class Decoder(chainer.Chain):
 from chainer_compiler.elichika import testtools
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(43)
 
@@ -337,3 +337,7 @@ if __name__ == '__main__':
     gen_test(model_fn, subname='attloc')
 
     testtools.generate_testcase(model_fn, [hs, ys], subname='attloc', backprop=True)
+
+
+if __name__ == '__main__':
+    main()

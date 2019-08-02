@@ -708,6 +708,8 @@ if args.ngraph:
         if test.name.endswith('_sigmoid_float64'):
             # TODO(hamaji): nGraph seems not to support fp64 sigmoid.
             test.fail = True
+        if re.search(r'grouped_conv_.*float64', test.name):
+            test.fail = True
 
 if args.failed:
     if not os.path.exists(args.failure_log):
@@ -826,6 +828,8 @@ def main():
             test_case.args += ['--equal_nan']
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
+        if test_case.skip_runtime_type_check:
+            test_case.args.append('--skip_runtime_type_check')
         if test_case.is_backprop_two_phase:
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:
