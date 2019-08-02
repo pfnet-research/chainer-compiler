@@ -229,5 +229,28 @@ elif args.mode == 'chainer_compiler_core.pybind_args.inc':
         def_val = 'false' if info['type'] == 'bool' else '""' if info['type'] == 'std::string' else '0'
         res.append('"{}"_a = {}'.format(name, def_val))
     f.write(', '.join(res))
+elif args.mode == 'menoh_chainer_compiler.json_args.inc':
+    res = []
+    for name, info in sorted(FLAGS.items()):
+        if info['type'] == 'bool':
+            default = 'false'
+        elif info['type'] == 'int':
+            default = '0'
+        elif info['type'] == 'std::string':
+            default = '""'
+        res.append('chainer_compiler::g_{0} = value_or<{2}>(j, "{0}", {1});'.format(name, default, info['type']))
+    f.write('\n'.join(res))
+elif args.mode == 'menoh_example_default_config.json':
+    import json
+    config = {}
+    for name, info in sorted(FLAGS.items()):
+        if info['type'] == 'bool':
+            default = False
+        elif info['type'] == 'int':
+            default = 0
+        elif info['type'] == 'std::string':
+            default = ''
+        config[name] = default
+    f.write(json.dumps(config, indent=2, sort_keys=True))
 else:
     raise('Invalid mode: {}'.format(args.mode))

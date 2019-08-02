@@ -477,3 +477,9 @@ gen_elichika_test(node/Functions/Activation "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(node/Links "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(syntax "${CHAINER_COMPILER_TEST_ALL}")
 gen_elichika_test(chainercv_model/resnet "${CHAINER_COMPILER_TEST_ALL}")
+
+# Menoh
+option(CHAINER_COMPILER_ENABLE_MENOH "Build Menoh API" ON)
+if(${CHAINER_COMPILER_ENABLE_MENOH})
+    add_subdirectory(menoh)
+endif()
