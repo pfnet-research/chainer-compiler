@@ -189,7 +189,12 @@ private:
         std::vector<PixelPos> pixel_x(pooled_width * roi_bin_grid_w);
         std::vector<PixelPos> pixel_y(pooled_height * roi_bin_grid_h);
 
-        int64_t roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        int64_t roi_batch_ind;
+        if (contiguous_bottom_roi_indices.dtype() == chainerx::Dtype::kInt64) {
+            roi_batch_ind = ContiguousArrayAt<int64_t>(contiguous_bottom_roi_indices, {n});
+        } else {
+            roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        }
         double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
         double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
         double roi_end_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 2}) * spatial_scale;
