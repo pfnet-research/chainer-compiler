@@ -49,6 +49,7 @@ Int64StackVector CalculateAutoPad(
         const Int64StackVector& kernel_shape,
         const Int64StackVector& strides,
         const Int64StackVector& in_pads);
+chainerx::Array ApplyAsynmmetricPad(const chainerx::Array& x, Int64StackVector* pads, float value = 0.0, int64_t beg_dim = 2);
 
 chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b);
 chainerx::Array GroupedConv(

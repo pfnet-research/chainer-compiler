@@ -224,13 +224,64 @@ chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b) 
     return chainerx::Stack(stack).Reshape(new_shape);
 }
 
+chainerx::Array ApplyAsynmmetricPad(const chainerx::Array& x, Int64StackVector* pads_ptr, float value, int64_t beg_dim) {
+    Int64StackVector& pads = *pads_ptr;
+    // Don't apply pad in symmetric pad
+    if (pads.size() == (x.shape().size() - beg_dim)) {
+        return x;
+    }
+
+    CHECK_EQ((x.ndim() - beg_dim) * 2, pads.size());
+    const chainerx::Shape shape = x.shape();
+    chainerx::Shape new_shape = x.shape();
+    std::vector<chainerx::ArrayIndex> indices1, indices2;
+    for (int i = 0; i < beg_dim; ++i) {
+        indices1.push_back(chainerx::Slice(0, shape[i]));
+        indices2.push_back(chainerx::Slice(0, shape[i]));
+    }
+    for (int i = beg_dim; i < shape.size(); ++i) {
+        const int64_t pad_idx = i - beg_dim;
+        const int64_t pad_beg = pads[pad_idx], pad_end = pads[pads.size() / 2 + pad_idx];
+        new_shape[i] += pad_beg + pad_end;
+        auto len = shape[i] + std::min(0L, pad_beg) + std::min(0L, pad_end);
+
+        const auto start1 = std::max(-pad_beg, 0L);
+        const auto start2 = std::max(pad_beg, 0L);
+        const auto end1 = std::min(shape[i] + pad_end, shape[i]);
+        const auto end2 = std::min(new_shape[i] - pad_end, new_shape[i]);
+
+        CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pad_beg << " " << pad_end << "      " << start1 << " "
+                                     << end1 << " " << len;
+        CHECK_EQ(end2 - start2, len) << "Shape mis-match: " << shape[i] << " " << pad_beg << " " << pad_end << "      " << start2 << " "
+                                     << end2 << " " << len;
+
+        indices1.push_back(chainerx::Slice(start1, end1));
+        indices2.push_back(chainerx::Slice(start2, end2));
+    }
+    chainerx::Array result = chainerx::Full(new_shape, value, x.dtype(), x.device());
+    BlitArray(x.At(indices1), result.At(indices2));
+
+    // Clear applied pads
+    pads.resize(x.shape().size() - beg_dim);
+    std::fill(pads.begin(), pads.end(), 0);
+
+    return result;
+}
+
 Int64StackVector CalculateAutoPad(
         const std::string& auto_pad,
         const chainerx::Array& x,
         const Int64StackVector& kernel_shape,
         const Int64StackVector& strides,
         const Int64StackVector& in_pads) {
+    CHECK_EQ(kernel_shape.size(), in_pads.size());
+    CHECK_EQ(strides.size(), in_pads.size());
+    CHECK_EQ(x.shape().size(), in_pads.size() + 2);
+
     Int64StackVector pads = in_pads;
+    Int64StackVector pads_end;
+    pads_end.resize(in_pads.size());
+    bool end_pad = false;
     if (auto_pad == "SAME_UPPER") {
         for (size_t i = 0; i < pads.size(); ++i) {
             const int64_t in_dim = x.shape()[2 + i];
@@ -241,23 +292,30 @@ Int64StackVector CalculateAutoPad(
             int64_t pad_needed = (legacy_target_size - 1) * stride + kernel - in_dim;
 
             pads[i] = pad_needed / 2;
+            pads_end[i] = pad_needed - pads[i];
+            end_pad = end_pad || pads_end[i] > 0;
         }
     } else {
         CHECK_EQ("NOTSET", auto_pad);
+    }
+
+    if (end_pad) {
+        pads.insert(pads.end(), pads_end.begin(), pads_end.end());
     }
 
     return pads;
 }
 
 chainerx::Array GroupedConv(
-        const chainerx::Array& x,
+        const chainerx::Array& in_x,
         const chainerx::Array& w,
         const absl::optional<chainerx::Array>& b,
         const Int64StackVector& strides,
         const Int64StackVector& in_pads,
         int group,
         const std::string& auto_pad) {
-    Int64StackVector pads = CalculateAutoPad(auto_pad, x, Int64StackVector(w.shape().begin() + 2, w.shape().end()), strides, in_pads);
+    Int64StackVector pads = CalculateAutoPad(auto_pad, in_x, Int64StackVector(w.shape().begin() + 2, w.shape().end()), strides, in_pads);
+    chainerx::Array x = ApplyAsynmmetricPad(in_x, &pads);
 
     if (group > 1) {
         std::vector<chainerx::Array> inputs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
