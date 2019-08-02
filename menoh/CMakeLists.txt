@@ -3,7 +3,7 @@ add_custom_command(
   OUTPUT
     "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
   COMMAND
-    python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode menoh_chainer_compiler.json_args.inc
+    ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode menoh_chainer_compiler.json_args.inc
     --output "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
@@ -43,7 +43,7 @@ if(OpenCV_FOUND)
       OUTPUT
         "${CMAKE_CURRENT_BINARY_DIR}/menoh_example_default_config.json"
       COMMAND
-        python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode menoh_example_default_config.json
+        ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode menoh_example_default_config.json
         --output "${CMAKE_CURRENT_BINARY_DIR}/menoh_example_default_config.json"
       DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
       )
