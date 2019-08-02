@@ -5,10 +5,10 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#if(defined(_WIN32) || defined(__WIN32__)) && !defined(__GNUC__)
+#if (defined(_WIN32) || defined(__WIN32__)) && !defined(__GNUC__)
 #define MENOH_API __declspec(dllexport)
 #else
-#define MENOH_API __attribute__((visibility ("default")))
+#define MENOH_API __attribute__((visibility("default")))
 #endif
 
 #define MENOH_SUPPORTED_ONNX_OPSET_VERSION 9
@@ -24,7 +24,7 @@
 
 #if defined(__cplusplus) && __cplusplus >= 201402L
 #define MENOH_DEPRECATED_ATTRIBUTE(message) [[deprecated(message)]]
-#elif(defined(_WIN32) || defined(__WIN32__)) && !defined(__GNUC__)
+#elif (defined(_WIN32) || defined(__WIN32__)) && !defined(__GNUC__)
 #define MENOH_DEPRECATED_ATTRIBUTE(message) __declspec(deprecated(message))
 #elif defined(__GNUC__)
 #define MENOH_DEPRECATED_ATTRIBUTE(message) __attribute__((deprecated(message)))
@@ -32,7 +32,7 @@
 #define MENOH_DEPRECATED_ATTRIBUTE(message)
 #endif
 
-#endif // DOXYGEN_SHOULD_SKIP_THIS
+#endif  // DOXYGEN_SHOULD_SKIP_THIS
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,7 +45,7 @@ extern "C" {
  */
 enum menoh_dtype_constant {
     menoh_dtype_undefined,
-    menoh_dtype_float, // float32
+    menoh_dtype_float,  // float32
     menoh_dtype_float16,
     menoh_dtype_float32 = menoh_dtype_float,
     menoh_dtype_float64 = menoh_dtype_float16 + 1,
@@ -102,8 +102,7 @@ MENOH_API const char* menoh_get_last_error_message();
  */
 /*! \breaf Element size of given menoh_dtype.
  */
-menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype,
-                                            int64_t* dst_size);
+menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size);
 
 /*! @addtogroup model_data Model data types and operations
  * @{ */
@@ -124,66 +123,60 @@ typedef struct menoh_model_data* menoh_model_data_handle;
 void MENOH_API menoh_delete_model_data(menoh_model_data_handle model_data);
 /*! \brief Load onnx file and make model_data
  */
-menoh_error_code MENOH_API menoh_make_model_data_from_onnx(
-  const char* onnx_filename, menoh_model_data_handle* dst_handle);
+menoh_error_code MENOH_API menoh_make_model_data_from_onnx(const char* onnx_filename, menoh_model_data_handle* dst_handle);
 /*! \brief make model_data from onnx binary data on memory
  *
  * \note Users can free onnx_data buffer after calling
  * menoh_make_model_data_from_onnx().
  */
-menoh_error_code MENOH_API menoh_make_model_data_from_onnx_data_on_memory(
-  const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle);
+menoh_error_code MENOH_API
+menoh_make_model_data_from_onnx_data_on_memory(const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle);
 /*! \brief Make empty model_data
  */
-menoh_error_code MENOH_API
-menoh_make_model_data(menoh_model_data_handle* dst_handle);
+menoh_error_code MENOH_API menoh_make_model_data(menoh_model_data_handle* dst_handle);
 /*! \brief Add a new parameter in model_data
  * \note Duplication of parameter_name is not allowed and it throws error.
  */
 menoh_error_code MENOH_API menoh_model_data_add_parameter(
-  menoh_model_data_handle model_data, const char* parameter_name,
-  menoh_dtype dtype, int64_t dims_size, const int64_t* dims,
-  void* buffer_handle);
+        menoh_model_data_handle model_data,
+        const char* parameter_name,
+        menoh_dtype dtype,
+        int64_t dims_size,
+        const int64_t* dims,
+        void* buffer_handle);
 /*! \brief Add a new node to model_data
  */
-menoh_error_code MENOH_API menoh_model_data_add_new_node(
-  menoh_model_data_handle model_data, const char* op_type);
+menoh_error_code MENOH_API menoh_model_data_add_new_node(menoh_model_data_handle model_data, const char* op_type);
 /*! \brief Add a new input name to latest added node in model_data
  */
-menoh_error_code MENOH_API menoh_model_data_add_input_name_to_current_node(
-  menoh_model_data_handle model_data, const char* input_name);
+menoh_error_code MENOH_API menoh_model_data_add_input_name_to_current_node(menoh_model_data_handle model_data, const char* input_name);
 /*! \brief Add a new output name to latest added node in model_data
  */
-menoh_error_code MENOH_API menoh_model_data_add_output_name_to_current_node(
-  menoh_model_data_handle model_data, const char* output_name);
+menoh_error_code MENOH_API menoh_model_data_add_output_name_to_current_node(menoh_model_data_handle model_data, const char* output_name);
 /*! \brief Add a new int attribute to latest added node in model_data
  *
  * \note Duplication of attribute_name is not allowed and it throws error.
  */
-menoh_error_code MENOH_API menoh_model_data_add_attribute_int_to_current_node(
-  menoh_model_data_handle model_data, const char* attribute_name,
-  int64_t value);
+menoh_error_code MENOH_API
+menoh_model_data_add_attribute_int_to_current_node(menoh_model_data_handle model_data, const char* attribute_name, int64_t value);
 /*! \brief Add a new float attribute to latest added node in model_data
  *
  * \note Duplication of attribute_name is not allowed and it throws error.
  */
-menoh_error_code MENOH_API menoh_model_data_add_attribute_float_to_current_node(
-  menoh_model_data_handle model_data, const char* attribute_name, float value);
+menoh_error_code MENOH_API
+menoh_model_data_add_attribute_float_to_current_node(menoh_model_data_handle model_data, const char* attribute_name, float value);
 /*! \brief Add a new int array attribute to latest added node in model_data
  *
  * \note Duplication of attribute_name is not allowed and it throws error.
  */
 menoh_error_code MENOH_API menoh_model_data_add_attribute_ints_to_current_node(
-  menoh_model_data_handle model_data, const char* attribute_name, int64_t size,
-  const int64_t* value);
+        menoh_model_data_handle model_data, const char* attribute_name, int64_t size, const int64_t* value);
 /*! \brief Add a new float array attribute to latest added node in model_data
  *
  * \note Duplication of attribute_name is not allowed and it throws error.
  */
-menoh_error_code MENOH_API
-menoh_model_data_add_attribute_floats_to_current_node(
-  menoh_model_data_handle model_data, const char* attribute_name, int64_t size,
-  const float* value);
+menoh_error_code MENOH_API menoh_model_data_add_attribute_floats_to_current_node(
+        menoh_model_data_handle model_data, const char* attribute_name, int64_t size, const float* value);
 /** @} */
 
 /*! @addtogroup vpt Variable profile table types and operations
@@ -199,30 +192,25 @@ menoh_model_data_add_attribute_floats_to_current_node(
  *  - menoh_variable_profile_table_builder_add_output_profile().
  */
 struct menoh_variable_profile_table_builder;
-typedef struct menoh_variable_profile_table_builder*
-  menoh_variable_profile_table_builder_handle;
+typedef struct menoh_variable_profile_table_builder* menoh_variable_profile_table_builder_handle;
 
 /*! \brief Factory function for variable_profile_table_builder
  */
-menoh_error_code MENOH_API menoh_make_variable_profile_table_builder(
-  menoh_variable_profile_table_builder_handle* dst_handle);
+menoh_error_code MENOH_API menoh_make_variable_profile_table_builder(menoh_variable_profile_table_builder_handle* dst_handle);
 /*! \brief Delete function for variable_profile_table_builder
  *
  * Users must call to release memory resources allocated for
  * variable_profile_table_builder
  */
-void MENOH_API menoh_delete_variable_profile_table_builder(
-  menoh_variable_profile_table_builder_handle builder);
+void MENOH_API menoh_delete_variable_profile_table_builder(menoh_variable_profile_table_builder_handle builder);
 
 /*! \brief Add input profile
  *
  * Input profile contains name, dtype and dims.
  * \note Users can free dims buffer after calling this function.
  */
-menoh_error_code MENOH_API
-menoh_variable_profile_table_builder_add_input_profile(
-  menoh_variable_profile_table_builder_handle builder, const char* name,
-  menoh_dtype dtype, int64_t dims_size, const int64_t* dims);
+menoh_error_code MENOH_API menoh_variable_profile_table_builder_add_input_profile(
+        menoh_variable_profile_table_builder_handle builder, const char* name, menoh_dtype dtype, int64_t dims_size, const int64_t* dims);
 
 /*! \brief Add 2D input profile
  *
@@ -231,12 +219,9 @@ menoh_variable_profile_table_builder_add_input_profile(
  * \warning This function is depreated. Please use
  * menoh_variable_profile_table_builder_add_input_profile() instead
  */
-MENOH_DEPRECATED_ATTRIBUTE(
-  "please use menoh_variable_profile_table_builder_add_input_profile() instead")
-menoh_error_code MENOH_API
-menoh_variable_profile_table_builder_add_input_profile_dims_2(
-  menoh_variable_profile_table_builder_handle builder, const char* name,
-  menoh_dtype dtype, int64_t num, int64_t size);
+MENOH_DEPRECATED_ATTRIBUTE("please use menoh_variable_profile_table_builder_add_input_profile() instead")
+menoh_error_code MENOH_API menoh_variable_profile_table_builder_add_input_profile_dims_2(
+        menoh_variable_profile_table_builder_handle builder, const char* name, menoh_dtype dtype, int64_t num, int64_t size);
 
 /*! \brief Add 4D input profile
  *
@@ -246,21 +231,23 @@ menoh_variable_profile_table_builder_add_input_profile_dims_2(
  * \warning This function is depreated. Please use
  * menoh_variable_profile_table_builder_add_input_profile() instead
  */
-MENOH_DEPRECATED_ATTRIBUTE(
-  "please use menoh_variable_profile_table_builder_add_input_profile() instead")
-menoh_error_code MENOH_API
-menoh_variable_profile_table_builder_add_input_profile_dims_4(
-  menoh_variable_profile_table_builder_handle builder, const char* name,
-  menoh_dtype dtype, int64_t num, int64_t channel, int64_t height,
-  int64_t width);
+MENOH_DEPRECATED_ATTRIBUTE("please use menoh_variable_profile_table_builder_add_input_profile() instead")
+menoh_error_code MENOH_API menoh_variable_profile_table_builder_add_input_profile_dims_4(
+        menoh_variable_profile_table_builder_handle builder,
+        const char* name,
+        menoh_dtype dtype,
+        int64_t num,
+        int64_t channel,
+        int64_t height,
+        int64_t width);
 
 /*! \brief Add output name
  *
  * dims amd dtype of output are calculated automatically
  * when calling of menoh_build_variable_profile_table.
  */
-menoh_error_code MENOH_API menoh_variable_profile_table_builder_add_output_name(
-  menoh_variable_profile_table_builder_handle builder, const char* name);
+menoh_error_code MENOH_API
+menoh_variable_profile_table_builder_add_output_name(menoh_variable_profile_table_builder_handle builder, const char* name);
 
 /*! \brief Add output profile
  *
@@ -270,12 +257,10 @@ menoh_error_code MENOH_API menoh_variable_profile_table_builder_add_output_name(
  * menoh_variable_profile_table_builder_add_output_name() instead
  */
 MENOH_DEPRECATED_ATTRIBUTE(
-  "please use menoh_variable_profile_table_builder_add_output_name() instead. "
-  "dtype is totally ignored.")
-menoh_error_code MENOH_API
-menoh_variable_profile_table_builder_add_output_profile(
-  menoh_variable_profile_table_builder_handle builder, const char* name,
-  menoh_dtype dtype);
+        "please use menoh_variable_profile_table_builder_add_output_name() instead. "
+        "dtype is totally ignored.")
+menoh_error_code MENOH_API menoh_variable_profile_table_builder_add_output_profile(
+        menoh_variable_profile_table_builder_handle builder, const char* name, menoh_dtype dtype);
 
 /*! \struct menoh_variable_profile_table
  * \brief menoh_variable_profile_table contains information of dims of
@@ -284,8 +269,7 @@ menoh_variable_profile_table_builder_add_output_profile(
  * Users can access to dims of variables.
  */
 struct menoh_variable_profile_table;
-typedef struct menoh_variable_profile_table*
-  menoh_variable_profile_table_handle;
+typedef struct menoh_variable_profile_table* menoh_variable_profile_table_handle;
 
 /*! \brief Factory function for variable_profile_table
  *
@@ -296,24 +280,22 @@ typedef struct menoh_variable_profile_table*
  * not exist.
  */
 menoh_error_code MENOH_API menoh_build_variable_profile_table(
-  const menoh_variable_profile_table_builder_handle builder,
-  const menoh_model_data_handle model_data,
-  menoh_variable_profile_table_handle* dst_handle);
+        const menoh_variable_profile_table_builder_handle builder,
+        const menoh_model_data_handle model_data,
+        menoh_variable_profile_table_handle* dst_handle);
 /*! \brief Delete function for variable_profile_table
  *
  * Users must call to release memory resources allocated for
  * variable_profile_table.
  */
-void MENOH_API menoh_delete_variable_profile_table(
-  menoh_variable_profile_table_handle variable_profile_table);
+void MENOH_API menoh_delete_variable_profile_table(menoh_variable_profile_table_handle variable_profile_table);
 
 /*! \brief Accessor function for variable_profile_table
  *
  * Select variable name and get its dtype.
  */
 menoh_error_code MENOH_API menoh_variable_profile_table_get_dtype(
-  const menoh_variable_profile_table_handle variable_profile_table,
-  const char* variable_name, menoh_dtype* dst_dtype);
+        const menoh_variable_profile_table_handle variable_profile_table, const char* variable_name, menoh_dtype* dst_dtype);
 
 /*! \brief Accessor function for variable_profile_table
  *
@@ -322,8 +304,7 @@ menoh_error_code MENOH_API menoh_variable_profile_table_get_dtype(
  *
  */
 menoh_error_code MENOH_API menoh_variable_profile_table_get_dims_size(
-  const menoh_variable_profile_table_handle variable_profile_table,
-  const char* variable_name, int64_t* dst_size);
+        const menoh_variable_profile_table_handle variable_profile_table, const char* variable_name, int64_t* dst_size);
 
 /*! \brief Accessor function for variable_profile_table
  *
@@ -332,8 +313,7 @@ menoh_error_code MENOH_API menoh_variable_profile_table_get_dims_size(
  *
  */
 menoh_error_code MENOH_API menoh_variable_profile_table_get_dims_at(
-  const menoh_variable_profile_table_handle variable_profile_table,
-  const char* variable_name, int64_t index, int64_t* dst_size);
+        const menoh_variable_profile_table_handle variable_profile_table, const char* variable_name, int64_t index, int64_t* dst_size);
 
 /*! \brief Accessor function for variable_profile_table
  *
@@ -341,8 +321,10 @@ menoh_error_code MENOH_API menoh_variable_profile_table_get_dims_at(
  *
  */
 menoh_error_code MENOH_API menoh_variable_profile_table_get_dims(
-  const menoh_variable_profile_table_handle variable_profile_table,
-  const char* variable_name, int64_t* dst_size, const int64_t** dims);
+        const menoh_variable_profile_table_handle variable_profile_table,
+        const char* variable_name,
+        int64_t* dst_size,
+        const int64_t** dims);
 
 /** @} */
 
@@ -351,9 +333,8 @@ menoh_error_code MENOH_API menoh_variable_profile_table_get_dims(
  *
  * \note This function modify given model_data.
  */
-menoh_error_code MENOH_API menoh_model_data_optimize(
-  menoh_model_data_handle model_data,
-  const menoh_variable_profile_table_handle variable_profile_table);
+menoh_error_code MENOH_API
+menoh_model_data_optimize(menoh_model_data_handle model_data, const menoh_variable_profile_table_handle variable_profile_table);
 
 /** @addtogroup model Model types and operations
  * @{ */
@@ -369,15 +350,13 @@ typedef struct menoh_model_builder* menoh_model_builder_handle;
 
 /*! \brief Factory function for menoh_model_builder
  */
-menoh_error_code MENOH_API menoh_make_model_builder(
-  const menoh_variable_profile_table_handle variable_profile_table,
-  menoh_model_builder_handle* dst_handle);
+menoh_error_code MENOH_API
+menoh_make_model_builder(const menoh_variable_profile_table_handle variable_profile_table, menoh_model_builder_handle* dst_handle);
 /*! \brief Delete function for model_builder
  *
  * Users must call to release memory resources allocated for model_builder
  */
-void MENOH_API
-menoh_delete_model_builder(menoh_model_builder_handle model_builder);
+void MENOH_API menoh_delete_model_builder(menoh_model_builder_handle model_builder);
 
 /*! \brief Attach a buffer which allocated by users.
  *
@@ -389,9 +368,8 @@ menoh_delete_model_builder(menoh_model_builder_handle model_builder);
  * \note Users can get that internal buffer handle by calling
  * menoh_model_get_variable_buffer_handle() later.
  */
-menoh_error_code MENOH_API menoh_model_builder_attach_external_buffer(
-  menoh_model_builder_handle builder, const char* variable_name,
-  void* buffer_handle);
+menoh_error_code MENOH_API
+menoh_model_builder_attach_external_buffer(menoh_model_builder_handle builder, const char* variable_name, void* buffer_handle);
 
 /*! \struct menoh_model
  *  \brief menoh_model is the main component to execute model inference.
@@ -407,9 +385,11 @@ typedef struct menoh_model* menoh_model_handle;
  * calling menoh_delete_model_data().
  */
 menoh_error_code MENOH_API menoh_build_model(
-  const menoh_model_builder_handle builder,
-  const menoh_model_data_handle model_data, const char* backend_name,
-  const char* backend_config, menoh_model_handle* dst_model_handle);
+        const menoh_model_builder_handle builder,
+        const menoh_model_data_handle model_data,
+        const char* backend_name,
+        const char* backend_config,
+        menoh_model_handle* dst_model_handle);
 /*! \brief Delete function for model
  *
  * Users must call to release memory resources allocated for model
@@ -427,41 +407,37 @@ void MENOH_API menoh_delete_model(menoh_model_handle model);
  * \note Automatically allocated internal buffers are released automatically so
  * users do not need to (and must not) release them.
  */
-menoh_error_code MENOH_API menoh_model_get_variable_buffer_handle(
-  const menoh_model_handle model, const char* variable_name, void** dst_data);
+menoh_error_code MENOH_API
+menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** dst_data);
 
 /*! \brief Get dtype of target variable.
  *
  */
-menoh_error_code MENOH_API menoh_model_get_variable_dtype(
-  const menoh_model_handle model, const char* variable_name,
-  menoh_dtype* dst_dtype);
+menoh_error_code MENOH_API
+menoh_model_get_variable_dtype(const menoh_model_handle model, const char* variable_name, menoh_dtype* dst_dtype);
 
 /*! \brief Get size of dims of target variable.
  *
  * \sa
  * menoh_variable_profile_table_get_dims_size()
  */
-menoh_error_code MENOH_API menoh_model_get_variable_dims_size(
-  const menoh_model_handle model, const char* variable_name, int64_t* dst_size);
+menoh_error_code MENOH_API menoh_model_get_variable_dims_size(const menoh_model_handle model, const char* variable_name, int64_t* dst_size);
 
 /*! \brief Get an element of dims of target variable specified by index.
  *
  * \sa
  * menoh_variable_profile_table_get_dims_at()
  */
-menoh_error_code MENOH_API menoh_model_get_variable_dims_at(
-  const menoh_model_handle model, const char* variable_name, int64_t index,
-  int64_t* dst_size);
+menoh_error_code MENOH_API
+menoh_model_get_variable_dims_at(const menoh_model_handle model, const char* variable_name, int64_t index, int64_t* dst_size);
 
 /*! \brief Get dims of target variable
  *
  * \sa
  * menoh_variable_profile_table_get_dims()
  */
-menoh_error_code MENOH_API menoh_model_get_variable_dims(
-  const menoh_model_handle model, const char* variable_name, int64_t* dst_size,
-  const int64_t** dims);
+menoh_error_code MENOH_API
+menoh_model_get_variable_dims(const menoh_model_handle model, const char* variable_name, int64_t* dst_size, const int64_t** dims);
 
 /*! \brief Run model inference
  *
@@ -477,4 +453,4 @@ menoh_error_code MENOH_API menoh_model_run(menoh_model_handle model);
 }
 #endif /* __cplusplus */
 
-#endif // MENOH_C_INTERFACE_H
+#endif  // MENOH_C_INTERFACE_H
