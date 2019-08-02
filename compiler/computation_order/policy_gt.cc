@@ -91,6 +91,13 @@ NodeSet Boundary(const SimpleGraph& sg, const NodeSet& ls) {
     return ret;
 }
 
+void CheckDisjoint(const char* test_name, const NodeSet& set1, const NodeSet& set2) {
+    CHECK_EQ(set1.size(), set2.size());
+    for (size_t i = 0; i < set1.size(); ++i) {
+        CHECK(!(set1[i] && set2[i])) << test_name << ": overlap is not allowed";
+    }
+}
+
 SimpleGraph GetSimpleFormGraph(const Graph& graph) {
     // Extract only temporary&output values
     SimpleGraph sg;
@@ -208,7 +215,14 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
     const NodeSet flops_set = SetMinus(vs, boundary);
     const NodeSet memory_set1 = SetMinus(boundary, ls);
     const NodeSet memory_set3 = SetMinus(deltaplus, ls_next);
-    const NodeSet memory_set4 = SetMinus(DeltaMinus(sg, deltaplus), ls_next);
+    const NodeSet memory_set4 = SetMinus(
+            SetMinus(DeltaMinus(sg, deltaplus), ls_next), memory_set3);
+
+    CheckDisjoint("13", memory_set1, memory_set3);
+    CheckDisjoint("14", memory_set1, memory_set4);
+    CheckDisjoint("23", vs, memory_set3);
+    CheckDisjoint("24", vs, memory_set4);
+    CheckDisjoint("34", memory_set3, memory_set4);
 
     auto compute_cost = [](const NodeSet& set, const std::vector<int64_t>& costs) {
         int64_t total = 0;
@@ -220,9 +234,9 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
 
     const int64_t flops = compute_cost(flops_set, sg.flopses);
     const int64_t mem1 = compute_cost(memory_set1, sg.memories);
+    // We use a little different cost from the original definition here
     const int64_t mem234 =
-            2 * compute_cost(vs, sg.memories) + compute_cost(memory_set3, sg.memories) + compute_cost(memory_set4, sg.memories);
-
+            compute_cost(vs, sg.memories) + compute_cost(memory_set3, sg.memories) + compute_cost(memory_set4, sg.memories);
     return std::make_tuple(mem1, mem234, flops);
 }
 
@@ -243,14 +257,18 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
             const int64_t additional_memory234 = std::get<1>(info);
             const size_t additional_flops = std::get<2>(info);
 
+            if (additional_memory234 > budget) continue;
+
             for (const auto& p : opt[i]) {
                 const size_t flops = p.first;
                 const int64_t memopt = std::get<0>(p.second);
+
                 const int64_t total_memory = memopt + additional_memory234;
                 if (total_memory > budget) continue;
 
                 const size_t flops_next = flops + additional_flops;
                 const int64_t memopt_next = memopt + additional_memory1;
+                if (memopt_next > budget) continue;
 
                 auto next_opt_it = opt[i_next].find(flops_next);
 
@@ -372,7 +390,6 @@ std::vector<Order> GTPolicy(const Graph& graph) {
 
     const std::vector<NodeSet> lower_sets = EnumerateLowerSets(sg);
     const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget);
-
     const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
 
     return orders;
