@@ -96,16 +96,16 @@ absl::optional<std::tuple<double, int64_t, int64_t>> get_bounds(double p, int64_
 using ArrayIndices = chainerx::StackVector<int64_t, chainerx::kMaxNdim>;
 template <typename T>
 T& ContiguousArrayAt(chainerx::Array& a, const ArrayIndices& indices) {
-    assert(a.IsContiguous());
-    assert(a.shape().size() == indices.size());
-    assert(a.dtype() == chainerx::PrimitiveType<T>::kDtype);
+    CHECK(a.IsContiguous());
+    CHECK_EQ(a.shape().size(), indices.size());
+    CHECK(a.dtype() == chainerx::PrimitiveType<T>::kDtype);
     int64_t index = indices.back();
     int64_t stride = 1;
     for (int64_t i = indices.size() - 2; i >= 0; --i) {
         stride *= a.shape()[i + 1];
         index += indices[i] * stride;
     }
-    assert(index < a.GetTotalSize());
+    CHECK(index < a.GetTotalSize());
     return *(static_cast<T*>(a.raw_data()) + index);
 }
 
