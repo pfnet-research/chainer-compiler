@@ -359,7 +359,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
         }
     }
 
-    CLOG() << "Recompute: num_forwards=" << num_forwards << " num_recomputes=" << num_recomputes << " num_forgets=" << num_forgets << " num_retains=" << retained.size() << std::endl;
+    CLOG() << "Recompute: num_forwards=" << num_forwards << " num_recomputes=" << num_recomputes << " num_forgets=" << num_forgets
+           << " num_retains=" << retained.size() << std::endl;
 
     auto schedule_node_first = [&schedule_recompute](Node* node) { schedule_recompute(node, node, 0); };
     {
