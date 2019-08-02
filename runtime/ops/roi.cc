@@ -192,8 +192,10 @@ private:
         int64_t roi_batch_ind;
         if (contiguous_bottom_roi_indices.dtype() == chainerx::Dtype::kInt64) {
             roi_batch_ind = ContiguousArrayAt<int64_t>(contiguous_bottom_roi_indices, {n});
-        } else {
+        } else if (contiguous_bottom_roi_indices.dtype() == chainerx::Dtype::kInt32) {
             roi_batch_ind = ContiguousArrayAt<int32_t>(contiguous_bottom_roi_indices, {n});
+        } else {
+            CHECK(false) << "Unexpected dtype for roi bottom indices: " << contiguous_bottom_roi_indices.dtype();
         }
         double roi_start_h = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 0}) * spatial_scale;
         double roi_start_w = ContiguousArrayAt<float>(contiguous_bottom_rois, {n, 1}) * spatial_scale;
