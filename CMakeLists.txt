@@ -274,7 +274,7 @@ if(WIN32)
   set(TOUCH echo.>)
 else()
   set(RM_RF rd\ /s\ /q)
-  set(ENV_SET \ )
+  set(ENV_SET )
   set(TOUCH touch)
 endif()
 
@@ -472,6 +472,7 @@ set(ELICHIKA_FILES
 include(scripts/elichika_tests.py)
 
 function(gen_elichika_test dir all)
+
   string(REPLACE "/" "_" name ${dir})
   set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${name})
