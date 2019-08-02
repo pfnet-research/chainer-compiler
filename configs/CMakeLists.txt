@@ -15,7 +15,7 @@ foreach(json ${jsons})
   set(out ${CMAKE_CURRENT_BINARY_DIR}/${json}.cc)
   add_custom_command(
     OUTPUT ${out}
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/json_to_cc.py ${CMAKE_CURRENT_SOURCE_DIR}/${json} > ${json}.tmp && mv ${json}.tmp ${out}
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/json_to_cc.py ${CMAKE_CURRENT_SOURCE_DIR}/${json} > ${json}.tmp && mv ${json}.tmp ${out}
     MAIN_DEPENDENCY ${json}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/json_to_cc.py
     )
@@ -24,7 +24,7 @@ endforeach()
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/load_json_from_name.cc
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_load_json_from_name.py ${jsons} > ${CMAKE_CURRENT_BINARY_DIR}/load_json_from_name.cc
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_load_json_from_name.py ${jsons} > ${CMAKE_CURRENT_BINARY_DIR}/load_json_from_name.cc
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gen_load_json_from_name.py ${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
   )
 
