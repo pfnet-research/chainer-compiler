@@ -198,8 +198,13 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     std::set<Node*> scheduled_forward;
     Graph* current_graph = fwd_graph;
     std::map<Value*, Value*> retained;
+    size_t num_forwards = 0;
+    size_t num_recomputes = 0;
+    size_t num_forgets = 0;
 
-    for (const Order& order : orders) {
+    for (size_t i = 0; i < orders.size(); ++i) {
+        const Order& order = orders[i];
+        CLOG() << "Order #" << i << ": " << order << std::endl;
         // (In two phase mode) check if we should turn to the backward part
         if (fwd_graph != bwd_graph && current_graph == fwd_graph) {
             bool output_all_staged = true;
@@ -233,6 +238,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 Node* node = order.node;
                 CHECK(node);
                 if (scheduled_forward.insert(node).second) {
+                    ++num_forwards;
                     // First forward: current graph must be the forward part
                     CHECK_EQ(current_graph, fwd_graph);
                     // The first forward computation. All inputs must
@@ -245,6 +251,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     }
                     schedule_node(node);
                 } else {
+                    ++num_recomputes;
                     // Recomputation: current graph must be the backward part
                     CHECK_EQ(current_graph, bwd_graph);
                     // All inputs must be staged and may be recomputed.
@@ -336,6 +343,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
             }
 
             case Order::kForgetForward: {
+                ++num_forgets;
                 auto found = staged.find(order.value);
                 CHECK(found != staged.end()) << order.value->ToString();
                 staged.erase(found);
@@ -350,6 +358,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 CHECK(false) << static_cast<int>(order.kind);
         }
     }
+
+    CLOG() << "Recompute: num_forwards=" << num_forwards << " num_recomputes=" << num_recomputes << " num_forgets=" << num_forgets << " num_retains=" << retained.size() << std::endl;
 
     auto schedule_node_first = [&schedule_recompute](Node* node) { schedule_recompute(node, node, 0); };
     {
