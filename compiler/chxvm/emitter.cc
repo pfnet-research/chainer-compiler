@@ -86,7 +86,6 @@ public:
             int64_t total_mb = total / 1000 / 1000;
             std::cerr << "Total size of all values: " << total_mb << "MB" << std::endl;
         }
-        EmitStackQuit(program);
     }
 
     void AssignValueIds(const std::vector<Value*>& values) {
@@ -129,18 +128,6 @@ private:
             // be better to mark outputs are unnecessary instead of
             // using null values.
             CHECK(value_ids_.emplace(v, next_value_id_++).second || v->name().empty()) << v->ToString();
-        }
-    }
-
-    int GetStackId(int i) const {
-        auto found = stack_ids_.find(i);
-        CHECK(found != stack_ids_.end()) << "Stack not exist: " << i;
-        return found->second;
-    }
-
-    void EmitStackQuit(ChxVMProgramProto* prog) {
-        for (auto p : stack_ids_) {
-            FREE(p.second);
         }
     }
 
@@ -1349,7 +1336,6 @@ private:
 
     int next_value_id_{1};
     std::map<const Value*, int> value_ids_;
-    std::map<int, int> stack_ids_;
     std::set<const Node*> emitted_;
 };
 
