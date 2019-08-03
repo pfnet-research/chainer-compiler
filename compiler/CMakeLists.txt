@@ -115,21 +115,31 @@ add_dependencies(
   )
 set_hidden_(chainer_compiler_compiler)
 
+if(WIN32)
+  set(MKDIR_P )
+  set(MKDIR_IGNORE > NUL 2>&1)
+  set(WGET bitsadmin /transfer download)
+else()
+  set(MKDIR_P -p)
+  set(MKDIR_IGNORE )
+  set(WGET wget --continue)
+endif()
+
 # Download and extract test data
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
   COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
+  mkdir ${MKDIR_P} data ${MKDIR_IGNORE} && cd data &&
+  ${WGET} https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
   tar -xvzf mnist.tar.gz
   )
 add_custom_command(
   OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
   COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
+  mkdir ${MKDIR_P} data ${MKDIR_IGNORE} && cd data &&
+  ${WGET} https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
   tar -xvzf resnet50.tar.gz
   )
 add_custom_target(
@@ -173,7 +183,6 @@ target_link_libraries(chainer_compiler_compiler_test
   ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
-  pthread
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -181,6 +190,12 @@ target_link_libraries(chainer_compiler_compiler_test
   absl::variant
   absl::optional
   )
+
+if (!WIN32)
+  target_link_libraries(chainer_compiler_compiler_test
+  pthread
+  )
+endif()
 
 add_test(
   NAME chainer_compiler_compiler_test
