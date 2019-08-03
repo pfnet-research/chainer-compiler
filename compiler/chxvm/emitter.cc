@@ -6,7 +6,6 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
-#include <compiler/chxvm/emitter_internals.h>
 #include <compiler/chxvm/value_id_manager.h>
 #include <compiler/flags.h>
 #include <compiler/flops.h>
