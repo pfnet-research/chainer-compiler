@@ -3,9 +3,6 @@
 
 #include <compiler/onnx.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include <chainerx/array.h>
 #include <chainerx/array_body.h>
 #include <chainerx/backprop_mode.h>
