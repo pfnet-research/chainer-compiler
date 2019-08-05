@@ -255,13 +255,18 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                             continue;
                         }
 
-                        Value* value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
-                        retained.insert({value, value_in_bwd});
-                        // Avoid retaining new_value during backward computation.
-                        retained.insert({value_in_bwd, value_in_bwd});
-
-                        if (value->IsOutput()) {
-                            value_in_bwd->set_grad(value->grad());
+                        Value* value_in_bwd = nullptr;
+                        auto found = retained.find(value);
+                        if (found == retained.end()) {
+                            value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
+                            retained.insert({value, value_in_bwd});
+                            // Avoid retaining new_value during backward computation.
+                            retained.insert({value_in_bwd, value_in_bwd});
+                            if (value->IsOutput()) {
+                                value_in_bwd->set_grad(value->grad());
+                            }
+                        } else {
+                            value_in_bwd = found->second;
                         }
                         staged[value] = value_in_bwd;
                     }
