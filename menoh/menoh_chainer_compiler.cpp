@@ -1,10 +1,10 @@
 #include <menoh/menoh.h>
+
 #include <iostream>
 
-#include <compiler/onnx.h>
+#include <nlohmann/json.hpp>
 
 #include <chainerx/array.h>
-#include <chainerx/array_body.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/routines/creation.h>
 
@@ -13,20 +13,16 @@
 #include <compiler/chxvm/emitter.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
-#include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
-#include <compiler/subgraph_canonicalizer.h>
 #include <compiler/util.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <tools/util.h>
-
-#include <nlohmann/json.hpp>
 
 namespace menoh_impl {
 using fixed_array = std::array<char, MENOH_ERROR_MESSAGE_MAX_LENGTH>;
