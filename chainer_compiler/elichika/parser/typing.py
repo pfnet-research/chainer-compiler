@@ -1,3 +1,7 @@
+# Usage from commandline:
+#
+# $ python3 elichika/parser/typing.py test.py
+
 import gast
 
 class Type():
@@ -24,6 +28,21 @@ class TyList(Type):
     def show(self):
         return self.ty.show() + " list"
 
+class TyArrow(Type):
+    def __init__(self, argty, retty):
+        super().__init__()
+        self.argty = argty  # Arguments are uncurried
+        self.retty = retty
+
+    def show(self):
+        return "".join([t.show() + " -> " for t in self.argty]) + self.retty.show()
+
+
+primitive_func_ty = {
+        # TODO(momohatt): Ad-hoc polymorphism
+        'float' : TyArrow([TyInt()], TyFloat()),
+        'range' : TyArrow([TyInt()], TyList(TyInt())),
+        }
 
 # ==============================================================================
 
@@ -47,9 +66,10 @@ class TypeChecker():
         print(gast.dump(node))
         print()
 
+
         if isinstance(node, gast.Module):
             self.nodetype[node] = self.infer(node.body[0])
-            return
+
 
         elif isinstance(node, gast.FunctionDef):
             # TODO(momohatt): Add args to env
@@ -61,19 +81,19 @@ class TypeChecker():
             self.nodetype[node] = TyUnit()
 
 
+        elif isinstance(node, gast.Expr):
+            self.nodetype[node] = self.infer(node.value)
+
+
         elif isinstance(node, gast.Call):
-            if node.func.id == "range":
-                assert(len(node.args) <= 3)
-                for arg in node.args:
-                    assert(isinstance(self.infer(arg), TyInt))
-                self.nodetype[node] = TyList(TyInt())
+            ty_fun = self.infer(node.func)
+            assert(isinstance(ty_fun, TyArrow))
+            assert(len(node.args) == len(ty_fun.argty))  # partial applications are not allowed
 
-            elif node.func.id == "float":
-                assert(len(node.args) == 1)
-                # TODO(momohatt): Support string -> float
-                assert(isinstance(self.infer(node.args[0]), TyInt))
-                self.nodetype[node] = TyFloat()
+            for arg in node.args:
+                unify(self.infer(arg), TyInt)
 
+            self.nodetype[node] = ty_fun.retty
 
         elif isinstance(node, gast.Return):
             self.nodetype[node] = self.infer(node.value)
@@ -95,12 +115,17 @@ class TypeChecker():
             self.nodetype[node] = TyUnit()
 
 
+        elif isinstance(node, gast.Attribute):
+            pass
+
+
         elif isinstance(node, gast.For):
             # iterate variable
+            # TODO(momohatt): Support cases where node.target is Tuple
             assert(isinstance(node.target, gast.Name))
 
             tylist = self.infer(node.iter)
-            # TODO(momohatt): Support 'iterator' type
+            # TODO(momohatt): Support iterator type
             assert(isinstance(tylist, TyList))
             self.tyenv[node.target.id] = tylist.ty
 
@@ -128,6 +153,16 @@ class TypeChecker():
                 self.nodetype[node] = TyFloat()
 
 
+        elif isinstance(node, gast.List):
+            if node.elts:
+                elts_ty = [self.infer(e) for e in node.elts]
+                assert(all([type(e) == type(elts_ty[0]) for e in elts_ty[1:]]))
+                self.nodetype[node] = TyList(elts_ty[0])
+            else:
+                # Types of empty lists will be determined later
+                self.nodetype[node] = TyList(None)
+
+
         elif isinstance(node, gast.Num):
             if isinstance(node.n, int):
                 self.nodetype[node] = TyInt()
@@ -136,9 +171,18 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Name):
-            self.nodetype[node] = self.tyenv[node.id]
+            if node.id in primitive_func_ty.keys():
+                self.nodetype[node] = primitive_func_ty[node.id]
+            else:
+                self.nodetype[node] = self.tyenv[node.id]
 
         return self.nodetype[node]
+
+
+# Type assertion + lazy initialization of 'None' types (such as the one in empty lists [])
+def unify(ty1, ty2):
+    pass
+
 
 if __name__ == '__main__':
     import ast
