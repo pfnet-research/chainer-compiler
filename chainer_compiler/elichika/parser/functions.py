@@ -383,8 +383,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         self.args.analyze_args(func)
 
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
-        ast_ = canonicalizer.Canonicalizer().visit(ast_)
-        self.ast = typing.TypeChecker().visit(ast_)
+        self.ast = canonicalizer.Canonicalizer().visit(ast_)
+        tyenv = typing.TypeChecker().infer(self.ast)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
               context: 'VEvalContext' = None, line=-1):
@@ -429,8 +429,8 @@ class UserDefinedFunction(FunctionBase):
             original_code = inspect.getsource(func)
             code = utils.clip_head(original_code)
             ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
-            ast_ = canonicalizer.Canonicalizer().visit(ast_)
-            self.ast = typing.TypeChecker().visit(ast_)
+            self.ast = canonicalizer.Canonicalizer().visit(ast_)
+            tyenv = typing.TypeChecker().infer(self.ast)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
               context: 'VEvalContext' = None, line=-1):
