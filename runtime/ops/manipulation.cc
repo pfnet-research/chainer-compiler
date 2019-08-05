@@ -98,12 +98,12 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices1, indices2;
     for (int i = 0; i < shape.size(); ++i) {
         new_shape[i] += pads[i] + pads[i + shape.size()];
-        auto len = shape[i] + std::min(0L, pads[i]) + std::min(0L, pads[i + shape.size()]);
+        auto len = shape[i] + std::min<int64_t>(0L, pads[i]) + std::min<int64_t>(0L, pads[i + shape.size()]);
 
-        const auto start1 = std::max(-pads[i], 0L);
-        const auto start2 = std::max(pads[i], 0L);
-        const auto end1 = std::min(shape[i] + pads[i + shape.size()], shape[i]);
-        const auto end2 = std::min(new_shape[i] - pads[i + shape.size()], new_shape[i]);
+        const auto start1 = std::max<int64_t>(-pads[i], 0L);
+        const auto start2 = std::max<int64_t>(pads[i], 0L);
+        const auto end1 = std::min<int64_t>(shape[i] + pads[i + shape.size()], shape[i]);
+        const auto end2 = std::min<int64_t>(new_shape[i] - pads[i + shape.size()], new_shape[i]);
 
         CHECK_EQ(end1 - start1, len) << "Shape mis-match: " << shape[i] << " " << pads[i] << " " << pads[i + shape.size()] << "      "
                                      << start1 << " " << end1 << " " << len;
