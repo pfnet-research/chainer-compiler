@@ -105,8 +105,9 @@ add_library(chainer_compiler_compiler
   type.cc
   util.cc
   value.cc
-  chxvm/emitter.cc
   chxvm/chxvm_value.cc
+  chxvm/emitter.cc
+  chxvm/value_id_manager.cc
   )
 add_dependencies(
   chainer_compiler_compiler
