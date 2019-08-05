@@ -248,11 +248,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     // Recomputation: current graph must be the backward part
                     CHECK_EQ(current_graph, bwd_graph);
 
-                    // All inputs must be staged and may be recomputed.
-                    std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
-                    for (size_t i = 0; i < inputs.size(); ++i) {
-                        Value* value = inputs[i];
-                        if (!staged_in_forward.count(value)) {
+                    // Move values from forward graph to backward
+                    // graph for recomputation.
+                    for (Value* value : GetStagedValues(staged, node->inputs())) {
+                        if (!staged_in_forward.erase(value)) {
                             continue;
                         }
 
@@ -265,8 +264,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                             value_in_bwd->set_grad(value->grad());
                         }
                         staged[value] = value_in_bwd;
-                        inputs[i] = value_in_bwd;
                     }
+
+                    // All inputs must be staged and may be recomputed.
+                    std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
 
                     // Recomputed values need different `Value`
                     // objects with different names.
