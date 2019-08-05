@@ -201,6 +201,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     size_t num_forwards = 0;
     size_t num_recomputes = 0;
     size_t num_forgets = 0;
+    std::set<Value*> staged_in_forward;
 
     for (size_t i = 0; i < orders.size(); ++i) {
         const Order& order = orders[i];
@@ -218,16 +219,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node);
                     AddGradInputs(fwd_graph, bwd_graph);
 
-                    // Create a retained value for the backward part
                     for (auto& p : staged) {
-                        Value* new_value = bwd_graph->AddValue("RetainedForRecompute_" + p.first->name(), p.first->type());
-                        p.second = new_value;
-                        retained.insert({p.first, new_value});
-                        retained.insert({new_value, new_value});  // Avoid retaining new_value during backward computation
-
-                        if (p.first->IsOutput()) {
-                            new_value->set_grad(p.first->grad());
-                        }
+                        CHECK(staged_in_forward.insert(p.second).second);
                     }
                 }
             }
@@ -254,8 +247,32 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     ++num_recomputes;
                     // Recomputation: current graph must be the backward part
                     CHECK_EQ(current_graph, bwd_graph);
+
+                    // Move values from forward graph to backward
+                    // graph for recomputation.
+                    for (Value* value : GetStagedValues(staged, node->inputs())) {
+                        if (!staged_in_forward.erase(value)) {
+                            continue;
+                        }
+
+                        Value* value_in_bwd = nullptr;
+                        auto found = retained.find(value);
+                        if (found == retained.end()) {
+                            value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
+                            retained.insert({value, value_in_bwd});
+                            // Avoid retaining new_value during backward computation.
+                            retained.insert({value_in_bwd, value_in_bwd});
+                            if (value->IsOutput()) {
+                                value_in_bwd->set_grad(value->grad());
+                            }
+                        } else {
+                            value_in_bwd = found->second;
+                        }
+                        staged[value] = value_in_bwd;
+                    }
+
                     // All inputs must be staged and may be recomputed.
-                    const std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
+                    std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
 
                     // Recomputed values need different `Value`
                     // objects with different names.
@@ -263,7 +280,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     for (Value* value : node->outputs()) {
                         Value* new_value = bwd_graph->AddValue("Recompute" + value->name(), value->type());
                         outputs.push_back(new_value);
-                        retained.insert({new_value, new_value});  // Avoid retaining new_value during backward computation
+                        // Avoid retaining new_value during backward computation.
+                        retained.insert({new_value, new_value});
                     }
 
                     // Copy the original computation node to generate
