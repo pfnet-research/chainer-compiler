@@ -169,6 +169,8 @@ class TypeChecker():
 
     # ================================ mod =====================================
     def infer_mod(self, node : 'ast.Node') -> 'Type':
+        print(gast.dump(node))
+        print()
         if isinstance(node, gast.Module):
             self.nodetype[node] = self.infer_stmt(node.body[0])
         else:
@@ -198,13 +200,24 @@ class TypeChecker():
 
         elif isinstance(node, gast.Assign):
             # _fields: targets, value
-            # TODO(momohatt): support multiple assignment (ex. x, y = 1, 2)
-            assert(len(node.targets) == 1)
+            assert(len(node.targets) == 1)  # cannot think of cases where >= 2
+            target = node.targets[0]
 
-            var = node.targets[0]
-            assert(type(var) in [gast.Name, gast.Attribute])
-            self.tyenv[var.id] = self.infer_expr(node.value)
-            self.nodetype[var] = self.tyenv[var.id]
+            if isinstance(target, gast.Name):
+                self.tyenv[target.id] = self.infer_expr(node.value)
+                self.nodetype[target] = self.tyenv[target.id]
+            elif isinstance(target, gast.Attribute):
+                pass
+            elif isinstance(target, gast.Tuple):
+                ty_target = self.infer_expr(target)
+                ty_val = self.infer_expr(node.value)
+                unify(ty_target, ty_val)
+                for (var, ty) in zip(target.elts, ty_val.tys):
+                    self.tyenv[var.id] = ty
+                    self.nodetype[var] = ty
+            else:
+                assert(False)
+
             self.nodetype[node] = TyNone()
 
 
@@ -340,7 +353,11 @@ class TypeChecker():
 
         elif isinstance(node, gast.Name):
             # _fields: id, ctx, annotation
-            self.nodetype[node] = self.tyenv[node.id]
+            if node.id in self.tyenv.keys():
+                self.nodetype[node] = self.tyenv[node.id]
+            else:
+                # case of Tuple assignment
+                self.nodetype[node] = TyVar()
 
 
         elif isinstance(node, gast.List):
@@ -422,6 +439,8 @@ def unify(ty1, ty2):
     # if ty1 is a type, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
+    if isinstance(ty1, TyBool) and isinstance(ty2, TyBool):
+        return
     if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
         return
     if isinstance(ty1, TyFloat) and isinstance(ty2, TyFloat):
@@ -434,6 +453,11 @@ def unify(ty1, ty2):
     if isinstance(ty1, TyList) and isinstance(ty2, TyList):
         unify(ty1.ty, ty2.ty)
         return
+    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple) and len(ty1.tys) == len(ty2.tys):
+        for (t1, t2) in zip(ty1.tys, ty2.tys):
+            unify(t1, t2)
+        return
+
 
     if isinstance(ty1, TyVar):
         ty1.ty = ty2
