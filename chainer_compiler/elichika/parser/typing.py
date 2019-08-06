@@ -67,6 +67,14 @@ primitive_func_ty = {
         'range' : TyArrow([TyInt()], TyList(TyInt())),
         }
 
+primitive_op_ty = {
+        gast.Add      : TyArrow([TyInt(), TyInt()], TyInt()),
+        gast.Sub      : TyArrow([TyInt(), TyInt()], TyInt()),
+        gast.Mult     : TyArrow([TyInt(), TyInt()], TyInt()),
+        gast.Div      : TyArrow([TyInt(), TyInt()], TyFloat()),
+        gast.FloorDiv : TyArrow([TyInt(), TyInt()], TyInt()),
+        }
+
 # ==============================================================================
 
 class TypeChecker():
@@ -157,24 +165,19 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.BinOp):
-            # TODO(momohatt): merge with primitive_func_ty?
             tyl = self.infer(node.left)
             tyr = self.infer(node.right)
-            assert(isinstance(tyl, TyInt) or isinstance(tyl, TyFloat))
-            assert(isinstance(tyr, TyInt) or isinstance(tyr, TyFloat))
 
-            if isinstance(node.op, gast.Add) or isinstance(node.op, gast.Sub) or isinstance(node.op, gast.Mul) \
-                    or isinstance(node.op, gast.FloorDiv):
-                if isinstance(tyl, TyInt) and isinstance(tyr, TyInt):
-                    self.nodetype[node] = TyInt()
-                else:
-                    self.nodetype[node] =  TyFloat()
-            elif isinstance(node.op, gast.Div):
-                self.nodetype[node] = TyFloat()
+            ty_op = primitive_op_ty[type(node.op)]
+            ty_ret = TyVar()
+            unify(ty_op, TyArrow([tyl, tyr], ty_ret))
+
+            self.nodetype[node] = deref_type(ty_ret)
 
 
         elif isinstance(node, gast.List):
             if node.elts:
+                # Type assertion of list
                 elts_ty = [self.infer(e) for e in node.elts]
                 assert(all([type(e) == type(elts_ty[0]) for e in elts_ty[1:]]))
                 self.nodetype[node] = TyList(elts_ty[0])
@@ -209,7 +212,6 @@ def deref_type(ty):
     return ty
 
 
-# Type assertion + lazy initialization of TyVars
 def unify(ty1, ty2):
     if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
         return
@@ -234,7 +236,7 @@ def unify(ty1, ty2):
         ty2.ty = ty1
         return
 
-    raise UnifyError("not unifiable")
+    raise UnifyError(ty1.show() + " and " + ty2.show() + " are not unifiable")
 
 
 if __name__ == '__main__':
