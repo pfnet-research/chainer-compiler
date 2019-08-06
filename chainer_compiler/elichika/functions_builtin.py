@@ -277,6 +277,58 @@ class ConverterMinimum(ConverterChainerMinimum):
             ('subok', oc.ParseType.Att, True),
             )
 
+class ConverterMax(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('keepdims', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        kwargs = {}
+        axis = parser.get('axis')
+
+        if isinstance(axis, int):
+            kwargs['axes'] = [axis]
+        elif axis is not None:
+            kwargs['axes'] = list(axis)
+
+        onnx_graph.add_node(
+            "ReduceMax",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            keepdims=parser.get('keepdims'),
+            **kwargs)
+
+class ConverterMin(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att),
+            ('keepdims', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        kwargs = {}
+        axis = parser.get('axis')
+
+        if isinstance(axis, int):
+            kwargs['axes'] = [axis]
+        elif axis is not None:
+            kwargs['axes'] = list(axis)
+
+        onnx_graph.add_node(
+            "ReduceMin",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            keepdims=parser.get('keepdims'),
+            **kwargs)
+
 class ConverterSum(BaseConverter):
     def __init__(self):
         self.expected_args = (
