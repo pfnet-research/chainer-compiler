@@ -7,9 +7,17 @@ import gast
 class Type():
     pass
 
-class TyUnit(Type):
+# --------------------------- python primivite types ---------------------------
+
+class TyNone(Type):  # kind of 'unit'
     def __str__(self):
-        return "unit"
+        return "none"
+    def __repr__(self):
+        return self.__str__()
+
+class TyBool(Type):
+    def __str__(self):
+        return "bool"
     def __repr__(self):
         return self.__str__()
 
@@ -32,6 +40,18 @@ class TyList(Type):
 
     def __str__(self):
         return str(self.ty) + " list"
+    def __repr__(self):
+        return self.__str__()
+
+class TyTuple(Type):
+    def __init__(self, tys):
+        super().__init__()
+        self.tys = tys
+
+    def __str__(self):
+        if len(self.tys) == 0:
+            return "()"
+        return "(" + "".join([str(t) + ", " for t in self.tys[:-1]]) + str(self.tys[-1]) + ")"
     def __repr__(self):
         return self.__str__()
 
@@ -59,6 +79,7 @@ class TyVar(Type):
     def __str__(self):
         if self.ty:
             return str(self.ty)
+            # return "a" + str(self.i) + "(" + str(self.ty) + ")"
         return "a" + str(self.i)
 
 
@@ -73,6 +94,7 @@ primitive_func_ty = {
         # (int \/ float) -> float
         float : TyArrow([[TyInt(), TyFloat()]], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
+        # TODO(momohatt): maybe it'd be better to first desugar this function into 3-arg version?
         range : [
             TyArrow([TyInt()], TyList(TyInt())),
             TyArrow([TyInt(), TyInt()], TyList(TyInt())),
@@ -83,7 +105,7 @@ primitive_func_ty = {
 
 # each value should be a function which takes the type of object ('TyList(sth)' in this case)
 list_attr_ty = {
-        'append' : lambda ty_obj: TyArrow([ty_obj.ty], TyUnit()),
+        'append' : lambda ty_obj: TyArrow([ty_obj.ty], TyNone()),
         }
 
 
@@ -148,6 +170,7 @@ class TypeChecker():
 
         # ============================== stmt ==================================
         elif isinstance(node, gast.FunctionDef):
+            # _fields: name, args, body, decorator_list, returns
             # TODO(momohatt): Add args to env
 
             for expr in node.body:
@@ -158,28 +181,32 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Return):
+            # _fields: value
             self.nodetype[node] = self.infer(node.value)
 
 
         elif isinstance(node, gast.Assign):
+            # _fields: targets, value
             # TODO(momohatt): support multiple assignment (ex. x, y = 1, 2)
             assert(len(node.targets) == 1)
 
             var = node.targets[0]
-            assert(isinstance(var, gast.Name))
+            assert(type(var) in [gast.Name, gast.Attribute])
             self.tyenv[var.id] = self.infer(node.value)
             self.nodetype[var] = self.tyenv[var.id]
-            self.nodetype[node] = TyUnit()
+            self.nodetype[node] = TyNone()
 
 
         elif isinstance(node, gast.AugAssign):
+            # _fields: target, op, value
             # TODO(momohatt): in-place add is different from BinOp
             # Desugar to BinOp
             self.tyenv[node.target.id] = self.infer(gast.BinOp(node.target, node.op, node.value))
-            self.nodetype[node] = TyUnit()
+            self.nodetype[node] = TyNone()
 
 
         elif isinstance(node, gast.For):
+            # _fields: target, iter, body, orelse
             # iterate variable
             # TODO(momohatt): Support cases where node.target is Tuple
             assert(isinstance(node.target, gast.Name))
@@ -192,15 +219,17 @@ class TypeChecker():
             for expr in node.body:
                 self.infer(expr)
 
-            self.nodetype[node] = TyUnit()
+            self.nodetype[node] = TyNone()
 
 
         elif isinstance(node, gast.Expr):
+            # _fields: value
             self.nodetype[node] = self.infer(node.value)
 
 
         # =============================== expr =================================
         elif isinstance(node, gast.BinOp):
+            # _fields: left, op, right
             tyl = self.infer(node.left)
             tyr = self.infer(node.right)
 
@@ -214,6 +243,7 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Call):
+            # _fields: func, args, keywords
             ty_args = [self.infer(arg) for arg in node.args]
             ty_ret = TyVar()
 
@@ -239,13 +269,24 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Num):
+            # _fields: n
             if isinstance(node.n, int):
                 self.nodetype[node] = TyInt()
             elif isinstance(node.n, float):
                 self.nodetype[node] = TyFloat()
 
 
+        elif isinstance(node, gast.NameConstant):
+            # _fields: value
+            # value will be either True, False or None
+            if isinstance(node.value, bool):
+                self.nodetype[node] = TyBool()
+            elif node.value is None:
+                self.nodetype[node] = TyNone()
+
+
         elif isinstance(node, gast.Attribute):
+            # _fields: value, attr, ctx
             ty_obj = self.infer(node.value)
             if isinstance(ty_obj, TyList):
                 ty_ret = list_attr_ty[node.attr](ty_obj)
@@ -253,26 +294,41 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Subscript):
-            pass
+            # _fields: value, slice, ctx
+            ty_obj = self.infer(node.value)
+            assert(type(ty_obj) in [TyList, TyTuple])
+            if isinstance(node.slice, gast.Index):
+                self.nodetype[node] = ty_obj.ty
+            elif isinstance(node.slice, gast.Slice):
+                self.nodetype[node] = ty_obj
 
 
         elif isinstance(node, gast.Name):
+            # _fields: id, ctx, annotation
             self.nodetype[node] = self.tyenv[node.id]
 
 
         elif isinstance(node, gast.List):
-            if node.elts:
+            # _fields: elts, ctx
+            if node.elts is None:
+                # Types of empty lists will be determined later
+                self.nodetype[node] = TyList(TyVar())
+            else:
                 # Type assertion of list
                 elts_ty = [self.infer(e) for e in node.elts]
                 assert(all([type(e) == type(elts_ty[0]) for e in elts_ty[1:]]))
                 self.nodetype[node] = TyList(elts_ty[0])
-            else:
-                # Types of empty lists will be determined later
-                self.nodetype[node] = TyList(TyVar())
+
+
+        elif isinstance(node, gast.Tuple):
+            # _fields: elts, ctx
+            elts_ty = [self.infer(e) for e in node.elts]
+            self.nodetype[node] = TyTuple(elts_ty)
 
 
         # ============================== slice =================================
         elif isinstance(node, gast.Slice):
+            # _fields: lower, upper, step
             pass
 
 
@@ -310,7 +366,7 @@ def unify(ty1, ty2):
     assert(isinstance(ty1, Type))
 
     # if ty1 is a type, just do normal unification
-    if isinstance(ty1, TyUnit) and isinstance(ty2, TyUnit):
+    if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
     if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
         return
