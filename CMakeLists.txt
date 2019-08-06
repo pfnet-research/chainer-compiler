@@ -10,8 +10,6 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
-find_package(PythonInterp 3)
-
 if(WIN32)
   set(RM_RF rd /s /q)
   set(ENV_SET set)
@@ -88,6 +86,8 @@ if(MSVC)
     add_compile_options(/wd4125) # for protobuf
     add_compile_options(/wd4127) # for protobuf
     add_compile_options(/wd4244) # for protobuf
+
+    set(CHAINER_COMPILER_PTHREAD_LIBRARIES )
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
@@ -96,6 +96,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+    set(CHAINER_COMPILER_PTHREAD_LIBRARIES pthread)
 endif()
 
 set(CMAKE_CXX_STANDARD 14)
