@@ -5,20 +5,25 @@
 import gast
 
 class Type():
-    def __str__(self):
-        return ""
+    pass
 
 class TyUnit(Type):
     def __str__(self):
-        return "()"
+        return "unit"
+    def __repr__(self):
+        return self.__str__()
 
 class TyInt(Type):
     def __str__(self):
         return "int"
+    def __repr__(self):
+        return self.__str__()
 
 class TyFloat(Type):
     def __str__(self):
         return "float"
+    def __repr__(self):
+        return self.__str__()
 
 class TyList(Type):
     def __init__(self, ty):
@@ -27,6 +32,8 @@ class TyList(Type):
 
     def __str__(self):
         return str(self.ty) + " list"
+    def __repr__(self):
+        return self.__str__()
 
 class TyArrow(Type):
     def __init__(self, argty, retty):
@@ -36,6 +43,8 @@ class TyArrow(Type):
 
     def __str__(self):
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
+    def __repr__(self):
+        return self.__str__()
 
 counter = 0
 
@@ -59,8 +68,11 @@ class UnifyError(Exception):
 
 
 primitive_func_ty = {
-        'float' : TyArrow([[TyInt(), TyFloat()]], TyFloat()),
-        'range' : [
+        # TODO(momohatt): maybe use 'TyUnion' instead of list?
+        # (int \/ float) -> float
+        float : TyArrow([TyUnion([TyInt(), TyFloat()])], TyFloat()),
+        # int -> int \/ int -> int -> int \/ int -> int -> int -> int
+        range : [
             TyArrow([TyInt()], TyList(TyInt())),
             TyArrow([TyInt(), TyInt()], TyList(TyInt())),
             TyArrow([TyInt(), TyInt(), TyInt()], TyList(TyInt())),
@@ -88,7 +100,7 @@ primitive_op_ty = {
             ],
         gast.Div : [
             # (int \/ float) -> (int \/ float) -> float
-            TyArrow([[TyInt(), TyFloat()], [TyInt(), TyFloat()]], TyFloat()),
+            TyArrow([ [TyInt(), TyFloat()], [TyInt(), TyFloat()] ], TyFloat()),
             ],
         gast.FloorDiv : [
             TyArrow([TyInt(), TyInt()], TyInt()),
@@ -143,9 +155,9 @@ class TypeChecker():
             ty_args = [self.infer(arg) for arg in node.args]
             ty_ret = TyVar()
 
-            if isinstance(node.func, gast.Name) and node.func.id in primitive_func_ty.keys():
+            if isinstance(node.func, gast.Name) and eval(node.func.id) in primitive_func_ty.keys():
                 # case of applying primitive functions
-                ty_fun = primitive_func_ty[node.func.id]
+                ty_fun = primitive_func_ty[eval(node.func.id)]
                 unify(ty_fun, TyArrow(ty_args, ty_ret))
                 ty_ret = deref_type(ty_ret)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
@@ -230,10 +242,7 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Name):
-            if node.id in primitive_func_ty.keys():
-                self.nodetype[node] = primitive_func_ty[node.id]
-            else:
-                self.nodetype[node] = self.tyenv[node.id]
+            self.nodetype[node] = self.tyenv[node.id]
 
 
         return self.nodetype[node]
@@ -257,7 +266,7 @@ def unify(ty1, ty2):
         assert(not ty1 == [])
         assert(isinstance(ty1[0], Type))
 
-        for ty1_ in ty1[:-1]:
+        for ty1_ in ty1:
             try:
                 unify(ty1_, ty2)
                 return
@@ -265,19 +274,18 @@ def unify(ty1, ty2):
                 print("\x1b[33m[LOG] unify error with " + str(ty1_) + " and " + str(ty2) + ". continuing...\x1b[39m")
                 continue
 
-        unify(ty1[-1], ty2)
-        return
+        raise UnifyError(str(ty1) + " and " + str(ty2) + " are not unifiable")
 
     assert(isinstance(ty1, Type))
 
     # if ty1 is a type, just do normal unification
+    if isinstance(ty1, TyUnit) and isinstance(ty2, TyUnit):
+        return
     if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
         return
     if isinstance(ty1, TyFloat) and isinstance(ty2, TyFloat):
         return
-    if isinstance(ty1, TyUnit) and isinstance(ty2, TyUnit):
-        return
-    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow):
+    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and len(ty1.argty) == len(ty2.argty):
         for (at1, at2) in zip(ty1.argty, ty2.argty):
             unify(at1, at2)
         unify(ty1.retty, ty2.retty)
