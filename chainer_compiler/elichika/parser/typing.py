@@ -66,11 +66,12 @@ class UnifyError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
+# ==============================================================================
 
 primitive_func_ty = {
         # TODO(momohatt): maybe use 'TyUnion' instead of list?
         # (int \/ float) -> float
-        float : TyArrow([TyUnion([TyInt(), TyFloat()])], TyFloat()),
+        float : TyArrow([[TyInt(), TyFloat()]], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
         range : [
             TyArrow([TyInt()], TyList(TyInt())),
@@ -78,6 +79,13 @@ primitive_func_ty = {
             TyArrow([TyInt(), TyInt(), TyInt()], TyList(TyInt())),
             ],
         }
+
+
+# each value should be a function which takes the type of object ('TyList(sth)' in this case)
+list_attr_ty = {
+        'append' : lambda ty_obj: TyArrow([ty_obj.ty], TyUnit()),
+        }
+
 
 primitive_op_ty = {
         gast.Add : [
@@ -133,10 +141,12 @@ class TypeChecker():
         print()
 
 
+        # ============================== mod ===================================
         if isinstance(node, gast.Module):
             self.nodetype[node] = self.infer(node.body[0])
 
 
+        # ============================== stmt ==================================
         elif isinstance(node, gast.FunctionDef):
             # TODO(momohatt): Add args to env
 
@@ -145,28 +155,6 @@ class TypeChecker():
 
             # TODO(momohatt): type of function definition?
             self.nodetype[node] = ty
-
-
-        elif isinstance(node, gast.Expr):
-            self.nodetype[node] = self.infer(node.value)
-
-
-        elif isinstance(node, gast.Call):
-            ty_args = [self.infer(arg) for arg in node.args]
-            ty_ret = TyVar()
-
-            if isinstance(node.func, gast.Name) and eval(node.func.id) in primitive_func_ty.keys():
-                # case of applying primitive functions
-                ty_fun = primitive_func_ty[eval(node.func.id)]
-                unify(ty_fun, TyArrow(ty_args, ty_ret))
-                ty_ret = deref_type(ty_ret)
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-            else:
-                ty_fun = self.infer(node.func)
-                unify(ty_fun, TyArrow(ty_args, ty_ret))
-                ty_ret = deref_type(ty_ret)
-
-            self.nodetype[node] = ty_ret
 
 
         elif isinstance(node, gast.Return):
@@ -185,13 +173,10 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.AugAssign):
+            # TODO(momohatt): in-place add is different from BinOp
             # Desugar to BinOp
             self.tyenv[node.target.id] = self.infer(gast.BinOp(node.target, node.op, node.value))
             self.nodetype[node] = TyUnit()
-
-
-        elif isinstance(node, gast.Attribute):
-            pass
 
 
         elif isinstance(node, gast.For):
@@ -210,6 +195,11 @@ class TypeChecker():
             self.nodetype[node] = TyUnit()
 
 
+        elif isinstance(node, gast.Expr):
+            self.nodetype[node] = self.infer(node.value)
+
+
+        # =============================== expr =================================
         elif isinstance(node, gast.BinOp):
             tyl = self.infer(node.left)
             tyr = self.infer(node.right)
@@ -223,6 +213,53 @@ class TypeChecker():
             self.nodetype[node] = ty_ret
 
 
+        elif isinstance(node, gast.Call):
+            ty_args = [self.infer(arg) for arg in node.args]
+            ty_ret = TyVar()
+
+            if isinstance(node.func, gast.Name) and eval(node.func.id) in primitive_func_ty.keys():
+                # case of applying primitive functions
+                ty_fun = primitive_func_ty[eval(node.func.id)]
+                unify(ty_fun, TyArrow(ty_args, ty_ret))
+                ty_ret = deref_type(ty_ret)
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                self.nodetype[node] = ty_ret
+
+            elif isinstance(node.func, gast.Attribute):
+                ty_fun = self.infer(node.func)
+                unify(ty_fun, TyArrow(ty_args, ty_ret))
+                self.nodetype[node.func] = deref_type(ty_fun)
+                self.nodetype[node] = deref_type(ty_ret)
+
+            else:
+                ty_fun = self.infer(node.func)
+                unify(ty_fun, TyArrow(ty_args, ty_ret))
+                self.nodetype[node] = deref_type(ty_ret)
+
+
+
+        elif isinstance(node, gast.Num):
+            if isinstance(node.n, int):
+                self.nodetype[node] = TyInt()
+            elif isinstance(node.n, float):
+                self.nodetype[node] = TyFloat()
+
+
+        elif isinstance(node, gast.Attribute):
+            ty_obj = self.infer(node.value)
+            if isinstance(ty_obj, TyList):
+                ty_ret = list_attr_ty[node.attr](ty_obj)
+                self.nodetype[node] = ty_ret
+
+
+        elif isinstance(node, gast.Subscript):
+            pass
+
+
+        elif isinstance(node, gast.Name):
+            self.nodetype[node] = self.tyenv[node.id]
+
+
         elif isinstance(node, gast.List):
             if node.elts:
                 # Type assertion of list
@@ -234,15 +271,9 @@ class TypeChecker():
                 self.nodetype[node] = TyList(TyVar())
 
 
-        elif isinstance(node, gast.Num):
-            if isinstance(node.n, int):
-                self.nodetype[node] = TyInt()
-            elif isinstance(node.n, float):
-                self.nodetype[node] = TyFloat()
-
-
-        elif isinstance(node, gast.Name):
-            self.nodetype[node] = self.tyenv[node.id]
+        # ============================== slice =================================
+        elif isinstance(node, gast.Slice):
+            pass
 
 
         return self.nodetype[node]
