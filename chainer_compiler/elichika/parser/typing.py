@@ -59,9 +59,12 @@ class UnifyError(Exception):
 
 
 primitive_func_ty = {
-        # TODO(momohatt): Ad-hoc polymorphism
-        'float' : TyArrow([TyInt()], TyFloat()),
-        'range' : TyArrow([TyInt()], TyList(TyInt())),
+        'float' : TyArrow([[TyInt(), TyFloat()]], TyFloat()),
+        'range' : [
+            TyArrow([TyInt()], TyList(TyInt())),
+            TyArrow([TyInt(), TyInt()], TyList(TyInt())),
+            TyArrow([TyInt(), TyInt(), TyInt()], TyList(TyInt())),
+            ],
         }
 
 primitive_op_ty = {
@@ -106,7 +109,7 @@ class TypeChecker():
 
     def dump_nodetype(self):
         for node, ty in self.nodetype.items():
-            print(gast.dump(node), " : ", str(ty))
+            print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
 
 
     def infer(self, node : 'ast.Node') -> 'Type':
@@ -137,11 +140,21 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.Call):
-            ty_fun = self.infer(node.func)
-            ty_args = map(self.infer, node.args)
+            ty_args = [self.infer(arg) for arg in node.args]
             ty_ret = TyVar()
-            unify(ty_fun, TyArrow(ty_args, ty_ret))
-            self.nodetype[node] = deref_type(ty_ret)
+
+            if isinstance(node.func, gast.Name) and node.func.id in primitive_func_ty.keys():
+                # case of applying primitive functions
+                ty_fun = primitive_func_ty[node.func.id]
+                unify(ty_fun, TyArrow(ty_args, ty_ret))
+                ty_ret = deref_type(ty_ret)
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+            else:
+                ty_fun = self.infer(node.func)
+                unify(ty_fun, TyArrow(ty_args, ty_ret))
+                ty_ret = deref_type(ty_ret)
+
+            self.nodetype[node] = ty_ret
 
 
         elif isinstance(node, gast.Return):
@@ -155,6 +168,7 @@ class TypeChecker():
             var = node.targets[0]
             assert(isinstance(var, gast.Name))
             self.tyenv[var.id] = self.infer(node.value)
+            self.nodetype[var] = self.tyenv[var.id]
             self.nodetype[node] = TyUnit()
 
 
@@ -192,7 +206,9 @@ class TypeChecker():
             ty_ret = TyVar()
             unify(ty_ops, TyArrow([tyl, tyr], ty_ret))
 
-            self.nodetype[node] = deref_type(ty_ret)
+            ty_ret = deref_type(ty_ret)
+            self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
+            self.nodetype[node] = ty_ret
 
 
         elif isinstance(node, gast.List):
@@ -236,6 +252,7 @@ def unify(ty1, ty2):
     # ty1 is either Type or list of Type.
 
     # if ty1 is a list of Type, try unification one by one.
+    # returns the type where unification succeeded.
     if type(ty1) is list:
         assert(not ty1 == [])
         assert(isinstance(ty1[0], Type))
