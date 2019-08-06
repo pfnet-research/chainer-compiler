@@ -154,6 +154,7 @@ class TypeChecker():
             print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
 
 
+    # TODO(momohatt): maybe divide into infer_mod / infer_stmt / infer_expr ?
     def infer(self, node : 'ast.Node') -> 'Type':
         """
         Adds local type information to self.tyenv while traversing the AST
@@ -296,7 +297,9 @@ class TypeChecker():
         elif isinstance(node, gast.Subscript):
             # _fields: value, slice, ctx
             ty_obj = self.infer(node.value)
+            self.infer_slice(node.slice)
             assert(type(ty_obj) in [TyList, TyTuple])
+            # TODO(momohatt): handle cases of tuple slice
             if isinstance(node.slice, gast.Index):
                 self.nodetype[node] = ty_obj.ty
             elif isinstance(node.slice, gast.Slice):
@@ -310,7 +313,7 @@ class TypeChecker():
 
         elif isinstance(node, gast.List):
             # _fields: elts, ctx
-            if node.elts is None:
+            if node.elts == []:
                 # Types of empty lists will be determined later
                 self.nodetype[node] = TyList(TyVar())
             else:
@@ -326,13 +329,33 @@ class TypeChecker():
             self.nodetype[node] = TyTuple(elts_ty)
 
 
-        # ============================== slice =================================
-        elif isinstance(node, gast.Slice):
-            # _fields: lower, upper, step
-            pass
-
-
         return self.nodetype[node]
+
+
+    def infer_slice(self, node: 'gast.Node') -> 'NoneType' :
+        if isinstance(node, gast.Slice):
+            # _fields: lower, upper, step
+            if node.lower:
+                ty_lower = self.infer(node.lower)
+                unify(ty_lower, TyInt())
+                print(self.nodetype[node.lower])
+            if node.upper:
+                ty_upper = self.infer(node.upper)
+                unify(ty_upper, TyInt())
+                print(self.nodetype[node.upper])
+            if node.step:
+                ty_step = self.infer(node.step)
+                unify(ty_step, TyInt())
+                print(self.nodetype[node.step])
+
+        elif isinstance(node, gast.Index):
+            # _fields: value
+            ty_val = self.infer(node.value)
+            unify(ty_val, TyInt())
+
+        # we shouldn't have to think about the type of 'slice' itself
+        return
+
 
 
 def deref_type(ty):
