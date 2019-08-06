@@ -46,12 +46,8 @@
 #include <runtime/meminfo.h>
 
 #ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
 #include <filesystem>
 namespace fs = std::experimental::filesystem;
-#undef OPAQUE
 #else
 #include <dirent.h>
 #include <unistd.h>

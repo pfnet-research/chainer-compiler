@@ -180,13 +180,6 @@ struct Flags {
 elif args.mode == 'compiler_flags.cc':
     f.write('''
 
-#ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
-#undef OPAQUE
-#endif
-
 #include "tools/compiler_flags.h"
 
 #include <compiler/flags.h>

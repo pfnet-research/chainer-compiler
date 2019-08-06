@@ -17,10 +17,6 @@
 #include <compiler/util.h>
 
 #ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
-#undef OPAQUE
 #include <filesystem>
 #include <regex>
 namespace fs = std::experimental::filesystem;
