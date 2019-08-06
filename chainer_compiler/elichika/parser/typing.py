@@ -5,19 +5,19 @@
 import gast
 
 class Type():
-    def show(self):
+    def __str__(self):
         return ""
 
 class TyUnit(Type):
-    def show(self):
+    def __str__(self):
         return "()"
 
 class TyInt(Type):
-    def show(self):
+    def __str__(self):
         return "int"
 
 class TyFloat(Type):
-    def show(self):
+    def __str__(self):
         return "float"
 
 class TyList(Type):
@@ -25,8 +25,8 @@ class TyList(Type):
         super().__init__()
         self.ty = ty
 
-    def show(self):
-        return self.ty.show() + " list"
+    def __str__(self):
+        return str(self.ty) + " list"
 
 class TyArrow(Type):
     def __init__(self, argty, retty):
@@ -34,8 +34,8 @@ class TyArrow(Type):
         self.argty = argty  # Arguments are uncurried
         self.retty = retty
 
-    def show(self):
-        return "".join([t.show() + " -> " for t in self.argty]) + self.retty.show()
+    def __str__(self):
+        return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
 
 counter = 0
 
@@ -47,18 +47,15 @@ class TyVar(Type):
         counter += 1
         self.ty = None
 
-    def show(self):
+    def __str__(self):
         if self.ty:
-            return self.ty.show()
+            return str(self.ty)
         return "a" + str(self.i)
 
 
 class UnifyError(Exception):
     def __init__(self, msg):
         self.msg = msg
-
-    def show(self):
-        return self.msg
 
 
 primitive_func_ty = {
@@ -68,11 +65,34 @@ primitive_func_ty = {
         }
 
 primitive_op_ty = {
-        gast.Add      : TyArrow([TyInt(), TyInt()], TyInt()),
-        gast.Sub      : TyArrow([TyInt(), TyInt()], TyInt()),
-        gast.Mult     : TyArrow([TyInt(), TyInt()], TyInt()),
-        gast.Div      : TyArrow([TyInt(), TyInt()], TyFloat()),
-        gast.FloorDiv : TyArrow([TyInt(), TyInt()], TyInt()),
+        gast.Add : [
+            TyArrow([TyInt(), TyInt()], TyInt()),
+            TyArrow([TyInt(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyFloat(), TyFloat()], TyFloat()),
+            ],
+        gast.Sub : [
+            TyArrow([TyInt(), TyInt()], TyInt()),
+            TyArrow([TyInt(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyFloat(), TyFloat()], TyFloat()),
+            ],
+        gast.Mult : [
+            TyArrow([TyInt(), TyInt()], TyInt()),
+            TyArrow([TyInt(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyFloat(), TyFloat()], TyFloat()),
+            ],
+        gast.Div : [
+            # (int \/ float) -> (int \/ float) -> float
+            TyArrow([[TyInt(), TyFloat()], [TyInt(), TyFloat()]], TyFloat()),
+            ],
+        gast.FloorDiv : [
+            TyArrow([TyInt(), TyInt()], TyInt()),
+            TyArrow([TyInt(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyFloat(), TyFloat()], TyFloat()),
+            ],
         }
 
 # ==============================================================================
@@ -86,7 +106,7 @@ class TypeChecker():
 
     def dump_nodetype(self):
         for node, ty in self.nodetype.items():
-            print(gast.dump(node), " : ", ty.show())
+            print(gast.dump(node), " : ", str(ty))
 
 
     def infer(self, node : 'ast.Node') -> 'Type':
@@ -168,9 +188,9 @@ class TypeChecker():
             tyl = self.infer(node.left)
             tyr = self.infer(node.right)
 
-            ty_op = primitive_op_ty[type(node.op)]
+            ty_ops = primitive_op_ty[type(node.op)]
             ty_ret = TyVar()
-            unify(ty_op, TyArrow([tyl, tyr], ty_ret))
+            unify(ty_ops, TyArrow([tyl, tyr], ty_ret))
 
             self.nodetype[node] = deref_type(ty_ret)
 
@@ -213,6 +233,27 @@ def deref_type(ty):
 
 
 def unify(ty1, ty2):
+    # ty1 is either Type or list of Type.
+
+    # if ty1 is a list of Type, try unification one by one.
+    if type(ty1) is list:
+        assert(not ty1 == [])
+        assert(isinstance(ty1[0], Type))
+
+        for ty1_ in ty1[:-1]:
+            try:
+                unify(ty1_, ty2)
+                return
+            except UnifyError:
+                print("\x1b[33m[LOG] unify error with " + str(ty1_) + " and " + str(ty2) + ". continuing...\x1b[39m")
+                continue
+
+        unify(ty1[-1], ty2)
+        return
+
+    assert(isinstance(ty1, Type))
+
+    # if ty1 is a type, just do normal unification
     if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
         return
     if isinstance(ty1, TyFloat) and isinstance(ty2, TyFloat):
@@ -236,7 +277,7 @@ def unify(ty1, ty2):
         ty2.ty = ty1
         return
 
-    raise UnifyError(ty1.show() + " and " + ty2.show() + " are not unifiable")
+    raise UnifyError(str(ty1) + " and " + str(ty2) + " are not unifiable")
 
 
 if __name__ == '__main__':
