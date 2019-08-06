@@ -19,13 +19,8 @@ target_link_libraries(chainer_compiler_common_test
   ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   )
-
-if (!WIN32)
-  target_link_libraries(chainer_compiler_common_test
-  pthread
-  )
-endif()
 
 add_dependencies(chainer_compiler_common_test gen_onnx_proto)
 
