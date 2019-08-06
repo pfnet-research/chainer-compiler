@@ -37,6 +37,29 @@ class TyArrow(Type):
     def show(self):
         return "".join([t.show() + " -> " for t in self.argty]) + self.retty.show()
 
+counter = 0
+
+class TyVar(Type):
+    def __init__(self):
+        global counter
+        super().__init__()
+        self.i = counter
+        counter += 1
+        self.ty = None
+
+    def show(self):
+        if self.ty:
+            return self.ty.show()
+        return "a" + str(self.i)
+
+
+class UnifyError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def show(self):
+        return self.msg
+
 
 primitive_func_ty = {
         # TODO(momohatt): Ad-hoc polymorphism
@@ -75,10 +98,10 @@ class TypeChecker():
             # TODO(momohatt): Add args to env
 
             for expr in node.body:
-                self.infer(expr)
+                ty = self.infer(expr)
 
-            # TODO(momohatt): infer function type
-            self.nodetype[node] = TyUnit()
+            # TODO(momohatt): type of function definition?
+            self.nodetype[node] = ty
 
 
         elif isinstance(node, gast.Expr):
@@ -87,13 +110,11 @@ class TypeChecker():
 
         elif isinstance(node, gast.Call):
             ty_fun = self.infer(node.func)
-            assert(isinstance(ty_fun, TyArrow))
-            assert(len(node.args) == len(ty_fun.argty))  # partial applications are not allowed
+            ty_args = map(self.infer, node.args)
+            ty_ret = TyVar()
+            unify(ty_fun, TyArrow(ty_args, ty_ret))
+            self.nodetype[node] = deref_type(ty_ret)
 
-            for arg in node.args:
-                unify(self.infer(arg), TyInt)
-
-            self.nodetype[node] = ty_fun.retty
 
         elif isinstance(node, gast.Return):
             self.nodetype[node] = self.infer(node.value)
@@ -136,8 +157,7 @@ class TypeChecker():
 
 
         elif isinstance(node, gast.BinOp):
-            # TODO(momohatt): Support overload of operators.
-
+            # TODO(momohatt): merge with primitive_func_ty?
             tyl = self.infer(node.left)
             tyr = self.infer(node.right)
             assert(isinstance(tyl, TyInt) or isinstance(tyl, TyFloat))
@@ -160,7 +180,7 @@ class TypeChecker():
                 self.nodetype[node] = TyList(elts_ty[0])
             else:
                 # Types of empty lists will be determined later
-                self.nodetype[node] = TyList(None)
+                self.nodetype[node] = TyList(TyVar())
 
 
         elif isinstance(node, gast.Num):
@@ -176,12 +196,45 @@ class TypeChecker():
             else:
                 self.nodetype[node] = self.tyenv[node.id]
 
+
         return self.nodetype[node]
 
 
-# Type assertion + lazy initialization of 'None' types (such as the one in empty lists [])
+def deref_type(ty):
+    if isinstance(ty, TyVar):
+        return deref_type(ty.ty)
+    if ty is None:
+        print("\x1b[31muninstantinated type found!!!\x1b[39m")
+        return TyInt()
+    return ty
+
+
+# Type assertion + lazy initialization of TyVars
 def unify(ty1, ty2):
-    pass
+    if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
+        return
+    if isinstance(ty1, TyFloat) and isinstance(ty2, TyFloat):
+        return
+    if isinstance(ty1, TyUnit) and isinstance(ty2, TyUnit):
+        return
+    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow):
+        for (at1, at2) in zip(ty1.argty, ty2.argty):
+            unify(at1, at2)
+        unify(ty1.retty, ty2.retty)
+        return
+    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
+        unify(ty1.ty, ty2.ty)
+        return
+
+    if isinstance(ty1, TyVar):
+        ty1.ty = ty2
+        return
+
+    if isinstance(ty2, TyVar):
+        ty2.ty = ty1
+        return
+
+    raise UnifyError("not unifiable")
 
 
 if __name__ == '__main__':
@@ -189,6 +242,7 @@ if __name__ == '__main__':
     import gast
     import sys
     from copy import deepcopy
+
     try:
         from astmonkey import transformers, visitors
         IMPORT_ASTMONKEY = True
