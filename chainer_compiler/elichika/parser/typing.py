@@ -87,6 +87,13 @@ class UnifyError(Exception):
     def __init__(self, msg):
         self.msg = msg
 
+
+def all_same_ty(tys):
+    if tys == []:
+        return True
+    return all([type(e) == type(tys[0]) for e in tys[1:]])
+
+
 # ==============================================================================
 
 primitive_func_ty = {
@@ -298,12 +305,27 @@ class TypeChecker():
             # _fields: value, slice, ctx
             ty_obj = self.infer(node.value)
             self.infer_slice(node.slice)
-            assert(type(ty_obj) in [TyList, TyTuple])
-            # TODO(momohatt): handle cases of tuple slice
-            if isinstance(node.slice, gast.Index):
-                self.nodetype[node] = ty_obj.ty
-            elif isinstance(node.slice, gast.Slice):
-                self.nodetype[node] = ty_obj
+
+            if isinstance(ty_obj, TyList):
+                if isinstance(node.slice, gast.Index):
+                    self.nodetype[node] = ty_obj.ty
+                elif isinstance(node.slice, gast.Slice):
+                    self.nodetype[node] = ty_obj
+
+            elif isinstance(ty_obj, TyTuple):
+                if isinstance(node.slice, gast.Index):
+                    index = node.slice.value
+                    # TODO(momohatt): handle cases where index is more complex but still a constant
+                    if isinstance(index, gast.Num):
+                        self.nodetype[node] = ty_obj.tys[index.n]
+                    else:
+                        assert(all_same_ty(ty_obj.tys))
+                        self.nodetype[node] = ty_obj.tys[0]
+                elif isinstance(node.slice, gast.Slice):
+                    pass
+
+            else:
+                assert(False)
 
 
         elif isinstance(node, gast.Name):
@@ -319,7 +341,7 @@ class TypeChecker():
             else:
                 # Type assertion of list
                 elts_ty = [self.infer(e) for e in node.elts]
-                assert(all([type(e) == type(elts_ty[0]) for e in elts_ty[1:]]))
+                assert(all_same_ty(elts_ty))
                 self.nodetype[node] = TyList(elts_ty[0])
 
 
@@ -355,7 +377,6 @@ class TypeChecker():
 
         # we shouldn't have to think about the type of 'slice' itself
         return
-
 
 
 def deref_type(ty):
