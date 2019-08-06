@@ -10,8 +10,6 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
-find_package(PythonInterp 3)
-
 if(WIN32)
   set(RM_RF rd /s /q)
   set(ENV_SET set)
