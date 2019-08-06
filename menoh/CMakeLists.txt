@@ -29,7 +29,6 @@ target_link_libraries(menoh_chainer_compiler
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
-  pthread
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -37,6 +36,12 @@ target_link_libraries(menoh_chainer_compiler
   absl::variant
   absl::optional
   )
+
+if (!WIN32)
+  target_link_libraries(menoh_chainer_compiler
+  pthread
+  )
+endif()
 
 if(OpenCV_FOUND)
     add_custom_command(
