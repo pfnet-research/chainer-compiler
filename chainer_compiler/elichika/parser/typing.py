@@ -3,6 +3,7 @@
 # $ python3 elichika/parser/typing.py test.py
 
 from copy import deepcopy
+from enum import Enum
 import gast
 
 # TODO(momohatt): rename 'Type' into 'Objects'?
@@ -58,31 +59,65 @@ class TyArrow(Type):
         return self.__str__()
 
 
-class TyList(Type):
-    def __init__(self, ty):
+
+class SequenceKind(Enum):  # not to be confused with 'kind' in type system
+    LIST = 0
+    TUPLE = 1
+
+class TySequence(Type):
+    def __init__(self, seq_kind, ty):
         super().__init__()
-        self.ty = ty
+        self.seq_kind = seq_kind
+        self.is_fixed_len = isinstance(ty, list)
+        self.ty_ = ty
 
     def __str__(self):
-        return "[" + str(self.ty) + "]"
+        if self.is_fixed_len:
+            if self.seq_kind == SequenceKind.LIST:
+                return str(self.ty_)
+
+            if self.seq_kind == SequenceKind.TUPLE:
+                if len(self.ty_) == 0:
+                    return "()"
+                return "(" + "".join([str(t) + ", " for t in self.ty_[:-1]]) + str(self.ty_[-1]) + ")"
+
+        if self.seq_kind == SequenceKind.LIST:
+            return str(self.ty_) + " list"
+        if self.seq_kind == SequenceKind.TUPLE:
+            return str(self.ty_) + " tuple"
+
+
     def __repr__(self):
         return self.__str__()
 
+    def ty(self):
+        assert(not self.is_fixed_len)
+        return self.ty_
 
-class TyTuple(Type):
-    def __init__(self, tys):
-        super().__init__()
-        self.tys = tys
+    def tys(self):
+        assert(self.is_fixed_len)
+        return self.ty_
 
-    def __str__(self):
-        if len(self.tys) == 0:
-            return "()"
-        return "(" + "".join([str(t) + ", " for t in self.tys[:-1]]) + str(self.tys[-1]) + ")"
-    def __repr__(self):
-        return self.__str__()
+    def coerce_to_variable_len(self, ty):
+        self.ty_ = ty
+        self.is_fixed_len = False
+        return
+
+    def is_list(self):
+        return self.seq_kind == SequenceKind.LIST
+
+    def is_tuple(self):
+        return self.seq_kind == SequenceKind.TUPLE
 
 
-class TyDict(Type):
+def TyList(ty):  # shorthand notation
+    return TySequence(SequenceKind.LIST, ty)
+
+def TyTuple(ty):  # shorthand notation
+    return TySequence(SequenceKind.TUPLE, ty)
+
+
+class TyDict(Type):  # shorthand notation for tuples
     def __init__(self, keyty, valty):
         super().__init__()
         self.keyty = keyty
@@ -145,9 +180,9 @@ primitive_func_ty = {
         }
 
 
-# each value should be a function which takes the type of object ('TyList(sth)' in this case)
 list_attr_ty = {
-        'append' : lambda ty_obj: TyArrow([ty_obj.ty], TyNone()),
+        'append'  : lambda ty_obj: TyArrow([ty_obj.ty()], TyNone()),
+        'reverse' : lambda ty_obj: TyArrow([ty_obj], TyNone()),
         }
 
 
@@ -218,7 +253,8 @@ class TypeChecker():
         print(gast.dump(node))
         print()
         if isinstance(node, gast.Module):
-            self.nodetype[node] = self.infer_stmt(node.body[0])
+            # self.nodetype[node] = self.infer_stmt(node.body[0])
+            self.infer_stmt(node.body[0])
         else:
             assert(False)
 
@@ -254,11 +290,11 @@ class TypeChecker():
                 self.nodetype[target] = self.tyenv[target.id]
             elif isinstance(target, gast.Attribute):
                 pass
-            elif isinstance(target, gast.Tuple):
+            elif type(target) in [gast.Tuple, gast.List]:
                 ty_target = self.infer_expr(target)
                 ty_val = self.infer_expr(node.value)
                 unify(ty_target, ty_val)
-                for (var, ty) in zip(target.elts, ty_val.tys):
+                for (var, ty) in zip(target.elts, ty_val.tys()):
                     self.tyenv[var.id] = ty
                     self.nodetype[var] = ty
             else:
@@ -281,10 +317,13 @@ class TypeChecker():
             # TODO(momohatt): Support cases where node.target is Tuple
             assert(isinstance(node.target, gast.Name))
 
-            tylist = self.infer_expr(node.iter)
-            # TODO(momohatt): Support iterator type
-            assert(isinstance(tylist, TyList))
-            self.tyenv[node.target.id] = tylist.ty
+            ty_iteration = self.infer_expr(node.iter)
+            assert(isinstance(ty_iteration, TySequence))
+            if ty_iteration.is_fixed_len:
+                ty_i = TyVar()
+                unify(ty_iteration, TyList(ty_i))
+                ty_iteration.coerce_to_variable_len(ty_i)
+            self.tyenv[node.target.id] = ty_iteration.ty()
 
             for stmt in node.body:
                 self.infer_stmt(stmt)
@@ -452,7 +491,10 @@ class TypeChecker():
         elif isinstance(node, gast.Attribute):
             # Attribute(expr value, identifier attr, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
-            if isinstance(ty_obj, TyList):
+            if ty_obj.is_list():
+                if ty_obj.is_fixed_len:
+                    unify(ty_obj, TyList(TyVar()))
+                print(ty_obj)
                 ty_ret = list_attr_ty[node.attr](ty_obj)
                 self.nodetype[node] = ty_ret
 
@@ -462,26 +504,31 @@ class TypeChecker():
             ty_obj = self.infer_expr(node.value)
             self.infer_slice(node.slice)
 
-            if isinstance(ty_obj, TyList):
-                if isinstance(node.slice, gast.Index):
-                    self.nodetype[node] = ty_obj.ty
-                elif isinstance(node.slice, gast.Slice):
-                    self.nodetype[node] = ty_obj
-
-            elif isinstance(ty_obj, TyTuple):
-                if isinstance(node.slice, gast.Index):
-                    index = node.slice.value
-                    # TODO(momohatt): handle cases where index is more complex but still a constant
-                    if isinstance(index, gast.Num):
-                        self.nodetype[node] = ty_obj.tys[index.n]
+            if isinstance(ty_obj, TySequence):
+                if ty_obj.is_fixed_len:
+                    if isinstance(node.slice, gast.Index) and isinstance(node.slice.value, gast.Num):
+                        # TODO(momohatt): handle cases where index is more complex but still a constant
+                        self.nodetype[node] = ty_obj.tys()[index.n]
                     else:
-                        assert(all_same_ty(ty_obj.tys))
-                        self.nodetype[node] = ty_obj.tys[0]
-                elif isinstance(node.slice, gast.Slice):
-                    pass
-
+                        ty_elt = TyVar()
+                        unify(ty_obj, TyList(ty_elt))
+                        self.nodetype[node] = ty_elt
+                else:
+                    if isinstance(node.slice, gast.Index):
+                        self.nodetype[node] = ty_obj.ty()
+                    elif isinstance(node.slice, gast.Slice):
+                        self.nodetype[node] = ty_obj
+                    else:
+                        assert(False)
             else:
-                assert(False)
+                ty_elt = TyVar()
+                unify(ty_obj, TyList(ty_elt))
+                if isinstance(node.slice, gast.Index):
+                    self.nodetype[node] = ty_elt
+                elif isinstance(node.slice, gast.Slice):
+                    self.nodetype[node] = TyList(ty_elt)
+
+            assert(self.nodetype[node])
 
 
         elif isinstance(node, gast.Name):
@@ -495,14 +542,8 @@ class TypeChecker():
 
         elif isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
-            if node.elts == []:
-                # Types of empty lists will be determined later
-                self.nodetype[node] = TyList(TyVar())
-            else:
-                # Type assertion of list
-                elts_ty = [self.infer_expr(e) for e in node.elts]
-                assert(all_same_ty(elts_ty))
-                self.nodetype[node] = TyList(elts_ty[0])
+            elts_ty = [self.infer_expr(e) for e in node.elts]
+            self.nodetype[node] = TyList(elts_ty)
 
 
         elif isinstance(node, gast.Tuple):
@@ -581,12 +622,20 @@ def unify(ty1, ty2):
             unify(at1, at2)
         unify(ty1.retty, ty2.retty)
         return
-    if isinstance(ty1, TyList) and isinstance(ty2, TyList):
-        unify(ty1.ty, ty2.ty)
-        return
-    if isinstance(ty1, TyTuple) and isinstance(ty2, TyTuple) and len(ty1.tys) == len(ty2.tys):
-        for (t1, t2) in zip(ty1.tys, ty2.tys):
-            unify(t1, t2)
+
+    if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
+        if ty1.is_fixed_len and ty2.is_fixed_len:
+            for (t1, t2) in zip(ty1.tys(), ty2.tys()):
+                unify(t1, t2)
+            return
+        if ty1.is_fixed_len and not ty2.is_fixed_len:
+            for ty in ty1.tys():
+                unify(ty, ty2.ty())
+            ty1.coerce_to_variable_len(ty2.ty())
+            return
+        if (not ty1.is_fixed_len) and ty2.is_fixed_len:
+            unify(ty2, ty1)
+        unify(ty2, ty1)
         return
 
 
