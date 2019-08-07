@@ -139,6 +139,7 @@ class TyVar(Type):
         self.i = counter
         counter += 1
         self.ty = None
+        self.is_fixed = False
 
     def __str__(self):
         if self.ty:
@@ -150,8 +151,8 @@ class TyVar(Type):
 
 
 class UnifyError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
+    def __init__(self, ty1, ty2):
+        self.msg = "UnifyError: {} and {} are not unifiable".format(ty1, ty2)
 
 
 def all_same_ty(tys):
@@ -225,7 +226,6 @@ class TypeChecker():
         if tyenv is None:
             self.tyenv = {}  # string -> Type (internal type env)
         else:
-            # TODO(momohatt): heavy?
             self.tyenv = deepcopy(tyenv)
         # type environments
         self.nodetype = {}  # Node -> Type (for elichika to use)
@@ -313,17 +313,13 @@ class TypeChecker():
 
         elif isinstance(node, gast.For):
             # For(expr target, expr iter, stmt* body, stmt* orelse)
-            # iterate variable
-            # TODO(momohatt): Support cases where node.target is Tuple
-            assert(isinstance(node.target, gast.Name))
+            assert(type(node.target) in [gast.Name, gast.Tuple])
 
             ty_iteration = self.infer_expr(node.iter)
-            assert(isinstance(ty_iteration, TySequence))
+            ty_i = self.infer_expr(node.target)
+            unify(ty_iteration, TyList(ty_i))
             if ty_iteration.is_fixed_len:
-                ty_i = TyVar()
-                unify(ty_iteration, TyList(ty_i))
                 ty_iteration.coerce_to_variable_len(ty_i)
-            self.tyenv[node.target.id] = ty_iteration.ty()
 
             for stmt in node.body:
                 self.infer_stmt(stmt)
@@ -418,11 +414,6 @@ class TypeChecker():
             pass
 
 
-        elif isinstance(node, gast.IfExp):
-            # IfExp(expr test, expr body, expr orelse)
-            pass
-
-
         elif isinstance(node, gast.Dict):
             # Dict(expr* keys, expr* values)
             if node.keys == []:
@@ -492,9 +483,8 @@ class TypeChecker():
             # Attribute(expr value, identifier attr, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
             if ty_obj.is_list():
-                if ty_obj.is_fixed_len:
+                if ty_obj.is_fixed_len:  # if the object is fixed-length list, coerce it to variable-length
                     unify(ty_obj, TyList(TyVar()))
-                print(ty_obj)
                 ty_ret = list_attr_ty[node.attr](ty_obj)
                 self.nodetype[node] = ty_ret
 
@@ -508,11 +498,15 @@ class TypeChecker():
                 if ty_obj.is_fixed_len:
                     if isinstance(node.slice, gast.Index) and isinstance(node.slice.value, gast.Num):
                         # TODO(momohatt): handle cases where index is more complex but still a constant
-                        self.nodetype[node] = ty_obj.tys()[index.n]
+                        self.nodetype[node] = ty_obj.tys()[node.slice.value.n]
                     else:
                         ty_elt = TyVar()
                         unify(ty_obj, TyList(ty_elt))
-                        self.nodetype[node] = ty_elt
+                        if isinstance(node.slice, gast.Index):
+                            self.nodetype[node] = ty_elt
+                        elif isinstance(node.slice, gast.Slice):
+                            self.nodetype[node] = ty_obj
+
                 else:
                     if isinstance(node.slice, gast.Index):
                         self.nodetype[node] = ty_obj.ty()
@@ -625,6 +619,8 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
         if ty1.is_fixed_len and ty2.is_fixed_len:
+            if not len(ty1.tys()) == len(ty2.tys()):
+                raise UnifyError(ty1, ty2)
             for (t1, t2) in zip(ty1.tys(), ty2.tys()):
                 unify(t1, t2)
             return
@@ -647,7 +643,7 @@ def unify(ty1, ty2):
         ty2.ty = ty1
         return
 
-    raise UnifyError(str(ty1) + " and " + str(ty2) + " are not unifiable")
+    raise UnifyError(ty1, ty2)
 
 
 if __name__ == '__main__':
@@ -680,6 +676,9 @@ if __name__ == '__main__':
     print()
 
     tc = TypeChecker()
-    tc.infer(orig_ast)
-    print('=== Type Environment ===')
-    tc.dump_nodetype()
+    try:
+        tc.infer(orig_ast)
+        print('=== Type Environment ===')
+        tc.dump_nodetype()
+    except UnifyError as e:
+        print("\x1b[31m" + e.msg + "\x1b[39m")
