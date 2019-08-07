@@ -7,7 +7,7 @@ set -eux
 
 export CHINAER_COMPILER_RUNTIME=$1
 
-. .chainerci/run_onnx_setup_${CHINAER_COMPILER_RUNTIME}.sh
+. .flexci/run_onnx_setup_${CHINAER_COMPILER_RUNTIME}.sh
 
 python3 utils/run_onnx_${CHINAER_COMPILER_RUNTIME}.py data/resnet50 -I 10
 

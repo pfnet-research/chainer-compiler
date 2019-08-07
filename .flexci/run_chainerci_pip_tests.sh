@@ -5,7 +5,7 @@ set -eux
 cat <<'EOM' >runtest.sh
 set -eux
 
-. .chainerci/before_install.sh
+. .flexci/before_install.sh
 
 CUDNN_ROOT_DIR=/usr/local/cuda/lib MAKEFLAGS=-j8 python3 -m pip install -e . -vvv
 

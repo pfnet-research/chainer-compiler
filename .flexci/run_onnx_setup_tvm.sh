@@ -2,7 +2,7 @@
 
 set -eux
 
-. .chainerci/run_onnx_setup.sh
+. .flexci/run_onnx_setup.sh
 nvidia-smi
 
 export LD_LIBRARY_PATH=/root/tvm_dist/lib:$LD_LIBRARY_PATH
