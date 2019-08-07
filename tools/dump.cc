@@ -15,19 +15,6 @@
 #include <common/strutil.h>
 #include <compiler/tensor.h>
 #include <compiler/util.h>
-
-#ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
-#undef OPAQUE
-#include <filesystem>
-#include <regex>
-namespace fs = std::experimental::filesystem;
-#else
-#include <glob.h>
-#endif
-
 #include <tools/cmdline.h>
 #include <tools/util.h>
 
@@ -81,23 +68,16 @@ void RunMain(int argc, char** argv) {
             DumpONNX(filename + "/model.onnx", args);
 
             std::vector<std::string> filenames;
-#if _WIN32
-            fs::directory_iterator iter(filename);
-
-            std::regex filter(filename + "/*/*.pb");
-            for (auto it : iter) {
-                if (!std::regex_match(it.path().generic_string(), filter)) {
+            for (const std::string& test_dir_name : ListDir(filename)) {
+                if (!IsDir(test_dir_name)) {
                     continue;
                 }
-                filenames.push_back(it.path().generic_string());
+                for (const std::string& pb_name : ListDir(test_dir_name)) {
+                    if (pb_name.size() > 3 && pb_name.substr(pb_name.size() - 3, 3) == ".pb") {
+                        filenames.push_back(pb_name);
+                    }
+                }
             }
-#else
-            glob_t gl;
-            glob((filename + "/*/*.pb").c_str(), 0, nullptr, &gl);
-            for (size_t i = 0; i < gl.gl_pathc; i++) {
-                filenames.push_back(gl.gl_pathv[i]);
-            }
-#endif
             std::sort(filenames.begin(), filenames.end());
             for (const std::string& filename : filenames) {
                 std::cout << "=== " << filename << " ===\n";

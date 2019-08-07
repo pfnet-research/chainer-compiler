@@ -179,6 +179,7 @@ struct Flags {
 
 elif args.mode == 'compiler_flags.cc':
     f.write('''
+
 #include "tools/compiler_flags.h"
 
 #include <compiler/flags.h>

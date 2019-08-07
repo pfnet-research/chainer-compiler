@@ -77,6 +77,7 @@ TESTS = [
     Generator('node/Functions', 'Separate'),
     Generator('node/Functions', 'Sigmoid'),
     Generator('node/Functions', 'MathMisc'),
+    Generator('node/Functions', 'MinMax'),
     Generator('node/Functions', 'SplitAxis'),
     Generator('node/Functions', 'Squeeze'),
     Generator('node/Functions', 'Stack'),

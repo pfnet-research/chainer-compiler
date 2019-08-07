@@ -1,10 +1,10 @@
 #include <menoh/menoh.h>
+
 #include <iostream>
 
-#include <compiler/onnx.h>
+#include <nlohmann/json.hpp>
 
 #include <chainerx/array.h>
-#include <chainerx/array_body.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/routines/creation.h>
 
@@ -13,20 +13,16 @@
 #include <compiler/chxvm/emitter.h>
 #include <compiler/custom_onnx_ops.h>
 #include <compiler/flags.h>
-#include <compiler/gradient.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
-#include <compiler/subgraph_canonicalizer.h>
 #include <compiler/util.h>
 #include <runtime/chainerx_util.h>
-#include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <tools/util.h>
-
-#include <nlohmann/json.hpp>
 
 namespace menoh_impl {
 using fixed_array = std::array<char, MENOH_ERROR_MESSAGE_MAX_LENGTH>;
@@ -437,10 +433,10 @@ menoh_error_code menoh_build_variable_profile_table(
                     value->name(), menoh_impl::array_profile(cc_dtype_to_menoh_dtype(value->type().dtype()), value->type().dims()));
         }
         {
-            auto xgraph = std::make_unique<onnx::GraphProto>();
-            graph->ToONNX(xgraph.get());
+            auto xgraph_ = std::make_unique<onnx::GraphProto>();
+            graph->ToONNX(xgraph_.get());
             *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                                  menoh_variable_profile_table{std::move(xgraph), builder->input_profiles, std::move(output_profiles)})
+                                  menoh_variable_profile_table{std::move(xgraph_), builder->input_profiles, std::move(output_profiles)})
                                   .release();
         }
         return menoh_error_code_success;
@@ -579,7 +575,7 @@ menoh_error_code menoh_build_model(
         auto xgraph = *(builder->xgraph);
 
         // Set initializer
-        assert(xgraph.initializer().Empty());
+        assert(xgraph.initializer().empty());
         for (onnx::TensorProto const& xtensor : model_data->xgraph.initializer()) {
             *(xgraph.add_initializer()) = xtensor;
         }

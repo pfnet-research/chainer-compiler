@@ -1,8 +1,3 @@
-
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -44,19 +39,6 @@
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
-
-#ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
-#include <filesystem>
-namespace fs = std::experimental::filesystem;
-#undef OPAQUE
-#else
-#include <dirent.h>
-#include <unistd.h>
-#endif
-
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
 #include <tools/util.h>
@@ -73,38 +55,6 @@ bool g_quiet;
 
 #define LOG() \
     if (!g_quiet) std::cerr
-
-bool IsDir(const std::string& filename) {
-    struct stat st;
-    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
-    return S_IFDIR == (st.st_mode & S_IFMT);
-}
-
-std::vector<std::string> ListDir(const std::string& dirname) {
-    std::vector<std::string> filenames;
-#ifdef _WIN32
-    if (!fs::is_directory(dirname)) {
-        std::cout << "Failed to open directory: " << dirname << ": ";
-    }
-
-    fs::directory_iterator iter(dirname);
-
-    for (auto it : iter) {
-        filenames.push_back(it.path().generic_string());
-    }
-#else
-    DIR* dir = opendir(dirname.c_str());
-    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
-    struct dirent* ent;
-    while ((ent = readdir(dir)) != nullptr) {
-        filenames.push_back(dirname + "/" + ent->d_name);
-    }
-    closedir(dir);
-#endif
-
-    std::sort(filenames.begin(), filenames.end());
-    return filenames;
-}
 
 chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     Tensor tensor(xtensor);

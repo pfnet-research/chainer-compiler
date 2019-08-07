@@ -29,7 +29,7 @@ target_link_libraries(menoh_chainer_compiler
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
-  pthread
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -60,4 +60,3 @@ if(OpenCV_FOUND)
     )
     target_link_libraries(menoh_example PRIVATE menoh_chainer_compiler "${OpenCV_LIBRARIES}")
 endif()
-

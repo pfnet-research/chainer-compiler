@@ -24,17 +24,12 @@ target_link_libraries(chainer_compiler_feeder_test
   ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
   gtest
   gtest_main
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${OpenCV_LIBS}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   absl::variant
   absl::optional
   )
-
-if (!WIN32)
-  target_link_libraries(chainer_compiler_feeder_test
-  pthread
-  )
-endif()
 
 add_test(
   NAME chainer_compiler_feeder_test
