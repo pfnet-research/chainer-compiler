@@ -28,3 +28,18 @@ def cond(conds, bodies):
     lines += bodies[len(conds)]
     lines.append('}')
     return lines
+
+def cond_msvc(flag, conds, bodies):
+    assert len(conds) + 1 == len(bodies)
+    lines = []
+    for i, c in enumerate(conds):
+        line = ('if (%s) ' % c) + '{'
+        lines.append(line)
+        lines += bodies[i]
+        lines.append('goto %s;' % flag)
+        lines.append('}')
+
+    lines += bodies[len(conds)]
+    lines += [('%s:;' % flag)]
+
+    return lines

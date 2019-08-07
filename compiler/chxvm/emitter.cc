@@ -6,6 +6,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <compiler/chxvm/value_id_manager.h>
 #include <compiler/flags.h>
 #include <compiler/flops.h>
 #include <compiler/gen_chxvm_codegen.h>
@@ -71,28 +72,12 @@ public:
         EmitGraph(graph, program, false /* in_loop */, graph.output_values());
         EmitOutputs(graph.output_values(), program);
         if (dump_value_names) {
-            std::map<int, const Value*> values;
-            for (auto p : value_ids_) {
-                values.emplace(p.second, p.first);
-            }
-            std::cerr << "=== " << values.size() << " variables ===\n";
-            int64_t total = 0;
-            for (auto p : values) {
-                const Value* v = p.second;
-                int64_t size = v->GetNBytes();
-                total += size;
-                std::cerr << "$" << p.first << ": " << v->name() << ' ' << size << std::endl;
-            }
-            int64_t total_mb = total / 1000 / 1000;
-            std::cerr << "Total size of all values: " << total_mb << "MB" << std::endl;
+            value_ids_.DumpValueIds();
         }
-        EmitStackQuit(program);
     }
 
     void AssignValueIds(const std::vector<Value*>& values) {
-        for (const Value* v : values) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
-        }
+        value_ids_.AssignValueIds(values);
     }
 
     void EmitNodes(const std::vector<Node*>& nodes, runtime::ChxVMProgramProto* program) {
@@ -102,10 +87,7 @@ public:
     }
 
     int GetValueId(const Value* v) const {
-        CHECK(!v->name().empty()) << v->ToString();
-        auto found = value_ids_.find(v);
-        CHECK(found != value_ids_.end()) << "Value not exist: " << v->ToString();
-        return found->second;
+        return value_ids_.GetValueId(v);
     }
 
     ChxVMValue GetOutputValue(const Node& node, int i) {
@@ -117,31 +99,7 @@ public:
 
 private:
     void AssignValueIds(const Graph& graph) {
-        for (const Value* v : graph.input_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
-        }
-        for (const Value* v : graph.temp_values()) {
-            CHECK(value_ids_.emplace(v, next_value_id_++).second) << v->ToString();
-        }
-        for (const Value* v : graph.output_values()) {
-            // We allow graph output to be null.
-            // TODO(hamaji): Revisit this design. Probably, it would
-            // be better to mark outputs are unnecessary instead of
-            // using null values.
-            CHECK(value_ids_.emplace(v, next_value_id_++).second || v->name().empty()) << v->ToString();
-        }
-    }
-
-    int GetStackId(int i) const {
-        auto found = stack_ids_.find(i);
-        CHECK(found != stack_ids_.end()) << "Stack not exist: " << i;
-        return found->second;
-    }
-
-    void EmitStackQuit(ChxVMProgramProto* prog) {
-        for (auto p : stack_ids_) {
-            FREE(p.second);
-        }
+        value_ids_.AssignValueIds(graph);
     }
 
     void EmitNode(const Graph* graph, const Node& node, ChxVMProgramProto* prog) {
@@ -307,27 +265,21 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in ChxVM.
-            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv transpose";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
             // TODO(hamaji): Handle output_padding and output_shape.
             std::vector<int64_t> output_shape(node.output_shape());
-            EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), output_shape);
+            EMIT(ConvTranspose, out(0), in(0), in(1), oin(2), strides(), pads(), node.group(), output_shape);
         } else if (node.op_type() == Node::kChainerConvTransposeWithDynamicOutputShape) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in ChxVM.
-            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
-            EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads());
+            EMIT(ConvTransposeWithDynamicShape, out(0), in(0), in(1), in(2), strides(), pads(), node.group());
         } else if (node.op_type() == Node::kChainerConvGradWeight) {
             CHECK_EQ(3UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            // TODO(hamaji): Support grouped conv in ChxVM.
-            CHECK_EQ(1, node.group()) << "ChxVM does not support grouped conv";
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads());
+            EMIT(ConvGradWeight, out(0), in(0), in(1), in(2), strides(), pads(), node.group());
         } else if (node.op_type() == Node::kRNN) {
             CHECK(node.activations().empty()) << "activations not supporte yet";
             CHECK(node.activation_alpha().empty()) << "activation_alpha not supporte yet";
@@ -779,7 +731,7 @@ private:
         CHECK_EQ(1, node.outputs().size());
         std::vector<int> const_values;
         for (const auto& tensor : node.tensor_values()) {
-            int id = next_value_id_++;
+            int id = value_ids_.AssignNextId();
             EmitConstantImpl(node, tensor.get(), ChxVMValue(id), false, prog);
             const_values.push_back(id);
         }
@@ -1210,7 +1162,7 @@ private:
         // Prepare temporary sequences for scan outputs.
         std::vector<int> scan_out_ids;
         for (int i = 0; i < num_scans; ++i) {
-            int id = next_value_id_++;
+            int id = value_ids_.AssignNextId();
             EMIT(SequenceCreate, ChxVMValue(id), {});
             scan_out_ids.push_back(id);
         }
@@ -1218,14 +1170,14 @@ private:
         int skip_loop_jmp = -1;
         int skip_loop_cond_id = -1;
         if (!max_trip_count->IsNull()) {
-            int zero_id = next_value_id_++;
-            skip_loop_cond_id = next_value_id_++;
+            int zero_id = value_ids_.AssignNextId();
+            skip_loop_cond_id = value_ids_.AssignNextId();
             EMIT(IntScalarConstant, ChxVMValue(zero_id), 0, Dtype::kInt64, true);
             EMIT(Greater, ChxVMValue(skip_loop_cond_id), GetValueId(max_trip_count), zero_id);
             FREE(zero_id);
         }
         if (!terminal_condition->IsNull()) {
-            int tmp_id = next_value_id_++;
+            int tmp_id = value_ids_.AssignNextId();
             if (skip_loop_cond_id >= 0) {
                 EMIT(Mul, ChxVMValue(tmp_id), skip_loop_cond_id, GetValueId(terminal_condition));
                 FREE(skip_loop_cond_id);
@@ -1242,9 +1194,9 @@ private:
         int loop_begin = prog->instructions_size();
 
         EmitGraph(*body, prog, true /* in_loop */, body_output_values);
-        int one_id = next_value_id_++;
+        int one_id = value_ids_.AssignNextId();
         EMIT(IntScalarConstant, ChxVMValue(one_id), 1, Dtype::kInt64, true);
-        int tmp_id = next_value_id_++;
+        int tmp_id = value_ids_.AssignNextId();
         EMIT(Add, ChxVMValue(tmp_id), iter_id, one_id);
         FREE(one_id);
         for (const Value* value : body_input_values) {
@@ -1282,7 +1234,7 @@ private:
             EMIT(Greater, ChxVMValue(cond_id), GetValueId(loop.input(0)), iter_id);
         } else if (!max_trip_count->IsNull()) {
             EMIT(Greater, ChxVMValue(tmp_id), GetValueId(loop.input(0)), iter_id);
-            int tmp2_id = next_value_id_++;
+            int tmp2_id = value_ids_.AssignNextId();
             EMIT(Mul, ChxVMValue(tmp2_id), cond_id, tmp_id);
             FREE(cond_id);
             MOVE(ChxVMValue(cond_id), tmp2_id);
@@ -1353,9 +1305,7 @@ private:
         }
     }
 
-    int next_value_id_{1};
-    std::map<const Value*, int> value_ids_;
-    std::map<int, int> stack_ids_;
+    ValueIdManager value_ids_;
     std::set<const Node*> emitted_;
 };
 

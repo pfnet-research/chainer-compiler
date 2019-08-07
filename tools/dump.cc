@@ -1,7 +1,5 @@
 // Dump an ONNX proto
 
-#include <glob.h>
-
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -69,11 +67,16 @@ void RunMain(int argc, char** argv) {
             // ONNX test directory.
             DumpONNX(filename + "/model.onnx", args);
 
-            glob_t gl;
-            glob((filename + "/*/*.pb").c_str(), 0, nullptr, &gl);
             std::vector<std::string> filenames;
-            for (size_t i = 0; i < gl.gl_pathc; i++) {
-                filenames.push_back(gl.gl_pathv[i]);
+            for (const std::string& test_dir_name : ListDir(filename)) {
+                if (!IsDir(test_dir_name)) {
+                    continue;
+                }
+                for (const std::string& pb_name : ListDir(test_dir_name)) {
+                    if (pb_name.size() > 3 && pb_name.substr(pb_name.size() - 3, 3) == ".pb") {
+                        filenames.push_back(pb_name);
+                    }
+                }
             }
             std::sort(filenames.begin(), filenames.end());
             for (const std::string& filename : filenames) {

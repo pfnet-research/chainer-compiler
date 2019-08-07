@@ -9,7 +9,7 @@ foreach(f cxx_args apply_cxx_args pybind_args)
     OUTPUT
     "${CMAKE_CURRENT_BINARY_DIR}/${f}.inc"
     COMMAND
-    python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode "chainer_compiler_core.${f}.inc"
+    ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode "chainer_compiler_core.${f}.inc"
     --output "${CMAKE_CURRENT_BINARY_DIR}/${f}.inc"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
     )

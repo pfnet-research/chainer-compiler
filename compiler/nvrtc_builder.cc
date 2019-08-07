@@ -1,6 +1,7 @@
 #include "compiler/nvrtc_builder.h"
 
 #include <ctype.h>
+#include <locale>
 
 #include <algorithm>
 #include <iterator>
@@ -21,9 +22,10 @@ namespace chainer_compiler {
 namespace {
 
 std::string CleanseIdent(const std::string& s, const char* prefix = "v_") {
+    std::locale loc;
     std::string o = prefix;
     for (char c : s) {
-        if (std::isalnum(c)) {
+        if (std::isalnum(c, loc)) {
             o += c;
         } else {
             o += '_';
