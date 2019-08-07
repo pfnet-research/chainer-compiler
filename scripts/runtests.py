@@ -681,6 +681,12 @@ for test in TEST_CASES:
                 new_test.is_backprop_two_phase = two_phase
                 new_tests.append(new_test)
 
+    # run gpu test for the test cases of onnx_chainer
+    if test.name.startswith('backprop_test_oc'):
+        new_test = copy.copy(test)
+        new_test.want_gpu = True
+        new_tests.append(new_test)
+
 for test in new_tests:
     TEST_CASES.append(test)
 
