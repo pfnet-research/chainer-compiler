@@ -85,6 +85,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     # activation
     add_chainer_function(F.elu)
     add_chainer_function(F.leaky_relu)
+    add_chainer_function(F.log_softmax)
     add_chainer_function(F.relu)
     add_chainer_function(F.selu)
     add_chainer_function(F.sigmoid)

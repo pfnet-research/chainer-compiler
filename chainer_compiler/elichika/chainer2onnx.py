@@ -58,6 +58,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.relu] = fca.ConverterRelu()
     oc.f_converter[F.elu] = fca.ConverterElu()
     oc.f_converter[F.leaky_relu] = fca.ConverterLeakyRelu()
+    oc.f_converter[F.log_softmax] = fca.ConverterLogSoftmax()
     oc.f_converter[F.selu] = fca.ConverterSelu()
     oc.f_converter[F.softmax] = fca.ConverterSoftmax()
     oc.f_converter[F.sigmoid] = fca.ConverterSigmoid()

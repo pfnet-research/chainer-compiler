@@ -47,6 +47,7 @@ def main():
 
     simple_targets = [
         'leaky_relu',
+        'log_softmax',
         'elu',
         'relu',
         'selu',
@@ -61,6 +62,7 @@ def main():
 
     param1_targets = [
         ('leaky_relu', 0.1),
+        ('log_softmax', 2),
         ('elu', 0.9),
         ('selu', 2.0),
         ('softmax', 2),

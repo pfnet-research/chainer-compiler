@@ -106,6 +106,23 @@ class ConverterLeakyRelu(BaseConverter):
             alpha=parser.get('slope'))
 
 
+class ConverterLogSoftmax(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axis', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        onnx_graph.add_node(
+            'LogSoftmax',
+            [parser.get('x')],
+            node.outputs,
+            name=str(node.lineprop),
+            axis=parser.get('axis'),
+            chainer_is_onnx_semantics=False)
+
 class ConverterSelu(BaseConverter):
     def __init__(self):
         self.expected_args = (
