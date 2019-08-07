@@ -82,10 +82,16 @@ def convert_model(model: 'chainer.Chain', args=[]):
         if inspect.isfunction(f[1]):
             values.function_converters[f[1]] = values.FuncValue(functions.UnimplementedFunction(f[1]), None)
 
-    add_chainer_function(F.relu)
+    # activation
     add_chainer_function(F.elu)
     add_chainer_function(F.leaky_relu)
+    add_chainer_function(F.log_softmax)
+    add_chainer_function(F.relu)
+    add_chainer_function(F.selu)
+    add_chainer_function(F.sigmoid)
     add_chainer_function(F.softmax)
+    add_chainer_function(F.tanh)
+
     add_chainer_function(F.softmax_cross_entropy)
     add_chainer_function(F.pad_sequence)
     add_chainer_function(F.average_pooling_2d)
@@ -103,8 +109,6 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.matmul)
     add_chainer_function(F.max_pooling_2d)
     add_chainer_function(F.resize_images)
-    add_chainer_function(F.tanh)
-    add_chainer_function(F.sigmoid)
     add_chainer_function(F.broadcast_to)
     add_chainer_function(F.expand_dims)
     add_chainer_function(F.local_response_normalization)
