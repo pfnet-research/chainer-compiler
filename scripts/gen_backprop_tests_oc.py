@@ -141,6 +141,13 @@ def get_backprop_tests():
          b=aranges(6, 2, 3, 3),
          c=aranges(6),
          d=aranges(1, 6, 11, 11))
+    test('grouped_conv_3d', lambda m: F.convolution_nd(m.a, m.b, groups=3),
+         a=aranges(1, 6, 5, 5, 5),
+         b=aranges(6, 2, 3, 3, 3))
+    # NOTE: Enable this test after we support 4D convolution in GPU environment
+    # test('grouped_conv_4d', lambda m: F.convolution_nd(m.a, m.b, groups=3),
+    #      a=aranges(1, 6, 5, 5, 5, 5),
+    #      b=aranges(6, 2, 3, 3, 3, 3))
 
     test('max_pool', lambda m: F.max_pooling_2d(m.a, 3, stride=1,
                                                 cover_all=False) * m.b,
