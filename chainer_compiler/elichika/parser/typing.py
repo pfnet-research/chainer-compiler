@@ -2,8 +2,10 @@
 #
 # $ python3 elichika/parser/typing.py test.py
 
+from copy import deepcopy
 import gast
 
+# TODO(momohatt): rename 'Type' into 'Objects'?
 class Type():
     pass
 
@@ -15,11 +17,13 @@ class TyNone(Type):  # kind of 'unit'
     def __repr__(self):
         return self.__str__()
 
+
 class TyBool(Type):
     def __str__(self):
         return "bool"
     def __repr__(self):
         return self.__str__()
+
 
 class TyInt(Type):
     def __str__(self):
@@ -27,11 +31,13 @@ class TyInt(Type):
     def __repr__(self):
         return self.__str__()
 
+
 class TyFloat(Type):
     def __str__(self):
         return "float"
     def __repr__(self):
         return self.__str__()
+
 
 class TyList(Type):
     def __init__(self, ty):
@@ -42,6 +48,7 @@ class TyList(Type):
         return str(self.ty) + " list"
     def __repr__(self):
         return self.__str__()
+
 
 class TyTuple(Type):
     def __init__(self, tys):
@@ -55,6 +62,7 @@ class TyTuple(Type):
     def __repr__(self):
         return self.__str__()
 
+
 class TyArrow(Type):
     def __init__(self, argty, retty):
         super().__init__()
@@ -65,6 +73,7 @@ class TyArrow(Type):
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
     def __repr__(self):
         return self.__str__()
+
 
 counter = 0
 
@@ -81,6 +90,8 @@ class TyVar(Type):
             return str(self.ty)
             # return "a" + str(self.i) + "(" + str(self.ty) + ")"
         return "a" + str(self.i)
+    def __repr__(self):
+        return self.__str__()
 
 
 class UnifyError(Exception):
@@ -150,15 +161,25 @@ primitive_op_ty = {
 # ==============================================================================
 
 class TypeChecker():
-    def __init__(self):
+    def __init__(self, tyenv=None):
+        if tyenv is None:
+            self.tyenv = {}  # string -> Type (internal type env)
+        else:
+            # TODO(momohatt): heavy?
+            self.tyenv = deepcopy(tyenv)
         # type environments
-        self.tyenv = {}  # string -> Type (internal type env)
         self.nodetype = {}  # Node -> Type (for elichika to use)
+
+
+    def dump_tyenv(self):
+        for name, ty in self.tyenv.items():
+            print(name + " : \x1b[35m" + str(ty) + "\x1b[39m")
 
 
     def dump_nodetype(self):
         for node, ty in self.nodetype.items():
             print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
+
 
     def infer(self, node : 'ast.Node') -> 'Type':
         """
@@ -246,6 +267,47 @@ class TypeChecker():
             self.nodetype[node] = TyNone()
 
 
+        elif isinstance(node, gast.If):
+            # _fields: test, body, orelse
+            ty_test = self.infer_expr(node.test)
+            unify(ty_test, TyBool())
+
+            if node.orelse == []:
+                tc = TypeChecker(self.tyenv)
+                for stmt in node.body:
+                    tc.infer_stmt(stmt)
+                for name, ty in tc.tyenv.items():
+                    unify(ty, self.tyenv[name])
+
+            else:
+                tc1 = TypeChecker(self.tyenv)
+                tc2 = TypeChecker(self.tyenv)
+                for stmt in node.body:
+                    tc1.infer_stmt(stmt)
+                for stmt in node.orelse:
+                    tc2.infer_stmt(stmt)
+
+                # unify the intersection of 2 tyenvs
+                for name, ty in tc1.tyenv.items():
+                    if name not in tc2.tyenv.keys():
+                        continue
+                    unify(ty, tc2.tyenv[name])  # untypeable If-stmts will raise error here
+
+                # update local tyenv
+                for name, ty in tc1.tyenv.items():
+                    if name not in tc2.tyenv.keys():
+                        continue
+                    self.tyenv[name] = ty
+
+                # merge nodetype from 2 TypeCheckers
+                for node_, ty in tc1.nodetype.items():
+                    self.nodetype[node_] = ty
+                for node_, ty in tc2.nodetype.items():
+                    self.nodetype[node_] = ty
+
+            self.nodetype[node] = TyNone()
+
+
         elif isinstance(node, gast.Expr):
             # _fields: value
             self.nodetype[node] = self.infer_expr(node.value)
@@ -309,7 +371,7 @@ class TypeChecker():
 
         elif isinstance(node, gast.NameConstant):
             # _fields: value
-            # value will be either True, False or None
+            # value is either True, False or None
             if isinstance(node.value, bool):
                 self.nodetype[node] = TyBool()
             elif node.value is None:
@@ -387,15 +449,13 @@ class TypeChecker():
             if node.lower:
                 ty_lower = self.infer_expr(node.lower)
                 unify(ty_lower, TyInt())
-                print(self.nodetype[node.lower])
             if node.upper:
                 ty_upper = self.infer_expr(node.upper)
                 unify(ty_upper, TyInt())
-                print(self.nodetype[node.upper])
             if node.step:
                 ty_step = self.infer_expr(node.step)
                 unify(ty_step, TyInt())
-                print(self.nodetype[node.step])
+
 
         elif isinstance(node, gast.Index):
             # _fields: value
