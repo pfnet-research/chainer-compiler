@@ -84,9 +84,7 @@ TESTS = [
     Generator('node/Functions', 'Sum'),
     Generator('node/Functions', 'SwapAxes'),
     Generator('node/Functions', 'Vstack'),
-
-    Generator('node/Functions/Activation', 'Elu'),
-    Generator('node/Functions/Activation', 'LeakyRelu'),
+    Generator('node/Functions', 'Activations'),
 
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),

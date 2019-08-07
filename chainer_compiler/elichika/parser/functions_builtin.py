@@ -26,7 +26,6 @@ class ChainerFunction(functions.FunctionBase):
 
         node = nodes.NodeCall(self, funcArgs, line)
         graph.add_node(node)
-        #value = functions.generate_value_with_same_type(vargs[0])
         value = self.ret_value_func()
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])

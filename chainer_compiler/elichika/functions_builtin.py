@@ -52,56 +52,6 @@ class BaseConverter(object):
     def __call__(self, onnx_graph, node):
         raise NotImplementedError
 
-
-class ConverterRelu(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),)
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Relu',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop))
-
-
-class ConverterElu(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),
-            ('alpha', oc.ParseType.Att))
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Elu',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop),
-            alpha=parser.get('alpha'))
-
-
-class ConverterLeakyRelu(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),
-            ('slope', oc.ParseType.Att))
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'LeakyRelu',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop),
-            alpha=parser.get('slope'))
-
-
 class ConverterChainerMathMisc(BaseConverter):
     def __init__(self, operator):
         self.expected_args = (
@@ -113,20 +63,6 @@ class ConverterChainerMathMisc(BaseConverter):
 
         onnx_graph.add_node(
             self.operator,
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop))
-
-class ConverterSigmoid(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),)
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Sigmoid',
             [parser.get('x')],
             node.outputs,
             name=str(node.lineprop))
@@ -382,25 +318,6 @@ class ConverterAverage(BaseConverter):
             str(node.lineprop),
             keepdims=parser.get('keepdims'),
             **kwargs)
-
-
-class ConverterSoftmax(BaseConverter):
-    def __init__(self):
-        self.expected_args = (
-            ('x', oc.ParseType.In),
-            ('axis', oc.ParseType.Att))
-
-    def __call__(self, onnx_graph, node):
-        parser = self.parse_args(onnx_graph, node)
-
-        onnx_graph.add_node(
-            'Softmax',
-            [parser.get('x')],
-            node.outputs,
-            name=str(node.lineprop),
-            axis=parser.get('axis'),
-            chainer_is_onnx_semantics=False)
-
 
 class ConverterPadSequence(BaseConverter):
     def __init__(self):

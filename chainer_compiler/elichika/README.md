@@ -42,6 +42,7 @@ else:
 - elu
 - leaky_relu
 - relu
+- selu
 - sigmoid
 - softmax
 - tanh
