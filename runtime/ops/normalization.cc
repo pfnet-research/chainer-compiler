@@ -164,7 +164,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*, chainerx::Array, chainerx::Array, chai
     std::tie(out, state) = x.device().backend().CallKernel<chainerx::BatchNormKernel>(
             x, gamma_reshaped, beta_reshaped, result.mean, result.var, epsilon, decay, result.sorted_axis, true, absl::nullopt);
     ChxVMOpaque* ctx = new BatchNormBackwardContext(state, x, gamma_reshaped, s.shape(), bias.shape(), epsilon, result.sorted_axis);
-    if (st->options().dump_memory_usage) {
+    if (st->options().dump_memory_usage >= 1) {
         ctx->SetRetainedArrays({x, gamma_reshaped, beta_reshaped, result.mean, result.var});
     }
     chainerx::Array saved_mean, saved_var;

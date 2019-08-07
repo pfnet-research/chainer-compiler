@@ -142,7 +142,7 @@ void RunMain(const std::vector<std::string>& argv) {
     chxvm_opts.check_types = !args.exist("skip_runtime_type_check");
     chxvm_opts.check_nans = args.exist("check_nans");
     chxvm_opts.check_infs = args.exist("check_infs");
-    chxvm_opts.dump_memory_usage = args.exist("trace");
+    chxvm_opts_.dump_memory_usage = args_.exist("trace") ? 2 : 0;
     chxvm_opts.base_memory_usage = initial_used_bytes;
 
     int64_t param_bytes = GetUsedMemory() - initial_used_bytes;
