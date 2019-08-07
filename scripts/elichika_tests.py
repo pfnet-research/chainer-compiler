@@ -43,8 +43,6 @@ TESTS = [
     Generator('node', 'Id'),
     Generator('node', 'Linear'),
     Generator('node', 'PadSequence'),
-    Generator('node', 'Relu'),
-    Generator('node', 'Softmax'),
     Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
