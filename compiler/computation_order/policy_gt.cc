@@ -215,8 +215,7 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
     const NodeSet flops_set = SetMinus(vs, boundary);
     const NodeSet memory_set1 = SetMinus(boundary, ls);
     const NodeSet memory_set3 = SetMinus(deltaplus, ls_next);
-    const NodeSet memory_set4 = SetMinus(
-            SetMinus(DeltaMinus(sg, deltaplus), ls_next), memory_set3);
+    const NodeSet memory_set4 = SetMinus(SetMinus(DeltaMinus(sg, deltaplus), ls_next), memory_set3);
 
     // CheckDisjoint("13", memory_set1, memory_set3);
     // CheckDisjoint("14", memory_set1, memory_set4);
@@ -235,12 +234,12 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
     const int64_t flops = compute_cost(flops_set, sg.flopses);
     const int64_t mem1 = compute_cost(memory_set1, sg.memories);
     // We use a little different cost from the original definition here
-    const int64_t mem234 =
-            compute_cost(vs, sg.memories) + compute_cost(memory_set3, sg.memories) + compute_cost(memory_set4, sg.memories);
+    const int64_t mem234 = compute_cost(vs, sg.memories) + compute_cost(memory_set3, sg.memories) + compute_cost(memory_set4, sg.memories);
     return std::make_tuple(mem1, mem234, flops);
 }
 
-std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets, const int64_t budget, const bool memory_centric) {
+std::vector<NodeSet> ComputeDP(
+        const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets, const int64_t budget, const bool memory_centric) {
     size_t nl = lower_sets.size();
     // opt[lower_set_index][flops] := <minimum memory consumption, prev_ls, prev_flops>
     std::vector<std::map<size_t, std::tuple<int64_t, size_t, size_t>>> opt(nl);
@@ -284,8 +283,7 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
     std::vector<NodeSet> seq;
     if (opt[nl - 1].size()) {
         size_t i = nl - 1;
-        size_t flops = memory_centric ? opt[nl - 1].rbegin()->first
-            : opt[nl - 1].begin()->first;
+        size_t flops = memory_centric ? opt[nl - 1].rbegin()->first : opt[nl - 1].begin()->first;
 
         while (i < nl) {
             seq.push_back(lower_sets[i]);
@@ -415,7 +413,8 @@ std::vector<Order> GTPolicyMemoryCentric(const Graph& graph) {
         for (int iter = 0; iter < 10; ++iter) {
             int64_t budget = (lo + hi) / 2;
             const std::vector<NodeSet> seq_temp = ComputeDP(sg, lower_sets, budget, true);
-            if (seq_temp.empty()) lo = budget;
+            if (seq_temp.empty())
+                lo = budget;
             else {
                 hi = budget;
                 seq = seq_temp;
