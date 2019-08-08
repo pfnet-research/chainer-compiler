@@ -121,10 +121,6 @@ FLAGS = {
         'type': 'int',
         'doc': 'Memory budget of GT policy (in MB)'
     },
-    'gt_memory_centric': {
-        'type': 'bool',
-        'doc': 'Enable memory centric strategy'
-    },
 }
 
 
