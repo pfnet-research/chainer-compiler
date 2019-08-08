@@ -586,10 +586,7 @@ def gen_gen_node_base_cc():
         bodies.append(['return k%s;' % node.op_type])
     bodies.append(['CHECK(false) << "Unsupported op_type: " << str;'])
 
-    if os.name == 'posix':
-        lines.extend(codegen_util.cond(conds, bodies))
-    else:
-        lines.extend(codegen_util.cond_msvc('goto_flag_type',conds, bodies))
+    lines.extend(codegen_util.cond('goto_label_type', conds, bodies))
 
     lines.append('}')
 
@@ -649,10 +646,8 @@ def gen_gen_node_base_cc():
             '<< xattr.name() << "\' for " << OpTypeToString(op_type_);',
             'unknown_attributes_.push_back(xattr);'])
 
-        if os.name == 'posix':
-                lines += codegen_util.cond(conds, bodies)
-        else:
-            lines.extend(codegen_util.cond_msvc('goto_flag_{}'.format(op),conds, bodies))
+        lines.extend(codegen_util.cond('goto_label_{}'.format(op),
+                                       conds, bodies))
 
 
 
