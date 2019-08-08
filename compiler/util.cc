@@ -1,7 +1,8 @@
 #include "compiler/util.h"
-#include <common/strutil.h>
+
 #include <locale>
 
+#include <common/strutil.h>
 #include <compiler/tensor.h>
 
 namespace chainer_compiler {

@@ -1,10 +1,8 @@
 #include "compiler/nvrtc_builder.h"
 
-#include <ctype.h>
-#include <locale>
-
 #include <algorithm>
 #include <iterator>
+#include <locale>
 #include <map>
 #include <queue>
 #include <set>
