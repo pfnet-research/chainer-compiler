@@ -5,6 +5,7 @@
 from copy import deepcopy
 from enum import Enum, IntEnum
 import gast
+import traceback
 
 # TODO(momohatt): rename 'Type' into 'Objects'?
 class Type():
@@ -235,8 +236,7 @@ def all_same_ty(tys):
 # ==============================================================================
 
 primitive_func_ty = {
-        # (int \/ float) -> float
-        float : TyArrow([TyInt()], TyFloat()),
+        float : TyArrow([TyBool()], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
         range : TyUnion(
             TyArrow([TyIntOnly()], TyList(TyIntOnly())),
@@ -256,37 +256,32 @@ list_attr_ty = {
         }
 
 
+def ty_Add(tyl, tyr):
+    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
+        return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
+    if isinstance(tyl, TyString) and isinstance(tyr, TyString):
+        return TyString()
+    assert(False)
+
+def ty_NumOp(tyl, tyr):
+    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
+        return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
+    assert(False)
+
+def ty_Div(tyl, tyr):
+    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
+        return TyFloat()
+    assert(False)
+
+
 primitive_op_ty = {
-        # TODO(momohatt): Support '+' of list and tuple
-        # TODO(momohatt): limit use of TyIntOnly() here
-        gast.Add : TyUnion(
-            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
-            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
-            TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            TyArrow([TyString(), TyString()], TyString()),
-            ),
-        gast.Sub : TyUnion(
-            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
-            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
-            TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            ),
-        gast.Mult : TyUnion(
-            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
-            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
-            TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            ),
-        gast.Div :
-            TyArrow([TyInt(), TyInt()], TyFloat()),
-        gast.FloorDiv : TyUnion(
-            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
-            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
-            TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            ),
+        gast.Add : ty_Add,
+        gast.Sub : ty_NumOp,
+        gast.Mult : ty_NumOp,
+        gast.Div : ty_Div,
+        gast.FloorDiv : ty_NumOp,
         }
+
 
 # ==============================================================================
 
@@ -303,6 +298,7 @@ class TypeChecker():
     def dump_tyenv(self):
         for name, ty in self.tyenv.items():
             print(name + " : \x1b[35m" + str(ty) + "\x1b[39m")
+        print()
 
 
     def dump_nodetype(self):
@@ -468,11 +464,7 @@ class TypeChecker():
             tyl = self.infer_expr(node.left)
             tyr = self.infer_expr(node.right)
 
-            ty_ops = deepcopy(primitive_op_ty[type(node.op)])
-            ty_ret = TyVar()
-            unify(ty_ops, TyArrow([tyl, tyr], ty_ret))
-
-            ty_ret = ty_ret.deref()
+            ty_ret = primitive_op_ty[type(node.op)](tyl, tyr)
             self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
             self.nodetype[node] = ty_ret
 
@@ -721,10 +713,11 @@ def unify_(ty1, ty2):
 
 
 if __name__ == '__main__':
+    from copy import deepcopy
     import ast
     import gast
     import sys
-    from copy import deepcopy
+    import traceback
 
     try:
         from astmonkey import transformers, visitors
@@ -755,4 +748,4 @@ if __name__ == '__main__':
         print('=== Type Environment ===')
         tc.dump_nodetype()
     except UnifyError as e:
-        print("\x1b[31m" + e.msg + "\x1b[39m")
+        print(traceback.format_exc(), end="")
