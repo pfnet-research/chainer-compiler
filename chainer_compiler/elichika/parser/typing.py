@@ -2,15 +2,24 @@
 #
 # $ python3 elichika/parser/typing.py test.py
 
-from copy import deepcopy
-from enum import Enum, IntEnum
+import inspect
+import os
 import gast
 import traceback
+from copy import deepcopy
+from enum import Enum, IntEnum
+
+
+def debug(sth):
+    frame = inspect.currentframe().f_back
+    print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
 
 # TODO(momohatt): rename 'Type' into 'Objects'?
 class Type():
     def __repr__(self):
         return self.__str__()
+    def is_mutable():
+        pass
     def freeze(self):
         return
     def deref(self):
@@ -21,6 +30,8 @@ class Type():
 class TyNone(Type):
     def __str__(self):
         return "none"
+    def is_mutable(self):
+        return False
 
 
 class NumKind(IntEnum):
@@ -52,6 +63,9 @@ class TyNum(Type):
             return str(tys[0])
         return str(tys[0]) + "".join([" \/ " + str(t) for t in tys[1:]])
 
+    def is_mutable(self):
+        return False
+
     def possible_types(self):
         return list(range(self.ty_level_min, self.ty_level_max + 1))
 
@@ -71,6 +85,8 @@ def TyFloat():
 class TyString(Type):
     def __str__(self):
         return "string"
+    def is_mutable(self):
+        return False
 
 
 class TyArrow(Type):
@@ -81,6 +97,9 @@ class TyArrow(Type):
 
     def __str__(self):
         return "{} -> {}".format(self.argty, self.retty)
+
+    def is_mutable(self):
+        return False
 
     def freeze(self):
         for t in self.argty:
@@ -118,6 +137,9 @@ class TySequence(Type):
             return str(self.ty_) + " list"
         if self.seq_kind == SequenceKind.TUPLE:
             return str(self.ty_) + " tuple"
+
+    def is_mutable(self):
+        return self.seq_kind == SequenceKind.LIST
 
     def freeze(self):
         if self.is_fixed_len:
@@ -170,6 +192,9 @@ class TyDict(Type):
     def __str__(self):
         return "{{}:{}}".format(self.keyty, self.valty)
 
+    def is_mutable(self):
+        return True
+
     def freeze(self):
         self.keyty.freeze()
         self.valty.freeze()
@@ -195,6 +220,11 @@ class TyVar(Type):
         if self.ty:
             return "a{}({})".format(self.i, self.ty)
         return "a" + str(self.i)
+
+    def is_mutable(self):
+        if self.is_frozen:
+            return self.ty.is_mutable()
+        return False
 
     def freeze(self):
         if self.ty is not None:
@@ -256,16 +286,16 @@ list_attr_ty = {
         }
 
 
+def ty_NumOp(tyl, tyr):
+    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
+        return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
+    assert(False)
+
 def ty_Add(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
         return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
     if isinstance(tyl, TyString) and isinstance(tyr, TyString):
         return TyString()
-    assert(False)
-
-def ty_NumOp(tyl, tyr):
-    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
     assert(False)
 
 def ty_Div(tyl, tyr):
@@ -315,7 +345,7 @@ class TypeChecker():
 
     # ================================ mod =====================================
     def infer_mod(self, node : 'ast.Node') -> 'Type':
-        print(gast.dump(node))
+        debug(gast.dump(node))
         print()
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
@@ -325,8 +355,9 @@ class TypeChecker():
 
     # ================================ stmt ====================================
     def infer_stmt(self, node : 'ast.Node') -> 'Type':
-        print(gast.dump(node))
+        debug(gast.dump(node))
         print()
+        self.dump_tyenv()
 
         if isinstance(node, gast.FunctionDef):
             # FunctionDef(identifier name, arguments args, stmt* body, expr* decorator_list, expr? returns)
@@ -350,8 +381,9 @@ class TypeChecker():
             target = node.targets[0]
 
             if isinstance(target, gast.Name):
-                self.tyenv[target.id] = self.infer_expr(node.value)
-                self.nodetype[target] = self.tyenv[target.id]
+                ty_val = self.infer_expr(node.value)
+                self.tyenv[target.id] = ty_val if ty_val.is_mutable() else deepcopy(ty_val)
+                self.nodetype[target] = ty_val if ty_val.is_mutable() else deepcopy(ty_val)
             elif isinstance(target, gast.Attribute):
                 pass
             elif type(target) in [gast.Tuple, gast.List]:
@@ -359,8 +391,8 @@ class TypeChecker():
                 ty_val = self.infer_expr(node.value)
                 unify(ty_target, ty_val)
                 for (var, ty) in zip(target.elts, ty_val.get_tys()):
-                    self.tyenv[var.id] = ty
-                    self.nodetype[var] = ty
+                    self.tyenv[var.id] = ty if ty.is_mutable() else deepcopy(ty)
+                    self.nodetype[var] = ty if ty.is_mutable() else deepcopy(ty)
             else:
                 assert(False)
 
@@ -407,7 +439,10 @@ class TypeChecker():
                     tc.infer_stmt(stmt)
                 for name, ty in tc.tyenv.items():
                     unify(ty, self.tyenv[name])
-
+                for name, ty in tc.tyenv.items():
+                    self.tyenv[name] = ty
+                for node_, ty in tc.nodetype.items():
+                    self.nodetype[node_] = ty
             else:
                 tc1 = TypeChecker(self.tyenv)
                 tc2 = TypeChecker(self.tyenv)
@@ -447,8 +482,9 @@ class TypeChecker():
 
     # ================================= expr ===================================
     def infer_expr(self, node : 'ast.Node') -> 'Type':
-        print(gast.dump(node))
+        debug(gast.dump(node))
         print()
+        self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
             # BoolOp(boolop op, expr* values)
