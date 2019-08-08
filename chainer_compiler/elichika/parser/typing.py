@@ -3,68 +3,73 @@
 # $ python3 elichika/parser/typing.py test.py
 
 from copy import deepcopy
-from enum import Enum
+from enum import Enum, IntEnum
 import gast
 
 # TODO(momohatt): rename 'Type' into 'Objects'?
 class Type():
-    pass
+    def __repr__(self):
+        return self.__str__()
+    def freeze(self):
+        return
+    def deref(self):
+        return self
 
 # --------------------------- python primivite types ---------------------------
 
 class TyNone(Type):
     def __str__(self):
         return "none"
-    def __repr__(self):
-        return self.__str__()
-    def freeze(self):
-        return
-    def deref(self):
-        return self
 
 
-class TyBool(Type):
+class NumKind(IntEnum):
+    BOOL = 0
+    INT = 1
+    FLOAT = 2
+
     def __str__(self):
-        return "bool"
+        if self.value == 0:
+            return "bool"
+        if self.value == 1:
+            return "int"
+        if self.value == 2:
+            return "float"
+
     def __repr__(self):
         return self.__str__()
-    def freeze(self):
-        return
-    def deref(self):
-        return self
 
 
-class TyInt(Type):
+class TyNum(Type):
+    def __init__(self, ty_level_min, ty_level_max):
+        assert(ty_level_min <= ty_level_max)
+        self.ty_level_min = ty_level_min
+        self.ty_level_max = ty_level_max
+
     def __str__(self):
-        return "int"
-    def __repr__(self):
-        return self.__str__()
-    def freeze(self):
-        return
-    def deref(self):
-        return self
+        tys = [NumKind(i) for i in range(self.ty_level_min, self.ty_level_max + 1)]
+        if len(tys) <= 1:
+            return str(tys[0])
+        return str(tys[0]) + "".join([" \/ " + str(t) for t in tys[1:]])
 
+    def possible_types(self):
+        return list(range(self.ty_level_min, self.ty_level_max + 1))
 
-class TyFloat(Type):
-    def __str__(self):
-        return "float"
-    def __repr__(self):
-        return self.__str__()
-    def freeze(self):
-        return
-    def deref(self):
-        return self
+def TyBool():
+    return TyNum(0, 2)  # bool or int or float
+
+def TyIntOnly():
+    return TyNum(1, 1)  # int
+
+def TyInt():
+    return TyNum(1, 2)  # int or float
+
+def TyFloat():
+    return TyNum(2, 2)  # float
 
 
 class TyString(Type):
     def __str__(self):
         return "string"
-    def __repr__(self):
-        return self.__str__()
-    def freeze(self):
-        return
-    def deref(self):
-        return self
 
 
 class TyArrow(Type):
@@ -75,8 +80,6 @@ class TyArrow(Type):
 
     def __str__(self):
         return "{} -> {}".format(self.argty, self.retty)
-    def __repr__(self):
-        return self.__str__()
 
     def freeze(self):
         for t in self.argty:
@@ -114,10 +117,6 @@ class TySequence(Type):
             return str(self.ty_) + " list"
         if self.seq_kind == SequenceKind.TUPLE:
             return str(self.ty_) + " tuple"
-
-
-    def __repr__(self):
-        return self.__str__()
 
     def freeze(self):
         if self.is_fixed_len:
@@ -169,8 +168,6 @@ class TyDict(Type):
 
     def __str__(self):
         return "{{}:{}}".format(self.keyty, self.valty)
-    def __repr__(self):
-        return self.__str__()
 
     def freeze(self):
         self.keyty.freeze()
@@ -197,8 +194,6 @@ class TyVar(Type):
         if self.ty:
             return "a{}({})".format(self.i, self.ty)
         return "a" + str(self.i)
-    def __repr__(self):
-        return self.__str__()
 
     def freeze(self):
         if self.ty is not None:
@@ -217,8 +212,6 @@ class TyUnion(Type):
         self.tys = list(tys)  # tys : tuple of Type
     def __str__(self):
         return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
-    def __repr__(self):
-        return self.__str__()
 
     def freeze(self):
         for t in self.tys:
@@ -243,15 +236,15 @@ def all_same_ty(tys):
 
 primitive_func_ty = {
         # (int \/ float) -> float
-        float : TyArrow([TyUnion(TyInt(), TyFloat())], TyFloat()),
+        float : TyArrow([TyInt()], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
         range : TyUnion(
-            TyArrow([TyInt()], TyList(TyInt())),
-            TyArrow([TyInt(), TyInt()], TyList(TyInt())),
-            TyArrow([TyInt(), TyInt(), TyInt()], TyList(TyInt())),
+            TyArrow([TyIntOnly()], TyList(TyIntOnly())),
+            TyArrow([TyIntOnly(), TyIntOnly()], TyList(TyIntOnly())),
+            TyArrow([TyIntOnly(), TyIntOnly(), TyIntOnly()], TyList(TyIntOnly())),
             ),
         abs : TyUnion(
-            TyArrow([TyInt()], TyInt()),
+            TyArrow([TyIntOnly()], TyIntOnly()),
             TyArrow([TyFloat()], TyFloat()),
             ),
         }
@@ -265,32 +258,32 @@ list_attr_ty = {
 
 primitive_op_ty = {
         # TODO(momohatt): Support '+' of list and tuple
+        # TODO(momohatt): limit use of TyIntOnly() here
         gast.Add : TyUnion(
-            TyArrow([TyInt(), TyInt()], TyInt()),
-            TyArrow([TyInt(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
+            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
             TyArrow([TyString(), TyString()], TyString()),
             ),
         gast.Sub : TyUnion(
-            TyArrow([TyInt(), TyInt()], TyInt()),
-            TyArrow([TyInt(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
+            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
             ),
         gast.Mult : TyUnion(
-            TyArrow([TyInt(), TyInt()], TyInt()),
-            TyArrow([TyInt(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
+            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
             ),
         gast.Div :
-            # (int \/ float) -> (int \/ float) -> float
-            TyArrow([TyUnion(TyInt(), TyFloat()), TyUnion(TyInt(), TyFloat())], TyFloat()),
+            TyArrow([TyInt(), TyInt()], TyFloat()),
         gast.FloorDiv : TyUnion(
-            TyArrow([TyInt(), TyInt()], TyInt()),
-            TyArrow([TyInt(), TyFloat()], TyFloat()),
-            TyArrow([TyFloat(), TyInt()], TyFloat()),
+            TyArrow([TyIntOnly(), TyIntOnly()], TyIntOnly()),
+            TyArrow([TyIntOnly(), TyFloat()], TyFloat()),
+            TyArrow([TyFloat(), TyIntOnly()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
             ),
         }
@@ -475,7 +468,7 @@ class TypeChecker():
             tyl = self.infer_expr(node.left)
             tyr = self.infer_expr(node.right)
 
-            ty_ops = primitive_op_ty[type(node.op)]
+            ty_ops = deepcopy(primitive_op_ty[type(node.op)])
             ty_ret = TyVar()
             unify(ty_ops, TyArrow([tyl, tyr], ty_ret))
 
@@ -514,7 +507,7 @@ class TypeChecker():
 
             if isinstance(node.func, gast.Name) and eval(node.func.id) in primitive_func_ty.keys():
                 # case of applying primitive functions
-                ty_fun = primitive_func_ty[eval(node.func.id)]
+                ty_fun = deepcopy(primitive_func_ty[eval(node.func.id)])
                 unify(ty_fun, TyArrow(ty_args, ty_ret))
                 ty_ret = ty_ret.deref()
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
@@ -680,12 +673,14 @@ def unify_(ty1, ty2):
     # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
-    if isinstance(ty1, TyBool) and isinstance(ty2, TyBool):
+    if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
+        possible_types = [i for i in ty1.possible_types() if i in ty2.possible_types()]
+        if possible_types == []:
+            raise UnifyError(ty1, ty2)
+        ty1.ty_level_min = ty2.ty_level_min = min(possible_types)
+        ty1.ty_level_max = ty2.ty_level_max = max(possible_types)
         return
-    if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
-        return
-    if isinstance(ty1, TyFloat) and isinstance(ty2, TyFloat):
-        return
+
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
         return
     if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and len(ty1.argty) == len(ty2.argty):
