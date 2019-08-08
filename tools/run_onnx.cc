@@ -266,7 +266,7 @@ public:
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
-        chxvm_opts_.dump_memory_usage = args_.exist("trace");
+        chxvm_opts_.dump_memory_usage = args_.exist("trace") ? 2 : 0;
         chxvm_opts_.base_memory_usage = initial_used_bytes_;
         chxvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
