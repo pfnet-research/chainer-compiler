@@ -5,7 +5,7 @@ set -eux
 cat <<'EOM' >runtest.sh
 set -eux
 
-. .chainerci/before_install.sh
+. .flexci/before_install.sh
 
 mkdir -p build
 cd build

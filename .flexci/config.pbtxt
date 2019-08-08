@@ -13,7 +13,7 @@ configs {
     checkout_strategy {
       ignore_gitignore: true
     }
-    command: "sh .chainerci/run_chainerci_tests.sh"
+    command: "sh .flexci/run_flexci_tests.sh"
   }
 }
 configs {
@@ -31,7 +31,7 @@ configs {
     checkout_strategy {
       ignore_gitignore: true
     }
-    command: "sh .chainerci/run_chainerci_pip_tests.sh"
+    command: "sh .flexci/run_flexci_pip_tests.sh"
   }
 }
 configs {
@@ -47,7 +47,7 @@ configs {
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "dldt" }
     environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
-    command: "sh .chainerci/run_onnx.sh"
+    command: "sh .flexci/run_onnx.sh"
   }
 }
 configs {
@@ -63,7 +63,7 @@ configs {
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "ngraph" }
     environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
-    command: "sh .chainerci/run_onnx.sh"
+    command: "sh .flexci/run_onnx.sh"
   }
 }
 configs {
@@ -79,7 +79,7 @@ configs {
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "onnxruntime" }
     environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "" }
-    command: "sh .chainerci/run_onnx.sh"
+    command: "sh .flexci/run_onnx.sh"
   }
 }
 configs {
@@ -96,6 +96,6 @@ configs {
     }
     environment_variables { key: "CHINAER_COMPILER_RUNTIME" value: "tvm" }
     environment_variables { key: "CHINAER_COMPILER_DOCKER_RUNTIME_ARG" value: "--runtime=nvidia" }
-    command: "sh .chainerci/run_onnx.sh"
+    command: "sh .flexci/run_onnx.sh"
   }
 }
