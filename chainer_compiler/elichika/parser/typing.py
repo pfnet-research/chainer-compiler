@@ -75,7 +75,6 @@ class TyArrow(Type):
 
     def __str__(self):
         return "{} -> {}".format(self.argty, self.retty)
-        # return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
     def __repr__(self):
         return self.__str__()
 
@@ -202,8 +201,9 @@ class TyVar(Type):
         return self.__str__()
 
     def freeze(self):
-        self.is_frozen = True
-        self.ty.freeze()
+        if self.ty is not None:
+            self.is_frozen = True
+            self.ty.freeze()
 
     def deref(self):
         if self.is_frozen:
@@ -242,11 +242,9 @@ def all_same_ty(tys):
 # ==============================================================================
 
 primitive_func_ty = {
-        # TODO(momohatt): maybe use 'TyUnion' instead of list?
         # (int \/ float) -> float
         float : TyArrow([TyUnion(TyInt(), TyFloat())], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
-        # TODO(momohatt): maybe it'd be better to first desugar this function into 3-arg version?
         range : TyUnion(
             TyArrow([TyInt()], TyList(TyInt())),
             TyArrow([TyInt(), TyInt()], TyList(TyInt())),
@@ -331,7 +329,6 @@ class TypeChecker():
         print(gast.dump(node))
         print()
         if isinstance(node, gast.Module):
-            # self.nodetype[node] = self.infer_stmt(node.body[0])
             self.infer_stmt(node.body[0])
         else:
             assert(False)
@@ -663,8 +660,7 @@ def unify_(ty1, ty2):
     # ty1 is either Type or list of Type.
     # ty2 must be Type.
 
-    # if ty1 is a list of Type, try unification one by one.
-    # returns the type where unification succeeded.
+    # if ty1 is TyUnion, try unification one by one.
     if isinstance(ty1, TyUnion):
         for ty1_ in ty1.tys:
             try:
@@ -681,7 +677,7 @@ def unify_(ty1, ty2):
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
-    # if ty1 is a type, just do normal unification
+    # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
     if isinstance(ty1, TyBool) and isinstance(ty2, TyBool):
