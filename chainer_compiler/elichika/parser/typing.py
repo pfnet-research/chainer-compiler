@@ -12,7 +12,7 @@ class Type():
 
 # --------------------------- python primivite types ---------------------------
 
-class TyNone(Type):  # kind of 'unit'
+class TyNone(Type):
     def __str__(self):
         return "none"
     def __repr__(self):
@@ -88,7 +88,7 @@ class TyArrow(Type):
         return TyArrow([t.deref() for t in self.argty], self.retty.deref())
 
 
-class SequenceKind(Enum):  # not to be confused with 'kind' in type system
+class SequenceKind(Enum):
     LIST = 0
     TUPLE = 1
 
@@ -157,7 +157,7 @@ def TyTuple(ty):  # shorthand notation
     return TySequence(SequenceKind.TUPLE, ty)
 
 
-class TyDict(Type):  # shorthand notation for tuples
+class TyDict(Type):
     def __init__(self, keyty, valty):
         super().__init__()
         self.keyty = keyty
@@ -190,7 +190,6 @@ class TyVar(Type):
 
     def __str__(self):
         if self.ty:
-            # return str(self.ty)
             return "a{}({})".format(self.i, self.ty)
         return "a" + str(self.i)
     def __repr__(self):
@@ -244,12 +243,13 @@ list_attr_ty = {
 
 
 primitive_op_ty = {
-        # TODO(momohatt): Support '+' of string, list, tuple
+        # TODO(momohatt): Support '+' of list and tuple
         gast.Add : [
             TyArrow([TyInt(), TyInt()], TyInt()),
             TyArrow([TyInt(), TyFloat()], TyFloat()),
             TyArrow([TyFloat(), TyInt()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
+            TyArrow([TyString(), TyString()], TyString()),
             ],
         gast.Sub : [
             TyArrow([TyInt(), TyInt()], TyInt()),
@@ -391,7 +391,7 @@ class TypeChecker():
         elif isinstance(node, gast.If):
             # If(expr test, stmt* body, stmt* orelse)
             ty_test = self.infer_expr(node.test)
-            unify(ty_test, TyBool())
+            # TODO(momohatt): determine what type should ty_test be
 
             if node.orelse == []:
                 tc = TypeChecker(self.tyenv)
@@ -657,7 +657,7 @@ def unify_(ty1, ty2):
                 print("\x1b[33m[LOG] unify error with " + str(ty1_) + " and " + str(ty2) + ". continuing...\x1b[39m")
                 continue
 
-        raise UnifyError(str(ty1) + " and " + str(ty2) + " are not unifiable")
+        raise UnifyError(ty1, ty2)
 
     assert(isinstance(ty1, Type))
     ty1 = ty1.deref()
@@ -671,6 +671,8 @@ def unify_(ty1, ty2):
     if isinstance(ty1, TyInt) and isinstance(ty2, TyInt):
         return
     if isinstance(ty1, TyFloat) and isinstance(ty2, TyFloat):
+        return
+    if isinstance(ty1, TyString) and isinstance(ty2, TyString):
         return
     if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and len(ty1.argty) == len(ty2.argty):
         for (at1, at2) in zip(ty1.argty, ty2.argty):
