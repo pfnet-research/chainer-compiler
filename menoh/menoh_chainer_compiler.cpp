@@ -433,10 +433,10 @@ menoh_error_code menoh_build_variable_profile_table(
                     value->name(), menoh_impl::array_profile(cc_dtype_to_menoh_dtype(value->type().dtype()), value->type().dims()));
         }
         {
-            auto xgraph_ = std::make_unique<onnx::GraphProto>();
-            graph->ToONNX(xgraph_.get());
+            auto xgraph_ptr = std::make_unique<onnx::GraphProto>();
+            graph->ToONNX(xgraph_ptr.get());
             *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                                  menoh_variable_profile_table{std::move(xgraph_), builder->input_profiles, std::move(output_profiles)})
+                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles)})
                                   .release();
         }
         return menoh_error_code_success;
