@@ -85,7 +85,9 @@ class TyArrow(Type):
         self.retty.freeze()
 
     def deref(self):
-        return TyArrow([t.deref() for t in self.argty], self.retty.deref())
+        self.argty = [t.deref() for t in self.argty]
+        self.retty = self.retty.deref()
+        return self
 
 
 class SequenceKind(Enum):
@@ -127,8 +129,10 @@ class TySequence(Type):
 
     def deref(self):
         if self.is_fixed_len:
-            return TySequence(self.seq_kind, [t.deref() for t in self.ty_])
-        return TySequence(self.seq_kind, self.ty_.deref())
+            self.ty_ = [t.deref() for t in self.ty_]
+        else:
+            self.ty_ = self.ty_.deref()
+        return self
 
     def get_ty(self):
         assert(not self.is_fixed_len)
@@ -174,7 +178,9 @@ class TyDict(Type):
         self.valty.freeze()
 
     def deref(self):
-        return TyDict(self.keyty.deref(), self.valty.deref())
+        self.keyty = self.keyty.deref()
+        self.valty = self.valty.deref()
+        return self
 
 
 counter = 0
@@ -205,6 +211,23 @@ class TyVar(Type):
         return self
 
 
+class TyUnion(Type):
+    def __init__(self, *tys):
+        assert(len(tys) >= 2)
+        self.tys = list(tys)  # tys : tuple of Type
+    def __str__(self):
+        return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
+    def __repr__(self):
+        return self.__str__()
+
+    def freeze(self):
+        for t in self.tys:
+            t.freeze()
+    def deref(self):
+        self.tys = [t.deref() for t in self.tys]
+        return self
+
+
 class UnifyError(Exception):
     def __init__(self, ty1, ty2):
         self.msg = "UnifyError: {} and {} are not unifiable".format(ty1, ty2)
@@ -221,18 +244,18 @@ def all_same_ty(tys):
 primitive_func_ty = {
         # TODO(momohatt): maybe use 'TyUnion' instead of list?
         # (int \/ float) -> float
-        float : TyArrow([[TyInt(), TyFloat()]], TyFloat()),
+        float : TyArrow([TyUnion(TyInt(), TyFloat())], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
         # TODO(momohatt): maybe it'd be better to first desugar this function into 3-arg version?
-        range : [
+        range : TyUnion(
             TyArrow([TyInt()], TyList(TyInt())),
             TyArrow([TyInt(), TyInt()], TyList(TyInt())),
             TyArrow([TyInt(), TyInt(), TyInt()], TyList(TyInt())),
-            ],
-        abs : [
+            ),
+        abs : TyUnion(
             TyArrow([TyInt()], TyInt()),
             TyArrow([TyFloat()], TyFloat()),
-            ]
+            ),
         }
 
 
@@ -244,35 +267,34 @@ list_attr_ty = {
 
 primitive_op_ty = {
         # TODO(momohatt): Support '+' of list and tuple
-        gast.Add : [
+        gast.Add : TyUnion(
             TyArrow([TyInt(), TyInt()], TyInt()),
             TyArrow([TyInt(), TyFloat()], TyFloat()),
             TyArrow([TyFloat(), TyInt()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
             TyArrow([TyString(), TyString()], TyString()),
-            ],
-        gast.Sub : [
+            ),
+        gast.Sub : TyUnion(
             TyArrow([TyInt(), TyInt()], TyInt()),
             TyArrow([TyInt(), TyFloat()], TyFloat()),
             TyArrow([TyFloat(), TyInt()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            ],
-        gast.Mult : [
+            ),
+        gast.Mult : TyUnion(
             TyArrow([TyInt(), TyInt()], TyInt()),
             TyArrow([TyInt(), TyFloat()], TyFloat()),
             TyArrow([TyFloat(), TyInt()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            ],
-        gast.Div : [
+            ),
+        gast.Div :
             # (int \/ float) -> (int \/ float) -> float
-            TyArrow([ [TyInt(), TyFloat()], [TyInt(), TyFloat()] ], TyFloat()),
-            ],
-        gast.FloorDiv : [
+            TyArrow([TyUnion(TyInt(), TyFloat()), TyUnion(TyInt(), TyFloat())], TyFloat()),
+        gast.FloorDiv : TyUnion(
             TyArrow([TyInt(), TyInt()], TyInt()),
             TyArrow([TyInt(), TyFloat()], TyFloat()),
             TyArrow([TyFloat(), TyInt()], TyFloat()),
             TyArrow([TyFloat(), TyFloat()], TyFloat()),
-            ],
+            ),
         }
 
 # ==============================================================================
@@ -632,7 +654,7 @@ class TypeChecker():
 
 def unify(ty1, ty2):
     unify_(ty1, ty2)
-    if type(ty1) is not list:
+    if not isinstance(ty1, TyUnion):
         ty1.freeze()
     ty2.freeze()
 
@@ -643,11 +665,8 @@ def unify_(ty1, ty2):
 
     # if ty1 is a list of Type, try unification one by one.
     # returns the type where unification succeeded.
-    if type(ty1) is list:
-        assert(not ty1 == [])
-        assert(isinstance(ty1[0], Type))
-
-        for ty1_ in ty1:
+    if isinstance(ty1, TyUnion):
+        for ty1_ in ty1.tys:
             try:
                 unify_(ty1_, ty2)
                 ty1_.freeze()  # not necessary?
@@ -659,7 +678,6 @@ def unify_(ty1, ty2):
 
         raise UnifyError(ty1, ty2)
 
-    assert(isinstance(ty1, Type))
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
@@ -694,7 +712,8 @@ def unify_(ty1, ty2):
             return
         if (not ty1.is_fixed_len) and ty2.is_fixed_len:
             unify_(ty2, ty1)
-        unify_(ty2, ty1)
+            return
+        unify_(ty2.get_ty(), ty1.get_ty())
         return
 
     if isinstance(ty1, TyVar):
