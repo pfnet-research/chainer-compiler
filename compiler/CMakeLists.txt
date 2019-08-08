@@ -116,16 +116,6 @@ add_dependencies(
   )
 set_hidden_(chainer_compiler_compiler)
 
-if(WIN32)
-  set(MKDIR_P )
-  set(MKDIR_IGNORE > NUL 2>&1)
-  set(WGET bitsadmin /transfer download)
-else()
-  set(MKDIR_P -p)
-  set(MKDIR_IGNORE )
-  set(WGET wget --continue)
-endif()
-
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(chainer_compiler_compiler_test
   code_emitter_test.cc
