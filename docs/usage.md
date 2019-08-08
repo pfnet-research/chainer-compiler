@@ -6,14 +6,14 @@ This document assumes you have successfully built the code by following [set up 
 
 In this section, we run an existing ONNX model by the runtime of Chainer compiler.
 
-To run ResNet50 model downloaded by build system, run
+To run ShuffleNet model in the repository, run
 
 ```shell-session
-$ make -C build ../data/resnet50/model.onnx
-$ ./build/tools/run_onnx --device cuda --test data/resnet50 --trace
+$ make -C build
+$ ./build/tools/run_onnx --device cuda --test data/shufflenet --trace
 ```
 
-The command above uses inputs and outputs in `data/resnet50/test_data_set_?` to feed and verify the model.
+The command above uses inputs and outputs in `data/shufflenet/test_data_set_?` to feed and verify the model.
 
 VGG19 works, too:
 
