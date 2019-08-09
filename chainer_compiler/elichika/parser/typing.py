@@ -9,6 +9,8 @@ import traceback
 from copy import deepcopy
 from enum import Enum, IntEnum
 
+is_debug_global = False
+
 def debug(sth):
     frame = inspect.currentframe().f_back
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
@@ -29,7 +31,7 @@ class TyObj():  # base type
 
 class TyNone(TyObj):
     def __str__(self):
-        return "none"
+        return "NoneType"
     def __eq__(self, other):
         return isinstance(other, TyNone)
     def is_mutable(self):
@@ -65,7 +67,9 @@ class TyNum(TyObj):
         numcounter += 1
 
     def __str__(self):
-        return "n{}({})".format(self.id, str(NumKind(self.ty_level_min)))
+        if is_debug_global:
+            return "n{}({})".format(self.id, str(NumKind(self.ty_level_min)))
+        return str(NumKind(self.ty_level_min))
 
     def __eq__(self, other):
         return isinstance(other, TyNum) and \
@@ -106,7 +110,9 @@ class TyArrow(TyObj):
         self.retty = retty
 
     def __str__(self):
-        return "{} -> {}".format(self.argty, self.retty)
+        if self.argty == []:
+            return "{} -> {}".format(TyNone(), self.retty)
+        return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
 
     def __eq__(self, other):
         return isinstance(other, TyArrow) and self.argty == other.argty and \
@@ -244,7 +250,9 @@ class TyVar(TyObj):
 
     def __str__(self):
         if self.ty:
-            return "a{}({})".format(self.i, self.ty)
+            if is_debug_global:
+                return "a{}({})".format(self.i, self.ty)
+            return str(self.ty)
         return "a" + str(self.i)
 
     def __eq__(self, other):
@@ -389,6 +397,11 @@ class TypeChecker():
         returns: type
         """
         self.infer_mod(node)
+
+        if self.is_debug:
+            print('=== Type Environment ===')
+            self.dump_nodetype()
+
         return self.nodetype
 
     # ================================ mod =====================================
@@ -852,10 +865,9 @@ if __name__ == '__main__':
     orig_ast = gast.ast_to_gast(ast.parse(code))
     dump_ast(orig_ast, 'original')
 
+    is_debug_global = True
     tc = TypeChecker(is_debug=True)
     try:
         nodetype = tc.infer(orig_ast)
-        print('=== Type Environment ===')
-        tc.dump_nodetype()
     except UnifyError as e:
         print(traceback.format_exc(), end="")
