@@ -105,8 +105,10 @@ std::vector<Order> GetComputationOrder(const Graph& graph, const std::string& po
         return CustomPolicy(graph, policy.substr(7));
     } else if (policy == "chen") {
         return ChenPolicy(graph);
-    } else if (policy == "gt") {
-        return GTPolicy(graph);
+    } else if (policy == "gttime") {
+        return GTPolicyTimeCentric(graph);
+    } else if (policy == "gtmem") {
+        return GTPolicyMemoryCentric(graph);
     } else {
         CHECK(false) << "Unknown policy of computation order: " << policy;
         return {};
