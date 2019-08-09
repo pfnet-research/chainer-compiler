@@ -19,8 +19,10 @@ class TyObj():  # base type
         return self.__str__()
     def is_mutable():
         pass
+    # freeze the internal value of TyVar recursively so that it can no longer be modified
     def freeze(self):
         return
+    # dereference internal type
     def deref(self):
         return self
 
@@ -178,8 +180,10 @@ class TySequence(TyObj):
         return self.ty_
 
     def coerce_to_variable_len(self, ty):
-        self.ty_ = ty
-        self.is_fixed_len = False
+        if self.is_fixed_len:
+            assert(all_same_ty(self.ty_))
+            self.ty_ = ty
+            self.is_fixed_len = False
         return
 
     def is_list(self):
@@ -197,6 +201,7 @@ def TyTuple(ty):  # shorthand notation
 
 
 class TyDict(TyObj):
+    # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj', or infer type of each fields (ideally))
     def __init__(self, keyty, valty):
         super().__init__()
         self.keyty = keyty
@@ -320,6 +325,13 @@ def ty_Add(tyl, tyr):
         return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
     if isinstance(tyl, TyString) and isinstance(tyr, TyString):
         return TyString()
+    if isinstance(tyl, TySequence) and isinstance(tyr, TySequence) and tyl.seq_kind == tyr.seq_kind:
+        ty = TyVar()
+        unify(tyl, TyList(ty))
+        unify(tyr, TyList(ty))
+        tyl.coerce_to_variable_len(ty)
+        tyr.coerce_to_variable_len(ty)
+        return TySequence(tyl.seq_kind, ty)
     assert(False)
 
 def ty_Div(tyl, tyr):
@@ -415,8 +427,8 @@ class TypeChecker():
                 ty_val = self.infer_expr(node.value)
                 unify(ty_target, ty_val)
                 for (var, ty) in zip(target.elts, ty_val.get_tys()):
-                    self.tyenv[var.id] = ty if ty.is_mutable() else deepcopy(ty)
-                    self.nodetype[var] = ty if ty.is_mutable() else deepcopy(ty)
+                    self.tyenv[var.id] = ty
+                    self.nodetype[var] = ty
             else:
                 assert(False)
 
@@ -425,10 +437,13 @@ class TypeChecker():
 
         elif isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
-            # Desugar to BinOp
-            ty_val = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
-            self.tyenv[node.target.id] = ty_val if self.tyenv[node.target.id].is_mutable() else deepcopy(ty_val)
-            self.nodetype[node.target] = ty_val if self.tyenv[node.target.id].is_mutable() else deepcopy(ty_val)
+            if self.tyenv[node.target.id].is_mutable():
+                ty_val = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
+            else:
+                self.tyenv[node.target.id] = deepcopy(self.tyenv[node.target.id])
+                ty_val = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
+            self.tyenv[node.target.id] = ty_val
+            self.nodetype[node.target] = ty_val
             self.nodetype[node] = TyNone()
 
 
