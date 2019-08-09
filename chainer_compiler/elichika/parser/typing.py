@@ -9,7 +9,6 @@ import traceback
 from copy import deepcopy
 from enum import Enum, IntEnum
 
-
 def debug(sth):
     frame = inspect.currentframe().f_back
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
@@ -19,7 +18,7 @@ class TyObj():  # base type
         return self.__str__()
     def is_mutable():
         pass
-    # freeze the internal value of TyVar recursively so that it can no longer be modified
+    # freeze internal value of TyVar so that it can no longer be modified
     def freeze(self):
         return
     # dereference internal type
@@ -59,7 +58,7 @@ numcounter = 0  # id for debug printing
 class TyNum(TyObj):
     def __init__(self, ty_level_min, ty_level_max):
         global numcounter
-        assert(ty_level_min <= ty_level_max)
+        assert ty_level_min <= ty_level_max
         self.ty_level_min = ty_level_min
         self.ty_level_max = ty_level_max
         self.id = numcounter
@@ -69,7 +68,8 @@ class TyNum(TyObj):
         return "n{}({})".format(self.id, str(NumKind(self.ty_level_min)))
 
     def __eq__(self, other):
-        return isinstance(other, TyNum) and self.ty_level_min == other.ty_level_min
+        return isinstance(other, TyNum) and \
+                self.ty_level_min == other.ty_level_min
 
     def is_mutable(self):
         return False
@@ -109,7 +109,8 @@ class TyArrow(TyObj):
         return "{} -> {}".format(self.argty, self.retty)
 
     def __eq__(self, other):
-        return isinstance(other, TyArrow) and self.argty == other.argty and self.retty == other.retty
+        return isinstance(other, TyArrow) and self.argty == other.argty and \
+                self.retty == other.retty
 
     def is_mutable(self):
         return False
@@ -144,7 +145,8 @@ class TySequence(TyObj):
             if self.seq_kind == SequenceKind.TUPLE:
                 if len(self.ty_) == 0:
                     return "()"
-                return "(" + "".join([str(t) + ", " for t in self.ty_[:-1]]) + str(self.ty_[-1]) + ")"
+                return "(" + "".join([str(t) + ", " for t in self.ty_[:-1]]) \
+                        + str(self.ty_[-1]) + ")"
 
         if self.seq_kind == SequenceKind.LIST:
             return str(self.ty_) + " list"
@@ -172,16 +174,16 @@ class TySequence(TyObj):
         return self
 
     def get_ty(self):
-        assert(not self.is_fixed_len)
+        assert not self.is_fixed_len
         return self.ty_
 
     def get_tys(self):
-        assert(self.is_fixed_len)
+        assert self.is_fixed_len
         return self.ty_
 
     def coerce_to_variable_len(self, ty):
         if self.is_fixed_len:
-            assert(all_same_ty(self.ty_))
+            assert all_same_ty(self.ty_)
             self.ty_ = ty
             self.is_fixed_len = False
         return
@@ -201,7 +203,8 @@ def TyTuple(ty):  # shorthand notation
 
 
 class TyDict(TyObj):
-    # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj', or infer type of each fields (ideally))
+    # TODO(momohatt): Support hetero-value dicts (simply set valty to 'TyObj',
+    # or infer type of each fields (ideally))
     def __init__(self, keyty, valty):
         super().__init__()
         self.keyty = keyty
@@ -212,7 +215,8 @@ class TyDict(TyObj):
         return "{" + str(self.keyty) + " : " + str(self.valty) + "}"
 
     def __eq__(self, other):
-        return isinstance(other, TyDict) and self.keyty == other.keyty and self.valty == other.valty
+        return isinstance(other, TyDict) and self.keyty == other.keyty and \
+                self.valty == other.valty
 
     def is_mutable(self):
         return True
@@ -264,7 +268,7 @@ class TyVar(TyObj):
 
 class TyUnion(TyObj):
     def __init__(self, *tys):
-        assert(len(tys) >= 2)
+        assert len(tys) >= 2
         self.tys = list(tys)  # tys : tuple of TyObj
     def __str__(self):
         return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
@@ -314,7 +318,7 @@ list_attr_ty = {
 def ty_NumOp(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
         return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
-    assert(False)
+    assert False
 
 def ty_Add(tyl, tyr):
     # match tyl, tyr with
@@ -325,19 +329,20 @@ def ty_Add(tyl, tyr):
         return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
     if isinstance(tyl, TyString) and isinstance(tyr, TyString):
         return TyString()
-    if isinstance(tyl, TySequence) and isinstance(tyr, TySequence) and tyl.seq_kind == tyr.seq_kind:
+    if isinstance(tyl, TySequence) and isinstance(tyr, TySequence) and \
+            tyl.seq_kind == tyr.seq_kind:
         ty = TyVar()
         unify(tyl, TyList(ty))
         unify(tyr, TyList(ty))
         tyl.coerce_to_variable_len(ty)
         tyr.coerce_to_variable_len(ty)
         return TySequence(tyl.seq_kind, ty)
-    assert(False)
+    assert False
 
 def ty_Div(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
         return TyFloat()
-    assert(False)
+    assert False
 
 
 primitive_op_ty = {
@@ -370,9 +375,10 @@ class TypeChecker():
     def dump_nodetype(self):
         for node, ty in self.nodetype.items():
             print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
+        print()
 
 
-    def infer(self, node : 'ast.Node') -> 'TyObj':
+    def infer(self, node: 'ast.Node') -> 'TyObj':
         """
         Adds local type information to self.tyenv while traversing the AST
         returns: type
@@ -380,23 +386,22 @@ class TypeChecker():
         self.infer_mod(node)
 
     # ================================ mod =====================================
-    def infer_mod(self, node : 'ast.Node') -> 'TyObj':
+    def infer_mod(self, node: 'ast.Node') -> 'TyObj':
         debug(gast.dump(node))
-        print()
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
         else:
-            assert(False)
+            assert False
 
 
     # ================================ stmt ====================================
-    def infer_stmt(self, node : 'ast.Node') -> 'TyObj':
+    def infer_stmt(self, node: 'ast.Node') -> 'TyObj':
         debug(gast.dump(node))
-        print()
         self.dump_tyenv()
 
         if isinstance(node, gast.FunctionDef):
-            # FunctionDef(identifier name, arguments args, stmt* body, expr* decorator_list, expr? returns)
+            # FunctionDef(identifier name, arguments args, stmt* body,
+            # expr* decorator_list, expr? returns)
             # TODO(momohatt): Add args to env
 
             for stmt in node.body:
@@ -413,13 +418,17 @@ class TypeChecker():
 
         elif isinstance(node, gast.Assign):
             # Assign(expr* targets, expr value)
-            assert(len(node.targets) == 1)  # cannot think of cases where >= 2
+            assert len(node.targets) == 1  # cannot think of cases where >= 2
             target = node.targets[0]
 
             if isinstance(target, gast.Name):
                 ty_val = self.infer_expr(node.value)
-                self.tyenv[target.id] = ty_val if isinstance(node.value, gast.Name) else deepcopy(ty_val)
-                self.nodetype[target] = ty_val if isinstance(node.value, gast.Name) else deepcopy(ty_val)
+                if isinstance(node.value, gast.Name):
+                    self.tyenv[target.id] = ty_val
+                    self.nodetype[target] = ty_val
+                else:
+                    self.tyenv[target.id] = deepcopy(ty_val)
+                    self.nodetype[target] = deepcopy(ty_val)
             elif isinstance(target, gast.Attribute):
                 pass
             elif type(target) in [gast.Tuple, gast.List]:
@@ -430,7 +439,7 @@ class TypeChecker():
                     self.tyenv[var.id] = ty
                     self.nodetype[var] = ty
             else:
-                assert(False)
+                assert False
 
             self.nodetype[node] = TyNone()
 
@@ -449,7 +458,7 @@ class TypeChecker():
 
         elif isinstance(node, gast.For):
             # For(expr target, expr iter, stmt* body, stmt* orelse)
-            assert(type(node.target) in [gast.Name, gast.Tuple])
+            assert type(node.target) in [gast.Name, gast.Tuple]
 
             ty_iteration = self.infer_expr(node.iter)
             ty_i = self.infer_expr(node.target)
@@ -503,7 +512,8 @@ class TypeChecker():
                 for name, ty in tc1.tyenv.items():
                     if name not in tc2.tyenv.keys():
                         continue
-                    unify(ty, tc2.tyenv[name])  # untypeable If-stmts will raise error here
+                    # untypeable If-stmts will raise error here
+                    unify(ty, tc2.tyenv[name])
 
                 # 2. update local tyenv
                 for name, ty in tc1.tyenv.items():
@@ -533,9 +543,8 @@ class TypeChecker():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node : 'ast.Node') -> 'Type':
+    def infer_expr(self, node: 'ast.Node') -> 'TyObj':
         debug(gast.dump(node))
-        print()
         self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
@@ -543,7 +552,7 @@ class TypeChecker():
             ty_vals = [self.infer_expr(val) for val in node.values]
             for ty in ty_vals:
                 unify(ty, TyBool())
-            self.nodetype[node.op] = TyArrow([TyBool(), TyBool()], TyBool())  # probably only this type?
+            self.nodetype[node.op] = TyArrow([TyBool(), TyBool()], TyBool())
             self.nodetype[node] = TyBool()
 
 
@@ -569,8 +578,8 @@ class TypeChecker():
             else:
                 ty_keys = [self.infer_expr(key) for key in node.keys]
                 ty_vals = [self.infer_expr(val) for val in node.values]
-                assert(all_same_ty(ty_keys))
-                assert(all_same_ty(ty_vals))
+                assert all_same_ty(ty_keys)
+                assert all_same_ty(ty_vals)
                 self.nodetype[node] = TyDict(ty_keys[0], ty_vals[0])
 
 
@@ -584,7 +593,8 @@ class TypeChecker():
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = TyVar()
 
-            if isinstance(node.func, gast.Name) and eval(node.func.id) in primitive_func_ty.keys():
+            if isinstance(node.func, gast.Name) and \
+                    eval(node.func.id) in primitive_func_ty.keys():
                 # case of applying primitive functions
                 ty_fun = deepcopy(primitive_func_ty[eval(node.func.id)])
                 unify(ty_fun, TyArrow(ty_args, ty_ret))
@@ -630,7 +640,8 @@ class TypeChecker():
             # Attribute(expr value, identifier attr, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
             if ty_obj.is_list():
-                if ty_obj.is_fixed_len:  # if the object is fixed-length list, coerce it to variable-length
+                if ty_obj.is_fixed_len:
+                    # if the object is fixed-length list, coerce it.
                     unify(ty_obj, TyList(TyVar()))
                 ty_ret = list_attr_ty[node.attr](ty_obj)
                 self.nodetype[node] = ty_ret
@@ -660,14 +671,14 @@ class TypeChecker():
                     elif isinstance(node.slice, gast.Slice):
                         self.nodetype[node] = ty_obj
                     else:
-                        assert(False)
+                        assert False
             elif isinstance(ty_obj, TyDict):
                 debug("hoge")
                 self.infer_slice(node.slice, ty_obj.keyty)
-                assert(isinstance(node.slice, gast.Index))  # error: unhashable type
+                assert isinstance(node.slice, gast.Index)  # error: unhashable type
                 self.nodetype[node] = ty_obj.valty
             else:
-                assert(False)
+                assert False
 
 
         elif isinstance(node, gast.Name):
@@ -696,7 +707,7 @@ class TypeChecker():
         return self.nodetype[node]
 
 
-    def infer_slice(self, node: 'gast.Node', ty_key) -> 'NoneType' :
+    def infer_slice(self, node: 'gast.Node', ty_key) -> 'NoneType':
         if isinstance(node, gast.Slice):
             # Slice(expr? lower, expr? upper, expr? step)
             if node.lower:
@@ -739,7 +750,8 @@ def unify_(ty1, ty2):
                 ty2.freeze()
                 return
             except UnifyError:
-                print("\x1b[33m[LOG] unify error with " + str(ty1_) + " and " + str(ty2) + ". continuing...\x1b[39m")
+                print("\x1b[33m[LOG] unify error with " + str(ty1_) \
+                        + " and " + str(ty2) + ". continuing...\x1b[39m")
                 continue
 
         raise UnifyError(ty1, ty2)
@@ -760,7 +772,8 @@ def unify_(ty1, ty2):
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
         return
-    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and len(ty1.argty) == len(ty2.argty):
+    if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and \
+            len(ty1.argty) == len(ty2.argty):
         for (at1, at2) in zip(ty1.argty, ty2.argty):
             unify_(at1, at2)
         unify_(ty1.retty, ty2.retty)
@@ -790,12 +803,12 @@ def unify_(ty1, ty2):
         return
 
     if isinstance(ty1, TyVar):
-        assert(not ty1.is_frozen)
+        assert not ty1.is_frozen
         ty1.ty = ty2
         return
 
     if isinstance(ty2, TyVar):
-        assert(not ty2.is_frozen)
+        assert not ty2.is_frozen
         ty2.ty = ty1
         return
 
@@ -828,9 +841,7 @@ if __name__ == '__main__':
 
     code = open(sys.argv[1]).read()
     orig_ast = gast.ast_to_gast(ast.parse(code))
-    print('=== Original AST ===')
     dump_ast(orig_ast, 'original')
-    print()
 
     tc = TypeChecker()
     try:
