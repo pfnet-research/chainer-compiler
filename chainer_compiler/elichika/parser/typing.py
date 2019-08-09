@@ -357,22 +357,27 @@ primitive_op_ty = {
 # ==============================================================================
 
 class TypeChecker():
-    def __init__(self, tyenv=None):
+    def __init__(self, tyenv=None, is_debug=False):
         if tyenv is None:
             self.tyenv = {}  # string -> TyObj (internal type env)
         else:
             self.tyenv = deepcopy(tyenv)
         # type environments
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
+        self.is_debug = is_debug
 
 
     def dump_tyenv(self):
+        if not self.is_debug:
+            return
         for name, ty in self.tyenv.items():
             print(name + " : \x1b[35m" + str(ty) + "\x1b[39m")
         print()
 
 
     def dump_nodetype(self):
+        if not self.is_debug:
+            return
         for node, ty in self.nodetype.items():
             print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
         print()
@@ -388,7 +393,9 @@ class TypeChecker():
 
     # ================================ mod =====================================
     def infer_mod(self, node: 'ast.Node'):
-        debug(gast.dump(node))
+        if self.is_debug:
+            debug(gast.dump(node))
+
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
         else:
@@ -397,8 +404,9 @@ class TypeChecker():
 
     # ================================ stmt ====================================
     def infer_stmt(self, node: 'ast.Node') -> 'TyObj':
-        debug(gast.dump(node))
-        self.dump_tyenv()
+        if self.is_debug:
+            debug(gast.dump(node))
+            self.dump_tyenv()
 
         if isinstance(node, gast.FunctionDef):
             # FunctionDef(identifier name, arguments args, stmt* body,
@@ -545,8 +553,9 @@ class TypeChecker():
 
     # ================================= expr ===================================
     def infer_expr(self, node: 'ast.Node') -> 'TyObj':
-        debug(gast.dump(node))
-        self.dump_tyenv()
+        if self.is_debug:
+            debug(gast.dump(node))
+            self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
             # BoolOp(boolop op, expr* values)
@@ -674,7 +683,6 @@ class TypeChecker():
                     else:
                         assert False
             elif isinstance(ty_obj, TyDict):
-                debug("hoge")
                 self.infer_slice(node.slice, ty_obj.keyty)
                 assert isinstance(node.slice, gast.Index)  # error: unhashable type
                 self.nodetype[node] = ty_obj.valty
@@ -844,7 +852,7 @@ if __name__ == '__main__':
     orig_ast = gast.ast_to_gast(ast.parse(code))
     dump_ast(orig_ast, 'original')
 
-    tc = TypeChecker()
+    tc = TypeChecker(is_debug=True)
     try:
         nodetype = tc.infer(orig_ast)
         print('=== Type Environment ===')
