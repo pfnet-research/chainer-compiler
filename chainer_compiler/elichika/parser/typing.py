@@ -51,17 +51,19 @@ class NumKind(IntEnum):
         return self.__str__()
 
 
+numcounter = 0  # id for debug printing
+
 class TyNum(Type):
     def __init__(self, ty_level_min, ty_level_max):
+        global numcounter
         assert(ty_level_min <= ty_level_max)
         self.ty_level_min = ty_level_min
         self.ty_level_max = ty_level_max
+        self.id = numcounter
+        numcounter += 1
 
     def __str__(self):
-        tys = [NumKind(i) for i in range(self.ty_level_min, self.ty_level_max + 1)]
-        if len(tys) <= 1:
-            return str(tys[0])
-        return str(tys[0]) + "".join([" \/ " + str(t) for t in tys[1:]])
+        return "n{}({})".format(self.id, str(NumKind(self.ty_level_min)))
 
     def is_mutable(self):
         return False
@@ -292,6 +294,10 @@ def ty_NumOp(tyl, tyr):
     assert(False)
 
 def ty_Add(tyl, tyr):
+    # match tyl, tyr with
+    # | TyNum(n, _), TyNum(m, _) -> TyNum(max(n, m), 2)
+    # | TyString(), TyString() -> TyString
+    # | TyList(), TyList() -> TyList
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
         return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
     if isinstance(tyl, TyString) and isinstance(tyr, TyString):
@@ -382,8 +388,8 @@ class TypeChecker():
 
             if isinstance(target, gast.Name):
                 ty_val = self.infer_expr(node.value)
-                self.tyenv[target.id] = ty_val if ty_val.is_mutable() else deepcopy(ty_val)
-                self.nodetype[target] = ty_val if ty_val.is_mutable() else deepcopy(ty_val)
+                self.tyenv[target.id] = ty_val if isinstance(node.value, gast.Name) else deepcopy(ty_val)
+                self.nodetype[target] = ty_val if isinstance(node.value, gast.Name) else deepcopy(ty_val)
             elif isinstance(target, gast.Attribute):
                 pass
             elif type(target) in [gast.Tuple, gast.List]:
@@ -401,9 +407,10 @@ class TypeChecker():
 
         elif isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
-            # TODO(momohatt): in-place add is different from BinOp
             # Desugar to BinOp
-            self.tyenv[node.target.id] = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
+            ty_val = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
+            self.tyenv[node.target.id] = ty_val if self.tyenv[node.target.id].is_mutable() else deepcopy(ty_val)
+            self.nodetype[node.target] = ty_val if self.tyenv[node.target.id].is_mutable() else deepcopy(ty_val)
             self.nodetype[node] = TyNone()
 
 
@@ -437,10 +444,18 @@ class TypeChecker():
                 tc = TypeChecker(self.tyenv)
                 for stmt in node.body:
                     tc.infer_stmt(stmt)
+
+                # 1. unify the intersection of 2 tyenvs
                 for name, ty in tc.tyenv.items():
-                    unify(ty, self.tyenv[name])
+                    if name in self.tyenv.keys():
+                        unify(ty, self.tyenv[name])
+
+                # 2. update local tyenv
                 for name, ty in tc.tyenv.items():
-                    self.tyenv[name] = ty
+                    if name in self.tyenv.keys():
+                        self.tyenv[name] = ty
+
+                # 3. merge nodetype from 2 TypeCheckers
                 for node_, ty in tc.nodetype.items():
                     self.nodetype[node_] = ty
             else:
@@ -451,19 +466,19 @@ class TypeChecker():
                 for stmt in node.orelse:
                     tc2.infer_stmt(stmt)
 
-                # unify the intersection of 2 tyenvs
+                # 1. unify the intersection of 2 tyenvs
                 for name, ty in tc1.tyenv.items():
                     if name not in tc2.tyenv.keys():
                         continue
                     unify(ty, tc2.tyenv[name])  # untypeable If-stmts will raise error here
 
-                # update local tyenv
+                # 2. update local tyenv
                 for name, ty in tc1.tyenv.items():
                     if name not in tc2.tyenv.keys():
                         continue
                     self.tyenv[name] = ty
 
-                # merge nodetype from 2 TypeCheckers
+                # 3. merge nodetype from 2 TypeCheckers
                 for node_, ty in tc1.nodetype.items():
                     self.nodetype[node_] = ty
                 for node_, ty in tc2.nodetype.items():
@@ -475,6 +490,10 @@ class TypeChecker():
         elif isinstance(node, gast.Expr):
             # Expr(expr value)
             self.nodetype[node] = self.infer_expr(node.value)
+
+
+        elif isinstance(node, gast.Pass):
+            self.nodetype[node] = TyNone()
 
 
         return self.nodetype[node]
@@ -497,8 +516,8 @@ class TypeChecker():
 
         elif isinstance(node, gast.BinOp):
             # BinOp(expr left, operator op, expr right)
-            tyl = self.infer_expr(node.left)
-            tyr = self.infer_expr(node.right)
+            tyl = self.infer_expr(node.left).deref()
+            tyr = self.infer_expr(node.right).deref()
 
             ty_ret = primitive_op_ty[type(node.op)](tyl, tyr)
             self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
