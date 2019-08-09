@@ -384,9 +384,10 @@ class TypeChecker():
         returns: type
         """
         self.infer_mod(node)
+        return self.nodetype
 
     # ================================ mod =====================================
-    def infer_mod(self, node: 'ast.Node') -> 'TyObj':
+    def infer_mod(self, node: 'ast.Node'):
         debug(gast.dump(node))
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
@@ -845,7 +846,7 @@ if __name__ == '__main__':
 
     tc = TypeChecker()
     try:
-        tc.infer(orig_ast)
+        nodetype = tc.infer(orig_ast)
         print('=== Type Environment ===')
         tc.dump_nodetype()
     except UnifyError as e:
