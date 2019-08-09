@@ -37,9 +37,9 @@ def generate_type_table(tree, is_debug=False):
     return new_nodetype
 
 
-def generate_assertion(tree):
-    # print("assert isinstance({}, {})".format(
-    pass
+def generate_assertion(type_table_name, type_table):
+    for k, t in type_table.items():
+        print("assert str({}[{}]) == \"{}\"".format(type_table_name, k, t))
 
 
 def main():
@@ -51,8 +51,9 @@ def main():
         return x
     """)
     node = gast.ast_to_gast(ast.parse(code))
+    node_type = generate_type_table(node, True)
     pprint.pprint(generate_id_table(node))
-    pprint.pprint(generate_type_table(node, True))
+    generate_assertion("node_type", node_type)
 
 
 if __name__ == '__main__':
