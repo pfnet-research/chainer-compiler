@@ -33,6 +33,13 @@
         "ReplaceMaxPool": true,
         "ReplaceAveragePool": true
     },
+    "merge": {
+        "MergeSplitConcat": true,
+        "MergePadConv": true,
+        "MergeTransposeGemm": true,
+        "MergeMatMulAdd": true,
+        "MergeConvBN": true
+    },
     "supported_ops": {
         "Abs": true,
         "Acos": true,

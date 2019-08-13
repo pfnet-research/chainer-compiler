@@ -246,9 +246,52 @@ bool MaybeMergeMatMulAdd(Graph* graph, Node* matmul) {
     return true;
 }
 
+typedef std::function<bool(Graph* graph, Node* target)> MergerFn;
+
+struct Merger {
+    Merger(const std::string& n, MergerFn f) : name(n), fn(f) {
+    }
+
+    std::string name;
+    MergerFn fn;
+};
+
 }  // namespace
 
-void MergeOperations(Graph* graph, bool gen_backprop) {
+void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bool gen_backprop) {
+    std::set<std::string> all_merger_names;
+    std::map<Node::OpType, Merger> mergers;
+
+    auto register_merger = [&merger_names, &mergers, &all_merger_names](Node::OpType op, const char* name, MergerFn fn) {
+        CHECK(all_merger_names.emplace(name).second);
+        CHECK(mergers.emplace(op, Merger{name, fn}).second);
+    };
+
+#define REGISTER_MERGER(op, name)                                      \
+    do {                                                               \
+        register_merger(Node::k##op, "Merge" #name, MaybeMerge##name); \
+    } while (false)
+
+    // TODO(hamaji): Fix the implementation of Concat => Split
+    // merge. Unlike Split => Concat merge, we should check
+    // if the split dimensions are not changed.
+    REGISTER_MERGER(Split, SplitConcat);
+    REGISTER_MERGER(Pad, PadConv);
+    REGISTER_MERGER(Transpose, TransposeGemm);
+    REGISTER_MERGER(MatMul, MatMulAdd);
+
+    register_merger(Node::kConv, "MergeConvBN", [gen_backprop](Graph* graph, Node* target) {
+        if (gen_backprop) {
+            return false;
+        }
+        return MaybeMergeConvBN(graph, target);
+    });
+
+    // Check for non-registered merger
+    for (const std::string& name : merger_names) {
+        CHECK_EQ(1, all_merger_names.count(name)) << name << "not registerd";
+    }
+
     bool replaced = true;
     while (replaced) {
         replaced = false;
@@ -257,30 +300,16 @@ void MergeOperations(Graph* graph, bool gen_backprop) {
                 continue;
             }
 
-            // TODO(hamaji): Fix the implementation of Concat => Split
-            // merge. Unlike Split => Concat merge, we should check
-            // if the split dimensions are not changed.
-            switch (node->op_type()) {
-                case Node::kSplit:
-                    replaced |= MaybeMergeSplitConcat(graph, node);
-                    break;
-                case Node::kPad:
-                    replaced |= MaybeMergePadConv(graph, node);
-                    break;
-                case Node::kConv:
-                    if (!gen_backprop) {
-                        replaced |= MaybeMergeConvBN(graph, node);
-                    }
-                    break;
-                case Node::kTranspose:
-                    replaced |= MaybeMergeTransposeGemm(graph, node);
-                    break;
-                case Node::kMatMul:
-                    replaced |= MaybeMergeMatMulAdd(graph, node);
-                    break;
-                default:
-                    break;
+            auto found = mergers.find(node->op_type());
+            if (found == mergers.end()) {
+                continue;
             }
+            const Merger& merger = found->second;
+            if (merger_names.count(merger.name) == 0) {
+                continue;
+            }
+
+            replaced |= merger.fn(graph, node);
         }
     }
 }
