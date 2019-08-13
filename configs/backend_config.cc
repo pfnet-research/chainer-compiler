@@ -19,6 +19,8 @@ public:
             } else if (el.key() == "supported_ops") {
                 ParseSupportedOps(el.value(), &supported_ops_);
                 supported_ops_set_ = true;
+            } else if (el.key() == "merge") {
+                ParseMerge(el.value(), &merge_);
             } else {
                 std::cerr << "WARNING: Unknown backend config: " << el.key() << std::endl;
             }
@@ -43,6 +45,10 @@ public:
         return simplify_;
     }
 
+    const std::set<std::string>& GetMerge() const override {
+        return merge_;
+    }
+
     bool HasOp(const std::string& op) const override {
         if (!supported_ops_set_) return true;
         return supported_ops_.count(op) > 0;
@@ -63,11 +69,22 @@ private:
     void ParseSupportedOps(const json& supported_ops, std::set<std::string>* ops) {
         CHECK(supported_ops.is_object()) << "supported_ops must be an object: " << supported_ops;
         for (const auto& el : supported_ops.items()) {
-            CHECK(el.value().is_boolean()) << "op values must be bool: " << supported_ops;
+            CHECK(el.value().is_boolean()) << "op values must be bool: " << el.key();
             if (el.value() == false) {
                 continue;
             }
             CHECK(ops->emplace(el.key()).second) << "Duplicate key: " << el.key();
+        }
+    }
+
+    void ParseMerge(const json& merge, std::set<std::string>* res) {
+        CHECK(merge.is_object()) << "merge must be an object: " << merge;
+        for (const auto& el : merge.items()) {
+            CHECK(el.value().is_boolean()) << "op values must be bool: " << el.key();
+            if (el.value() == false) {
+                continue;
+            }
+            CHECK(res->emplace(el.key()).second) << "Duplicate key: " << el.key();
         }
     }
 
@@ -76,6 +93,7 @@ private:
     std::set<std::string> simplify_;
     bool supported_ops_set_{false};
     std::set<std::string> supported_ops_;
+    std::set<std::string> merge_;
 };
 
 std::unique_ptr<BackendConfig> BackendConfig::FromName(const std::string& name) {
