@@ -225,7 +225,7 @@ chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b) 
     return chainerx::Stack(stack).Reshape(new_shape);
 }
 
-chainerx::Array ApplyAsynmmetricPad(const chainerx::Array& x, Int64StackVector* pads_ptr, float value, int64_t beg_dim) {
+chainerx::Array ApplyAsymmetricPad(const chainerx::Array& x, Int64StackVector* pads_ptr, float value, int64_t beg_dim) {
     Int64StackVector& pads = *pads_ptr;
     // Don't apply pad in symmetric pad
     if (pads.size() == (x.shape().size() - beg_dim)) {
@@ -316,7 +316,7 @@ chainerx::Array GroupedConv(
         int group,
         const std::string& auto_pad) {
     Int64StackVector pads = CalculateAutoPad(auto_pad, in_x, Int64StackVector(w.shape().begin() + 2, w.shape().end()), strides, in_pads);
-    chainerx::Array x = ApplyAsynmmetricPad(in_x, &pads);
+    chainerx::Array x = ApplyAsymmetricPad(in_x, &pads);
 
     if (group == 1) {
         return chainerx::Conv(x, w, b, strides, pads);

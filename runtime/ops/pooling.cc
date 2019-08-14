@@ -49,7 +49,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, con
     std::shared_ptr<chainerx::MaxPoolGradState> state;
     chainerx::Array out;
     Int64StackVector pads = CalculateAutoPad(auto_pad, in_x, kernel_shape, strides, ComplementPad(this->pads, in_x));
-    chainerx::Array x = ApplyAsynmmetricPad(in_x, &pads);
+    chainerx::Array x = ApplyAsymmetricPad(in_x, &pads);
     const Int64StackVector& strides = ComplementStride(this->strides, x);
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, absl::nullopt);
