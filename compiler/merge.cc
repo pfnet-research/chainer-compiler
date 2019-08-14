@@ -169,7 +169,9 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     bc = (bc - mean) * s + bn_bias;
 
     GraphBuilder gb(graph, "MergeConvBN", bn->input(0));
-    Node* new_conv = gb.MOp(Node::kConv, {conv->input(0), gb.Param(new_w), gb.Param(bc)}, bn->outputs());
+    Value* w_value = conv->input(1);
+    Value* b_value = has_conv_bias ? conv->input(2) : bn->input(2);
+    Node* new_conv = gb.MOp(Node::kConv, {conv->input(0), gb.Param(new_w, w_value), gb.Param(bc, b_value)}, bn->outputs());
     new_conv->set_auto_pad(conv->auto_pad());
     new_conv->set_dilations(conv->dilations());
     new_conv->set_group(conv->group());
