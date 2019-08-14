@@ -102,6 +102,22 @@ class Log(chainer.Chain):
         y1 = F.log(x)
         return y1
 
+class Clip(chainer.Chain):
+    def __init__(self):
+        super(Clip,self).__init__()
+
+    def forward(self, x):
+        y1 = F.clip(x, -1.0, 1.0)
+        return y1
+
+class ClipNp(chainer.Chain):
+    def __init__(self):
+        super(ClipNp,self).__init__()
+    
+    def forward(self, x):
+        y1 = np.clip(x, -1.0, 1.0)
+        return y1
+    
 # ======================================
 from chainer_compiler.elichika import testtools
 import numpy as np
@@ -122,6 +138,8 @@ def main():
     testtools.generate_testcase(ArcTan(), [x], subname='arctan')
     testtools.generate_testcase(Exp(), [x], subname='exp')
     testtools.generate_testcase(Log(), [x], subname='log')
+    testtools.generate_testcase(Clip(), [x], subname='clip')
+    testtools.generate_testcase(ClipNp(), [x], subname='clip_np')
 
 if __name__ == '__main__':
     main()

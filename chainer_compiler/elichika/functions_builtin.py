@@ -52,6 +52,7 @@ class BaseConverter(object):
     def __call__(self, onnx_graph, node):
         raise NotImplementedError
 
+    
 class ConverterChainerMathMisc(BaseConverter):
     def __init__(self, operator):
         self.expected_args = (
@@ -265,6 +266,24 @@ class ConverterMin(BaseConverter):
             keepdims=parser.get('keepdims'),
             **kwargs)
 
+class ConverterClip(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('x_min', oc.ParseType.Att),
+            ('x_max', oc.ParseType.Att),)
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        onnx_graph.add_node(
+            "Clip",
+            [parser.get('x')],
+            node.outputs,
+            str(node.lineprop),
+            min=parser.get('x_min'),
+            max=parser.get('x_max'))
+            
 class ConverterSum(BaseConverter):
     def __init__(self):
         self.expected_args = (

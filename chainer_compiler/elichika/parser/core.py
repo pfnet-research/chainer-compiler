@@ -19,6 +19,7 @@ from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import flags
+from chainer_compiler.elichika.parser import custom_functions
 import numpy as np
 import six
 
@@ -132,7 +133,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.arctan)
     add_chainer_function(F.exp)
     add_chainer_function(F.log)
-    
+
+    add_chainer_function(F.clip)
+
     values.function_converters[F.argmax] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmax), None)
     values.function_converters[F.argmin] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmin), None)
 
@@ -168,6 +171,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.minimum] = f_minimum
     values.function_converters[np.argmax] = f_argmax
     values.function_converters[np.argmin] = f_argmin
+
+    custom_functions_module = values.Object(values.ModuleValue(custom_functions))
+    values.function_converters[np.clip] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_clip), None, module=custom_functions_module)
+
+    values.function_converters[custom_functions.check_attribute_value] = values.FuncValue(functions.CheckAttributeValueFunction(), None, module=custom_functions_module)
+
+    values.function_converters[custom_functions.check_attribute_scalar] = values.FuncValue(functions.CheckAttributeScalarFunction(), None, module=custom_functions_module)
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range
