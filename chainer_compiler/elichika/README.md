@@ -78,6 +78,7 @@ else:
 - average
 - cos
 - cosh
+- clip
 - exp
 - log
 - matmul
@@ -131,6 +132,7 @@ else:
 - numpy.zeros
 - numpy.full
 - numpy.ceil
+- numpy.clip
 - numpy.cumsum
 - numpy.maximum
 - numpy.minimum
