@@ -46,6 +46,7 @@ def main():
     x = np.random.rand(6, 4, 3).astype(np.float32) - 0.5
 
     simple_targets = [
+        'clipped_relu',
         'leaky_relu',
         'log_softmax',
         'elu',
@@ -61,6 +62,7 @@ def main():
             Simple(func), [x], subname=target+'_simple')
 
     param1_targets = [
+        ('clipped_relu', 10.0),
         ('leaky_relu', 0.1),
         ('log_softmax', 2),
         ('elu', 0.9),
