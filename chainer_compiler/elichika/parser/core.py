@@ -58,6 +58,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     values.instance_converters.append(instance_converter)
 
+    custom_functions_module = values.Object(values.ModuleValue(custom_functions))
+
     # chainer
     c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
     values.function_converters[chainer.Variable] = c_variable
@@ -139,6 +141,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[F.argmax] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmax), None)
     values.function_converters[F.argmin] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmin), None)
 
+    values.function_converters[F.clipped_relu] = values.FuncValue(functions.UserDefinedFunction(custom_functions.chainer_clipped_relu), None, module=custom_functions_module)
+
     if int(chainer.__version__[0]) >= 6:
         add_chainer_function(F.roi_max_pooling_2d)
         add_chainer_function(F.roi_average_pooling_2d)
@@ -172,7 +176,6 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.argmax] = f_argmax
     values.function_converters[np.argmin] = f_argmin
 
-    custom_functions_module = values.Object(values.ModuleValue(custom_functions))
     values.function_converters[np.clip] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_clip), None, module=custom_functions_module)
 
     values.function_converters[custom_functions.check_attribute_value] = values.FuncValue(functions.CheckAttributeValueFunction(), None, module=custom_functions_module)
