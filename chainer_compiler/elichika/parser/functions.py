@@ -494,3 +494,37 @@ class UserDefinedFunctionFromAst(FunctionBase):
         self.func_field.dispose()
 
         return ret
+
+class CheckAttributeValueFunction(FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'check_attribute_value'
+        self.args.add_arg('actual_value', values.NoneValue())
+        self.args.add_arg('expected_value', values.NoneValue())
+        self.args.add_arg('func_name', values.NoneValue())
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
+
+        funcArgs = self.args.merge_inputs(inst ,args)
+        vargs = funcArgs.get_value().inputs
+      
+        if type(vargs[0]) != type(vargs[1]) or vargs[0].get_constant_value() != vargs[1].get_constant_value():
+            raise Exception("unsupported attribute {} from {} in {}".format(vargs[0].get_constant_value(), vargs[2].get_constant_value(), line))
+    
+class CheckAttributeScalarFunction(FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'check_attribute_scalar'
+        self.args.add_arg('value', values.NoneValue())
+        self.args.add_arg('func_name', values.NoneValue())
+        
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+                      context: 'VEvalContext' = None, line=-1):
+        
+        funcArgs = self.args.merge_inputs(inst ,args)
+        vargs = funcArgs.get_value().inputs
+              
+        if not isinstance(vargs[0], values.NumberValue):
+            raise Exception("unsupported attribute {} from {} in {}".format('arg', vargs[1].get_constant_value(), line))
+        

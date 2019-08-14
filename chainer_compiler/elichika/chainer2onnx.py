@@ -112,6 +112,8 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[functions_ndarray.dummy_argmax] = fb.ConverterArgMax()
     oc.f_converter[functions_ndarray.dummy_argmin] = fb.ConverterArgMin()
 
+    oc.f_converter[F.clip] = fb.ConverterClip()
+
     if int(chainer.__version__[0]) >= 6:
         oc.f_converter[F.roi_max_pooling_2d] = fb.ConverterRoiMaxPooling2D()
         oc.f_converter[F.roi_average_pooling_2d] = fb.ConverterRoiAveragePooling2D()
