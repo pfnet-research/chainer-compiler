@@ -9,10 +9,6 @@ endif()
 
 add_definitions(-DCHAINER_COMPILER_DLDT_DIR=\"${CHAINER_COMPILER_DLDT_DIR}\")
 
-if(MSVC)
-    find_package(PythonInterp 3)
-endif()
-
 add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.h
@@ -109,8 +105,9 @@ add_library(chainer_compiler_compiler
   type.cc
   util.cc
   value.cc
-  chxvm/emitter.cc
   chxvm/chxvm_value.cc
+  chxvm/emitter.cc
+  chxvm/value_id_manager.cc
   )
 add_dependencies(
   chainer_compiler_compiler
@@ -118,41 +115,6 @@ add_dependencies(
   gen_onnx_proto gen_onnx_operators_proto
   )
 set_hidden_(chainer_compiler_compiler)
-
-# Download and extract test data
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
-  tar -xvzf mnist.tar.gz
-  )
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
-  tar -xvzf resnet50.tar.gz
-  )
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/tiny_yolov2/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://onnxzoo.blob.core.windows.net/models/opset_8/tiny_yolov2/tiny_yolov2.tar.gz &&
-  tar -xvzf tiny_yolov2.tar.gz &&
-  mv tiny_yolov2/Model.onnx tiny_yolov2/model.onnx
-  )
-
-add_custom_target(
-  test_models
-  DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/tiny_yolov2/model.onnx"
-  )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(chainer_compiler_compiler_test
@@ -175,7 +137,7 @@ add_executable(chainer_compiler_compiler_test
 add_dependencies(
   chainer_compiler_compiler_test
   runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h compiler_flags_h
-  gen_onnx_proto test_models
+  gen_onnx_proto
   )
 target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler
@@ -188,7 +150,7 @@ target_link_libraries(chainer_compiler_compiler_test
   ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
-  pthread
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}

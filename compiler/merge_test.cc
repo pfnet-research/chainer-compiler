@@ -29,7 +29,7 @@ TEST(MergeTest, SplitConcat) {
         gb.Op(Node::kConcat, tmps, output)->producer()->set_axis(1);
     }
 
-    MergeOperations(&graph, false);
+    MergeOperations({"MergeSplitConcat"}, &graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
@@ -64,7 +64,7 @@ TEST(MergeTest, PadConv) {
         conv_node.set_strides({2, 2});
     }
 
-    MergeOperations(&graph, false);
+    MergeOperations({"MergePadConv"}, &graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
@@ -95,7 +95,7 @@ TEST(MergeTest, TransposeGemmA) {
         gb.Op(Node::kGemm, {trans, graph.AddInputValue("b", type), graph.AddInputValue("c", type)}, output);
     }
 
-    MergeOperations(&graph, false);
+    MergeOperations({"MergeTransposeGemm"}, &graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
@@ -133,7 +133,7 @@ TEST(MergeTest, ConvBN) {
     }
 
     ASSERT_EQ(8, graph.nodes().size());
-    MergeOperations(&graph, false);
+    MergeOperations({"MergeConvBN"}, &graph, false);
     graph.DeleteDetached();
     std::vector<Node*> nodes;
     for (Node* node : graph.nodes()) {
@@ -168,7 +168,7 @@ TEST(MergeTest, MatMulAdd) {
         gb.Op(Node::kAdd, {gb.Op(Node::kMatMul, {a, b}), c}, output);
     }
 
-    MergeOperations(&graph, false);
+    MergeOperations({"MergeMatMulAdd"}, &graph, false);
     graph.DeleteDetached();
     ASSERT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];

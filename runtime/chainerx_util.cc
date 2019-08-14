@@ -380,7 +380,6 @@ chainerx::Array GroupedConvGradWeight(
 
     chainerx::Shape ws_shape = w.shape();
     ws_shape[0] /= group;
-    ws_shape[1] /= group;
     std::vector<chainerx::Array> xs = SplitByLengths(x, 1, std::vector<int64_t>(group, x.shape()[1] / group));
     std::vector<chainerx::Array> gys = SplitByLengths(gy, 1, std::vector<int64_t>(group, gy.shape()[1] / group));
     std::vector<chainerx::Array> gws(group);

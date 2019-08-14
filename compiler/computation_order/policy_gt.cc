@@ -91,6 +91,13 @@ NodeSet Boundary(const SimpleGraph& sg, const NodeSet& ls) {
     return ret;
 }
 
+void CheckDisjoint(const char* test_name, const NodeSet& set1, const NodeSet& set2) {
+    CHECK_EQ(set1.size(), set2.size());
+    for (size_t i = 0; i < set1.size(); ++i) {
+        CHECK(!(set1[i] && set2[i])) << test_name << ": overlap is not allowed";
+    }
+}
+
 SimpleGraph GetSimpleFormGraph(const Graph& graph) {
     // Extract only temporary&output values
     SimpleGraph sg;
@@ -208,7 +215,13 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
     const NodeSet flops_set = SetMinus(vs, boundary);
     const NodeSet memory_set1 = SetMinus(boundary, ls);
     const NodeSet memory_set3 = SetMinus(deltaplus, ls_next);
-    const NodeSet memory_set4 = SetMinus(DeltaMinus(sg, deltaplus), ls_next);
+    const NodeSet memory_set4 = SetMinus(SetMinus(DeltaMinus(sg, deltaplus), ls_next), memory_set3);
+
+    // CheckDisjoint("13", memory_set1, memory_set3);
+    // CheckDisjoint("14", memory_set1, memory_set4);
+    // CheckDisjoint("23", vs, memory_set3);
+    // CheckDisjoint("24", vs, memory_set4);
+    // CheckDisjoint("34", memory_set3, memory_set4);
 
     auto compute_cost = [](const NodeSet& set, const std::vector<int64_t>& costs) {
         int64_t total = 0;
@@ -220,16 +233,16 @@ std::tuple<int64_t, int64_t, size_t> ComputeConsumptionInfo(const SimpleGraph& s
 
     const int64_t flops = compute_cost(flops_set, sg.flopses);
     const int64_t mem1 = compute_cost(memory_set1, sg.memories);
-    const int64_t mem234 =
-            2 * compute_cost(vs, sg.memories) + compute_cost(memory_set3, sg.memories) + compute_cost(memory_set4, sg.memories);
-
+    // We use a little different cost from the original definition here
+    const int64_t mem234 = compute_cost(vs, sg.memories) + compute_cost(memory_set3, sg.memories) + compute_cost(memory_set4, sg.memories);
     return std::make_tuple(mem1, mem234, flops);
 }
 
-std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets, const int64_t& budget) {
+std::vector<NodeSet> ComputeDP(
+        const SimpleGraph& sg, const std::vector<NodeSet>& lower_sets, const int64_t budget, const bool memory_centric) {
     size_t nl = lower_sets.size();
     // opt[lower_set_index][flops] := <minimum memory consumption, prev_ls, prev_flops>
-    std::map<size_t, std::tuple<int64_t, size_t, size_t>> opt[nl];
+    std::vector<std::map<size_t, std::tuple<int64_t, size_t, size_t>>> opt(nl);
     opt[0][0] = std::make_tuple(0, nl + 1, 0);
 
     for (size_t i = 0; i < nl; ++i) {
@@ -243,14 +256,18 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
             const int64_t additional_memory234 = std::get<1>(info);
             const size_t additional_flops = std::get<2>(info);
 
+            if (additional_memory234 > budget) continue;
+
             for (const auto& p : opt[i]) {
                 const size_t flops = p.first;
                 const int64_t memopt = std::get<0>(p.second);
+
                 const int64_t total_memory = memopt + additional_memory234;
                 if (total_memory > budget) continue;
 
                 const size_t flops_next = flops + additional_flops;
                 const int64_t memopt_next = memopt + additional_memory1;
+                if (memopt_next > budget) continue;
 
                 auto next_opt_it = opt[i_next].find(flops_next);
 
@@ -264,10 +281,9 @@ std::vector<NodeSet> ComputeDP(const SimpleGraph& sg, const std::vector<NodeSet>
     }
 
     std::vector<NodeSet> seq;
-    const auto last_it = opt[nl - 1].begin();
-    if (last_it != opt[nl - 1].end()) {
+    if (opt[nl - 1].size()) {
         size_t i = nl - 1;
-        size_t flops = last_it->first;
+        size_t flops = memory_centric ? opt[nl - 1].rbegin()->first : opt[nl - 1].begin()->first;
 
         while (i < nl) {
             seq.push_back(lower_sets[i]);
@@ -363,19 +379,52 @@ int64_t AutomaticBudgetDetection() {
         return info->second - 3 * info->first;
 }
 
-std::vector<Order> GTPolicy(const Graph& graph) {
+std::vector<Order> GTPolicyTimeCentric(const Graph& graph) {
     const int64_t budget = (g_gt_budget ? (g_gt_budget * 1000000LL) : AutomaticBudgetDetection());
-    std::cerr << "GT budget=" << budget << " bytes" << std::endl;
+    std::cerr << "GT budget (time centric)=" << budget << " bytes" << std::endl;
     SimpleGraph sg = GetSimpleFormGraph(graph);
 
     DiscretizeFlops(&sg);
 
     const std::vector<NodeSet> lower_sets = EnumerateLowerSets(sg);
-    const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget);
-
+    const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget, false);
     const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
 
     return orders;
+}
+
+std::vector<Order> GTPolicyMemoryCentric(const Graph& graph) {
+    SimpleGraph sg = GetSimpleFormGraph(graph);
+    DiscretizeFlops(&sg);
+    const std::vector<NodeSet> lower_sets = EnumerateLowerSets(sg);
+
+    if (g_gt_budget) {
+        const int64_t budget = g_gt_budget * 1000000LL;
+        std::cerr << "GT budget (memory centric) =" << budget << " bytes" << std::endl;
+        const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget, true);
+        const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
+        return orders;
+    } else {
+        std::cerr << "Determining budget size by binary search..." << std::endl;
+
+        int64_t lo = 1;
+        int64_t hi = 3 * std::accumulate(sg.memories.begin(), sg.memories.end(), 0LL);
+        std::vector<NodeSet> seq;
+        for (int iter = 0; iter < 10; ++iter) {
+            int64_t budget = (lo + hi) / 2;
+            const std::vector<NodeSet> seq_temp = ComputeDP(sg, lower_sets, budget, true);
+            if (seq_temp.empty())
+                lo = budget;
+            else {
+                hi = budget;
+                seq = seq_temp;
+            }
+        }
+
+        std::cerr << "Budget size = " << hi << std::endl;
+        const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
+        return orders;
+    }
 }
 
 }  // namespace chainer_compiler

@@ -54,7 +54,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, con
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
-    if (st->options().dump_memory_usage) {
+    if (st->options().dump_memory_usage >= 1) {
         ctx->SetRetainedArrays({x, out});
     }
     return std::tie(out, ctx);
@@ -68,7 +68,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> AveragePoolOp::RunImpl(ChxVMState* st,
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::AveragePoolKernel>(x, kernel_shape, strides, pads, pad_mode, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
-    if (st->options().dump_memory_usage) {
+    if (st->options().dump_memory_usage >= 1) {
         ctx->SetRetainedArrays({x, out});
     }
     return std::tie(out, ctx);
