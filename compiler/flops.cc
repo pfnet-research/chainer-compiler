@@ -44,6 +44,15 @@ int64_t CalculateFlopsOfGemm(const Node& node) {
     return flops;
 }
 
+int64_t LowerDimNumElements(const std::vector<int64_t>& dims, size_t start_index) {
+    const size_t end_index = dims.size() - 1;
+    int64_t ret = 1;
+    for (size_t i = start_index; i <= end_index; ++i) {
+        ret *= dims[i];
+    }
+    return ret;
+}
+
 int64_t CalculateFlopsOfConv(const Node& node) {
     Type const& x = node.input(0)->type();
     Type const& w = node.input(1)->type();
@@ -51,11 +60,9 @@ int64_t CalculateFlopsOfConv(const Node& node) {
     int64_t bsize = x.dims()[0];
     int64_t ichan = x.dims()[1];
     int64_t ochan = y.dims()[1];
-    int64_t kh = w.dims()[2];
-    int64_t kw = w.dims()[3];
-    int64_t oh = y.dims()[2];
-    int64_t ow = y.dims()[3];
-    return bsize * ichan * ochan * ow * oh * kw * kh / node.group();
+    int64_t kernel_nums = LowerDimNumElements(w.dims(), 2);
+    int64_t output_nums = LowerDimNumElements(y.dims(), 2);
+    return (bsize * ichan * ochan * output_nums * kernel_nums) / node.group();
 }
 
 int64_t CalculateFlopsOfConvTranspose(Node const& node) {
@@ -65,11 +72,9 @@ int64_t CalculateFlopsOfConvTranspose(Node const& node) {
     int64_t const bsize = x.dims()[0];
     int64_t const ichan = x.dims()[1];
     int64_t const ochan = y.dims()[1];
-    int64_t const kh = w.dims()[2];
-    int64_t const kw = w.dims()[3];
-    int64_t const ih = x.dims()[2];
-    int64_t const iw = x.dims()[3];
-    return bsize * ichan * ochan * kh * kw * iw * ih / node.group();
+    int64_t const kernel_nums = LowerDimNumElements(w.dims(), 2);
+    int64_t const input_nums = LowerDimNumElements(x.dims(), 2);
+    return (bsize * ichan * ochan * kernel_nums * input_nums) / node.group();
 }
 
 int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
@@ -82,11 +87,9 @@ int64_t CalculateFlopsOfConvGradWeight(Node const& node) {
     int64_t const bsize = x.dims()[0];
     int64_t const ic = x.dims()[1];
     int64_t const oc = gy.dims()[1];
-    int64_t const ih = x.dims()[2];
-    int64_t const iw = x.dims()[3];
-    int64_t const kh = w.dims()[2];
-    int64_t const kw = w.dims()[3];
-    return bsize * iw * ih * oc * ic * kw * kh / node.group();
+    int64_t const input_nums = LowerDimNumElements(x.dims(), 2);
+    int64_t const kernel_nums = LowerDimNumElements(w.dims(), 2);
+    return (bsize * input_nums * oc * ic * kernel_nums) / node.group();
 }
 
 int64_t CalculateFlopsOfSoftmax(Node const& node) {
