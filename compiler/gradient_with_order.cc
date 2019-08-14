@@ -271,10 +271,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
             if (output_all_staged) {
                 current_graph = bwd_graph;
                 {
-                    // ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node_fwd);
-                    // ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node_bwd);
                     AddGradInputs(fwd_graph, bwd_graph);
-
                     for (auto& p : staged) {
                         CHECK(staged_in_forward.insert(p.second).second);
                     }
@@ -311,21 +308,17 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                             continue;
                         }
 
-                        Value* value_in_bwd = nullptr;
                         auto found = retained.find(value);
                         if (found == retained.end()) {
-                            value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
+                            Value* value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
                             retained.insert({value, value_in_bwd});
-                            // Avoid retaining new_value during backward computation.
+                            // Avoid retaining value_in_bwd during backward computation.
                             retained.insert({value_in_bwd, value_in_bwd});
 
                             if (value->IsOutput()) {
                                 value_in_bwd->set_grad(value->grad());
                             }
-                        } else {
-                            // value_in_bwd = found->second;
                         }
-                        // staged[value] = value_in_bwd;
                     }
 
                     // All inputs must be staged and may be recomputed.
