@@ -296,7 +296,7 @@ CHX_OPS = [
     ('Pad', [Array('data'), Ints('pads'), Float('value')], ['output']),
     ('MaxPool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),
-      Int('cover_all')],
+      Int('cover_all'), String('auto_pad')],
      ['y', Opaque('ctx')]),
     ('AveragePool',
      [Array('x'), Ints('kernel_shape'), Ints('strides'), Ints('pads'),

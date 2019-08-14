@@ -43,6 +43,14 @@ bool IsFloat(chainerx::Dtype dtype);
 
 void BlitArray(const chainerx::Array& src, const chainerx::Array& dst);
 
+Int64StackVector CalculateAutoPad(
+        const std::string& auto_pad,
+        const chainerx::Array& x,
+        const Int64StackVector& kernel_shape,
+        const Int64StackVector& strides,
+        const Int64StackVector& in_pads);
+chainerx::Array ApplyAsymmetricPad(const chainerx::Array& x, Int64StackVector* pads, float value = 0.0, int64_t beg_dim = 2);
+
 chainerx::Array NumpyMatMul(const chainerx::Array& a, const chainerx::Array& b);
 
 chainerx::Array GroupedConv(

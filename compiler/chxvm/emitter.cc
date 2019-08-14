@@ -372,12 +372,12 @@ private:
             EMIT(Pad, out(0), in(0), node.pads(), node.value());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
-            CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
+            CHECK(node.auto_pad() == "NOTSET" || node.auto_pad() == "SAME_UPPER") << "auto_pad is not supported for MaxPool";
             if (node.outputs().size() != 1) {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.output(1)->IsNull());
             }
-            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all());
+            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all(), node.auto_pad());
         } else if (node.op_type() == Node::kChainerMaxPoolGrad) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             EMIT(MaxPoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.chainer_cover_all());
