@@ -187,7 +187,7 @@ def veval_ast_call(astc : 'AstContext', local_field : 'values.Field', graph : 'G
         call_func_ref = func_obj.try_get_and_store_obj('__call__', graph.root_graph)
         if call_func_ref is not None:
             func_value = call_func_ref.get_value()
-            ret = func_value.func.vcall(func_value.module, graph, func_obj, finput, lineprop)
+            ret = func_value.func.vcall(func_value.module, graph, func_obj, finput, context, lineprop)
             return ret
 
     
