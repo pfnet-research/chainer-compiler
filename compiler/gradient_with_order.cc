@@ -160,27 +160,26 @@ std::vector<Value*> GetMappedValues(const std::map<Value*, Value*>& map, const s
 }
 
 std::vector<Value*> GetRetainedStagedValues(
-        const std::map<Value*, Value*>& retained,
-        const std::map<Value*, Value*>& staged,
-        const std::vector<Value*>& values) {
+        const std::map<Value*, Value*>& retained, const std::map<Value*, Value*>& staged, const std::vector<Value*>& values) {
     const std::vector<Value*> staged_values = GetMappedValues(staged, values);
     return GetMappedValues(retained, staged_values, false);
 }
 
 void CheckConstraints(
-        Graph* fwd_graph, Graph* bwd_graph, const std::map<Value*, Value*>& staged,
+        Graph* fwd_graph,
+        Graph* bwd_graph,
+        const std::map<Value*, Value*>& staged,
         const std::map<Value*, Value*>& retained,
         const std::set<Value*>& recomputed_values) {
     std::set<Value*> fwd_values;
     for (auto& ptr : fwd_graph->all_values()) fwd_values.insert(ptr.get());
 
     for (auto& p : staged) {
-        CHECK(fwd_values.count(p.first))
-            << "The following value is staged, but it is not in the forward part:" << p.first->ToString();
+        CHECK(fwd_values.count(p.first)) << "The following value is staged, but it is not in the forward part:" << p.first->ToString();
 
         if (p.first != p.second) {
             CHECK(recomputed_values.count(p.second))
-                << "The following value is staged, but it is not in the recomputation part:" << p.second->ToString();
+                    << "The following value is staged, but it is not in the recomputation part:" << p.second->ToString();
         }
     }
 
@@ -189,12 +188,13 @@ void CheckConstraints(
             if (p.first != p.second) {
                 CHECK(fwd_values.count(p.first)) << "The first entry of retained must be in the forward part: " << p.first->ToString();
                 CHECK(!fwd_values.count(p.second) && !recomputed_values.count(p.second))
-                    << "The second entry of retained must not be in the forward or recomputation part: " << p.second->ToString();
+                        << "The second entry of retained must not be in the forward or recomputation part: " << p.second->ToString();
             }
         }
     } else {
         for (auto& p : retained) {
-            CHECK(p.first == p.second) << "In backprop mode, only guarding entries are allowed in retained: " << p.first->ToString() << " and " << p.second->ToString();
+            CHECK(p.first == p.second) << "In backprop mode, only guarding entries are allowed in retained: " << p.first->ToString()
+                                       << " and " << p.second->ToString();
         }
     }
 }
@@ -376,12 +376,11 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 const bool update_retained = (fwd_graph != bwd_graph && node == orig_node);
                 const std::vector<Value*> inputs = node->inputs();
                 const std::vector<Value*> outputs = node->outputs();
-                const std::vector<Value*> staged_inputs =
-                    update_retained ? GetMappedValues(staged, orig_node->inputs())
-                    : GetRetainedStagedValues(retained, staged, orig_node->inputs());
-                const std::vector<Value*> staged_outputs =
-                    update_retained ? GetMappedValues(staged, orig_node->outputs())
-                    : GetRetainedStagedValues(retained, staged, orig_node->outputs());
+                const std::vector<Value*> staged_inputs = update_retained ? GetMappedValues(staged, orig_node->inputs())
+                                                                          : GetRetainedStagedValues(retained, staged, orig_node->inputs());
+                const std::vector<Value*> staged_outputs = update_retained
+                                                                   ? GetMappedValues(staged, orig_node->outputs())
+                                                                   : GetRetainedStagedValues(retained, staged, orig_node->outputs());
 
                 for (const auto& p : Zip(inputs, staged_inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
