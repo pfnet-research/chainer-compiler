@@ -12,8 +12,8 @@
 #include <compiler/gradient_ops.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
-#include <compiler/node.h>
 #include <compiler/log.h>
+#include <compiler/node.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
 #include <compiler/value.h>
