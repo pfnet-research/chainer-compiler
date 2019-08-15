@@ -91,10 +91,7 @@ public:
     }
 
     ChxVMValue GetOutputValue(const Node& node, int i) {
-        CHECK_LT(i, node.outputs().size()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
-        Value* output = node.output(i);
-        CHECK(!output->IsNull()) << i << "th output of " << node.op_type() << " is mandatory: " << node.DebugString();
-        return ChxVMValue(GetValueId(output), output);
+        return ChxVMValue::GetOutputValue(node, i, value_ids_);
     }
 
 private:
