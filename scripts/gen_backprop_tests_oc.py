@@ -205,6 +205,15 @@ def get_backprop_tests():
          lambda m: F.concat((m.x, m.y), axis=1),
          x=aranges(2, 2, 2), y=aranges(2, 3, 2))
 
+    def branched_conv(m):
+        h = F.relu(m.a)
+        return F.convolution_2d(h, m.b) + F.convolution_2d(h, m.c)
+
+    test('branched_conv', branched_conv,
+         a=aranges(1, 1, 5, 5),
+         b=aranges(1, 1, 3, 3),
+         c=aranges(1, 1, 3, 3),)
+
     return tests
 
 

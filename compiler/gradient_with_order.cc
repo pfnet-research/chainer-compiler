@@ -145,14 +145,58 @@ bool IsComputationOrderSupported(const Graph& graph) {
     return true;
 }
 
-std::vector<Value*> GetStagedValues(const std::map<Value*, Value*>& staged, const std::vector<Value*>& values) {
+std::vector<Value*> GetMappedValues(const std::map<Value*, Value*>& map, const std::vector<Value*>& values, bool check_found = true) {
     std::vector<Value*> ret;
     for (Value* value : values) {
-        auto found = staged.find(value);
-        CHECK(found != staged.end()) << "Value " << value->ToString() << " is not staged.";
-        ret.push_back(found->second);
+        auto found = map.find(value);
+        if (check_found) {
+            CHECK(found != map.end()) << "Value " << value->ToString() << " is not found.";
+            ret.push_back(found->second);
+        } else {
+            ret.push_back(found != map.end() ? found->second : value);
+        }
     }
     return ret;
+}
+
+std::vector<Value*> GetRetainedStagedValues(
+        const std::map<Value*, Value*>& retained, const std::map<Value*, Value*>& staged, const std::vector<Value*>& values) {
+    const std::vector<Value*> staged_values = GetMappedValues(staged, values);
+    return GetMappedValues(retained, staged_values, false);
+}
+
+void CheckConstraints(
+        Graph* fwd_graph,
+        Graph* bwd_graph,
+        const std::map<Value*, Value*>& staged,
+        const std::map<Value*, Value*>& retained,
+        const std::set<Value*>& recomputed_values) {
+    std::set<Value*> fwd_values;
+    for (auto& ptr : fwd_graph->all_values()) fwd_values.insert(ptr.get());
+
+    for (auto& p : staged) {
+        CHECK(fwd_values.count(p.first)) << "The following value is staged, but it is not in the forward part:" << p.first->ToString();
+
+        if (p.first != p.second) {
+            CHECK(recomputed_values.count(p.second))
+                    << "The following value is staged, but it is not in the recomputation part:" << p.second->ToString();
+        }
+    }
+
+    if (fwd_graph != bwd_graph) {
+        for (auto& p : retained) {
+            if (p.first != p.second) {
+                CHECK(fwd_values.count(p.first)) << "The first entry of retained must be in the forward part: " << p.first->ToString();
+                CHECK(!fwd_values.count(p.second) && !recomputed_values.count(p.second))
+                        << "The second entry of retained must not be in the forward or recomputation part: " << p.second->ToString();
+            }
+        }
+    } else {
+        for (auto& p : retained) {
+            CHECK(p.first == p.second) << "In backprop mode, only guarding entries are allowed in retained: " << p.first->ToString()
+                                       << " and " << p.second->ToString();
+        }
+    }
 }
 
 bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, const std::vector<Order>& orders) {
@@ -161,6 +205,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     }
 
     // A map from the original value to the staged value, possibly recomputed.
+    // Both the first and second entries of staged must be in the forward part.
     std::map<Value*, Value*> staged;
     for (Value* value : fwd_graph->input_values()) {
         CHECK(staged.emplace(value, value).second);
@@ -174,13 +219,13 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     std::vector<Node*> scheduled_nodes;
 
     auto schedule_recompute = [&staged, &scheduled_nodes, &last_forward_map](
-                                      Node* node, Node* orig_node, int chainer_order_offset = 100000000) {
+                                      Node* node, Node* orig_node, bool stage_node = true, int chainer_order_offset = 100000000) {
         scheduled_nodes.push_back(node);
         const int chainer_order = chainer_order_offset + static_cast<int>(scheduled_nodes.size());
         node->set_chainer_order(chainer_order);
         last_forward_map[orig_node] = node;
 
-        if (chainer_order_offset >= 100000000) {
+        if (chainer_order_offset >= 100000000 && stage_node) {
             for (const auto& p : Zip(node->outputs(), orig_node->outputs())) {
                 Value* value = std::get<0>(p);
                 if (!staged.emplace(std::get<1>(p), value).second) {
@@ -191,9 +236,10 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     };
 
     auto schedule_node = [&schedule_recompute](Node* node) { schedule_recompute(node, node); };
+    auto schedule_node_no_stage = [&schedule_recompute](Node* node) { schedule_recompute(node, node, false); };
 
     if (fwd_graph == bwd_graph) {
-        ScheduleAddedScope schedule_scope(fwd_graph, schedule_node);
+        ScheduleAddedScope schedule_scope(fwd_graph, schedule_node_no_stage);
         SetInitialGradients(fwd_graph);
     }
 
@@ -205,9 +251,17 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     size_t num_forgets = 0;
     std::set<Value*> staged_in_forward;
 
+    // We track values generated by recomputation. This is only for debug.
+    std::set<Value*> recomputed_values;
+
     for (size_t i = 0; i < orders.size(); ++i) {
+        // NOTE: The computational time of CheckConstraint is linear to the size of the graph.
+        // This may slow down the entire process when the computational graph is gigantic.
+        CheckConstraints(fwd_graph, bwd_graph, staged, retained, recomputed_values);
+
         const Order& order = orders[i];
         CLOG() << "Order #" << i << ": " << order << std::endl;
+
         // (In two phase mode) check if we should turn to the backward part
         if (fwd_graph != bwd_graph && current_graph == fwd_graph) {
             bool output_all_staged = true;
@@ -217,10 +271,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
             if (output_all_staged) {
                 current_graph = bwd_graph;
                 {
-                    ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
-                    ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node);
                     AddGradInputs(fwd_graph, bwd_graph);
-
                     for (auto& p : staged) {
                         CHECK(staged_in_forward.insert(p.second).second);
                     }
@@ -252,29 +303,26 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
 
                     // Move values from forward graph to backward
                     // graph for recomputation.
-                    for (Value* value : GetStagedValues(staged, node->inputs())) {
+                    for (Value* value : GetMappedValues(staged, node->inputs())) {
                         if (!staged_in_forward.erase(value)) {
                             continue;
                         }
 
-                        Value* value_in_bwd = nullptr;
                         auto found = retained.find(value);
                         if (found == retained.end()) {
-                            value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
+                            Value* value_in_bwd = bwd_graph->AddValue("RetainedForRecompute_" + value->name(), value->type());
                             retained.insert({value, value_in_bwd});
-                            // Avoid retaining new_value during backward computation.
+                            // Avoid retaining value_in_bwd during backward computation.
                             retained.insert({value_in_bwd, value_in_bwd});
+
                             if (value->IsOutput()) {
                                 value_in_bwd->set_grad(value->grad());
                             }
-                        } else {
-                            value_in_bwd = found->second;
                         }
-                        staged[value] = value_in_bwd;
                     }
 
                     // All inputs must be staged and may be recomputed.
-                    std::vector<Value*> inputs = GetStagedValues(staged, node->inputs());
+                    const std::vector<Value*> inputs = GetRetainedStagedValues(retained, staged, node->inputs());
 
                     // Recomputed values need different `Value`
                     // objects with different names.
@@ -284,6 +332,7 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                         outputs.push_back(new_value);
                         // Avoid retaining new_value during backward computation.
                         retained.insert({new_value, new_value});
+                        CHECK(recomputed_values.insert(new_value).second);
                     }
 
                     // Copy the original computation node to generate
@@ -324,10 +373,14 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                 // Temporaliry replace the inputs/outputs of the node with staged values
                 // Note that the replacement of outputs is necessary because we may have to
                 // point to the retained value in two_phase mode.
+                const bool update_retained = (fwd_graph != bwd_graph && node == orig_node);
                 const std::vector<Value*> inputs = node->inputs();
                 const std::vector<Value*> outputs = node->outputs();
-                const std::vector<Value*> staged_inputs = GetStagedValues(staged, orig_node->inputs());
-                const std::vector<Value*> staged_outputs = GetStagedValues(staged, orig_node->outputs());
+                const std::vector<Value*> staged_inputs = update_retained ? GetMappedValues(staged, orig_node->inputs())
+                                                                          : GetRetainedStagedValues(retained, staged, orig_node->inputs());
+                const std::vector<Value*> staged_outputs = update_retained
+                                                                   ? GetMappedValues(staged, orig_node->outputs())
+                                                                   : GetRetainedStagedValues(retained, staged, orig_node->outputs());
 
                 for (const auto& p : Zip(inputs, staged_inputs)) {
                     node->ReplaceInput(std::get<0>(p), std::get<1>(p));
@@ -336,8 +389,8 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
                     node->ReplaceOutput(std::get<0>(p), std::get<1>(p));
                 }
 
-                ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
-                if (fwd_graph != bwd_graph && node == orig_node) {
+                ScheduleAddedScope schedule_scope(bwd_graph, schedule_node_no_stage);
+                if (update_retained) {
                     // Two phase mode & node is in forward part.
                     // In this case, retained must be updated.
                     AddGradientForNode(fwd_graph, bwd_graph, node, &retained);
@@ -382,16 +435,16 @@ bool AddGradientNodesForTrainingWithOrders(Graph* fwd_graph, Graph* bwd_graph, c
     CLOG() << "Recompute: num_forwards=" << num_forwards << " num_recomputes=" << num_recomputes << " num_forgets=" << num_forgets
            << " num_retains=" << retained.size() << std::endl;
 
-    auto schedule_node_first = [&schedule_recompute](Node* node) { schedule_recompute(node, node, 0); };
+    auto schedule_node_no_stage_first = [&schedule_recompute](Node* node) { schedule_recompute(node, node, false, 0); };
     {
         ScheduleAddedScope fwd_schedule_scope(fwd_graph, schedule_node);
         // Because retained part in backward computation must be executed earlier than other computations,
         // we use a schedule scope with small offset here.
-        ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node_first);
+        ScheduleAddedScope bwd_schedule_scope(bwd_graph, schedule_node_no_stage_first);
         AddRetainedParts(fwd_graph, bwd_graph, retained);
     }
     {
-        ScheduleAddedScope schedule_scope(bwd_graph, schedule_node);
+        ScheduleAddedScope schedule_scope(bwd_graph, schedule_node_no_stage);
         ExposeParamGradsAsOutputs(fwd_graph, bwd_graph, GetParamValues(fwd_graph));
     }
 
