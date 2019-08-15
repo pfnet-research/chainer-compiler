@@ -228,7 +228,7 @@ public:
             const std::vector<int64_t>& offsets,
             int64_t num_inputs,
             const std::vector<int>& num_batches,
-            bool dump_memory_usage)
+            int dump_memory_usage)
         : rnn_desc_(std::move(rnn_desc)),
           dropout_desc_(std::move(dropout_desc)),
           y_desc_(std::move(y_desc)),
@@ -247,7 +247,7 @@ public:
           offsets_(offsets),
           num_inputs_(num_inputs),
           num_batches_(num_batches) {
-        if (dump_memory_usage) {
+        if (dump_memory_usage >= 1) {
             SetRetainedArrays({y_, w_, h_, c_, x_, workspace_, reserve_});
         }
     }

@@ -31,6 +31,8 @@ TESTS = [
     Generator('model', 'StatelessLSTM'),
     Generator('model', 'EspNet_AttDot'),
     Generator('model', 'EspNet_AttLoc'),
+    Generator('model', 'EspNet_Decoder'),
+    Generator('model', 'EspNet_E2E'),
     Generator('chainercv_model/resnet', 'resnet'),
 
     Generator('node', 'AddMul'),
@@ -41,13 +43,12 @@ TESTS = [
     Generator('node', 'Id'),
     Generator('node', 'Linear'),
     Generator('node', 'PadSequence'),
-    Generator('node', 'Relu'),
-    Generator('node', 'Softmax'),
     Generator('node', 'SoftmaxCrossEntropy'),
     Generator('node', 'Unpooling2D'),
     Generator('node', 'Variable'),
     Generator('node', 'ChainList'),
     Generator('node', 'LRN'),
+    Generator('node', 'Len'),
 
     Generator('node/ndarray', 'NpArray'),
     Generator('node/ndarray', 'NpFull'),
@@ -57,27 +58,31 @@ TESTS = [
     Generator('node/ndarray', 'Ceil'),
     Generator('node/ndarray', 'Cumsum'),
 
-    Generator('node/Functions', 'Reshape'),
-    Generator('node/Functions', 'SplitAxis'),
-    Generator('node/Functions', 'Roi'),
-    Generator('node/Functions', 'SwapAxes'),
+    Generator('node/Functions', 'ArgMinMax'),
+    Generator('node/Functions', 'BroadcastTo'),
     Generator('node/Functions', 'Concat'),
     Generator('node/Functions', 'Dropout'),
-    Generator('node/Functions', 'Matmul'),
-    Generator('node/Functions', 'MaxPool2d'),
-    Generator('node/Functions', 'ResizeImages'),
-    Generator('node/Functions', 'Stack'),
-    Generator('node/Functions', 'Vstack'),
+    Generator('node/Functions', 'ExpandDims'),
     Generator('node/Functions', 'Hstack'),
-    Generator('node/Functions', 'Squeeze'),
-    Generator('node/Functions', 'Separate'),
-    Generator('node/Functions', 'Mean'),
-    Generator('node/Functions', 'Sum'),
+    Generator('node/Functions', 'Matmul'),
     Generator('node/Functions', 'Maximum'),
     Generator('node/Functions', 'Minimum'),
-
-    Generator('node/Functions/Activation', 'Elu'),
-    Generator('node/Functions/Activation', 'LeakyRelu'),
+    Generator('node/Functions', 'MaxPool2d'),
+    Generator('node/Functions', 'Mean'),
+    Generator('node/Functions', 'Reshape'),
+    Generator('node/Functions', 'ResizeImages'),
+    Generator('node/Functions', 'Roi'),
+    Generator('node/Functions', 'Separate'),
+    Generator('node/Functions', 'Sigmoid'),
+    Generator('node/Functions', 'MathMisc'),
+    Generator('node/Functions', 'MinMax'),
+    Generator('node/Functions', 'SplitAxis'),
+    Generator('node/Functions', 'Squeeze'),
+    Generator('node/Functions', 'Stack'),
+    Generator('node/Functions', 'Sum'),
+    Generator('node/Functions', 'SwapAxes'),
+    Generator('node/Functions', 'Vstack'),
+    Generator('node/Functions', 'Activations'),
 
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),
@@ -156,6 +161,11 @@ def get():
 
         if gen.fail:
             kwargs['fail'] = True
+
+        # TODO(hamaji): Remove this once type inference is improved.
+        if ('EspNet_Decoder' in test_name or
+            'EspNet_E2E' in test_name):
+            kwargs['skip_runtime_type_check'] = True
 
         diversed = False
         for substr in diversed_whitelist:

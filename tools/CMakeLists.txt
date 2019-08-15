@@ -11,7 +11,7 @@ add_custom_command(
   OUTPUT
     "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode compiler_flags.cc
+  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode compiler_flags.cc
   --output "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
@@ -38,7 +38,7 @@ target_link_libraries(dump
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
-  pthread
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -48,6 +48,7 @@ target_link_libraries(dump
   absl::variant
   absl::optional
   )
+
 set_target_properties(dump PROPERTIES OUTPUT_NAME "dump")
 
 add_library(run_onnx_lib
@@ -71,6 +72,7 @@ target_link_libraries(run_onnx
   onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -79,6 +81,7 @@ target_link_libraries(run_onnx
   absl::variant
   absl::optional
   )
+
 set_target_properties(run_onnx PROPERTIES OUTPUT_NAME "run_onnx")
 
 if(${CHAINER_COMPILER_ENABLE_OPENCV})
@@ -108,7 +111,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     onnx
     onnx_proto
     ${PROTOBUF_LIBRARY}
-    pthread
+    ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_DLDT_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -118,6 +121,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     absl::variant
     absl::optional
     )
+
   set_target_properties(train_imagenet PROPERTIES OUTPUT_NAME "train_imagenet")
 endif()
 
@@ -139,7 +143,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     onnx
     onnx_proto
     ${PROTOBUF_LIBRARY}
-    pthread
+    ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
     ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
     ${CHAINER_COMPILER_DLDT_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -148,6 +152,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     absl::variant
     absl::optional
     )
+
   set_target_properties(run_onnx_core.so
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
@@ -170,7 +175,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       onnx
       onnx_proto
       ${PROTOBUF_LIBRARY}
-      pthread
+      ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
       ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
       ${CHAINER_COMPILER_DLDT_LIBRARIES}
       ${CHAINER_COMPILER_TVM_LIBRARIES}
@@ -180,6 +185,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       absl::variant
       absl::optional
       )
+
     set_target_properties(train_imagenet_core.so
       PROPERTIES
       PREFIX "${PYTHON_MODULE_PREFIX}"

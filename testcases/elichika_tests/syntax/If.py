@@ -188,6 +188,13 @@ class LazyInitWithFuncUse(chainer.Chain):
         b = self.li(a * 2)
         return a + b
 
+class ListModifyElement(chainer.Chain):
+    def forward(self):
+        x = [1]
+        if True:
+            x[0] = 2
+        return x[0]
+
 # ======================================
 
 from chainer_compiler.elichika import testtools
@@ -260,5 +267,7 @@ def main():
 
     testtools.generate_testcase(LazyInitWithFuncUse, [n], subname='lazy_init_with_func_use')
     
+    # testtools.generate_testcase(ListModifyElement, [], subname='list_modify_elem')  # TODO: buggy
+
 if __name__ == '__main__':
     main()

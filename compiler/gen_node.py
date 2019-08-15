@@ -279,6 +279,7 @@ NodeDef('ChainerLRNGrad', 4, 1,
 NodeDef('ChainerLSTMGrad', 2, 4)
 NodeDef('ChainerConvGradWeight', 3, 1, **conv_attrs)
 NodeDef('ChainerGatherGrad', 3, 1, axis=0)
+NodeDef('ChainerConcatGrad', None, None, axis=0)
 NodeDef('ChainerDynamicSliceGrad', (4, 5, 6), 1)
 NodeDef('ChainerFusionGroup', None, None, subgraph=Graph, fusion_type=str)
 
@@ -584,7 +585,9 @@ def gen_gen_node_base_cc():
         conds.append('str == "%s"' % node.op_type)
         bodies.append(['return k%s;' % node.op_type])
     bodies.append(['CHECK(false) << "Unsupported op_type: " << str;'])
-    lines.extend(codegen_util.cond(conds, bodies))
+
+    lines.extend(codegen_util.cond('goto_label_type', conds, bodies))
+
     lines.append('}')
 
     lines.append('NodeBase::NodeBase(OpType op_type) : op_type_(op_type) {}')
@@ -642,7 +645,11 @@ def gen_gen_node_base_cc():
             'if (!g_permissive) CHECK(false) << "Invalid attribute `"'
             '<< xattr.name() << "\' for " << OpTypeToString(op_type_);',
             'unknown_attributes_.push_back(xattr);'])
-        lines += codegen_util.cond(conds, bodies)
+
+        lines.extend(codegen_util.cond('goto_label_{}'.format(op),
+                                       conds, bodies))
+
+
 
         lines.append('}')
         lines.append('break;')

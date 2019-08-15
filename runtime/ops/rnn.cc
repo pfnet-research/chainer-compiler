@@ -339,7 +339,7 @@ std::tuple<chainerx::Array, chainerx::Array, chainerx::Array, ChxVMOpaque*> LSTM
         c = chainerx::Stack({cs[0], cs[1]}, 0);
     }
 
-    if (st->options().dump_memory_usage) {
+    if (st->options().dump_memory_usage >= 1) {
         WARN_ONCE("Retained arrays for LSTM on CPU is inaccurate");
         std::vector<chainerx::Array> retained_arrays = {x, w, r, output, h, c};
         for (const auto& a : {b, sequence_lens, initial_h, initial_c, p}) {

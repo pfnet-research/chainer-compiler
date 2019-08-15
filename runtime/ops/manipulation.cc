@@ -61,6 +61,17 @@ chainerx::Array ConcatOp::RunImpl(ChxVMState* st, const std::vector<chainerx::Ar
     return chainerx::Concatenate(inputs, axis);
 }
 
+std::vector<chainerx::Array> ConcatGradOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& input, const std::vector<chainerx::Array>& shape_arrays) {
+    std::vector<int64_t> lens;
+    for (const chainerx::Array& shape_array : shape_arrays) {
+        const chainerx::Shape& shape = ArrayToShape(shape_array);
+        CHECK_LT(axis, shape.size());
+        lens.push_back(shape[axis]);
+    }
+    return SplitByLengths(input, axis, lens);
+}
+
 std::vector<chainerx::Array> SplitOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
     std::vector<int64_t> lens{split.begin(), split.end()};
     if (lens.empty()) {
@@ -87,10 +98,10 @@ chainerx::Array PadOp::RunImpl(ChxVMState* st, const chainerx::Array& data) {
     std::vector<chainerx::ArrayIndex> indices1, indices2;
     for (int i = 0; i < shape.size(); ++i) {
         new_shape[i] += pads[i] + pads[i + shape.size()];
-        auto len = shape[i] + std::min(0L, pads[i]) + std::min(0L, pads[i + shape.size()]);
+        auto len = shape[i] + std::min<int64_t>(0, pads[i]) + std::min<int64_t>(0, pads[i + shape.size()]);
 
-        const auto start1 = std::max(-pads[i], 0L);
-        const auto start2 = std::max(pads[i], 0L);
+        const auto start1 = std::max<int64_t>(-pads[i], 0);
+        const auto start2 = std::max<int64_t>(pads[i], 0);
         const auto end1 = std::min(shape[i] + pads[i + shape.size()], shape[i]);
         const auto end2 = std::min(new_shape[i] - pads[i + shape.size()], new_shape[i]);
 

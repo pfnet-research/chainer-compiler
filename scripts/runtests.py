@@ -620,7 +620,7 @@ for name, _, _, kwargs in gen_large_tests_oc.get_large_tests():
 
 TEST_CASES.append(TestCase('out', 'backprop_test_mnist_mlp'))
 
-TEST_CASES.append(TestCase('data', 'resnet50', want_gpu=True))
+TEST_CASES.append(TestCase('data', 'shufflenet', want_gpu=True))
 TEST_CASES.append(TestCase('data', 'mnist'))
 
 TEST_CASES.extend(ch2o_tests.get())
@@ -682,6 +682,15 @@ for test in TEST_CASES:
                 new_test.is_backprop_two_phase = two_phase
                 new_tests.append(new_test)
 
+    # run gpu test for the test cases of onnx_chainer
+    # NOTE: We don't add tests for float16 case because they fail with --fuse
+    # option. We may resolve this in future.
+    if test.name.startswith('backprop_test_oc') and\
+       not test.name.endswith('float16'):
+        new_test = copy.copy(test)
+        new_test.want_gpu = True
+        new_tests.append(new_test)
+
 for test in new_tests:
     TEST_CASES.append(test)
 
@@ -707,6 +716,8 @@ if args.ngraph:
             test.fail = True
         if test.name.endswith('_sigmoid_float64'):
             # TODO(hamaji): nGraph seems not to support fp64 sigmoid.
+            test.fail = True
+        if re.search(r'grouped_conv_.*float64', test.name):
             test.fail = True
 
 if args.failed:
@@ -826,6 +837,8 @@ def main():
             test_case.args += ['--equal_nan']
         if test_case.skip_shape_inference:
             test_case.args.append('--skip_inference')
+        if test_case.skip_runtime_type_check:
+            test_case.args.append('--skip_runtime_type_check')
         if test_case.is_backprop_two_phase:
             test_case.args.append('--backprop_two_phase')
         elif test_case.is_backprop:

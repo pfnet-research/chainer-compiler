@@ -295,6 +295,20 @@ void PadGradFn(GradientOpContext* gc) {
     gc->GradOp(Node::kPad, 0, {gy})->producer()->set_pads(negated_pads);
 }
 
+void ConcatGradFn(GradientOpContext* gc) {
+    Value* gy = gc->gy(0);
+    std::vector<Value*> grad_ins = {gy};
+    std::vector<int> xis;
+    for (size_t i = 0; i < gc->node()->inputs().size(); ++i) {
+        GraphBuilder gb{gc->builder(0)};
+        xis.push_back(i);
+        grad_ins.push_back(gb.Op(Node::kShape, {gc->x(i)}));
+    }
+    const std::vector<Value*> gxs = gc->GradMOp(Node::kChainerConcatGrad, xis, grad_ins);
+    CHECK(!gxs.empty());
+    gxs[0]->producer()->set_axis(gc->node()->axis());
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -423,18 +437,56 @@ void ConvGradFn(GradientOpContext* gc) {
         if (x->type().dims().size() > 2) {
             gc->GradOp(Node::kConvTranspose, 0, {gy, w})
                     ->producer()
-                    ->set_strides(node->strides())
+                    ->set_dilations(node->dilations())
+                    ->set_group(node->group())
                     ->set_pads(node->pads())
+                    ->set_strides(node->strides())
                     ->set_output_shape({x->type().dims().begin() + 2, x->type().dims().end()});
         } else {
             Value* x_shape = gb.Op(Node::kShape, {gc->x(0)});
             gc->GradOp(Node::kChainerConvTransposeWithDynamicOutputShape, 0, {gy, w, x_shape})
                     ->producer()
-                    ->set_strides(node->strides())
-                    ->set_pads(node->pads());
+                    ->set_dilations(node->dilations())
+                    ->set_group(node->group())
+                    ->set_pads(node->pads())
+                    ->set_strides(node->strides());
         }
     }
-    gc->GradOp(Node::kChainerConvGradWeight, 1, {w, gc->x(0), gy})->producer()->set_strides(node->strides())->set_pads(node->pads());
+    gc->GradOp(Node::kChainerConvGradWeight, 1, {w, gc->x(0), gy})
+            ->producer()
+            ->set_dilations(node->dilations())
+            ->set_group(node->group())
+            ->set_pads(node->pads())
+            ->set_strides(node->strides());
+    if (node->inputs().size() == 3) {
+        std::vector<int64_t> axes{{0}};
+        CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
+        for (size_t i = 0; i < node->kernel_shape().size(); ++i) {
+            axes.push_back(2 + i);
+        }
+        gc->GradOp(Node::kReduceSum, 2, {gy})->producer()->set_axes(axes)->set_keepdims(false);
+    }
+}
+
+void ConvTransposeGradFn(GradientOpContext* gc) {
+    const Node* node = gc->node();
+    Value* gy = gc->gy(0);
+    Value* w = gc->x(1);
+    {
+        GraphBuilder gb{gc->builder(0)};
+        gc->GradOp(Node::kConv, 0, {gy, w})
+                ->producer()
+                ->set_dilations(node->dilations())
+                ->set_group(node->group())
+                ->set_pads(node->pads())
+                ->set_strides(node->strides());
+    }
+    gc->GradOp(Node::kChainerConvGradWeight, 1, {w, gy, gc->x(0)})
+            ->producer()
+            ->set_dilations(node->dilations())
+            ->set_group(node->group())
+            ->set_pads(node->pads())
+            ->set_strides(node->strides());
     if (node->inputs().size() == 3) {
         std::vector<int64_t> axes{{0}};
         CHECK(!node->kernel_shape().empty()) << "ConvGrad with no kernel_shape is not supported yet.";
@@ -1019,6 +1071,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kGather, &GatherGradFn);
         register_grad_fn(Node::kExpand, &ExpandGradFn);
         register_grad_fn(Node::kPad, &PadGradFn);
+        register_grad_fn(Node::kConcat, &ConcatGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);
@@ -1026,6 +1079,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kMatMul, &MatMulGradFn);
         register_grad_fn(Node::kTranspose, &TransposeGradFn);
         register_grad_fn(Node::kConv, &ConvGradFn);
+        register_grad_fn(Node::kConvTranspose, &ConvTransposeGradFn);
         register_grad_fn(Node::kMaxPool, &MaxPoolGradFn);
         register_grad_fn(Node::kAveragePool, &AveragePoolGradFn);
         register_grad_fn(Node::kUpsample, &ResizeGradFn);

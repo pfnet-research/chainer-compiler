@@ -28,6 +28,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -36,16 +37,6 @@
 #include <string>
 #include <typeinfo>
 #include <vector>
-
-#ifdef _MSC_VER
-#define NOMINMAX
-#include <DbgHelp.h>
-#include <Windows.h>
-#else
-#include <cxxabi.h>
-#endif
-
-#include <cstdlib>
 
 namespace cmdline {
 
@@ -107,29 +98,8 @@ Target lexical_cast(const Source& arg) {
     return lexical_cast_t<Target, Source, detail::is_same<Target, Source>::value>::cast(arg);
 }
 
-static inline std::string demangle(const std::string& name) {
-#ifdef _MSC_VER
-    char buf[0xff];
-    int status = UnDecorateSymbolName(name.c_str(), buf, 0xff, UNDNAME_COMPLETE);
-    if (status == 0) {
-        DWORD err = GetLastError();
-        std::error_code ec(err, std::system_category());
-        throw std::system_error(ec, "Exception occurred");
-    }
-    return std::string(buf);
-#else
-    int status = 0;
-    char* p = abi::__cxa_demangle(name.c_str(), 0, 0, &status);
-    std::string ret(p);
-    free(p);
-    return ret;
-#endif
-}
-
 template <class T>
-std::string readable_typename() {
-    return demangle(typeid(T).name());
-}
+std::string readable_typename();
 
 template <class T>
 std::string default_value(T def) {
@@ -139,6 +109,21 @@ std::string default_value(T def) {
 template <>
 inline std::string readable_typename<std::string>() {
     return "string";
+}
+
+template <>
+inline std::string readable_typename<int>() {
+    return "int";
+}
+
+template <>
+inline std::string readable_typename<float>() {
+    return "float";
+}
+
+template <>
+inline std::string readable_typename<double>() {
+    return "double";
 }
 
 }  // namespace detail

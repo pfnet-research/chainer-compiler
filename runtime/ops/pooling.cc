@@ -44,16 +44,17 @@ private:
 
 }  // namespace
 
-std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+std::tuple<chainerx::Array, ChxVMOpaque*> MaxPoolOp::RunImpl(ChxVMState* st, const chainerx::Array& in_x) {
     // TODO(hamaji): Revive CheckPoolInputs.
     std::shared_ptr<chainerx::MaxPoolGradState> state;
     chainerx::Array out;
+    Int64StackVector pads = CalculateAutoPad(auto_pad, in_x, kernel_shape, strides, ComplementPad(this->pads, in_x));
+    chainerx::Array x = ApplyAsymmetricPad(in_x, &pads);
     const Int64StackVector& strides = ComplementStride(this->strides, x);
-    const Int64StackVector& pads = ComplementPad(this->pads, x);
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::MaxPoolKernel>(x, kernel_shape, strides, pads, cover_all, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::MaxPoolGradState>(std::move(state), strides, pads);
-    if (st->options().dump_memory_usage) {
+    if (st->options().dump_memory_usage >= 1) {
         ctx->SetRetainedArrays({x, out});
     }
     return std::tie(out, ctx);
@@ -67,7 +68,7 @@ std::tuple<chainerx::Array, ChxVMOpaque*> AveragePoolOp::RunImpl(ChxVMState* st,
     std::tie(out, state) =
             x.device().backend().CallKernel<chainerx::AveragePoolKernel>(x, kernel_shape, strides, pads, pad_mode, true, absl::nullopt);
     ChxVMOpaque* ctx = new BackwardContext<chainerx::AveragePoolGradState>(std::move(state), strides, pads);
-    if (st->options().dump_memory_usage) {
+    if (st->options().dump_memory_usage >= 1) {
         ctx->SetRetainedArrays({x, out});
     }
     return std::tie(out, ctx);

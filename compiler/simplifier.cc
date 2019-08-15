@@ -375,16 +375,6 @@ bool ReplaceAveragePool(Graph* graph, Node* node) {
     return true;
 }
 
-bool ReplaceConcat(Graph* graph, Node* node) {
-    GraphBuilder gb(graph, "SimplifyConcat", node->output(0));
-    Value* seq = gb.Op(Node::kChainerSequenceCreate, {});
-    for (Value* v : node->inputs()) {
-        seq = gb.Op(Node::kChainerSequenceAppend, {seq, v});
-    }
-    gb.Op(Node::kChainerSequenceConcat, {seq}, node->output(0))->producer()->set_axis(node->axis());
-    return true;
-}
-
 bool ReplaceConstantLike(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifyConstantLike", node->output(0));
     Node* op = nullptr;
@@ -709,7 +699,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
-    REGISTER_SIMPLIFIER(Concat);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
@@ -729,9 +718,6 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
             }
             const Simplifier& simplifier = found->second;
             if (!simplifier_names.count(simplifier.name)) {
-                continue;
-            }
-            if (node->op_type() == Node::kConcat && !gen_backprop) {
                 continue;
             }
             if (simplifier.fn(graph, node)) {
