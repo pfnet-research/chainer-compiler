@@ -121,8 +121,8 @@ private:
 
         // Optional output.
         auto oout = [this, out, &node](int i) {
-            if (i >= static_cast<int>(node.outputs().size())) return ChxVMValue(-1);
-            if (node.output(i)->IsNull()) return ChxVMValue(-1);
+            if (i >= static_cast<int>(node.outputs().size())) return ChxVMValue();
+            if (node.output(i)->IsNull()) return ChxVMValue();
             return out(i);
         };
 
