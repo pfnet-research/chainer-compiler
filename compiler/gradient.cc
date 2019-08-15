@@ -13,6 +13,7 @@
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/node.h>
+#include <compiler/log.h>
 #include <compiler/tensor.h>
 #include <compiler/type.h>
 #include <compiler/value.h>
@@ -40,7 +41,7 @@ void ExposeParamGradsAsOutputs(Graph* graph, Graph* dest_graph, const std::set<V
         if (!input->type().dtype().IsFloat()) continue;
         if (!input->grad()) {
             if (input->users().size() == 1 && input->user(0)->op_type() == Node::kBatchNormalization) continue;
-            std::cerr << "No gradient for parameter: " << input->name() << std::endl;
+            CLOG() << "No gradient for parameter: " << input->name() << std::endl;
             ok = false;
             continue;
         }
