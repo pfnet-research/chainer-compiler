@@ -283,7 +283,8 @@ Int64StackVector CalculateAutoPad(
     Int64StackVector pads_end;
     pads_end.resize(in_pads.size());
     bool end_pad = false;
-    if (auto_pad == "SAME_UPPER") {
+    if (!auto_pad.empty()) {
+        CHECK_EQ(auto_pad, "SAME_UPPER");
         for (size_t i = 0; i < pads.size(); ++i) {
             const int64_t in_dim = x.shape()[2 + i];
             const int64_t stride = strides[i];
@@ -296,8 +297,6 @@ Int64StackVector CalculateAutoPad(
             pads_end[i] = pad_needed - pads[i];
             end_pad = end_pad || pads_end[i] > 0;
         }
-    } else {
-        CHECK_EQ("NOTSET", auto_pad);
     }
 
     if (end_pad) {
