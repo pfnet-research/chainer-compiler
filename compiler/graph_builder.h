@@ -49,14 +49,14 @@ public:
         return Const(type, std::vector<T>{data}, value);
     }
 
-    Value* Param(const chainerx::Array& ary);
+    Value* Param(const chainerx::Array& ary, Value* base_value);
 
     Value* Temp();
     Value* Temp(const Type& type);
 
     Value* Null();
 
-    std::string GenName();
+    std::string GenName(Value* value = nullptr);
 
 private:
     Graph* graph_;
