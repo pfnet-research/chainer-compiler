@@ -143,6 +143,15 @@ private:
             return ComplementStrideOrPad(strides, node.input(0), 1);
         };
 
+        auto auto_pad = [&node]() {
+            if (node.auto_pad() == "NOTSET") {
+                return std::string();
+            }
+            // Support auto_pad only for MNIST
+            CHECK_EQ(node.auto_pad(), "SAME_UPPER");
+            return node.auto_pad();
+        };
+
         auto direction = [&node]() {
             const std::string& dir = node.direction();
             if (dir == "" || dir == "forward")
@@ -258,9 +267,7 @@ private:
             CHECK_EQ(1UL, node.outputs().size());
             // TODO(ChainerX): Support dilation.
             for (int d : node.dilations()) CHECK_EQ(d, 1) << "Dilation is not supported yet";
-            // Support auto_pad only for MNIST
-            CHECK(node.auto_pad() == "NOTSET" || node.auto_pad() == "SAME_UPPER");
-            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads(), node.group(), node.auto_pad());
+            EMIT(Conv, out(0), in(0), in(1), oin(2), strides(), pads(), node.group(), auto_pad());
         } else if (node.op_type() == Node::kConvTranspose) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(3UL, node.inputs().size());
@@ -372,12 +379,11 @@ private:
             EMIT(Pad, out(0), in(0), node.pads(), node.value());
         } else if (node.op_type() == Node::kMaxPool) {
             CHECK_EQ(1UL, node.inputs().size());
-            CHECK(node.auto_pad() == "NOTSET" || node.auto_pad() == "SAME_UPPER") << "auto_pad is not supported for MaxPool";
             if (node.outputs().size() != 1) {
                 CHECK_EQ(3UL, node.outputs().size());
                 CHECK(node.output(1)->IsNull());
             }
-            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all(), node.auto_pad());
+            EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all(), auto_pad());
         } else if (node.op_type() == Node::kChainerMaxPoolGrad) {
             CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
             EMIT(MaxPoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.chainer_cover_all());
@@ -651,7 +657,7 @@ private:
                  strides(),
                  pads(),
                  node.group(),
-                 node.auto_pad());
+                 auto_pad());
         } else if (node.op_type() == Node::kMatMulInteger) {
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(4UL, node.inputs().size());
@@ -661,7 +667,7 @@ private:
             CHECK_LE(2UL, node.inputs().size());
             CHECK_GE(4UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
-            EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group(), node.auto_pad());
+            EMIT(ConvInteger, out(0), in(0), in(1), oin(2), oin(3), strides(), pads(), node.group(), auto_pad());
         } else if (node.op_type() == Node::kBitShift) {
             CHECK_EQ(2UL, node.inputs().size());
             CHECK_EQ(1UL, node.outputs().size());
