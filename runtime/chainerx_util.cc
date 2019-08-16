@@ -244,10 +244,10 @@ chainerx::Array ApplyAsymmetricPad(const chainerx::Array& x, Int64StackVector* p
         const int64_t pad_idx = i - beg_dim;
         const int64_t pad_beg = pads[pad_idx], pad_end = pads[pads.size() / 2 + pad_idx];
         new_shape[i] += pad_beg + pad_end;
-        auto len = shape[i] + std::min(0L, pad_beg) + std::min(0L, pad_end);
+        auto len = shape[i] + std::min<int64_t>(0, pad_beg) + std::min<int64_t>(0, pad_end);
 
-        const auto start1 = std::max(-pad_beg, 0L);
-        const auto start2 = std::max(pad_beg, 0L);
+        const auto start1 = std::max<int64_t>(-pad_beg, 0);
+        const auto start2 = std::max<int64_t>(pad_beg, 0);
         const auto end1 = std::min(shape[i] + pad_end, shape[i]);
         const auto end2 = std::min(new_shape[i] - pad_end, new_shape[i]);
 
