@@ -222,7 +222,7 @@ ChxVMVar* StageVar(ChxVMVar* var) {
 class ModelRunner {
 public:
     ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, Model* model)
-        : model_(model), args_(args), initial_used_bytes_(initial_used_bytes) {
+        : args_(args), initial_used_bytes_(initial_used_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
@@ -381,7 +381,6 @@ private:
         }
     }
 
-    Model* model_;
     const cmdline::parser& args_;
     std::unique_ptr<ChxVM> chxvm_;
     ChxVMOptions chxvm_opts_;
