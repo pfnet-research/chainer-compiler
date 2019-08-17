@@ -204,6 +204,8 @@ class ResNet(PickableSequentialChain):
             self.pool5 = lambda x: F.average(x, axis=(2, 3))
             self.fc6 = L.Linear(None, param['n_class'], **fc_kwargs)
             self.prob = F.softmax
+            self._pick = ('prob',)
+            self._return_tuple = False
 
         if path:
             chainer.serializers.load_npz(path, self)

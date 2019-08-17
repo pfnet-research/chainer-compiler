@@ -1189,8 +1189,15 @@ class ONNXGenerator:
                     op_not = True
 
                 if node_.compare == nodes.CompareType.In or node_.compare == nodes.CompareType.NotIn:
-                    # TODO(rchouras): Add case for CompareType.In and CompareType.NotIn ops
-                    pass
+                    #TODO(rchouras): relax this assertion by adding backend implementation like other operators. 
+                    assert node.outputs[0].has_constant_value()
+                    t = onnx_graph.new_empty_tensor_with_value(node.outputs[0])
+                    tensor = numpy_helper.from_array(np.array(node.outputs[0].internal_value, dtype=np.bool),
+                        name=value2onnx_parameter[node.outputs[0]].onnx_name)
+
+                    onnx_node = oh.make_node(
+                        'Constant', [], [t.name], value=tensor)
+                    onnx_graph.nodes.append(onnx_node)
                 else:
                     if op_not:
                         op_not_temp = onnx_graph.new_empty_tensor(

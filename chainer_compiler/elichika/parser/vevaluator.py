@@ -912,9 +912,9 @@ def veval_ast_compare(astc : 'AstContext', local_field : 'values.Field', graph :
         if isinstance(astc.nast.ops[0], gast.LtE):
             default_value = left_value.internal_value <= right_value.internal_value
         if isinstance(astc.nast.ops[0], gast.In):
-            default_value = left_value.internal_value in right_value.internal_value
+            default_value = left_value.internal_value in map(lambda ref: ref.get_value().internal_value, right_value.internal_value)
         if isinstance(astc.nast.ops[0], gast.NotIn):
-            default_value = left_value.internal_value not in right_value.internal_value
+            default_value = left_value.internal_value not in map(lambda ref: ref.get_value().internal_value, right_value.internal_value)
 
     ret_value = values.BoolValue(default_value)
     ret_value.name = '@{}'.format(lineprop)
