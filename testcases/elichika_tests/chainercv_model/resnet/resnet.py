@@ -262,7 +262,7 @@ class ResNet152(ResNet):
             152, n_class, pretrained_model,
             mean, initialW, fc_kwargs, arch)
 
-
+# ======================================
 
 from chainer_compiler.elichika import testtools
 import numpy as np
