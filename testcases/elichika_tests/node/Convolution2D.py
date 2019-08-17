@@ -43,8 +43,7 @@ def main():
 
     testtools.generate_testcase(SingleParam(), [x], subname='single_param')
 
-    # TODO (hamaji): support lambda
-    # testtools.generate_testcase(lambda : SingleParam(), [x], subname='single_param_lambda')
+    testtools.generate_testcase(lambda : SingleParam(), [x], subname='single_param_lambda')
 
 if __name__ == '__main__':
     main()
