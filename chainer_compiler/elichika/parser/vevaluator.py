@@ -532,7 +532,7 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             getitem_func_value = getitem_func.get_obj().get_value()
             ret = getitem_func_value.func.vcall(getitem_func_value.module, graph, getitem_func_value.obj, finput, context, lineprop)
             return ret
-    elif isinstance(value_value, (values.ListValue, values.TupleValue)):
+    elif isinstance(value_value, (values.ListValue, values.TupleValue, values.TensorValue)):
         if isinstance(astc.nast.slice, gast.gast.Index):
             slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
             slice_value = utils.try_get_value(slice_, 'subscript', lineprop)
@@ -602,8 +602,8 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             node.set_outputs([ret_value])
             graph.add_node(node)
             return values.Object(ret_value)
-        else:
-            utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
+    else:
+        utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
 
     return None
 
