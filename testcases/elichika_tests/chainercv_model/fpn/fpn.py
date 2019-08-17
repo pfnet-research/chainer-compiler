@@ -3,6 +3,7 @@ import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
 
+from chainer_compiler.elichika.parser import flags
 
 class FPN(chainer.Chain):
     """An extractor class of Feature Pyramid Networks.
@@ -35,6 +36,10 @@ class FPN(chainer.Chain):
             self.outer.append(L.Convolution2D(256, 3, pad=1, **init))
 
         self.scales = scales
+        # hacks
+        self.n_base_output = n_base_output
+        self.n_base_output_minus1 = n_base_output - 1
+        self.scales_minus_n_base_output = len(scales) - n_base_output
 
     @property
     def mean(self):
@@ -43,15 +48,44 @@ class FPN(chainer.Chain):
     def forward(self, x):
         hs = list(self.base(x))
 
-        for i in reversed(range(len(hs))):
-            hs[i] = self.inner[i](hs[i])
-            if i + 1 < len(hs):
-                hs[i] += F.unpooling_2d(hs[i + 1], 2, cover_all=False)
+        with flags.for_unroll():
+            for i in range(self.n_base_output_minus1, -1, -1):
+                hs[i] = self.inner[i](hs[i])
+                if i < self.n_base_output_minus1:
+                    hs[i] += F.unpooling_2d(hs[i + 1], 2, cover_all=False)
 
-        for i in range(len(hs)):
-            hs[i] = self.outer[i](hs[i])
+            for i in range(self.n_base_output):
+                hs[i] = self.outer[i](hs[i])
 
-        while len(hs) < len(self.scales):
-            hs.append(F.max_pooling_2d(hs[-1], 1, stride=2, cover_all=False))
+            for _ in range(self.scales_minus_n_base_output):
+                hs.append(F.max_pooling_2d(hs[-1], 1, stride=2, cover_all=False))
 
         return hs
+
+
+# ======================================
+
+from chainer_compiler.elichika import testtools
+import numpy as np
+
+def main():
+    np.random.seed(314)
+
+    base = lambda x: x
+    n_base_output = 4
+    scales = (0.25, 0.125, 0.0625, 0.03125, 0.015625)
+    model = FPN(base=base, n_base_output=n_base_output, scales=scales)
+
+    bsize = 2
+    np.seed = 1
+
+    v = [
+        np.random.rand(bsize, 256, 56, 56).astype(np.float32),
+        np.random.rand(bsize, 512, 28, 28).astype(np.float32),
+        np.random.rand(bsize, 1024, 14, 14).astype(np.float32),
+        np.random.rand(bsize, 2048, 7, 7).astype(np.float32),
+    ]
+    testtools.generate_testcase(model, [v])
+
+if __name__ == '__main__':
+    main()

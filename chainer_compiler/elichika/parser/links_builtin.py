@@ -6,6 +6,7 @@ from chainer_compiler.elichika.parser import graphs
 import chainer.links
 
 chainer_links = {}
+initialized = False
 
 
 class ChainerLinkDefinition:
