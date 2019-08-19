@@ -251,11 +251,17 @@ template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<
 Tensor::Tensor(const std::string& name, const Tensor& t) : data_(t.data_), name_(name), doc_string_(t.doc_string_) {
 }
 
+bool Tensor::IsArray() const {
+    return absl::holds_alternative<chainerx::Array>(data_);
+}
+
 const chainerx::Array& Tensor::chx() const {
+    CHECK(IsArray());
     return absl::get<0>(data_);
 }
 
 const std::vector<std::string>& Tensor::str() const {
+    CHECK(!IsArray());
     return absl::get<1>(data_);
 }
 

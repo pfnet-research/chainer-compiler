@@ -61,6 +61,8 @@ public:
         return chx().raw_data();
     }
 
+    bool IsArray() const;
+
     const chainerx::Array& chx() const;
 
     const std::vector<std::string>& str() const;
