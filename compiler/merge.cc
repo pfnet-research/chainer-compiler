@@ -101,11 +101,11 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     std::vector<Value*> new_in = pad->inputs();
     std::copy(conv->inputs().begin() + 1, conv->inputs().end(), std::back_inserter(new_in));
     Node* n = gb.MOp(Node::kConv, new_in, conv->outputs());
-    n->set_dilations(conv->dilations());
-    n->set_group(conv->group());
-    n->set_kernel_shape(conv->kernel_shape());
-    n->set_strides(conv->strides());
-    n->set_auto_pad(conv->auto_pad());
+    n->set_dilations(conv->dilations())
+            ->set_group(conv->group())
+            ->set_kernel_shape(conv->kernel_shape())
+            ->set_strides(conv->strides())
+            ->set_auto_pad(conv->auto_pad());
 
     // Merge pads with Conv op.
     std::vector<int64_t> new_pads(pads.size() - 4);
