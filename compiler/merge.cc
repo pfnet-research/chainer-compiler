@@ -258,7 +258,7 @@ bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
     }
 
     chainerx::Array bias = add_tensor->chx();
-    if (bias.shape().size() != 1 && bias.shape().size() != conv->input(0)->type().dims().size() - 1) {
+    if (bias.shape().size() > 1 && bias.shape().size() != (conv->input(0)->type().dims().size() - 1)) {
         return false;
     }
     for (size_t i = 1; i < bias.shape().size(); ++i) {
@@ -266,7 +266,7 @@ bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
             return false;
         }
     }
-    if (conv->inputs().size() == 2) {
+    if (conv->inputs().size() == 3) {
         const Tensor* bias_tensor = conv->input(2)->GetConstTensor();
         if (!bias_tensor) {
             return false;
@@ -276,7 +276,7 @@ bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
 
     GraphBuilder gb(graph, "MergeConvAdd", conv->input(0));
 
-    Node* n = gb.MOp(Node::kConv, {conv->input(0), conv->input(1), gb.Const(bias)}, conv->outputs());
+    Node* n = gb.MOp(Node::kConv, {conv->input(0), conv->input(1), gb.Const(bias)}, add.outputs());
     n->set_dilations(conv->dilations())
             ->set_group(conv->group())
             ->set_kernel_shape(conv->kernel_shape())

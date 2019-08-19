@@ -179,5 +179,30 @@ TEST(MergeTest, MatMulAdd) {
     graph.CheckSanity("merged");
 }
 
+TEST(MergeTest, ConvAdd) {
+    chainerx::testing::ContextSession sess;
+
+    Graph graph("test");
+    Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {1, 4, 3, 3}));
+    Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {2, 4, 1, 1}));
+    Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {1, 2, 3, 3}));
+
+    {
+        GraphBuilder gb(&graph, "test", a);
+        Value* conv = gb.Op(Node::kConv, {a, b});
+        gb.Op(Node::kAdd, {conv, gb.Const(runtime::MakeScalarArray(1.f))}, output);
+    }
+
+    MergeOperations({"MergeConvAdd"}, &graph, false);
+    graph.DeleteDetached();
+    auto it = std::find_if(graph.nodes().begin(), graph.nodes().end(), [](Node* nd) { return nd->op_type() == Node::kConv; });
+    ASSERT_TRUE(it != graph.nodes().end());
+    Node const& node = **it;
+    EXPECT_EQ(a, node.input(0));
+    EXPECT_EQ(b, node.input(1));
+    EXPECT_EQ(output, node.output(0));
+    graph.CheckSanity("merged");
+}
+
 }  // namespace
 }  // namespace chainer_compiler
