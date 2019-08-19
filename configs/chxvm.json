@@ -38,7 +38,8 @@
         "MergePadConv": true,
         "MergeTransposeGemm": true,
         "MergeMatMulAdd": true,
-        "MergeConvBN": true
+        "MergeConvBN": true,
+        "MergeConvAdd": true
     },
     "supported_ops": {
         "Abs": true,
