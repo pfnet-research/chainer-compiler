@@ -187,10 +187,6 @@ int main(int argc, char** argv) {
         test_cases.swap(new_test_cases);
     }
 
-    std::vector<double> elapsed_times;
-    double total_elapsed = 0;
-    double best_elapsed = 0;
-    int test_cnt = 0;
     for (const std::unique_ptr<chainer_compiler::runtime::TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
         menoh::variable_profile_table_builder vpt_builder;
