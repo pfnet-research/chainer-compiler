@@ -251,4 +251,12 @@ template Tensor::Tensor(const std::string& name, Dtype dtype, const std::vector<
 Tensor::Tensor(const std::string& name, const Tensor& t) : data_(t.data_), name_(name), doc_string_(t.doc_string_) {
 }
 
+const chainerx::Array& Tensor::chx() const {
+    return absl::get<0>(data_);
+}
+
+const std::vector<std::string>& Tensor::str() const {
+    return absl::get<1>(data_);
+}
+
 }  // namespace chainer_compiler
