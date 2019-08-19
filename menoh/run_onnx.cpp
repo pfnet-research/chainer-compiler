@@ -57,9 +57,11 @@ namespace fs = std::experimental::filesystem;
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
 
-#include <tools/cmdline.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
+
+#include <tools/cmdline.h>
+#include <nlohmann/json.hpp>
 
 const char* GREEN = "\033[92m";
 const char* RED = "\033[91m";
@@ -131,16 +133,44 @@ int main(int argc, char** argv) {
     chainerx::ContextScope ctx_scope(ctx);
 
     cmdline::parser args;
-    args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
+    // args.add<std::string>("chrome_tracing", '\0', "Output chrome tracing profile", false);
     args.add<std::string>("backend", '\0', "The name of the backend", false, "chxvm");
     args.add<std::string>("test", '\0', "ONNX's backend test directory", false);
     args.add<std::string>("onnx", '\0', "ONNX model", false);
+    /*
+    args.add<std::string>("device", 'd', "ChainerX device to be used", false);
+    args.add<std::string>("out_onnx", '\0', "Output ONNX model after optimization", false);
+    args.add<std::string>("out_chxvm", '\0', "Output ChxVM program", false);
+    */
+    args.add<std::string>("dump_outputs_dir", '\0', "Dump each output of ChxVM ops to this directory", false);
+    /*
+    args.add<std::string>("report_json", '\0', "Dump report in a JSON", false);
     args.add<int>("iterations", 'I', "The number of iteartions", false, 1);
-    args.add("no_check_values", '\0', "Disable value checking of node output");
-    args.add("always_show_diff", '\0', "Show diff even though value check is skipped");
+    */
     args.add<double>("rtol", '\0', "rtol of AllClose", false, 1e-4);
     args.add<double>("atol", '\0', "atol of AllClose", false, 1e-6);
     args.add("equal_nan", '\0', "Treats NaN equal");
+    args.add("no_catch", '\0', "Do not catch the exception in ChxVM for better GDB experience");
+    args.add("no_check_values", '\0', "Disable value checking of node output");
+    args.add("always_show_diff", '\0', "Show diff even though value check is skipped");
+    args.add("skip_runtime_type_check", '\0', "Skip runtime type check");
+    args.add("check_nans", '\0', "Check for NaNs after each operation");
+    args.add("check_infs", '\0', "Check for infinities after each operation");
+    /*
+    args.add("compile_only", '\0', "Exit after compilation");
+    args.add("dump_onnx", '\0', "Dump ONNX model after optimization");
+    args.add("dump_chxvm", '\0', "Dump ChxVM program");
+    */
+    args.add("backprop", 'b', "Add backprop outputs");
+    args.add("backprop_two_phase", '\0', "Backprop using different graphs for forward and backward");
+    /*
+    args.add("skip_shape_inference", '\0', "Skip shape inference");
+    args.add("strip_chxvm", '\0', "Strip ChxVM proto");
+    */
+    args.add("trace", 't', "Tracing mode");
+    args.add("verbose", 'v', "Verbose mode");
+    args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
+    args.add("quiet", 'q', "Quiet mode");
     args.parse_check(argc, argv);
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
@@ -174,19 +204,6 @@ int main(int argc, char** argv) {
     chainer_compiler::runtime::ReadTestDir(test_path, model_data.get_input_name_list(), model_data.get_output_name_list(), &test_cases);
     LOG() << "Found " << test_cases.size() << " test cases" << std::endl;
 
-    int iterations = args.get<int>("iterations");
-    CHECK_LT(0, iterations);
-    if (iterations > 1) {
-        test_cases.resize(1);
-        std::vector<std::unique_ptr<chainer_compiler::runtime::TestCase>> new_test_cases;
-        for (int i = 0; i < iterations; ++i) {
-            for (auto& test : test_cases) {
-                new_test_cases.emplace_back(std::make_unique<chainer_compiler::runtime::TestCase>(*test));
-            }
-        }
-        test_cases.swap(new_test_cases);
-    }
-
     for (const std::unique_ptr<chainer_compiler::runtime::TestCase>& test_case : test_cases) {
         LOG() << "Running for " << test_case->name << std::endl;
         menoh::variable_profile_table_builder vpt_builder;
@@ -203,7 +220,16 @@ int main(int argc, char** argv) {
         }
         auto vpt = vpt_builder.build_variable_profile_table(model_data);
         menoh::model_builder model_builder(vpt);
-        auto model = model_builder.build_model(model_data, "", "{\"trace_level\":2}");
+        nlohmann::json config;
+        config["trace_level"] = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+        config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
+        config["check_types"] = !args.exist("skip_runtime_type_check");
+        config["check_nans"] = args.exist("check_nans");
+        config["check_infs"] = args.exist("check_infs");
+        config["catch_exception"] = !args.exist("no_catch");
+        config["dump_memory_usage"] = args.exist("trace");
+        config["dump_outputs_dir"] = args.get<std::string>("dump_outputs_dir");
+        auto model = model_builder.build_model(model_data, args.get<std::string>("backend"), config.dump());
         for (const auto& p : test_case->inputs) {
             auto input_var = model.get_variable(p.first);
             uint8_t* data = static_cast<uint8_t*>(p.second->GetArray().raw_data());
@@ -220,6 +246,6 @@ int main(int argc, char** argv) {
             auto var = std::make_shared<chainer_compiler::runtime::ChxVMVar>(std::move(arr));
             outputs.emplace(p.first, std::move(var));
         }
-        VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values") && iterations == 1, args.exist("always_show_diff"));
+        VerifyOutputs(outputs, *test_case, args, !args.exist("no_check_values"), args.exist("always_show_diff"));
     }
 }
