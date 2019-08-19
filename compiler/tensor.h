@@ -61,13 +61,11 @@ public:
         return chx().raw_data();
     }
 
-    const chainerx::Array& chx() const {
-        return absl::get<0>(data_);
-    }
+    bool IsArray() const;
 
-    const std::vector<std::string>& str() const {
-        return absl::get<1>(data_);
-    }
+    const chainerx::Array& chx() const;
+
+    const std::vector<std::string>& str() const;
 
 private:
     // Must be a C-contiguous array.
