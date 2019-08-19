@@ -949,21 +949,26 @@ class ONNXGraph:
         '''
         name = self.get_value_name(value)
 
-        if isinstance(value, values.NumberValue):
-            assert value.internal_value is not None
-            arr = np.array(value.internal_value)
-            return self.new_initializer_with_np(arr, name)
+        assert not isinstance(value, values.TupleValue)
+        assert not isinstance(value, values.ListValue)
 
-        if isinstance(value, values.BoolValue):
-            arr = np.array(value.internal_value)
-            return self.new_initializer_with_np(arr, name)
+        if isinstance(value, values.NumberValue) or isinstance(value, values.TensorValue) or isinstance(value, values.BoolValue):
+            assert value.get_constant_value() is not None
+            arr = np.array(value.get_constant_value())
+
+            if not config.float_restrict:
+                if arr.dtype == np.float64:
+                    arr = arr.astype(np.float32)
+
+            return self.new_constant_with_np(arr, name)
 
         if isinstance(value, values.StrValue):
             arr = np.array(value.internal_value, dtype=np.object)
-            return self.new_initializer_with_np(arr, name)
+            return self.new_constant_with_np(arr, name)
 
         if isinstance(value, values.NoneValue):
             arr = np.array(False)
+            # TODO(hamaji): Make this constant.
             return self.new_initializer_with_np(arr, name)
 
         assert not isinstance(value, values.UnknownValue)
@@ -1109,26 +1114,7 @@ class ONNXGenerator:
                 elif value_.generator is not None or not value_.has_constant_value():
                     tensor = onnx_graph.new_empty_tensor_with_value(value_)
                 else:
-                    if isinstance(value_, values.NumberValue) or isinstance(value_, values.TensorValue) or isinstance(value_, values.BoolValue):
-                        t = onnx_graph.new_empty_tensor_with_value(value_)
-                        arr = np.array(value_.get_constant_value())
-
-                        if not config.float_restrict:
-                            if arr.dtype == np.float64:
-                                arr = arr.astype(np.float32)
-
-                        tensor = numpy_helper.from_array(
-                            arr, name=value2onnx_parameter[value_].onnx_name)
-                        onnx_node = oh.make_node(
-                            'Constant', [], [t.name], value=tensor)
-                        onnx_graph.nodes.append(onnx_node)
-
-                    elif isinstance(value_, values.TupleValue):
-                        assert(False)
-                    elif isinstance(value_, values.ListValue):
-                        assert(False)
-                    else:
-                        tensor = onnx_graph.new_tensor_with_value(value_)
+                    tensor = onnx_graph.new_tensor_with_value(value_)
 
         generate_tensors(inputs)
 
