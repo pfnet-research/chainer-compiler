@@ -924,7 +924,7 @@ class ONNXGraph:
         initializer.dt = dt
         initializer.shape = ndarray_.shape
 
-        assert(not (name in self.generator.initializers.keys()))
+        assert(not (name in self.generator.initializers.keys())), name
 
         self.generator.initializers[name] = initializer
         self.generator.onnx_tensors[name] = tensor_value
@@ -962,7 +962,7 @@ class ONNXGraph:
             type(value), value))
         # Give weird dtype/shape to make sure this tensor will not be used.
         arr = np.array([[[[float('nan')]]]], dtype=np.float64)
-        return self.new_tensor_with_np(arr, 'this_must_not_be_used_' + name)
+        return self.new_tensor_with_np(arr, name)
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):
 
