@@ -360,6 +360,12 @@ namespace menoh {
         void* buffer_handle;
     };
 
+    int64_t variable_size_in_bytes(variable const& v) {
+        int64_t dtype_size;
+        menoh_dtype_size(static_cast<menoh_dtype>(v.dtype), &dtype_size);
+        return dtype_size * std::accumulate(v.dims.begin(), v.dims.end(), 1, std::multiplies<int64_t>());
+    }
+
     //! The main component to run inference.
     class model {
     public:
