@@ -52,8 +52,8 @@ namespace chainer_compiler {
 namespace runtime {
 
 const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";  
-const char* RESET = "\033[0m"; 
+const char* RED = "\033[91m";
+const char* RESET = "\033[0m";
 
 chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     Tensor tensor(xtensor);
@@ -177,7 +177,6 @@ chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
     }
     return shape;
 }
-
 
 chainerx::Array StageArray(chainerx::Array a) {
     // TODO(hamaji): Figure out a better way to identify host inputs.
