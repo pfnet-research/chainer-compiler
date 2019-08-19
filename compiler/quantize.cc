@@ -357,16 +357,18 @@ bool QuantizeModel(const QuantizationContext& ctx) {
     bool result = false;
 
     for (Node* node : ctx.graph->GetLiveNodes()) {
+        bool quantized_result = false;
         switch (node->op_type()) {
             case Node::kConv:
-                result = result || QuantizeConvolution(ctx, node);
+                quantized_result = QuantizeConvolution(ctx, node);
                 break;
             case Node::kMatMul:
-                result = result || QuantizeMatMul(ctx, node);
+                quantized_result = QuantizeMatMul(ctx, node);
                 break;
             default:
                 break;
         }
+        result = result || quantized_result;
     }
 
     return result;
