@@ -957,10 +957,12 @@ class ONNXGraph:
 
         assert not isinstance(value, values.UnknownValue)
 
+        # TODO(hamaji): Make this an error.
         print('Warning : Found unknown type {} in new_tensor_with_value. "{}" is stored.'.format(
             type(value), value))
-        arr = np.array(0.0, dtype=np.float32)
-        return self.new_tensor_with_np(arr, name)
+        # Give weird dtype/shape to make sure this tensor will not be used.
+        arr = np.array([[[[float('nan')]]]], dtype=np.float64)
+        return self.new_tensor_with_np(arr, 'this_must_not_be_used_' + name)
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):
 
