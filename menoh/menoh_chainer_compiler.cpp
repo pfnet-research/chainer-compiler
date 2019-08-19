@@ -702,9 +702,14 @@ menoh_error_code menoh_build_model(
 menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** data_p) {
     auto found = model->outputs.find(variable_name);
     if (found == model->outputs.end()) {
-        auto message = std::string("menoh variable not found: ") + variable_name;
-        menoh_impl::set_last_error_message(message.c_str());
-        return menoh_error_code_variable_not_found;
+        auto found = model->inputs.find(variable_name);
+        if(found == model->inputs.end()) {
+            auto message = std::string("menoh variable not found: ") + variable_name;
+            menoh_impl::set_last_error_message(message.c_str());
+            return menoh_error_code_variable_not_found;
+        }
+        *data_p = found->second->GetArray().raw_data();
+        return menoh_error_code_success;
     }
     *data_p = found->second;
     return menoh_error_code_success;
