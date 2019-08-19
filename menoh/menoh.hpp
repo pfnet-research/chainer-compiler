@@ -182,6 +182,34 @@ namespace menoh {
               buffer_handle));
         }
 
+        std::vector<std::string> get_input_name_list() const {
+            std::vector<std::string> name_list;
+            int64_t list_size;
+            MENOH_CPP_API_ERROR_CHECK(menoh_model_data_get_input_name_list_size(impl_.get(), &list_size));
+            for(int64_t i = 0; i < list_size; ++i) {
+                int64_t name_size;
+                MENOH_CPP_API_ERROR_CHECK(menoh_model_data_get_input_name_size(impl_.get(), i, &name_size));
+                std::vector<char> name(name_size+1);
+                MENOH_CPP_API_ERROR_CHECK(menoh_model_data_get_input_name(impl_.get(), i, name.data()));
+                name_list.emplace_back(name.data());
+            }
+            return name_list;
+        }
+
+        std::vector<std::string> get_output_name_list() const {
+            std::vector<std::string> name_list;
+            int64_t list_size;
+            MENOH_CPP_API_ERROR_CHECK(menoh_model_data_get_output_name_list_size(impl_.get(), &list_size));
+            for(int64_t i = 0; i < list_size; ++i) {
+                int64_t name_size;
+                MENOH_CPP_API_ERROR_CHECK(menoh_model_data_get_output_name_size(impl_.get(), i, &name_size));
+                std::vector<char> name(name_size+1);
+                MENOH_CPP_API_ERROR_CHECK(menoh_model_data_get_output_name(impl_.get(), i, name.data()));
+                name_list.emplace_back(name.data());
+            }
+            return name_list;
+        }
+
     private:
         std::unique_ptr<menoh_model_data, decltype(&menoh_delete_model_data)>
           impl_;

@@ -242,6 +242,50 @@ menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, meno
     });
 }
 
+menoh_error_code MENOH_API menoh_model_data_get_input_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.input().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_input_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.input(index).name().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_input_name(menoh_model_data_handle model_data, int64_t index, char* dst_name) {
+    return check_error([&]() {
+        auto const& name = model_data->xgraph.input(index).name();
+        std::copy(name.c_str(), name.c_str() + name.size() + 1, dst_name);
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.output().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.output(index).name().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name(menoh_model_data_handle model_data, int64_t index, char* dst_name) {
+    return check_error([&]() {
+        auto const& name = model_data->xgraph.output(index).name();
+        std::copy(name.c_str(), name.c_str() + name.size() + 1, dst_name);
+        return menoh_error_code_success;
+    });
+}
+
 /*
  * variable_profile_table_builder
  */
