@@ -533,10 +533,10 @@ def convert_node_multiary_op(onnx_graph, node: 'nodes.NodeMultiaryOp'):
 
     if node.multiaryop == nodes.MultiaryOpType.And:
         op = 'And'
-        temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'], is_constant=True)
+        temp_prev = ONNXValue(onnx_graph, np.array(True, dtype=np.bool), [node, '/True'])
     elif node.multiaryop == nodes.MultiaryOpType.Or:
         op = 'Or'
-        temp_prev = ONNXValue(onnx_graph, np.array(False, dtype=np.bool), [node, '/False'], is_constant=True)
+        temp_prev = ONNXValue(onnx_graph, np.array(False, dtype=np.bool), [node, '/False'])
     else:
         assert(False)
 
@@ -560,7 +560,7 @@ def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
 
     if node.unaryop == nodes.UnaryOpType.UAdd:
         zero_ = ONNXValue(onnx_graph, np.array(0, dtype=np.float), [
-                          node, '/Zero'], is_constant=True)
+                          node, '/Zero'])
         onnx_node = oh.make_node(
             'Add',
             [zero_.name, value2onnx_parameter[node.operand].onnx_name],
@@ -569,7 +569,7 @@ def convert_node_unary_op(onnx_graph, node: 'nodes.NodeUnaryOp'):
 
     elif node.unaryop == nodes.UnaryOpType.USub:
         zero_ = ONNXValue(onnx_graph, np.array(0, dtype=np.float), [
-                          node, '/Zero'], is_constant=True)
+                          node, '/Zero'])
         onnx_node = oh.make_node(
             'Sub',
             [zero_.name, value2onnx_parameter[node.operand].onnx_name],
@@ -705,7 +705,7 @@ class ONNXValue:
         elif id(any_value) in onnx_graph.generator.param2name.keys():
             self.np_value = any_value.data
             self.name = onnx_graph.generator.param2name[id(any_value)]
-            self.tensor = onnx_graph.new_tensor_with_np(
+            self.tensor = onnx_graph.new_initializer_with_np(
                 self.np_value, self.name)
             self.onnx_type = ONNXValueType.Tensor
 
@@ -714,16 +714,9 @@ class ONNXValue:
             self.name = generate_name()
             self.onnx_type = ONNXValueType.Tensor
 
-            if self.is_constant:
-                self.tensor = self.onnx_graph.new_empty_tensor(
-                    ['TODO'], any_value.dtype, self.name)
-
-                tensor = numpy_helper.from_array(any_value, name=self.name)
-                self.onnx_graph.add_node(
-                    'Constant', [], [self.name], self.name, value=tensor)
-            else:
-                self.tensor = onnx_graph.new_tensor_with_np(
-                    self.np_value, self.name)
+            assert self.is_constant
+            self.tensor = onnx_graph.new_constant_with_np(
+                self.np_value, self.name)
 
         elif(any_value == np.float32 or any_value == np.float64 or any_value == np.int32 or any_value == np.int64 or any_value == np.bool):
             self.name = generate_name()
@@ -896,13 +889,42 @@ class ONNXGraph:
                 if isinstance(value.generator, nodes.NodeBinOp):
                     name = self.get_value_name(value)
                     arr = np.array(value.internal_value, dtype=np.object)
-                    return self.new_tensor_with_np(arr, name)
+                    return self.new_initializer_with_np(arr, name)
 
             return self.new_empty_tensor(None, np.array(np.object).dtype, value2onnx_parameter[value].onnx_name)
 
         return self.new_empty_tensor(None, np.float32, value2onnx_parameter[value].onnx_name)
 
-    def new_tensor_with_np(self, ndarray_, name):
+    def new_initializer_with_np(self, ndarray_, name):
+        '''
+        generate a initializer which contains np data
+        '''
+        tensor, tensor_value = self.new_tensor_impl(ndarray_, name)
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(ndarray_.dtype)]
+
+        initializer = ONNXInitializer()
+        initializer.name = name
+        initializer.tensor = tensor
+        initializer.tensor_value = tensor_value
+        initializer.dt = dt
+        initializer.shape = ndarray_.shape
+
+        assert(not (name in self.generator.initializers.keys()))
+        self.generator.initializers[name] = initializer
+
+        return tensor
+
+    def new_constant_with_np(self, ndarray_, name):
+        '''
+        generate a constant which contains np data
+        '''
+        tensor, _ = self.new_tensor_impl(ndarray_, name)
+        dt = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[np.dtype(ndarray_.dtype)]
+        self.add_node('Constant', [], [name], name, value=tensor)
+
+        return tensor
+
+    def new_tensor_impl(self, ndarray_, name):
         '''
         generate a tensor which contains np data
         it is for constant input
@@ -917,19 +939,9 @@ class ONNXGraph:
 
         tensor_value = oh.make_tensor_value_info(name, dt, ndarray_.shape)
 
-        initializer = ONNXInitializer()
-        initializer.name = name
-        initializer.tensor = tensor
-        initializer.tensor_value = tensor_value
-        initializer.dt = dt
-        initializer.shape = ndarray_.shape
-
-        assert(not (name in self.generator.initializers.keys())), name
-
-        self.generator.initializers[name] = initializer
         self.generator.onnx_tensors[name] = tensor_value
 
-        return tensor
+        return tensor, tensor_value
 
     def new_tensor_with_value(self, value):
         '''
@@ -941,19 +953,19 @@ class ONNXGraph:
         if isinstance(value, values.NumberValue):
             assert value.internal_value is not None
             arr = np.array(value.internal_value)
-            return self.new_tensor_with_np(arr, name)
+            return self.new_initializer_with_np(arr, name)
 
         if isinstance(value, values.BoolValue):
             arr = np.array(value.internal_value)
-            return self.new_tensor_with_np(arr, name)
+            return self.new_initializer_with_np(arr, name)
 
         if isinstance(value, values.StrValue):
             arr = np.array(value.internal_value, dtype=np.object)
-            return self.new_tensor_with_np(arr, name)
+            return self.new_initializer_with_np(arr, name)
 
         if isinstance(value, values.NoneValue):
             arr = np.array(False)
-            return self.new_tensor_with_np(arr, name)
+            return self.new_initializer_with_np(arr, name)
 
         assert not isinstance(value, values.UnknownValue)
 
@@ -962,7 +974,7 @@ class ONNXGraph:
             type(value), value))
         # Give weird dtype/shape to make sure this tensor will not be used.
         arr = np.array([[[[float('nan')]]]], dtype=np.float64)
-        return self.new_tensor_with_np(arr, name)
+        return self.new_initializer_with_np(arr, name)
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):
 
