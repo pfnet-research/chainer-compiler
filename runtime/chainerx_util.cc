@@ -397,6 +397,7 @@ chainerx::Array GroupedConvGradWeight(
 chainerx::Array SlowRound(const chainerx::Array& x) {
     std::vector<double> result_data(x.GetTotalSize());
     chainerx::Array double_x = x.AsType(chainerx::Dtype::kFloat64);
+    CHECK(IsNativeDevice(&x.device()));
     const double* x_ptr = reinterpret_cast<const double*>(double_x.raw_data());
     for (size_t i = 0; i < result_data.size(); ++i) {
         result_data[i] = std::rint(x_ptr[i]);
