@@ -51,18 +51,18 @@ run dump_outputs_dir ./build/tools/run_onnx out/elichika_syntax_For_basic1 \
 # There should be at least a single output dump.
 ls -l npy_outputs/*.npy
 
-run tools_dump ./build/tools/dump out/ch2o_model_MLP_with_loss
+run tools_dump ./build/tools/dump out/elichika_model_MLP_backprop
 
 run run_onnx_verbose \
-    ./build/tools/run_onnx --test out/ch2o_model_MLP_with_loss \
+    ./build/tools/run_onnx --test out/elichika_model_MLP \
     --verbose --compiler_log --chrome_tracing mlp.json
 ls -l mlp.json
 
 run run_onnx_trace sh -c \
-    './build/tools/run_onnx --test out/ch2o_model_EspNet_E2E --trace 2>&1 | head -100'
+    './build/tools/run_onnx --test out/elichika_model_EspNet_E2E --trace 2>&1 | head -100'
 
 run run_onnx_alex \
-    ./build/tools/run_onnx --test out/ch2o_model_Alex_with_loss \
+    ./build/tools/run_onnx out/elichika_model_Alex \
     --check_infs --check_nans --strip_chxvm
 run run_onnx_googlenet \
-    ./build/tools/run_onnx --test out/ch2o_model_GoogleNet_with_loss
+    ./build/tools/run_onnx out/elichika_model_GoogleNet
