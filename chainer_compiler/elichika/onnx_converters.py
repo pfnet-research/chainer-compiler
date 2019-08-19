@@ -261,7 +261,7 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
 
     if node.binop == nodes.BinOpType.Unknown:
         raise utils.UnimplementedError('{} is not implemented'.format(node.binop), node.lineprop)
-    
+
     # TODO: fix for reference types
 
     if isinstance(node.target, values.ListValue) or isinstance(node.target, values.TupleValue):
@@ -285,13 +285,13 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
             output_ = ONNXValue(onnx_graph, node.outputs[0])
 
             onnx_graph.add_node(
-                binops[node.binop], 
+                binops[node.binop],
                 [left_, right_],
                 [temp_],
                 str(node.lineprop))
 
             onnx_graph.add_node(
-                'Floor', 
+                'Floor',
                 [temp_],
                 [output_],
                 str(node.lineprop))
@@ -339,20 +339,20 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
             output_ = ONNXValue(onnx_graph, node.outputs[0])
 
             onnx_graph.add_node(
-                binops[node.binop], 
+                binops[node.binop],
                 [left_, right_],
                 [temp_],
                 str(node.lineprop))
 
             onnx_graph.add_node(
-                'Floor', 
+                'Floor',
                 [temp_],
                 [output_],
                 str(node.lineprop))
-        else:        
+        else:
             onnx_node = oh.make_node(
-                binops[node.binop], 
-                [value2onnx_parameter[node.left].onnx_name, value2onnx_parameter[node.right].onnx_name], 
+                binops[node.binop],
+                [value2onnx_parameter[node.left].onnx_name, value2onnx_parameter[node.right].onnx_name],
                 [value2onnx_parameter[node.outputs[0]].onnx_name])
 
             onnx_graph.nodes.append(onnx_node)
