@@ -758,6 +758,13 @@ menoh_error_code menoh_model_get_variable_dims(
 
 menoh_error_code menoh_model_run(menoh_model_handle model) {
     return check_error([&]() {
+        chainerx::Context* default_context_backup = nullptr;
+        try {
+            // can throw ContextError when default context and global default context are nullptr
+            default_context_backup = &chainerx::GetDefaultContext();
+        } catch (chainerx::ContextError const&) {
+            // ignore error
+        }
         chainerx::SetDefaultContext(model->context.get());
         chainerx::ContextScope(*(model->context));
         {
@@ -775,7 +782,7 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                         static_cast<uint8_t*>(found->second));
             }
         }
-        chainerx::SetDefaultContext(nullptr);
+        chainerx::SetDefaultContext(default_context_backup);
         return menoh_error_code_success;
     });
 }
