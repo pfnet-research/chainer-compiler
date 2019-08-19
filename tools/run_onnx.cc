@@ -56,10 +56,6 @@ namespace chainer_compiler {
 namespace runtime {
 namespace {
 
-const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";
-const char* RESET = "\033[0m";
-
 chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
     chainerx::Shape shape;
     for (const auto& dim : xshape.dim()) {
