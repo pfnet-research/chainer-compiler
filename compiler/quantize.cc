@@ -360,6 +360,10 @@ bool QuantizeModel(const QuantizationContext& ctx) {
         bool quantized_result = false;
         switch (node->op_type()) {
             case Node::kConv:
+                // TODO(take-cheeze): Support bias
+                if (node->inputs().size() > 2) {
+                    continue;
+                }
                 quantized_result = QuantizeConvolution(ctx, node);
                 break;
             case Node::kMatMul:
