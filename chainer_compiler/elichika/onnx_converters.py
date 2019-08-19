@@ -939,16 +939,9 @@ class ONNXGraph:
         name = self.get_value_name(value)
 
         if isinstance(value, values.NumberValue):
-            if value.internal_value is None:
-                # any value
-                if value.dtype is None:
-                    arr = np.array(0)
-                else:
-                    arr = np.array(0, dtype=value.dtype)
-                return self.new_tensor_with_np(arr, name)
-            else:
-                arr = np.array(value.internal_value)
-                return self.new_tensor_with_np(arr, name)
+            assert value.internal_value is not None
+            arr = np.array(value.internal_value)
+            return self.new_tensor_with_np(arr, name)
 
         if isinstance(value, values.BoolValue):
             arr = np.array(value.internal_value)
@@ -962,9 +955,7 @@ class ONNXGraph:
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
 
-        if isinstance(value, values.UnknownValue):
-            arr = np.array(False)
-            return self.new_tensor_with_np(arr, name)
+        assert not isinstance(value, values.UnknownValue)
 
         print('Warning : Found unknown type {} in new_tensor_with_value. "{}" is stored.'.format(
             type(value), value))
