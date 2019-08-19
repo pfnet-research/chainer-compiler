@@ -120,6 +120,10 @@ def get_test_generators(dirname):
     return [test for test in TESTS if test.dirname == dirname]
 
 
+def print_test_dirs():
+    print(' '.join(sorted(set(gen.dirname for gen in TESTS))))
+
+
 def print_test_generators(dirname):
     tests = []
     for gen in get_test_generators(dirname):
@@ -191,7 +195,9 @@ def get():
 
 
 if __name__ == '__main__':
-    if sys.argv[1] == '--list':
+    if sys.argv[1] == '--dirs':
+        print_test_dirs()
+    elif sys.argv[1] == '--list':
         print_test_generators(sys.argv[2])
     elif sys.argv[1] == '--generate':
         generate_tests(sys.argv[2])
