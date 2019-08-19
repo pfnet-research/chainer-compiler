@@ -23,6 +23,7 @@ class Generator(object):
 TESTS = [
     Generator('model', 'MLP'),
     Generator('model', 'Alex'),
+    Generator('model', 'GoogleNet'),
     Generator('model', 'Resnet_with_loss'),
     Generator('model', 'MyLSTM'),
 
