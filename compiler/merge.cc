@@ -252,8 +252,11 @@ bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
         return false;
     }
     Node& add = *users.front();
+    if (add.op_type() != Node::kAdd) {
+        return false;
+    }
     const Tensor* add_tensor = add.input(add.input(0) == conv->output(0) ? 1 : 0)->GetConstTensor();
-    if (add.op_type() != Node::kAdd || !add_tensor) {
+    if (!add_tensor) {
         return false;
     }
 
@@ -265,6 +268,10 @@ bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
         if (bias.shape()[i] != 1) {
             return false;
         }
+    }
+    // Reshape to 1D tensor
+    if (bias.shape().size() >= 1) {
+        bias = bias.Reshape({bias.shape()[0]});
     }
     if (conv->inputs().size() == 3) {
         const Tensor* bias_tensor = conv->input(2)->GetConstTensor();
@@ -349,7 +356,11 @@ void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bo
                     continue;
                 }
 
-                replaced |= merger.fn(graph, node);
+                const bool merge_happened = merger.fn(graph, node);
+                replaced |= merge_happened;
+                if (merge_happened) {
+                    break;
+                }
             }
         }
     }

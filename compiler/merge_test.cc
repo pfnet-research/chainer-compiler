@@ -198,6 +198,7 @@ TEST(MergeTest, ConvAdd) {
     auto it = std::find_if(graph.nodes().begin(), graph.nodes().end(), [](Node* nd) { return nd->op_type() == Node::kConv; });
     ASSERT_TRUE(it != graph.nodes().end());
     Node const& node = **it;
+    EXPECT_EQ(3, node.inputs().size());
     EXPECT_EQ(a, node.input(0));
     EXPECT_EQ(b, node.input(1));
     EXPECT_EQ(output, node.output(0));
