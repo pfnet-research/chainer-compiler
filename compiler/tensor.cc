@@ -88,6 +88,7 @@ absl::variant<chainerx::Array, std::vector<std::string>> TensorProtoToArray(onnx
     chainerx::Shape shape(xtensor.dims().begin(), xtensor.dims().end());
 
     if (xtensor.data_type() == onnx::TensorProto::STRING) {
+        CHECK_LT(shape.size(), 2) << ">1D string tensor is not supported";
         return std::vector<std::string>(xtensor.string_data().begin(), xtensor.string_data().end());
     }
 

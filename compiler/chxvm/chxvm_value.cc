@@ -22,7 +22,8 @@ ChxVMValue ChxVMValue::GetOutputValue(const Node& node, int i, const ValueIdMana
 void ChxVMValue::AddOutput(runtime::ChxVMInstructionProto* inst) const {
     inst->add_outputs(id_);
     runtime::ChxVMTypeProto* type = inst->add_output_types();
-    if (value_ && value_->type().kind() == Type::Kind::kTensor && value_->type().HasKnownShape()) {
+    if (value_ && value_->type().kind() == Type::Kind::kTensor && value_->type().HasKnownShape() &&
+        value_->type().dtype() != Dtype::kString) {
         type->set_dtype(value_->type().dtype());
         for (int d : value_->type().dims()) {
             type->add_shape(d);

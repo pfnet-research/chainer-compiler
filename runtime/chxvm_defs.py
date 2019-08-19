@@ -509,6 +509,8 @@ CHX_GENERIC_OPS = [
     ('Out', [String('name'), Array('v')], []),
     ('Print', [ArrayList('values')], []),
     ('NullConstant', [], ['output']),
+    ('StringConstant',
+     [Strings('value')], ['output']),
 
     ('GenericLen', [Array('v')], ['len']),
     ('GenericGetItem', [Array('v'), Scalar('index')], ['output']),

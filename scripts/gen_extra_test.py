@@ -1036,6 +1036,17 @@ def gen_const_int_test(test_name):
     gb.gen_test()
 
 
+def gen_const_str_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    i = 42
+    i_v = gb.input('input', i)
+    c = np.array("hoge", dtype=np.object)
+    c_v = gb.const(c)
+    gb.ChainerPrint([c_v, i_v], [])
+    gb.output(gb.Identity([i_v]), i)
+    gb.gen_test()
+
+
 def gen_const_prop_use_twice_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     c = np.array(list(range(20)))
@@ -1166,6 +1177,8 @@ def get_tests():
     test('extra_test_pad_batch_size', gen_pad_batch_size_test)
 
     test('extra_test_const_int', gen_const_int_test)
+
+    test('extra_test_const_str', gen_const_str_test)
 
     test('extra_test_const_prop_use_twice', gen_const_prop_use_twice_test)
 
