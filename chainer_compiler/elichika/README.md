@@ -35,50 +35,96 @@ else:
 
 ## Operators
 
-### Function
+### Chainer.Function
 
-- relu
+#### Activation
+
 - elu
-- softmax
-- softmax_cross_entropy
-- pad_sequence
-- average_pooling_2d
-- unpooling_2d
-- reshape
-- sprit_axis
-- hstack
-- vstack
-- stack
-- separate
-- sequeeze
-- swapaxes
-- dropout
-- matmul
-- max_pooling_2d
-- resize_images
-- tanh
+- leaky_relu
+- log_softmax
+- relu
+- selu
 - sigmoid
+- softmax
+- tanh
+
+#### Array
+
 - broadcast_to
+- concat
 - expand_dims
-- local_response_normalization
-- mean
+- hstack
+- pad_sequence
+- reshape
+- resize_images
+- separate
+- sprit_axis
+- sequeeze
+- stack
+- swapaxes
+- vstack
+
+#### Loss
+
+- softmax_cross_entropy
+
+#### Math
+
+- arccos
+- arcsin
+- arctan
+- argmax
+- argmin
 - average
+- cos
+- cosh
+- clip
+- exp
+- log
+- matmul
+- max
+- maximum
+- mean
+- min
+- minimum
+- sin
+- sinh
+- sign
 - sum
-- roi_max_pooling_2d
+- tanh
+- tan
+
+#### Noise
+
+- dropout
+
+#### Normalizetion
+
+- local_response_normalization
+
+#### Spacial pooling
+
+- average_pooling_2d
+- max_pooling_2d
+- roi_average_align_2d
 - roi_average_pooling_2d
 - roi_max_align_2d
-- roi_average_align_2d
-- maximum
-- minimum
+- roi_max_pooling_2d
+- unpooling_2d
 
-### Link
+### Chainer.Links
 
+#### Connection
+
+- Convolution2D (partially)
+- EmbedID
 - Linear
-- Convolution2D
-- BatchNormalization
 - NStepLSTM
 - NStepBiLSTM
-- EmbedID
+
+#### Normalizetion
+
+- BatchNormalization
 
 ### numpy
 
@@ -86,9 +132,12 @@ else:
 - numpy.zeros
 - numpy.full
 - numpy.ceil
+- numpy.clip
 - numpy.cumsum
 - numpy.maximum
 - numpy.minimum
+- numpy.argmax
+- numpy.argmin
 - numpy.int32
 - numpy.float32
 

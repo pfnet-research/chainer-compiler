@@ -13,7 +13,7 @@ add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_node_base.cc
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_node.py
   MAIN_DEPENDENCY gen_node.py
   DEPENDS ${CHAINER_COMPILER_COMMON_DIR}/codegen_util.py)
 add_custom_target(gen_node_base_h DEPENDS gen_node_base.h)
@@ -22,7 +22,7 @@ add_custom_command(
   OUTPUT
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_codegen.cc
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/chxvm/gen_chxvm_codegen.py
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/chxvm/gen_chxvm_codegen.py
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
   MAIN_DEPENDENCY chxvm/gen_chxvm_codegen.py
   DEPENDS
@@ -39,7 +39,7 @@ add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.h
+  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.h
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.h"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
@@ -47,7 +47,7 @@ add_custom_command(
   OUTPUT
   "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
   COMMAND
-  python3 "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.cc
+  ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode flags.cc
   --output "${CMAKE_CURRENT_BINARY_DIR}/flags.cc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
@@ -106,8 +106,10 @@ add_library(chainer_compiler_compiler
   type.cc
   util.cc
   value.cc
-  chxvm/emitter.cc
   chxvm/chxvm_value.cc
+  chxvm/emitter.cc
+  chxvm/simple_node_emitter.cc
+  chxvm/value_id_manager.cc
   )
 add_dependencies(
   chainer_compiler_compiler
@@ -115,30 +117,6 @@ add_dependencies(
   gen_onnx_proto gen_onnx_operators_proto
   )
 set_hidden_(chainer_compiler_compiler)
-
-# Download and extract test data
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://www.cntk.ai/OnnxModels/mnist/opset_7/mnist.tar.gz &&
-  tar -xvzf mnist.tar.gz
-  )
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
-  COMMAND
-  mkdir -p data && cd data &&
-  wget --continue https://s3.amazonaws.com/download.onnx/models/opset_8/resnet50.tar.gz &&
-  tar -xvzf resnet50.tar.gz
-  )
-add_custom_target(
-  test_models
-  DEPENDS
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/mnist/model.onnx"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../data/resnet50/model.onnx"
-  )
 
 include_directories(${GOOGLETEST_INCLUDE_DIRS})
 add_executable(chainer_compiler_compiler_test
@@ -161,7 +139,7 @@ add_executable(chainer_compiler_compiler_test
 add_dependencies(
   chainer_compiler_compiler_test
   runtime_chxvm_pb_h compiler_chxvm_codegen_h gen_node_base_h compiler_flags_h
-  gen_onnx_proto test_models
+  gen_onnx_proto
   )
 target_link_libraries(chainer_compiler_compiler_test
   chainer_compiler_compiler
@@ -174,7 +152,7 @@ target_link_libraries(chainer_compiler_compiler_test
   ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
-  pthread
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}

@@ -19,6 +19,7 @@ from chainer_compiler.elichika.parser import functions_dict
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import flags
+from chainer_compiler.elichika.parser import custom_functions
 import numpy as np
 import six
 
@@ -57,6 +58,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     values.instance_converters.append(instance_converter)
 
+    custom_functions_module = values.Object(values.ModuleValue(custom_functions))
+
     # chainer
     c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
     values.function_converters[chainer.Variable] = c_variable
@@ -82,10 +85,16 @@ def convert_model(model: 'chainer.Chain', args=[]):
         if inspect.isfunction(f[1]):
             values.function_converters[f[1]] = values.FuncValue(functions.UnimplementedFunction(f[1]), None)
 
-    add_chainer_function(F.relu)
+    # activation
     add_chainer_function(F.elu)
     add_chainer_function(F.leaky_relu)
+    add_chainer_function(F.log_softmax)
+    add_chainer_function(F.relu)
+    add_chainer_function(F.selu)
+    add_chainer_function(F.sigmoid)
     add_chainer_function(F.softmax)
+    add_chainer_function(F.tanh)
+
     add_chainer_function(F.softmax_cross_entropy)
     add_chainer_function(F.pad_sequence)
     add_chainer_function(F.average_pooling_2d)
@@ -103,8 +112,6 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.matmul)
     add_chainer_function(F.max_pooling_2d)
     add_chainer_function(F.resize_images)
-    add_chainer_function(F.tanh)
-    add_chainer_function(F.sigmoid)
     add_chainer_function(F.broadcast_to)
     add_chainer_function(F.expand_dims)
     add_chainer_function(F.local_response_normalization)
@@ -113,6 +120,28 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.sum)
     add_chainer_function(F.maximum)
     add_chainer_function(F.minimum)
+    add_chainer_function(F.max)
+    add_chainer_function(F.min)
+    
+    add_chainer_function(F.sin)
+    add_chainer_function(F.sinh)
+    add_chainer_function(F.sign)
+    add_chainer_function(F.cos)
+    add_chainer_function(F.cosh)
+    add_chainer_function(F.tan)
+    add_chainer_function(F.tanh)
+    add_chainer_function(F.arcsin)
+    add_chainer_function(F.arccos)
+    add_chainer_function(F.arctan)
+    add_chainer_function(F.exp)
+    add_chainer_function(F.log)
+
+    add_chainer_function(F.clip)
+
+    values.function_converters[F.argmax] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmax), None)
+    values.function_converters[F.argmin] = values.FuncValue(functions_builtin.ChainerArgminmaxFunction(F.argmin), None)
+
+    values.function_converters[F.clipped_relu] = values.FuncValue(functions.UserDefinedFunction(custom_functions.chainer_clipped_relu), None, module=custom_functions_module)
 
     if int(chainer.__version__[0]) >= 6:
         add_chainer_function(F.roi_max_pooling_2d)
@@ -129,6 +158,8 @@ def convert_model(model: 'chainer.Chain', args=[]):
     f_cumsum = values.FuncValue(functions_ndarray.NDArrayCumsumFunction(), None)
     f_maximum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_maximum), None)
     f_minimum = values.FuncValue(functions_ndarray.NDArrayChainerFunction(functions_ndarray.dummy_minimum), None)
+    f_argmax = values.FuncValue(functions_ndarray.NDarrayArgminmaxFunction(functions_ndarray.dummy_argmax), None)
+    f_argmin = values.FuncValue(functions_ndarray.NDarrayArgminmaxFunction(functions_ndarray.dummy_argmin), None)
 
     f_int32 = values.FuncValue(functions_ndarray.NDArrayInt32(), None)
     f_float32 = values.FuncValue(functions_ndarray.NDArrayFloat32(), None)
@@ -142,6 +173,14 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.float32] = f_float32
     values.function_converters[np.maximum] = f_maximum
     values.function_converters[np.minimum] = f_minimum
+    values.function_converters[np.argmax] = f_argmax
+    values.function_converters[np.argmin] = f_argmin
+
+    values.function_converters[np.clip] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_clip), None, module=custom_functions_module)
+
+    values.function_converters[custom_functions.check_attribute_value] = values.FuncValue(functions.CheckAttributeValueFunction(), None, module=custom_functions_module)
+
+    values.function_converters[custom_functions.check_attribute_scalar] = values.FuncValue(functions.CheckAttributeScalarFunction(), None, module=custom_functions_module)
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range

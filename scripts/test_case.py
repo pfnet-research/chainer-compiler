@@ -11,6 +11,7 @@ class TestCase(object):
     def __init__(self, basedir=None, name=None, test_dir=None,
                  rtol=None, atol=None, equal_nan=False, fail=False,
                  skip_shape_inference=False,
+                 skip_runtime_type_check=False,
                  want_gpu=False,
                  prepare_func=None,
                  backend=None):
@@ -28,6 +29,7 @@ class TestCase(object):
         self.equal_nan = equal_nan
         self.fail = fail
         self.skip_shape_inference = skip_shape_inference
+        self.skip_runtime_type_check = skip_runtime_type_check
         self.args = None
         self.is_backprop = 'backprop' in name
         self.is_backprop_two_phase = False

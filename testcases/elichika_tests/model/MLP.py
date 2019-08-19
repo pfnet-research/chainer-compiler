@@ -37,6 +37,8 @@ def main():
     w = np.random.randint(out_n, size=batch_size)
     testtools.generate_testcase(model, [v, w])
 
+    testtools.generate_testcase(model, [v, w], backprop=True)
+
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,19 @@
 #include "tools/util.h"
 
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #include <algorithm>
+
+#ifdef _WIN32
+#include <filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#include <dirent.h>
+#include <unistd.h>
+#endif
 
 #include <chainerx/array.h>
 #include <chainerx/dtype.h>
@@ -106,7 +119,7 @@ int MismatchInAllClose(const chainerx::Array& a, const chainerx::Array& b, doubl
     });
 }
 
-int GetUsedMemory() {
+int64_t GetUsedMemory() {
     auto usage = GetMemoryUsageInBytes();
     return usage.has_value() ? usage->first : -1;
 }
@@ -124,6 +137,38 @@ void StripChxVMProgram(ChxVMProgramProto* program) {
         input_type->set_dtype(0);
         input_type->clear_shape();
     }
+}
+
+bool IsDir(const std::string& filename) {
+    struct stat st;
+    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
+    return S_IFDIR == (st.st_mode & S_IFMT);
+}
+
+std::vector<std::string> ListDir(const std::string& dirname) {
+    std::vector<std::string> filenames;
+#ifdef _WIN32
+    if (!fs::is_directory(dirname)) {
+        std::cout << "Failed to open directory: " << dirname << ": ";
+    }
+
+    fs::directory_iterator iter(dirname);
+
+    for (auto it : iter) {
+        filenames.push_back(it.path().generic_string());
+    }
+#else
+    DIR* dir = opendir(dirname.c_str());
+    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+        filenames.push_back(dirname + "/" + ent->d_name);
+    }
+    closedir(dir);
+#endif
+
+    std::sort(filenames.begin(), filenames.end());
+    return filenames;
 }
 
 }  // namespace runtime

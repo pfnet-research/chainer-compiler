@@ -657,11 +657,14 @@ def dispatch():
         raise
 
 
-if __name__ == '__main__':
+def main():
     import numpy as np
     np.random.seed(42)
+    gen_test()
 
+
+if __name__ == '__main__':
     if sys.argv[1].startswith('-'):
         dispatch()
     else:
-        gen_test()
+        main()

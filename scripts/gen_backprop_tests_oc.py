@@ -110,6 +110,45 @@ def get_backprop_tests():
          b=aranges(4, 2, 3, 3),
          c=aranges(4),
          d=aranges(1, 4, 3, 3))
+    test('conv_transpose', lambda m: F.deconvolution_2d(m.a, m.b),
+         a=aranges(1, 2, 7, 7),
+         b=aranges(2, 5, 3, 3))
+    # The 4th parameter is calculating gradients of bias more complex.
+    test('conv_transpose_bias',
+         lambda m: F.deconvolution_2d(m.a, m.b, b=m.c) * m.d,
+         a=aranges(1, 2, 7, 7),
+         b=aranges(2, 5, 3, 3),
+         c=aranges(5),
+         d=aranges(1, 5, 9, 9))
+    test('grouped_conv', lambda m: F.convolution_2d(m.a, m.b, groups=3),
+         a=aranges(1, 6, 11, 11),
+         b=aranges(6, 2, 3, 3))
+    # The 4th parameter is calculating gradients of bias more complex.
+    test('grouped_conv_bias',
+         lambda m: F.convolution_2d(m.a, m.b, b=m.c, groups=3) * m.d,
+         a=aranges(1, 6, 11, 11),
+         b=aranges(6, 2, 3, 3),
+         c=aranges(6),
+         d=aranges(1, 6, 9, 9))
+    test('grouped_conv_transpose',
+         lambda m: F.deconvolution_2d(m.a, m.b, groups=3),
+         a=aranges(1, 6, 9, 9),
+         b=aranges(6, 2, 3, 3))
+    # The 4th parameter is calculating gradients of bias more complex.
+    test('grouped_conv_transpose_bias',
+         lambda m: F.deconvolution_2d(m.a, m.b, b=m.c, groups=3) * m.d,
+         a=aranges(1, 6, 9, 9),
+         b=aranges(6, 2, 3, 3),
+         c=aranges(6),
+         d=aranges(1, 6, 11, 11))
+    test('grouped_conv_3d', lambda m: F.convolution_nd(m.a, m.b, groups=3),
+         a=aranges(1, 6, 5, 5, 5),
+         b=aranges(6, 2, 3, 3, 3))
+    # NOTE: Enable this test after we support 4D convolution in GPU environment
+    # test('grouped_conv_4d', lambda m: F.convolution_nd(m.a, m.b, groups=3),
+    #      a=aranges(1, 6, 5, 5, 5, 5),
+    #      b=aranges(6, 2, 3, 3, 3, 3))
+
     test('max_pool', lambda m: F.max_pooling_2d(m.a, 3, stride=1,
                                                 cover_all=False) * m.b,
          a=aranges(2, 3, 5, 5) % 9,
@@ -158,6 +197,22 @@ def get_backprop_tests():
     test('unpool',
          lambda m: F.unpooling_2d(m.a, 2, stride=2, cover_all=False),
          a=aranges(2, 3, 11, 11))
+
+    test('concat_axis0',
+         lambda m: F.concat((m.x, m.y), axis=0),
+         x=aranges(2, 3, 2), y=aranges(3, 3, 2))
+    test('concat_axis1',
+         lambda m: F.concat((m.x, m.y), axis=1),
+         x=aranges(2, 2, 2), y=aranges(2, 3, 2))
+
+    def branched_conv(m):
+        h = F.relu(m.a)
+        return F.convolution_2d(h, m.b) + F.convolution_2d(h, m.c)
+
+    test('branched_conv', branched_conv,
+         a=aranges(1, 1, 5, 5),
+         b=aranges(1, 1, 3, 3),
+         c=aranges(1, 1, 3, 3),)
 
     return tests
 

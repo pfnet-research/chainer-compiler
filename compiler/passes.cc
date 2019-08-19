@@ -116,7 +116,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
             Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
 
-        Recursively([gen_backprop](Graph* graph) { MergeOperations(graph, gen_backprop); }, graph);
+        Recursively(
+                [gen_backprop, &backend_config](Graph* graph) { MergeOperations(backend_config->GetMerge(), graph, gen_backprop); }, graph);
 
         Recursively(PropagateConstants, graph);
 

@@ -103,8 +103,8 @@ template Value* GraphBuilder::Const(const Type& type, const std::vector<float>& 
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int>& data, Value* value);
 template Value* GraphBuilder::Const(const Type& type, const std::vector<int64_t>& data, Value* value);
 
-Value* GraphBuilder::Param(const chainerx::Array& ary) {
-    const std::string& name = GenName();
+Value* GraphBuilder::Param(const chainerx::Array& ary, Value* base_value) {
+    const std::string& name = GenName(base_value);
     std::unique_ptr<Tensor> tensor(new Tensor(name, ary));
     Value* value = graph_->AddInputValue(name, Type(tensor->dtype(), tensor->dims()));
     value->ResetInitializer(std::move(tensor));
@@ -123,8 +123,11 @@ Value* GraphBuilder::Null() {
     return graph_->AddNullValue();
 }
 
-std::string GraphBuilder::GenName() {
-    return StrCat(category_, '_', target_->name(), '_', target_->Counter());
+std::string GraphBuilder::GenName(Value* value) {
+    if (value == nullptr) {
+        value = target_;
+    }
+    return StrCat(category_, '_', value->name(), '_', value->Counter());
 }
 
 }  // namespace chainer_compiler

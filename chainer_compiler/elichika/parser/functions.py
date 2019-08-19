@@ -303,6 +303,59 @@ class FunctionArgCollection():
             ret.append(FunctionArg(fa.name, fa.obj))
         return ret
 
+def auto_set_unset(func, flag):
+    def decorated(self, *args, **kwargs):
+        self.history.append((flag, self.flags[flag]))
+        ret = func(self, *args, **kwargs)
+        return ret
+    return decorated
+
+class StackTrace:
+    def __init__(self):
+        self.lineprops = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.lineprops.pop()
+        return False
+
+    def append(self, line):
+        self.lineprops.append(line)
+
+class VEvalContext:
+    def __init__(self):
+        self.stacktrace = StackTrace()
+        self.history = []
+        self.flags = {
+            "eval_as_written_target": False,
+            "ignore_branch": False,
+            "for_unroll": False
+        }
+        self.flags_cache = []
+
+        list(map(lambda flag: setattr(self.__class__, '_' + flag, property(fset=lambda obj, value: VEvalContext.generic_setter(obj, flag, value),
+                                                                           fget=lambda obj: VEvalContext.generic_getter(obj, flag))),
+                 self.flags.keys()))
+        list(map(lambda flag: setattr(self.__class__, flag, auto_set_unset(lambda obj, default=True: VEvalContext.generic_setter(obj, flag, default), flag)),
+                 self.flags.keys()))
+
+    def generic_setter(self, name, value = True):
+        self.flags[name] = value
+        return self
+
+    def generic_getter(self, name):
+        return self.flags[name]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        flag, saved_value = self.history.pop()
+        self.flags[flag] = saved_value
+        return False
+
 
 class FunctionBase():
     def __init__(self):
@@ -312,8 +365,8 @@ class FunctionBase():
 
         self.base_func = None
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         return None
 
 
@@ -346,8 +399,8 @@ class UserDefinedClassConstructorFunction(FunctionBase):
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         ret = values.Object(values.UserDefinedInstance(
             module, None, self.classinfo))
         inst = ret
@@ -362,7 +415,7 @@ class UserDefinedClassConstructorFunction(FunctionBase):
             func_field.get_field().get_attribute(k, from_module=False).revise(v)
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
-        vevaluator.veval_ast(astc, func_field, graph)
+        vevaluator.veval_ast(astc, func_field, graph, context)
 
         # dispose because of exit from function
         func_field.dispose()
@@ -391,24 +444,31 @@ class UserDefinedFunction(FunctionBase):
             ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
             self.ast = canonicalizer.Canonicalizer().visit(ast_)
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
-        func_field = values.Field()
-        func_field.set_module(module)
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
 
-        # add args
-        funcArgs = self.args.merge_inputs(inst, args)
+        if context is None:
+            context = VEvalContext()
 
-        for k, v in funcArgs.keywords.items():
-            func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_obj(v, self.name, utils.LineProperty()))
+        context.stacktrace.append(line)
+        with context.stacktrace:
+            
+            func_field = values.Field()
+            func_field.set_module(module)
 
-        astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
-        ret = vevaluator.veval_ast(astc, func_field, graph)
+            # add args
+            funcArgs = self.args.merge_inputs(inst, args)
 
-        # dispose because of exit from function
-        func_field.dispose()
+            for k, v in funcArgs.keywords.items():
+                func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_obj(v, self.name, utils.LineProperty()))
 
-        return ret
+            astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
+            ret = vevaluator.veval_ast(astc, func_field, graph, context)
+
+            # dispose because of exit from function
+            func_field.dispose()
+
+            return ret
 
 
 class UnimplementedFunction(FunctionBase):
@@ -420,8 +480,8 @@ class UnimplementedFunction(FunctionBase):
         else:
             self.name = func.__name__
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         raise utils.UnimplementedError('{} is unimplemented.'.format(self.name), utils.LineProperty(line))
 
 
@@ -439,8 +499,8 @@ class UserDefinedFunctionFromAst(FunctionBase):
         self.filename = astc.filename
         self.lineno = astc.lineno
 
-    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
         self.func_field.set_module(module)
 
         # add args
@@ -450,9 +510,52 @@ class UserDefinedFunctionFromAst(FunctionBase):
             self.func_field.get_field().get_attribute(k, from_module=False).revise(utils.try_get_obj(v, self.name, utils.LineProperty()))
 
         astc = vevaluator.AstContext(self.ast.body, self.lineno - 1, filename=self.filename)
-        ret = vevaluator.veval_ast(astc, self.func_field, graph)
+        ret = vevaluator.veval_ast(astc, self.func_field, graph, context)
 
         # dispose because of exit from function
         self.func_field.dispose()
 
         return ret
+
+class CheckAttributeValueFunction(FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'check_attribute_value'
+        self.args.add_arg('actual_value', values.NoneValue())
+        self.args.add_arg('expected_value', values.NoneValue())
+        self.args.add_arg('func_name', values.NoneValue())
+        self.args.add_arg('arg_name', values.NoneValue())
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+              context: 'VEvalContext' = None, line=-1):
+
+        funcArgs = self.args.merge_inputs(inst ,args)
+        vargs = funcArgs.get_value().inputs
+      
+        if type(vargs[0]) != type(vargs[1]) or vargs[0].get_constant_value() != vargs[1].get_constant_value():
+            raise Exception("Value must be {} : {} from {} in {}".format(
+                vargs[1].get_constant_value(), 
+                vargs[3].get_constant_value(), 
+                vargs[2].get_constant_value(), 
+                context.stacktrace.lineprops[-1]))
+    
+class CheckAttributeScalarFunction(FunctionBase):
+    def __init__(self):
+        super().__init__()
+        self.name = 'check_attribute_scalar'
+        self.args.add_arg('value', values.NoneValue())
+        self.args.add_arg('func_name', values.NoneValue())
+        self.args.add_arg('arg_name', values.NoneValue())
+        
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
+                      context: 'VEvalContext' = None, line=-1):
+        
+        funcArgs = self.args.merge_inputs(inst ,args)
+        vargs = funcArgs.get_value().inputs
+              
+        if not isinstance(vargs[0], values.NumberValue):
+            raise Exception("A number is only supported {} : from {} in {}".format(
+                vargs[2].get_constant_value(), 
+                vargs[1].get_constant_value(), 
+                context.stacktrace.lineprops[-1]))
+        

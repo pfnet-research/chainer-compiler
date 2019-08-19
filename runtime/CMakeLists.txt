@@ -9,7 +9,7 @@ add_custom_command(
     ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.cc
     ${CMAKE_CURRENT_BINARY_DIR}/chxvm.pb.h
     ${CMAKE_CURRENT_BINARY_DIR}/gen_chxvm_ops.h
-  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/gen_chxvm.py
+  COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/gen_chxvm.py
     --input-dir ${CMAKE_CURRENT_SOURCE_DIR}
     --output-dir ${CMAKE_CURRENT_BINARY_DIR}
     --protoc-exe ${PROTOC_EXECUTABLE}
@@ -85,11 +85,12 @@ target_link_libraries(chainer_compiler_runtime_test
   chainer_compiler_compiler
   chainer_compiler_common
   ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
+  onnx
   onnx_proto
   ${PROTOBUF_LIBRARY}
   gtest
   gtest_main
-  pthread
+  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
   ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}

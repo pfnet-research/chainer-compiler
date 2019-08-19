@@ -10,11 +10,11 @@ class Graph:
         self.output_values = []
         self.root_graph = None
 
-    def add_input_value(self, value):
+    def add_input_value(self, value : 'values.Value'):
         assert(value is not None)
         self.input_values.append(value)
 
-    def add_output_value(self, value):
+    def add_output_value(self, value : 'values.Value'):
         assert(value is not None)
         self.output_values.append(value)
 

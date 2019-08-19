@@ -17,7 +17,7 @@ class NDArrayInt32(functions.FunctionBase):
         self.name = 'int32'
         self.dtype = np.int32
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
         return values.Object(values.NoneValue)
 
@@ -28,7 +28,7 @@ class NDArrayFloat32(functions.FunctionBase):
         self.dtype = np.float32
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
         return values.Object(values.NoneValue)
 
@@ -45,7 +45,7 @@ class NDArrayFunction(functions.FunctionBase):
         self.args.add_arg('ndmin', values.NumberValue(0))
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -84,7 +84,7 @@ class NDArrayZerosFunction(functions.FunctionBase):
         self.args.add_arg('order', values.StrValue('C'))
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -122,7 +122,7 @@ class NDArrayFullFunction(functions.FunctionBase):
         self.args.add_arg('order', values.StrValue('C'))
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -165,7 +165,7 @@ class NDArrayCeilFunction(functions.FunctionBase):
         self.args.add_arg('x', values.NoneValue())
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst ,args)
@@ -188,7 +188,7 @@ class NDArrayCumsumFunction(functions.FunctionBase):
         self.args.add_arg('out', values.NoneValue())
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
 
         funcArgs = self.args.merge_inputs(inst ,args)
         vargs = funcArgs.get_value().inputs
@@ -207,7 +207,7 @@ class NDArrayShapeFunction(functions.FunctionBase):
         self.is_property = True
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         args = functions.FunctionArgInput()
         args.inputs.append(inst)
         args.keywords['self'] = inst
@@ -228,7 +228,7 @@ class NDArraySizeFunction(functions.FunctionBase):
         self.is_property = True
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         args = functions.FunctionArgInput()
         args.inputs.append(inst)
         args.keywords['self'] = inst
@@ -255,7 +255,7 @@ class NDArrayChainerFunction(functions.FunctionBase):
         self.ret_value_func = ret_value_func
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -265,6 +265,38 @@ class NDArrayChainerFunction(functions.FunctionBase):
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
+
+class NDarrayArgminmaxFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        
+        axis = funcArgs.keywords['axis']
+        if isinstance(axis, values.NoneValue):
+            value = values.NumberValue(None)
+            value.dtype = np.int64
+        else:
+            value = values.TensorValue()
+            value.dtype = np.int64
+
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+def dummy_argmin(a, axis=None, out=None):
+    return
+
+def dummy_argmax(a, axis=None, out=None):
+    return
 
 def dummy_maximum(x1, x2, out=None, where=True, casting='same_kind', order='K', dtype=None, subok=True):
     return

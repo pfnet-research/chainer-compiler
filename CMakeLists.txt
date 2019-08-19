@@ -10,21 +10,29 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(third-party)
 
+if(WIN32)
+  set(RM_RF rd /s /q)
+  set(ENV_SET set)
+  set(TOUCH echo.>)
+else()
+  set(RM_RF rm -rf)
+  set(ENV_SET )
+  set(TOUCH touch)
+endif()
+
 # Sets default settings from the associated env-var if existed.
 # Usage:
-#   set_option_(FOO "Option FOO")
+#   set_option_(FOO "Option FOO" OFF)
 # is equivalent to:
 #   if(DEFINED ENV{FOO})
 #       option(FOO "Option FOO" $ENV{FOO})
 #   else()
 #       option(FOO "Option FOO" OFF)
 #   endif()
-function(set_option_ var_ desc_)
+function(set_option_ var_ desc_ def_)
   if(DEFINED ENV{${var_}})
     set(def_ $ENV{${var_}})
     message(STATUS "# ${var_} = $ENV{${var_}}")
-  else()
-    set(def_ OFF)
   endif()
   option(${var_} ${desc_} ${def_})
 endfunction()
@@ -41,13 +49,15 @@ function(set_hidden_ lib_)
     ${lib_} PROPERTIES VISIBILITY_INLINES_HIDDEN 1)
 endfunction()
 
-set_option_(CHAINER_COMPILER_ENABLE_CUDA   "Enable CUDA")
-set_option_(CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN")
-set_option_(CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV")
-set_option_(CHAINER_COMPILER_ENABLE_OPENMP "Enable OPENMP")
-set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON")
-set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM")
-set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system")
+set_option_(CHAINER_COMPILER_ENABLE_CUDA   "Enable CUDA" OFF)
+set_option_(CHAINER_COMPILER_ENABLE_CUDNN  "Enable CUDNN" OFF)
+set_option_(CHAINER_COMPILER_ENABLE_NVTX   "Enable NVTX" ON)
+set_option_(CHAINER_COMPILER_ENABLE_NVRTC  "Enable NVRTC" ON)
+set_option_(CHAINER_COMPILER_ENABLE_OPENCV "Enable OPENCV" OFF)
+set_option_(CHAINER_COMPILER_ENABLE_OPENMP "Enable OPENMP" OFF)
+set_option_(CHAINER_COMPILER_ENABLE_PYTHON "Enable PYTHON" OFF)
+set_option_(CHAINER_COMPILER_ENABLE_TVM    "Enable TVM" OFF)
+set_option_(CHAINER_COMPILER_USE_SYSTEM_PROTOBUF "Use protobuf installed in the system" OFF)
 
 option(CHAINER_COMPILER_PREBUILT_CHAINERX_DIR "The path to prebuilt ChainerX" OFF)
 option(CHAINER_COMPILER_NGRAPH_DIR "The path to ngraph_dist" OFF)
@@ -63,18 +73,49 @@ else()
 endif()
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_UPPER)
-if(NOT "${CMAKE_BUILD_TYPE_UPPER}" STREQUAL "DEBUG")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native")
+
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    add_compile_options(/wd4125) # for protobuf
+    add_compile_options(/wd4127) # for protobuf
+    add_compile_options(/wd4244) # for protobuf
+
+    set(CHAINER_COMPILER_PTHREAD_LIBRARIES )
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-trigraphs")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter")
+    set(CHAINER_COMPILER_PTHREAD_LIBRARIES pthread)
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
+
+find_package(PythonInterp 3)
+
+if(MSVC)
+    # gtest for Windows
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+        # TODO(durswd): Remove it. It is hack for MSVC+LLVM
+        target_compile_options(gtest INTERFACE -Wno-global-constructors PRIVATE -w)
+    else()
+        # ChainerX is linked with MultiThreaded DLL, including gtest
+        set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    endif()
+
+    # gtest for protobuf
+    set(protobuf_MSVC_STATIC_RUNTIME OFF)
+endif()
 
 # Make both chainer-compiler and ChainerX consistent.
 set_subdirectory_option_(CHAINERX_BUILD_CUDA ${CHAINER_COMPILER_ENABLE_CUDA})
@@ -105,6 +146,8 @@ else()
   set_subdirectory_option_(protobuf_BUILD_TESTS OFF)
   add_subdirectory(third_party/protobuf/cmake EXCLUDE_FROM_ALL)
   include_directories(third_party/protobuf/src)
+  SET_TARGET_PROPERTIES(protoc PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/)
+  SET_TARGET_PROPERTIES(protoc PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/)
   set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/third_party/protobuf/cmake/protoc)
   set(PROTOBUF_LIBRARY libprotobuf)
 endif()
@@ -163,10 +206,14 @@ if(${CHAINER_COMPILER_ENABLE_CUDA})
 
     link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
 
-    add_definitions(-DCHAINER_COMPILER_ENABLE_NVRTC=1)
-    set(CHAINER_COMPILER_CUDA_LIBRARIES ${CHAINER_COMPILER_CUDA_LIBRARIES} cuda nvrtc)
-    add_definitions(-DCHAINER_COMPILER_ENABLE_NVTX=1)
-    set(CHAINER_COMPILER_CUDA_LIBRARIES ${CHAINER_COMPILER_CUDA_LIBRARIES} nvToolsExt)
+    if(${CHAINER_COMPILER_ENABLE_NVRTC})
+      add_definitions(-DCHAINER_COMPILER_ENABLE_NVRTC=1)
+      set(CHAINER_COMPILER_CUDA_LIBRARIES ${CHAINER_COMPILER_CUDA_LIBRARIES} cuda nvrtc)
+    endif()
+    if(${CHAINER_COMPILER_ENABLE_NVTX})
+      add_definitions(-DCHAINER_COMPILER_ENABLE_NVTX=1)
+      set(CHAINER_COMPILER_CUDA_LIBRARIES ${CHAINER_COMPILER_CUDA_LIBRARIES} nvToolsExt)
+    endif()
   endif()
 endif()
 
@@ -228,13 +275,14 @@ add_subdirectory(compiler)
 add_subdirectory(common)
 add_subdirectory(configs)
 add_subdirectory(feeder)
+add_subdirectory(menoh)
 add_subdirectory(runtime)
 add_subdirectory(scripts)
 add_subdirectory(tools)
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
-  COMMAND rm -rf "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
+  COMMAND ${RM_RF} "${CMAKE_CURRENT_SOURCE_DIR}/out/opset*" && ${ENV_SET} PYTHONPATH=third_party/onnx-chainer pytest --value-check-runtime skip third_party/onnx-chainer/tests/functions_tests && touch ${CMAKE_CURRENT_BINARY_DIR}/onnx_chainer_test_stamp
   DEPENDS
   third_party/onnx-chainer/tests/functions_tests/test_activations.py
   third_party/onnx-chainer/tests/functions_tests/test_arrays.py
@@ -278,7 +326,7 @@ function(gen_ch2o_test dir ch2o_test all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${ch2o_test_py} ${out_dir} --quiet && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${ch2o_test_py} ${out_dir} --quiet && ${TOUCH} ${out_stamp}
     MAIN_DEPENDENCY ${ch2o_test_py}
     DEPENDS ${CH2O_FILES}
     )
@@ -426,6 +474,7 @@ set(ELICHIKA_FILES
 include(scripts/elichika_tests.py)
 
 function(gen_elichika_test dir all)
+
   string(REPLACE "/" "_" name ${dir})
   set(elichika_tests_py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/elichika_tests.py)
   set(out_stamp ${CMAKE_CURRENT_BINARY_DIR}/stamp_out/elichika_${name})
@@ -439,7 +488,7 @@ function(gen_elichika_test dir all)
 
   add_custom_command(
     OUTPUT ${out_stamp}
-    COMMAND PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} python3 ${elichika_tests_py} --generate ${dir} && touch ${out_stamp}
+    COMMAND ${ENV_SET} PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} ${elichika_tests_py} --generate ${dir} && ${TOUCH} ${out_stamp}
     DEPENDS ${elichika_tests_py} ${ELICHIKA_FILES} ${test_files}
     )
 

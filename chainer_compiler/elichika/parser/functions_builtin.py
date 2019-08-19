@@ -4,6 +4,7 @@ from chainer_compiler.elichika.parser import functions
 from chainer_compiler.elichika.parser import graphs
 from chainer_compiler.elichika.parser import utils
 
+import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
@@ -20,13 +21,38 @@ class ChainerFunction(functions.FunctionBase):
         self.ret_value_func = ret_value_func
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
         graph.add_node(node)
-        #value = functions.generate_value_with_same_type(vargs[0])
         value = self.ret_value_func()
+        value.name = '@F.{}.{}'.format(line, self.name)
+        node.set_outputs([value])
+        return values.Object(value)
+
+class ChainerArgminmaxFunction(functions.FunctionBase):
+    def __init__(self, func):
+        super().__init__()
+        self.name = func.__name__
+        self.args.analyze_args(func)
+        self.base_func = func
+
+    def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
+              context: 'functions.VEvalContext' = None, line=-1):
+        funcArgs = self.args.merge_inputs(inst, args)
+
+        node = nodes.NodeCall(self, funcArgs, line)
+        graph.add_node(node)
+        
+        axis = funcArgs.keywords['axis']
+        if isinstance(axis, values.NoneValue):
+            value = values.NumberValue(None)
+            value.dtype = np.int32
+        else:
+            value = values.TensorValue()
+            value.dtype = np.int32
+
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)
@@ -37,7 +63,7 @@ class CopyFunction(functions.FunctionBase):
         self.name = str(func)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         node = nodes.NodeCopy(args.inputs[0].get_value())
         graph.add_node(node)
         ret = functions.generate_copied_value(args.inputs[0].get_value())
@@ -50,9 +76,9 @@ class RangeFunction(functions.FunctionBase):
         self.name = 'range'
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
 
-        if option._for_unroll:
+        if context._for_unroll:
             for ref in args.inputs:
                 if not ref.get_value().has_constant_value():
                     assert False, 'Loop unrolling was requested for non-constant sequence at %s' % line
@@ -79,7 +105,7 @@ class LenFunction(functions.FunctionBase):
         self.name = 'len'
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         node = nodes.NodeCall(self, args, line)
         graph.add_node(node)
         item = args.get_value().inputs[0]
@@ -102,7 +128,7 @@ class PrintFunction(functions.FunctionBase):
         self.args.add_arg('v', None)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         funcArgs = self.args.merge_inputs(inst, args)
 
         node = nodes.NodeCall(self, funcArgs, line)
@@ -115,7 +141,7 @@ class ListFunction(functions.FunctionBase):
         self.args.add_arg('value', values.Object(values.NoneValue()))
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
@@ -147,7 +173,7 @@ class VEvalContextFunction(functions.FunctionBase):
         self.args.analyze_args(func)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         assert(inst is None)
 
         funcArgs = self.args.merge_inputs(inst, args)
@@ -156,8 +182,8 @@ class VEvalContextFunction(functions.FunctionBase):
             assert value.has_constant_value(), "Arguments for elichika.flags were non-constant at %s" % line
             args.append(value.internal_value)
 
-        if option is not None:
-            option.flags_cache.append((self.name, args))
+        if context is not None:
+            context.flags_cache.append((self.name, args))
 
         return values.Object(values.NoneValue())
 
@@ -170,7 +196,7 @@ class GetAttrFunction(functions.FunctionBase):
         self.args.add_arg('name', None)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         func_args = self.args.merge_inputs(inst, args)
         name = func_args.get_value().get_value(key='name')
         obj = func_args.keywords['object']
@@ -180,7 +206,7 @@ class GetAttrFunction(functions.FunctionBase):
         # property(getter)
         if attr.has_obj() and isinstance(attr.get_obj().get_value(), values.FuncValue) and attr.get_obj().get_value().func.is_property:
             func_value = attr.get_obj().get_value()
-            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), option, utils.LineProperty(line))
+            ret = func_value.func.vcall(func_value.module, graph, func_value.obj, functions.FunctionArgInput(), context, utils.LineProperty(line))
             return ret
 
         if attr.has_obj():
@@ -202,7 +228,7 @@ class HasAttrFunction(functions.FunctionBase):
         self.args.add_arg('name', None)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'functions.FunctionArgInput',
-              option: 'vevaluator.VEvalContext' = None, line=-1):
+              context: 'functions.VEvalContext' = None, line=-1):
         func_args = self.args.merge_inputs(inst, args)
         name = func_args.get_value().get_value(key='name')
         obj = func_args.keywords['obj']

@@ -247,7 +247,7 @@ def preprocess(graph: 'graphs.Graph', isMain: 'bool'):
 
 
 chainer_l_converter = {}
-chainer_f_converter = {}
+f_converter = {}
 
 
 def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
@@ -360,7 +360,7 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
 def convert_node_call(onnx_graph, node: 'nodes.NodeCall'):
 
     if node.func.base_func is not None:
-        chainer_f_converter[node.func.base_func](onnx_graph, node)
+        f_converter[node.func.base_func](onnx_graph, node)
         return
 
     if isinstance(node.func, functions_list.AppendFunction):

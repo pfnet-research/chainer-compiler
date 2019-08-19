@@ -1,9 +1,3 @@
-#include <dirent.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
@@ -61,25 +55,6 @@ bool g_quiet;
 
 #define LOG() \
     if (!g_quiet) std::cerr
-
-bool IsDir(const std::string& filename) {
-    struct stat st;
-    CHECK_EQ(0, stat(filename.c_str(), &st)) << "failed to stat: " << filename << ": " << strerror(errno);
-    return S_IFDIR == (st.st_mode & S_IFMT);
-}
-
-std::vector<std::string> ListDir(const std::string& dirname) {
-    DIR* dir = opendir(dirname.c_str());
-    CHECK(dir) << "Failed to open directory: " << dirname << ": " << strerror(errno);
-    std::vector<std::string> filenames;
-    struct dirent* ent;
-    while ((ent = readdir(dir)) != nullptr) {
-        filenames.push_back(dirname + "/" + ent->d_name);
-    }
-    closedir(dir);
-    std::sort(filenames.begin(), filenames.end());
-    return filenames;
-}
 
 chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     Tensor tensor(xtensor);
@@ -247,7 +222,7 @@ ChxVMVar* StageVar(ChxVMVar* var) {
 class ModelRunner {
 public:
     ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, Model* model)
-        : model_(model), args_(args), initial_used_bytes_(initial_used_bytes) {
+        : args_(args), initial_used_bytes_(initial_used_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
             RunDefaultPassesBeforeGradient(model->mutable_graph());
@@ -291,7 +266,7 @@ public:
         chxvm_opts_.check_nans = args_.exist("check_nans");
         chxvm_opts_.check_infs = args_.exist("check_infs");
         chxvm_opts_.catch_exception = !args_.exist("no_catch");
-        chxvm_opts_.dump_memory_usage = args_.exist("trace");
+        chxvm_opts_.dump_memory_usage = args_.exist("trace") ? 2 : 0;
         chxvm_opts_.base_memory_usage = initial_used_bytes_;
         chxvm_opts_.dump_outputs_dir = args_.get<std::string>("dump_outputs_dir");
         if (!args_.get<std::string>("chrome_tracing").empty()) {
@@ -406,7 +381,6 @@ private:
         }
     }
 
-    Model* model_;
     const cmdline::parser& args_;
     std::unique_ptr<ChxVM> chxvm_;
     ChxVMOptions chxvm_opts_;
