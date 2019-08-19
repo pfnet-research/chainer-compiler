@@ -1105,12 +1105,7 @@ class ONNXGenerator:
 
                     arr = np.array(0, dtype=dtype)
 
-                    tensor = numpy_helper.from_array(
-                        arr, name=value2onnx_parameter[value_].onnx_name)
-                    onnx_node = oh.make_node(
-                        'Constant', [], [t.name], value=tensor)
-                    onnx_graph.nodes.append(onnx_node)
-
+                    tensor = onnx_graph.new_constant_with_np(arr, value2onnx_parameter[value_].onnx_name)
                 elif value_.generator is not None or not value_.has_constant_value():
                     tensor = onnx_graph.new_empty_tensor_with_value(value_)
                 else:
