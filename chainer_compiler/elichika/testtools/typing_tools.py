@@ -53,13 +53,14 @@ def generate_assertion(type_table_name, type_table, lineno_table):
             ))
 
 
+# TODO: AugAssign() generates new node and therefore cannot generate the test
 def main():
     code = utils.clip_head("""
 def forward(self):
-    x = 0
-    y = abs(x)
-    x = x + 1.3
-    return x
+    v = 0
+    for x, y in [(1, 2.0), (2, 3.0), (3, 4.0)]:
+        v += x + y
+    return v
     """)
     node = gast.ast_to_gast(ast.parse(code))
     node_type = generate_type_table(node, True)

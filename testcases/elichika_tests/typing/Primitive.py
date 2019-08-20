@@ -8,7 +8,7 @@ from chainer_compiler.elichika.testtools import generate_type_table
 
 
 class TestPrimitive(unittest.TestCase):
-    def test_for_range(self):
+    def test_for_simple(self):
         code = utils.clip_head("""
         def forward():
             x = 0
@@ -142,6 +142,34 @@ class TestPrimitive(unittest.TestCase):
         self.assertEqual(str(node_type[21]), "float")	# lineno: 4
 
 
+    def test_num_bool(self):
+        code = utils.clip_head("""
+        def forward(self, x, y):
+            test1 = x and y
+            test2 = x or y
+            return test2
+        """)
+
+        tree = gast.ast_to_gast(ast.parse(code))
+        node_type = generate_type_table(tree)
+
+        self.assertEqual(str(node_type[1]), "bool")	# lineno: 2
+        self.assertEqual(str(node_type[9]), "NoneType")	# lineno: 3
+        self.assertEqual(str(node_type[10]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[12]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[13]), "bool -> bool -> bool")
+        self.assertEqual(str(node_type[14]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[16]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[18]), "NoneType")	# lineno: 4
+        self.assertEqual(str(node_type[19]), "bool")	# lineno: 4
+        self.assertEqual(str(node_type[21]), "bool")	# lineno: 4
+        self.assertEqual(str(node_type[22]), "bool -> bool -> bool")
+        self.assertEqual(str(node_type[23]), "bool")	# lineno: 4
+        self.assertEqual(str(node_type[25]), "bool")	# lineno: 4
+        self.assertEqual(str(node_type[27]), "bool")	# lineno: 5
+        self.assertEqual(str(node_type[28]), "bool")	# lineno: 5
+
+
     def test_num_coersion(self):
         code = utils.clip_head("""
         def forward(self):
@@ -203,6 +231,56 @@ class TestPrimitive(unittest.TestCase):
         self.assertEqual(str(node_type[23]), "float")	# lineno: 6
         self.assertEqual(str(node_type[24]), "int")	# lineno: 7
         self.assertEqual(str(node_type[25]), "int")	# lineno: 7
+
+
+    def test_dict_basic(self):
+        code = utils.clip_head("""
+        def forward(self):
+            x = {"one": 1, "two": 2}
+            return x["one"]
+        """)
+
+        tree = gast.ast_to_gast(ast.parse(code))
+        node_type = generate_type_table(tree)
+
+        self.assertEqual(str(node_type[1]), "int")	# lineno: 2
+        self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
+        self.assertEqual(str(node_type[6]), "{string : int}")	# lineno: 3
+        self.assertEqual(str(node_type[8]), "{string : int}")	# lineno: 3
+        self.assertEqual(str(node_type[9]), "string")	# lineno: 3
+        self.assertEqual(str(node_type[10]), "string")	# lineno: 3
+        self.assertEqual(str(node_type[11]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[12]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[13]), "int")	# lineno: 4
+        self.assertEqual(str(node_type[14]), "int")	# lineno: 4
+        self.assertEqual(str(node_type[15]), "{string : int}")	# lineno: 4
+        self.assertEqual(str(node_type[18]), "string")	# lineno: 4
+
+
+    def test_list_slice(self):
+        code = utils.clip_head("""
+        def forward(self):
+            x = [0, 1, 2, 3]
+            return x[1:2]
+        """)
+
+        tree = gast.ast_to_gast(ast.parse(code))
+        node_type = generate_type_table(tree)
+
+        self.assertEqual(str(node_type[1]), "int list")	# lineno: 2
+        self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
+        self.assertEqual(str(node_type[6]), "[int, int, int, int]")	# lineno: 3
+        self.assertEqual(str(node_type[8]), "[int, int, int, int]")	# lineno: 3
+        self.assertEqual(str(node_type[9]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[10]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[11]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[12]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[14]), "int list")	# lineno: 4
+        self.assertEqual(str(node_type[15]), "int list")	# lineno: 4
+        self.assertEqual(str(node_type[16]), "int list")	# lineno: 4
+        self.assertEqual(str(node_type[19]), "int")	# lineno: 4
+        self.assertEqual(str(node_type[20]), "int")	# lineno: 4
+
 
 
     ### template

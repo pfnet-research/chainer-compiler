@@ -406,9 +406,6 @@ class TypeChecker():
 
     # ================================ mod =====================================
     def infer_mod(self, node: 'ast.Node'):
-        if self.is_debug:
-            debug(gast.dump(node))
-
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
         else:
