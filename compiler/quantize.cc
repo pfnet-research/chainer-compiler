@@ -82,7 +82,7 @@ QuantizedData QuantizeData(const QuantizationContext& ctx, const chainerx::Array
         CHECK_EQ(mode, DataMode::Linear_NonScaled);
         scale = rmin != rmax ? (rmax - rmin) / quantize_range : 1.f;
         zero_point = std::rint((0 - rmin) / scale);
-        quantized = runtime::SlowRound(data / scale).AsType(chainerx::Dtype::kUInt8);
+        quantized = (runtime::SlowRound(data / scale) + zero_point).AsType(chainerx::Dtype::kUInt8);
     }
     return {rmin, rmax, scale, zero_point, quantized};
 }
