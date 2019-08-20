@@ -41,19 +41,11 @@
 #include <runtime/meminfo.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
+#include <tools/log.h>
 #include <tools/util.h>
-
-#ifndef LOG
-#define CHAINER_COMPILER_RUN_ONNX_UTIL_DEFAULT_LOG_FUNCTION_IS_USED
-#define LOG() std::cerr
-#endif
 
 namespace chainer_compiler {
 namespace runtime {
-
-const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";
-const char* RESET = "\033[0m";
 
 chainerx::Array MakeArrayFromONNX(const onnx::TensorProto& xtensor) {
     Tensor tensor(xtensor);
@@ -293,8 +285,3 @@ void VerifyOutputs(const InOuts& outputs, const TestCase& test_case, const cmdli
 
 }  // namespace runtime
 }  // namespace chainer_compiler
-
-#ifdef CHAINER_COMPILER_RUN_ONNX_UTIL_DEFAULT_LOG_FUNCTION_IS_USED
-#undef CHAINER_COMPILER_RUN_ONNX_UTIL_DEFAULT_LOG_FUNCTION_IS_USED
-#undef LOG
-#endif

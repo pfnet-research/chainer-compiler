@@ -18,6 +18,7 @@ add_custom_command(
 
 add_library(chainer_compiler_tools
   "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
+  log.cc
   util.cc
   )
 add_dependencies(

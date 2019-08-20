@@ -41,16 +41,9 @@
 #include <runtime/meminfo.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
-#include <tools/util.h>
-
-namespace chainer_compiler {
-namespace runtime {
-bool g_quiet;
-}
-}  // namespace chainer_compiler
-#define LOG() \
-    if (!g_quiet) std::cerr
+#include <tools/log.h>
 #include <tools/run_onnx_util.h>
+#include <tools/util.h>
 
 namespace chainer_compiler {
 namespace runtime {
