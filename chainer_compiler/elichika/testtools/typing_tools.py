@@ -20,9 +20,15 @@ class IDAssignor(gast.NodeVisitor):
         return self.node_ids
 
 
-def generate_id_table(tree):  # return type: Dict[Node, id]
+def generate_id_table(tree):  # return type: Dict[Node, id], Dict[id, Node]
     a = IDAssignor()
-    return a.run(tree)
+    id_table = a.run(tree)
+
+    node_table = {}
+    for n, i in id_table.items():
+        node_table[i] = n
+
+    return id_table, node_table
 
 
 def generate_type_table(tree, ty_args, is_debug=False):  # return type: Dict[id, type]
@@ -38,37 +44,27 @@ def generate_type_table(tree, ty_args, is_debug=False):  # return type: Dict[id,
     return new_nodetype
 
 
-def generate_lineno_table(id_table):  # return type: Dict[id, lineno]
-    ret = {}
-    for t, i in id_table.items():
-        ret[i] = t.lineno if hasattr(t, 'lineno') else None
-    return ret
+def generate_assertion(type_table_name, type_table, node_table):
+    for i, t in sorted(type_table.items()):
+        node = node_table[i]
+        comment = "\t# {}".format(type(node).__name__) \
+                + (" (line {})".format(node.lineno) if hasattr(node, 'lineno') else "")
 
-
-def generate_assertion(type_table_name, type_table, lineno_table):
-    for k, t in sorted(type_table.items()):
-        lineno = lineno_table[k]
-        # TODO(momohatt): display type of node (e.g. 'AugAssign' etc.)
-        print("self.assertEqual(str({}[{}]), \"{}\"){}".format(
-            type_table_name, k, t,
-            "\t# lineno: {}".format(lineno) if lineno is not None else ""
-            ))
+        print("self.assertEqual(str({}[{}]), \"{}\"){}".format( \
+            type_table_name, i, t, comment))
 
 
 def main():
     code = utils.clip_head("""
-    def forward(self, x):
-        y = abs(x)
-        x = x + 1.3
-        return x
+    def forward(self, x, y):
+        return x and y or True
     """)
     node = gast.ast_to_gast(ast.parse(code))
-    node_type = generate_type_table(node, (typing.TyInt(),), True)
-    id_table = generate_id_table(node)
-    lineno_table = generate_lineno_table(id_table)
+    node_type = generate_type_table(node, (typing.TyBool(), typing.TyBool()), True)
+    id_table, node_table = generate_id_table(node)
     # pprint.pprint(node_type)
     # pprint.pprint(id_table)
-    generate_assertion("node_type", node_type, lineno_table)
+    generate_assertion("node_type", node_type, node_table)
 
 
 if __name__ == '__main__':

@@ -19,15 +19,17 @@ class TestNum(unittest.TestCase):
         # specify the 'typing' type but only the runtime argument value
         node_type = generate_type_table(tree, (typing.TyBool(), typing.TyBool()))
 
-        self.assertEqual(str(node_type[1]), "bool")	# lineno: 2
-        self.assertEqual(str(node_type[9]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[10]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[11]), "bool -> bool -> bool")
-        self.assertEqual(str(node_type[12]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[13]), "bool -> bool -> bool")
-        self.assertEqual(str(node_type[14]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[16]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[18]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[1]), "bool")	# FunctionDef (line 2)
+        self.assertEqual(str(node_type[5]), "bool")	# Name (line 2)
+        self.assertEqual(str(node_type[7]), "bool")	# Name (line 2)
+        self.assertEqual(str(node_type[9]), "bool")	# Return (line 3)
+        self.assertEqual(str(node_type[10]), "bool")	# BoolOp (line 3)
+        self.assertEqual(str(node_type[11]), "bool -> bool -> bool")	# Or
+        self.assertEqual(str(node_type[12]), "bool")	# BoolOp (line 3)
+        self.assertEqual(str(node_type[13]), "bool -> bool -> bool")	# And
+        self.assertEqual(str(node_type[14]), "bool")	# Name (line 3)
+        self.assertEqual(str(node_type[16]), "bool")	# Name (line 3)
+        self.assertEqual(str(node_type[18]), "bool")	# NameConstant (line 3)
 
 
     def test_num_coersion(self):
@@ -41,22 +43,24 @@ class TestNum(unittest.TestCase):
         tree = gast.ast_to_gast(ast.parse(code))
         node_type = generate_type_table(tree, (typing.TyInt(),))
 
-        self.assertEqual(str(node_type[1]), "float")	# lineno: 2
-        self.assertEqual(str(node_type[5]), "int")	# lineno: 2
-        self.assertEqual(str(node_type[7]), "NoneType")	# lineno: 3
-        self.assertEqual(str(node_type[8]), "int")	# lineno: 3
-        self.assertEqual(str(node_type[10]), "int")	# lineno: 3
-        self.assertEqual(str(node_type[11]), "int -> int")	# lineno: 3
-        self.assertEqual(str(node_type[13]), "int")	# lineno: 3
-        self.assertEqual(str(node_type[15]), "NoneType")	# lineno: 4
-        self.assertEqual(str(node_type[16]), "float")	# lineno: 4
-        self.assertEqual(str(node_type[18]), "float")	# lineno: 4
-        self.assertEqual(str(node_type[19]), "int")	# lineno: 4
-        self.assertEqual(str(node_type[21]), "int -> float -> float")
-        self.assertEqual(str(node_type[22]), "float")	# lineno: 4
-        self.assertEqual(str(node_type[23]), "float")	# lineno: 5
-        self.assertEqual(str(node_type[24]), "float")	# lineno: 5
+        self.assertEqual(str(node_type[1]), "float")	# FunctionDef (line 2)
+        self.assertEqual(str(node_type[5]), "int")	# Name (line 2)
+        self.assertEqual(str(node_type[7]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(node_type[8]), "int")	# Name (line 3)
+        self.assertEqual(str(node_type[10]), "int")	# Call (line 3)
+        self.assertEqual(str(node_type[11]), "int -> int")	# Name (line 3)
+        self.assertEqual(str(node_type[13]), "int")	# Name (line 3)
+        self.assertEqual(str(node_type[15]), "NoneType")	# Assign (line 4)
+        self.assertEqual(str(node_type[16]), "float")	# Name (line 4)
+        self.assertEqual(str(node_type[18]), "float")	# BinOp (line 4)
+        self.assertEqual(str(node_type[19]), "int")	# Name (line 4)
+        self.assertEqual(str(node_type[21]), "int -> float -> float")	# Add
+        self.assertEqual(str(node_type[22]), "float")	# Num (line 4)
+        self.assertEqual(str(node_type[23]), "float")	# Return (line 5)
+        self.assertEqual(str(node_type[24]), "float")	# Name (line 5)
 
+
+    # TODO(momohatt): regenerate assertions for the following tests
 
     def test_num_coersion_if(self):
         code = utils.clip_head("""
