@@ -95,7 +95,7 @@ QuantizedInput QuantizeWeight(const QuantizationContext& ctx, GraphBuilder* gb, 
 }
 
 QuantizedInput QuantizeWeightConvolution(const QuantizationContext& ctx, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
-    if (ctx.per_channel) {
+    if (!ctx.per_channel) {
         return QuantizeWeight(ctx, gb, w, dtype);
     }
 
