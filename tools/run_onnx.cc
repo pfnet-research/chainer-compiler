@@ -7,8 +7,6 @@
 #include <set>
 #include <string>
 
-#include <compiler/onnx.h>
-
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
@@ -29,6 +27,7 @@
 #include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/tensor.h>
 #include <compiler/util.h>

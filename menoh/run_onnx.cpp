@@ -12,20 +12,7 @@
 #include <set>
 #include <string>
 
-#include <common/log.h>
-#include <menoh/menoh.hpp>
-
-#ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
-#include <filesystem>
-namespace fs = std::experimental::filesystem;
-#undef OPAQUE
-#else
-#include <dirent.h>
-#include <unistd.h>
-#endif
+#include <nlohmann/json.hpp>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
@@ -35,6 +22,7 @@ namespace fs = std::experimental::filesystem;
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
+#include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
 #include <compiler/chxvm/emitter.h>
@@ -50,18 +38,16 @@ namespace fs = std::experimental::filesystem;
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
+#include <menoh/menoh.hpp>
 #include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
-
+#include <tools/cmdline.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
-
-#include <tools/cmdline.h>
-#include <nlohmann/json.hpp>
 
 const char* GREEN = "\033[92m";
 const char* RED = "\033[91m";
