@@ -953,7 +953,7 @@ class ONNXGraph:
         assert not isinstance(value, values.ListValue)
 
         if isinstance(value, values.NumberValue) or isinstance(value, values.TensorValue) or isinstance(value, values.BoolValue):
-            assert value.get_constant_value() is not None
+            assert value.has_constant_value()
             arr = np.array(value.get_constant_value())
 
             if not config.float_restrict:
