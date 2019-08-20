@@ -300,6 +300,13 @@ def all_same_ty(tys):
     return all([t == tys[0] for t in tys[1:]])
 
 
+def ty_of_value(value):
+    if isinstance(value, int):
+        return TyInt()
+    if isinstance(value, float):
+        return TyFloat()
+
+
 # ==============================================================================
 
 primitive_func_ty = {
@@ -403,6 +410,25 @@ class TypeChecker():
             self.dump_nodetype()
 
         return self.nodetype
+
+
+    def infer_function(self, node: 'ast.Node', ty_args) -> 'TyObj':
+        assert isinstance(node, gast.FunctionDef)
+        # node.args.args[0] is 'self'
+        assert len(ty_args) == len(node.args.args) - 1
+
+        for arg, ty in zip(node.args.args[1:], ty_args):
+            self.nodetype[arg] = ty
+            self.tyenv[arg.id] = ty
+
+        self.infer_stmt(node)
+
+        if self.is_debug:
+            print('=== Type Environment ===')
+            self.dump_nodetype()
+
+        return self.nodetype
+
 
     # ================================ mod =====================================
     def infer_mod(self, node: 'ast.Node'):

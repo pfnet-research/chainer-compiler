@@ -15,7 +15,9 @@ class TestNum(unittest.TestCase):
         """)
 
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        # TODO(momohatt): Change generate_type_table so that we don't have to
+        # specify the 'typing' type but only the runtime argument value
+        node_type = generate_type_table(tree, (typing.TyBool(), typing.TyBool()))
 
         self.assertEqual(str(node_type[1]), "bool")	# lineno: 2
         self.assertEqual(str(node_type[9]), "bool")	# lineno: 3
@@ -30,33 +32,30 @@ class TestNum(unittest.TestCase):
 
     def test_num_coersion(self):
         code = utils.clip_head("""
-        def forward(self):
-            x = 0
+        def forward(self, x):
             y = abs(x)
             x = x + 1.3
             return x
         """)
 
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, (typing.TyInt(),))
 
         self.assertEqual(str(node_type[1]), "float")	# lineno: 2
-        self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
-        self.assertEqual(str(node_type[6]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[5]), "int")	# lineno: 2
+        self.assertEqual(str(node_type[7]), "NoneType")	# lineno: 3
         self.assertEqual(str(node_type[8]), "int")	# lineno: 3
-        self.assertEqual(str(node_type[9]), "NoneType")	# lineno: 4
-        self.assertEqual(str(node_type[10]), "int")	# lineno: 4
-        self.assertEqual(str(node_type[12]), "int")	# lineno: 4
-        self.assertEqual(str(node_type[13]), "int -> int")	# lineno: 4
-        self.assertEqual(str(node_type[15]), "int")	# lineno: 4
-        self.assertEqual(str(node_type[17]), "NoneType")	# lineno: 5
-        self.assertEqual(str(node_type[18]), "float")	# lineno: 5
-        self.assertEqual(str(node_type[20]), "float")	# lineno: 5
-        self.assertEqual(str(node_type[21]), "int")	# lineno: 5
-        self.assertEqual(str(node_type[23]), "int -> float -> float")
+        self.assertEqual(str(node_type[10]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[11]), "int -> int")	# lineno: 3
+        self.assertEqual(str(node_type[13]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[15]), "NoneType")	# lineno: 4
+        self.assertEqual(str(node_type[16]), "float")	# lineno: 4
+        self.assertEqual(str(node_type[18]), "float")	# lineno: 4
+        self.assertEqual(str(node_type[19]), "int")	# lineno: 4
+        self.assertEqual(str(node_type[21]), "int -> float -> float")
+        self.assertEqual(str(node_type[22]), "float")	# lineno: 4
+        self.assertEqual(str(node_type[23]), "float")	# lineno: 5
         self.assertEqual(str(node_type[24]), "float")	# lineno: 5
-        self.assertEqual(str(node_type[25]), "float")	# lineno: 6
-        self.assertEqual(str(node_type[26]), "float")	# lineno: 6
 
 
     def test_num_coersion_if(self):
@@ -69,7 +68,7 @@ class TestNum(unittest.TestCase):
             return a
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "int")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -101,7 +100,7 @@ class TestNum(unittest.TestCase):
             return x
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "float")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -134,7 +133,7 @@ class TestSequence(unittest.TestCase):
             return v
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "int list list")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -171,7 +170,7 @@ class TestSequence(unittest.TestCase):
             return o
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "int")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -202,7 +201,7 @@ class TestSequence(unittest.TestCase):
             return x
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "int tuple")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -229,7 +228,7 @@ class TestSequence(unittest.TestCase):
             return x + y
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "float")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -254,7 +253,7 @@ class TestSequence(unittest.TestCase):
         """)
 
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "int list")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -280,7 +279,7 @@ class TestSequence(unittest.TestCase):
             return v
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "float")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -320,7 +319,7 @@ class TestOtherDataTypes(unittest.TestCase):
             return v
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "string")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -346,7 +345,7 @@ class TestOtherDataTypes(unittest.TestCase):
             return x["one"]
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "int")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -367,34 +366,34 @@ class TestOtherDataTypes(unittest.TestCase):
 class TestControl(unittest.TestCase):
     def test_for_simple(self):
         code = utils.clip_head("""
-        def forward():
+        def forward(self):
             x = 0
             for i in range(2):
                 x = float(i) + 1
             return x
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree)
+        node_type = generate_type_table(tree, ())
 
         self.assertEqual(str(node_type[1]), "float")	# lineno: 2
-        self.assertEqual(str(node_type[3]), "NoneType")	# lineno: 3
-        self.assertEqual(str(node_type[4]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
         self.assertEqual(str(node_type[6]), "int")	# lineno: 3
-        self.assertEqual(str(node_type[7]), "NoneType")	# lineno: 4
-        self.assertEqual(str(node_type[8]), "int")	# lineno: 4
-        self.assertEqual(str(node_type[10]), "int list")	# lineno: 4
-        self.assertEqual(str(node_type[11]), "int -> int list")	# lineno: 4
-        self.assertEqual(str(node_type[13]), "int")	# lineno: 4
-        self.assertEqual(str(node_type[14]), "NoneType")	# lineno: 5
-        self.assertEqual(str(node_type[15]), "float")	# lineno: 5
+        self.assertEqual(str(node_type[8]), "int")	# lineno: 3
+        self.assertEqual(str(node_type[9]), "NoneType")	# lineno: 4
+        self.assertEqual(str(node_type[10]), "int")	# lineno: 4
+        self.assertEqual(str(node_type[12]), "int list")	# lineno: 4
+        self.assertEqual(str(node_type[13]), "int -> int list")	# lineno: 4
+        self.assertEqual(str(node_type[15]), "int")	# lineno: 4
+        self.assertEqual(str(node_type[16]), "NoneType")	# lineno: 5
         self.assertEqual(str(node_type[17]), "float")	# lineno: 5
-        self.assertEqual(str(node_type[18]), "float")	# lineno: 5
-        self.assertEqual(str(node_type[19]), "int -> float")	# lineno: 5
-        self.assertEqual(str(node_type[21]), "int")	# lineno: 5
-        self.assertEqual(str(node_type[23]), "float -> int -> float")
-        self.assertEqual(str(node_type[24]), "int")	# lineno: 5
-        self.assertEqual(str(node_type[25]), "float")	# lineno: 6
-        self.assertEqual(str(node_type[26]), "float")	# lineno: 6
+        self.assertEqual(str(node_type[19]), "float")	# lineno: 5
+        self.assertEqual(str(node_type[20]), "float")	# lineno: 5
+        self.assertEqual(str(node_type[21]), "int -> float")	# lineno: 5
+        self.assertEqual(str(node_type[23]), "int")	# lineno: 5
+        self.assertEqual(str(node_type[25]), "float -> int -> float")
+        self.assertEqual(str(node_type[26]), "int")	# lineno: 5
+        self.assertEqual(str(node_type[27]), "float")	# lineno: 6
+        self.assertEqual(str(node_type[28]), "float")	# lineno: 6
 
 
     ### template

@@ -25,11 +25,12 @@ def generate_id_table(tree):  # return type: Dict[Node, id]
     return a.run(tree)
 
 
-def generate_type_table(tree, is_debug=False):  # return type: Dict[id, type]
+def generate_type_table(tree, ty_args, is_debug=False):  # return type: Dict[id, type]
     a = IDAssignor()
     tc = typing.TypeChecker(is_debug=is_debug)
+    func_body = tree.body[0]  # XXX: only checks first function
     node_ids = a.run(tree)
-    node_type = tc.infer(tree)
+    node_type = tc.infer_function(func_body, ty_args)
     new_nodetype = {}
     for n, t in node_type.items():
         new_nodetype[node_ids[n]] = t
@@ -47,6 +48,7 @@ def generate_lineno_table(id_table):  # return type: Dict[id, lineno]
 def generate_assertion(type_table_name, type_table, lineno_table):
     for k, t in sorted(type_table.items()):
         lineno = lineno_table[k]
+        # TODO(momohatt): display type of node (e.g. 'AugAssign' etc.)
         print("self.assertEqual(str({}[{}]), \"{}\"){}".format(
             type_table_name, k, t,
             "\t# lineno: {}".format(lineno) if lineno is not None else ""
@@ -55,13 +57,13 @@ def generate_assertion(type_table_name, type_table, lineno_table):
 
 def main():
     code = utils.clip_head("""
-def forward(self):
-    x = (1, 2, 3)
-    x += (4, 5, 6)
-    return x
+    def forward(self, x):
+        y = abs(x)
+        x = x + 1.3
+        return x
     """)
     node = gast.ast_to_gast(ast.parse(code))
-    node_type = generate_type_table(node, True)
+    node_type = generate_type_table(node, (typing.TyInt(),), True)
     id_table = generate_id_table(node)
     lineno_table = generate_lineno_table(id_table)
     # pprint.pprint(node_type)
