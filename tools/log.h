@@ -5,7 +5,8 @@ namespace runtime {
 
 extern bool g_quiet;
 
-#define LOG() if (!::chainer_compiler::runtime::g_quiet) std::cerr
+#define LOG() \
+    if (!::chainer_compiler::runtime::g_quiet) std::cerr
 
 constexpr char GREEN[] = "\033[92m";
 constexpr char RED[] = "\033[91m";
