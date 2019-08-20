@@ -267,6 +267,9 @@ public:
     array_profile() = default;
 
     array_profile(menoh_dtype dtype, std::vector<int64_t> const& dims) : dtype_(dtype), dims_(dims) {
+        for (int64_t d : dims) {
+            CHECK_LT(0, d);
+        }
     }
 
     menoh_dtype dtype() const {
