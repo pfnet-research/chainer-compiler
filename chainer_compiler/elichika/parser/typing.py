@@ -466,10 +466,14 @@ class TypeChecker():
         elif isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
             if self.tyenv[node.target.id].is_mutable():
-                ty_val = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
+                binop = gast.BinOp(node.target, node.op, node.value)
+                ty_val = self.infer_expr(binop)
+                del self.nodetype[binop]
             else:
                 self.tyenv[node.target.id] = deepcopy(self.tyenv[node.target.id])
-                ty_val = self.infer_expr(gast.BinOp(node.target, node.op, node.value))
+                binop = gast.BinOp(node.target, node.op, node.value)
+                ty_val = self.infer_expr(binop)
+                del self.nodetype[binop]
             self.tyenv[node.target.id] = ty_val
             self.nodetype[node.target] = ty_val
             self.nodetype[node] = TyNone()
