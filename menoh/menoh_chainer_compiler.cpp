@@ -242,6 +242,50 @@ menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, meno
     });
 }
 
+menoh_error_code MENOH_API menoh_model_data_get_input_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.input().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_input_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.input(index).name().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_input_name(menoh_model_data_handle model_data, int64_t index, char* dst_name) {
+    return check_error([&]() {
+        auto const& name = model_data->xgraph.input(index).name();
+        std::copy(name.c_str(), name.c_str() + name.size() + 1, dst_name);
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.output().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size) {
+    return check_error([&]() {
+        *dst_size = model_data->xgraph.output(index).name().size();
+        return menoh_error_code_success;
+    });
+}
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name(menoh_model_data_handle model_data, int64_t index, char* dst_name) {
+    return check_error([&]() {
+        auto const& name = model_data->xgraph.output(index).name();
+        std::copy(name.c_str(), name.c_str() + name.size() + 1, dst_name);
+        return menoh_error_code_success;
+    });
+}
+
 /*
  * variable_profile_table_builder
  */
@@ -658,9 +702,14 @@ menoh_error_code menoh_build_model(
 menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** data_p) {
     auto found = model->outputs.find(variable_name);
     if (found == model->outputs.end()) {
-        auto message = std::string("menoh variable not found: ") + variable_name;
-        menoh_impl::set_last_error_message(message.c_str());
-        return menoh_error_code_variable_not_found;
+        auto found = model->inputs.find(variable_name);
+        if(found == model->inputs.end()) {
+            auto message = std::string("menoh variable not found: ") + variable_name;
+            menoh_impl::set_last_error_message(message.c_str());
+            return menoh_error_code_variable_not_found;
+        }
+        *data_p = found->second->GetArray().raw_data();
+        return menoh_error_code_success;
     }
     *data_p = found->second;
     return menoh_error_code_success;
@@ -709,6 +758,13 @@ menoh_error_code menoh_model_get_variable_dims(
 
 menoh_error_code menoh_model_run(menoh_model_handle model) {
     return check_error([&]() {
+        chainerx::Context* default_context_backup = nullptr;
+        try {
+            // can throw ContextError when default context and global default context are nullptr
+            default_context_backup = &chainerx::GetDefaultContext();
+        } catch (chainerx::ContextError const&) {
+            // ignore error
+        }
         chainerx::SetDefaultContext(model->context.get());
         chainerx::ContextScope(*(model->context));
         {
@@ -726,7 +782,7 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                         static_cast<uint8_t*>(found->second));
             }
         }
-        chainerx::SetDefaultContext(nullptr);
+        chainerx::SetDefaultContext(default_context_backup);
         return menoh_error_code_success;
     });
 }

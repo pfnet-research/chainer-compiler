@@ -682,6 +682,16 @@ for test in TEST_CASES:
                 new_test.is_backprop_two_phase = two_phase
                 new_tests.append(new_test)
 
+    if test.name.startswith('backprop_test_oc_branched_conv'):
+        order_string = 'CF0,CF1,CF2,CF3,BF3,FFt2,BF1,CF2,BF2,BF0'
+        for two_phase in [False, True]:
+            new_test = copy.copy(test)
+            new_test.name = test.name + '_custom_computation_order_'\
+                + order_string
+            new_test.computation_order = 'custom_' + order_string
+            new_test.is_backprop_two_phase = two_phase
+            new_tests.append(new_test)
+
     # run gpu test for the test cases of onnx_chainer
     # NOTE: We don't add tests for float16 case because they fail with --fuse
     # option. We may resolve this in future.

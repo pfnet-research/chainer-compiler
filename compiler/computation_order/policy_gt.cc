@@ -7,6 +7,7 @@
 
 #include <compiler/flags.h>
 #include <compiler/flops.h>
+#include <compiler/log.h>
 #include <runtime/meminfo.h>
 
 typedef std::vector<char> NodeSet;
@@ -381,7 +382,7 @@ int64_t AutomaticBudgetDetection() {
 
 std::vector<Order> GTPolicyTimeCentric(const Graph& graph) {
     const int64_t budget = (g_gt_budget ? (g_gt_budget * 1000000LL) : AutomaticBudgetDetection());
-    std::cerr << "GT budget (time centric)=" << budget << " bytes" << std::endl;
+    CLOG() << "GT budget (time centric)=" << budget << " bytes" << std::endl;
     SimpleGraph sg = GetSimpleFormGraph(graph);
 
     DiscretizeFlops(&sg);
@@ -400,12 +401,12 @@ std::vector<Order> GTPolicyMemoryCentric(const Graph& graph) {
 
     if (g_gt_budget) {
         const int64_t budget = g_gt_budget * 1000000LL;
-        std::cerr << "GT budget (memory centric) =" << budget << " bytes" << std::endl;
+        CLOG() << "GT budget (memory centric) =" << budget << " bytes" << std::endl;
         const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget, true);
         const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
         return orders;
     } else {
-        std::cerr << "Determining budget size by binary search..." << std::endl;
+        CLOG() << "Determining budget size by binary search..." << std::endl;
 
         int64_t lo = 1;
         int64_t hi = 3 * std::accumulate(sg.memories.begin(), sg.memories.end(), 0LL);
@@ -421,7 +422,7 @@ std::vector<Order> GTPolicyMemoryCentric(const Graph& graph) {
             }
         }
 
-        std::cerr << "Budget size = " << hi << std::endl;
+        CLOG() << "Budget size = " << hi << std::endl;
         const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
         return orders;
     }

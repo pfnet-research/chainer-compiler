@@ -12,6 +12,7 @@
 
 #include <compiler/flags.h>
 #include <compiler/graph.h>
+#include <compiler/log.h>
 #include <compiler/node.h>
 
 namespace chainer_compiler {
@@ -72,7 +73,7 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
             }
         }
         budget = budget / static_cast<int64_t>(std::sqrt(graph.nodes().size()));
-        std::cout << "Budget = " << budget / 1000000LL << " MB is used." << std::endl;
+        CLOG() << "Budget = " << budget / 1000000LL << " MB is used." << std::endl;
     }
 
     std::vector<Order> orders;
@@ -100,7 +101,7 @@ std::vector<Order> ChenPolicy(const Graph& graph) {
             sum += consumption;
         }
     }
-    for (auto s : splits) std::cout << "Split at " << s->ToString() << std::endl;
+    for (auto s : splits) CLOG() << "Split at " << s->ToString() << std::endl;
 
     // Determine nodes that should be retained after forward propagation
     std::map<Value*, size_t> generation;

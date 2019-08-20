@@ -61,3 +61,11 @@ if(OpenCV_FOUND)
     )
     target_link_libraries(menoh_example PRIVATE menoh_chainer_compiler "${OpenCV_LIBRARIES}")
 endif()
+
+add_executable(run_onnx_menoh run_onnx.cpp)
+target_include_directories(run_onnx_menoh PRIVATE
+  "${CHAINER_COMPILER_ROOT_DIR}/third_party/json/include"
+  "${CHAINER_COMPILER_ROOT_DIR}"
+  "${CMAKE_CURRENT_BINARY_DIR}/.."
+)
+target_link_libraries(run_onnx_menoh PRIVATE menoh_chainer_compiler)

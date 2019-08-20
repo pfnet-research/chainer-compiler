@@ -101,11 +101,11 @@ bool MaybeMergePadConv(Graph* graph, Node* pad) {
     std::vector<Value*> new_in = pad->inputs();
     std::copy(conv->inputs().begin() + 1, conv->inputs().end(), std::back_inserter(new_in));
     Node* n = gb.MOp(Node::kConv, new_in, conv->outputs());
-    n->set_dilations(conv->dilations());
-    n->set_group(conv->group());
-    n->set_kernel_shape(conv->kernel_shape());
-    n->set_strides(conv->strides());
-    n->set_auto_pad(conv->auto_pad());
+    n->set_dilations(conv->dilations())
+            ->set_group(conv->group())
+            ->set_kernel_shape(conv->kernel_shape())
+            ->set_strides(conv->strides())
+            ->set_auto_pad(conv->auto_pad());
 
     // Merge pads with Conv op.
     std::vector<int64_t> new_pads(pads.size() - 4);
@@ -246,6 +246,55 @@ bool MaybeMergeMatMulAdd(Graph* graph, Node* matmul) {
     return true;
 }
 
+bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
+    const std::vector<Node*>& users = conv->output(0)->users();
+    if (users.size() != 1) {
+        return false;
+    }
+    Node& add = *users.front();
+    if (add.op_type() != Node::kAdd) {
+        return false;
+    }
+    const Tensor* add_tensor = add.input(add.input(0) == conv->output(0) ? 1 : 0)->GetConstTensor();
+    if (!add_tensor) {
+        return false;
+    }
+
+    chainerx::Array bias = add_tensor->chx();
+    if (bias.shape().size() > 1 && bias.shape().size() != (conv->input(0)->type().dims().size() - 1)) {
+        return false;
+    }
+    for (size_t i = 1; i < bias.shape().size(); ++i) {
+        if (bias.shape()[i] != 1) {
+            return false;
+        }
+    }
+    // Reshape to 1D tensor
+    if (bias.shape().size() >= 1) {
+        bias = bias.Reshape({bias.shape()[0]});
+    }
+    if (conv->inputs().size() == 3) {
+        const Tensor* bias_tensor = conv->input(2)->GetConstTensor();
+        if (!bias_tensor) {
+            return false;
+        }
+        bias += bias_tensor->chx();
+    }
+
+    GraphBuilder gb(graph, "MergeConvAdd", conv->input(0));
+
+    Node* n = gb.MOp(Node::kConv, {conv->input(0), conv->input(1), gb.Const(bias)}, add.outputs());
+    n->set_dilations(conv->dilations())
+            ->set_group(conv->group())
+            ->set_kernel_shape(conv->kernel_shape())
+            ->set_strides(conv->strides())
+            ->set_auto_pad(conv->auto_pad());
+    graph->DetachNode(conv);
+    graph->DetachNode(&add);
+
+    return true;
+}
+
 typedef std::function<bool(Graph* graph, Node* target)> MergerFn;
 
 struct Merger {
@@ -260,11 +309,11 @@ struct Merger {
 
 void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bool gen_backprop) {
     std::set<std::string> all_merger_names;
-    std::map<Node::OpType, Merger> mergers;
+    std::multimap<Node::OpType, Merger> mergers;
 
     auto register_merger = [&merger_names, &mergers, &all_merger_names](Node::OpType op, const char* name, MergerFn fn) {
         CHECK(all_merger_names.emplace(name).second);
-        CHECK(mergers.emplace(op, Merger{name, fn}).second);
+        mergers.emplace(op, Merger{name, fn});
     };
 
 #define REGISTER_MERGER(op, name)                                      \
@@ -279,6 +328,7 @@ void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bo
     REGISTER_MERGER(Pad, PadConv);
     REGISTER_MERGER(Transpose, TransposeGemm);
     REGISTER_MERGER(MatMul, MatMulAdd);
+    REGISTER_MERGER(Conv, ConvAdd);
 
     register_merger(Node::kConv, "MergeConvBN", [gen_backprop](Graph* graph, Node* target) {
         if (gen_backprop) {
@@ -300,16 +350,18 @@ void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bo
                 continue;
             }
 
-            auto found = mergers.find(node->op_type());
-            if (found == mergers.end()) {
-                continue;
-            }
-            const Merger& merger = found->second;
-            if (merger_names.count(merger.name) == 0) {
-                continue;
-            }
+            for (auto found = mergers.find(node->op_type()); found != mergers.end() && found->first == node->op_type(); ++found) {
+                const Merger& merger = found->second;
+                if (merger_names.count(merger.name) == 0) {
+                    continue;
+                }
 
-            replaced |= merger.fn(graph, node);
+                const bool merge_happened = merger.fn(graph, node);
+                replaced |= merge_happened;
+                if (merge_happened) {
+                    break;
+                }
+            }
         }
     }
 }

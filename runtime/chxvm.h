@@ -61,7 +61,7 @@ public:
     std::map<std::string, CustomOpFunc> custom_op_funcs;
 };
 
-class ChxVMInputDesc;
+struct ChxVMInputDesc;
 
 class ChxVM {
 public:
