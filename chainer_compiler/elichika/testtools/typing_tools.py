@@ -55,11 +55,11 @@ def generate_assertion(type_table_name, type_table, lineno_table):
 
 def main():
     code = utils.clip_head("""
-    def forward():
-        x = 0
-        for i in range(2):
-            x = float(i) + 1
-        return x
+def forward(self):
+    x = 0
+    y = abs(x)
+    x = x + 1.3
+    return x
     """)
     node = gast.ast_to_gast(ast.parse(code))
     node_type = generate_type_table(node, True)
