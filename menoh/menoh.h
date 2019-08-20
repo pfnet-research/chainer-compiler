@@ -53,6 +53,12 @@ enum menoh_dtype_constant {
     menoh_dtype_int16,
     menoh_dtype_int32,
     menoh_dtype_int64,
+    menoh_dtype_uint8,
+    menoh_dtype_uint16,
+    menoh_dtype_uint32,
+    menoh_dtype_uint64,
+    menoh_dtype_bool,
+    menoh_dtype_string,
 };
 /*! @ingroup vpt
  */
