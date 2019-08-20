@@ -743,7 +743,7 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
             for (auto output : outputs) {
                 auto found = model->outputs.find(output.first);
                 assert(found != model->outputs.end() && "output buffer not found");
-                auto const& array = output.second->GetArray();
+                auto const& array = chainerx::AsContiguous(output.second->GetArray());
                 auto const& shape = array.shape();
                 auto bytesize = shape.GetTotalSize() * chainerx::GetItemSize(array.dtype());
                 std::copy(
