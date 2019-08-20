@@ -7,9 +7,19 @@ add_custom_command(
     --output "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
+add_custom_command(
+  OUTPUT
+    "${CMAKE_CURRENT_BINARY_DIR}/args_json.inc"
+  COMMAND
+    ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode menoh_chainer_compiler.args_json.inc
+    --output "${CMAKE_CURRENT_BINARY_DIR}/args_json.inc"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
+  )
 add_custom_target(
   menoh_chainer_compiler_cc_inc
-  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
+  DEPENDS
+  "${CMAKE_CURRENT_BINARY_DIR}/args_json.inc"
+  "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
   )
 add_library(menoh_chainer_compiler SHARED menoh_chainer_compiler.cpp menoh.h)
 add_dependencies(menoh_chainer_compiler menoh_chainer_compiler_cc_inc)

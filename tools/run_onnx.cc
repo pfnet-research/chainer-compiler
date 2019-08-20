@@ -311,11 +311,11 @@ void RunMain(const std::vector<std::string>& argv) {
     ApplyCompilerFlags(args);
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
     g_backend_name = args.get<std::string>("backend");
+    g_quiet = args.exist("quiet");
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
 
-    g_quiet = args.exist("quiet");
     if (onnx_path.empty() && test_path.empty()) {
         if (args.rest().empty()) {
             std::cerr << args.usage() << std::endl;

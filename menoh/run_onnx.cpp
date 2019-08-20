@@ -46,6 +46,7 @@
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
 #include <tools/cmdline.h>
+#include <tools/compiler_flags.h>
 #include <tools/log.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
@@ -149,7 +150,13 @@ int main(int argc, char** argv) {
     args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
     args.add("quiet", 'q', "Quiet mode");
+    chainer_compiler::runtime::AddCompilerFlags(&args);
     args.parse_check(argc, argv);
+    chainer_compiler::runtime::ApplyCompilerFlags(args);
+    chainer_compiler::g_compiler_log |= args.exist("trace") || args.exist("verbose");
+    chainer_compiler::g_backend_name = args.get<std::string>("backend");
+    chainer_compiler::runtime::g_quiet = args.exist("quiet");
+
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
     if (test_path.empty()) {
@@ -199,7 +206,9 @@ int main(int argc, char** argv) {
         auto vpt = vpt_builder.build_variable_profile_table(model_data);
         menoh::model_builder model_builder(vpt);
         nlohmann::json config;
-        config["trace_level"] = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+
+#include <menoh/args_json.inc>
+
         config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
         config["check_types"] = !args.exist("skip_runtime_type_check");
         config["check_nans"] = args.exist("check_nans");
