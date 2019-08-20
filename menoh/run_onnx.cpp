@@ -12,20 +12,7 @@
 #include <set>
 #include <string>
 
-#include <common/log.h>
-#include <menoh/menoh.hpp>
-
-#ifdef _WIN32
-// HACK for Windows including order
-#define NOMINMAX
-#include <windows.h>
-#include <filesystem>
-namespace fs = std::experimental::filesystem;
-#undef OPAQUE
-#else
-#include <dirent.h>
-#include <unistd.h>
-#endif
+#include <nlohmann/json.hpp>
 
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
@@ -35,6 +22,7 @@ namespace fs = std::experimental::filesystem;
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/manipulation.h>
 
+#include <common/log.h>
 #include <common/protoutil.h>
 #include <common/strutil.h>
 #include <compiler/chxvm/emitter.h>
@@ -50,73 +38,19 @@ namespace fs = std::experimental::filesystem;
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
+#include <menoh/menoh.hpp>
+#include <menoh/menoh_chainer_compiler_util.hpp>
 #include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
-
+#include <tools/cmdline.h>
+#include <tools/compiler_flags.h>
+#include <tools/log.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
-
-#include <tools/cmdline.h>
-#include <nlohmann/json.hpp>
-
-const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";
-const char* RESET = "\033[0m";
-
-bool g_quiet;
-
-#define LOG() \
-    if (!g_quiet) std::cerr
-
-menoh_dtype cc_dtype_to_menoh_dtype(chainer_compiler::Dtype ccdtype) {
-    if (ccdtype == chainer_compiler::Dtype::kUnknown) {
-        return menoh_dtype_undefined;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt8) {
-        return menoh_dtype_int8;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt16) {
-        return menoh_dtype_int16;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt32) {
-        return menoh_dtype_int32;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt64) {
-        return menoh_dtype_int64;
-    } else if (ccdtype == chainer_compiler::Dtype::kFloat16) {
-        return menoh_dtype_float16;
-    } else if (ccdtype == chainer_compiler::Dtype::kFloat32) {
-        return menoh_dtype_float32;
-    } else if (ccdtype == chainer_compiler::Dtype::kFloat64) {
-        return menoh_dtype_float64;
-    } else {
-        assert(!"Not Implemeneted");
-    }
-    return menoh_dtype_undefined;
-}
-
-chainer_compiler::Dtype menoh_dtype_to_cc_dtype(menoh_dtype mdtype) {
-    if (mdtype == menoh_dtype_undefined) {
-        return chainer_compiler::Dtype::kUnknown;
-    } else if (mdtype == menoh_dtype_int8) {
-        return chainer_compiler::Dtype::kInt8;
-    } else if (mdtype == menoh_dtype_int16) {
-        return chainer_compiler::Dtype::kInt16;
-    } else if (mdtype == menoh_dtype_int32) {
-        return chainer_compiler::Dtype::kInt32;
-    } else if (mdtype == menoh_dtype_int64) {
-        return chainer_compiler::Dtype::kInt64;
-    } else if (mdtype == menoh_dtype_float16) {
-        return chainer_compiler::Dtype::kFloat16;
-    } else if (mdtype == menoh_dtype_float32) {
-        return chainer_compiler::Dtype::kFloat32;
-    } else if (mdtype == menoh_dtype_float64) {
-        return chainer_compiler::Dtype::kFloat64;
-    } else {
-        assert(!"Not Implemeneted");
-    }
-    return chainer_compiler::Dtype::kUnknown;
-}
 
 chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype) {
     return static_cast<chainerx::Dtype>(static_cast<int>(menoh_dtype_to_cc_dtype(mdtype)));
@@ -171,7 +105,13 @@ int main(int argc, char** argv) {
     args.add("verbose", 'v', "Verbose mode");
     args.add<std::string>("verbose_ops", '\0', "Show verbose outputs for specific ops", false);
     args.add("quiet", 'q', "Quiet mode");
+    chainer_compiler::runtime::AddCompilerFlags(&args);
     args.parse_check(argc, argv);
+    chainer_compiler::runtime::ApplyCompilerFlags(args);
+    chainer_compiler::g_compiler_log |= args.exist("trace") || args.exist("verbose");
+    chainer_compiler::g_backend_name = args.get<std::string>("backend");
+    chainer_compiler::runtime::g_quiet = args.exist("quiet");
+
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
     if (test_path.empty()) {
@@ -221,7 +161,9 @@ int main(int argc, char** argv) {
         auto vpt = vpt_builder.build_variable_profile_table(model_data);
         menoh::model_builder model_builder(vpt);
         nlohmann::json config;
-        config["trace_level"] = args.exist("verbose") ? 2 : args.exist("trace") ? 1 : 0;
+
+#include <menoh/args_json.inc>
+
         config["is_training"] = args.exist("backprop") || args.exist("backprop_two_phase");
         config["check_types"] = !args.exist("skip_runtime_type_check");
         config["check_nans"] = args.exist("check_nans");

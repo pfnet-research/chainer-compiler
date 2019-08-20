@@ -18,6 +18,7 @@
 #include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/util.h>
+#include <menoh/menoh_chainer_compiler_util.hpp>
 #include <runtime/chainerx_util.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
@@ -116,6 +117,16 @@ struct dtype_to_type<menoh_dtype_constant::menoh_dtype_int64> {
     using type = int64_t;
 };
 
+template <>
+struct dtype_to_type<menoh_dtype_constant::menoh_dtype_uint8> {
+    using type = uint8_t;
+};
+
+template <>
+struct dtype_to_type<menoh_dtype_constant::menoh_dtype_bool> {
+    using type = bool;
+};
+
 template <menoh_dtype_constant d>
 using dtype_to_type_t = typename dtype_to_type<d>::type;
 template <menoh_dtype_constant d>
@@ -135,6 +146,7 @@ menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int16)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int32)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int64)
+        MENOH_DTYPE_SIZE_CASE(menoh_dtype_bool)
 #undef MENOH_DTYPE_SIZE_CASE
         default:
             std::string msg("unknown dtype: " + std::to_string(dtype));
@@ -161,56 +173,14 @@ onnx::TensorProto::DataType menoh_dtype_to_xtensor_dtype(menoh_dtype mdtype) {
         return onnx::TensorProto::INT32;
     } else if (mdtype == menoh_dtype_int64) {
         return onnx::TensorProto::INT64;
+    } else if (mdtype == menoh_dtype_uint8) {
+        return onnx::TensorProto::UINT8;
+    } else if (mdtype == menoh_dtype_bool) {
+        return onnx::TensorProto::BOOL;
     } else {
         assert(!"Not Implemeneted");
     }
     return onnx::TensorProto::UNDEFINED;
-}
-
-menoh_dtype cc_dtype_to_menoh_dtype(chainer_compiler::Dtype ccdtype) {
-    if (ccdtype == chainer_compiler::Dtype::kUnknown) {
-        return menoh_dtype_undefined;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt8) {
-        return menoh_dtype_int8;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt16) {
-        return menoh_dtype_int16;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt32) {
-        return menoh_dtype_int32;
-    } else if (ccdtype == chainer_compiler::Dtype::kInt64) {
-        return menoh_dtype_int64;
-    } else if (ccdtype == chainer_compiler::Dtype::kFloat16) {
-        return menoh_dtype_float16;
-    } else if (ccdtype == chainer_compiler::Dtype::kFloat32) {
-        return menoh_dtype_float32;
-    } else if (ccdtype == chainer_compiler::Dtype::kFloat64) {
-        return menoh_dtype_float64;
-    } else {
-        assert(!"Not Implemeneted");
-    }
-    return menoh_dtype_undefined;
-}
-
-chainer_compiler::Dtype menoh_dtype_to_cc_dtype(menoh_dtype mdtype) {
-    if (mdtype == menoh_dtype_undefined) {
-        return chainer_compiler::Dtype::kUnknown;
-    } else if (mdtype == menoh_dtype_int8) {
-        return chainer_compiler::Dtype::kInt8;
-    } else if (mdtype == menoh_dtype_int16) {
-        return chainer_compiler::Dtype::kInt16;
-    } else if (mdtype == menoh_dtype_int32) {
-        return chainer_compiler::Dtype::kInt32;
-    } else if (mdtype == menoh_dtype_int64) {
-        return chainer_compiler::Dtype::kInt64;
-    } else if (mdtype == menoh_dtype_float16) {
-        return chainer_compiler::Dtype::kFloat16;
-    } else if (mdtype == menoh_dtype_float32) {
-        return chainer_compiler::Dtype::kFloat32;
-    } else if (mdtype == menoh_dtype_float64) {
-        return chainer_compiler::Dtype::kFloat64;
-    } else {
-        assert(!"Not Implemeneted");
-    }
-    return chainer_compiler::Dtype::kUnknown;
 }
 
 chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype) {
@@ -297,6 +267,9 @@ public:
     array_profile() = default;
 
     array_profile(menoh_dtype dtype, std::vector<int64_t> const& dims) : dtype_(dtype), dims_(dims) {
+        for (int64_t d : dims) {
+            CHECK_LT(0, d);
+        }
     }
 
     menoh_dtype dtype() const {
@@ -773,7 +746,7 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
             for (auto output : outputs) {
                 auto found = model->outputs.find(output.first);
                 assert(found != model->outputs.end() && "output buffer not found");
-                auto const& array = output.second->GetArray();
+                auto const& array = chainerx::AsContiguous(output.second->GetArray());
                 auto const& shape = array.shape();
                 auto bytesize = shape.GetTotalSize() * chainerx::GetItemSize(array.dtype());
                 std::copy(

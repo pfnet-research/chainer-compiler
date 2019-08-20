@@ -7,8 +7,6 @@
 #include <set>
 #include <string>
 
-#include <compiler/onnx.h>
-
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/context.h>
@@ -29,6 +27,7 @@
 #include <compiler/gradient_with_order.h>
 #include <compiler/graph.h>
 #include <compiler/model.h>
+#include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/tensor.h>
 #include <compiler/util.h>
@@ -41,16 +40,9 @@
 #include <runtime/meminfo.h>
 #include <tools/cmdline.h>
 #include <tools/compiler_flags.h>
-#include <tools/util.h>
-
-namespace chainer_compiler {
-namespace runtime {
-bool g_quiet;
-}
-}  // namespace chainer_compiler
-#define LOG() \
-    if (!g_quiet) std::cerr
+#include <tools/log.h>
 #include <tools/run_onnx_util.h>
+#include <tools/util.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -319,11 +311,11 @@ void RunMain(const std::vector<std::string>& argv) {
     ApplyCompilerFlags(args);
     g_compiler_log |= args.exist("trace") || args.exist("verbose");
     g_backend_name = args.get<std::string>("backend");
+    g_quiet = args.exist("quiet");
 
     std::string onnx_path = args.get<std::string>("onnx");
     std::string test_path = args.get<std::string>("test");
 
-    g_quiet = args.exist("quiet");
     if (onnx_path.empty() && test_path.empty()) {
         if (args.rest().empty()) {
             std::cerr << args.usage() << std::endl;
