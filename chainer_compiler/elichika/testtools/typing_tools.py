@@ -20,12 +20,12 @@ class IDAssignor(gast.NodeVisitor):
         return self.node_ids
 
 
-def generate_id_table(tree):
+def generate_id_table(tree):  # return type: Dict[Node, id]
     a = IDAssignor()
     return a.run(tree)
 
 
-def generate_type_table(tree, is_debug=False):
+def generate_type_table(tree, is_debug=False):  # return type: Dict[id, type]
     a = IDAssignor()
     tc = typing.TypeChecker(is_debug=is_debug)
     node_ids = a.run(tree)
@@ -37,9 +37,20 @@ def generate_type_table(tree, is_debug=False):
     return new_nodetype
 
 
-def generate_assertion(type_table_name, type_table):
-    for k, t in type_table.items():
-        print("assert str({}[{}]) == \"{}\"".format(type_table_name, k, t))
+def generate_lineno_table(id_table):  # return type: Dict[id, lineno]
+    ret = {}
+    for t, i in id_table.items():
+        ret[i] = t.lineno if hasattr(t, 'lineno') else None
+    return ret
+
+
+def generate_assertion(type_table_name, type_table, lineno_table):
+    for k, t in sorted(type_table.items()):
+        lineno = lineno_table[k]
+        print("assert str({}[{}]) == \"{}\"{}".format(
+            type_table_name, k, t,
+            "\t# lineno: {}".format(lineno) if lineno is not None else ""
+            ))
 
 
 def main():
@@ -52,8 +63,11 @@ def main():
     """)
     node = gast.ast_to_gast(ast.parse(code))
     node_type = generate_type_table(node, True)
-    pprint.pprint(generate_id_table(node))
-    generate_assertion("node_type", node_type)
+    id_table = generate_id_table(node)
+    lineno_table = generate_lineno_table(id_table)
+    pprint.pprint(node_type)
+    pprint.pprint(id_table)
+    generate_assertion("node_type", node_type, lineno_table)
 
 
 if __name__ == '__main__':
