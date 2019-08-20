@@ -116,17 +116,17 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
             Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
 
+        if (g_quantize) {
+            QuantizationOptions q_opts;
+            Recursively([q_opts](Graph* graph) { Quantize(q_opts, graph); }, graph);
+        }
+
         Recursively(
                 [gen_backprop, &backend_config](Graph* graph) { MergeOperations(backend_config->GetMerge(), graph, gen_backprop); }, graph);
 
         Recursively(PropagateConstants, graph);
 
         Recursively(EvaluateShapes, graph);
-
-        if (g_quantize) {
-            QuantizationOptions q_opts;
-            Recursively([q_opts](Graph* graph) { Quantize(q_opts, graph); }, graph);
-        }
 
         Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
 
