@@ -47,7 +47,7 @@ def generate_lineno_table(id_table):  # return type: Dict[id, lineno]
 def generate_assertion(type_table_name, type_table, lineno_table):
     for k, t in sorted(type_table.items()):
         lineno = lineno_table[k]
-        print("assert str({}[{}]) == \"{}\"{}".format(
+        print("self.assertEqual(str({}[{}]), \"{}\"){}".format(
             type_table_name, k, t,
             "\t# lineno: {}".format(lineno) if lineno is not None else ""
             ))
@@ -65,8 +65,8 @@ def main():
     node_type = generate_type_table(node, True)
     id_table = generate_id_table(node)
     lineno_table = generate_lineno_table(id_table)
-    pprint.pprint(node_type)
-    pprint.pprint(id_table)
+    # pprint.pprint(node_type)
+    # pprint.pprint(id_table)
     generate_assertion("node_type", node_type, lineno_table)
 
 
