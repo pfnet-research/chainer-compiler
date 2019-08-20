@@ -46,17 +46,9 @@
 #include <runtime/chxvm_var.h>
 #include <runtime/meminfo.h>
 #include <tools/cmdline.h>
+#include <tools/log.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
-
-const char* GREEN = "\033[92m";
-const char* RED = "\033[91m";
-const char* RESET = "\033[0m";
-
-bool g_quiet;
-
-#define LOG() \
-    if (!g_quiet) std::cerr
 
 menoh_dtype cc_dtype_to_menoh_dtype(chainer_compiler::Dtype ccdtype) {
     if (ccdtype == chainer_compiler::Dtype::kUnknown) {
