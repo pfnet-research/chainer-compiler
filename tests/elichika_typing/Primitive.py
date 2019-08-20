@@ -18,14 +18,14 @@ class TestNum(unittest.TestCase):
         node_type = generate_type_table(tree)
 
         self.assertEqual(str(node_type[1]), "bool")	# lineno: 2
-        self.assertEqual(str(node_type[5]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[6]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[7]), "bool -> bool -> bool")
-        self.assertEqual(str(node_type[8]), "bool")	# lineno: 3
-        self.assertEqual(str(node_type[9]), "bool -> bool -> bool")
+        self.assertEqual(str(node_type[9]), "bool")	# lineno: 3
         self.assertEqual(str(node_type[10]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[11]), "bool -> bool -> bool")
         self.assertEqual(str(node_type[12]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[13]), "bool -> bool -> bool")
         self.assertEqual(str(node_type[14]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[16]), "bool")	# lineno: 3
+        self.assertEqual(str(node_type[18]), "bool")	# lineno: 3
 
 
     def test_num_coersion(self):
