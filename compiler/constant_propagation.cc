@@ -14,12 +14,24 @@ namespace chainer_compiler {
 
 namespace {
 
+bool IsConstantNode(const Node* node) {
+    if (node == nullptr) {
+        return false;
+    }
+    if (node->op_type() != Node::kConstant && node->op_type() != Node::kChainerSequenceConstants) {
+        return false;
+    }
+    // TODO(hamaji): Support constant propagation for string tensors.
+    if (node->op_type() == Node::kConstant && !node->tensor_value()->IsArray()) {
+        return false;
+    }
+    return true;
+}
+
 bool HasConstantInputsOnly(const Node& node) {
     if (node.inputs().empty()) return false;
     for (Value* input : node.inputs()) {
-        if (input->producer() &&
-            (input->producer()->op_type() == Node::kConstant || input->producer()->op_type() == Node::kChainerSequenceConstants)) {
-        } else {
+        if (!IsConstantNode(input->producer())) {
             return false;
         }
     }

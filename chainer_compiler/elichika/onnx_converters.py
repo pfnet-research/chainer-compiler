@@ -261,7 +261,7 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
 
     if node.binop == nodes.BinOpType.Unknown:
         raise utils.UnimplementedError('{} is not implemented'.format(node.binop), node.lineprop)
-    
+
     # TODO: fix for reference types
 
     if isinstance(node.target, values.ListValue) or isinstance(node.target, values.TupleValue):
@@ -285,13 +285,13 @@ def convert_node_aug_assign(onnx_graph, node: 'nodes.NodeAugAssign'):
             output_ = ONNXValue(onnx_graph, node.outputs[0])
 
             onnx_graph.add_node(
-                binops[node.binop], 
+                binops[node.binop],
                 [left_, right_],
                 [temp_],
                 str(node.lineprop))
 
             onnx_graph.add_node(
-                'Floor', 
+                'Floor',
                 [temp_],
                 [output_],
                 str(node.lineprop))
@@ -339,20 +339,20 @@ def convert_node_bin_op(onnx_graph, node: 'nodes.NodeBinOp'):
             output_ = ONNXValue(onnx_graph, node.outputs[0])
 
             onnx_graph.add_node(
-                binops[node.binop], 
+                binops[node.binop],
                 [left_, right_],
                 [temp_],
                 str(node.lineprop))
 
             onnx_graph.add_node(
-                'Floor', 
+                'Floor',
                 [temp_],
                 [output_],
                 str(node.lineprop))
-        else:        
+        else:
             onnx_node = oh.make_node(
-                binops[node.binop], 
-                [value2onnx_parameter[node.left].onnx_name, value2onnx_parameter[node.right].onnx_name], 
+                binops[node.binop],
+                [value2onnx_parameter[node.left].onnx_name, value2onnx_parameter[node.right].onnx_name],
                 [value2onnx_parameter[node.outputs[0]].onnx_name])
 
             onnx_graph.nodes.append(onnx_node)
@@ -924,7 +924,7 @@ class ONNXGraph:
         initializer.dt = dt
         initializer.shape = ndarray_.shape
 
-        assert(not (name in self.generator.initializers.keys()))
+        assert(not (name in self.generator.initializers.keys())), name
 
         self.generator.initializers[name] = initializer
         self.generator.onnx_tensors[name] = tensor_value
@@ -939,16 +939,9 @@ class ONNXGraph:
         name = self.get_value_name(value)
 
         if isinstance(value, values.NumberValue):
-            if value.internal_value is None:
-                # any value
-                if value.dtype is None:
-                    arr = np.array(0)
-                else:
-                    arr = np.array(0, dtype=value.dtype)
-                return self.new_tensor_with_np(arr, name)
-            else:
-                arr = np.array(value.internal_value)
-                return self.new_tensor_with_np(arr, name)
+            assert value.internal_value is not None
+            arr = np.array(value.internal_value)
+            return self.new_tensor_with_np(arr, name)
 
         if isinstance(value, values.BoolValue):
             arr = np.array(value.internal_value)
@@ -962,13 +955,13 @@ class ONNXGraph:
             arr = np.array(False)
             return self.new_tensor_with_np(arr, name)
 
-        if isinstance(value, values.UnknownValue):
-            arr = np.array(False)
-            return self.new_tensor_with_np(arr, name)
+        assert not isinstance(value, values.UnknownValue)
 
+        # TODO(hamaji): Make this an error.
         print('Warning : Found unknown type {} in new_tensor_with_value. "{}" is stored.'.format(
             type(value), value))
-        arr = np.array(0.0, dtype=np.float32)
+        # Give weird dtype/shape to make sure this tensor will not be used.
+        arr = np.array([[[[float('nan')]]]], dtype=np.float64)
         return self.new_tensor_with_np(arr, name)
 
     def add_node(self, optype, inputs, outputs, name, **kwargs):

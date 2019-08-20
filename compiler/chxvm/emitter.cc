@@ -111,6 +111,11 @@ private:
     } while (0);
 
     void EmitConstantImpl(const Node& node, const Tensor* value, ChxVMValue out, bool host, ChxVMProgramProto* prog) {
+        if (!value->IsArray()) {
+            EMIT(StringConstant, out, value->str());
+            return;
+        }
+
         Dtype dtype = value->dtype();
         std::vector<int64_t> shape;
         for (int64_t d : value->dims()) {
