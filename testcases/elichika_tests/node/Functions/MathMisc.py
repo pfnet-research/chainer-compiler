@@ -117,7 +117,31 @@ class ClipNp(chainer.Chain):
     def forward(self, x):
         y1 = np.clip(x, -1.0, 1.0)
         return y1
-    
+
+class Abs(chainer.Chain):
+    def __init__(self):
+        super(Abs,self).__init__()
+
+    def forward(self, x):
+        y1 = F.absolute(x)
+        return y1
+
+class AbsNp(chainer.Chain):
+    def __init__(self):
+        super(AbsNp,self).__init__()
+
+    def forward(self, x):
+        y1 = np.absolute(x)
+        return y1
+
+class AbsBuiltin(chainer.Chain):
+    def __init__(self):
+        super(AbsBuiltin,self).__init__()
+
+    def forward(self, x):
+        y1 = abs(x)
+        return y1
+
 # ======================================
 from chainer_compiler.elichika import testtools
 import numpy as np
@@ -126,6 +150,8 @@ def main():
     np.random.seed(314)
 
     x = np.random.rand(6, 4).astype(np.float32)
+    s = -10.0
+
     testtools.generate_testcase(Sin(), [x], subname='sin')
     testtools.generate_testcase(Sinh(), [x], subname='sinh')
     testtools.generate_testcase(Sign(), [x], subname='sign')
@@ -140,6 +166,11 @@ def main():
     testtools.generate_testcase(Log(), [x], subname='log')
     testtools.generate_testcase(Clip(), [x], subname='clip')
     testtools.generate_testcase(ClipNp(), [x], subname='clip_np')
+    testtools.generate_testcase(Abs(), [x], subname='abs')
+    testtools.generate_testcase(AbsNp(), [x], subname='abs_np')
+    testtools.generate_testcase(AbsBuiltin(), [x], subname='abs_builtin')
+    # TODO(durswd) 
+    # testtools.generate_testcase(AbsBuiltin(), [s], subname='abs_builtin_scalar')
 
 if __name__ == '__main__':
     main()

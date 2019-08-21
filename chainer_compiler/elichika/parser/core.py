@@ -122,7 +122,9 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.minimum)
     add_chainer_function(F.max)
     add_chainer_function(F.min)
-    
+
+    add_chainer_function(F.absolute)
+
     add_chainer_function(F.sin)
     add_chainer_function(F.sinh)
     add_chainer_function(F.sign)
@@ -177,10 +179,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
     values.function_converters[np.argmin] = f_argmin
 
     values.function_converters[np.clip] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_clip), None, module=custom_functions_module)
+    values.function_converters[np.absolute] = values.FuncValue(functions.UserDefinedFunction(custom_functions.numpy_absolute), None, module=custom_functions_module)
 
     values.function_converters[custom_functions.check_attribute_value] = values.FuncValue(functions.CheckAttributeValueFunction(), None, module=custom_functions_module)
 
     values.function_converters[custom_functions.check_attribute_scalar] = values.FuncValue(functions.CheckAttributeScalarFunction(), None, module=custom_functions_module)
+
+    values.builtin_function_converters['abs'] = values.FuncValue(functions.UserDefinedFunction(custom_functions.builtin_absolute), None, module=custom_functions_module)
 
     m_range = values.FuncValue(functions_builtin.RangeFunction(), None)
     values.builtin_function_converters['range'] = m_range
