@@ -291,6 +291,16 @@ bool has_dynamic_shape(array_profile const& a) {
 size_t total_size(std::vector<int64_t> const& dims) {
     return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int64_t>());
 }
+
+size_t total_size_in_bytes(menoh_dtype dtype, std::vector<int64_t> const& dims) {
+    int64_t dtype_size;
+    menoh_dtype_size(dtype, &dtype_size);
+    return dtype_size * total_size(dims);
+}
+
+size_t total_size_in_bytes(array_profile const& p) {
+    return total_size_in_bytes(p.dtype(), p.dims());
+}
 }  // namespace menoh_impl
 struct menoh_variable_profile_table_builder {
     std::unordered_map<std::string, menoh_impl::array_profile> input_profiles;
@@ -749,6 +759,9 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                 auto const& array = chainerx::AsContiguous(output.second->GetArray());
                 auto const& shape = array.shape();
                 auto bytesize = shape.GetTotalSize() * chainerx::GetItemSize(array.dtype());
+                assert(model->variable_profiles.find(output.first) != model->variable_profiles.end());
+                assert(bytesize == menoh_impl::total_size_in_bytes(variable_profiles.find(output.first)->second) &&
+                       "allocated output buffer size is not same to cc's output buffer size");
                 std::copy(
                         static_cast<uint8_t*>(array.raw_data()),
                         static_cast<uint8_t*>(array.raw_data()) + bytesize,
