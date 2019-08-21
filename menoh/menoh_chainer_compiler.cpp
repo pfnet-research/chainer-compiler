@@ -18,12 +18,12 @@
 #include <compiler/onnx.h>
 #include <compiler/passes.h>
 #include <compiler/util.h>
-#include <menoh/menoh_chainer_compiler_util.hpp>
 #include <runtime/chainerx_util.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <tools/util.h>
+#include <menoh/menoh_chainer_compiler_util.hpp>
 
 namespace menoh_impl {
 using fixed_array = std::array<char, MENOH_ERROR_MESSAGE_MAX_LENGTH>;
@@ -686,7 +686,7 @@ menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle
     auto found = model->outputs.find(variable_name);
     if (found == model->outputs.end()) {
         auto found = model->inputs.find(variable_name);
-        if(found == model->inputs.end()) {
+        if (found == model->inputs.end()) {
             auto message = std::string("menoh variable not found: ") + variable_name;
             menoh_impl::set_last_error_message(message.c_str());
             return menoh_error_code_variable_not_found;
