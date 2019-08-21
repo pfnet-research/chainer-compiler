@@ -6,6 +6,7 @@ import inspect
 import os
 import gast, ast
 import traceback
+import numpy as np
 from copy import deepcopy
 from enum import Enum, IntEnum
 
@@ -18,7 +19,7 @@ def debug(sth):
 class TyObj():  # base type
     def __repr__(self):
         return self.__str__()
-    def is_mutable():
+    def is_mutable(self):
         pass
     # freeze internal value of TyVar so that it can no longer be modified
     def freeze(self):
@@ -187,6 +188,7 @@ class TySequence(TyObj):
         assert self.is_fixed_len
         return self.ty_
 
+    # TODO(momohatt): これは引数を取らない方がいい気がする
     def coerce_to_variable_len(self, ty):
         if self.is_fixed_len:
             assert all_same_ty(self.ty_)
@@ -215,7 +217,6 @@ class TyDict(TyObj):
         super().__init__()
         self.keyty = keyty
         self.valty = valty
-        pass
 
     def __str__(self):
         return "{" + str(self.keyty) + " : " + str(self.valty) + "}"
@@ -236,6 +237,36 @@ class TyDict(TyObj):
         self.valty = self.valty.deref()
         return self
 
+
+# ------------------------------- numpy ndarray --------------------------------
+
+class TyNdarray(TyObj):
+    def __init__(self, ty):  # we do not allow heterogeneous type ndarray
+        super().__init__()
+        self.ty = ty
+
+    def __str__(self):
+        return str(self.ty) + " np.ndarray"
+
+    def __eq__(self, other):
+        return isinstance(other, TyNdarray) and self.ty == other.ty
+
+    def is_mutable(self):
+        return True
+
+    def freeze(self):
+        self.ty.freeze()
+
+    def deref(self):
+        self.ty = self.ty.deref()
+        return self
+
+
+# ----------------------------------- dtype ------------------------------------
+
+
+
+# ------------------------ TypeChecker internal types --------------------------
 
 counter = 0
 
@@ -321,6 +352,19 @@ primitive_func_ty = {
             TyArrow([TyIntOnly()], TyIntOnly()),
             TyArrow([TyFloat()], TyFloat()),
             ),
+        }
+
+def ty_NumpyArray(tys):
+    assert len(tys) == 1
+    ty = tys[0]
+    assert isinstance(ty, TySequence)
+
+    if ty.is_fixed_len:
+        ty.coerce_to_variable_len(ty.get_tys()[0])
+    return TyNdarray(ty.get_ty())
+
+numpy_func_ty = {
+        np.array : ty_NumpyArray
         }
 
 
@@ -663,10 +707,18 @@ class TypeChecker():
                 self.nodetype[node] = ty_ret
 
             elif isinstance(node.func, gast.Attribute):
-                ty_fun = self.infer_expr(node.func)
-                unify(ty_fun, TyArrow(ty_args, ty_ret))
-                self.nodetype[node.func] = ty_fun.deref()
-                self.nodetype[node] = ty_ret.deref()
+                # attribute-like namespacing
+                if isinstance(node.func.value, gast.Name) and \
+                        node.func.value.id == 'np':
+                    ty_ret = numpy_func_ty[eval(node.func.value.id + '.' + node.func.attr)](ty_args)
+                    ty_ret = ty_ret.deref()
+                    self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                    self.nodetype[node] = ty_ret
+                else:
+                    ty_fun = self.infer_expr(node.func)
+                    unify(ty_fun, TyArrow(ty_args, ty_ret))
+                    self.nodetype[node.func] = ty_fun.deref()
+                    self.nodetype[node] = ty_ret.deref()
 
             else:
                 ty_fun = self.infer_expr(node.func)
@@ -699,7 +751,8 @@ class TypeChecker():
         elif isinstance(node, gast.Attribute):
             # Attribute(expr value, identifier attr, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
-            if ty_obj.is_list():
+
+            if isinstance(ty_obj, TySequence) and ty_obj.is_list():
                 if ty_obj.is_fixed_len:
                     # if the object is fixed-length list, coerce it.
                     unify(ty_obj, TyList(TyVar()))
