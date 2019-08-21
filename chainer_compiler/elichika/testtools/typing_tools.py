@@ -31,12 +31,12 @@ def generate_id_table(tree):  # return type: Dict[Node, id], Dict[id, Node]
     return id_table, node_table
 
 
-def generate_type_table(tree, ty_args, is_debug=False):  # return type: Dict[id, type]
+def generate_type_table(tree, args, is_debug=False):  # return type: Dict[id, type]
     a = IDAssignor()
     tc = typing.TypeChecker(is_debug=is_debug)
     func_body = tree.body[0]  # XXX: only checks first function
     node_ids = a.run(tree)
-    node_type = tc.infer_function(func_body, ty_args)
+    node_type = tc.infer_function(func_body, args)
     new_nodetype = {}
     for n, t in node_type.items():
         new_nodetype[node_ids[n]] = t
@@ -60,7 +60,7 @@ def main():
         return x and y or True
     """)
     node = gast.ast_to_gast(ast.parse(code))
-    node_type = generate_type_table(node, (typing.TyBool(), typing.TyBool()), True)
+    node_type = generate_type_table(node, (True, False), True)
     id_table, node_table = generate_id_table(node)
     # pprint.pprint(node_type)
     # pprint.pprint(id_table)

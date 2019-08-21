@@ -17,7 +17,7 @@ class TestNum(unittest.TestCase):
         tree = gast.ast_to_gast(ast.parse(code))
         # TODO(momohatt): Change generate_type_table so that we don't have to
         # specify the 'typing' type but only the runtime argument value
-        node_type = generate_type_table(tree, (typing.TyBool(), typing.TyBool()))
+        node_type = generate_type_table(tree, (True, False))
 
         self.assertEqual(str(node_type[1]), "bool")	# FunctionDef (line 2)
         self.assertEqual(str(node_type[5]), "bool")	# Name (line 2)
@@ -41,7 +41,7 @@ class TestNum(unittest.TestCase):
         """)
 
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, (typing.TyInt(),))
+        node_type = generate_type_table(tree, (1,))
 
         self.assertEqual(str(node_type[1]), "float")	# FunctionDef (line 2)
         self.assertEqual(str(node_type[5]), "int")	# Name (line 2)

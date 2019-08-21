@@ -4,7 +4,7 @@
 
 import inspect
 import os
-import gast
+import gast, ast
 import traceback
 from copy import deepcopy
 from enum import Enum, IntEnum
@@ -412,10 +412,18 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_function(self, node: 'ast.Node', ty_args) -> 'TyObj':
+    def infer_function(self, node: 'ast.Node', args) -> 'TyObj':
+        # args: runtime argument values
         assert isinstance(node, gast.FunctionDef)
         # node.args.args[0] is 'self'
-        assert len(ty_args) == len(node.args.args) - 1
+        assert len(args) == len(node.args.args) - 1
+
+        # examine argument type separately from parent typechecker
+        tc = TypeChecker()
+        ty_args = []
+        for arg in args:
+            expr = gast.ast_to_gast(ast.parse(str(arg))).body[0].value
+            ty_args.append(tc.infer_expr(expr))
 
         for arg, ty in zip(node.args.args[1:], ty_args):
             self.nodetype[arg] = ty
