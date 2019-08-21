@@ -9,8 +9,6 @@
 
 #include <inference_engine.hpp>
 
-#else
-
 #endif
 
 #include <common/log.h>
