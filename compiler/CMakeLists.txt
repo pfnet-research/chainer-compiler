@@ -95,6 +95,7 @@ add_library(chainer_compiler_compiler
   nvrtc_builder.cc
   onnx.cc
   passes.cc
+  quantize.cc
   scheduler.cc
   shape_evaluator.cc
   simplifier.cc

@@ -109,6 +109,11 @@ FLAGS = {
         'doc': 'Dump the subgraph tree of the ONNX graph'
     },
 
+    'quantize': {
+        'type': 'bool',
+        'doc': 'Quantize ONNX model'
+    },
+
     'computation_order': {
         'type': 'std::string',
         'doc': 'Run the specified policy of computation order (backprop only)'

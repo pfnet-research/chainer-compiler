@@ -68,6 +68,10 @@ chainerx::Array MakeScalarArray(float f) {
     return MakeArray(chainerx::Dtype::kFloat32, {}, &f);
 }
 
+chainerx::Array MakeDtypeScalarArray(chainerx::Dtype dtype, chainerx::Scalar s) {
+    return chainerx::Full({}, s, dtype);
+}
+
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src) {
     std::shared_ptr<void> data(MakeSharedPtrData(dtype, shape, src));
     chainerx::Array array(
@@ -387,6 +391,22 @@ chainerx::Array GroupedConvGradWeight(
                 w.dtype(), ws_shape, xs[i], gys[i], strides, pads, false /* cover_all */, absl::nullopt);
     }
     return chainerx::Concatenate(gws, 0);
+}
+
+// TODO(take-cheeze): Implement in ChainerX
+chainerx::Array SlowRound(const chainerx::Array& x) {
+    std::vector<double> result_data(x.GetTotalSize());
+    chainerx::Array double_x = x.AsType(chainerx::Dtype::kFloat64);
+    CHECK(IsNativeDevice(&x.device()));
+    const double* x_ptr = reinterpret_cast<const double*>(double_x.raw_data());
+    for (size_t i = 0; i < result_data.size(); ++i) {
+        result_data[i] = std::rint(x_ptr[i]);
+    }
+
+    chainerx::Array y = MakeArray(chainerx::Dtype::kFloat64, x.shape(), result_data.data());
+
+    // Back to input(x) dtype
+    return y.AsType(x.dtype());
 }
 
 }  // namespace runtime
