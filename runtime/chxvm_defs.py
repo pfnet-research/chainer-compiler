@@ -458,6 +458,10 @@ CHX_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), String('model_path'), String('device'),
       Strings('output_names')],
      [ArrayList('outputs')]),
+    ('SnpeDlc',
+     [ArrayList('inputs'), Strings('input_names'),
+      String('model_data'), String('device')],
+     [ArrayList('outputs')]),
 ]
 
 CHX_SEQ_OPS = [

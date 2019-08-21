@@ -71,6 +71,11 @@ FLAGS = {
         'doc': 'The name of backend.'
     },
 
+    'use_snpe': {
+        'type': 'bool',
+        'doc': 'Use SNPE to execute operations.'
+    },
+
     'trace_level': {
         'type': 'int',
         'doc': 'Enables ChainerX VM trace during constant propagation.'

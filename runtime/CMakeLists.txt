@@ -63,6 +63,7 @@ add_library(chainer_compiler_runtime
   ops/roi.cc
   ops/rnn.cc
   ops/sequence.cc
+  ops/snpe_dlc.cc
   ops/something.cc
   ops/sorting.cc
   ops/space_depth.cc
@@ -95,6 +96,7 @@ target_link_libraries(chainer_compiler_runtime_test
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_SNPE_LIBRARIES}
   absl::variant
   absl::optional
   )

@@ -44,6 +44,7 @@ target_link_libraries(menoh_chainer_compiler
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_SNPE_LIBRARIES}
   absl::variant
   absl::optional
   )

@@ -50,6 +50,7 @@ parser.add_argument('--failure_log', default='out/failed_tests.log',
                     help='The file where names of failed tests are stored')
 parser.add_argument('--fuse', action='store_true', help='Enable fusion')
 parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
+parser.add_argument('--snpe', action='store_true', help='Enable SNPE')
 parser.add_argument('--computation_order', default=None,
                     help='Force setting --computation_order flag')
 parser.add_argument('--verbose', action='store_true',
@@ -936,6 +937,9 @@ def main():
         if args.ngraph:
             test_case.args.append('--fuse_operations')
             test_case.args.append('--use_ngraph')
+
+        if args.snpe:
+            test_case.args.append('--use_snpe')
 
         if is_gpu:
             gpu_tests.append(test_case)
