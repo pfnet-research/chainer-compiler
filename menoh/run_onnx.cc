@@ -38,8 +38,6 @@
 #include <compiler/tensor.h>
 #include <compiler/util.h>
 #include <compiler/value.h>
-#include <menoh/menoh.hpp>
-#include <menoh/menoh_chainer_compiler_util.hpp>
 #include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
@@ -51,6 +49,8 @@
 #include <tools/log.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
+#include <menoh/menoh.hpp>
+#include <menoh/menoh_chainer_compiler_util.hpp>
 
 chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype) {
     return static_cast<chainerx::Dtype>(static_cast<int>(menoh_dtype_to_cc_dtype(mdtype)));

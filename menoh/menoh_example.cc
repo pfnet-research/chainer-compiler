@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
     auto vpt = vpt_builder.build_variable_profile_table(model_data);
     auto fc6_dims = vpt.get_variable_profile(fc6_out_name).dims;
     std::cout << "(";
-    for(auto d : fc6_dims) {
+    for (auto d : fc6_dims) {
         std::cout << d << ", ";
     }
     std::cout << ")" << std::endl;
@@ -131,7 +131,7 @@ int main(int argc, char** argv) {
     nlohmann::json config;
     config_file >> config;
     std::cout << config << std::endl;
-    //config["trace_level"] = a.get<int>("trace-level");
+    // config["trace_level"] = a.get<int>("trace-level");
     auto model = model_builder.build_model(model_data, "", config.dump());
     // auto model = model_builder.build_model(model_data, "", "{\"compiler_log\":true,
     // \"trace_level\":"+std::to_string(a.get<int>("trace-level"))+"}");
