@@ -416,7 +416,7 @@ primitive_op_ty = {
 # ==============================================================================
 
 class TypeChecker():
-    def __init__(self, tyenv=None, is_debug=False):
+    def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
             self.tyenv = {}  # string -> TyObj (internal type env)
         else:
@@ -424,6 +424,7 @@ class TypeChecker():
         # type environments
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
+        self.module = module
 
 
     def dump_tyenv(self):
@@ -707,10 +708,10 @@ class TypeChecker():
                 self.nodetype[node] = ty_ret
 
             elif isinstance(node.func, gast.Attribute):
-                # attribute-like namespacing
                 if isinstance(node.func.value, gast.Name) and \
-                        node.func.value.id == 'np':
-                    ty_ret = numpy_func_ty[eval(node.func.value.id + '.' + node.func.attr)](ty_args)
+                        hasattr(self.module, node.func.value.id):
+                    module = getattr(self.module, node.func.value.id)
+                    ty_ret = numpy_func_ty[getattr(module, node.func.attr)](ty_args)
                     ty_ret = ty_ret.deref()
                     self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                     self.nodetype[node] = ty_ret

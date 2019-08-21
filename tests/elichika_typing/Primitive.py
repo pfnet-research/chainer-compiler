@@ -4,18 +4,21 @@ import unittest
 
 from chainer_compiler.elichika.parser import typing
 from chainer_compiler.elichika.parser import utils
-from chainer_compiler.elichika.testtools import generate_type_table
+from chainer_compiler.elichika.testtools import generate_id2type_from_func
+from chainer_compiler.elichika.testtools import generate_id2type
+
+
+import numpy as np
+test_var = 42
 
 
 class TestNum(unittest.TestCase):
     def test_num_bool(self):
-        code = utils.clip_head("""
         def forward(self, x, y):
             return x and y or True
-        """)
 
-        tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, (True, False))
+        node_type = generate_id2type_from_func(
+            forward, (True, False))
 
         self.assertEqual(str(node_type[1]), "bool -> bool -> bool")	# FunctionDef (line 2)
         self.assertEqual(str(node_type[5]), "bool")	# Name (line 2)
@@ -39,7 +42,7 @@ class TestNum(unittest.TestCase):
         """)
 
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, (1,))
+        node_type = generate_id2type(tree, (1,))
 
         self.assertEqual(str(node_type[1]), "int -> float")	# FunctionDef (line 2)
         self.assertEqual(str(node_type[5]), "int")	# Name (line 2)
@@ -68,7 +71,7 @@ class TestNum(unittest.TestCase):
             return a
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> int")	# FunctionDef (line 2)
         self.assertEqual(str(node_type[5]), "NoneType")	# Assign (line 3)
@@ -99,7 +102,7 @@ class TestNum(unittest.TestCase):
             return x
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, (0,))  # int
+        node_type = generate_id2type(tree, (0,))  # int
 
         self.assertEqual(str(node_type[1]), "int -> float")	# FunctionDef (line 2)
         self.assertEqual(str(node_type[5]), "int")	# Name (line 2)
@@ -131,7 +134,7 @@ class TestSequence(unittest.TestCase):
             return v
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> int list list")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -168,7 +171,7 @@ class TestSequence(unittest.TestCase):
             return o
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> int")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -199,7 +202,7 @@ class TestSequence(unittest.TestCase):
             return x
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> int tuple")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -226,7 +229,7 @@ class TestSequence(unittest.TestCase):
             return x + y
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> float")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -251,7 +254,7 @@ class TestSequence(unittest.TestCase):
         """)
 
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> int list")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -277,7 +280,7 @@ class TestSequence(unittest.TestCase):
             return v
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> float")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -317,7 +320,7 @@ class TestOtherDataTypes(unittest.TestCase):
             return v
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> string")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -343,7 +346,7 @@ class TestOtherDataTypes(unittest.TestCase):
             return x["one"]
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> int")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -371,7 +374,7 @@ class TestControl(unittest.TestCase):
             return x
         """)
         tree = gast.ast_to_gast(ast.parse(code))
-        node_type = generate_type_table(tree, ())
+        node_type = generate_id2type(tree, ())
 
         self.assertEqual(str(node_type[1]), "(no argument) -> float")	# lineno: 2
         self.assertEqual(str(node_type[5]), "NoneType")	# lineno: 3
@@ -399,7 +402,7 @@ class TestControl(unittest.TestCase):
     #     code = utils.clip_head("""
     #     """)
     #     tree = gast.ast_to_gast(ast.parse(code))
-    #     node_type = generate_type_table(tree)
+    #     node_type = generate_id2type(tree)
 
 
 

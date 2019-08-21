@@ -1,3 +1,3 @@
 from chainer_compiler.elichika.testtools.testcasegen import generate_testcase
 from chainer_compiler.elichika.testtools.canonicalizer_tools import compare_ast, assert_semantically_equals
-from chainer_compiler.elichika.testtools.typing_tools import generate_id_table, generate_type_table
+from chainer_compiler.elichika.testtools.typing_tools import generate_node2id, generate_id2type, generate_id2type_from_func

@@ -1,5 +1,7 @@
 import ast, gast
+import inspect
 import pprint
+import sys
 
 from chainer_compiler.elichika.parser import typing
 from chainer_compiler.elichika.parser import utils
@@ -8,68 +10,86 @@ from chainer_compiler.elichika.parser import utils
 class IDAssignor(gast.NodeVisitor):
     def __init__(self):
         self.counter = 0
-        self.node_ids = {}
+        self.node2id = {}
 
     def visit(self, node):
-        self.node_ids[node] = self.counter
+        self.node2id[node] = self.counter
         self.counter += 1
         return super().visit(node)
 
     def run(self, node):
         self.visit(node)
-        return self.node_ids
+        return self.node2id
 
 
-def generate_id_table(tree):  # return type: Dict[Node, id], Dict[id, Node]
+def generate_node2id(tree):
     a = IDAssignor()
-    id_table = a.run(tree)
-
-    node_table = {}
-    for n, i in id_table.items():
-        node_table[i] = n
-
-    return id_table, node_table
+    node2id = a.run(tree)
+    return node2id
 
 
-def generate_type_table(tree, args, is_debug=False):  # return type: Dict[id, type]
-    a = IDAssignor()
-    tc = typing.TypeChecker(is_debug=is_debug)
+def generate_id2node(node2id):
+    id2node = {}
+    for n, i in node2id.items():
+        id2node[i] = n
+
+    return id2node
+
+
+def generate_id2type(tree, args, is_debug=False, module=None):
+    node2id = generate_node2id(tree)
+
+    tc = typing.TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
-    node_ids = a.run(tree)
-    node_type = tc.infer_function(func_body, args)
-    new_nodetype = {}
-    for n, t in node_type.items():
-        new_nodetype[node_ids[n]] = t
 
-    return new_nodetype
+    node2type = tc.infer_function(func_body, args)
+    id2type = {}
+    for n, t in node2type.items():
+        id2type[node2id[n]] = t
+
+    return id2type
 
 
-def generate_assertion(type_table_name, type_table, node_table):
-    for i, t in sorted(type_table.items()):
-        node = node_table[i]
-        comment = "\t# {}".format(type(node).__name__) \
-                + (" (line {})".format(node.lineno) if hasattr(node, 'lineno') else "")
+def generate_id2type_from_func(fn, args, is_debug=False):
+    code = utils.clip_head(inspect.getsource(fn))
+    tree = gast.ast_to_gast(ast.parse(code))
+    module = sys.modules[fn.__module__]
+    id2type = generate_id2type(tree, args, is_debug=is_debug, module=module)
+    return id2type
+
+
+def generate_assertion(type_table_name, id2type, id2node):
+    for i, t in sorted(id2type.items()):
+        node = id2node[i]
+        comment = "\t# {}".format(type(node).__name__)
+        if hasattr(node, 'lineno'):
+            comment += " (line {})".format(node.lineno)
 
         print("self.assertEqual(str({}[{}]), \"{}\"){}".format( \
             type_table_name, i, t, comment))
 
 
-def main():
-    code = utils.clip_head("""
-    def forward(self, x):
-        if True:
-            x += 3
-        else:
-            x += 10.0
-        return x
-    """)
-    node = gast.ast_to_gast(ast.parse(code))
-    node_type = generate_type_table(node, (0,), True)
+import numpy as np
 
-    id_table, node_table = generate_id_table(node)
-    # pprint.pprint(node_type)
-    # pprint.pprint(id_table)
-    generate_assertion("node_type", node_type, node_table)
+
+def main():
+    def forward(self):
+        x = np.array([1,2,3])
+        return x
+        # if True:
+        #     x += 3
+        # else:
+        #     x += 10.0
+        # return x
+
+    code = utils.clip_head(inspect.getsource(forward))
+    node = gast.ast_to_gast(ast.parse(code))
+    id2node = generate_id2node(generate_node2id(node))
+    module = sys.modules[forward.__module__]
+    id2type = generate_id2type(node, (), is_debug=True, module=module)
+
+    # pprint.pprint(id2type)
+    generate_assertion("node_type", id2type, id2node)
 
 
 if __name__ == '__main__':
