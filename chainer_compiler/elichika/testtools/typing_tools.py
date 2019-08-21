@@ -56,11 +56,16 @@ def generate_assertion(type_table_name, type_table, node_table):
 
 def main():
     code = utils.clip_head("""
-    def forward(self, x, y):
-        return x and y or True
+    def forward(self, x):
+        if True:
+            x += 3
+        else:
+            x += 10.0
+        return x
     """)
     node = gast.ast_to_gast(ast.parse(code))
-    node_type = generate_type_table(node, (True, False), True)
+    node_type = generate_type_table(node, (0,), True)
+
     id_table, node_table = generate_id_table(node)
     # pprint.pprint(node_type)
     # pprint.pprint(id_table)

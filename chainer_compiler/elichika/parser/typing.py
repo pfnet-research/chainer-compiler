@@ -111,7 +111,7 @@ class TyArrow(TyObj):
 
     def __str__(self):
         if self.argty == []:
-            return "{} -> {}".format(TyNone(), self.retty)
+            return "(no argument) -> {}".format(self.retty)
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
 
     def __eq__(self, other):
@@ -455,13 +455,15 @@ class TypeChecker():
         if isinstance(node, gast.FunctionDef):
             # FunctionDef(identifier name, arguments args, stmt* body,
             # expr* decorator_list, expr? returns)
-            # TODO(momohatt): Add args to env
+
+            # TODO(momohatt): Type of 'self' ?
+            ty_args = [self.tyenv[arg.id] for arg in node.args.args[1:]]
 
             for stmt in node.body:
                 ty = self.infer_stmt(stmt)
 
             # TODO(momohatt): type of function definition?
-            self.nodetype[node] = ty
+            self.nodetype[node] = TyArrow(ty_args, ty)
 
 
         elif isinstance(node, gast.Return):
