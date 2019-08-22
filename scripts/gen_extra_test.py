@@ -1055,6 +1055,16 @@ def gen_const_prop_use_twice_test(test_name):
     gb.gen_test()
 
 
+def gen_abs_test(dtype):
+    def fn(test_name):
+        gb = onnx_script.GraphBuilder(test_name)
+        i = np.array([42, -24], dtype=dtype)
+        i_v = gb.input('input', i)
+        gb.output(gb.Abs([i_v]), np.abs(i))
+        gb.gen_test()
+    return fn
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1181,6 +1191,11 @@ def get_tests():
     test('extra_test_const_str', gen_const_str_test)
 
     test('extra_test_const_prop_use_twice', gen_const_prop_use_twice_test)
+
+    # TODO(hamaji): Enable these tests after next Chainer update.
+    test('extra_test_abs_int8', gen_abs_test(np.int8), fail=True)
+    test('extra_test_abs_int64', gen_abs_test(np.int64), fail=True)
+    test('extra_test_abs_float16', gen_abs_test(np.float16), fail=True)
 
     tests += gen_chainercv_op_tests.get_tests()
 
