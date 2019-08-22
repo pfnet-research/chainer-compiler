@@ -12,6 +12,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_op.h>
@@ -204,6 +205,7 @@ void ChxVM::Run(ChxVMState* state) {
                     peak_total_mbs = std::max(total_mbs, peak_total_mbs);
                     report = StrCat(report, " allocated=", total_mbs, "MB");
                 }
+                report = StrCat(report, " chx hook monitor=>(total=", InMbs(GetTotalMemory()), "MB peak=", InMbs(GetPeakMemory()), "MB)");
                 std::cerr << report << std::endl;
             }
         }
