@@ -439,6 +439,7 @@ primitive_op_ty = {
 # ==============================================================================
 
 def type_of_value(value) -> 'TyObj':
+    # TODO: user defined class
     if isinstance(value, bool):
         return TyBool()
     if isinstance(value, int):
@@ -456,7 +457,9 @@ def type_of_value(value) -> 'TyObj':
     if isinstance(value, np.ndarray):
         return TyNdarray(value.dtype)
 
-    assert False
+    # assert False
+    return TyVar()
+
     # tc = TypeChecker()
     # expr = gast.ast_to_gast(ast.parse(str(value))).body[0].value
     # return tc.infer_expr(expr)
@@ -472,7 +475,7 @@ class TypeChecker():
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
         self.module = module
-        self.object = None  # 'self' of target function goes here
+        self.args = {}  # argument values
 
 
     def dump_tyenv(self):
@@ -506,19 +509,17 @@ class TypeChecker():
 
 
     def infer_function(self, node: 'ast.Node', args) -> 'TyObj':
-        # args: runtime argument values
         assert isinstance(node, gast.FunctionDef)
         assert len(args) == len(node.args.args)
 
-        self.object = args[0]
-
         # examine argument type separately from parent typechecker
         tc = TypeChecker()
-        ty_args = [type_of_value(arg) for arg in args[1:]]
+        ty_args = [type_of_value(arg) for arg in args]
 
-        for arg, ty in zip(node.args.args[1:], ty_args):
-            self.nodetype[arg] = ty
-            self.tyenv[arg.id] = ty
+        for arg_node, arg_value, ty in zip(node.args.args, args, ty_args):
+            self.nodetype[arg_node] = ty
+            self.tyenv[arg_node.id] = ty
+            self.args[arg_node.id] = arg_value
 
         self.infer_stmt(node)
 
@@ -798,10 +799,10 @@ class TypeChecker():
         elif isinstance(node, gast.Attribute):
             # Attribute(expr value, identifier attr, expr_context ctx)
 
-            # TODO: Is it ok to assume the name 'self'?
-            if isinstance(node.value, gast.Name) and node.value.id == 'self':
-                value = getattr(self.object, node.attr)
-                print(value)
+            if isinstance(node.value, gast.Name) and \
+                    node.value.id in self.args.keys():
+                # attributes of arguments (ex. self)
+                value = getattr(self.args[node.value.id], node.attr)
                 self.nodetype[node] = type_of_value(value)
 
             else:
