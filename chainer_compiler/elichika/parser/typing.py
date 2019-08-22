@@ -439,12 +439,12 @@ primitive_op_ty = {
 # ==============================================================================
 
 def type_of_value(value) -> 'TyObj':
+    if isinstance(value, bool):
+        return TyBool()
     if isinstance(value, int):
         return TyInt()
     if isinstance(value, float):
         return TyFloat()
-    if isinstance(value, bool):
-        return TyBool()
     if isinstance(value, str):
         return TyString()
     if isinstance(value, list):

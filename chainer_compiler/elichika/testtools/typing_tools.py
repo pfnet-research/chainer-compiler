@@ -50,10 +50,11 @@ def generate_id2type(tree, args, is_debug=False, module=None):
     return id2type
 
 
-def generate_id2type_from_func(fn, args, is_debug=False):
-    code = utils.clip_head(inspect.getsource(fn))
+def generate_id2type_from_forward(model, args, is_debug=False):
+    code = utils.clip_head(inspect.getsource(model.forward))
     tree = gast.ast_to_gast(ast.parse(code))
-    module = sys.modules[fn.__module__]
+    module = sys.modules[model.forward.__module__]
+    args = (model.forward,) + args
     id2type = generate_id2type(tree, args, is_debug=is_debug, module=module)
     return id2type
 
