@@ -98,7 +98,7 @@ def run(args):
     test_dir = os.path.abspath(args.test_dir)
     test_dir_name = test_dir.split(os.path.sep)[-1]
 
-    onnx_filename = os.path.join(test_dir, 'model.onnx')
+    onnx_filename = os.path.join(test_dir, args.model_file)
     input_names, output_names = onnx_input_output_names(onnx_filename)
     test_data_dir = os.path.join(test_dir, 'test_data_set_0')
     inputs, outputs = load_test_data(test_data_dir, input_names, output_names)
@@ -146,6 +146,7 @@ def get_args(args=None):
         'MKLDNN (CPU)-targeted custom layers. Absolute path to a shared '
         'library with the kernels implementations', default=None
     )
+    parser.add_argument('--model_file', default='model.onnx')
     args = parser.parse_args(args=args)
 
     args.framework = 'onnx'
