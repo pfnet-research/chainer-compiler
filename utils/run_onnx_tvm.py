@@ -63,7 +63,7 @@ def compile(symbol, target, input_names, inputs, params,
 
 
 def run(args):
-    onnx_model = onnx.load_model(os.path.join(args.test_dir, 'model.onnx'))
+    onnx_model = onnx.load_model(os.path.join(args.test_dir, args.model_file))
     symbol, params = nnvm.frontend.from_onnx(onnx_model)
     input_names = symbol.list_input_names()
     output_names = symbol.list_output_names()
@@ -130,6 +130,7 @@ def get_args(args=None):
     parser.add_argument('--iterations', '-I', type=int, default=1)
     parser.add_argument('--opt_level', '-O', type=int, default=3)
     parser.add_argument('--autotvm_log', type=str)
+    parser.add_argument('--model_file', default='model.onnx')
     return parser.parse_args(args=args)
 
 

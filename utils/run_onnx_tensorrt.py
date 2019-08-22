@@ -82,7 +82,7 @@ def onnx_input_output_names(onnx_filename):
 
 
 def run(args):
-    onnx_filename = os.path.join(args.test_dir, 'model.onnx')
+    onnx_filename = os.path.join(args.test_dir, args.model_file)
     input_names, output_names = onnx_input_output_names(onnx_filename)
     test_data_dir = os.path.join(args.test_dir, 'test_data_set_0')
     inputs, outputs = load_test_data(test_data_dir, input_names, output_names)
@@ -153,6 +153,7 @@ def get_args(args=None):
     parser.add_argument('--fp16_mode', action='store_true')
     parser.add_argument('--rtol', type=float, default=1e-3)
     parser.add_argument('--atol', type=float, default=1e-4)
+    parser.add_argument('--model_file', default='model.onnx')
     return parser.parse_args(args=args)
 
 
