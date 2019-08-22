@@ -764,19 +764,14 @@ class TypeChecker():
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = TyVar()
 
-            if isinstance(node.func, gast.Attribute):
-                if isinstance(node.func.value, gast.Name) and \
-                        hasattr(self.module, node.func.value.id):
-                    module = getattr(self.module, node.func.value.id)
-                    ty_ret = ext_func_ty[getattr(module, node.func.attr)](ty_args)
-                    ty_ret = ty_ret.deref()
-                    self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                    self.nodetype[node] = ty_ret
-                else:
-                    ty_fun = self.infer_expr(node.func)
-                    unify(ty_fun, TyArrow(ty_args, ty_ret))
-                    self.nodetype[node.func] = ty_fun.deref()
-                    self.nodetype[node] = ty_ret.deref()
+            if isinstance(node.func, gast.Attribute) and \
+                    isinstance(node.func.value, gast.Name) and \
+                    hasattr(self.module, node.func.value.id):
+                module = getattr(self.module, node.func.value.id)
+                ty_ret = ext_func_ty[getattr(module, node.func.attr)](ty_args)
+                ty_ret = ty_ret.deref()
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                self.nodetype[node] = ty_ret
 
             else:
                 ty_fun = self.infer_expr(node.func)
@@ -879,7 +874,6 @@ class TypeChecker():
                 self.nodetype[node] = self.tyenv[node.id]
             elif node.id in builtins_name:
                 self.nodetype[node] = deepcopy(builtins_ty[eval(node.id)])
-                debug(self.nodetype[node])
             else:
                 # case of Tuple assignment
                 ty_var = TyVar()
