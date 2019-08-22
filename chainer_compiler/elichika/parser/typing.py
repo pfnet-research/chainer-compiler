@@ -769,16 +769,19 @@ class TypeChecker():
             if isinstance(ty_obj, TySequence):
                 self.infer_slice(node.slice, TyInt())
                 if ty_obj.is_fixed_len:
-                    if isinstance(node.slice, gast.Index) and isinstance(node.slice.value, gast.Num):
-                        # TODO(momohatt): handle cases where index is more complex but still a constant
+                    if isinstance(node.slice, gast.Index) and \
+                            isinstance(node.slice.value, gast.Num):
+                        # TODO(momohatt): handle cases where index is
+                        # more complex but still a constant
                         self.nodetype[node] = ty_obj.get_tys()[node.slice.value.n]
                     else:
-                        ty_elt = TyVar()
-                        unify(ty_obj, TyList(ty_elt))
+                        ty_obj.coerce_to_variable_len()
                         if isinstance(node.slice, gast.Index):
-                            self.nodetype[node] = ty_elt
+                            self.nodetype[node] = ty_obj.get_ty()
                         elif isinstance(node.slice, gast.Slice):
                             self.nodetype[node] = ty_obj
+                        else:
+                            assert False
 
                 else:
                     if isinstance(node.slice, gast.Index):
@@ -787,10 +790,21 @@ class TypeChecker():
                         self.nodetype[node] = ty_obj
                     else:
                         assert False
+
             elif isinstance(ty_obj, TyDict):
                 self.infer_slice(node.slice, ty_obj.keyty)
-                assert isinstance(node.slice, gast.Index)  # error: unhashable type
+                assert isinstance(node.slice, gast.Index)
                 self.nodetype[node] = ty_obj.valty
+
+            elif isinstance(ty_obj, TyNdarray):
+                self.infer_slice(node.slice, TyInt())
+                if isinstance(node.slice, gast.Index):
+                    self.nodetype[node] = ty_obj.ty
+                elif isinstance(node.slice, gast.Slice):
+                    self.nodetype[node] = ty_obj
+                else:
+                    assert False
+
             else:
                 assert False
 
@@ -821,27 +835,25 @@ class TypeChecker():
         return self.nodetype[node]
 
 
-    def infer_slice(self, node: 'gast.Node', ty_key) -> 'NoneType':
+    def infer_slice(self, node: 'gast.Node', ty_key_expected) -> 'NoneType':
         if isinstance(node, gast.Slice):
             # Slice(expr? lower, expr? upper, expr? step)
             if node.lower:
                 ty_lower = self.infer_expr(node.lower)
-                unify(ty_lower, ty_key)
+                unify(ty_lower, ty_key_expected)
             if node.upper:
                 ty_upper = self.infer_expr(node.upper)
-                unify(ty_upper, ty_key)
+                unify(ty_upper, ty_key_expected)
             if node.step:
                 ty_step = self.infer_expr(node.step)
-                unify(ty_step, ty_key)
+                unify(ty_step, ty_key_expected)
+            return
 
-
-        elif isinstance(node, gast.Index):
+        if isinstance(node, gast.Index):
             # Index(expr value)
             ty_val = self.infer_expr(node.value)
-            unify(ty_val, ty_key)
-
-        # we shouldn't have to think about the type of 'slice' itself
-        return
+            unify(ty_val, ty_key_expected)
+            return
 
 
 def unify(ty1, ty2):
@@ -877,7 +889,8 @@ def unify_(ty1, ty2):
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
-        possible_types = [i for i in ty1.possible_types() if i in ty2.possible_types()]
+        possible_types = \
+                [i for i in ty1.possible_types() if i in ty2.possible_types()]
         if possible_types == []:
             raise UnifyError(ty1, ty2)
         ty1.ty_level_min = ty2.ty_level_min = min(possible_types)

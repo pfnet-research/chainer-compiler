@@ -75,7 +75,7 @@ import numpy as np
 def main():
     def forward(self):
         x = np.array([1,2,3])
-        return x
+        return x[0:2]
 
     code = utils.clip_head(inspect.getsource(forward))
     node = gast.ast_to_gast(ast.parse(code))
