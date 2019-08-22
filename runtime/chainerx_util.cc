@@ -389,5 +389,45 @@ chainerx::Array GroupedConvGradWeight(
     return chainerx::Concatenate(gws, 0);
 }
 
+namespace {
+
+std::map<void*, size_t> g_memory_map;
+size_t g_memory_total;
+size_t g_peak_memory;
+
+}  // namespace
+
+void InitializeMemoryMonitoring(chainerx::Device* device) {
+#ifdef CHAINER_COMPILER_ENABLE_CUDA
+    auto cuda_device = dynamic_cast<chainerx::cuda::CudaDevice*>(device);
+    CHECK(cuda_device != nullptr) << "device should be CudaDevice";
+    const std::shared_ptr<chainerx::cuda::MemoryPool>& memory_pool = cuda_device->device_memory_pool();
+
+    g_memory_map.clear();
+    g_memory_total = 0;
+    g_peak_memory = 0;
+
+    auto malloc_postprocess_hook = [](chainerx::cuda::MemoryPool&, size_t bytesize, void* ptr) {
+        CHECK(g_memory_map.insert({ptr, bytesize}).second);
+        g_memory_total += bytesize;
+        g_peak_memory = std::max(g_peak_memory, g_memory_total);
+    };
+
+    auto free_preprocess_hook = [](chainerx::cuda::MemoryPool&, void* ptr) {
+        auto found = g_memory_map.find(ptr);
+        CHECK(found != g_memory_map.end());
+        g_memory_total -= found->second;
+        g_memory_map.erase(found);
+    };
+
+    memory_pool->SetMallocPostprocessHook(malloc_postprocess_hook);
+    memory_pool->SetFreeHook(free_preprocess_hook);
+#endif
+}
+
+size_t GetPeakMemory() {
+    return g_peak_memory;
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

@@ -77,5 +77,8 @@ chainerx::Array GroupedConvGradWeight(
         const Int64StackVector& pads,
         int group);
 
+void InitializeMemoryMonitoring(chainerx::Device* device);
+size_t GetPeakMemory();
+
 }  // namespace runtime
 }  // namespace chainer_compiler
