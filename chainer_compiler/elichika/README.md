@@ -70,6 +70,7 @@ else:
 
 #### Math
 
+- absolute
 - arccos
 - arcsin
 - arctan
@@ -129,6 +130,7 @@ else:
 ### numpy
 
 - numpy.array
+- numpy.absolute
 - numpy.zeros
 - numpy.full
 - numpy.ceil
@@ -143,6 +145,7 @@ else:
 
 ### built-in
 
+- abs
 - range
 - len
 - list

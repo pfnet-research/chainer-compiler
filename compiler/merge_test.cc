@@ -31,9 +31,9 @@ TEST(MergeTest, SplitConcat) {
 
     MergeOperations({"MergeSplitConcat"}, &graph, false);
     graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
+    EXPECT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kIdentity, node.op_type());
+    EXPECT_EQ(Node::kIdentity, node.op_type());
     graph.CheckSanity("merged");
 }
 
@@ -66,12 +66,12 @@ TEST(MergeTest, PadConv) {
 
     MergeOperations({"MergePadConv"}, &graph, false);
     graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
+    EXPECT_EQ(1, graph.nodes().size());
     const Node& node = *graph.nodes()[0];
-    ASSERT_EQ(Node::kConv, node.op_type());
-    ASSERT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
-    ASSERT_EQ(2, node.inputs().size());
-    ASSERT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [pad_name](Value* v) { return v->name() == pad_name; }));
+    EXPECT_EQ(Node::kConv, node.op_type());
+    EXPECT_EQ(std::vector<int64_t>({1, 1, 1, 1}), node.pads());
+    EXPECT_EQ(2, node.inputs().size());
+    EXPECT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [pad_name](Value* v) { return v->name() == pad_name; }));
     graph.CheckSanity("merged");
 }
 
@@ -97,10 +97,10 @@ TEST(MergeTest, TransposeGemmA) {
 
     MergeOperations({"MergeTransposeGemm"}, &graph, false);
     graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
+    EXPECT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
     EXPECT_EQ(Node::kGemm, node.op_type());
-    ASSERT_EQ(3, node.inputs().size());
+    EXPECT_EQ(3, node.inputs().size());
     EXPECT_EQ(1, node.trans_a());
     EXPECT_EQ(0, node.trans_b());
     EXPECT_TRUE(std::none_of(node.inputs().begin(), node.inputs().end(), [trans_name](Value* v) { return v->name() == trans_name; }));
@@ -132,7 +132,6 @@ TEST(MergeTest, ConvBN) {
         gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
     }
 
-    ASSERT_EQ(8, graph.nodes().size());
     MergeOperations({"MergeConvBN"}, &graph, false);
     graph.DeleteDetached();
     std::vector<Node*> nodes;
@@ -141,11 +140,11 @@ TEST(MergeTest, ConvBN) {
             nodes.push_back(node);
         }
     }
-    ASSERT_EQ(1, nodes.size());
+    EXPECT_EQ(1, nodes.size());
     const Node& node = *nodes[0];
 
-    ASSERT_TRUE(node.input(1)->initializer());
-    ASSERT_TRUE(node.input(2)->initializer());
+    EXPECT_TRUE(node.input(1)->initializer());
+    EXPECT_TRUE(node.input(2)->initializer());
     chainerx::Array new_w = node.input(1)->initializer()->chx();
     chainerx::Array new_b = node.input(2)->initializer()->chx();
     chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
@@ -170,12 +169,38 @@ TEST(MergeTest, MatMulAdd) {
 
     MergeOperations({"MergeMatMulAdd"}, &graph, false);
     graph.DeleteDetached();
-    ASSERT_EQ(1, graph.nodes().size());
+    EXPECT_EQ(1, graph.nodes().size());
     Node const& node = *graph.nodes()[0];
     EXPECT_EQ(Node::kGemm, node.op_type());
     EXPECT_EQ(a, node.input(0));
     EXPECT_EQ(b, node.input(1));
     EXPECT_EQ(c, node.input(2));
+    EXPECT_EQ(output, node.output(0));
+    graph.CheckSanity("merged");
+}
+
+TEST(MergeTest, ConvAdd) {
+    chainerx::testing::ContextSession sess;
+
+    Graph graph("test");
+    Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {1, 4, 3, 3}));
+    Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {2, 4, 1, 1}));
+    Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {1, 2, 3, 3}));
+
+    {
+        GraphBuilder gb(&graph, "test", a);
+        Value* conv = gb.Op(Node::kConv, {a, b});
+        gb.Op(Node::kAdd, {conv, gb.Const(runtime::MakeScalarArray(1.f))}, output);
+    }
+
+    MergeOperations({"MergeConvAdd"}, &graph, false);
+    graph.DeleteDetached();
+    auto it = std::find_if(graph.nodes().begin(), graph.nodes().end(), [](Node* nd) { return nd->op_type() == Node::kConv; });
+    ASSERT_TRUE(it != graph.nodes().end());
+    Node const& node = **it;
+    EXPECT_EQ(3, node.inputs().size());
+    EXPECT_EQ(a, node.input(0));
+    EXPECT_EQ(b, node.input(1));
     EXPECT_EQ(output, node.output(0));
     graph.CheckSanity("merged");
 }

@@ -2,22 +2,34 @@ import chainer.functions as F
 import numpy as np
 import inspect
 
+
 def check_attribute_value(actual_value, expected_value, func_name='', arg_name=''):
     return
+
 
 def check_attribute_scalar(value, func_name='', arg_name=''):
     return
 
+
 def chainer_clipped_relu(x, z=20.0):
     return F.minimum(F.maximum(0.0, x), z)
+    
+def numpy_absolute(x, out=None, where=None):
+    check_attribute_value(out, None, 'numpy.out', 'out')
+    check_attribute_value(out, None, 'numpy.where', 'where')
+    return F.absolute(x)
+
+def builtin_absolute(x):
+    return F.absolute(x)
 
 def numpy_clip(a, a_min, a_max, out=None):
-    check_attribute_scalar(a_min,'numpy.clip', 'a_min')
-    check_attribute_scalar(a_max,'numpy.clip', 'a_max')
+    check_attribute_scalar(a_min, 'numpy.clip', 'a_min')
+    check_attribute_scalar(a_max, 'numpy.clip', 'a_max')
     check_attribute_value(out, None, 'numpy.clip', 'out')
 
     a = F.clip(a, a_min, a_max)
     return a
+
 
 def check_args(func1, func2):
     sig1 = inspect.signature(func1)
@@ -32,3 +44,4 @@ def check_args(func1, func2):
 
 
 check_args(F.clipped_relu, chainer_clipped_relu)
+

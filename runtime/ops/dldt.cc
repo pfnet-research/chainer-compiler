@@ -9,14 +9,9 @@
 
 #include <inference_engine.hpp>
 
-#include <common/log.h>
-
-#else
-
-#include <common/log.h>
-
 #endif
 
+#include <common/log.h>
 #include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {

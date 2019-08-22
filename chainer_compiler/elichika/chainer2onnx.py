@@ -106,6 +106,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.arctan] = fb.ConverterChainerMathMisc('Atan')
     oc.f_converter[F.exp] = fb.ConverterChainerMathMisc('Exp')
     oc.f_converter[F.log] = fb.ConverterChainerMathMisc('Log')
+    oc.f_converter[F.absolute] = fb.ConverterChainerMathMisc('Abs', arg_name='self')
 
     oc.f_converter[functions_ndarray.dummy_maximum] = fb.ConverterMaximum()
     oc.f_converter[functions_ndarray.dummy_minimum] = fb.ConverterMinimum()

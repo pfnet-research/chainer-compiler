@@ -1,0 +1,7 @@
+{
+    "merge": {
+        "MergePadConv": false,
+        "MergeTransposeGemm": false,
+        "MergeMatMulAdd": false
+    }
+}

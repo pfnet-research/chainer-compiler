@@ -54,9 +54,10 @@ class BaseConverter(object):
 
     
 class ConverterChainerMathMisc(BaseConverter):
-    def __init__(self, operator):
+    def __init__(self, operator, arg_name = 'x'):
+        self.arg_name = arg_name
         self.expected_args = (
-            ('x', oc.ParseType.In),)
+            (self.arg_name, oc.ParseType.In),)
         self.operator = operator
 
     def __call__(self, onnx_graph, node):
@@ -64,7 +65,7 @@ class ConverterChainerMathMisc(BaseConverter):
 
         onnx_graph.add_node(
             self.operator,
-            [parser.get('x')],
+            [parser.get(self.arg_name)],
             node.outputs,
             name=str(node.lineprop))
 
