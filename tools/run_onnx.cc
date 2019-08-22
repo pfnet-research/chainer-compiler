@@ -567,14 +567,20 @@ void RunMain(const std::vector<std::string>& argv) {
     chainerx::ContextScope ctx_scope(ctx);
     chainerx::NoBackpropModeScope no_backprop;
     const std::string device_spec = args.get<std::string>("device");
+    bool enable_memory_monitoring = false;
     if (!device_spec.empty()) {
         chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
         chainerx::SetDefaultDevice(device);
         if (IsCudaDevice(device)) {
             g_use_cuda = true;
             g_meminfo_enabled = true;
+            if (g_compiler_log) {
+                InitializeMemoryMonitoring(device);
+                enable_memory_monitoring = true;
+            }
         }
     }
+
     int64_t initial_used_bytes = GetUsedMemory();
 
     if (onnx_path.empty()) {
@@ -679,6 +685,10 @@ void RunMain(const std::vector<std::string>& argv) {
         if (test_case != test_cases.front()) total_elapsed += elapsed;
         if (best_elapsed == 0 || best_elapsed > elapsed) best_elapsed = elapsed;
         elapsed_times.push_back(elapsed);
+    }
+    if (enable_memory_monitoring) {
+        const size_t peak = GetPeakMemory() / 1000 / 1000;
+        LOG() << "Peak memory monitored by ChainerX Hook: " << peak << "MB" << std::endl;
     }
     if (test_cnt) LOG() << GREEN << "OK!" << RESET << std::endl;
 
