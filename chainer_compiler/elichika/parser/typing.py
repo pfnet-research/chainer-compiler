@@ -439,9 +439,27 @@ primitive_op_ty = {
 # ==============================================================================
 
 def infer_value(value) -> 'TyObj':
-    tc = TypeChecker()
-    expr = gast.ast_to_gast(ast.parse(str(value))).body[0].value
-    return tc.infer_expr(expr)
+    if isinstance(value, int):
+        return TyInt()
+    if isinstance(value, float):
+        return TyFloat()
+    if isinstance(value, bool):
+        return TyBool()
+    if isinstance(value, str):
+        return TyString()
+    if isinstance(value, list):
+        return TyList([infer_value(v) for v in value])
+    if isinstance(value, tuple):
+        return TyTuple([infer_value(v) for v in value])
+    if isinstance(value, dict):
+        return TyDict(infer_value(value.keys()[0]), infer_value(value.items()[0]))
+    if isinstance(value, np.ndarray):
+        return TyNdarray(value.dtype)
+
+    assert False
+    # tc = TypeChecker()
+    # expr = gast.ast_to_gast(ast.parse(str(value))).body[0].value
+    # return tc.infer_expr(expr)
 
 
 class TypeChecker():
