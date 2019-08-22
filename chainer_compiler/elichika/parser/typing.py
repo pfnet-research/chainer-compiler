@@ -438,6 +438,12 @@ primitive_op_ty = {
 
 # ==============================================================================
 
+def infer_value(value) -> 'TyObj':
+    tc = TypeChecker()
+    expr = gast.ast_to_gast(ast.parse(str(value))).body[0].value
+    return tc.infer_expr(expr)
+
+
 class TypeChecker():
     def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
@@ -448,6 +454,7 @@ class TypeChecker():
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
         self.module = module
+        self.object = None  # 'self' of target function goes here
 
 
     def dump_tyenv(self):
@@ -483,13 +490,14 @@ class TypeChecker():
     def infer_function(self, node: 'ast.Node', args) -> 'TyObj':
         # args: runtime argument values
         assert isinstance(node, gast.FunctionDef)
-        # node.args.args[0] is 'self'
-        assert len(args) == len(node.args.args) - 1
+        assert len(args) == len(node.args.args)
+
+        self.object = args[0]
 
         # examine argument type separately from parent typechecker
         tc = TypeChecker()
         ty_args = []
-        for arg in args:
+        for arg in args[1:]:
             expr = gast.ast_to_gast(ast.parse(str(arg))).body[0].value
             ty_args.append(tc.infer_expr(expr))
 
@@ -774,14 +782,22 @@ class TypeChecker():
 
         elif isinstance(node, gast.Attribute):
             # Attribute(expr value, identifier attr, expr_context ctx)
-            ty_obj = self.infer_expr(node.value)
 
-            if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-                if ty_obj.is_fixed_len:
-                    # if the object is fixed-length list, coerce it.
-                    unify(ty_obj, TyList(TyVar()))
-                ty_ret = list_attr_ty[node.attr](ty_obj)
-                self.nodetype[node] = ty_ret
+            # TODO: Is it ok to assume the name 'self'?
+            if isinstance(node.value, gast.Name) and node.value.id == 'self':
+                value = getattr(self.object, node.attr)
+                print(value)
+                self.nodetype[node] = infer_value(value)
+
+            else:
+                ty_obj = self.infer_expr(node.value)
+
+                if isinstance(ty_obj, TySequence) and ty_obj.is_list():
+                    if ty_obj.is_fixed_len:
+                        # if the object is fixed-length list, coerce it.
+                        unify(ty_obj, TyList(TyVar()))
+                    ty_ret = list_attr_ty[node.attr](ty_obj)
+                    self.nodetype[node] = ty_ret
 
 
         elif isinstance(node, gast.Subscript):
