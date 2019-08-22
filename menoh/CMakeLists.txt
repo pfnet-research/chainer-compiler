@@ -7,9 +7,19 @@ add_custom_command(
     --output "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
   )
+add_custom_command(
+  OUTPUT
+    "${CMAKE_CURRENT_BINARY_DIR}/args_json.inc"
+  COMMAND
+    ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py" --mode menoh_chainer_compiler.args_json.inc
+    --output "${CMAKE_CURRENT_BINARY_DIR}/args_json.inc"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/generate_flags_code.py"
+  )
 add_custom_target(
   menoh_chainer_compiler_cc_inc
-  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
+  DEPENDS
+  "${CMAKE_CURRENT_BINARY_DIR}/args_json.inc"
+  "${CMAKE_CURRENT_BINARY_DIR}/json_args.inc"
   )
 add_library(menoh_chainer_compiler SHARED menoh_chainer_compiler.cpp menoh.h)
 add_dependencies(menoh_chainer_compiler menoh_chainer_compiler_cc_inc)
@@ -34,6 +44,7 @@ target_link_libraries(menoh_chainer_compiler
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_SNPE_LIBRARIES}
   absl::variant
   absl::optional
   )
@@ -60,3 +71,11 @@ if(OpenCV_FOUND)
     )
     target_link_libraries(menoh_example PRIVATE menoh_chainer_compiler "${OpenCV_LIBRARIES}")
 endif()
+
+add_executable(run_onnx_menoh run_onnx.cpp)
+target_include_directories(run_onnx_menoh PRIVATE
+  "${CHAINER_COMPILER_ROOT_DIR}/third_party/json/include"
+  "${CHAINER_COMPILER_ROOT_DIR}"
+  "${CMAKE_CURRENT_BINARY_DIR}/.."
+)
+target_link_libraries(run_onnx_menoh PRIVATE menoh_chainer_compiler)

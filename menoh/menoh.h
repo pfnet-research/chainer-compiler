@@ -53,6 +53,12 @@ enum menoh_dtype_constant {
     menoh_dtype_int16,
     menoh_dtype_int32,
     menoh_dtype_int64,
+    menoh_dtype_uint8,
+    menoh_dtype_uint16,
+    menoh_dtype_uint32,
+    menoh_dtype_uint64,
+    menoh_dtype_bool,
+    menoh_dtype_string,
 };
 /*! @ingroup vpt
  */
@@ -178,6 +184,24 @@ menoh_error_code MENOH_API menoh_model_data_add_attribute_ints_to_current_node(
 menoh_error_code MENOH_API menoh_model_data_add_attribute_floats_to_current_node(
         menoh_model_data_handle model_data, const char* attribute_name, int64_t size, const float* value);
 /** @} */
+
+menoh_error_code MENOH_API menoh_model_data_get_input_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size);
+
+/*! \brief Get a size of input name which does not include '\0'
+ */
+menoh_error_code MENOH_API menoh_model_data_get_input_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size);
+
+/*! \brief Get a input name c string which includes '\0'
+ *
+ * \note dst_name buffer must have its size as the size returned by menoh_model_data_get_input_name_size + 1 for '\0'
+ */
+menoh_error_code MENOH_API menoh_model_data_get_input_name(menoh_model_data_handle model_data, int64_t index, char* dst_name);
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name_list_size(menoh_model_data_handle model_data, int64_t* dst_size);
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name_size(menoh_model_data_handle model_data, int64_t index, int64_t* dst_size);
+
+menoh_error_code MENOH_API menoh_model_data_get_output_name(menoh_model_data_handle model_data, int64_t index, char* dst_name);
 
 /*! @addtogroup vpt Variable profile table types and operations
  * @{ */

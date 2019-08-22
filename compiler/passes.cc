@@ -17,6 +17,7 @@
 #include <compiler/memory_simulator.h>
 #include <compiler/merge.h>
 #include <compiler/model.h>
+#include <compiler/quantize.h>
 #include <compiler/scheduler.h>
 #include <compiler/shape_evaluator.h>
 #include <compiler/simplifier.h>
@@ -114,6 +115,11 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
             Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
+
+        if (g_quantize) {
+            QuantizationOptions q_opts;
+            Recursively([q_opts](Graph* graph) { Quantize(q_opts, graph); }, graph);
+        }
 
         Recursively(
                 [gen_backprop, &backend_config](Graph* graph) { MergeOperations(backend_config->GetMerge(), graph, gen_backprop); }, graph);

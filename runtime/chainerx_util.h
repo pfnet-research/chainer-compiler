@@ -17,6 +17,7 @@ chainerx::Array ShapeToArray(const chainerx::Shape& s);
 chainerx::Array MakeArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
 chainerx::Array MakeScalarArray(float f);
+chainerx::Array MakeDtypeScalarArray(chainerx::Dtype dtype, chainerx::Scalar scalar);
 
 chainerx::Array MakeHostArray(chainerx::Dtype dtype, chainerx::Shape shape, const void* src);
 
@@ -76,6 +77,8 @@ chainerx::Array GroupedConvGradWeight(
         const Int64StackVector& strides,
         const Int64StackVector& pads,
         int group);
+
+chainerx::Array SlowRound(const chainerx::Array& a);
 
 void InitializeMemoryMonitoring(chainerx::Device* device);
 size_t GetPeakMemory();

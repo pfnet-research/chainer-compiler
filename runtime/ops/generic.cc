@@ -61,6 +61,10 @@ void NullConstantOp::RunImpl(ChxVMState* st) {
     st->SetVar(output, ChxVMVar());
 }
 
+void StringConstantOp::RunImpl(ChxVMState* st) {
+    st->SetVar(output, ChxVMVar(value));
+}
+
 void GenericLenOp::RunImpl(ChxVMState* st) {
     ChxVMVar* var = st->GetVar(v);
     int64_t size = GetSize(var);

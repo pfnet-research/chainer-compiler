@@ -6,6 +6,7 @@ set(jsons
   dldt
   ngraph
   nvrtc
+  snpe
   tvm
   )
 set(json_cs)

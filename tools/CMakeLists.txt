@@ -18,6 +18,8 @@ add_custom_command(
 
 add_library(chainer_compiler_tools
   "${CMAKE_CURRENT_BINARY_DIR}/compiler_flags.cc"
+  log.cc
+  run_onnx_util.cc
   util.cc
   )
 add_dependencies(
@@ -43,6 +45,7 @@ target_link_libraries(dump
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_SNPE_LIBRARIES}
   ${OpenCV_LIBS}
   absl::variant
   absl::optional
@@ -76,6 +79,7 @@ target_link_libraries(run_onnx
   ${CHAINER_COMPILER_DLDT_LIBRARIES}
   ${CHAINER_COMPILER_TVM_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
+  ${CHAINER_COMPILER_SNPE_LIBRARIES}
   absl::variant
   absl::optional
   )
@@ -114,6 +118,7 @@ if(${CHAINER_COMPILER_ENABLE_OPENCV})
     ${CHAINER_COMPILER_DLDT_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
     ${CHAINER_COMPILER_CUDA_LIBRARIES}
+    ${CHAINER_COMPILER_SNPE_LIBRARIES}
     ${OpenCV_LIBS}
     absl::variant
     absl::optional
@@ -145,6 +150,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
     ${CHAINER_COMPILER_DLDT_LIBRARIES}
     ${CHAINER_COMPILER_TVM_LIBRARIES}
     ${CHAINER_COMPILER_CUDA_LIBRARIES}
+    ${CHAINER_COMPILER_SNPE_LIBRARIES}
     absl::variant
     absl::optional
     )
@@ -176,6 +182,7 @@ if (${CHAINER_COMPILER_ENABLE_PYTHON})
       ${CHAINER_COMPILER_DLDT_LIBRARIES}
       ${CHAINER_COMPILER_TVM_LIBRARIES}
       ${CHAINER_COMPILER_CUDA_LIBRARIES}
+      ${CHAINER_COMPILER_SNPE_LIBRARIES}
       ${OpenCV_LIBS}
       absl::variant
       absl::optional

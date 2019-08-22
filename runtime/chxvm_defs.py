@@ -458,6 +458,10 @@ CHX_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), String('model_path'), String('device'),
       Strings('output_names')],
      [ArrayList('outputs')]),
+    ('SnpeDlc',
+     [ArrayList('inputs'), Strings('input_names'),
+      String('model_data'), String('device')],
+     [ArrayList('outputs')]),
 ]
 
 CHX_SEQ_OPS = [
@@ -509,6 +513,8 @@ CHX_GENERIC_OPS = [
     ('Out', [String('name'), Array('v')], []),
     ('Print', [ArrayList('values')], []),
     ('NullConstant', [], ['output']),
+    ('StringConstant',
+     [Strings('value')], ['output']),
 
     ('GenericLen', [Array('v')], ['len']),
     ('GenericGetItem', [Array('v'), Scalar('index')], ['output']),
