@@ -496,10 +496,7 @@ class TypeChecker():
 
         # examine argument type separately from parent typechecker
         tc = TypeChecker()
-        ty_args = []
-        for arg in args[1:]:
-            expr = gast.ast_to_gast(ast.parse(str(arg))).body[0].value
-            ty_args.append(tc.infer_expr(expr))
+        ty_args = [infer_value(arg) for arg in args[1:]]
 
         for arg, ty in zip(node.args.args[1:], ty_args):
             self.nodetype[arg] = ty
