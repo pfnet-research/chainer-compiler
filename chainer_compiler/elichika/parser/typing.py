@@ -384,7 +384,7 @@ def ty_NumpyOnes(ty_args):
     assert False
 
 
-numpy_func_ty = {
+ext_func_ty = {
         np.array : ty_NumpyArray,
         np.ones : ty_NumpyOnes,
         np.zeros : ty_NumpyOnes,
@@ -734,7 +734,7 @@ class TypeChecker():
                 if isinstance(node.func.value, gast.Name) and \
                         hasattr(self.module, node.func.value.id):
                     module = getattr(self.module, node.func.value.id)
-                    ty_ret = numpy_func_ty[getattr(module, node.func.attr)](ty_args)
+                    ty_ret = ext_func_ty[getattr(module, node.func.attr)](ty_args)
                     ty_ret = ty_ret.deref()
                     self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                     self.nodetype[node] = ty_ret
