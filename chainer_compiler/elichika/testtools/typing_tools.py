@@ -70,20 +70,56 @@ def generate_assertion(type_table_name, id2type, id2node):
 
 
 import numpy as np
+import chainer
+import chainer.functions as F
+import chainer.links as L
+
+
+class MLP(chainer.Chain):
+    def __init__(self, n_units, n_out):
+        super(MLP, self).__init__()
+        with self.init_scope():
+            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
+
+    def forward(self, x, t):
+        h1 = F.relu(self.l1(x))
+        h2 = F.relu(self.l2(h1))
+        h3 = self.l3(h2)
+        loss = F.softmax_cross_entropy(h3, t)
+        return loss
+
+
+class Test():
+    def __init__(self):
+        pass
+
+    def forward(self):
+        a = [1, 2.3]
+        a.append(4)
+        return a
 
 
 def main():
-    def forward(self):
-        x = np.zeros((3, 3, 3))
-        return x[0:2]
+    # out_n = 4
+    # batch_size = 100
+    # model = MLP(8, out_n)
+    model = Test()
+    forward = model.forward
 
+    # v = np.random.rand(batch_size, 3).astype(np.float32)
+    # w = np.random.randint(out_n, size=batch_size)
+    forward_args = (model,)
+
+
+    # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(forward))
     node = gast.ast_to_gast(ast.parse(code))
     id2node = generate_id2node(generate_node2id(node))
     module = sys.modules[forward.__module__]
-    id2type = generate_id2type(node, (), is_debug=True, module=module)
+    id2type = generate_id2type(node, forward_args, is_debug=True, module=module)
 
-    # pprint.pprint(id2type)
     generate_assertion("node_type", id2type, id2node)
 
 

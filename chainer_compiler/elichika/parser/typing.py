@@ -190,9 +190,10 @@ class TySequence(TyObj):
 
     def coerce_to_variable_len(self, ty=None):
         if self.is_fixed_len:
-            assert all_same_ty(self.ty_)
             if ty is None:
-                ty = self.ty_[0]
+                ty = TyVar()
+            for t in self.ty_:
+                unify(ty, t)
             self.ty_ = ty
             self.is_fixed_len = False
         return
@@ -327,9 +328,10 @@ class UnifyError(Exception):
 
 
 def all_same_ty(tys):
-    if tys == []:
-        return True
-    return all([t == tys[0] for t in tys[1:]])
+    ty_tmp = TyVar()
+    for t in tys:
+        unify(ty_tmp, t)
+    return True
 
 
 def ty_of_value(value):
