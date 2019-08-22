@@ -93,11 +93,9 @@ class MLP(chainer.Chain):
 
 
 class Test():
-    def __init__(self):
-        self.x = 1
-
     def forward(self):
-        return self.x
+        # x = np.zeros((3, 3))
+        return np.array([1,2,3])
 
 
 def main():

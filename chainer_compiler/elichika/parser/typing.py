@@ -258,10 +258,9 @@ class TyNdarray(TyObj):
         return True
 
     def freeze(self):
-        self.dtype.freeze()
+        pass
 
     def deref(self):
-        self.dtype = self.dtype.deref()
         return self
 
 
@@ -335,13 +334,6 @@ def all_same_ty(tys):
     return True
 
 
-def ty_of_value(value):
-    if isinstance(value, int):
-        return TyInt()
-    if isinstance(value, float):
-        return TyFloat()
-
-
 # ==============================================================================
 
 primitive_func_ty = {
@@ -366,7 +358,8 @@ def ty_NumpyArray(ty_args):
 
     if ty.is_fixed_len:
         ty.coerce_to_variable_len()
-    return TyNdarray(ty.get_ty())
+
+    return TyNdarray(np.dtype(pytype_of_type(ty.get_ty())))
 
 
 def ty_NumpyOnes(ty_args):
@@ -375,11 +368,11 @@ def ty_NumpyOnes(ty_args):
 
     if isinstance(ty, TyNum):
         # TODO(momohatt): this should be dtype('float64')
-        return TyNdarray(TyFloat())
+        return TyNdarray(np.dtype('float64'))
 
     if isinstance(ty, TySequence):
         assert ty.is_fixed_len
-        return TyNdarray(TyFloat())
+        return TyNdarray(np.dtype('float64'))
 
     assert False
 
@@ -463,6 +456,20 @@ def type_of_value(value) -> 'TyObj':
     # tc = TypeChecker()
     # expr = gast.ast_to_gast(ast.parse(str(value))).body[0].value
     # return tc.infer_expr(expr)
+
+
+def pytype_of_type(ty) -> type:
+    ty = ty.deref()
+
+    if isinstance(ty, TyNum):
+        if ty.ty_level_min == 0:
+            return bool
+        if ty.ty_level_min == 1:
+            return int
+        if ty.ty_level_min == 2:
+            return float
+
+    assert False
 
 
 class TypeChecker():
