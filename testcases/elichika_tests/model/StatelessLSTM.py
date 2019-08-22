@@ -6,9 +6,9 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
+from chainer.functions.rnn import lstm
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
