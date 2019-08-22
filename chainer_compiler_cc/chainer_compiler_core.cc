@@ -407,6 +407,7 @@ PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
 
     m.def("initialize_memory_monitoring", &InitializeMemoryMonitoring, "Initialize function hooks to monitor memory usage");
     m.def("get_peak_memory", &runtime::GetPeakMemory, "Output peak memory usage observed by function hooks");
+    m.def("get_total_memory", &runtime::GetTotalMemory, "Output peak memory usage observed by function hooks");
 }
 
 }  // namespace chainer_compiler

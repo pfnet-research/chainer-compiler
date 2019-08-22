@@ -412,7 +412,7 @@ chainerx::Array SlowRound(const chainerx::Array& x) {
 namespace {
 
 std::map<void*, size_t> g_memory_map;
-size_t g_memory_total;
+size_t g_total_memory;
 size_t g_peak_memory;
 
 }  // namespace
@@ -424,19 +424,19 @@ void InitializeMemoryMonitoring(chainerx::Device* device) {
     const std::shared_ptr<chainerx::cuda::MemoryPool>& memory_pool = cuda_device->device_memory_pool();
 
     g_memory_map.clear();
-    g_memory_total = 0;
+    g_total_memory = 0;
     g_peak_memory = 0;
 
     auto malloc_postprocess_hook = [](chainerx::cuda::MemoryPool&, size_t bytesize, void* ptr) {
         CHECK(g_memory_map.insert({ptr, bytesize}).second);
-        g_memory_total += bytesize;
-        g_peak_memory = std::max(g_peak_memory, g_memory_total);
+        g_total_memory += bytesize;
+        g_peak_memory = std::max(g_peak_memory, g_total_memory);
     };
 
     auto free_preprocess_hook = [](chainerx::cuda::MemoryPool&, void* ptr) {
         auto found = g_memory_map.find(ptr);
         CHECK(found != g_memory_map.end());
-        g_memory_total -= found->second;
+        g_total_memory -= found->second;
         g_memory_map.erase(found);
     };
 
@@ -447,6 +447,10 @@ void InitializeMemoryMonitoring(chainerx::Device* device) {
 
 size_t GetPeakMemory() {
     return g_peak_memory;
+}
+
+size_t GetTotalMemory() {
+    return g_total_memory;
 }
 
 }  // namespace runtime

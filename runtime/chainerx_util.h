@@ -82,6 +82,7 @@ chainerx::Array SlowRound(const chainerx::Array& a);
 
 void InitializeMemoryMonitoring(chainerx::Device* device);
 size_t GetPeakMemory();
+size_t GetTotalMemory();
 
 }  // namespace runtime
 }  // namespace chainer_compiler
