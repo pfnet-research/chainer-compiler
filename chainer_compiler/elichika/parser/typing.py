@@ -438,7 +438,7 @@ primitive_op_ty = {
 
 # ==============================================================================
 
-def infer_value(value) -> 'TyObj':
+def type_of_value(value) -> 'TyObj':
     if isinstance(value, int):
         return TyInt()
     if isinstance(value, float):
@@ -448,11 +448,11 @@ def infer_value(value) -> 'TyObj':
     if isinstance(value, str):
         return TyString()
     if isinstance(value, list):
-        return TyList([infer_value(v) for v in value])
+        return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
-        return TyTuple([infer_value(v) for v in value])
+        return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
-        return TyDict(infer_value(value.keys()[0]), infer_value(value.items()[0]))
+        return TyDict(type_of_value(value.keys()[0]), type_of_value(value.items()[0]))
     if isinstance(value, np.ndarray):
         return TyNdarray(value.dtype)
 
@@ -514,7 +514,7 @@ class TypeChecker():
 
         # examine argument type separately from parent typechecker
         tc = TypeChecker()
-        ty_args = [infer_value(arg) for arg in args[1:]]
+        ty_args = [type_of_value(arg) for arg in args[1:]]
 
         for arg, ty in zip(node.args.args[1:], ty_args):
             self.nodetype[arg] = ty
@@ -802,7 +802,7 @@ class TypeChecker():
             if isinstance(node.value, gast.Name) and node.value.id == 'self':
                 value = getattr(self.object, node.attr)
                 print(value)
-                self.nodetype[node] = infer_value(value)
+                self.nodetype[node] = type_of_value(value)
 
             else:
                 ty_obj = self.infer_expr(node.value)
