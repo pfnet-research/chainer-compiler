@@ -2,11 +2,12 @@
 #
 # $ python3 elichika/parser/typing.py test.py
 
+import ast
 import inspect
-import os
-import gast, ast
-import traceback
+import gast
 import numpy as np
+import os
+import traceback
 from copy import deepcopy
 from enum import Enum, IntEnum
 
@@ -243,24 +244,24 @@ class TyDict(TyObj):
 # ------------------------------- numpy ndarray --------------------------------
 
 class TyNdarray(TyObj):
-    def __init__(self, ty):  # we do not allow heterogeneous type ndarray
+    def __init__(self, dtype):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        self.ty = ty
+        self.dtype = dtype
 
     def __str__(self):
-        return str(self.ty) + " np.ndarray"
+        return "{} ndarray".format(self.dtype)
 
     def __eq__(self, other):
-        return isinstance(other, TyNdarray) and self.ty == other.ty
+        return isinstance(other, TyNdarray) and self.dtype == other.dtype
 
     def is_mutable(self):
         return True
 
     def freeze(self):
-        self.ty.freeze()
+        self.dtype.freeze()
 
     def deref(self):
-        self.ty = self.ty.deref()
+        self.dtype = self.dtype.deref()
         return self
 
 
@@ -378,10 +379,7 @@ def ty_NumpyOnes(ty_args):
 
     if isinstance(ty, TySequence):
         assert ty.is_fixed_len
-        ret = TyFloat()
-        for i in range(len(ty.get_tys())):
-            ret = TyNdarray(ret)
-        return ret
+        return TyNdarray(TyFloat())
 
     assert False
 

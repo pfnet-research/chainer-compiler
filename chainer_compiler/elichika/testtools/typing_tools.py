@@ -96,9 +96,8 @@ class Test():
         pass
 
     def forward(self):
-        a = [1, 2.3]
-        a.append(4)
-        return a
+        x = np.zeros((3, 3))
+        return np.array([1,2,3])
 
 
 def main():
