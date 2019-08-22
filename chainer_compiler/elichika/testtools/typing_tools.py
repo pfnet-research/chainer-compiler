@@ -74,12 +74,8 @@ import numpy as np
 
 def main():
     def forward(self):
-        x = np.array([1,2,3])
+        x = np.zeros((3, 3, 3))
         return x[0:2]
-
-    def forward(self):
-        x = (1, 2, 3)
-        return x[1:2]
 
     code = utils.clip_head(inspect.getsource(forward))
     node = gast.ast_to_gast(ast.parse(code))

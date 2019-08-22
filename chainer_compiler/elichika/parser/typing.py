@@ -355,17 +355,39 @@ primitive_func_ty = {
             ),
         }
 
-def ty_NumpyArray(tys):
-    assert len(tys) == 1  # takes only 1 argument
-    ty = tys[0]
+
+def ty_NumpyArray(ty_args):
+    assert len(ty_args) == 1
+    ty = ty_args[0]
     assert isinstance(ty, TySequence)
 
     if ty.is_fixed_len:
         ty.coerce_to_variable_len()
     return TyNdarray(ty.get_ty())
 
+
+def ty_NumpyOnes(ty_args):
+    assert len(ty_args) == 1
+    ty = ty_args[0]
+
+    if isinstance(ty, TyNum):
+        # TODO(momohatt): this should be dtype('float64')
+        return TyNdarray(TyFloat())
+
+    if isinstance(ty, TySequence):
+        assert ty.is_fixed_len
+        ret = TyFloat()
+        for i in range(len(ty.get_tys())):
+            ret = TyNdarray(ret)
+        return ret
+
+    assert False
+
+
 numpy_func_ty = {
-        np.array : ty_NumpyArray
+        np.array : ty_NumpyArray,
+        np.ones : ty_NumpyOnes,
+        np.zeros : ty_NumpyOnes,
         }
 
 
