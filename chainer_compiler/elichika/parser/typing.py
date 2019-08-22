@@ -188,10 +188,11 @@ class TySequence(TyObj):
         assert self.is_fixed_len
         return self.ty_
 
-    # TODO(momohatt): これは引数を取らない方がいい気がする
-    def coerce_to_variable_len(self, ty):
+    def coerce_to_variable_len(self, ty=None):
         if self.is_fixed_len:
             assert all_same_ty(self.ty_)
+            if ty is None:
+                ty = self.ty_[0]
             self.ty_ = ty
             self.is_fixed_len = False
         return
@@ -355,12 +356,12 @@ primitive_func_ty = {
         }
 
 def ty_NumpyArray(tys):
-    assert len(tys) == 1
+    assert len(tys) == 1  # takes only 1 argument
     ty = tys[0]
     assert isinstance(ty, TySequence)
 
     if ty.is_fixed_len:
-        ty.coerce_to_variable_len(ty.get_tys()[0])
+        ty.coerce_to_variable_len()
     return TyNdarray(ty.get_ty())
 
 numpy_func_ty = {
