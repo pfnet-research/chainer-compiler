@@ -10,7 +10,7 @@ from chainer.functions.activation.softmax import softmax
 from chainer.links.connection.convolution_2d import Convolution2D
 from chainer.links.connection.linear import Linear
 from chainer.functions.noise.dropout import dropout
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d
+from chainer.functions.pooling.max_pooling_nd import max_pooling_2d
 from chainer.utils import argument
 
 
