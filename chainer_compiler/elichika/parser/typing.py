@@ -279,7 +279,7 @@ class TyVar(TyObj):
         self.i = counter
         counter += 1
         self.ty = None
-        self.is_frozen= False
+        self.is_frozen = False
 
     def __str__(self):
         if self.ty:
@@ -311,13 +311,24 @@ class TyUnion(TyObj):
     def __init__(self, *tys):
         assert len(tys) >= 2
         self.tys = list(tys)  # tys : tuple of TyObj
+        self.is_frozen = False
+
     def __str__(self):
+        if self.is_frozen:
+            return str(self.tys)
         return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
 
-    def freeze(self):
-        for t in self.tys:
-            t.freeze()
+    def freeze(self, ty):
+        assert not self.is_frozen
+        self.is_frozen = True
+        ty.freeze()
+        self.tys = ty
+
     def deref(self):
+        if self.is_frozen:
+            self.tys = self.tys.deref()
+            return self.tys
+
         self.tys = [t.deref() for t in self.tys]
         return self
 
@@ -336,7 +347,9 @@ def all_same_ty(tys):
 
 # ==============================================================================
 
-primitive_func_ty = {
+builtins_name = ['float', 'range', 'abs']
+
+builtins_ty = {
         float : TyArrow([TyBool()], TyFloat()),
         # int -> int \/ int -> int -> int \/ int -> int -> int -> int
         range : TyUnion(
@@ -367,7 +380,6 @@ def ty_NumpyOnes(ty_args):
     ty = ty_args[0]
 
     if isinstance(ty, TyNum):
-        # TODO(momohatt): this should be dtype('float64')
         return TyNdarray(np.dtype('float64'))
 
     if isinstance(ty, TySequence):
@@ -752,16 +764,7 @@ class TypeChecker():
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = TyVar()
 
-            if isinstance(node.func, gast.Name) and \
-                    eval(node.func.id) in primitive_func_ty.keys():
-                # case of applying primitive functions
-                ty_fun = deepcopy(primitive_func_ty[eval(node.func.id)])
-                unify(ty_fun, TyArrow(ty_args, ty_ret))
-                ty_ret = ty_ret.deref()
-                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                self.nodetype[node] = ty_ret
-
-            elif isinstance(node.func, gast.Attribute):
+            if isinstance(node.func, gast.Attribute):
                 if isinstance(node.func.value, gast.Name) and \
                         hasattr(self.module, node.func.value.id):
                     module = getattr(self.module, node.func.value.id)
@@ -874,6 +877,9 @@ class TypeChecker():
             # Name(identifier id, expr_context ctx, expr? annotation)
             if node.id in self.tyenv.keys():
                 self.nodetype[node] = self.tyenv[node.id]
+            elif node.id in builtins_name:
+                self.nodetype[node] = deepcopy(builtins_ty[eval(node.id)])
+                debug(self.nodetype[node])
             else:
                 # case of Tuple assignment
                 ty_var = TyVar()
@@ -934,6 +940,7 @@ def unify_(ty1, ty2):
             try:
                 unify_(ty1_, ty2)
                 ty1_.freeze()  # not necessary?
+                ty1.freeze(ty1_)
                 ty2.freeze()
                 return
             except UnifyError:
