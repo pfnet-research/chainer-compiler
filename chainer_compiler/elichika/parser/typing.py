@@ -194,6 +194,7 @@ class TySequence(TyObj):
         return self.ty_
 
     def coerce_to_variable_len(self, ty=None):
+        # does nothing if self is not fixed-length
         if self.is_fixed_len:
             if ty is None:
                 ty = TyVar()
@@ -266,10 +267,6 @@ class TyNdarray(TyObj):
 
     def deref(self):
         return self
-
-
-# ----------------------------------- dtype ------------------------------------
-
 
 
 # ------------------------ TypeChecker internal types --------------------------
@@ -373,9 +370,7 @@ def ty_NumpyArray(ty_args):
     ty = ty_args[0]
     assert isinstance(ty, TySequence)
 
-    if ty.is_fixed_len:
-        ty.coerce_to_variable_len()
-
+    ty.coerce_to_variable_len()
     return TyNdarray(np.dtype(pytype_of_type(ty.get_ty())))
 
 
@@ -489,12 +484,7 @@ def type_of_value(value) -> 'TyObj':
     if isinstance(value, L.Linear):
         return TyArrow([TyNdarray(np.dtype('float32'))], TyNdarray(np.dtype('float32')))
 
-    # assert False
     return TyVar()
-
-    # tc = TypeChecker()
-    # expr = gast.ast_to_gast(ast.parse(str(value))).body[0].value
-    # return tc.infer_expr(expr)
 
 
 def pytype_of_type(ty) -> type:
@@ -659,8 +649,7 @@ class TypeChecker():
             ty_iteration = self.infer_expr(node.iter)
             ty_i = self.infer_expr(node.target)
             unify(ty_iteration, TyList(ty_i))
-            if ty_iteration.is_fixed_len:
-                ty_iteration.coerce_to_variable_len(ty_i)
+            ty_iteration.coerce_to_variable_len(ty_i)
 
             for stmt in node.body:
                 self.infer_stmt(stmt)
@@ -840,11 +829,8 @@ class TypeChecker():
                 ty_obj = self.infer_expr(node.value)
 
                 if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-                    if ty_obj.is_fixed_len:
-                        # if the object is fixed-length list, coerce it.
-                        unify(ty_obj, TyList(TyVar()))
-                    ty_ret = list_attr_ty[node.attr](ty_obj)
-                    self.nodetype[node] = ty_ret
+                    ty_obj.coerce_to_variable_len()
+                    self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
 
 
         elif isinstance(node, gast.Subscript):
@@ -951,9 +937,6 @@ def unify(ty1, ty2):
 
 
 def unify_(ty1, ty2):
-    # ty1 is either TyObj or list of TyObj.
-    # ty2 must be TyObj.
-
     # if ty1 is TyUnion, try unification one by one.
     if isinstance(ty1, TyUnion):
         for ty1_ in ty1.tys:
@@ -1018,6 +1001,7 @@ def unify_(ty1, ty2):
         return
 
     if isinstance(ty1, TyNdarray) and isinstance(ty2, TyNdarray):
+        # TODO(momohatt): coercion of dtype
         return
 
     if isinstance(ty1, TyVar):
