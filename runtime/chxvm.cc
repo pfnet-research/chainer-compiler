@@ -205,7 +205,7 @@ void ChxVM::Run(ChxVMState* state) {
                     peak_total_mbs = std::max(total_mbs, peak_total_mbs);
                     report = StrCat(report, " allocated=", total_mbs, "MB");
                 }
-                report = StrCat(report, " chx hook monitor=>(total=", InMbs(GetTotalMemory()), "MB peak=", InMbs(GetPeakMemory()), "MB)");
+                report = StrCat(report, " Chx hook monitor=>(total=", InMbs(GetTotalMemory()), "MB peak=", InMbs(GetPeakMemory()), "MB)");
                 std::cerr << report << std::endl;
             }
         }
@@ -217,6 +217,7 @@ void ChxVM::Run(ChxVMState* state) {
         if (options.base_memory_usage >= 0) {
             report = StrCat(report, " allocated=", peak_total_mbs, "MB");
         }
+        report = StrCat(report, " Chx hook monitor=>(total=", InMbs(GetTotalMemory()), "MB peak=", InMbs(GetPeakMemory()), "MB)");
         std::cerr << report << std::endl;
     }
 }
