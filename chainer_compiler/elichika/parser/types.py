@@ -1,4 +1,3 @@
-
 from enum import Enum, IntEnum
 
 import chainer
@@ -363,6 +362,7 @@ def type_of_value(value) -> 'TyObj':
         return TyNdarray(value.dtype)
     if isinstance(value, chainer.Variable):
         return TyChainerVariable(value.dtype)
+    # TODO(momohatt): sometimes Linear's return type is tuple
     if isinstance(value, L.Linear):
         return TyArrow([TyChainerVariable(np.dtype('float32'))],
                 TyChainerVariable(np.dtype('float32')))

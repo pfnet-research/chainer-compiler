@@ -1,11 +1,9 @@
 import ast, gast
 import inspect
-import pprint
 import sys
 
 from chainer_compiler.elichika.parser.type_checker import TypeChecker
 from chainer_compiler.elichika.parser import utils
-
 
 class IDAssignor(gast.NodeVisitor):
     def __init__(self):
@@ -54,7 +52,7 @@ def generate_id2type_from_forward(model, args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
     tree = gast.ast_to_gast(ast.parse(code))
     module = sys.modules[model.forward.__module__]
-    args = (model.forward,) + args
+    args = (model,) + args
     id2type = generate_id2type(tree, args, is_debug=is_debug, module=module)
     return id2type
 
@@ -70,60 +68,34 @@ def generate_assertion(type_table_name, id2type, id2node):
             type_table_name, i, t, comment))
 
 
-import numpy as np
-import chainer
-import chainer.functions as F
-import chainer.links as L
+if __name__ == '__main__':
+    import numpy as np
+    import chainer
+    import chainer.functions as F
+    import chainer.links as L
+    from testcases.elichika_tests.model.MLP import MLP
+
+    class Test():
+        def forward(self):
+            x = 0
+            for i in range(2, 3, 1):
+                x = float(i) + 1
+            return x
 
 
-class MLP(chainer.Chain):
-    def __init__(self, n_units, n_out):
-        super(MLP, self).__init__()
-        with self.init_scope():
-            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
-            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
-            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
-
-    def forward(self, x, t):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
-        h3 = self.l3(h2)
-        loss = F.softmax_cross_entropy(h3, t)
-        return loss
-
-
-class Test():
-    def forward(self):
-        x = 0
-        for i in range(2, 3, 1):
-            x = float(i) + 1
-        return x
-
-
-def main():
-    # out_n = 4
-    # batch_size = 100
-    # model = MLP(8, out_n)
-    # forward = model.forward
-
-    # v = np.random.rand(batch_size, 3).astype(np.float32)
-    # w = np.random.randint(out_n, size=batch_size)
-    # forward_args = (model, v, w)
-
-    model = Test()
-    forward = model.forward
-    forward_args = (model,)
-
+    # MLP
+    out_n = 4
+    batch_size = 100
+    model = MLP(8, out_n)
+    v = np.random.rand(batch_size, 3).astype(np.float32)
+    w = np.random.randint(out_n, size=batch_size)
+    forward_args = (model, v, w)
 
     # --------------------------------------------------------------------------
-    code = utils.clip_head(inspect.getsource(forward))
+    code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
     id2node = generate_id2node(generate_node2id(node))
-    module = sys.modules[forward.__module__]
+    module = sys.modules[model.forward.__module__]
     id2type = generate_id2type(node, forward_args, is_debug=True, module=module)
 
     generate_assertion("node_type", id2type, id2node)
-
-
-if __name__ == '__main__':
-    main()
