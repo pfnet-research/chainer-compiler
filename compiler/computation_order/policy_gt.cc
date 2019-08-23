@@ -39,6 +39,40 @@ struct SimpleGraph {
     }
 };
 
+std::string ToDot(const SimpleGraph& sg, const std::vector<NodeSet>& seq) {
+    // For debugging
+    std::vector<size_t> block_number(sg.n);
+    for (size_t i = 1; i < seq.size(); ++i) {
+        for (size_t j = 0; j < sg.n; ++j) {
+            if (!seq[i - 1][j] && seq[i][j]) block_number[j] = i;
+        }
+    }
+
+    std::string s;
+    s += "digraph g {\n";
+    for (size_t i = 0; i < sg.n; ++i) {
+        std::string fillcolor = "#000000";
+        size_t bnum = block_number[i];
+        for (size_t i = 0; i < 3; i++) {
+            if (bnum % 3 >= 1) {
+                fillcolor[2 * i + 1] = (bnum % 3 == 1) ? '7' : 'F';
+                fillcolor[2 * i + 2] = 'F';
+            }
+            bnum /= 3;
+        }
+        s += "v" + std::to_string(i) + " [label=\"" + std::to_string(sg.memories[i] / 1000000) + " MB\", style=\"filled\", fillcolor=\"" +
+             fillcolor + "\"];\n";
+    }
+    for (size_t i = 0; i < sg.n; ++i) {
+        for (size_t to : sg.adj[i]) {
+            s += "v" + std::to_string(i) + " -> " + "v" + std::to_string(to) + ";\n";
+        }
+    }
+    s += "}\n";
+
+    return s;
+}
+
 size_t Size(const NodeSet& set) {
     return std::accumulate(set.begin(), set.end(), 0UL);
 }
@@ -297,6 +331,14 @@ std::vector<NodeSet> ComputeDP(
     return seq;
 }
 
+void DumpDebugDotFile(const SimpleGraph& sg, const std::vector<NodeSet>& seq) {
+    // Dump debug dot file
+    FILE* fp = fopen("/tmp/chainer_compiler_gt_policy.dot", "w");
+    const std::string s = ToDot(sg, seq);
+    fprintf(fp, "%s", s.c_str());
+    fclose(fp);
+}
+
 std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const std::vector<NodeSet>& seq) {
     CHECK_GT(seq.size(), 0) << "seq should be non-empty";
 
@@ -319,6 +361,10 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
         }
     }
 
+    NodeSet output_set(sg.n);
+    for (size_t i = 0; i < sg.n; ++i)
+        if (sg.adj[i].empty()) output_set[i] = 1;
+
     std::vector<NodeSet> forget_sets(len);
     for (size_t i = 0; i < len; ++i) {
         if (i + 1 == len) {
@@ -328,7 +374,7 @@ std::vector<Order> ComputeOrder(const Graph& graph, const SimpleGraph& sg, const
         }
         const NodeSet boundary = Boundary(sg, seq[i + 1]);
         const NodeSet nonboundary = SetMinus(seq[i + 1], boundary);
-        forget_sets[i] = SetMinus(nonboundary, seq[i]);
+        forget_sets[i] = SetMinus(SetMinus(nonboundary, seq[i]), output_set);
     }
 
     std::vector<Order> orders;
@@ -403,6 +449,7 @@ std::vector<Order> GTPolicyMemoryCentric(const Graph& graph) {
         const int64_t budget = g_gt_budget * 1000000LL;
         CLOG() << "GT budget (memory centric) =" << budget << " bytes" << std::endl;
         const std::vector<NodeSet> seq = ComputeDP(sg, lower_sets, budget, true);
+        DumpDebugDotFile(sg, seq);
         const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
         return orders;
     } else {
@@ -423,6 +470,7 @@ std::vector<Order> GTPolicyMemoryCentric(const Graph& graph) {
         }
 
         CLOG() << "Budget size = " << hi << std::endl;
+        DumpDebugDotFile(sg, seq);
         const std::vector<Order> orders = ComputeOrder(graph, sg, seq);
         return orders;
     }
