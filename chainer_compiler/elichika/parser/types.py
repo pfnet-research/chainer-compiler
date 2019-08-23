@@ -232,6 +232,16 @@ class TyDict(TyObj):
         return self
 
 
+class TyUserDefinedClass(TyObj):
+    def __init__(self, name, class_obj):
+        super().__init__()
+        self.name = name
+        self.class_obj = class_obj
+
+    def __str__(self):
+        return self.name
+
+
 # --------------------- numpy ndarray / chainer variable -----------------------
 
 class TensorKind(Enum):
@@ -367,7 +377,7 @@ def type_of_value(value) -> 'TyObj':
         return TyArrow([TyChainerVariable(np.dtype('float32'))],
                 TyChainerVariable(np.dtype('float32')))
 
-    return TyVar()
+    return TyUserDefinedClass(type(value).__name__, value.__class__)
 
 
 def pytype_of_type(ty) -> type:
@@ -460,6 +470,14 @@ def unify_(ty1, ty2):
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
         return
+
+    if isinstance(ty1, TyUserDefinedClass) and \
+            isinstance(ty2, TyUserDefinedClass):
+        if ty1.name == ty2.name:
+            return
+        else:
+            # TODO(momohatt): subtyping?
+            raise UnifyError(ty1, ty2)
 
     if isinstance(ty1, TyVar):
         assert not ty1.is_frozen
