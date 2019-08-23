@@ -378,9 +378,7 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
 
 void InitializeMemoryMonitoring(const std::string device_spec) {
     chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
-    if (runtime::IsCudaDevice(device)) {
-        runtime::InitializeMemoryMonitoring(device);
-    }
+    runtime::InitializeMemoryMonitoring(device);
 }
 
 }  // namespace
