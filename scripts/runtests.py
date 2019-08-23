@@ -235,7 +235,6 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_globalmaxpool_precomputed'),
     TestCase(NODE_TEST, 'test_globalaveragepool'),
     TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
-    TestCase(NODE_TEST, 'test_upsample_nearest'),
     TestCase(NODE_TEST, 'test_resize_upsample_nearest'),
     # TestCase(NODE_TEST, 'test_resize_upsample_linear'),
     # TestCase(NODE_TEST, 'test_resize_downsample_nearest'),
@@ -296,7 +295,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_transpose_all_permutations_5'),
     TestCase(NODE_TEST, 'test_transpose_default'),
 
-    TestCase(NODE_TEST, 'test_depthtospace'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode_example'),
+    TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
