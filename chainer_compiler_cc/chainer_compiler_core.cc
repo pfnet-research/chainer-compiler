@@ -22,6 +22,7 @@
 #include <compiler/model.h>
 #include <compiler/passes.h>
 #include <compiler/subgraph_canonicalizer.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/chrome_tracing.h>
 #include <runtime/chxvm.h>
 #include <runtime/chxvm.pb.h>
@@ -375,6 +376,11 @@ VarPtr CreateValueFromSequence(const std::vector<VarPtr>& seq) {
     return std::make_shared<runtime::ChxVMVar>(out);
 }
 
+void InitializeMemoryMonitoring(const std::string device_spec) {
+    chainerx::Device* device = &chainerx::GetDefaultContext().GetDevice(device_spec);
+    runtime::InitializeMemoryMonitoring(device);
+}
+
 }  // namespace
 
 PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
@@ -396,6 +402,10 @@ PYBIND11_MODULE(_chainer_compiler_core, m) {  // NOLINT
     );
     m.def("value", &CreateValueFromArray, "Create an ChxVMVar from a ChainerX Array");
     m.def("value", &CreateValueFromSequence, "Create an ChxVMVar from a sequence of ChxVMVars");
+
+    m.def("initialize_memory_monitoring", &InitializeMemoryMonitoring, "Initialize function hooks to monitor memory usage");
+    m.def("get_peak_memory", &runtime::GetPeakMemory, "Output peak memory usage observed by function hooks");
+    m.def("get_total_memory", &runtime::GetTotalMemory, "Output peak memory usage observed by function hooks");
 }
 
 }  // namespace chainer_compiler

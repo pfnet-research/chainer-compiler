@@ -347,8 +347,12 @@ void RunMain(const std::vector<std::string>& argv) {
         if (IsCudaDevice(device)) {
             g_use_cuda = true;
             g_meminfo_enabled = true;
+            if (args.exist("trace")) {
+                InitializeMemoryMonitoring(device);
+            }
         }
     }
+
     int64_t initial_used_bytes = GetUsedMemory();
 
     if (onnx_path.empty()) {
