@@ -1,6 +1,7 @@
 
 from enum import Enum, IntEnum
 
+import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
@@ -232,18 +233,27 @@ class TyDict(TyObj):
         return self
 
 
-# ------------------------------- numpy ndarray --------------------------------
+# --------------------- numpy ndarray / chainer variable -----------------------
 
-class TyNdarray(TyObj):
-    def __init__(self, dtype):  # we do not allow heterogeneous type ndarray
+class TensorKind(Enum):
+    ndarray = 0
+    chainer_variable = 1
+
+
+class TyTensor(TyObj):
+    def __init__(self, dtype, kind):  # we do not allow heterogeneous type ndarray
         super().__init__()
         self.dtype = dtype
+        self.kind = kind
 
     def __str__(self):
-        return "{} ndarray".format(self.dtype)
+        if self.kind == TensorKind.ndarray:
+            return "ndarray(dtype={})".format(self.dtype)
+        if self.kind == TensorKind.chainer_variable:
+            return "chainer.variable(dtype={})".format(self.dtype)
 
     def __eq__(self, other):
-        return isinstance(other, TyNdarray) and self.dtype == other.dtype
+        return isinstance(other, TyTensor) and self.dtype == other.dtype
 
     def is_mutable(self):
         return True
@@ -254,6 +264,12 @@ class TyNdarray(TyObj):
     def deref(self):
         return self
 
+
+def TyNdarray(dtype):
+    return TyTensor(dtype, TensorKind.ndarray)
+
+def TyChainerVariable(dtype):
+    return TyTensor(dtype, TensorKind.chainer_variable)
 
 # ------------------------ TypeChecker internal types --------------------------
 
@@ -345,8 +361,11 @@ def type_of_value(value) -> 'TyObj':
         return TyDict(type_of_value(value.keys()[0]), type_of_value(value.items()[0]))
     if isinstance(value, np.ndarray):
         return TyNdarray(value.dtype)
+    if isinstance(value, chainer.Variable):
+        return TyChainerVariable(value.dtype)
     if isinstance(value, L.Linear):
-        return TyArrow([TyNdarray(np.dtype('float32'))], TyNdarray(np.dtype('float32')))
+        return TyArrow([TyChainerVariable(np.dtype('float32'))],
+                TyChainerVariable(np.dtype('float32')))
 
     return TyVar()
 
@@ -438,7 +457,7 @@ def unify_(ty1, ty2):
         unify(ty1.valty, ty2.valty)
         return
 
-    if isinstance(ty1, TyNdarray) and isinstance(ty2, TyNdarray):
+    if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
         return
 

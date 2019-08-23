@@ -62,8 +62,8 @@ def ty_ChainerReLU(ty_args):
     assert len(ty_args) == 1
     ty = ty_args[0].deref()
 
-    if isinstance(ty, T.TyNdarray):
-        return ty
+    if isinstance(ty, T.TyTensor):
+        return T.TyChainerVariable(ty.dtype)
 
     assert False
 
@@ -73,8 +73,8 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args):
     ty0 = ty_args[0].deref()
     ty1 = ty_args[1].deref()
 
-    if isinstance(ty0, T.TyNdarray) and isinstance(ty1, T.TyNdarray):
-        return T.TyNdarray(np.dtype('float32'))
+    if isinstance(ty0, T.TyTensor) and isinstance(ty1, T.TyTensor):
+        return T.TyChainerVariable(np.dtype('float32'))
 
 
 ext_func_ty = {
