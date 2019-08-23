@@ -233,10 +233,11 @@ class TyDict(TyObj):
 
 
 class TyUserDefinedClass(TyObj):
-    def __init__(self, name, class_obj):
+    def __init__(self, name, instance):
         super().__init__()
         self.name = name
-        self.class_obj = class_obj
+        # XXX: we will assume that an instance already exists
+        self.instance = instance
 
     def __str__(self):
         return self.name
@@ -377,7 +378,7 @@ def type_of_value(value) -> 'TyObj':
         return TyArrow([TyChainerVariable(np.dtype('float32'))],
                 TyChainerVariable(np.dtype('float32')))
 
-    return TyUserDefinedClass(type(value).__name__, value.__class__)
+    return TyUserDefinedClass(type(value).__name__, value)
 
 
 def pytype_of_type(ty) -> type:

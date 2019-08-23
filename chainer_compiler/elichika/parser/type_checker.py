@@ -464,6 +464,15 @@ class TypeChecker():
                     ty_obj.coerce_to_variable_len()
                     self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
 
+                elif isinstance(ty_obj, T.TyUserDefinedClass):
+                    # x: value of existing instance
+                    x = getattr(ty_obj.instance, node.attr)
+                    if callable(x):
+                        # TODO
+                        pass
+                    else:
+                        self.nodetype[node] = T.type_of_value(x)
+
 
         elif isinstance(node, gast.Subscript):
             # Subscript(expr value, slice slice, expr_context ctx)
