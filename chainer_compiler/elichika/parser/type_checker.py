@@ -220,8 +220,9 @@ class TypeChecker():
     def infer_mod(self, node: 'ast.Node'):
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
-        else:
-            assert False
+            return
+
+        assert False
 
 
     # ================================ stmt ====================================
@@ -236,6 +237,7 @@ class TypeChecker():
 
             ty_args = [self.tyenv[arg.id] for arg in node.args.args[1:]]
 
+            ty = None
             for stmt in node.body:
                 try:
                     ty = self.infer_stmt(stmt)
@@ -247,14 +249,16 @@ class TypeChecker():
 
             # TODO(momohatt): type of function definition?
             self.nodetype[node] = T.TyArrow(ty_args, ty)
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Return):
+        if isinstance(node, gast.Return):
             # Return(expr? value)
             self.nodetype[node] = self.infer_expr(node.value)
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Assign):
+        if isinstance(node, gast.Assign):
             # Assign(expr* targets, expr value)
             assert len(node.targets) == 1  # cannot think of cases where >= 2
             target = node.targets[0]
@@ -280,9 +284,10 @@ class TypeChecker():
                 assert False
 
             self.nodetype[node] = T.TyNone()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.AugAssign):
+        if isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
             if self.tyenv[node.target.id].is_mutable():
                 binop = gast.BinOp(node.target, node.op, node.value)
@@ -296,9 +301,10 @@ class TypeChecker():
             self.tyenv[node.target.id] = ty_val
             self.nodetype[node.target] = ty_val
             self.nodetype[node] = T.TyNone()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.For):
+        if isinstance(node, gast.For):
             # For(expr target, expr iter, stmt* body, stmt* orelse)
             assert type(node.target) in [gast.Name, gast.Tuple]
 
@@ -311,14 +317,16 @@ class TypeChecker():
                 self.infer_stmt(stmt)
 
             self.nodetype[node] = T.TyNone()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.While):
+        if isinstance(node, gast.While):
             # While(expr test, stmt* body, stmt* orelse)
-            pass
+            # TODO
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.If):
+        if isinstance(node, gast.If):
             # If(expr test, stmt* body, stmt* orelse)
             ty_test = self.infer_expr(node.test)
             # TODO(momohatt): determine what type should ty_test be
@@ -351,16 +359,13 @@ class TypeChecker():
 
                 # 1. unify the intersection of 2 tyenvs
                 for name, ty in tc1.tyenv.items():
-                    if name not in tc2.tyenv.keys():
-                        continue
-                    # untypeable If-stmts will raise error here
-                    T.unify(ty, tc2.tyenv[name])
+                    if name in tc2.tyenv.keys():
+                        T.unify(ty, tc2.tyenv[name])
 
                 # 2. update local tyenv
                 for name, ty in tc1.tyenv.items():
-                    if name not in tc2.tyenv.keys():
-                        continue
-                    self.tyenv[name] = ty
+                    if name in tc2.tyenv.keys():
+                        self.tyenv[name] = ty
 
                 # 3. merge nodetype from 2 TypeCheckers
                 for node_, ty in tc1.nodetype.items():
@@ -369,18 +374,20 @@ class TypeChecker():
                     self.nodetype[node_] = ty
 
             self.nodetype[node] = T.TyNone()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Expr):
+        if isinstance(node, gast.Expr):
             # Expr(expr value)
             self.nodetype[node] = self.infer_expr(node.value)
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Pass):
+        if isinstance(node, gast.Pass):
             self.nodetype[node] = T.TyNone()
+            return self.nodetype[node]
 
-
-        return self.nodetype[node]
+        assert False
 
 
     # ================================= expr ===================================
@@ -396,9 +403,10 @@ class TypeChecker():
                 T.unify(ty, T.TyBool())
             self.nodetype[node.op] = T.TyArrow([T.TyBool(), T.TyBool()], T.TyBool())
             self.nodetype[node] = T.TyBool()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.BinOp):
+        if isinstance(node, gast.BinOp):
             # BinOp(expr left, operator op, expr right)
             tyl = self.infer_expr(node.left).deref()
             tyr = self.infer_expr(node.right).deref()
@@ -406,14 +414,15 @@ class TypeChecker():
             ty_ret = primitive_op_ty[type(node.op)](tyl, tyr)
             self.nodetype[node.op] = T.TyArrow([tyl, tyr], ty_ret)
             self.nodetype[node] = ty_ret
+            return self.nodetype[node]
 
-
-        elif isinstance(node, gast.UnaryOp):
+        if isinstance(node, gast.UnaryOp):
             # UnaryOp(unaryop op, expr operand)
-            pass
+            # TODO
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Dict):
+        if isinstance(node, gast.Dict):
             # Dict(expr* keys, expr* values)
             if node.keys == []:
                 self.nodetype[node] = T.TyDict(T.TyVar(), T.TyVar())
@@ -423,14 +432,16 @@ class TypeChecker():
                 assert T.all_same_ty(ty_keys)
                 assert T.all_same_ty(ty_vals)
                 self.nodetype[node] = T.TyDict(ty_keys[0], ty_vals[0])
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Compare):
+        if isinstance(node, gast.Compare):
             # Compare(expr left, cmpop* ops, expr* comparators)
-            pass
+            # TODO
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Call):
+        if isinstance(node, gast.Call):
             # Call(expr func, expr* args, keyword* keywords)
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = T.TyVar()
@@ -443,45 +454,50 @@ class TypeChecker():
                 ty_ret = ty_ret.deref()
                 self.nodetype[node.func] = T.TyArrow(ty_args, ty_ret)
                 self.nodetype[node] = ty_ret
+                return self.nodetype[node]
 
-            else:
-                try:
-                    ty_fun = self.infer_expr(node.func)
-                    T.unify(ty_fun, T.TyArrow(ty_args, ty_ret))
-                    self.nodetype[node] = ty_ret.deref()
-                except self.ArgumentRequired as e:
-                    # cases where argument info is necessary to type function
-                    raise self.InlineRequired(node)
-                #     code = utils.clip_head(inspect.getsource(x))
-                #     func_node = gast.ast_to_gast(ast.parse(code))
-                #     ty_fun = self.infer_function(func_node.body[0], [e.ty_obj] + ty_args)
-                #     self.nodetype[node.func] = ty_fun
-                #     self.nodetype[node] = ty_fun.retty
+            try:
+                ty_fun = self.infer_expr(node.func)
+                T.unify(ty_fun, T.TyArrow(ty_args, ty_ret))
+                self.nodetype[node] = ty_ret.deref()
+            except self.ArgumentRequired as e:
+                # cases where argument info is necessary to type function
+                raise self.InlineRequired(node)
+            #     code = utils.clip_head(inspect.getsource(x))
+            #     func_node = gast.ast_to_gast(ast.parse(code))
+            #     ty_fun = self.infer_function(func_node.body[0], [e.ty_obj] + ty_args)
+            #     self.nodetype[node.func] = ty_fun
+            #     self.nodetype[node] = ty_fun.retty
+
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Num):
+        if isinstance(node, gast.Num):
             # Num(object n)
             if isinstance(node.n, int):
                 self.nodetype[node] = T.TyInt()
             elif isinstance(node.n, float):
                 self.nodetype[node] = T.TyFloat()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Str):
+        if isinstance(node, gast.Str):
             # Str(string s)
             self.nodetype[node] = T.TyString()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.NameConstant):
+        if isinstance(node, gast.NameConstant):
             # NameConstant(singleton value)
             # value is either True, False or None
             if isinstance(node.value, bool):
                 self.nodetype[node] = T.TyBool()
             elif node.value is None:
                 self.nodetype[node] = T.TyNone()
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Attribute):
+        if isinstance(node, gast.Attribute):
             # Attribute(expr value, identifier attr, expr_context ctx)
 
             if isinstance(node.value, gast.Name) and \
@@ -489,25 +505,26 @@ class TypeChecker():
                 # attributes of arguments (ex. self)
                 value = getattr(self.args[node.value.id], node.attr)
                 self.nodetype[node] = T.type_of_value(value)
+                return self.nodetype[node]
 
-            else:
-                ty_obj = self.infer_expr(node.value)
-                debug(ty_obj)
+            ty_obj = self.infer_expr(node.value)
+            debug(ty_obj)
 
-                if isinstance(ty_obj, T.TySequence) and ty_obj.is_list():
-                    ty_obj.coerce_to_variable_len()
-                    self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
+            if isinstance(ty_obj, T.TySequence) and ty_obj.is_list():
+                ty_obj.coerce_to_variable_len()
+                self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
 
-                elif isinstance(ty_obj, T.TyUserDefinedClass):
-                    # x: value of existing instance
-                    x = getattr(ty_obj.instance, node.attr)
-                    if callable(x):
-                        raise self.ArgumentRequired(ty_obj, x)
-                    else:
-                        self.nodetype[node] = T.type_of_value(x)
+            elif isinstance(ty_obj, T.TyUserDefinedClass):
+                # x: value of existing instance
+                x = getattr(ty_obj.instance, node.attr)
+                if callable(x):
+                    raise self.ArgumentRequired(ty_obj, x)
+                else:
+                    self.nodetype[node] = T.type_of_value(x)
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Subscript):
+        if isinstance(node, gast.Subscript):
             # Subscript(expr value, slice slice, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
 
@@ -552,9 +569,10 @@ class TypeChecker():
 
             else:
                 assert False
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Name):
+        if isinstance(node, gast.Name):
             # Name(identifier id, expr_context ctx, expr? annotation)
             if node.id in self.tyenv.keys():
                 self.nodetype[node] = self.tyenv[node.id]
@@ -565,21 +583,23 @@ class TypeChecker():
                 ty_var = T.TyVar()
                 self.tyenv[node.id] = ty_var
                 self.nodetype[node] = ty_var
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.List):
+        if isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = T.TyList(elts_ty)
+            return self.nodetype[node]
 
 
-        elif isinstance(node, gast.Tuple):
+        if isinstance(node, gast.Tuple):
             # Tuple(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = T.TyTuple(elts_ty)
+            return self.nodetype[node]
 
-
-        return self.nodetype[node]
+        assert False
 
 
     def infer_slice(self, node: 'gast.Node', ty_key_expected) -> 'NoneType':
