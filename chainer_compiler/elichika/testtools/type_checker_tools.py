@@ -40,7 +40,7 @@ def generate_id2type(tree, args, is_debug=False, module=None):
     tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
 
-    node2type = tc.infer_function(func_body, args)
+    node2type = tc.infer_function_vargs(func_body, args)
     id2type = {}
     for n, t in node2type.items():
         id2type[node2id[n]] = t
@@ -68,28 +68,40 @@ def generate_assertion(type_table_name, id2type, id2node):
             type_table_name, i, t, comment))
 
 
+
 if __name__ == '__main__':
     import numpy as np
     import chainer
     import chainer.functions as F
     import chainer.links as L
-    from testcases.elichika_tests.model.MLP import MLP
+
+
+    class A():
+        def __init__(self, x):
+            self.x = x
+
+        def f(self, x):
+            for i in range(4):
+                x += i
+            return self.x + x
 
     class Test():
-        def forward(self):
-            x = 0
-            for i in range(2, 3, 1):
-                x = float(i) + 1
-            return x
+        def __init__(self):
+            self.a = A(1)
 
+        def forward(self, x):
+            # return self.a.x + x に書き換える
+            return self.a.f(x)
 
-    # MLP
-    out_n = 4
-    batch_size = 100
-    model = MLP(8, out_n)
-    v = np.random.rand(batch_size, 3).astype(np.float32)
-    w = np.random.randint(out_n, size=batch_size)
-    forward_args = (model, v, w)
+            # __f_x_ = x
+            # __f_self = self.a
+            # for __f_i in range(4):
+            #     __f_x += __f_i
+            # __f_return = __f_self.x + __f_x
+            # return __f_return
+
+    model = Test()
+    forward_args = (model, 1)
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))

@@ -5,6 +5,7 @@ import os
 import traceback
 from copy import deepcopy
 
+from chainer_compiler.elichika.parser import utils
 import chainer_compiler.elichika.parser.types as T
 
 import chainer
@@ -134,6 +135,18 @@ primitive_op_ty = {
 # ==============================================================================
 
 class TypeChecker():
+    class ArgumentRequired(Exception):
+        def __init__(self, ty_obj, func):
+            self.ty_obj = ty_obj
+            self.func = func
+
+    class InlineRequired(Exception):
+        def __init__(self, term):
+            assert isinstance(term, gast.Call)
+            self.term = term
+            self.func = term.func
+            self.args = term.args
+
     def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
             self.tyenv = {}  # string -> TyObj (internal type env)
@@ -176,17 +189,23 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_function(self, node: 'ast.Node', args) -> 'TyObj':
-        assert isinstance(node, gast.FunctionDef)
-        assert len(args) == len(node.args.args)
-
-        # examine argument type separately from parent typechecker
-        tc = TypeChecker()
+    def infer_function_vargs(self, node, args) -> 'TyObj':
+        # args: argument value
         ty_args = [T.type_of_value(arg) for arg in args]
 
         for arg_node, arg_value, ty in zip(node.args.args, args, ty_args):
             self.tyenv[arg_node.id] = ty
             self.args[arg_node.id] = arg_value
+
+        return self.infer_function(node, ty_args)
+
+
+    def infer_function(self, node: 'ast.Node', ty_args) -> 'TyObj':
+        assert isinstance(node, gast.FunctionDef)
+        assert len(ty_args) == len(node.args.args)
+
+        # examine argument type separately from parent typechecker
+        tc = TypeChecker()
 
         self.infer_stmt(node)
 
@@ -215,11 +234,16 @@ class TypeChecker():
             # FunctionDef(identifier name, arguments args, stmt* body,
             # expr* decorator_list, expr? returns)
 
-            # TODO(momohatt): Type of 'self' ?
             ty_args = [self.tyenv[arg.id] for arg in node.args.args[1:]]
 
             for stmt in node.body:
-                ty = self.infer_stmt(stmt)
+                try:
+                    ty = self.infer_stmt(stmt)
+                except self.InlineRequired as e:
+                    print(e.term)
+                    print(e.func)
+                    print(e.args)
+                    pass
 
             # TODO(momohatt): type of function definition?
             self.nodetype[node] = T.TyArrow(ty_args, ty)
@@ -304,7 +328,7 @@ class TypeChecker():
                 for stmt in node.body:
                     tc.infer_stmt(stmt)
 
-                # 1. T.unify the intersection of 2 tyenvs
+                # 1. unify the intersection of 2 tyenvs
                 for name, ty in tc.tyenv.items():
                     if name in self.tyenv.keys():
                         T.unify(ty, self.tyenv[name])
@@ -325,7 +349,7 @@ class TypeChecker():
                 for stmt in node.orelse:
                     tc2.infer_stmt(stmt)
 
-                # 1. T.unify the intersection of 2 tyenvs
+                # 1. unify the intersection of 2 tyenvs
                 for name, ty in tc1.tyenv.items():
                     if name not in tc2.tyenv.keys():
                         continue
@@ -421,9 +445,18 @@ class TypeChecker():
                 self.nodetype[node] = ty_ret
 
             else:
-                ty_fun = self.infer_expr(node.func)
-                T.unify(ty_fun, T.TyArrow(ty_args, ty_ret))
-                self.nodetype[node] = ty_ret.deref()
+                try:
+                    ty_fun = self.infer_expr(node.func)
+                    T.unify(ty_fun, T.TyArrow(ty_args, ty_ret))
+                    self.nodetype[node] = ty_ret.deref()
+                except self.ArgumentRequired as e:
+                    # cases where argument info is necessary to type function
+                    raise self.InlineRequired(node)
+                #     code = utils.clip_head(inspect.getsource(x))
+                #     func_node = gast.ast_to_gast(ast.parse(code))
+                #     ty_fun = self.infer_function(func_node.body[0], [e.ty_obj] + ty_args)
+                #     self.nodetype[node.func] = ty_fun
+                #     self.nodetype[node] = ty_fun.retty
 
 
         elif isinstance(node, gast.Num):
@@ -459,6 +492,7 @@ class TypeChecker():
 
             else:
                 ty_obj = self.infer_expr(node.value)
+                debug(ty_obj)
 
                 if isinstance(ty_obj, T.TySequence) and ty_obj.is_list():
                     ty_obj.coerce_to_variable_len()
@@ -468,8 +502,7 @@ class TypeChecker():
                     # x: value of existing instance
                     x = getattr(ty_obj.instance, node.attr)
                     if callable(x):
-                        # TODO
-                        pass
+                        raise self.ArgumentRequired(ty_obj, x)
                     else:
                         self.nodetype[node] = T.type_of_value(x)
 
