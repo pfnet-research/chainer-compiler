@@ -18,7 +18,6 @@ from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser import core
 from chainer_compiler.elichika.parser import config
 from chainer_compiler.elichika.parser import canonicalizer
-from chainer_compiler.elichika.parser import typing
 
 
 def generate_copied_value(value: 'values.Value'):
@@ -384,7 +383,6 @@ class UserDefinedClassConstructorFunction(FunctionBase):
 
         ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
         self.ast = canonicalizer.Canonicalizer().visit(ast_)
-        tyenv = typing.TypeChecker().infer(self.ast)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
               context: 'VEvalContext' = None, line=-1):
@@ -430,7 +428,6 @@ class UserDefinedFunction(FunctionBase):
             code = utils.clip_head(original_code)
             ast_ = gast.ast_to_gast(ast.parse(code)).body[0]
             self.ast = canonicalizer.Canonicalizer().visit(ast_)
-            tyenv = typing.TypeChecker().infer(self.ast)
 
     def vcall(self, module: 'values.Field', graph: 'graphs.Graph', inst: 'values.Object', args: 'FunctionArgInput',
               context: 'VEvalContext' = None, line=-1):

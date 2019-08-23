@@ -3,7 +3,7 @@ import inspect
 import pprint
 import sys
 
-from chainer_compiler.elichika.parser import typing
+from chainer_compiler.elichika.parser.type_checker import TypeChecker
 from chainer_compiler.elichika.parser import utils
 
 
@@ -39,7 +39,7 @@ def generate_id2node(node2id):
 def generate_id2type(tree, args, is_debug=False, module=None):
     node2id = generate_node2id(tree)
 
-    tc = typing.TypeChecker(is_debug=is_debug, module=module)
+    tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
 
     node2type = tc.infer_function(func_body, args)
