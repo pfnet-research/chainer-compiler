@@ -23,6 +23,7 @@ struct QuantizedInput {
     Value* input;
     Value* scale;
     Value* zero_point;
+    chainerx::Shape scale_zero_shape;
 };
 
 struct QuantizedOutput {
@@ -91,7 +92,7 @@ QuantizedInput QuantizeWeight(const QuantizationContext& ctx, GraphBuilder* gb, 
     QuantizedData quantized = QuantizeData(ctx, w, QRangeForQtype(dtype), ModeForDataType(dtype));
     Value* scale = gb->Const(chainerx::Full({}, quantized.scale, chainerx::Dtype::kFloat32, w.device()));
     Value* zero_point = gb->Const(chainerx::Full({}, quantized.zero_point, dtype.chx(), w.device()));
-    return {gb->Const(quantized.data), scale, zero_point};
+    return {gb->Const(quantized.data), scale, zero_point, {}};
 }
 
 QuantizedInput QuantizeWeightConvolution(const QuantizationContext& ctx, GraphBuilder* gb, const chainerx::Array& w, Dtype dtype) {
@@ -116,10 +117,15 @@ QuantizedInput QuantizeWeightConvolution(const QuantizationContext& ctx, GraphBu
         quantized_per_channel_data_list.push_back(quantized);
     }
 
-    chainerx::Shape rehape_dims = w.shape();
-    Value* scale = gb->Const(runtime::MakeArray(chainerx::Dtype::kFloat32, {channel_count}, scale_list.data()));
-    Value* zero_point = gb->Const(runtime::MakeArray(dtype.chx(), {channel_count}, zero_point_list.data()));
-    return {gb->Const(chainerx::Stack(quantized_weights)), scale, zero_point};
+    chainerx::Shape quantize_param_shape = {channel_count};
+    chainerx::Array scale_array = runtime::MakeArray(chainerx::Dtype::kFloat32, quantize_param_shape, scale_list.data());
+    chainerx::Array zero_point_array = runtime::MakeArray(dtype.chx(), quantize_param_shape, zero_point_list.data());
+    Value* scale = gb->Const(scale_array);
+    Value* zero_point = gb->Const(zero_point_array);
+    for (size_t i = 2; i < w.shape().size(); ++i) {
+        quantize_param_shape.push_back(1);
+    }
+    return {gb->Const(chainerx::Stack(quantized_weights)), scale, zero_point, quantize_param_shape};
 }
 
 QuantizedOutput QuantizeOutput(const QuantizationOptions& ctx, GraphBuilder* gb, Value* output) {
@@ -196,7 +202,7 @@ std::vector<QuantizedInput> QuantizeInputs(
             }
 
             Value* qlinear_out = gb->Op(Node::kQuantizeLinear, {node_input, scale, zero_point});
-            result.push_back({qlinear_out, scale, zero_point});
+            result.push_back({qlinear_out, scale, zero_point, {}});
         }
     }
 
@@ -232,6 +238,10 @@ bool QuantizeConvolutionInteger(const QuantizationContext& ctx, Node* conv) {
 
     // Scale back
     Value* scales_mul_op_out = gb.Op(Node::kMul, {quantized_inputs[0].scale, quantized_inputs[1].scale});
+    if (quantized_inputs[1].scale_zero_shape.size() > 0) {
+        Value* scale_shape = gb.Const(runtime::ShapeToArray(quantized_inputs[1].scale_zero_shape));
+        scales_mul_op_out = gb.Op(Node::kReshape, {scales_mul_op_out, scale_shape});
+    }
     gb.Op(Node::kMul, {cast_out, scales_mul_op_out}, conv->output(0));
 
     conv->Detach();
@@ -261,6 +271,10 @@ bool QuantizeMatMulInteger(const QuantizationContext& ctx, Node* matmul) {
 
     // Scale back
     Value* scales_mul_op_out = gb.Op(Node::kMul, {quantized_inputs[0].scale, quantized_inputs[1].scale});
+    if (quantized_inputs[1].scale_zero_shape.size() > 0) {
+        Value* scale_shape = gb.Const(runtime::ShapeToArray(quantized_inputs[1].scale_zero_shape));
+        scales_mul_op_out = gb.Op(Node::kReshape, {scales_mul_op_out, scale_shape});
+    }
     gb.Op(Node::kMul, {cast_out, scales_mul_op_out}, matmul->output(0));
 
     matmul->Detach();

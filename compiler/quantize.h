@@ -31,8 +31,7 @@ struct QuantizationOptions {
     QuantizationMethod method = QuantizationMethod::OnnxRuntime;
 
     int nbits = 8;
-    // TODO(take-cheeze): Make this true
-    bool per_channel = false;
+    bool per_channel = true;
     QuantizationMode mode = QuantizationMode::IntegerOps;
     bool is_static = false;
     bool asymmertic_input_types = false;
