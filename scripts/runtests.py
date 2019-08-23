@@ -889,6 +889,8 @@ def main():
                 if bl in test_case.name:
                     runner = run_onnx
                     break
+        # TODO(hamaji): Revive tests with menoh.
+        runner = run_onnx
 
         test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')
