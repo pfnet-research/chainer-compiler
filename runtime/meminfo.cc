@@ -3,8 +3,8 @@
 #include <map>
 
 #ifdef CHAINER_COMPILER_ENABLE_CUDA
-#include <cuda_runtime.h>
 #include <chainerx/cuda/cuda_device.h>
+#include <cuda_runtime.h>
 #endif  // CHAINER_COMPILER_ENABLE_CUDA
 
 #include <common/log.h>
