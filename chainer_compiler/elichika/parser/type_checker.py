@@ -17,6 +17,63 @@ def debug(sth):
     frame = inspect.currentframe().f_back
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
 
+
+class VariableRenamer(gast.NodeTransformer):
+    """
+    Renames local variable 'x' into '__f_x' ('f' is function name)
+    and argument variable name into the specified counterpart
+    """
+    def __init__(self, func, args):
+        super().__init__()
+        self.funcname = func.name
+        self.args = {}
+        for x, a in zip(func.args.args, args):
+            self.args[x.id] = a
+
+    def visit_Name(self, node):
+        # TODO(momohatt): 内側にある変数が書き換わってくれない...
+        if node.id in self.args.keys():
+            return self.args[node.id]
+        return gast.copy_location(gast.Name(
+            id = "__{}_{}".format(self.funcname, node.id),
+            ctx = node.ctx,
+            annotation = node.annotation,
+            ), node)
+
+    def visit_Return(self, node):
+        return gast.copy_location(gast.Assign(
+            targets = [gast.Name(
+                id = "__{}_return".format(self.funcname),
+                ctx = gast.Store(),
+                annotation = None)],
+            value = node.value,
+            ), node)
+
+
+class TermReplacer(gast.NodeTransformer):
+    def __init__(self, term_from, term_to):
+        super().__init__()
+        self.term_from = term_from
+        self.term_to = term_to
+
+    def visit(self, node):
+        if node == self.term_from:
+            return self.term_to
+        return super().visit(node)
+
+
+def inline_function(stmt, term, func: 'gast.Node', args):
+    # TODO(momohatt): handle immutable arguments correctly
+    assert isinstance(func, gast.FunctionDef)
+    renamer = VariableRenamer(func, args)
+    new_func_body = renamer.visit(func).body
+    retvar_name = "__{}_return".format(func.name)
+    retvar_node = gast.Name(id=retvar_name, ctx=gast.Load(), annotation=None)
+    replacer = TermReplacer(term, retvar_node)
+    new_stmt = replacer.visit(stmt)
+    return new_func_body + [new_stmt]
+
+
 # ==============================================================================
 
 builtins_name = ['float', 'range', 'abs']
@@ -136,16 +193,16 @@ primitive_op_ty = {
 
 class TypeChecker():
     class ArgumentRequired(Exception):
-        def __init__(self, ty_obj, func):
-            self.ty_obj = ty_obj
+        def __init__(self, func):
             self.func = func
 
     class InlineRequired(Exception):
-        def __init__(self, term):
+        def __init__(self, term, func_body):
             assert isinstance(term, gast.Call)
             self.term = term
-            self.func = term.func
             self.args = term.args
+            code = utils.clip_head(inspect.getsource(func_body))
+            self.func = gast.ast_to_gast(ast.parse(code)).body[0]
 
     def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
@@ -236,17 +293,28 @@ class TypeChecker():
             # expr* decorator_list, expr? returns)
 
             ty_args = [self.tyenv[arg.id] for arg in node.args.args[1:]]
-
             ty = None
-            for stmt in node.body:
+            executed_body = []
+
+            while node.body != []:
+                stmt = node.body.pop(0)
+
                 try:
                     ty = self.infer_stmt(stmt)
+                    executed_body.append(stmt)
                 except self.InlineRequired as e:
-                    print(e.term)
-                    print(e.func)
-                    print(e.args)
-                    pass
+                    new_term = inline_function(stmt, e.term, e.func, e.args)
+                    node.body = new_term + node.body
 
+                    print("-------------------")
+                    for b in node.body:
+                        print(gast.dump(b))
+
+                executed_body.append(stmt)
+
+            node.body = executed_body
+
+            assert ty is not None
             # TODO(momohatt): type of function definition?
             self.nodetype[node] = T.TyArrow(ty_args, ty)
             return self.nodetype[node]
@@ -462,12 +530,7 @@ class TypeChecker():
                 self.nodetype[node] = ty_ret.deref()
             except self.ArgumentRequired as e:
                 # cases where argument info is necessary to type function
-                raise self.InlineRequired(node)
-            #     code = utils.clip_head(inspect.getsource(x))
-            #     func_node = gast.ast_to_gast(ast.parse(code))
-            #     ty_fun = self.infer_function(func_node.body[0], [e.ty_obj] + ty_args)
-            #     self.nodetype[node.func] = ty_fun
-            #     self.nodetype[node] = ty_fun.retty
+                raise self.InlineRequired(node, e.func)
 
             return self.nodetype[node]
 
@@ -508,20 +571,20 @@ class TypeChecker():
                 return self.nodetype[node]
 
             ty_obj = self.infer_expr(node.value)
-            debug(ty_obj)
 
             if isinstance(ty_obj, T.TySequence) and ty_obj.is_list():
                 ty_obj.coerce_to_variable_len()
                 self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
+                return self.nodetype[node]
 
-            elif isinstance(ty_obj, T.TyUserDefinedClass):
+            if isinstance(ty_obj, T.TyUserDefinedClass):
                 # x: value of existing instance
                 x = getattr(ty_obj.instance, node.attr)
                 if callable(x):
-                    raise self.ArgumentRequired(ty_obj, x)
+                    raise self.ArgumentRequired(x)
                 else:
                     self.nodetype[node] = T.type_of_value(x)
-            return self.nodetype[node]
+                return self.nodetype[node]
 
 
         if isinstance(node, gast.Subscript):
@@ -578,6 +641,10 @@ class TypeChecker():
                 self.nodetype[node] = self.tyenv[node.id]
             elif node.id in builtins_name:
                 self.nodetype[node] = deepcopy(builtins_ty[eval(node.id)])
+            elif hasattr(self.module, node.id):
+                x = getattr(self.module, node.id)
+                if callable(x):
+                    raise self.ArgumentRequired(x)
             else:
                 # case of Tuple assignment
                 ty_var = T.TyVar()
