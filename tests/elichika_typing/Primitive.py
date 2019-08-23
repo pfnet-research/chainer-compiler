@@ -20,8 +20,6 @@ class TestNum(unittest.TestCase):
         node_type = generate_id2type_from_forward(Test(), (True, False))
 
         self.assertEqual(str(node_type[1]), "bool -> bool -> bool")	# FunctionDef (line 2)
-        self.assertEqual(str(node_type[5]), "bool")	# Name (line 2)
-        self.assertEqual(str(node_type[7]), "bool")	# Name (line 2)
         self.assertEqual(str(node_type[9]), "bool")	# Return (line 3)
         self.assertEqual(str(node_type[10]), "bool")	# BoolOp (line 3)
         self.assertEqual(str(node_type[11]), "bool -> bool -> bool")	# Or
@@ -42,7 +40,6 @@ class TestNum(unittest.TestCase):
         node_type = generate_id2type_from_forward(Test(), (1,))
 
         self.assertEqual(str(node_type[1]), "int -> float")	# FunctionDef (line 2)
-        self.assertEqual(str(node_type[5]), "int")	# Name (line 2)
         self.assertEqual(str(node_type[7]), "NoneType")	# Assign (line 3)
         self.assertEqual(str(node_type[8]), "int")	# Name (line 3)
         self.assertEqual(str(node_type[10]), "int")	# Call (line 3)
@@ -100,7 +97,6 @@ class TestNum(unittest.TestCase):
         node_type = generate_id2type_from_forward(Test(), (0,))  # int
 
         self.assertEqual(str(node_type[1]), "int -> float")	# FunctionDef (line 2)
-        self.assertEqual(str(node_type[5]), "int")	# Name (line 2)
         self.assertEqual(str(node_type[7]), "NoneType")	# If (line 3)
         self.assertEqual(str(node_type[8]), "bool")	# NameConstant (line 3)
         self.assertEqual(str(node_type[9]), "NoneType")	# AugAssign (line 4)

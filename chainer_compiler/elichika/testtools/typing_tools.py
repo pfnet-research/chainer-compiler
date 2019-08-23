@@ -101,15 +101,14 @@ class Test():
 
 
 def main():
-    # out_n = 4
-    # batch_size = 100
-    # model = MLP(8, out_n)
-    model = Test()
+    out_n = 4
+    batch_size = 100
+    model = MLP(8, out_n)
     forward = model.forward
 
-    # v = np.random.rand(batch_size, 3).astype(np.float32)
-    # w = np.random.randint(out_n, size=batch_size)
-    forward_args = (model,)
+    v = np.random.rand(batch_size, 3).astype(np.float32)
+    w = np.random.randint(out_n, size=batch_size)
+    forward_args = (model, v, w)
 
 
     # --------------------------------------------------------------------------

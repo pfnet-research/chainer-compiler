@@ -5,11 +5,15 @@
 import ast
 import inspect
 import gast
-import numpy as np
 import os
 import traceback
 from copy import deepcopy
 from enum import Enum, IntEnum
+
+import chainer
+import chainer.functions as F
+import chainer.links as L
+import numpy as np
 
 is_debug_global = False
 
@@ -389,10 +393,31 @@ def ty_NumpyOnes(ty_args):
     assert False
 
 
+def ty_ChainerReLU(ty_args):
+    assert len(ty_args) == 1
+    ty = ty_args[0].deref()
+
+    if isinstance(ty, TyNdarray):
+        return ty
+
+    assert False
+
+
+def ty_ChainerSoftmaxCrossEntropy(ty_args):
+    assert len(ty_args) == 2
+    ty0 = ty_args[0].deref()
+    ty1 = ty_args[1].deref()
+
+    if isinstance(ty0, TyNdarray) and isinstance(ty1, TyNdarray):
+        return TyNdarray(np.dtype('float32'))
+
+
 ext_func_ty = {
         np.array : ty_NumpyArray,
         np.ones : ty_NumpyOnes,
         np.zeros : ty_NumpyOnes,
+        F.relu : ty_ChainerReLU,
+        F.softmax_cross_entropy : ty_ChainerSoftmaxCrossEntropy,
         }
 
 
@@ -461,6 +486,8 @@ def type_of_value(value) -> 'TyObj':
         return TyDict(type_of_value(value.keys()[0]), type_of_value(value.items()[0]))
     if isinstance(value, np.ndarray):
         return TyNdarray(value.dtype)
+    if isinstance(value, L.Linear):
+        return TyArrow([TyNdarray(np.dtype('float32'))], TyNdarray(np.dtype('float32')))
 
     # assert False
     return TyVar()
@@ -536,7 +563,6 @@ class TypeChecker():
         ty_args = [type_of_value(arg) for arg in args]
 
         for arg_node, arg_value, ty in zip(node.args.args, args, ty_args):
-            self.nodetype[arg_node] = ty
             self.tyenv[arg_node.id] = ty
             self.args[arg_node.id] = arg_value
 
@@ -989,6 +1015,9 @@ def unify_(ty1, ty2):
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):
         unify(ty1.keyty, ty2.keyty)
         unify(ty1.valty, ty2.valty)
+        return
+
+    if isinstance(ty1, TyNdarray) and isinstance(ty2, TyNdarray):
         return
 
     if isinstance(ty1, TyVar):
