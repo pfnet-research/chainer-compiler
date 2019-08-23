@@ -594,5 +594,5 @@ if __name__ == '__main__':
     tc = TypeChecker(is_debug=True)
     try:
         nodetype = tc.infer(orig_ast)
-    except T.unifyError as e:
+    except T.UnifyError as e:
         print(traceback.format_exc(), end="")

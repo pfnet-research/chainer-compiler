@@ -5,10 +5,6 @@ import unittest
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 
 
-import numpy as np
-test_var = 42
-
-
 class TestNum(unittest.TestCase):
     def test_num_bool(self):
         class Test():

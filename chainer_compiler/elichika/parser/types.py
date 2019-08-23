@@ -374,9 +374,6 @@ class UnifyError(Exception):
 
 def unify(ty1, ty2):
     unify_(ty1, ty2)
-    if not isinstance(ty1, TyUnion):
-        ty1.freeze()
-    ty2.freeze()
 
 
 def unify_(ty1, ty2):
@@ -385,9 +382,7 @@ def unify_(ty1, ty2):
         for ty1_ in ty1.tys:
             try:
                 unify_(ty1_, ty2)
-                ty1_.freeze()  # not necessary?
                 ty1.freeze(ty1_)
-                ty2.freeze()
                 return
             except UnifyError:
                 print("\x1b[33m[LOG] unify error with " + str(ty1_) \
@@ -450,12 +445,13 @@ def unify_(ty1, ty2):
     if isinstance(ty1, TyVar):
         assert not ty1.is_frozen
         ty1.ty = ty2
+        ty1.freeze()
         return
 
     if isinstance(ty2, TyVar):
         assert not ty2.is_frozen
         ty2.ty = ty1
+        ty2.freeze()
         return
 
     raise UnifyError(ty1, ty2)
-

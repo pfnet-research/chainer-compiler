@@ -95,20 +95,24 @@ class MLP(chainer.Chain):
 class Test():
     def forward(self):
         x = 0
-        for i in range(2):
+        for i in range(2, 3, 1):
             x = float(i) + 1
         return x
 
 
 def main():
-    out_n = 4
-    batch_size = 100
-    model = MLP(8, out_n)
-    forward = model.forward
+    # out_n = 4
+    # batch_size = 100
+    # model = MLP(8, out_n)
+    # forward = model.forward
 
-    v = np.random.rand(batch_size, 3).astype(np.float32)
-    w = np.random.randint(out_n, size=batch_size)
-    forward_args = (model, v, w)
+    # v = np.random.rand(batch_size, 3).astype(np.float32)
+    # w = np.random.randint(out_n, size=batch_size)
+    # forward_args = (model, v, w)
+
+    model = Test()
+    forward = model.forward
+    forward_args = (model,)
 
 
     # --------------------------------------------------------------------------
