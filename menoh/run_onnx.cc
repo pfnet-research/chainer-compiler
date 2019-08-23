@@ -49,6 +49,7 @@
 #include <tools/log.h>
 #include <tools/run_onnx_util.h>
 #include <tools/util.h>
+
 #include <menoh/menoh.hpp>
 #include <menoh/menoh_chainer_compiler_util.hpp>
 

@@ -23,6 +23,7 @@
 #include <runtime/chxvm.pb.h>
 #include <runtime/chxvm_var.h>
 #include <tools/util.h>
+
 #include <menoh/menoh_chainer_compiler_util.hpp>
 
 namespace menoh_impl {
