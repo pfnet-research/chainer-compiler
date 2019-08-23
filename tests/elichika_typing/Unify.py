@@ -1,3 +1,4 @@
+from copy import deepcopy
 import unittest
 
 import chainer_compiler.elichika.parser.types as T
@@ -12,9 +13,16 @@ def is_unifiable(ty1, ty2):
 
 
 class TestUnify(unittest.TestCase):
-    def test_1(self):
+    def test_not_unifiable(self):
         x = T.TyVar()
         ty1 = T.TyArrow([x], x)
+        ty2 = T.TyArrow([T.TyString()], T.TyInt())
+        self.assertFalse(is_unifiable(ty1, ty2))
+
+    def test_deepcopy(self):
+        x = T.TyVar()
+        ty = T.TyArrow([x], x)
+        ty1 = deepcopy(ty)
         ty2 = T.TyArrow([T.TyString()], T.TyInt())
         self.assertFalse(is_unifiable(ty1, ty2))
 
