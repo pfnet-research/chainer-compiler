@@ -9,7 +9,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 
-def create_return_value_in_chainer_function():
+def create_return_value_in_chainer_function(funcArgs = None):
     return values.TensorValue()
 
 class ChainerFunction(functions.FunctionBase):
@@ -26,7 +26,7 @@ class ChainerFunction(functions.FunctionBase):
 
         node = nodes.NodeCall(self, funcArgs, line)
         graph.add_node(node)
-        value = self.ret_value_func()
+        value = self.ret_value_func(funcArgs)
         value.name = '@F.{}.{}'.format(line, self.name)
         node.set_outputs([value])
         return values.Object(value)

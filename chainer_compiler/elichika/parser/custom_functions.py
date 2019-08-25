@@ -1,7 +1,7 @@
 import chainer.functions as F
 import numpy as np
 import inspect
-
+from chainer_compiler.elichika.parser import functions_onnx
 
 def check_attribute_value(actual_value, expected_value, func_name='', arg_name=''):
     return
@@ -13,14 +13,17 @@ def check_attribute_scalar(value, func_name='', arg_name=''):
 
 def chainer_clipped_relu(x, z=20.0):
     return F.minimum(F.maximum(0.0, x), z)
-    
+
+def chainer_absolute(x):
+    return functions_onnx.onnx_abs(x)
+
 def numpy_absolute(x, out=None, where=None):
     check_attribute_value(out, None, 'numpy.out', 'out')
     check_attribute_value(out, None, 'numpy.where', 'where')
-    return F.absolute(x)
+    return functions_onnx.onnx_abs(x)
 
 def builtin_absolute(x):
-    return F.absolute(x)
+    return functions_onnx.onnx_abs(x)
 
 def numpy_clip(a, a_min, a_max, out=None):
     check_attribute_scalar(a_min, 'numpy.clip', 'a_min')
