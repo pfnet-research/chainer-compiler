@@ -20,6 +20,8 @@ from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.graphs import Graph
 from chainer_compiler.elichika.parser import flags
 from chainer_compiler.elichika.parser import custom_functions
+from chainer_compiler.elichika.parser import functions_onnx
+
 import numpy as np
 import six
 
@@ -60,6 +62,13 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
     custom_functions_module = values.Object(values.ModuleValue(custom_functions))
 
+    # onnx
+    functions_onnx_module = values.Object(values.ModuleValue(functions_onnx))
+    def ret_same(funcArgs):
+        return functions.generate_value_with_same_type(funcArgs.keywords['x'].get_value())
+
+    values.function_converters[functions_onnx.onnx_abs] = values.FuncValue(functions_builtin.ChainerFunction(functions_onnx.onnx_abs, ret_value_func=ret_same), None, module=functions_onnx_module)
+
     # chainer
     c_variable = values.FuncValue(functions_ndarray.NDArrayFunction(), None)
     values.function_converters[chainer.Variable] = c_variable
@@ -75,7 +84,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
 
         values.function_converters[func] = f
 
-    def ret_tuple():
+    def ret_tuple(funcArgs = None):
         ret = values.TupleValue()
         ret.vtype = values.TensorValue
         return ret
@@ -123,7 +132,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.max)
     add_chainer_function(F.min)
 
-    add_chainer_function(F.absolute)
+    values.function_converters[F.absolute] = values.FuncValue(functions.UserDefinedFunction(custom_functions.chainer_absolute), None, module=custom_functions_module)
 
     add_chainer_function(F.sin)
     add_chainer_function(F.sinh)
