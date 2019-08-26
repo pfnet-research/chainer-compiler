@@ -13,7 +13,12 @@ class TyObj():  # base type
     def is_mutable(self):
         pass
     # freeze internal value of TyVar so that it can no longer be modified
+    # TODO(momohatt): freezeというよりset?
     def freeze(self):
+        return
+    # reverse of freeze
+    # TODO(momohatt): unfreezeというよりunset?
+    def unfreeze(self):
         return
     # dereference internal type
     def deref(self):
@@ -118,6 +123,11 @@ class TyArrow(TyObj):
             t.freeze()
         self.retty.freeze()
 
+    def unfreeze(self):
+        for t in self.argty:
+            t.unfreeze()
+        self.retty.unfreeze()
+
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
         self.retty = self.retty.deref()
@@ -163,6 +173,13 @@ class TySequence(TyObj):
                 t.freeze()
             return
         self.ty_.freeze()
+
+    def unfreeze(self):
+        if self.is_fixed_len:
+            for t in self.ty_:
+                t.unfreeze()
+            return
+        self.ty_.unfreeze()
 
     def deref(self):
         if self.is_fixed_len:
@@ -226,6 +243,10 @@ class TyDict(TyObj):
         self.keyty.freeze()
         self.valty.freeze()
 
+    def unfreeze(self):
+        self.keyty.unfreeze()
+        self.valty.unfreeze()
+
     def deref(self):
         self.keyty = self.keyty.deref()
         self.valty = self.valty.deref()
@@ -268,12 +289,6 @@ class TyTensor(TyObj):
     def is_mutable(self):
         return True
 
-    def freeze(self):
-        pass
-
-    def deref(self):
-        return self
-
 
 def TyNdarray(dtype):
     return TyTensor(dtype, TensorKind.ndarray)
@@ -314,6 +329,10 @@ class TyVar(TyObj):
             self.is_frozen = True
             self.ty.freeze()
 
+    def unfreeze(self):
+        self.is_frozen = False
+        self.ty = None
+
     def deref(self):
         if self.is_frozen:
             return self.ty.deref()
@@ -336,6 +355,9 @@ class TyUnion(TyObj):
         self.is_frozen = True
         ty.freeze()
         self.tys = ty
+
+    def unfreeze(self):
+        assert False
 
     def deref(self):
         if self.is_frozen:
@@ -407,6 +429,7 @@ def unify(ty1, ty2):
 
 
 def unify_(ty1, ty2):
+    # TyUnion is only allowed in ty1
     # if ty1 is TyUnion, try unification one by one.
     if isinstance(ty1, TyUnion):
         for ty1_ in ty1.tys:
@@ -415,6 +438,7 @@ def unify_(ty1, ty2):
                 ty1.freeze(ty1_)
                 return
             except UnifyError:
+                ty2.unfreeze()
                 print("\x1b[33m[LOG] unify error with " + str(ty1_) \
                         + " and " + str(ty2) + ". continuing...\x1b[39m")
                 continue
