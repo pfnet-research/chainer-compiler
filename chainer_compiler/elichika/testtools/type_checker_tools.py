@@ -99,12 +99,20 @@ if __name__ == '__main__':
         return x + y
 
     class Test():
-        def forward(self, x):
-            return h(x, 1)
+        def forward(self):
+            xs = [1, 2, 3]
+            v = []
+            for i in range(3):
+                v.append(xs[:i])
+            return v
+
+    # class Test():
+    #     def forward(self, x):
+    #         return h(x, 1)
 
     model = Test()
 
-    forward_args = (model, 1)
+    forward_args = (model,)
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))

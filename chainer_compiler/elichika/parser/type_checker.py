@@ -60,8 +60,8 @@ ext_func_ty = {
 
 
 list_attr_ty = {
-        'append'  : lambda ty_obj: TyArrow([ty_obj.get_ty()], TyNone()),
-        'reverse' : lambda ty_obj: TyArrow([], TyNone()),
+        'append'  : (lambda x: TyArrow([x, x.get_ty()], TyNone()))(TySequence(TyVar())),
+        'reverse' : TyArrow([TySequence(TyVar())], TyNone()),
         }
 
 
@@ -198,7 +198,7 @@ class TypeChecker():
             # FunctionDef(identifier name, arguments args, stmt* body,
             # expr* decorator_list, expr? returns)
 
-            ty_args = [self.tyenv[arg.id] for arg in node.args.args[1:]]
+            ty_args = [self.tyenv[arg.id] for arg in node.args.args]
             ty = None
 
             for stmt in node.body:
@@ -403,6 +403,10 @@ class TypeChecker():
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = TyVar()
 
+            if isinstance(node.func, gast.Attribute):
+                ty_1st_arg = self.infer_expr(node.func.value)  # doing same stuff twice...
+                ty_args = [ty_1st_arg] + ty_args
+
             try:
                 ty_fun = self.infer_expr(node.func)
             except self.ArgumentRequired as e:
@@ -463,7 +467,7 @@ class TypeChecker():
 
             if isinstance(ty_obj, TySequence) and ty_obj.is_list():
                 ty_obj.coerce_to_variable_len()
-                self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
+                self.nodetype[node] = deepcopy(list_attr_ty[node.attr])
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyUserDefinedClass):

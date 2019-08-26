@@ -154,7 +154,8 @@ class TySequence(TyObj):
             return str(self.ty_) + " list"
         if self.seq_kind == SequenceKind.TUPLE:
             return str(self.ty_) + " tuple"
-        return str(self.ty_) + "sequence"
+
+        return str(self.ty_) + " sequence"
 
     def __eq__(self, other):
         return isinstance(other, TySequence) and self.ty_ == other.ty_
