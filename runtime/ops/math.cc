@@ -161,7 +161,8 @@ chainerx::Array StaticClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x) 
     return chainerx::Minimum(chainerx::Maximum(x, min), max);
 }
 
-chainerx::Array ClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const absl::optional<StrictScalar>& min, const absl::optional<StrictScalar>& max) {
+chainerx::Array ClipOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& x, const absl::optional<StrictScalar>& min, const absl::optional<StrictScalar>& max) {
     chainerx::Array y = x;
     if (min.has_value()) {
         y = chainerx::Maximum(y, static_cast<chainerx::Scalar>(*min));
