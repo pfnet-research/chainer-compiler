@@ -31,7 +31,6 @@ class VariableRenamer(gast.NodeTransformer):
             self.args[x.id] = a
 
     def visit_Name(self, node):
-        # TODO(momohatt): 内側にある変数が書き換わってくれない...
         if node.id in self.args.keys():
             return self.args[node.id]
         return gast.copy_location(gast.Name(
@@ -46,7 +45,7 @@ class VariableRenamer(gast.NodeTransformer):
                 id = "__{}_return".format(self.funcname),
                 ctx = gast.Store(),
                 annotation = None)],
-            value = node.value,
+            value = super().visit(node.value),
             ), node)
 
 
@@ -232,9 +231,10 @@ class TypeChecker():
         print()
 
 
-    def infer(self, node: 'ast.Node') -> 'TyObj':
+    def infer(self, node: 'gast.Node') -> 'TyObj':
         """
         Adds local type information to self.tyenv while traversing the AST
+        while inlining functions and rewriting the argument 'node'
         returns: type
         """
         self.infer_mod(node)
