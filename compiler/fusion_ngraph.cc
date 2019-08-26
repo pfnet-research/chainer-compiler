@@ -164,6 +164,11 @@ void FuseNGraphOperations(Graph* graph) {
             if (!node.chainer_is_onnx_semantics()) {
                 return false;
             }
+        } else if (node.op_type() == Node::kClip) {
+            // nGraph does not support Clip-11.
+            if (node.inputs().size() > 1) {
+                return false;
+            }
         }
 
         return true;
