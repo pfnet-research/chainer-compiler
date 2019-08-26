@@ -280,7 +280,8 @@ CHX_OPS = [
     ('Split', [Array('input'), Int('axis'), Ints('split')],
      [ArrayList('outputs')]),
     ('Transpose', [Array('data'), Ints('perm')], ['transposed']),
-    ('DepthToSpace', [Array('input'), Int('blocksize')], ['output']),
+    ('DepthToSpace', [Array('input'), Int('blocksize'), Int('is_crd')],
+     ['output']),
     ('SpaceToDepth', [Array('input'), Int('blocksize')], ['output']),
 
     ('Softmax', [Array('input'), Int('axis'), Int('is_onnx_semantics')],

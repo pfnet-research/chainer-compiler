@@ -462,7 +462,12 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kDepthToSpace) {
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(DepthToSpace, out(0), in(0), node.blocksize());
+        bool is_crd = false;
+        if (node.mode() != "DCR") {
+            CHECK_EQ(node.mode(), "CRD") << "Unsupported DepthToSpace mode";
+            is_crd = true;
+        }
+        EMIT(DepthToSpace, out(0), in(0), node.blocksize(), is_crd);
     } else if (node.op_type() == Node::kSpaceToDepth) {
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());

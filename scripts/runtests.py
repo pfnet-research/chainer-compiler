@@ -315,8 +315,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_transpose_all_permutations_5'),
     TestCase(NODE_TEST, 'test_transpose_default'),
 
-    # TestCase(NODE_TEST, 'test_depthtospace_crd_mode'),
-    # TestCase(NODE_TEST, 'test_depthtospace_crd_mode_example'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode_example'),
     TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
