@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     class Test():
         def forward(self, x):
-            return h(x, 1)
+            return abs(h(x, 1))
 
     model = Test()
     forward_args = (model, 1)

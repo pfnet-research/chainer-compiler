@@ -86,9 +86,10 @@ builtins_ty = {
             T.TyArrow([T.TyIntOnly(), T.TyIntOnly()], T.TyList(T.TyIntOnly())),
             T.TyArrow([T.TyIntOnly(), T.TyIntOnly(), T.TyIntOnly()], T.TyList(T.TyIntOnly())),
             ),
+        # let x = ... in TyArrow([x], x)
         abs : T.TyUnion(
-            T.TyArrow([T.TyIntOnly()], T.TyIntOnly()),
-            T.TyArrow([T.TyFloat()], T.TyFloat()),
+            (lambda x: T.TyArrow([x], x))(T.TyNum(0, 2)),
+            (lambda x: T.TyArrow([x], x))(T.TyTensor(None, None))
             ),
         }
 
@@ -156,10 +157,6 @@ def ty_NumOp(tyl, tyr):
     assert False
 
 def ty_Add(tyl, tyr):
-    # match tyl, tyr with
-    # | T.TyNum(n, _), T.TyNum(m, _) -> T.TyNum(max(n, m), 2)
-    # | T.TyString(), T.TyString() -> T.TyString
-    # | T.TyList(), T.TyList() -> T.TyList
     if isinstance(tyl, T.TyNum) and isinstance(tyr, T.TyNum):
         return T.TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
     if isinstance(tyl, T.TyString) and isinstance(tyr, T.TyString):

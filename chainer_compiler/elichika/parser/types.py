@@ -464,6 +464,15 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
+        if ty1.dtype is None:
+            ty1.dtype = ty2.dtype
+        elif ty2.dtype is None:
+            ty2.dtype = ty1.dtype
+
+        if ty1.kind is None:
+            ty1.kind = ty2.kind
+        elif ty2.kind is None:
+            ty2.kind = ty1.kind
         return
 
     if isinstance(ty1, TyUserDefinedClass) and \
