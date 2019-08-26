@@ -157,8 +157,19 @@ chainerx::Array CeilOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return chainerx::Ceil(x);
 }
 
-chainerx::Array ClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
+chainerx::Array StaticClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x) {
     return chainerx::Minimum(chainerx::Maximum(x, min), max);
+}
+
+chainerx::Array ClipOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const absl::optional<StrictScalar>& min, const absl::optional<StrictScalar>& max) {
+    chainerx::Array y = x;
+    if (min.has_value()) {
+        y = chainerx::Maximum(y, static_cast<chainerx::Scalar>(*min));
+    }
+    if (max.has_value()) {
+        y = chainerx::Minimum(y, static_cast<chainerx::Scalar>(*max));
+    }
+    return y;
 }
 
 chainerx::Array MatMulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {

@@ -209,7 +209,10 @@ CHX_OPS = [
     ('ArgMax', [Array('x'), Int('axis'), Int('keepdims')], ['y']),
     ('Hardmax', [Array('x'), Int('axis')], ['y']),
 
-    ('Clip', [Array('inputs'), Float('max'), Float('min')], ['result']),
+    # TODO(hamaji): Unify the two definitions.
+    ('StaticClip', [Array('inputs'), Float('max'), Float('min')], ['result']),
+    ('Clip', [Array('inputs'), OptionalScalar('max'), OptionalScalar('min')],
+     ['result']),
     ('Max', [ArrayList('inputs')], ['result']),
     ('Min', [ArrayList('inputs')], ['result']),
     ('ReduceMax', [Array('x'), Ints('axes'), Int('keepdims')], ['y']),

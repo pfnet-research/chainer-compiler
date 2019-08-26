@@ -442,9 +442,12 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         for (size_t i = 0; i < node.outputs().size(); ++i) outs.push_back(out(i));
         EMIT(Split, outs, in(0), node.axis(), node.split());
     } else if (node.op_type() == Node::kClip) {
-        CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
-        EMIT(Clip, out(0), in(0), node.max(), node.min());
+        if (node.inputs().size() == 1) {
+            EMIT(StaticClip, out(0), in(0), node.max(), node.min());
+        } else {
+            EMIT(Clip, out(0), in(0), oin(1), oin(2));
+        }
     } else if (node.op_type() == Node::kMax) {
         CHECK_EQ(1UL, node.outputs().size());
         std::vector<int> ins;

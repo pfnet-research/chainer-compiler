@@ -140,7 +140,7 @@ NodeDef('Sum', None, 1)
 NodeDef('Mean', None, 1)
 NodeDef('Max', None, 1)
 NodeDef('Min', None, 1)
-NodeDef('Clip', 1, 1, max=float('inf'), min=float('-inf'))
+NodeDef('Clip', (1, 2, 3), 1, max=float('inf'), min=float('-inf'))
 
 NodeDef('ReduceSum', 1, 1, axes=[int], keepdims=True)
 NodeDef('ReduceSumSquare', 1, 1, axes=[int], keepdims=True)
