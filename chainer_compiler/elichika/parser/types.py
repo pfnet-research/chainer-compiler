@@ -399,16 +399,15 @@ class UnifyError(Exception):
 
 
 def unify(ty1, ty2):
-    unify_(ty1, ty2)
+    ty1 = ty1.deref()
+    ty2 = ty2.deref()
 
-
-def unify_(ty1, ty2):
-    # TyUnion is only allowed in ty1
+    # XXX: TyUnion is only allowed in ty1
     # if ty1 is TyUnion, try unification one by one.
     if isinstance(ty1, TyUnion):
         for ty1_ in ty1.tys:
             try:
-                unify_(ty1_, ty2)
+                unify(ty1_, ty2)
                 ty1.set(ty1_)
                 return
             except UnifyError:
@@ -418,9 +417,6 @@ def unify_(ty1, ty2):
                 continue
 
         raise UnifyError(ty1, ty2)
-
-    ty1 = ty1.deref()
-    ty2 = ty2.deref()
 
     # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
@@ -439,8 +435,8 @@ def unify_(ty1, ty2):
     if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and \
             len(ty1.argty) == len(ty2.argty):
         for (at1, at2) in zip(ty1.argty, ty2.argty):
-            unify_(at1, at2)
-        unify_(ty1.retty, ty2.retty)
+            unify(at1, at2)
+        unify(ty1.retty, ty2.retty)
         return
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
@@ -448,17 +444,17 @@ def unify_(ty1, ty2):
             if not len(ty1.get_tys()) == len(ty2.get_tys()):
                 raise UnifyError(ty1, ty2)
             for (t1, t2) in zip(ty1.get_tys(), ty2.get_tys()):
-                unify_(t1, t2)
+                unify(t1, t2)
             return
         if ty1.is_fixed_len and not ty2.is_fixed_len:
             for ty in ty1.get_tys():
-                unify_(ty, ty2.get_ty())
+                unify(ty, ty2.get_ty())
             ty1.coerce_to_variable_len(ty2.get_ty())
             return
         if (not ty1.is_fixed_len) and ty2.is_fixed_len:
-            unify_(ty2, ty1)
+            unify(ty2, ty1)
             return
-        unify_(ty2.get_ty(), ty1.get_ty())
+        unify(ty2.get_ty(), ty1.get_ty())
         return
 
     if isinstance(ty1, TyDict) and isinstance(ty2, TyDict):

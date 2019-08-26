@@ -96,13 +96,6 @@ if __name__ == '__main__':
     #         # return self.a.x + x に書き換える
     #         return self.a.f(x)
 
-    #         # __f_x = x
-    #         # __f_self = self.a
-    #         # for __f_i in range(4):
-    #         #     __f_x += __f_i
-    #         # __f_return = __f_self.x + __f_x
-    #         # return __f_return
-
     def h(x, y):
         return x + y
 

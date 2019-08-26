@@ -79,7 +79,8 @@ builtins_name = ['float', 'range', 'abs']
 
 builtins_ty = {
         float : T.TyArrow([T.TyBool()], T.TyFloat()),
-        # int -> int \/ int -> int -> int \/ int -> int -> int -> int
+        # int -> int list \/ int -> int -> int list \/
+        # int -> int -> int -> int list
         range : T.TyUnion(
             T.TyArrow([T.TyIntOnly()], T.TyList(T.TyIntOnly())),
             T.TyArrow([T.TyIntOnly(), T.TyIntOnly()], T.TyList(T.TyIntOnly())),
@@ -98,7 +99,7 @@ def ty_NumpyArray(ty_args):
     assert isinstance(ty, T.TySequence)
 
     ty.coerce_to_variable_len()
-    return T.TyNdarray(np.dtype(pytype_of_type(ty.get_ty())))
+    return T.TyNdarray(np.dtype(T.pytype_of_type(ty.get_ty())))
 
 
 def ty_NumpyOnes(ty_args):
