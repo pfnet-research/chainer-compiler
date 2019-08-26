@@ -123,4 +123,4 @@ if __name__ == '__main__':
     id2type = generate_id2type(node2type, node2id)
     id2node = generate_id2node(node2id)
 
-    generate_assertion("node_type", id2type, id2node)
+    generate_assertion("id2type", id2type, id2node)
