@@ -296,7 +296,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_transpose_all_permutations_5'),
     TestCase(NODE_TEST, 'test_transpose_default'),
 
-    TestCase(NODE_TEST, 'test_depthtospace'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode'),
+    TestCase(NODE_TEST, 'test_depthtospace_crd_mode_example'),
+    TestCase(NODE_TEST, 'test_depthtospace_dcr_mode'),
     TestCase(NODE_TEST, 'test_depthtospace_example'),
 
     TestCase(NODE_TEST, 'test_gemm_nobroadcast'),
@@ -889,6 +891,8 @@ def main():
                 if bl in test_case.name:
                     runner = run_onnx
                     break
+        # TODO(hamaji): Revive tests with menoh.
+        runner = run_onnx
 
         test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')

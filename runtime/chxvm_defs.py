@@ -209,7 +209,10 @@ CHX_OPS = [
     ('ArgMax', [Array('x'), Int('axis'), Int('keepdims')], ['y']),
     ('Hardmax', [Array('x'), Int('axis')], ['y']),
 
-    ('Clip', [Array('inputs'), Float('max'), Float('min')], ['result']),
+    # TODO(hamaji): Unify the two definitions.
+    ('StaticClip', [Array('inputs'), Float('max'), Float('min')], ['result']),
+    ('Clip', [Array('inputs'), OptionalScalar('max'), OptionalScalar('min')],
+     ['result']),
     ('Max', [ArrayList('inputs')], ['result']),
     ('Min', [ArrayList('inputs')], ['result']),
     ('ReduceMax', [Array('x'), Ints('axes'), Int('keepdims')], ['y']),
@@ -280,7 +283,8 @@ CHX_OPS = [
     ('Split', [Array('input'), Int('axis'), Ints('split')],
      [ArrayList('outputs')]),
     ('Transpose', [Array('data'), Ints('perm')], ['transposed']),
-    ('DepthToSpace', [Array('input'), Int('blocksize')], ['output']),
+    ('DepthToSpace', [Array('input'), Int('blocksize'), Int('is_crd')],
+     ['output']),
     ('SpaceToDepth', [Array('input'), Int('blocksize')], ['output']),
 
     ('Softmax', [Array('input'), Int('axis'), Int('is_onnx_semantics')],
