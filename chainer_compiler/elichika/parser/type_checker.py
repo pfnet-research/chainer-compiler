@@ -18,61 +18,6 @@ def debug(sth):
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
 
 
-class VariableRenamer(gast.NodeTransformer):
-    """
-    Renames local variable 'x' into '__f_x' ('f' is function name)
-    and argument variable name into the specified counterpart
-    """
-    def __init__(self, func, args):
-        super().__init__()
-        self.funcname = func.name
-        self.args = {}
-        for x, a in zip(func.args.args, args):
-            self.args[x.id] = a
-
-    def visit_Name(self, node):
-        if node.id in self.args.keys():
-            return self.args[node.id]
-        return gast.copy_location(gast.Name(
-            id = "__{}_{}".format(self.funcname, node.id),
-            ctx = node.ctx,
-            annotation = node.annotation,
-            ), node)
-
-    def visit_Return(self, node):
-        return gast.copy_location(gast.Assign(
-            targets = [gast.Name(
-                id = "__{}_return".format(self.funcname),
-                ctx = gast.Store(),
-                annotation = None)],
-            value = super().visit(node.value),
-            ), node)
-
-
-class TermReplacer(gast.NodeTransformer):
-    def __init__(self, term_from, term_to):
-        super().__init__()
-        self.term_from = term_from
-        self.term_to = term_to
-
-    def visit(self, node):
-        if node == self.term_from:
-            return self.term_to
-        return super().visit(node)
-
-
-def inline_function(stmt, term, func: 'gast.Node', args):
-    # TODO(momohatt): handle immutable arguments correctly
-    assert isinstance(func, gast.FunctionDef)
-    renamer = VariableRenamer(func, args)
-    new_func_body = renamer.visit(func).body
-    retvar_name = "__{}_return".format(func.name)
-    retvar_node = gast.Name(id=retvar_name, ctx=gast.Load(), annotation=None)
-    replacer = TermReplacer(term, retvar_node)
-    new_stmt = replacer.visit(stmt)
-    return new_func_body + [new_stmt]
-
-
 # ==============================================================================
 
 builtins_name = ['float', 'range', 'abs']
@@ -162,14 +107,6 @@ class TypeChecker():
         def __init__(self, func):
             self.func = func
 
-    class InlineRequired(Exception):
-        def __init__(self, term, func_body):
-            assert isinstance(term, gast.Call)
-            self.term = term
-            self.args = term.args
-            code = utils.clip_head(inspect.getsource(func_body))
-            self.func = gast.ast_to_gast(ast.parse(code)).body[0]
-
     def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
             self.tyenv = {}  # string -> TyObj (internal type env)
@@ -198,7 +135,7 @@ class TypeChecker():
         print()
 
 
-    def infer(self, node: 'gast.Node') -> 'TyObj':
+    def infer(self, node: 'gast.Node'):
         """
         Adds local type information to self.tyenv while traversing the AST
         while inlining functions and rewriting the argument 'node'
@@ -213,20 +150,22 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_function_vargs(self, node, args) -> 'TyObj':
+    def infer_function_vargs(self, node, args):
         # args: argument value
         ty_args = [type_of_value(arg) for arg in args]
 
-        for arg_node, arg_value, ty in zip(node.args.args, args, ty_args):
-            self.tyenv[arg_node.id] = ty
+        for arg_node, arg_value in zip(node.args.args, args):
             self.args[arg_node.id] = arg_value
 
         return self.infer_function(node, ty_args)
 
 
-    def infer_function(self, node: 'ast.Node', ty_args) -> 'TyObj':
+    def infer_function(self, node: 'gast.Node', ty_args):
         assert isinstance(node, gast.FunctionDef)
         assert len(ty_args) == len(node.args.args)
+
+        for arg_node, ty in zip(node.args.args, ty_args):
+            self.tyenv[arg_node.id] = ty
 
         # examine argument type separately from parent typechecker
         tc = TypeChecker()
@@ -241,7 +180,7 @@ class TypeChecker():
 
 
     # ================================ mod =====================================
-    def infer_mod(self, node: 'ast.Node'):
+    def infer_mod(self, node: 'gast.Node'):
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
             return
@@ -250,7 +189,7 @@ class TypeChecker():
 
 
     # ================================ stmt ====================================
-    def infer_stmt(self, node: 'ast.Node') -> 'TyObj':
+    def infer_stmt(self, node: 'gast.Node') -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
             self.dump_tyenv()
@@ -261,22 +200,11 @@ class TypeChecker():
 
             ty_args = [self.tyenv[arg.id] for arg in node.args.args[1:]]
             ty = None
-            executed_body = []
 
-            while node.body != []:
-                stmt = node.body.pop(0)
-                try:
-                    ty = self.infer_stmt(stmt)
-                    executed_body.append(stmt)
-                except self.InlineRequired as e:
-                    new_term = inline_function(stmt, e.term, e.func, e.args)
-                    node.body = new_term + node.body
-
-            node.body = executed_body
-
+            for stmt in node.body:
+                ty = self.infer_stmt(stmt)
 
             assert ty is not None
-            # TODO(momohatt): type of function definition?
             self.nodetype[node] = TyArrow(ty_args, ty)
             return self.nodetype[node]
 
@@ -420,7 +348,7 @@ class TypeChecker():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node: 'ast.Node') -> 'TyObj':
+    def infer_expr(self, node: 'gast.Node') -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
             self.dump_tyenv()
@@ -477,11 +405,15 @@ class TypeChecker():
 
             try:
                 ty_fun = self.infer_expr(node.func)
-                unify(ty_fun, TyArrow(ty_args, ty_ret))
-                self.nodetype[node] = ty_ret.deref()
             except self.ArgumentRequired as e:
                 # cases where argument info is necessary to type function
-                raise self.InlineRequired(node, e.func)
+                code = utils.clip_head(inspect.getsource(e.func))
+                node = gast.ast_to_gast(ast.parse(code))
+                self.infer_function(node.body[0], ty_args)
+                ty_fun = self.nodetype[node.body[0]]
+
+            unify(ty_fun, TyArrow(ty_args, ty_ret))
+            self.nodetype[node] = ty_ret.deref()
 
             return self.nodetype[node]
 

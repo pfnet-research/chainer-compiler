@@ -37,7 +37,7 @@ def generate_id2node(node2id):
 def generate_node2type(tree, args, is_debug=False, module=None):
     tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
-    node2type = tc.infer_function_vargs(func_body, args)  # XXX: rewrites tree
+    node2type = tc.infer_function_vargs(func_body, args)
     return node2type
 
 
@@ -84,8 +84,6 @@ if __name__ == '__main__':
     #         self.x = x
 
     #     def f(self, x):
-    #         for i in range(4):
-    #             x += i
     #         return self.x + x
 
     # class Test():
@@ -93,7 +91,6 @@ if __name__ == '__main__':
     #         self.a = A(1)
 
     #     def forward(self, x):
-    #         # return self.a.x + x に書き換える
     #         return self.a.f(x)
 
     from testcases.elichika_tests.model.MLP import MLP
@@ -103,15 +100,11 @@ if __name__ == '__main__':
 
     class Test():
         def forward(self, x):
-            return abs(h(x, 1))
+            return h(x, 1)
 
-    out_n = 4
-    batch_size = 100
-    model = MLP(8, out_n)
-    v = np.random.rand(batch_size, 3).astype(np.float32)
-    w = np.random.randint(out_n, size=batch_size)
+    model = Test()
 
-    forward_args = (model, v, w)
+    forward_args = (model, 1)
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
