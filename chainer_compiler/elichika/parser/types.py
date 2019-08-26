@@ -12,13 +12,7 @@ class TyObj():  # base type
         return self.__str__()
     def is_mutable(self):
         pass
-    # freeze internal value of TyVar so that it can no longer be modified
-    # TODO(momohatt): freezeというよりset?
-    def freeze(self):
-        return
-    # reverse of freeze
-    # TODO(momohatt): unfreezeというよりunset?
-    def unfreeze(self):
+    def unset(self):
         return
     # dereference internal type
     def deref(self):
@@ -118,15 +112,10 @@ class TyArrow(TyObj):
     def is_mutable(self):
         return False
 
-    def freeze(self):
+    def unset(self):
         for t in self.argty:
-            t.freeze()
-        self.retty.freeze()
-
-    def unfreeze(self):
-        for t in self.argty:
-            t.unfreeze()
-        self.retty.unfreeze()
+            t.unset()
+        self.retty.unset()
 
     def deref(self):
         self.argty = [t.deref() for t in self.argty]
@@ -167,19 +156,12 @@ class TySequence(TyObj):
     def is_mutable(self):
         return self.seq_kind == SequenceKind.LIST
 
-    def freeze(self):
+    def unset(self):
         if self.is_fixed_len:
             for t in self.ty_:
-                t.freeze()
+                t.unset()
             return
-        self.ty_.freeze()
-
-    def unfreeze(self):
-        if self.is_fixed_len:
-            for t in self.ty_:
-                t.unfreeze()
-            return
-        self.ty_.unfreeze()
+        self.ty_.unset()
 
     def deref(self):
         if self.is_fixed_len:
@@ -239,13 +221,9 @@ class TyDict(TyObj):
     def is_mutable(self):
         return True
 
-    def freeze(self):
-        self.keyty.freeze()
-        self.valty.freeze()
-
-    def unfreeze(self):
-        self.keyty.unfreeze()
-        self.valty.unfreeze()
+    def unset(self):
+        self.keyty.unset()
+        self.valty.unset()
 
     def deref(self):
         self.keyty = self.keyty.deref()
@@ -307,7 +285,7 @@ class TyVar(TyObj):
         self.i = counter
         counter += 1
         self.ty = None
-        self.is_frozen = False
+        self.is_set = False
 
     def __str__(self):
         if self.ty:
@@ -320,21 +298,21 @@ class TyVar(TyObj):
         return self.deref() == other.deref()
 
     def is_mutable(self):
-        if self.is_frozen:
+        if self.is_set:
             return self.ty.is_mutable()
         return False
 
-    def freeze(self):
-        if self.ty is not None:
-            self.is_frozen = True
-            self.ty.freeze()
+    def set(self, ty):
+        assert self.is_set == False
+        self.is_set = True
+        self.ty = ty
 
-    def unfreeze(self):
-        self.is_frozen = False
+    def unset(self):
+        self.is_set = False
         self.ty = None
 
     def deref(self):
-        if self.is_frozen:
+        if self.is_set:
             return self.ty.deref()
         return self
 
@@ -343,24 +321,20 @@ class TyUnion(TyObj):
     def __init__(self, *tys):
         assert len(tys) >= 2
         self.tys = list(tys)  # tys : tuple of TyObj
-        self.is_frozen = False
+        self.is_set = False
 
     def __str__(self):
-        if self.is_frozen:
+        if self.is_set:
             return str(self.tys)
         return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
 
-    def freeze(self, ty):
-        assert not self.is_frozen
-        self.is_frozen = True
-        ty.freeze()
+    def set(self, ty):
+        assert not self.is_set
+        self.is_set = True
         self.tys = ty
 
-    def unfreeze(self):
-        assert False
-
     def deref(self):
-        if self.is_frozen:
+        if self.is_set:
             self.tys = self.tys.deref()
             return self.tys
 
@@ -435,10 +409,10 @@ def unify_(ty1, ty2):
         for ty1_ in ty1.tys:
             try:
                 unify_(ty1_, ty2)
-                ty1.freeze(ty1_)
+                ty1.set(ty1_)
                 return
             except UnifyError:
-                ty2.unfreeze()
+                ty2.unset()
                 print("\x1b[33m[LOG] unify error with " + str(ty1_) \
                         + " and " + str(ty2) + ". continuing...\x1b[39m")
                 continue
@@ -505,15 +479,11 @@ def unify_(ty1, ty2):
             raise UnifyError(ty1, ty2)
 
     if isinstance(ty1, TyVar):
-        assert not ty1.is_frozen
-        ty1.ty = ty2
-        ty1.freeze()
+        ty1.set(ty2)
         return
 
     if isinstance(ty2, TyVar):
-        assert not ty2.is_frozen
-        ty2.ty = ty1
-        ty2.freeze()
+        ty2.set(ty1)
         return
 
     raise UnifyError(ty1, ty2)
