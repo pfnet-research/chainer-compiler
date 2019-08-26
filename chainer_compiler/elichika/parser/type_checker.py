@@ -89,65 +89,34 @@ builtins_ty = {
         # let x = ... in TyArrow([x], x)
         abs : T.TyUnion(
             (lambda x: T.TyArrow([x], x))(T.TyNum(0, 2)),
-            (lambda x: T.TyArrow([x], x))(T.TyTensor(None, None))
+            (lambda x: T.TyArrow([x], x))(T.TyTensor())
             ),
         }
 
 
-def ty_NumpyArray(ty_args):
-    assert len(ty_args) == 1
-    ty = ty_args[0]
-    assert isinstance(ty, T.TySequence)
-
-    ty.coerce_to_variable_len()
-    return T.TyNdarray(np.dtype(T.pytype_of_type(ty.get_ty())))
-
-
-def ty_NumpyOnes(ty_args):
-    assert len(ty_args) == 1
-    ty = ty_args[0]
-
-    if isinstance(ty, T.TyNum):
-        return T.TyNdarray(np.dtype('float64'))
-
-    if isinstance(ty, T.TySequence):
-        assert ty.is_fixed_len
-        return T.TyNdarray(np.dtype('float64'))
-
-    assert False
-
-
-def ty_ChainerReLU(ty_args):
-    assert len(ty_args) == 1
-    ty = ty_args[0].deref()
-
-    if isinstance(ty, T.TyTensor):
-        return T.TyChainerVariable(ty.dtype)
-
-    assert False
-
-
-def ty_ChainerSoftmaxCrossEntropy(ty_args):
-    assert len(ty_args) == 2
-    ty0 = ty_args[0].deref()
-    ty1 = ty_args[1].deref()
-
-    if isinstance(ty0, T.TyTensor) and isinstance(ty1, T.TyTensor):
-        return T.TyChainerVariable(np.dtype('float32'))
-
-
 ext_func_ty = {
-        np.array : ty_NumpyArray,
-        np.ones : ty_NumpyOnes,
-        np.zeros : ty_NumpyOnes,
-        F.relu : ty_ChainerReLU,
-        F.softmax_cross_entropy : ty_ChainerSoftmaxCrossEntropy,
+        np.array :
+            (lambda x: T.TyArrow([x],
+                T.TyNdarray(np.dtype(T.pytype_of_type(x.get_ty()))))) \
+                        (T.TySequence(T.TyBool())),
+        np.ones :
+            T.TyArrow([T.TyUnion(T.TyBool(), T.TySequence(T.TyIntOnly()))],
+                T.TyNdarray(np.dtype('float64'))),
+        np.zeros :
+            T.TyArrow([T.TyUnion(T.TyBool(), T.TySequence(T.TyIntOnly()))],
+                T.TyNdarray(np.dtype('float64'))),
+        F.relu :
+            (lambda x: T.TyArrow([x], T.TyChainerVariable(x.dtype))) \
+                    (T.TyTensor()),
+        F.softmax_cross_entropy :
+            T.TyArrow([T.TyTensor(), T.TyTensor()],
+                T.TyChainerVariable(np.dtype('float32'))),
         }
 
 
 list_attr_ty = {
         'append'  : lambda ty_obj: T.TyArrow([ty_obj.get_ty()], T.TyNone()),
-        'reverse' : lambda ty_obj: T.TyArrow([ty_obj], T.TyNone()),
+        'reverse' : lambda ty_obj: T.TyArrow([], T.TyNone()),
         }
 
 
@@ -168,7 +137,7 @@ def ty_Add(tyl, tyr):
         T.unify(tyr, T.TyList(ty))
         tyl.coerce_to_variable_len(ty)
         tyr.coerce_to_variable_len(ty)
-        return T.TySequence(tyl.seq_kind, ty)
+        return T.TySequence(ty, tyl.seq_kind)
     assert False
 
 def ty_Div(tyl, tyr):
@@ -506,16 +475,6 @@ class TypeChecker():
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = T.TyVar()
 
-            if isinstance(node.func, gast.Attribute) and \
-                    isinstance(node.func.value, gast.Name) and \
-                    hasattr(self.module, node.func.value.id):
-                module = getattr(self.module, node.func.value.id)
-                ty_ret = ext_func_ty[getattr(module, node.func.attr)](ty_args)
-                ty_ret = ty_ret.deref()
-                self.nodetype[node.func] = T.TyArrow(ty_args, ty_ret)
-                self.nodetype[node] = ty_ret
-                return self.nodetype[node]
-
             try:
                 ty_fun = self.infer_expr(node.func)
                 T.unify(ty_fun, T.TyArrow(ty_args, ty_ret))
@@ -554,6 +513,12 @@ class TypeChecker():
 
         if isinstance(node, gast.Attribute):
             # Attribute(expr value, identifier attr, expr_context ctx)
+
+            if isinstance(node.value, gast.Name) and \
+                    hasattr(self.module, node.value.id):
+                module = getattr(self.module, node.value.id)
+                self.nodetype[node] = deepcopy(ext_func_ty[getattr(module, node.attr)])
+                return self.nodetype[node]
 
             if isinstance(node.value, gast.Name) and \
                     node.value.id in self.args.keys():

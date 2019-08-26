@@ -128,7 +128,7 @@ class SequenceKind(Enum):
     TUPLE = 1
 
 class TySequence(TyObj):
-    def __init__(self, seq_kind, ty):
+    def __init__(self, ty, seq_kind=None):
         super().__init__()
         self.seq_kind = seq_kind
         self.is_fixed_len = isinstance(ty, list)
@@ -145,10 +145,16 @@ class TySequence(TyObj):
                 return "(" + "".join([str(t) + ", " for t in self.ty_[:-1]]) \
                         + str(self.ty_[-1]) + ")"
 
+            if len(self.ty_) == 0:
+                return "{}"
+            return "{" + "".join([str(t) + ", " for t in self.ty_[:-1]]) \
+                    + str(self.ty_[-1]) + "}"
+
         if self.seq_kind == SequenceKind.LIST:
             return str(self.ty_) + " list"
         if self.seq_kind == SequenceKind.TUPLE:
             return str(self.ty_) + " tuple"
+        return str(self.ty_) + "sequence"
 
     def __eq__(self, other):
         return isinstance(other, TySequence) and self.ty_ == other.ty_
@@ -197,10 +203,10 @@ class TySequence(TyObj):
 
 
 def TyList(ty):  # shorthand notation
-    return TySequence(SequenceKind.LIST, ty)
+    return TySequence(ty, SequenceKind.LIST)
 
 def TyTuple(ty):  # shorthand notation
-    return TySequence(SequenceKind.TUPLE, ty)
+    return TySequence(ty, SequenceKind.TUPLE)
 
 
 class TyDict(TyObj):
@@ -248,11 +254,16 @@ class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
 
+class DType():  # container for dtype (to make dtype mutable)
+    def __init__(self, t=None):
+        self.t = t
+    def __str__(self):
+        return str(self.t)
 
 class TyTensor(TyObj):
-    def __init__(self, dtype, kind):  # we do not allow heterogeneous type ndarray
+    def __init__(self, dtype=None, kind=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        self.dtype = dtype
+        self.dtype = DType(dtype)
         self.kind = kind
 
     def __str__(self):
@@ -260,6 +271,7 @@ class TyTensor(TyObj):
             return "ndarray(dtype={})".format(self.dtype)
         if self.kind == TensorKind.chainer_variable:
             return "chainer.variable(dtype={})".format(self.dtype)
+        return "tensor(dtype={})".format(self.dtype)
 
     def __eq__(self, other):
         return isinstance(other, TyTensor) and self.dtype == other.dtype
@@ -464,10 +476,10 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
-        if ty1.dtype is None:
-            ty1.dtype = ty2.dtype
-        elif ty2.dtype is None:
-            ty2.dtype = ty1.dtype
+        if ty1.dtype.t is None:
+            ty1.dtype.t = ty2.dtype.t
+        elif ty2.dtype.t is None:
+            ty2.dtype.t = ty1.dtype.t
 
         if ty1.kind is None:
             ty1.kind = ty2.kind

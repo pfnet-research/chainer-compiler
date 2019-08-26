@@ -96,6 +96,8 @@ if __name__ == '__main__':
     #         # return self.a.x + x に書き換える
     #         return self.a.f(x)
 
+    from testcases.elichika_tests.model.MLP import MLP
+
     def h(x, y):
         return x + y
 
@@ -103,8 +105,13 @@ if __name__ == '__main__':
         def forward(self, x):
             return abs(h(x, 1))
 
-    model = Test()
-    forward_args = (model, 1)
+    out_n = 4
+    batch_size = 100
+    model = MLP(8, out_n)
+    v = np.random.rand(batch_size, 3).astype(np.float32)
+    w = np.random.randint(out_n, size=batch_size)
+
+    forward_args = (model, v, w)
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
