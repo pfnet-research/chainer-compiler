@@ -298,7 +298,6 @@ class TypeChecker():
 
             while node.body != []:
                 stmt = node.body.pop(0)
-
                 try:
                     ty = self.infer_stmt(stmt)
                     executed_body.append(stmt)
@@ -306,13 +305,8 @@ class TypeChecker():
                     new_term = inline_function(stmt, e.term, e.func, e.args)
                     node.body = new_term + node.body
 
-                    print("-------------------")
-                    for b in node.body:
-                        print(gast.dump(b))
-
-                executed_body.append(stmt)
-
             node.body = executed_body
+
 
             assert ty is not None
             # TODO(momohatt): type of function definition?
