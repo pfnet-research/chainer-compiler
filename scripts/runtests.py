@@ -220,6 +220,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
+    TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_same_upper'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
     TestCase(NODE_TEST, 'test_maxpool_3d_default'),
