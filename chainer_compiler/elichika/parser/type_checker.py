@@ -409,9 +409,10 @@ class TypeChecker():
             except self.ArgumentRequired as e:
                 # cases where argument info is necessary to type function
                 code = utils.clip_head(inspect.getsource(e.func))
-                node = gast.ast_to_gast(ast.parse(code))
-                self.infer_function(node.body[0], ty_args)
-                ty_fun = self.nodetype[node.body[0]]
+                func_node = gast.ast_to_gast(ast.parse(code))
+                self.infer_function(func_node.body[0], ty_args)
+                ty_fun = self.nodetype[func_node.body[0]]
+                self.nodetype[node.func] = ty_fun
 
             unify(ty_fun, TyArrow(ty_args, ty_ret))
             self.nodetype[node] = ty_ret.deref()
@@ -473,8 +474,7 @@ class TypeChecker():
                 x = getattr(ty_obj.instance, node.attr)
                 if callable(x):
                     raise self.ArgumentRequired(x)
-                else:
-                    self.nodetype[node] = type_of_value(x)
+                self.nodetype[node] = type_of_value(x)
                 return self.nodetype[node]
 
 
@@ -536,6 +536,7 @@ class TypeChecker():
                 x = getattr(self.module, node.id)
                 if callable(x):
                     raise self.ArgumentRequired(x)
+                self.nodetype[node] = type_of_value(x)
             else:
                 # case of Tuple assignment
                 ty_var = TyVar()

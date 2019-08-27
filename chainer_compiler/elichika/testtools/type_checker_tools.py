@@ -44,7 +44,8 @@ def generate_node2type(tree, args, is_debug=False, module=None):
 def generate_id2type(node2type, node2id):
     id2type = {}
     for n, t in node2type.items():
-        id2type[node2id[n]] = t
+        if n in node2id.keys():
+            id2type[node2id[n]] = t
 
     return id2type
 
@@ -99,20 +100,12 @@ if __name__ == '__main__':
         return x + y
 
     class Test():
-        def forward(self):
-            xs = [1, 2, 3]
-            v = []
-            for i in range(3):
-                v.append(xs[:i])
-            return v
-
-    # class Test():
-    #     def forward(self, x):
-    #         return h(x, 1)
+        def forward(self, x):
+            return h(x, 1)
 
     model = Test()
 
-    forward_args = (model,)
+    forward_args = (model, 1)
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
