@@ -364,12 +364,26 @@ class TestControl(unittest.TestCase):
         self.assertEqual(str(id2type[26]), "float")	# Name (line 4)
 
 
-    ### template
-    # def test_(self):
-    #     code = utils.clip_head("""
-    #     """)
-    #     tree = gast.ast_to_gast(ast.parse(code))
-    #     id2type = generate_id2type(tree)
+# ==============================================================================
+
+def h(x, y):
+    return x + y
+
+
+class TestInline(unittest.TestCase):
+    def test_calling_user_defined_function(self):
+        class Test():
+            def forward(self, x):
+                return h(x, 1)
+
+        id2type = generate_id2type_from_forward(Test(), (1,))
+
+        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[8]), "int")	# Call (line 2)
+        self.assertEqual(str(id2type[9]), "int -> int -> int")	# Name (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[13]), "int")	# Num (line 2)
 
 
 
