@@ -875,7 +875,6 @@ def gen_incomplete_transpose_test(test_name):
 
 
 def gen_maxpool_cover_all_test(test_name):
-    # A custom attribute for Chainer/ChainerX's `cover_all` parameter.
     gb = onnx_script.GraphBuilder(test_name)
 
     input = np.random.random((1, 3, 7, 7))
@@ -889,14 +888,14 @@ def gen_maxpool_cover_all_test(test_name):
                          outputs=['not_cover_all']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
     gb.output(gb.MaxPool([input_v], kernel_shape=[3, 3], strides=[2, 2],
-                         chainer_cover_all=True,
+                         ceil_mode=1,
                          outputs=['cover_all']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
     gb.output(gb.MaxPool([dynamic_v], kernel_shape=[3, 3], strides=[2, 2],
                          outputs=['not_cover_all_dynamic']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=False))
     gb.output(gb.MaxPool([dynamic_v], kernel_shape=[3, 3], strides=[2, 2],
-                         chainer_cover_all=True,
+                         ceil_mode=1,
                          outputs=['cover_all_dynamic']),
               F.max_pooling_2d(input, ksize=3, stride=2, cover_all=True))
 

@@ -321,10 +321,10 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
             CHECK_EQ(3UL, node.outputs().size());
             CHECK(node.output(1)->IsNull());
         }
-        EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.chainer_cover_all() || node.ceil_mode(), auto_pad());
+        EMIT(MaxPool, out(0), oout(2), in(0), node.kernel_shape(), strides(), pads(), node.ceil_mode(), auto_pad());
     } else if (node.op_type() == Node::kChainerMaxPoolGrad) {
         CHECK_EQ("NOTSET", node.auto_pad()) << "auto_pad is not supported for MaxPool";
-        EMIT(MaxPoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.chainer_cover_all() || node.ceil_mode());
+        EMIT(MaxPoolGrad, out(0), in(0), in(1), node.kernel_shape(), node.ceil_mode());
     } else if (node.op_type() == Node::kChainerROIMaxPool2D) {
         EMIT(ROIMaxPool2D, out(0), in(0), in(1), in(2), node.output_shape(), node.spatial_scale());
     } else if (node.op_type() == Node::kChainerROIAveragePool2D) {

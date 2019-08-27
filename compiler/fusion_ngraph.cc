@@ -127,7 +127,7 @@ void FuseNGraphOperations(Graph* graph) {
                 return false;
             }
         } else if (node.op_type() == Node::kMaxPool) {
-            if (node.chainer_cover_all()) {
+            if (node.ceil_mode()) {
                 return false;
             }
         } else if (

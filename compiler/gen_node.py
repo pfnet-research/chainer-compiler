@@ -200,7 +200,7 @@ pool_attrs = attr_sets(auto_pad='NOTSET',
                        strides=[int],
                        ceil_mode=0)
 # Extension: the third output is for backward context.
-NodeDef('MaxPool', 1, (1, 2, 3), chainer_cover_all=False, **pool_attrs)
+NodeDef('MaxPool', 1, (1, 2, 3), **pool_attrs)
 # Extension: the second output is for backward context.
 NodeDef('AveragePool', 1, (1, 2), count_include_pad=False, **pool_attrs)
 NodeDef('GlobalMaxPool', 1, 1)
@@ -267,7 +267,7 @@ NodeDef('ChainerPadBatchSize', 1, 1, size=Required(int))
 # For experimental ops.
 NodeDef('ChainerDoSomething', None, None, function_name=Required(str))
 
-NodeDef('ChainerMaxPoolGrad', 2, 1, chainer_cover_all=False, **pool_attrs)
+NodeDef('ChainerMaxPoolGrad', 2, 1, **pool_attrs)
 NodeDef('ChainerAveragePoolGrad', 2, 1, count_include_pad=False, **pool_attrs)
 NodeDef('ChainerResizeGrad', 2, 1)
 NodeDef('ChainerBatchNormalizationGrad', 2, 3)

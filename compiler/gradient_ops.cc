@@ -509,7 +509,7 @@ void MaxPoolGradFn(GradientOpContext* gc) {
             ->set_pads(node->pads())
             ->set_storage_order(node->storage_order())
             ->set_strides(node->strides())
-            ->set_chainer_cover_all(node->chainer_cover_all());
+            ->set_ceil_mode(node->ceil_mode());
 }
 
 void AveragePoolGradFn(GradientOpContext* gc) {
