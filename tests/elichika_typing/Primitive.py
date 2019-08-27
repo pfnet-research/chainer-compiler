@@ -373,6 +373,8 @@ def h(x, y):
 class TestInline(unittest.TestCase):
     def test_calling_user_defined_function(self):
         # TODO(momohatt): h をここにもってきたい
+        # TODO(momohatt): inlineした関数もassertEqualしたい
+
         class Test():
             def forward(self, x):
                 return h(x, 1)
