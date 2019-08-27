@@ -17,7 +17,7 @@ class TestMLP(unittest.TestCase):
 
         node_type = generate_id2type_from_forward(model, (v, w))
 
-        self.assertEqual(str(node_type[1]), "ndarray(dtype=float32) -> ndarray(dtype=int64) -> Variable(dtype=float32)")	# FunctionDef (line 1)
+        self.assertEqual(str(node_type[1]), "MLP -> ndarray(dtype=float32) -> ndarray(dtype=int64) -> Variable(dtype=float32)")	# FunctionDef (line 1)
         self.assertEqual(str(node_type[9]), "NoneType")	# Assign (line 2)
         self.assertEqual(str(node_type[10]), "Variable(dtype=float32)")	# Name (line 2)
         self.assertEqual(str(node_type[12]), "Variable(dtype=float32)")	# Call (line 2)

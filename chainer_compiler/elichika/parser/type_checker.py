@@ -403,10 +403,6 @@ class TypeChecker():
             ty_args = [self.infer_expr(arg) for arg in node.args]
             ty_ret = TyVar()
 
-            if isinstance(node.func, gast.Attribute):
-                ty_1st_arg = self.infer_expr(node.func.value)  # doing same stuff twice...
-                ty_args = [ty_1st_arg] + ty_args
-
             try:
                 ty_fun = self.infer_expr(node.func)
             except self.ArgumentRequired as e:
@@ -466,8 +462,9 @@ class TypeChecker():
             ty_obj = self.infer_expr(node.value)
 
             if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-                ty_obj.coerce_to_variable_len()
-                self.nodetype[node] = deepcopy(list_attr_ty[node.attr])
+                ty_fun = deepcopy(list_attr_ty[node.attr])
+                self.nodetype[node] = TyArrow(ty_fun.argty[1:], ty_fun.retty)
+                unify(ty_fun.argty[0], ty_obj)
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyUserDefinedClass):
