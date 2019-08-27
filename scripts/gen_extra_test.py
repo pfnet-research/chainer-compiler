@@ -1192,10 +1192,9 @@ def get_tests():
 
     test('extra_test_const_prop_use_twice', gen_const_prop_use_twice_test)
 
-    # TODO(hamaji): Enable these tests after next Chainer update.
-    test('extra_test_abs_int8', gen_abs_test(np.int8), fail=True)
-    test('extra_test_abs_int64', gen_abs_test(np.int64), fail=True)
-    test('extra_test_abs_float16', gen_abs_test(np.float16), fail=True)
+    test('extra_test_abs_int8', gen_abs_test(np.int8))
+    test('extra_test_abs_int64', gen_abs_test(np.int64))
+    test('extra_test_abs_float16', gen_abs_test(np.float16))
 
     tests += gen_chainercv_op_tests.get_tests()
 

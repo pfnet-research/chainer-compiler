@@ -113,7 +113,7 @@ class Clip(chainer.Chain):
 class ClipNp(chainer.Chain):
     def __init__(self):
         super(ClipNp,self).__init__()
-    
+
     def forward(self, x):
         y1 = np.clip(x, -1.0, 1.0)
         return y1
@@ -171,9 +171,7 @@ def main():
     testtools.generate_testcase(AbsNp(), [x], subname='abs_np')
     testtools.generate_testcase(AbsBuiltin(), [x], subname='abs_builtin')
     testtools.generate_testcase(AbsBuiltin(), [s_float], subname='abs_builtin_scalar_float')
-
-    # TODO(durswd) chainerX bug?
-    # testtools.generate_testcase(AbsBuiltin(), [s_int], subname='abs_builtin_scalar_int')
+    testtools.generate_testcase(AbsBuiltin(), [s_int], subname='abs_builtin_scalar_int')
 
 if __name__ == '__main__':
     main()
