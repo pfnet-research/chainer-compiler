@@ -1,6 +1,9 @@
 #ifndef MENOH_HPP
 #define MENOH_HPP
 
+// The ext of this file: '.hpp' is not consistent for the ones of other files: '.h'.
+// However, this ext is a part of interface of menoh. So the inconsitency is allowed.
+
 #include <memory>
 #include <vector>
 
