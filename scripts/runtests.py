@@ -869,6 +869,7 @@ def main():
         'test_matmulinteger',
         'test_bitshift_left_uint8',
         'test_qlinearconv',
+        'test_quantizelinear',
     ]
 
     tested = []
