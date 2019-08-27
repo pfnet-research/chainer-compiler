@@ -1,3 +1,4 @@
+#include <chainerx/index_iterator.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/indexing.h>
 #include <chainerx/routines/manipulation.h>
@@ -160,6 +161,21 @@ chainerx::Array SelectItemGradOp::RunImpl(
 
 chainerx::Array WhereOp::RunImpl(ChxVMState* st, chainerx::Array const& condition, chainerx::Array const& x, chainerx::Array const& y) {
     return chainerx::Where(condition, x, y);
+}
+
+chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
+    chainerx::Array x = chainerx::AsContiguous(x_.AsType(chainerx::Dtype::kBool));
+    const int64_t rank = x.shape().size();
+    std::vector<int64_t> result;
+    chainerx::IndexIterator<chainerx::kDynamicNdim> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
+    const bool* x_start = reinterpret_cast<const bool*>(x.raw_data());
+    for (size_t i = 0; i < x.shape().GetTotalSize(); ++i) {
+        if (x_start[i]) {
+            idx_it.Restart(i);
+            result.insert(result.end(), idx_it.index(), idx_it.index() + rank);
+        }
+    }
+    return runtime::MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(result.size()) / rank, rank}, result.data()).Transpose();
 }
 
 }  // namespace runtime

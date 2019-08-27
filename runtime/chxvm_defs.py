@@ -417,6 +417,7 @@ CHX_OPS = [
      [ArrayList('outputs')]),
 
     ('Where', [Array('condition'), Array('x'), Array('y')], [Array('output')]),
+    ('NonZero', [Array('x')], [Array('y')]),
 
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],

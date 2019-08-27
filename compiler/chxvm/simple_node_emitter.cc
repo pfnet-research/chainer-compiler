@@ -610,6 +610,10 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(2UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(BitShift, out(0), in(0), in(1), node.direction());
+    } else if (node.op_type() == Node::kNonZero) {
+        CHECK_EQ(1UL, node.inputs().size());
+        CHECK_EQ(1UL, node.outputs().size());
+        EMIT(NonZero, out(0), in(0));
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }
