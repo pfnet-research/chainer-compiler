@@ -80,28 +80,36 @@ if __name__ == '__main__':
     import chainer.links as L
 
 
-    # class A():
-    #     def __init__(self, x):
-    #         self.x = x
+    class B():
+        def __call__(self):
+            return 1
 
+    class Test():
+        def __init__(self):
+            self.b = B()
+
+        def forward(self, x):
+            return self.b() + x
+
+
+    # class A():
     #     def f(self, x):
-    #         return self.x + x
+    #         return x
 
     # class Test():
     #     def __init__(self):
-    #         self.a = A(1)
+    #         self.a = A()
 
     #     def forward(self, x):
     #         return self.a.f(x)
 
-    from testcases.elichika_tests.model.MLP import MLP
 
-    def h(x, y):
-        return x + y
+    # def h(x, y):
+    #     return x + y
 
-    class Test():
-        def forward(self, x):
-            return h(x, 1)
+    # class Test():
+    #     def forward(self, x):
+    #         return h(x, 1)
 
     model = Test()
 

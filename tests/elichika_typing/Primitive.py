@@ -372,6 +372,7 @@ def h(x, y):
 
 class TestInline(unittest.TestCase):
     def test_calling_user_defined_function(self):
+        # TODO(momohatt): h をここにもってきたい
         class Test():
             def forward(self, x):
                 return h(x, 1)
@@ -384,6 +385,53 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[9]), "int -> int -> int")	# Name (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Name (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Num (line 2)
+
+
+    def test_calling_user_defined_method(self):
+        class A():
+            def f(self, x):
+                return x
+
+        class Test():
+            def __init__(self):
+                self.a = A()
+
+            def forward(self, x):
+                return self.a.f(x)
+
+        id2type = generate_id2type_from_forward(Test(), (1,))
+
+        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[8]), "int")	# Call (line 2)
+        self.assertEqual(str(id2type[9]), "A -> int -> int")	# Attribute (line 2)
+        self.assertEqual(str(id2type[10]), "A")	# Attribute (line 2)
+        self.assertEqual(str(id2type[11]), "Test")	# Name (line 2)
+        self.assertEqual(str(id2type[15]), "int")	# Name (line 2)
+
+
+    def test_calling_user_defined_callable_class(self):
+        class B():
+            def __call__(self):
+                return 1
+
+        class Test():
+            def __init__(self):
+                self.b = B()
+
+            def forward(self, x):
+                return self.b() + x
+
+        id2type = generate_id2type_from_forward(Test(), (1,))
+
+        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[8]), "int")	# BinOp (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Call (line 2)
+        self.assertEqual(str(id2type[10]), "B -> int")	# Attribute (line 2)
+        self.assertEqual(str(id2type[11]), "Test")	# Name (line 2)
+        self.assertEqual(str(id2type[14]), "int -> int -> int")	# Add
+        self.assertEqual(str(id2type[15]), "int")	# Name (line 2)
 
 
 

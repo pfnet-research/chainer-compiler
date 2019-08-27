@@ -24,6 +24,14 @@ def defined_with___call__(func):
         types.MethodType, types.BuiltinFunctionType, types.BuiltinMethodType))
 
 
+def callable_(x):
+    # TODO(momohatt): この分類どうしよう
+    if isinstance(x, L.Linear):
+        return False
+    return callable(x)
+
+
+
 # ==============================================================================
 
 builtins_name = ['float', 'range', 'abs']
@@ -169,9 +177,6 @@ class TypeChecker():
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
 
-        # examine argument type separately from parent typechecker
-        tc = TypeChecker()
-
         self.infer_stmt(node)
 
         if self.is_debug:
@@ -291,7 +296,7 @@ class TypeChecker():
             # TODO(momohatt): determine what type should ty_test be
 
             if node.orelse == []:
-                tc = TypeChecker(self.tyenv)
+                tc = TypeChecker(self.tyenv, is_debug=self.is_debug)
                 for stmt in node.body:
                     tc.infer_stmt(stmt)
 
@@ -309,8 +314,8 @@ class TypeChecker():
                 for node_, ty in tc.nodetype.items():
                     self.nodetype[node_] = ty
             else:
-                tc1 = TypeChecker(self.tyenv)
-                tc2 = TypeChecker(self.tyenv)
+                tc1 = TypeChecker(self.tyenv, is_debug=self.is_debug)
+                tc2 = TypeChecker(self.tyenv, is_debug=self.is_debug)
                 for stmt in node.body:
                     tc1.infer_stmt(stmt)
                 for stmt in node.orelse:
@@ -422,9 +427,9 @@ class TypeChecker():
                         ty_args = [ty_self] + ty_args
 
                 func_node = gast.ast_to_gast(ast.parse(code))
-                print(gast.dump(func_node))
-                self.infer_function(func_node.body[0], ty_args)
-                ty_fun = self.nodetype[func_node.body[0]]
+                tc = TypeChecker(module=self.module)
+                tc.infer_function(func_node.body[0], ty_args)
+                ty_fun = tc.nodetype[func_node.body[0]]
                 self.nodetype[node.func] = ty_fun
 
 
@@ -481,7 +486,7 @@ class TypeChecker():
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
                 x = getattr(ty_obj.instance, node.attr)
-                if callable(x):
+                if callable_(x):
                     if defined_with___call__(x):
                         self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(x)
@@ -547,7 +552,7 @@ class TypeChecker():
                 self.nodetype[node] = deepcopy(builtins_ty[eval(node.id)])
             elif hasattr(self.module, node.id):
                 x = getattr(self.module, node.id)
-                if callable(x):
+                if callable_(x):
                     raise self.ArgumentRequired(x)
                 self.nodetype[node] = type_of_value(x)
             else:
