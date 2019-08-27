@@ -60,8 +60,8 @@ ext_func_ty = {
 
 
 list_attr_ty = {
-        'append'  : (lambda x: TyArrow([x, x.get_ty()], TyNone()))(TySequence(TyVar())),
-        'reverse' : TyArrow([TySequence(TyVar())], TyNone()),
+        'append'  : (lambda x: TyArrow([x, x.get_ty()], TyNone()))(TyList(TyVar())),
+        'reverse' : TyArrow([TyList(TyVar())], TyNone()),
         }
 
 
