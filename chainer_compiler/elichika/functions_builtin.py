@@ -40,7 +40,7 @@ def get_onnx_dtype(dtype):
 class BaseConverter(object):
     def __init__(self):
         self.expected_args = ()
-        
+
     def parse_args(self, onnx_graph, node):
         assert hasattr(self, 'expected_args'), 'BaseConverter subclass must have `expected_args`'
         parser =  oc.NodeParse()
@@ -52,7 +52,7 @@ class BaseConverter(object):
     def __call__(self, onnx_graph, node):
         raise NotImplementedError
 
-    
+
 class ConverterChainerMathMisc(BaseConverter):
     def __init__(self, operator, arg_name = 'x'):
         self.arg_name = arg_name
@@ -284,7 +284,7 @@ class ConverterClip(BaseConverter):
             str(node.lineprop),
             min=parser.get('x_min'),
             max=parser.get('x_max'))
-            
+
 class ConverterSum(BaseConverter):
     def __init__(self):
         self.expected_args = (
@@ -482,7 +482,7 @@ class ConverterMaxPooling2D(BaseConverter):
             [parser.get('x')],
             node.outputs,
             name=str(node.lineprop),
-            chainer_cover_all=parser.get('cover_all'),
+            ceil_mode=int(parser.get('cover_all')),
             **kwargs)
 
 

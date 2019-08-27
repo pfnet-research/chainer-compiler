@@ -65,7 +65,7 @@ class Function_MaxPool2d(Callable):
             'MaxPool',
             inputs=[x.to_tensor(env).name],
             kernel_shape=kernel_shape,
-            chainer_cover_all=cover_all.to_bool(),
+            ceil_mode=int(cover_all.to_bool()),
             **kwargs)
 
 
