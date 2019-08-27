@@ -11,9 +11,9 @@ configs {
       seconds: 3600
     }
     checkout_strategy {
-      ignore_gitignore: true
+      include_dot_git: true
     }
-    command: "sh .flexci/run_flexci_tests.sh"
+    command: "/bin/bash .flexci/run_flexci_tests.sh"
   }
 }
 configs {
@@ -29,9 +29,9 @@ configs {
       seconds: 3600
     }
     checkout_strategy {
-      ignore_gitignore: true
+      include_dot_git: true
     }
-    command: "sh .flexci/run_flexci_pip_tests.sh"
+    command: "/bin/bash .flexci/run_flexci_pip_tests.sh"
   }
 }
 configs {
