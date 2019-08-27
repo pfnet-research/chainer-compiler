@@ -197,7 +197,8 @@ pool_attrs = attr_sets(auto_pad='NOTSET',
                        kernel_shape=Required([int]),
                        pads=[int],
                        storage_order=0,
-                       strides=[int])
+                       strides=[int],
+                       ceil_mode=0)
 # Extension: the third output is for backward context.
 NodeDef('MaxPool', 1, (1, 2, 3), chainer_cover_all=False, **pool_attrs)
 # Extension: the second output is for backward context.

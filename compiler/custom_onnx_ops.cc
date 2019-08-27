@@ -190,7 +190,7 @@ void convPoolTypeAndShapeInference(InferenceContext& ctx, bool use_dilation, boo
     }
 
     // EDIT(hamaji): Check if `chainer_cover_all` is set.
-    const bool cover_all = getAttribute(ctx, "chainer_cover_all", 0);
+    const bool cover_all = getAttribute(ctx, "chainer_cover_all", 0) || getAttribute(ctx, "ceil_mode", 0);
 
     int kernel_shape_size = static_cast<int>(kernel_shape.size());
     for (int i = 0; i < kernel_shape_size; ++i) {
