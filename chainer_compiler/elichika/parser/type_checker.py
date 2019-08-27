@@ -162,7 +162,8 @@ class TypeChecker():
 
     def infer_function(self, node: 'gast.Node', ty_args):
         assert isinstance(node, gast.FunctionDef)
-        assert len(ty_args) == len(node.args.args)
+        assert len(ty_args) == len(node.args.args), \
+            "Incorrect number of argument given"
 
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty

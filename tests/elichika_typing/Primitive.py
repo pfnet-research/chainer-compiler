@@ -13,15 +13,15 @@ class TestNum(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (True, False))
 
-        self.assertEqual(str(id2type[1]), "Test -> bool -> bool -> bool")	# FunctionDef (line 2)
-        self.assertEqual(str(id2type[9]), "bool")	# Return (line 3)
-        self.assertEqual(str(id2type[10]), "bool")	# BoolOp (line 3)
+        self.assertEqual(str(id2type[1]), "Test -> bool -> bool -> bool")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[9]), "bool")	# Return (line 2)
+        self.assertEqual(str(id2type[10]), "bool")	# BoolOp (line 2)
         self.assertEqual(str(id2type[11]), "bool -> bool -> bool")	# Or
-        self.assertEqual(str(id2type[12]), "bool")	# BoolOp (line 3)
+        self.assertEqual(str(id2type[12]), "bool")	# BoolOp (line 2)
         self.assertEqual(str(id2type[13]), "bool -> bool -> bool")	# And
-        self.assertEqual(str(id2type[14]), "bool")	# Name (line 3)
-        self.assertEqual(str(id2type[16]), "bool")	# Name (line 3)
-        self.assertEqual(str(id2type[18]), "bool")	# NameConstant (line 3)
+        self.assertEqual(str(id2type[14]), "bool")	# Name (line 2)
+        self.assertEqual(str(id2type[16]), "bool")	# Name (line 2)
+        self.assertEqual(str(id2type[18]), "bool")	# NameConstant (line 2)
 
 
     def test_num_coersion(self):
@@ -33,20 +33,20 @@ class TestNum(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (1,))
 
-        self.assertEqual(str(id2type[1]), "Test -> int -> float")	# FunctionDef (line 2)
-        self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 3)
-        self.assertEqual(str(id2type[8]), "int")	# Name (line 3)
-        self.assertEqual(str(id2type[10]), "int")	# Call (line 3)
-        self.assertEqual(str(id2type[11]), "int -> int")	# Name (line 3)
-        self.assertEqual(str(id2type[13]), "int")	# Name (line 3)
-        self.assertEqual(str(id2type[15]), "NoneType")	# Assign (line 4)
-        self.assertEqual(str(id2type[16]), "float")	# Name (line 4)
-        self.assertEqual(str(id2type[18]), "float")	# BinOp (line 4)
-        self.assertEqual(str(id2type[19]), "int")	# Name (line 4)
+        self.assertEqual(str(id2type[1]), "Test -> int -> float")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[8]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[10]), "int")	# Call (line 2)
+        self.assertEqual(str(id2type[11]), "int -> int")	# Name (line 2)
+        self.assertEqual(str(id2type[13]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[15]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(id2type[16]), "float")	# Name (line 3)
+        self.assertEqual(str(id2type[18]), "float")	# BinOp (line 3)
+        self.assertEqual(str(id2type[19]), "int")	# Name (line 3)
         self.assertEqual(str(id2type[21]), "int -> float -> float")	# Add
-        self.assertEqual(str(id2type[22]), "float")	# Num (line 4)
-        self.assertEqual(str(id2type[23]), "float")	# Return (line 5)
-        self.assertEqual(str(id2type[24]), "float")	# Name (line 5)
+        self.assertEqual(str(id2type[22]), "float")	# Num (line 3)
+        self.assertEqual(str(id2type[23]), "float")	# Return (line 4)
+        self.assertEqual(str(id2type[24]), "float")	# Name (line 4)
 
 
     def test_num_coersion_if(self):
@@ -60,23 +60,23 @@ class TestNum(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "Test -> int")	# FunctionDef (line 2)
-        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 3)
-        self.assertEqual(str(id2type[6]), "int")	# Name (line 3)
-        self.assertEqual(str(id2type[8]), "int")	# Num (line 3)
-        self.assertEqual(str(id2type[9]), "NoneType")	# Assign (line 4)
-        self.assertEqual(str(id2type[10]), "float")	# Name (line 4)
-        self.assertEqual(str(id2type[12]), "float")	# Name (line 4)
-        self.assertEqual(str(id2type[14]), "NoneType")	# If (line 5)
-        self.assertEqual(str(id2type[15]), "bool")	# NameConstant (line 5)
-        self.assertEqual(str(id2type[16]), "NoneType")	# Assign (line 6)
-        self.assertEqual(str(id2type[17]), "float")	# Name (line 6)
-        self.assertEqual(str(id2type[19]), "float")	# BinOp (line 6)
-        self.assertEqual(str(id2type[20]), "int")	# Name (line 6)
+        self.assertEqual(str(id2type[1]), "Test -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[6]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[8]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[9]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(id2type[10]), "float")	# Name (line 3)
+        self.assertEqual(str(id2type[12]), "float")	# Name (line 3)
+        self.assertEqual(str(id2type[14]), "NoneType")	# If (line 4)
+        self.assertEqual(str(id2type[15]), "bool")	# NameConstant (line 4)
+        self.assertEqual(str(id2type[16]), "NoneType")	# Assign (line 5)
+        self.assertEqual(str(id2type[17]), "float")	# Name (line 5)
+        self.assertEqual(str(id2type[19]), "float")	# BinOp (line 5)
+        self.assertEqual(str(id2type[20]), "int")	# Name (line 5)
         self.assertEqual(str(id2type[22]), "int -> float -> float")	# Add
-        self.assertEqual(str(id2type[23]), "float")	# Num (line 6)
-        self.assertEqual(str(id2type[24]), "int")	# Return (line 7)
-        self.assertEqual(str(id2type[25]), "int")	# Name (line 7)
+        self.assertEqual(str(id2type[23]), "float")	# Num (line 5)
+        self.assertEqual(str(id2type[24]), "int")	# Return (line 6)
+        self.assertEqual(str(id2type[25]), "int")	# Name (line 6)
 
 
     def test_num_coersion_if_else(self):
@@ -90,24 +90,23 @@ class TestNum(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (0,))  # int
 
-        self.assertEqual(str(id2type[1]), "Test -> int -> float")	# FunctionDef (line 2)
-        self.assertEqual(str(id2type[7]), "NoneType")	# If (line 3)
-        self.assertEqual(str(id2type[8]), "bool")	# NameConstant (line 3)
-        self.assertEqual(str(id2type[9]), "NoneType")	# AugAssign (line 4)
-        self.assertEqual(str(id2type[10]), "float")	# Name (line 4)
+        self.assertEqual(str(id2type[1]), "Test -> int -> float")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# If (line 2)
+        self.assertEqual(str(id2type[8]), "bool")	# NameConstant (line 2)
+        self.assertEqual(str(id2type[9]), "NoneType")	# AugAssign (line 3)
+        self.assertEqual(str(id2type[10]), "float")	# Name (line 3)
         self.assertEqual(str(id2type[12]), "int -> int -> float")	# Add
-        self.assertEqual(str(id2type[13]), "int")	# Num (line 4)
-        self.assertEqual(str(id2type[14]), "NoneType")	# AugAssign (line 6)
-        self.assertEqual(str(id2type[15]), "float")	# Name (line 6)
+        self.assertEqual(str(id2type[13]), "int")	# Num (line 3)
+        self.assertEqual(str(id2type[14]), "NoneType")	# AugAssign (line 5)
+        self.assertEqual(str(id2type[15]), "float")	# Name (line 5)
         self.assertEqual(str(id2type[17]), "int -> float -> float")	# Add
-        self.assertEqual(str(id2type[18]), "float")	# Num (line 6)
-        self.assertEqual(str(id2type[19]), "float")	# Return (line 7)
-        self.assertEqual(str(id2type[20]), "float")	# Name (line 7)
+        self.assertEqual(str(id2type[18]), "float")	# Num (line 5)
+        self.assertEqual(str(id2type[19]), "float")	# Return (line 6)
+        self.assertEqual(str(id2type[20]), "float")	# Name (line 6)
 
 
 # ==============================================================================
 
-# TODO(momohatt): regenerate assertions for the following tests
 class TestSequence(unittest.TestCase):
     def test_list(self):
         class Test():
