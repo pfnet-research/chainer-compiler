@@ -164,7 +164,8 @@ chainerx::Array WhereOp::RunImpl(ChxVMState* st, chainerx::Array const& conditio
 }
 
 chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
-    chainerx::Array x = chainerx::AsContiguous(x_.AsType(chainerx::Dtype::kBool));
+    chainerx::Array x = chainerx::AsContiguous(x_.AsType(chainerx::Dtype::kBool)).ToNative();
+    CHECK(IsNativeDevice(&x.device()));
     const int64_t rank = x.shape().size();
     std::vector<int64_t> result;
     chainerx::IndexIterator<chainerx::kDynamicNdim> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
@@ -175,7 +176,9 @@ chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
             result.insert(result.end(), idx_it.index(), idx_it.index() + rank);
         }
     }
-    return runtime::MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(result.size()) / rank, rank}, result.data()).Transpose();
+    return runtime::MakeHostArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(result.size()) / rank, rank}, result.data())
+            .Transpose()
+            .ToDevice(x_.device());
 }
 
 }  // namespace runtime
