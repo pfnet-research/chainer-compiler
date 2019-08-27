@@ -118,6 +118,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
         if (g_quantize) {
             QuantizationOptions q_opts;
+            q_opts.per_channel = !g_disable_per_channel_quantize;
             Recursively([q_opts](Graph* graph) { Quantize(q_opts, graph); }, graph);
         }
 
