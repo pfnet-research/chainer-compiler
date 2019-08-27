@@ -216,9 +216,11 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_constant_pad'),
     # TODO(hamaji): auto_pad is not supported.
     TestCase(NODE_TEST, 'test_maxpool_1d_default', fail=fail_1d_conv_pool),
+    TestCase(NODE_TEST, 'test_maxpool_2d_ceil'),
     TestCase(NODE_TEST, 'test_maxpool_2d_default'),
     TestCase(NODE_TEST, 'test_maxpool_2d_pads'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_pads'),
+    TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_same_upper'),
     TestCase(NODE_TEST, 'test_maxpool_2d_precomputed_strides'),
     TestCase(NODE_TEST, 'test_maxpool_2d_strides'),
     TestCase(NODE_TEST, 'test_maxpool_3d_default'),

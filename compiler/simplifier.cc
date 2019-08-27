@@ -351,7 +351,7 @@ bool ReplaceMaxPool(Graph* graph, Node* node) {
     Value* padded = PadForPool(&gb, node, -std::numeric_limits<double>::infinity());
     gb.Op(Node::kMaxPool, {padded}, node->output(0))
             ->producer()
-            ->set_chainer_cover_all(node->chainer_cover_all())
+            ->set_ceil_mode(node->ceil_mode())
             ->set_auto_pad(node->auto_pad())
             ->set_kernel_shape(node->kernel_shape())
             ->set_storage_order(node->storage_order())
