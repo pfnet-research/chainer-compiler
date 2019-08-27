@@ -118,6 +118,10 @@ FLAGS = {
         'type': 'bool',
         'doc': 'Quantize ONNX model'
     },
+    'disable_per_channel_quantize': {
+        'type': 'bool',
+        'doc': 'Disables per channel quantization'
+    },
 
     'computation_order': {
         'type': 'std::string',
