@@ -3,6 +3,7 @@ import inspect
 import gast
 import os
 import traceback
+import types
 from copy import deepcopy
 
 from chainer_compiler.elichika.parser import utils
@@ -16,6 +17,11 @@ import numpy as np
 def debug(sth):
     frame = inspect.currentframe().f_back
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
+
+
+def defined_with___call__(func):
+    return not isinstance(func, (types.FunctionType, types.LambdaType,
+        types.MethodType, types.BuiltinFunctionType, types.BuiltinMethodType))
 
 
 # ==============================================================================
@@ -116,7 +122,6 @@ class TypeChecker():
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
         self.module = module
-        self.args = {}  # argument values
 
 
     def dump_tyenv(self):
@@ -153,17 +158,13 @@ class TypeChecker():
     def infer_function_vargs(self, node, args):
         # args: argument value
         ty_args = [type_of_value(arg) for arg in args]
-
-        for arg_node, arg_value in zip(node.args.args, args):
-            self.args[arg_node.id] = arg_value
-
         return self.infer_function(node, ty_args)
 
 
     def infer_function(self, node: 'gast.Node', ty_args):
         assert isinstance(node, gast.FunctionDef)
         assert len(ty_args) == len(node.args.args), \
-            "Incorrect number of argument given"
+            "Wrong number of arguments"
 
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
@@ -408,11 +409,25 @@ class TypeChecker():
                 ty_fun = self.infer_expr(node.func)
             except self.ArgumentRequired as e:
                 # cases where argument info is necessary to type function
-                code = utils.clip_head(inspect.getsource(e.func))
+                if defined_with___call__(e.func):
+                    code = utils.clip_head(inspect.getsource(e.func.__call__))
+                    ty_self = self.nodetype[node.func]
+                    ty_args = [ty_self] + ty_args
+
+                else:
+                    code = utils.clip_head(inspect.getsource(e.func))
+
+                    if isinstance(node.func, gast.Attribute):
+                        ty_self = self.nodetype[node.func.value]
+                        ty_args = [ty_self] + ty_args
+
                 func_node = gast.ast_to_gast(ast.parse(code))
+                print(gast.dump(func_node))
                 self.infer_function(func_node.body[0], ty_args)
                 ty_fun = self.nodetype[func_node.body[0]]
                 self.nodetype[node.func] = ty_fun
+
+
 
             unify(ty_fun, TyArrow(ty_args, ty_ret))
             self.nodetype[node] = ty_ret.deref()
@@ -454,17 +469,11 @@ class TypeChecker():
                 self.nodetype[node] = deepcopy(ext_func_ty[getattr(module, node.attr)])
                 return self.nodetype[node]
 
-            if isinstance(node.value, gast.Name) and \
-                    node.value.id in self.args.keys():
-                # attributes of arguments (ex. self)
-                value = getattr(self.args[node.value.id], node.attr)
-                self.nodetype[node] = type_of_value(value)
-                return self.nodetype[node]
-
             ty_obj = self.infer_expr(node.value)
 
             if isinstance(ty_obj, TySequence) and ty_obj.is_list():
                 ty_fun = deepcopy(list_attr_ty[node.attr])
+                self.nodetype[node.attr] = ty_fun
                 self.nodetype[node] = TyArrow(ty_fun.argty[1:], ty_fun.retty)
                 unify(ty_fun.argty[0], ty_obj)
                 return self.nodetype[node]
@@ -473,9 +482,13 @@ class TypeChecker():
                 # x: value of existing instance
                 x = getattr(ty_obj.instance, node.attr)
                 if callable(x):
+                    if defined_with___call__(x):
+                        self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(x)
                 self.nodetype[node] = type_of_value(x)
                 return self.nodetype[node]
+
+            assert False
 
 
         if isinstance(node, gast.Subscript):
