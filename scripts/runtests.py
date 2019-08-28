@@ -873,6 +873,7 @@ def main():
         'test_bitshift_left_uint8',
         'test_qlinearconv',
         'test_quantizelinear',
+        'test_nonzero_example',
     ]
 
     tested = []
