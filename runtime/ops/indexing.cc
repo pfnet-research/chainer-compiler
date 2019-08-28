@@ -176,7 +176,7 @@ chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
             result.insert(result.end(), idx_it.index(), idx_it.index() + rank);
         }
     }
-    return runtime::MakeHostArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(result.size()) / rank, rank}, result.data())
+    return runtime::MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(result.size() / rank), rank}, result.data())
             .Transpose()
             .ToDevice(x_.device());
 }
