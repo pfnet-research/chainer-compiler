@@ -144,6 +144,7 @@ class TypeChecker():
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
         self.module = module
+        self.function_calls = {}  # Node (Call) -> Node (FunctionDef)
 
 
     def dump_tyenv(self):
@@ -440,11 +441,13 @@ class TypeChecker():
                         ty_self = self.nodetype[node.func.value]
                         ty_args = [ty_self] + ty_args
 
-                func_node = gast.ast_to_gast(ast.parse(code))
+                # FunctionDef of called subroutine
+                func_node = gast.ast_to_gast(ast.parse(code)).body[0]
+                self.function_calls[node] = func_node
                 tc = TypeChecker(module=self.module)
                 # TODO(momohatt): merge nodetype of subroutine into self.nodetype
-                tc.infer_function(func_node.body[0], ty_args)
-                ty_fun = tc.nodetype[func_node.body[0]]
+                tc.infer_function(func_node, ty_args)
+                ty_fun = tc.nodetype[func_node]
                 self.nodetype[node.func] = ty_fun
 
 
