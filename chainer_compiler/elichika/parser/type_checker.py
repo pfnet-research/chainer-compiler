@@ -105,6 +105,20 @@ def ty_Div(tyl, tyr):
     assert False
 
 
+# binop も次のようにしたいが、dictの初期化時に
+# max(x.ty_level_min, y.ty_level_min)とかの値が決まってしまうので難しい...
+# binop_ty = {
+#         gast.Add : TyUnion(
+#             (lambda x, y: TyArrow([x, y],
+#                 TyNum(max(x.ty_level_min, y.ty_level_min), 2))) \
+#                         (TyBool(), TyBool()),
+#             TyArrow([TyString(), TyString()], TyString()),
+#             (lambda x: TyArrow([TyList(x), TyList(x)], TyList(x)))(TyVar()),
+#             (lambda x: TyArrow([TyTuple(x), TyTuple(x)], TyTuple(x)))(TyVar()),
+#             ),
+#         }
+
+
 primitive_op_ty = {
         gast.Add : ty_Add,
         gast.Sub : ty_NumOp,
@@ -428,6 +442,7 @@ class TypeChecker():
 
                 func_node = gast.ast_to_gast(ast.parse(code))
                 tc = TypeChecker(module=self.module)
+                # TODO(momohatt): merge nodetype of subroutine into self.nodetype
                 tc.infer_function(func_node.body[0], ty_args)
                 ty_fun = tc.nodetype[func_node.body[0]]
                 self.nodetype[node.func] = ty_fun
