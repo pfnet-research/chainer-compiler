@@ -442,6 +442,7 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_isinf_positive'),
 
     TestCase(NODE_TEST, 'test_where_example'),
+    TestCase(NODE_TEST, 'test_nonzero_example'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
     TestCase(NODE_TEST, 'test_dequantizelinear'),
     TestCase(NODE_TEST, 'test_qlinearmatmul_2D'),
@@ -872,6 +873,7 @@ def main():
         'test_bitshift_left_uint8',
         'test_qlinearconv',
         'test_quantizelinear',
+        'test_nonzero_example',
     ]
 
     tested = []

@@ -154,6 +154,7 @@
         "Mul": true,
         "Neg": true,
         "Not": true,
+        "NonZero": true,
         "OneHot": true,
         "Or": true,
         "Pad": true,
