@@ -55,12 +55,14 @@ builtins_ty = {
         }
 
 
-# TODO: 結果の型がこのdictの初期化時に評価されてしまうのでやっぱりダメそう
 ext_func_ty = {
         np.array :
-            (lambda x: TyArrow([x],
-                TyNdarray(np.dtype(pytype_of_type(x.get_ty()))))) \
-                        (TySequence(TyBool())),
+            # TyArrowの返り値の型の初期化を引数の型が決まるまで遅延したいが、
+            # 難しそう(TyNumの中の型レベルを表す変数をmutableにすれば一応は
+            # 解決するが、ちょっと汚い気が...)
+            (lambda x: TyArrow([TySequence(x)],
+                TyNdarray(np.dtype(pytype_of_type(x))))) \
+                        (TyBool()),
         np.ones :
             TyArrow([TyUnion(TyBool(), TySequence(TyIntOnly()))],
                 TyNdarray(np.dtype('float64'))),

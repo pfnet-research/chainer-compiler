@@ -80,6 +80,7 @@ class TyNum(TyObj):
     def possible_types(self):
         return list(range(self.ty_level_min, self.ty_level_max + 1))
 
+
 def TyBool():
     return TyNum(0, 2)  # bool or int or float
 
@@ -403,12 +404,7 @@ def pytype_of_type(ty) -> type:
     ty = ty.deref()
 
     if isinstance(ty, TyNum):
-        if ty.ty_level_min == 0:
-            return bool
-        if ty.ty_level_min == 1:
-            return int
-        if ty.ty_level_min == 2:
-            return float
+        return eval(str(ty))
 
     assert False
 

@@ -95,16 +95,10 @@ if __name__ == '__main__':
     import chainer.links as L
 
 
-    class B():
-        def __call__(self):
-            return 1
-
     class Test():
-        def __init__(self):
-            self.b = B()
-
-        def forward(self, x):
-            return self.b() + x
+        def forward(self):
+            x = np.array([4])
+            return x
 
     # class A():
     #     def f(self, x):
@@ -126,7 +120,7 @@ if __name__ == '__main__':
 
     model = Test()
 
-    forward_args = (model, 1)
+    forward_args = (model, )
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
