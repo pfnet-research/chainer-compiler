@@ -8,8 +8,18 @@ import numpy as np
 is_debug_global = False
 
 class TyObj():  # base type
+    def __init__(self):
+        self.is_optional = False
+    # TODO(momohatt): fix __repr__
+    def show(self):
+        pass
+    def __str__(self):
+        if self.is_optional:
+            return "optional({})".format(self.show())
+        return self.show()
     def __repr__(self):
         return self.__str__()
+
     def is_mutable(self):
         pass
     def unset(self):
@@ -21,7 +31,7 @@ class TyObj():  # base type
 # --------------------------- python primivite types ---------------------------
 
 class TyNone(TyObj):
-    def __str__(self):
+    def show(self):
         return "NoneType"
     def __eq__(self, other):
         return isinstance(other, TyNone)
@@ -42,22 +52,20 @@ class NumKind(IntEnum):
         if self.value == 2:
             return "float"
 
-    def __repr__(self):
-        return self.__str__()
-
 
 numcounter = 0  # id for debug printing
 
 class TyNum(TyObj):
     def __init__(self, ty_level_min, ty_level_max):
         global numcounter
+        super().__init__()
         assert ty_level_min <= ty_level_max
         self.ty_level_min = ty_level_min
         self.ty_level_max = ty_level_max
         self.id = numcounter
         numcounter += 1
 
-    def __str__(self):
+    def show(self):
         if is_debug_global:
             return "n{}({})".format(self.id, str(NumKind(self.ty_level_min)))
         return str(NumKind(self.ty_level_min))
@@ -86,7 +94,7 @@ def TyFloat():
 
 
 class TyString(TyObj):
-    def __str__(self):
+    def show(self):
         return "string"
     def __eq__(self, other):
         return isinstance(other, TyString)
@@ -100,7 +108,7 @@ class TyArrow(TyObj):
         self.argty = argty  # Arguments are uncurried
         self.retty = retty
 
-    def __str__(self):
+    def show(self):
         if self.argty == []:
             return "(no argument) -> {}".format(self.retty)
         return "".join([str(t) + " -> " for t in self.argty]) + str(self.retty)
@@ -134,7 +142,7 @@ class TySequence(TyObj):
         self.is_fixed_len = isinstance(ty, list)
         self.ty_ = ty
 
-    def __str__(self):
+    def show(self):
         if self.is_fixed_len:
             if self.seq_kind == SequenceKind.LIST:
                 return str(self.ty_)
@@ -218,7 +226,7 @@ class TyDict(TyObj):
         self.keyty = keyty
         self.valty = valty
 
-    def __str__(self):
+    def show(self):
         return "{" + str(self.keyty) + " : " + str(self.valty) + "}"
 
     def __eq__(self, other):
@@ -245,7 +253,7 @@ class TyUserDefinedClass(TyObj):
         # XXX: we will assume that an instance already exists
         self.instance = instance
 
-    def __str__(self):
+    def show(self):
         return self.name
 
 
@@ -300,7 +308,7 @@ class TyVar(TyObj):
         self.ty = None
         self.is_set = False
 
-    def __str__(self):
+    def show(self):
         if self.ty:
             if is_debug_global:
                 return "a{}({})".format(self.i, self.ty)
@@ -333,10 +341,11 @@ class TyVar(TyObj):
 class TyUnion(TyObj):
     def __init__(self, *tys):
         assert len(tys) >= 2
+        super().__init__()
         self.tys = list(tys)  # tys : tuple of TyObj
         self.is_set = False
 
-    def __str__(self):
+    def show(self):
         if self.is_set:
             return str(self.tys)
         return str(self.tys[0]) + "".join([" \/ " + str(t) for t in self.tys[1:]])
@@ -434,6 +443,24 @@ def unify(ty1, ty2):
     # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
         return
+
+    if isinstance(ty1, TyVar):
+        # TODO(momohatt): occur check
+        ty1.set(ty2)
+        return
+
+    if isinstance(ty2, TyVar):
+        ty2.set(ty1)
+        return
+
+    if isinstance(ty1, TyNone):
+        ty2.is_optional = True
+        return
+
+    if isinstance(ty2, TyNone):
+        ty1.is_optional = True
+        return
+
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
         possible_types = \
                 [i for i in ty1.possible_types() if i in ty2.possible_types()]
@@ -445,6 +472,7 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
         return
+
     if isinstance(ty1, TyArrow) and isinstance(ty2, TyArrow) and \
             len(ty1.argty) == len(ty2.argty):
         for (at1, at2) in zip(ty1.argty, ty2.argty):
@@ -495,13 +523,5 @@ def unify(ty1, ty2):
         else:
             # TODO(momohatt): subtyping?
             raise UnifyError(ty1, ty2)
-
-    if isinstance(ty1, TyVar):
-        ty1.set(ty2)
-        return
-
-    if isinstance(ty2, TyVar):
-        ty2.set(ty1)
-        return
 
     raise UnifyError(ty1, ty2)

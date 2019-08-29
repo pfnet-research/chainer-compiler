@@ -336,6 +336,30 @@ class TestOtherDataTypes(unittest.TestCase):
         self.assertEqual(str(id2type[18]), "string")	# Str (line 3)
 
 
+    def test_optional(self):
+        class Test():
+            def forward(self):
+                if False:
+                    x = 1
+                else:
+                    x = None
+                return x
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "Test -> optional(int)")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# If (line 2)
+        self.assertEqual(str(id2type[6]), "bool")	# NameConstant (line 2)
+        self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(id2type[8]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[10]), "int")	# Num (line 3)
+        self.assertEqual(str(id2type[11]), "NoneType")	# Assign (line 5)
+        self.assertEqual(str(id2type[12]), "NoneType")	# Name x (line 5)
+        self.assertEqual(str(id2type[14]), "NoneType")	# NameConstant (line 5)
+        self.assertEqual(str(id2type[15]), "optional(int)")	# Return (line 6)
+        self.assertEqual(str(id2type[16]), "optional(int)")	# Name x (line 6)
+
+
 # ==============================================================================
 
 class TestControl(unittest.TestCase):
