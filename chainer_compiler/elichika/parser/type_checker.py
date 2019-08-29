@@ -145,7 +145,7 @@ class TypeChecker():
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
         self.module = module
-        self.function_calls = {}  # Node (Call) -> Node (FunctionDef)
+        self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
 
 
     def dump_tyenv(self):
@@ -200,7 +200,7 @@ class TypeChecker():
             self.dump_nodetype()
 
         pprint(self.nodetype)
-        pprint(self.function_calls)
+        pprint(self.subroutine_node)
 
         return self.nodetype
 
@@ -447,16 +447,16 @@ class TypeChecker():
 
                 # FunctionDef of called subroutine
                 func_node = gast.ast_to_gast(ast.parse(code)).body[0]
-                self.function_calls[node] = func_node
+                self.subroutine_node[node] = func_node
                 tc = TypeChecker(module=self.module)
                 tc.infer_function(func_node, ty_args)
 
-                # copy nodetype and function_calls from subroutine
+                # copy nodetype and subroutine_node from subroutine
                 for k, v in tc.nodetype.items():
                     self.nodetype[k] = v
 
-                for k, v in tc.function_calls.items():
-                    self.function_calls[k] = v
+                for k, v in tc.subroutine_node.items():
+                    self.subroutine_node[k] = v
 
                 ty_fun = tc.nodetype[func_node]
                 self.nodetype[node.func] = ty_fun

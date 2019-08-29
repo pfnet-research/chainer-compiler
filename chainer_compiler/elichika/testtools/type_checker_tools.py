@@ -15,14 +15,18 @@ class IDAssignor(gast.NodeVisitor):
         self.counter += 1
         return super().visit(node)
 
-    def run(self, node):
+    def run(self, node, subroutine_node):
         self.visit(node)
+
+        for n in subroutine_node.values():
+            self.visit(n)
+
         return self.node2id
 
 
-def generate_node2id(tree):
+def generate_node2id(tree, subroutine_node):
     a = IDAssignor()
-    node2id = a.run(tree)
+    node2id = a.run(tree, subroutine_node)
     return node2id
 
 
@@ -38,14 +42,13 @@ def generate_node2type(tree, args, is_debug=False, module=None):
     tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
     node2type = tc.infer_function_vargs(func_body, args)
-    return node2type
+    return node2type, tc.subroutine_node
 
 
 def generate_id2type(node2type, node2id):
     id2type = {}
     for n, t in node2type.items():
-        if n in node2id.keys():
-            id2type[node2id[n]] = t
+        id2type[node2id[n]] = t
 
     return id2type
 
@@ -55,8 +58,9 @@ def generate_id2type_from_forward(model, args, is_debug=False):
     tree = gast.ast_to_gast(ast.parse(code))
     module = sys.modules[model.forward.__module__]
     args = (model,) + args
-    node2type = generate_node2type(tree, args, is_debug=is_debug, module=module)
-    node2id = generate_node2id(tree)
+    node2type, subroutine_node = generate_node2type(
+            tree, args, is_debug=is_debug, module=module)
+    node2id = generate_node2id(tree, subroutine_node)
     id2type = generate_id2type(node2type, node2id)
     return id2type
 
@@ -81,11 +85,8 @@ if __name__ == '__main__':
 
 
     class B():
-        def f(self):
-            return 1
-
         def __call__(self):
-            return 1 + self.f()
+            return 1
 
     class Test():
         def __init__(self):
@@ -93,7 +94,6 @@ if __name__ == '__main__':
 
         def forward(self, x):
             return self.b() + x
-
 
     # class A():
     #     def f(self, x):
@@ -105,7 +105,6 @@ if __name__ == '__main__':
 
     #     def forward(self, x):
     #         return self.a.f(x)
-
 
     # def h(x, y):
     #     return x + y
@@ -122,9 +121,9 @@ if __name__ == '__main__':
     code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
     module = sys.modules[model.forward.__module__]
-    node2type = generate_node2type(
+    node2type, subroutine_node = generate_node2type(
             node, forward_args, is_debug=True, module=module)
-    node2id = generate_node2id(node)
+    node2id = generate_node2id(node, subroutine_node)
     id2type = generate_id2type(node2type, node2id)
     id2node = generate_id2node(node2id)
 

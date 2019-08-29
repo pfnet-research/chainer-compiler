@@ -373,7 +373,6 @@ def h(x, y):
 class TestInline(unittest.TestCase):
     def test_calling_user_defined_function(self):
         # TODO(momohatt): h をここにもってきたい
-        # TODO(momohatt): inlineした関数もassertEqualしたい
 
         class Test():
             def forward(self, x):
@@ -387,6 +386,12 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[9]), "int -> int -> int")	# Name (line 2)
         self.assertEqual(str(id2type[11]), "int")	# Name (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[14]), "int -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[20]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[21]), "int")	# BinOp (line 2)
+        self.assertEqual(str(id2type[22]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[24]), "int -> int -> int")	# Add
+        self.assertEqual(str(id2type[25]), "int")	# Name (line 2)
 
 
     def test_calling_user_defined_method(self):
@@ -410,6 +415,9 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[10]), "A")	# Attribute (line 2)
         self.assertEqual(str(id2type[11]), "Test")	# Name (line 2)
         self.assertEqual(str(id2type[15]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[17]), "A -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[23]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[24]), "int")	# Name (line 2)
 
 
     def test_calling_user_defined_callable_class(self):
@@ -434,6 +442,41 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[11]), "Test")	# Name (line 2)
         self.assertEqual(str(id2type[14]), "int -> int -> int")	# Add
         self.assertEqual(str(id2type[15]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[17]), "B -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[21]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[22]), "int")	# Num (line 2)
+
+
+    def test_calling_user_defined_callable_nested(self):
+        class B():
+            def f(self):
+                return 1
+
+            def __call__(self):
+                return self.f()
+
+        class Test():
+            def __init__(self):
+                self.b = B()
+
+            def forward(self):
+                return self.b()
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "Test -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[5]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[6]), "int")	# Call (line 2)
+        self.assertEqual(str(id2type[7]), "B -> int")	# Attribute (line 2)
+        self.assertEqual(str(id2type[8]), "Test")	# Name (line 2)
+        self.assertEqual(str(id2type[11]), "B -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[15]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[16]), "int")	# Call (line 2)
+        self.assertEqual(str(id2type[17]), "B -> int")	# Attribute (line 2)
+        self.assertEqual(str(id2type[18]), "B")	# Name (line 2)
+        self.assertEqual(str(id2type[21]), "B -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[25]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[26]), "int")	# Num (line 2)
 
 
 
