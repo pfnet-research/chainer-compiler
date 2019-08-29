@@ -26,7 +26,7 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[18]), "bool")	# NameConstant (line 2)
 
 
-    def test_num_coersion(self):
+    def test_num_coercion(self):
         class Test():
             def forward(self, x):
                 y = abs(x)
@@ -51,7 +51,7 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[24]), "float")	# Name (line 4)
 
 
-    def test_num_coersion_if(self):
+    def test_num_coercion_if(self):
         class Test():
             def forward(self):
                 a = 1
@@ -81,7 +81,7 @@ class TestNum(unittest.TestCase):
         self.assertEqual(str(id2type[25]), "int")	# Name (line 6)
 
 
-    def test_num_coersion_if_else(self):
+    def test_num_coercion_if_else(self):
         class Test():
             def forward(self, x):
                 if True:
@@ -147,7 +147,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[39]), "int list list")	# Name (line 6)
 
 
-    def test_tuple_coersion(self):
+    def test_tuple_coercion(self):
         class Test():
             def forward(self):
                 x = (1, 2, 3)
@@ -179,7 +179,7 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[32]), "int")	# Name (line 5)
 
 
-    def test_tuple_coersion_2(self):
+    def test_tuple_coercion_2(self):
         class Test():
             def forward(self):
                 x = (1, 2, 3)
