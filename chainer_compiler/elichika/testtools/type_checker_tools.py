@@ -65,10 +65,21 @@ def generate_id2type_from_forward(model, args, is_debug=False):
     return id2type
 
 
+def node_description(node):
+    type_name = type(node).__name__
+    if isinstance(node, gast.FunctionDef):
+        return type_name + " " + node.name
+    if isinstance(node, gast.Name):
+        return type_name + " " + node.id
+    if isinstance(node, gast.Attribute):
+        return type_name + " " + node.attr
+    return type_name
+
+
 def generate_assertion(type_table_name, id2type, id2node):
     for i, t in sorted(id2type.items()):
         node = id2node[i]
-        comment = "\t# {}".format(type(node).__name__)
+        comment = "\t# " + node_description(node)
         if hasattr(node, 'lineno'):
             comment += " (line {})".format(node.lineno)
 

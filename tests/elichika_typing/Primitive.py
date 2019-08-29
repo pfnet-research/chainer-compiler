@@ -380,18 +380,18 @@ class TestInline(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (1,))
 
-        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[8]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[9]), "int -> int -> int")	# Name (line 2)
-        self.assertEqual(str(id2type[11]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[9]), "int -> int -> int")	# Name h (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Name x (line 2)
         self.assertEqual(str(id2type[13]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[14]), "int -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[14]), "int -> int -> int")	# FunctionDef h (line 1)
         self.assertEqual(str(id2type[20]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[21]), "int")	# BinOp (line 2)
-        self.assertEqual(str(id2type[22]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[22]), "int")	# Name x (line 2)
         self.assertEqual(str(id2type[24]), "int -> int -> int")	# Add
-        self.assertEqual(str(id2type[25]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[25]), "int")	# Name y (line 2)
 
 
     def test_calling_user_defined_method(self):
@@ -408,16 +408,16 @@ class TestInline(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (1,))
 
-        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[8]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[9]), "A -> int -> int")	# Attribute (line 2)
-        self.assertEqual(str(id2type[10]), "A")	# Attribute (line 2)
-        self.assertEqual(str(id2type[11]), "Test")	# Name (line 2)
-        self.assertEqual(str(id2type[15]), "int")	# Name (line 2)
-        self.assertEqual(str(id2type[17]), "A -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[9]), "A -> int -> int")	# Attribute f (line 2)
+        self.assertEqual(str(id2type[10]), "A")	# Attribute a (line 2)
+        self.assertEqual(str(id2type[11]), "Test")	# Name self (line 2)
+        self.assertEqual(str(id2type[15]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[17]), "A -> int -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[23]), "int")	# Return (line 2)
-        self.assertEqual(str(id2type[24]), "int")	# Name (line 2)
+        self.assertEqual(str(id2type[24]), "int")	# Name x (line 2)
 
 
     def test_calling_user_defined_callable_class(self):
@@ -434,15 +434,15 @@ class TestInline(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (1,))
 
-        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[1]), "Test -> int -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[8]), "int")	# BinOp (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[10]), "B -> int")	# Attribute (line 2)
-        self.assertEqual(str(id2type[11]), "Test")	# Name (line 2)
+        self.assertEqual(str(id2type[10]), "B -> int")	# Attribute b (line 2)
+        self.assertEqual(str(id2type[11]), "Test")	# Name self (line 2)
         self.assertEqual(str(id2type[14]), "int -> int -> int")	# Add
-        self.assertEqual(str(id2type[15]), "int")	# Name (line 2)
-        self.assertEqual(str(id2type[17]), "B -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[15]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[17]), "B -> int")	# FunctionDef __call__ (line 1)
         self.assertEqual(str(id2type[21]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[22]), "int")	# Num (line 2)
 
@@ -464,17 +464,17 @@ class TestInline(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "Test -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[1]), "Test -> int")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[6]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[7]), "B -> int")	# Attribute (line 2)
-        self.assertEqual(str(id2type[8]), "Test")	# Name (line 2)
-        self.assertEqual(str(id2type[11]), "B -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[7]), "B -> int")	# Attribute b (line 2)
+        self.assertEqual(str(id2type[8]), "Test")	# Name self (line 2)
+        self.assertEqual(str(id2type[11]), "B -> int")	# FunctionDef __call__ (line 1)
         self.assertEqual(str(id2type[15]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[16]), "int")	# Call (line 2)
-        self.assertEqual(str(id2type[17]), "B -> int")	# Attribute (line 2)
-        self.assertEqual(str(id2type[18]), "B")	# Name (line 2)
-        self.assertEqual(str(id2type[21]), "B -> int")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[17]), "B -> int")	# Attribute f (line 2)
+        self.assertEqual(str(id2type[18]), "B")	# Name self (line 2)
+        self.assertEqual(str(id2type[21]), "B -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[25]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[26]), "int")	# Num (line 2)
 
