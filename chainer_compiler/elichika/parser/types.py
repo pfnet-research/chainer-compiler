@@ -275,7 +275,7 @@ class TyTensor(TyObj):
         self.dtype = DType(dtype)
         self.kind = kind
 
-    def __str__(self):
+    def show(self):
         if self.kind == TensorKind.ndarray:
             return "ndarray(dtype={})".format(self.dtype)
         if self.kind == TensorKind.chainer_variable:

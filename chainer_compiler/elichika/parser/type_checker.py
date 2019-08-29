@@ -315,7 +315,8 @@ class TypeChecker():
             # TODO(momohatt): determine what type should ty_test be
 
             if node.orelse == []:
-                tc = TypeChecker(self.tyenv, is_debug=self.is_debug)
+                tc = TypeChecker(
+                        self.tyenv, is_debug=self.is_debug, module=self.module)
                 for stmt in node.body:
                     tc.infer_stmt(stmt)
 
@@ -333,8 +334,10 @@ class TypeChecker():
                 for node_, ty in tc.nodetype.items():
                     self.nodetype[node_] = ty
             else:
-                tc1 = TypeChecker(self.tyenv, is_debug=self.is_debug)
-                tc2 = TypeChecker(self.tyenv, is_debug=self.is_debug)
+                tc1 = TypeChecker(
+                        self.tyenv, is_debug=self.is_debug, module=self.module)
+                tc2 = TypeChecker(
+                        self.tyenv, is_debug=self.is_debug, module=self.module)
                 for stmt in node.body:
                     tc1.infer_stmt(stmt)
                 for stmt in node.orelse:
@@ -421,6 +424,7 @@ class TypeChecker():
         if isinstance(node, gast.Compare):
             # Compare(expr left, cmpop* ops, expr* comparators)
             # TODO
+            self.nodetype[node] = TyBool()
             return self.nodetype[node]
 
 
@@ -448,7 +452,7 @@ class TypeChecker():
                 # FunctionDef of called subroutine
                 func_node = gast.ast_to_gast(ast.parse(code)).body[0]
                 self.subroutine_node[node] = func_node
-                tc = TypeChecker(module=self.module)
+                tc = TypeChecker(is_debug=self.is_debug, module=self.module)
                 tc.infer_function(func_node, ty_args)
 
                 # copy nodetype and subroutine_node from subroutine
