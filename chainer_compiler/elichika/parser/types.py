@@ -7,6 +7,17 @@ import numpy as np
 
 is_debug_global = False
 
+class Singleton():
+    def __init__(self, x):
+        self.inner = x
+    def __eq__(self, other):
+        return self.inner == other.inner
+    def __str__(self):
+        return str(self.inner)
+    def __repr__(self):
+        return self.__str__()
+
+
 class TyObj():  # base type
     def __init__(self):
         self.is_optional = False
@@ -56,29 +67,28 @@ class NumKind(IntEnum):
 numcounter = 0  # id for debug printing
 
 class TyNum(TyObj):
-    def __init__(self, ty_level_min, ty_level_max):
+    def __init__(self, ty_min, ty_max):
         global numcounter
         super().__init__()
-        assert ty_level_min <= ty_level_max
-        self.ty_level_min = ty_level_min
-        self.ty_level_max = ty_level_max
+        assert ty_min <= ty_max
+        self.ty_min = Singleton(ty_min)
+        self.ty_max = Singleton(ty_max)
         self.id = numcounter
         numcounter += 1
 
     def show(self):
         if is_debug_global:
-            return "n{}({})".format(self.id, str(NumKind(self.ty_level_min)))
-        return str(NumKind(self.ty_level_min))
+            return "n{}({})".format(self.id, str(NumKind(self.ty_min.inner)))
+        return str(NumKind(self.ty_min.inner))
 
     def __eq__(self, other):
-        return isinstance(other, TyNum) and \
-                self.ty_level_min == other.ty_level_min
+        return isinstance(other, TyNum) and self.ty_min == other.ty_min
 
     def is_mutable(self):
         return False
 
     def possible_types(self):
-        return list(range(self.ty_level_min, self.ty_level_max + 1))
+        return list(range(self.ty_min.inner, self.ty_max.inner + 1))
 
 
 def TyBool():
@@ -264,16 +274,10 @@ class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
 
-class DType():  # container for dtype (to make dtype mutable)
-    def __init__(self, t=None):
-        self.t = t
-    def __str__(self):
-        return str(self.t)
-
 class TyTensor(TyObj):
     def __init__(self, dtype=None, kind=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        self.dtype = DType(dtype)
+        self.dtype = Singleton(dtype)
         self.kind = kind
 
     def show(self):
@@ -462,8 +466,8 @@ def unify(ty1, ty2):
                 [i for i in ty1.possible_types() if i in ty2.possible_types()]
         if possible_types == []:
             raise UnifyError(ty1, ty2)
-        ty1.ty_level_min = ty2.ty_level_min = min(possible_types)
-        ty1.ty_level_max = ty2.ty_level_max = max(possible_types)
+        ty1.ty_min.inner = ty2.ty_min.inner = min(possible_types)
+        ty1.ty_max.inner = ty2.ty_max.inner = max(possible_types)
         return
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
@@ -501,10 +505,10 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
-        if ty1.dtype.t is None:
-            ty1.dtype.t = ty2.dtype.t
-        elif ty2.dtype.t is None:
-            ty2.dtype.t = ty1.dtype.t
+        if ty1.dtype.inner is None:
+            ty1.dtype.inner = ty2.dtype.inner
+        elif ty2.dtype.inner is None:
+            ty2.dtype.inner = ty1.dtype.inner
 
         if ty1.kind is None:
             ty1.kind = ty2.kind

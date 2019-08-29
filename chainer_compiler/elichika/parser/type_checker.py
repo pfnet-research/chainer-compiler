@@ -86,12 +86,12 @@ list_attr_ty = {
 
 def ty_NumOp(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
+        return TyNum(max(tyl.ty_min.inner, tyr.ty_min.inner), 2)
     assert False
 
 def ty_Add(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_level_min, tyr.ty_level_min), 2)
+        return TyNum(max(tyl.ty_min.inner, tyr.ty_min.inner), 2)
     if isinstance(tyl, TyString) and isinstance(tyr, TyString):
         return TyString()
     if isinstance(tyl, TySequence) and isinstance(tyr, TySequence) and \
@@ -111,11 +111,11 @@ def ty_Div(tyl, tyr):
 
 
 # binop も次のようにしたいが、dictの初期化時に
-# max(x.ty_level_min, y.ty_level_min)とかの値が決まってしまうので難しい...
+# max(x.ty_min, y.ty_min)とかの値が決まってしまうので難しい...
 # binop_ty = {
 #         gast.Add : TyUnion(
 #             (lambda x, y: TyArrow([x, y],
-#                 TyNum(max(x.ty_level_min, y.ty_level_min), 2))) \
+#                 TyNum(max(x.ty_min.inner, y.ty_min.inner), 2))) \
 #                         (TyBool(), TyBool()),
 #             TyArrow([TyString(), TyString()], TyString()),
 #             (lambda x: TyArrow([TyList(x), TyList(x)], TyList(x)))(TyVar()),
