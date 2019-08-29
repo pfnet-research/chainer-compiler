@@ -5,6 +5,7 @@ import os
 import traceback
 import types
 from copy import deepcopy
+from typing import List
 from pprint import pprint
 
 from chainer_compiler.elichika.parser import utils
@@ -54,6 +55,7 @@ builtins_ty = {
         }
 
 
+# TODO: 結果の型がこのdictの初期化時に評価されてしまうのでやっぱりダメそう
 ext_func_ty = {
         np.array :
             (lambda x: TyArrow([x],
@@ -119,7 +121,6 @@ def ty_Div(tyl, tyr):
 #             ),
 #         }
 
-
 primitive_op_ty = {
         gast.Add : ty_Add,
         gast.Sub : ty_NumOp,
@@ -164,7 +165,7 @@ class TypeChecker():
         print()
 
 
-    def infer(self, node: 'gast.Node'):
+    def infer(self, node):
         """
         Adds local type information to self.tyenv while traversing the AST
         while inlining functions and rewriting the argument 'node'
@@ -179,13 +180,13 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_function_vargs(self, node, args):
+    def infer_function_vargs(self, node, args: List[object]):
         # args: argument value
         ty_args = [type_of_value(arg) for arg in args]
         return self.infer_function(node, ty_args)
 
 
-    def infer_function(self, node: 'gast.Node', ty_args):
+    def infer_function(self, node, ty_args: List['TyObj']):
         assert isinstance(node, gast.FunctionDef)
         assert len(ty_args) == len(node.args.args), \
             "Wrong number of arguments"
@@ -206,7 +207,7 @@ class TypeChecker():
 
 
     # ================================ mod =====================================
-    def infer_mod(self, node: 'gast.Node'):
+    def infer_mod(self, node):
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
             return
@@ -215,7 +216,7 @@ class TypeChecker():
 
 
     # ================================ stmt ====================================
-    def infer_stmt(self, node: 'gast.Node') -> 'TyObj':
+    def infer_stmt(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
             self.dump_tyenv()
@@ -377,7 +378,7 @@ class TypeChecker():
 
 
     # ================================= expr ===================================
-    def infer_expr(self, node: 'gast.Node') -> 'TyObj':
+    def infer_expr(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
             self.dump_tyenv()
@@ -518,6 +519,9 @@ class TypeChecker():
                 # x: value of existing instance
                 x = getattr(ty_obj.instance, node.attr)
                 if callable_(x):
+                    if isinstance(x, types.BuiltinFunctionType):
+                        self.nodetype[node] = builtins_ty[x]
+                        return self.nodetype[node]
                     if defined_with___call__(x):
                         self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(x)
@@ -610,7 +614,7 @@ class TypeChecker():
         assert False
 
 
-    def infer_slice(self, node: 'gast.Node', ty_key_expected) -> 'NoneType':
+    def infer_slice(self, node, ty_key_expected) -> 'NoneType':
         if isinstance(node, gast.Slice):
             # Slice(expr? lower, expr? upper, expr? step)
             if node.lower:
