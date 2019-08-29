@@ -642,6 +642,7 @@ if __name__ == '__main__':
     from copy import deepcopy
     import ast
     import gast
+    import importlib
     import sys
     import traceback
 
@@ -662,7 +663,13 @@ if __name__ == '__main__':
         else:
             print("\033[93mInstall astmonkey for visualization.\033[0m")
 
-    code = open(sys.argv[1]).read()
+    if len(sys.argv) == 3:
+        module = importlib.import_module(sys.argv[1])
+        func = getattr(module, sys.argv[2])
+        code = utils.clip_head(inspect.getsource(func))
+    else:
+        module = None
+        code = open(sys.argv[1]).read()
     orig_ast = gast.ast_to_gast(ast.parse(code))
     dump_ast(orig_ast, 'original')
 
