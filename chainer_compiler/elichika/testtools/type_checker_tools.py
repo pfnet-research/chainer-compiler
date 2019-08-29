@@ -81,8 +81,11 @@ if __name__ == '__main__':
 
 
     class B():
-        def __call__(self):
+        def f(self):
             return 1
+
+        def __call__(self):
+            return 1 + self.f()
 
     class Test():
         def __init__(self):

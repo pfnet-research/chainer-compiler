@@ -5,6 +5,7 @@ import os
 import traceback
 import types
 from copy import deepcopy
+from pprint import pprint
 
 from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.types import *
@@ -197,6 +198,9 @@ class TypeChecker():
         if self.is_debug:
             print('=== Type Environment ===')
             self.dump_nodetype()
+
+        pprint(self.nodetype)
+        pprint(self.function_calls)
 
         return self.nodetype
 
@@ -445,11 +449,17 @@ class TypeChecker():
                 func_node = gast.ast_to_gast(ast.parse(code)).body[0]
                 self.function_calls[node] = func_node
                 tc = TypeChecker(module=self.module)
-                # TODO(momohatt): merge nodetype of subroutine into self.nodetype
                 tc.infer_function(func_node, ty_args)
+
+                # copy nodetype and function_calls from subroutine
+                for k, v in tc.nodetype.items():
+                    self.nodetype[k] = v
+
+                for k, v in tc.function_calls.items():
+                    self.function_calls[k] = v
+
                 ty_fun = tc.nodetype[func_node]
                 self.nodetype[node.func] = ty_fun
-
 
 
             unify(ty_fun, TyArrow(ty_args, ty_ret))
