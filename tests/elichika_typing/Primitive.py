@@ -6,6 +6,8 @@ from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 
 
 class TestNum(unittest.TestCase):
+    # TODO(momohatt): regenerate test for updated comments
+
     def test_num_bool(self):
         class Test():
             def forward(self, x, y):

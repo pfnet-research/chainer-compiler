@@ -199,8 +199,8 @@ class TypeChecker():
             print('=== Type Environment ===')
             self.dump_nodetype()
 
-        pprint(self.nodetype)
-        pprint(self.subroutine_node)
+            pprint(self.nodetype)
+            pprint(self.subroutine_node)
 
         return self.nodetype
 
@@ -506,7 +506,6 @@ class TypeChecker():
 
             if isinstance(ty_obj, TySequence) and ty_obj.is_list():
                 ty_fun = deepcopy(list_attr_ty[node.attr])
-                self.nodetype[node.attr] = ty_fun
                 self.nodetype[node] = TyArrow(ty_fun.argty[1:], ty_fun.retty)
                 unify(ty_fun.argty[0], ty_obj)
                 return self.nodetype[node]
