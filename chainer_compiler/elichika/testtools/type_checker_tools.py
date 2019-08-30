@@ -95,20 +95,20 @@ if __name__ == '__main__':
     import chainer.links as L
 
     from testcases.elichika_tests.model.MLP import MLP
-
+    from testcases.elichika_tests.model.Resnet_with_loss import ResNet50
 
     class Test():
         def forward(self):
-            x = np.array([4], dtype=np.float64)
-            y = np.array([4], dtype='float64')
-            return x
+            x = np.zeros((3, 3))
+            y = np.zeros(3, dtype='int64')
 
-    out_n = 4
-    batch_size = 100
-    model = MLP(8, out_n)
-    v = np.random.rand(batch_size, 3).astype(np.float32)
-    w = np.random.randint(out_n, size=batch_size)
-    forward_args = (model, v, w)
+
+    # model = ResNet50()
+
+    # bsize = 2
+    # v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
+    # t = np.random.randint(1000, size=bsize).astype(np.int32)
+
 
     model = Test()
     forward_args = (model, )
