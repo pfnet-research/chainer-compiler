@@ -139,6 +139,10 @@ class TypeChecker():
         def __init__(self, func):
             self.func = func
 
+    class ExtFunction(ArgumentRequired):
+        def __init__(self, func):
+            super().__init__(func)
+
     def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
             self.tyenv = {}  # string -> TyObj (internal type env)
@@ -438,8 +442,20 @@ class TypeChecker():
 
             try:
                 ty_fun = self.infer_expr(node.func)
+            except self.ExtFunction as e:
+                # np/chainer functions
+                # print(ty_args)
+                val_args = [value_of_type(t) for t in ty_args]
+                # print(e.func, val_args, [v.dtype for v in val_args])
+                val_ret = e.func(*val_args)
+                ty_ret = type_of_value(val_ret)
+                self.nodetype[node] = ty_ret
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return self.nodetype[node]
+
             except self.ArgumentRequired as e:
                 # cases where argument info is necessary to type function
+
                 if defined_with___call__(e.func):
                     code = utils.clip_head(inspect.getsource(e.func.__call__))
                     ty_self = self.nodetype[node.func]
@@ -506,8 +522,7 @@ class TypeChecker():
             if isinstance(node.value, gast.Name) and \
                     hasattr(self.module, node.value.id):
                 module = getattr(self.module, node.value.id)
-                self.nodetype[node] = deepcopy(ext_func_ty[getattr(module, node.attr)])
-                return self.nodetype[node]
+                raise self.ExtFunction(getattr(module, node.attr))
 
             ty_obj = self.infer_expr(node.value)
 

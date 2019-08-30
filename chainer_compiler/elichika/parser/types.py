@@ -404,6 +404,32 @@ def type_of_value(value) -> 'TyObj':
     return TyUserDefinedClass(type(value).__name__, value)
 
 
+def value_of_type(ty) -> object:
+    ty = ty.deref()
+
+    if isinstance(ty, TyNone):
+        return None
+    if isinstance(ty, TyNum):
+        return pytype_of_type(ty)()
+    if isinstance(ty, TyString):
+        return ""
+    if isinstance(ty, TySequence) and ty.is_fixed_len:
+        ret = [value_of_type(t) for t in ty.get_tys()]
+        if ty.is_list():
+            return ret
+        return tuple(ret)
+    if isinstance(ty, TyDict):
+        return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
+    if isinstance(ty, TyTensor):
+        ret = np.array(0, dtype=ty.dtype.inner)
+        if ty.kind == TensorKind.ndarray:
+            return ret
+        if ty.kind == TensorKind.chainer_variable:
+            return chainer.Variable(ret)
+
+    assert False
+
+
 def pytype_of_type(ty) -> type:
     ty = ty.deref()
 
