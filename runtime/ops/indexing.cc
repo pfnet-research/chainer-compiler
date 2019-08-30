@@ -302,14 +302,13 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
                 }
             }
 
-            std::vector<int64_t> selected_indicies_inside_class;
-
+            std::vector<int64_t> selected_indices_inside_class;
             while (!sorted_score_indices.empty()) {
                 score_index next_top_score = sorted_score_indices.top();
                 sorted_score_indices.pop();
 
                 bool selected = true;
-                for (int64_t selected_idx : selected_indicies_inside_class) {
+                for (int64_t selected_idx : selected_indices_inside_class) {
                     if (SuppressByIOU(boxes_data + box_offset, selected_idx, next_top_score.index_, center_point_box, iou_threshold)) {
                         selected = false;
                         break;
@@ -318,10 +317,10 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
 
                 if (selected) {
                     if (max_output_boxes_per_class > 0 &&
-                        static_cast<int64_t>(selected_indicies_inside_class.size()) >= max_output_boxes_per_class) {
+                        static_cast<int64_t>(selected_indices_inside_class.size()) >= max_output_boxes_per_class) {
                         break;
                     }
-                    selected_indicies_inside_class.push_back(next_top_score.index_);
+                    selected_indices_inside_class.push_back(next_top_score.index_);
                     selected_indices.push_back({batch_idx, class_idx, next_top_score.index_});
                 }
             }
