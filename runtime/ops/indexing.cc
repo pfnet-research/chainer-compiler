@@ -331,13 +331,6 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
     return MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(selected_indices.size()), 3}, selected_indices.data());
 }
 
-template <typename T>
-struct ValueCmp {
-    bool operator()(const std::pair<T, int64_t>& lhs, const std::pair<T, int64_t>& rhs) {
-        return (lhs.first > rhs.first || (lhs.first == rhs.first && lhs.second < rhs.second));
-    }
-};
-
 std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const StrictScalar& k_src) {
     const chainerx::Shape in_shape = x.shape();
     const int64_t axis = this->axis < 0 ? in_shape.size() - this->axis : this->axis;
@@ -353,27 +346,44 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
     }
 
     int64_t rows = 1;
-    for (int64_t i = 0; i < k; ++i) {
+    for (int64_t i = 0; i < axis; ++i) {
         rows *= in_shape[i];
     }
     const int64_t cols = in_shape.GetTotalSize() / rows;
 
     int64_t reduced_cols = 1;
-    for (int64_t i = k; i < out_shape.size(); ++i) {
+    for (int64_t i = axis; i < out_shape.size(); ++i) {
         reduced_cols *= out_shape[i];
     }
 
     const int64_t block_slice = reduced_cols / k;
 
+    struct ValueCmp {
+        using Elem = std::pair<float, int64_t>;
+        using Func = std::function<bool(const float&, const float&)>;
+        Func func_;
+        explicit ValueCmp(Func f) : func_(f) {
+        }
+
+        bool operator()(const Elem& lhs, const Elem& rhs) {
+            return func_(lhs.first, rhs.first) || (lhs.first == rhs.first && lhs.second < rhs.second);
+        }
+    };
+
+    ValueCmp::Func base_cmp = std::greater<float>();
+    if (!largest) {
+        base_cmp = std::less<float>();
+    }
+    ValueCmp cmp(base_cmp);
     std::vector<float> values(out_shape.GetTotalSize());
     std::vector<int64_t> indices(out_shape.GetTotalSize());
     for (int64_t i = 0; i < rows; ++i) {
         for (int64_t j = 0; j < block_slice; ++j) {
-            std::priority_queue<std::pair<float, int64_t>, std::vector<std::pair<float, int64_t>>, ValueCmp<float>> min_heap;
+            std::priority_queue<std::pair<float, int64_t>, std::vector<std::pair<float, int64_t>>, ValueCmp> min_heap(cmp);
 
             for (int64_t l = 0; l < in_shape[axis]; ++l) {
                 const float value = static_cast<float>(chainerx::AsScalar(x.At({i, l * block_slice + j})));
-                if (min_heap.size() < k || value > min_heap.top().first) {
+                if (min_heap.size() < k || base_cmp(value, min_heap.top().first)) {
                     min_heap.push({value, l});
                 }
                 if (min_heap.size() > k) {
