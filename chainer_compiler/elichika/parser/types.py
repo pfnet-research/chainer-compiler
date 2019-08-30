@@ -263,20 +263,35 @@ class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
 
+
+class TyDType(TyObj):
+    def __init__(self, t=None):
+        if t is None:
+            self.t = None
+        else:
+            self.t = np.dtype(t)
+    def __str__(self):
+        return "dtype({})".format(str(self.t))
+    def set_if_None(self, other):
+        if self.t is None:
+            self.t = other.t
+
+
 class TyTensor(TyObj):
     def __init__(self, dtype=None, kind=None, shape=None):  # we do not allow heterogeneous type ndarray
         # TODO(momohatt): shape
         super().__init__()
+        assert isinstance(dtype, TyDType) or dtype is None
         self.dtype = dtype
         self.kind = kind
         self.shape = shape
 
     def show(self):
         if self.kind == TensorKind.ndarray:
-            return "ndarray(dtype={})".format(self.dtype)
+            return "ndarray({})".format(self.dtype)
         if self.kind == TensorKind.chainer_variable:
-            return "Variable(dtype={})".format(self.dtype)
-        return "tensor(dtype={})".format(self.dtype)
+            return "Variable({})".format(self.dtype)
+        return "tensor({})".format(self.dtype)
 
     def __eq__(self, other):
         return isinstance(other, TyTensor) and self.dtype == other.dtype
@@ -291,11 +306,12 @@ class TyTensor(TyObj):
         return self.kind == TensorKind.chainer_variable
 
 
-def TyNdarray(dtype):
-    return TyTensor(dtype, TensorKind.ndarray)
+def TyNdarray(dtype=None):
+    return TyTensor(dtype=dtype, kind=TensorKind.ndarray)
 
-def TyChainerVariable(dtype):
-    return TyTensor(dtype, TensorKind.chainer_variable)
+def TyChainerVariable(dtype=None):
+    return TyTensor(dtype=dtype, kind=TensorKind.chainer_variable)
+
 
 # ------------------------ TypeChecker internal types --------------------------
 
@@ -390,13 +406,19 @@ def type_of_value(value) -> 'TyObj':
     if isinstance(value, dict):
         return TyDict(type_of_value(value.keys()[0]), type_of_value(value.items()[0]))
     if isinstance(value, np.ndarray):
-        return TyNdarray(value.dtype)
+        return TyNdarray(TyDType(value.dtype))
     if isinstance(value, chainer.Variable):
-        return TyChainerVariable(value.dtype)
+        return TyChainerVariable(TyDType(value.dtype))
     # TODO(momohatt): sometimes Linear's return type is tuple
     if isinstance(value, L.Linear):
-        return TyArrow([TyChainerVariable(np.dtype('float32'))],
-                TyChainerVariable(np.dtype('float32')))
+        return TyArrow([TyChainerVariable(TyDType(np.float32))],
+                TyChainerVariable(TyDType(np.float32)))
+    if isinstance(value, np.dtype):
+        return TyDType(value)
+    if isinstance(value, type) and value in np.typeDict.values():
+        # XXX: np.typeDict.values() is a list of all dtypes
+        return TyDType(value)
+
 
     return TyUserDefinedClass(type(value).__name__, value)
 
@@ -528,15 +550,18 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
-        if ty1.dtype is None:
-            ty1.dtype = ty2.dtype
-        elif ty2.dtype is None:
-            ty2.dtype = ty1.dtype
+        ty1.dtype.set_if_None(ty2.dtype)
+        ty2.dtype.set_if_None(ty1.dtype)
 
         if ty1.kind is None:
             ty1.kind = ty2.kind
         elif ty2.kind is None:
             ty2.kind = ty1.kind
+        return
+
+    if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
+        ty1.set_if_None(ty2)
+        ty2.set_if_None(ty1)
         return
 
     if isinstance(ty1, TyUserDefinedClass) and \

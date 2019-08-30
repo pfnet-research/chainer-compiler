@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     class Test():
         def forward(self):
-            x = np.zeros((3, 3))
+            x = np.zeros((3, 3)).astype(np.float32)
             y = np.zeros(3, dtype='int64')
 
 

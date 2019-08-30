@@ -70,7 +70,7 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 
         shapes = [s if t.shape is None else t.shape
                 for t, s in zip(ty_args_tensor, fallback_shapes)]
-        dtypes = [s if t.dtype is None else t.dtype
+        dtypes = [s if t.dtype.t is None else t.dtype.t
                 for t, dt in zip(ty_args_tensor, fallback_dtypes)]
         # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
@@ -100,10 +100,14 @@ ext_func_ty = {
 
 
 list_attr_ty = {
-        'append'  : (lambda x: TyArrow([x, x.get_ty()], TyNone()))(TyList(TyVar())),
-        'reverse' : TyArrow([TyList(TyVar())], TyNone()),
+        'append'  : lambda x: TyArrow([x.get_ty()], TyNone()),
+        'reverse' : lambda x: TyArrow([], TyNone()),
         }
 
+
+ndarray_attr_ty = {
+        'astype' : lambda x: (lambda d: TyArrow([d], TyNdarray(d)))(TyDType())
+        }
 
 def ty_NumOp(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
@@ -157,8 +161,9 @@ primitive_op_ty = {
 
 class TypeChecker():
     class ArgumentRequired(Exception):
-        def __init__(self, func):
-            self.func = func
+        def __init__(self, func=None, ty_obj=None):
+            self.func = func  # callables
+            self.ty_obj = ty_obj  # method call against
 
     def __init__(self, tyenv=None, is_debug=False, module=None):
         if tyenv is None:
@@ -479,6 +484,13 @@ class TypeChecker():
                 ty_fun = self.infer_expr(node.func)
 
             except self.ArgumentRequired as e:
+                if e.func is None:
+                    # attribute against tensor
+                    assert isinstance(node.func, gast.Attribute)
+                    ty_obj = self.nodetype[node.func.value]
+                    print(ty_obj)
+                    return
+
                 if e.func in ext_func_ty.keys():
                     # case of calling external (eg. np/chainer) functions
 
@@ -569,21 +581,20 @@ class TypeChecker():
                 module = getattr(self.module, node.value.id)
                 attr = getattr(module, node.attr)
                 if callable_(attr):
-                    raise self.ArgumentRequired(attr)
+                    raise self.ArgumentRequired(func=attr)
                 self.nodetype[node] = type_of_value(attr)
 
             ty_obj = self.infer_expr(node.value)
 
             if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-                ty_fun = deepcopy(list_attr_ty[node.attr])
-                self.nodetype[node] = TyArrow(ty_fun.argty[1:], ty_fun.retty)
-                unify(ty_fun.argty[0], ty_obj)
+                ty_obj.coerce_to_variable_len()
+                self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
-                if node.attr == 'astype':
-                    # TODO
-                    return
+                raise self.ArgumentRequired(ty_obj=ty_obj)
+                # self.nodetype[node] = ndarray_attr_ty[node.attr](ty_obj)
+                # return self.nodetype[node]
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
@@ -594,7 +605,7 @@ class TypeChecker():
                         return self.nodetype[node]
                     if defined_with___call__(x):
                         self.nodetype[node] = type_of_value(x)
-                    raise self.ArgumentRequired(x)
+                    raise self.ArgumentRequired(func=x)
                 self.nodetype[node] = type_of_value(x)
                 return self.nodetype[node]
 
@@ -658,7 +669,7 @@ class TypeChecker():
             elif hasattr(self.module, node.id):
                 x = getattr(self.module, node.id)
                 if callable_(x):
-                    raise self.ArgumentRequired(x)
+                    raise self.ArgumentRequired(func=x)
                 self.nodetype[node] = type_of_value(x)
             else:
                 # case of Tuple assignment
