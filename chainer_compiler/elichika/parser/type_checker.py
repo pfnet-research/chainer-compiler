@@ -86,12 +86,12 @@ list_attr_ty = {
 
 def ty_NumOp(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_min.inner, tyr.ty_min.inner), 2)
+        return TyNum(max(tyl.ty_min, tyr.ty_min), 2)
     assert False
 
 def ty_Add(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_min.inner, tyr.ty_min.inner), 2)
+        return TyNum(max(tyl.ty_min, tyr.ty_min), 2)
     if isinstance(tyl, TyString) and isinstance(tyr, TyString):
         return TyString()
     if isinstance(tyl, TySequence) and isinstance(tyr, TySequence) and \
@@ -115,7 +115,7 @@ def ty_Div(tyl, tyr):
 # binop_ty = {
 #         gast.Add : TyUnion(
 #             (lambda x, y: TyArrow([x, y],
-#                 TyNum(max(x.ty_min.inner, y.ty_min.inner), 2))) \
+#                 TyNum(max(x.ty_min, y.ty_min), 2))) \
 #                         (TyBool(), TyBool()),
 #             TyArrow([TyString(), TyString()], TyString()),
 #             (lambda x: TyArrow([TyList(x), TyList(x)], TyList(x)))(TyVar()),
@@ -522,7 +522,8 @@ class TypeChecker():
             if isinstance(node.value, gast.Name) and \
                     hasattr(self.module, node.value.id):
                 module = getattr(self.module, node.value.id)
-                raise self.ExtFunction(getattr(module, node.attr))
+                func = getattr(module, node.attr)
+                raise self.ExtFunction(func)
 
             ty_obj = self.infer_expr(node.value)
 

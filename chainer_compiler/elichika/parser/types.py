@@ -7,17 +7,6 @@ import numpy as np
 
 is_debug_global = False
 
-class Singleton():
-    def __init__(self, x):
-        self.inner = x
-    def __eq__(self, other):
-        return self.inner == other.inner
-    def __str__(self):
-        return str(self.inner)
-    def __repr__(self):
-        return self.__str__()
-
-
 class TyObj():  # base type
     def __init__(self):
         self.is_optional = False
@@ -71,15 +60,15 @@ class TyNum(TyObj):
         global numcounter
         super().__init__()
         assert ty_min <= ty_max
-        self.ty_min = Singleton(ty_min)
-        self.ty_max = Singleton(ty_max)
+        self.ty_min = ty_min
+        self.ty_max = ty_max
         self.id = numcounter
         numcounter += 1
 
     def show(self):
         if is_debug_global:
-            return "n{}({})".format(self.id, str(NumKind(self.ty_min.inner)))
-        return str(NumKind(self.ty_min.inner))
+            return "n{}({})".format(self.id, str(NumKind(self.ty_min)))
+        return str(NumKind(self.ty_min))
 
     def __eq__(self, other):
         return isinstance(other, TyNum) and self.ty_min == other.ty_min
@@ -88,7 +77,7 @@ class TyNum(TyObj):
         return False
 
     def possible_types(self):
-        return list(range(self.ty_min.inner, self.ty_max.inner + 1))
+        return list(range(self.ty_min, self.ty_max+ 1))
 
 
 def TyBool():
@@ -270,6 +259,15 @@ class TyUserDefinedClass(TyObj):
 
 # --------------------- numpy ndarray / chainer variable -----------------------
 
+class TyDtype(TyObj):
+    def __init__(self, t):
+        self.t = t
+    def __str__(self):
+        return str(self.t)
+    def __eq__(self, other):
+        return self.t == other.t
+
+
 class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
@@ -277,7 +275,7 @@ class TensorKind(Enum):
 class TyTensor(TyObj):
     def __init__(self, dtype=None, kind=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        self.dtype = Singleton(dtype)
+        self.dtype = TyDtype(dtype)
         self.kind = kind
 
     def show(self):
@@ -421,7 +419,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyDict):
         return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
     if isinstance(ty, TyTensor):
-        ret = np.array(0, dtype=ty.dtype.inner)
+        ret = np.array(0, dtype=ty.dtype.t)
         if ty.kind == TensorKind.ndarray:
             return ret
         if ty.kind == TensorKind.chainer_variable:
@@ -492,8 +490,8 @@ def unify(ty1, ty2):
                 [i for i in ty1.possible_types() if i in ty2.possible_types()]
         if possible_types == []:
             raise UnifyError(ty1, ty2)
-        ty1.ty_min.inner = ty2.ty_min.inner = min(possible_types)
-        ty1.ty_max.inner = ty2.ty_max.inner = max(possible_types)
+        ty1.ty_min = ty2.ty_min = min(possible_types)
+        ty1.ty_max = ty2.ty_max = max(possible_types)
         return
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
@@ -531,10 +529,10 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
-        if ty1.dtype.inner is None:
-            ty1.dtype.inner = ty2.dtype.inner
-        elif ty2.dtype.inner is None:
-            ty2.dtype.inner = ty1.dtype.inner
+        if ty1.dtype.t is None:
+            ty1.dtype.t = ty2.dtype.t
+        elif ty2.dtype.t is None:
+            ty2.dtype.t = ty1.dtype.t
 
         if ty1.kind is None:
             ty1.kind = ty2.kind
