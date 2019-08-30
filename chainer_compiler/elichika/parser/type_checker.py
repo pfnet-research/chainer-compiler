@@ -82,6 +82,10 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
+        np.ones : evaluate_function_types(
+            np.ones, 0),
+        np.zeros : evaluate_function_types(
+            np.zeros, 0),
         F.relu : evaluate_function_types(
             F.relu, 1),
         F.softmax_cross_entropy : evaluate_function_types(
