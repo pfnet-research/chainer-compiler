@@ -3,13 +3,12 @@ pull_chainer_whl() {
     CHAINER_COMMIT_ID=$(git rev-parse --short HEAD)
     popd
     set +e
-    WHEEL_EXIST=$(gsutil -q stat gs://tmp-pfn-public-ci/chainer-compiler/chainer-whl/$CHAINER_COMMIT_ID/*.whl; echo $?)
+    WHEEL_EXIST=$(gsutil -q stat gs://tmp-asia-pfn-public-ci/chainer-compiler/chainer-whl/$CHAINER_COMMIT_ID/*.whl; echo $?)
     set -e
     if [[ $WHEEL_EXIST = 0 ]]; then
         mkdir dist-chainer
-        gsutil -q cp gs://tmp-pfn-public-ci/chainer-compiler/chainer-whl/$CHAINER_COMMIT_ID/*.whl dist-chainer
+        gsutil -q cp gs://tmp-asia-pfn-public-ci/chainer-compiler/chainer-whl/$CHAINER_COMMIT_ID/*.whl dist-chainer
         echo "Get cheched wheel, commit id: "$CHAINER_COMMIT_ID
-        ls -la dist-chainer
     fi
 }
 
@@ -18,7 +17,7 @@ push_chainer_whl() {
     if [[ -d dist ]]; then
         cd dist
         CHAINER_COMMIT_ID=$(git rev-parse --short HEAD)
-        gsutil -q cp *.whl gs://tmp-pfn-public-ci/chainer-compiler/chainer-whl/$CHAINER_COMMIT_ID/
+        gsutil -q cp *.whl gs://tmp-asia-pfn-public-ci/chainer-compiler/chainer-whl/$CHAINER_COMMIT_ID/
         echo "Upload chainer wheel, commit id: "$CHAINER_COMMIT_ID
         cd ..
     fi
