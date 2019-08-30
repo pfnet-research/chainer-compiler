@@ -64,12 +64,16 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
     def infer(ty_args, dummy_args_nontensor, kwargs):
         ty_args_tensor = [t for t in ty_args if isinstance(t, TyTensor)]
 
-        shapes = [s if t.shape is None else t.shape     for t, s in zip(ty_args_tensor, fallback_shapes)]
-        dtypes = [s if t.dtype.t is None else t.dtype.t for t, dt in zip(ty_args_tensor, fallback_dtypes)]
+        shapes = [s if t.shape is None else t.shape
+                for t, s in zip(ty_args_tensor, fallback_shapes)]
+        dtypes = [s if t.dtype.t is None else t.dtype.t
+                for t, dt in zip(ty_args_tensor, fallback_dtypes)]
+        # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
                 dummy_args_nontensor
         dummy_result = func(*dummy_args, **kwargs)
         ty_result = type_of_value(dummy_result)
+        # TODO(momohatt): fallbackを使った部分は出力に加えない
         return ty_result
 
     return infer
