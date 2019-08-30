@@ -28,11 +28,10 @@ def defined_with___call__(func):
 
 def callable_(x):
     # TODO(momohatt): この分類どうしよう
-    if isinstance(x, L.Linear):
-        return False
-    if isinstance(x, np.dtype):
-        return False
-    if isinstance(x, type):
+    if isinstance(x, L.Linear) or \
+            isinstance(x, L.Convolution2D) or \
+            isinstance(x, L.BatchNormalization) or \
+            isinstance(x, np.dtype) or isinstance(x, type):
         return False
     return callable(x)
 
@@ -96,6 +95,12 @@ ext_func_ty = {
             F.softmax_cross_entropy,
             fallback_shapes=((1, 1), (1)),
             fallback_dtypes=(np.float32, np.int64)),
+        F.max_pooling_2d : evaluate_function_types(
+            F.max_pooling_2d,
+            fallback_shapes=((1, 1, 2, 2),),
+            fallback_dtypes=(np.float32,)),
+        F.average_pooling_2d : evaluate_function_types(
+            F.average_pooling_2d, 1),
         }
 
 
@@ -232,9 +237,12 @@ class TypeChecker():
 
 
     def infer_function(self, node, ty_args: List['TyObj']):
+        # TODO(momohatt): varargs
         assert isinstance(node, gast.FunctionDef)
-        assert len(ty_args) == len(node.args.args), \
-            "Wrong number of arguments"
+        if node.args.vararg == []:
+            assert len(ty_args) == len(node.args.args), \
+                    "Wrong number of arguments: expected {}, got {}".format(
+                            len(node.args.args), len(ty_args))
 
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
@@ -498,12 +506,16 @@ class TypeChecker():
                     # case of calling external (eg. np/chainer) functions
 
                     # Non-tensor arguments
-                    dummy_args_nontensor = [value_of_type(t) for t in ty_args \
-                            if not isinstance(t, TyTensor)]
+                    val_dummy_args_nontensor = []
+                    for t, n in zip(ty_args, node.args):
+                        if isinstance(t, TyTensor):
+                            continue
+                        v = self.evaluate(n)
+                        val_dummy_args_nontensor.append(v if v is not None else value_of_type(t))
                     val_kwargs = self.get_kwarg(node.keywords)
                     inference_logic = ext_func_ty[e.func]
                     ty_ret = inference_logic(
-                            ty_args, dummy_args_nontensor, val_kwargs)
+                            ty_args, val_dummy_args_nontensor, val_kwargs)
 
                     self.nodetype[node] = ty_ret
                     self.nodetype[node.func] = TyArrow(ty_args, ty_ret)

@@ -103,15 +103,17 @@ if __name__ == '__main__':
             y = np.zeros(0).astype('float64')
             return y
 
-    # model = ResNet50()
+    model = ResNet50()
 
-    # bsize = 2
-    # v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
-    # t = np.random.randint(1000, size=bsize).astype(np.int32)
+    bsize = 2
+    v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
+    t = np.random.randint(1000, size=bsize).astype(np.int32)
+    forward_args = (model, v, t)
 
+    # model.forward(v, t)
 
-    model = Test()
-    forward_args = (model, )
+    # model = Test()
+    # forward_args = (model, )
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
