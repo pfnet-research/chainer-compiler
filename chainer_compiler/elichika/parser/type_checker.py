@@ -30,6 +30,10 @@ def callable_(x):
     # TODO(momohatt): この分類どうしよう
     if isinstance(x, L.Linear):
         return False
+    if isinstance(x, np.dtype):
+        return False
+    if isinstance(x, type):
+        return False
     return callable(x)
 
 
@@ -66,7 +70,7 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 
         shapes = [s if t.shape is None else t.shape
                 for t, s in zip(ty_args_tensor, fallback_shapes)]
-        dtypes = [s if t.dtype.t is None else t.dtype.t
+        dtypes = [s if t.dtype is None else t.dtype
                 for t, dt in zip(ty_args_tensor, fallback_dtypes)]
         # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
@@ -572,6 +576,10 @@ class TypeChecker():
                 self.nodetype[node] = TyArrow(ty_fun.argty[1:], ty_fun.retty)
                 unify(ty_fun.argty[0], ty_obj)
                 return self.nodetype[node]
+
+            if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
+                # TODO(momohatt): astype
+                return
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance

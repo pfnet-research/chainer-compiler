@@ -259,25 +259,17 @@ class TyUserDefinedClass(TyObj):
 
 # --------------------- numpy ndarray / chainer variable -----------------------
 
-class TyDtype(TyObj):
-    def __init__(self, t):
-        self.t = t
-    def __str__(self):
-        return str(self.t)
-    def __eq__(self, other):
-        return self.t == other.t
-
-
 class TensorKind(Enum):
     ndarray = 0
     chainer_variable = 1
 
 class TyTensor(TyObj):
-    def __init__(self, dtype=None, kind=None):  # we do not allow heterogeneous type ndarray
+    def __init__(self, dtype=None, kind=None, shape=None):  # we do not allow heterogeneous type ndarray
+        # TODO(momohatt): shape
         super().__init__()
-        self.dtype = TyDtype(dtype)
+        self.dtype = dtype
         self.kind = kind
-        self.shape = None  # TODO
+        self.shape = shape
 
     def show(self):
         if self.kind == TensorKind.ndarray:
@@ -291,6 +283,12 @@ class TyTensor(TyObj):
 
     def is_mutable(self):
         return True
+
+    def is_ndarray(self):
+        return self.kind == TensorKind.ndarray
+
+    def is_chainer_variable(self):
+        return self.kind == TensorKind.chainer_variable
 
 
 def TyNdarray(dtype):
@@ -530,10 +528,10 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
-        if ty1.dtype.t is None:
-            ty1.dtype.t = ty2.dtype.t
-        elif ty2.dtype.t is None:
-            ty2.dtype.t = ty1.dtype.t
+        if ty1.dtype is None:
+            ty1.dtype = ty2.dtype
+        elif ty2.dtype is None:
+            ty2.dtype = ty1.dtype
 
         if ty1.kind is None:
             ty1.kind = ty2.kind
