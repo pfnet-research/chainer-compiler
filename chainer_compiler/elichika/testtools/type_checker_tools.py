@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
     class Test():
         def forward(self):
-            x = np.array([4])
+            x = np.array([4], dtype=np.float32)
             return x
 
     # class A():
@@ -119,7 +119,6 @@ if __name__ == '__main__':
     #         return h(x, 1)
 
     model = Test()
-
     forward_args = (model, )
 
     # --------------------------------------------------------------------------

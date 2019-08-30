@@ -33,13 +33,6 @@ def callable_(x):
     return callable(x)
 
 
-def get_kwarg(keywords, key):
-    for k in keywords:
-        if k.arg == key:
-            return k.value
-    return None
-
-
 # ==============================================================================
 
 builtins_name = ['float', 'range', 'abs']
@@ -177,6 +170,13 @@ class TypeChecker():
         print()
 
 
+    def get_kwarg(self, keywords):
+        ret = {}
+        for k in keywords:
+            ret[k.arg] = self.evaluate(k.value)
+        return ret
+
+
     def evaluate(self, node):
         if isinstance(node, gast.Attribute):
             module = getattr(self.module, node.value.id)
@@ -222,9 +222,6 @@ class TypeChecker():
         if self.is_debug:
             print('=== Type Environment ===')
             self.dump_nodetype()
-
-            pprint(self.nodetype)
-            pprint(self.subroutine_node)
 
         return self.nodetype
 
@@ -462,13 +459,8 @@ class TypeChecker():
             except self.ExtFunction as e:
                 # np/chainer functions
                 val_args = [value_of_type(t) for t in ty_args]
-
-                dtype_arg = get_kwarg(node.keywords, 'dtype')
-                dtype_val = self.evaluate(dtype_arg)
-                if dtype_arg is not None:
-                    val_ret = e.func(*val_args, dtype=dtype_val)
-                else:
-                    val_ret = e.func(*val_args)
+                val_kwargs = self.get_kwarg(node.keywords)
+                val_ret = e.func(*val_args, **val_kwargs)
 
                 ty_ret = type_of_value(val_ret)
                 self.nodetype[node] = ty_ret

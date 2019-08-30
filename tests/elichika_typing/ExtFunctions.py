@@ -29,6 +29,25 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[17]), "ndarray(dtype=float64)")	# Name x (line 3)
 
 
+    def test_numpy_array_dtype(self):
+        class Test():
+            def forward(self):
+                x = np.array([4], dtype=np.float32)
+                return x
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "Test -> ndarray(dtype=float32)")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[6]), "ndarray(dtype=float32)")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "ndarray(dtype=float32)")	# Call (line 2)
+        self.assertEqual(str(id2type[9]), "[int] -> ndarray(dtype=float32)")	# Attribute array (line 2)
+        self.assertEqual(str(id2type[13]), "[int]")	# List (line 2)
+        self.assertEqual(str(id2type[14]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[21]), "ndarray(dtype=float32)")	# Return (line 3)
+        self.assertEqual(str(id2type[22]), "ndarray(dtype=float32)")	# Name x (line 3)
+
+
 def main():
     unittest.main()
 
