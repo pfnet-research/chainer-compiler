@@ -39,10 +39,12 @@ PYTHONPATH=. python3 -m pytest -sv tests
 
 EOM
 
+. .flexci/common.sh
+
 . .flexci/cache.sh
 pull_chainer_whl
 
 docker run --runtime=nvidia --memory-swap=-1 --rm -v=$(pwd):/chainer-compiler --workdir=/chainer-compiler \
-    disktnk/chainer-compiler:ci-base-22b692b /bin/bash /chainer-compiler/runtest.sh
+    ${CI_IMAGE} /bin/bash /chainer-compiler/runtest.sh
 
 push_chainer_whl
