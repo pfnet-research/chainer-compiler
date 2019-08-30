@@ -94,32 +94,25 @@ if __name__ == '__main__':
     import chainer.functions as F
     import chainer.links as L
 
+    from testcases.elichika_tests.model.MLP import MLP
+
 
     class Test():
         def forward(self):
-            x = np.array([4], dtype=np.float32)
+            x = np.array([[4]], dtype=np.float32)
+            y = np.array([4])
+            z = F.softmax_cross_entropy(x, y)
             return x
 
-    # class A():
-    #     def f(self, x):
-    #         return x
+    out_n = 4
+    batch_size = 100
+    model = MLP(8, out_n)
+    v = np.random.rand(batch_size, 3).astype(np.float32)
+    w = np.random.randint(out_n, size=batch_size)
+    forward_args = (model, v, w)
 
-    # class Test():
-    #     def __init__(self):
-    #         self.a = A()
-
-    #     def forward(self, x):
-    #         return self.a.f(x)
-
-    # def h(x, y):
-    #     return x + y
-
-    # class Test():
-    #     def forward(self, x):
-    #         return h(x, 1)
-
-    model = Test()
-    forward_args = (model, )
+    # model = Test()
+    # forward_args = (model, )
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))

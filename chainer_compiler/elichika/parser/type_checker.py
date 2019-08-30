@@ -54,26 +54,36 @@ builtins_ty = {
         }
 
 
+# 'evaluate' function return type by using the function
+def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallback_dtypes=None):
+    if fallback_shapes is None:
+        fallback_shapes = ((1, 1),) * narg_tensor
+    if fallback_dtypes is None:
+        fallback_dtypes = (np.float32,) * narg_tensor
+
+    def infer(ty_args, dummy_args_nontensor, kwargs):
+        ty_args_tensor = [t for t in ty_args if isinstance(t, TyTensor)]
+
+        shapes = [s if t.shape is None else t.shape     for t, s in zip(ty_args_tensor, fallback_shapes)]
+        dtypes = [s if t.dtype.t is None else t.dtype.t for t, dt in zip(ty_args_tensor, fallback_dtypes)]
+        dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
+                dummy_args_nontensor
+        dummy_result = func(*dummy_args, **kwargs)
+        ty_result = type_of_value(dummy_result)
+        return ty_result
+
+    return infer
+
+
 ext_func_ty = {
-        np.array :
-            # TyArrowの返り値の型の初期化を引数の型が決まるまで遅延したいが、
-            # 難しそう(TyNumの中の型レベルを表す変数をmutableにすれば一応は
-            # 解決するが、ちょっと汚い気が...)
-            (lambda x: TyArrow([TySequence(x)],
-                TyNdarray(np.dtype(pytype_of_type(x))))) \
-                        (TyBool()),
-        np.ones :
-            TyArrow([TyUnion(TyBool(), TySequence(TyIntOnly()))],
-                TyNdarray(np.dtype('float64'))),
-        np.zeros :
-            TyArrow([TyUnion(TyBool(), TySequence(TyIntOnly()))],
-                TyNdarray(np.dtype('float64'))),
-        F.relu :
-            (lambda x: TyArrow([x], TyChainerVariable(x.dtype))) \
-                    (TyTensor()),
-        F.softmax_cross_entropy :
-            TyArrow([TyTensor(), TyTensor()],
-                TyChainerVariable(np.dtype('float32'))),
+        np.array : evaluate_function_types(
+            np.array, 0),
+        F.relu : evaluate_function_types(
+            F.relu, 1),
+        F.softmax_cross_entropy : evaluate_function_types(
+            F.softmax_cross_entropy,
+            fallback_shapes=((1, 1), (1)),
+            fallback_dtypes=(np.float32, np.int64)),
         }
 
 
@@ -458,11 +468,14 @@ class TypeChecker():
                 ty_fun = self.infer_expr(node.func)
             except self.ExtFunction as e:
                 # np/chainer functions
-                val_args = [value_of_type(t) for t in ty_args]
+                # Non-tensor arguments
+                dummy_args_nontensor = [value_of_type(t) for t in ty_args \
+                        if not isinstance(t, TyTensor)]
                 val_kwargs = self.get_kwarg(node.keywords)
-                val_ret = e.func(*val_args, **val_kwargs)
+                inference_logic = ext_func_ty[e.func]
+                ty_ret = inference_logic(
+                        ty_args, dummy_args_nontensor, val_kwargs)
 
-                ty_ret = type_of_value(val_ret)
                 self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return self.nodetype[node]

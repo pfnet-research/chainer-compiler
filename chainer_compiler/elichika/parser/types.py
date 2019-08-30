@@ -277,6 +277,7 @@ class TyTensor(TyObj):
         super().__init__()
         self.dtype = TyDtype(dtype)
         self.kind = kind
+        self.shape = None  # TODO
 
     def show(self):
         if self.kind == TensorKind.ndarray:
