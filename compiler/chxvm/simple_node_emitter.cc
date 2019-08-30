@@ -614,6 +614,15 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(NonZero, out(0), in(0));
+    } else if (node.op_type() == Node::kTopK) {
+        CHECK_EQ(2UL, node.inputs().size());
+        CHECK_EQ(2UL, node.outputs().size());
+        EMIT(TopK, out(0), out(1), in(0), in(1), node.axis(), node.largest(), node.sorted());
+    } else if (node.op_type() == Node::kNonMaxSuppression) {
+        CHECK_LE(2UL, node.inputs().size());
+        CHECK_GE(5UL, node.inputs().size());
+        CHECK_EQ(1UL, node.outputs().size());
+        EMIT(NonMaxSuppression, out(0), in(0), in(1), oin(2), oin(3), oin(4), node.center_point_box());
     } else {
         CHECK(false) << "Unsupported op: " << node.op_type();
     }
