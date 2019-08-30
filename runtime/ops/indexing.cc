@@ -331,5 +331,70 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
     return MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(selected_indices.size()), 3}, selected_indices.data());
 }
 
+template <typename T>
+struct ValueCmp {
+    bool operator()(const std::pair<T, int64_t>& lhs, const std::pair<T, int64_t>& rhs) {
+        return (lhs.first > rhs.first || (lhs.first == rhs.first && lhs.second < rhs.second));
+    }
+};
+
+std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const StrictScalar& k_src) {
+    const chainerx::Shape in_shape = x.shape();
+    const int64_t axis = this->axis < 0 ? in_shape.size() - this->axis : this->axis;
+    CHECK(0 < axis && axis < in_shape.size());
+    const int64_t k = static_cast<int64_t>(k_src);
+    CHECK(k >= 0);
+    CHECK(in_shape[axis] > k);
+
+    chainerx::Shape out_shape = in_shape;
+    out_shape[axis] = k;
+    if (k == 0) {
+        return std::make_tuple(chainerx::Full(out_shape, 0.f, x.device()), chainerx::Full(out_shape, 0L, x.device()));
+    }
+
+    int64_t rows = 1;
+    for (int64_t i = 0; i < k; ++i) {
+        rows *= in_shape[i];
+    }
+    const int64_t cols = in_shape.GetTotalSize() / rows;
+
+    int64_t reduced_cols = 1;
+    for (int64_t i = k; i < out_shape.size(); ++i) {
+        reduced_cols *= out_shape[i];
+    }
+
+    const int64_t block_slice = reduced_cols / k;
+
+    std::vector<float> values(out_shape.GetTotalSize());
+    std::vector<int64_t> indices(out_shape.GetTotalSize());
+    for (int64_t i = 0; i < rows; ++i) {
+        for (int64_t j = 0; j < block_slice; ++j) {
+            std::priority_queue<std::pair<float, int64_t>, std::vector<std::pair<float, int64_t>>, ValueCmp<float>> min_heap;
+
+            for (int64_t l = 0; l < in_shape[axis]; ++l) {
+                const float value = static_cast<float>(chainerx::AsScalar(x.At({i, l * block_slice + j})));
+                if (min_heap.size() < k || value > min_heap.top().first) {
+                    min_heap.push({value, l});
+                }
+                if (min_heap.size() > k) {
+                    min_heap.pop();
+                }
+            }
+
+            for (int64_t l = 0; l < k; ++l) {
+                const std::pair<float, int64_t>& elem = min_heap.top();
+                int64_t col_idx = (k - l - 1) * block_slice + j;
+                values[reduced_cols * i + col_idx] = elem.first;
+                indices[reduced_cols * i + col_idx] = elem.second;
+                min_heap.pop();
+            }
+        }
+    }
+
+    return std::make_tuple(
+            MakeArray(chainerx::Dtype::kFloat32, out_shape, values.data()).AsType(x.dtype()),
+            MakeArray(chainerx::Dtype::kInt64, out_shape, indices.data()));
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

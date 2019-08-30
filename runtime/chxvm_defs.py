@@ -424,7 +424,7 @@ CHX_OPS = [
       OptionalScalar('iou_threshold'),
       OptionalScalar('score_threshold'), Int('center_point_box')],
      [Array('selected_indices')]),
-    ('TopK', [Array('x'), Array('k'), Int('axis'), Int('largest'), Int('sorted')],
+    ('TopK', [Array('x'), Scalar('k'), Int('axis'), Int('largest'), Int('sorted')],
      [Array('values'), Array('indices')]),
 
     ('DoSomething',
