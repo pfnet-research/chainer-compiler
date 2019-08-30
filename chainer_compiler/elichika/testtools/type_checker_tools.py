@@ -99,9 +99,8 @@ if __name__ == '__main__':
 
     class Test():
         def forward(self):
-            x = np.array([[4]], dtype=np.float32)
-            y = np.array([4])
-            z = F.softmax_cross_entropy(x, y)
+            x = np.array([4], dtype=np.float64)
+            y = np.array([4], dtype='float64')
             return x
 
     out_n = 4
@@ -111,8 +110,8 @@ if __name__ == '__main__':
     w = np.random.randint(out_n, size=batch_size)
     forward_args = (model, v, w)
 
-    # model = Test()
-    # forward_args = (model, )
+    model = Test()
+    forward_args = (model, )
 
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))

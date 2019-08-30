@@ -200,6 +200,9 @@ class TypeChecker():
         if isinstance(node, gast.Num):
             return node.n
 
+        if isinstance(node, gast.Str):
+            return node.s
+
 
 
     def infer(self, node):
