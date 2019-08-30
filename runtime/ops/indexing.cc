@@ -6,6 +6,7 @@
 #include <common/log.h>
 #include <runtime/chainerx_util.h>
 #include <runtime/gen_chxvm_ops.h>
+#include <queue>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -40,6 +41,69 @@ std::vector<chainerx::ArrayIndex> GetIndicesForDynamicSlice(
         indices[axis] = chainerx::Slice(start, end, step);
     }
     return indices;
+}
+
+inline void MaxMin(float lhs, float rhs, float& min, float& max) {
+    if (lhs >= rhs) {
+        min = rhs;
+        max = lhs;
+    } else {
+        min = lhs;
+        max = rhs;
+    }
+}
+
+inline bool SuppressByIOU(const float* boxes_data, int64_t box_idx1, int64_t box_idx2, int64_t center_point_box, float iou_threshold) {
+    float x1_min, y1_min, x1_max, y1_max, x2_min, y2_min, x2_max, y2_max;
+
+    const float* box1 = boxes_data + 4 * box_idx1;
+    const float* box2 = boxes_data + 4 * box_idx2;
+
+    if (center_point_box == 0) {
+        MaxMin(box1[1], box1[3], x1_min, x1_max);
+        MaxMin(box1[0], box1[2], y1_min, y1_max);
+        MaxMin(box2[1], box2[3], x2_min, x2_max);
+        MaxMin(box2[0], box2[2], y2_min, y2_max);
+    } else {
+        const float box1_width_half = box1[2] / 2;
+        const float box1_height_half = box1[3] / 2;
+        const float box2_width_half = box2[2] / 2;
+        const float box2_height_half = box2[3] / 2;
+
+        x1_min = box1[0] - box1_width_half;
+        x1_max = box1[0] + box1_width_half;
+        y1_min = box1[1] - box1_height_half;
+        y1_max = box1[1] + box1_height_half;
+
+        x2_min = box2[0] - box2_width_half;
+        x2_max = box2[0] + box2_width_half;
+        y2_min = box2[1] - box2_height_half;
+        y2_max = box2[1] + box2_height_half;
+    }
+
+    const float intersection_x_min = std::max(x1_min, x2_min);
+    const float intersection_y_min = std::max(y1_min, y2_min);
+    const float intersection_x_max = std::min(x1_max, x2_max);
+    const float intersection_y_max = std::min(y1_max, y2_max);
+
+    const float intersection_area =
+            std::max(intersection_x_max - intersection_x_min, 0.f) * std::max(intersection_y_max - intersection_y_min, 0.f);
+
+    if (intersection_area <= 0.f) {
+        return false;
+    }
+
+    const float area1 = (x1_max - x1_min) * (y1_max - y1_min);
+    const float area2 = (x2_max - x2_min) * (y2_max - y2_min);
+    const float union_area = area1 + area2 - intersection_area;
+
+    if (area1 <= 0.f || area2 <= 0.f || union_area <= 0.f) {
+        return false;
+    }
+
+    const float intersection_over_union = intersection_area / union_area;
+
+    return intersection_over_union > iou_threshold;
 }
 
 }  // namespace
@@ -179,6 +243,92 @@ chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
     return runtime::MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(result.size() / rank), rank}, result.data())
             .Transpose()
             .ToDevice(x_.device());
+}
+
+chainerx::Array NonMaxSuppressionOp::RunImpl(
+        ChxVMState* st,
+        const chainerx::Array& boxes,
+        const chainerx::Array& scores,
+        const absl::optional<StrictScalar>& opt_max_output_boxes_per_class,
+        const absl::optional<StrictScalar>& opt_iou_threshold,
+        const absl::optional<StrictScalar>& opt_score_threshold) {
+    if (opt_max_output_boxes_per_class && static_cast<int>(*opt_max_output_boxes_per_class) == 0) {
+        return chainerx::Full({0, 3}, 0, boxes.device());
+    }
+
+    struct score_index {
+        float score_{};
+        int64_t index_{};
+
+        score_index() = default;
+        explicit score_index(float s, int64_t i) : score_(s), index_(i) {
+        }
+
+        bool operator<(const score_index& rhs) const {
+            return score_ < rhs.score_;
+        }
+    };
+
+    chainerx::Array raw_scores = chainerx::AsContiguous(scores).AsType(chainerx::Dtype::kFloat32).ToNative();
+    const float* scores_data = reinterpret_cast<const float*>(raw_scores.raw_data());
+    chainerx::Array raw_boxes = chainerx::AsContiguous(boxes).AsType(chainerx::Dtype::kFloat32).ToNative();
+    const float* boxes_data = reinterpret_cast<const float*>(raw_boxes.raw_data());
+
+    const int64_t num_batches = boxes.shape()[0];
+    const int64_t num_boxes = boxes.shape()[1];
+    const int64_t num_classes = scores.shape()[1];
+
+    const float iou_threshold = opt_iou_threshold ? static_cast<float>(*opt_iou_threshold) : 0;
+    CHECK(0.f <= iou_threshold && iou_threshold <= 1.f);
+
+    std::function<bool(float)> check_score_threshold = [](float cls_score) { return true; };
+    if (opt_score_threshold) {
+        const float score_threshold = static_cast<float>(*opt_score_threshold);
+        check_score_threshold = [score_threshold](float cls_score) { return cls_score > score_threshold; };
+    }
+
+    std::vector<std::array<int64_t, 3>> selected_indices;
+    for (int64_t batch_idx = 0; batch_idx < num_batches; ++batch_idx) {
+        for (int64_t class_idx = 0; class_idx < num_classes; ++class_idx) {
+            int64_t box_score_offset = (batch_idx * num_classes + class_idx) * num_boxes;
+            int64_t box_offset = batch_idx * num_boxes * 4;
+
+            std::priority_queue<score_index, std::vector<score_index>> sorted_score_indices;
+            const float* cls_scores = scores_data + box_score_offset;
+
+            for (int64_t box_idx = 0; box_idx < num_boxes; ++box_idx, ++cls_scores) {
+                if (check_score_threshold(*cls_scores)) {
+                    sorted_score_indices.push(score_index(*cls_scores, box_idx));
+                }
+            }
+
+            std::vector<int64_t> selected_indicies_inside_class;
+
+            while (!sorted_score_indices.empty()) {
+                score_index next_top_score = sorted_score_indices.top();
+                sorted_score_indices.pop();
+
+                bool selected = true;
+                for (int64_t selected_idx : selected_indicies_inside_class) {
+                    if (SuppressByIOU(boxes_data + box_offset, selected_idx, next_top_score.index_, center_point_box, iou_threshold)) {
+                        selected = false;
+                        break;
+                    }
+                }
+
+                if (selected) {
+                    if (max_output_boxes_per_class > 0 &&
+                        static_cast<int64_t>(selected_indicies_inside_class.size()) >= max_output_boxes_per_class) {
+                        break;
+                    }
+                    selected_indicies_inside_class.push_back(next_top_score.index_);
+                    selected_indices.push_back({batch_idx, class_idx, next_top_score.index_});
+                }
+            }
+        }
+    }
+
+    return MakeArray(chainerx::Dtype::kInt64, {static_cast<int64_t>(selected_indices.size()), 3}, selected_indices.data());
 }
 
 }  // namespace runtime
