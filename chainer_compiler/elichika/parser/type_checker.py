@@ -33,6 +33,12 @@ def callable_(x):
     return callable(x)
 
 
+def get_kwarg(keywords, key):
+    for k in keywords:
+        if k.arg == key:
+            return k.value
+    return None
+
 
 # ==============================================================================
 
@@ -169,6 +175,17 @@ class TypeChecker():
         for node, ty in self.nodetype.items():
             print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
         print()
+
+
+    def evaluate(self, node):
+        if isinstance(node, gast.Attribute):
+            module = getattr(self.module, node.value.id)
+            attr = getattr(module, node.attr)
+            return attr
+
+        if isinstance(node, gast.Num):
+            return node.n
+
 
 
     def infer(self, node):
@@ -444,10 +461,15 @@ class TypeChecker():
                 ty_fun = self.infer_expr(node.func)
             except self.ExtFunction as e:
                 # np/chainer functions
-                # print(ty_args)
                 val_args = [value_of_type(t) for t in ty_args]
-                # print(e.func, val_args, [v.dtype for v in val_args])
-                val_ret = e.func(*val_args)
+
+                dtype_arg = get_kwarg(node.keywords, 'dtype')
+                dtype_val = self.evaluate(dtype_arg)
+                if dtype_arg is not None:
+                    val_ret = e.func(*val_args, dtype=dtype_val)
+                else:
+                    val_ret = e.func(*val_args)
+
                 ty_ret = type_of_value(val_ret)
                 self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
@@ -522,8 +544,10 @@ class TypeChecker():
             if isinstance(node.value, gast.Name) and \
                     hasattr(self.module, node.value.id):
                 module = getattr(self.module, node.value.id)
-                func = getattr(module, node.attr)
-                raise self.ExtFunction(func)
+                attr = getattr(module, node.attr)
+                if callable_(attr):
+                    raise self.ExtFunction(attr)
+                self.nodetype[node] = type_of_value(attr)
 
             ty_obj = self.infer_expr(node.value)
 
