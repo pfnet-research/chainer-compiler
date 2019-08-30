@@ -105,10 +105,6 @@ list_attr_ty = {
         }
 
 
-ndarray_attr_ty = {
-        'astype' : lambda x: (lambda d: TyArrow([d], TyNdarray(d)))(TyDType())
-        }
-
 def ty_NumOp(tyl, tyr):
     if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
         return TyNum(max(tyl.ty_min, tyr.ty_min), 2)
@@ -485,11 +481,18 @@ class TypeChecker():
 
             except self.ArgumentRequired as e:
                 if e.func is None:
-                    # attribute against tensor
+                    # attribute against tensor etc.
                     assert isinstance(node.func, gast.Attribute)
                     ty_obj = self.nodetype[node.func.value]
-                    print(ty_obj)
-                    return
+
+                    if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
+                        if node.func.attr == 'astype':
+                            val_args = [self.evaluate(arg) for arg in node.args]
+                            ty_ret = TyNdarray(TyDType(val_args[0]))
+                        self.nodetype[node] = ty_ret
+                        self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+
+                    return self.nodetype[node]
 
                 if e.func in ext_func_ty.keys():
                     # case of calling external (eg. np/chainer) functions
@@ -592,9 +595,7 @@ class TypeChecker():
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
-                raise self.ArgumentRequired(ty_obj=ty_obj)
-                # self.nodetype[node] = ndarray_attr_ty[node.attr](ty_obj)
-                # return self.nodetype[node]
+                raise self.ArgumentRequired()
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
