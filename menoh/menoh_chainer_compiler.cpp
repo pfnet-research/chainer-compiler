@@ -654,25 +654,6 @@ menoh_error_code menoh_build_model(
                 }
             }
 
-#if 0
-            // Setup outputs (buffer)
-            std::unordered_map<std::string, void*> outputs;
-            for (chainer_compiler::Value* output : graph.output_values()) {
-                void* datap = nullptr;
-                auto found = builder->external_buffer_handle_table.find(output->name());
-                if (found != builder->external_buffer_handle_table.end()) {
-                    datap = found->second;
-                } else {
-                    auto p = builder->output_profile_table.find(output->name());
-                    CHECK(p != builder->output_profile_table.end()) << output->name() << " is not found in output_profile_table";
-                    auto data = allocate_buffer(p->second);
-                    buffer_holder.push_back(data);
-                    datap = data.get();
-                }
-                outputs.emplace(output->name(), datap);
-            }
-#endif
-
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
             chxvm_opts.trace_level = value_or(j, "trace_level", 0);
             chxvm_opts.is_training = value_or(j, "is_training", false);
@@ -798,25 +779,6 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                 chainerx::Array const& array = chainerx::AsContiguous(p.second->GetArray());
                 CHECK(model->outputs.emplace(p.first, std::make_shared<chainer_compiler::runtime::ChxVMVar>(array)).second);
             }
-
-#if 0
-            for (auto output : outputs) {
-                auto found = model->outputs.find(output.first);
-                CHECK(found != model->outputs.end()) << "output buffer for " << output.first << " is not found";
-                auto const& array = chainerx::AsContiguous(output.second->GetArray());
-                auto const& shape = array.shape();
-                auto bytesize = shape.GetTotalSize() * chainerx::GetItemSize(array.dtype());
-                CHECK(model->variable_profiles.find(output.first) != model->variable_profiles.end())
-                        << output.first << " is not found in variable_profiles";
-                CHECK_EQ(bytesize, menoh_impl::total_size_in_bytes(model->variable_profiles.find(output.first)->second))
-                        << "allocated output buffer size is not equal to cc's output buffer size";
-                void* raw_ptr = chainer_compiler::runtime::RawStartPtr(array);
-                std::copy(
-                        static_cast<uint8_t*>(raw_ptr),
-                        static_cast<uint8_t*>(raw_ptr) + bytesize,
-                        static_cast<uint8_t*>(found->second));
-            }
-#endif
         }
         chainerx::SetDefaultContext(default_context_backup);
         return menoh_error_code_success;
