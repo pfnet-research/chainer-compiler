@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <absl/types/optional.h>
+
 #include <nlohmann/json.hpp>
 
 #include <chainerx/array.h>
@@ -146,6 +148,7 @@ menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int16)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int32)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int64)
+        MENOH_DTYPE_SIZE_CASE(menoh_dtype_uint8)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_bool)
 #undef MENOH_DTYPE_SIZE_CASE
         default:
@@ -295,6 +298,7 @@ size_t total_size(std::vector<int64_t> const& dims) {
 size_t total_size_in_bytes(menoh_dtype dtype, std::vector<int64_t> const& dims) {
     int64_t dtype_size;
     menoh_dtype_size(dtype, &dtype_size);
+    CHECK_LT(0, dtype_size);
     return dtype_size * total_size(dims);
 }
 
@@ -350,6 +354,7 @@ struct menoh_variable_profile_table {
     std::shared_ptr<const onnx::GraphProto> xgraph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profiles;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
+    bool is_dynamic_model{false};
 };
 
 void menoh_delete_variable_profile_table(menoh_variable_profile_table_handle variable_profile_table) {
@@ -449,13 +454,15 @@ menoh_error_code menoh_build_variable_profile_table(
 
         // InferShape
         graph = std::make_unique<chainer_compiler::Graph>(xgraph);  // Reset graph
-        {
-            chainerx::NoBackpropModeScope scope;
-            graph->InferShapes();
-        }
+        graph->InferShapes();
 
         std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
+        bool is_dynamic = false;
         for (chainer_compiler::Value* value : graph->output_values()) {
+            if (!value->type().HasKnownShape()) {
+                is_dynamic = true;
+                continue;
+            }
             output_profiles.emplace(
                     value->name(), menoh_impl::array_profile(cc_dtype_to_menoh_dtype(value->type().dtype()), value->type().dims()));
         }
@@ -463,7 +470,7 @@ menoh_error_code menoh_build_variable_profile_table(
             auto xgraph_ptr = std::make_unique<onnx::GraphProto>();
             graph->ToONNX(xgraph_ptr.get());
             *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles)})
+                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles), is_dynamic})
                                   .release();
         }
         return menoh_error_code_success;
@@ -495,22 +502,26 @@ menoh_error_code menoh_variable_profile_table_get_variable_attribute(
 
 menoh_error_code menoh_variable_profile_table_get_dtype(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, menoh_dtype* dst_dtype) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get dtype from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(
             variable_profile_table, name, [&](auto const& profile) { *dst_dtype = static_cast<menoh_dtype>(profile.dtype()); });
 }
 menoh_error_code menoh_variable_profile_table_get_dims_size(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, int64_t* dst_size) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get shape from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(
             variable_profile_table, name, [&](auto const& profile) { *dst_size = static_cast<int64_t>(profile.dims().size()); });
 }
 menoh_error_code menoh_variable_profile_table_get_dims_at(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, int64_t index, int64_t* dst_size) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get shape from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(
             variable_profile_table, name, [&](auto const& profile) { *dst_size = profile.dims().at(index); });
 }
 
 menoh_error_code menoh_variable_profile_table_get_dims(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, int64_t* dst_size, const int64_t** dims) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get shape from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(variable_profile_table, name, [&](auto const& profile) {
         *dst_size = profile.dims().size();
         *dims = profile.dims().data();
@@ -561,7 +572,7 @@ struct menoh_model {
     std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles;
     std::unique_ptr<chainerx::Context> context;
     chainer_compiler::runtime::InOuts inputs;
-    std::unordered_map<std::string, void*> outputs;
+    chainer_compiler::runtime::InOuts outputs;
     std::unique_ptr<chainer_compiler::runtime::ChxVM> chxvm;
     chainer_compiler::runtime::ChxVMOptions chxvm_options;
     std::vector<std::shared_ptr<void>> buffer_holder;
@@ -643,22 +654,6 @@ menoh_error_code menoh_build_model(
                 }
             }
 
-            // Setup outputs (buffer)
-            std::unordered_map<std::string, void*> outputs;
-            for (chainer_compiler::Value* output : graph.output_values()) {
-                void* datap = nullptr;
-                auto found = builder->external_buffer_handle_table.find(output->name());
-                if (found != builder->external_buffer_handle_table.end()) {
-                    datap = found->second;
-                } else {
-                    auto p = builder->output_profile_table.find(output->name());
-                    CHECK(p != builder->output_profile_table.end()) << output->name() << " is not found in output_profile_table";
-                    auto data = allocate_buffer(p->second);
-                    buffer_holder.push_back(data);
-                    datap = data.get();
-                }
-                outputs.emplace(output->name(), datap);
-            }
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
             chxvm_opts.trace_level = value_or(j, "trace_level", 0);
             chxvm_opts.is_training = value_or(j, "is_training", false);
@@ -672,7 +667,7 @@ menoh_error_code menoh_build_model(
             *dst_model_handle = std::make_unique<menoh_model>(menoh_model{std::move(variable_profiles),
                                                                           std::move(ctx),
                                                                           std::move(inputs),
-                                                                          std::move(outputs),
+                                                                          {},
                                                                           std::move(chxvm),
                                                                           chxvm_opts,
                                                                           std::move(buffer_holder)})
@@ -682,19 +677,31 @@ menoh_error_code menoh_build_model(
     });
 }
 
-menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** data_p) {
+namespace {
+
+absl::optional<chainerx::Array> menoh_model_get_variable_array(const menoh_model_handle model, const char* variable_name) {
     auto found = model->outputs.find(variable_name);
-    if (found == model->outputs.end()) {
-        auto found = model->inputs.find(variable_name);
-        if (found == model->inputs.end()) {
-            auto message = std::string("menoh variable not found: ") + variable_name;
-            menoh_impl::set_last_error_message(message.c_str());
-            return menoh_error_code_variable_not_found;
-        }
-        *data_p = found->second->GetArray().raw_data();
-        return menoh_error_code_success;
+    if (found != model->outputs.end()) {
+        return found->second->GetArray();
     }
-    *data_p = found->second;
+    found = model->inputs.find(variable_name);
+    if (found != model->inputs.end()) {
+        return found->second->GetArray();
+    }
+    return absl::nullopt;
+}
+
+}  // namespace
+
+menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** data_p) {
+    absl::optional<chainerx::Array> array = menoh_model_get_variable_array(model, variable_name);
+    CHECK(array->IsContiguous());
+    if (!array) {
+        auto message = std::string("menoh variable not found: ") + variable_name;
+        menoh_impl::set_last_error_message(message.c_str());
+        return menoh_error_code_variable_not_found;
+    }
+    *data_p = chainer_compiler::runtime::RawStartPtr(*array);
     return menoh_error_code_success;
 }
 
@@ -716,17 +723,30 @@ menoh_error_code menoh_model_get_variable_variable_attribute(const menoh_model_h
 }  // namespace impl
 
 menoh_error_code menoh_model_get_variable_dtype(const menoh_model_handle model, const char* variable_name, menoh_dtype* dst_dtype) {
+    if (auto array = menoh_model_get_variable_array(model, variable_name)) {
+        *dst_dtype = chx_dtype_to_menoh_dtype(array->dtype());
+        return menoh_error_code_success;
+    }
     return impl::menoh_model_get_variable_variable_attribute(
             model, variable_name, [&](menoh_impl::array_profile const& arr) { *dst_dtype = static_cast<menoh_dtype>(arr.dtype()); });
 }
 
 menoh_error_code menoh_model_get_variable_dims_size(const menoh_model_handle model, const char* variable_name, int64_t* dst_size) {
+    if (auto array = menoh_model_get_variable_array(model, variable_name)) {
+        *dst_size = array->ndim();
+        return menoh_error_code_success;
+    }
     return impl::menoh_model_get_variable_variable_attribute(
             model, variable_name, [&](menoh_impl::array_profile const& arr) { *dst_size = static_cast<int64_t>(arr.dims().size()); });
 }
 
 menoh_error_code menoh_model_get_variable_dims_at(
         const menoh_model_handle model, const char* variable_name, int64_t index, int64_t* dst_size) {
+    if (auto array = menoh_model_get_variable_array(model, variable_name)) {
+        CHECK_LT(index, array->ndim());
+        *dst_size = array->shape()[index];
+        return menoh_error_code_success;
+    }
     return impl::menoh_model_get_variable_variable_attribute(
             model, variable_name, [&](menoh_impl::array_profile const& arr) { *dst_size = arr.dims().at(index); });
 }
@@ -753,20 +773,11 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
         {
             chainerx::NoBackpropModeScope scope;
             auto outputs = model->chxvm->Run(model->inputs, model->chxvm_options);
-            for (auto output : outputs) {
-                auto found = model->outputs.find(output.first);
-                CHECK(found != model->outputs.end()) << "output buffer for " << output.first << " is not found";
-                auto const& array = chainerx::AsContiguous(output.second->GetArray());
-                auto const& shape = array.shape();
-                auto bytesize = shape.GetTotalSize() * chainerx::GetItemSize(array.dtype());
-                CHECK(model->variable_profiles.find(output.first) != model->variable_profiles.end())
-                        << output.first << " is not found in variable_profiles";
-                CHECK_EQ(bytesize, menoh_impl::total_size_in_bytes(model->variable_profiles.find(output.first)->second))
-                        << "allocated output buffer size is not equal to cc's output buffer size";
-                std::copy(
-                        static_cast<uint8_t*>(array.raw_data()),
-                        static_cast<uint8_t*>(array.raw_data()) + bytesize,
-                        static_cast<uint8_t*>(found->second));
+            model->outputs.clear();
+            for (auto p : outputs) {
+                CHECK(p.second->IsArray()) << "menoh does not support non-array outputs";
+                chainerx::Array const& array = chainerx::AsContiguous(p.second->GetArray());
+                CHECK(model->outputs.emplace(p.first, std::make_shared<chainer_compiler::runtime::ChxVMVar>(array)).second);
             }
         }
         chainerx::SetDefaultContext(default_context_backup);

@@ -409,5 +409,9 @@ chainerx::Array SlowRound(const chainerx::Array& x) {
     return y.AsType(x.dtype());
 }
 
+void* RawStartPtr(const chainerx::Array& a) {
+    return static_cast<char*>(a.raw_data()) + a.offset();
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

@@ -80,5 +80,7 @@ chainerx::Array GroupedConvGradWeight(
 
 chainerx::Array SlowRound(const chainerx::Array& a);
 
+void* RawStartPtr(const chainerx::Array& a);
+
 }  // namespace runtime
 }  // namespace chainer_compiler

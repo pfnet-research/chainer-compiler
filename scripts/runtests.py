@@ -837,45 +837,6 @@ def main():
     run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
     run_onnx_menoh = os.path.join(args.build_dir, 'menoh/run_onnx_menoh')
 
-    # TODO(hamaji): Run more tests with run_onnx_menoh.
-    menoh_blacklist = [
-        'test_constantofshape_float_ones',
-        'test_constantofshape_int_zeros',
-        'test_onehot_with_axis',
-        'test_onehot_without_axis',
-        'test_upsample_nearest',
-        'test_resize_upsample_nearest',
-        'test_reshape_extended_dims',
-        'test_reshape_negative_dim',
-        'test_reshape_one_dim',
-        'test_reshape_reduced_dims',
-        'test_reshape_reordered_dims',
-        'test_expand_dim_unchanged',
-        'test_slice',
-        'test_slice_end_out_of_bounds',
-        'test_slice_default_axes',
-        'test_slice_start_out_of_bounds',
-        'test_slice_default_steps',
-        'test_slice_neg_steps',
-        'test_slice_neg',
-        'test_split_variable_parts_1d',
-        'test_split_equal_parts_1d',
-        'test_split_variable_parts_2d',
-        'test_split_equal_parts_default_axis',
-        'test_split_variable_parts_default_axis',
-        'test_qlinearmatmul_3D',
-        'test_dequantizelinear',
-        'test_qlinearmatmul_2D',
-        'test_basic_convinteger',
-        'test_convinteger_with_padding',
-        'test_bitshift_right_uint8',
-        'test_matmulinteger',
-        'test_bitshift_left_uint8',
-        'test_qlinearconv',
-        'test_quantizelinear',
-        'test_nonzero_example',
-    ]
-
     tested = []
     failed = []
     tests = []
@@ -891,11 +852,6 @@ def main():
             test_case.computation_order or
             not test_case.test_dir.startswith(NODE_TEST)):
             runner = run_onnx
-        else:
-            for bl in menoh_blacklist:
-                if bl in test_case.name:
-                    runner = run_onnx
-                    break
 
         test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')
