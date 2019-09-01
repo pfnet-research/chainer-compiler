@@ -443,6 +443,18 @@ TEST_CASES = [
 
     TestCase(NODE_TEST, 'test_where_example'),
     TestCase(NODE_TEST, 'test_nonzero_example'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_suppress_by_IOU'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_center_point_box_format'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_flipped_coordinates'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_identical_boxes'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_single_box'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_suppress_by_IOU_and_scores'),
+    # TODO(take-cheeze): Fix these 3:
+    # TestCase(NODE_TEST, 'test_nonmaxsuppression_two_batches'),
+    # TestCase(NODE_TEST, 'test_nonmaxsuppression_limit_output_size'),
+    # TestCase(NODE_TEST, 'test_nonmaxsuppression_two_classes'),
+    TestCase(NODE_TEST, 'test_top_k'),
+    TestCase(NODE_TEST, 'test_top_k_smallest'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
     TestCase(NODE_TEST, 'test_dequantizelinear'),
     TestCase(NODE_TEST, 'test_qlinearmatmul_2D'),

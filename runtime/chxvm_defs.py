@@ -418,6 +418,14 @@ CHX_OPS = [
 
     ('Where', [Array('condition'), Array('x'), Array('y')], [Array('output')]),
     ('NonZero', [Array('x')], [Array('y')]),
+    ('NonMaxSuppression',
+     [Array('boxes'), Array('scores'),
+      OptionalScalar('max_output_boxes_per_class'),
+      OptionalScalar('iou_threshold'),
+      OptionalScalar('score_threshold'), Int('center_point_box')],
+     [Array('selected_indices')]),
+    ('TopK', [Array('x'), Scalar('k'), Int('axis'), Int('largest'), Int('sorted')],
+     [Array('values'), Array('indices')]),
 
     ('DoSomething',
      [ArrayList('inputs'), String('func_name')],
