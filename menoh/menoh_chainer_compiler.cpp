@@ -720,7 +720,7 @@ menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle
         menoh_impl::set_last_error_message(message.c_str());
         return menoh_error_code_variable_not_found;
     }
-    *data_p = array->raw_data();
+    *data_p = chainer_compiler::runtime::RawStartPtr(*array);
     return menoh_error_code_success;
 }
 
@@ -810,9 +810,10 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                         << output.first << " is not found in variable_profiles";
                 CHECK_EQ(bytesize, menoh_impl::total_size_in_bytes(model->variable_profiles.find(output.first)->second))
                         << "allocated output buffer size is not equal to cc's output buffer size";
+                void* raw_ptr = chainer_compiler::runtime::RawStartPtr(array);
                 std::copy(
-                        static_cast<uint8_t*>(array.raw_data()),
-                        static_cast<uint8_t*>(array.raw_data()) + bytesize,
+                        static_cast<uint8_t*>(raw_ptr),
+                        static_cast<uint8_t*>(raw_ptr) + bytesize,
                         static_cast<uint8_t*>(found->second));
             }
 #endif

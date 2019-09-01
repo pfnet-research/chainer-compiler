@@ -837,15 +837,6 @@ def main():
     run_onnx = os.path.join(args.build_dir, 'tools/run_onnx')
     run_onnx_menoh = os.path.join(args.build_dir, 'menoh/run_onnx_menoh')
 
-    # TODO(hamaji): Run more tests with run_onnx_menoh.
-    menoh_blacklist = [
-        'test_split_variable_parts_1d',
-        'test_split_equal_parts_1d',
-        'test_split_variable_parts_2d',
-        'test_split_equal_parts_default_axis',
-        'test_split_variable_parts_default_axis',
-    ]
-
     tested = []
     failed = []
     tests = []
@@ -861,11 +852,6 @@ def main():
             test_case.computation_order or
             not test_case.test_dir.startswith(NODE_TEST)):
             runner = run_onnx
-        else:
-            for bl in menoh_blacklist:
-                if bl in test_case.name:
-                    runner = run_onnx
-                    break
 
         test_case.args = [runner, '--test', test_case.test_dir]
         test_case.args.append('--compiler_log')
