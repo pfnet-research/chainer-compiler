@@ -839,12 +839,8 @@ def main():
 
     # TODO(hamaji): Run more tests with run_onnx_menoh.
     menoh_blacklist = [
-        'test_constantofshape_float_ones',
-        'test_constantofshape_int_zeros',
         'test_onehot_with_axis',
         'test_onehot_without_axis',
-        'test_upsample_nearest',
-        'test_resize_upsample_nearest',
         'test_split_variable_parts_1d',
         'test_split_equal_parts_1d',
         'test_split_variable_parts_2d',

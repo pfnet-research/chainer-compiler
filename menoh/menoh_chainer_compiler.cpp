@@ -352,6 +352,7 @@ struct menoh_variable_profile_table {
     std::shared_ptr<const onnx::GraphProto> xgraph;
     std::unordered_map<std::string, menoh_impl::array_profile> input_profiles;
     std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
+    bool is_dynamic_model{false};
 };
 
 void menoh_delete_variable_profile_table(menoh_variable_profile_table_handle variable_profile_table) {
@@ -451,13 +452,15 @@ menoh_error_code menoh_build_variable_profile_table(
 
         // InferShape
         graph = std::make_unique<chainer_compiler::Graph>(xgraph);  // Reset graph
-        {
-            chainerx::NoBackpropModeScope scope;
-            graph->InferShapes();
-        }
+        graph->InferShapes();
 
         std::unordered_map<std::string, menoh_impl::array_profile> output_profiles;
+        bool is_dynamic = false;
         for (chainer_compiler::Value* value : graph->output_values()) {
+            if (!value->type().HasKnownShape()) {
+                is_dynamic = true;
+                continue;
+            }
             output_profiles.emplace(
                     value->name(), menoh_impl::array_profile(cc_dtype_to_menoh_dtype(value->type().dtype()), value->type().dims()));
         }
@@ -465,7 +468,7 @@ menoh_error_code menoh_build_variable_profile_table(
             auto xgraph_ptr = std::make_unique<onnx::GraphProto>();
             graph->ToONNX(xgraph_ptr.get());
             *dst_handle = std::make_unique<menoh_variable_profile_table>(
-                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles)})
+                                  menoh_variable_profile_table{std::move(xgraph_ptr), builder->input_profiles, std::move(output_profiles), is_dynamic})
                                   .release();
         }
         return menoh_error_code_success;
@@ -497,22 +500,26 @@ menoh_error_code menoh_variable_profile_table_get_variable_attribute(
 
 menoh_error_code menoh_variable_profile_table_get_dtype(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, menoh_dtype* dst_dtype) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get dtype from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(
             variable_profile_table, name, [&](auto const& profile) { *dst_dtype = static_cast<menoh_dtype>(profile.dtype()); });
 }
 menoh_error_code menoh_variable_profile_table_get_dims_size(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, int64_t* dst_size) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get shape from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(
             variable_profile_table, name, [&](auto const& profile) { *dst_size = static_cast<int64_t>(profile.dims().size()); });
 }
 menoh_error_code menoh_variable_profile_table_get_dims_at(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, int64_t index, int64_t* dst_size) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get shape from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(
             variable_profile_table, name, [&](auto const& profile) { *dst_size = profile.dims().at(index); });
 }
 
 menoh_error_code menoh_variable_profile_table_get_dims(
         const menoh_variable_profile_table_handle variable_profile_table, const char* name, int64_t* dst_size, const int64_t** dims) {
+    CHECK(!variable_profile_table->is_dynamic_model) << "cannot get shape from dynamic graph";
     return impl::menoh_variable_profile_table_get_variable_attribute(variable_profile_table, name, [&](auto const& profile) {
         *dst_size = profile.dims().size();
         *dims = profile.dims().data();
