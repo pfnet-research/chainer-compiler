@@ -845,19 +845,6 @@ def main():
         'test_onehot_without_axis',
         'test_upsample_nearest',
         'test_resize_upsample_nearest',
-        'test_reshape_extended_dims',
-        'test_reshape_negative_dim',
-        'test_reshape_one_dim',
-        'test_reshape_reduced_dims',
-        'test_reshape_reordered_dims',
-        'test_expand_dim_unchanged',
-        'test_slice',
-        'test_slice_end_out_of_bounds',
-        'test_slice_default_axes',
-        'test_slice_start_out_of_bounds',
-        'test_slice_default_steps',
-        'test_slice_neg_steps',
-        'test_slice_neg',
         'test_split_variable_parts_1d',
         'test_split_equal_parts_1d',
         'test_split_variable_parts_2d',
@@ -873,7 +860,6 @@ def main():
         'test_bitshift_left_uint8',
         'test_qlinearconv',
         'test_quantizelinear',
-        'test_nonzero_example',
     ]
 
     tested = []
