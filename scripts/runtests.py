@@ -844,16 +844,6 @@ def main():
         'test_split_variable_parts_2d',
         'test_split_equal_parts_default_axis',
         'test_split_variable_parts_default_axis',
-        'test_qlinearmatmul_3D',
-        'test_dequantizelinear',
-        'test_qlinearmatmul_2D',
-        'test_basic_convinteger',
-        'test_convinteger_with_padding',
-        'test_bitshift_right_uint8',
-        'test_matmulinteger',
-        'test_bitshift_left_uint8',
-        'test_qlinearconv',
-        'test_quantizelinear',
     ]
 
     tested = []

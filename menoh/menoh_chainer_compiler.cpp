@@ -148,6 +148,7 @@ menoh_error_code MENOH_API menoh_dtype_size(menoh_dtype dtype, int64_t* dst_size
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int16)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int32)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_int64)
+        MENOH_DTYPE_SIZE_CASE(menoh_dtype_uint8)
         MENOH_DTYPE_SIZE_CASE(menoh_dtype_bool)
 #undef MENOH_DTYPE_SIZE_CASE
         default:
@@ -297,6 +298,7 @@ size_t total_size(std::vector<int64_t> const& dims) {
 size_t total_size_in_bytes(menoh_dtype dtype, std::vector<int64_t> const& dims) {
     int64_t dtype_size;
     menoh_dtype_size(dtype, &dtype_size);
+    CHECK_LT(0, dtype_size);
     return dtype_size * total_size(dims);
 }
 

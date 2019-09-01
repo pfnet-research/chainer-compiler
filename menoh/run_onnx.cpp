@@ -175,7 +175,9 @@ int main(int argc, char** argv) {
         for (const auto& p : test_case->inputs) {
             auto input_var = model.get_variable(p.first);
             uint8_t* data = static_cast<uint8_t*>(p.second->GetArray().raw_data());
-            std::copy(data, data + variable_size_in_bytes(input_var), static_cast<uint8_t*>(input_var.buffer_handle));
+            const size_t num_bytes = variable_size_in_bytes(input_var);
+            CHECK_EQ(num_bytes, p.second->GetArray().GetNBytes()) << p.first;
+            std::copy(data, data + num_bytes, static_cast<uint8_t*>(input_var.buffer_handle));
         }
         model.run();
         chainer_compiler::runtime::InOuts outputs;
