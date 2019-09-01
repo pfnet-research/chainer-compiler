@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <absl/types/optional.h>
+
 #include <nlohmann/json.hpp>
 
 #include <chainerx/array.h>
@@ -685,19 +687,31 @@ menoh_error_code menoh_build_model(
     });
 }
 
-menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** data_p) {
+namespace {
+
+absl::optional<chainerx::Array> menoh_model_get_variable_array(const menoh_model_handle model, const char* variable_name) {
     auto found = model->outputs.find(variable_name);
-    if (found == model->outputs.end()) {
-        auto found = model->inputs.find(variable_name);
-        if (found == model->inputs.end()) {
-            auto message = std::string("menoh variable not found: ") + variable_name;
-            menoh_impl::set_last_error_message(message.c_str());
-            return menoh_error_code_variable_not_found;
-        }
-        *data_p = found->second->GetArray().raw_data();
-        return menoh_error_code_success;
+    if (found != model->outputs.end()) {
+        return found->second->GetArray();
     }
-    *data_p = found->second->GetArray().raw_data();
+    found = model->inputs.find(variable_name);
+    if (found != model->inputs.end()) {
+        return found->second->GetArray();
+    }
+    return absl::nullopt;
+}
+
+}  // namespace
+
+menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle model, const char* variable_name, void** data_p) {
+    absl::optional<chainerx::Array> array = menoh_model_get_variable_array(model, variable_name);
+    CHECK(array->IsContiguous());
+    if (!array) {
+        auto message = std::string("menoh variable not found: ") + variable_name;
+        menoh_impl::set_last_error_message(message.c_str());
+        return menoh_error_code_variable_not_found;
+    }
+    *data_p = array->raw_data();
     return menoh_error_code_success;
 }
 
@@ -719,17 +733,30 @@ menoh_error_code menoh_model_get_variable_variable_attribute(const menoh_model_h
 }  // namespace impl
 
 menoh_error_code menoh_model_get_variable_dtype(const menoh_model_handle model, const char* variable_name, menoh_dtype* dst_dtype) {
+    if (auto array = menoh_model_get_variable_array(model, variable_name)) {
+        *dst_dtype = chx_dtype_to_menoh_dtype(array->dtype());
+        return menoh_error_code_success;
+    }
     return impl::menoh_model_get_variable_variable_attribute(
             model, variable_name, [&](menoh_impl::array_profile const& arr) { *dst_dtype = static_cast<menoh_dtype>(arr.dtype()); });
 }
 
 menoh_error_code menoh_model_get_variable_dims_size(const menoh_model_handle model, const char* variable_name, int64_t* dst_size) {
+    if (auto array = menoh_model_get_variable_array(model, variable_name)) {
+        *dst_size = array->ndim();
+        return menoh_error_code_success;
+    }
     return impl::menoh_model_get_variable_variable_attribute(
             model, variable_name, [&](menoh_impl::array_profile const& arr) { *dst_size = static_cast<int64_t>(arr.dims().size()); });
 }
 
 menoh_error_code menoh_model_get_variable_dims_at(
         const menoh_model_handle model, const char* variable_name, int64_t index, int64_t* dst_size) {
+    if (auto array = menoh_model_get_variable_array(model, variable_name)) {
+        CHECK_LT(index, array->ndim());
+        *dst_size = array->shape()[index];
+        return menoh_error_code_success;
+    }
     return impl::menoh_model_get_variable_variable_attribute(
             model, variable_name, [&](menoh_impl::array_profile const& arr) { *dst_size = arr.dims().at(index); });
 }
