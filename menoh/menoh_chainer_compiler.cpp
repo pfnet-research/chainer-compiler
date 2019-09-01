@@ -561,7 +561,7 @@ struct menoh_model {
     std::unordered_map<std::string, menoh_impl::array_profile> variable_profiles;
     std::unique_ptr<chainerx::Context> context;
     chainer_compiler::runtime::InOuts inputs;
-    std::unordered_map<std::string, void*> outputs;
+    chainer_compiler::runtime::InOuts outputs;
     std::unique_ptr<chainer_compiler::runtime::ChxVM> chxvm;
     chainer_compiler::runtime::ChxVMOptions chxvm_options;
     std::vector<std::shared_ptr<void>> buffer_holder;
@@ -643,6 +643,7 @@ menoh_error_code menoh_build_model(
                 }
             }
 
+#if 0
             // Setup outputs (buffer)
             std::unordered_map<std::string, void*> outputs;
             for (chainer_compiler::Value* output : graph.output_values()) {
@@ -659,6 +660,8 @@ menoh_error_code menoh_build_model(
                 }
                 outputs.emplace(output->name(), datap);
             }
+#endif
+
             chainer_compiler::runtime::ChxVMOptions chxvm_opts;
             chxvm_opts.trace_level = value_or(j, "trace_level", 0);
             chxvm_opts.is_training = value_or(j, "is_training", false);
@@ -672,7 +675,7 @@ menoh_error_code menoh_build_model(
             *dst_model_handle = std::make_unique<menoh_model>(menoh_model{std::move(variable_profiles),
                                                                           std::move(ctx),
                                                                           std::move(inputs),
-                                                                          std::move(outputs),
+                                                                          {},
                                                                           std::move(chxvm),
                                                                           chxvm_opts,
                                                                           std::move(buffer_holder)})
@@ -694,7 +697,7 @@ menoh_error_code menoh_model_get_variable_buffer_handle(const menoh_model_handle
         *data_p = found->second->GetArray().raw_data();
         return menoh_error_code_success;
     }
-    *data_p = found->second;
+    *data_p = found->second->GetArray().raw_data();
     return menoh_error_code_success;
 }
 
@@ -753,6 +756,14 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
         {
             chainerx::NoBackpropModeScope scope;
             auto outputs = model->chxvm->Run(model->inputs, model->chxvm_options);
+            model->outputs.clear();
+            for (auto p : outputs) {
+                CHECK(p.second->IsArray()) << "menoh does not support non-array outputs";
+                chainerx::Array const& array = chainerx::AsContiguous(p.second->GetArray());
+                CHECK(model->outputs.emplace(p.first, std::make_shared<chainer_compiler::runtime::ChxVMVar>(array)).second);
+            }
+
+#if 0
             for (auto output : outputs) {
                 auto found = model->outputs.find(output.first);
                 CHECK(found != model->outputs.end()) << "output buffer for " << output.first << " is not found";
@@ -768,6 +779,7 @@ menoh_error_code menoh_model_run(menoh_model_handle model) {
                         static_cast<uint8_t*>(array.raw_data()) + bytesize,
                         static_cast<uint8_t*>(found->second));
             }
+#endif
         }
         chainerx::SetDefaultContext(default_context_backup);
         return menoh_error_code_success;
