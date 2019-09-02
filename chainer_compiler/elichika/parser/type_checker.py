@@ -116,6 +116,23 @@ def ty_ChainerPooling2d(func):
     return infer
 
 
+def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, kwargs):
+    shape_x, shape_t = ty_args[0].shape, ty_args[1].shape
+    fallback_dtypes = (np.float32, np.int64)
+
+    # x.shape[0] == t.shape[0]
+    if shape_x is None and shape_t is None:
+        fallback_shapes = ((1, 1), (1,))
+    elif shape_x is None:
+        fallback_shapes = ((shape_t[0], 1), shape_t)
+    elif shape_t is None:
+        fallback_shapes = (shape_x, (shape_x[0],))
+
+    return make_infer(
+            F.softmax_cross_entropy, fallback_shapes, fallback_dtypes) \
+                    (ty_args, dummy_args_nontensor, kwargs)
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -125,18 +142,14 @@ ext_func_ty = {
             np.zeros, 0),
         F.relu : evaluate_function_types(
             F.relu, 1),
-        F.softmax_cross_entropy : evaluate_function_types(
-            F.softmax_cross_entropy,
-            fallback_shapes=((1, 1), (1)),
-            fallback_dtypes=(np.float32, np.int64)),
+        F.softmax_cross_entropy :
+            ty_ChainerSoftmaxCrossEntropy,
         F.max_pooling_2d :
             ty_ChainerPooling2d(F.max_pooling_2d),
         F.average_pooling_2d :
             ty_ChainerPooling2d(F.average_pooling_2d),
         F.pad_sequence : evaluate_function_types(
             F.pad_sequence, 0),
-            # fallback_shapes=((1, 1),),
-            # fallback_dtypes=(np.float32,)),
         }
 
 
