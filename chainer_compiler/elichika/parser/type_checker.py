@@ -29,6 +29,7 @@ def defined_with___call__(func):
 def callable_(x):
     # TODO(momohatt): この分類どうしよう
     if isinstance(x, L.Linear) or \
+            isinstance(x, chainer.ChainList) or \
             isinstance(x, L.Convolution2D) or \
             isinstance(x, L.BatchNormalization) or \
             isinstance(x, np.dtype) or isinstance(x, type):
@@ -57,13 +58,7 @@ builtins_ty = {
         }
 
 
-# 'evaluate' function return type by using the function
-def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallback_dtypes=None):
-    if fallback_shapes is None:
-        fallback_shapes = ((1, 1),) * narg_tensor
-    if fallback_dtypes is None:
-        fallback_dtypes = (np.float32,) * narg_tensor
-
+def make_infer(func, fallback_shapes, fallback_dtypes):
     def infer(ty_args, dummy_args_nontensor, kwargs):
         ty_args_tensor = [t for t in ty_args if isinstance(t, TyTensor)]
 
@@ -82,6 +77,32 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
     return infer
 
 
+# 'evaluate' function return type by using the function
+def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallback_dtypes=None):
+    assert narg_tensor is not None or \
+            fallback_shapes is not None and fallback_dtypes is not None
+    if fallback_shapes is None:
+        fallback_shapes = ((1, 1),) * narg_tensor
+    if fallback_dtypes is None:
+        fallback_dtypes = (np.float32,) * narg_tensor
+
+    return make_infer(func, fallback_shapes, fallback_dtypes)
+
+
+def ty_ChainerPooling2d(func):
+    def infer(ty_args, dummy_args_nontensor, kwargs):
+        ksize = dummy_args_nontensor[0]
+        stride = kwargs['stride'] if 'stride' in kwargs.items() else ksize
+        minimum_size = max(ksize, stride)
+        fallback_shapes = ((1, 1, minimum_size, minimum_size),)
+        fallback_dtypes = (np.float32,)
+
+        return make_infer(func, fallback_shapes, fallback_dtypes) \
+                (ty_args, dummy_args_nontensor, kwargs)
+
+    return infer
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -95,12 +116,10 @@ ext_func_ty = {
             F.softmax_cross_entropy,
             fallback_shapes=((1, 1), (1)),
             fallback_dtypes=(np.float32, np.int64)),
-        F.max_pooling_2d : evaluate_function_types(
-            F.max_pooling_2d,
-            fallback_shapes=((1, 1, 2, 2),),
-            fallback_dtypes=(np.float32,)),
-        F.average_pooling_2d : evaluate_function_types(
-            F.average_pooling_2d, 1),
+        F.max_pooling_2d :
+            ty_ChainerPooling2d(F.max_pooling_2d),
+        F.average_pooling_2d :
+            ty_ChainerPooling2d(F.average_pooling_2d),
         }
 
 

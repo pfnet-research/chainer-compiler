@@ -411,6 +411,7 @@ def type_of_value(value) -> 'TyObj':
         return TyChainerVariable(TyDType(value.dtype))
     # TODO(momohatt): sometimes Linear's return type is tuple
     if isinstance(value, L.Linear) or \
+            isinstance(value, chainer.ChainList) or \
             isinstance(value, L.Convolution2D) or \
             isinstance(value, L.BatchNormalization):
         return TyArrow([TyChainerVariable(TyDType(np.float32))],
