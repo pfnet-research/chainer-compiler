@@ -32,8 +32,7 @@ def callable_(x):
     if isinstance(x, L.Linear) or \
             isinstance(x, chainer.ChainList) or \
             isinstance(x, L.Convolution2D) or \
-            isinstance(x, L.BatchNormalization) or \
-            isinstance(x, np.dtype) or isinstance(x, type):
+            isinstance(x, L.BatchNormalization):
         return False
     return callable(x)
 
@@ -134,6 +133,13 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, kwargs):
                     (ty_args, dummy_args_nontensor, kwargs)
 
 
+# math functions that doesn't change shapes
+def ty_ChainerMath(ty_args, dummy_args_nontensor, kwargs):
+    if isinstance(ty_args[0], TyTensor):
+        return ty_args[0]
+    assert False
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -141,16 +147,23 @@ ext_func_ty = {
             np.ones, 0),
         np.zeros : evaluate_function_types(
             np.zeros, 0),
-        F.relu : evaluate_function_types(
-            F.relu, 1),
-        F.softmax_cross_entropy :
-            ty_ChainerSoftmaxCrossEntropy,
-        F.max_pooling_2d :
-            ty_ChainerPooling2d(F.max_pooling_2d),
+        chainer.Variable : evaluate_function_types(
+            chainer.Variable, 1),
         F.average_pooling_2d :
             ty_ChainerPooling2d(F.average_pooling_2d),
+        F.max_pooling_2d :
+            ty_ChainerPooling2d(F.max_pooling_2d),
         F.pad_sequence : evaluate_function_types(
             F.pad_sequence, 0),
+        F.relu : evaluate_function_types(
+            F.relu, 1),
+        F.reshape :
+            # TODO(momohatt): infer shape
+            lambda ty_args, dummy_args_nontensor, kwargs: ty_args[0],
+        F.softmax_cross_entropy :
+            ty_ChainerSoftmaxCrossEntropy,
+        F.tanh :
+            ty_ChainerMath,
         }
 
 
@@ -497,6 +510,7 @@ class TypeChecker():
         if self.is_debug:
             debug(gast.dump(node))
             self.dump_tyenv()
+            self.dump_nodetype()
 
         if isinstance(node, gast.BoolOp):
             # BoolOp(boolop op, expr* values)
@@ -520,7 +534,18 @@ class TypeChecker():
 
         if isinstance(node, gast.UnaryOp):
             # UnaryOp(unaryop op, expr operand)
-            # TODO
+            if isinstance(node.op, gast.Invert):
+                pass
+            elif isinstance(node.op, gast.Not):
+                pass
+            elif isinstance(node.op, gast.UAdd):
+                pass
+            elif isinstance(node.op, gast.USub):
+                # TODO(momohatt): UnaryOp(op=USub(), operand=Num(n=1)) should be
+                # canonicalized to Num(n=-1)?
+
+                ty_expr = self.infer_expr(node.operand)
+                self.nodetype[node] = ty_expr  # TODO: fix this
             return self.nodetype[node]
 
 
@@ -674,7 +699,10 @@ class TypeChecker():
 
             if isinstance(ty_obj, TyTensor):
                 if node.attr == 'shape':
-                    self.nodetype[node] = type_of_value(ty_obj.shape)
+                    if ty_obj.shape is None:
+                        self.nodetype[node] = TyTuple(TyInt())
+                    else:
+                        self.nodetype[node] = type_of_value(ty_obj.shape)
                     return self.nodetype[node]
                 if ty_obj.is_ndarray() and node.attr == 'astype':
                     raise self.ArgumentRequired()
