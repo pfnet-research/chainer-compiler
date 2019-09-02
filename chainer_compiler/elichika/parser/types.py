@@ -389,6 +389,8 @@ def all_same_ty(tys):
 
 def type_of_value(value) -> 'TyObj':
     # TODO: user defined class
+    if value is None:
+        return TyNone()
     if isinstance(value, bool):
         return TyBool()
     if isinstance(value, int):
@@ -462,15 +464,6 @@ def pytype_of_type(ty) -> type:
     assert False
 
 
-def set_attr_if_None(obj1, obj2, attr_name):
-    if getattr(obj1, attr_name) is None:
-        setattr(obj1, attr_name, getattr(obj2, attr_name))
-        return
-    if getattr(obj2, attr_name) is None:
-        setattr(obj2, attr_name, getattr(obj1, attr_name))
-        return
-
-
 # ==============================================================================
 
 class UnifyError(Exception):
@@ -479,6 +472,14 @@ class UnifyError(Exception):
 
 
 def unify(ty1, ty2):
+    def set_attr_if_None(obj1, obj2, attr_name):
+        if getattr(obj1, attr_name) is None:
+            setattr(obj1, attr_name, getattr(obj2, attr_name))
+            return
+        if getattr(obj2, attr_name) is None:
+            setattr(obj2, attr_name, getattr(obj1, attr_name))
+            return
+
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
