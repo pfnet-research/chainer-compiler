@@ -348,7 +348,6 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
     for (int64_t i = 0; i < axis; ++i) {
         rows *= in_shape[i];
     }
-    const int64_t cols = in_shape.GetTotalSize() / rows;
 
     int64_t reduced_cols = 1;
     for (int64_t i = axis; i < out_shape.size(); ++i) {
