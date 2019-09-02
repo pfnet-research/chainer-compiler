@@ -75,6 +75,14 @@ FLAGS = {
         'type': 'bool',
         'doc': 'Use SNPE to execute operations.'
     },
+    'dump_snpe_dlc_info': {
+        'type': 'bool',
+        'doc': 'Dump result of snpe-dlc-info'
+    },
+    'snpe_dlc_info_out_prefix': {
+        'type': 'std::string',
+        'doc': 'Output file of snpe-dlc-info'
+    },
 
     'trace_level': {
         'type': 'int',

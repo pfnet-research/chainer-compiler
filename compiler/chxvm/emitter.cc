@@ -446,6 +446,24 @@ private:
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
+            if (g_dump_snpe_dlc_info) {
+                std::string cmdline =
+                        StrCat("PYTHONPATH=",
+                               snpe_dir,
+                               "/lib/python",
+                               " python2.7 ",
+                               snpe_dir,
+                               "/bin/x86_64-linux-clang/snpe-dlc-info"
+                               " --input_dlc ",
+                               snpe_model_file);
+                if (!g_snpe_dlc_info_out_prefix.empty()) {
+                    cmdline += StrCat(" -s ", g_snpe_dlc_info_out_prefix, node.chainer_fusion_group(), ".txt");
+                }
+                CLOG() << "Dumping snpe-dlc-info of: " << snpe_model_file << " with: " << cmdline << std::endl;
+                int ret = system(cmdline.c_str());
+                CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+            }
+
             std::vector<int> inputs;
             std::vector<std::string> input_names;
             std::vector<ChxVMValue> outputs;
