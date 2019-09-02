@@ -226,16 +226,17 @@ class TypeChecker():
         self.module = module
         self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
 
-        # types of attributes which are overwritten in forward()
-        # TODO(momohatt): dict1段にまとめられるか
-        self.attribute_tyenv = {}  # object -> (str -> TyObj)
+        # types of 'self' attributes which are overwritten in forward()
+        self.attribute_tyenv = {}  # str -> TyObj
 
 
     def dump_tyenv(self):
         if not self.is_debug:
             return
         for name, ty in self.tyenv.items():
-            print(name + " : \x1b[35m" + str(ty) + "\x1b[39m")
+            print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
+        for name, ty in self.attribute_tyenv.items():
+            print("self.{} : \x1b[35m{}\x1b[39m".format(name, ty))
         print()
 
 
@@ -367,7 +368,7 @@ class TypeChecker():
                 instance = self.nodetype[target.value].instance
                 ty_val = self.infer_expr(node.value)
                 unify(ty_target, ty_val)
-                self.attribute_tyenv[instance][target.attr] = ty_val
+                self.attribute_tyenv[target.attr] = ty_val
 
             elif type(target) in [gast.Tuple, gast.List]:
                 ty_target = self.infer_expr(target)
@@ -669,6 +670,9 @@ class TypeChecker():
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
+                if node.attr == 'shape':
+                    self.nodetype[node] = type_of_value(ty_obj.shape)
+                    return self.nodetype[node]
                 raise self.ArgumentRequired()
 
             if isinstance(ty_obj, TyUserDefinedClass):
