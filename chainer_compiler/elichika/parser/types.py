@@ -273,9 +273,6 @@ class TyDType(TyObj):
             self.t = np.dtype(t)
     def __str__(self):
         return "dtype({})".format(str(self.t))
-    def set_if_None(self, other):
-        if self.t is None:
-            self.t = other.t
 
 
 class TyTensor(TyObj):
@@ -465,6 +462,15 @@ def pytype_of_type(ty) -> type:
     assert False
 
 
+def set_attr_if_None(obj1, obj2, attr_name):
+    if getattr(obj1, attr_name) is None:
+        setattr(obj1, attr_name, getattr(obj2, attr_name))
+        return
+    if getattr(obj2, attr_name) is None:
+        setattr(obj2, attr_name, getattr(obj1, attr_name))
+        return
+
+
 # ==============================================================================
 
 class UnifyError(Exception):
@@ -533,14 +539,8 @@ def unify(ty1, ty2):
         return
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
-        if ty1.is_fixed_len is None:
-            ty1.is_fixed_len = ty2.is_fixed_len
-            ty1.ty_ = ty2.ty_
-            return
-        if ty2.is_fixed_len is None:
-            ty2.is_fixed_len = ty1.is_fixed_len
-            ty2.ty_ = ty1.ty_
-            return
+        set_attr_if_None(ty1, ty2, 'is_fixed_len')
+        set_attr_if_None(ty1, ty2, 'ty_')
 
         if ty1.is_fixed_len and ty2.is_fixed_len:
             if not len(ty1.get_tys()) == len(ty2.get_tys()):
@@ -566,18 +566,12 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
         # TODO(momohatt): coercion of dtype
-        ty1.dtype.set_if_None(ty2.dtype)
-        ty2.dtype.set_if_None(ty1.dtype)
-
-        if ty1.kind is None:
-            ty1.kind = ty2.kind
-        elif ty2.kind is None:
-            ty2.kind = ty1.kind
+        set_attr_if_None(ty1.dtype, ty2.dtype, 't')
+        set_attr_if_None(ty1, ty2, 'kind')
         return
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
-        ty1.set_if_None(ty2)
-        ty2.set_if_None(ty1)
+        set_attr_if_None(ty1.dtype, ty2.dtype, 't')
         return
 
     if isinstance(ty1, TyUserDefinedClass) and \
