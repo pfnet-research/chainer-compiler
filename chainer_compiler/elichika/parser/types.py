@@ -136,10 +136,10 @@ class SequenceKind(Enum):
     TUPLE = 1
 
 class TySequence(TyObj):
-    def __init__(self, ty, seq_kind=None):
+    def __init__(self, ty=None, seq_kind=None):
         super().__init__()
         self.seq_kind = seq_kind
-        self.is_fixed_len = isinstance(ty, list)
+        self.is_fixed_len = isinstance(ty, list) if ty is not None else None
         self.ty_ = ty
 
     def show(self):
@@ -179,10 +179,11 @@ class TySequence(TyObj):
         self.ty_.unset()
 
     def deref(self):
-        if self.is_fixed_len:
-            self.ty_ = [t.deref() for t in self.ty_]
-        else:
-            self.ty_ = self.ty_.deref()
+        if self.is_fixed_len is not None:
+            if self.is_fixed_len:
+                self.ty_ = [t.deref() for t in self.ty_]
+            else:
+                self.ty_ = self.ty_.deref()
         return self
 
     def get_ty(self):
@@ -288,9 +289,9 @@ class TyTensor(TyObj):
 
     def show(self):
         if self.kind == TensorKind.ndarray:
-            return "ndarray({})".format(self.dtype)
+            return "ndarray({}, shape={})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
-            return "Variable({})".format(self.dtype)
+            return "Variable({}, shape={})".format(self.dtype, self.shape)
         return "tensor({})".format(self.dtype)
 
     def __eq__(self, other):
@@ -306,11 +307,11 @@ class TyTensor(TyObj):
         return self.kind == TensorKind.chainer_variable
 
 
-def TyNdarray(dtype=None):
-    return TyTensor(dtype=dtype, kind=TensorKind.ndarray)
+def TyNdarray(dtype=None, shape=None):
+    return TyTensor(dtype=dtype, kind=TensorKind.ndarray, shape=shape)
 
-def TyChainerVariable(dtype=None):
-    return TyTensor(dtype=dtype, kind=TensorKind.chainer_variable)
+def TyChainerVariable(dtype=None, shape=None):
+    return TyTensor(dtype=dtype, kind=TensorKind.chainer_variable, shape=shape)
 
 
 # ------------------------ TypeChecker internal types --------------------------
@@ -406,9 +407,9 @@ def type_of_value(value) -> 'TyObj':
     if isinstance(value, dict):
         return TyDict(type_of_value(value.keys()[0]), type_of_value(value.items()[0]))
     if isinstance(value, np.ndarray):
-        return TyNdarray(TyDType(value.dtype))
+        return TyNdarray(dtype=TyDType(value.dtype), shape=value.shape)
     if isinstance(value, chainer.Variable):
-        return TyChainerVariable(TyDType(value.dtype))
+        return TyChainerVariable(dtype=TyDType(value.dtype), shape=value.shape)
     # TODO(momohatt): sometimes Linear's return type is tuple
     if isinstance(value, L.Linear) or \
             isinstance(value, chainer.ChainList) or \
@@ -435,21 +436,24 @@ def value_of_type(ty) -> object:
         return pytype_of_type(ty)()
     if isinstance(ty, TyString):
         return ""
-    if isinstance(ty, TySequence) and ty.is_fixed_len:
-        ret = [value_of_type(t) for t in ty.get_tys()]
+    if isinstance(ty, TySequence):
+        if ty.is_fixed_len:
+            ret = [value_of_type(t) for t in ty.get_tys()]
+        else:
+            ret = [value_of_type(ty.get_ty())]
         if ty.is_list():
             return ret
         return tuple(ret)
     if isinstance(ty, TyDict):
         return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
     if isinstance(ty, TyTensor):
-        ret = np.array(0, dtype=ty.dtype.t)
+        ret = np.zeros(dtype=ty.dtype.t, shape=ty.shape)
         if ty.kind == TensorKind.ndarray:
             return ret
         if ty.kind == TensorKind.chainer_variable:
             return chainer.Variable(ret)
 
-    assert False
+    assert False, str(ty)
 
 
 def pytype_of_type(ty) -> type:
@@ -529,6 +533,15 @@ def unify(ty1, ty2):
         return
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
+        if ty1.is_fixed_len is None:
+            ty1.is_fixed_len = ty2.is_fixed_len
+            ty1.ty_ = ty2.ty_
+            return
+        if ty2.is_fixed_len is None:
+            ty2.is_fixed_len = ty1.is_fixed_len
+            ty2.ty_ = ty1.ty_
+            return
+
         if ty1.is_fixed_len and ty2.is_fixed_len:
             if not len(ty1.get_tys()) == len(ty2.get_tys()):
                 raise UnifyError(ty1, ty2)

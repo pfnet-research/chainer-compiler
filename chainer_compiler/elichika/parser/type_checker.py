@@ -39,8 +39,6 @@ def callable_(x):
 
 # ==============================================================================
 
-builtins_name = ['float', 'range', 'abs']
-
 builtins_ty = {
         float : TyArrow([TyBool()], TyFloat()),
         # int -> int list \/ int -> int -> int list \/
@@ -55,7 +53,14 @@ builtins_ty = {
             (lambda x: TyArrow([x], x))(TyNum(0, 2)),
             (lambda x: TyArrow([x], x))(TyTensor())
             ),
+        len : TyUnion(
+            TyArrow([TySequence()], TyInt()),
+            TyArrow([TyDict(TyVar(), TyVar())], TyInt()),
+            TyArrow([TyString()], TyInt()),
+            ),
         }
+
+builtins_name = [f.__name__ for f in builtins_ty.keys()]
 
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
@@ -66,12 +71,18 @@ def make_infer(func, fallback_shapes, fallback_dtypes):
                 for t, s in zip(ty_args_tensor, fallback_shapes)]
         dtypes = [s if t.dtype.t is None else t.dtype.t
                 for t, dt in zip(ty_args_tensor, fallback_dtypes)]
+        is_dummy_shape = any([t.shape is None for t in ty_args_tensor])
+        is_dummy_dtype = any([t.dtype.t is None for t in ty_args_tensor])
         # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
                 dummy_args_nontensor
         dummy_result = func(*dummy_args, **kwargs)
         ty_result = type_of_value(dummy_result)
-        # TODO(momohatt): fallbackを使った部分は出力に加えない
+        if isinstance(ty_result, TyTensor):
+            if is_dummy_shape:
+                ty_result.shape = None
+            if is_dummy_dtype:
+                ty_result.dtype.t = None
         return ty_result
 
     return infer
@@ -92,6 +103,8 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 def ty_ChainerPooling2d(func):
     def infer(ty_args, dummy_args_nontensor, kwargs):
         ksize = dummy_args_nontensor[0]
+        # TODO(momohatt): handle cases where stride is not specified as kwarg
+        # but arg
         stride = kwargs['stride'] if 'stride' in kwargs.items() else ksize
         minimum_size = max(ksize, stride)
         fallback_shapes = ((1, 1, minimum_size, minimum_size),)
@@ -120,6 +133,10 @@ ext_func_ty = {
             ty_ChainerPooling2d(F.max_pooling_2d),
         F.average_pooling_2d :
             ty_ChainerPooling2d(F.average_pooling_2d),
+        F.pad_sequence : evaluate_function_types(
+            F.pad_sequence, 0),
+            # fallback_shapes=((1, 1),),
+            # fallback_dtypes=(np.float32,)),
         }
 
 
@@ -195,6 +212,10 @@ class TypeChecker():
         self.is_debug = is_debug
         self.module = module
         self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
+
+        # types of attributes which are overwritten in forward()
+        # TODO(momohatt): dict1段にまとめられるか
+        self.attribute_tyenv = {}  # object -> (str -> TyObj)
 
 
     def dump_tyenv(self):
@@ -319,13 +340,22 @@ class TypeChecker():
             if isinstance(target, gast.Name):
                 ty_val = self.infer_expr(node.value)
                 if isinstance(node.value, gast.Name):
+                    # alias
                     self.tyenv[target.id] = ty_val
                     self.nodetype[target] = ty_val
                 else:
                     self.tyenv[target.id] = deepcopy(ty_val)
                     self.nodetype[target] = deepcopy(ty_val)
+
             elif isinstance(target, gast.Attribute):
-                pass
+                ty_target = self.infer_expr(target)
+                assert isinstance(self.nodetype[target.value],
+                        TyUserDefinedClass)
+                instance = self.nodetype[target.value].instance
+                ty_val = self.infer_expr(node.value)
+                unify(ty_target, ty_val)
+                self.attribute_tyenv[instance][target.attr] = ty_val
+
             elif type(target) in [gast.Tuple, gast.List]:
                 ty_target = self.infer_expr(target)
                 ty_val = self.infer_expr(node.value)
@@ -630,6 +660,14 @@ class TypeChecker():
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
+
+                if ty_obj.instance in self.attribute_tyenv.keys() and \
+                        node.attr in \
+                        self.attribute_tyenv[ty_obj.instance].keys():
+                    self.nodetype[node] = \
+                        self.attribute_tyenv[ty_obj.instance][node.attr]
+                    return self.nodetype[node]
+
                 x = getattr(ty_obj.instance, node.attr)
                 if callable_(x):
                     if x in builtins_ty.keys():
