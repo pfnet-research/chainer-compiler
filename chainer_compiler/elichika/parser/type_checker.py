@@ -4,6 +4,7 @@ import gast
 import os
 import traceback
 import types
+from collections import defaultdict
 from copy import deepcopy
 from typing import List
 from pprint import pprint
@@ -226,8 +227,8 @@ class TypeChecker():
         self.module = module
         self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
 
-        # types of 'self' attributes which are overwritten in forward()
-        self.attribute_tyenv = {}  # str -> TyObj
+        # types of object attributes which are overwritten in forward()
+        self.attribute_tyenv = defaultdict(dict)  # object -> (str -> TyObj)
 
 
     def dump_tyenv(self):
@@ -235,8 +236,9 @@ class TypeChecker():
             return
         for name, ty in self.tyenv.items():
             print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
-        for name, ty in self.attribute_tyenv.items():
-            print("self.{} : \x1b[35m{}\x1b[39m".format(name, ty))
+        for obj, attrs in self.attribute_tyenv.items():
+            for name, ty in attrs.items():
+                print("self.{} : \x1b[35m{}\x1b[39m".format(name, ty))
         print()
 
 
@@ -368,7 +370,7 @@ class TypeChecker():
                 instance = self.nodetype[target.value].instance
                 ty_val = self.infer_expr(node.value)
                 unify(ty_target, ty_val)
-                self.attribute_tyenv[target.attr] = ty_val
+                self.attribute_tyenv[instance][target.attr] = ty_val
 
             elif type(target) in [gast.Tuple, gast.List]:
                 ty_target = self.infer_expr(target)
@@ -656,6 +658,7 @@ class TypeChecker():
 
             if isinstance(node.value, gast.Name) and \
                     hasattr(self.module, node.value.id):
+                # function of imported libraries (eg. np, chainer, F, L)
                 module = getattr(self.module, node.value.id)
                 attr = getattr(module, node.attr)
                 if callable_(attr):
@@ -669,20 +672,21 @@ class TypeChecker():
                 self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
                 return self.nodetype[node]
 
-            if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
+            if isinstance(ty_obj, TyTensor):
                 if node.attr == 'shape':
                     self.nodetype[node] = type_of_value(ty_obj.shape)
                     return self.nodetype[node]
-                raise self.ArgumentRequired()
+                if ty_obj.is_ndarray() and node.attr == 'astype':
+                    raise self.ArgumentRequired()
+                assert False
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
 
                 if ty_obj.instance in self.attribute_tyenv.keys() and \
-                        node.attr in \
-                        self.attribute_tyenv[ty_obj.instance].keys():
+                    node.attr in self.attribute_tyenv[ty_obj.instance].keys():
                     self.nodetype[node] = \
-                        self.attribute_tyenv[ty_obj.instance][node.attr]
+                            self.attribute_tyenv[ty_obj.instance][node.attr]
                     return self.nodetype[node]
 
                 x = getattr(ty_obj.instance, node.attr)
