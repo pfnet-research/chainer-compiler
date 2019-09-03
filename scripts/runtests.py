@@ -277,6 +277,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_slice_start_out_of_bounds'),
     TestCase(NODE_TEST, 'test_gather_0'),
     TestCase(NODE_TEST, 'test_gather_1'),
+    TestCase(NODE_TEST, 'test_gather_elements_0'),
+    TestCase(NODE_TEST, 'test_gather_elements_1'),
     TestCase(NODE_TEST, 'test_scatter_with_axis'),
     TestCase(NODE_TEST, 'test_scatter_without_axis'),
     TestCase(NODE_TEST, 'test_scatter_elements_with_axis'),

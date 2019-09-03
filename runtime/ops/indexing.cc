@@ -191,6 +191,28 @@ chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, c
     return data.Take(indices, axis);
 }
 
+chainerx::Array GatherElementsOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices_) {
+    const int64_t axis = this->axis < 0 ? data.shape().size() - this->axis : this->axis;
+    CHECK(0 <= axis && axis < data.shape().size());
+    chainerx::Array indices = chainerx::AsContiguous(indices_.AsType(chainerx::Dtype::kInt64).ToNative());
+    chainerx::IndexableArray<const int64_t> indices_iarray{indices};
+    chainerx::Indexer<> indices_indexer{indices.shape()};
+
+    chainerx::Array out = chainerx::Empty(indices.shape(), data.dtype(), data.device());
+
+    std::vector<chainerx::ArrayIndex> src(indices.shape().size(), 0), dst(indices.shape().size(), 0);
+    for (auto it = indices_indexer.It(0); it; ++it) {
+        for (int64_t i = 0; i < it.ndim(); ++i) {
+            dst[i] = it.index()[i];
+            src[i] = it.index()[i];
+        }
+        src[axis] = indices_iarray[it];
+        BlitArray(data.At(src), out.At(dst));
+    }
+
+    return out;
+}
+
 chainerx::Array ScatterOp::RunImpl(
         ChxVMState* st, const chainerx::Array& data_, const chainerx::Array& indices_, const chainerx::Array& updates) {
     const int64_t axis = this->axis < 0 ? data_.shape().size() - this->axis : this->axis;
@@ -207,11 +229,14 @@ chainerx::Array ScatterOp::RunImpl(
     chainerx::IndexableArray<const int64_t> indices_iarray{indices};
     chainerx::Indexer<> indices_indexer{indices.shape()};
 
+    std::vector<chainerx::ArrayIndex> dst(indices.shape().size(), 0), src(indices.shape().size(), 0);
     for (auto it = indices_indexer.It(0); it; ++it) {
-        int64_t dst[2];
+        for (int64_t i = 0; i < it.ndim(); ++i) {
+            src[i] = it.index()[i];
+            dst[i] = it.index()[i];
+        }
         dst[axis] = indices_iarray[it];
-        dst[axis == 0 ? 1 : 0] = it.index()[axis == 0 ? 1 : 0];
-        BlitArray(updates.At({it.index()[0], it.index()[1]}), data.At({dst[0], dst[1]}));
+        BlitArray(updates.At(src), data.At(dst));
     }
 
     return data;
