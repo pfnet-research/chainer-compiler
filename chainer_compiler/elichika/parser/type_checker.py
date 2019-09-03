@@ -663,8 +663,7 @@ class TypeChecker():
 
         if isinstance(node, gast.Expr):
             # Expr(expr value)
-            self.nodetype[node] = self.infer_expr(node.value)
-            return self.nodetype[node]
+            return TyNone()
 
 
         if isinstance(node, gast.Pass):
