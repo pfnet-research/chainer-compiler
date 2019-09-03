@@ -150,6 +150,8 @@ class TySequence(TyObj):
             if self.seq_kind == SequenceKind.TUPLE:
                 if len(self.ty_) == 0:
                     return "()"
+                if len(self.ty_) == 1:
+                    return "(" + str(self.ty_[0]) + ",)"
                 return "(" + "".join([str(t) + ", " for t in self.ty_[:-1]]) \
                         + str(self.ty_[-1]) + ")"
 

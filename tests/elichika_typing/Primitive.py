@@ -184,28 +184,25 @@ class TestSequence(unittest.TestCase):
     def test_tuple_coercion_2(self):
         class Test():
             def forward(self):
-                x = (1, 2, 3)
-                x += (4, 5, 6)
+                x = (1, 2)
+                x += (3,)
                 return x
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "class Test -> int tuple")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> (int, int, int)")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[6]), "(int, int, int)")	# Name (line 2)
-        self.assertEqual(str(id2type[8]), "(int, int, int)")	# Tuple (line 2)
+        self.assertEqual(str(id2type[6]), "(int, int)")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "(int, int)")	# Tuple (line 2)
         self.assertEqual(str(id2type[9]), "int")	# Num (line 2)
         self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[11]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[13]), "NoneType")	# AugAssign (line 3)
-        self.assertEqual(str(id2type[14]), "int tuple")	# Name (line 3)
-        self.assertEqual(str(id2type[16]), "int tuple -> int tuple -> int tuple")	# Add
-        self.assertEqual(str(id2type[17]), "int tuple")	# Tuple (line 3)
-        self.assertEqual(str(id2type[18]), "int")	# Num (line 3)
-        self.assertEqual(str(id2type[19]), "int")	# Num (line 3)
-        self.assertEqual(str(id2type[20]), "int")	# Num (line 3)
-        self.assertEqual(str(id2type[22]), "int tuple")	# Return (line 4)
-        self.assertEqual(str(id2type[23]), "int tuple")	# Name (line 4)
+        self.assertEqual(str(id2type[12]), "NoneType")	# AugAssign (line 3)
+        self.assertEqual(str(id2type[13]), "(int, int, int)")	# Name x (line 3)
+        self.assertEqual(str(id2type[15]), "(int, int) -> (int,) -> (int, int, int)")	# Add
+        self.assertEqual(str(id2type[16]), "(int,)")	# Tuple (line 3)
+        self.assertEqual(str(id2type[17]), "int")	# Num (line 3)
+        self.assertEqual(str(id2type[19]), "(int, int, int)")	# Return (line 4)
+        self.assertEqual(str(id2type[20]), "(int, int, int)")	# Name x (line 4)
 
 
     def test_tuple_assign(self):

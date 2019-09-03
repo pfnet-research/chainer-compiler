@@ -203,6 +203,9 @@ def evaluate_binop_ty(op, tyl, tyr):
     func = semantics[type(op)]
     vall, valr = value_of_type(tyl), value_of_type(tyr)
     ty_ret = type_of_value(func(vall, valr))
+    if isinstance(ty_ret, TySequence) and \
+            not (tyl.is_fixed_len and tyr.is_fixed_len):
+        ty_ret.coerce_to_variable_len()
     return ty_ret
 
 
@@ -372,7 +375,7 @@ class TypeChecker():
             if isinstance(target, gast.Name):
                 ty_val = self.infer_expr(node.value)
                 if isinstance(node.value, gast.Name) and ty_val.is_mutable():
-                    # alias
+                    # XXX: alias
                     self.tyenv[target.id] = ty_val
                     self.nodetype[target] = ty_val
                 else:
