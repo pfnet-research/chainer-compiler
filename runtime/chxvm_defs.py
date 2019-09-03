@@ -177,6 +177,8 @@ CHX_OPS = [
     ('Sub', [Array('a'), Array('b')], ['c']),
     ('Mul', [Array('a'), Array('b')], ['c']),
     ('Div', [Array('a'), Array('b')], ['c']),
+    ('Mod', [Array('a'), Array('b')], ['c']),
+    ('Fmod', [Array('a'), Array('b')], ['c']),
     ('Pow', [Array('a'), Array('b')], ['c']),
     ('Neg', [Array('x')], ['y']),
     ('And', [Array('a'), Array('b')], ['c']),

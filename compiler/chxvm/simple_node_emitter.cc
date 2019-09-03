@@ -175,7 +175,13 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     EMIT_SIMPLE_BINARY_OP(Node::kChainerReluGrad, ReluGrad);
     EMIT_SIMPLE_BINARY_OP(Node::kChainerSelectItem, SelectItem);
 
-    if (node.op_type() == Node::kDropout) {
+    if (node.op_type() == Node::kMod) {
+        if (node.fmod()) {
+            EMIT(Fmod, out(0), in(0), in(1));
+        } else {
+            EMIT(Mod, out(0), in(0), in(1));
+        }
+    } else if (node.op_type() == Node::kDropout) {
         CHECK_EQ(1UL, node.inputs().size());
         CHECK_LE(1UL, node.outputs().size());
         CHECK_GE(2UL, node.outputs().size());

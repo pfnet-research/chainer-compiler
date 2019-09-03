@@ -83,6 +83,17 @@ chainerx::Array DivOp::RunImpl(ChxVMState* st, const chainerx::Array& a0, const 
     }
 }
 
+chainerx::Array ModOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    auto t = CoerceBinary(a, b);
+    return std::get<0>(t) % std::get<1>(t);
+}
+
+chainerx::Array FmodOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    CHECK(false) << "Mod(fmod=1) is not supported yet";
+    auto t = CoerceBinary(a, b);
+    return std::get<0>(t) % std::get<1>(t);
+}
+
 chainerx::Array PowOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     auto t = CoerceBinary(a, b);
     return Pow(std::get<0>(t), std::get<1>(t));
