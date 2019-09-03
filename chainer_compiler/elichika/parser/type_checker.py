@@ -167,7 +167,7 @@ def ty_ChainerConcat(ty_args, dummy_args_nontensor, kwargs):
 def ty_ChainerExpandDims(ty_args, dummy_args_nontensor, kwargs):
     # TODO(momohatt): axis can come as dummy_args_nontensor
     axis = kwargs['axis']
-    fallback_shapes = (((1,) * axis),)
+    fallback_shapes = ((1,) * axis,)
     fallback_dtypes = (np.float32,)
 
     return make_infer(F.expand_dims, fallback_shapes, fallback_dtypes) \
@@ -176,6 +176,15 @@ def ty_ChainerExpandDims(ty_args, dummy_args_nontensor, kwargs):
 
 def ty_ChainerBroadcastTo(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
+
+
+def ty_ChainerSum(ty_args, dummy_args_nontensor, kwargs):
+    axis = kwargs['axis']
+    fallback_shapes = ((1,) * (axis + 1),)
+    fallback_dtypes = (np.float32,)
+
+    return make_infer(F.sum, fallback_shapes, fallback_dtypes) \
+            (ty_args, dummy_args_nontensor, kwargs)
 
 
 ext_func_ty = {
@@ -208,8 +217,12 @@ ext_func_ty = {
         F.reshape :
             # TODO(momohatt): infer shape
             lambda ty_args, dummy_args_nontensor, kwargs: ty_args[0],
+        F.softmax :
+            ty_ChainerIdentical,
         F.softmax_cross_entropy :
             ty_ChainerSoftmaxCrossEntropy,
+        F.sum :
+            ty_ChainerSum,
         F.tanh :
             ty_ChainerIdentical,
         }
@@ -235,6 +248,11 @@ def evaluate_binop_ty(op, tyl, tyr):
     if isinstance(ty_ret, TySequence) and \
             not (tyl.is_fixed_len and tyr.is_fixed_len):
         ty_ret.coerce_to_variable_len()
+
+    if isinstance(ty_ret, TyTensor) and \
+            isinstance(tyl, TyTensor) and tyl.shape is None or \
+            isinstance(tyr, TyTensor) and tyr.shape is None:
+        ty_ret.shape = None
     return ty_ret
 
 
@@ -291,8 +309,10 @@ class TypeChecker():
 
     def evaluate(self, node):
         if isinstance(node, gast.Attribute):
-            module = getattr(self.module, node.value.id)
-            attr = getattr(module, node.attr)
+            v_value = self.evaluate(node.value)
+            if v_value is None:
+                return None
+            attr = getattr(v_value, node.attr)
             return attr
 
         if isinstance(node, gast.Num):
@@ -300,6 +320,9 @@ class TypeChecker():
 
         if isinstance(node, gast.Str):
             return node.s
+
+        if isinstance(node, gast.Name) and hasattr(self.module, node.id):
+            return getattr(self.module, node.id)
 
 
 
