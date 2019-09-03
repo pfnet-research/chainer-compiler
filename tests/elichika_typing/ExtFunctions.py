@@ -21,7 +21,7 @@ class TestNumpy(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
         self.assertEqual(str(id2type[6]), "ndarray(dtype(int64))")	# Name x (line 2)
         self.assertEqual(str(id2type[8]), "ndarray(dtype(int64))")	# Call (line 2)
@@ -65,7 +65,7 @@ class TestNumpy(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
         self.assertEqual(str(id2type[6]), "ndarray(dtype(float64))")	# Name x (line 2)
         self.assertEqual(str(id2type[8]), "ndarray(dtype(float64))")	# Call (line 2)

@@ -319,16 +319,20 @@ class TypeChecker():
         for stmt in stmts:
             tc.infer_stmt(stmt)
 
-        # 1. unify the intersection of 2 tyenvs
+        # 1. unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc.tyenv.items():
             if name in self.tyenv.keys():
                 unify(ty, self.tyenv[name])
-
-        # 2. update local tyenv
-        for name, ty in tc.tyenv.items():
             self.tyenv[name] = ty
 
-        # 3. merge nodetype from 2 TypeCheckers
+        for obj, attrs in tc.attribute_tyenv.items():
+            for name, ty in attrs.items():
+                if obj in self.attribute_tyenv.keys() and \
+                        name in self.attribute_tyenv[obj].keys():
+                    unify(ty, self.attribute_tyenv[obj][name])
+                self.attribute_tyenv[obj][name] = ty
+
+        # 2. merge nodetype from 2 TypeCheckers
         for node_, ty in tc.nodetype.items():
             self.nodetype[node_] = ty
 
@@ -407,31 +411,21 @@ class TypeChecker():
 
         if isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
-            if isinstance(node.target, gast.Name):
-                if not self.tyenv[node.target.id].is_mutable():
-                    self.tyenv[node.target.id] =  \
-                            deepcopy(self.tyenv[node.target.id])
-                binop = gast.BinOp(node.target, node.op, node.value)
-                ty_val = self.infer_expr(binop)
-                del self.nodetype[binop]
+            # if isinstance(node.target, gast.Name):
+            #     if not self.tyenv[node.target.id].is_mutable():
+            #         self.tyenv[node.target.id] =  \
+            #                 deepcopy(self.tyenv[node.target.id])
+            # if isinstance(node.target, gast.Attribute):
+            #     pass
 
-                self.tyenv[node.target.id] = ty_val
-                self.nodetype[node.target] = ty_val
-                self.nodetype[node] = TyNone()
-                return self.nodetype[node]
+            binop = gast.BinOp(node.target, node.op, node.value)
+            ty_val = self.infer_expr(binop)
+            del self.nodetype[binop]
 
-            if isinstance(node.target, gast.Attribute):
-                if not self.tyenv[node.target.id].is_mutable():
-                    self.tyenv[node.target.id] =  \
-                            deepcopy(self.tyenv[node.target.id])
-                binop = gast.BinOp(node.target, node.op, node.value)
-                ty_val = self.infer_expr(binop)
-                del self.nodetype[binop]
-
-                self.tyenv[node.target.id] = ty_val
-                self.nodetype[node.target] = ty_val
-                self.nodetype[node] = TyNone()
-                return self.nodetype[node]
+            self.tyenv[node.target.id] = ty_val
+            self.nodetype[node.target] = ty_val
+            self.nodetype[node] = TyNone()
+            return self.nodetype[node]
 
 
         if isinstance(node, gast.For):
@@ -471,17 +465,22 @@ class TypeChecker():
                 for stmt in node.orelse:
                     tc2.infer_stmt(stmt)
 
-                # 1. unify the intersection of 2 tyenvs
+                # 1. unify the intersection of 2 tyenvs and update local tyenv
                 for name, ty in tc1.tyenv.items():
                     if name in tc2.tyenv.keys():
                         unify(ty, tc2.tyenv[name])
-
-                # 2. update local tyenv
-                for name, ty in tc1.tyenv.items():
-                    if name in tc2.tyenv.keys():
+                        # XXX: objects existing in only one branch should not
+                        # remain
                         self.tyenv[name] = ty
 
-                # 3. merge nodetype from 2 TypeCheckers
+                for obj, attrs in tc1.attribute_tyenv.items():
+                    for name, ty in attrs.items():
+                        if obj in tc2.attribute_tyenv.keys() and \
+                                name in tc2.attribute_tyenv[obj].keys():
+                            unify(ty, tc2.attribute_tyenv[obj][name])
+                            self.attribute_tyenv[obj][name] = ty
+
+                # 2. merge nodetype from 2 TypeCheckers
                 for node_, ty in tc1.nodetype.items():
                     self.nodetype[node_] = ty
                 for node_, ty in tc2.nodetype.items():
