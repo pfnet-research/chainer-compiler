@@ -112,6 +112,11 @@ def debug(sth):
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
 
 
+def add_dict(dest, src):
+    for k, v in src.items():
+        dest[k] = v
+
+
 def defined_with___call__(func):
     return not isinstance(func, (types.FunctionType, types.MethodType,
         types.BuiltinFunctionType))
@@ -487,11 +492,8 @@ class TypeChecker():
             self.attribute_tyenv[(obj, name)] = ty
 
         # 2. merge nodetype from 2 TypeCheckers
-        for node_, ty in tc.nodetype.items():
-            self.nodetype[node_] = ty
-
-        for callnode, funcnode in tc.subroutine_node.items():
-            self.subroutine_node[callnode] = funcnode
+        add_dict(self.nodetype, tc.nodetype)
+        add_dict(self.subroutine_node, tc.subroutine_node)
 
 
     # ================================ mod =====================================
@@ -647,15 +649,10 @@ class TypeChecker():
                         self.attribute_tyenv[(obj, name)] = ty
 
                 # 2. merge nodetype from 2 TypeCheckers
-                for node_, ty in tc1.nodetype.items():
-                    self.nodetype[node_] = ty
-                for node_, ty in tc2.nodetype.items():
-                    self.nodetype[node_] = ty
-
-                for callnode, funcnode in tc1.subroutine_node.items():
-                    self.subroutine_node[callnode] = funcnode
-                for callnode, funcnode in tc2.subroutine_node.items():
-                    self.subroutine_node[callnode] = funcnode
+                add_dict(self.nodetype, tc1.nodetype)
+                add_dict(self.nodetype, tc2.nodetype)
+                add_dict(self.subroutine_node, tc1.subroutine_node)
+                add_dict(self.subroutine_node, tc2.subroutine_node)
 
 
             self.nodetype[node] = TyNone()
@@ -918,11 +915,8 @@ class TypeChecker():
             tc.infer_function(func_node, ty_args)
 
             # copy nodetype and subroutine_node from subroutine
-            for k, v in tc.nodetype.items():
-                self.nodetype[k] = v
-
-            for k, v in tc.subroutine_node.items():
-                self.subroutine_node[k] = v
+            add_dict(self.nodetype, tc.nodetype)
+            add_dict(self.subroutine_node, tc.subroutine_node)
 
             ty_fun = tc.nodetype[func_node]
             self.nodetype[node.func] = ty_fun
