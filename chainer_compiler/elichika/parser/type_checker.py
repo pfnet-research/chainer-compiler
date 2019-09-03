@@ -468,7 +468,7 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_block(self, stmts):  # use in if, for, while
+    def infer_block(self, stmts):  # use in if (without else), for, while
         tc = TypeChecker(
                 tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
                 is_debug=self.is_debug, module=self.module)
@@ -736,94 +736,7 @@ class TypeChecker():
 
 
         if isinstance(node, gast.Call):
-            # Call(expr func, expr* args, keyword* keywords)
-            ty_args = [self.infer_expr(arg) for arg in node.args]
-            ty_ret = TyVar()
-
-            try:
-                self.is_function = True
-                ty_fun = self.infer_expr(node.func)
-                self.is_function = False
-
-            except self.ArgumentRequired as e:
-                self.is_function = False
-                if e.func is None:
-                    # attribute against tensor etc.
-                    assert isinstance(node.func, gast.Attribute)
-                    ty_obj = self.nodetype[node.func.value]
-
-                    if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
-                        if node.func.attr == 'astype':
-                            val_args = [self.evaluate(arg) for arg in node.args]
-                            ty_ret = TyNdarray(TyDType(val_args[0]))
-                        self.nodetype[node] = ty_ret
-                        self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-
-                    return self.nodetype[node]
-
-                if e.func in ext_func_ty.keys():
-                    # case of calling external (eg. np/chainer) functions
-
-                    # Non-tensor arguments
-                    val_dummy_args_nontensor = []
-                    for t, arg in zip(ty_args, node.args):
-                        if isinstance(t, TyTensor):
-                            continue
-                        v = self.evaluate(arg)
-                        val_dummy_args_nontensor.append(v if v is not None else value_of_type(t))
-                    val_kwargs = self.get_kwarg(node.keywords)
-                    inference_logic = ext_func_ty[e.func]
-                    ty_ret = inference_logic(
-                            ty_args, val_dummy_args_nontensor, val_kwargs)
-
-                    self.nodetype[node] = ty_ret
-                    self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                    return self.nodetype[node]
-
-                if isinstance(e.func, types.BuiltinFunctionType):
-                    # TODO
-                    assert False
-
-                # user defined functions, need to inline
-                if isinstance(e.func, types.FunctionType) or \
-                        isinstance(e.func, types.MethodType):
-                    code = utils.clip_head(inspect.getsource(e.func))
-
-                    if isinstance(node.func, gast.Attribute):
-                        ty_self = self.nodetype[node.func.value]
-                        ty_args = [ty_self] + ty_args
-
-                else:
-                    # defined with __call__
-                    if isinstance(e.func, chainer.Chain):
-                        code = utils.clip_head(inspect.getsource(e.func.forward))
-                    else:
-                        code = utils.clip_head(inspect.getsource(e.func.__call__))
-                    ty_self = self.nodetype[node.func]
-                    ty_args = [ty_self] + ty_args
-
-                # FunctionDef of called subroutine
-                func_node = gast.ast_to_gast(ast.parse(code)).body[0]
-                self.subroutine_node[node] = func_node
-                tc = TypeChecker(is_debug=self.is_debug, module=self.module)
-                tc.infer_function(func_node, ty_args)
-
-                # copy nodetype and subroutine_node from subroutine
-                for k, v in tc.nodetype.items():
-                    self.nodetype[k] = v
-
-                for k, v in tc.subroutine_node.items():
-                    self.subroutine_node[k] = v
-
-                ty_fun = tc.nodetype[func_node]
-                self.nodetype[node.func] = ty_fun
-
-
-            unify(ty_fun, TyArrow(ty_args, ty_ret))
-            self.nodetype[node] = ty_ret.deref()
-
-            return self.nodetype[node]
-
+            return self.infer_Call(node)
 
         if isinstance(node, gast.Num):
             # Num(object n)
@@ -851,56 +764,7 @@ class TypeChecker():
 
 
         if isinstance(node, gast.Attribute):
-            # Attribute(expr value, identifier attr, expr_context ctx)
-
-            if isinstance(node.value, gast.Name) and \
-                    hasattr(self.module, node.value.id):
-                # function of imported libraries (eg. np, chainer, F, L)
-                module = getattr(self.module, node.value.id)
-                attr = getattr(module, node.attr)
-                if callable_(attr) and self.is_function:
-                    raise self.ArgumentRequired(func=attr)
-                self.nodetype[node] = type_of_value(attr)
-                return self.nodetype[node]
-
-            ty_obj = self.infer_expr(node.value)
-
-            if isinstance(ty_obj, TySequence) and ty_obj.is_list():
-                ty_obj.coerce_to_variable_len()
-                self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
-                return self.nodetype[node]
-
-            if isinstance(ty_obj, TyTensor):
-                if node.attr == 'shape':
-                    if ty_obj.shape is None:
-                        self.nodetype[node] = TyTuple(TyInt())
-                    else:
-                        self.nodetype[node] = type_of_value(ty_obj.shape)
-                    return self.nodetype[node]
-                if ty_obj.is_ndarray() and node.attr == 'astype':
-                    raise self.ArgumentRequired()
-                assert False
-
-            if isinstance(ty_obj, TyUserDefinedClass):
-                # x: value of existing instance
-                x = getattr(ty_obj.instance, node.attr)
-
-                if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
-                    self.nodetype[node] = \
-                            self.attribute_tyenv[(ty_obj.instance, node.attr)]
-                else:
-                    self.nodetype[node] = type_of_value(x)
-
-                if callable_(x) and self.is_function:
-                    if x in builtins_ty.keys():
-                        self.nodetype[node] = builtins_ty[x]
-                        return self.nodetype[node]
-                    raise self.ArgumentRequired(func=x)
-
-                return self.nodetype[node]
-
-            assert False
-
+            return self.infer_Attribute(node)
 
         if isinstance(node, gast.Subscript):
             # Subscript(expr value, slice slice, expr_context ctx)
@@ -980,6 +844,149 @@ class TypeChecker():
         assert False, type(node).__name__
 
 
+    def infer_Call(self, node):
+        # Call(expr func, expr* args, keyword* keywords)
+        ty_args = [self.infer_expr(arg) for arg in node.args]
+        ty_ret = TyVar()
+
+        try:
+            self.is_function = True
+            ty_fun = self.infer_expr(node.func)
+            self.is_function = False
+
+        except self.ArgumentRequired as e:
+            self.is_function = False
+            if e.func is None:
+                # attribute against tensor etc.
+                assert isinstance(node.func, gast.Attribute)
+                ty_obj = self.nodetype[node.func.value]
+
+                if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
+                    if node.func.attr == 'astype':
+                        val_args = [self.evaluate(arg) for arg in node.args]
+                        ty_ret = TyNdarray(TyDType(val_args[0]))
+                    self.nodetype[node] = ty_ret
+                    self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+
+                return self.nodetype[node]
+
+            if e.func in ext_func_ty.keys():
+                # case of calling external (eg. np/chainer) functions
+
+                # Non-tensor arguments
+                val_dummy_args_nontensor = []
+                for t, arg in zip(ty_args, node.args):
+                    if isinstance(t, TyTensor):
+                        continue
+                    v = self.evaluate(arg)
+                    val_dummy_args_nontensor.append(v if v is not None else value_of_type(t))
+                val_kwargs = self.get_kwarg(node.keywords)
+                inference_logic = ext_func_ty[e.func]
+                ty_ret = inference_logic(
+                        ty_args, val_dummy_args_nontensor, val_kwargs)
+
+                self.nodetype[node] = ty_ret
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return self.nodetype[node]
+
+            if isinstance(e.func, types.BuiltinFunctionType):
+                # TODO
+                assert False
+
+            # user defined functions, need to inline
+            if isinstance(e.func, types.FunctionType) or \
+                    isinstance(e.func, types.MethodType):
+                code = utils.clip_head(inspect.getsource(e.func))
+
+                if isinstance(node.func, gast.Attribute):
+                    ty_self = self.nodetype[node.func.value]
+                    ty_args = [ty_self] + ty_args
+
+            else:
+                # defined with __call__
+                if isinstance(e.func, chainer.Chain):
+                    code = utils.clip_head(inspect.getsource(e.func.forward))
+                else:
+                    code = utils.clip_head(inspect.getsource(e.func.__call__))
+                ty_self = self.nodetype[node.func]
+                ty_args = [ty_self] + ty_args
+
+            # FunctionDef of called subroutine
+            func_node = gast.ast_to_gast(ast.parse(code)).body[0]
+            self.subroutine_node[node] = func_node
+            tc = TypeChecker(is_debug=self.is_debug, module=self.module)
+            tc.infer_function(func_node, ty_args)
+
+            # copy nodetype and subroutine_node from subroutine
+            for k, v in tc.nodetype.items():
+                self.nodetype[k] = v
+
+            for k, v in tc.subroutine_node.items():
+                self.subroutine_node[k] = v
+
+            ty_fun = tc.nodetype[func_node]
+            self.nodetype[node.func] = ty_fun
+
+
+        unify(ty_fun, TyArrow(ty_args, ty_ret))
+        self.nodetype[node] = ty_ret.deref()
+
+        return self.nodetype[node]
+
+
+    def infer_Attribute(self, node):
+        # Attribute(expr value, identifier attr, expr_context ctx)
+
+        if isinstance(node.value, gast.Name) and \
+                hasattr(self.module, node.value.id):
+            # function of imported libraries (eg. np, chainer, F, L)
+            module = getattr(self.module, node.value.id)
+            attr = getattr(module, node.attr)
+            if callable_(attr) and self.is_function:
+                raise self.ArgumentRequired(func=attr)
+            self.nodetype[node] = type_of_value(attr)
+            return self.nodetype[node]
+
+        ty_obj = self.infer_expr(node.value)
+
+        if isinstance(ty_obj, TySequence) and ty_obj.is_list():
+            ty_obj.coerce_to_variable_len()
+            self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
+            return self.nodetype[node]
+
+        if isinstance(ty_obj, TyTensor):
+            if node.attr == 'shape':
+                if ty_obj.shape is None:
+                    self.nodetype[node] = TyTuple(TyInt())
+                else:
+                    self.nodetype[node] = type_of_value(ty_obj.shape)
+                return self.nodetype[node]
+            if ty_obj.is_ndarray() and node.attr == 'astype':
+                raise self.ArgumentRequired()
+            assert False
+
+        if isinstance(ty_obj, TyUserDefinedClass):
+            # x: value of existing instance
+            x = getattr(ty_obj.instance, node.attr)
+
+            if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
+                self.nodetype[node] = \
+                        self.attribute_tyenv[(ty_obj.instance, node.attr)]
+            else:
+                self.nodetype[node] = type_of_value(x)
+
+            if callable_(x) and self.is_function:
+                if x in builtins_ty.keys():
+                    self.nodetype[node] = builtins_ty[x]
+                    return self.nodetype[node]
+                raise self.ArgumentRequired(func=x)
+
+            return self.nodetype[node]
+
+        assert False
+
+
+    # ================================= slice ==================================
     def infer_slice(self, node, ty_key_expected) -> 'NoneType':
         if isinstance(node, gast.Slice):
             # Slice(expr? lower, expr? upper, expr? step)
