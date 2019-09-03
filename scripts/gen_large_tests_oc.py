@@ -12,6 +12,10 @@ def create_test(test_name, get_fun, dtype):
     chainer.config.dtype = dtype
     model, inputs = get_fun(dtype)
 
+    if chainer.cuda.available:
+        model.to_gpu()
+        inputs = [chainer.cuda.to_gpu(i) for i in inputs]
+
     output_grad = 'backprop' in test_name
     test_dir = 'out/%s' % test_name
 
