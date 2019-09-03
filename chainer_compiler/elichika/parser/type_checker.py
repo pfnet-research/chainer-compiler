@@ -164,6 +164,20 @@ def ty_ChainerConcat(ty_args, dummy_args_nontensor, kwargs):
     return TyTensor(dtype=dtype)
 
 
+def ty_ChainerExpandDims(ty_args, dummy_args_nontensor, kwargs):
+    # TODO(momohatt): axis can come as dummy_args_nontensor
+    axis = kwargs['axis']
+    fallback_shapes = (((1,) * axis),)
+    fallback_dtypes = (np.float32,)
+
+    return make_infer(F.expand_dims, fallback_shapes, fallback_dtypes) \
+            (ty_args, dummy_args_nontensor, kwargs)
+
+
+def ty_ChainerBroadcastTo(ty_args, dummy_args_nontensor, kwargs):
+    return TyChainerVariable(dtype=ty_args[0].dtype)
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -175,10 +189,14 @@ ext_func_ty = {
             chainer.Variable, 1),
         F.average_pooling_2d :
             ty_ChainerPooling2d(F.average_pooling_2d),
+        F.broadcast_to :
+            ty_ChainerBroadcastTo,
         F.concat :
             ty_ChainerConcat,
         F.dropout :
             ty_ChainerIdentical,
+        F.expand_dims :
+            ty_ChainerExpandDims,
         F.local_response_normalization : evaluate_function_types(
             F.local_response_normalization, 1),
         F.max_pooling_2d :
@@ -622,10 +640,10 @@ class TypeChecker():
 
                     # Non-tensor arguments
                     val_dummy_args_nontensor = []
-                    for t, n in zip(ty_args, node.args):
+                    for t, arg in zip(ty_args, node.args):
                         if isinstance(t, TyTensor):
                             continue
-                        v = self.evaluate(n)
+                        v = self.evaluate(arg)
                         val_dummy_args_nontensor.append(v if v is not None else value_of_type(t))
                     val_kwargs = self.get_kwarg(node.keywords)
                     inference_logic = ext_func_ty[e.func]
@@ -638,7 +656,7 @@ class TypeChecker():
 
                 if isinstance(e.func, types.BuiltinFunctionType):
                     # TODO
-                    return
+                    assert False
 
                 # user defined functions, need to inline
                 if isinstance(e.func, types.FunctionType) or \
@@ -717,6 +735,7 @@ class TypeChecker():
                 if callable_(attr) and self.is_function:
                     raise self.ArgumentRequired(func=attr)
                 self.nodetype[node] = type_of_value(attr)
+                return self.nodetype[node]
 
             ty_obj = self.infer_expr(node.value)
 
@@ -738,12 +757,14 @@ class TypeChecker():
 
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
+                x = getattr(ty_obj.instance, node.attr)
 
                 if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                     self.nodetype[node] = \
                             self.attribute_tyenv[(ty_obj.instance, node.attr)]
+                else:
+                    self.nodetype[node] = type_of_value(x)
 
-                x = getattr(ty_obj.instance, node.attr)
                 if callable_(x) and self.is_function:
                     if x in builtins_ty.keys():
                         self.nodetype[node] = builtins_ty[x]
