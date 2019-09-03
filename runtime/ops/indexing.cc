@@ -191,66 +191,33 @@ chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, c
     return data.Take(indices, axis);
 }
 
-// TODO(take-cheeze): Move th ChainerX
+// TODO(take-cheeze): Move to ChainerX
 chainerx::Array ScatterOp::RunImpl(
         ChxVMState* st, const chainerx::Array& data_, const chainerx::Array& indices_, const chainerx::Array& updates_) {
     const int64_t axis = this->axis < 0 ? data_.shape().size() - this->axis : this->axis;
     CHECK(0 <= axis && axis < data_.shape().size());
     CHECK_EQ(indices_.shape(), updates_.shape());
+    // TODO(take-cheeze): More than rank 2
+    CHECK_EQ(2, data_.shape().size());
+    CHECK_EQ(2, indices_.shape().size());
+    CHECK_EQ(2, updates_.shape().size());
 
-    chainerx::Array data = data_.AsType(chainerx::Dtype::kFloat32).ToNative();
-    chainerx::Array updates = updates_.AsType(chainerx::Dtype::kFloat32).ToNative();
-    chainerx::Array indices = indices_.AsType(chainerx::Dtype::kInt64).ToNative();
+    chainerx::Array data = chainerx::AsContiguous(data_.AsType(chainerx::Dtype::kFloat32).ToNative());
+    chainerx::Array updates = chainerx::AsContiguous(updates_.AsType(chainerx::Dtype::kFloat32).ToNative());
+    chainerx::Array indices = chainerx::AsContiguous(indices_.AsType(chainerx::Dtype::kInt64).ToNative());
 
     // TODO(take-cheeze): Make more dtype generic
     using T = float;
     chainerx::IndexableArray<T> a_iarray{data};
     chainerx::IndexableArray<const T> updates_iarray{updates};
     chainerx::IndexableArray<const int64_t> indices_iarray{indices};
-    chainerx::Indexer<> a_indexer{data.shape()};
-    chainerx::Indexer<> updates_indexer{updates.shape()};
     chainerx::Indexer<> indices_indexer{indices.shape()};
 
-    const int64_t axis_dim = data.shape()[axis];
-
-    // left: set of input dimensions lower than the axis
-    // right: set of input dimensions higher than the axis
-    chainerx::Shape left_shape{data.shape().begin(), data.shape().begin() + axis};
-    chainerx::Shape right_shape{data.shape().begin() + (axis + 1), data.shape().end()};
-    chainerx::Shape axis_shape{axis_dim};  // always ndim==1
-    chainerx::Indexer<> left_indexer{left_shape};
-    chainerx::Indexer<> right_indexer{right_shape};
-    chainerx::Indexer<> axis_indexer{axis_shape};
-
-    auto it_left = left_indexer.It(0);
-    auto it_right = right_indexer.It(0);
-    auto it_axis = axis_indexer.It(0);
-    auto it_updates = updates_indexer.It(0);
-    auto it_a = a_indexer.It(0);
-
     for (auto it = indices_indexer.It(0); it; ++it) {
-        int64_t index = indices_iarray[it];
-        if (index < 0) {
-            index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-        } else {
-            index = index % axis_dim;
-        }
-        CHECK(0 <= index);
-        CHECK(index < axis_dim);
-        it_axis.Restart(index);
-        it_updates.CopyIndex(it, it_left.ndim());
-        it_a.CopyIndex(it_axis, it_left.ndim());
-
-        for (it_left.Restart(); it_left; ++it_left) {
-            it_updates.CopyIndex(it_left);
-            it_a.CopyIndex(it_left);
-
-            for (it_right.Restart(); it_right; ++it_right) {
-                it_updates.CopyIndex(it_right, it_left.ndim() + it.ndim());
-                it_a.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
-                a_iarray[it_a] = updates_iarray[it_updates];
-            }
-        }
+        int64_t dst[2];
+        dst[axis] = indices_iarray[it];
+        dst[axis == 0 ? 1 : 0] = it.index()[axis == 0 ? 1 : 0];
+        a_iarray[dst] = updates_iarray[it];
     }
 
     return data.ToDevice(data_.device()).AsType(data_.dtype());
