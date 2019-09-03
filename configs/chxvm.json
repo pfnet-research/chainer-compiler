@@ -3,8 +3,7 @@
         "ReplaceChainerSelectItem": true,
         "ReplaceChainerSoftmaxCrossEntropy": true,
         "ReplaceIdentity": true,
-        // TODO(hamaji): Revive Scan.
-        // "ReplaceScan": true,
+        "ReplaceScan": true,
         "ReplaceShape": true
     },
     "simplify": {

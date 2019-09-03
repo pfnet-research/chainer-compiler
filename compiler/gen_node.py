@@ -216,8 +216,12 @@ NodeDef('LogSoftmax', 1, 1, axis=1, chainer_is_onnx_semantics=True)
 # Extension: it takes N+1 inputs.
 NodeDef('If', None, None, else_branch=Graph, then_branch=Graph)
 NodeDef('Loop', None, None, body=Graph, chainer_stack_axis=0)
-# TODO(hamaji): Fix Scan to handle the new semantics.
-# NodeDef('Scan', None, None, body=Graph, num_scan_inputs=Required(int))
+NodeDef('Scan', None, None, body=Graph,
+        num_scan_inputs=Required(int),
+        scan_input_axes=[int],
+        scan_input_directions=[int],
+        scan_output_axes=[int],
+        scan_output_directions=[int])
 NodeDef('Where', 3, 1)
 NodeDef('TopK', 2, 2, axis=-1, largest=1, sorted=1)
 NodeDef('NonMaxSuppression', (2, 3, 4, 5), 1, center_point_box=0)
