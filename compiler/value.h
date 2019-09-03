@@ -45,9 +45,6 @@ public:
     bool IsNull() const {
         return kind_ & Kind::kNull;
     }
-    void ResetKind() {
-        kind_ = Kind::kTemp;
-    }
 
     const std::string& name() const {
         return name_;
