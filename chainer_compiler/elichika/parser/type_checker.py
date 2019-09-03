@@ -27,11 +27,9 @@ def defined_with___call__(func):
 
 
 def callable_(x):
-    # TODO(momohatt): allow dtype to be called (eg. np.float32(1))
     if isinstance(x, L.Linear) or \
             isinstance(x, L.Convolution2D) or \
-            isinstance(x, L.BatchNormalization) or \
-            isinstance(x, np.dtype):
+            isinstance(x, L.BatchNormalization):
         return False
     return callable(x)
 
@@ -229,6 +227,9 @@ class TypeChecker():
 
         # types of object attributes which are overwritten in forward()
         self.attribute_tyenv = {}  # (object, str) -> TyObj)
+
+        # True iff the parent node is Call
+        self.is_function = False
 
 
     def dump_tyenv(self):
@@ -573,9 +574,12 @@ class TypeChecker():
             ty_ret = TyVar()
 
             try:
+                self.is_function = True
                 ty_fun = self.infer_expr(node.func)
+                self.is_function = False
 
             except self.ArgumentRequired as e:
+                self.is_function = False
                 if e.func is None:
                     # attribute against tensor etc.
                     assert isinstance(node.func, gast.Attribute)
@@ -687,7 +691,7 @@ class TypeChecker():
                 # function of imported libraries (eg. np, chainer, F, L)
                 module = getattr(self.module, node.value.id)
                 attr = getattr(module, node.attr)
-                if callable_(attr):
+                if callable_(attr) and self.is_function:
                     raise self.ArgumentRequired(func=attr)
                 self.nodetype[node] = type_of_value(attr)
 
@@ -718,7 +722,7 @@ class TypeChecker():
                     return self.nodetype[node]
 
                 x = getattr(ty_obj.instance, node.attr)
-                if callable_(x):
+                if callable_(x) and self.is_function:
                     if x in builtins_ty.keys():
                         self.nodetype[node] = builtins_ty[x]
                         return self.nodetype[node]
