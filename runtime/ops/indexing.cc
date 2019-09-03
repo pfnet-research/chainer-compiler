@@ -229,11 +229,14 @@ chainerx::Array ScatterOp::RunImpl(
     chainerx::IndexableArray<const int64_t> indices_iarray{indices};
     chainerx::Indexer<> indices_indexer{indices.shape()};
 
+    std::vector<chainerx::ArrayIndex> dst(indices.shape().size(), 0), src(indices.shape().size(), 0);
     for (auto it = indices_indexer.It(0); it; ++it) {
-        int64_t dst[2];
+        for (int64_t i = 0; i < it.ndim(); ++i) {
+            src[i] = it.index()[i];
+            dst[i] = it.index()[i];
+        }
         dst[axis] = indices_iarray[it];
-        dst[axis == 0 ? 1 : 0] = it.index()[axis == 0 ? 1 : 0];
-        BlitArray(updates.At({it.index()[0], it.index()[1]}), data.At({dst[0], dst[1]}));
+        BlitArray(updates.At(src), data.At(dst));
     }
 
     return data;
