@@ -2,6 +2,7 @@ import ast, gast
 import inspect
 import sys
 
+from chainer_compiler.elichika.parser.canonicalizer import Canonicalizer
 from chainer_compiler.elichika.parser.type_checker import TypeChecker
 from chainer_compiler.elichika.parser import utils
 
@@ -60,6 +61,7 @@ def generate_id2type(node2type, node2id):
 def generate_id2type_from_forward(model, args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
     tree = gast.ast_to_gast(ast.parse(code))
+    tree = Canonicalizer().visit(tree)
     module = sys.modules[model.forward.__module__]
     args = (model,) + args
     node2type, subroutine_node = generate_node2type(
@@ -110,6 +112,7 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
+    node = Canonicalizer().visit(node)
     module = sys.modules[model.forward.__module__]
     node2type, subroutine_node = generate_node2type(
             node, forward_args, is_debug=True, module=module)
