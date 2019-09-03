@@ -130,6 +130,7 @@
         "Exp": true,
         "Expand": true,
         "EyeLike": true,
+        "Flatten": true,
         "Floor": true,
         "GRU": true,
         "Gather": true,
