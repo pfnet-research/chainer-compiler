@@ -255,7 +255,10 @@ class TyUserDefinedClass(TyObj):
         self.instance = instance
 
     def show(self):
-        return self.name
+        return "class " + self.name
+
+    def is_mutable(self):
+        return True
 
 
 # --------------------- numpy ndarray / chainer variable -----------------------
@@ -554,7 +557,12 @@ def unify(ty1, ty2):
 
         if ty1.is_fixed_len and ty2.is_fixed_len:
             if not len(ty1.get_tys()) == len(ty2.get_tys()):
-                raise UnifyError(ty1, ty2)
+                # TODO: raise error?
+                # raise UnifyError(ty1, ty2)
+                ty1.coerce_to_variable_len()
+                ty2.coerce_to_variable_len()
+                unify(ty1.get_ty(), ty2.get_ty())
+                return
             for (t1, t2) in zip(ty1.get_tys(), ty2.get_tys()):
                 unify(t1, t2)
             return

@@ -323,8 +323,7 @@ class TypeChecker():
 
         # 2. update local tyenv
         for name, ty in tc.tyenv.items():
-            if name in self.tyenv.keys():
-                self.tyenv[name] = ty
+            self.tyenv[name] = ty
 
         # 3. merge nodetype from 2 TypeCheckers
         for node_, ty in tc.nodetype.items():
@@ -372,7 +371,7 @@ class TypeChecker():
 
             if isinstance(target, gast.Name):
                 ty_val = self.infer_expr(node.value)
-                if isinstance(node.value, gast.Name):
+                if isinstance(node.value, gast.Name) and ty_val.is_mutable():
                     # alias
                     self.tyenv[target.id] = ty_val
                     self.nodetype[target] = ty_val
@@ -440,8 +439,7 @@ class TypeChecker():
             ty_i = self.infer_expr(node.target)
             unify(ty_iteration, TyList(ty_i))
 
-            for stmt in node.body:
-                self.infer_stmt(stmt)
+            self.infer_block(node.body)
 
             self.nodetype[node] = TyNone()
             return self.nodetype[node]
@@ -459,24 +457,7 @@ class TypeChecker():
             # TODO(momohatt): determine what type should ty_test be
 
             if node.orelse == []:
-                tc = TypeChecker(
-                        self.tyenv, is_debug=self.is_debug, module=self.module)
-                for stmt in node.body:
-                    tc.infer_stmt(stmt)
-
-                # 1. unify the intersection of 2 tyenvs
-                for name, ty in tc.tyenv.items():
-                    if name in self.tyenv.keys():
-                        unify(ty, self.tyenv[name])
-
-                # 2. update local tyenv
-                for name, ty in tc.tyenv.items():
-                    if name in self.tyenv.keys():
-                        self.tyenv[name] = ty
-
-                # 3. merge nodetype from 2 TypeCheckers
-                for node_, ty in tc.nodetype.items():
-                    self.nodetype[node_] = ty
+                self.infer_block(node.body)
             else:
                 tc1 = TypeChecker(
                         self.tyenv, is_debug=self.is_debug, module=self.module)
