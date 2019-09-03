@@ -34,6 +34,20 @@ def callable_(x):
     return callable(x)
 
 
+def copy_ty(ty):
+    if isinstance(ty, TyUserDefinedClass):
+        # XXX: do not copy instance
+        return TyUserDefinedClass(ty.name, ty.instance)
+    return deepcopy(ty)
+
+
+def copy_tyenv(tyenv):
+    new_tyenv = {}
+    for name, ty in tyenv.items():
+        new_tyenv[name] = copy_ty(ty)
+    return new_tyenv
+
+
 # ==============================================================================
 
 builtins_ty = {
@@ -218,7 +232,7 @@ class TypeChecker():
         if tyenv is None:
             self.tyenv = {}  # string -> TyObj (internal type env)
         else:
-            self.tyenv = deepcopy(tyenv)
+            self.tyenv = copy_tyenv(tyenv)
         # type environments
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
@@ -302,6 +316,11 @@ class TypeChecker():
 
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
+        for ty in ty_args:
+            if isinstance(ty, TyUserDefinedClass):
+                for attr, val in ty.instance.__dict__.items():
+                    self.attribute_tyenv[(ty.instance, attr)] = \
+                            type_of_value(val)
 
         self.infer_stmt(node)
 
@@ -382,10 +401,11 @@ class TypeChecker():
                     self.tyenv[target.id] = ty_val
                     self.nodetype[target] = ty_val
                 else:
-                    self.tyenv[target.id] = deepcopy(ty_val)
-                    self.nodetype[target] = deepcopy(ty_val)
+                    self.tyenv[target.id] = copy_ty(ty_val)
+                    self.nodetype[target] = copy_ty(ty_val)
 
             elif isinstance(target, gast.Attribute):
+                self.infer_expr(target)
                 ty_obj = self.nodetype[target.value]
                 assert isinstance(ty_obj, TyUserDefinedClass)
                 self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
@@ -416,7 +436,7 @@ class TypeChecker():
                 if ty_target.is_mutable():
                     self.tyenv[node.target.id] = ty_val
                 else:
-                    self.tyenv[node.target.id] = deepcopy(ty_val)
+                    self.tyenv[node.target.id] = copy_ty(ty_val)
 
             if isinstance(node.target, gast.Attribute):
                 ty_obj = self.nodetype[node.target.value]
@@ -426,7 +446,7 @@ class TypeChecker():
                             ty_val
                 else:
                     self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                            deepcopy(ty_val)
+                            copy_ty(ty_val)
 
             self.nodetype[node.target] = ty_val
             self.nodetype[node] = TyNone()
@@ -730,8 +750,6 @@ class TypeChecker():
                         self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(func=x)
                 self.nodetype[node] = type_of_value(x)
-                self.attribute_tyenv[(ty_obj.instance, node.attr)] = \
-                        self.nodetype[node]
                 return self.nodetype[node]
 
             assert False
@@ -790,7 +808,7 @@ class TypeChecker():
             if node.id in self.tyenv.keys():
                 self.nodetype[node] = self.tyenv[node.id]
             elif node.id in builtins_name:
-                self.nodetype[node] = deepcopy(builtins_ty[eval(node.id)])
+                self.nodetype[node] = copy_ty(builtins_ty[eval(node.id)])
             elif hasattr(self.module, node.id):
                 x = getattr(self.module, node.id)
                 if callable_(x):
