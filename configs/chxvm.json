@@ -133,6 +133,7 @@
         "Floor": true,
         "GRU": true,
         "Gather": true,
+        "GatherElements": true,
         "Gemm": true,
         "Greater": true,
         "Hardmax": true,
