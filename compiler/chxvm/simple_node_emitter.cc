@@ -427,6 +427,10 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         CHECK_EQ(2UL, node.inputs().size());
         CHECK_EQ(1UL, node.outputs().size());
         EMIT(Gather, out(0), in(0), in(1), node.axis());
+    } else if (node.op_type() == Node::kScatter || node.op_type() == Node::kScatterElements) {
+        CHECK_EQ(3UL, node.inputs().size());
+        CHECK_EQ(1UL, node.outputs().size());
+        EMIT(Scatter, out(0), in(0), in(1), in(2), node.axis());
     } else if (node.op_type() == Node::kConcat) {
         CHECK_EQ(1UL, node.outputs().size());
         std::vector<int> ins;

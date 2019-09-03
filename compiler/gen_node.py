@@ -129,6 +129,8 @@ NodeDef('Slice', (1, 3, 4, 5), 1,
 # TOOD(hamaji): Remove this as it is deprecated in ONNX.
 NodeDef('DynamicSlice', (3, 4, 5), 1)
 NodeDef('Gather', 2, 1, axis=0)
+NodeDef('Scatter', 3, 1, axis=0)
+NodeDef('ScatterElements', 3, 1, axis=0)
 NodeDef('Concat', None, 1, axis=Required(int))
 NodeDef('Split', 1, None, axis=0, split=[int])
 NodeDef('Transpose', 1, 1, perm=[int])

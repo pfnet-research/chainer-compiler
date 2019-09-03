@@ -1,4 +1,5 @@
 #include <chainerx/index_iterator.h>
+#include <chainerx/indexable_array.h>
 #include <chainerx/routines/creation.h>
 #include <chainerx/routines/indexing.h>
 #include <chainerx/routines/manipulation.h>
@@ -190,6 +191,32 @@ chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, c
     return data.Take(indices, axis);
 }
 
+chainerx::Array ScatterOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& data_, const chainerx::Array& indices_, const chainerx::Array& updates) {
+    const int64_t axis = this->axis < 0 ? data_.shape().size() - this->axis : this->axis;
+    CHECK(0 <= axis && axis < data_.shape().size());
+    CHECK_EQ(indices_.shape(), updates.shape());
+    // TODO(take-cheeze): More than rank 2
+    CHECK_EQ(2, data_.shape().size());
+    CHECK_EQ(2, indices_.shape().size());
+    CHECK_EQ(2, updates.shape().size());
+
+    // TODO(take-cheeze): Avoid copy
+    chainerx::Array data = data_.Copy();
+    chainerx::Array indices = chainerx::AsContiguous(indices_.AsType(chainerx::Dtype::kInt64).ToNative());
+    chainerx::IndexableArray<const int64_t> indices_iarray{indices};
+    chainerx::Indexer<> indices_indexer{indices.shape()};
+
+    for (auto it = indices_indexer.It(0); it; ++it) {
+        int64_t dst[2];
+        dst[axis] = indices_iarray[it];
+        dst[axis == 0 ? 1 : 0] = it.index()[axis == 0 ? 1 : 0];
+        BlitArray(updates.At({it.index()[0], it.index()[1]}), data.At({dst[0], dst[1]}));
+    }
+
+    return data;
+}
+
 chainerx::Array GatherGradOp::RunImpl(
         ChxVMState* st, const chainerx::Array& gy, const chainerx::Array& indices, const chainerx::Shape& shape) {
     chainerx::Array out = chainerx::Zeros(shape, gy.dtype());
@@ -232,7 +259,7 @@ chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
     CHECK(IsNativeDevice(&x.device()));
     const int64_t rank = x.shape().size();
     std::vector<int64_t> result;
-    chainerx::IndexIterator<chainerx::kDynamicNdim> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
+    chainerx::IndexIterator<> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
     const bool* x_start = reinterpret_cast<const bool*>(x.raw_data());
     for (size_t i = 0; i < x.shape().GetTotalSize(); ++i) {
         if (x_start[i]) {
