@@ -194,6 +194,12 @@ Value* Graph::AddNullValue() {
     return AddValue("", Value::Kind::kNull);
 }
 
+void Graph::ResetKind(Value* value) {
+    CHECK(!value->IsTemp()) << value->ToString();
+    value->ResetKind();
+    temp_values_.push_back(value);
+}
+
 Node* Graph::AddNode(
         Node::OpType op_type,
         const std::vector<Value*>& inputs,
