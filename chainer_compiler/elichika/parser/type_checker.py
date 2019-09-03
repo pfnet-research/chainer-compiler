@@ -295,6 +295,7 @@ class TypeChecker():
 
 
     def dump_tyenv(self):
+        print("=== tyenv ===")
         if not self.is_debug:
             return
         for name, ty in self.tyenv.items():
@@ -423,7 +424,6 @@ class TypeChecker():
     def infer_stmt(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
-            self.dump_tyenv()
 
         if isinstance(node, gast.FunctionDef):
             # FunctionDef(identifier name, arguments args, stmt* body,
@@ -597,7 +597,6 @@ class TypeChecker():
     def infer_expr(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
-            self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
             # BoolOp(boolop op, expr* values)

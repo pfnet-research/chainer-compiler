@@ -41,8 +41,12 @@ def generate_id2node(node2id):
 def generate_node2type(tree, args, is_debug=False, module=None):
     tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
-    node2type = tc.infer_function_vargs(func_body, args)
-    return node2type, tc.subroutine_node
+    try:
+        node2type = tc.infer_function_vargs(func_body, args)
+        return node2type, tc.subroutine_node
+    except Exception as e:
+        tc.dump_tyenv()
+        raise e
 
 
 def generate_id2type(node2type, node2id):
