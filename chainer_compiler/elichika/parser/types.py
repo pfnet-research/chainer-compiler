@@ -436,7 +436,6 @@ def type_of_value(value) -> 'TyObj':
         # XXX: np.typeDict.values() is a list of all dtypes
         return TyDType(value)
 
-
     return TyUserDefinedClass(type(value).__name__, value)
 
 
@@ -533,6 +532,8 @@ def unify(ty1, ty2):
     if isinstance(ty2, TyNone):
         ty1.is_optional = True
         return
+
+    ty1.is_optional = ty2.is_optional = ty1.is_optional or ty2.is_optional
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
         possible_types = \

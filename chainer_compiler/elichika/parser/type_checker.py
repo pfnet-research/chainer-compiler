@@ -228,11 +228,9 @@ class TypeChecker():
             self.func = func  # callables
             self.ty_obj = ty_obj  # method call against
 
-    def __init__(self, tyenv=None, is_debug=False, module=None):
-        if tyenv is None:
-            self.tyenv = {}  # string -> TyObj (internal type env)
-        else:
-            self.tyenv = copy_tyenv(tyenv)
+    def __init__(self, tyenv=None, attribute_tyenv=None, is_debug=False, module=None):
+        # string -> TyObj (internal type env)
+        self.tyenv = {} if tyenv is None else copy_tyenv(tyenv)
         # type environments
         self.nodetype = {}  # Node -> TyObj (for elichika to use)
         self.is_debug = is_debug
@@ -240,7 +238,9 @@ class TypeChecker():
         self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
 
         # types of object attributes which are overwritten in forward()
-        self.attribute_tyenv = {}  # (object, str) -> TyObj)
+        # (object, str) -> TyObj)
+        self.attribute_tyenv = {} if attribute_tyenv is None \
+                else copy_tyenv(attribute_tyenv)
 
         # True iff the parent node is Call
         self.is_function = False
@@ -333,7 +333,8 @@ class TypeChecker():
 
     def infer_block(self, stmts):  # use in if, for, while
         tc = TypeChecker(
-                self.tyenv, is_debug=self.is_debug, module=self.module)
+                tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                is_debug=self.is_debug, module=self.module)
         for stmt in stmts:
             tc.infer_stmt(stmt)
 
@@ -482,9 +483,11 @@ class TypeChecker():
                 self.infer_block(node.body)
             else:
                 tc1 = TypeChecker(
-                        self.tyenv, is_debug=self.is_debug, module=self.module)
+                        tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                        is_debug=self.is_debug, module=self.module)
                 tc2 = TypeChecker(
-                        self.tyenv, is_debug=self.is_debug, module=self.module)
+                        tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                        is_debug=self.is_debug, module=self.module)
                 for stmt in node.body:
                     tc1.infer_stmt(stmt)
                 for stmt in node.orelse:
@@ -739,17 +742,14 @@ class TypeChecker():
                 if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                     self.nodetype[node] = \
                             self.attribute_tyenv[(ty_obj.instance, node.attr)]
-                    return self.nodetype[node]
 
                 x = getattr(ty_obj.instance, node.attr)
                 if callable_(x) and self.is_function:
                     if x in builtins_ty.keys():
                         self.nodetype[node] = builtins_ty[x]
                         return self.nodetype[node]
-                    if defined_with___call__(x):
-                        self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(func=x)
-                self.nodetype[node] = type_of_value(x)
+
                 return self.nodetype[node]
 
             assert False
