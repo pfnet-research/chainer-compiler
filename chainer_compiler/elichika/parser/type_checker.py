@@ -28,11 +28,11 @@ def defined_with___call__(func):
 
 
 def callable_(x):
-    # TODO(momohatt): この分類どうしよう
+    # TODO(momohatt): allow dtype to be called (eg. np.float32(1))
     if isinstance(x, L.Linear) or \
-            isinstance(x, chainer.ChainList) or \
             isinstance(x, L.Convolution2D) or \
-            isinstance(x, L.BatchNormalization):
+            isinstance(x, L.BatchNormalization) or \
+            isinstance(x, np.dtype):
         return False
     return callable(x)
 
@@ -133,11 +133,24 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, kwargs):
                     (ty_args, dummy_args_nontensor, kwargs)
 
 
-# math functions that doesn't change shapes
-def ty_ChainerMath(ty_args, dummy_args_nontensor, kwargs):
+# math functions that doesn't change shapes or dtypes
+def ty_ChainerIdentical(ty_args, dummy_args_nontensor, kwargs):
     if isinstance(ty_args[0], TyTensor):
+        assert ty_args[0].dtype.is_float()
         return ty_args[0]
     assert False
+
+
+def ty_ChainerConcat(ty_args, dummy_args_nontensor, kwargs):
+    # TODO(momohatt): shape
+    assert isinstance(ty_args[0], TySequence)
+    if ty_args[0].is_fixed_len:
+        dtypes = [tytensor.dtype for tytensor in ty_args[0].get_tys()]
+        assert all_same(dtypes)
+        return TyTensor(dtype=dtypes[0])
+
+    dtype = ty_args[0].get_ty().dtype
+    return TyTensor(dtype=dtype)
 
 
 ext_func_ty = {
@@ -151,6 +164,12 @@ ext_func_ty = {
             chainer.Variable, 1),
         F.average_pooling_2d :
             ty_ChainerPooling2d(F.average_pooling_2d),
+        F.concat :
+            ty_ChainerConcat,
+        F.dropout :
+            ty_ChainerIdentical,
+        F.local_response_normalization : evaluate_function_types(
+            F.local_response_normalization, 1),
         F.max_pooling_2d :
             ty_ChainerPooling2d(F.max_pooling_2d),
         F.pad_sequence : evaluate_function_types(
@@ -163,7 +182,7 @@ ext_func_ty = {
         F.softmax_cross_entropy :
             ty_ChainerSoftmaxCrossEntropy,
         F.tanh :
-            ty_ChainerMath,
+            ty_ChainerIdentical,
         }
 
 
@@ -173,52 +192,18 @@ list_attr_ty = {
         }
 
 
-def ty_NumOp(tyl, tyr):
-    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_min, tyr.ty_min), 2)
-    assert False
-
-def ty_Add(tyl, tyr):
-    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyNum(max(tyl.ty_min, tyr.ty_min), 2)
-    if isinstance(tyl, TyString) and isinstance(tyr, TyString):
-        return TyString()
-    if isinstance(tyl, TySequence) and isinstance(tyr, TySequence) and \
-            tyl.seq_kind == tyr.seq_kind:
-        ty = TyVar()
-        unify(tyl, TyList(ty))
-        unify(tyr, TyList(ty))
-        tyl.coerce_to_variable_len(ty)
-        tyr.coerce_to_variable_len(ty)
-        return TySequence(ty, tyl.seq_kind)
-    assert False
-
-def ty_Div(tyl, tyr):
-    if isinstance(tyl, TyNum) and isinstance(tyr, TyNum):
-        return TyFloat()
-    assert False
-
-
-# binop も次のようにしたいが、dictの初期化時に
-# max(x.ty_min, y.ty_min)とかの値が決まってしまうので難しい...
-# binop_ty = {
-#         gast.Add : TyUnion(
-#             (lambda x, y: TyArrow([x, y],
-#                 TyNum(max(x.ty_min, y.ty_min), 2))) \
-#                         (TyBool(), TyBool()),
-#             TyArrow([TyString(), TyString()], TyString()),
-#             (lambda x: TyArrow([TyList(x), TyList(x)], TyList(x)))(TyVar()),
-#             (lambda x: TyArrow([TyTuple(x), TyTuple(x)], TyTuple(x)))(TyVar()),
-#             ),
-#         }
-
-primitive_op_ty = {
-        gast.Add : ty_Add,
-        gast.Sub : ty_NumOp,
-        gast.Mult : ty_NumOp,
-        gast.Div : ty_Div,
-        gast.FloorDiv : ty_NumOp,
-        }
+def evaluate_binop_ty(op, tyl, tyr):
+    semantics = {
+            gast.Add : (lambda x, y: x + y),
+            gast.Sub : (lambda x, y: x - y),
+            gast.Mult : (lambda x, y: x * y),
+            gast.Div : (lambda x, y: x / y),
+            gast.FloorDiv : (lambda x, y: x // y),
+            }
+    func = semantics[type(op)]
+    vall, valr = value_of_type(tyl), value_of_type(tyr)
+    ty_ret = type_of_value(func(vall, valr))
+    return ty_ret
 
 
 # ==============================================================================
@@ -325,13 +310,32 @@ class TypeChecker():
         return self.nodetype
 
 
+    def infer_block(self, stmts):  # use in if, for, while
+        tc = TypeChecker(
+                self.tyenv, is_debug=self.is_debug, module=self.module)
+        for stmt in stmts:
+            tc.infer_stmt(stmt)
+
+        # 1. unify the intersection of 2 tyenvs
+        for name, ty in tc.tyenv.items():
+            if name in self.tyenv.keys():
+                unify(ty, self.tyenv[name])
+
+        # 2. update local tyenv
+        for name, ty in tc.tyenv.items():
+            if name in self.tyenv.keys():
+                self.tyenv[name] = ty
+
+        # 3. merge nodetype from 2 TypeCheckers
+        for node_, ty in tc.nodetype.items():
+            self.nodetype[node_] = ty
+
+
     # ================================ mod =====================================
     def infer_mod(self, node):
         if isinstance(node, gast.Module):
             self.infer_stmt(node.body[0])
             return
-
-        assert False
 
 
     # ================================ stmt ====================================
@@ -401,19 +405,31 @@ class TypeChecker():
 
         if isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
-            if self.tyenv[node.target.id].is_mutable():
+            if isinstance(node.target, gast.Name):
+                if not self.tyenv[node.target.id].is_mutable():
+                    self.tyenv[node.target.id] =  \
+                            deepcopy(self.tyenv[node.target.id])
                 binop = gast.BinOp(node.target, node.op, node.value)
                 ty_val = self.infer_expr(binop)
                 del self.nodetype[binop]
-            else:
-                self.tyenv[node.target.id] = deepcopy(self.tyenv[node.target.id])
+
+                self.tyenv[node.target.id] = ty_val
+                self.nodetype[node.target] = ty_val
+                self.nodetype[node] = TyNone()
+                return self.nodetype[node]
+
+            if isinstance(node.target, gast.Attribute):
+                if not self.tyenv[node.target.id].is_mutable():
+                    self.tyenv[node.target.id] =  \
+                            deepcopy(self.tyenv[node.target.id])
                 binop = gast.BinOp(node.target, node.op, node.value)
                 ty_val = self.infer_expr(binop)
                 del self.nodetype[binop]
-            self.tyenv[node.target.id] = ty_val
-            self.nodetype[node.target] = ty_val
-            self.nodetype[node] = TyNone()
-            return self.nodetype[node]
+
+                self.tyenv[node.target.id] = ty_val
+                self.nodetype[node.target] = ty_val
+                self.nodetype[node] = TyNone()
+                return self.nodetype[node]
 
 
         if isinstance(node, gast.For):
@@ -423,7 +439,6 @@ class TypeChecker():
             ty_iteration = self.infer_expr(node.iter)
             ty_i = self.infer_expr(node.target)
             unify(ty_iteration, TyList(ty_i))
-            ty_iteration.coerce_to_variable_len(ty_i)
 
             for stmt in node.body:
                 self.infer_stmt(stmt)
@@ -510,7 +525,6 @@ class TypeChecker():
         if self.is_debug:
             debug(gast.dump(node))
             self.dump_tyenv()
-            self.dump_nodetype()
 
         if isinstance(node, gast.BoolOp):
             # BoolOp(boolop op, expr* values)
@@ -526,8 +540,7 @@ class TypeChecker():
             # BinOp(expr left, operator op, expr right)
             tyl = self.infer_expr(node.left).deref()
             tyr = self.infer_expr(node.right).deref()
-
-            ty_ret = primitive_op_ty[type(node.op)](tyl, tyr)
+            ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
             self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
             self.nodetype[node] = ty_ret
             return self.nodetype[node]
@@ -626,7 +639,10 @@ class TypeChecker():
 
                 else:
                     # defined with __call__
-                    code = utils.clip_head(inspect.getsource(e.func.__call__))
+                    if isinstance(e.func, chainer.Chain):
+                        code = utils.clip_head(inspect.getsource(e.func.forward))
+                    else:
+                        code = utils.clip_head(inspect.getsource(e.func.__call__))
                     ty_self = self.nodetype[node.func]
                     ty_args = [ty_self] + ty_args
 

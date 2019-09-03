@@ -273,6 +273,12 @@ class TyDType(TyObj):
             self.t = np.dtype(t)
     def __str__(self):
         return "dtype({})".format(str(self.t))
+    def __eq__(self, other):
+        return self.t == other.t
+
+    def is_float(self):
+        return self.t in [np.dtype('float16'), np.dtype('float32'),
+                np.dtype('float64'), np.dtype('float128')]
 
 
 class TyTensor(TyObj):
@@ -381,10 +387,14 @@ class TyUnion(TyObj):
 
 
 def all_same_ty(tys):
+    # TODO(momohatt): dtypeまで見る
     ty_tmp = TyVar()
     for t in tys:
         unify(ty_tmp, t)
     return True
+
+def all_same(l):
+    return all([e == l[0] for e in l])
 
 
 def type_of_value(value) -> 'TyObj':
@@ -411,7 +421,6 @@ def type_of_value(value) -> 'TyObj':
         return TyChainerVariable(dtype=TyDType(value.dtype), shape=value.shape)
     # TODO(momohatt): sometimes Linear's return type is tuple
     if isinstance(value, L.Linear) or \
-            isinstance(value, chainer.ChainList) or \
             isinstance(value, L.Convolution2D) or \
             isinstance(value, L.BatchNormalization):
         return TyArrow([TyChainerVariable(TyDType(np.float32))],
@@ -459,7 +468,7 @@ def pytype_of_type(ty) -> type:
     ty = ty.deref()
 
     if isinstance(ty, TyNum):
-        return eval(str(ty))
+        return eval(ty.show())
 
     assert False
 

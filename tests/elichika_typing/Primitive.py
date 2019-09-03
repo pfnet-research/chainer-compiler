@@ -2,6 +2,8 @@ import ast, gast
 import pprint
 import unittest
 
+import chainer
+
 from chainer_compiler.elichika.testtools import generate_id2type_from_forward
 
 
@@ -503,6 +505,42 @@ class TestInline(unittest.TestCase):
         self.assertEqual(str(id2type[21]), "B -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[25]), "int")	# Return (line 2)
         self.assertEqual(str(id2type[26]), "int")	# Num (line 2)
+
+
+
+class TestLazy(unittest.TestCase):
+    def test_lazy_init(self):
+        class Test(chainer.Chain):
+            def forward(self, x):
+                y = None
+                for i in range(x):
+                    if y is None:
+                        y = 42
+                    y += i
+                return y
+
+        id2type = generate_id2type_from_forward(Test(), (5,))
+
+        self.assertEqual(str(id2type[1]), "Test -> int -> optional(int)")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[8]), "NoneType")	# Name y (line 2)
+        self.assertEqual(str(id2type[10]), "NoneType")	# NameConstant (line 2)
+        self.assertEqual(str(id2type[11]), "NoneType")	# For (line 3)
+        self.assertEqual(str(id2type[12]), "int")	# Name i (line 3)
+        self.assertEqual(str(id2type[14]), "int list")	# Call (line 3)
+        self.assertEqual(str(id2type[15]), "int -> int list")	# Name range (line 3)
+        self.assertEqual(str(id2type[17]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[19]), "NoneType")	# If (line 4)
+        self.assertEqual(str(id2type[20]), "bool")	# Compare (line 4)
+        self.assertEqual(str(id2type[25]), "NoneType")	# Assign (line 5)
+        self.assertEqual(str(id2type[26]), "int")	# Name y (line 5)
+        self.assertEqual(str(id2type[28]), "int")	# Num (line 5)
+        self.assertEqual(str(id2type[29]), "NoneType")	# AugAssign (line 6)
+        self.assertEqual(str(id2type[30]), "optional(int)")	# Name y (line 6)
+        self.assertEqual(str(id2type[32]), "optional(int) -> int -> optional(int)")	# Add
+        self.assertEqual(str(id2type[33]), "int")	# Name i (line 6)
+        self.assertEqual(str(id2type[35]), "optional(int)")	# Return (line 7)
+        self.assertEqual(str(id2type[36]), "optional(int)")	# Name y (line 7)
 
 
 
