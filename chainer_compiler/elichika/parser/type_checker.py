@@ -296,7 +296,7 @@ class TypeChecker():
         if not self.is_debug:
             return
         for node, ty in self.nodetype.items():
-            print(gast.dump(node) + " : \x1b[36m" + str(ty) + "\x1b[39m")
+            print("{} : \x1b[36m{}\x1b[39m".format(gast.dump(node), ty))
         print()
 
 
@@ -393,6 +393,9 @@ class TypeChecker():
         # 2. merge nodetype from 2 TypeCheckers
         for node_, ty in tc.nodetype.items():
             self.nodetype[node_] = ty
+
+        for callnode, funcnode in tc.subroutine_node.items():
+            self.subroutine_node[callnode] = funcnode
 
 
     # ================================ mod =====================================
@@ -552,6 +555,12 @@ class TypeChecker():
                     self.nodetype[node_] = ty
                 for node_, ty in tc2.nodetype.items():
                     self.nodetype[node_] = ty
+
+                for callnode, funcnode in tc1.subroutine_node.items():
+                    self.subroutine_node[callnode] = funcnode
+                for callnode, funcnode in tc2.subroutine_node.items():
+                    self.subroutine_node[callnode] = funcnode
+
 
             self.nodetype[node] = TyNone()
             return self.nodetype[node]
