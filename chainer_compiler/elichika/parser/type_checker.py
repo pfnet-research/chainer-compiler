@@ -21,6 +21,18 @@ def debug(sth):
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
 
 
+def node_description(node):
+    type_name = type(node).__name__
+    lineno = " (line {})".format(node.lineno) if hasattr(node, 'lineno') else ""
+    if isinstance(node, gast.FunctionDef):
+        return "{} {}{}".format(type_name, node.name, lineno)
+    if isinstance(node, gast.Name):
+        return "{} {}{}".format(type_name, node.id, lineno)
+    if isinstance(node, gast.Attribute):
+        return "{} {}{}".format(type_name, node.attr, lineno)
+    return type_name
+
+
 def defined_with___call__(func):
     return not isinstance(func, (types.FunctionType, types.MethodType,
         types.BuiltinFunctionType))
@@ -288,6 +300,8 @@ class TypeChecker():
         for name, ty in self.tyenv.items():
             print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
         for (obj, name), ty in self.attribute_tyenv.items():
+            # XXX: remove attributes inherited from libraries
+            if name[0] == '_': continue
             print("self.{} : \x1b[35m{}\x1b[39m".format(name, ty))
         print()
 
@@ -296,7 +310,7 @@ class TypeChecker():
         if not self.is_debug:
             return
         for node, ty in self.nodetype.items():
-            print("{} : \x1b[36m{}\x1b[39m".format(gast.dump(node), ty))
+            print("{} : \x1b[36m{}\x1b[39m".format(node_description(node), ty))
         print()
 
 
