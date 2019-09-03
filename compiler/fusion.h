@@ -9,7 +9,7 @@ namespace chainer_compiler {
 class Graph;
 class Node;
 
-void FuseOperations(Graph* graph);
+void FuseOperations(Graph* graph, bool is_subgraph = false);
 
 void CreateFusionGroup(
         Graph* graph, const std::set<Node*>& nodes, const std::string& fusion_type, int fusion_group_id, bool can_fuse_initializers);
