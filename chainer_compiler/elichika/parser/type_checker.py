@@ -4,7 +4,6 @@ import gast
 import os
 import traceback
 import types
-from collections import defaultdict
 from copy import deepcopy
 from typing import List
 from pprint import pprint
@@ -229,7 +228,7 @@ class TypeChecker():
         self.subroutine_node = {}  # Node (Call) -> Node (FunctionDef)
 
         # types of object attributes which are overwritten in forward()
-        self.attribute_tyenv = defaultdict(dict)  # object -> (str -> TyObj)
+        self.attribute_tyenv = {}  # (object, str) -> TyObj)
 
 
     def dump_tyenv(self):
@@ -237,9 +236,8 @@ class TypeChecker():
             return
         for name, ty in self.tyenv.items():
             print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
-        for obj, attrs in self.attribute_tyenv.items():
-            for name, ty in attrs.items():
-                print("self.{} : \x1b[35m{}\x1b[39m".format(name, ty))
+        for (obj, name), ty in self.attribute_tyenv.items():
+            print("self.{} : \x1b[35m{}\x1b[39m".format(name, ty))
         print()
 
 
@@ -325,12 +323,10 @@ class TypeChecker():
                 unify(ty, self.tyenv[name])
             self.tyenv[name] = ty
 
-        for obj, attrs in tc.attribute_tyenv.items():
-            for name, ty in attrs.items():
-                if obj in self.attribute_tyenv.keys() and \
-                        name in self.attribute_tyenv[obj].keys():
-                    unify(ty, self.attribute_tyenv[obj][name])
-                self.attribute_tyenv[obj][name] = ty
+        for (obj, name), ty in tc.attribute_tyenv.items():
+            if (obj, name) in self.attribute_tyenv.keys():
+                unify(ty, self.attribute_tyenv[(obj, name)])
+            self.attribute_tyenv[(obj, name)] = ty
 
         # 2. merge nodetype from 2 TypeCheckers
         for node_, ty in tc.nodetype.items():
@@ -391,7 +387,7 @@ class TypeChecker():
             elif isinstance(target, gast.Attribute):
                 ty_obj = self.nodetype[target.value]
                 assert isinstance(ty_obj, TyUserDefinedClass)
-                self.attribute_tyenv[ty_obj.instance][target.attr] = ty_val
+                self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
 
             elif type(target) in [gast.Tuple, gast.List]:
                 ty_target = self.infer_expr(target)
@@ -425,10 +421,10 @@ class TypeChecker():
                 ty_obj = self.nodetype[node.target.value]
                 assert isinstance(ty_obj, TyUserDefinedClass)
                 if ty_target.is_mutable():
-                    self.attribute_tyenv[ty_obj.instance][node.target.attr] = \
+                    self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
                             ty_val
                 else:
-                    self.attribute_tyenv[ty_obj.instance][node.target.attr] = \
+                    self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
                             deepcopy(ty_val)
 
             self.nodetype[node.target] = ty_val
@@ -481,12 +477,10 @@ class TypeChecker():
                         # remain
                         self.tyenv[name] = ty
 
-                for obj, attrs in tc1.attribute_tyenv.items():
-                    for name, ty in attrs.items():
-                        if obj in tc2.attribute_tyenv.keys() and \
-                                name in tc2.attribute_tyenv[obj].keys():
-                            unify(ty, tc2.attribute_tyenv[obj][name])
-                            self.attribute_tyenv[obj][name] = ty
+                for (obj, name), ty in tc1.attribute_tyenv.items():
+                    if (obj, name) in tc2.attribute_tyenv.keys():
+                        unify(ty, tc2.attribute_tyenv[(obj, name)])
+                        self.attribute_tyenv[(obj, name)] = ty
 
                 # 2. merge nodetype from 2 TypeCheckers
                 for node_, ty in tc1.nodetype.items():
@@ -718,10 +712,9 @@ class TypeChecker():
             if isinstance(ty_obj, TyUserDefinedClass):
                 # x: value of existing instance
 
-                if ty_obj.instance in self.attribute_tyenv.keys() and \
-                    node.attr in self.attribute_tyenv[ty_obj.instance].keys():
+                if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                     self.nodetype[node] = \
-                            self.attribute_tyenv[ty_obj.instance][node.attr]
+                            self.attribute_tyenv[(ty_obj.instance, node.attr)]
                     return self.nodetype[node]
 
                 x = getattr(ty_obj.instance, node.attr)
@@ -733,7 +726,7 @@ class TypeChecker():
                         self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(func=x)
                 self.nodetype[node] = type_of_value(x)
-                self.attribute_tyenv[ty_obj.instance][node.attr] = \
+                self.attribute_tyenv[(ty_obj.instance, node.attr)] = \
                         self.nodetype[node]
                 return self.nodetype[node]
 
