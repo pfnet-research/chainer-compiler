@@ -375,9 +375,9 @@ class TypeChecker():
             # Assign(expr* targets, expr value)
             assert len(node.targets) == 1  # cannot think of cases where >= 2
             target = node.targets[0]
+            ty_val = self.infer_expr(node.value)
 
             if isinstance(target, gast.Name):
-                ty_val = self.infer_expr(node.value)
                 if isinstance(node.value, gast.Name) and ty_val.is_mutable():
                     # XXX: alias
                     self.tyenv[target.id] = ty_val
@@ -388,16 +388,13 @@ class TypeChecker():
 
             elif isinstance(target, gast.Attribute):
                 ty_target = self.infer_expr(target)
-                assert isinstance(self.nodetype[target.value],
-                        TyUserDefinedClass)
-                instance = self.nodetype[target.value].instance
-                ty_val = self.infer_expr(node.value)
+                ty_obj = self.nodetype[target.value]
+                assert isinstance(ty_obj, TyUserDefinedClass)
                 unify(ty_target, ty_val)
-                self.attribute_tyenv[instance][target.attr] = ty_val
+                self.attribute_tyenv[ty_obj.instance][target.attr] = ty_val
 
             elif type(target) in [gast.Tuple, gast.List]:
                 ty_target = self.infer_expr(target)
-                ty_val = self.infer_expr(node.value)
                 unify(ty_target, ty_val)
                 for (var, ty) in zip(target.elts, ty_val.get_tys()):
                     self.tyenv[var.id] = ty
@@ -411,18 +408,20 @@ class TypeChecker():
 
         if isinstance(node, gast.AugAssign):
             # AugAssign(expr target, operator op, expr value)
-            # if isinstance(node.target, gast.Name):
-            #     if not self.tyenv[node.target.id].is_mutable():
-            #         self.tyenv[node.target.id] =  \
-            #                 deepcopy(self.tyenv[node.target.id])
-            # if isinstance(node.target, gast.Attribute):
-            #     pass
-
             binop = gast.BinOp(node.target, node.op, node.value)
             ty_val = self.infer_expr(binop)
             del self.nodetype[binop]
 
-            self.tyenv[node.target.id] = ty_val
+            if isinstance(node.target, gast.Name):
+                self.tyenv[node.target.id] = ty_val
+            if isinstance(node.target, gast.Attribute):
+                ty_target = self.infer_expr(node.target)
+                ty_obj = self.nodetype[node.target.value]
+                assert isinstance(ty_obj, TyUserDefinedClass)
+                unify(ty_target, ty_val)
+                self.attribute_tyenv[ty_obj.instance][node.target.attr] = \
+                        ty_val
+
             self.nodetype[node.target] = ty_val
             self.nodetype[node] = TyNone()
             return self.nodetype[node]

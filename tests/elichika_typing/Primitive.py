@@ -389,6 +389,59 @@ class TestControl(unittest.TestCase):
         self.assertEqual(str(id2type[26]), "float")	# Name x (line 4)
 
 
+class TestAssign(unittest.TestCase):
+    def test_immutable_augassign(self):
+        class Test():
+            def forward(self):
+                x = 1
+                y = x
+                x += 2.0
+                return y
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> int")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[6]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[9]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(id2type[10]), "int")	# Name y (line 3)
+        self.assertEqual(str(id2type[12]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[14]), "NoneType")	# AugAssign (line 4)
+        self.assertEqual(str(id2type[15]), "float")	# Name x (line 4)
+        self.assertEqual(str(id2type[17]), "int -> float -> float")	# Add
+        self.assertEqual(str(id2type[18]), "float")	# Num (line 4)
+        self.assertEqual(str(id2type[19]), "int")	# Return (line 5)
+        self.assertEqual(str(id2type[20]), "int")	# Name y (line 5)
+
+
+    def test_mutable_augassign(self):
+        class Test():
+            def forward(self):
+                x = [1,2,3]
+                y = x
+                x += [4]
+                return y
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+
+    def test_mutable_attribute_assign(self):
+        class A():
+            def __init__(self):
+                self.x = [1,2,3]
+
+        class Test():
+            def forward(self):
+                a = A()
+                b = a.x
+                b += [4]
+                return a.x
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+
+
 # ==============================================================================
 
 def h(x, y):
