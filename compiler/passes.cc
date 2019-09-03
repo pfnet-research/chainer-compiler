@@ -110,6 +110,8 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
     dump_onnx(g_dump_after_inference, "after inference");
 
     if (!skip_scheduling) {
+        CanonicalizeSubGraphs(graph);
+
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
             Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
