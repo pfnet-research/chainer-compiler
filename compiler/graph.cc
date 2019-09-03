@@ -194,6 +194,22 @@ Value* Graph::AddNullValue() {
     return AddValue("", Value::Kind::kNull);
 }
 
+void Graph::ResetKind(Value* value) {
+    CHECK(!value->IsTemp()) << value->ToString();
+    if (value->IsInput()) {
+        auto found = std::find(input_values_.begin(), input_values_.end(), value);
+        CHECK(found != input_values_.end()) << value->ToString();
+        input_values_.erase(found);
+    }
+    if (value->IsOutput()) {
+        auto found = std::find(output_values_.begin(), output_values_.end(), value);
+        CHECK(found != output_values_.end()) << value->ToString();
+        output_values_.erase(found);
+    }
+    value->kind_ = Value::Kind::kTemp;
+    temp_values_.push_back(value);
+}
+
 Node* Graph::AddNode(
         Node::OpType op_type,
         const std::vector<Value*>& inputs,

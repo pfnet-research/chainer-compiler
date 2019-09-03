@@ -25,7 +25,7 @@ void ClassifyValues(
         for (Value* value : node->outputs()) {
             size_t num_users = value->users().size();
             if (value->IsOutput()) num_users = INT_MAX;
-            CHECK(output_users.emplace(value, num_users).second);
+            CHECK(output_users.emplace(value, num_users).second) << value->ToString();
             temp_set.insert(value);
         }
     }

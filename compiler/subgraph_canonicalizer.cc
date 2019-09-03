@@ -111,8 +111,9 @@ void ResolveExternalDependencies(Graph* graph) {
                 }
                 node->AddInput(external);
             }
+        } else if (node->op_type() == Node::kScan) {
+            // Scan will be replaced by the simplifier.
         } else {
-            // Note `Scan` must be already removed.
             CHECK(!node->body().get());
             CHECK(!node->then_branch().get());
             CHECK(!node->else_branch().get());

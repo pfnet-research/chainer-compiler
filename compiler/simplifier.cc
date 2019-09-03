@@ -100,45 +100,40 @@ bool ReplaceChainerSoftmaxCrossEntropy(Graph* graph, Node* node) {
     return true;
 }
 
-// TODO(hamaji): Revive Scan.
-#if 0
-
 bool ReplaceScan(Graph* graph, Node* scan) {
-    // Scan(seq_lens?, states..., inputs...) -> (states.. outputs...)
+    // Scan(states..., inputs...) -> (states.. outputs...)
     //  body(states..., ins...) -> (states..., outs...)
     // Loop(max_trips, cond, states...) -> (states..., outputs...)
     //  body(iter, cond, states...) -> (cond, states..., outs...)
+
+    CHECK(scan->scan_input_axes().empty());
+    CHECK(scan->scan_input_directions().empty());
+    CHECK(scan->scan_output_axes().empty());
+    CHECK(scan->scan_output_directions().empty());
+    constexpr int input_axis = 0;
+    constexpr int output_axis = 0;
 
     Graph* body = scan->body().get();
     int num_scan_inputs = scan->num_scan_inputs();
     int num_states = body->input_values().size() - num_scan_inputs;
     int num_scan_outputs = body->output_values().size() - num_states;
-    int num_sequence_lens = scan->inputs().size() - num_states - num_scan_inputs;
+
     CHECK_LT(0, num_scan_inputs);
     CHECK_LT(0, num_scan_outputs);
-    CHECK_LE(0, num_sequence_lens);
-    CHECK_GE(1, num_sequence_lens);
-    CHECK_EQ(scan->outputs().size(), num_states + num_scan_outputs);
-#if 0
-    std::cerr << "SimplifyScan:"
-              << " num_scan_inputs=" << num_scan_inputs
-              << " num_states=" << num_states
-              << " num_scan_outputs=" << num_scan_outputs
-              << " sequence_lens=" << num_sequence_lens
-              << std::endl;
-#endif
+    CHECK_EQ(scan->inputs().size(), body->input_values().size());
+    CHECK_EQ(scan->outputs().size(), body->output_values().size());
 
-    Value* sequence_lens = nullptr;
-    if (num_sequence_lens) {
-        sequence_lens = scan->input(0);
-    }
+    CLOG() << "SimplifyScan:"
+           << " num_scan_inputs=" << num_scan_inputs << " num_states=" << num_states << " num_scan_outputs=" << num_scan_outputs
+           << std::endl;
+
     std::vector<Value*> scan_input_states;
     for (int i = 0; i < num_states; ++i) {
-        scan_input_states.push_back(scan->input(i + num_sequence_lens));
+        scan_input_states.push_back(scan->input(i));
     }
     std::vector<Value*> scan_inputs;
     for (int i = 0; i < num_scan_inputs; ++i) {
-        scan_inputs.push_back(scan->input(i + num_sequence_lens + num_states));
+        scan_inputs.push_back(scan->input(i + num_states));
     }
     std::vector<Value*> scan_output_states;
     for (int i = 0; i < num_states; ++i) {
@@ -153,84 +148,99 @@ bool ReplaceScan(Graph* graph, Node* scan) {
         GraphBuilder gb(body, "SimplifyScanBody", body->output_values()[0]);
 
         Value* iter = new Value(gb.GenName(), Type(Dtype::kInt64, {}), Value::Kind::kInput);
-        Value* cond = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kInput);
+        Value* cond_in = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kInput);
+        Value* cond_out = new Value(gb.GenName(), Type(Dtype::kBool, {}), Value::Kind::kOutput);
+        gb.Op(Node::kIdentity, {cond_in}, cond_out);
 
-        std::vector<Value*>* mutable_inputs = body->mutable_input_values();
-        mutable_inputs->insert(mutable_inputs->begin(), cond);
-        mutable_inputs->insert(mutable_inputs->begin(), iter);
+        std::vector<Value*> new_loop_inputs = {iter, cond_in};
+        std::vector<Value*> new_loop_outputs = {cond_out};
 
-        std::vector<Value*>* mutable_outputs = body->mutable_output_values();
-        for (int i = 0; i < num_scan_inputs; ++i) {
-            Value* input = body->input_values()[2 + i + num_states];
-            // Pass slices of inputs to the original body.
-            const std::vector<Node*> users = input->users();
-            Value* input_t = gb.Op(Node::kGather, {input, iter});
-            input_t->producer()->set_axis(1);
-            for (Node* user : users) {
-                user->ReplaceInput(input, input_t);
-            }
-
-            // All inputs should be carried over to the next loop.
-            Value* input_c = new Value(gb.GenName(), input->type(), Value::Kind::kOutput);
-            gb.Op(Node::kIdentity, {input}, input_c);
-            mutable_outputs->insert(mutable_outputs->begin() + num_states + i, input_c);
+        for (size_t i = 0; i < num_states; ++i) {
+            CHECK_LT(i, body->input_values().size());
+            new_loop_inputs.push_back(body->input_values()[i]);
+            CHECK_LT(i, body->output_values().size());
+            new_loop_outputs.push_back(body->output_values()[i]);
         }
 
-        Value* one = gb.Const(Type(Dtype::kBool, {}), {1});
-        Value* one_c = new Value(gb.GenName(), one->type(), Value::Kind::kOutput);
-        mutable_outputs->insert(mutable_outputs->begin(), gb.Op(Node::kIdentity, {one}, {one_c}));
+        for (size_t i = 0; i < num_scan_inputs; ++i) {
+            size_t j = i + num_states;
+            CHECK_LT(j, body->input_values().size());
+            Value* orig_input = body->input_values()[j];
+            body->ResetKind(orig_input);
+
+            Value* input_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
+            Value* input_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
+            gb.Op(Node::kChainerSequenceLookup, {input_in, iter}, orig_input);
+            gb.Op(Node::kIdentity, {input_in}, input_out);
+
+            new_loop_inputs.push_back(input_in);
+            new_loop_outputs.push_back(input_out);
+        }
+
+        for (size_t i = 0; i < num_scan_outputs; ++i) {
+            size_t j = i + num_states;
+            CHECK_LT(j, body->output_values().size());
+            Value* orig_output = body->output_values()[j];
+            body->ResetKind(orig_output);
+
+            Value* output_in = new Value(gb.GenName(), Type(), Value::Kind::kInput);
+            Value* output_out = new Value(gb.GenName(), Type(), Value::Kind::kOutput);
+            gb.Op(Node::kChainerSequenceAppend, {output_in, orig_output}, output_out);
+
+            new_loop_inputs.push_back(output_in);
+            new_loop_outputs.push_back(output_out);
+        }
+
+        *body->mutable_input_values() = new_loop_inputs;
+        *body->mutable_output_values() = new_loop_outputs;
     }
 
     {
         GraphBuilder gb(graph, "SimplifyScan", scan->output(0));
-        Value* zero = gb.Const(Type(Dtype::kInt64, {}), {0});
-        Value* one = gb.Const(Type(Dtype::kInt64, {}), {1});
-        Value* one_vec = gb.Const(Type(Dtype::kInt64, {1}), {1});
-        // Calcuate the number of trips.
-        // TODO(hamaji): Better to check if all inputs have the same length.
-        std::vector<Value*> lengths;
-        if (sequence_lens) {
-            lengths.push_back(gb.Op(Node::kReduceMax, {sequence_lens}));
-        }
-        Value* batch_size = nullptr;
-        for (Value* input : scan_inputs) {
-            Value* shape = gb.Op(Node::kShape, {input});
-            Value* len = gb.Op(Node::kGather, {shape, one});
-            lengths.push_back(len);
-            if (!batch_size) {
-                batch_size = gb.Op(Node::kGather, {shape, zero});
-            }
-        }
-        Value* max_trips = gb.Op(Node::kMax, lengths);
 
-        std::vector<Value*> loop_inputs = {max_trips, one};
-        for (Value* value : scan_input_states) {
-            Value* shape = gb.Op(Node::kShape, {value});
-            Value* unsqueezed = gb.Op(Node::kUnsqueeze, {value});
-            unsqueezed->producer()->set_axes({0});
-            Value* bs = gb.Op(Node::kReshape, {batch_size, one_vec});
-            Value* new_shape = gb.Op(Node::kConcat, {bs, shape});
-            Value* expanded = gb.Op(Node::kExpand, {unsqueezed, new_shape});
-            loop_inputs.push_back(expanded);
+        std::vector<Value*> input_seqs;
+        for (Value* v : scan_inputs) {
+            Value* inputs = gb.Op(Node::kChainerSequenceSeparate, {v});
+            inputs->producer()->set_axis(input_axis);
+            input_seqs.push_back(inputs);
         }
-        for (Value* value : scan_inputs) loop_inputs.push_back(value);
+
+        std::vector<Value*> loop_inputs;
+        Value* max_trips = gb.Op(Node::kChainerSequenceSize, {input_seqs.front()});
+        loop_inputs.push_back(max_trips);
+        loop_inputs.push_back(gb.Null());
+
+        for (Value* v : scan_input_states) {
+            loop_inputs.push_back(v);
+        }
+        for (Value* v : input_seqs) {
+            loop_inputs.push_back(v);
+        }
+        for (Value* v : scan_outputs) {
+            (void)v;
+            loop_inputs.push_back(gb.Op(Node::kChainerSequenceCreate, {}));
+        }
 
         std::vector<Value*> loop_outputs;
-        for (Value* value : scan_output_states) loop_outputs.push_back(value);
-        // All inputs are appended as loop states.
-        for (int i = 0; i < num_scan_inputs; ++i) loop_outputs.push_back(gb.Temp());
-        std::vector<Value*> loop_scan_outputs;
-        for (Value* value : scan_outputs) loop_outputs.push_back(value);
+        for (Value* v : scan_output_states) {
+            loop_outputs.push_back(v);
+        }
+        for (Value* v : scan_inputs) {
+            (void)v;
+            loop_outputs.push_back(gb.Null());
+        }
+        for (Value* v : scan_outputs) {
+            Value* outputs = gb.Temp();
+            loop_outputs.push_back(outputs);
+            gb.Op(Node::kChainerSequenceStack, {outputs}, v)->producer()->set_axis(output_axis);
+        }
 
         Node* loop = gb.MOp(Node::kLoop, loop_inputs, loop_outputs);
         loop->set_body(scan->release_body());
-        loop->set_chainer_stack_axis(1);
     }
 
     return true;
 }
-
-#endif
 
 void ReplaceGlobalPool(Graph* graph, Node* node, Node::OpType new_op, const std::string& name) {
     CHECK_EQ(1, node->inputs().size()) << name;
@@ -674,8 +684,7 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
     REGISTER_SIMPLIFIER(ArgMin);
     REGISTER_SIMPLIFIER(LpNormalization);
     REGISTER_SIMPLIFIER(ChainerSoftmaxCrossEntropy);
-    // TODO(hamaji): Revive Scan.
-    // REGISTER_SIMPLIFIER(Scan);
+    REGISTER_SIMPLIFIER(Scan);
     REGISTER_SIMPLIFIER(GlobalMaxPool);
     REGISTER_SIMPLIFIER(GlobalAveragePool);
     REGISTER_SIMPLIFIER(Flatten);
