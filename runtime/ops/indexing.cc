@@ -298,7 +298,7 @@ chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
     CHECK(IsNativeDevice(&x.device()));
     const int64_t rank = x.shape().size();
     std::vector<int64_t> result;
-    chainerx::IndexIterator<chainerx::kDynamicNdim> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
+    chainerx::IndexIterator<> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
     const bool* x_start = reinterpret_cast<const bool*>(x.raw_data());
     for (size_t i = 0; i < x.shape().GetTotalSize(); ++i) {
         if (x_start[i]) {
