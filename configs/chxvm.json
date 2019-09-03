@@ -176,6 +176,7 @@
         "Resize": true,
         "RoiAlign": true,
         "Round": true,
+        "Scatter": true,
         "Selu": true,
         "Shape": true,
         "Sigmoid": true,
