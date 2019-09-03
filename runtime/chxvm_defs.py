@@ -254,6 +254,7 @@ CHX_OPS = [
     ('Shape', [Array('data')], [Shape('shape')]),
     ('Size', [Array('data')], ['size']),
     ('Reshape', [Array('data'), Shape('shape')], ['reshaped']),
+    ('Flatten', [Array('input'), Int('axis')], [Array('output')]),
     ('Expand', [Array('input'), Shape('shape')], ['output']),
     ('Squeeze', [Array('data'), Ints('axes')], ['squeezed']),
     ('Unsqueeze', [Array('data'), Ints('axes')], ['expanded']),

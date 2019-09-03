@@ -264,7 +264,12 @@ bool ReplaceGlobalAveragePool(Graph* graph, Node* node) {
 bool ReplaceFlatten(Graph* graph, Node* node) {
     CHECK_EQ(1, node->inputs().size());
     const Type& type = node->input(0)->type();
-    CHECK(type.HasKnownShape()) << "The input shape of Flatten must be known";
+
+    // Fallback to dynamic reshape when input is unknown shape
+    if (!type.HasKnownShape()) {
+        return false;
+    }
+
     CHECK_LT(1, type.dims().size()) << "The input of Flatten must have at least 2 dimensions";
     GraphBuilder gb(graph, "SimplifyFlatten", node->output(0));
     int64_t d0 = 1;
