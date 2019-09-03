@@ -601,6 +601,7 @@ class TypeChecker():
             ty_i = self.infer_expr(node.target)
             unify(ty_iteration, TyList(ty_i))
 
+            # TODO(momohatt): scope of iteration variable is wrong
             self.infer_block(node.body)
 
             self.nodetype[node] = TyNone()
@@ -670,7 +671,7 @@ class TypeChecker():
             self.nodetype[node] = TyNone()
             return self.nodetype[node]
 
-        assert False
+        assert False, type(node).__name__
 
 
     # ================================= expr ===================================
@@ -907,35 +908,30 @@ class TypeChecker():
 
             if isinstance(ty_obj, TySequence):
                 self.infer_slice(node.slice, TyInt())
-                if ty_obj.is_fixed_len:
-                    if isinstance(node.slice, gast.Index) and \
-                            isinstance(node.slice.value, gast.Num):
-                        # TODO(momohatt): handle cases where index is
-                        # more complex but still a constant
-                        self.nodetype[node] = ty_obj.get_tys()[node.slice.value.n]
-                    else:
-                        ty_obj.coerce_to_variable_len()
-                        if isinstance(node.slice, gast.Index):
-                            self.nodetype[node] = ty_obj.get_ty()
-                        elif isinstance(node.slice, gast.Slice):
-                            self.nodetype[node] = ty_obj
-                        else:
-                            assert False
+                if ty_obj.is_fixed_len and \
+                        isinstance(node.slice, gast.Index) and \
+                        isinstance(node.slice.value, gast.Num):
+                    # TODO(momohatt): handle cases where index is
+                    # more complex but still a constant
+                    self.nodetype[node] = ty_obj.get_tys()[node.slice.value.n]
+                    return self.nodetype[node]
 
+                ty_obj.coerce_to_variable_len()
+                if isinstance(node.slice, gast.Index):
+                    self.nodetype[node] = ty_obj.get_ty()
+                elif isinstance(node.slice, gast.Slice):
+                    self.nodetype[node] = ty_obj
                 else:
-                    if isinstance(node.slice, gast.Index):
-                        self.nodetype[node] = ty_obj.get_ty()
-                    elif isinstance(node.slice, gast.Slice):
-                        self.nodetype[node] = ty_obj
-                    else:
-                        assert False
+                    assert False
+                return self.nodetype[node]
 
-            elif isinstance(ty_obj, TyDict):
+            if isinstance(ty_obj, TyDict):
                 self.infer_slice(node.slice, ty_obj.keyty)
                 assert isinstance(node.slice, gast.Index)
                 self.nodetype[node] = ty_obj.valty
+                return self.nodetype[node]
 
-            elif isinstance(ty_obj, TyNdarray):
+            if isinstance(ty_obj, TyNdarray):
                 self.infer_slice(node.slice, TyInt())
                 if isinstance(node.slice, gast.Index):
                     self.nodetype[node] = ty_obj.ty
@@ -943,10 +939,10 @@ class TypeChecker():
                     self.nodetype[node] = ty_obj
                 else:
                     assert False
+                return self.nodetype[node]
 
             else:
                 assert False
-            return self.nodetype[node]
 
 
         if isinstance(node, gast.Name):
@@ -981,7 +977,7 @@ class TypeChecker():
             self.nodetype[node] = TyTuple(elts_ty)
             return self.nodetype[node]
 
-        assert False
+        assert False, type(node).__name__
 
 
     def infer_slice(self, node, ty_key_expected) -> 'NoneType':
