@@ -176,6 +176,7 @@
         "RoiAlign": true,
         "Round": true,
         "Scatter": true,
+        "ScatterElements": true,
         "Selu": true,
         "Shape": true,
         "Sigmoid": true,
