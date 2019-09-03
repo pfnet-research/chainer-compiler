@@ -191,25 +191,19 @@ chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, c
     return data.Take(indices, axis);
 }
 
-// TODO(take-cheeze): Move to ChainerX
 chainerx::Array ScatterOp::RunImpl(
-        ChxVMState* st, const chainerx::Array& data_, const chainerx::Array& indices_, const chainerx::Array& updates_) {
+        ChxVMState* st, const chainerx::Array& data_, const chainerx::Array& indices_, const chainerx::Array& updates) {
     const int64_t axis = this->axis < 0 ? data_.shape().size() - this->axis : this->axis;
     CHECK(0 <= axis && axis < data_.shape().size());
-    CHECK_EQ(indices_.shape(), updates_.shape());
+    CHECK_EQ(indices_.shape(), updates.shape());
     // TODO(take-cheeze): More than rank 2
     CHECK_EQ(2, data_.shape().size());
     CHECK_EQ(2, indices_.shape().size());
-    CHECK_EQ(2, updates_.shape().size());
+    CHECK_EQ(2, updates.shape().size());
 
-    chainerx::Array data = chainerx::AsContiguous(data_.AsType(chainerx::Dtype::kFloat32).ToNative());
-    chainerx::Array updates = chainerx::AsContiguous(updates_.AsType(chainerx::Dtype::kFloat32).ToNative());
+    // TODO(take-cheeze): Avoid copy
+    chainerx::Array data = data_.Copy();
     chainerx::Array indices = chainerx::AsContiguous(indices_.AsType(chainerx::Dtype::kInt64).ToNative());
-
-    // TODO(take-cheeze): Make more dtype generic
-    using T = float;
-    chainerx::IndexableArray<T> a_iarray{data};
-    chainerx::IndexableArray<const T> updates_iarray{updates};
     chainerx::IndexableArray<const int64_t> indices_iarray{indices};
     chainerx::Indexer<> indices_indexer{indices.shape()};
 
@@ -217,10 +211,10 @@ chainerx::Array ScatterOp::RunImpl(
         int64_t dst[2];
         dst[axis] = indices_iarray[it];
         dst[axis == 0 ? 1 : 0] = it.index()[axis == 0 ? 1 : 0];
-        a_iarray[dst] = updates_iarray[it];
+        BlitArray(updates.At({it.index()[0], it.index()[1]}), data.At({dst[0], dst[1]}));
     }
 
-    return data.ToDevice(data_.device()).AsType(data_.dtype());
+    return data;
 }
 
 chainerx::Array GatherGradOp::RunImpl(
