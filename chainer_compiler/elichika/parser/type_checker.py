@@ -378,7 +378,9 @@ class TypeChecker():
             ty_val = self.infer_expr(node.value)
 
             if isinstance(target, gast.Name):
-                if isinstance(node.value, gast.Name) and ty_val.is_mutable():
+                if (isinstance(node.value, gast.Name) or \
+                        isinstance(node.value, gast.Attribute)) and \
+                        ty_val.is_mutable():
                     # XXX: alias
                     self.tyenv[target.id] = ty_val
                     self.nodetype[target] = ty_val
@@ -387,10 +389,8 @@ class TypeChecker():
                     self.nodetype[target] = deepcopy(ty_val)
 
             elif isinstance(target, gast.Attribute):
-                ty_target = self.infer_expr(target)
                 ty_obj = self.nodetype[target.value]
                 assert isinstance(ty_obj, TyUserDefinedClass)
-                unify(ty_target, ty_val)
                 self.attribute_tyenv[ty_obj.instance][target.attr] = ty_val
 
             elif type(target) in [gast.Tuple, gast.List]:
@@ -410,17 +410,26 @@ class TypeChecker():
             # AugAssign(expr target, operator op, expr value)
             binop = gast.BinOp(node.target, node.op, node.value)
             ty_val = self.infer_expr(binop)
+            ty_target = self.infer_expr(node.target)
             del self.nodetype[binop]
+            if ty_target.is_mutable():
+                unify(ty_target, ty_val)
 
             if isinstance(node.target, gast.Name):
-                self.tyenv[node.target.id] = ty_val
+                if ty_target.is_mutable():
+                    self.tyenv[node.target.id] = ty_val
+                else:
+                    self.tyenv[node.target.id] = deepcopy(ty_val)
+
             if isinstance(node.target, gast.Attribute):
-                ty_target = self.infer_expr(node.target)
                 ty_obj = self.nodetype[node.target.value]
                 assert isinstance(ty_obj, TyUserDefinedClass)
-                unify(ty_target, ty_val)
-                self.attribute_tyenv[ty_obj.instance][node.target.attr] = \
-                        ty_val
+                if ty_target.is_mutable():
+                    self.attribute_tyenv[ty_obj.instance][node.target.attr] = \
+                            ty_val
+                else:
+                    self.attribute_tyenv[ty_obj.instance][node.target.attr] = \
+                            deepcopy(ty_val)
 
             self.nodetype[node.target] = ty_val
             self.nodetype[node] = TyNone()
@@ -724,6 +733,8 @@ class TypeChecker():
                         self.nodetype[node] = type_of_value(x)
                     raise self.ArgumentRequired(func=x)
                 self.nodetype[node] = type_of_value(x)
+                self.attribute_tyenv[ty_obj.instance][node.attr] = \
+                        self.nodetype[node]
                 return self.nodetype[node]
 
             assert False

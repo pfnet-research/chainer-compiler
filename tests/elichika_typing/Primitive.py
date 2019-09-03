@@ -94,19 +94,19 @@ class TestNum(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (0,))  # int
 
-        self.assertEqual(str(id2type[1]), "class Test -> int -> float")	# FunctionDef (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> int -> float")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# If (line 2)
         self.assertEqual(str(id2type[8]), "bool")	# NameConstant (line 2)
         self.assertEqual(str(id2type[9]), "NoneType")	# AugAssign (line 3)
-        self.assertEqual(str(id2type[10]), "float")	# Name (line 3)
-        self.assertEqual(str(id2type[12]), "int -> int -> float")	# Add
+        self.assertEqual(str(id2type[10]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[12]), "int -> int -> int")	# Add
         self.assertEqual(str(id2type[13]), "int")	# Num (line 3)
         self.assertEqual(str(id2type[14]), "NoneType")	# AugAssign (line 5)
-        self.assertEqual(str(id2type[15]), "float")	# Name (line 5)
+        self.assertEqual(str(id2type[15]), "float")	# Name x (line 5)
         self.assertEqual(str(id2type[17]), "int -> float -> float")	# Add
         self.assertEqual(str(id2type[18]), "float")	# Num (line 5)
         self.assertEqual(str(id2type[19]), "float")	# Return (line 6)
-        self.assertEqual(str(id2type[20]), "float")	# Name (line 6)
+        self.assertEqual(str(id2type[20]), "float")	# Name x (line 6)
 
 
 # ==============================================================================
@@ -393,53 +393,86 @@ class TestAssign(unittest.TestCase):
     def test_immutable_augassign(self):
         class Test():
             def forward(self):
-                x = 1
+                x = (1, 2, 3)
                 y = x
-                x += 2.0
+                x += (4,)
                 return y
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "class Test -> int")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> (int, int, int)")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[6]), "int")	# Name x (line 2)
-        self.assertEqual(str(id2type[8]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[9]), "NoneType")	# Assign (line 3)
-        self.assertEqual(str(id2type[10]), "int")	# Name y (line 3)
-        self.assertEqual(str(id2type[12]), "int")	# Name x (line 3)
-        self.assertEqual(str(id2type[14]), "NoneType")	# AugAssign (line 4)
-        self.assertEqual(str(id2type[15]), "float")	# Name x (line 4)
-        self.assertEqual(str(id2type[17]), "int -> float -> float")	# Add
-        self.assertEqual(str(id2type[18]), "float")	# Num (line 4)
-        self.assertEqual(str(id2type[19]), "int")	# Return (line 5)
-        self.assertEqual(str(id2type[20]), "int")	# Name y (line 5)
+        self.assertEqual(str(id2type[6]), "(int, int, int)")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "(int, int, int)")	# Tuple (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(id2type[14]), "(int, int, int)")	# Name y (line 3)
+        self.assertEqual(str(id2type[16]), "(int, int, int)")	# Name x (line 3)
+        self.assertEqual(str(id2type[18]), "NoneType")	# AugAssign (line 4)
+        self.assertEqual(str(id2type[19]), "(int, int, int, int)")	# Name x (line 4)
+        self.assertEqual(str(id2type[21]), "(int, int, int) -> (int,) -> (int, int, int, int)")	# Add
+        self.assertEqual(str(id2type[22]), "(int,)")	# Tuple (line 4)
+        self.assertEqual(str(id2type[23]), "int")	# Num (line 4)
+        self.assertEqual(str(id2type[25]), "(int, int, int)")	# Return (line 5)
+        self.assertEqual(str(id2type[26]), "(int, int, int)")	# Name y (line 5)
 
 
     def test_mutable_augassign(self):
         class Test():
             def forward(self):
-                x = [1,2,3]
+                x = [1, 2, 3]
                 y = x
                 x += [4]
                 return y
 
         id2type = generate_id2type_from_forward(Test(), ())
 
+        self.assertEqual(str(id2type[1]), "class Test -> int list")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[6]), "[int, int, int]")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "[int, int, int]")	# List (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Num (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# Assign (line 3)
+        self.assertEqual(str(id2type[14]), "int list")	# Name y (line 3)
+        self.assertEqual(str(id2type[16]), "int list")	# Name x (line 3)
+        self.assertEqual(str(id2type[18]), "NoneType")	# AugAssign (line 4)
+        self.assertEqual(str(id2type[19]), "int list")	# Name x (line 4)
+        self.assertEqual(str(id2type[21]), "int list -> [int] -> int list")	# Add
+        self.assertEqual(str(id2type[22]), "[int]")	# List (line 4)
+        self.assertEqual(str(id2type[23]), "int")	# Num (line 4)
+        self.assertEqual(str(id2type[25]), "int list")	# Return (line 5)
+        self.assertEqual(str(id2type[26]), "int list")	# Name y (line 5)
+
 
     def test_mutable_attribute_assign(self):
-        class A():
-            def __init__(self):
-                self.x = [1,2,3]
-
         class Test():
+            def __init__(self):
+                self.a = [1, 2, 3]
+
             def forward(self):
-                a = A()
-                b = a.x
+                b = self.a
                 b += [4]
-                return a.x
+                return self.a
 
         id2type = generate_id2type_from_forward(Test(), ())
 
+        self.assertEqual(str(id2type[1]), "class Test -> int list")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[6]), "int list")	# Name b (line 2)
+        self.assertEqual(str(id2type[8]), "int list")	# Attribute a (line 2)
+        self.assertEqual(str(id2type[9]), "class Test")	# Name self (line 2)
+        self.assertEqual(str(id2type[12]), "NoneType")	# AugAssign (line 3)
+        self.assertEqual(str(id2type[13]), "int list")	# Name b (line 3)
+        self.assertEqual(str(id2type[15]), "int list -> [int] -> int list")	# Add
+        self.assertEqual(str(id2type[16]), "[int]")	# List (line 3)
+        self.assertEqual(str(id2type[17]), "int")	# Num (line 3)
+        self.assertEqual(str(id2type[19]), "int list")	# Return (line 4)
+        self.assertEqual(str(id2type[20]), "int list")	# Attribute a (line 4)
+        self.assertEqual(str(id2type[21]), "class Test")	# Name self (line 4)
 
 
 # ==============================================================================
@@ -586,8 +619,8 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[26]), "int")	# Name y (line 5)
         self.assertEqual(str(id2type[28]), "int")	# Num (line 5)
         self.assertEqual(str(id2type[29]), "NoneType")	# AugAssign (line 6)
-        self.assertEqual(str(id2type[30]), "optional(int)")	# Name y (line 6)
-        self.assertEqual(str(id2type[32]), "optional(int) -> int -> optional(int)")	# Add
+        self.assertEqual(str(id2type[30]), "int")	# Name y (line 6)
+        self.assertEqual(str(id2type[32]), "optional(int) -> int -> int")	# Add
         self.assertEqual(str(id2type[33]), "int")	# Name i (line 6)
         self.assertEqual(str(id2type[35]), "optional(int)")	# Return (line 7)
         self.assertEqual(str(id2type[36]), "optional(int)")	# Name y (line 7)
