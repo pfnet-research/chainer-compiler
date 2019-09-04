@@ -487,10 +487,10 @@ class UnifyError(Exception):
 
 def unify(ty1, ty2):
     def set_attr_if_None(obj1, obj2, attr_name):
-        if getattr(obj1, attr_name) is None:
+        if hasattr(obj1, attr_name) and getattr(obj1, attr_name) is None:
             setattr(obj1, attr_name, getattr(obj2, attr_name))
             return
-        if getattr(obj2, attr_name) is None:
+        if hasattr(obj2, attr_name) and getattr(obj2, attr_name) is None:
             setattr(obj2, attr_name, getattr(obj1, attr_name))
             return
 

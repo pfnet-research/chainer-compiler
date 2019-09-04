@@ -193,6 +193,7 @@ builtins_ty = {
             TyArrow([TySequence()], TyInt()),
             TyArrow([TyDict(TyVar(), TyVar())], TyInt()),
             TyArrow([TyString()], TyInt()),
+            TyArrow([TyTensor()], TyInt()),
             ),
         }
 
@@ -325,6 +326,10 @@ def ty_ChainerSqueeze(ty_args, dummy_args_nontensor, kwargs):
 def ty_ChainerSwapAxes(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
+def ty_ChainerSeparate(ty_args, dummy_args_nontensor, kwargs):
+    return TyChainerVariable(dtype=ty_args[0].dtype)
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -356,6 +361,10 @@ ext_func_ty = {
             F.relu, 1),
         F.reshape :
             ty_ChainerReshape,
+        F.separate :
+            ty_ChainerSeparate,
+        F.sigmoid :
+            ty_ChainerIdentical,
         F.squeeze :
             ty_ChainerSqueeze,
         F.softmax :
@@ -883,14 +892,13 @@ class TypeChecker():
                 self.nodetype[node] = ty_obj.valty
                 return self.nodetype[node]
 
-            if isinstance(ty_obj, TyNdarray):
+            if isinstance(ty_obj, TyTensor):
                 self.infer_slice(node.slice, TyInt())
                 if isinstance(node.slice, gast.Index):
-                    self.nodetype[node] = ty_obj.ty
+                    self.nodetype[node] = TyTensor(dtype=ty_obj.dtype)
                 elif isinstance(node.slice, gast.Slice):
-                    self.nodetype[node] = ty_obj
-                else:
-                    assert False
+                    self.nodetype[node] = TyTensor(dtype=ty_obj.dtype)
+                self.nodetype[node].kind = ty_obj.kind
                 return self.nodetype[node]
 
             else:
