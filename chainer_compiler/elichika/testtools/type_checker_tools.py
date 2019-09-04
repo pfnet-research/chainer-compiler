@@ -2,7 +2,8 @@ import ast, gast
 import inspect
 import sys
 
-from chainer_compiler.elichika.parser.type_checker import TypeChecker, node_description
+from chainer_compiler.elichika.parser.type_checker import TypeChecker
+from chainer_compiler.elichika.parser.utils import node_description
 from chainer_compiler.elichika.parser import utils
 
 class IDAssignor(gast.NodeVisitor):

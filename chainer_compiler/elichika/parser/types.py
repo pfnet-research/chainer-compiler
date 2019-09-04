@@ -425,13 +425,13 @@ def type_of_value(value) -> 'TyObj':
         return TyNdarray(dtype=TyDType(value.dtype), shape=value.shape)
     if isinstance(value, chainer.Variable):
         return TyChainerVariable(dtype=TyDType(value.dtype), shape=value.shape)
-    # TODO(momohatt): sometimes Linear's return type is tuple
     if isinstance(value, L.Linear) or \
             isinstance(value, L.Convolution2D) or \
             isinstance(value, L.BatchNormalization):
         return TyArrow([TyChainerVariable(TyDType(np.float32))],
                 TyChainerVariable(TyDType(np.float32)))
     if isinstance(value, L.NStepBiLSTM):
+        # TODO(momohatt): allow other types
         return TyArrow([
             TyChainerVariable(TyDType(np.float32)),
             TyChainerVariable(TyDType(np.float32)),
