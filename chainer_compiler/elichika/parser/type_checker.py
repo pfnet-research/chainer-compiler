@@ -322,6 +322,9 @@ def ty_ChainerSqueeze(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
 
+def ty_ChainerSwapAxes(ty_args, dummy_args_nontensor, kwargs):
+    return TyChainerVariable(dtype=ty_args[0].dtype)
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -361,6 +364,8 @@ ext_func_ty = {
             ty_ChainerSoftmaxCrossEntropy,
         F.sum :
             ty_ChainerSum,
+        F.swapaxes :
+            ty_ChainerSwapAxes,
         F.tanh :
             ty_ChainerIdentical,
         }
@@ -930,6 +935,8 @@ class TypeChecker():
     def infer_Call(self, node):
         # Call(expr func, expr* args, keyword* keywords)
         ty_args = [self.infer_expr(arg) for arg in node.args]
+        for kwarg in node.keywords:
+            self.infer_expr(kwarg.value)
         ty_ret = TyVar()
 
         try:
