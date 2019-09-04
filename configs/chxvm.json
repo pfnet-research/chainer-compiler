@@ -152,6 +152,7 @@
         "Max": true,
         "MaxPool": true,
         "Min": true,
+        "Mod": true,
         "Mul": true,
         "Neg": true,
         "NonZero": true,
