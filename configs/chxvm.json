@@ -7,6 +7,7 @@
         "ReplaceShape": true
     },
     "simplify": {
+        "ExpandFunction": true,
         "ReplaceArgMin": true,
         "ReplaceChainerReduceSumTo": true,
         "ReplaceConstantLike": true,
@@ -39,6 +40,10 @@
         "MergeMatMulAdd": true,
         "MergeConvBN": true,
         "MergeConvAdd": true
+    },
+    "expanding_functions": {
+        "DynamicQuantizeLinear": true,
+        "MeanVarianceNormalization": true
     },
     "supported_ops": {
         "Abs": true,
@@ -122,6 +127,7 @@
         "DequantizeLinear": true,
         "Div": true,
         "Dropout": true,
+        "DynamicQuantizeLinear": true,
         "DynamicSlice": true,
         "Elu": true,
         "Equal": true,
@@ -151,6 +157,7 @@
         "MatMulInteger": true,
         "Max": true,
         "MaxPool": true,
+        "MeanVarianceNormalization": true,
         "Min": true,
         "Mul": true,
         "Neg": true,

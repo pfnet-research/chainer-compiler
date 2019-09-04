@@ -113,7 +113,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
         CanonicalizeSubGraphs(graph);
 
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
 
         CanonicalizeSubGraphs(graph);
@@ -138,7 +138,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     if (gen_backprop) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplify(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplify(), graph, gen_backprop);
         });
 
         if (g_computation_order.empty()) {
@@ -159,7 +159,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     if (!skip_scheduling) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplifyPreproc(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplifyPreproc(), graph, gen_backprop);
         });
 
         Recursively(PropagateConstants, graph);
@@ -180,7 +180,7 @@ void RunDefaultPasses(Graph* graph, bool gen_backprop, bool skip_scheduling) {
 
     if (!skip_scheduling) {
         Recursively(*backend_config, graph, [gen_backprop](const BackendConfig& bc, Graph* graph) {
-            Simplify(bc.GetSimplify(), graph, gen_backprop);
+            Simplify(bc, bc.GetSimplify(), graph, gen_backprop);
         });
 
         Recursively(PropagateConstants, graph);
@@ -207,7 +207,7 @@ void RunDefaultPassesBeforeGradient(Graph* graph) {
     std::unique_ptr<BackendConfig> backend_config(BackendConfig::FromName(g_backend_name));
     graph->InferShapes();
     CanonicalizeSubGraphs(graph);
-    Recursively(*backend_config, graph, [](const BackendConfig& bc, Graph* graph) { Simplify(bc.GetSimplify(), graph, true); });
+    Recursively(*backend_config, graph, [](const BackendConfig& bc, Graph* graph) { Simplify(bc, bc.GetSimplify(), graph, true); });
     Recursively(PropagateConstants, graph);
     Recursively([](Graph* g) { g->DeleteDetached(); }, graph);
     Recursively(*backend_config, graph, CheckAllOpsSupported);
