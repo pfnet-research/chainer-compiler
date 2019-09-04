@@ -138,7 +138,6 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[21]), "int list")	# Call (line 4)
         self.assertEqual(str(id2type[22]), "int -> int list")	# Name (line 4)
         self.assertEqual(str(id2type[24]), "int")	# Num (line 4)
-        self.assertEqual(str(id2type[25]), "NoneType")	# Expr (line 5)
         self.assertEqual(str(id2type[26]), "NoneType")	# Call (line 5)
         self.assertEqual(str(id2type[27]), "int list -> NoneType")	# Attribute (line 5)
         self.assertEqual(str(id2type[28]), "int list list")	# Name (line 5)

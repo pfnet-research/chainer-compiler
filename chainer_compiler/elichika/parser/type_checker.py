@@ -663,6 +663,7 @@ class TypeChecker():
 
         if isinstance(node, gast.Expr):
             # Expr(expr value)
+            self.infer_expr(node.value)
             return TyNone()
 
 
