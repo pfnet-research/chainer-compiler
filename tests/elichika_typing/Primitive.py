@@ -641,6 +641,55 @@ class TestLazy(unittest.TestCase):
         self.assertEqual(str(id2type[18]), "int")	# Name x (line 4)
 
 
+    def test_lazy_init_branch_if(self):
+        class Test(chainer.Chain):
+            def forward(self, x):
+                if x is None:
+                    x = 42
+                else:
+                    x += 1
+                return x
+
+        id2type = generate_id2type_from_forward(Test(), (None,))
+
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType -> int")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# If
+        self.assertEqual(str(id2type[8]), "bool")	# Compare  (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[14]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
+        self.assertEqual(str(id2type[22]), "int")	# Return
+        self.assertEqual(str(id2type[23]), "int")	# Name x (line 6)
+
+
+    def test_lazy_init_branch_else(self):
+        class Test(chainer.Chain):
+            def forward(self, x):
+                if x is None:
+                    x = 42
+                else:
+                    x += 1
+                return x
+
+        # XXX: the input is different from the previous one
+        id2type = generate_id2type_from_forward(Test(), (2,))
+
+        self.assertEqual(str(id2type[1]), "class Test -> int -> int")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# If
+        self.assertEqual(str(id2type[8]), "bool")	# Compare  (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[14]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
+        self.assertEqual(str(id2type[17]), "NoneType")	# AugAssign
+        self.assertEqual(str(id2type[18]), "int")	# Name x (line 5)
+        self.assertEqual(str(id2type[20]), "int -> int -> int")	# Add
+        self.assertEqual(str(id2type[21]), "int")	# Num 1 (line 5)
+        self.assertEqual(str(id2type[22]), "int")	# Return
+        self.assertEqual(str(id2type[23]), "int")	# Name x (line 6)
+
+
     def test_lazy_attribute_init(self):
         class Test():
             def __init__(self):

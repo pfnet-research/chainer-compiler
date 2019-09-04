@@ -152,6 +152,13 @@ def lazy_initializer(node):
             return ident_eq(expr1.value, expr2.value) and \
                     expr1.attr == expr2.attr
 
+    # XXX: lazy initialization must be written in the following syntax:
+    #   if x is None:
+    #       ...
+    #  (else:
+    #       ...)
+    #
+    # The reverse, 'if x is not None: ... else: ...' is not supported.
     if isinstance(node.test, gast.Compare) and \
             (isinstance(node.test.left, gast.Name) or \
             isinstance(node.test.left, gast.Attribute)) and \
@@ -458,6 +465,10 @@ class TypeChecker():
         if isinstance(node, gast.Name) and hasattr(self.module, node.id):
             return getattr(self.module, node.id)
 
+        if isinstance(node, gast.Name) and node.id in self.tyenv.keys() and \
+                isinstance(self.tyenv[node.id], TyUserDefinedClass):
+            # ex. value of 'self'
+            return self.tyenv[node.id].instance
 
 
     def infer(self, node):
@@ -712,7 +723,19 @@ class TypeChecker():
 
 
     def infer_LazyInitializer(self, node, x):
-        self.infer_If(node)
+        if isinstance(x, gast.Name):
+            x_ty = self.tyenv[x.id]
+        elif isinstance(x, gast.Attribute):
+            v_obj = self.evaluate(x.value)
+            x_ty = self.attribute_tyenv[(v_obj, x.attr)]
+
+        if isinstance(x_ty, TyNone):
+            self.infer_block(node.body)
+            self.nodetype[node] = TyNone()
+        else:
+            # XXX: inspect both paths
+            self.infer_If(node)
+
         self.infer_expr(x).is_optional = False
         return self.nodetype[node]
 
