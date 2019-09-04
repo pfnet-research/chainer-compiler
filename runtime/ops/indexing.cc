@@ -368,8 +368,8 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
                 }
 
                 if (selected) {
-                    if (max_output_boxes_per_class > 0 &&
-                        static_cast<int64_t>(selected_indices_inside_class.size()) >= max_output_boxes_per_class) {
+                    if (opt_max_output_boxes_per_class &&
+                        static_cast<int64_t>(selected_indices_inside_class.size()) >= static_cast<int>(*opt_max_output_boxes_per_class)) {
                         break;
                     }
                     selected_indices_inside_class.push_back(next_top_score.index_);
