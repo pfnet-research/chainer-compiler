@@ -723,19 +723,7 @@ class TypeChecker():
 
 
     def infer_LazyInitializer(self, node, x):
-        if isinstance(x, gast.Name):
-            x_ty = self.tyenv[x.id]
-        elif isinstance(x, gast.Attribute):
-            v_obj = self.evaluate(x.value)
-            x_ty = self.attribute_tyenv[(v_obj, x.attr)]
-
-        if isinstance(x_ty, TyNone):
-            self.infer_block(node.body)
-            self.nodetype[node] = TyNone()
-        else:
-            # XXX: inspect both paths
-            self.infer_If(node)
-
+        self.infer_If(node)
         self.infer_expr(x).is_optional = False
         return self.nodetype[node]
 
@@ -762,7 +750,10 @@ class TypeChecker():
             # BinOp(expr left, operator op, expr right)
             tyl = self.infer_expr(node.left).deref()
             tyr = self.infer_expr(node.right).deref()
-            ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
+            try:
+                ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
+            except Exception:
+                ty_ret = TyObj()
             self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
             self.nodetype[node] = ty_ret
             return self.nodetype[node]
@@ -974,8 +965,11 @@ class TypeChecker():
                     val_dummy_args_nontensor.append(v if v is not None else value_of_type(t))
                 val_kwargs = self.get_kwarg(node.keywords)
                 inference_logic = ext_func_ty[e.func]
-                ty_ret = inference_logic(
-                        ty_args, val_dummy_args_nontensor, val_kwargs)
+                try:
+                    ty_ret = inference_logic(
+                            ty_args, val_dummy_args_nontensor, val_kwargs)
+                except Exception:
+                    ty_ret = TyObj()
 
                 self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)

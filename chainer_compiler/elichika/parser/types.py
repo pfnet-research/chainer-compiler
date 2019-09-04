@@ -7,12 +7,12 @@ import numpy as np
 
 is_debug_global = False
 
-class TyObj():  # base type
+class TyObj():  # base type, meaning 'unknown'
     def __init__(self):
         self.is_optional = False
     # TODO(momohatt): fix __repr__
     def show(self):
-        pass
+        return "object"
     def __str__(self):
         if self.is_optional:
             return "optional({})".format(self.show())
@@ -512,6 +512,9 @@ def unify(ty1, ty2):
                 continue
 
         raise UnifyError(ty1, ty2)
+
+    if type(ty1) is TyObj or type(ty2) is TyObj:
+        return
 
     # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):
