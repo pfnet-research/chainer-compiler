@@ -12,23 +12,6 @@ import onnxruntime as rt
 import run_onnx_util
 
 
-def compile(symbol, target, input_names, inputs, params, opt_level):
-    shape_dict = {}
-    dtype_dict = {}
-    for name, value in zip(input_names, inputs.values()):
-        shape_dict[name] = value.shape
-        dtype_dict[name] = value.dtype
-    for name, value in params.items():
-        shape_dict[name] = value.shape
-        dtype_dict[name] = value.dtype
-    with nnvm.compiler.build_config(opt_level=opt_level):
-        graph, lib, params = nnvm.compiler.build(symbol, target,
-                                                 shape=shape_dict,
-                                                 dtype=dtype_dict,
-                                                 params=params)
-    return graph, lib, params
-
-
 def onnx_input_output_names(onnx_filename):
     onnx_model = onnx.load(onnx_filename)
     initializer_names = set()
