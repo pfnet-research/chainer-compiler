@@ -1064,6 +1064,41 @@ def gen_abs_test(dtype):
     return fn
 
 
+def gen_convtranspose_bn(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    bsize = 2
+    ichan = 3
+    ochan = 4
+    ksize = 3
+    isize = 7
+
+    x = aranges(bsize, ochan, isize, isize)
+    w = aranges(ochan, ichan, ksize, ksize) * 0.01
+    scale = aranges(ichan) * 0.1 + 1
+    bias = aranges(ichan) * 0.1 + 2
+    mean = aranges(ichan) * 0.1 + 3
+    var = aranges(ichan) * 0.1 + 4
+
+    conv = F.deconvolution_2d(x, w, pad=1, outsize=(isize, isize))
+    y = F.fixed_batch_normalization(conv, scale, bias, mean, var)
+
+    x_v = gb.input('x', x)
+    w_v = gb.param('w', w)
+    scale_v = gb.param('scale', scale)
+    bias_v = gb.param('bias', bias)
+    mean_v = gb.param('mean', mean)
+    var_v = gb.param('var', var)
+
+    conv_v = gb.ConvTranspose([x_v, w_v],
+                              kernel_shape=[ksize, ksize],
+                              pads=[1, 1, 1, 1],
+                              output_shape=[isize, isize])
+    y_v = gb.BatchNormalization([conv_v, scale_v, bias_v, mean_v, var_v])
+
+    gb.output(y_v, y)
+    gb.gen_test()
+
+
 class TestCase(test_case.TestCase):
     def __init__(self, name, func, **kwargs):
         super(TestCase, self).__init__('out', name, **kwargs)
@@ -1194,6 +1229,8 @@ def get_tests():
     test('extra_test_abs_int8', gen_abs_test(np.int8))
     test('extra_test_abs_int64', gen_abs_test(np.int64))
     test('extra_test_abs_float16', gen_abs_test(np.float16))
+
+    test('extra_test_convtranspose_bn', gen_convtranspose_bn)
 
     tests += gen_chainercv_op_tests.get_tests()
 
