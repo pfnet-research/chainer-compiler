@@ -10,25 +10,6 @@ import onnx.numpy_helper
 import run_onnx_util
 
 
-def load_test_data(data_dir, input_names, output_names):
-    inout_values = []
-    for kind, names in [('input', input_names), ('output', output_names)]:
-        names = list(names)
-        values = []
-        for pb in sorted(glob.glob(os.path.join(data_dir, '%s_*.pb' % kind))):
-            with open(pb, 'rb') as f:
-                tensor = onnx.TensorProto()
-                tensor.ParseFromString(f.read())
-            if tensor.name in names:
-                name = tensor.name
-                names.remove(name)
-            else:
-                name = names.pop(0)
-            values.append((name, onnx.numpy_helper.to_array(tensor)))
-        inout_values.append(values)
-    return tuple(inout_values)
-
-
 def onnx_input_output_names(onnx_filename):
     onnx_model = onnx.load(onnx_filename)
     initializer_names = set()
@@ -101,7 +82,8 @@ def run(args):
     onnx_filename = os.path.join(test_dir, args.model_file)
     input_names, output_names = onnx_input_output_names(onnx_filename)
     test_data_dir = os.path.join(test_dir, 'test_data_set_0')
-    inputs, outputs = load_test_data(test_data_dir, input_names, output_names)
+    inputs, outputs = run_onnx_util.load_test_data(
+        test_data_dir, input_names, output_names)
 
     mo_output_dir = os.path.join('out', 'dldt_{}.{}'.format(
         test_dir_name, args.data_type.lower()))

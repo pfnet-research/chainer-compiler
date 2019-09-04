@@ -18,25 +18,6 @@ from tvm.contrib.debugger import debug_runtime
 import run_onnx_util
 
 
-def load_test_data(data_dir, input_names, output_names):
-    inout_values = []
-    for kind, names in [('input', input_names), ('output', output_names)]:
-        names = list(names)
-        values = []
-        for pb in sorted(glob.glob(os.path.join(data_dir, '%s_*.pb' % kind))):
-            with open(pb, 'rb') as f:
-                tensor = onnx.TensorProto()
-                tensor.ParseFromString(f.read())
-            if tensor.name in names:
-                name = tensor.name
-                names.remove(name)
-            else:
-                name = names.pop(0)
-            values.append((name, onnx.numpy_helper.to_array(tensor)))
-        inout_values.append(values)
-    return tuple(inout_values)
-
-
 def compile(symbol, target, input_names, inputs, params,
             opt_level, autotvm_log):
     shape_dict = {}
@@ -69,7 +50,8 @@ def run(args):
     output_names = symbol.list_output_names()
 
     test_data_dir = os.path.join(args.test_dir, 'test_data_set_0')
-    inputs, outputs = load_test_data(test_data_dir, input_names, output_names)
+    inputs, outputs = run_onnx_util.load_test_data(
+        test_data_dir, input_names, output_names)
     inputs = dict(inputs)
 
     # assert len(input_names) == len(inputs) + len(params)
