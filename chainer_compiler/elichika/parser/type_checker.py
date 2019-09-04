@@ -38,11 +38,17 @@ def expr_to_str(node):
     if isinstance(node, gast.Num):
         return str(node.n)
     if isinstance(node, gast.Str):
-        return "\"...\""
+        return "\"...\""  # sometimes it is too long
     if isinstance(node, gast.Attribute):
         return "{}.{}".format(expr_to_str(node.value), node.attr)
+    if isinstance(node, gast.Subscript):
+        return "{}[{}]".format(expr_to_str(node.value), slice_to_str(node.slice))
     if isinstance(node, gast.Name):
         return node.id
+    if isinstance(node, gast.List):
+        return "[" + intercalate([expr_to_str(e) for e in node.elts], ", ") + "]"
+    if isinstance(node, gast.Tuple):
+        return "(" + intercalate([expr_to_str(e) for e in node.elts], ", ") + ")"
     return ""
 
 
@@ -64,6 +70,20 @@ def operator_to_str(node):
         return "/"
     if isinstance(node, gast.FloorDiv):
         return "//"
+
+
+def slice_to_str(node):
+    if isinstance(node, gast.Slice):
+        ret = ""
+        if node.lower: ret += expr_to_str(node.lower)
+        if node.upper: ret += ":" + expr_to_str(node.upper)
+        if node.step: ret += ":" + expr_to_str(node.step)
+        if ret == "": ret = ":"
+        return ret
+    if isinstance(node, gast.ExtSlice):
+        return intercalate([slice_to_str(s) for s in node.dims], ", ")
+    if isinstance(node, gast.Index):
+        return expr_to_str(node.value)
 
 
 def is_expr(node):
