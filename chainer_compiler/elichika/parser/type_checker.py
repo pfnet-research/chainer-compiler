@@ -269,6 +269,14 @@ def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, kwargs):
     assert False
 
 
+def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, kwargs):
+    assert isinstance(ty_args[0], TySequence)
+    ty_args[0].coerce_to_variable_len()
+    dtype = ty_args[0].get_ty().dtype
+    kind = ty_args[0].get_ty().kind
+    return TyTensor(dtype=dtype, kind=kind)
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -298,8 +306,8 @@ ext_func_ty = {
             F.local_response_normalization, 1),
         F.max_pooling_2d :
             ty_ChainerPooling2d(F.max_pooling_2d),
-        F.pad_sequence : evaluate_function_types(
-            F.pad_sequence, 0),
+        F.pad_sequence :
+            ty_ChainerPadSequence,
         F.relu : evaluate_function_types(
             F.relu, 1),
         F.reshape :
@@ -974,7 +982,8 @@ class TypeChecker():
                     code = utils.clip_head(inspect.getsource(e.func.forward))
                 else:
                     code = utils.clip_head(inspect.getsource(e.func.__call__))
-                ty_self = self.nodetype[node.func]
+
+                ty_self = self.infer_expr(node.func)
                 ty_args = [ty_self] + ty_args
 
             # FunctionDef of called subroutine
