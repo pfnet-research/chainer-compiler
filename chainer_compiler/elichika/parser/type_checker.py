@@ -15,6 +15,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+import logging
 
 # ============================ Display utils ===================================
 
@@ -36,6 +37,8 @@ def expr_to_str(node):
                 intercalate([expr_to_str(arg) for arg in node.args], ", "))
     if isinstance(node, gast.Num):
         return str(node.n)
+    if isinstance(node, gast.Str):
+        return "\"...\""
     if isinstance(node, gast.Attribute):
         return "{}.{}".format(expr_to_str(node.value), node.attr)
     if isinstance(node, gast.Name):
@@ -198,6 +201,9 @@ builtins_ty = {
         }
 
 builtins_name = [f.__name__ for f in builtins_ty.keys()]
+
+
+func_to_ignore = [print, logging.info]
 
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
@@ -866,9 +872,9 @@ class TypeChecker():
         if isinstance(node, gast.Subscript):
             # Subscript(expr value, slice slice, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
+            self.infer_slice(node.slice, TyInt())
 
             if isinstance(ty_obj, TySequence):
-                self.infer_slice(node.slice, TyInt())
                 if ty_obj.is_fixed_len and \
                         isinstance(node.slice, gast.Index) and \
                         isinstance(node.slice.value, gast.Num):
@@ -883,21 +889,16 @@ class TypeChecker():
                 elif isinstance(node.slice, gast.Slice):
                     self.nodetype[node] = ty_obj
                 else:
-                    assert False
+                    assert False, "indices must be integers or slices"
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyDict):
-                self.infer_slice(node.slice, ty_obj.keyty)
                 assert isinstance(node.slice, gast.Index)
                 self.nodetype[node] = ty_obj.valty
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyTensor):
-                self.infer_slice(node.slice, TyInt())
-                if isinstance(node.slice, gast.Index):
-                    self.nodetype[node] = TyTensor(dtype=ty_obj.dtype)
-                elif isinstance(node.slice, gast.Slice):
-                    self.nodetype[node] = TyTensor(dtype=ty_obj.dtype)
+                self.nodetype[node] = TyTensor(dtype=ty_obj.dtype)
                 self.nodetype[node].kind = ty_obj.kind
                 return self.nodetype[node]
 
@@ -918,6 +919,7 @@ class TypeChecker():
                 self.nodetype[node] = type_of_value(x)
             else:
                 # case of Tuple assignment
+                # XXX: print comes here
                 ty_var = TyVar()
                 self.tyenv[node.id] = ty_var
                 self.nodetype[node] = ty_var
@@ -954,6 +956,9 @@ class TypeChecker():
 
         except self.ArgumentRequired as e:
             self.is_function = False
+            if e.func in func_to_ignore:
+                return
+
             if e.func is None:
                 # attribute against tensor etc.
                 assert isinstance(node.func, gast.Attribute)
