@@ -206,7 +206,7 @@ def ty_ChainerConcat(ty_args, dummy_args_nontensor, kwargs):
     if ty_args[0].is_fixed_len:
         dtypes = [tytensor.dtype for tytensor in ty_args[0].get_tys()]
         assert all_same(dtypes)
-        return TyTensor(dtype=dtypes[0])
+        return TyChainerVariable(dtype=dtypes[0])
 
     dtype = ty_args[0].get_ty().dtype
     return TyChainerVariable(dtype=dtype)
@@ -214,8 +214,7 @@ def ty_ChainerConcat(ty_args, dummy_args_nontensor, kwargs):
 
 def ty_ChainerExpandDims(ty_args, dummy_args_nontensor, kwargs):
     # TODO(momohatt): axis can come as dummy_args_nontensor
-    axis = kwargs['axis'] if dummy_args_nontensor == [] else \
-            dummy_args_nontensor[0]
+    axis = dummy_args_nontensor[0]
     fallback_shapes = ((1,) * axis,)
     fallback_dtypes = (np.float32,)
 
@@ -228,8 +227,7 @@ def ty_ChainerBroadcastTo(ty_args, dummy_args_nontensor, kwargs):
 
 
 def ty_ChainerSum(ty_args, dummy_args_nontensor, kwargs):
-    axis = kwargs['axis'] if dummy_args_nontensor == [] else \
-            dummy_args_nontensor[0]
+    axis = dummy_args_nontensor[0]
     fallback_shapes = ((1,) * (axis + 1),)
     fallback_dtypes = (np.float32,)
 
@@ -241,6 +239,7 @@ def ty_ChainerReshape(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype,
             shape=dummy_args_nontensor[0])
 
+
 def ty_ChainerSqueeze(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
@@ -248,8 +247,10 @@ def ty_ChainerSqueeze(ty_args, dummy_args_nontensor, kwargs):
 def ty_ChainerSwapAxes(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
+
 def ty_ChainerSeparate(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
+
 
 def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, kwargs):
     assert isinstance(ty_args[0], TyTensor)
@@ -381,9 +382,9 @@ class TypeChecker():
 
 
     def dump_tyenv(self):
-        print("=== tyenv ===")
         if not self.is_debug:
             return
+        print("=== tyenv ===")
         for name, ty in self.tyenv.items():
             print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
         for (obj, name), ty in self.attribute_tyenv.items():
@@ -611,7 +612,11 @@ class TypeChecker():
 
             ty_iteration = self.infer_expr(node.iter)
             ty_i = self.infer_expr(node.target)
-            unify(ty_iteration, TyList(ty_i))
+            if isinstance(ty_iteration, TyTensor):
+                unify(ty_i, TyTensor(
+                    dtype=ty_iteration.dtype, kind=ty_iteration.kind))
+            else:
+                unify(ty_iteration, TySequence(ty=ty_i))
 
             # TODO(momohatt): scope of iteration variable is wrong
             self.infer_block(node.body)
@@ -768,7 +773,11 @@ class TypeChecker():
             gen = node.generators[0]
             ty_iteration = tc.infer_expr(gen.iter)
             ty_i = tc.infer_expr(gen.target)
-            unify(ty_iteration, TyList(ty_i))
+            if isinstance(ty_iteration, TyTensor):
+                unify(ty_i, TyTensor(
+                    dtype=ty_iteration.dtype, kind=ty_iteration.kind))
+            else:
+                unify(ty_iteration, TySequence(ty=ty_i))
             tc.infer_expr(node.elt)
 
             add_dict(self.nodetype, tc.nodetype)
@@ -819,9 +828,9 @@ class TypeChecker():
         if isinstance(node, gast.Subscript):
             # Subscript(expr value, slice slice, expr_context ctx)
             ty_obj = self.infer_expr(node.value)
-            self.infer_slice(node.slice, TyInt())
 
             if isinstance(ty_obj, TySequence):
+                self.infer_slice(node.slice, TyInt())
                 if ty_obj.is_fixed_len and \
                         isinstance(node.slice, gast.Index) and \
                         isinstance(node.slice.value, gast.Num):
@@ -840,13 +849,15 @@ class TypeChecker():
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyDict):
+                self.infer_slice(node.slice, ty_obj.keyty)
                 assert isinstance(node.slice, gast.Index)
                 self.nodetype[node] = ty_obj.valty
                 return self.nodetype[node]
 
             if isinstance(ty_obj, TyTensor):
-                self.nodetype[node] = TyTensor(dtype=ty_obj.dtype)
-                self.nodetype[node].kind = ty_obj.kind
+                self.infer_slice(node.slice, TyInt())
+                self.nodetype[node] = TyTensor(
+                        dtype=ty_obj.dtype, kind=ty_obj.kind)
                 return self.nodetype[node]
 
             else:
@@ -936,6 +947,8 @@ class TypeChecker():
                     ty_ret = inference_logic(
                             ty_args, val_dummy_args_nontensor, val_kwargs)
                 except Exception:
+                    print_warning("Failed to infer type of " + e.func.__name__ +
+                            ". Falling back to TyObj...")
                     ty_ret = TyObj()
 
                 self.nodetype[node] = ty_ret

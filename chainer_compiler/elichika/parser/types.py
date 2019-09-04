@@ -7,6 +7,9 @@ import numpy as np
 
 is_debug_global = False
 
+def print_warning(msg):
+    print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
+
 class TyObj():  # base type, meaning 'unknown'
     def __init__(self):
         self.is_optional = False
@@ -516,8 +519,8 @@ def unify(ty1, ty2):
                 return
             except UnifyError:
                 ty2.unset()
-                print("\x1b[33m[LOG] unify error with " + str(ty1_) \
-                        + " and " + str(ty2) + ". continuing...\x1b[39m")
+                print_warning("unify error with {} and {}. continuing...".format(
+                    ty1_, ty2))
                 continue
 
         raise UnifyError(ty1, ty2)
