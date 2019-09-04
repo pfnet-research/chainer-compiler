@@ -9,24 +9,6 @@ import onnx.numpy_helper
 import run_onnx_util
 
 
-def onnx_input_output_names(onnx_filename):
-    onnx_model = onnx.load(onnx_filename)
-    initializer_names = set()
-    for initializer in onnx_model.graph.initializer:
-        initializer_names.add(initializer.name)
-
-    input_names = []
-    for input in onnx_model.graph.input:
-        if input.name not in initializer_names:
-            input_names.append(input.name)
-
-    output_names = []
-    for output in onnx_model.graph.output:
-        output_names.append(output.name)
-
-    return input_names, output_names
-
-
 def inference(args, model_xml, model_bin, inputs, outputs):
     from openvino.inference_engine import IENetwork
     from openvino.inference_engine import IEPlugin
@@ -79,7 +61,8 @@ def run(args):
     test_dir_name = test_dir.split(os.path.sep)[-1]
 
     onnx_filename = os.path.join(test_dir, args.model_file)
-    input_names, output_names = onnx_input_output_names(onnx_filename)
+    input_names, output_names = run_onnx_util.onnx_input_output_names(
+        onnx_filename)
     test_data_dir = os.path.join(test_dir, 'test_data_set_0')
     inputs, outputs = run_onnx_util.load_test_data(
         test_data_dir, input_names, output_names)

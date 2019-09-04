@@ -33,3 +33,21 @@ def load_test_data(data_dir, input_names, output_names):
             values.append((name, onnx.numpy_helper.to_array(tensor)))
         inout_values.append(values)
     return tuple(inout_values)
+
+
+def onnx_input_output_names(onnx_filename):
+    onnx_model = onnx.load(onnx_filename)
+    initializer_names = set()
+    for initializer in onnx_model.graph.initializer:
+        initializer_names.add(initializer.name)
+
+    input_names = []
+    for input in onnx_model.graph.input:
+        if input.name not in initializer_names:
+            input_names.append(input.name)
+
+    output_names = []
+    for output in onnx_model.graph.output:
+        output_names.append(output.name)
+
+    return input_names, output_names
