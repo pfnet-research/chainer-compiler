@@ -78,6 +78,13 @@ Node* GraphBuilder::MOp(
     return node;
 }
 
+Node* GraphBuilder::MOp(const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs) {
+    const std::string name = GenName(nullptr, base.name());
+    Node* node = graph_->AddNode(base, inputs, outputs, name);
+    added_nodes_.push_back(node);
+    return node;
+}
+
 Value* GraphBuilder::Const(const chainerx::Array& ary, Value* value) {
     Value* v = value ? Op(Node::kConstant, {}, {value}) : Op(Node::kConstant, {});
     v->producer()->set_tensor_value(new Tensor(v->name(), ary));
@@ -111,8 +118,8 @@ Value* GraphBuilder::Param(const chainerx::Array& ary, Value* base_value) {
     return value;
 }
 
-Value* GraphBuilder::Temp() {
-    return graph_->AddValue(GenName());
+Value* GraphBuilder::Temp(const std::string& name_hint) {
+    return graph_->AddValue(GenName(nullptr, name_hint));
 }
 
 Value* GraphBuilder::Temp(const Type& type) {
@@ -123,11 +130,15 @@ Value* GraphBuilder::Null() {
     return graph_->AddNullValue();
 }
 
-std::string GraphBuilder::GenName(Value* value) {
+std::string GraphBuilder::GenName(Value* value, const std::string& name_hint) {
     if (value == nullptr) {
         value = target_;
     }
-    return StrCat(category_, '_', value->name(), '_', value->Counter());
+    std::string basic_name = value->name();
+    if (!name_hint.empty()) {
+        basic_name += StrCat("_", name_hint);
+    }
+    return StrCat(category_, '_', basic_name, '_', value->Counter());
 }
 
 }  // namespace chainer_compiler

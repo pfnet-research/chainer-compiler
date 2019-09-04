@@ -256,6 +256,10 @@ NodeDef('Round', 1, 1)
 NodeDef('BitShift', 2, 1, direction='LEFT')
 NodeDef('NonZero', 1, 1)
 
+# Function nodes definitions
+NodeDef('DynamicQuantizeLinear', 1, 3)
+NodeDef('MeanVarianceNormalization', 1, 1, mvn_axes=[0, 2, 3])
+
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
 NodeDef('ChainerReluGrad', 2, 1)
@@ -406,17 +410,18 @@ NodeDef('ChainerGenericIs', 2, 1)
 # For sequence: Add(i0, i1) for each element in sequences.
 NodeDef('ChainerGenericAccumulateGrad', 2, 1)
 
+ONNX_ATTR_NAME_TABLE = {
+    'tensor_value': 'value',
+    'sampling_ratio_list': 'sampling_ratio',
+    'bias_list': 'bias',
+    'mvn_axes': 'axes',
+}
+
 
 class AttrDef(object):
     def __init__(self, name, value):
         self.name = name
-        self.onnx_name = self.name
-        if self.onnx_name == 'tensor_value':
-            self.onnx_name = 'value'
-        if self.onnx_name == 'sampling_ratio_list':
-            self.onnx_name = 'sampling_ratio'
-        elif self.onnx_name == 'bias_list':
-            self.onnx_name = 'bias'
+        self.onnx_name = ONNX_ATTR_NAME_TABLE[name] if name in ONNX_ATTR_NAME_TABLE else name
         self.c_name = re.sub(r'[A-Z]', lambda m: '_' + m.group(0).lower(), name)
         self.required = False
         self.value = None
@@ -424,8 +429,13 @@ class AttrDef(object):
         if isinstance(value, Required):
             self.required = True
             value = value.v
-        if isinstance(value, list) or isinstance(value, type):
+        self.is_type_only_list = isinstance(value, list) and (len(value) > 0) and isinstance(value[0], type)
+        if self.is_type_only_list or isinstance(value, type):
             self.type = value
+        elif isinstance(value, list):
+            self.type = [type(value[0])]
+            self.value = value
+            assert self.type[0] in (bool, int, str, float, Tensor, Graph)
         else:
             self.type = type(value)
             self.value = value
@@ -790,6 +800,8 @@ def gen_gen_node_base_cc():
                 lines.append('%s_ = "%s";' % (attr.c_name, attr.value))
             elif attr.type == bool:
                 lines.append('%s_ = %s;' % (attr.c_name, str(attr.value).lower()))
+            elif isinstance(attr.type, list):
+                lines.append('%s_ = {%s};' % (attr.c_name, ', '.join([str(v) for v in attr.value])))
             else:
                 lines.append('%s_ = %s;' % (attr.c_name, attr.value))
         lines.append('break;')

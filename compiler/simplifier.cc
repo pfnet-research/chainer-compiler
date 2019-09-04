@@ -5,6 +5,7 @@
 
 #include <chainerx/array.h>
 #include <chainerx/routines/manipulation.h>
+#include <onnx/defs/schema.h>
 
 #include <common/log.h>
 #include <common/strutil.h>
@@ -19,7 +20,7 @@
 namespace chainer_compiler {
 namespace {
 
-typedef bool (*SimplifierFn)(Graph*, Node*);
+typedef std::function<bool(Graph*, Node*)> SimplifierFn;
 
 struct Simplifier {
     Simplifier(const char* n, SimplifierFn f) : name(n), fn(f) {
@@ -668,9 +669,74 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
     return true;
 }
 
+SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
+    return [fn, schema](Graph* graph, Node* fn_nd) {
+        std::unordered_map<std::string, Value*> value_table;
+        for (size_t i = 0; i < schema->inputs().size(); ++i) {
+            value_table.insert(std::make_pair(schema->inputs()[i].GetName(), fn_nd->input(i)));
+        }
+        for (size_t i = 0; i < schema->outputs().size(); ++i) {
+            value_table.insert({schema->outputs()[i].GetName(), fn_nd->output(i)});
+        }
+
+        GraphBuilder gb(graph, "Expand" + fn, fn_nd->output(0));
+        onnx::NodeProto onnx_fn_nd;
+        fn_nd->ToONNX(&onnx_fn_nd);
+
+        for (const onnx::NodeProto& src_nd : schema->GetFunction()->node()) {
+            // Map inputs/outputs
+            std::vector<Value*> in_vals, out_vals;
+            for (const std::string& i : src_nd.input()) {
+                Value*& v = value_table[i];
+                if (!v) {
+                    v = gb.Temp(i);
+                }
+                in_vals.push_back(v);
+            }
+            for (const std::string& o : src_nd.output()) {
+                Value*& v = value_table[o];
+                if (!v) {
+                    v = gb.Temp(o);
+                }
+                out_vals.push_back(v);
+            }
+
+            // Expand attribute references
+            std::unique_ptr<onnx::NodeProto> ref_extracted;
+            for (size_t attr_idx = 0; attr_idx < src_nd.attribute().size(); ++attr_idx) {
+                const onnx::AttributeProto& attr = src_nd.attribute(attr_idx);
+                if (!attr.has_ref_attr_name()) {
+                    continue;
+                }
+
+                if (!ref_extracted) {
+                    ref_extracted = std::make_unique<onnx::NodeProto>(src_nd);
+                }
+                const onnx::AttributeProto* ex_attr = nullptr;
+                for (const onnx::AttributeProto& func_attr : onnx_fn_nd.attribute()) {
+                    if (func_attr.name() == attr.ref_attr_name()) {
+                        ex_attr = &func_attr;
+                        break;
+                    }
+                }
+                auto default_attr_it = schema->attributes().find(attr.ref_attr_name());
+                if (default_attr_it != schema->attributes().end()) {
+                    ex_attr = &default_attr_it->second.default_value;
+                }
+                CHECK(ex_attr) << "attribute reference not found: " << attr.ref_attr_name();
+                *ref_extracted->mutable_attribute(attr_idx) = *ex_attr;
+            }
+
+            // Expand node to graph
+            gb.MOp(ref_extracted ? *ref_extracted : src_nd, in_vals, out_vals);
+        }
+        return true;
+    };
+}
+
 }  // namespace
 
-void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
+void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_names, Graph* graph, bool gen_backprop) {
     std::set<std::string> all_simplifier_names;
     std::map<Node::OpType, Simplifier> simplifiers;
 
@@ -719,7 +785,22 @@ void Simplify(const std::set<std::string>& simplifier_names, Graph* graph, bool 
 
     // Validate `simplifier_names`.
     for (const std::string& name : simplifier_names) {
+        if (name == "ExpandFunction") {
+            continue;
+        }
         CHECK_EQ(1, all_simplifier_names.count(name)) << name;
+    }
+
+    // Register function expander
+    if (simplifier_names.count("ExpandFunction")) {
+        for (const std::string& fn : bc.GetExpandingFunctions()) {
+            Node::OpType op_enum = Node::StringToOpType(fn);
+            const onnx::OpSchema* schema = onnx::OpSchemaRegistry::Schema(fn);
+            CHECK(schema) << "unregistered onnx function: " << fn;
+
+            auto simplifier = Simplifier("ExpandFunction", FunctionExpander(fn, schema));
+            CHECK(simplifiers.emplace(op_enum, simplifier).second);
+        }
     }
 
     bool replaced = true;

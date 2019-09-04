@@ -495,6 +495,15 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_bitshift_right_uint16'),
 
     TestCase(NODE_TEST, 'test_scan9_sum'),
+
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_max_adjusted'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_expanded'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_max_adjusted_expanded'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted_expanded'),
+    TestCase(NODE_TEST, 'test_mvn'),
+    TestCase(NODE_TEST, 'test_mvn_expanded'),
 ]
 
 TEST_CASES += [

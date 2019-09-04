@@ -13,11 +13,11 @@
 
 namespace chainer_compiler {
 
-Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs)
+Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name)
     : NodeBase(xnode, inputs, outputs),
       inputs_(inputs),
       outputs_(outputs),
-      name_(xnode.name()),
+      name_(name.empty() ? xnode.name() : name),
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
     Validate();

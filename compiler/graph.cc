@@ -221,6 +221,13 @@ Node* Graph::AddNode(
     return node;
 }
 
+Node* Graph::AddNode(
+        const onnx::NodeProto& base, const std::vector<Value*>& inputs, const std::vector<Value*>& outputs, const std::string& name) {
+    Node* node = new Node(base, inputs, outputs, name);
+    AddNodeImpl(std::unique_ptr<Node>(node), inputs, outputs);
+    return node;
+}
+
 void Graph::DetachNode(Node* node) {
     node->Detach();
 }

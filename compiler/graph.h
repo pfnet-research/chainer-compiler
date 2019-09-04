@@ -71,6 +71,11 @@ public:
             const std::vector<Value*>& outputs,
             const std::string& base = "",
             const std::string& domain = onnx::ONNX_DOMAIN);
+    Node* AddNode(
+            const onnx::NodeProto& base,
+            const std::vector<Value*>& inputs,
+            const std::vector<Value*>& outputs,
+            const std::string& base_name = "");
 
     void DetachNode(Node* node);
 
