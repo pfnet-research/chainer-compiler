@@ -293,26 +293,23 @@ class TestSequence(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), (1,))
 
-        self.assertEqual(str(id2type[1]), "class Test -> int -> int list")	# FunctionDef forward (line 1) (line 1)
+        self.assertEqual(str(id2type[1]), "class Test -> int -> int list")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[8]), "int list")	# Name y (line 2) (line 2)
-        self.assertEqual(str(id2type[10]), "int list")	# ListComp  (line 2) (line 2)
-        self.assertEqual(str(id2type[11]), "int")	# Call self.f(i) (line 2) (line 2)
-        self.assertEqual(str(id2type[12]), "class Test -> int -> int")	# Attribute self.f (line 2) (line 2)
-        self.assertEqual(str(id2type[13]), "class Test")	# Name self (line 2) (line 2)
-        self.assertEqual(str(id2type[16]), "int")	# Name i (line 2) (line 2)
-        self.assertEqual(str(id2type[19]), "int")	# Name i (line 2) (line 2)
-        self.assertEqual(str(id2type[21]), "int list")	# Call range(x) (line 2) (line 2)
-        self.assertEqual(str(id2type[22]), "int -> int list")	# Name range (line 2) (line 2)
-        self.assertEqual(str(id2type[24]), "int")	# Name x (line 2) (line 2)
+        self.assertEqual(str(id2type[8]), "int list")	# Name y (line 2)
+        self.assertEqual(str(id2type[10]), "int list")	# ListComp  (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Call self.f(i) (line 2)
+        self.assertEqual(str(id2type[12]), "class Test -> int -> int")	# Attribute self.f (line 2)
+        self.assertEqual(str(id2type[13]), "class Test")	# Name self (line 2)
+        self.assertEqual(str(id2type[16]), "int")	# Name i (line 2)
+        self.assertEqual(str(id2type[19]), "int")	# Name i (line 2)
+        self.assertEqual(str(id2type[21]), "int list")	# Call range(x) (line 2)
+        self.assertEqual(str(id2type[22]), "int -> int list")	# Name range (line 2)
+        self.assertEqual(str(id2type[24]), "int")	# Name x (line 2)
         self.assertEqual(str(id2type[26]), "int list")	# Return (line 3)
-        self.assertEqual(str(id2type[27]), "int list")	# Name y (line 3) (line 3)
-        self.assertEqual(str(id2type[29]), "class Test -> int -> int")	# FunctionDef f (line 1) (line 1)
+        self.assertEqual(str(id2type[27]), "int list")	# Name y (line 3)
+        self.assertEqual(str(id2type[29]), "class Test -> int -> int")	# FunctionDef f (line 1)
         self.assertEqual(str(id2type[35]), "int")	# Return (line 2)
-        self.assertEqual(str(id2type[36]), "int")	# Name x (line 2) (line 2)
-
-
-
+        self.assertEqual(str(id2type[36]), "int")	# Name x (line 2)
 
 
 # ==============================================================================
@@ -627,70 +624,47 @@ class TestLazy(unittest.TestCase):
     def test_lazy_init(self):
         class Test(chainer.Chain):
             def forward(self, x):
-                y = None
-                for i in range(x):
-                    if y is None:
-                        y = 42
-                    y += i
-                return y
+                if x is None:
+                    x = 42
+                return x
 
-        id2type = generate_id2type_from_forward(Test(), (5,))
+        id2type = generate_id2type_from_forward(Test(), (None,))
 
-        self.assertEqual(str(id2type[1]), "class Test -> int -> optional(int)")	# FunctionDef forward (line 1)
-        self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[8]), "NoneType")	# Name y (line 2)
-        self.assertEqual(str(id2type[10]), "NoneType")	# NameConstant (line 2)
-        self.assertEqual(str(id2type[11]), "NoneType")	# For (line 3)
-        self.assertEqual(str(id2type[12]), "int")	# Name i (line 3)
-        self.assertEqual(str(id2type[14]), "int list")	# Call (line 3)
-        self.assertEqual(str(id2type[15]), "int -> int list")	# Name range (line 3)
-        self.assertEqual(str(id2type[17]), "int")	# Name x (line 3)
-        self.assertEqual(str(id2type[19]), "NoneType")	# If (line 4)
-        self.assertEqual(str(id2type[20]), "bool")	# Compare (line 4)
-        self.assertEqual(str(id2type[25]), "NoneType")	# Assign (line 5)
-        self.assertEqual(str(id2type[26]), "int")	# Name y (line 5)
-        self.assertEqual(str(id2type[28]), "int")	# Num (line 5)
-        self.assertEqual(str(id2type[29]), "NoneType")	# AugAssign (line 6)
-        self.assertEqual(str(id2type[30]), "int")	# Name y (line 6)
-        self.assertEqual(str(id2type[32]), "optional(int) -> int -> int")	# Add
-        self.assertEqual(str(id2type[33]), "int")	# Name i (line 6)
-        self.assertEqual(str(id2type[35]), "optional(int)")	# Return (line 7)
-        self.assertEqual(str(id2type[36]), "optional(int)")	# Name y (line 7)
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType -> int")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# If
+        self.assertEqual(str(id2type[8]), "bool")	# Compare  (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Name x (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[14]), "int")	# Name x (line 3)
+        self.assertEqual(str(id2type[16]), "int")	# Num 42 (line 3)
+        self.assertEqual(str(id2type[17]), "int")	# Return
+        self.assertEqual(str(id2type[18]), "int")	# Name x (line 4)
+
 
     def test_lazy_attribute_init(self):
         class Test():
             def __init__(self):
                 self.y = None
 
-            def forward(self, x):
-                for i in range(x):
-                    if self.y is None:
-                        self.y = 42
-                    self.y += i
+            def forward(self):
+                if self.y is None:
+                    self.y = 42
                 return self.y
 
-        id2type = generate_id2type_from_forward(Test(), (5,))
+        id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "class Test -> int -> optional(int)")	# FunctionDef forward (line 1)
-        self.assertEqual(str(id2type[7]), "NoneType")	# For (line 2)
-        self.assertEqual(str(id2type[8]), "int")	# Name i (line 2)
-        self.assertEqual(str(id2type[10]), "int list")	# Call (line 2)
-        self.assertEqual(str(id2type[11]), "int -> int list")	# Name range (line 2)
-        self.assertEqual(str(id2type[13]), "int")	# Name x (line 2)
-        self.assertEqual(str(id2type[15]), "NoneType")	# If (line 3)
-        self.assertEqual(str(id2type[16]), "bool")	# Compare (line 3)
-        self.assertEqual(str(id2type[23]), "NoneType")	# Assign (line 4)
-        self.assertEqual(str(id2type[24]), "NoneType")	# Attribute y (line 4)
-        self.assertEqual(str(id2type[25]), "class Test")	# Name self (line 4)
-        self.assertEqual(str(id2type[28]), "int")	# Num (line 4)
-        self.assertEqual(str(id2type[29]), "NoneType")	# AugAssign (line 5)
-        self.assertEqual(str(id2type[30]), "int")	# Attribute y (line 5)
-        self.assertEqual(str(id2type[31]), "class Test")	# Name self (line 5)
-        self.assertEqual(str(id2type[34]), "int -> int -> int")	# Add
-        self.assertEqual(str(id2type[35]), "int")	# Name i (line 5)
-        self.assertEqual(str(id2type[37]), "optional(int)")	# Return (line 6)
-        self.assertEqual(str(id2type[38]), "optional(int)")	# Attribute y (line 6)
-        self.assertEqual(str(id2type[39]), "class Test")	# Name self (line 6)
+        self.assertEqual(str(id2type[1]), "class Test -> int")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# If
+        self.assertEqual(str(id2type[6]), "bool")	# Compare  (line 2)
+        self.assertEqual(str(id2type[7]), "int")	# Attribute self.y (line 2)
+        self.assertEqual(str(id2type[8]), "class Test")	# Name self (line 2)
+        self.assertEqual(str(id2type[13]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[14]), "NoneType")	# Attribute self.y (line 3)
+        self.assertEqual(str(id2type[15]), "class Test")	# Name self (line 3)
+        self.assertEqual(str(id2type[18]), "int")	# Num 42 (line 3)
+        self.assertEqual(str(id2type[19]), "int")	# Return
+        self.assertEqual(str(id2type[20]), "int")	# Attribute self.y (line 4)
+        self.assertEqual(str(id2type[21]), "class Test")	# Name self (line 4)
 
 
 

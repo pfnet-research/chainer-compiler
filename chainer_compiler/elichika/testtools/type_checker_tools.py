@@ -73,9 +73,6 @@ def generate_assertion(type_table_name, id2type, id2node):
     for i, t in sorted(id2type.items()):
         node = id2node[i]
         comment = "\t# " + node_description(node)
-        if hasattr(node, 'lineno'):
-            comment += " (line {})".format(node.lineno)
-
         print("self.assertEqual(str({}[{}]), \"{}\"){}".format( \
             type_table_name, i, t, comment))
 
