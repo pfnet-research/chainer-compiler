@@ -188,7 +188,7 @@ chainerx::Array GetItemGradOp::RunImpl(
 }
 
 chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(indices, axis);
+    return data.Take(indices.ToDevice(data.device()), axis);
 }
 
 chainerx::Array GatherElementsOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices_) {
