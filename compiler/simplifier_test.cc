@@ -5,6 +5,7 @@
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
 #include <compiler/simplifier.h>
+#include <configs/backend_config.h>
 
 namespace chainer_compiler {
 namespace {
