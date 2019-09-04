@@ -36,8 +36,6 @@ def expr_to_str(node):
                 intercalate([expr_to_str(arg) for arg in node.args], ", "))
     if isinstance(node, gast.Num):
         return str(node.n)
-    if isinstance(node, gast.Str):
-        return str(node.s)
     if isinstance(node, gast.Attribute):
         return "{}.{}".format(expr_to_str(node.value), node.attr)
     if isinstance(node, gast.Name):
@@ -144,6 +142,28 @@ def copy_tyenv(tyenv):
     for name, ty in tyenv.items():
         new_tyenv[name] = copy_ty(ty)
     return new_tyenv
+
+
+def lazy_initializer(node):
+    def ident_eq(expr1, expr2):
+        if isinstance(expr1, gast.Name) and isinstance(expr2, gast.Name):
+            return expr1.id == expr2.id
+        if isinstance(expr1, gast.Attribute) and isinstance(expr2, gast.Attribute):
+            return ident_eq(expr1.value, expr2.value) and \
+                    expr1.attr == expr2.attr
+
+    if isinstance(node.test, gast.Compare) and \
+            (isinstance(node.test.left, gast.Name) or \
+            isinstance(node.test.left, gast.Attribute)) and \
+            isinstance(node.test.ops[0], gast.Is) and \
+            isinstance(node.test.comparators[0], gast.NameConstant) and \
+            node.test.comparators[0].value is None:
+        x = node.test.left  # variable/attribute being initialized
+        assign_x = [isinstance(stmt, gast.Assign) and \
+                ident_eq(stmt.targets[0], x) for stmt in node.body]
+        if any(assign_x):
+            return node.test.left
+    return None
 
 
 # ==============================================================================
@@ -287,9 +307,19 @@ def ty_ChainerSum(ty_args, dummy_args_nontensor, kwargs):
             (ty_args, dummy_args_nontensor, kwargs)
 
 
+def ty_ChainerReshape(ty_args, dummy_args_nontensor, kwargs):
+    return TyChainerVariable(dtype=ty_args[0].dtype,
+            shape=dummy_args_nontensor[0])
+
+def ty_ChainerSqueeze(ty_args, dummy_args_nontensor, kwargs):
+    return TyChainerVariable(dtype=ty_args[0].dtype)
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
+        np.full : evaluate_function_types(
+            np.full, 0),
         np.ones : evaluate_function_types(
             np.ones, 0),
         np.zeros : evaluate_function_types(
@@ -315,8 +345,9 @@ ext_func_ty = {
         F.relu : evaluate_function_types(
             F.relu, 1),
         F.reshape :
-            # TODO(momohatt): infer shape
-            lambda ty_args, dummy_args_nontensor, kwargs: ty_args[0],
+            ty_ChainerReshape,
+        F.squeeze :
+            ty_ChainerSqueeze,
         F.softmax :
             ty_ChainerIdentical,
         F.softmax_cross_entropy :
@@ -620,46 +651,14 @@ class TypeChecker():
 
         if isinstance(node, gast.If):
             # If(expr test, stmt* body, stmt* orelse)
-            ty_test = self.infer_expr(node.test)
             # TODO(momohatt): determine what type should ty_test be
+            self.infer_expr(node.test)
 
-            if node.orelse == []:
-                self.infer_block(node.body)
-            else:
-                tc1 = TypeChecker(
-                        tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                        is_debug=self.is_debug, module=self.module)
-                tc2 = TypeChecker(
-                        tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                        is_debug=self.is_debug, module=self.module)
-                for stmt in node.body:
-                    tc1.infer_stmt(stmt)
-                for stmt in node.orelse:
-                    tc2.infer_stmt(stmt)
+            x = lazy_initializer(node)
+            if x is not None:
+                return self.infer_LazyInitializer(node, x)
 
-                # 1. unify the intersection of 2 tyenvs and update local tyenv
-                for name, ty in tc1.tyenv.items():
-                    if name in tc2.tyenv.keys():
-                        unify(ty, tc2.tyenv[name])
-                        # XXX: objects existing in only one branch should not
-                        # remain
-                        self.tyenv[name] = ty
-
-                for (obj, name), ty in tc1.attribute_tyenv.items():
-                    if (obj, name) in tc2.attribute_tyenv.keys():
-                        unify(ty, tc2.attribute_tyenv[(obj, name)])
-                        self.attribute_tyenv[(obj, name)] = ty
-
-                # 2. merge nodetype from 2 TypeCheckers
-                add_dict(self.nodetype, tc1.nodetype)
-                add_dict(self.nodetype, tc2.nodetype)
-                add_dict(self.subroutine_node, tc1.subroutine_node)
-                add_dict(self.subroutine_node, tc2.subroutine_node)
-
-
-            self.nodetype[node] = TyNone()
-            return self.nodetype[node]
-
+            return self.infer_If(node)
 
         if isinstance(node, gast.Expr):
             # Expr(expr value)
@@ -674,10 +673,57 @@ class TypeChecker():
         assert False, type(node).__name__
 
 
+    def infer_If(self, node):
+        if node.orelse == []:
+            self.infer_block(node.body)
+        else:
+            tc1 = TypeChecker(
+                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                    is_debug=self.is_debug, module=self.module)
+            tc2 = TypeChecker(
+                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                    is_debug=self.is_debug, module=self.module)
+            for stmt in node.body:
+                tc1.infer_stmt(stmt)
+            for stmt in node.orelse:
+                tc2.infer_stmt(stmt)
+
+            # 1. unify the intersection of 2 tyenvs and update local tyenv
+            for name, ty in tc1.tyenv.items():
+                if name in tc2.tyenv.keys():
+                    unify(ty, tc2.tyenv[name])
+                    # XXX: objects existing in only one branch should not
+                    # remain
+                    self.tyenv[name] = ty
+
+            for (obj, name), ty in tc1.attribute_tyenv.items():
+                if (obj, name) in tc2.attribute_tyenv.keys():
+                    unify(ty, tc2.attribute_tyenv[(obj, name)])
+                    self.attribute_tyenv[(obj, name)] = ty
+
+            # 2. merge nodetype from 2 TypeCheckers
+            add_dict(self.nodetype, tc1.nodetype)
+            add_dict(self.nodetype, tc2.nodetype)
+            add_dict(self.subroutine_node, tc1.subroutine_node)
+            add_dict(self.subroutine_node, tc2.subroutine_node)
+
+        self.nodetype[node] = TyNone()
+        return self.nodetype[node]
+
+
+    def infer_LazyInitializer(self, node, x):
+        self.infer_If(node)
+        self.infer_expr(x).is_optional = False
+        return self.nodetype[node]
+
+
     # ================================= expr ===================================
     def infer_expr(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
+
+        if node in self.nodetype.keys():
+            return self.nodetype[node]
 
         if isinstance(node, gast.BoolOp):
             # BoolOp(boolop op, expr* values)
@@ -967,7 +1013,7 @@ class TypeChecker():
             self.nodetype[node] = type_of_value(attr)
             return self.nodetype[node]
 
-        ty_obj = self.infer_expr(node.value)
+        ty_obj = self.infer_expr(node.value).deref()
 
         if isinstance(ty_obj, TySequence) and ty_obj.is_list():
             ty_obj.coerce_to_variable_len()

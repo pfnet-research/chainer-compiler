@@ -419,7 +419,8 @@ def type_of_value(value) -> 'TyObj':
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
     if isinstance(value, dict):
-        return TyDict(type_of_value(value.keys()[0]), type_of_value(value.items()[0]))
+        return TyDict(type_of_value(list(value.keys())[0]),
+                type_of_value(list(value.items())[0]))
     if isinstance(value, np.ndarray):
         return TyNdarray(dtype=TyDType(value.dtype), shape=value.shape)
     if isinstance(value, chainer.Variable):
@@ -445,7 +446,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyNone):
         return None
     if isinstance(ty, TyNum):
-        return pytype_of_type(ty)()
+        return pytype_of_type(ty)(1)  # XXX: to avoid division by zero
     if isinstance(ty, TyString):
         return ""
     if isinstance(ty, TySequence):
