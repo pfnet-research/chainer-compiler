@@ -19,6 +19,8 @@ import numpy as np
 # ============================ Display utils ===================================
 
 def intercalate(strings, sep):
+    if strings == []:
+        return ""
     return "".join([s + sep for s in strings[:-1]]) + strings[-1]
 
 
@@ -722,6 +724,29 @@ class TypeChecker():
                 assert all_same_ty(ty_keys)
                 assert all_same_ty(ty_vals)
                 self.nodetype[node] = TyDict(ty_keys[0], ty_vals[0])
+            return self.nodetype[node]
+
+
+        if isinstance(node, gast.ListComp):
+            # ListComp(expr elt, comprehension* generators)
+
+            # cannot think of cases where len > 2
+            assert len(node.generators) == 1
+
+            tc = TypeChecker(
+                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                    is_debug=self.is_debug, module=self.module)
+
+            gen = node.generators[0]
+            ty_iteration = tc.infer_expr(gen.iter)
+            ty_i = tc.infer_expr(gen.target)
+            unify(ty_iteration, TyList(ty_i))
+            tc.infer_expr(node.elt)
+
+            add_dict(self.nodetype, tc.nodetype)
+            add_dict(self.subroutine_node, tc.subroutine_node)
+
+            self.nodetype[node] = TyList(tc.nodetype[node.elt])
             return self.nodetype[node]
 
 
