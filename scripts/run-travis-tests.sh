@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -eux
+# TODO(hamaji): Revive -u if possible.
+# set -eux
+set -ex
 
 ./scripts/run-clang-format.sh
 
