@@ -470,10 +470,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_nonmaxsuppression_identical_boxes'),
     TestCase(NODE_TEST, 'test_nonmaxsuppression_single_box'),
     TestCase(NODE_TEST, 'test_nonmaxsuppression_suppress_by_IOU_and_scores'),
-    # TODO(take-cheeze): Fix these 3:
-    # TestCase(NODE_TEST, 'test_nonmaxsuppression_two_batches'),
-    # TestCase(NODE_TEST, 'test_nonmaxsuppression_limit_output_size'),
-    # TestCase(NODE_TEST, 'test_nonmaxsuppression_two_classes'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_two_batches'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_limit_output_size'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_two_classes'),
     TestCase(NODE_TEST, 'test_top_k'),
     TestCase(NODE_TEST, 'test_top_k_smallest'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
