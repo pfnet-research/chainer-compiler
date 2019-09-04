@@ -283,6 +283,39 @@ class TestSequence(unittest.TestCase):
         self.assertEqual(str(id2type[35]), "float")	# Name v (line 4)
 
 
+    def test_list_comprehension(self):
+        class Test():
+            def f(self, x):
+                return x
+
+            def forward(self, x):
+                y = [self.f(i) for i in range(x)]
+                return y
+
+        id2type = generate_id2type_from_forward(Test(), (1,))
+
+        self.assertEqual(str(id2type[1]), "class Test -> int -> int list")	# FunctionDef forward (line 1) (line 1)
+        self.assertEqual(str(id2type[7]), "NoneType")	# Assign (line 2)
+        self.assertEqual(str(id2type[8]), "int list")	# Name y (line 2) (line 2)
+        self.assertEqual(str(id2type[10]), "int list")	# ListComp  (line 2) (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Call self.f(i) (line 2) (line 2)
+        self.assertEqual(str(id2type[12]), "class Test -> int -> int")	# Attribute self.f (line 2) (line 2)
+        self.assertEqual(str(id2type[13]), "class Test")	# Name self (line 2) (line 2)
+        self.assertEqual(str(id2type[16]), "int")	# Name i (line 2) (line 2)
+        self.assertEqual(str(id2type[19]), "int")	# Name i (line 2) (line 2)
+        self.assertEqual(str(id2type[21]), "int list")	# Call range(x) (line 2) (line 2)
+        self.assertEqual(str(id2type[22]), "int -> int list")	# Name range (line 2) (line 2)
+        self.assertEqual(str(id2type[24]), "int")	# Name x (line 2) (line 2)
+        self.assertEqual(str(id2type[26]), "int list")	# Return (line 3)
+        self.assertEqual(str(id2type[27]), "int list")	# Name y (line 3) (line 3)
+        self.assertEqual(str(id2type[29]), "class Test -> int -> int")	# FunctionDef f (line 1) (line 1)
+        self.assertEqual(str(id2type[35]), "int")	# Return (line 2)
+        self.assertEqual(str(id2type[36]), "int")	# Name x (line 2) (line 2)
+
+
+
+
+
 # ==============================================================================
 
 class TestOtherDataTypes(unittest.TestCase):

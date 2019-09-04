@@ -2,8 +2,7 @@ import ast, gast
 import inspect
 import sys
 
-from chainer_compiler.elichika.parser.canonicalizer import Canonicalizer
-from chainer_compiler.elichika.parser.type_checker import TypeChecker
+from chainer_compiler.elichika.parser.type_checker import TypeChecker, node_description
 from chainer_compiler.elichika.parser import utils
 
 class IDAssignor(gast.NodeVisitor):
@@ -61,7 +60,6 @@ def generate_id2type(node2type, node2id):
 def generate_id2type_from_forward(model, args, is_debug=False):
     code = utils.clip_head(inspect.getsource(model.forward))
     tree = gast.ast_to_gast(ast.parse(code))
-    tree = Canonicalizer().visit(tree)
     module = sys.modules[model.forward.__module__]
     args = (model,) + args
     node2type, subroutine_node = generate_node2type(
@@ -69,17 +67,6 @@ def generate_id2type_from_forward(model, args, is_debug=False):
     node2id = generate_node2id(tree, subroutine_node)
     id2type = generate_id2type(node2type, node2id)
     return id2type
-
-
-def node_description(node):
-    type_name = type(node).__name__
-    if isinstance(node, gast.FunctionDef):
-        return type_name + " " + node.name
-    if isinstance(node, gast.Name):
-        return type_name + " " + node.id
-    if isinstance(node, gast.Attribute):
-        return type_name + " " + node.attr
-    return type_name
 
 
 def generate_assertion(type_table_name, id2type, id2node):
@@ -112,7 +99,6 @@ if __name__ == '__main__':
     # --------------------------------------------------------------------------
     code = utils.clip_head(inspect.getsource(model.forward))
     node = gast.ast_to_gast(ast.parse(code))
-    node = Canonicalizer().visit(node)
     module = sys.modules[model.forward.__module__]
     node2type, subroutine_node = generate_node2type(
             node, forward_args, is_debug=True, module=module)
