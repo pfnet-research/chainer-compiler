@@ -39,6 +39,7 @@
         "MergeTransposeGemm": true,
         "MergeMatMulAdd": true,
         "MergeConvBN": true,
+        "MergeConvTransposeBN": true,
         "MergeConvAdd": true
     },
     "expanding_functions": {

@@ -7,6 +7,7 @@
 #include <common/iterator.h>
 #include <compiler/graph.h>
 #include <compiler/graph_builder.h>
+#include <compiler/log.h>
 #include <compiler/node.h>
 #include <compiler/value.h>
 
@@ -147,6 +148,8 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     GET_TENSOR(var, bn, 4);
     GET_TENSOR(w, conv, 1);
 
+    CLOG() << "Merging " << conv->ToString() << " to " << bn->ToString() << std::endl;
+
     chainerx::Array bc;
     const bool has_conv_bias = conv->inputs().size() == 3;
     if (has_conv_bias) {
@@ -159,22 +162,30 @@ bool MaybeMergeConvBN(Graph* graph, Node* conv) {
     const float epsilon = bn->epsilon();
     const chainerx::Array eps = chainerx::Full({scale.shape()[0]}, epsilon, scale.dtype(), scale.device());
     const chainerx::Array s = scale / chainerx::Sqrt(var + eps);
-    std::vector<chainerx::Array> new_w_data;
-    for (int64_t i = 0; i < w.shape()[0]; ++i) {
-        new_w_data.push_back(w.At({i}) * s.At({i}));
+
+    const int w_channel_axis = conv->op_type() == Node::kConv ? 0 : 1;
+    CHECK_EQ(w.shape()[w_channel_axis], s.shape()[0]);
+    std::vector<chainerx::Array> new_w_data = chainerx::Split(w, s.shape()[0], w_channel_axis);
+    for (int64_t i = 0; i < new_w_data.size(); ++i) {
+        new_w_data[i] = chainerx::Squeeze(new_w_data[i], w_channel_axis) * s.At({i});
     }
-    const chainerx::Array new_w = chainerx::Stack(new_w_data);
+    const chainerx::Array new_w = chainerx::Stack(new_w_data, w_channel_axis);
+    CHECK_EQ(w.shape(), new_w.shape());
     bc = (bc - mean) * s + bn_bias;
 
     GraphBuilder gb(graph, "MergeConvBN", bn->input(0));
     Value* w_value = conv->input(1);
     Value* b_value = has_conv_bias ? conv->input(2) : bn->input(2);
-    Node* new_conv = gb.MOp(Node::kConv, {conv->input(0), gb.Param(new_w, w_value), gb.Param(bc, b_value)}, bn->outputs());
+    Node* new_conv = gb.MOp(conv->op_type(), {conv->input(0), gb.Param(new_w, w_value), gb.Param(bc, b_value)}, bn->outputs());
     new_conv->set_auto_pad(conv->auto_pad());
     new_conv->set_dilations(conv->dilations());
     new_conv->set_group(conv->group());
     new_conv->set_pads(conv->pads());
     new_conv->set_strides(conv->strides());
+    if (conv->op_type() == Node::kConvTranspose) {
+        new_conv->set_output_padding(conv->output_padding());
+        new_conv->set_output_shape(conv->output_shape());
+    }
 
     graph->DetachNode(conv);
     graph->DetachNode(bn);
@@ -331,6 +342,13 @@ void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bo
     REGISTER_MERGER(Conv, ConvAdd);
 
     register_merger(Node::kConv, "MergeConvBN", [gen_backprop](Graph* graph, Node* target) {
+        if (gen_backprop) {
+            return false;
+        }
+        return MaybeMergeConvBN(graph, target);
+    });
+
+    register_merger(Node::kConvTranspose, "MergeConvTransposeBN", [gen_backprop](Graph* graph, Node* target) {
         if (gen_backprop) {
             return false;
         }

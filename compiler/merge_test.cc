@@ -152,6 +152,50 @@ TEST(MergeTest, ConvBN) {
     EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({3, 1, 1, 1}), new_w);
 }
 
+TEST(MergeTest, ConvTransposeBN) {
+    using namespace chainer_compiler;
+
+    chainerx::testing::ContextSession sess;
+
+    Type type(chainer_compiler::Dtype::kFloat32, {});
+    Graph graph("test");
+    Value* input = graph.AddInputValue("input", type);
+    Value* output = graph.AddOutputValue("output", type);
+
+    chainerx::Array W = runtime::SlowRandom({2, 3, 5, 5}) + 2;
+    chainerx::Array B = runtime::SlowRandom({3}) + 2;
+    chainerx::Array scale = runtime::SlowRandom({3}) + 2;
+    chainerx::Array b = runtime::SlowRandom({3}) + 2;
+    chainerx::Array mean = runtime::SlowRandom({3}) + 2;
+    chainerx::Array var = chainerx::Absolute(runtime::SlowRandom({3})) + 2;
+
+    {
+        GraphBuilder gb(&graph, "test", input);
+
+        Value* y = graph.AddValue("Y", type);
+        gb.MOp(Node::kConvTranspose, {input, gb.Const(W), gb.Const(B)}, {y});
+        gb.MOp(Node::kBatchNormalization, {y, gb.Const(scale), gb.Const(b), gb.Const(mean), gb.Const(var)}, {output});
+    }
+    MergeOperations({"MergeConvTransposeBN"}, &graph, false);
+    graph.DeleteDetached();
+    std::vector<Node*> nodes;
+    for (Node* node : graph.nodes()) {
+        if (node->op_type() != Node::kConstant) {
+            nodes.push_back(node);
+        }
+    }
+    EXPECT_EQ(1, nodes.size());
+    const Node& node = *nodes[0];
+
+    EXPECT_TRUE(node.input(1)->initializer());
+    EXPECT_TRUE(node.input(2)->initializer());
+    chainerx::Array new_w = node.input(1)->initializer()->chx();
+    chainerx::Array new_b = node.input(2)->initializer()->chx();
+    chainerx::Array f = scale / chainerx::Sqrt(var + 1e-5);
+    EXPECT_ARRAY_ALL_CLOSE((B - mean) * f + b, new_b);
+    EXPECT_ARRAY_ALL_CLOSE(W * f.Reshape({1, 3, 1, 1}), new_w);
+}
+
 TEST(MergeTest, MatMulAdd) {
     chainerx::testing::ContextSession sess;
 
