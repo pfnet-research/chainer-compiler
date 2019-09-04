@@ -12,6 +12,7 @@ from chainer_compiler.elichika.parser import utils
 from chainer_compiler.elichika.parser.types import *
 
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
@@ -32,6 +33,8 @@ def expr_to_str(node):
     if isinstance(node, gast.BinOp):
         return "{} {} {}".format(expr_to_str(node.left),
                 operator_to_str(node.op), expr_to_str(node.right))
+    if isinstance(node, gast.UnaryOp):
+        return "{}{}".format(unaryop_to_str(node.op), expr_to_str(node.operand))
     if isinstance(node, gast.Call):
         return "{}({})".format(expr_to_str(node.func),
                 intercalate([expr_to_str(arg) for arg in node.args], ", "))
@@ -70,6 +73,17 @@ def operator_to_str(node):
         return "/"
     if isinstance(node, gast.FloorDiv):
         return "//"
+
+
+def unaryop_to_str(node):
+    if isinstance(node, gast.Invert):
+        return "!"  # 合ってる?
+    if isinstance(node, gast.Not):
+        return "not"
+    if isinstance(node, gast.UAdd):
+        return "+"
+    if isinstance(node, gast.USub):
+        return "-"
 
 
 def slice_to_str(node):
@@ -148,7 +162,8 @@ def defined_with___call__(func):
 def callable_(x):
     if isinstance(x, L.Linear) or \
             isinstance(x, L.Convolution2D) or \
-            isinstance(x, L.BatchNormalization):
+            isinstance(x, L.BatchNormalization) or \
+            isinstance(x, L.NStepBiLSTM):
         return False
     return callable(x)
 
@@ -218,6 +233,7 @@ builtins_ty = {
             TyArrow([TyString()], TyInt()),
             TyArrow([TyTensor()], TyInt()),
             ),
+        str : TyArrow([TyVar()], TyString()),
         }
 
 builtins_name = [f.__name__ for f in builtins_ty.keys()]
@@ -297,11 +313,15 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, kwargs):
 
 
 # math functions that doesn't change shapes or dtypes
-def ty_ChainerIdentical(ty_args, dummy_args_nontensor, kwargs):
-    if isinstance(ty_args[0], TyTensor):
-        assert ty_args[0].dtype.is_float()
-        return ty_args[0]
-    assert False
+def ty_ChainerIdentical(is_float_only=True):
+    def infer(ty_args, dummy_args_nontensor, kwargs):
+        if isinstance(ty_args[0], TyTensor):
+            if is_float_only:
+                assert ty_args[0].dtype.is_float()
+            return ty_args[0]
+        assert False
+
+    return infer
 
 
 def ty_ChainerConcat(ty_args, dummy_args_nontensor, kwargs):
@@ -355,10 +375,28 @@ def ty_ChainerSwapAxes(ty_args, dummy_args_nontensor, kwargs):
 def ty_ChainerSeparate(ty_args, dummy_args_nontensor, kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
+def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, kwargs):
+    assert isinstance(ty_args[0], TyTensor)
+
+    if isinstance(ty_args[1], TyNum):
+        n = dummy_args_nontensor[0]
+        return TyTuple([TyChainerVariable(dtype=ty_args[0].dtype)] * n)
+    elif isinstance(ty_args[1], TyTensor):
+        # 1-D array
+        if ty_args[1].shape is None:
+            # variable length tuple
+            return TyTuple(TyChainerVariable(dtype=ty_args[0].dtype))
+        n = ty_args[1].shape[0]
+        return TyTuple([TyChainerVariable(dtype=ty_args[0].dtype)] * n)
+
+    assert False
+
 
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
+        np.cumsum :
+            ty_ChainerIdentical(is_float_only=False),
         np.full : evaluate_function_types(
             np.full, 0),
         np.ones : evaluate_function_types(
@@ -367,6 +405,8 @@ ext_func_ty = {
             np.zeros, 0),
         chainer.Variable : evaluate_function_types(
             chainer.Variable, 1),
+        cuda.to_cpu :
+            ty_ChainerIdentical(is_float_only=False),
         F.average_pooling_2d :
             ty_ChainerPooling2d(F.average_pooling_2d),
         F.broadcast_to :
@@ -374,7 +414,7 @@ ext_func_ty = {
         F.concat :
             ty_ChainerConcat,
         F.dropout :
-            ty_ChainerIdentical,
+            ty_ChainerIdentical(),
         F.expand_dims :
             ty_ChainerExpandDims,
         F.local_response_normalization : evaluate_function_types(
@@ -390,11 +430,13 @@ ext_func_ty = {
         F.separate :
             ty_ChainerSeparate,
         F.sigmoid :
-            ty_ChainerIdentical,
+            ty_ChainerIdentical(),
+        F.split_axis :
+            ty_ChainerSplitAxis,
         F.squeeze :
             ty_ChainerSqueeze,
         F.softmax :
-            ty_ChainerIdentical,
+            ty_ChainerIdentical(),
         F.softmax_cross_entropy :
             ty_ChainerSoftmaxCrossEntropy,
         F.sum :
@@ -402,7 +444,9 @@ ext_func_ty = {
         F.swapaxes :
             ty_ChainerSwapAxes,
         F.tanh :
-            ty_ChainerIdentical,
+            ty_ChainerIdentical(),
+        F.vstack :
+            ty_ChainerConcat,
         }
 
 
@@ -613,6 +657,11 @@ class TypeChecker():
             return self.nodetype[node]
 
 
+        if isinstance(node, gast.Delete):
+            self.nodetype[node] = TyNone()
+            return self.nodetype[node]
+
+
         if isinstance(node, gast.Assign):
             # Assign(expr* targets, expr value)
             assert len(node.targets) == 1  # cannot think of cases where >= 2
@@ -772,6 +821,7 @@ class TypeChecker():
     def infer_expr(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
+            # self.dump_tyenv()
 
         if node in self.nodetype.keys():
             return self.nodetype[node]

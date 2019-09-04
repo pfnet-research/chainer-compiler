@@ -431,6 +431,15 @@ def type_of_value(value) -> 'TyObj':
             isinstance(value, L.BatchNormalization):
         return TyArrow([TyChainerVariable(TyDType(np.float32))],
                 TyChainerVariable(TyDType(np.float32)))
+    if isinstance(value, L.NStepBiLSTM):
+        return TyArrow([
+            TyChainerVariable(TyDType(np.float32)),
+            TyChainerVariable(TyDType(np.float32)),
+            TyList(TyChainerVariable(TyDType(np.float32)))],
+            TyTuple([
+                TyChainerVariable(TyDType(np.float32)),
+                TyChainerVariable(TyDType(np.float32)),
+                TyList(TyChainerVariable(TyDType(np.float32)))]))
     if isinstance(value, np.dtype):
         return TyDType(value)
     if isinstance(value, type) and value in np.typeDict.values():
