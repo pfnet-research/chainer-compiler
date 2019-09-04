@@ -205,5 +205,59 @@ TEST(MergeTest, ConvAdd) {
     graph.CheckSanity("merged");
 }
 
+TEST(MergeTest, AddToSum) {
+    chainerx::testing::ContextSession sess;
+
+    {
+        Graph graph("test");
+        Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {3, 3}));
+        Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
+        Value* c = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
+        Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {3, 3}));
+
+        {
+            GraphBuilder gb(&graph, "test", a);
+            Value* add = gb.Op(Node::kAdd, {a, b});
+            gb.Op(Node::kSum, {add, c}, output);
+        }
+
+        MergeOperations({"MergeAddToSum"}, &graph, false);
+        graph.DeleteDetached();
+        EXPECT_EQ(1, graph.nodes().size());
+        const Node& nd = *graph.nodes()[0];
+        EXPECT_EQ(Node::kSum, nd.op_type());
+        const std::vector<Value*> exp_in = {a, b, c};
+        const std::vector<Value*> exp_out = {output};
+        EXPECT_EQ(exp_in, nd.inputs());
+        EXPECT_EQ(exp_out, nd.outputs());
+        graph.CheckSanity("merged");
+    }
+
+    {
+        Graph graph("test");
+        Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {3, 3}));
+        Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
+        Value* c = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
+        Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {3, 3}));
+
+        {
+            GraphBuilder gb(&graph, "test", a);
+            Value* add = gb.Op(Node::kAdd, {a, b});
+            gb.Op(Node::kAdd, {c, add}, output);
+        }
+
+        MergeOperations({"MergeAddToSum"}, &graph, false);
+        graph.DeleteDetached();
+        EXPECT_EQ(1, graph.nodes().size());
+        const Node& nd = *graph.nodes()[0];
+        EXPECT_EQ(Node::kSum, nd.op_type());
+        const std::vector<Value*> exp_in = {c, a, b};
+        const std::vector<Value*> exp_out = {output};
+        EXPECT_EQ(exp_in, nd.inputs());
+        EXPECT_EQ(exp_out, nd.outputs());
+        graph.CheckSanity("merged");
+    }
+}
+
 }  // namespace
 }  // namespace chainer_compiler

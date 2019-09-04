@@ -295,6 +295,30 @@ bool MaybeMergeConvAdd(Graph* graph, Node* conv) {
     return true;
 }
 
+bool MaybeMergeAddToSum(Graph* graph, Node* add) {
+    const std::vector<Node*>& users = add->output(0)->users();
+    if (users.size() != 1) {
+        return false;
+    }
+    Node& out = *users.front();
+    if (out.op_type() != Node::kAdd && out.op_type() != Node::kSum) {
+        return false;
+    }
+
+    GraphBuilder gb(graph, "MergeAddToSum", out.output(0));
+
+    std::vector<Value*> inputs = out.inputs();
+    auto it = std::find(inputs.begin(), inputs.end(), add->output(0));
+    CHECK(it != inputs.end());
+    inputs.insert(inputs.erase(it), add->inputs().begin(), add->inputs().end());
+    gb.MOp(Node::kSum, inputs, out.outputs());
+
+    graph->DetachNode(add);
+    graph->DetachNode(&out);
+
+    return true;
+}
+
 typedef std::function<bool(Graph* graph, Node* target)> MergerFn;
 
 struct Merger {
@@ -312,7 +336,7 @@ void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bo
     std::multimap<Node::OpType, Merger> mergers;
 
     auto register_merger = [&merger_names, &mergers, &all_merger_names](Node::OpType op, const char* name, MergerFn fn) {
-        CHECK(all_merger_names.emplace(name).second);
+        all_merger_names.emplace(name);
         mergers.emplace(op, Merger{name, fn});
     };
 
@@ -329,6 +353,8 @@ void MergeOperations(const std::set<std::string>& merger_names, Graph* graph, bo
     REGISTER_MERGER(Transpose, TransposeGemm);
     REGISTER_MERGER(MatMul, MatMulAdd);
     REGISTER_MERGER(Conv, ConvAdd);
+    REGISTER_MERGER(Add, AddToSum);
+    REGISTER_MERGER(Sum, AddToSum);
 
     register_merger(Node::kConv, "MergeConvBN", [gen_backprop](Graph* graph, Node* target) {
         if (gen_backprop) {
