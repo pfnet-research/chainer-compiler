@@ -97,6 +97,7 @@ def TyFloat(value=None):
 
 class TyString(TyObj):
     def __init__(self, value=None):
+        super().__init__()
         self.value = value
     def show(self):
         return "string"

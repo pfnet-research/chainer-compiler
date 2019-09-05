@@ -92,6 +92,22 @@ def get_kwarg(ty_kwarg, key, default=None):
             else default
 
 
+def call_ext_function(func, ty_args, ty_kwargs):
+    # Non-tensor arguments
+    val_dummy_args_nontensor = [value_of_type(t) for t in ty_args \
+            if not isinstance(t, TyTensor)]
+    inference_logic = ext_func_ty[e.func]
+    try:
+        ty_ret = inference_logic(
+                ty_args, val_dummy_args_nontensor, ty_kwargs)
+    except Exception:
+        print_warning("Failed to infer type of " + e.func.__name__ +
+                ". Falling back to TyObj...")
+        ty_ret = TyObj()
+        # raise Exception
+    return ty_ret
+
+
 # ==============================================================================
 
 builtins_ty = {
@@ -518,6 +534,37 @@ class TypeChecker():
         add_dict(self.subroutine_node, tc.subroutine_node)
 
 
+    def infer_user_defined_function(self, func, ty_args, node):
+        if isinstance(func, types.FunctionType) or \
+                isinstance(func, types.MethodType):
+            code = utils.clip_head(inspect.getsource(func))
+
+            if isinstance(node.func, gast.Attribute):
+                ty_self = self.nodetype[node.func.value]
+                ty_args = [ty_self] + ty_args
+
+        else:
+            # defined with __call__
+            if isinstance(func, chainer.Chain):
+                code = utils.clip_head(inspect.getsource(func.forward))
+            else:
+                code = utils.clip_head(inspect.getsource(func.__call__))
+
+            ty_self = self.infer_expr(node.func)
+            ty_args = [ty_self] + ty_args
+
+        # FunctionDef of called subroutine
+        func_node = gast.ast_to_gast(ast.parse(code)).body[0]
+        self.subroutine_node[node] = func_node
+        tc = TypeChecker(is_debug=self.is_debug, module=self.module)
+        tc.infer_function(func_node, ty_args)
+
+        # copy nodetype and subroutine_node from subroutine
+        add_dict(self.nodetype, tc.nodetype)
+        add_dict(self.subroutine_node, tc.subroutine_node)
+        return ty_args, tc.nodetype[func_node]
+
+
     # ================================ mod =====================================
     def infer_mod(self, node):
         if isinstance(node, gast.Module):
@@ -813,6 +860,7 @@ class TypeChecker():
         if isinstance(node, gast.Call):
             return self.infer_Call(node)
 
+
         if isinstance(node, gast.Num):
             # Num(object n)
             if isinstance(node.n, int):
@@ -840,6 +888,7 @@ class TypeChecker():
 
         if isinstance(node, gast.Attribute):
             return self.infer_Attribute(node)
+
 
         if isinstance(node, gast.Subscript):
             # Subscript(expr value, slice slice, expr_context ctx)
@@ -943,27 +992,14 @@ class TypeChecker():
                         val_args = [self.evaluate(arg) for arg in node.args]
                         ty_ret = TyNdarray(dtype=TyDType(val_args[0]),
                                 shape=ty_obj.shape)
-                    self.nodetype[node] = ty_ret
-                    self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
 
+                self.nodetype[node] = ty_ret
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return self.nodetype[node]
 
             if e.func in ext_func_ty.keys():
                 # case of calling external (eg. np/chainer) functions
-
-                # Non-tensor arguments
-                val_dummy_args_nontensor = [value_of_type(t) for t in ty_args \
-                        if not isinstance(t, TyTensor)]
-                inference_logic = ext_func_ty[e.func]
-                try:
-                    ty_ret = inference_logic(
-                            ty_args, val_dummy_args_nontensor, ty_kwargs)
-                except Exception:
-                    print_warning("Failed to infer type of " + e.func.__name__ +
-                            ". Falling back to TyObj...")
-                    ty_ret = TyObj()
-                    # raise Exception
-
+                ty_ret = call_ext_function(e.func, ty_args, ty_kwargs)
                 self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return self.nodetype[node]
@@ -973,35 +1009,8 @@ class TypeChecker():
                 assert False
 
             # user defined functions, need to inline
-            if isinstance(e.func, types.FunctionType) or \
-                    isinstance(e.func, types.MethodType):
-                code = utils.clip_head(inspect.getsource(e.func))
-
-                if isinstance(node.func, gast.Attribute):
-                    ty_self = self.nodetype[node.func.value]
-                    ty_args = [ty_self] + ty_args
-
-            else:
-                # defined with __call__
-                if isinstance(e.func, chainer.Chain):
-                    code = utils.clip_head(inspect.getsource(e.func.forward))
-                else:
-                    code = utils.clip_head(inspect.getsource(e.func.__call__))
-
-                ty_self = self.infer_expr(node.func)
-                ty_args = [ty_self] + ty_args
-
-            # FunctionDef of called subroutine
-            func_node = gast.ast_to_gast(ast.parse(code)).body[0]
-            self.subroutine_node[node] = func_node
-            tc = TypeChecker(is_debug=self.is_debug, module=self.module)
-            tc.infer_function(func_node, ty_args)
-
-            # copy nodetype and subroutine_node from subroutine
-            add_dict(self.nodetype, tc.nodetype)
-            add_dict(self.subroutine_node, tc.subroutine_node)
-
-            ty_fun = tc.nodetype[func_node]
+            ty_args, ty_fun = self.infer_user_defined_function(
+                    e.func, ty_args, node)
             self.nodetype[node.func] = ty_fun
 
 
