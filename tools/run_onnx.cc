@@ -48,29 +48,16 @@ namespace chainer_compiler {
 namespace runtime {
 namespace {
 
-chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
-    chainerx::Shape shape;
-    for (const auto& dim : xshape.dim()) {
-        if (dim.has_dim_value()) {
-            shape.push_back(dim.dim_value());
-        } else {
-            LOG() << "Dimension " << dim.dim_param() << " was replaced by 1" << std::endl;
-            shape.push_back(1);
-        }
-    }
-    return shape;
-}
-
-void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::string>& initializer_names, InOuts* inputs) {
-    for (const onnx::ValueInfoProto& input : xmodel.graph().input()) {
-        if (initializer_names.count(input.name())) continue;
-        CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
-        const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
-        chainerx::Dtype dtype = ChainerXTypeFromONNX(tensor_type.elem_type());
-        chainerx::Shape shape = ChainerXShapeFromONNX(tensor_type.shape());
+void GenerateFixedInput(const Model& model, const std::set<std::string>& initializer_names, InOuts* inputs) {
+    for (const Value* input : model.graph().input_values()) {
+        if (initializer_names.count(input->name())) continue;
+        CHECK_EQ(Type::Kind::kTensor, input->type().kind()) << "Only tensor_type is supported: " << input->type().DebugString();
+        const Type& type = input->type();
+        chainerx::Dtype dtype = type.dtype().chx();
+        chainerx::Shape shape{type.dims().begin(), type.dims().end()};
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input.name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second) << "Duplicated input: " << input.name();
-        LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
+        CHECK(inputs->emplace(input->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second) << "Duplicated input: " << input->name();
+        LOG() << "Generated test input " << input->name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
 
@@ -384,7 +371,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (test_path.empty()) {
         std::unique_ptr<TestCase> test_case(new TestCase());
         test_case->name = "generated data by chainerx::Ones";
-        GenerateFixedInput(xmodel, initializer_names, &test_case->inputs);
+        GenerateFixedInput(model, initializer_names, &test_case->inputs);
         test_cases.emplace_back(std::move(test_case));
     } else {
         ReadTestDir(test_path, input_names, output_names, &test_cases);
