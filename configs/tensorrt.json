@@ -1,0 +1,31 @@
+{
+    "simplify": {
+        "ReplaceLpNormalization": true
+    },
+    "supported_ops": {
+        // TODO(hamaji): Update the list.
+        "Add": true,
+        "AveragePool": true,
+        "BatchNormalization": true,
+        "Concat": true,
+        "Constant": true,
+        "Conv": true,
+        "ConvTranspose": true,
+        "Gemm": true,
+        "Identity": true,
+        "LeakyRelu": true,
+        "MatMul": true,
+        "MaxPool": true,
+        "Mul": true,
+        "Neg": true,
+        "ReduceMean": true,
+        "ReduceSum": true,
+        "Relu": true,
+        "Sigmoid": true,
+        "Softmax": true,
+        "Sum": true,
+        "Tanh": true,
+        "Transpose": true,
+        "Unsqueeze": true
+    }
+}
