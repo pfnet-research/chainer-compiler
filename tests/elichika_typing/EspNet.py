@@ -12,26 +12,140 @@ from testcases.elichika_tests.model.EspNet_VGG2L import VGG2L
 from testcases.elichika_tests.model.EspNet_Decoder import Decoder
 from testcases.elichika_tests.model.StatelessLSTM import StatelessLSTM
 
+def gen_AttDot_model():
+    eprojs = 3
+    dunits = 4
+    att_dim = 5
+    batch_size = 3
+    sequence_length = 4
+    num_vocabs = 10
+
+    model = AttDot(eprojs, dunits, att_dim)
+    labels, ilens = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, num_vocabs)
+    xs = []
+    for l in ilens:
+        xs.append(np.random.rand(l, eprojs).astype(np.float32))
+    forward_args = (xs, None, None)
+
+    return model, forward_args
+
+
+def gen_AttLoc_model():
+    eprojs = 3
+    dunits = 4
+    att_dim = 5
+    batch_size = 3
+    sequence_length = 4
+    num_vocabs = 10
+    aconv_chans = 7
+    aconv_filts = 6
+
+    labels, ilens = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, num_vocabs)
+    xs = []
+    for l in ilens:
+        xs.append(np.random.rand(l, eprojs).astype(dtype=np.float32))
+    model = AttLoc(eprojs, dunits, att_dim, aconv_chans, aconv_filts)
+    forward_args = (xs, None, None)
+
+    return model, forward_args
+
+
+def gen_StatelessLSTM_model():
+    # StatelessLSTM
+    batch_size = 3
+    in_size = 7
+    out_size = 4
+
+    c = np.random.rand(batch_size, out_size).astype(np.float32)
+    h = np.random.rand(batch_size, out_size).astype(np.float32)
+    x = np.random.rand(batch_size, in_size).astype(np.float32)
+
+    model = StatelessLSTM(in_size, out_size)
+    forward_args = (c, h, x)
+
+    return model, forward_args
+
+
+def gen_VGG2L_model():
+    # VGG2L
+    idim = 5
+    elayers = 2
+    cdim = 3
+    hdim = 7
+    batch_size = 3
+    sequence_length = 4
+    num_vocabs = 10
+
+    labels, ilens = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, num_vocabs)
+    xs = []
+    for l in ilens:
+        xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
+
+    model = VGG2L(1)
+    forward_args = (xs, ilens)
+
+    return model, forward_args
+
+
+def gen_BLSTM_model():
+    # BLSTM
+    idim = 5
+    elayers = 2
+    cdim = 3
+    hdim = 7
+    batch_size = 3
+    sequence_length = 4
+    num_vocabs = 10
+
+    model = BLSTM(idim, elayers, cdim, hdim, 0)
+    labels, ilens = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, num_vocabs)
+    xs = []
+    for l in ilens:
+        xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
+
+    forward_args = (xs, ilens)
+
+    return model, forward_args
+
+
+def gen_Decoder_model():
+    # Decoder
+    eprojs = 3
+    dunits = 4
+    att_dim = 5
+    batch_size = 3
+    sequence_length = 4
+    num_vocabs = 10
+    dlayers = 2
+    odim = 11
+    sos = odim - 1
+    eos = odim - 1
+    aconv_chans = 7
+    aconv_filts = 6
+
+    labels, ilens = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, num_vocabs)
+    hs = []
+    for l in ilens:
+        hs.append(np.random.rand(l, eprojs).astype(dtype=np.float32))
+
+    ys, ilens = sequence_utils.gen_random_sequence(
+        batch_size, sequence_length, odim)
+
+    model = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att_dim)
+    forward_args = (hs, ys)
+
+    return model, forward_args
+
 
 class TestEspNet(unittest.TestCase):
     def test_AttDot(self):
-        eprojs = 3
-        dunits = 4
-        att_dim = 5
-        batch_size = 3
-        sequence_length = 4
-        num_vocabs = 10
-
-        model = AttDot(eprojs, dunits, att_dim)
-        labels, ilens = sequence_utils.gen_random_sequence(
-            batch_size, sequence_length, num_vocabs)
-        xs = []
-        for l in ilens:
-            xs.append(np.random.rand(l, eprojs).astype(np.float32))
-
-        forward_args = (model, xs, None, None)
-
-        id2type = generate_id2type_from_forward(model, forward_args[1:])
+        model, forward_args = gen_AttDot_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "class AttDot -> [ndarray(dtype(float32), shape=(4, 3)), ndarray(dtype(float32), shape=(2, 3)), ndarray(dtype(float32), shape=(2, 3))] -> NoneType -> NoneType -> (Variable(dtype(float32), shape=None), Variable(dtype(float32), shape=None))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[12]), "string")	# Str "..." (line 8)
@@ -187,24 +301,8 @@ class TestEspNet(unittest.TestCase):
 
 
     def test_AttLoc(self):
-        eprojs = 3
-        dunits = 4
-        att_dim = 5
-        batch_size = 3
-        sequence_length = 4
-        num_vocabs = 10
-        aconv_chans = 7
-        aconv_filts = 6
-
-        labels, ilens = sequence_utils.gen_random_sequence(
-            batch_size, sequence_length, num_vocabs)
-        xs = []
-        for l in ilens:
-            xs.append(np.random.rand(l, eprojs).astype(dtype=np.float32))
-        model = AttLoc(eprojs, dunits, att_dim, aconv_chans, aconv_filts)
-        forward_args = (model, xs, None, None)
-
-        id2type = generate_id2type_from_forward(model, forward_args[1:])
+        model, forward_args = gen_AttLoc_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "class AttLoc -> [ndarray(dtype(float32), shape=(4, 3)), ndarray(dtype(float32), shape=(2, 3)), ndarray(dtype(float32), shape=(2, 3))] -> NoneType -> NoneType -> (Variable(dtype(float32), shape=None), Variable(dtype(float32), shape=None))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[12]), "string")	# Str  (line 9)
@@ -423,18 +521,8 @@ class TestEspNet(unittest.TestCase):
 
 
     def test_StatelessLSTM(self):
-        batch_size = 3
-        in_size = 7
-        out_size = 4
-
-        c = np.random.rand(batch_size, out_size).astype(np.float32)
-        h = np.random.rand(batch_size, out_size).astype(np.float32)
-        x = np.random.rand(batch_size, in_size).astype(np.float32)
-
-        model = StatelessLSTM(in_size, out_size)
-        forward_args = (model, c, h, x)
-
-        id2type = generate_id2type_from_forward(model, forward_args[1:])
+        model, forward_args = gen_StatelessLSTM_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
 
         self.assertEqual(str(id2type[1]), "class StatelessLSTM -> ndarray(dtype(float32), shape=(3, 4)) -> ndarray(dtype(float32), shape=(3, 4)) -> ndarray(dtype(float32), shape=(3, 7)) -> (Variable(dtype(float32), shape=None), Variable(dtype(float32), shape=None))")	# FunctionDef forward (line 1)
@@ -586,24 +674,8 @@ class TestEspNet(unittest.TestCase):
 
 
     def test_VGG2L(self):
-        idim = 5
-        elayers = 2
-        cdim = 3
-        hdim = 7
-        batch_size = 3
-        sequence_length = 4
-        num_vocabs = 10
-
-        labels, ilens = sequence_utils.gen_random_sequence(
-            batch_size, sequence_length, num_vocabs)
-        xs = []
-        for l in ilens:
-            xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
-
-        model = VGG2L(1)
-        forward_args = (model, xs, ilens)
-
-        id2type = generate_id2type_from_forward(model, forward_args[1:])
+        model, forward_args = gen_VGG2L_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "class VGG2L -> [ndarray(dtype(float32), shape=(4, 5)), ndarray(dtype(float32), shape=(3, 5)), ndarray(dtype(float32), shape=(3, 5))] -> ndarray(dtype(int64), shape=(3,)) -> (Variable(dtype(float32), shape=None) list, ndarray(dtype(int64), shape=(3,)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[10]), "string")	# Str "..." (line 7)
@@ -765,24 +837,8 @@ class TestEspNet(unittest.TestCase):
 
 
     def test_BLSTM(self):
-        idim = 5
-        elayers = 2
-        cdim = 3
-        hdim = 7
-        batch_size = 3
-        sequence_length = 4
-        num_vocabs = 10
-
-        model = BLSTM(idim, elayers, cdim, hdim, 0)
-        labels, ilens = sequence_utils.gen_random_sequence(
-            batch_size, sequence_length, num_vocabs)
-        xs = []
-        for l in ilens:
-            xs.append(np.random.rand(l, idim).astype(dtype=np.float32))
-
-        forward_args = (model, xs, ilens)
-
-        id2type = generate_id2type_from_forward(model, forward_args[1:])
+        model, forward_args = gen_BLSTM_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "class BLSTM -> Variable(dtype(float32), shape=None) list -> ndarray(dtype(int64), shape=(3,)) -> (Variable(dtype(float32), shape=None) tuple, ndarray(dtype(int64), shape=(3,)))")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[10]), "string")	# Str "..." (line 7)
@@ -837,11 +893,11 @@ class TestEspNet(unittest.TestCase):
         self.assertEqual(str(id2type[106]), "NoneType")	# Assign
         self.assertEqual(str(id2type[107]), "Variable(dtype(float32), shape=None) tuple")	# Name xs (line 17)
         self.assertEqual(str(id2type[109]), "Variable(dtype(float32), shape=None) tuple")	# Call F.split_axis(F.tanh(F.vstack(xs)), np.cumsum(ilens[:-1])) (line 17)
-        self.assertEqual(str(id2type[110]), "tensor(dtype(float32)) -> ndarray(dtype(int64), shape=None) -> Variable(dtype(float32), shape=None) tuple")	# Attribute F.split_axis (line 17)
-        self.assertEqual(str(id2type[114]), "tensor(dtype(float32))")	# Call F.tanh(F.vstack(xs)) (line 17)
-        self.assertEqual(str(id2type[115]), "tensor(dtype(float32)) -> tensor(dtype(float32))")	# Attribute F.tanh (line 17)
-        self.assertEqual(str(id2type[119]), "tensor(dtype(float32))")	# Call F.vstack(xs) (line 17)
-        self.assertEqual(str(id2type[120]), "Variable(dtype(float32), shape=None) tuple -> tensor(dtype(float32))")	# Attribute F.vstack (line 17)
+        self.assertEqual(str(id2type[110]), "Variable(dtype(float32), shape=None) -> ndarray(dtype(int64), shape=None) -> Variable(dtype(float32), shape=None) tuple")	# Attribute F.split_axis (line 17)
+        self.assertEqual(str(id2type[114]), "Variable(dtype(float32), shape=None)")	# Call F.tanh(F.vstack(xs)) (line 17)
+        self.assertEqual(str(id2type[115]), "Variable(dtype(float32), shape=None) -> Variable(dtype(float32), shape=None)")	# Attribute F.tanh (line 17)
+        self.assertEqual(str(id2type[119]), "Variable(dtype(float32), shape=None)")	# Call F.vstack(xs) (line 17)
+        self.assertEqual(str(id2type[120]), "Variable(dtype(float32), shape=None) tuple -> Variable(dtype(float32), shape=None)")	# Attribute F.vstack (line 17)
         self.assertEqual(str(id2type[124]), "Variable(dtype(float32), shape=None) tuple")	# Name xs (line 17)
         self.assertEqual(str(id2type[126]), "ndarray(dtype(int64), shape=None)")	# Call np.cumsum(ilens[:-1]) (line 17)
         self.assertEqual(str(id2type[127]), "ndarray(dtype(int64), shape=None) -> ndarray(dtype(int64), shape=None)")	# Attribute np.cumsum (line 17)
