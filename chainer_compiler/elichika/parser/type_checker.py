@@ -37,10 +37,15 @@ def find(seq, pred):
 
 
 def copy_ty(ty):
-    # TODO: don't copy values of TyNum and String
     if isinstance(ty, TyUserDefinedClass):
         # XXX: do not copy instance
         return TyUserDefinedClass(ty.name, ty.instance)
+    if isinstance(ty, TyNum):
+        return TyNum(ty_min=ty.ty_min, ty_max=ty.ty_max, value=None)
+    if isinstance(ty, TyString):
+        return TyString
+    if isinstance(ty, TyDType):
+        return TyDType()
     return deepcopy(ty)
 
 
