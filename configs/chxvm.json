@@ -40,7 +40,8 @@
         "MergeMatMulAdd": true,
         "MergeConvBN": true,
         "MergeConvTransposeBN": true,
-        "MergeConvAdd": true
+        "MergeConvAdd": true,
+        "MergeAddToSum": false
     },
     "expanding_functions": {
         "DynamicQuantizeLinear": true,
