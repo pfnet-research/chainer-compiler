@@ -7,6 +7,8 @@
 
 #include <chainerx/routines/creation.h>
 
+#include <runtime/chainerx_util.h>
+
 #endif
 
 #include <common/log.h>
@@ -18,6 +20,8 @@ namespace runtime {
 #if CHAINER_COMPILER_ENABLE_TENSORRT
 
 namespace {
+
+constexpr int kBatchSize = 1;
 
 struct InferDeleter {
     template <typename T>
@@ -46,6 +50,7 @@ public:
 class TensorRTOp::TensorRTImpl {
 public:
     Logger logger;
+    std::shared_ptr<nvinfer1::ICudaEngine> engine;
 };
 
 #endif
@@ -56,8 +61,24 @@ void TensorRTOp::InitImpl() {
     std::istringstream iss(onnx);
 
     auto builder = UniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(impl_->logger));
+    CHECK(builder);
+    auto network = UniquePtr<nvinfer1::INetworkDefinition>(builder->createNetwork());
+    CHECK(network);
+    auto parser = UniquePtr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, impl_->logger));
 
-    //nvonnxparser::createParser();
+    if (!parser->parse(iss.str().c_str(), iss.str().size())) {
+        for (int i = 0; i < parser->getNbErrors(); ++i) {
+            auto e = parser->getError(i);
+            std::cerr << e->desc() << std::endl;
+        }
+        CHECK(false);
+    }
+
+    builder->setMaxBatchSize(kBatchSize);
+    builder->setMaxWorkspaceSize(128 * 1000 * 1000);
+    // builder->setFp16Mode(false);
+
+    impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildCudaEngine(*network), InferDeleter());
 #endif
 }
 
@@ -75,10 +96,23 @@ std::vector<chainerx::Array> TensorRTOp::RunImpl(chainer_compiler::runtime::ChxV
     chainerx::Array inputs[num_inputs];
     for (size_t i = 0; i < num_inputs; ++i) {
         const chainerx::Array& input = orig_inputs[i];
+        CHECK_EQ(input.shape()[0], kBatchSize);
         inputs[i] = chainerx::AsContiguous(input);
     }
 
-    CHECK(false) << "TODO(hamaji): Implement";
+    auto context = UniquePtr<nvinfer1::IExecutionContext>(impl_->engine->createExecutionContext());
+    CHECK(context);
+
+    std::vector<void*> bindings;
+    for (const chainerx::Array& input : inputs) {
+        bindings.push_back(RawStartPtr(input));
+    }
+
+    const bool status = context->execute(kBatchSize, &bindings[0]);
+    CHECK(status);
+
+    CHECK(false) << "TODO";
+
 #else
     CHECK(false) << "Set -DCHAINER_COMPILER_ENABLE_TENSORRT";
 #endif
