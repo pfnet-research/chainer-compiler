@@ -45,6 +45,7 @@ def callable_(x):
 
 
 def copy_ty(ty):
+    # TODO: don't copy values of TyNum and String
     if isinstance(ty, TyUserDefinedClass):
         # XXX: do not copy instance
         return TyUserDefinedClass(ty.name, ty.instance)
@@ -772,189 +773,66 @@ class TypeChecker():
             return self.nodetype[node]
 
         if isinstance(node, gast.BoolOp):
-            # BoolOp(boolop op, expr* values)
-            ty_vals = [self.infer_expr(val) for val in node.values]
-            for ty in ty_vals:
-                unify(ty, TyBool())
-            self.nodetype[node.op] = TyArrow([TyBool(), TyBool()], TyBool())
-            self.nodetype[node] = TyBool()
+            self.nodetype[node] = self.infer_BoolOp(node)
             return self.nodetype[node]
 
-
         if isinstance(node, gast.BinOp):
-            # BinOp(expr left, operator op, expr right)
-            tyl = self.infer_expr(node.left).deref()
-            tyr = self.infer_expr(node.right).deref()
-            try:
-                ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
-            except Exception:
-                ty_ret = TyObj()
-            self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
-            self.nodetype[node] = ty_ret
+            self.nodetype[node] = self.infer_BinOp(node)
             return self.nodetype[node]
 
         if isinstance(node, gast.UnaryOp):
-            # UnaryOp(unaryop op, expr operand)
-            if isinstance(node.op, gast.Invert):
-                pass
-            elif isinstance(node.op, gast.Not):
-                pass
-            elif isinstance(node.op, gast.UAdd):
-                pass
-            elif isinstance(node.op, gast.USub):
-                ty_expr = self.infer_expr(node.operand)
-                if isinstance(ty_expr, TyNum) and ty_expr.value is not None:
-                    self.nodetype[node] = type_of_value(- ty_expr.value)
-                else:
-                    self.nodetype[node] = ty_expr
+            self.nodetype[node] = self.infer_UnaryOp(node)
             return self.nodetype[node]
-
 
         if isinstance(node, gast.Dict):
-            # Dict(expr* keys, expr* values)
-            if node.keys == []:
-                self.nodetype[node] = TyDict(TyVar(), TyVar())
-            else:
-                ty_keys = [self.infer_expr(key) for key in node.keys]
-                ty_vals = [self.infer_expr(val) for val in node.values]
-                assert all_same_ty(ty_keys)
-                assert all_same_ty(ty_vals)
-                self.nodetype[node] = TyDict(ty_keys[0], ty_vals[0])
+            self.nodetype[node] = self.infer_Dict(node)
             return self.nodetype[node]
-
 
         if isinstance(node, gast.ListComp):
-            # ListComp(expr elt, comprehension* generators)
-
-            # cannot think of cases where len > 2
-            assert len(node.generators) == 1
-
-            tc = TypeChecker(
-                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                    is_debug=self.is_debug, module=self.module)
-
-            gen = node.generators[0]
-            ty_iteration = tc.infer_expr(gen.iter)
-            ty_i = tc.infer_expr(gen.target)
-            if isinstance(ty_iteration, TyTensor):
-                unify(ty_i, TyTensor(
-                    dtype=ty_iteration.dtype, kind=ty_iteration.kind))
-            else:
-                unify(ty_iteration, TySequence(ty=ty_i))
-            tc.infer_expr(node.elt)
-
-            add_dict(self.nodetype, tc.nodetype)
-            add_dict(self.subroutine_node, tc.subroutine_node)
-
-            self.nodetype[node] = TyList(tc.nodetype[node.elt])
+            self.nodetype[node] = self.infer_ListComp(node)
             return self.nodetype[node]
-
 
         if isinstance(node, gast.Compare):
             # Compare(expr left, cmpop* ops, expr* comparators)
-            # TODO
             self.nodetype[node] = TyBool()
             return self.nodetype[node]
 
-
         if isinstance(node, gast.Call):
-            return self.infer_Call(node)
-
+            self.nodetype[node] = self.infer_Call(node)
+            return self.nodetype[node]
 
         if isinstance(node, gast.Num):
             # Num(object n)
-            if isinstance(node.n, int):
-                self.nodetype[node] = TyInt(value=node.n)
-            elif isinstance(node.n, float):
-                self.nodetype[node] = TyFloat(value=node.n)
+            self.nodetype[node] = type_of_value(node.n)
             return self.nodetype[node]
-
 
         if isinstance(node, gast.Str):
             # Str(string s)
             self.nodetype[node] = TyString(value=node.s)
             return self.nodetype[node]
 
-
         if isinstance(node, gast.NameConstant):
             # NameConstant(singleton value)
-            # value is either True, False or None
-            if isinstance(node.value, bool):
-                self.nodetype[node] = TyBool(value=node.value)
-            elif node.value is None:
-                self.nodetype[node] = TyNone()
+            self.nodetype[node] = type_of_value(node.value)
             return self.nodetype[node]
-
 
         if isinstance(node, gast.Attribute):
-            return self.infer_Attribute(node)
-
-
-        if isinstance(node, gast.Subscript):
-            # Subscript(expr value, slice slice, expr_context ctx)
-            ty_obj = self.infer_expr(node.value)
-
-            if isinstance(ty_obj, TySequence):
-                self.infer_slice(node.slice, TyInt())
-                if ty_obj.is_fixed_len and \
-                        isinstance(node.slice, gast.Index) and \
-                        isinstance(node.slice.value, gast.Num):
-                    # TODO(momohatt): handle cases where index is
-                    # more complex but still a constant
-                    self.nodetype[node] = ty_obj.get_tys()[node.slice.value.n]
-                    return self.nodetype[node]
-
-                ty_obj.coerce_to_variable_len()
-                if isinstance(node.slice, gast.Index):
-                    self.nodetype[node] = ty_obj.get_ty()
-                elif isinstance(node.slice, gast.Slice):
-                    self.nodetype[node] = ty_obj
-                else:
-                    assert False, "indices must be integers or slices"
-                return self.nodetype[node]
-
-            if isinstance(ty_obj, TyDict):
-                self.infer_slice(node.slice, ty_obj.keyty)
-                assert isinstance(node.slice, gast.Index)
-                self.nodetype[node] = ty_obj.valty
-                return self.nodetype[node]
-
-            if isinstance(ty_obj, TyTensor):
-                self.infer_slice(node.slice, TyInt())
-                self.nodetype[node] = TyTensor(
-                        dtype=ty_obj.dtype, kind=ty_obj.kind)
-                return self.nodetype[node]
-
-            else:
-                assert False
-
-
-        if isinstance(node, gast.Name):
-            # Name(identifier id, expr_context ctx, expr? annotation)
-            if node.id in self.tyenv.keys():
-                self.nodetype[node] = self.tyenv[node.id]
-            elif node.id in builtins_name:
-                self.nodetype[node] = copy_ty(builtins_ty[eval(node.id)])
-            elif hasattr(self.module, node.id):
-                x = getattr(self.module, node.id)
-                if callable_(x):
-                    raise self.ArgumentRequired(func=x)
-                self.nodetype[node] = type_of_value(x)
-            else:
-                # case of Tuple assignment
-                # XXX: print comes here
-                ty_var = TyVar()
-                self.tyenv[node.id] = ty_var
-                self.nodetype[node] = ty_var
+            self.nodetype[node] = self.infer_Attribute(node)
             return self.nodetype[node]
 
+        if isinstance(node, gast.Subscript):
+            self.nodetype[node] = self.infer_Subscript(node)
+            return self.nodetype[node]
+
+        if isinstance(node, gast.Name):
+            self.nodetype[node] = self.infer_Name(node)
+            return self.nodetype[node]
 
         if isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = TyList(elts_ty)
             return self.nodetype[node]
-
 
         if isinstance(node, gast.Tuple):
             # Tuple(expr* elts, expr_context ctx)
@@ -963,6 +841,80 @@ class TypeChecker():
             return self.nodetype[node]
 
         assert False, type(node).__name__
+
+
+    def infer_BoolOp(self, node):
+        # BoolOp(boolop op, expr* values)
+        ty_vals = [self.infer_expr(val) for val in node.values]
+        for ty in ty_vals:
+            unify(ty, TyBool())
+        self.nodetype[node.op] = TyArrow([TyBool(), TyBool()], TyBool())
+        return TyBool()
+
+
+    def infer_BinOp(self, node):
+        # BinOp(expr left, operator op, expr right)
+        tyl = self.infer_expr(node.left).deref()
+        tyr = self.infer_expr(node.right).deref()
+        try:
+            ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
+        except Exception:
+            ty_ret = TyObj()
+        self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
+        return ty_ret
+
+
+    def infer_UnaryOp(self, node):
+        # UnaryOp(unaryop op, expr operand)
+        if isinstance(node.op, gast.Invert):
+            pass
+        elif isinstance(node.op, gast.Not):
+            pass
+        elif isinstance(node.op, gast.UAdd):
+            pass
+        elif isinstance(node.op, gast.USub):
+            ty_expr = self.infer_expr(node.operand)
+            if isinstance(ty_expr, TyNum) and ty_expr.value is not None:
+                return type_of_value(- ty_expr.value)
+            return ty_expr
+
+
+    def infer_Dict(self, node):
+        # Dict(expr* keys, expr* values)
+        if node.keys == []:
+            return TyDict(TyVar(), TyVar())
+        ty_keys = [self.infer_expr(key) for key in node.keys]
+        ty_vals = [self.infer_expr(val) for val in node.values]
+        assert all_same_ty(ty_keys)
+        assert all_same_ty(ty_vals)
+        return TyDict(ty_keys[0], ty_vals[0])
+
+
+    def infer_ListComp(self, node):
+        # ListComp(expr elt, comprehension* generators)
+
+        # cannot think of cases where len > 2
+        assert len(node.generators) == 1
+
+        tc = TypeChecker(
+                tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                is_debug=self.is_debug, module=self.module)
+
+        gen = node.generators[0]
+        ty_iteration = tc.infer_expr(gen.iter)
+        ty_i = tc.infer_expr(gen.target)
+        if isinstance(ty_iteration, TyTensor):
+            unify(ty_i, TyTensor(
+                dtype=ty_iteration.dtype, kind=ty_iteration.kind))
+        else:
+            unify(ty_iteration, TySequence(ty=ty_i))
+        tc.infer_expr(node.elt)
+
+        add_dict(self.nodetype, tc.nodetype)
+        add_dict(self.subroutine_node, tc.subroutine_node)
+
+        self.nodetype[node] = TyList(tc.nodetype[node.elt])
+        return self.nodetype[node]
 
 
     def infer_Call(self, node):
@@ -980,7 +932,7 @@ class TypeChecker():
         except self.ArgumentRequired as e:
             self.is_function = False
             if e.func in func_to_ignore:
-                return
+                return ## TODO
 
             if e.func is None:
                 # attribute against tensor etc.
@@ -993,31 +945,26 @@ class TypeChecker():
                         ty_ret = TyNdarray(dtype=TyDType(val_args[0]),
                                 shape=ty_obj.shape)
 
-                self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return self.nodetype[node]
+                return ty_ret
 
             if e.func in ext_func_ty.keys():
                 # case of calling external (eg. np/chainer) functions
                 ty_ret = call_ext_function(e.func, ty_args, ty_kwargs)
-                self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
-                return self.nodetype[node]
+                return ty_ret
 
             if isinstance(e.func, types.BuiltinFunctionType):
                 # TODO
                 assert False
 
-            # user defined functions, need to inline
+            # user defined functions/methods/callables, need to inline
             ty_args, ty_fun = self.infer_user_defined_function(
                     e.func, ty_args, node)
-            self.nodetype[node.func] = ty_fun
-
 
         unify(ty_fun, TyArrow(ty_args, ty_ret))
-        self.nodetype[node] = ty_ret.deref()
-
-        return self.nodetype[node]
+        self.nodetype[node.func] = ty_fun
+        return ty_ret.deref()
 
 
     def infer_Attribute(self, node):
@@ -1030,23 +977,19 @@ class TypeChecker():
             attr = getattr(module, node.attr)
             if callable_(attr) and self.is_function:
                 raise self.ArgumentRequired(func=attr)
-            self.nodetype[node] = type_of_value(attr)
-            return self.nodetype[node]
+            return type_of_value(attr)
 
         ty_obj = self.infer_expr(node.value).deref()
 
         if isinstance(ty_obj, TySequence) and ty_obj.is_list():
             ty_obj.coerce_to_variable_len()
-            self.nodetype[node] = list_attr_ty[node.attr](ty_obj)
-            return self.nodetype[node]
+            return list_attr_ty[node.attr](ty_obj)
 
         if isinstance(ty_obj, TyTensor):
             if node.attr == 'shape':
                 if ty_obj.shape is None:
-                    self.nodetype[node] = TyTuple(TyInt())
-                else:
-                    self.nodetype[node] = type_of_value(ty_obj.shape)
-                return self.nodetype[node]
+                    return TyTuple(TyInt())
+                return type_of_value(ty_obj.shape)
             if ty_obj.is_ndarray() and node.attr == 'astype':
                 raise self.ArgumentRequired()
             assert False
@@ -1056,20 +999,71 @@ class TypeChecker():
             x = getattr(ty_obj.instance, node.attr)
 
             if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
-                self.nodetype[node] = \
-                        self.attribute_tyenv[(ty_obj.instance, node.attr)]
+                ty_node = self.attribute_tyenv[(ty_obj.instance, node.attr)]
             else:
-                self.nodetype[node] = type_of_value(x)
+                ty_node = type_of_value(x)
 
             if callable_(x) and self.is_function:
                 if x in builtins_ty.keys():
-                    self.nodetype[node] = builtins_ty[x]
-                    return self.nodetype[node]
+                    return builtins_ty[x]
+
+                self.nodetype[node] = ty_node
                 raise self.ArgumentRequired(func=x)
 
-            return self.nodetype[node]
+            return ty_node
 
         assert False
+
+
+    def infer_Subscript(self, node):
+        # Subscript(expr value, slice slice, expr_context ctx)
+        ty_obj = self.infer_expr(node.value)
+
+        if isinstance(ty_obj, TySequence):
+            self.infer_slice(node.slice, TyInt())
+            if ty_obj.is_fixed_len and \
+                    isinstance(node.slice, gast.Index) and \
+                    isinstance(node.slice.value, gast.Num):
+                # TODO(momohatt): handle cases where index is
+                # more complex but still a constant
+                return ty_obj.get_tys()[node.slice.value.n]
+
+            ty_obj.coerce_to_variable_len()
+            if isinstance(node.slice, gast.Index):
+                return ty_obj.get_ty()
+            if isinstance(node.slice, gast.Slice):
+                return ty_obj
+            assert False, "indices must be integers or slices"
+
+        if isinstance(ty_obj, TyDict):
+            self.infer_slice(node.slice, ty_obj.keyty)
+            assert isinstance(node.slice, gast.Index)
+            return ty_obj.valty
+
+        if isinstance(ty_obj, TyTensor):
+            self.infer_slice(node.slice, TyInt())
+            return TyTensor(dtype=ty_obj.dtype, kind=ty_obj.kind)
+
+        assert False
+
+
+    def infer_Name(self, node):
+        # Name(identifier id, expr_context ctx, expr? annotation)
+        if node.id in self.tyenv.keys():
+            return self.tyenv[node.id]
+        if node.id in builtins_name:
+            return copy_ty(builtins_ty[eval(node.id)])
+        if hasattr(self.module, node.id):
+            x = getattr(self.module, node.id)
+            if callable_(x):
+                raise self.ArgumentRequired(func=x)
+            return type_of_value(x)
+
+        # case of Tuple assignment
+        # XXX: print comes here
+        ty_var = TyVar()
+        self.tyenv[node.id] = ty_var
+        return ty_var
 
 
     # ================================= slice ==================================
