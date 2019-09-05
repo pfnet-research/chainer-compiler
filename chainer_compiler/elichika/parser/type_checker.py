@@ -67,11 +67,8 @@ def lazy_initializer(node):
             return ident_eq(expr1.value, expr2.value) and \
                     expr1.attr == expr2.attr
 
-    # XXX: lazy initialization must be written in the following syntax:
-    #   if x is None:
-    #       ...
-    #  (else:
-    #       ...)
+    # XXX: lazy initialization must be written as follows:
+    #   if x is None: ...  (else: ...)
     #
     # The reverse, 'if x is not None: ... else: ...' is not supported.
     if isinstance(node.test, gast.Compare) and \
@@ -136,7 +133,7 @@ builtins_ty = {
 
 builtins_name = [f.__name__ for f in builtins_ty.keys()]
 
-
+# TODO
 func_to_ignore = [print, logging.info]
 
 
@@ -939,7 +936,7 @@ class TypeChecker():
             # function of imported libraries (eg. np, chainer, F, L)
             module = getattr(self.module, node.value.id)
             attr = getattr(module, node.attr)
-            if isinstance(self.stack[-1], gast.Call):
+            if isinstance(self.stack[-2], gast.Call):
                 raise self.ArgumentRequired(func=attr)
             return type_of_value(attr)
 
