@@ -119,7 +119,7 @@ def gen_gen_chxvm_ops_h():
 
         if op.has_custom_field:
             lines.append('~%sOp() override;' % op.name)
-            lines.append('void InitImpl();')
+            lines.append('void InitImpl() override;')
             lines.append('class %sImpl;' % op.name)
             lines.append('%sImpl* impl_{nullptr};' % op.name)
 
@@ -183,9 +183,6 @@ def gen_gen_chxvm_ops_cc():
                              'inst.outputs().end());' % name)
             else:
                 lines.append('%s = inst.outputs(%d);' % (name, i))
-
-        if op.has_custom_field:
-            lines.append('InitImpl();')
 
         lines.append('}')
 

@@ -101,7 +101,7 @@ ChxVMOptions::ChxVMOptions() {
     verbose_ops.resize(num_ops);
 }
 
-ChxVM::ChxVM(const ChxVMProgramProto& program) {
+ChxVM::ChxVM(const ChxVMProgramProto& program, bool should_init) {
     num_variables_ = 0;
     for (const ChxVMInstructionProto& inst : program.instructions()) {
         for (int output : inst.outputs()) {
@@ -122,9 +122,19 @@ ChxVM::ChxVM(const ChxVMProgramProto& program) {
         chainerx::Shape shape(type.shape().begin(), type.shape().end());
         input_descs_.emplace_back(new ChxVMInputDesc(name, dtype, shape));
     }
+
+    if (should_init) {
+        Init();
+    }
 }
 
 ChxVM::~ChxVM() {
+}
+
+void ChxVM::Init() {
+    for (const std::unique_ptr<ChxVMOp>& op : program_) {
+        op->InitImpl();
+    }
 }
 
 std::unique_ptr<ChxVMState> ChxVM::Prepare(const InOuts& program_inputs, const ChxVMOptions& options) {
