@@ -90,7 +90,7 @@ ChxVMVar* StageVar(ChxVMVar* var) {
 
 class ModelRunner {
 public:
-    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, Model* model)
+    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, std::unique_ptr<Model> model)
         : args_(args), initial_used_bytes_(initial_used_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
@@ -111,7 +111,7 @@ public:
 
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), false, skip_scheduling);
-            CompileModel(model, &chxvm_);
+            CompileModel(model.get(), &chxvm_);
             LOG() << "Constructing model (backward)..." << std::endl;
             RunDefaultPasses(backprop_model.mutable_graph(), false, skip_scheduling);
             CompileModel(&backprop_model, &chxvm_bp_, "bp");
@@ -121,7 +121,7 @@ public:
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
-            CompileModel(model, &chxvm_);
+            CompileModel(model.get(), &chxvm_);
         }
 
         for (const std::string& op_name : SplitString(args_.get<std::string>("verbose_ops"), ",")) {
@@ -142,8 +142,14 @@ public:
             chxvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
 
+        chxvm_->Init();
+        if (chxvm_bp_) {
+            chxvm_bp_->Init();
+        }
+
         params_ = LoadParams(model->graph());
         param_bytes_ = GetUsedMemory() - initial_used_bytes;
+        model.reset();
     }
 
     void CompileModel(Model* model, std::unique_ptr<ChxVM>* chxvm, const char* name = nullptr, bool gen_backprop = false) {
@@ -188,7 +194,7 @@ public:
             CHECK(chxvm_prog.SerializeToOstream(&ofs));
         }
 
-        chxvm->reset(new ChxVM(chxvm_prog));
+        chxvm->reset(new ChxVM(chxvm_prog, false  /* should_init */));
     }
 
     ~ModelRunner() {
@@ -394,10 +400,9 @@ void RunMain(const std::vector<std::string>& argv) {
         test_cases.swap(new_test_cases);
     }
 
-    ModelRunner model_runner(args, initial_used_bytes, model.get());
     int num_unknown_ops = 0;
     int64_t flops = CalculateTotalFlops(model->graph(), &num_unknown_ops);
-    model.reset();
+    ModelRunner model_runner(args, initial_used_bytes, std::move(model));
 
     if (args.exist("compile_only")) return;
 
