@@ -417,8 +417,8 @@ class TypeChecker():
         self.attribute_tyenv = {} if attribute_tyenv is None \
                 else copy_tyenv(attribute_tyenv)
 
-        # True iff the parent node is Call
-        self.is_function = False
+        # Path from the root of AST to the current node (only stmt and expr)
+        self.stack = []
 
 
     def dump_tyenv(self):
@@ -441,6 +441,13 @@ class TypeChecker():
             print("{} : \x1b[36m{}\x1b[39m".format(
                 utils.node_description(node), ty))
         print()
+
+
+    def dump_stack(self):
+        print("=== stack ===\x1b[32m")
+        for node in self.stack:
+            print(utils.node_description(node))
+        print("\x1b[39m")
 
 
     def evaluate(self, node):
@@ -578,45 +585,39 @@ class TypeChecker():
         if self.is_debug:
             debug(gast.dump(node))
 
+        self.stack.append(node)
+
         if isinstance(node, gast.FunctionDef):
             self.nodetype[node] = self.infer_FunctionDef(node)
-
-        if isinstance(node, gast.Return):
+        elif isinstance(node, gast.Return):
             # Return(expr? value)
             self.nodetype[node] = self.infer_expr(node.value)
-
-        if isinstance(node, gast.Delete):
+        elif isinstance(node, gast.Delete):
             self.nodetype[node] = TyNone()
-
-        if isinstance(node, gast.Assign):
+        elif isinstance(node, gast.Assign):
             self.infer_Assign(node)
             self.nodetype[node] = TyNone()
-
-        if isinstance(node, gast.AugAssign):
+        elif isinstance(node, gast.AugAssign):
             self.infer_AugAssign(node)
             self.nodetype[node] = TyNone()
-
-        if isinstance(node, gast.For):
+        elif isinstance(node, gast.For):
             self.infer_For(node)
             self.nodetype[node] = TyNone()
-
-        if isinstance(node, gast.While):
+        elif isinstance(node, gast.While):
             # While(expr test, stmt* body, stmt* orelse)
             pass
-
-        if isinstance(node, gast.If):
+        elif isinstance(node, gast.If):
             self.infer_If(node)
             self.nodetype[node] = TyNone()
-
-        if isinstance(node, gast.Expr):
+        elif isinstance(node, gast.Expr):
             # Expr(expr value)
             self.infer_expr(node.value)
             self.nodetype[node] = TyNone()
-
-        if isinstance(node, gast.Pass):
+        elif isinstance(node, gast.Pass):
             self.nodetype[node] = TyNone()
 
         assert node in self.nodetype.keys(), type(node).__name__
+        self.stack.pop()
         return self.nodetype[node]
 
 
@@ -756,66 +757,56 @@ class TypeChecker():
     def infer_expr(self, node) -> 'TyObj':
         if self.is_debug:
             debug(gast.dump(node))
+            # self.dump_stack()
             # self.dump_tyenv()
 
         if node in self.nodetype.keys():
             return self.nodetype[node]
 
+        self.stack.append(node)
+
         if isinstance(node, gast.BoolOp):
             self.nodetype[node] = self.infer_BoolOp(node)
-
-        if isinstance(node, gast.BinOp):
+        elif isinstance(node, gast.BinOp):
             self.nodetype[node] = self.infer_BinOp(node)
-
-        if isinstance(node, gast.UnaryOp):
+        elif isinstance(node, gast.UnaryOp):
             self.nodetype[node] = self.infer_UnaryOp(node)
-
-        if isinstance(node, gast.Dict):
+        elif isinstance(node, gast.Dict):
             self.nodetype[node] = self.infer_Dict(node)
-
-        if isinstance(node, gast.ListComp):
+        elif isinstance(node, gast.ListComp):
             self.nodetype[node] = self.infer_ListComp(node)
-
-        if isinstance(node, gast.Compare):
+        elif isinstance(node, gast.Compare):
             # Compare(expr left, cmpop* ops, expr* comparators)
             self.nodetype[node] = TyBool()
-
-        if isinstance(node, gast.Call):
+        elif isinstance(node, gast.Call):
             self.nodetype[node] = self.infer_Call(node)
-
-        if isinstance(node, gast.Num):
+        elif isinstance(node, gast.Num):
             # Num(object n)
             self.nodetype[node] = type_of_value(node.n)
-
-        if isinstance(node, gast.Str):
+        elif isinstance(node, gast.Str):
             # Str(string s)
             self.nodetype[node] = TyString(value=node.s)
-
-        if isinstance(node, gast.NameConstant):
+        elif isinstance(node, gast.NameConstant):
             # NameConstant(singleton value)
             self.nodetype[node] = type_of_value(node.value)
-
-        if isinstance(node, gast.Attribute):
+        elif isinstance(node, gast.Attribute):
             self.nodetype[node] = self.infer_Attribute(node)
-
-        if isinstance(node, gast.Subscript):
+        elif isinstance(node, gast.Subscript):
             self.nodetype[node] = self.infer_Subscript(node)
-
-        if isinstance(node, gast.Name):
+        elif isinstance(node, gast.Name):
             self.nodetype[node] = self.infer_Name(node)
-
-        if isinstance(node, gast.List):
+        elif isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = TyList(elts_ty)
-
-        if isinstance(node, gast.Tuple):
+        elif isinstance(node, gast.Tuple):
             # Tuple(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = TyTuple(elts_ty)
 
         assert node in self.nodetype.keys() and \
                 self.nodetype[node] is not None, type(node).__name__
+        self.stack.pop()
         return self.nodetype[node]
 
 
@@ -901,12 +892,9 @@ class TypeChecker():
         ty_ret = TyVar()
 
         try:
-            self.is_function = True
             ty_fun = self.infer_expr(node.func)
-            self.is_function = False
 
         except self.ArgumentRequired as e:
-            self.is_function = False
             if e.func in func_to_ignore:
                 return ## TODO
 
@@ -951,7 +939,7 @@ class TypeChecker():
             # function of imported libraries (eg. np, chainer, F, L)
             module = getattr(self.module, node.value.id)
             attr = getattr(module, node.attr)
-            if callable_(attr) and self.is_function:
+            if isinstance(self.stack[-1], gast.Call):
                 raise self.ArgumentRequired(func=attr)
             return type_of_value(attr)
 
@@ -974,15 +962,15 @@ class TypeChecker():
             # x: value of existing instance
             x = getattr(ty_obj.instance, node.attr)
 
+            if callable(x) and x in builtins_ty.keys():
+                return builtins_ty[x]
+
             if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                 ty_node = self.attribute_tyenv[(ty_obj.instance, node.attr)]
             else:
                 ty_node = type_of_value(x)
 
-            if callable_(x) and self.is_function:
-                if x in builtins_ty.keys():
-                    return builtins_ty[x]
-
+            if isinstance(self.stack[-2], gast.Call):
                 self.nodetype[node] = ty_node
                 raise self.ArgumentRequired(func=x)
 
