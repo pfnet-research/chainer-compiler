@@ -45,12 +45,36 @@ public:
     }
 };
 
+chainerx::Dtype GetDtype(nvinfer1::DataType type) {
+    switch (type ) {
+        case nvinfer1::DataType::kFLOAT:
+            return chainerx::Dtype::kFloat32;
+        case nvinfer1::DataType::kHALF:
+            return chainerx::Dtype::kFloat16;
+        case nvinfer1::DataType::kINT8:
+            return chainerx::Dtype::kInt8;
+        case nvinfer1::DataType::kINT32:
+            return chainerx::Dtype::kInt32;
+        default:
+            CHECK(false) << "Not supported TensorRT dtype: " << static_cast<int>(type);
+    }
+}
+
+chainerx::Shape GetShape(const nvinfer1::Dims& dims) {
+    chainerx::Shape shape = {kBatchSize};
+    for (int i = 0; i < dims.nbDims; ++i) {
+        shape.push_back(dims.d[i]);
+    }
+    return shape;
+}
+
 }  // namespace
 
 class TensorRTOp::TensorRTImpl {
 public:
     Logger logger;
     std::shared_ptr<nvinfer1::ICudaEngine> engine;
+    std::vector<chainerx::Array> outputs;
 };
 
 #endif
@@ -79,6 +103,15 @@ void TensorRTOp::InitImpl() {
     // builder->setFp16Mode(false);
 
     impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildCudaEngine(*network), InferDeleter());
+
+    for (int i = 0; i < network->getNbOutputs(); ++i) {
+        nvinfer1::ITensor* tensor = network->getOutput(i);
+        chainerx::Dtype dtype = GetDtype(tensor->getType());
+        chainerx::Shape shape = GetShape(tensor->getDimensions());
+        chainerx::Array array = chainerx::Empty(shape, dtype);
+        impl_->outputs.push_back(array);
+    }
+
 #endif
 }
 
@@ -104,14 +137,17 @@ std::vector<chainerx::Array> TensorRTOp::RunImpl(chainer_compiler::runtime::ChxV
     CHECK(context);
 
     std::vector<void*> bindings;
-    for (const chainerx::Array& input : inputs) {
-        bindings.push_back(RawStartPtr(input));
+    for (const chainerx::Array& a : inputs) {
+        bindings.push_back(RawStartPtr(a));
+    }
+    for (const chainerx::Array& a : impl_->outputs) {
+        bindings.push_back(RawStartPtr(a));
     }
 
     const bool status = context->execute(kBatchSize, &bindings[0]);
     CHECK(status);
 
-    CHECK(false) << "TODO";
+    return impl_->outputs;
 
 #else
     CHECK(false) << "Set -DCHAINER_COMPILER_ENABLE_TENSORRT";
