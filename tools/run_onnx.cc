@@ -56,7 +56,8 @@ void GenerateFixedInput(const Model& model, const std::set<std::string>& initial
         chainerx::Dtype dtype = type.dtype().chx();
         chainerx::Shape shape{type.dims().begin(), type.dims().end()};
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second) << "Duplicated input: " << input->name();
+        CHECK(inputs->emplace(input->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second)
+                << "Duplicated input: " << input->name();
         LOG() << "Generated test input " << input->name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
@@ -194,7 +195,7 @@ public:
             CHECK(chxvm_prog.SerializeToOstream(&ofs));
         }
 
-        chxvm->reset(new ChxVM(chxvm_prog, false  /* should_init */));
+        chxvm->reset(new ChxVM(chxvm_prog, false /* should_init */));
     }
 
     ~ModelRunner() {
