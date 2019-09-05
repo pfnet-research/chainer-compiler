@@ -256,7 +256,7 @@ TEST(MergeTest, AddToSum) {
         Graph graph("test");
         Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {3, 3}));
         Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
-        Value* c = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
+        Value* c = graph.AddInputValue("c", Type(Dtype::kFloat32, {3, 3}));
         Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {3, 3}));
 
         {
@@ -281,7 +281,7 @@ TEST(MergeTest, AddToSum) {
         Graph graph("test");
         Value* a = graph.AddInputValue("a", Type(Dtype::kFloat32, {3, 3}));
         Value* b = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
-        Value* c = graph.AddInputValue("b", Type(Dtype::kFloat32, {3, 3}));
+        Value* c = graph.AddInputValue("c", Type(Dtype::kFloat32, {3, 3}));
         Value* output = graph.AddOutputValue("output", Type(Dtype::kFloat32, {3, 3}));
 
         {
