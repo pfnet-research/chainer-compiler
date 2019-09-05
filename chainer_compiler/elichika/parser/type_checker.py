@@ -579,147 +579,142 @@ class TypeChecker():
             debug(gast.dump(node))
 
         if isinstance(node, gast.FunctionDef):
-            # FunctionDef(identifier name, arguments args, stmt* body,
-            # expr* decorator_list, expr? returns)
-
-            ty_args = [self.tyenv[arg.id] for arg in node.args.args]
-            ty = None
-
-            for stmt in node.body:
-                ty = self.infer_stmt(stmt)
-
-            assert ty is not None
-            self.nodetype[node] = TyArrow(ty_args, ty)
-            return self.nodetype[node]
-
+            self.nodetype[node] = self.infer_FunctionDef(node)
 
         if isinstance(node, gast.Return):
             # Return(expr? value)
             self.nodetype[node] = self.infer_expr(node.value)
-            return self.nodetype[node]
-
 
         if isinstance(node, gast.Delete):
             self.nodetype[node] = TyNone()
-            return self.nodetype[node]
-
 
         if isinstance(node, gast.Assign):
-            # Assign(expr* targets, expr value)
-            assert len(node.targets) == 1  # cannot think of cases where >= 2
-            target = node.targets[0]
-            ty_val = self.infer_expr(node.value)
-
-            if isinstance(target, gast.Name):
-                if (isinstance(node.value, gast.Name) or \
-                        isinstance(node.value, gast.Attribute)) and \
-                        ty_val.is_mutable():
-                    # XXX: alias
-                    self.tyenv[target.id] = ty_val
-                    self.nodetype[target] = ty_val
-                else:
-                    self.tyenv[target.id] = copy_ty(ty_val)
-                    self.nodetype[target] = copy_ty(ty_val)
-
-            elif isinstance(target, gast.Attribute):
-                self.infer_expr(target)
-                ty_obj = self.nodetype[target.value]
-                assert isinstance(ty_obj, TyUserDefinedClass)
-                self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
-
-            elif type(target) in [gast.Tuple, gast.List]:
-                ty_target = self.infer_expr(target)
-                unify(ty_target, ty_val)
-                for (var, ty) in zip(target.elts, ty_val.get_tys()):
-                    self.tyenv[var.id] = ty
-                    self.nodetype[var] = ty
-            else:
-                assert False
-
+            self.infer_Assign(node)
             self.nodetype[node] = TyNone()
-            return self.nodetype[node]
-
 
         if isinstance(node, gast.AugAssign):
-            # AugAssign(expr target, operator op, expr value)
-            binop = gast.BinOp(node.target, node.op, node.value)
-            ty_val = self.infer_expr(binop)
-            ty_target = self.infer_expr(node.target)
-            del self.nodetype[binop]
-            if ty_target.is_mutable():
-                unify(ty_target, ty_val)
-
-            if isinstance(node.target, gast.Name):
-                if ty_target.is_mutable():
-                    self.tyenv[node.target.id] = ty_val
-                else:
-                    self.tyenv[node.target.id] = copy_ty(ty_val)
-
-            if isinstance(node.target, gast.Attribute):
-                ty_obj = self.nodetype[node.target.value]
-                assert isinstance(ty_obj, TyUserDefinedClass)
-                if ty_target.is_mutable():
-                    self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                            ty_val
-                else:
-                    self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
-                            copy_ty(ty_val)
-
-            self.nodetype[node.target] = ty_val
+            self.infer_AugAssign(node)
             self.nodetype[node] = TyNone()
-            return self.nodetype[node]
-
 
         if isinstance(node, gast.For):
-            # For(expr target, expr iter, stmt* body, stmt* orelse)
-            assert type(node.target) in [gast.Name, gast.Tuple]
-
-            ty_iteration = self.infer_expr(node.iter)
-            ty_i = self.infer_expr(node.target)
-            if isinstance(ty_iteration, TyTensor):
-                unify(ty_i, TyTensor(
-                    dtype=ty_iteration.dtype, kind=ty_iteration.kind))
-            else:
-                unify(ty_iteration, TySequence(ty=ty_i))
-
-            # TODO(momohatt): scope of iteration variable is wrong
-            self.infer_block(node.body)
-
+            self.infer_For(node)
             self.nodetype[node] = TyNone()
-            return self.nodetype[node]
-
 
         if isinstance(node, gast.While):
             # While(expr test, stmt* body, stmt* orelse)
-            # TODO
-            return self.nodetype[node]
-
+            pass
 
         if isinstance(node, gast.If):
-            # If(expr test, stmt* body, stmt* orelse)
-            # TODO(momohatt): determine what type should ty_test be
-            self.infer_expr(node.test)
-
-            x = lazy_initializer(node)
-            if x is not None:
-                return self.infer_LazyInitializer(node, x)
-
-            return self.infer_If(node)
+            self.infer_If(node)
+            self.nodetype[node] = TyNone()
 
         if isinstance(node, gast.Expr):
             # Expr(expr value)
             self.infer_expr(node.value)
-            return TyNone()
-
+            self.nodetype[node] = TyNone()
 
         if isinstance(node, gast.Pass):
             self.nodetype[node] = TyNone()
-            return self.nodetype[node]
 
-        assert False, type(node).__name__
+        assert node in self.nodetype.keys(), type(node).__name__
+        return self.nodetype[node]
+
+
+    def infer_FunctionDef(self, node):
+        # FunctionDef(identifier name, arguments args, stmt* body,
+        # expr* decorator_list, expr? returns)
+        ty_args = [self.tyenv[arg.id] for arg in node.args.args]
+        ty = None
+
+        for stmt in node.body:
+            ty = self.infer_stmt(stmt)
+        return TyArrow(ty_args, ty)
+
+
+    def infer_Assign(self, node):
+        # Assign(expr* targets, expr value)
+        assert len(node.targets) == 1  # cannot think of cases where >= 2
+        target = node.targets[0]
+        ty_val = self.infer_expr(node.value)
+
+        if isinstance(target, gast.Name):
+            if (isinstance(node.value, gast.Name) or \
+                    isinstance(node.value, gast.Attribute)) and \
+                    ty_val.is_mutable():
+                # XXX: alias
+                self.tyenv[target.id] = ty_val
+                self.nodetype[target] = ty_val
+                return
+            self.tyenv[target.id] = copy_ty(ty_val)
+            self.nodetype[target] = copy_ty(ty_val)
+            return
+
+        if isinstance(target, gast.Attribute):
+            self.infer_expr(target)
+            ty_obj = self.nodetype[target.value]
+            assert isinstance(ty_obj, TyUserDefinedClass)
+            self.attribute_tyenv[(ty_obj.instance, target.attr)] = ty_val
+            return
+
+        if type(target) in [gast.Tuple, gast.List]:
+            ty_target = self.infer_expr(target)
+            unify(ty_target, ty_val)
+            for (var, ty) in zip(target.elts, ty_val.get_tys()):
+                self.tyenv[var.id] = ty
+                self.nodetype[var] = ty
+            return
+
+
+    def infer_AugAssign(self, node):
+        # AugAssign(expr target, operator op, expr value)
+        binop = gast.BinOp(node.target, node.op, node.value)
+        ty_val = self.infer_expr(binop)
+        ty_target = self.infer_expr(node.target)
+        del self.nodetype[binop]
+        if ty_target.is_mutable():
+            unify(ty_target, ty_val)
+
+        if isinstance(node.target, gast.Name):
+            if ty_target.is_mutable():
+                self.tyenv[node.target.id] = ty_val
+            else:
+                self.tyenv[node.target.id] = copy_ty(ty_val)
+
+        if isinstance(node.target, gast.Attribute):
+            ty_obj = self.nodetype[node.target.value]
+            assert isinstance(ty_obj, TyUserDefinedClass)
+            if ty_target.is_mutable():
+                self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
+                        ty_val
+            else:
+                self.attribute_tyenv[(ty_obj.instance, node.target.attr)] = \
+                        copy_ty(ty_val)
+
+        self.nodetype[node.target] = ty_val
+
+
+    def infer_For(self, node):
+        # For(expr target, expr iter, stmt* body, stmt* orelse)
+        assert type(node.target) in [gast.Name, gast.Tuple]
+
+        ty_iteration = self.infer_expr(node.iter)
+        ty_i = self.infer_expr(node.target)
+        if isinstance(ty_iteration, TyTensor):
+            unify(ty_i, TyTensor(
+                dtype=ty_iteration.dtype, kind=ty_iteration.kind))
+        else:
+            unify(ty_iteration, TySequence(ty=ty_i))
+
+        # TODO(momohatt): scope of iteration variable is wrong
+        self.infer_block(node.body)
 
 
     def infer_If(self, node):
+        # If(expr test, stmt* body, stmt* orelse)
+        # TODO(momohatt): determine what type should ty_test be
+        self.infer_expr(node.test)
+        x = lazy_initializer(node)
+
         if node.orelse == []:
             self.infer_block(node.body)
         else:
@@ -753,14 +748,8 @@ class TypeChecker():
             add_dict(self.subroutine_node, tc1.subroutine_node)
             add_dict(self.subroutine_node, tc2.subroutine_node)
 
-        self.nodetype[node] = TyNone()
-        return self.nodetype[node]
-
-
-    def infer_LazyInitializer(self, node, x):
-        self.infer_If(node)
-        self.infer_expr(x).is_optional = False
-        return self.nodetype[node]
+        if x is not None:
+            self.infer_expr(x).is_optional = False
 
 
     # ================================= expr ===================================
