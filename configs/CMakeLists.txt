@@ -7,6 +7,7 @@ set(jsons
   ngraph
   nvrtc
   snpe
+  tensorrt
   tvm
   )
 set(json_cs)

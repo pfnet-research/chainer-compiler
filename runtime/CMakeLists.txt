@@ -68,6 +68,7 @@ add_library(chainer_compiler_runtime
   ops/sorting.cc
   ops/space_depth.cc
   ops/statistics.cc
+  ops/tensorrt.cc
   ops/tvm.cc
   )
 add_dependencies(
@@ -97,6 +98,7 @@ target_link_libraries(chainer_compiler_runtime_test
   ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
   ${CHAINER_COMPILER_CUDA_LIBRARIES}
   ${CHAINER_COMPILER_SNPE_LIBRARIES}
+  ${CHAINER_COMPILER_TENSORRT_LIBRARIES}
   absl::variant
   absl::optional
   )

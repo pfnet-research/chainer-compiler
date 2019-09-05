@@ -77,11 +77,20 @@ FLAGS = {
     },
     'dump_snpe_dlc_info': {
         'type': 'bool',
-        'doc': 'Dump result of snpe-dlc-info'
+        'doc': 'Dump result of snpe-dlc-info.'
     },
     'snpe_dlc_info_out_prefix': {
         'type': 'std::string',
-        'doc': 'Output file of snpe-dlc-info'
+        'doc': 'Output file of snpe-dlc-info.'
+    },
+
+    'use_tensorrt': {
+        'type': 'bool',
+        'doc': 'Use TensorRT to execute operations.'
+    },
+    'use_tensorrt_fp16': {
+        'type': 'bool',
+        'doc': 'Use fp16 with TensorRT.'
     },
 
     'trace_level': {

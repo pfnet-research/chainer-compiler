@@ -480,6 +480,9 @@ CHX_CUSTOM_FIELD_OPS = [
      [ArrayList('inputs'), Strings('input_names'),
       String('model_data'), String('device')],
      [ArrayList('outputs')]),
+    ('TensorRT',
+     [ArrayList('inputs'), String('onnx'), Int('batch_size'), Int('use_fp16')],
+     [ArrayList('outputs')]),
 ]
 
 CHX_SEQ_OPS = [

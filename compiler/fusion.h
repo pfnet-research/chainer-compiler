@@ -21,6 +21,7 @@ void FuseDldtOperations(Graph* graph);
 void FuseNGraphOperations(Graph* graph);
 void FuseTVMOperations(Graph* graph);
 void FuseSNPEOperations(Graph* graph);
+void FuseTensorRTOperations(Graph* graph);
 void FuseElementwiseOperations(Graph* graph);
 
 }  // namespace chainer_compiler
