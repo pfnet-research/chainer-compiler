@@ -233,6 +233,9 @@ void FuseOperations(Graph* graph, bool is_subgraph) {
     if (g_use_snpe && !is_subgraph) {
         FuseSNPEOperations(graph);
     }
+    if (g_use_tensorrt && !is_subgraph) {
+        FuseTensorRTOperations(graph);
+    }
     if (g_fuse_operations) {
         FuseElementwiseOperations(graph);
     }

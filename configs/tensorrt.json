@@ -23,6 +23,7 @@
         "Relu": true,
         "Sigmoid": true,
         "Softmax": true,
+        "Sub": true,
         "Sum": true,
         "Tanh": true,
         "Transpose": true,

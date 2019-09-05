@@ -84,6 +84,11 @@ FLAGS = {
         'doc': 'Output file of snpe-dlc-info'
     },
 
+    'use_tensorrt': {
+        'type': 'bool',
+        'doc': 'Use TensorRT to execute operations.'
+    },
+
     'trace_level': {
         'type': 'int',
         'doc': 'Enables ChainerX VM trace during constant propagation.'
