@@ -98,6 +98,7 @@ void TensorRTOp::InitImpl() {
     builder->setFp16Mode(use_fp16);
 
     impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildCudaEngine(*network), InferDeleter());
+    CHECK(impl_->engine);
 
     for (int i = 0; i < network->getNbOutputs(); ++i) {
         nvinfer1::ITensor* tensor = network->getOutput(i);

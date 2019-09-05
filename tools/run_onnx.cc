@@ -48,29 +48,17 @@ namespace chainer_compiler {
 namespace runtime {
 namespace {
 
-chainerx::Shape ChainerXShapeFromONNX(const onnx::TensorShapeProto& xshape) {
-    chainerx::Shape shape;
-    for (const auto& dim : xshape.dim()) {
-        if (dim.has_dim_value()) {
-            shape.push_back(dim.dim_value());
-        } else {
-            LOG() << "Dimension " << dim.dim_param() << " was replaced by 1" << std::endl;
-            shape.push_back(1);
-        }
-    }
-    return shape;
-}
-
-void GenerateFixedInput(const onnx::ModelProto& xmodel, const std::set<std::string>& initializer_names, InOuts* inputs) {
-    for (const onnx::ValueInfoProto& input : xmodel.graph().input()) {
-        if (initializer_names.count(input.name())) continue;
-        CHECK(input.type().has_tensor_type()) << "Only tensor_type is supported: " << input.type().DebugString();
-        const onnx::TypeProto::Tensor& tensor_type = input.type().tensor_type();
-        chainerx::Dtype dtype = ChainerXTypeFromONNX(tensor_type.elem_type());
-        chainerx::Shape shape = ChainerXShapeFromONNX(tensor_type.shape());
+void GenerateFixedInput(const Model& model, const std::set<std::string>& initializer_names, InOuts* inputs) {
+    for (const Value* input : model.graph().input_values()) {
+        if (initializer_names.count(input->name())) continue;
+        CHECK_EQ(Type::Kind::kTensor, input->type().kind()) << "Only tensor_type is supported: " << input->type().DebugString();
+        const Type& type = input->type();
+        chainerx::Dtype dtype = type.dtype().chx();
+        chainerx::Shape shape{type.dims().begin(), type.dims().end()};
         chainerx::Array array = chainerx::Ones(shape, dtype, chainerx::GetNativeBackend().GetDevice(0));
-        CHECK(inputs->emplace(input.name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second) << "Duplicated input: " << input.name();
-        LOG() << "Generated test input " << input.name() << " type=" << dtype << " shape=" << shape << std::endl;
+        CHECK(inputs->emplace(input->name(), std::shared_ptr<ChxVMVar>(new ChxVMVar(array))).second)
+                << "Duplicated input: " << input->name();
+        LOG() << "Generated test input " << input->name() << " type=" << dtype << " shape=" << shape << std::endl;
     }
 }
 
@@ -103,7 +91,7 @@ ChxVMVar* StageVar(ChxVMVar* var) {
 
 class ModelRunner {
 public:
-    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, Model* model)
+    ModelRunner(const cmdline::parser& args, int64_t initial_used_bytes, std::unique_ptr<Model> model)
         : args_(args), initial_used_bytes_(initial_used_bytes) {
         if (args.exist("backprop_two_phase")) {
             Model backprop_model(*model, model->graph().name() + "_backprop");
@@ -124,7 +112,7 @@ public:
 
             LOG() << "Constructing model (forward)..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), false, skip_scheduling);
-            CompileModel(model, &chxvm_);
+            CompileModel(model.get(), &chxvm_);
             LOG() << "Constructing model (backward)..." << std::endl;
             RunDefaultPasses(backprop_model.mutable_graph(), false, skip_scheduling);
             CompileModel(&backprop_model, &chxvm_bp_, "bp");
@@ -134,7 +122,7 @@ public:
         } else {
             LOG() << "Constructing model..." << std::endl;
             RunDefaultPasses(model->mutable_graph(), args_.exist("backprop"));
-            CompileModel(model, &chxvm_);
+            CompileModel(model.get(), &chxvm_);
         }
 
         for (const std::string& op_name : SplitString(args_.get<std::string>("verbose_ops"), ",")) {
@@ -155,8 +143,14 @@ public:
             chxvm_opts_.chrome_tracing = new ChromeTracingEmitter();
         }
 
+        chxvm_->Init();
+        if (chxvm_bp_) {
+            chxvm_bp_->Init();
+        }
+
         params_ = LoadParams(model->graph());
         param_bytes_ = GetUsedMemory() - initial_used_bytes;
+        model.reset();
     }
 
     void CompileModel(Model* model, std::unique_ptr<ChxVM>* chxvm, const char* name = nullptr, bool gen_backprop = false) {
@@ -201,7 +195,7 @@ public:
             CHECK(chxvm_prog.SerializeToOstream(&ofs));
         }
 
-        chxvm->reset(new ChxVM(chxvm_prog));
+        chxvm->reset(new ChxVM(chxvm_prog, false /* should_init */));
     }
 
     ~ModelRunner() {
@@ -361,22 +355,25 @@ void RunMain(const std::vector<std::string>& argv) {
 
     LOG() << "Loading model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
-    onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    Model model(xmodel);
+    std::unique_ptr<Model> model;
+    {
+        onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
+        model.reset(new Model(xmodel));
+    }
 
     LOG() << "Loading data..." << std::endl;
 
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
     std::set<std::string> initializer_names;
-    for (const Value* input : model.graph().input_values()) {
+    for (const Value* input : model->graph().input_values()) {
         if (input->initializer()) {
             CHECK(initializer_names.insert(input->name()).second);
         } else {
             input_names.push_back(input->name());
         }
     }
-    for (const Value* output : model.graph().output_values()) {
+    for (const Value* output : model->graph().output_values()) {
         output_names.push_back(output->name());
     }
 
@@ -384,7 +381,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (test_path.empty()) {
         std::unique_ptr<TestCase> test_case(new TestCase());
         test_case->name = "generated data by chainerx::Ones";
-        GenerateFixedInput(xmodel, initializer_names, &test_case->inputs);
+        GenerateFixedInput(*model, initializer_names, &test_case->inputs);
         test_cases.emplace_back(std::move(test_case));
     } else {
         ReadTestDir(test_path, input_names, output_names, &test_cases);
@@ -404,7 +401,9 @@ void RunMain(const std::vector<std::string>& argv) {
         test_cases.swap(new_test_cases);
     }
 
-    ModelRunner model_runner(args, initial_used_bytes, &model);
+    int num_unknown_ops = 0;
+    int64_t flops = CalculateTotalFlops(model->graph(), &num_unknown_ops);
+    ModelRunner model_runner(args, initial_used_bytes, std::move(model));
 
     if (args.exist("compile_only")) return;
 
@@ -467,8 +466,6 @@ void RunMain(const std::vector<std::string>& argv) {
     if (iterations > 1) {
         // The first iteration is for warm up.
         double average_elapsed = total_elapsed / (iterations - 1);
-        int num_unknown_ops = 0;
-        int64_t flops = CalculateTotalFlops(model.graph(), &num_unknown_ops);
         if (num_unknown_ops) {
             std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
             std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;

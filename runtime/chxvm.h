@@ -65,8 +65,10 @@ struct ChxVMInputDesc;
 
 class ChxVM {
 public:
-    explicit ChxVM(const ChxVMProgramProto& program);
+    ChxVM(const ChxVMProgramProto& program, bool should_init = true);
     ~ChxVM();
+
+    void Init();
 
     std::unique_ptr<ChxVMState> Prepare(const InOuts& program_inputs, const ChxVMOptions& options);
     InOuts Run(const InOuts& program_inputs, const ChxVMOptions& options);

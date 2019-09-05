@@ -37,6 +37,9 @@ public:
         return inst_.debug_info();
     }
 
+    virtual void InitImpl() {
+    }
+
 protected:
     ChxVMInstructionProto inst_;
     const int64_t id_;
