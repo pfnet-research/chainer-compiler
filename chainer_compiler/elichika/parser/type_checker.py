@@ -227,7 +227,7 @@ def ty_ChainerBroadcastTo(ty_args, dummy_args_nontensor, kwargs):
 
 
 def ty_ChainerSum(ty_args, dummy_args_nontensor, kwargs):
-    axis = dummy_args_nontensor[0]
+    axis = kwargs['axis']
     fallback_shapes = ((1,) * (axis + 1),)
     fallback_dtypes = (np.float32,)
 
@@ -270,11 +270,17 @@ def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, kwargs):
 
 
 def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, kwargs):
-    assert isinstance(ty_args[0], TySequence)
-    ty_args[0].coerce_to_variable_len()
-    dtype = ty_args[0].get_ty().dtype
-    kind = ty_args[0].get_ty().kind
-    return TyTensor(dtype=dtype, kind=kind)
+    ty = ty_args[0].deref()
+    assert isinstance(ty, TySequence)
+    if ty.is_fixed_len:
+        # TODO: shapeがNoneでないものが1つでもあればそれに合わせる
+        pass
+    else:
+        if ty.get_ty().shape is None:
+            dummy_args_nontensor[0] = np.zeros((1,), dtype=ty.get_ty().dtype)
+
+    ty_ret = type_of_value(F.pad_sequence(*dummy_args_nontensor, **kwargs))
+    return ty_ret
 
 
 ext_func_ty = {
@@ -808,9 +814,9 @@ class TypeChecker():
         if isinstance(node, gast.Num):
             # Num(object n)
             if isinstance(node.n, int):
-                self.nodetype[node] = TyInt()
+                self.nodetype[node] = TyInt(node.n)
             elif isinstance(node.n, float):
-                self.nodetype[node] = TyFloat()
+                self.nodetype[node] = TyFloat(node.n)
             return self.nodetype[node]
 
 
@@ -824,7 +830,7 @@ class TypeChecker():
             # NameConstant(singleton value)
             # value is either True, False or None
             if isinstance(node.value, bool):
-                self.nodetype[node] = TyBool()
+                self.nodetype[node] = TyBool(node.value)
             elif node.value is None:
                 self.nodetype[node] = TyNone()
             return self.nodetype[node]
@@ -933,7 +939,8 @@ class TypeChecker():
                 if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
                     if node.func.attr == 'astype':
                         val_args = [self.evaluate(arg) for arg in node.args]
-                        ty_ret = TyNdarray(TyDType(val_args[0]))
+                        ty_ret = TyNdarray(dtype=TyDType(val_args[0]),
+                                shape=ty_obj.shape)
                     self.nodetype[node] = ty_ret
                     self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
 
@@ -943,12 +950,8 @@ class TypeChecker():
                 # case of calling external (eg. np/chainer) functions
 
                 # Non-tensor arguments
-                val_dummy_args_nontensor = []
-                for t, arg in zip(ty_args, node.args):
-                    if isinstance(t, TyTensor):
-                        continue
-                    v = self.evaluate(arg)
-                    val_dummy_args_nontensor.append(v if v is not None else value_of_type(t))
+                val_dummy_args_nontensor = [value_of_type(t) for t in ty_args \
+                        if not isinstance(t, TyTensor)]
                 val_kwargs = self.get_kwarg(node.keywords)
                 inference_logic = ext_func_ty[e.func]
                 try:
@@ -958,6 +961,7 @@ class TypeChecker():
                     print_warning("Failed to infer type of " + e.func.__name__ +
                             ". Falling back to TyObj...")
                     ty_ret = TyObj()
+                    # raise Exception
 
                 self.nodetype[node] = ty_ret
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)

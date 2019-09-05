@@ -56,21 +56,15 @@ class NumKind(IntEnum):
             return "float"
 
 
-numcounter = 0  # id for debug printing
-
 class TyNum(TyObj):
-    def __init__(self, ty_min, ty_max):
-        global numcounter
+    def __init__(self, ty_min, ty_max, value=None):
         super().__init__()
         assert ty_min <= ty_max
         self.ty_min = ty_min
         self.ty_max = ty_max
-        self.id = numcounter
-        numcounter += 1
+        self.value = value
 
     def show(self):
-        if is_debug_global:
-            return "n{}({})".format(self.id, str(NumKind(self.ty_min)))
         return str(NumKind(self.ty_min))
 
     def __eq__(self, other):
@@ -82,18 +76,23 @@ class TyNum(TyObj):
     def possible_types(self):
         return list(range(self.ty_min, self.ty_max+ 1))
 
+    def coerce_value(self):
+        if self.value is None:
+            return
+        self.value = eval(self.show())(self.value)
 
-def TyBool():
-    return TyNum(0, 2)  # bool or int or float
+
+def TyBool(value=None):
+    return TyNum(0, 2, value=value)  # bool or int or float
 
 def TyIntOnly():
     return TyNum(1, 1)  # int
 
-def TyInt():
-    return TyNum(1, 2)  # int or float
+def TyInt(value=None):
+    return TyNum(1, 2, value=value)  # int or float
 
-def TyFloat():
-    return TyNum(2, 2)  # float
+def TyFloat(value=None):
+    return TyNum(2, 2, value=value)  # float
 
 
 class TyString(TyObj):
@@ -458,6 +457,8 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyNone):
         return None
     if isinstance(ty, TyNum):
+        if ty.value is not None:
+            return ty.value
         return pytype_of_type(ty)(1)  # XXX: to avoid division by zero
     if isinstance(ty, TyString):
         return ""
@@ -558,6 +559,8 @@ def unify(ty1, ty2):
             raise UnifyError(ty1, ty2)
         ty1.ty_min = ty2.ty_min = min(possible_types)
         ty1.ty_max = ty2.ty_max = max(possible_types)
+        ty1.coerce_value()
+        ty2.coerce_value()
         return
 
     if isinstance(ty1, TyString) and isinstance(ty2, TyString):
