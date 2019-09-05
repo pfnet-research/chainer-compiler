@@ -26,66 +26,47 @@ chainerx::Array Pow(chainerx::Array a, chainerx::Array b) {
     return chainerx::Power(a, b);
 }
 
-// TODO(hamaji): Implement type coersion in ChainerX.
-chainerx::Dtype CoerceDtype(chainerx::Dtype dtype0, chainerx::Dtype dtype1) {
-    if (dtype0 == dtype1) return dtype0;
-    if (IsFloat(dtype0) && !IsFloat(dtype1)) return dtype0;
-    if (!IsFloat(dtype0) && IsFloat(dtype1)) return dtype1;
-    if (chainerx::GetItemSize(dtype0) > chainerx::GetItemSize(dtype1)) return dtype0;
-    if (chainerx::GetItemSize(dtype0) < chainerx::GetItemSize(dtype1)) return dtype1;
-    if (dtype1 == chainerx::Dtype::kBool) return dtype0;
-    if (dtype0 == chainerx::Dtype::kBool) return dtype1;
-    if (dtype0 == chainerx::Dtype::kUInt8 || dtype1 == chainerx::Dtype::kUInt8) return chainerx::Dtype::kInt16;
-    CHECK(false) << "Unknown type coerce: " << dtype0 << " vs " << dtype1;
-}
-
-std::tuple<chainerx::Array, chainerx::Array> CoerceBinary(const chainerx::Array& a, const chainerx::Array& b) {
-    chainerx::Array ax = a;
-    chainerx::Array bx = b;
-    chainerx::Dtype dtype = CoerceDtype(a.dtype(), b.dtype());
-    ax = CastTo(ax, dtype);
-    bx = CastTo(bx, dtype);
-    return std::tie(ax, bx);
-}
-
 }  // namespace
 
 chainerx::Array AddOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    auto t = CoerceBinary(a, b);
-    return std::get<0>(t) + std::get<1>(t);
+    return a + b;
 }
 
 chainerx::Array SubOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    auto t = CoerceBinary(a, b);
-    return std::get<0>(t) - std::get<1>(t);
+    return a - b;
 }
 
 chainerx::Array MulOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    auto t = CoerceBinary(a, b);
-    return std::get<0>(t) * std::get<1>(t);
+    return a * b;
 }
 
-chainerx::Array DivOp::RunImpl(ChxVMState* st, const chainerx::Array& a0, const chainerx::Array& b0) {
-    chainerx::Array a, b;
-    std::tie(a, b) = CoerceBinary(a0, b0);
+chainerx::Array DivOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
     // TODO(hamaji): Come up with a better idea to handle cross device ops.
     if (&a.device() != &b.device() && b.GetTotalSize() == 1) {
-        if (IsFloat(a.dtype())) {
+        if (IsFloat(a.dtype()) || IsFloat(b.dtype())) {
             return chainerx::TrueDivide(a, chainerx::AsScalar(b));
         } else {
             return chainerx::FloorDivide(a, chainerx::AsScalar(b));
         }
     }
-    if (IsFloat(a.dtype())) {
+    if (IsFloat(a.dtype()) || IsFloat(b.dtype())) {
         return chainerx::TrueDivide(a, b);
     } else {
         return chainerx::FloorDivide(a, b);
     }
 }
 
+chainerx::Array ModOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    return a % b;
+}
+
+chainerx::Array FmodOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
+    CHECK(false) << "Mod(fmod=1) is not supported yet";
+    return a % b;
+}
+
 chainerx::Array PowOp::RunImpl(ChxVMState* st, const chainerx::Array& a, const chainerx::Array& b) {
-    auto t = CoerceBinary(a, b);
-    return Pow(std::get<0>(t), std::get<1>(t));
+    return Pow(a, b);
 }
 
 chainerx::Array NegOp::RunImpl(ChxVMState* st, const chainerx::Array& a) {

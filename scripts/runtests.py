@@ -83,6 +83,21 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_div'),
     TestCase(NODE_TEST, 'test_div_bcast'),
     TestCase(NODE_TEST, 'test_div_example'),
+    TestCase(NODE_TEST, 'test_mod_broadcast'),
+    # TODO(hamaji): Support fmod.
+    # TestCase(NODE_TEST, 'test_mod_int64_fmod'),
+    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float16'),
+    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float32'),
+    # TestCase(NODE_TEST, 'test_mod_mixed_sign_float64'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int16'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int32'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int64'),
+    TestCase(NODE_TEST, 'test_mod_mixed_sign_int8'),
+    # TODO(hamaji): Unsupported dtypes.
+    # TestCase(NODE_TEST, 'test_mod_uint16'),
+    # TestCase(NODE_TEST, 'test_mod_uint32'),
+    # TestCase(NODE_TEST, 'test_mod_uint64'),
+    TestCase(NODE_TEST, 'test_mod_uint8'),
     TestCase(NODE_TEST, 'test_pow'),
     TestCase(NODE_TEST, 'test_pow_bcast_array'),
     TestCase(NODE_TEST, 'test_pow_bcast_scalar'),
@@ -455,10 +470,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_nonmaxsuppression_identical_boxes'),
     TestCase(NODE_TEST, 'test_nonmaxsuppression_single_box'),
     TestCase(NODE_TEST, 'test_nonmaxsuppression_suppress_by_IOU_and_scores'),
-    # TODO(take-cheeze): Fix these 3:
-    # TestCase(NODE_TEST, 'test_nonmaxsuppression_two_batches'),
-    # TestCase(NODE_TEST, 'test_nonmaxsuppression_limit_output_size'),
-    # TestCase(NODE_TEST, 'test_nonmaxsuppression_two_classes'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_two_batches'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_limit_output_size'),
+    TestCase(NODE_TEST, 'test_nonmaxsuppression_two_classes'),
     TestCase(NODE_TEST, 'test_top_k'),
     TestCase(NODE_TEST, 'test_top_k_smallest'),
     TestCase(NODE_TEST, 'test_quantizelinear'),
@@ -481,6 +495,15 @@ TEST_CASES = [
     # TestCase(NODE_TEST, 'test_bitshift_right_uint16'),
 
     TestCase(NODE_TEST, 'test_scan9_sum'),
+
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_max_adjusted'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_expanded'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_max_adjusted_expanded'),
+    TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted_expanded'),
+    TestCase(NODE_TEST, 'test_mvn'),
+    TestCase(NODE_TEST, 'test_mvn_expanded'),
 ]
 
 TEST_CASES += [

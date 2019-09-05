@@ -188,7 +188,7 @@ chainerx::Array GetItemGradOp::RunImpl(
 }
 
 chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
-    return data.Take(indices, axis);
+    return data.Take(indices.ToDevice(data.device()), axis);
 }
 
 chainerx::Array GatherElementsOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices_) {
@@ -368,8 +368,8 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
                 }
 
                 if (selected) {
-                    if (max_output_boxes_per_class > 0 &&
-                        static_cast<int64_t>(selected_indices_inside_class.size()) >= max_output_boxes_per_class) {
+                    if (opt_max_output_boxes_per_class &&
+                        static_cast<int64_t>(selected_indices_inside_class.size()) >= static_cast<int>(*opt_max_output_boxes_per_class)) {
                         break;
                     }
                     selected_indices_inside_class.push_back(next_top_score.index_);
