@@ -774,73 +774,60 @@ class TypeChecker():
 
         if isinstance(node, gast.BoolOp):
             self.nodetype[node] = self.infer_BoolOp(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.BinOp):
             self.nodetype[node] = self.infer_BinOp(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.UnaryOp):
             self.nodetype[node] = self.infer_UnaryOp(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Dict):
             self.nodetype[node] = self.infer_Dict(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.ListComp):
             self.nodetype[node] = self.infer_ListComp(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Compare):
             # Compare(expr left, cmpop* ops, expr* comparators)
             self.nodetype[node] = TyBool()
-            return self.nodetype[node]
 
         if isinstance(node, gast.Call):
             self.nodetype[node] = self.infer_Call(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Num):
             # Num(object n)
             self.nodetype[node] = type_of_value(node.n)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Str):
             # Str(string s)
             self.nodetype[node] = TyString(value=node.s)
-            return self.nodetype[node]
 
         if isinstance(node, gast.NameConstant):
             # NameConstant(singleton value)
             self.nodetype[node] = type_of_value(node.value)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Attribute):
             self.nodetype[node] = self.infer_Attribute(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Subscript):
             self.nodetype[node] = self.infer_Subscript(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Name):
             self.nodetype[node] = self.infer_Name(node)
-            return self.nodetype[node]
 
         if isinstance(node, gast.List):
             # List(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = TyList(elts_ty)
-            return self.nodetype[node]
 
         if isinstance(node, gast.Tuple):
             # Tuple(expr* elts, expr_context ctx)
             elts_ty = [self.infer_expr(e) for e in node.elts]
             self.nodetype[node] = TyTuple(elts_ty)
-            return self.nodetype[node]
 
-        assert False, type(node).__name__
+        assert node in self.nodetype.keys() and \
+                self.nodetype[node] is not None, type(node).__name__
+        return self.nodetype[node]
 
 
     def infer_BoolOp(self, node):
@@ -1012,8 +999,6 @@ class TypeChecker():
 
             return ty_node
 
-        assert False
-
 
     def infer_Subscript(self, node):
         # Subscript(expr value, slice slice, expr_context ctx)
@@ -1043,8 +1028,6 @@ class TypeChecker():
         if isinstance(ty_obj, TyTensor):
             self.infer_slice(node.slice, TyInt())
             return TyTensor(dtype=ty_obj.dtype, kind=ty_obj.kind)
-
-        assert False
 
 
     def infer_Name(self, node):
