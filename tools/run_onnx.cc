@@ -348,22 +348,25 @@ void RunMain(const std::vector<std::string>& argv) {
 
     LOG() << "Loading model..." << std::endl;
     RegisterCustomOnnxOperatorSetSchema();
-    onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
-    Model model(xmodel);
+    std::unique_ptr<Model> model;
+    {
+        onnx::ModelProto xmodel(LoadLargeProto<onnx::ModelProto>(onnx_path));
+        model.reset(new Model(xmodel));
+    }
 
     LOG() << "Loading data..." << std::endl;
 
     std::vector<std::string> input_names;
     std::vector<std::string> output_names;
     std::set<std::string> initializer_names;
-    for (const Value* input : model.graph().input_values()) {
+    for (const Value* input : model->graph().input_values()) {
         if (input->initializer()) {
             CHECK(initializer_names.insert(input->name()).second);
         } else {
             input_names.push_back(input->name());
         }
     }
-    for (const Value* output : model.graph().output_values()) {
+    for (const Value* output : model->graph().output_values()) {
         output_names.push_back(output->name());
     }
 
@@ -371,7 +374,7 @@ void RunMain(const std::vector<std::string>& argv) {
     if (test_path.empty()) {
         std::unique_ptr<TestCase> test_case(new TestCase());
         test_case->name = "generated data by chainerx::Ones";
-        GenerateFixedInput(model, initializer_names, &test_case->inputs);
+        GenerateFixedInput(*model, initializer_names, &test_case->inputs);
         test_cases.emplace_back(std::move(test_case));
     } else {
         ReadTestDir(test_path, input_names, output_names, &test_cases);
@@ -391,7 +394,10 @@ void RunMain(const std::vector<std::string>& argv) {
         test_cases.swap(new_test_cases);
     }
 
-    ModelRunner model_runner(args, initial_used_bytes, &model);
+    ModelRunner model_runner(args, initial_used_bytes, model.get());
+    int num_unknown_ops = 0;
+    int64_t flops = CalculateTotalFlops(model->graph(), &num_unknown_ops);
+    model.reset();
 
     if (args.exist("compile_only")) return;
 
@@ -454,8 +460,6 @@ void RunMain(const std::vector<std::string>& argv) {
     if (iterations > 1) {
         // The first iteration is for warm up.
         double average_elapsed = total_elapsed / (iterations - 1);
-        int num_unknown_ops = 0;
-        int64_t flops = CalculateTotalFlops(model.graph(), &num_unknown_ops);
         if (num_unknown_ops) {
             std::cerr << "Average elapsed: " << average_elapsed << " msec" << std::endl;
             std::cerr << "Best elapsed: " << best_elapsed << " msec" << std::endl;
