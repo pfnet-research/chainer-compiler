@@ -229,9 +229,10 @@ def slice_to_str(node):
     if isinstance(node, gast.Slice):
         ret = ""
         if node.lower: ret += expr_to_str(node.lower)
-        if node.upper: ret += ":" + expr_to_str(node.upper)
-        if node.step: ret += ":" + expr_to_str(node.step)
-        if ret == "": ret = ":"
+        ret += ":"
+        if node.upper: ret += expr_to_str(node.upper)
+        ret += ":"
+        if node.step: ret += expr_to_str(node.step)
         return ret
     if isinstance(node, gast.ExtSlice):
         return intercalate([slice_to_str(s) for s in node.dims], ", ")

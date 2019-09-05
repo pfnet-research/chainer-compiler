@@ -2,6 +2,7 @@ import ast
 import inspect
 import gast
 import os
+import sys
 import traceback
 import types
 from copy import deepcopy
@@ -29,19 +30,10 @@ def add_dict(dest, src):
     for k, v in src.items():
         dest[k] = v
 
-
-def defined_with___call__(func):
-    return not isinstance(func, (types.FunctionType, types.MethodType,
-        types.BuiltinFunctionType))
-
-
-def callable_(x):
-    if isinstance(x, L.Linear) or \
-            isinstance(x, L.Convolution2D) or \
-            isinstance(x, L.BatchNormalization) or \
-            isinstance(x, L.NStepBiLSTM):
-        return False
-    return callable(x)
+def find(seq, pred):
+    for elt in seq:
+        if pred(elt):
+            return elt
 
 
 def copy_ty(ty):
@@ -94,12 +86,12 @@ def call_ext_function(func, ty_args, ty_kwargs):
     # Non-tensor arguments
     val_dummy_args_nontensor = [value_of_type(t) for t in ty_args \
             if not isinstance(t, TyTensor)]
-    inference_logic = ext_func_ty[e.func]
+    inference_logic = ext_func_ty[func]
     try:
         ty_ret = inference_logic(
                 ty_args, val_dummy_args_nontensor, ty_kwargs)
     except Exception:
-        print_warning("Failed to infer type of " + e.func.__name__ +
+        print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyObj...")
         ty_ret = TyObj()
         # raise Exception
@@ -290,18 +282,30 @@ def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, ty_kwargs):
 
 
 def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, ty_kwargs):
+    # shape[1:] should be uniform & ndim > 0
     ty = ty_args[0].deref()
     assert isinstance(ty, TySequence)
+    is_dummy_shape = False
     if ty.is_fixed_len:
-        # TODO: shapeがNoneでないものが1つでもあればそれに合わせる
-        pass
+        is_shape_None = [t.shape is None for t in ty.get_tys()]
+        if any(is_shape_None):
+            is_dummy_shape = True
+            if all(is_shape_None):
+                dummy_args_nontensor[0] = [np.zeros((1,)) for _ in ty.get_tys()]
+            else:
+                t = find(ty.get_tys(), lambda t: t.shape is not None)
+                fallback_shape = t.shape
+                dummy_args_nontensor[0] = [
+                        np.zeros(fallback_shape) if t.shape is None
+                        else np.zeros(t.shape) for t in ty.get_tys()]
     else:
         if ty.get_ty().shape is None:
+            is_dummy_shape = True
             dummy_args_nontensor[0] = [np.zeros((1,), dtype=ty.get_ty().dtype.t)]
 
     dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
     ty_ret = type_of_value(F.pad_sequence(*dummy_args_nontensor, **dummy_kwargs))
-    if ty.get_ty().shape is None: # TODO
+    if is_dummy_shape:
         ty_ret.shape = None
     return ty_ret
 
@@ -331,6 +335,8 @@ ext_func_ty = {
             ty_ChainerIdentical(),
         F.expand_dims :
             ty_ChainerExpandDims,
+        F.hstack :
+            ty_ChainerConcat,
         F.local_response_normalization : evaluate_function_types(
             F.local_response_normalization, 1),
         F.max_pooling_2d :
@@ -353,6 +359,8 @@ ext_func_ty = {
             ty_ChainerIdentical(),
         F.softmax_cross_entropy :
             ty_ChainerSoftmaxCrossEntropy,
+        F.stack :
+            ty_ChainerConcat,
         F.sum :
             ty_ChainerSum,
         F.swapaxes :
@@ -447,6 +455,13 @@ class TypeChecker():
         print("\x1b[39m")
 
 
+    def is_called(self, node):
+        if len(self.stack) < 2:
+            return False
+        return isinstance(self.stack[-2], gast.Call) and \
+                self.stack[-2].func is node
+
+
     def evaluate(self, node):
         if isinstance(node, gast.Attribute):
             v_value = self.evaluate(node.value)
@@ -499,6 +514,8 @@ class TypeChecker():
                     "Wrong number of arguments: expected {}, got {}".format(
                             len(node.args.args), len(ty_args))
 
+        print("\x1b[33m======================= function {} =======================\x1b[39m".format(node.name))
+
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
         for ty in ty_args:
@@ -542,7 +559,7 @@ class TypeChecker():
     def infer_user_defined_function(self, func, ty_args, node):
         if isinstance(func, types.FunctionType) or \
                 isinstance(func, types.MethodType):
-            code = utils.clip_head(inspect.getsource(func))
+            func_body = func
 
             if isinstance(node.func, gast.Attribute):
                 ty_self = self.nodetype[node.func.value]
@@ -551,17 +568,19 @@ class TypeChecker():
         else:
             # defined with __call__
             if isinstance(func, chainer.Chain):
-                code = utils.clip_head(inspect.getsource(func.forward))
+                func_body = func.forward
             else:
-                code = utils.clip_head(inspect.getsource(func.__call__))
+                func_body = func.__call__
 
-            ty_self = self.infer_expr(node.func)
+            ty_self = type_of_value(func)
             ty_args = [ty_self] + ty_args
 
+        code = utils.clip_head(inspect.getsource(func_body))
         # FunctionDef of called subroutine
         func_node = gast.ast_to_gast(ast.parse(code)).body[0]
         self.subroutine_node[node] = func_node
-        tc = TypeChecker(is_debug=self.is_debug, module=self.module)
+        tc = TypeChecker(is_debug=self.is_debug,
+                module=sys.modules[func.__module__])
         tc.infer_function(func_node, ty_args)
 
         # copy nodetype and subroutine_node from subroutine
@@ -626,6 +645,8 @@ class TypeChecker():
 
         for stmt in node.body:
             ty = self.infer_stmt(stmt)
+
+        assert ty is not None
         return TyArrow(ty_args, ty)
 
 
@@ -752,15 +773,15 @@ class TypeChecker():
 
     # ================================= expr ===================================
     def infer_expr(self, node) -> 'TyObj':
-        if self.is_debug:
-            debug(gast.dump(node))
-            # self.dump_stack()
-            # self.dump_tyenv()
-
         if node in self.nodetype.keys():
             return self.nodetype[node]
 
         self.stack.append(node)
+
+        if self.is_debug:
+            debug(gast.dump(node))
+            self.dump_stack()
+            # self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
             self.nodetype[node] = self.infer_BoolOp(node)
@@ -890,8 +911,9 @@ class TypeChecker():
 
         try:
             ty_fun = self.infer_expr(node.func)
-
         except self.ArgumentRequired as e:
+            self.stack.pop()  # for node.func
+
             if e.func in func_to_ignore:
                 return ## TODO
 
@@ -936,7 +958,7 @@ class TypeChecker():
             # function of imported libraries (eg. np, chainer, F, L)
             module = getattr(self.module, node.value.id)
             attr = getattr(module, node.attr)
-            if isinstance(self.stack[-2], gast.Call):
+            if self.is_called(node):
                 raise self.ArgumentRequired(func=attr)
             return type_of_value(attr)
 
@@ -951,6 +973,8 @@ class TypeChecker():
                 if ty_obj.shape is None:
                     return TyTuple(TyInt())
                 return type_of_value(ty_obj.shape)
+            if node.attr == 'size':
+                return TyInt()
             if ty_obj.is_ndarray() and node.attr == 'astype':
                 raise self.ArgumentRequired()
             assert False
@@ -960,15 +984,14 @@ class TypeChecker():
             x = getattr(ty_obj.instance, node.attr)
 
             if callable(x) and x in builtins_ty.keys():
-                return builtins_ty[x]
+                return copy_ty(builtins_ty[x])
 
             if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                 ty_node = self.attribute_tyenv[(ty_obj.instance, node.attr)]
             else:
                 ty_node = type_of_value(x)
 
-            if isinstance(self.stack[-2], gast.Call):
-                self.nodetype[node] = ty_node
+            if self.is_called(node) and type(x) not in L.__dict__.values():
                 raise self.ArgumentRequired(func=x)
 
             return ty_node
@@ -1012,7 +1035,7 @@ class TypeChecker():
             return copy_ty(builtins_ty[eval(node.id)])
         if hasattr(self.module, node.id):
             x = getattr(self.module, node.id)
-            if callable_(x):
+            if self.is_called(node):
                 raise self.ArgumentRequired(func=x)
             return type_of_value(x)
 

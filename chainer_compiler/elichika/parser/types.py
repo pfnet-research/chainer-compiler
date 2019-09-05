@@ -435,6 +435,9 @@ def type_of_value(value) -> 'TyObj':
             isinstance(value, L.BatchNormalization):
         return TyArrow([TyChainerVariable(TyDType(np.float32))],
                 TyChainerVariable(TyDType(np.float32)))
+    if isinstance(value, L.EmbedID):
+        return TyArrow([TyChainerVariable(TyDType(np.int32))],
+                TyChainerVariable(TyDType(np.float32)))
     if isinstance(value, L.NStepBiLSTM):
         # TODO(momohatt): allow other types
         return TyArrow([

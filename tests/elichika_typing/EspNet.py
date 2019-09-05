@@ -8,8 +8,9 @@ from testcases.elichika_tests.utils import sequence_utils
 from testcases.elichika_tests.model.EspNet_AttDot import AttDot
 from testcases.elichika_tests.model.EspNet_AttLoc import AttLoc
 from testcases.elichika_tests.model.EspNet_BLSTM import BLSTM
-from testcases.elichika_tests.model.EspNet_VGG2L import VGG2L
 from testcases.elichika_tests.model.EspNet_Decoder import Decoder
+from testcases.elichika_tests.model.EspNet_E2E import E2E, test_recipe
+from testcases.elichika_tests.model.EspNet_VGG2L import VGG2L
 from testcases.elichika_tests.model.StatelessLSTM import StatelessLSTM
 
 def gen_AttDot_model():
@@ -139,6 +140,13 @@ def gen_Decoder_model():
     model = Decoder(eprojs, odim, dlayers, dunits, sos, eos, att_dim)
     forward_args = (hs, ys)
 
+    return model, forward_args
+
+
+def gen_E2E_model():
+    (idim, odim, args), (xs, ilens, ys) = test_recipe()
+    model = E2E(idim, odim, args, nobias=True)
+    forward_args = (xs, ilens, ys)
     return model, forward_args
 
 

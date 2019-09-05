@@ -46,6 +46,7 @@ def generate_node2type(tree, args, is_debug=False, module=None):
         node2type = tc.infer_function_vargs(func_body, args)
         return node2type, tc.subroutine_node
     except Exception as e:
+        tc.dump_stack()
         tc.dump_tyenv()
         raise e
 
