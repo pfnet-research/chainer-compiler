@@ -915,7 +915,7 @@ class TypeChecker():
             self.stack.pop()  # for node.func
 
             if e.func in func_to_ignore:
-                return ## TODO
+                return TyVar()
 
             if e.func is None:
                 # attribute against tensor etc.

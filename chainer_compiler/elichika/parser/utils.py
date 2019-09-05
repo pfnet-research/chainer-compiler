@@ -273,9 +273,12 @@ def is_expr(node):
             or isinstance(node, gast.Tuple)
 
 
-def node_description(node):
+def node_description(node, func_name=None, class_name=None):
     type_name = type(node).__name__
-    lineno = " (line {})".format(node.lineno) if hasattr(node, 'lineno') else ""
+    lineno = " (line {}, function {}, class {})".format(
+            node.lineno if hasattr(node, 'lineno') else "?",
+            "?" if func_name is None else func_name,
+            "?" if class_name is None else class_name)
     if isinstance(node, gast.FunctionDef):
         return "{} {}{}".format(type_name, node.name, lineno)
     if is_expr(node):
