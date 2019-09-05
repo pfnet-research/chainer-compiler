@@ -536,14 +536,23 @@ private:
 
             std::vector<int> inputs;
             std::vector<ChxVMValue> outputs;
+            size_t batch_size = 0;
             for (Value* value : node.inputs()) {
+                CHECK(value->type().ndim());
+                if (batch_size) {
+                    CHECK_EQ(batch_size, value->type().dims()[0]);
+                } else {
+                    batch_size = value->type().dims()[0];
+                }
                 inputs.push_back(GetValueId(value));
             }
             for (Value* value : node.outputs()) {
+                CHECK(value->type().ndim());
+                CHECK_EQ(batch_size, value->type().dims()[0]);
                 outputs.emplace_back(GetValueId(value), value);
             }
 
-            EMIT(TensorRT, outputs, inputs, onnx);
+            EMIT(TensorRT, outputs, inputs, onnx, batch_size, g_use_tensorrt_fp16);
             return;
         }
 

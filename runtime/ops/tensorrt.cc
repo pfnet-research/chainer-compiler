@@ -21,8 +21,6 @@ namespace runtime {
 
 namespace {
 
-constexpr int kBatchSize = 1;
-
 struct InferDeleter {
     template <typename T>
     void operator()(T* obj) const {
@@ -60,8 +58,8 @@ chainerx::Dtype GetDtype(nvinfer1::DataType type) {
     }
 }
 
-chainerx::Shape GetShape(const nvinfer1::Dims& dims) {
-    chainerx::Shape shape = {kBatchSize};
+chainerx::Shape GetShape(const int batch_size, const nvinfer1::Dims& dims) {
+    chainerx::Shape shape = {batch_size};
     for (int i = 0; i < dims.nbDims; ++i) {
         shape.push_back(dims.d[i]);
     }
@@ -98,16 +96,16 @@ void TensorRTOp::InitImpl() {
         CHECK(false);
     }
 
-    builder->setMaxBatchSize(kBatchSize);
+    builder->setMaxBatchSize(batch_size);
     builder->setMaxWorkspaceSize(128 * 1000 * 1000);
-    // builder->setFp16Mode(false);
+    builder->setFp16Mode(use_fp16);
 
     impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildCudaEngine(*network), InferDeleter());
 
     for (int i = 0; i < network->getNbOutputs(); ++i) {
         nvinfer1::ITensor* tensor = network->getOutput(i);
         chainerx::Dtype dtype = GetDtype(tensor->getType());
-        chainerx::Shape shape = GetShape(tensor->getDimensions());
+        chainerx::Shape shape = GetShape(batch_size, tensor->getDimensions());
         chainerx::Array array = chainerx::Empty(shape, dtype);
         impl_->outputs.push_back(array);
     }
@@ -130,7 +128,7 @@ std::vector<chainerx::Array> TensorRTOp::RunImpl(
     chainerx::Array inputs[num_inputs];
     for (size_t i = 0; i < num_inputs; ++i) {
         const chainerx::Array& input = orig_inputs[i];
-        CHECK_EQ(input.shape()[0], kBatchSize);
+        CHECK_EQ(input.shape()[0], batch_size);
         inputs[i] = chainerx::AsContiguous(input);
     }
 
@@ -145,7 +143,7 @@ std::vector<chainerx::Array> TensorRTOp::RunImpl(
         bindings.push_back(RawStartPtr(a));
     }
 
-    const bool status = context->execute(kBatchSize, &bindings[0]);
+    const bool status = context->execute(batch_size, &bindings[0]);
     CHECK(status);
 
     return impl_->outputs;
