@@ -6,6 +6,7 @@
 namespace chainer_compiler {
 
 void FuseTensorRTOperations(Graph* graph) {
+    // clang-format off
     static std::set<Node::OpType> fusable_ops = {
         Node::kAdd,
         Node::kAveragePool,
@@ -30,6 +31,7 @@ void FuseTensorRTOperations(Graph* graph) {
         Node::kTranspose,
         Node::kUnsqueeze
     };
+    // clang-format on
 
     auto is_fusable = [](const Node& node) {
         if (!fusable_ops.count(node.op_type())) {

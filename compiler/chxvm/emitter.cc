@@ -547,7 +547,6 @@ private:
             return;
         }
 
-
         if (g_use_nvrtc && node.fusion_type() == "nvrtc") {
             std::string nvrtc;
             BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);

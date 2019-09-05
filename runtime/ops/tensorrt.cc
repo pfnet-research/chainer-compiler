@@ -46,7 +46,7 @@ public:
 };
 
 chainerx::Dtype GetDtype(nvinfer1::DataType type) {
-    switch (type ) {
+    switch (type) {
         case nvinfer1::DataType::kFLOAT:
             return chainerx::Dtype::kFloat32;
         case nvinfer1::DataType::kHALF:
@@ -121,7 +121,8 @@ TensorRTOp::~TensorRTOp() {
 #endif
 }
 
-std::vector<chainerx::Array> TensorRTOp::RunImpl(chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
+std::vector<chainerx::Array> TensorRTOp::RunImpl(
+        chainer_compiler::runtime::ChxVMState* st, const std::vector<chainerx::Array>& orig_inputs) {
 #if CHAINER_COMPILER_ENABLE_TENSORRT
     size_t num_inputs = orig_inputs.size();
 
