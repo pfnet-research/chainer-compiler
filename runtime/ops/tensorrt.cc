@@ -1,7 +1,5 @@
 #if CHAINER_COMPILER_ENABLE_TENSORRT
 
-#include <sstream>
-
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
 
@@ -80,7 +78,6 @@ public:
 void TensorRTOp::InitImpl() {
 #if CHAINER_COMPILER_ENABLE_TENSORRT
     impl_ = new TensorRTImpl();
-    std::istringstream iss(onnx);
 
     auto builder = UniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(impl_->logger));
     CHECK(builder);
@@ -88,7 +85,7 @@ void TensorRTOp::InitImpl() {
     CHECK(network);
     auto parser = UniquePtr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, impl_->logger));
 
-    if (!parser->parse(iss.str().c_str(), iss.str().size())) {
+    if (!parser->parse(onnx.data(), onnx.size())) {
         for (int i = 0; i < parser->getNbErrors(); ++i) {
             auto e = parser->getError(i);
             std::cerr << e->desc() << std::endl;
