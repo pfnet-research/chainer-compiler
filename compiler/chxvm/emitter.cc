@@ -524,6 +524,30 @@ private:
             return;
         }
 
+        if (g_use_tensorrt && node.fusion_type() == "tensorrt") {
+            if (g_compiler_log) {
+                CLOG() << "Fusion group (TensorRT) " << GetFusionGroupSummary(node) << std::endl;
+            }
+
+            onnx::ModelProto xmodel;
+            body.ToONNX(xmodel.mutable_graph());
+            std::string onnx;
+            xmodel.SerializeToString(&onnx);
+
+            std::vector<int> inputs;
+            std::vector<ChxVMValue> outputs;
+            for (Value* value : node.inputs()) {
+                inputs.push_back(GetValueId(value));
+            }
+            for (Value* value : node.outputs()) {
+                outputs.emplace_back(GetValueId(value), value);
+            }
+
+            EMIT(TensorRT, outputs, inputs, onnx);
+            return;
+        }
+
+
         if (g_use_nvrtc && node.fusion_type() == "nvrtc") {
             std::string nvrtc;
             BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);

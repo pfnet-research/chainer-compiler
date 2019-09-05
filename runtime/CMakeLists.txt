@@ -68,6 +68,7 @@ add_library(chainer_compiler_runtime
   ops/sorting.cc
   ops/space_depth.cc
   ops/statistics.cc
+  ops/tensorrt.cc
   ops/tvm.cc
   )
 add_dependencies(
