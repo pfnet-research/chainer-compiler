@@ -283,10 +283,12 @@ def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, ty_kwargs):
         pass
     else:
         if ty.get_ty().shape is None:
-            dummy_args_nontensor[0] = np.zeros((1,), dtype=ty.get_ty().dtype)
+            dummy_args_nontensor[0] = [np.zeros((1,), dtype=ty.get_ty().dtype.t)]
 
     dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
     ty_ret = type_of_value(F.pad_sequence(*dummy_args_nontensor, **dummy_kwargs))
+    if ty.get_ty().shape is None: # TODO
+        ty_ret.shape = None
     return ty_ret
 
 
@@ -753,11 +755,11 @@ class TypeChecker():
             elif isinstance(node.op, gast.UAdd):
                 pass
             elif isinstance(node.op, gast.USub):
-                # TODO(momohatt): UnaryOp(op=USub(), operand=Num(n=1)) should be
-                # canonicalized to Num(n=-1)?
-
                 ty_expr = self.infer_expr(node.operand)
-                self.nodetype[node] = ty_expr  # TODO: fix this
+                if isinstance(ty_expr, TyNum) and ty_expr.value is not None:
+                    self.nodetype[node] = type_of_value(- ty_expr.value)
+                else:
+                    self.nodetype[node] = ty_expr
             return self.nodetype[node]
 
 

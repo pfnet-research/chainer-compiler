@@ -411,13 +411,13 @@ def type_of_value(value) -> 'TyObj':
     if value is None:
         return TyNone()
     if isinstance(value, bool):
-        return TyBool()
+        return TyBool(value=value)
     if isinstance(value, int):
-        return TyInt()
+        return TyInt(value=value)
     if isinstance(value, float):
-        return TyFloat()
+        return TyFloat(value=value)
     if isinstance(value, str):
-        return TyString()
+        return TyString(value=value)
     if isinstance(value, list):
         return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
