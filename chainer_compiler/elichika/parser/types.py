@@ -96,6 +96,8 @@ def TyFloat(value=None):
 
 
 class TyString(TyObj):
+    def __init__(self, value=None):
+        self.value = value
     def show(self):
         return "string"
     def __eq__(self, other):
@@ -461,6 +463,8 @@ def value_of_type(ty) -> object:
             return ty.value
         return pytype_of_type(ty)(1)  # XXX: to avoid division by zero
     if isinstance(ty, TyString):
+        if ty.value is not None:
+            return ty.value
         return ""
     if isinstance(ty, TySequence):
         if ty.is_fixed_len:

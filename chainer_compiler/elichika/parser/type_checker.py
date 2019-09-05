@@ -814,15 +814,15 @@ class TypeChecker():
         if isinstance(node, gast.Num):
             # Num(object n)
             if isinstance(node.n, int):
-                self.nodetype[node] = TyInt(node.n)
+                self.nodetype[node] = TyInt(value=node.n)
             elif isinstance(node.n, float):
-                self.nodetype[node] = TyFloat(node.n)
+                self.nodetype[node] = TyFloat(value=node.n)
             return self.nodetype[node]
 
 
         if isinstance(node, gast.Str):
             # Str(string s)
-            self.nodetype[node] = TyString()
+            self.nodetype[node] = TyString(value=node.s)
             return self.nodetype[node]
 
 
@@ -830,7 +830,7 @@ class TypeChecker():
             # NameConstant(singleton value)
             # value is either True, False or None
             if isinstance(node.value, bool):
-                self.nodetype[node] = TyBool(node.value)
+                self.nodetype[node] = TyBool(value=node.value)
             elif node.value is None:
                 self.nodetype[node] = TyNone()
             return self.nodetype[node]
