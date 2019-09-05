@@ -55,7 +55,7 @@ void FuseTensorRTOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("tensorrt", graph, 1, true, is_fusable);
+    FuseAllConnectedNodes("tensorrt", graph, 5, true, is_fusable);
 }
 
 }  // namespace chainer_compiler
