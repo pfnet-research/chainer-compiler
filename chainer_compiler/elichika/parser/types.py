@@ -478,6 +478,8 @@ def value_of_type(ty) -> object:
             return ret
         if ty.kind == TensorKind.chainer_variable:
             return chainer.Variable(ret)
+    if isinstance(ty, TyDType):
+        return ty.t
 
     assert False, str(ty)
 
