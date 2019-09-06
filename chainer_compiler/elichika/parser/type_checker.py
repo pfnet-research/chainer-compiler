@@ -113,6 +113,18 @@ def call_ext_function(func, ty_args, ty_kwargs):
     return ty_ret
 
 
+def choose_stronger_ty(ty1, ty2):
+    if isinstance(ty1, TyNone):
+        return ty2
+    if isinstance(ty2, TyNone):
+        return ty1
+    if type(ty1) is TyObj:
+        return ty2
+    if type(ty2) is TyObj:
+        return ty1
+    return ty1  # whichever is okay
+
+
 # ==============================================================================
 
 builtins_ty = {
@@ -574,15 +586,24 @@ class TypeChecker():
         for name, ty in tc1.tyenv.items():
             if name in tc2.tyenv.keys():
                 unify(ty, tc2.tyenv[name])
-            self.tyenv[name] = ty
+                self.tyenv[name] = choose_stronger_ty(ty, tc2.tyenv[name])
+            else:
+                self.tyenv[name] = ty
         for name, ty in tc2.tyenv.items():
+            if name in tc1.tyenv.keys():
+                continue
             self.tyenv[name] = ty
 
         for (obj, name), ty in tc1.attribute_tyenv.items():
             if (obj, name) in tc2.attribute_tyenv.keys():
                 unify(ty, tc2.attribute_tyenv[(obj, name)])
-            self.attribute_tyenv[(obj, name)] = ty
+                self.attribute_tyenv[(obj, name)] = \
+                        choose_stronger_ty(ty, tc2.attribute_tyenv[(obj, name)])
+            else:
+                self.attribute_tyenv[(obj, name)] = ty
         for (obj, name), ty in tc2.attribute_tyenv.items():
+            if (obj, name) in tc1.attribute_tyenv.keys():
+                continue
             self.attribute_tyenv[(obj, name)] = ty
 
 
