@@ -39,14 +39,17 @@ def find(seq, pred):
 def copy_ty(ty):
     if isinstance(ty, TyUserDefinedClass):
         # XXX: do not copy instance
-        return TyUserDefinedClass(ty.name, ty.instance)
-    if isinstance(ty, TyNum):
-        return TyNum(ty_min=ty.ty_min, ty_max=ty.ty_max, value=None)
-    if isinstance(ty, TyString):
-        return TyString
-    if isinstance(ty, TyDType):
-        return TyDType()
-    return deepcopy(ty)
+        ret = TyUserDefinedClass(ty.name, ty.instance)
+    elif isinstance(ty, TyNum):
+        ret = TyNum(ty_min=ty.ty_min, ty_max=ty.ty_max, value=None)
+    elif isinstance(ty, TyString):
+        ret = TyString()
+    elif isinstance(ty, TyDType):
+        ret = TyDType()
+    else:
+        ret = deepcopy(ty)
+    ret.is_optional = ty.is_optional
+    return ret
 
 
 def copy_tyenv(tyenv):
@@ -538,14 +541,11 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_block(self, stmts):  # use in if (without else), for, while
-        tc = TypeChecker(
-                tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                is_debug=self.is_debug, module=self.module)
+    def infer_block(self, tc, stmts):  # use in if (without else), for, while
         for stmt in stmts:
             tc.infer_stmt(stmt)
 
-        # 1. unify the intersection of 2 tyenvs and update local tyenv
+        # unify the intersection of 2 tyenvs and update local tyenv
         for name, ty in tc.tyenv.items():
             if name in self.tyenv.keys():
                 unify(ty, self.tyenv[name])
@@ -555,10 +555,6 @@ class TypeChecker():
             if (obj, name) in self.attribute_tyenv.keys():
                 unify(ty, self.attribute_tyenv[(obj, name)])
             self.attribute_tyenv[(obj, name)] = ty
-
-        # 2. merge nodetype from 2 TypeCheckers
-        add_dict(self.nodetype, tc.nodetype)
-        add_dict(self.subroutine_node, tc.subroutine_node)
 
 
     def infer_user_defined_function(self, func, ty_args, node):
@@ -729,8 +725,16 @@ class TypeChecker():
         else:
             unify(ty_iteration, TySequence(ty=ty_i))
 
-        # TODO(momohatt): scope of iteration variable is wrong
-        self.infer_block(node.body)
+        stmts = node.body
+        for _ in range(2):
+            tc = TypeChecker(
+                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                    is_debug=self.is_debug, module=self.module)
+            self.infer_block(tc, node.body)
+
+        # 2. merge nodetype from 2 TypeCheckers
+        add_dict(self.nodetype, tc.nodetype)
+        add_dict(self.subroutine_node, tc.subroutine_node)
 
 
     def infer_If(self, node):
@@ -740,7 +744,12 @@ class TypeChecker():
         x = lazy_initializer(node)
 
         if node.orelse == []:
-            self.infer_block(node.body)
+            tc = TypeChecker(
+                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
+                    is_debug=self.is_debug, module=self.module)
+            self.infer_block(tc, node.body)
+            add_dict(self.nodetype, tc.nodetype)
+            add_dict(self.subroutine_node, tc.subroutine_node)
         else:
             tc1 = TypeChecker(
                     tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
@@ -785,7 +794,7 @@ class TypeChecker():
 
         if self.is_debug:
             debug(gast.dump(node))
-            self.dump_stack()
+            # self.dump_stack()
             # self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
