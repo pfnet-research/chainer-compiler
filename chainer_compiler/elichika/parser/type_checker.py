@@ -59,6 +59,13 @@ def copy_tyenv(tyenv):
     return new_tyenv
 
 
+def copy_TypeChecker(tc):
+    new_tc = TypeChecker(
+            tyenv=tc.tyenv, attribute_tyenv=tc.attribute_tyenv,
+            is_debug=tc.is_debug, module=tc.module)
+    return new_tc
+
+
 def lazy_initializer(node):
     def ident_eq(expr1, expr2):
         if isinstance(expr1, gast.Name) and isinstance(expr2, gast.Name):
@@ -557,6 +564,28 @@ class TypeChecker():
             self.attribute_tyenv[(obj, name)] = ty
 
 
+    def infer_2blocks(self, tc1, tc2, stmts1, stmts2):
+        for stmt in stmts1:
+            tc1.infer_stmt(stmt)
+        for stmt in stmts2:
+            tc2.infer_stmt(stmt)
+
+        # unify the intersection of 2 tyenvs and update local tyenv
+        for name, ty in tc1.tyenv.items():
+            if name in tc2.tyenv.keys():
+                unify(ty, tc2.tyenv[name])
+            self.tyenv[name] = ty
+        for name, ty in tc2.tyenv.items():
+            self.tyenv[name] = ty
+
+        for (obj, name), ty in tc1.attribute_tyenv.items():
+            if (obj, name) in tc2.attribute_tyenv.keys():
+                unify(ty, tc2.attribute_tyenv[(obj, name)])
+            self.attribute_tyenv[(obj, name)] = ty
+        for (obj, name), ty in tc2.attribute_tyenv.items():
+            self.attribute_tyenv[(obj, name)] = ty
+
+
     def infer_user_defined_function(self, func, ty_args, node):
         if isinstance(func, types.FunctionType) or \
                 isinstance(func, types.MethodType):
@@ -730,9 +759,7 @@ class TypeChecker():
 
         stmts = node.body
         for _ in range(2):
-            tc = TypeChecker(
-                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                    is_debug=self.is_debug, module=self.module)
+            tc = copy_TypeChecker(self)
             self.infer_block(tc, node.body)
 
         # 2. merge nodetype from 2 TypeCheckers
@@ -747,38 +774,15 @@ class TypeChecker():
         x = lazy_initializer(node)
 
         if node.orelse == []:
-            tc = TypeChecker(
-                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                    is_debug=self.is_debug, module=self.module)
+            tc = copy_TypeChecker(self)
             self.infer_block(tc, node.body)
             add_dict(self.nodetype, tc.nodetype)
             add_dict(self.subroutine_node, tc.subroutine_node)
         else:
-            tc1 = TypeChecker(
-                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                    is_debug=self.is_debug, module=self.module)
-            tc2 = TypeChecker(
-                    tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                    is_debug=self.is_debug, module=self.module)
-            for stmt in node.body:
-                tc1.infer_stmt(stmt)
-            for stmt in node.orelse:
-                tc2.infer_stmt(stmt)
-
-            # 1. unify the intersection of 2 tyenvs and update local tyenv
-            for name, ty in tc1.tyenv.items():
-                if name in tc2.tyenv.keys():
-                    unify(ty, tc2.tyenv[name])
-                    # XXX: objects existing in only one branch should not
-                    # remain
-                    self.tyenv[name] = ty
-
-            for (obj, name), ty in tc1.attribute_tyenv.items():
-                if (obj, name) in tc2.attribute_tyenv.keys():
-                    unify(ty, tc2.attribute_tyenv[(obj, name)])
-                    self.attribute_tyenv[(obj, name)] = ty
-
-            # 2. merge nodetype from 2 TypeCheckers
+            tc1 = copy_TypeChecker(self)
+            tc2 = copy_TypeChecker(self)
+            self.infer_2blocks(tc1, tc2, node.body, node.orelse)
+            # merge nodetype from 2 TypeCheckers
             add_dict(self.nodetype, tc1.nodetype)
             add_dict(self.nodetype, tc2.nodetype)
             add_dict(self.subroutine_node, tc1.subroutine_node)
@@ -898,10 +902,7 @@ class TypeChecker():
         # cannot think of cases where len > 2
         assert len(node.generators) == 1
 
-        tc = TypeChecker(
-                tyenv=self.tyenv, attribute_tyenv=self.attribute_tyenv,
-                is_debug=self.is_debug, module=self.module)
-
+        tc = copy_TypeChecker(self)
         gen = node.generators[0]
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.infer_expr(gen.target)
