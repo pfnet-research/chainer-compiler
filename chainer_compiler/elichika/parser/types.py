@@ -7,8 +7,6 @@ import numpy as np
 
 from chainer_compiler.elichika.parser.utils import intercalate
 
-is_debug_global = False
-
 def print_warning(msg):
     print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
 
@@ -63,11 +61,9 @@ class NumKind(IntEnum):
 
 
 class TyNum(TyObj):
-    def __init__(self, ty_min, ty_max, value=None):
+    def __init__(self, ty_min, value=None):
         super().__init__()
-        assert ty_min <= ty_max
         self.ty_min = ty_min
-        self.ty_max = ty_max
         self.value = value
 
     def show(self):
@@ -79,9 +75,6 @@ class TyNum(TyObj):
     def is_mutable(self):
         return False
 
-    def possible_types(self):
-        return list(range(self.ty_min, self.ty_max+ 1))
-
     def coerce_value(self):
         if self.value is None:
             return
@@ -89,13 +82,13 @@ class TyNum(TyObj):
 
 
 def TyBool(value=None):
-    return TyNum(0, 2, value=value)  # bool or int or float
+    return TyNum(0, value=value)  # bool or int or float
 
 def TyInt(value=None):
-    return TyNum(1, 2, value=value)  # int or float
+    return TyNum(1, value=value)  # int or float
 
 def TyFloat(value=None):
-    return TyNum(2, 2, value=value)  # float
+    return TyNum(2, value=value)  # float
 
 
 class TyString(TyObj):
@@ -339,8 +332,6 @@ class TyVar(TyObj):
 
     def show(self):
         if self.ty:
-            if is_debug_global:
-                return "a{}({})".format(self.i, self.ty)
             return str(self.ty)
         return "a" + str(self.i)
 
@@ -562,12 +553,7 @@ def unify(ty1, ty2):
     ty1.is_optional = ty2.is_optional = ty1.is_optional or ty2.is_optional
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
-        possible_types = \
-                [i for i in ty1.possible_types() if i in ty2.possible_types()]
-        if possible_types == []:
-            raise UnifyError(ty1, ty2)
-        ty1.ty_min = ty2.ty_min = min(possible_types)
-        ty1.ty_max = ty2.ty_max = max(possible_types)
+        ty1.ty_min = ty2.ty_min = max(ty1.ty_min, ty2.ty_min)
         ty1.coerce_value()
         ty2.coerce_value()
         return

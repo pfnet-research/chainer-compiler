@@ -1124,7 +1124,6 @@ if __name__ == '__main__':
     orig_ast = gast.ast_to_gast(ast.parse(code))
     dump_ast(orig_ast, 'original')
 
-    is_debug_global = True
     tc = TypeChecker(is_debug=True, module=module)
     try:
         nodetype = tc.infer(orig_ast)
