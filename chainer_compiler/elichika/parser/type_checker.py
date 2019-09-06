@@ -403,8 +403,8 @@ ext_func_ty = {
             ty_ChainerPooling2d(F.max_pooling_2d),
         F.pad_sequence :
             ty_ChainerPadSequence,
-        F.relu : evaluate_function_types(
-            F.relu, 1),
+        F.relu :
+            ty_ChainerIdentical(),
         F.reshape :
             ty_ChainerReshape,
         F.separate :
