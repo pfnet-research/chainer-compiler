@@ -61,16 +61,16 @@ class NumKind(IntEnum):
 
 
 class TyNum(TyObj):
-    def __init__(self, ty_min, value=None):
+    def __init__(self, kind, value=None):
         super().__init__()
-        self.ty_min = ty_min
+        self.kind = kind
         self.value = value
 
     def show(self):
-        return str(NumKind(self.ty_min))
+        return str(NumKind(self.kind))
 
     def __eq__(self, other):
-        return isinstance(other, TyNum) and self.ty_min == other.ty_min
+        return isinstance(other, TyNum) and self.kind == other.kind
 
     def is_mutable(self):
         return False
@@ -553,7 +553,7 @@ def unify(ty1, ty2):
     ty1.is_optional = ty2.is_optional = ty1.is_optional or ty2.is_optional
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyNum):
-        ty1.ty_min = ty2.ty_min = max(ty1.ty_min, ty2.ty_min)
+        ty1.kind = ty2.kind = max(ty1.kind, ty2.kind)
         ty1.coerce_value()
         ty2.coerce_value()
         return

@@ -41,7 +41,7 @@ def copy_ty(ty):
         # XXX: do not copy instance
         ret = TyUserDefinedClass(ty.name, ty.instance)
     elif isinstance(ty, TyNum):
-        ret = TyNum(ty_min=ty.ty_min, ty_max=ty.ty_max, value=None)
+        ret = TyNum(kind=ty.kind, value=None)
     elif isinstance(ty, TyString):
         ret = TyString()
     elif isinstance(ty, TyDType):
