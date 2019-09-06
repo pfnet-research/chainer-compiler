@@ -163,7 +163,8 @@ RUN apt-get update -y && \
     unzip \
     sudo \
     ninja-build \
-    libopencv-dev && \
+    libopencv-dev \
+    libnvinfer-dev && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 RUN echo deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-6.0 main \
     >> /etc/apt/sources.list.d/llvm.list && \
