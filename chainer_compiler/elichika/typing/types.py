@@ -472,6 +472,18 @@ def pytype_of_type(ty) -> type:
     assert False
 
 
+def choose_stronger_ty(ty1, ty2):
+    if isinstance(ty1, TyNone):
+        return ty2
+    if isinstance(ty2, TyNone):
+        return ty1
+    if type(ty1) is TyObj:
+        return ty2
+    if type(ty2) is TyObj:
+        return ty1
+    return ty1  # whichever is okay
+
+
 # ==============================================================================
 
 class UnifyError(Exception):
