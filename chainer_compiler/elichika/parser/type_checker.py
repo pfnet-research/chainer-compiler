@@ -1089,6 +1089,10 @@ class TypeChecker():
     def infer_Name(self, node):
         # Name(identifier id, expr_context ctx, expr? annotation)
         if node.id in self.tyenv.keys():
+            ty = self.tyenv[node.id]
+            if self.is_called(node) and isinstance(ty, TyUserDefinedClass) and \
+                    callable(ty.instance):
+                raise self.ArgumentRequired(func=ty.instance)
             return self.tyenv[node.id]
         if node.id in __builtins__.keys():
             value = __builtins__[node.id]
