@@ -1,5 +1,8 @@
 #if CHAINER_COMPILER_ENABLE_TENSORRT
 
+#include <map>
+#include <string>
+
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
 
@@ -71,6 +74,7 @@ public:
     Logger logger;
     std::shared_ptr<nvinfer1::ICudaEngine> engine;
     std::vector<chainerx::Array> outputs;
+    std::vector<size_t> binding_indices;
 };
 
 #endif
@@ -100,12 +104,34 @@ void TensorRTOp::InitImpl() {
     impl_->engine = std::shared_ptr<nvinfer1::ICudaEngine>(builder->buildCudaEngine(*network), InferDeleter());
     CHECK(impl_->engine);
 
+    std::map<std::string, size_t> name_to_index;
+    for (int i = 0; i < network->getNbInputs(); ++i) {
+        nvinfer1::ITensor* tensor = network->getInput(i);
+        CHECK(name_to_index.emplace(tensor->getName(), name_to_index.size()).second) << tensor->getName();
+#if 0
+        chainerx::Dtype dtype = GetDtype(tensor->getType());
+        chainerx::Shape shape = GetShape(batch_size, tensor->getDimensions());
+        std::cerr << tensor->getName() << ' ' << dtype << ' ' << shape << std::endl;
+#endif
+    }
+
     for (int i = 0; i < network->getNbOutputs(); ++i) {
         nvinfer1::ITensor* tensor = network->getOutput(i);
         chainerx::Dtype dtype = GetDtype(tensor->getType());
         chainerx::Shape shape = GetShape(batch_size, tensor->getDimensions());
         chainerx::Array array = chainerx::Empty(shape, dtype);
         impl_->outputs.push_back(array);
+        CHECK(name_to_index.emplace(tensor->getName(), name_to_index.size()).second) << tensor->getName();
+#if 0
+        std::cerr << tensor->getName() << ' ' << dtype << ' ' << shape << std::endl;
+#endif
+    }
+
+     for (int i = 0; i < impl_->engine->getNbBindings(); ++i) {
+         const std::string name = impl_->engine->getBindingName(i);
+         auto found = name_to_index.find(name);
+         CHECK(found != name_to_index.end()) << name;
+         impl_->binding_indices.push_back(found->second);
     }
 
 #endif
@@ -133,12 +159,17 @@ std::vector<chainerx::Array> TensorRTOp::RunImpl(
     auto context = UniquePtr<nvinfer1::IExecutionContext>(impl_->engine->createExecutionContext());
     CHECK(context);
 
-    std::vector<void*> bindings;
+    std::vector<void*> inouts;
     for (const chainerx::Array& a : inputs) {
-        bindings.push_back(RawStartPtr(a));
+        inouts.push_back(RawStartPtr(a));
     }
     for (const chainerx::Array& a : impl_->outputs) {
-        bindings.push_back(RawStartPtr(a));
+        inouts.push_back(RawStartPtr(a));
+    }
+
+    std::vector<void*> bindings;
+    for (size_t i : impl_->binding_indices) {
+        bindings.push_back(inouts[i]);
     }
 
     const bool status = context->execute(batch_size, &bindings[0]);
