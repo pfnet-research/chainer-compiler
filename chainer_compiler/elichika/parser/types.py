@@ -13,11 +13,15 @@ def print_warning(msg):
     print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
 
 class TyObj():  # base type, meaning 'unknown'
-    def __init__(self):
+    def __init__(self, lineno=None):
         self.is_optional = False
+        self.lineno = lineno
     # TODO(momohatt): fix __repr__
     def show(self):
-        return "object"
+        if self.lineno is None:
+            return "object"
+        # TODO
+        return "object (from line {})".format(self.lineno)
     def __str__(self):
         if self.is_optional:
             return "optional({})".format(self.show())

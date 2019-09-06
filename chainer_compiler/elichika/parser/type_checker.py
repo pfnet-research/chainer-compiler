@@ -108,7 +108,7 @@ def call_ext_function(func, ty_args, ty_kwargs):
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyObj...")
-        ty_ret = TyObj()
+        ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
         # raise Exception
     return ty_ret
 
@@ -431,7 +431,7 @@ class TypeChecker():
             return
         print("=== tyenv ===")
         for name, ty in self.tyenv.items():
-            print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
+            print("{} : \x1b[35m{}{}\x1b[39m".format(name, ty))
         for (obj, name), ty in self.attribute_tyenv.items():
             # XXX: remove attributes inherited from libraries
             if name[0] == '_': continue
@@ -715,6 +715,8 @@ class TypeChecker():
     def infer_AugAssign(self, node):
         # AugAssign(expr target, operator op, expr value)
         binop = gast.BinOp(node.target, node.op, node.value)
+        if hasattr(node, 'lineno'):
+            setattr(binop, 'lineno', node.lineno)
         ty_val = self.infer_expr(binop)
         ty_target = self.infer_expr(node.target)
         del self.nodetype[binop]
@@ -857,7 +859,8 @@ class TypeChecker():
         try:
             ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
         except Exception:
-            ty_ret = TyObj()
+            print(getattr(node, 'lineno', None))
+            ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
         self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
         return ty_ret
 
@@ -950,7 +953,10 @@ class TypeChecker():
             if e.func in __builtins__.values():
                 # builtin functions
                 dummy_args = [value_of_type(t) for t in ty_args]
-                ty_ret = type_of_value(e.func(*dummy_args))
+                try:
+                    ty_ret = type_of_value(e.func(*dummy_args))
+                except Exception:
+                    ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
