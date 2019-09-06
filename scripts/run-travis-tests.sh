@@ -29,7 +29,7 @@ else
   pushd third_party/chainer
   run chainer_whl python3 setup.py bdist_wheel
   popd
-  rm -f $HOME/dist-chainer/*
+  rm -rf $HOME/dist-chainer/*
   mkdir -p $CHAINER_WHL_CACHE_DIR
   cp -p third_party/chainer/dist/*.whl $CHAINER_WHL_CACHE_DIR
 fi
