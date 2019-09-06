@@ -197,8 +197,6 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 def ty_ChainerPooling2d(func):
     def infer(ty_args, dummy_args_nontensor, ty_kwargs):
         ksize = dummy_args_nontensor[0]
-        # TODO(momohatt): handle cases where stride is not specified as kwarg
-        # but arg
         stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
         minimum_size = max(ksize, stride)
         fallback_shapes = ((1, 1, minimum_size, minimum_size),)
@@ -778,12 +776,10 @@ class TypeChecker():
         else:
             unify(ty_iteration, TySequence(ty=ty_i))
 
-        stmts = node.body
         for _ in range(2):
             tc = copy_TypeChecker(self)
             self.infer_block(tc, node.body)
 
-        # 2. merge nodetype from 2 TypeCheckers
         add_dict(self.nodetype, tc.nodetype)
         add_dict(self.subroutine_node, tc.subroutine_node)
 
@@ -803,7 +799,6 @@ class TypeChecker():
             tc1 = copy_TypeChecker(self)
             tc2 = copy_TypeChecker(self)
             self.infer_2blocks(tc1, tc2, node.body, node.orelse)
-            # merge nodetype from 2 TypeCheckers
             add_dict(self.nodetype, tc1.nodetype)
             add_dict(self.nodetype, tc2.nodetype)
             add_dict(self.subroutine_node, tc1.subroutine_node)
@@ -1045,8 +1040,6 @@ class TypeChecker():
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Index) and \
                     isinstance(node.slice.value, gast.Num):
-                # TODO(momohatt): handle cases where index is
-                # more complex but still a constant
                 return ty_obj.get_tys()[node.slice.value.n]
 
             ty_obj.coerce_to_variable_len()

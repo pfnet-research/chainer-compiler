@@ -5,6 +5,8 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
+from chainer_compiler.elichika.parser import utils
+
 is_debug_global = False
 
 def print_warning(msg):
@@ -150,20 +152,14 @@ class TySequence(TyObj):
     def show(self):
         if self.is_fixed_len:
             if self.seq_kind == SequenceKind.LIST:
-                return str(self.ty_)
+                return "[" + intercalate([str(t) for t in self.ty_], ", ") + "]"
 
             if self.seq_kind == SequenceKind.TUPLE:
-                if len(self.ty_) == 0:
-                    return "()"
                 if len(self.ty_) == 1:
                     return "(" + str(self.ty_[0]) + ",)"
-                return "(" + "".join([str(t) + ", " for t in self.ty_[:-1]]) \
-                        + str(self.ty_[-1]) + ")"
+                return "(" + intercalate([str(t) for t in self.ty_], ", ") + ")"
 
-            if len(self.ty_) == 0:
-                return "{}"
-            return "{" + "".join([str(t) + ", " for t in self.ty_[:-1]]) \
-                    + str(self.ty_[-1]) + "}"
+            return "{" + intercalate([str(t) for t in self.ty_], ", ") + "}"
 
         if self.seq_kind == SequenceKind.LIST:
             return str(self.ty_) + " list"
