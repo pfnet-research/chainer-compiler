@@ -15,6 +15,7 @@ def make_pair(x):
 
 def get_kwarg(ty_kwargs, key, default=None):
     if key in ty_kwargs.keys():
+        # TODO(momohatt): when unable to get the correct value, do something
         return value_of_type(ty_kwargs[key])
     return default
 
@@ -100,16 +101,25 @@ def ty_ChainerIdentical(is_float_only=True):
     return infer
 
 
-def ty_ChainerConcat(ty_args, ty_kwargs):
-    # TODO(momohatt): shape
-    assert isinstance(ty_args[0], TySequence)
-    if ty_args[0].is_fixed_len:
+def ty_ChainerConcat(func):
+    def infer(ty_args, ty_kwargs):
+        assert isinstance(ty_args[0], TySequence)
+        if not ty_args[0].is_fixed_len:
+            dtype = ty_args[0].get_ty().dtype
+            return TyChainerVariable(dtype=dtype)
+
         dtypes = [tytensor.dtype for tytensor in ty_args[0].get_tys()]
         assert all_same(dtypes)
-        return TyChainerVariable(dtype=dtypes[0])
 
-    dtype = ty_args[0].get_ty().dtype
-    return TyChainerVariable(dtype=dtype)
+        dummy_xs = value_of_type(ty_args[0])
+
+        if func is F.vstack or func is F.hstack:
+            return type_of_value(func(dummy_xs))
+
+        axis = get_kwarg(ty_kwargs, 'axis', 1)
+        return type_of_value(func(dummy_xs, axis=axis))
+
+    return infer
 
 
 def ty_ChainerExpandDims(ty_args, ty_kwargs):
@@ -274,13 +284,13 @@ ext_func_ty = {
         F.broadcast_to :
             ty_ChainerBroadcastTo,
         F.concat :
-            ty_ChainerConcat,
+            ty_ChainerConcat(F.concat),
         F.dropout :
             ty_ChainerIdentical(),
         F.expand_dims :
             ty_ChainerExpandDims,
         F.hstack :
-            ty_ChainerConcat,
+            ty_ChainerConcat(F.hstack),
         F.local_response_normalization : evaluate_function_types(
             F.local_response_normalization, 1),
         F.max_pooling_2d :
@@ -304,7 +314,7 @@ ext_func_ty = {
         F.softmax_cross_entropy :
             ty_ChainerSoftmaxCrossEntropy,
         F.stack :
-            ty_ChainerConcat,
+            ty_ChainerConcat(F.stack),
         F.sum :
             ty_ChainerSum,
         F.swapaxes :
@@ -312,7 +322,7 @@ ext_func_ty = {
         F.tanh :
             ty_ChainerIdentical(),
         F.vstack :
-            ty_ChainerConcat,
+            ty_ChainerConcat(F.vstack),
         }
 
 
