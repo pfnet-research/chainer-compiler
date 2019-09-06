@@ -127,31 +127,6 @@ def choose_stronger_ty(ty1, ty2):
 
 # ==============================================================================
 
-builtins_ty = {
-        float : TyArrow([TyBool()], TyFloat()),
-        # int -> int list \/ int -> int -> int list \/
-        # int -> int -> int -> int list
-        range : TyUnion(
-            TyArrow([TyIntOnly()], TyList(TyIntOnly())),
-            TyArrow([TyIntOnly(), TyIntOnly()], TyList(TyIntOnly())),
-            TyArrow([TyIntOnly(), TyIntOnly(), TyIntOnly()], TyList(TyIntOnly())),
-            ),
-        # let x = ... in TyArrow([x], x)
-        abs : TyUnion(
-            (lambda x: TyArrow([x], x))(TyNum(0, 2)),
-            (lambda x: TyArrow([x], x))(TyTensor())
-            ),
-        len : TyUnion(
-            TyArrow([TySequence()], TyInt()),
-            TyArrow([TyDict(TyVar(), TyVar())], TyInt()),
-            TyArrow([TyString()], TyInt()),
-            TyArrow([TyTensor()], TyInt()),
-            ),
-        str : TyArrow([TyVar()], TyString()),
-        }
-
-builtins_name = [f.__name__ for f in builtins_ty.keys()]
-
 # TODO
 func_to_ignore = [print, logging.info]
 
@@ -539,7 +514,8 @@ class TypeChecker():
                     "Wrong number of arguments: expected {}, got {}".format(
                             len(node.args.args), len(ty_args))
 
-        print("\x1b[33m======================= function {} =======================\x1b[39m".format(node.name))
+        if self.is_debug:
+            print("\x1b[33m======================= function {} =======================\x1b[39m".format(node.name))
 
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
@@ -949,7 +925,7 @@ class TypeChecker():
             self.stack.pop()  # for node.func
 
             if e.func in func_to_ignore:
-                return TyVar()
+                return TyNone()
 
             if e.func is None:
                 # attribute against tensor etc.
@@ -966,14 +942,17 @@ class TypeChecker():
                 return ty_ret
 
             if e.func in ext_func_ty.keys():
-                # case of calling external (eg. np/chainer) functions
+                # external (eg. np/chainer) functions
                 ty_ret = call_ext_function(e.func, ty_args, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
-            if isinstance(e.func, types.BuiltinFunctionType):
-                # TODO
-                assert False
+            if e.func in __builtins__.values():
+                # builtin functions
+                dummy_args = [value_of_type(t) for t in ty_args]
+                ty_ret = type_of_value(e.func(*dummy_args))
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return ty_ret
 
             # user defined functions/methods/callables, need to inline
             ty_args, ty_fun = self.infer_user_defined_function(
@@ -1017,8 +996,8 @@ class TypeChecker():
             # x: value of existing instance
             x = getattr(ty_obj.instance, node.attr)
 
-            if callable(x) and x in builtins_ty.keys():
-                return copy_ty(builtins_ty[x])
+            if callable(x) and x in __builtins__.keys():
+                raise self.ArgumentRequired(func=x)
 
             if (ty_obj.instance, node.attr) in self.attribute_tyenv.keys():
                 ty_node = self.attribute_tyenv[(ty_obj.instance, node.attr)]
@@ -1063,8 +1042,11 @@ class TypeChecker():
         # Name(identifier id, expr_context ctx, expr? annotation)
         if node.id in self.tyenv.keys():
             return self.tyenv[node.id]
-        if node.id in builtins_name:
-            return copy_ty(builtins_ty[eval(node.id)])
+        if node.id in __builtins__.keys():
+            value = __builtins__[node.id]
+            if callable(value) and self.is_called(node):
+                raise self.ArgumentRequired(func=value)
+            return type_of_value(value)
         if hasattr(self.module, node.id):
             x = getattr(self.module, node.id)
             if self.is_called(node):

@@ -5,7 +5,7 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-from chainer_compiler.elichika.parser import utils
+from chainer_compiler.elichika.parser.utils import intercalate
 
 is_debug_global = False
 
@@ -86,9 +86,6 @@ class TyNum(TyObj):
 
 def TyBool(value=None):
     return TyNum(0, 2, value=value)  # bool or int or float
-
-def TyIntOnly():
-    return TyNum(1, 1)  # int
 
 def TyInt(value=None):
     return TyNum(1, 2, value=value)  # int or float
@@ -416,6 +413,8 @@ def type_of_value(value) -> 'TyObj':
     if isinstance(value, str):
         return TyString(value=value)
     if isinstance(value, list):
+        return TyList([type_of_value(v) for v in value])
+    if isinstance(value, range):
         return TyList([type_of_value(v) for v in value])
     if isinstance(value, tuple):
         return TyTuple([type_of_value(v) for v in value])
