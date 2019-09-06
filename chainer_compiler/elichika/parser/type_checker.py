@@ -97,7 +97,7 @@ def get_kwarg(ty_kwarg, key, default=None):
             else default
 
 
-def call_ext_function(func, ty_args, ty_kwargs):
+def call_ext_function(func, node, ty_args, ty_kwargs):
     # Non-tensor arguments
     val_dummy_args_nontensor = [value_of_type(t) for t in ty_args \
             if not isinstance(t, TyTensor)]
@@ -110,6 +110,46 @@ def call_ext_function(func, ty_args, ty_kwargs):
                 ". Falling back to TyObj...")
         ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
         # raise Exception
+    return ty_ret
+
+
+def call_builtin_function(func, node, ty_args):
+    dummy_args = [value_of_type(t) for t in ty_args]
+    try:
+        ty_ret = type_of_value(func(*dummy_args))
+    except Exception:
+        print_warning("Failed to infer type of " + func.__name__ +
+                ". Falling back to TyObj...")
+        ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+        raise Exception
+    return ty_ret
+
+
+def call_binop(op, node, tyl, tyr):
+    semantics = {
+            gast.Add : (lambda x, y: x + y),
+            gast.Sub : (lambda x, y: x - y),
+            gast.Mult : (lambda x, y: x * y),
+            gast.Div : (lambda x, y: x / y),
+            gast.FloorDiv : (lambda x, y: x // y),
+            }
+    func = semantics[type(op)]
+    vall, valr = value_of_type(tyl), value_of_type(tyr)
+    try:
+        ty_ret = type_of_value(func(vall, valr))
+    except Exception:
+        print_warning("Failed to infer type of " + func.__name__ +
+                ". Falling back to TyObj...")
+        ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+
+    if isinstance(ty_ret, TySequence) and \
+            not (tyl.is_fixed_len and tyr.is_fixed_len):
+        ty_ret.coerce_to_variable_len()
+
+    if isinstance(ty_ret, TyTensor) and \
+            isinstance(tyl, TyTensor) and tyl.shape is None or \
+            isinstance(tyr, TyTensor) and tyr.shape is None:
+        ty_ret.shape = None
     return ty_ret
 
 
@@ -378,28 +418,6 @@ list_attr_ty = {
         }
 
 
-def evaluate_binop_ty(op, tyl, tyr):
-    semantics = {
-            gast.Add : (lambda x, y: x + y),
-            gast.Sub : (lambda x, y: x - y),
-            gast.Mult : (lambda x, y: x * y),
-            gast.Div : (lambda x, y: x / y),
-            gast.FloorDiv : (lambda x, y: x // y),
-            }
-    func = semantics[type(op)]
-    vall, valr = value_of_type(tyl), value_of_type(tyr)
-    ty_ret = type_of_value(func(vall, valr))
-    if isinstance(ty_ret, TySequence) and \
-            not (tyl.is_fixed_len and tyr.is_fixed_len):
-        ty_ret.coerce_to_variable_len()
-
-    if isinstance(ty_ret, TyTensor) and \
-            isinstance(tyl, TyTensor) and tyl.shape is None or \
-            isinstance(tyr, TyTensor) and tyr.shape is None:
-        ty_ret.shape = None
-    return ty_ret
-
-
 # ==============================================================================
 
 class TypeChecker():
@@ -431,7 +449,7 @@ class TypeChecker():
             return
         print("=== tyenv ===")
         for name, ty in self.tyenv.items():
-            print("{} : \x1b[35m{}{}\x1b[39m".format(name, ty))
+            print("{} : \x1b[35m{}\x1b[39m".format(name, ty))
         for (obj, name), ty in self.attribute_tyenv.items():
             # XXX: remove attributes inherited from libraries
             if name[0] == '_': continue
@@ -796,7 +814,7 @@ class TypeChecker():
         if self.is_debug:
             debug(gast.dump(node))
             # self.dump_stack()
-            # self.dump_tyenv()
+            self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
             self.nodetype[node] = self.infer_BoolOp(node)
@@ -856,11 +874,7 @@ class TypeChecker():
         # BinOp(expr left, operator op, expr right)
         tyl = self.infer_expr(node.left).deref()
         tyr = self.infer_expr(node.right).deref()
-        try:
-            ty_ret = evaluate_binop_ty(node.op, tyl, tyr)
-        except Exception:
-            print(getattr(node, 'lineno', None))
-            ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+        ty_ret = call_binop(node.op, node, tyl, tyr)
         self.nodetype[node.op] = TyArrow([tyl, tyr], ty_ret)
         return ty_ret
 
@@ -946,17 +960,13 @@ class TypeChecker():
 
             if e.func in ext_func_ty.keys():
                 # external (eg. np/chainer) functions
-                ty_ret = call_ext_function(e.func, ty_args, ty_kwargs)
+                ty_ret = call_ext_function(e.func, node, ty_args, ty_kwargs)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
             if e.func in __builtins__.values():
                 # builtin functions
-                dummy_args = [value_of_type(t) for t in ty_args]
-                try:
-                    ty_ret = type_of_value(e.func(*dummy_args))
-                except Exception:
-                    ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+                ty_ret = call_builtin_function(e.func, node, ty_args)
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 

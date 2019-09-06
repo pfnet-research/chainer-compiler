@@ -396,7 +396,6 @@ def all_same(l):
 
 
 def type_of_value(value) -> 'TyObj':
-    # TODO: user defined class
     if value is None:
         return TyNone()
     if isinstance(value, bool):
@@ -471,7 +470,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyDict):
         return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
     if isinstance(ty, TyTensor):
-        ret = np.zeros(dtype=ty.dtype.t, shape=ty.shape)
+        ret = np.zeros(dtype=ty.dtype.t, shape=1 if ty.shape is None else ty.shape)
         if ty.kind == TensorKind.ndarray:
             return ret
         if ty.kind == TensorKind.chainer_variable:
