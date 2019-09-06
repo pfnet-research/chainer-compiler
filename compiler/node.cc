@@ -20,6 +20,10 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
       name_(name.empty() ? xnode.name() : name),
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
+    // TODO(take-cheeze): Handle Resize-11
+    if (op_type_ == Node::kResize && DEFAULT_OPSET_VERSION == 11 && inputs_.size() == 2) {
+        inputs_.push_back(inputs_[1]);
+    }
     Validate();
 }
 
