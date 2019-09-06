@@ -234,12 +234,12 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, ty_kwargs):
     fallback_dtypes = (np.float32, np.int64)
 
     # x.shape[0] == t.shape[0]
-    if shape_x is None and shape_t is None:
-        fallback_shapes = ((1, 1), (1,))
-    elif shape_x is None:
+    if shape_x is None and shape_t is not None:
         fallback_shapes = ((shape_t[0], 1), shape_t)
-    elif shape_t is None:
+    elif shape_x is not None and shape_t is None:
         fallback_shapes = (shape_x, (shape_x[0],))
+    else:
+        fallback_shapes = ((1, 1), (1,))
 
     return make_infer(
             F.softmax_cross_entropy, fallback_shapes, fallback_dtypes) \
@@ -358,15 +358,16 @@ def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, ty_kwargs):
 
 def ty_ChainerLinear(obj, ty_args, ty_kwargs):
     shape = ty_args[0].shape
+    dtype = ty_args[0].dtype
+
     if obj.in_size is not None and shape is not None:
         if len(shape) > 2:
             # case of reshape
             pass
-        else:
-            assert len(shape) == 2
-            assert shape[1] == in_size
-    return TyChainerVariable(dtype=TyDType(np.float32),
-            shape=(shape[0], obj.out_size))
+        assert len(shape) == 2
+        assert shape[1] == obj.in_size
+    assert dtype.t == obj.b.dtype
+    return TyChainerVariable(dtype=dtype, shape=(shape[0], obj.out_size))
 
 
 ext_func_ty = {
