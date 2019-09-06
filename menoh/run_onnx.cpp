@@ -53,14 +53,7 @@
 #include <menoh/menoh.hpp>
 #include <menoh/menoh_chainer_compiler_util.hpp>
 
-chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype) {
-    return static_cast<chainerx::Dtype>(static_cast<int>(menoh_dtype_to_cc_dtype(mdtype)));
-}
-
-std::shared_ptr<void> allocate_buffer(chainerx::Shape const& shape, chainerx::Dtype dtype) {
-    auto bytesize = static_cast<size_t>(shape.GetTotalSize() * chainerx::GetItemSize(dtype));
-    return std::shared_ptr<uint8_t>{new uint8_t[bytesize], std::default_delete<uint8_t[]>()};
-}
+chainerx::Dtype menoh_dtype_to_chx_dtype(menoh_dtype mdtype);
 
 int main(int argc, char** argv) {
     std::cout << "run_onnx_menoh" << std::endl;
