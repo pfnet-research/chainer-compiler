@@ -275,10 +275,8 @@ class TyDType(TyObj):
         return "dtype({})".format(str(self.t))
     def __eq__(self, other):
         return self.t == other.t
-
     def is_float(self):
-        return self.t in [np.dtype('float16'), np.dtype('float32'),
-                np.dtype('float64'), np.dtype('float128')]
+        return self.t.kind == 'f'
 
 
 class TyTensor(TyObj):

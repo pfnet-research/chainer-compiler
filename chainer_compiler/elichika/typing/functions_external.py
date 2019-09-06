@@ -3,8 +3,20 @@ from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+from chainer.utils.conv import get_conv_outsize
 
 from chainer_compiler.elichika.typing.types import *
+
+
+def make_pair(x):
+    if isinstance(x, int):
+        return (x, x)
+    return x
+
+def get_kwarg(ty_kwargs, key, default=None):
+    if key in ty_kwargs.keys():
+        return value_of_type(ty_kwargs[key])
+    return default
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
     def infer(ty_args, ty_kwargs):
@@ -192,18 +204,45 @@ def ty_ChainerLinear(obj, ty_args, ty_kwargs):
     shape = ty_args[0].shape
     dtype = ty_args[0].dtype
 
-    if obj.in_size is not None and shape is not None:
-        if len(shape) > 2:
-            # case of reshape
-            pass
-        assert len(shape) == 2
+    if dtype.t is not None:
+        assert dtype.t == obj.b.dtype
+    if shape is None:
+        return TyChainerVariable(dtype=dtype, shape=None)
+
+    if len(shape) > 2:
+        # TODO: case of reshape
+        pass
+    assert len(shape) == 2
+    if obj.in_size is not None:
         assert shape[1] == obj.in_size
-    assert dtype.t == obj.b.dtype
+
     return TyChainerVariable(dtype=dtype, shape=(shape[0], obj.out_size))
 
 
 def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):
-    assert False
+    shape = ty_args[0].shape
+    dtype = ty_args[0].dtype
+    if dtype.t is not None:
+        assert dtype.is_float()
+    if shape is None:
+        return TyChainerVariable(dtype=dtype, shape=None)
+
+    assert len(shape) == 4
+    if obj.in_channels is not None:
+        assert shape[1] == obj.in_channels
+
+    ksize = make_pair(obj.ksize)
+    stride = make_pair(obj.stride)
+    pad = make_pair(obj.pad)
+    dilate = make_pair(obj.dilate)
+
+    shape_2 = get_conv_outsize(
+            shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
+    shape_3 = get_conv_outsize(
+            shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
+    return TyChainerVariable(dtype=dtype,
+            shape=(shape[0], obj.out_channels, shape_2, shape_3))
+
 
 def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
     assert False

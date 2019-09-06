@@ -21,8 +21,8 @@ def expr_to_str(node):
     if isinstance(node, gast.Call):
         return "{}({}{})".format(expr_to_str(node.func),
                 intercalate([expr_to_str(arg) for arg in node.args], ", "),
-                intercalate(["{}={}".format(
-                    k, expr_to_str(v)) for k, v in node.keywords], ", "))
+                intercalate(["{}={}".format(kwarg.arg, expr_to_str(kwarg.value))
+                    for kwarg in node.keywords], ", "))
     if isinstance(node, gast.Num):
         return str(node.n)
     if isinstance(node, gast.Str):
