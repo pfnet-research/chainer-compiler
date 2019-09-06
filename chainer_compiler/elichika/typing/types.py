@@ -5,7 +5,7 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
-from chainer_compiler.elichika.parser.utils import intercalate
+from chainer_compiler.elichika.typing.utils import intercalate
 
 def print_warning(msg):
     print("\x1b[33m[WARNING] " + msg + "\x1b[39m")

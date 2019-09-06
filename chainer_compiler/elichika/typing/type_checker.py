@@ -9,8 +9,8 @@ from copy import deepcopy
 from typing import List
 from pprint import pprint
 
-from chainer_compiler.elichika.parser import utils
-from chainer_compiler.elichika.parser.types import *
+from chainer_compiler.elichika.typing import utils
+from chainer_compiler.elichika.typing.types import *
 
 import chainer
 from chainer.backends import cuda
