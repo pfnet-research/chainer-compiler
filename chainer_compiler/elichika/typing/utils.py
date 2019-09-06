@@ -1,6 +1,8 @@
 import ast
 import gast
 
+# ============================== Display utils =================================
+
 def intercalate(strings, sep):
     if strings == []:
         return ""
@@ -17,8 +19,10 @@ def expr_to_str(node):
     if isinstance(node, gast.UnaryOp):
         return "{}{}".format(unaryop_to_str(node.op), expr_to_str(node.operand))
     if isinstance(node, gast.Call):
-        return "{}({})".format(expr_to_str(node.func),
-                intercalate([expr_to_str(arg) for arg in node.args], ", "))
+        return "{}({}{})".format(expr_to_str(node.func),
+                intercalate([expr_to_str(arg) for arg in node.args], ", "),
+                intercalate(["{}={}".format(
+                    k, expr_to_str(v)) for k, v in node.keywords], ", "))
     if isinstance(node, gast.Num):
         return str(node.n)
     if isinstance(node, gast.Str):
@@ -123,3 +127,14 @@ def node_description(node):
     if is_expr(node):
         return "{} {}{}".format(type_name, expr_to_str(node), lineno)
     return type_name
+
+# ==============================================================================
+
+def add_dict(dest, src):
+    for k, v in src.items():
+        dest[k] = v
+
+def find(seq, pred):
+    for elt in seq:
+        if pred(elt):
+            return elt

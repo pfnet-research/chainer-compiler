@@ -10,6 +10,7 @@ from typing import List
 from pprint import pprint
 
 from chainer_compiler.elichika.typing import utils
+from chainer_compiler.elichika.parser.utils import clip_head
 from chainer_compiler.elichika.typing.types import *
 
 import chainer
@@ -24,16 +25,6 @@ import logging
 def debug(sth):
     frame = inspect.currentframe().f_back
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
-
-
-def add_dict(dest, src):
-    for k, v in src.items():
-        dest[k] = v
-
-def find(seq, pred):
-    for elt in seq:
-        if pred(elt):
-            return elt
 
 
 def copy_ty(ty):
@@ -337,7 +328,7 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
             if all(is_shape_None):
                 dummy_arg = [np.zeros((1,)) for _ in ty.get_tys()]
             else:
-                t = find(ty.get_tys(), lambda t: t.shape is not None)
+                t = utils.find(ty.get_tys(), lambda t: t.shape is not None)
                 fallback_shape = t.shape
                 dummy_arg = [
                         np.zeros(fallback_shape) if t.shape is None
@@ -660,7 +651,7 @@ class TypeChecker():
             ty_self = type_of_value(func)
             ty_args = [ty_self] + ty_args
 
-        code = utils.clip_head(inspect.getsource(func_body))
+        code = clip_head(inspect.getsource(func_body))
         # FunctionDef of called subroutine
         func_node = gast.ast_to_gast(ast.parse(code)).body[0]
         self.subroutine_node[node] = func_node
@@ -669,8 +660,8 @@ class TypeChecker():
         tc.infer_function(func_node, ty_args)
 
         # copy nodetype and subroutine_node from subroutine
-        add_dict(self.nodetype, tc.nodetype)
-        add_dict(self.subroutine_node, tc.subroutine_node)
+        utils.add_dict(self.nodetype, tc.nodetype)
+        utils.add_dict(self.subroutine_node, tc.subroutine_node)
         return ty_args, tc.nodetype[func_node]
 
 
@@ -818,8 +809,8 @@ class TypeChecker():
             tc = copy_TypeChecker(self)
             self.infer_block(tc, node.body)
 
-        add_dict(self.nodetype, tc.nodetype)
-        add_dict(self.subroutine_node, tc.subroutine_node)
+        utils.add_dict(self.nodetype, tc.nodetype)
+        utils.add_dict(self.subroutine_node, tc.subroutine_node)
 
 
     def infer_If(self, node):
@@ -831,16 +822,16 @@ class TypeChecker():
         if node.orelse == []:
             tc = copy_TypeChecker(self)
             self.infer_block(tc, node.body)
-            add_dict(self.nodetype, tc.nodetype)
-            add_dict(self.subroutine_node, tc.subroutine_node)
+            utils.add_dict(self.nodetype, tc.nodetype)
+            utils.add_dict(self.subroutine_node, tc.subroutine_node)
         else:
             tc1 = copy_TypeChecker(self)
             tc2 = copy_TypeChecker(self)
             self.infer_2blocks(tc1, tc2, node.body, node.orelse)
-            add_dict(self.nodetype, tc1.nodetype)
-            add_dict(self.nodetype, tc2.nodetype)
-            add_dict(self.subroutine_node, tc1.subroutine_node)
-            add_dict(self.subroutine_node, tc2.subroutine_node)
+            utils.add_dict(self.nodetype, tc1.nodetype)
+            utils.add_dict(self.nodetype, tc2.nodetype)
+            utils.add_dict(self.subroutine_node, tc1.subroutine_node)
+            utils.add_dict(self.subroutine_node, tc2.subroutine_node)
 
         if x is not None:
             self.infer_expr(x).is_optional = False
@@ -964,8 +955,8 @@ class TypeChecker():
             unify(ty_iteration, TySequence(ty=ty_i))
         tc.infer_expr(node.elt)
 
-        add_dict(self.nodetype, tc.nodetype)
-        add_dict(self.subroutine_node, tc.subroutine_node)
+        utils.add_dict(self.nodetype, tc.nodetype)
+        utils.add_dict(self.subroutine_node, tc.subroutine_node)
 
         self.nodetype[node] = TyList(tc.nodetype[node.elt])
         return self.nodetype[node]
@@ -1179,7 +1170,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         module = importlib.import_module(sys.argv[1])
         func = getattr(module, sys.argv[2])
-        code = utils.clip_head(inspect.getsource(func))
+        code = clip_head(inspect.getsource(func))
     else:
         module = None
         code = open(sys.argv[1]).read()
