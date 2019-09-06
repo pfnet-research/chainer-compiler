@@ -127,11 +127,11 @@ void TensorRTOp::InitImpl() {
 #endif
     }
 
-     for (int i = 0; i < impl_->engine->getNbBindings(); ++i) {
-         const std::string name = impl_->engine->getBindingName(i);
-         auto found = name_to_index.find(name);
-         CHECK(found != name_to_index.end()) << name;
-         impl_->binding_indices.push_back(found->second);
+    for (int i = 0; i < impl_->engine->getNbBindings(); ++i) {
+        const std::string name = impl_->engine->getBindingName(i);
+        auto found = name_to_index.find(name);
+        CHECK(found != name_to_index.end()) << name;
+        impl_->binding_indices.push_back(found->second);
     }
 
 #endif
