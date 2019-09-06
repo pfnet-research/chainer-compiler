@@ -370,6 +370,19 @@ def ty_ChainerLinear(obj, ty_args, ty_kwargs):
     return TyChainerVariable(dtype=dtype, shape=(shape[0], obj.out_size))
 
 
+def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):
+    assert False
+
+def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
+    assert False
+
+def ty_ChainerEmbedID(obj, ty_args, ty_kwargs):
+    assert False
+
+def ty_ChainerNStepBiLSTM(obj, ty_args, ty_kwargs):
+    assert False
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -433,8 +446,11 @@ ext_func_ty = {
 
 
 ext_callable_ty = {
-        L.Linear :
-            ty_ChainerLinear,
+        L.Linear : ty_ChainerLinear,
+        L.Convolution2D : ty_ChainerConvolution2D,
+        L.BatchNormalization : ty_ChainerBatchNormalization,
+        L.EmbedID : ty_ChainerEmbedID,
+        L.NStepBiLSTM : ty_ChainerNStepBiLSTM,
         }
 
 
