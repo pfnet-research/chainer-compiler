@@ -86,21 +86,9 @@ target_link_libraries(chainer_compiler_runtime_test
   chainer_compiler_runtime
   chainer_compiler_compiler
   chainer_compiler_common
-  ${CHAINER_COMPILER_CHAINERX_LIBRARIES}
-  onnx
-  onnx_proto
-  ${PROTOBUF_LIBRARY}
+  ${CHAINER_COMPILER_DEPENDENCY_LIBRARIES}
   gtest
   gtest_main
-  ${CHAINER_COMPILER_PTHREAD_LIBRARIES}
-  ${CHAINER_COMPILER_NGRAPH_LIBRARIES}
-  ${CHAINER_COMPILER_DLDT_LIBRARIES}
-  ${CHAINER_COMPILER_TVM_RUNTIME_LIBRARIES}
-  ${CHAINER_COMPILER_CUDA_LIBRARIES}
-  ${CHAINER_COMPILER_SNPE_LIBRARIES}
-  ${CHAINER_COMPILER_TENSORRT_LIBRARIES}
-  absl::variant
-  absl::optional
   )
 
 add_test(
