@@ -113,6 +113,12 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
     return ty_ret
 
 
+def call_ext_callable(obj, node, ty_args, ty_kwargs):
+    inference_logic = ext_callable_ty[type(obj)]
+    ty_ret = inference_logic(obj, ty_args, ty_kwargs)
+    return ty_ret
+
+
 def call_builtin_function(func, node, ty_args):
     dummy_args = [value_of_type(t) for t in ty_args]
     try:
@@ -350,6 +356,19 @@ def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, ty_kwargs):
     return ty_ret
 
 
+def ty_ChainerLinear(obj, ty_args, ty_kwargs):
+    shape = ty_args[0].shape
+    if obj.in_size is not None and shape is not None:
+        if len(shape) > 2:
+            # case of reshape
+            pass
+        else:
+            assert len(shape) == 2
+            assert shape[1] == in_size
+    return TyChainerVariable(dtype=TyDType(np.float32),
+            shape=(shape[0], obj.out_size))
+
+
 ext_func_ty = {
         np.array : evaluate_function_types(
             np.array, 0),
@@ -409,6 +428,12 @@ ext_func_ty = {
             ty_ChainerIdentical(),
         F.vstack :
             ty_ChainerConcat,
+        }
+
+
+ext_callable_ty = {
+        L.Linear :
+            ty_ChainerLinear,
         }
 
 
@@ -970,6 +995,12 @@ class TypeChecker():
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
 
+            if type(e.func) in L.__dict__.values():
+                # chainer links
+                ty_ret = call_ext_callable(e.func, node, ty_args, ty_kwargs)
+                self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
+                return ty_ret
+
             # user defined functions/methods/callables, need to inline
             ty_args, ty_fun = self.infer_user_defined_function(
                     e.func, ty_args, node)
@@ -1020,7 +1051,7 @@ class TypeChecker():
             else:
                 ty_node = type_of_value(x)
 
-            if self.is_called(node) and type(x) not in L.__dict__.values():
+            if self.is_called(node):
                 raise self.ArgumentRequired(func=x)
 
             return ty_node
