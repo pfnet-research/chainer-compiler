@@ -814,7 +814,7 @@ class TypeChecker():
         if self.is_debug:
             debug(gast.dump(node))
             # self.dump_stack()
-            self.dump_tyenv()
+            # self.dump_tyenv()
 
         if isinstance(node, gast.BoolOp):
             self.nodetype[node] = self.infer_BoolOp(node)

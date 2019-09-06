@@ -29,7 +29,7 @@ class TestUnify(unittest.TestCase):
     def test_union(self):
         x = TyVar()
         ty1 = TyUnion(
-                TyArrow([TyIntOnly()], TyIntOnly()),
+                TyArrow([TyInt()], TyString()),
                 TyArrow([TyFloat()], TyFloat()),
                 )
         ty2 = TyArrow([x], TyFloat())

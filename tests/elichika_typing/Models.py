@@ -8,15 +8,31 @@ from testcases.elichika_tests.model.MLP import MLP
 from testcases.elichika_tests.model.Resnet_with_loss import ResNet50
 
 
+def gen_MLP_model():
+    out_n = 4
+    batch_size = 100
+    model = MLP(8, out_n)
+    v = np.random.rand(batch_size, 3).astype(np.float32)
+    w = np.random.randint(out_n, size=batch_size)
+    forward_args = (v, w)
+
+    return model, forward_args
+
+
+def gen_ResNet50_model():
+    model = ResNet50()
+    bsize = 2
+    v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
+    t = np.random.randint(1000, size=bsize).astype(np.int32)
+    forward_args = (v, t)
+
+    return model, forward_args
+
+
 class TestMLP(unittest.TestCase):
     def test_MLP(self):
-        out_n = 4
-        batch_size = 100
-        model = MLP(8, out_n)
-        v = np.random.rand(batch_size, 3).astype(np.float32)
-        w = np.random.randint(out_n, size=batch_size)
-
-        id2type = generate_id2type_from_forward(model, (v, w))
+        model, forward_args = gen_MLP_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "class MLP -> ndarray(dtype(float32), shape=(100, 3)) -> ndarray(dtype(int64), shape=(100,)) -> Variable(dtype(float32), shape=None)")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Assign (line 2)
@@ -54,13 +70,8 @@ class TestMLP(unittest.TestCase):
 
 class TestResNet50(unittest.TestCase):
     def test_ResNet50(self):
-        model = ResNet50()
-        bsize = 2
-        v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
-        t = np.random.randint(1000, size=bsize).astype(np.int32)
-
-        id2type = generate_id2type_from_forward(model, (v, t))
-
+        model, forward_args = gen_MLP_model()
+        id2type = generate_id2type_from_forward(model, forward_args)
 
         self.assertEqual(str(id2type[1]), "ResNet50 -> ndarray(dtype(float32), shape=(2, 3, 224, 224)) -> ndarray(dtype(int32), shape=(2,)) -> Variable(dtype(float32), shape=None)")	# FunctionDef forward (line 1)
         self.assertEqual(str(id2type[9]), "NoneType")	# Assign (line 2)
