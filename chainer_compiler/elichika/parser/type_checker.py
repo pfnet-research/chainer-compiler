@@ -608,7 +608,10 @@ class TypeChecker():
             self.nodetype[node] = self.infer_FunctionDef(node)
         elif isinstance(node, gast.Return):
             # Return(expr? value)
-            self.nodetype[node] = self.infer_expr(node.value)
+            if node.value is None:
+                self.nodetype[node] = TyNone()
+            else:
+                self.nodetype[node] = self.infer_expr(node.value)
         elif isinstance(node, gast.Delete):
             self.nodetype[node] = TyNone()
         elif isinstance(node, gast.Assign):
