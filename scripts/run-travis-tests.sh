@@ -32,6 +32,7 @@ else
   rm -f $HOME/dist-chainer/*
   mkdir -p $CHAINER_WHL_CACHE_DIR
   cp -p third_party/chainer/dist/*.whl $CHAINER_WHL_CACHE_DIR
+fi
 run pip_chainer sudo pip3 install $CHAINER_WHL_CACHE_DIR/*.whl
 run pip_dependencies sudo pip3 install gast chainercv
 run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer[test]
