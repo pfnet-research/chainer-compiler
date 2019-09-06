@@ -550,16 +550,19 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
                 # ex. x[1]
                 node = nodes.NodeGetItem(value_value, [slice_value])
 
-            if value_value.vtype != None and issubclass(value_value.vtype, values.Instance):
-                assert value_value.has_constant_value()
-                assert slice_value.has_constant_value()
-                return value_value.internal_value[slice_value.internal_value]
-            elif value_value.vtype != None:
-                ret_value = value_value.vtype(None)
-                ret_value.dtype = value_value.dtype
-            else:
-                utils.print_warning("Unable to determine element type of {}. Using TensorValue as default.".format(value_value), lineprop)
+            if isinstance(value_value, values.TensorValue):
                 ret_value = values.TensorValue()
+            else:
+                if value_value.vtype != None and issubclass(value_value.vtype, values.Instance):
+                    assert value_value.has_constant_value()
+                    assert slice_value.has_constant_value()
+                    return value_value.internal_value[slice_value.internal_value]
+                elif value_value.vtype != None:
+                    ret_value = value_value.vtype(None)
+                    ret_value.dtype = value_value.dtype
+                else:
+                    utils.print_warning("Unable to determine element type of {}. Using TensorValue as default.".format(value_value), lineprop)
+                    ret_value = values.TensorValue()
 
             node.set_outputs([ret_value])
             graph.add_node(node)
