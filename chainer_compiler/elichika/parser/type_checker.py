@@ -99,12 +99,9 @@ def get_kwarg(ty_kwarg, key, default=None):
 
 def call_ext_function(func, node, ty_args, ty_kwargs):
     # Non-tensor arguments
-    val_dummy_args_nontensor = [value_of_type(t) for t in ty_args \
-            if not isinstance(t, TyTensor)]
     inference_logic = ext_func_ty[func]
     try:
-        ty_ret = inference_logic(
-                ty_args, val_dummy_args_nontensor, ty_kwargs)
+        ty_ret = inference_logic(ty_args, ty_kwargs)
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyObj...")
@@ -178,7 +175,7 @@ func_to_ignore = [print, logging.info]
 
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
-    def infer(ty_args, dummy_args_nontensor, ty_kwargs):
+    def infer(ty_args, ty_kwargs):
         ty_args_tensor = [t for t in ty_args if isinstance(t, TyTensor)]
 
         shapes = [s if t.shape is None else t.shape
@@ -187,9 +184,10 @@ def make_infer(func, fallback_shapes, fallback_dtypes):
                 for t, dt in zip(ty_args_tensor, fallback_dtypes)]
         is_dummy_shape = any([t.shape is None for t in ty_args_tensor])
         is_dummy_dtype = any([t.dtype.t is None for t in ty_args_tensor])
+
         # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
-                dummy_args_nontensor
+                [value_of_type(t) for t in ty_args if not isinstance(t, TyTensor)]
         dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
         dummy_result = func(*dummy_args, **dummy_kwargs)
         ty_result = type_of_value(dummy_result)
@@ -216,20 +214,20 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 
 
 def ty_ChainerPooling2d(func):
-    def infer(ty_args, dummy_args_nontensor, ty_kwargs):
-        ksize = dummy_args_nontensor[0]
+    def infer(ty_args, ty_kwargs):
+        ksize = ty_args[1].value  # cannot be None
         stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
         minimum_size = max(ksize, stride)
         fallback_shapes = ((1, 1, minimum_size, minimum_size),)
         fallback_dtypes = (np.float32,)
 
         return make_infer(func, fallback_shapes, fallback_dtypes) \
-                (ty_args, dummy_args_nontensor, ty_kwargs)
+                (ty_args, ty_kwargs)
 
     return infer
 
 
-def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerSoftmaxCrossEntropy(ty_args, ty_kwargs):
     shape_x, shape_t = ty_args[0].shape, ty_args[1].shape
     fallback_dtypes = (np.float32, np.int64)
 
@@ -243,12 +241,12 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, dummy_args_nontensor, ty_kwargs):
 
     return make_infer(
             F.softmax_cross_entropy, fallback_shapes, fallback_dtypes) \
-                    (ty_args, dummy_args_nontensor, ty_kwargs)
+                    (ty_args, ty_kwargs)
 
 
 # math functions that doesn't change shapes or dtypes
 def ty_ChainerIdentical(is_float_only=True):
-    def infer(ty_args, dummy_args_nontensor, ty_kwargs):
+    def infer(ty_args, ty_kwargs):
         if isinstance(ty_args[0], TyTensor):
             if is_float_only:
                 assert ty_args[0].dtype.is_float()
@@ -258,7 +256,7 @@ def ty_ChainerIdentical(is_float_only=True):
     return infer
 
 
-def ty_ChainerConcat(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerConcat(ty_args, ty_kwargs):
     # TODO(momohatt): shape
     assert isinstance(ty_args[0], TySequence)
     if ty_args[0].is_fixed_len:
@@ -270,51 +268,51 @@ def ty_ChainerConcat(ty_args, dummy_args_nontensor, ty_kwargs):
     return TyChainerVariable(dtype=dtype)
 
 
-def ty_ChainerExpandDims(ty_args, dummy_args_nontensor, ty_kwargs):
-    # TODO(momohatt): axis can come as dummy_args_nontensor
-    axis = dummy_args_nontensor[0]
+def ty_ChainerExpandDims(ty_args, ty_kwargs):
+    # TODO(momohatt): axis can come as ty_kwargs
+    axis = ty_args[1].value if len(ty_args) == 2 else ty_kwargs['axis'].value
     fallback_shapes = ((1,) * axis,)
     fallback_dtypes = (np.float32,)
 
     return make_infer(F.expand_dims, fallback_shapes, fallback_dtypes) \
-            (ty_args, dummy_args_nontensor, ty_kwargs)
+            (ty_args, ty_kwargs)
 
 
-def ty_ChainerBroadcastTo(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
 
-def ty_ChainerSum(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerSum(ty_args, ty_kwargs):
     axis = get_kwarg(ty_kwargs, 'axis', default=None)
     fallback_shapes = ((1,) * (axis + 1),)
     fallback_dtypes = (np.float32,)
 
     return make_infer(F.sum, fallback_shapes, fallback_dtypes) \
-            (ty_args, dummy_args_nontensor, ty_kwargs)
+            (ty_args, ty_kwargs)
 
 
-def ty_ChainerReshape(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerReshape(ty_args, ty_kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype,
-            shape=dummy_args_nontensor[0])
+            shape=value_of_type(ty_args[1]))
 
 
-def ty_ChainerSqueeze(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerSqueeze(ty_args, ty_kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
 
-def ty_ChainerSwapAxes(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerSwapAxes(ty_args, ty_kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
 
-def ty_ChainerSeparate(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerSeparate(ty_args, ty_kwargs):
     return TyChainerVariable(dtype=ty_args[0].dtype)
 
 
-def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerSplitAxis(ty_args, ty_kwargs):
     assert isinstance(ty_args[0], TyTensor)
 
     if isinstance(ty_args[1], TyNum):
-        n = dummy_args_nontensor[0]
+        n = ty_args[1].value
         return TyTuple([TyChainerVariable(dtype=ty_args[0].dtype)] * n)
     elif isinstance(ty_args[1], TyTensor):
         # 1-D array
@@ -327,7 +325,7 @@ def ty_ChainerSplitAxis(ty_args, dummy_args_nontensor, ty_kwargs):
     assert False
 
 
-def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, ty_kwargs):
+def ty_ChainerPadSequence(ty_args, ty_kwargs):
     # shape[1:] should be uniform & ndim > 0
     ty = ty_args[0].deref()
     assert isinstance(ty, TySequence)
@@ -337,20 +335,22 @@ def ty_ChainerPadSequence(ty_args, dummy_args_nontensor, ty_kwargs):
         if any(is_shape_None):
             is_dummy_shape = True
             if all(is_shape_None):
-                dummy_args_nontensor[0] = [np.zeros((1,)) for _ in ty.get_tys()]
+                dummy_arg = [np.zeros((1,)) for _ in ty.get_tys()]
             else:
                 t = find(ty.get_tys(), lambda t: t.shape is not None)
                 fallback_shape = t.shape
-                dummy_args_nontensor[0] = [
+                dummy_arg = [
                         np.zeros(fallback_shape) if t.shape is None
                         else np.zeros(t.shape) for t in ty.get_tys()]
+        else:
+            dummy_arg = value_of_type(ty_args[0])
     else:
         if ty.get_ty().shape is None:
             is_dummy_shape = True
-            dummy_args_nontensor[0] = [np.zeros((1,), dtype=ty.get_ty().dtype.t)]
+            dummy_arg = [np.zeros((1,), dtype=ty.get_ty().dtype.t)]
 
     dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
-    ty_ret = type_of_value(F.pad_sequence(*dummy_args_nontensor, **dummy_kwargs))
+    ty_ret = type_of_value(F.pad_sequence(dummy_arg, **dummy_kwargs))
     if is_dummy_shape:
         ty_ret.shape = None
     return ty_ret
