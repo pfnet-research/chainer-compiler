@@ -1248,6 +1248,43 @@ class ONNXGenerator:
                         slice_specs=slice_specs)
                     onnx_graph.nodes.append(onnx_node)
 
+            if isinstance(node, nodes.NodeSetItem):
+                node_ = node  # type: nodes.NodeSetItem
+                if len(node_.indexes) == 1:
+
+                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue) or isinstance(node_.target, values.RangeValue):
+                        onnx_node = oh.make_node(
+                            'ChainerSequenceUpdate',
+                            [value2onnx_parameter[node_.target].onnx_name,
+                                value2onnx_parameter[node_.revision].onnx_name,
+                                value2onnx_parameter[node_.indexes[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name])
+                        onnx_graph.nodes.append(onnx_node)
+
+                    else:
+                        onnx_node = oh.make_node(
+                            'ChainerSetItem',
+                            [value2onnx_parameter[node_.target].onnx_name,
+                                value2onnx_parameter[node_.revision].onnx_name,
+                                value2onnx_parameter[node_.indexes[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            slice_specs=[1])
+                        onnx_graph.nodes.append(onnx_node)
+                else:
+                    indices = []
+                    slice_specs = []
+
+                    for index in node_.indexes:
+                        indices.append(value2onnx_parameter[index].onnx_name)
+                        slice_specs.append(1)
+
+                    onnx_node = oh.make_node(
+                        'ChainerSetItem',
+                        [value2onnx_parameter[node_.target].onnx_name] + [value2onnx_parameter[node_.revision].onnx_name] + indices,
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        slice_specs=slice_specs)
+                    onnx_graph.nodes.append(onnx_node)
+
             if isinstance(node, nodes.NodeSlice):
                 node_ = node  # type: nodes.NodeSlice
 

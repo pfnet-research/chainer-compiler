@@ -566,7 +566,12 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.Object(ret_value)
+            if isinstance(value, values.Attribute):
+                ret_attr = value.make_subscript_attribute(slice_, graph)
+                ret_attr.revise(values.Object(ret_value), update_parent=False)
+                return ret_attr
+            else:
+                return values.Object(ret_value)
 
         elif isinstance(astc.nast.slice, gast.gast.Slice):
 
