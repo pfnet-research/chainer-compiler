@@ -29,16 +29,12 @@ FLAGS = {
 
     'use_cached_model': {
         'type': 'bool',
-        'doc': 'Use cached models.'
+        'doc': 'Use cached models(sometimes unsafe).'
     },
 
     'use_tvm': {
         'type': 'bool',
         'doc': 'Use TVM to execute operations.'
-    },
-    'reuse_tvm_code': {
-        'type': 'bool',
-        'doc': 'Reuse existing TVM code.(Unsafe)'
     },
     'dump_autotvm_task_dir': {
         'type': 'std::string',

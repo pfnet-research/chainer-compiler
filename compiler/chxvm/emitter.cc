@@ -482,14 +482,18 @@ private:
         EMIT(SnpeDlc, outputs, inputs, input_names, ss.str(), snpe_device);
     }
 
-    void EmitFusionGroupTVM(const Node& node, ChxVMProgramProto* prog) {
+    void EmitFusionGroupTVM(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
         const Graph& body = *node.subgraph();
 
-        std::string dso_filename;
-        std::string func_name;
-        BuildTVMProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
-        if (g_compiler_log) {
-            CLOG() << "TVM output: " << dso_filename << std::endl;
+        FileCache cache(CacheBasePath(node), ".dso", {serialized_onnx, std::to_string(node.chainer_fusion_group())});
+
+        const std::string func_name = StrCat("tvm_op_", node.chainer_fusion_group());
+        if (!cache.IsReady() || !g_use_cached_model) {
+            BuildTVMProgram(body.nodes(), body.input_values(), body.output_values(), cache.GetTmpFilename(), func_name);
+            cache.Commit();
+            if (g_compiler_log) {
+                CLOG() << "TVM output: " << cache.GetFilename() << std::endl;
+            }
         }
 
         std::vector<int> inputs;
@@ -506,7 +510,7 @@ private:
         for (int64_t dim : node.output(0)->type().dims()) {
             shape.push_back(dim);
         }
-        EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, func_name, shape);
+        EMIT(TVM, outputs, inputs, outputs.size(), cache.GetFilename(), func_name, shape);
     }
 
     void EmitFusionGroupTensorRT(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
@@ -589,7 +593,7 @@ private:
         }
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
-            EmitFusionGroupTVM(node, prog);
+            EmitFusionGroupTVM(node, run_onnx_serialize(body), prog);
             return;
         }
 
