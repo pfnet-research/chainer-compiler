@@ -178,7 +178,7 @@ class VGG19Layers(VGGLayers):
 
 
 def get_chainer_model(chainer_chain, dtype, key):
-    batchsize = 4
+    batchsize = 3
     x = np.random.uniform(size=(batchsize, 3, 224, 224)).astype(dtype)
     t = np.random.randint(size=(batchsize,), low=0, high=1000).astype(np.int32)
     model = Wrapper(chainer_chain(pretrained_model=None), key)

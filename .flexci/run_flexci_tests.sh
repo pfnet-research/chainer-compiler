@@ -15,6 +15,7 @@ cmake .. \
     -DCHAINER_COMPILER_ENABLE_OPENCV=ON \
     -DCHAINER_COMPILER_ENABLE_PYTHON=ON \
     -DCHAINER_COMPILER_ENABLE_TVM=ON \
+    -DCHAINER_COMPILER_ENABLE_TENSORRT=ON \
     -DCHAINER_COMPILER_TVM_DIR=$HOME/tvm_dist \
     -DCHAINER_COMPILER_TVM_INCLUDE_DIRS="/root/tvm_dist/include;/root/dmlc_core_dist/include;/root/dlpack/include;/root/tvm_dist/include/HalideIR" \
     -DCHAINER_COMPILER_NGRAPH_DIR=$HOME/ngraph_dist \

@@ -12,6 +12,10 @@ def create_test(test_name, get_fun, dtype):
     chainer.config.dtype = dtype
     model, inputs = get_fun(dtype)
 
+    if chainer.cuda.available:
+        model.to_gpu()
+        inputs = [chainer.cuda.to_gpu(i) for i in inputs]
+
     output_grad = 'backprop' in test_name
     test_dir = 'out/%s' % test_name
 
@@ -27,22 +31,24 @@ def create_test(test_name, get_fun, dtype):
 def get_large_tests():
     tests = []
 
-    def test(name, get_fun, kwargs=None):
-        # kwargs is used for testing
-        for dtype in (np.float32, np.float64):
-            output_grad = dtype == np.float64
-            backprop_str = '_backprop' if output_grad else ''
-            test_name = 'large_oc%s_%s_%s' % (backprop_str,
-                                              name, dtype.__name__)
+    def test(name, get_fun, dtype, output_grad, **kwargs):
+        backprop_str = '_backprop' if output_grad else ''
+        test_name = 'large_oc%s_%s_%s' % (backprop_str,
+                                          name, dtype.__name__)
+        tests.append((test_name, get_fun, dtype, kwargs))
 
-            if kwargs is None:
-                kwargs = {}
-            tests.append((test_name, get_fun, dtype, kwargs))
-
-    test('resnet50', large_models.get_resnet50)
-    test('resnet152', large_models.get_resnet152)
-    test('vgg16', large_models.get_vgg16, {'rtol': 2e-2, 'atol': 2e-2})
-    test('vgg19', large_models.get_vgg19, {'rtol': 2e-2, 'atol': 2e-2})
+    # ResNet50 fp32 backprop with a fairly large tolerance.
+    test('resnet50', large_models.get_resnet50,
+         np.float32, True, rtol=0.3, atol=0.3)
+    # ResNet50 fp64 backprop with a small tolerance.
+    test('resnet50', large_models.get_resnet50, np.float64, True)
+    # ResNet152 fp32 forward.
+    test('resnet152', large_models.get_resnet152, np.float32, False)
+    # VGG19 fp32 backprop with a fairly large tolerance.
+    test('vgg16', large_models.get_vgg16,
+         np.float32, True, rtol=0.3, atol=0.3)
+    # VGG19 fp32 forward.
+    test('vgg19', large_models.get_vgg19, np.float32, False)
 
     return tests
 
