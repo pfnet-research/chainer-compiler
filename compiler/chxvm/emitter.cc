@@ -362,8 +362,10 @@ private:
                 xmodel.SerializeToString(&serialized);
             }
 
+            const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
+
             const std::string& dldt_model = StrCat("/tmp/chainer_compiler_dldt_tmp_", node.chainer_fusion_group());
-            FileCache cache(dldt_model, "", {serialized});
+            FileCache cache(dldt_model, "", {serialized, extra_args});
 
             if (!cache.IsReady() || !g_use_dldt_cache) {
                 const std::string& onnx_path = StrCat(cache.GetFilename(), ".onnx");
@@ -385,7 +387,7 @@ private:
                                onnx_path,
                                " --model_name ",
                                cache.GetFilename(),
-                               g_use_dldt_fp16 ? " --data_type=FP16" : "");
+                               extra_args);
                 CLOG() << "Run command: " << cmdline << std::endl;
                 int ret = system(cmdline.c_str());
                 CHECK_EQ(0, ret) << "Command failed: " << cmdline;
