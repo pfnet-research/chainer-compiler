@@ -65,6 +65,10 @@ FLAGS = {
         'type': 'std::string',
         'doc': 'The device of dldt (e.g., CPU and GPU).'
     },
+    'use_dldt_cache': {
+        'type': 'bool',
+        'doc': 'Use cached dldt models.'
+    },
 
     'backend_name': {
         'type': 'std::string',

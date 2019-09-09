@@ -74,6 +74,7 @@ add_library(chainer_compiler_compiler
   dtype.cc
   dtype_inference.cc
   evaluator.cc
+  file_cache.cc
   ${CMAKE_CURRENT_BINARY_DIR}/flags.cc
   flops.cc
   fusion.cc
@@ -93,6 +94,7 @@ add_library(chainer_compiler_compiler
   memory_simulator.cc
   merge.cc
   model.cc
+  murmur_hash3.cc
   node.cc
   nvrtc_builder.cc
   onnx.cc
@@ -126,6 +128,7 @@ add_executable(chainer_compiler_compiler_test
   custom_onnx_ops_test.cc
   dtype_inference_test.cc
   evaluator_test.cc
+  file_cache_test.cc
   flops_test.cc
   fusion_test.cc
   gradient_test.cc

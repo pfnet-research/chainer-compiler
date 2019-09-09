@@ -9,6 +9,7 @@
 #include <compiler/chxvm/chxvm_value.h>
 #include <compiler/chxvm/simple_node_emitter.h>
 #include <compiler/chxvm/value_id_manager.h>
+#include <compiler/file_cache.h>
 #include <compiler/flags.h>
 #include <compiler/flops.h>
 #include <compiler/gen_chxvm_codegen.h>
@@ -354,34 +355,50 @@ private:
                 CLOG() << "Fusion group (dldt) " << GetFusionGroupSummary(node) << std::endl;
             }
 
-            onnx::ModelProto xmodel;
-            body.ToONNX(xmodel.mutable_graph());
-
-            // TODO(hamaji): Introduce cache for compiled models.
-            const std::string& dldt_model = StrCat("/tmp/dldt_tmp_", node.chainer_fusion_group());
-            const std::string& onnx_path = StrCat(dldt_model, ".onnx");
-
+            std::string serialized;
             {
-                std::ofstream ofs(onnx_path);
-                CHECK(ofs) << "Failed to open output file: " << onnx_path;
-                CHECK(xmodel.SerializeToOstream(&ofs));
+                onnx::ModelProto xmodel;
+                body.ToONNX(xmodel.mutable_graph());
+                xmodel.SerializeToString(&serialized);
             }
 
-            const char* dldt_dir_env = getenv("CHAINER_COMPILER_DLDT_DIR");
-            std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
-            CHECK(!dldt_dir.empty()) << "CHAINER_COMPILER_DLDT_DIR is not set properly";
-            const std::string cmdline =
-                    StrCat("python3 ",
-                           dldt_dir,
-                           "/model-optimizer/mo_onnx.py"
-                           " --input_model ",
-                           onnx_path,
-                           " --model_name ",
-                           dldt_model,
-                           g_use_dldt_fp16 ? " --data_type=FP16" : "");
-            CLOG() << "Run command: " << cmdline << std::endl;
-            int ret = system(cmdline.c_str());
-            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+            const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
+
+            const std::string& dldt_model = StrCat("/tmp/chainer_compiler_dldt_tmp_", node.chainer_fusion_group());
+            FileCache cache(dldt_model, "", {serialized, extra_args});
+
+            if (!cache.IsReady() || !g_use_dldt_cache) {
+                const std::string& onnx_path = StrCat(cache.GetFilename(), ".onnx");
+
+                {
+                    std::ofstream ofs(onnx_path);
+                    CHECK(ofs) << "Failed to open output file: " << onnx_path;
+                    ofs.write(serialized.data(), serialized.size());
+                }
+
+                const char* dldt_dir_env = getenv("CHAINER_COMPILER_DLDT_DIR");
+                std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
+                CHECK(!dldt_dir.empty()) << "CHAINER_COMPILER_DLDT_DIR is not set properly";
+                const std::string cmdline =
+                        StrCat("python3 ",
+                               dldt_dir,
+                               "/model-optimizer/mo_onnx.py"
+                               " --input_model ",
+                               onnx_path,
+                               " --model_name ",
+                               cache.GetFilename(),
+                               extra_args);
+                CLOG() << "Run command: " << cmdline << std::endl;
+                int ret = system(cmdline.c_str());
+                CHECK_EQ(0, ret) << "Command failed: " << cmdline;
+            }
+
+            {
+                // Create a stamp file.
+                std::ofstream ofs(cache.GetTmpFilename());
+                ofs << dldt_model << std::endl;
+                cache.Commit();
+            }
 
             std::vector<int> inputs;
             std::vector<ChxVMValue> outputs;
@@ -404,7 +421,7 @@ private:
                 output_names.push_back(output->producer()->name());
             }
 
-            EMIT(Dldt, outputs, inputs, dldt_model, dldt_device, output_names);
+            EMIT(Dldt, outputs, inputs, cache.GetFilename(), dldt_device, output_names);
             return;
         }
 
@@ -417,7 +434,7 @@ private:
             body.ToONNX(xmodel.mutable_graph());
 
             // TODO(hamaji): Introduce cache for compiled models.
-            const std::string& snpe_model_file = StrCat("/tmp/snpe_tmp_", node.chainer_fusion_group(), ".dlc");
+            const std::string& snpe_model_file = StrCat("/tmp/chainer_compiler_snpe_tmp_", node.chainer_fusion_group(), ".dlc");
             const std::string& onnx_path = StrCat(snpe_model_file, ".onnx");
 
             {
