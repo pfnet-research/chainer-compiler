@@ -64,12 +64,10 @@ FileCache::FileCache(const std::string& base_path,
 }
 
 const std::string& FileCache::GetFilename() const {
-    CHECK(IsReady());
     return filename_;
 }
 
 std::string FileCache::GetTmpFilename() const {
-    CHECK(!IsReady());
     return filename_ + ".tmp";
 }
 
