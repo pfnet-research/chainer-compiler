@@ -93,7 +93,7 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyObj...")
         ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
-        raise Exception
+        # raise Exception
     return ty_ret
 
 

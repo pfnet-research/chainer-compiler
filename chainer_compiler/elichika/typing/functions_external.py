@@ -146,8 +146,13 @@ def ty_ChainerSum(ty_args, ty_kwargs):
 
 
 def ty_ChainerReshape(ty_args, ty_kwargs):
-    return TyChainerVariable(dtype=ty_args[0].dtype,
-            shape=value_of_type(ty_args[1]))
+    # TODO(momohatt): support cases where shape is '-1'
+    if not ty_args[1].is_fixed_len:
+        return TyChainerVariable(dtype=ty_args[0].dtype,
+                shape=None)
+    # TODO(momohatt): handle cases for incomplete shape
+    ret = F.reshape(value_of_type(ty_args[0]), value_of_type(ty_args[1]))
+    return type_of_value(ret)
 
 
 def ty_ChainerSqueeze(ty_args, ty_kwargs):
