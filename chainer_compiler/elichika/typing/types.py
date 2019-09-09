@@ -267,6 +267,7 @@ class TensorKind(Enum):
 
 class TyDType(TyObj):
     def __init__(self, t=None):
+        super().__init__()
         if t is None:
             self.t = None
         else:
@@ -425,6 +426,28 @@ def type_of_value(value) -> 'TyObj':
         return TyDType(value)
 
     return TyUserDefinedClass(type(value).__name__, value)
+
+
+def has_accurate_value(ty) -> bool:
+    # whether 'ty' has enough information to reconstruct its original value
+    ty = ty.deref()
+
+    if isinstance(ty, TyNone):
+        return True
+    if isinstance(ty, TyNum):
+        return ty.value is not None
+    if isinstance(ty, TyString):
+        return ty.value is not None
+    if isinstance(ty, TySequence):
+        if not ty.is_fixed_len:
+            return False
+        return all([has_accurate_value(t) for t in ty.get_tys()])
+    if isinstance(ty, TyDict):
+        return False
+    if isinstance(ty, TyTensor):
+        return has_accurate_value(ty.dtype) and ty.shape is not None
+    if isinstance(ty, TyDType):
+        return ty.dtype.t is not None
 
 
 def value_of_type(ty) -> object:

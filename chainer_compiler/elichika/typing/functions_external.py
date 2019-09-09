@@ -146,11 +146,9 @@ def ty_ChainerSum(ty_args, ty_kwargs):
 
 
 def ty_ChainerReshape(ty_args, ty_kwargs):
-    # TODO(momohatt): support cases where shape is '-1'
-    if not ty_args[1].is_fixed_len:
+    if not ty_args[1].is_fixed_len or not has_accurate_value(ty_args[1]):
         return TyChainerVariable(dtype=ty_args[0].dtype,
                 shape=None)
-    # TODO(momohatt): handle cases for incomplete shape
     ret = F.reshape(value_of_type(ty_args[0]), value_of_type(ty_args[1]))
     return type_of_value(ret)
 
@@ -225,7 +223,6 @@ def ty_ChainerLinear(obj, ty_args, ty_kwargs):
         return TyChainerVariable(dtype=dtype, shape=None)
 
     if len(shape) > 2:
-        # TODO: Use ty_ChainerReshape
         shape = F.reshape(value_of_type(ty_args[0]), (shape[0], -1)).shape
     assert len(shape) == 2
     if obj.in_size is not None:

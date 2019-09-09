@@ -51,7 +51,7 @@ def copy_ty(ty):
     elif isinstance(ty, TyDType):
         ret = TyDType()
     elif isinstance(ty, TyTensor):
-        ret = TyTensor(dtype=copy_ty(ty.dtype), kind=ty.kind, shape=ty.shape)
+        ret = TyTensor(dtype=ty.dtype, kind=ty.kind, shape=ty.shape)
     elif isinstance(ty, TyVar):
         ret = TyVar(None)
         if ty.ty is not None:
