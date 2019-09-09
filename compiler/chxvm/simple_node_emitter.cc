@@ -551,6 +551,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         }
     } else if (node.op_type() == Node::kChainerSequenceLookup) {
         EMIT(SequenceLookup, out(0), in(0), in(1));
+    } else if (node.op_type() == Node::kChainerSequenceUpdate) {
+        EMIT(SequenceUpdate, out(0), in(0), in(1), in(2));
     } else if (node.op_type() == Node::kChainerSequenceGetSlice) {
         EMIT(SequenceGetSlice, out(0), in(0), oin(1), oin(2), oin(3));
     } else if (node.op_type() == Node::kChainerSequenceLookupGrad) {

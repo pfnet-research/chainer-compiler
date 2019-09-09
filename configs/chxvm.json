@@ -116,6 +116,7 @@
         "ChainerSequenceSplitAxis": true,
         "ChainerSequenceStack": true,
         "ChainerSequenceUnpad": true,
+        "ChainerSequenceUpdate": true,
         "Clip": true,
         "Concat": true,
         "Constant": true,

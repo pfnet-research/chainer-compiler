@@ -342,6 +342,9 @@ NodeDef('ChainerSequencePop', 1, 2)
 # Looks up an element in a sequence: ([T], I) -> (T)
 NodeDef('ChainerSequenceLookup', 2, 1)
 
+# Sets an element to a sequence: ([T], I, T) -> ([T])
+NodeDef('ChainerSequenceUpdate', 3, 1)
+
 # Equivalent to Python's __getitem__ for a slice: ([T], I, I, I) -> ([T])
 NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
 

@@ -717,6 +717,16 @@ def gen_sequence_extend_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_update_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    inputs = [4, 2, 3]
+    seq_v = gb.const_seq(inputs)
+    seq_v = gb.ChainerSequenceUpdate([seq_v, gb.const(2), gb.const(42)])
+    seq_v = gb.ChainerSequenceUpdate([seq_v, gb.const(-3), gb.const(-49)])
+    gb.output(seq_v, Seq([-49, 2, 42]))
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -1180,6 +1190,7 @@ def get_tests():
     test('extra_test_sequence_constants', gen_sequence_constants_test)
     test('extra_test_sequence_create', gen_sequence_create_test)
     test('extra_test_sequence_extend', gen_sequence_extend_test)
+    test('extra_test_sequence_update', gen_sequence_update_test)
 
     test('extra_test_sentiment_lstm',
          sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2)
