@@ -808,6 +808,19 @@ def gen_generic_getslice_test(test_name):
     gb.gen_test()
 
 
+# TODO(hamaji): Add more tests for both GetItem/SetItem.
+def gen_setitem_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    input = np.array([1, 2, 3])
+
+    input_v = gb.input('input', input)
+    output_v = gb.ChainerSetItem([input_v, gb.const(1), gb.const(42)],
+                                 slice_specs=[1])
+
+    gb.output(output_v, np.array([1, 42, 3]))
+    gb.gen_test()
+
+
 def gen_generic_add_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     input1 = aranges(3, 4)
@@ -1207,6 +1220,8 @@ def get_tests():
     test('extra_test_generic_getitem', gen_generic_getitem_test)
     test('extra_test_generic_getslice', gen_generic_getslice_test)
     test('extra_test_generic_add', gen_generic_add_test)
+
+    test('extra_test_setitem', gen_setitem_test)
 
     test('extra_test_print', gen_print_test)
     test('extra_test_hello_world', gen_hello_world_test)
