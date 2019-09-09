@@ -26,7 +26,7 @@ TEST(FileCacheTest, Basic) {
     const std::string base_path = "/tmp/chainer_compiler_test_file_cache";
     CleanUp(base_path);
     const std::string extension = ".txt";
-    const std::vector<std::string> keys = {"foo", "bar"};
+    const std::vector<absl::string_view> keys = {"foo", "bar"};
 
     std::string filename;
     {

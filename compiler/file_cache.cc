@@ -27,16 +27,23 @@ char GetHex(int v) {
     return v < 10 ? '0' + v : 'a' + v - 10;
 }
 
-std::string GenFilename(const std::string& base_path,
-                        const std::string& extension,
-                        const std::vector<std::string>& keys) {
-    std::string key;
-    key += base_path;
-    key += extension;
-    for (const std::string& k : keys) key += k;
-
+void MergeHash(const absl::string_view& key, uint8_t* out_hash) {
     uint8_t hash[kHashBytes];
     MurmurHash3_x64_128(key.data(), key.size(), kSeed, hash);
+    for (int i = 0; i < kHashBytes; ++i) {
+        out_hash[i] ^= hash[i];
+    }
+}
+
+std::string GenFilename(const std::string& base_path,
+                        const std::string& extension,
+                        const std::vector<absl::string_view>& keys) {
+    uint8_t hash[kHashBytes] = {};
+    MergeHash(base_path, hash);
+    MergeHash(extension, hash);
+    for (const absl::string_view& k : keys) {
+        MergeHash(k, hash);
+    }
 
     std::string ascii(kHashBytes * 2, '\0');
     for (int i = 0; i < kHashBytes; ++i) {
@@ -52,7 +59,7 @@ std::string GenFilename(const std::string& base_path,
 
 FileCache::FileCache(const std::string& base_path,
                      const std::string& extension,
-                     const std::vector<std::string>& keys)
+                     const std::vector<absl::string_view>& keys)
     : filename_(GenFilename(base_path, extension, keys)) {
 }
 

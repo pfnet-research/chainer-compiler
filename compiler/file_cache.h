@@ -1,5 +1,7 @@
 #pragma once
 
+#include <absl/strings/string_view.h>
+
 #include <string>
 #include <vector>
 
@@ -9,7 +11,7 @@ class FileCache {
 public:
     FileCache(const std::string& base_path,
               const std::string& extension,
-              const std::vector<std::string>& keys);
+              const std::vector<absl::string_view>& keys);
 
     bool IsReady() const;
 
