@@ -356,6 +356,7 @@ class TyVar(TyObj):
         return self
 
 
+# TODO(momohatt): Deprecate TyUnion
 class TyUnion(TyObj):
     def __init__(self, *tys):
         assert len(tys) >= 2
