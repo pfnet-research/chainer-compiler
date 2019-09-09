@@ -279,38 +279,39 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
     return ty_ret
 
 
-def _ty_ChainerLinear(linear, x_shape, n_batch_axes):
-    assert n_batch_axes >= 1
 
-    if n_batch_axes > 1:
-        batch_shape = x_shape[:n_batch_axes]
-        batch_size = size_of_shape(batch_shape)
-        x_shape = calculate_reshape(x_shape, (batch_size, -1))
-    elif len(x_shape) > 2:
-        x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
+class ty_ChainerLinear():
+    def __call__(self, linear, ty_args, ty_kwargs):
+        shape = ty_args[0].shape
+        dtype = ty_args[0].dtype
+        n_batch_axes, is_dummy_n_batch_axes = \
+                get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
-    if linear.in_size is not None:
-        assert x_shape[1] == linear.in_size
+        if dtype.t is not None and linear.b is not None:
+            assert dtype.t == linear.b.dtype
+        if shape is None or is_dummy_n_batch_axes:
+            return TyChainerVariable(dtype=dtype, shape=None)
 
-    y_shape = (x_shape[0], linear.out_size)
-    if n_batch_axes > 1:
-        y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
-    return y_shape
+        out_shape = self.calculate_return_shape(linear, shape, n_batch_axes)
+        return TyChainerVariable(dtype=dtype, shape=out_shape)
 
+    def calculate_return_shape(self, linear, x_shape, n_batch_axes):
+        assert n_batch_axes >= 1
 
-def ty_ChainerLinear(linear, ty_args, ty_kwargs):
-    shape = ty_args[0].shape
-    dtype = ty_args[0].dtype
-    n_batch_axes, is_dummy_n_batch_axes = \
-            get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
+        if n_batch_axes > 1:
+            batch_shape = x_shape[:n_batch_axes]
+            batch_size = size_of_shape(batch_shape)
+            x_shape = calculate_reshape(x_shape, (batch_size, -1))
+        elif len(x_shape) > 2:
+            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
 
-    if dtype.t is not None and linear.b is not None:
-        assert dtype.t == linear.b.dtype
-    if shape is None or is_dummy_n_batch_axes:
-        return TyChainerVariable(dtype=dtype, shape=None)
+        if linear.in_size is not None:
+            assert x_shape[1] == linear.in_size
 
-    out_shape = _ty_ChainerLinear(linear, shape, n_batch_axes)
-    return TyChainerVariable(dtype=dtype, shape=out_shape)
+        y_shape = (x_shape[0], linear.out_size)
+        if n_batch_axes > 1:
+            y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
+        return y_shape
 
 
 def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):
@@ -345,7 +346,10 @@ def ty_ChainerEmbedID(obj, ty_args, ty_kwargs):
     assert False
 
 def ty_ChainerNStepBiLSTM(obj, ty_args, ty_kwargs):
+    # TODO: check_type_forward
     assert False
+
+
 
 
 ext_func_ty = {
@@ -411,7 +415,7 @@ ext_func_ty = {
 
 
 ext_callable_ty = {
-        L.Linear : ty_ChainerLinear,
+        L.Linear : ty_ChainerLinear(),
         L.Convolution2D : ty_ChainerConvolution2D,
         L.BatchNormalization : ty_ChainerBatchNormalization,
         L.EmbedID : ty_ChainerEmbedID,
