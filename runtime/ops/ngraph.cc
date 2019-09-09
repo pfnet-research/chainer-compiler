@@ -15,6 +15,7 @@
 
 #endif
 
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
