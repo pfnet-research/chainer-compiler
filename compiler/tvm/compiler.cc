@@ -37,11 +37,6 @@ namespace chainer_compiler {
 
 namespace {
 
-bool Exists(const std::string& filename) {
-    std::ifstream ifs(filename);
-    return static_cast<bool>(ifs);
-}
-
 tvm::Type GetType(Dtype dtype) {
     switch (dtype) {
         case Dtype::kUnknown:
@@ -99,19 +94,10 @@ public:
 
     void Build(
             const std::vector<Node*>& nodes,
-            int id,
             const std::vector<Value*>& inputs,
             const std::vector<Value*>& outputs,
-            std::string* filename,
-            std::string* func_name) {
-        *func_name = StrCat("tvm_op_", id);
-        const std::string& dso_name = StrCat("/tmp/libchainer_compiler_op_", *func_name);
-        *filename = dso_name + ".so";
-        if (g_reuse_tvm_code && Exists(*filename)) {
-            CLOG() << "Reuse existing " << *filename << std::endl;
-            return;
-        }
-
+            const std::string& filename,
+            const std::string& func_name) {
         PrepareInputs(inputs);
 
         const char* scheduler_name = nullptr;
@@ -194,7 +180,7 @@ public:
         }
 
         tvm::BuildConfig config{tvm::build_config()};
-        tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, args, *func_name, {}, config)};
+        tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, args, func_name, {}, config)};
 
         tvm::runtime::Module module = tvm::build(funcs, target_, host_, config);
         CLOG() << module->type_key() << ": " << module->GetSource() << std::endl;
@@ -205,7 +191,7 @@ public:
 
         std::vector<std::string> input_files;
 
-        const std::string& obj_filename = dso_name + ".o";
+        const std::string& obj_filename = filename + ".o";
         input_files.push_back(obj_filename);
         module->SaveToFile(obj_filename, "o");
 
@@ -223,7 +209,7 @@ public:
 #endif
         }
 
-        std::string cmd = StrCat("gcc -shared -fPIC -o ", dso_name, ".so");
+        std::string cmd = StrCat("gcc -shared -fPIC -o ", filename, ".so");
         for (const std::string& input_file : input_files) {
             cmd += " " + input_file;
         }
@@ -369,14 +355,13 @@ private:
 
 void BuildTVMProgram(
         const std::vector<Node*>& nodes,
-        int id,
         const std::vector<Value*>& inputs,
         const std::vector<Value*>& outputs,
-        std::string* filename,
-        std::string* func_name) {
+        const std::string& filename,
+        const std::string& func_name) {
 #if CHAINER_COMPILER_ENABLE_TVM
     TVMCompiler compiler;
-    compiler.Build(nodes, id, inputs, outputs, filename, func_name);
+    compiler.Build(nodes, inputs, outputs, filename, func_name);
 #else
     CHECK(false) << "Enable -DCHAINER_COMPILER_ENABLE_TVM=ON";
 #endif

@@ -53,6 +53,7 @@ parser.add_argument('--ngraph', action='store_true', help='Enable nGraph')
 parser.add_argument('--snpe', action='store_true', help='Enable SNPE')
 parser.add_argument('--computation_order', default=None,
                     help='Force setting --computation_order flag')
+parser.add_argument('--cache', action='store_true', help='Enable model caching')
 parser.add_argument('--verbose', action='store_true',
                     help='Run tests with --verbose flag')
 args = parser.parse_args()
@@ -944,6 +945,9 @@ def main():
 
         if args.snpe:
             test_case.args.append('--use_snpe')
+
+        if args.cache:
+            test_case.args.append('--use_cached_model')
 
         if is_gpu:
             gpu_tests.append(test_case)
