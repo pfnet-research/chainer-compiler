@@ -108,11 +108,10 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, ty_kwargs):
 # math functions that doesn't change shapes or dtypes
 def ty_ChainerIdentical(is_float_only=True):
     def infer(ty_args, ty_kwargs):
-        if isinstance(ty_args[0], TyTensor):
-            if is_float_only:
-                assert ty_args[0].dtype.is_float()
-            return ty_args[0]
-        assert False
+        assert isinstance(ty_args[0], TyTensor)
+        if is_float_only:
+            assert ty_args[0].dtype.is_float()
+        return ty_args[0]
 
     return infer
 
@@ -238,16 +237,19 @@ def ty_ChainerSplitAxis(ty_args, ty_kwargs):
 
     if isinstance(ty_args[1], TyNum):
         n = ty_args[1].value
-        return TyTuple([TyChainerVariable(dtype=ty_args[0].dtype)] * n)
-    elif isinstance(ty_args[1], TyTensor):
-        # 1-D array
-        if ty_args[1].shape is None:
-            # variable length tuple
-            return TyTuple(TyChainerVariable(dtype=ty_args[0].dtype))
-        n = ty_args[1].shape[0]
+        if n is None:
+            # TODO
+            return TyVar()
         return TyTuple([TyChainerVariable(dtype=ty_args[0].dtype)] * n)
 
-    assert False
+    assert isinstance(ty_args[1], TyTensor)
+    # 1-D array
+
+    if ty_args[1].shape is None:
+        # variable length tuple
+        return TyTuple(TyChainerVariable(dtype=ty_args[0].dtype))
+    n = ty_args[1].shape[0]
+    return TyTuple([TyChainerVariable(dtype=ty_args[0].dtype)] * n)
 
 
 def ty_ChainerPadSequence(ty_args, ty_kwargs):
