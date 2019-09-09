@@ -66,6 +66,7 @@ RESET = '\033[0m'
 
 ONNX_TEST_DATA = 'third_party/onnx/onnx/backend/test/data'
 NODE_TEST = os.path.join(ONNX_TEST_DATA, 'node')
+SIMPLE_TEST = os.path.join(ONNX_TEST_DATA, 'simple')
 
 # ChainerX does not support 1D conv/pool.
 fail_1d_conv_pool = args.use_gpu_all
@@ -503,6 +504,9 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_dynamicquantizelinear_min_adjusted_expanded'),
     TestCase(NODE_TEST, 'test_mvn'),
     TestCase(NODE_TEST, 'test_mvn_expanded'),
+
+    TestCase(SIMPLE_TEST, 'test_sign_model'),
+    TestCase(SIMPLE_TEST, 'test_single_relu_model'),
 ]
 
 TEST_CASES += [
