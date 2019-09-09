@@ -285,7 +285,7 @@ chainerx::Array NonZeroOp::RunImpl(ChxVMState* st, const chainerx::Array& x_) {
     const int64_t rank = x.shape().size();
     std::vector<int64_t> result;
     chainerx::IndexIterator<> idx_it(x.shape().data(), rank, x.shape().GetTotalSize(), 0, 1);
-    const bool* x_start = reinterpret_cast<const bool*>(x.raw_data());
+    const bool* x_start = reinterpret_cast<const bool*>(RawStartPtr(x));
     for (size_t i = 0; i < x.shape().GetTotalSize(); ++i) {
         if (x_start[i]) {
             idx_it.Restart(i);
@@ -322,9 +322,9 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
     };
 
     chainerx::Array raw_scores = chainerx::AsContiguous(scores).AsType(chainerx::Dtype::kFloat32).ToNative();
-    const float* scores_data = reinterpret_cast<const float*>(raw_scores.raw_data());
+    const float* scores_data = reinterpret_cast<const float*>(RawStartPtr(raw_scores));
     chainerx::Array raw_boxes = chainerx::AsContiguous(boxes).AsType(chainerx::Dtype::kFloat32).ToNative();
-    const float* boxes_data = reinterpret_cast<const float*>(raw_boxes.raw_data());
+    const float* boxes_data = reinterpret_cast<const float*>(RawStartPtr(raw_boxes));
 
     const int64_t num_batches = boxes.shape()[0];
     const int64_t num_boxes = boxes.shape()[1];

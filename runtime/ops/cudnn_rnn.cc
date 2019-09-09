@@ -162,7 +162,7 @@ int64_t GetRNNWeightOffset(
             pseudo_layer,
             x_desc.descriptor(),
             w_desc.descriptor(),
-            dest_w.raw_data(),
+            RawStartPtr(dest_w),
             lin_layer_id,
             filter_desc.descriptor(),
             &mem);
@@ -183,7 +183,7 @@ int64_t GetRNNWeightOffset(
     CHECK_EQ(param_size, filter_dims[0] * filter_dims[1] * filter_dims[2]);
 #endif
 
-    int64_t offset = (static_cast<char*>(mem) - static_cast<char*>(dest_w.raw_data()));
+    int64_t offset = (static_cast<char*>(mem) - static_cast<char*>(RawStartPtr(dest_w)));
     CHECK(offset % src_w.GetItemSize() == 0) << offset;
     offset /= src_w.GetItemSize();
     return offset;
@@ -506,19 +506,19 @@ bool CudnnLSTM(
             cudnnRNNForwardTrainingEx,
             rnn_desc->descriptor(),
             x_rnn_desc->descriptor(),
-            packed.raw_data(),
+            RawStartPtr(packed),
             hc_desc->descriptor(),
             nullptr,  // TODO(hamaji): h
             hc_desc->descriptor(),
             nullptr,  // TODO(hamaji): c
             w_concat_desc->descriptor(),
-            w_concat.raw_data(),
+            RawStartPtr(w_concat),
             y_desc->descriptor(),
-            y.raw_data(),
+            RawStartPtr(y),
             hc_desc->descriptor(),
-            hy.raw_data(),
+            RawStartPtr(hy),
             hc_desc->descriptor(),
-            cy.raw_data(),
+            RawStartPtr(cy),
             nullptr,  // kDesc
             nullptr,  // keys
             nullptr,  // cDesc
@@ -527,9 +527,9 @@ bool CudnnLSTM(
             nullptr,  // iAttn
             nullptr,  // qDesc
             nullptr,  // queries
-            workspace.raw_data(),
+            RawStartPtr(workspace),
             workspace_size,
-            reserve.raw_data(),
+            RawStartPtr(reserve),
             reserve_size);
 
     ChxVMOpaque* context = new LSTMBackwardContext(
@@ -590,9 +590,9 @@ bool CudnnLSTMGrad(
             cudnnRNNBackwardDataEx,
             context.rnn_desc().descriptor(),
             context.y_desc().descriptor(),
-            context.y().raw_data(),
+            RawStartPtr(context.y()),
             context.y_desc().descriptor(),
-            gy.raw_data(),
+            RawStartPtr(gy),
             nullptr,  // dc_desc
             nullptr,  // dc_attn
             context.hc_desc().descriptor(),
@@ -600,38 +600,38 @@ bool CudnnLSTMGrad(
             context.hc_desc().descriptor(),
             nullptr,  // dcy
             context.w_desc().descriptor(),
-            w_concat.raw_data(),
+            RawStartPtr(w_concat),
             context.hc_desc().descriptor(),
             nullptr,  // hx
             context.hc_desc().descriptor(),
             nullptr,  // cx
             context.x_desc().descriptor(),
-            gx.raw_data(),
+            RawStartPtr(gx),
             context.hc_desc().descriptor(),
             nullptr,  // dhx
             context.hc_desc().descriptor(),
             nullptr,  // dcx
             nullptr,  // dk_desc
             nullptr,  // dkeys
-            context.workspace().raw_data(),
+            RawStartPtr(context.workspace()),
             context.workspace().GetNBytes(),
-            context.reserve().raw_data(),
+            RawStartPtr(context.reserve()),
             context.reserve().GetNBytes());
 
     cudnn_handle.Call(
             cudnnRNNBackwardWeightsEx,
             context.rnn_desc().descriptor(),
             context.x_desc().descriptor(),
-            context.x().raw_data(),
+            RawStartPtr(context.x()),
             context.hc_desc().descriptor(),
             nullptr,  // hx
             context.y_desc().descriptor(),
-            context.y().raw_data(),
-            context.workspace().raw_data(),
+            RawStartPtr(context.y()),
+            RawStartPtr(context.workspace()),
             context.workspace().GetNBytes(),
             context.w_desc().descriptor(),
-            gw_concat.raw_data(),
-            context.reserve().raw_data(),
+            RawStartPtr(gw_concat),
+            RawStartPtr(context.reserve()),
             context.reserve().GetNBytes());
 
     gx = UnpackSequence(gx, num_inputs, context.num_batches(), context.x_shape());

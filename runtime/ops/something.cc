@@ -118,8 +118,8 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
         std::vector<std::array<double, 4>> rois_list_per_batch;
         std::vector<double> confs_list_per_batch;
         for (size_t l = 0; l < scales.size(); ++l) {
-            const float* loc_l = static_cast<float*>(locs[l].raw_data()) + b * locs[l].shape()[1] * locs[l].shape()[2];
-            const float* conf_l = static_cast<float*>(confs[l].raw_data()) + b * confs[l].shape()[1];
+            const float* loc_l = static_cast<float*>(RawStartPtr(locs[l])) + b * locs[l].shape()[1] * locs[l].shape()[2];
+            const float* conf_l = static_cast<float*>(RawStartPtr(confs[l])) + b * confs[l].shape()[1];
             const auto& h_l = hs[l];
             const int64_t k_l = locs[l].shape()[1];
             std::vector<std::array<double, 4>> roi_l_list(h_l.shape()[2] * h_l.shape()[3] * k_anchor_ratios.size());
@@ -216,10 +216,10 @@ std::vector<chainerx::Array> ChainerCVRPNDecode(
     }
     chainerx::Array rois = chainerx::Zeros({static_cast<int64_t>(rois_list.size()) * 4}, hs.front().dtype());
     for (size_t i = 0; i < rois_list.size(); ++i) {
-        *(static_cast<float*>(rois.raw_data()) + i * 4 + 0) = rois_list[i][0];
-        *(static_cast<float*>(rois.raw_data()) + i * 4 + 1) = rois_list[i][1];
-        *(static_cast<float*>(rois.raw_data()) + i * 4 + 2) = rois_list[i][2];
-        *(static_cast<float*>(rois.raw_data()) + i * 4 + 3) = rois_list[i][3];
+        *(static_cast<float*>(RawStartPtr(rois)) + i * 4 + 0) = rois_list[i][0];
+        *(static_cast<float*>(RawStartPtr(rois)) + i * 4 + 1) = rois_list[i][1];
+        *(static_cast<float*>(RawStartPtr(rois)) + i * 4 + 2) = rois_list[i][2];
+        *(static_cast<float*>(RawStartPtr(rois)) + i * 4 + 3) = rois_list[i][3];
     }
     rois = chainerx::Reshape(rois, {static_cast<int64_t>(rois_list.size()), 4});
     chainerx::Array roi_indices = chainerx::Reshape(chainerx::Concatenate(roi_indices_list), {static_cast<int64_t>(rois_list.size())});

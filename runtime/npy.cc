@@ -7,6 +7,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <runtime/chainerx_util.h>
 
 namespace chainer_compiler {
 namespace runtime {
@@ -69,7 +70,7 @@ void SaveNpy(const chainerx::Array& orig_a, const std::string& filename) {
     FILE* fp = fopen(filename.c_str(), "wb");
     CHECK(fp) << "Failed to open: " << filename;
     fwrite(header.data(), 1, header.size(), fp);
-    fwrite(a.raw_data(), 1, a.GetNBytes(), fp);
+    fwrite(RawStartPtr(a), 1, a.GetNBytes(), fp);
     fclose(fp);
 }
 

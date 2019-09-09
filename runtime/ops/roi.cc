@@ -106,7 +106,7 @@ T& ContiguousArrayAt(chainerx::Array& a, const ArrayIndices& indices) {
         index += indices[i] * stride;
     }
     CHECK(index < a.GetTotalSize());
-    return *(static_cast<T*>(a.raw_data()) + index);
+    return *(static_cast<T*>(RawStartPtr(a)) + index);
 }
 
 template <typename T>
@@ -145,8 +145,8 @@ public:
         contiguous_bottom_roi_indices = chainerx::AsContiguous(bottom_roi_indices);
         contiguous_bottom_rois = chainerx::AsContiguous(bottom_rois);
         top_data = chainerx::Empty(chainerx::Shape{n_rois, channels, pooled_height, pooled_width}, bottom_data.dtype());
-        bottom_ptr = static_cast<float*>(contiguous_bottom_data.raw_data());
-        top_ptr = static_cast<float*>(top_data.raw_data());
+        bottom_ptr = static_cast<float*>(RawStartPtr(contiguous_bottom_data));
+        top_ptr = static_cast<float*>(RawStartPtr(top_data));
     }
 
     chainerx::Array Run() {

@@ -12,6 +12,7 @@
 #endif
 
 #include <common/log.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
@@ -136,7 +137,7 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
             CHECK(input_iter != inputs_info.end());
             InferenceEngine::Blob::Ptr input = infer_request.GetBlob(input_iter->first);
             auto input_data = input->buffer().as<InferenceEngine::PrecisionTrait<InferenceEngine::Precision::FP32>::value_type*>();
-            memcpy(input_data, inputs[i].raw_data(), inputs[i].GetNBytes());
+            memcpy(input_data, RawStartPtr(inputs[i]), inputs[i].GetNBytes());
         }
     }
 
@@ -147,7 +148,7 @@ std::vector<chainerx::Array> DldtOp::RunImpl(chainer_compiler::runtime::ChxVMSta
         const std::string& output_name = output_names[i];
         InferenceEngine::Blob::Ptr output = infer_request.GetBlob(output_name);
         const chainerx::Array& output_array = impl_->output_arrays[i];
-        memcpy(output_array.raw_data(), output->buffer(), output_array.GetNBytes());
+        memcpy(RawStartPtr(output_array), output->buffer(), output_array.GetNBytes());
         chainerx::Dtype dtype = static_cast<chainerx::Dtype>(inst_.output_types(i).dtype());
         if (output_array.dtype() != dtype) {
             output_arrays.push_back(output_array.AsType(dtype));

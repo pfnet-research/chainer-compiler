@@ -256,6 +256,10 @@ bool Tensor::IsArray() const {
     return absl::holds_alternative<chainerx::Array>(data_);
 }
 
+const void* Tensor::GetRawData() const {
+    return runtime::RawStartPtr(chx());
+}
+
 const chainerx::Array& Tensor::chx() const {
     CHECK(IsArray());
     return absl::get<0>(data_);
