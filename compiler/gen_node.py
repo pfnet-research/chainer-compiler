@@ -319,6 +319,10 @@ NodeDef('ChainerGetItem', None, 1, slice_specs=[int])
 # One more inputs for the shape info.
 NodeDef('ChainerGetItemGrad', None, 1, slice_specs=[int])
 
+# This op takes one more argument in addition to `ChainerGetItem` for the
+# tensor to be set.
+NodeDef('ChainerSetItem', None, 1, slice_specs=[int])
+
 NodeDef('ChainerPrint', None, 0)
 
 # Put a null value.

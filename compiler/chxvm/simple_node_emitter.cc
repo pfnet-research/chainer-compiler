@@ -433,6 +433,11 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         std::vector<int> ins;
         for (size_t i = 1; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(GetItem, out(0), in(0), ins, node.slice_specs());
+    } else if (node.op_type() == Node::kChainerSetItem) {
+        std::vector<int> ins;
+        size_t last_index = node.inputs().size() - 1;
+        for (size_t i = 1; i < last_index; ++i) ins.push_back(in(i));
+        EMIT(SetItem, out(0), in(0), ins, in(last_index), node.slice_specs());
     } else if (node.op_type() == Node::kChainerGetItemGrad) {
         std::vector<int> ins;
         for (size_t i = 2; i < node.inputs().size(); ++i) ins.push_back(in(i));
