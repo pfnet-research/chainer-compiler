@@ -28,39 +28,6 @@ def debug(sth):
     print("[{} {}] {}".format(frame.f_code.co_name, frame.f_lineno, sth))
 
 
-def copy_ty(ty):
-    # XXX: do not copy instance or value
-    if isinstance(ty, TyNone):
-        ret = TyNone()
-    elif isinstance(ty, TyNum):
-        ret = TyNum(kind=ty.kind, value=None)
-    elif isinstance(ty, TyString):
-        ret = TyString()
-    elif isinstance(ty, TyArrow):
-        ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
-    elif isinstance(ty, TySequence):
-        if ty.is_fixed_len:
-            ret = TySequence(ty=[copy_ty(t) for t in self.get_tys()],
-                    seq_kind=ty.seq_kind)
-        else:
-            ret = TySequence(ty=copy_ty(self.get_ty()), seq_kind=ty.seq_kind)
-    elif isinstance(ty, TyDict):
-        ret = TyDict(ty.keyty, ty.argty)
-    elif isinstance(ty, TyUserDefinedClass):
-        ret = TyUserDefinedClass(ty.name, ty.instance)
-    elif isinstance(ty, TyDType):
-        ret = TyDType()
-    elif isinstance(ty, TyTensor):
-        ret = TyTensor(dtype=ty.dtype, kind=ty.kind, shape=ty.shape)
-    elif isinstance(ty, TyVar):
-        ret = TyVar(None)
-        if ty.ty is not None:
-            ret.set(ty.deref())
-
-    ret.is_optional = ty.is_optional
-    return ret
-
-
 def copy_tyenv(tyenv):
     new_tyenv = {}
     for name, ty in tyenv.items():

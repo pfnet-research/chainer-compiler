@@ -137,27 +137,27 @@ class SequenceKind(Enum):
     TUPLE = 1
 
 class TySequence(TyObj):
-    def __init__(self, ty=None, seq_kind=None):
+    def __init__(self, ty=None, kind=None):
         super().__init__()
-        self.seq_kind = seq_kind
+        self.kind = kind
         self.is_fixed_len = isinstance(ty, list) if ty is not None else None
         self.ty_ = ty
 
     def show(self):
         if self.is_fixed_len:
-            if self.seq_kind == SequenceKind.LIST:
+            if self.kind == SequenceKind.LIST:
                 return "[" + intercalate([str(t) for t in self.ty_], ", ") + "]"
 
-            if self.seq_kind == SequenceKind.TUPLE:
+            if self.kind == SequenceKind.TUPLE:
                 if len(self.ty_) == 1:
                     return "(" + str(self.ty_[0]) + ",)"
                 return "(" + intercalate([str(t) for t in self.ty_], ", ") + ")"
 
             return "{" + intercalate([str(t) for t in self.ty_], ", ") + "}"
 
-        if self.seq_kind == SequenceKind.LIST:
+        if self.kind == SequenceKind.LIST:
             return str(self.ty_) + " list"
-        if self.seq_kind == SequenceKind.TUPLE:
+        if self.kind == SequenceKind.TUPLE:
             return str(self.ty_) + " tuple"
 
         return str(self.ty_) + " sequence"
@@ -166,7 +166,7 @@ class TySequence(TyObj):
         return isinstance(other, TySequence) and self.ty_ == other.ty_
 
     def is_mutable(self):
-        return self.seq_kind == SequenceKind.LIST
+        return self.kind == SequenceKind.LIST
 
     def unset(self):
         if self.is_fixed_len:
@@ -203,10 +203,10 @@ class TySequence(TyObj):
         return
 
     def is_list(self):
-        return self.seq_kind == SequenceKind.LIST
+        return self.kind == SequenceKind.LIST
 
     def is_tuple(self):
-        return self.seq_kind == SequenceKind.TUPLE
+        return self.kind == SequenceKind.TUPLE
 
 
 def TyList(ty):  # shorthand notation
@@ -458,7 +458,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyNum):
         if ty.value is not None:
             return ty.value
-        return pytype_of_type(ty)(1)  # XXX: to avoid division by zero
+        return eval(ty.show())(1)  # XXX: use 1 to avoid division by zero
     if isinstance(ty, TyString):
         if ty.value is not None:
             return ty.value
@@ -485,15 +485,6 @@ def value_of_type(ty) -> object:
     assert False, str(ty)
 
 
-def pytype_of_type(ty) -> type:
-    ty = ty.deref()
-
-    if isinstance(ty, TyNum):
-        return eval(ty.show())
-
-    assert False
-
-
 def choose_stronger_ty(ty1, ty2):
     if isinstance(ty1, TyNone):
         return ty2
@@ -504,6 +495,39 @@ def choose_stronger_ty(ty1, ty2):
     if type(ty2) is TyObj:
         return ty1
     return ty1  # whichever is okay
+
+
+def copy_ty(ty):
+    # XXX: do not copy instance or value
+    if isinstance(ty, TyNone):
+        ret = TyNone()
+    elif isinstance(ty, TyNum):
+        ret = TyNum(kind=ty.kind, value=None)
+    elif isinstance(ty, TyString):
+        ret = TyString()
+    elif isinstance(ty, TyArrow):
+        ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
+    elif isinstance(ty, TySequence):
+        if ty.is_fixed_len:
+            ret = TySequence(ty=[copy_ty(t) for t in self.get_tys()],
+                    kind=ty.kind)
+        else:
+            ret = TySequence(ty=copy_ty(self.get_ty()), kind=ty.kind)
+    elif isinstance(ty, TyDict):
+        ret = TyDict(ty.keyty, ty.argty)
+    elif isinstance(ty, TyUserDefinedClass):
+        ret = TyUserDefinedClass(ty.name, ty.instance)
+    elif isinstance(ty, TyDType):
+        ret = TyDType()
+    elif isinstance(ty, TyTensor):
+        ret = TyTensor(dtype=ty.dtype, kind=ty.kind, shape=ty.shape)
+    elif isinstance(ty, TyVar):
+        ret = TyVar(None)
+        if ty.ty is not None:
+            ret.set(ty.deref())
+
+    ret.is_optional = ty.is_optional
+    return ret
 
 
 # ==============================================================================
