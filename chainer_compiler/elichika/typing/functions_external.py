@@ -183,7 +183,7 @@ def calculate_reshape(orig_shape, input_shape):
         if any([i == -1 for i in input_shape]):
             return None
         return input_shape
-    fill = abs(int(size_of_shape(orig_shape) / size_of_shape(input_shape)))
+    fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
     return tuple([i if i != -1 else fill for i in input_shape])
 
 
@@ -315,7 +315,7 @@ class ty_ChainerLinear():
         return y_shape
 
 
-def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):
+def ty_ChainerConvolution2D(conv, ty_args, ty_kwargs):
     shape = ty_args[0].shape
     dtype = ty_args[0].dtype
     if dtype.t is not None:
@@ -324,13 +324,13 @@ def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):
         return TyChainerVariable(dtype=dtype, shape=None)
 
     assert len(shape) == 4
-    if obj.in_channels is not None:
-        assert shape[1] == obj.in_channels
+    if conv.in_channels is not None:
+        assert shape[1] == conv.in_channels
 
-    ksize = make_pair(obj.ksize)
-    stride = make_pair(obj.stride)
-    pad = make_pair(obj.pad)
-    dilate = make_pair(obj.dilate)
+    ksize = make_pair(conv.ksize)
+    stride = make_pair(conv.stride)
+    pad = make_pair(conv.pad)
+    dilate = make_pair(conv.dilate)
 
     shape_2 = get_conv_outsize(
             shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
@@ -343,14 +343,59 @@ def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):
 def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
     assert False
 
+
 def ty_ChainerEmbedID(obj, ty_args, ty_kwargs):
     assert False
 
-def ty_ChainerNStepBiLSTM(obj, ty_args, ty_kwargs):
-    # TODO: check_type_forward
-    assert False
 
+def ty_ChainerNStepBiLSTM(nblstm, ty_args, ty_kwargs):
+    ty_hx = ty_args[0]
+    ty_cx = ty_args[1]
+    ty_xs = ty_args[2]
+    assert isinstance(ty_xs, TySequence)
 
+    if not ty_xs.is_fixed_len:
+        # TODO
+        return TyTuple([ty_hx, ty_cx, ty_xs])
+
+    xs_dtypes = [t.dtype for t in ty_xs.get_tys()]
+    xs_shapes = [t.shape for t in ty_xs.get_tys()]
+    assert all_same(xs_dtypes)
+
+    if isinstance(ty_hx, TyTensor):
+        hx_shape = ty_hx.shape
+        hx_dtype = ty_hx.dtype
+    else:
+        hx_shape = (nblstm.n_layers * 2, len(ty_xs.get_tys()), nblstm.out_size)
+        hx_dtype = ty_xs.get_tys()[0].dtype
+
+    if isinstance(ty_cx, TyTensor):
+        cx_shape = ty_cx.shape
+        cx_dtype = ty_cx.dtype
+    else:
+        cx_shape = (nblstm.n_layers * 2, len(ty_xs.get_tys()), nblstm.out_size)
+        cx_dtype = hx_dtype
+
+    if hx_shape is None or cx_shape is None:
+        # TODO: 適当
+        return TyTuple([ty_hx, ty_cx, ty_xs])
+
+    assert hx_shape[0] // 2 == nblstm.n_layers
+    assert hx_shape == cx_shape
+    N = hx_shape[2]
+
+    ty_hy = TyChainerVariable(dtype=hx_dtype, shape=hx_shape)
+    ty_cy = TyChainerVariable(dtype=cx_dtype, shape=cx_shape)
+
+    if any([t.shape is None for t in ty_xs.get_tys()]):
+        return TyTuple([ty_hy, ty_cy, TyList(TyChainerVariable(dtype=xs_dtypes[0]))])
+
+    # TODO(momohatt): nblstm doesn't have attribute in_size
+    # assert all([i == nblstm.in_size for _, i in xs_shapes])
+    ys_shapes = [(l, 2 * N) for l, _ in xs_shapes]
+    ty_ys = TyList([TyChainerVariable(dtype=xs_dtypes[0], shape=s) for s in ys_shapes])
+
+    return TyTuple([ty_hy, ty_cy, ty_ys])
 
 
 ext_func_ty = {
