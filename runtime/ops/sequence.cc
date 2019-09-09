@@ -63,7 +63,8 @@ void SequenceLookupGradOp::RunImpl(
     (*gx)[i] = ChxVMVar(gy);
 }
 
-void SequenceUpdateOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index, const chainerx::Array& value, ChxVMSequence* output) {
+void SequenceUpdateOp::RunImpl(
+        ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index, const chainerx::Array& value, ChxVMSequence* output) {
     *output = seq;
     int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();

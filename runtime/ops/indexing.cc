@@ -187,7 +187,8 @@ chainerx::Array GetItemGradOp::RunImpl(
     return out;
 }
 
-chainerx::Array SetItemOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const std::vector<chainerx::Array>& index_arrays, const chainerx::Array& value) {
+chainerx::Array SetItemOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& data, const std::vector<chainerx::Array>& index_arrays, const chainerx::Array& value) {
     chainerx::Array out = data.Copy();
     std::vector<chainerx::ArrayIndex> indices = GetIndicesForGetItem(index_arrays, slice_specs);
     BlitArray(value, out.At(indices));
