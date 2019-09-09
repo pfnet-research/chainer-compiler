@@ -54,12 +54,10 @@ public:
     template <typename T>
     T Get(int index) const {
         CHECK_EQ(dtype().SizeOf(), sizeof(T));
-        return static_cast<T*>(chx().raw_data())[index];
+        return static_cast<const T*>(GetRawData())[index];
     }
 
-    const void* GetRawData() const {
-        return chx().raw_data();
-    }
+    const void* GetRawData() const;
 
     bool IsArray() const;
 

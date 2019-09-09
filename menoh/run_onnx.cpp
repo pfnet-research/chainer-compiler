@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
         auto model = model_builder.build_model(model_data, args.get<std::string>("backend"), config.dump());
         for (const auto& p : test_case->inputs) {
             auto input_var = model.get_variable(p.first);
-            uint8_t* data = static_cast<uint8_t*>(p.second->GetArray().raw_data());
+            uint8_t* data = static_cast<uint8_t*>(chainer_compiler::runtime::RawStartPtr(p.second->GetArray()));
             const size_t num_bytes = variable_size_in_bytes(input_var);
             CHECK_EQ(num_bytes, p.second->GetArray().GetNBytes()) << p.first;
             std::copy(data, data + num_bytes, static_cast<uint8_t*>(input_var.buffer_handle));

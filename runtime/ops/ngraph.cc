@@ -99,7 +99,7 @@ void NGraphOp::InitImpl() {
         chainerx::Dtype dtype = GetDtype(result->get_element_type());
         chainerx::Shape shape = GetShape(result->get_shape());
         chainerx::Array array = chainerx::Empty(shape, dtype);
-        impl_->result_tensors.push_back(impl_->backend->create_tensor(result->get_element_type(), result->get_shape(), array.raw_data()));
+        impl_->result_tensors.push_back(impl_->backend->create_tensor(result->get_element_type(), result->get_shape(), RawStartPtr(array)));
         impl_->outputs.push_back(array);
     }
 #endif
@@ -127,7 +127,7 @@ std::vector<chainerx::Array> NGraphOp::RunImpl(chainer_compiler::runtime::ChxVMS
 
     std::vector<std::shared_ptr<ngraph::runtime::Tensor>> arg_tensors(num_inputs);
     for (size_t i = 0; i < num_inputs; ++i) {
-        auto t = impl_->backend->create_tensor(params.at(i)->get_element_type(), params.at(i)->get_shape(), inputs[i].raw_data());
+        auto t = impl_->backend->create_tensor(params.at(i)->get_element_type(), params.at(i)->get_shape(), RawStartPtr(inputs[i]));
         arg_tensors.at(i) = t;
     }
 
