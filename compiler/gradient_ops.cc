@@ -538,8 +538,14 @@ void AveragePoolGradFn(GradientOpContext* gc) {
 void ResizeGradFn(GradientOpContext* gc) {
     GraphBuilder gb{gc->builder(0)};
     Node* node = gc->node();
-    CHECK_EQ(2, node->inputs().size());
-    gc->GradOp(Node::kChainerResizeGrad, 0, {gc->gy(0), gc->x(1)});
+    // TODO(take-cheeze): Handle Resize-11
+    if (node->op_type() == Node::kResize && node->inputs().size() == 3) {
+        CHECK_EQ(node->inputs()[1], node->inputs()[2]);
+        gc->GradOp(Node::kChainerResizeGrad, 0, {gc->gy(0), gc->x(2)});
+    } else {
+        CHECK_EQ(2, node->inputs().size());
+        gc->GradOp(Node::kChainerResizeGrad, 0, {gc->gy(0), gc->x(1)});
+    }
 }
 
 void LogSoftmaxGradFn(GradientOpContext* gc) {
