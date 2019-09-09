@@ -273,6 +273,8 @@ class TyDType(TyObj):
         return self.t == other.t
     def is_float(self):
         return self.t.kind == 'f'
+    def is_int(self):
+        return self.t.kind == 'i'
 
 
 class TyTensor(TyObj):

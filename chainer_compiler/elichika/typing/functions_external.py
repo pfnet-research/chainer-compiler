@@ -358,8 +358,21 @@ def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
     assert False
 
 
-def ty_ChainerEmbedID(obj, ty_args, ty_kwargs):
-    assert False
+def ty_ChainerEmbedID(embed, ty_args, ty_kwargs):
+    assert isinstance(ty_args[0], TyTensor)
+    # TODO(momohatt): align naming rules of variables
+    x_type = ty_args[0]
+    w_type = embed.W
+
+    if x_type.shape is None:
+        return TyChainerVariable(dtype=TyDType(w_type.dtype))
+
+    assert x_type.dtype.is_int()
+    assert len(x_type.shape) >= 1
+
+    assert all([t < w_type.shape[0] for t in x_type.shape])
+    out_type = x_type.shape + (w_type.shape[1],)
+    return TyChainerVariable(dtype=w_type.dtype, shape=out_shape)
 
 
 def ty_ChainerNStepBiLSTM(nblstm, ty_args, ty_kwargs):
