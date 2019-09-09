@@ -339,7 +339,7 @@ def ty_ChainerConvolution2D(conv, ty_args, ty_kwargs):
     shape_3 = get_conv_outsize(
             shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
     return TyChainerVariable(dtype=dtype,
-            shape=(shape[0], obj.out_channels, shape_2, shape_3))
+            shape=(shape[0], conv.out_channels, shape_2, shape_3))
 
 
 def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
