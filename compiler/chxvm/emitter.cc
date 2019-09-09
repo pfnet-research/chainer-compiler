@@ -350,7 +350,7 @@ private:
 
         const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
 
-        FileCache cache(CacheBasePath(node), "xml", {serialized_onnx, extra_args});
+        FileCache cache(CacheBasePath(node), ".xml", {serialized_onnx, extra_args});
 
         if (!cache.IsReady() || !g_use_cached_model) {
             const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
@@ -403,7 +403,7 @@ private:
     void EmitFusionGroupSNPE(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
         const Graph& body = *node.subgraph();
 
-        FileCache cache(CacheBasePath(node), "dlc", {serialized_onnx});
+        FileCache cache(CacheBasePath(node), ".dlc", {serialized_onnx});
 
         if (!cache.IsReady() || !g_use_cached_model) {
             const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
