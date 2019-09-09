@@ -19,8 +19,24 @@ run() {
     travis_fold end $n
 }
 
-run pip_chainer sudo pip3 install third_party/chainer[test]
-run pip_onnx_chainer sudo pip3 install -U -e third_party/onnx-chainer[test]
+pushd third_party/chainer
+CHAINER_WHL_CACHE_DIR=$HOME/dist-chainer/$(git rev-parse --short HEAD)
+popd
+if [[ -d $CHAINER_WHL_CACHE_DIR ]]; then
+  echo "Use cached chainer wheel"
+else
+  run pip_wheel sudo pip3 install wheel
+  pushd third_party/chainer
+  run chainer_whl python3 setup.py bdist_wheel
+  popd
+  rm -rf $HOME/dist-chainer/*
+  mkdir -p $CHAINER_WHL_CACHE_DIR
+  cp -p third_party/chainer/dist/*.whl $CHAINER_WHL_CACHE_DIR
+fi
+run pip_chainer sudo pip3 install $CHAINER_WHL_CACHE_DIR/*.whl
+# TODO(take-cheeze): Update gast to 0.3.x
+run pip_dependencies sudo pip3 install gast==0.2.2 chainercv
+run pip_onnx_chainer sudo pip3 install third_party/onnx-chainer[test]
 
 run pip_list pip3 list -v
 
