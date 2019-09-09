@@ -293,155 +293,120 @@ private:
         return ret;
     }
 
-    void EmitFusionGroup(const Node& node, ChxVMProgramProto* prog) {
-        const Graph& body = *node.subgraph();
-        int num_input_values = 0;
-        for (Value* value : body.input_values()) {
-            if (!value->initializer()) ++num_input_values;
-        }
-        CHECK_EQ(node.inputs().size(), num_input_values);
-        CHECK_EQ(node.outputs().size(), body.output_values().size());
-        const std::string& debug_info = node.ToString();
-
-#define EMIT(op, ...)                                               \
-    do {                                                            \
-        Add##op##Op(prog, __VA_ARGS__);                             \
-        FillOpInfo(node, StrCat(debug_info, " @", __LINE__), prog); \
+#define EMIT(op, ...)                                                    \
+    do {                                                                 \
+        Add##op##Op(prog, __VA_ARGS__);                                  \
+        FillOpInfo(node, StrCat(node.ToString(), " @", __LINE__), prog); \
     } while (0)
 
-        if (g_use_ngraph && node.fusion_type() == "ngraph") {
+    void EmitFusionGroupNGraph(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
 #if 0
-            for (Node* node : body.nodes()) {
-                node->set_chainer_order(-1);
-                node->set_chainer_fusion_group(0);
-            }
+        const Graph& body = *node.subgraph();
+        for (Node* node : body.nodes()) {
+            node->set_chainer_order(-1);
+            node->set_chainer_fusion_group(0);
+        }
 #endif
 
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (nGraph) " << GetFusionGroupSummary(node) << std::endl;
-            }
-
-            onnx::ModelProto xmodel;
-            body.ToONNX(xmodel.mutable_graph());
-            std::string onnx;
-            xmodel.SerializeToString(&onnx);
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-
-            std::string ngraph_device = g_ngraph_device;
-            if (ngraph_device.empty()) {
-                ngraph_device = "CPU";
-            }
-            EMIT(NGraph, outputs, inputs, onnx, ngraph_device);
-            return;
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
         }
 
-        if (g_use_dldt && node.fusion_type() == "dldt") {
+        std::string ngraph_device = g_ngraph_device;
+        if (ngraph_device.empty()) {
+            ngraph_device = "CPU";
+        }
+        EMIT(NGraph, outputs, inputs, serialized_onnx, ngraph_device);
+    }
+
+    std::string DumpONNXToTmpFile(const Node& node, const std::string& serialized) {
+        const std::string& onnx_path = StrCat("/tmp/chainer_compiler_", node.fusion_type(), "_tmp_", node.chainer_fusion_group(), ".onnx");
+
+        std::ofstream ofs(onnx_path);
+        CHECK(ofs) << "Failed to open output file: " << onnx_path;
+        CHECK(ofs.write(serialized.data(), serialized.size()));
+
+        return onnx_path;
+    }
+
+    std::string CacheBasePath(const Node& node) {
+        return StrCat("/tmp/chainer_compiler_", node.fusion_type(), "_tmp_", node.chainer_fusion_group());
+    }
+
+    void EmitFusionGroupDldt(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+
 #if 0
-            for (Node* node : body.nodes()) {
-                node->set_chainer_order(-1);
-                node->set_chainer_fusion_group(0);
-            }
+        for (Node* node : body.nodes()) {
+            node->set_chainer_order(-1);
+            node->set_chainer_fusion_group(0);
+        }
 #endif
 
+        const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
+
+        FileCache cache(CacheBasePath(node), "xml", {serialized_onnx, extra_args});
+
+        if (!cache.IsReady() || !g_use_cached_model) {
+            const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
+
+            const char* dldt_dir_env = getenv("CHAINER_COMPILER_DLDT_DIR");
+            std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
+            CHECK(!dldt_dir.empty()) << "CHAINER_COMPILER_DLDT_DIR is not set properly";
+            const std::string cmdline =
+                    StrCat("python3 ",
+                           dldt_dir,
+                           "/model-optimizer/mo_onnx.py"
+                           " --input_model ",
+                           onnx_path,
+                           " --model_name ",
+                           cache.GetTmpFilename(),
+                           extra_args);
             if (g_compiler_log) {
-                CLOG() << "Fusion group (dldt) " << GetFusionGroupSummary(node) << std::endl;
-            }
-
-            std::string serialized;
-            {
-                onnx::ModelProto xmodel;
-                body.ToONNX(xmodel.mutable_graph());
-                xmodel.SerializeToString(&serialized);
-            }
-
-            const std::string& extra_args = g_use_dldt_fp16 ? " --data_type=FP16" : "";
-
-            const std::string& dldt_model = StrCat("/tmp/chainer_compiler_dldt_tmp_", node.chainer_fusion_group());
-            FileCache cache(dldt_model, "", {serialized, extra_args});
-
-            if (!cache.IsReady() || !g_use_dldt_cache) {
-                const std::string& onnx_path = StrCat(cache.GetFilename(), ".onnx");
-
-                {
-                    std::ofstream ofs(onnx_path);
-                    CHECK(ofs) << "Failed to open output file: " << onnx_path;
-                    ofs.write(serialized.data(), serialized.size());
-                }
-
-                const char* dldt_dir_env = getenv("CHAINER_COMPILER_DLDT_DIR");
-                std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
-                CHECK(!dldt_dir.empty()) << "CHAINER_COMPILER_DLDT_DIR is not set properly";
-                const std::string cmdline =
-                        StrCat("python3 ",
-                               dldt_dir,
-                               "/model-optimizer/mo_onnx.py"
-                               " --input_model ",
-                               onnx_path,
-                               " --model_name ",
-                               cache.GetFilename(),
-                               extra_args);
                 CLOG() << "Run command: " << cmdline << std::endl;
-                int ret = system(cmdline.c_str());
-                CHECK_EQ(0, ret) << "Command failed: " << cmdline;
             }
+            int ret = system(cmdline.c_str());
+            CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
-            {
-                // Create a stamp file.
-                std::ofstream ofs(cache.GetTmpFilename());
-                ofs << dldt_model << std::endl;
-                cache.Commit();
-            }
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-
-            std::string dldt_device = g_dldt_device;
-            if (dldt_device.empty()) {
-                dldt_device = "CPU";
-            }
-
-            std::vector<std::string> output_names;
-            for (Value* output : body.output_values()) {
-                CHECK(output->producer());
-                CHECK_EQ(1, output->producer()->outputs().size());
-                output_names.push_back(output->producer()->name());
-            }
-
-            EMIT(Dldt, outputs, inputs, cache.GetFilename(), dldt_device, output_names);
-            return;
+            cache.Commit();
         }
 
-        if (g_use_snpe && node.fusion_type() == "snpe") {
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (snpe) " << GetFusionGroupSummary(node) << std::endl;
-            }
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
 
-            onnx::ModelProto xmodel;
-            body.ToONNX(xmodel.mutable_graph());
+        std::string dldt_device = g_dldt_device;
+        if (dldt_device.empty()) {
+            dldt_device = "CPU";
+        }
 
-            // TODO(hamaji): Introduce cache for compiled models.
-            const std::string& snpe_model_file = StrCat("/tmp/chainer_compiler_snpe_tmp_", node.chainer_fusion_group(), ".dlc");
-            const std::string& onnx_path = StrCat(snpe_model_file, ".onnx");
+        std::vector<std::string> output_names;
+        for (Value* output : body.output_values()) {
+            CHECK(output->producer());
+            CHECK_EQ(1, output->producer()->outputs().size());
+            output_names.push_back(output->producer()->name());
+        }
 
-            {
-                std::ofstream ofs(onnx_path);
-                CHECK(ofs) << "Failed to open output file: " << onnx_path;
-                CHECK(xmodel.SerializeToOstream(&ofs));
-            }
+        EMIT(Dldt, outputs, inputs, cache.GetFilename(), dldt_device, output_names);
+    }
+
+    void EmitFusionGroupSNPE(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+
+        FileCache cache(CacheBasePath(node), "dlc", {serialized_onnx});
+
+        if (!cache.IsReady() || !g_use_cached_model) {
+            const std::string onnx_path = DumpONNXToTmpFile(node, serialized_onnx);
 
             // TODO(take-cheeze): Embed SNPE_ROOT
             const char* snpe_dir = getenv("SNPE_ROOT");
@@ -458,8 +423,10 @@ private:
                            " --model_path ",
                            onnx_path,
                            " --output_path ",
-                           snpe_model_file);
-            CLOG() << "Run command: " << cmdline << std::endl;
+                           cache.GetTmpFilename());
+            if (g_compiler_log) {
+                CLOG() << "Run command: " << cmdline << std::endl;
+            }
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
@@ -472,124 +439,167 @@ private:
                                snpe_dir,
                                "/bin/x86_64-linux-clang/snpe-dlc-info"
                                " --input_dlc ",
-                               snpe_model_file);
+                               cache.GetTmpFilename());
                 if (!g_snpe_dlc_info_out_prefix.empty()) {
                     cmdline += StrCat(" -s ", g_snpe_dlc_info_out_prefix, node.chainer_fusion_group(), ".txt");
                 }
-                CLOG() << "Dumping snpe-dlc-info of: " << snpe_model_file << " with: " << cmdline << std::endl;
+                if (g_compiler_log) {
+                    CLOG() << "Dumping snpe-dlc-info of: " << cache.GetFilename() << " with: " << cmdline << std::endl;
+                }
                 int ret = system(cmdline.c_str());
                 CHECK_EQ(0, ret) << "Command failed: " << cmdline;
             }
 
-            std::vector<int> inputs;
-            std::vector<std::string> input_names;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (size_t i = 0; i < node.inputs().size(); ++i) {
-                input_names.push_back(xmodel.graph().input()[i].name());
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
+            cache.Commit();
+        }
 
-            // TODO(take-cheeze): Support other devices
-            std::string snpe_device = "CPU";
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
 
-            std::vector<std::string> output_names;
-            for (Value* output : body.output_values()) {
-                CHECK(output->producer());
-                CHECK_EQ(1, output->producer()->outputs().size());
-                output_names.push_back(output->producer()->name());
+        // TODO(take-cheeze): Support other devices
+        std::string snpe_device = "CPU";
+
+        std::vector<std::string> output_names, input_names;
+        for (Value* v : body.input_values()) {
+            input_names.push_back(v->name());
+        }
+        for (Value* output : body.output_values()) {
+            CHECK(output->producer());
+            CHECK_EQ(1, output->producer()->outputs().size());
+            output_names.push_back(output->producer()->name());
+        }
+
+        std::ifstream ifs(cache.GetFilename());
+        std::stringstream ss;
+        ss << ifs.rdbuf();
+
+        EMIT(SnpeDlc, outputs, inputs, input_names, ss.str(), snpe_device);
+    }
+
+    void EmitFusionGroupTVM(const Node& node, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+
+        std::string dso_filename;
+        std::string func_name;
+        BuildTVMProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
+        if (g_compiler_log) {
+            CLOG() << "TVM output: " << dso_filename << std::endl;
+        }
+
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
+        // TODO(hamaji): Handle multiple outputs.
+        CHECK_EQ(1, node.outputs().size());
+        std::vector<int64_t> shape;
+        for (int64_t dim : node.output(0)->type().dims()) {
+            shape.push_back(dim);
+        }
+        EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, func_name, shape);
+    }
+
+    void EmitFusionGroupTensorRT(const Node& node, const std::string& serialized_onnx, ChxVMProgramProto* prog) {
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        size_t batch_size = 0;
+        for (Value* value : node.inputs()) {
+            CHECK(value->type().ndim());
+            if (batch_size) {
+                CHECK_EQ(batch_size, value->type().dims()[0]);
+            } else {
+                batch_size = value->type().dims()[0];
             }
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            CHECK(value->type().ndim());
+            CHECK_EQ(batch_size, value->type().dims()[0]);
+            outputs.emplace_back(GetValueId(value), value);
+        }
 
-            std::ifstream ifs(snpe_model_file);
-            std::stringstream ss;
-            ss << ifs.rdbuf();
-            std::string snpe_model = ss.str();
+        EMIT(TensorRT, outputs, inputs, serialized_onnx, batch_size, g_use_tensorrt_fp16);
+    }
 
-            EMIT(SnpeDlc, outputs, inputs, input_names, snpe_model, snpe_device);
+    void EmitFusionGroupNVRTC(const Node& node, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+        std::string nvrtc;
+        BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
+        if (g_compiler_log) {
+            CLOG() << "NVRTC program: " << nvrtc;
+        }
+
+        std::vector<int> inputs;
+        std::vector<ChxVMValue> outputs;
+        for (Value* value : node.inputs()) {
+            inputs.push_back(GetValueId(value));
+        }
+        for (Value* value : node.outputs()) {
+            outputs.emplace_back(GetValueId(value), value);
+        }
+        EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.chainer_fusion_group());
+    }
+
+    void EmitFusionGroup(const Node& node, ChxVMProgramProto* prog) {
+        const Graph& body = *node.subgraph();
+        int num_input_values = 0;
+        for (Value* value : body.input_values()) {
+            if (!value->initializer()) ++num_input_values;
+        }
+        CHECK_EQ(node.inputs().size(), num_input_values);
+        CHECK_EQ(node.outputs().size(), body.output_values().size());
+
+        if (g_compiler_log) {
+            CLOG() << "Fusion group (" << node.fusion_type() << ") " << GetFusionGroupSummary(node) << std::endl;
+        }
+
+        auto run_onnx_serialize = [](const Graph& body) {
+            std::string serialized;
+            {
+                onnx::ModelProto xmodel;
+                body.ToONNX(xmodel.mutable_graph());
+                xmodel.SerializeToString(&serialized);
+            }
+            return serialized;
+        };
+
+        if (g_use_ngraph && node.fusion_type() == "ngraph") {
+            EmitFusionGroupNGraph(node, run_onnx_serialize(body), prog);
+            return;
+        }
+
+        if (g_use_dldt && node.fusion_type() == "dldt") {
+            EmitFusionGroupDldt(node, run_onnx_serialize(body), prog);
+            return;
+        }
+
+        if (g_use_snpe && node.fusion_type() == "snpe") {
+            EmitFusionGroupSNPE(node, run_onnx_serialize(body), prog);
             return;
         }
 
         if (g_use_tvm && node.fusion_type() == "tvm") {
-            std::string dso_filename;
-            std::string func_name;
-            BuildTVMProgram(
-                    body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &dso_filename, &func_name);
-            if (g_compiler_log) {
-                // TODO(hamaji): Show more code.
-                CLOG() << "Fusion group (TVM) " << GetFusionGroupSummary(node) << " => " << dso_filename << std::endl;
-            }
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-            // TODO(hamaji): Handle multiple outputs.
-            CHECK_EQ(1, node.outputs().size());
-            std::vector<int64_t> shape;
-            for (int64_t dim : node.output(0)->type().dims()) {
-                shape.push_back(dim);
-            }
-            EMIT(TVM, outputs, inputs, outputs.size(), dso_filename, func_name, shape);
+            EmitFusionGroupTVM(node, prog);
             return;
         }
 
         if (g_use_tensorrt && node.fusion_type() == "tensorrt") {
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (TensorRT) " << GetFusionGroupSummary(node) << std::endl;
-            }
-
-            onnx::ModelProto xmodel;
-            body.ToONNX(xmodel.mutable_graph());
-            std::string onnx;
-            xmodel.SerializeToString(&onnx);
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            size_t batch_size = 0;
-            for (Value* value : node.inputs()) {
-                CHECK(value->type().ndim());
-                if (batch_size) {
-                    CHECK_EQ(batch_size, value->type().dims()[0]);
-                } else {
-                    batch_size = value->type().dims()[0];
-                }
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                CHECK(value->type().ndim());
-                CHECK_EQ(batch_size, value->type().dims()[0]);
-                outputs.emplace_back(GetValueId(value), value);
-            }
-
-            EMIT(TensorRT, outputs, inputs, onnx, batch_size, g_use_tensorrt_fp16);
+            EmitFusionGroupTensorRT(node, run_onnx_serialize(body), prog);
             return;
         }
 
         if (g_use_nvrtc && node.fusion_type() == "nvrtc") {
-            std::string nvrtc;
-            BuildNvrtcProgram(body.nodes(), node.chainer_fusion_group(), body.input_values(), body.output_values(), &nvrtc);
-            if (g_compiler_log) {
-                CLOG() << "Fusion group (NVRTC) " << GetFusionGroupSummary(node) << std::endl;
-                CLOG() << nvrtc;
-            }
-
-            std::vector<int> inputs;
-            std::vector<ChxVMValue> outputs;
-            for (Value* value : node.inputs()) {
-                inputs.push_back(GetValueId(value));
-            }
-            for (Value* value : node.outputs()) {
-                outputs.emplace_back(GetValueId(value), value);
-            }
-            EMIT(ElementWiseNvrtc, outputs, inputs, outputs.size(), nvrtc, node.chainer_fusion_group());
+            EmitFusionGroupNVRTC(node, prog);
             return;
         }
 

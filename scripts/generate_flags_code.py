@@ -27,6 +27,11 @@ FLAGS = {
         'doc': 'Use NVRTC to execute fused operations.'
     },
 
+    'use_cached_model': {
+        'type': 'bool',
+        'doc': 'Use cached models.'
+    },
+
     'use_tvm': {
         'type': 'bool',
         'doc': 'Use TVM to execute operations.'
@@ -64,10 +69,6 @@ FLAGS = {
     'dldt_device': {
         'type': 'std::string',
         'doc': 'The device of dldt (e.g., CPU and GPU).'
-    },
-    'use_dldt_cache': {
-        'type': 'bool',
-        'doc': 'Use cached dldt models.'
     },
 
     'backend_name': {
