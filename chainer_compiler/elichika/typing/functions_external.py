@@ -25,7 +25,7 @@ def make_infer(func, fallback_shapes, fallback_dtypes):
 
         shapes = [s if t.shape is None else t.shape
                 for t, s in zip(ty_args_tensor, fallback_shapes)]
-        dtypes = [s if t.dtype.t is None else t.dtype.t
+        dtypes = [dt if t.dtype.t is None else t.dtype.t
                 for t, dt in zip(ty_args_tensor, fallback_dtypes)]
         is_dummy_shape = any([t.shape is None for t in ty_args_tensor])
         is_dummy_dtype = any([t.dtype.t is None for t in ty_args_tensor])
@@ -56,6 +56,19 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
         fallback_dtypes = (np.float32,) * narg_tensor
 
     return make_infer(func, fallback_shapes, fallback_dtypes)
+
+
+def ty_NumpyOnes(ty_args, ty_kwargs):
+    is_dummy_shape = not has_accurate_value(ty_args[0])
+    is_dummy_dtype = not has_accurate_value(ty_kwargs['dtype'])
+    shape = value_of_type(ty_args[0])
+    dtype = value_of_type(ty_kwargs['dtype'])
+    ty_ret = TyNdarray(dtype=TyDType(dtype), shape=shape)
+    if is_dummy_shape:
+        ty_ret.shape = None
+    if is_dummy_dtype:
+        ty_ret.dtype.t = None
+    return ty_ret
 
 
 def ty_ChainerPooling2d(func):
@@ -273,10 +286,10 @@ ext_func_ty = {
             ty_ChainerIdentical(is_float_only=False),
         np.full : evaluate_function_types(
             np.full, 0),
-        np.ones : evaluate_function_types(
-            np.ones, 0),
-        np.zeros : evaluate_function_types(
-            np.zeros, 0),
+        np.ones :
+            ty_NumpyOnes,
+        np.zeros :
+            ty_NumpyOnes,
         chainer.Variable : evaluate_function_types(
             chainer.Variable, 1),
         cuda.to_cpu :

@@ -444,7 +444,7 @@ def has_accurate_value(ty) -> bool:
     if isinstance(ty, TyTensor):
         return has_accurate_value(ty.dtype) and ty.shape is not None
     if isinstance(ty, TyDType):
-        return ty.dtype.t is not None
+        return ty.t is not None
 
 
 def value_of_type(ty) -> object:
