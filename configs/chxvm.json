@@ -4,6 +4,7 @@
         "ReplaceChainerSoftmaxCrossEntropy": true,
         "ReplaceIdentity": true,
         "ReplaceScan": true,
+        "ReplaceSequenceEmpty": true,
         "ReplaceShape": true
     },
     "simplify": {
