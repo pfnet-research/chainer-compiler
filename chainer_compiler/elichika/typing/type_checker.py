@@ -5,7 +5,6 @@ import os
 import sys
 import traceback
 import types
-from copy import deepcopy
 from typing import List
 from pprint import pprint
 
@@ -651,7 +650,9 @@ class TypeChecker():
 
     def infer_Call(self, node):
         # Call(expr func, expr* args, keyword* keywords)
-        ty_args = [self.infer_expr(arg) for arg in node.args]
+
+        # XXX: no need to deref() argument type later on
+        ty_args = [self.infer_expr(arg).deref() for arg in node.args]
         ty_kwargs = {kwarg.arg : self.infer_expr(kwarg.value) \
                 for kwarg in node.keywords}
         ty_ret = TyVar()

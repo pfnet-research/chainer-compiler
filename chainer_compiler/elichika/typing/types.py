@@ -1,3 +1,4 @@
+from copy import deepcopy
 from enum import Enum, IntEnum
 
 import chainer
@@ -72,7 +73,7 @@ class TyNum(TyObj):
     def coerce_value(self):
         if self.value is None:
             return
-        self.value = eval(self.show())(self.value)
+        self.value = eval(str(NumKind(self.kind)))(self.value)
 
 
 def TyBool(value=None):
@@ -454,7 +455,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyNum):
         if ty.value is not None:
             return ty.value
-        return eval(ty.show())(1)  # XXX: use 1 to avoid division by zero
+        return eval(str(NumKind(ty.kind)))(1)  # XXX: use 1 to avoid division by zero
     if isinstance(ty, TyString):
         if ty.value is not None:
             return ty.value
@@ -494,7 +495,8 @@ def copy_ty(ty):
     if isinstance(ty, TyNone):
         ret = TyNone()
     elif isinstance(ty, TyNum):
-        ret = TyNum(kind=ty.kind, value=None)
+        ret = deepcopy(ty)
+        # ret = TyNum(kind=ty.kind, value=None)
     elif isinstance(ty, TyString):
         ret = TyString()
     elif isinstance(ty, TyArrow):

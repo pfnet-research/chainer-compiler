@@ -149,7 +149,20 @@ def ty_ChainerExpandDims(ty_args, ty_kwargs):
 
 
 def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
-    return TyChainerVariable(dtype=ty_args[0].dtype)
+    if ty_args[0].shape is None or is_dummy_value(ty_args[1]):
+        return TyChainerVariable(dtype=ty_args[0].dtype)
+
+    in_shape = ty_args[0].shape
+    out_shape = value_of_type(ty_args[1])
+
+    # check_type_forward
+    ndim = len(out_shape)
+    assert len(in_shape) <= ndim
+
+    for i in range(-1, - len(in_shape) - 1, -1):
+        assert in_shape[i] == out_shape[i] or in_shape[i] == 1
+
+    return TyChainerVariable(dtype=ty_args[0].dtype, shape=out_shape)
 
 
 def ty_ChainerSum(ty_args, ty_kwargs):
@@ -162,20 +175,57 @@ def ty_ChainerSum(ty_args, ty_kwargs):
             (ty_args, ty_kwargs)
 
 
+def calculate_reshape(orig_shape, input_shape):
+    # orig_shape can be None
+    # input_shape should be accurate
+    if orig_shape is None:
+        if any([i == -1 for i in input_shape]):
+            return None
+        return input_shape
+    fill = abs(int(size_of_shape(orig_shape) / size_of_shape(input_shape)))
+    return tuple([i if i != -1 else fill for i in input_shape])
+
+
 def ty_ChainerReshape(ty_args, ty_kwargs):
-    if not ty_args[1].is_fixed_len or is_dummy_value(ty_args[1]):
-        return TyChainerVariable(dtype=ty_args[0].dtype,
-                shape=None)
-    ret = F.reshape(value_of_type(ty_args[0]), value_of_type(ty_args[1]))
-    return type_of_value(ret)
+    dtype = ty_args[0].dtype
+    shape = ty_args[0].shape
+
+    if is_dummy_value(ty_args[1]):
+        return TyChainerVariable(dtype=dtype, shape=None)
+    ret_shape = calculate_reshape(shape, value_of_type(ty_args[1]))
+    return TyChainerVariable(dtype=dtype, shape=ret_shape)
 
 
 def ty_ChainerSqueeze(ty_args, ty_kwargs):
-    return TyChainerVariable(dtype=ty_args[0].dtype)
+    # TODO: don't use F.squeeze
+    axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
+
+    if ty_args[0].shape is None or is_dummy_value(ty_args[0]) or is_dummy_axis:
+        return TyChainerVariable(dtype=ty_args[0].dtype)
+
+    ret = F.squeeze(value_of_type(ty_args[0]), axis=axis)
+    return type_of_value(ret)
 
 
 def ty_ChainerSwapAxes(ty_args, ty_kwargs):
-    return TyChainerVariable(dtype=ty_args[0].dtype)
+    def swap(t, i, j):
+        l = list(t)
+        l[i], l[j] = l[j], l[i]
+        return tuple(l)
+
+
+    if ty_args[0].shape is None or \
+            is_dummy_value(ty_args[1]) or is_dummy_value(ty_args[2]):
+        return TyChainerVariable(dtype=ty_args[0].dtype)
+
+    shape = ty_args[0].shape
+    axis1 = value_of_type(ty_args[1])
+    axis2 = value_of_type(ty_args[2])
+
+    assert axis1 < len(shape) and axis2 < len(shape)
+
+    return TyChainerVariable(dtype=ty_args[0].dtype,
+            shape=swap(shape, axis1, axis2))
 
 
 def ty_ChainerSeparate(ty_args, ty_kwargs):
@@ -201,7 +251,7 @@ def ty_ChainerSplitAxis(ty_args, ty_kwargs):
 
 def ty_ChainerPadSequence(ty_args, ty_kwargs):
     # shape[1:] should be uniform & ndim > 0
-    ty = ty_args[0].deref()
+    ty = ty_args[0]
     assert isinstance(ty, TySequence)
     is_dummy_shape = False
     if ty.is_fixed_len:
@@ -229,11 +279,6 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
     return ty_ret
 
 
-def calculate_reshape(orig_shape, input_shape):
-    fill = abs(int(size_of_shape(orig_shape) / size_of_shape(input_shape)))
-    return tuple([i if i != -1 else fill for i in input_shape])
-
-
 def _ty_ChainerLinear(linear, x_shape, n_batch_axes):
     assert n_batch_axes >= 1
 
@@ -254,8 +299,8 @@ def _ty_ChainerLinear(linear, x_shape, n_batch_axes):
 
 
 def ty_ChainerLinear(linear, ty_args, ty_kwargs):
-    shape = ty_args[0].deref().shape
-    dtype = ty_args[0].deref().dtype
+    shape = ty_args[0].shape
+    dtype = ty_args[0].dtype
     n_batch_axes, is_dummy_n_batch_axes = \
             get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
