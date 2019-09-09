@@ -717,6 +717,16 @@ def gen_sequence_extend_test(test_name):
     gb.gen_test()
 
 
+def gen_sequence_update_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    inputs = [4, 2, 3]
+    seq_v = gb.const_seq(inputs)
+    seq_v = gb.ChainerSequenceUpdate([seq_v, gb.const(2), gb.const(42)])
+    seq_v = gb.ChainerSequenceUpdate([seq_v, gb.const(-3), gb.const(-49)])
+    gb.output(seq_v, Seq([-49, 2, 42]))
+    gb.gen_test()
+
+
 def gen_generic_len_test(test_name):
     gb = onnx_script.GraphBuilder(test_name)
     input = aranges(4, 2, 3)
@@ -795,6 +805,19 @@ def gen_generic_getslice_test(test_name):
     for s, e, t in [(1, 4, 2), (0, 100, -1), (0, 100, -2)]:
         add_test(slice(s, e, t))
 
+    gb.gen_test()
+
+
+# TODO(hamaji): Add more tests for both GetItem/SetItem.
+def gen_setitem_test(test_name):
+    gb = onnx_script.GraphBuilder(test_name)
+    input = np.array([1, 2, 3])
+
+    input_v = gb.input('input', input)
+    output_v = gb.ChainerSetItem([input_v, gb.const(1), gb.const(42)],
+                                 slice_specs=[1])
+
+    gb.output(output_v, np.array([1, 42, 3]))
     gb.gen_test()
 
 
@@ -1180,6 +1203,7 @@ def get_tests():
     test('extra_test_sequence_constants', gen_sequence_constants_test)
     test('extra_test_sequence_create', gen_sequence_create_test)
     test('extra_test_sequence_extend', gen_sequence_extend_test)
+    test('extra_test_sequence_update', gen_sequence_update_test)
 
     test('extra_test_sentiment_lstm',
          sentiment.gen_rnn_sentiment_test('LSTM'), rtol=0.2)
@@ -1196,6 +1220,8 @@ def get_tests():
     test('extra_test_generic_getitem', gen_generic_getitem_test)
     test('extra_test_generic_getslice', gen_generic_getslice_test)
     test('extra_test_generic_add', gen_generic_add_test)
+
+    test('extra_test_setitem', gen_setitem_test)
 
     test('extra_test_print', gen_print_test)
     test('extra_test_hello_world', gen_hello_world_test)

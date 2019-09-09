@@ -319,6 +319,10 @@ NodeDef('ChainerGetItem', None, 1, slice_specs=[int])
 # One more inputs for the shape info.
 NodeDef('ChainerGetItemGrad', None, 1, slice_specs=[int])
 
+# This op takes one more argument in addition to `ChainerGetItem` for the
+# tensor to be set.
+NodeDef('ChainerSetItem', None, 1, slice_specs=[int])
+
 NodeDef('ChainerPrint', None, 0)
 
 # Put a null value.
@@ -341,6 +345,9 @@ NodeDef('ChainerSequencePop', 1, 2)
 
 # Looks up an element in a sequence: ([T], I) -> (T)
 NodeDef('ChainerSequenceLookup', 2, 1)
+
+# Sets an element to a sequence: ([T], I, T) -> ([T])
+NodeDef('ChainerSequenceUpdate', 3, 1)
 
 # Equivalent to Python's __getitem__ for a slice: ([T], I, I, I) -> ([T])
 NodeDef('ChainerSequenceGetSlice', (1, 2, 3, 4), 1)
