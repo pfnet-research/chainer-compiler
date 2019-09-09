@@ -21,6 +21,9 @@ Node::Node(const onnx::NodeProto& xnode, const std::vector<Value*>& inputs, cons
       domain_(xnode.domain()),
       doc_string_(xnode.doc_string()) {
     Validate();
+    if (name_.empty() && !outputs.empty()) {
+        name_ = output(0)->name();
+    }
 }
 
 Node::Node(
