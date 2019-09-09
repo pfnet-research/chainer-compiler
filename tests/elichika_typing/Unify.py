@@ -1,7 +1,7 @@
 from copy import deepcopy
 import unittest
 
-from chainer_compiler.elichika.parser.types import *
+from chainer_compiler.elichika.typing.types import *
 
 
 def is_unifiable(ty1, ty2):
