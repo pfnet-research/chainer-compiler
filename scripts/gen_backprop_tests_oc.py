@@ -214,6 +214,13 @@ def get_backprop_tests():
          b=aranges(1, 1, 3, 3),
          c=aranges(1, 1, 3, 3),)
 
+    test('split_2_axis_0',
+         lambda m: sum(F.split_axis(m.x, 2, axis=0)),
+         x=aranges(2, 3, 2))
+    test('split_2_axis_1',
+         lambda m: sum(F.split_axis(m.x, 3, axis=1)),
+         x=aranges(2, 12, 2))
+
     return tests
 
 

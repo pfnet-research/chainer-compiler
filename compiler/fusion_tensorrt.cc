@@ -47,7 +47,7 @@ void FuseTensorRTOperations(Graph* graph) {
         switch (node.op_type()) {
             case Node::kConvTranspose:
                 // TODO(hamaji): Disabled, for now.
-                return false;
+                return true;
             default:
                 break;
         }
@@ -55,7 +55,7 @@ void FuseTensorRTOperations(Graph* graph) {
         return true;
     };
 
-    FuseAllConnectedNodes("tensorrt", graph, 5, true, is_fusable);
+    FuseAllConnectedNodes("tensorrt", graph, 1, true, is_fusable);
 }
 
 }  // namespace chainer_compiler
