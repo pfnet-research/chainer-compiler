@@ -11,15 +11,9 @@ def print_warning(msg):
     print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
 
 class TyObj():  # base type, meaning 'unknown'
-    def __init__(self, lineno=None):
+    def __init__(self):
         self.is_optional = False
-        self.lineno = lineno
     # TODO(momohatt): fix __repr__
-    def show(self):
-        if self.lineno is None:
-            return "object"
-        # TODO
-        return "object (from line {})".format(self.lineno)
     def __str__(self):
         if self.is_optional:
             return "optional({})".format(self.show())
@@ -321,18 +315,21 @@ def TyChainerVariable(dtype=None, shape=None):
 counter = 0
 
 class TyVar(TyObj):
-    def __init__(self):
+    def __init__(self, lineno=None):
         global counter
         super().__init__()
         self.i = counter
         counter += 1
         self.ty = None
         self.is_set = False
+        self.lineno = lineno
 
     def show(self):
         if self.ty:
             return str(self.ty)
-        return "a" + str(self.i)
+        if self.lineno is not None:
+            return "a{} (from line {})".format(self.i, self.lineno)
+        return "a{}".format(self.i)
 
     def __eq__(self, other):
         return self.deref() == other.deref()
@@ -490,10 +487,6 @@ def choose_stronger_ty(ty1, ty2):
         return ty2
     if isinstance(ty2, TyNone):
         return ty1
-    if type(ty1) is TyObj:
-        return ty2
-    if type(ty2) is TyObj:
-        return ty1
     return ty1  # whichever is okay
 
 
@@ -509,7 +502,7 @@ def copy_ty(ty):
         ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
     elif isinstance(ty, TySequence):
         if ty.is_fixed_len:
-            ret = TySequence(ty=[copy_ty(t) for t in self.get_tys()],
+            ret = TySequence(ty=[copy_ty(t) for t in ty.get_tys()],
                     kind=ty.kind)
         else:
             ret = TySequence(ty=copy_ty(self.get_ty()), kind=ty.kind)
@@ -564,9 +557,6 @@ def unify(ty1, ty2):
                 continue
 
         raise UnifyError(ty1, ty2)
-
-    if type(ty1) is TyObj or type(ty2) is TyObj:
-        return
 
     # if ty1 is not TyUnion, just do normal unification
     if isinstance(ty1, TyNone) and isinstance(ty2, TyNone):

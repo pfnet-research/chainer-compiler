@@ -75,8 +75,8 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
         ty_ret = inference_logic(ty_args, ty_kwargs)
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +
-                ". Falling back to TyObj...")
-        ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+                ". Falling back to TyVar...")
+        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
         # raise Exception
     return ty_ret
 
@@ -93,8 +93,8 @@ def call_builtin_function(func, node, ty_args):
         ty_ret = type_of_value(func(*dummy_args))
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +
-                ". Falling back to TyObj...")
-        ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+                ". Falling back to TyVar...")
+        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
         raise Exception
     return ty_ret
 
@@ -113,8 +113,8 @@ def call_binop(op, node, tyl, tyr):
         ty_ret = type_of_value(func(vall, valr))
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +
-                ". Falling back to TyObj...")
-        ty_ret = TyObj(lineno=getattr(node, 'lineno', None))
+                ". Falling back to TyVar...")
+        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
 
     if isinstance(ty_ret, TySequence) and \
             not (tyl.is_fixed_len and tyr.is_fixed_len):
