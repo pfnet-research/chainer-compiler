@@ -26,6 +26,8 @@ def expr_to_str(node):
     if isinstance(node, gast.Num):
         return str(node.n)
     if isinstance(node, gast.Str):
+        if len(node.s) < 20:
+            return "\'" + node.s + "\'"
         return "\"...\""  # sometimes it is too long
     if isinstance(node, gast.Attribute):
         return "{}.{}".format(expr_to_str(node.value), node.attr)

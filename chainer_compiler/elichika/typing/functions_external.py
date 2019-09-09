@@ -61,9 +61,10 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 
 def ty_NumpyOnes(ty_args, ty_kwargs):
     is_dummy_shape = is_dummy_value(ty_args[0])
-    is_dummy_dtype = is_dummy_value(ty_kwargs['dtype'])
     shape = value_of_type(ty_args[0])
-    dtype = value_of_type(ty_kwargs['dtype'])
+    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
+    if dtype is None:
+        dtype = np.dtype('float64')
     ty_ret = TyNdarray(dtype=TyDType(dtype), shape=shape)
     if is_dummy_shape:
         ty_ret.shape = None
