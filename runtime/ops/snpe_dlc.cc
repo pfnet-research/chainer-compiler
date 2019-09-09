@@ -81,7 +81,7 @@ std::vector<chainerx::Array> SnpeDlcOp::RunImpl(
         const chainerx::Array& orig_input = orig_inputs[i];
         std::vector<zdl::DlSystem::Dimension> input_shape(orig_input.shape().begin(), orig_input.shape().end());
         auto input =
-                tensor_factory.createTensor(input_shape, reinterpret_cast<const uint8_t*>(orig_input.raw_data()), orig_input.GetNBytes());
+                tensor_factory.createTensor(input_shape, reinterpret_cast<const uint8_t*>(RawStartPtr(orig_input)), orig_input.GetNBytes());
         input_map.add(input_names[i].c_str(), input.get());
         input_tensors.push_back(std::move(input));
     }
