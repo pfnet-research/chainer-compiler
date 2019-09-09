@@ -1174,8 +1174,15 @@ class ONNXGenerator:
                     op_not = True
 
                 if node_.compare == nodes.CompareType.In or node_.compare == nodes.CompareType.NotIn:
-                    # TODO(rchouras): Add case for CompareType.In and CompareType.NotIn ops
-                    pass
+                    #TODO(rchouras): relax this assertion by adding backend implementation like other operators. 
+                    assert node.outputs[0].has_constant_value()
+                    t = onnx_graph.new_empty_tensor_with_value(node.outputs[0])
+                    tensor = numpy_helper.from_array(np.array(node.outputs[0].internal_value, dtype=np.bool),
+                        name=value2onnx_parameter[node.outputs[0]].onnx_name)
+
+                    onnx_node = oh.make_node(
+                        'Constant', [], [t.name], value=tensor)
+                    onnx_graph.nodes.append(onnx_node)
                 else:
                     if op_not:
                         op_not_temp = onnx_graph.new_empty_tensor(
@@ -1222,6 +1229,43 @@ class ONNXGenerator:
                     onnx_node = oh.make_node(
                         'ChainerGetItem',
                         [value2onnx_parameter[node_.target].onnx_name] + indices,
+                        [value2onnx_parameter[node.outputs[0]].onnx_name],
+                        slice_specs=slice_specs)
+                    onnx_graph.nodes.append(onnx_node)
+
+            if isinstance(node, nodes.NodeSetItem):
+                node_ = node  # type: nodes.NodeSetItem
+                if len(node_.indexes) == 1:
+
+                    if isinstance(node_.target, values.ListValue) or isinstance(node_.target, values.TupleValue) or isinstance(node_.target, values.RangeValue):
+                        onnx_node = oh.make_node(
+                            'ChainerSequenceUpdate',
+                            [value2onnx_parameter[node_.target].onnx_name,
+                                value2onnx_parameter[node_.revision].onnx_name,
+                                value2onnx_parameter[node_.indexes[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name])
+                        onnx_graph.nodes.append(onnx_node)
+
+                    else:
+                        onnx_node = oh.make_node(
+                            'ChainerSetItem',
+                            [value2onnx_parameter[node_.target].onnx_name,
+                                value2onnx_parameter[node_.revision].onnx_name,
+                                value2onnx_parameter[node_.indexes[0]].onnx_name],
+                            [value2onnx_parameter[node.outputs[0]].onnx_name],
+                            slice_specs=[1])
+                        onnx_graph.nodes.append(onnx_node)
+                else:
+                    indices = []
+                    slice_specs = []
+
+                    for index in node_.indexes:
+                        indices.append(value2onnx_parameter[index].onnx_name)
+                        slice_specs.append(1)
+
+                    onnx_node = oh.make_node(
+                        'ChainerSetItem',
+                        [value2onnx_parameter[node_.target].onnx_name] + [value2onnx_parameter[node_.revision].onnx_name] + indices,
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         slice_specs=slice_specs)
                     onnx_graph.nodes.append(onnx_node)
