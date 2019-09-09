@@ -253,10 +253,8 @@ TEST_CASES = [
     TestCase(NODE_TEST, 'test_globalaveragepool'),
     TestCase(NODE_TEST, 'test_globalaveragepool_precomputed'),
     TestCase(NODE_TEST, 'test_upsample_nearest'),
-    TestCase(NODE_TEST, 'test_resize_upsample_sizes_nearest'),
-    # TestCase(NODE_TEST, 'test_resize_upsample_scales_linear'),
-    # TestCase(NODE_TEST, 'test_resize_downsample_sizes_nearest'),
-    # TestCase(NODE_TEST, 'test_resize_downsample_scales_linear'),
+    # TODO(take-cheeze): Other Resize-11 tests
+    TestCase(NODE_TEST, 'test_resize_upsample_scales_nearest'),
     # The second ROI values mismatch. Let the test pass with
     # ridiculously large tolerance.
     TestCase(NODE_TEST, 'test_roialign', rtol=0.5, atol=0.5),

@@ -311,9 +311,17 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         EMIT(LRN, out(0), oout(1), in(0), node.alpha(), node.beta(), node.bias(), node.size());
     } else if (node.op_type() == Node::kChainerLRNGrad) {
         EMIT(LRNGrad, out(0), in(0), in(1), in(2), in(3), node.alpha(), node.beta(), node.bias(), node.size());
-    } else if (node.op_type() == Node::kUpsample || node.op_type() == Node::kResize) {
+    } else if (node.op_type() == Node::kUpsample) {
         CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
+        CHECK_EQ(2UL, node.inputs().size());
+        CHECK_EQ(1UL, node.outputs().size());
         EMIT(Resize, out(0), in(0), in(1));
+    } else if (node.op_type() == Node::kResize) {
+        CHECK_EQ("nearest", node.mode()) << "Only nearest upsampling is supported";
+        // TODO(take-cheeze): Handle Resize-11
+        CHECK_EQ(3UL, node.inputs().size());
+        CHECK_EQ(1UL, node.outputs().size());
+        EMIT(Resize, out(0), in(0), in(2));
     } else if (node.op_type() == Node::kChainerResizeGrad) {
         EMIT(ResizeGrad, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kPad) {
