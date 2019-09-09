@@ -430,6 +430,8 @@ private:
             int ret = system(cmdline.c_str());
             CHECK_EQ(0, ret) << "Command failed: " << cmdline;
 
+            cache.Commit();
+
             if (g_dump_snpe_dlc_info) {
                 std::string cmdline =
                         StrCat("PYTHONPATH=",
@@ -439,7 +441,7 @@ private:
                                snpe_dir,
                                "/bin/x86_64-linux-clang/snpe-dlc-info"
                                " --input_dlc ",
-                               cache.GetTmpFilename());
+                               cache.GetFilename());
                 if (!g_snpe_dlc_info_out_prefix.empty()) {
                     cmdline += StrCat(" -s ", g_snpe_dlc_info_out_prefix, node.chainer_fusion_group(), ".txt");
                 }
@@ -449,8 +451,6 @@ private:
                 int ret = system(cmdline.c_str());
                 CHECK_EQ(0, ret) << "Command failed: " << cmdline;
             }
-
-            cache.Commit();
         }
 
         std::vector<int> inputs;
