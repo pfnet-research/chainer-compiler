@@ -309,6 +309,15 @@ void ConcatGradFn(GradientOpContext* gc) {
     gxs[0]->producer()->set_axis(gc->node()->axis());
 }
 
+void SplitGradFn(GradientOpContext* gc) {
+    std::vector<Value*> gys;
+    for (size_t i = 0; i < gc->node()->outputs().size(); ++i) {
+        gys.push_back(gc->gy(i));
+    }
+    Value* gx = gc->GradOp(Node::kConcat, 0, gys);
+    gx->producer()->set_axis(gc->node()->axis());
+}
+
 namespace {
 
 Value* ReduceGrad(const Node* node, GraphBuilder* gb, Value* gy) {
@@ -1072,6 +1081,7 @@ bool AddGradientForNode(Graph* graph, Graph* dest_graph, Node* node, std::map<Va
         register_grad_fn(Node::kExpand, &ExpandGradFn);
         register_grad_fn(Node::kPad, &PadGradFn);
         register_grad_fn(Node::kConcat, &ConcatGradFn);
+        register_grad_fn(Node::kSplit, &SplitGradFn);
 
         register_grad_fn(Node::kReduceSum, &ReduceSumGradFn);
         register_grad_fn(Node::kReduceMean, &ReduceMeanGradFn);

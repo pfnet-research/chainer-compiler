@@ -12,6 +12,7 @@
 
 #include <common/log.h>
 #include <common/strutil.h>
+#include <runtime/chainerx_util.h>
 #include <runtime/gen_chxvm_ops.h>
 
 namespace chainer_compiler {
@@ -131,10 +132,10 @@ std::vector<chainerx::Array> ElementWiseNvrtcOp::RunImpl(
     const size_t block_x = std::min(block_max_size, size);
     std::vector<void*> ptrs;
     for (chainerx::Array& input : inputs) {
-        ptrs.push_back(input.raw_data());
+        ptrs.push_back(RawStartPtr(input));
     }
     for (chainerx::Array& output : outputs) {
-        ptrs.push_back(output.raw_data());
+        ptrs.push_back(RawStartPtr(output));
     }
     std::vector<void*> args = {&size};
     for (void*& p : ptrs) args.push_back(&p);
