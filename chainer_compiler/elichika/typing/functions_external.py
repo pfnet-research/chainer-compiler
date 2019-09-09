@@ -229,7 +229,19 @@ def ty_ChainerSwapAxes(ty_args, ty_kwargs):
 
 
 def ty_ChainerSeparate(ty_args, ty_kwargs):
-    return TyChainerVariable(dtype=ty_args[0].dtype)
+    axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
+    assert isinstance(ty_args[0], TyTensor)
+    x_shape = ty_args[0].shape
+    x_dtype = ty_args[0].dtype
+
+    if x_shape is None or is_dummy_axis:
+        return TyTuple(TyChainerVariable(dtype=x_dtype))
+
+    assert axis < len(x_shape)
+
+    n = x_shape[axis]
+    out_shape = x_shape[:axis] + x_shape[axis + 1:]
+    return TyTuple([TyChainerVariable(dtype=x_dtype, shape=out_shape)] * n)
 
 
 def ty_ChainerSplitAxis(ty_args, ty_kwargs):

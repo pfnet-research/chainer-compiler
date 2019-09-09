@@ -769,7 +769,7 @@ class TypeChecker():
                     not (node.slice.lower and self.infer_expr(node.slice.lower).value is None or
                          node.slice.upper and self.infer_expr(node.slice.upper).value is None or
                          node.slice.step  and self.infer_expr(node.slice.step).value is None):
-                get_slice = eval('lambda t: t[{}]'.format(utils.slice_to_str(node.slice)))
+                get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node.slice)))
                 if ty_obj.is_list():
                     return TyList(get_slice(ty_obj.get_tys()))
                 return TyTuple(get_slice(ty_obj.get_tys()))
