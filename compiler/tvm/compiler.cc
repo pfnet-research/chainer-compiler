@@ -179,7 +179,7 @@ public:
             }
         }
 
-        tvm::BuildConfig config{tvm::BuildConfig::Create()};
+        tvm::BuildConfig config{tvm::build_config()};
         tvm::Array<tvm::LoweredFunc> funcs{tvm::lower(schedule, args, func_name, {}, config)};
 
         tvm::runtime::Module module = tvm::build(funcs, target_, host_, config);
