@@ -4,6 +4,7 @@ import chainer.functions as F
 import chainer.links as L
 import numpy as np
 from chainer.utils.conv import get_conv_outsize
+from chainer.utils import size_of_shape
 
 from chainer_compiler.elichika.typing.types import *
 
@@ -16,8 +17,8 @@ def make_pair(x):
 def get_kwarg(ty_kwargs, key, default=None):
     if key in ty_kwargs.keys():
         # TODO(momohatt): when unable to get the correct value, do something
-        return value_of_type(ty_kwargs[key])
-    return default
+        return value_of_type(ty_kwargs[key]), is_dummy_value(ty_kwargs[key])
+    return default, False
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
     def infer(ty_args, ty_kwargs):
@@ -59,8 +60,8 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 
 
 def ty_NumpyOnes(ty_args, ty_kwargs):
-    is_dummy_shape = not has_accurate_value(ty_args[0])
-    is_dummy_dtype = not has_accurate_value(ty_kwargs['dtype'])
+    is_dummy_shape = is_dummy_value(ty_args[0])
+    is_dummy_dtype = is_dummy_value(ty_kwargs['dtype'])
     shape = value_of_type(ty_args[0])
     dtype = value_of_type(ty_kwargs['dtype'])
     ty_ret = TyNdarray(dtype=TyDType(dtype), shape=shape)
@@ -74,7 +75,8 @@ def ty_NumpyOnes(ty_args, ty_kwargs):
 def ty_ChainerPooling2d(func):
     def infer(ty_args, ty_kwargs):
         ksize = ty_args[1].value  # cannot be None
-        stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
+        # TODO(momohatt): use is_dummy_stride
+        stride, is_dummy_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
         minimum_size = max(ksize, stride)
         fallback_shapes = ((1, 1, minimum_size, minimum_size),)
         fallback_dtypes = (np.float32,)
@@ -129,7 +131,8 @@ def ty_ChainerConcat(func):
         if func is F.vstack or func is F.hstack:
             return type_of_value(func(dummy_xs))
 
-        axis = get_kwarg(ty_kwargs, 'axis', 1)
+        # TODO(momohatt): use is_dummy_axis
+        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
         return type_of_value(func(dummy_xs, axis=axis))
 
     return infer
@@ -150,7 +153,8 @@ def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
 
 
 def ty_ChainerSum(ty_args, ty_kwargs):
-    axis = get_kwarg(ty_kwargs, 'axis', default=None)
+    # TODO(momohatt): use is_dummy_axis
+    axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
     fallback_shapes = ((1,) * (axis + 1),)
     fallback_dtypes = (np.float32,)
 
@@ -159,7 +163,7 @@ def ty_ChainerSum(ty_args, ty_kwargs):
 
 
 def ty_ChainerReshape(ty_args, ty_kwargs):
-    if not ty_args[1].is_fixed_len or not has_accurate_value(ty_args[1]):
+    if not ty_args[1].is_fixed_len or is_dummy_value(ty_args[1]):
         return TyChainerVariable(dtype=ty_args[0].dtype,
                 shape=None)
     ret = F.reshape(value_of_type(ty_args[0]), value_of_type(ty_args[1]))
@@ -215,9 +219,8 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
         else:
             dummy_arg = value_of_type(ty_args[0])
     else:
-        if ty.get_ty().shape is None:
-            is_dummy_shape = True
-            dummy_arg = [np.zeros((1,), dtype=ty.get_ty().dtype.t)]
+        is_dummy_shape = True
+        dummy_arg = [np.zeros((1,), dtype=ty.get_ty().dtype.t)]
 
     dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
     ty_ret = type_of_value(F.pad_sequence(dummy_arg, **dummy_kwargs))
@@ -226,22 +229,43 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
     return ty_ret
 
 
-def ty_ChainerLinear(obj, ty_args, ty_kwargs):
-    shape = ty_args[0].shape
-    dtype = ty_args[0].dtype
+def calculate_reshape(orig_shape, input_shape):
+    fill = abs(int(size_of_shape(orig_shape) / size_of_shape(input_shape)))
+    return tuple([i if i != -1 else fill for i in input_shape])
 
-    if dtype.t is not None:
-        assert dtype.t == obj.b.dtype
-    if shape is None:
+
+def _ty_ChainerLinear(linear, x_shape, n_batch_axes):
+    assert n_batch_axes >= 1
+
+    if n_batch_axes > 1:
+        batch_shape = x_shape[:n_batch_axes]
+        batch_size = size_of_shape(batch_shape)
+        x_shape = calculate_reshape(x_shape, (batch_size, -1))
+    elif len(x_shape) > 2:
+        x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
+
+    if linear.in_size is not None:
+        assert x_shape[1] == linear.in_size
+
+    y_shape = (x_shape[0], linear.out_size)
+    if n_batch_axes > 1:
+        y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
+    return y_shape
+
+
+def ty_ChainerLinear(linear, ty_args, ty_kwargs):
+    shape = ty_args[0].deref().shape
+    dtype = ty_args[0].deref().dtype
+    n_batch_axes, is_dummy_n_batch_axes = \
+            get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
+
+    if dtype.t is not None and linear.b is not None:
+        assert dtype.t == linear.b.dtype
+    if shape is None or is_dummy_n_batch_axes:
         return TyChainerVariable(dtype=dtype, shape=None)
 
-    if len(shape) > 2:
-        shape = F.reshape(value_of_type(ty_args[0]), (shape[0], -1)).shape
-    assert len(shape) == 2
-    if obj.in_size is not None:
-        assert shape[1] == obj.in_size
-
-    return TyChainerVariable(dtype=dtype, shape=(shape[0], obj.out_size))
+    out_shape = _ty_ChainerLinear(linear, shape, n_batch_axes)
+    return TyChainerVariable(dtype=dtype, shape=out_shape)
 
 
 def ty_ChainerConvolution2D(obj, ty_args, ty_kwargs):

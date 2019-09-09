@@ -425,26 +425,25 @@ def type_of_value(value) -> 'TyObj':
     return TyUserDefinedClass(type(value).__name__, value)
 
 
-def has_accurate_value(ty) -> bool:
-    # whether 'ty' has enough information to reconstruct its original value
+def is_dummy_value(ty) -> bool:
     ty = ty.deref()
 
     if isinstance(ty, TyNone):
-        return True
+        return False
     if isinstance(ty, TyNum):
-        return ty.value is not None
+        return ty.value is None
     if isinstance(ty, TyString):
-        return ty.value is not None
+        return ty.value is None
     if isinstance(ty, TySequence):
         if not ty.is_fixed_len:
-            return False
-        return all([has_accurate_value(t) for t in ty.get_tys()])
+            return True
+        return any([is_dummy_value(t) for t in ty.get_tys()])
     if isinstance(ty, TyDict):
-        return False
+        return True
     if isinstance(ty, TyTensor):
-        return has_accurate_value(ty.dtype) and ty.shape is not None
+        return ty.shape is None
     if isinstance(ty, TyDType):
-        return ty.t is not None
+        return False  # XXX: we don't create dummy dtype
 
 
 def value_of_type(ty) -> object:
