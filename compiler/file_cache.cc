@@ -35,9 +35,7 @@ void MergeHash(const absl::string_view& key, uint8_t* out_hash) {
     }
 }
 
-std::string GenFilename(const std::string& base_path,
-                        const std::string& extension,
-                        const std::vector<absl::string_view>& keys) {
+std::string GenFilename(const std::string& base_path, const std::string& extension, const std::vector<absl::string_view>& keys) {
     uint8_t hash[kHashBytes] = {};
     MergeHash(base_path, hash);
     MergeHash(extension, hash);
@@ -57,9 +55,7 @@ std::string GenFilename(const std::string& base_path,
 
 }  // namespace
 
-FileCache::FileCache(const std::string& base_path,
-                     const std::string& extension,
-                     const std::vector<absl::string_view>& keys)
+FileCache::FileCache(const std::string& base_path, const std::string& extension, const std::vector<absl::string_view>& keys)
     : filename_(GenFilename(base_path, extension, keys)) {
 }
 
@@ -75,7 +71,7 @@ void FileCache::Commit() const {
     const std::string& tmp_filename = GetTmpFilename();
     CHECK(Exists(tmp_filename));
     CHECK_EQ(rename(tmp_filename.c_str(), filename_.c_str()), 0)
-        << "Rename from " << tmp_filename << " to " << filename_ << ": " << strerror(errno);
+            << "Rename from " << tmp_filename << " to " << filename_ << ": " << strerror(errno);
 }
 
 bool FileCache::IsReady() const {

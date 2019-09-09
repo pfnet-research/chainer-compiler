@@ -378,14 +378,14 @@ private:
                 std::string dldt_dir = dldt_dir_env ? dldt_dir_env : CHAINER_COMPILER_DLDT_DIR;
                 CHECK(!dldt_dir.empty()) << "CHAINER_COMPILER_DLDT_DIR is not set properly";
                 const std::string cmdline =
-                    StrCat("python3 ",
-                           dldt_dir,
-                           "/model-optimizer/mo_onnx.py"
-                           " --input_model ",
-                           onnx_path,
-                           " --model_name ",
-                           cache.GetFilename(),
-                           g_use_dldt_fp16 ? " --data_type=FP16" : "");
+                        StrCat("python3 ",
+                               dldt_dir,
+                               "/model-optimizer/mo_onnx.py"
+                               " --input_model ",
+                               onnx_path,
+                               " --model_name ",
+                               cache.GetFilename(),
+                               g_use_dldt_fp16 ? " --data_type=FP16" : "");
                 CLOG() << "Run command: " << cmdline << std::endl;
                 int ret = system(cmdline.c_str());
                 CHECK_EQ(0, ret) << "Command failed: " << cmdline;

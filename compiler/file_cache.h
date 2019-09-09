@@ -9,9 +9,7 @@ namespace chainer_compiler {
 
 class FileCache {
 public:
-    FileCache(const std::string& base_path,
-              const std::string& extension,
-              const std::vector<absl::string_view>& keys);
+    FileCache(const std::string& base_path, const std::string& extension, const std::vector<absl::string_view>& keys);
 
     bool IsReady() const;
 
