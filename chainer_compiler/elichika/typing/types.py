@@ -505,9 +505,9 @@ def copy_ty(ty):
             ret = TySequence(ty=[copy_ty(t) for t in ty.get_tys()],
                     kind=ty.kind)
         else:
-            ret = TySequence(ty=copy_ty(self.get_ty()), kind=ty.kind)
+            ret = TySequence(ty=copy_ty(ty.get_ty()), kind=ty.kind)
     elif isinstance(ty, TyDict):
-        ret = TyDict(ty.keyty, ty.argty)
+        ret = TyDict(ty.keyty, ty.valty)
     elif isinstance(ty, TyUserDefinedClass):
         ret = TyUserDefinedClass(ty.name, ty.instance)
     elif isinstance(ty, TyDType):
