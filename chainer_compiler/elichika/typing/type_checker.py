@@ -82,13 +82,18 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
 
 def call_ext_callable(obj, node, ty_args, ty_kwargs):
     inference_logic = ext_callable_ty[type(obj)]
-    ty_ret = inference_logic(obj, ty_args, ty_kwargs)
+    try:
+        ty_ret = inference_logic(obj, ty_args, ty_kwargs)
+    except Exception:
+        print_warning("Failed to infer type of " + obj.__class__.__name__ +
+                ". Falling back to TyVar...")
+        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
     return ty_ret
 
 
 def call_builtin_function(func, node, ty_args):
-    dummy_args = [value_of_type(t) for t in ty_args]
     try:
+        dummy_args = [value_of_type(t) for t in ty_args]
         ty_ret = type_of_value(func(*dummy_args))
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +
@@ -107,8 +112,8 @@ def call_binop(op, node, tyl, tyr):
             gast.FloorDiv : (lambda x, y: x // y),
             }
     func = semantics[type(op)]
-    vall, valr = value_of_type(tyl), value_of_type(tyr)
     try:
+        vall, valr = value_of_type(tyl), value_of_type(tyr)
         ty_ret = type_of_value(func(vall, valr))
     except Exception:
         print_warning("Failed to infer type of " + func.__name__ +

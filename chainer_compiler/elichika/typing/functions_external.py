@@ -126,6 +126,9 @@ def ty_ChainerConcat(func):
         dtypes = [tytensor.dtype for tytensor in ty_args[0].get_tys()]
         assert all_same(dtypes)
 
+        if is_dummy_value(ty_args[0]):
+            return TyChainerVariable(dtype=dtypes[0])
+
         dummy_xs = value_of_type(ty_args[0])
 
         if func is F.vstack or func is F.hstack:
