@@ -546,6 +546,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         }
     } else if (node.op_type() == Node::kChainerSequenceExtend) {
         EMIT(SequenceExtend, out(0), in(0), in(1));
+    } else if (node.op_type() == Node::kSequenceErase) {
+        EMIT(SequenceErase, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequencePop) {
         ChxVMValue o0(out(0));
         if (node.input(0)->users().size() == 1) {

@@ -54,6 +54,14 @@ void SequencePopOp::RunImpl(ChxVMState* st) {
     v->pop_back();
 }
 
+void SequenceEraseOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index, ChxVMSequence* output) {
+    *output = seq;
+    int64_t i = static_cast<int64_t>(index);
+    if (i < 0) i += seq.size();
+    CHECK_LT(i, seq.size());
+    output->erase(output->begin() + i);
+}
+
 chainerx::Array SequenceLookupOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const StrictScalar& index) {
     int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();

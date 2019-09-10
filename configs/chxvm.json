@@ -195,6 +195,7 @@
         "Selu": true,
         "SequenceAt": true,
         "SequenceConstruct": true,
+        "SequenceErase": true,
         "SequenceInsert": true,
         "Shape": true,
         "Sigmoid": true,

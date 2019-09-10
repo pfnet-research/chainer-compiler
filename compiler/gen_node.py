@@ -265,6 +265,7 @@ NodeDef('SequenceEmpty', 0, 1, dtype=Dtype)
 NodeDef('SequenceConstruct', None, 1)
 
 NodeDef('SequenceInsert', (2, 3), 1)
+NodeDef('SequenceErase', 2, 1)
 
 NodeDef('SequenceAt', 2, 1)
 

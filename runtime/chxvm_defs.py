@@ -493,6 +493,7 @@ CHX_SEQ_OPS = [
     ('SequenceInsert', [Sequence('seq'), Array('value'), Scalar('index')],
      [Sequence('output')]),
     ('SequenceExtend', [Sequence('a'), Sequence('b')], [Sequence('output')]),
+    ('SequenceErase', [Sequence('seq'), Scalar('index')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],
      [Sequence('gx')]),
