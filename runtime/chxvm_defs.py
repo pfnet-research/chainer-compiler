@@ -490,6 +490,8 @@ CHX_CUSTOM_FIELD_OPS = [
 
 CHX_SEQ_OPS = [
     ('SequenceCreate', [ArrayList('inputs')], [Sequence('output')]),
+    ('SequenceInsert', [Sequence('seq'), Array('value'), Scalar('index')],
+     [Sequence('output')]),
     ('SequenceExtend', [Sequence('a'), Sequence('b')], [Sequence('output')]),
     ('SequenceLookup', [Sequence('seq'), Scalar('index')], [Array('output')]),
     ('SequenceLookupGrad', [Array('gy'), Scalar('size'), Scalar('index')],

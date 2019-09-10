@@ -193,6 +193,7 @@
         "Scatter": true,
         "ScatterElements": true,
         "Selu": true,
+        "SequenceInsert": true,
         "Shape": true,
         "Sigmoid": true,
         "Sign": true,

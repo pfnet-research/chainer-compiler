@@ -29,6 +29,14 @@ void SequenceAppendOp::RunImpl(ChxVMState* st) {
     st->GetSequence(seq)->emplace_back(*st->GetVar(value));
 }
 
+void SequenceInsertOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const chainerx::Array& value, const StrictScalar& index, ChxVMSequence* output) {
+    *output = seq;
+    int64_t i = static_cast<int64_t>(index);
+    if (i < 0) i += seq.size();
+    CHECK_LT(i, seq.size());
+    (*output)[i] = ChxVMVar(value);
+}
+
 void SequenceExtendOp::RunImpl(ChxVMState* st, const ChxVMSequence& a, const ChxVMSequence& b, ChxVMSequence* output) {
     *output = a;
     for (const auto& a : b) output->push_back(a);
