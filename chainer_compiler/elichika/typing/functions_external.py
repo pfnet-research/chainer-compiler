@@ -22,6 +22,11 @@ def get_kwarg(ty_kwargs, key, default=None):
     return default, False
 
 
+def assert_dtype_equal(expected, actual):
+    msg = "dtype mismatch (Expected: {}, got: {})".format(expected, actual)
+    assert expected == actual, msg
+
+
 def marunage(func, args, ty_kwargs, is_fake_shape, is_fake_dtype):
     dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
     dummy_result = func(*args, **dummy_kwargs)
@@ -346,15 +351,16 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
         if any(is_shape_None):
             is_dummy_shape = True
             if all(is_shape_None):
-                dummy_arg = [np.zeros((1,)) for _ in xs_type.get_tys()]
+                dummy_arg = [np.zeros((1,), dtype=t.dtype.t) for t in xs_type.get_tys()]
             else:
                 t = utils.find(xs_type.get_tys(), lambda t: t.shape is not None)
                 fallback_shape = t.shape
                 dummy_arg = [
-                        np.zeros(fallback_shape) if t.shape is None
-                        else np.zeros(t.shape) for t in xs_type.get_tys()]
+                        np.zeros(fallback_shape, dtype=t.dtype.t) if t.shape is None
+                        else np.zeros(t.shape, dtype=t.dtype.t) for t in xs_type.get_tys()]
         else:
-            dummy_arg = value_of_type(ty_args[0])
+            dummy_arg = value_of_type(xs_type)
+
     else:
         is_dummy_shape = True
         dummy_arg = [np.zeros((1,), dtype=xs_type.get_ty().dtype.t)]
@@ -373,7 +379,7 @@ class ty_ChainerLinear():
                 get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
         if x_type.dtype.t is not None and linear.b is not None:
-            assert x_type.dtype.t == linear.b.dtype
+            assert_dtype_equal(linear.b.dtype, x_type.dtype.t)
         if x_type.shape is None or is_dummy_n_batch_axes:
             return TyChainerVariable(dtype=x_type.dtype, shape=None)
 

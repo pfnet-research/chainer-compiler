@@ -72,7 +72,8 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
     inference_logic = ext_func_ty[func]
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
-    except Exception:
+    except Exception as e:
+        print_warning(str(e))
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyVar...")
         ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
@@ -84,10 +85,12 @@ def call_ext_callable(obj, node, ty_args, ty_kwargs):
     inference_logic = ext_callable_ty[type(obj)]
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
-    except Exception:
+    except Exception as e:
+        print_warning(str(e))
         print_warning("Failed to infer type of " + obj.__class__.__name__ +
                 ". Falling back to TyVar...")
         ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
+        # raise Exception
     return ty_ret
 
 
@@ -95,11 +98,12 @@ def call_builtin_function(func, node, ty_args):
     try:
         dummy_args = [value_of_type(t) for t in ty_args]
         ty_ret = type_of_value(func(*dummy_args))
-    except Exception:
+    except Exception as e:
+        print_warning(str(e))
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyVar...")
         ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
-        raise Exception
+        # raise Exception
     return ty_ret
 
 
