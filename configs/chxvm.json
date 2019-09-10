@@ -121,6 +121,7 @@
         "ChainerSequenceUpdate": true,
         "Clip": true,
         "Concat": true,
+        "ConcatFromSequence": true,
         "Constant": true,
         "ConstantFill": true,
         "Conv": true,
