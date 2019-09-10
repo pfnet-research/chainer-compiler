@@ -449,7 +449,11 @@ class TypeChecker():
             return
 
         if type(target) in [gast.Tuple, gast.List]:
-            ty_target = TySequence([TyVar() for _ in target.elts])
+            if isinstance(target, gast.Tuple):
+                ty_target = TyTuple([TyVar() for _ in target.elts])
+            else:
+                ty_target = TyList([TyVar() for _ in target.elts])
+            self.nodetype[target] = ty_target
             unify(ty_target, ty_val)
             for (var, ty) in zip(target.elts, ty_val.get_tys()):
                 self.tyenv[var.id] = ty

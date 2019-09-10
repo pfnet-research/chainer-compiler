@@ -235,19 +235,19 @@ class TestSequence(unittest.TestCase):
 
         id2type = generate_id2type_from_forward(Test(), ())
 
-        self.assertEqual(str(id2type[1]), "class Test -> int list")	# FunctionDef (line 1)
-        self.assertEqual(str(id2type[5]), "NoneType")	# Assign (line 2)
-        self.assertEqual(str(id2type[6]), "[int, int, int, int]")	# Name (line 2)
-        self.assertEqual(str(id2type[8]), "[int, int, int, int]")	# List (line 2)
-        self.assertEqual(str(id2type[9]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[10]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[11]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[12]), "int")	# Num (line 2)
-        self.assertEqual(str(id2type[14]), "int list")	# Return (line 3)
-        self.assertEqual(str(id2type[15]), "int list")	# Subscript (line 3)
-        self.assertEqual(str(id2type[16]), "int list")	# Name (line 3)
-        self.assertEqual(str(id2type[19]), "int")	# Num (line 3)
-        self.assertEqual(str(id2type[20]), "int")	# Num (line 3)
+        self.assertEqual(str(id2type[1]), "class Test -> [int]")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Assign
+        self.assertEqual(str(id2type[6]), "[int, int, int, int]")	# Name x (line 2)
+        self.assertEqual(str(id2type[8]), "[int, int, int, int]")	# List [0, 1, 2, 3] (line 2)
+        self.assertEqual(str(id2type[9]), "int")	# Num 0 (line 2)
+        self.assertEqual(str(id2type[10]), "int")	# Num 1 (line 2)
+        self.assertEqual(str(id2type[11]), "int")	# Num 2 (line 2)
+        self.assertEqual(str(id2type[12]), "int")	# Num 3 (line 2)
+        self.assertEqual(str(id2type[14]), "[int]")	# Return
+        self.assertEqual(str(id2type[15]), "[int]")	# Subscript x[1:2:] (line 3)
+        self.assertEqual(str(id2type[16]), "[int, int, int, int]")	# Name x (line 3)
+        self.assertEqual(str(id2type[19]), "int")	# Num 1 (line 3)
+        self.assertEqual(str(id2type[20]), "int")	# Num 2 (line 3)
 
 
     def test_list_of_tuple(self):
