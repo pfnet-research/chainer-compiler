@@ -1265,7 +1265,7 @@ class ONNXGenerator:
 
                     onnx_node = oh.make_node(
                         'ChainerSetItem',
-                        [value2onnx_parameter[node_.target].onnx_name] + [value2onnx_parameter[node_.revision].onnx_name] + indices,
+                        [value2onnx_parameter[node_.target].onnx_name] + indices + [value2onnx_parameter[node_.revision].onnx_name],
                         [value2onnx_parameter[node.outputs[0]].onnx_name],
                         slice_specs=slice_specs)
                     onnx_graph.nodes.append(onnx_node)
