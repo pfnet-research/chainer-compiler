@@ -517,7 +517,11 @@ private:
         std::vector<int> inputs;
         std::vector<ChxVMValue> outputs;
         size_t batch_size = 0;
-        for (Value* value : node.inputs()) {
+        for (size_t i = 0; i < node.inputs().size(); ++i) {
+            if (i > 0 && (node.op_type() == Node::kConv || node.op_type() == Node::kConvTranspose)) {
+                continue;
+            }
+            Value* value = node.input(i);
             CHECK(value->type().ndim());
             if (batch_size) {
                 CHECK_EQ(batch_size, value->type().dims()[0]);
@@ -528,7 +532,11 @@ private:
         }
         for (Value* value : node.outputs()) {
             CHECK(value->type().ndim());
-            CHECK_EQ(batch_size, value->type().dims()[0]);
+            if (batch_size) {
+                CHECK_EQ(batch_size, value->type().dims()[0]);
+            } else {
+                batch_size = value->type().dims()[0];
+            }
             outputs.emplace_back(GetValueId(value), value);
         }
 
