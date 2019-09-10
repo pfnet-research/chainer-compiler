@@ -84,6 +84,7 @@ TESTS = [
     Generator('node/Functions', 'SwapAxes'),
     Generator('node/Functions', 'Vstack'),
     Generator('node/Functions', 'Activations'),
+    Generator('node/Functions', 'Transpose'),
 
     Generator('node/Links', 'NStepLSTM'),
     Generator('node/Links', 'NStepBiLSTM'),
