@@ -53,10 +53,10 @@ def make_infer(func, fallback_shapes, fallback_dtypes):
 
         shapes = [s if t.shape is None else t.shape
                 for t, s in zip(ty_args_tensor, fallback_shapes)]
-        dtypes = [dt if t.dtype.t is None else t.dtype.t
+        dtypes = [dt if t.dtype is None else t.dtype
                 for t, dt in zip(ty_args_tensor, fallback_dtypes)]
         is_dummy_shape = any([t.shape is None for t in ty_args_tensor])
-        is_dummy_dtype = any([t.dtype.t is None for t in ty_args_tensor])
+        is_dummy_dtype = any([t.dtype is None for t in ty_args_tensor])
 
         # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
@@ -68,7 +68,7 @@ def make_infer(func, fallback_shapes, fallback_dtypes):
             if is_dummy_shape:
                 ty_result.shape = None
             if is_dummy_dtype:
-                ty_result.dtype.t = None
+                ty_result.dtype = None
         return ty_result
 
     return infer
@@ -93,7 +93,7 @@ def ty_NumpyOnes(ty_args, ty_kwargs):
     dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
     if not is_dummy_dtype and dtype is None:
         dtype = np.dtype('float64')
-    ty_ret = TyNdarray(dtype=TyDType(dtype), shape=shape)
+    ty_ret = TyNdarray(dtype=dtype, shape=shape)
     if is_dummy_shape: ty_ret.shape = None
     if is_dummy_dtype: ty_ret.dtype = None
     return ty_ret
@@ -116,7 +116,7 @@ def ty_NumpyFull(ty_args, ty_kwargs):
     if isinstance(shape, int):
         shape = (shape, )
 
-    y_type = TyNdarray(dtype=TyDType(dtype), shape=shape)
+    y_type = TyNdarray(dtype=dtype, shape=shape)
     if is_dummy_dtype: y_type.dtype = None
     if is_dummy_shape: y_type.shape = None
     return y_type
@@ -167,7 +167,7 @@ class ty_ChainerIdentical():
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
         if self.is_float_only:
-            assert x_type.dtype.is_float()
+            assert x_type.dtype.kind == 'f'
         return x_type
 
 
@@ -351,19 +351,19 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
         if any(is_shape_None):
             is_dummy_shape = True
             if all(is_shape_None):
-                dummy_arg = [np.zeros((1,), dtype=t.dtype.t) for t in xs_type.get_tys()]
+                dummy_arg = [np.zeros((1,), dtype=t.dtype) for t in xs_type.get_tys()]
             else:
                 t = utils.find(xs_type.get_tys(), lambda t: t.shape is not None)
                 fallback_shape = t.shape
                 dummy_arg = [
-                        np.zeros(fallback_shape, dtype=t.dtype.t) if t.shape is None
-                        else np.zeros(t.shape, dtype=t.dtype.t) for t in xs_type.get_tys()]
+                        np.zeros(fallback_shape, dtype=t.dtype) if t.shape is None
+                        else np.zeros(t.shape, dtype=t.dtype) for t in xs_type.get_tys()]
         else:
             dummy_arg = value_of_type(xs_type)
 
     else:
         is_dummy_shape = True
-        dummy_arg = [np.zeros((1,), dtype=xs_type.get_ty().dtype.t)]
+        dummy_arg = [np.zeros((1,), dtype=xs_type.get_ty().dtype)]
 
     dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
     ty_ret = type_of_value(F.pad_sequence(dummy_arg, **dummy_kwargs))
@@ -378,8 +378,8 @@ class ty_ChainerLinear():
         n_batch_axes, is_dummy_n_batch_axes = \
                 get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
-        if x_type.dtype.t is not None and linear.b is not None:
-            assert_dtype_equal(linear.b.dtype, x_type.dtype.t)
+        if x_type.dtype is not None and linear.b is not None:
+            assert_dtype_equal(linear.b.dtype, x_type.dtype)
         if x_type.shape is None or is_dummy_n_batch_axes:
             return TyChainerVariable(dtype=x_type.dtype, shape=None)
 
@@ -409,8 +409,8 @@ class ty_ChainerConvolution2D():
     def __call__(self, conv, ty_args, ty_kwargs):
         x_shape = ty_args[0].shape
         x_dtype = ty_args[0].dtype
-        if x_dtype.t is not None:
-            assert x_dtype.is_float()
+        if x_dtype is not None:
+            assert x_dtype.kind == 'f'
         if x_shape is None:
             return TyChainerVariable(dtype=x_dtype, shape=None)
 
@@ -444,9 +444,9 @@ def ty_ChainerEmbedID(embed, ty_args, ty_kwargs):
     w_type = embed.W
 
     if x_type.shape is None:
-        return TyChainerVariable(dtype=TyDType(w_type.dtype))
+        return TyChainerVariable(dtype=w_type.dtype)
 
-    assert x_type.dtype.is_int()
+    assert x_type.dtype.kind == 'i'
     assert len(x_type.shape) >= 1
 
     assert all([t < w_type.shape[0] for t in x_type.shape])

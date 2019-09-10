@@ -271,16 +271,12 @@ class TyDType(TyObj):
         return "dtype({})".format(str(self.t))
     def __eq__(self, other):
         return self.t == other.t
-    def is_float(self):
-        return self.t.kind == 'f'
-    def is_int(self):
-        return self.t.kind == 'i'
 
 
 class TyTensor(TyObj):
     def __init__(self, dtype=None, kind=None, shape=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        assert isinstance(dtype, TyDType) or dtype is None
+        assert isinstance(dtype, np.dtype) or dtype is None
         self.dtype = dtype
         self.kind = kind
         self.shape = shape
@@ -293,6 +289,7 @@ class TyTensor(TyObj):
         return "tensor({})".format(self.dtype)
 
     def __eq__(self, other):
+        # TODO: shape?
         return isinstance(other, TyTensor) and self.dtype == other.dtype
 
     def is_mutable(self):
@@ -414,9 +411,9 @@ def type_of_value(value) -> 'TyObj':
         return TyDict(type_of_value(list(value.keys())[0]),
                 type_of_value(list(value.items())[0]))
     if isinstance(value, np.ndarray):
-        return TyNdarray(dtype=TyDType(value.dtype), shape=value.shape)
+        return TyNdarray(dtype=value.dtype, shape=value.shape)
     if isinstance(value, chainer.Variable):
-        return TyChainerVariable(dtype=TyDType(value.dtype), shape=value.shape)
+        return TyChainerVariable(dtype=value.dtype, shape=value.shape)
     if isinstance(value, np.dtype):
         return TyDType(value)
     if isinstance(value, type) and value in np.typeDict.values():
@@ -471,7 +468,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyDict):
         return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
     if isinstance(ty, TyTensor):
-        ret = np.zeros(dtype=ty.dtype.t, shape=1 if ty.shape is None else ty.shape)
+        ret = np.zeros(dtype=ty.dtype, shape=1 if ty.shape is None else ty.shape)
         if ty.kind == TensorKind.ndarray:
             return ret
         if ty.kind == TensorKind.chainer_variable:
@@ -627,11 +624,11 @@ def unify(ty1, ty2):
         return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
-        set_attr_if_None(ty1.dtype, ty2.dtype, 't')
+        set_attr_if_None(ty1, ty2, 'dtype')
         set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype != ty2.dtype:
-            ty1.dtype.t = ty2.dtype.t = None
+            ty1.dtype = ty2.dtype = None
         if ty1.shape != ty2.shape:
             ty1.shape = ty2.shape = None
         return
