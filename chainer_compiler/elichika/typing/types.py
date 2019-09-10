@@ -279,7 +279,6 @@ class TyDType(TyObj):
 
 class TyTensor(TyObj):
     def __init__(self, dtype=None, kind=None, shape=None):  # we do not allow heterogeneous type ndarray
-        # TODO(momohatt): shape
         super().__init__()
         assert isinstance(dtype, TyDType) or dtype is None
         self.dtype = dtype
@@ -385,7 +384,6 @@ class TyUnion(TyObj):
 
 
 def all_same_ty(tys):
-    # TODO(momohatt): dtypeまで見る
     ty_tmp = TyVar()
     for t in tys:
         unify(ty_tmp, t)
@@ -629,9 +627,13 @@ def unify(ty1, ty2):
         return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
-        # TODO(momohatt): coercion of dtype
         set_attr_if_None(ty1.dtype, ty2.dtype, 't')
         set_attr_if_None(ty1, ty2, 'kind')
+
+        if ty1.dtype != ty2.dtype:
+            ty1.dtype.t = ty2.dtype.t = None
+        if ty1.shape != ty2.shape:
+            ty1.shape = ty2.shape = None
         return
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
