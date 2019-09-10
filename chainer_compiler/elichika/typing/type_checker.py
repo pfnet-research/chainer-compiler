@@ -213,6 +213,7 @@ class TypeChecker():
         t = TyVar()
         self.nodetype[node] = t
         self.tyenv[node.id] = t
+        return t
 
 
     def evaluate(self, node):
@@ -390,6 +391,8 @@ class TypeChecker():
             else:
                 self.nodetype[node] = self.infer_expr(node.value)
         elif isinstance(node, gast.Delete):
+            # TODO(momohatt): erase from tyenv, etc.
+            # TODO(momohatt): support deletion of element from list
             self.nodetype[node] = TyNone()
         elif isinstance(node, gast.Assign):
             self.infer_Assign(node)
@@ -657,8 +660,10 @@ class TypeChecker():
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
-            unify(ty_i, TyTensor(
-                dtype=ty_iteration.dtype, kind=ty_iteration.kind))
+            ty_i_ = TyTensor(dtype=ty_iteration.dtype, kind=ty_iteration.kind)
+            if ty_iteration.shape is not None:
+                ty_i_.shape = ty_iteration.shape[1:]
+            unify(ty_i, ty_i_)
         else:
             unify(ty_iteration, TySequence(ty=ty_i))
         tc.infer_expr(node.elt)
