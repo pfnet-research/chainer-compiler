@@ -1174,7 +1174,7 @@ class ONNXGenerator:
                     op_not = True
 
                 if node_.compare == nodes.CompareType.In or node_.compare == nodes.CompareType.NotIn:
-                    #TODO(rchouras): relax this assertion by adding backend implementation like other operators. 
+                    #TODO(rchouras): relax this assertion by adding backend implementation like other operators.
                     assert node.outputs[0].has_constant_value()
                     t = onnx_graph.new_empty_tensor_with_value(node.outputs[0])
                     tensor = numpy_helper.from_array(np.array(node.outputs[0].internal_value, dtype=np.bool),
@@ -1250,8 +1250,8 @@ class ONNXGenerator:
                         onnx_node = oh.make_node(
                             'ChainerSetItem',
                             [value2onnx_parameter[node_.target].onnx_name,
-                                value2onnx_parameter[node_.revision].onnx_name,
-                                value2onnx_parameter[node_.indexes[0]].onnx_name],
+                             value2onnx_parameter[node_.indexes[0]].onnx_name,
+                             value2onnx_parameter[node_.revision].onnx_name],
                             [value2onnx_parameter[node.outputs[0]].onnx_name],
                             slice_specs=[1])
                         onnx_graph.nodes.append(onnx_node)
