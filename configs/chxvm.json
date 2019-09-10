@@ -209,6 +209,7 @@
         "Softplus": true,
         "SpaceToDepth": true,
         "Split": true,
+        "SplitToSequence": true,
         "Sqrt": true,
         "Squeeze": true,
         "Sub": true,

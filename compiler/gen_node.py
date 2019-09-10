@@ -271,6 +271,7 @@ NodeDef('SequenceAt', 2, 1)
 
 # The second argument for the gradient context.
 NodeDef('ConcatFromSequence', (1, 2), 1, axis=Required(int), new_axis=0)
+NodeDef('SplitToSequence', (1, 2), 1, axis=0, keepdims=True)
 
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
