@@ -516,6 +516,11 @@ def copy_ty(ty):
     return ret
 
 
+def tyobj2dtype(ty):
+    if isinstance(ty, TyNum):
+        return np.dtype(str(NumKind(ty.kind)))
+
+
 # ==============================================================================
 
 class UnifyError(Exception):

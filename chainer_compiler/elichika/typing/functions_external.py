@@ -74,25 +74,17 @@ def make_infer(func, fallback_shapes, fallback_dtypes):
     return infer
 
 
-# 'evaluate' function return type by using the function
-def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallback_dtypes=None):
-    assert narg_tensor is not None or \
-            fallback_shapes is not None and fallback_dtypes is not None
-    if fallback_shapes is None:
-        fallback_shapes = ((1, 1),) * narg_tensor
-    if fallback_dtypes is None:
-        fallback_dtypes = (np.float32,) * narg_tensor
-
-    return make_infer(func, fallback_shapes, fallback_dtypes)
+def ty_NumpyArray(ty_args, ty_kwargs):
+    infer = make_infer(np.array, (), ())
+    return infer(ty_args, ty_kwargs)
 
 
 def ty_NumpyOnes(ty_args, ty_kwargs):
     shape_type = ty_args[0]
     is_dummy_shape = lacks_value(shape_type)
     shape = value_of_type(shape_type)
-    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
-    if not is_dummy_dtype and dtype is None:
-        dtype = np.dtype('float64')
+    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
+
     ty_ret = TyNdarray(dtype=dtype, shape=shape)
     if is_dummy_shape: ty_ret.shape = None
     if is_dummy_dtype: ty_ret.dtype = None
@@ -102,13 +94,7 @@ def ty_NumpyOnes(ty_args, ty_kwargs):
 def ty_NumpyFull(ty_args, ty_kwargs):
     shape_type = ty_args[0]
     value_type = ty_args[1]
-    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
-
-    if not is_dummy_dtype and dtype is None:
-        if lacks_value(value_type):
-            is_dummy_dtype = True
-        else:
-            dtype = np.dtype(eval(value_type.show()))
+    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
 
     assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
     is_dummy_shape = lacks_value(shape_type)
@@ -120,6 +106,11 @@ def ty_NumpyFull(ty_args, ty_kwargs):
     if is_dummy_dtype: y_type.dtype = None
     if is_dummy_shape: y_type.shape = None
     return y_type
+
+
+def ty_ChainerVariable(ty_args, ty_kwargs):
+    infer = make_infer(chainer.Variable, (1,), (np.float32,))
+    return infer(ty_args, ty_kwargs)
 
 
 class ty_ChainerPooling2d():
@@ -167,8 +158,8 @@ class ty_ChainerIdentical():
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
         if self.is_float_only:
-            assert x_type.dtype.kind == 'f'
-        return x_type
+            assert_dtype_equal('f', x_type.dtype.kind)
+        return copy_ty(x_type)
 
 
 class ty_ChainerConcat():
@@ -372,6 +363,13 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
     return ty_ret
 
 
+def ty_ChainerLocalResponseNormalization(ty_args, ty_kwargs):
+    infer = make_infer(F.local_response_normalization,
+            (1, 1), (np.float32,))
+    return infer(ty_args, ty_kwargs)
+
+# ================================= Links ======================================
+
 class ty_ChainerLinear():
     def __call__(self, linear, ty_args, ty_kwargs):
         x_type = ty_args[0]
@@ -410,7 +408,7 @@ class ty_ChainerConvolution2D():
         x_shape = ty_args[0].shape
         x_dtype = ty_args[0].dtype
         if x_dtype is not None:
-            assert x_dtype.kind == 'f'
+            assert_dtype_equal('f', x_dtype.kind)
         if x_shape is None:
             return TyChainerVariable(dtype=x_dtype, shape=None)
 
@@ -446,7 +444,7 @@ def ty_ChainerEmbedID(embed, ty_args, ty_kwargs):
     if x_type.shape is None:
         return TyChainerVariable(dtype=w_type.dtype)
 
-    assert x_type.dtype.kind == 'i'
+    assert_dtype_equal('i', x_type.dtype.kind)
     assert len(x_type.shape) >= 1
 
     assert all([t < w_type.shape[0] for t in x_type.shape])
@@ -505,71 +503,42 @@ def ty_ChainerNStepBiLSTM(nblstm, ty_args, ty_kwargs):
 
 
 ext_func_ty = {
-        np.array : evaluate_function_types(
-            np.array, 0),
-        np.cumsum :
-            ty_ChainerIdentical(is_float_only=False),
-        np.full :
-            ty_NumpyFull,
-        np.ones :
-            ty_NumpyOnes,
-        np.zeros :
-            ty_NumpyOnes,
-        chainer.Variable : evaluate_function_types(
-            chainer.Variable, 1),
-        cuda.to_cpu :
-            ty_ChainerIdentical(is_float_only=False),
-        F.average_pooling_2d :
-            ty_ChainerPooling2d(F.average_pooling_2d),
-        F.broadcast_to :
-            ty_ChainerBroadcastTo,
-        F.concat :
-            ty_ChainerConcat(F.concat),
-        F.dropout :
-            ty_ChainerIdentical(),
-        F.expand_dims :
-            ty_ChainerExpandDims,
-        F.hstack :
-            ty_ChainerConcat(F.hstack),
-        F.local_response_normalization : evaluate_function_types(
-            F.local_response_normalization, 1),
-        F.max_pooling_2d :
-            ty_ChainerPooling2d(F.max_pooling_2d),
-        F.pad_sequence :
-            ty_ChainerPadSequence,
-        F.relu :
-            ty_ChainerIdentical(),
-        F.reshape :
-            ty_ChainerReshape,
-        F.separate :
-            ty_ChainerSeparate,
-        F.sigmoid :
-            ty_ChainerIdentical(),
-        F.split_axis :
-            ty_ChainerSplitAxis,
-        F.squeeze :
-            ty_ChainerSqueeze,
-        F.softmax :
-            ty_ChainerIdentical(),
-        F.softmax_cross_entropy :
-            ty_ChainerSoftmaxCrossEntropy,
-        F.stack :
-            ty_ChainerConcat(F.stack),
-        F.sum :
-            ty_ChainerSum,
-        F.swapaxes :
-            ty_ChainerSwapAxes,
-        F.tanh :
-            ty_ChainerIdentical(),
-        F.vstack :
-            ty_ChainerConcat(F.vstack),
+        np.array                       : ty_NumpyArray,
+        np.cumsum                      : ty_ChainerIdentical(is_float_only=False),
+        np.full                        : ty_NumpyFull,
+        np.ones                        : ty_NumpyOnes,
+        np.zeros                       : ty_NumpyOnes,
+        chainer.Variable               : ty_ChainerVariable,
+        cuda.to_cpu                    : ty_ChainerIdentical(is_float_only=False),
+        F.average_pooling_2d           : ty_ChainerPooling2d(F.average_pooling_2d),
+        F.broadcast_to                 : ty_ChainerBroadcastTo,
+        F.concat                       : ty_ChainerConcat(F.concat),
+        F.dropout                      : ty_ChainerIdentical(),
+        F.expand_dims                  : ty_ChainerExpandDims,
+        F.hstack                       : ty_ChainerConcat(F.hstack),
+        F.local_response_normalization : ty_ChainerLocalResponseNormalization,
+        F.max_pooling_2d               : ty_ChainerPooling2d(F.max_pooling_2d),
+        F.pad_sequence                 : ty_ChainerPadSequence,
+        F.relu                         : ty_ChainerIdentical(),
+        F.reshape                      : ty_ChainerReshape,
+        F.separate                     : ty_ChainerSeparate,
+        F.sigmoid                      : ty_ChainerIdentical(),
+        F.split_axis                   : ty_ChainerSplitAxis,
+        F.squeeze                      : ty_ChainerSqueeze,
+        F.softmax                      : ty_ChainerIdentical(),
+        F.softmax_cross_entropy        : ty_ChainerSoftmaxCrossEntropy,
+        F.stack                        : ty_ChainerConcat(F.stack),
+        F.sum                          : ty_ChainerSum,
+        F.swapaxes                     : ty_ChainerSwapAxes,
+        F.tanh                         : ty_ChainerIdentical(),
+        F.vstack                       : ty_ChainerConcat(F.vstack),
         }
 
 
 ext_callable_ty = {
-        L.Linear : ty_ChainerLinear(),
-        L.Convolution2D : ty_ChainerConvolution2D(),
+        L.Linear             : ty_ChainerLinear(),
+        L.Convolution2D      : ty_ChainerConvolution2D(),
         L.BatchNormalization : ty_ChainerBatchNormalization,
-        L.EmbedID : ty_ChainerEmbedID,
-        L.NStepBiLSTM : ty_ChainerNStepBiLSTM,
+        L.EmbedID            : ty_ChainerEmbedID,
+        L.NStepBiLSTM        : ty_ChainerNStepBiLSTM,
         }
