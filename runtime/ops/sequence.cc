@@ -29,7 +29,8 @@ void SequenceAppendOp::RunImpl(ChxVMState* st) {
     st->GetSequence(seq)->emplace_back(*st->GetVar(value));
 }
 
-void SequenceInsertOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const chainerx::Array& value, const StrictScalar& index, ChxVMSequence* output) {
+void SequenceInsertOp::RunImpl(
+        ChxVMState* st, const ChxVMSequence& seq, const chainerx::Array& value, const StrictScalar& index, ChxVMSequence* output) {
     *output = seq;
     int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();
@@ -166,7 +167,8 @@ void SequenceSplitAxisOp::RunImpl(
     CHECK_GE(ax, 0);
     CHECK_LT(ax, seq.ndim());
     if (!indices_or_sections.has_value() || indices_or_sections->ndim() == 0) {
-        int64_t sections = indices_or_sections.has_value() ? static_cast<int64_t>(chainerx::AsScalar(*indices_or_sections)) : seq.shape()[ax];
+        int64_t sections =
+                indices_or_sections.has_value() ? static_cast<int64_t>(chainerx::AsScalar(*indices_or_sections)) : seq.shape()[ax];
         for (const chainerx::Array& a : chainerx::Split(seq, sections, ax)) {
             output->emplace_back(a);
         }
