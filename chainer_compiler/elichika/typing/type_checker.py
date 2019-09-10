@@ -765,7 +765,7 @@ class TypeChecker():
         ty_obj = self.infer_expr(node.value)
 
         if isinstance(ty_obj, TySequence):
-            self.infer_slice(node.slice, TyInt())
+            self.infer_slice(node.slice)
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Index) and \
                     isinstance(node.slice.value, gast.Num):
@@ -773,9 +773,7 @@ class TypeChecker():
 
             if ty_obj.is_fixed_len and \
                     isinstance(node.slice, gast.Slice) and \
-                    not (node.slice.lower and self.infer_expr(node.slice.lower).value is None or
-                         node.slice.upper and self.infer_expr(node.slice.upper).value is None or
-                         node.slice.step  and self.infer_expr(node.slice.step).value is None):
+                    self.is_const_slice(node.slice):
                 get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node.slice)))
                 if ty_obj.is_list():
                     return TyList(get_slice(ty_obj.get_tys()))
@@ -794,8 +792,30 @@ class TypeChecker():
             return ty_obj.valty
 
         if isinstance(ty_obj, TyTensor):
-            self.infer_slice(node.slice, TyInt())
-            return TyTensor(dtype=ty_obj.dtype, kind=ty_obj.kind)
+            self.infer_slice(node.slice)
+            ty_ret = TyTensor(dtype=ty_obj.dtype, kind=ty_obj.kind)
+            ty_ret.shape = self.infer_Subscript_shape(ty_obj.shape, node.slice)
+            return ty_ret
+
+
+    def infer_Subscript_shape(self, shape, node_slice):
+        if shape is None:
+            return None
+        if isinstance(node_slice, gast.Index):
+            return shape[1:]
+        if isinstance(node_slice, gast.Slice):
+            if not self.is_const_slice(node_slice):
+                return (None,) + shape[1:]
+            get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
+            shape0 = len(get_slice((0,) * shape[0]))
+            return (shape0,) + shape[1:]
+        if isinstance(node_slice, gast.ExtSlice):
+            shape_ = ()
+            for i in range(len(node_slice.dims)):
+                shape_ += self.infer_Subscript_shape(shape[i:i+1],
+                        node_slice.dims[i])
+            shape_ += shape[len(node_slice.dims):]
+            return shape_
 
 
     def infer_Name(self, node):
@@ -825,7 +845,7 @@ class TypeChecker():
 
 
     # ================================= slice ==================================
-    def infer_slice(self, node, ty_key_expected) -> 'NoneType':
+    def infer_slice(self, node, ty_key_expected=TyInt()) -> 'NoneType':
         if isinstance(node, gast.Slice):
             # Slice(expr? lower, expr? upper, expr? step)
             if node.lower:
@@ -845,6 +865,22 @@ class TypeChecker():
             unify(ty_val, ty_key_expected)
             return
 
+        if isinstance(node, gast.ExtSlice):
+            # ExtSlice(slice* dims)
+            for s in node.dims:
+                self.infer_slice(s, ty_key_expected)
+
+
+    def is_const_slice(self, node_slice):
+        is_constnum = lambda t: isinstance(t, TyNum) and t.value is not None
+
+        if node_slice.lower and not is_constnum(self.infer_expr(node_slice.lower)):
+            return False
+        if node_slice.upper and not is_constnum(self.infer_expr(node_slice.upper)):
+            return False
+        if node_slice.step and not is_constnum(self.infer_expr(node_slice.step)):
+            return False
+        return True
 
 
 if __name__ == '__main__':

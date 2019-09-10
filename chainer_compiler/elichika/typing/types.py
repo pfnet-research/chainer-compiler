@@ -636,6 +636,14 @@ def unify(ty1, ty2):
             ty1.shape = ty2.shape = None
         return
 
+    if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
+        if len(ty1.shape) == 0:
+            return
+
+    if isinstance(ty1, TyNum) and isinstance(ty2, TyTensor):
+        if len(ty2.shape) == 0:
+            return
+
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):
         set_attr_if_None(ty1.dtype, ty2.dtype, 't')
         return
