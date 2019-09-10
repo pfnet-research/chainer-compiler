@@ -16,6 +16,13 @@ class ListSubscript(chainer.Chain):
         test_list[1] = 3
         return test_list
 
+class ListSubscript2(chainer.Chain):
+    def forward(self):
+        test_list = np.array([[0, 1], [1, 2], [2, 3]])
+        x = test_list[2]
+        test_list[1] = x
+        return test_list
+
 class ListAssignByValueRef(chainer.Chain):
     def forward(self):
         # shared reference
@@ -66,7 +73,8 @@ def main():
     testtools.generate_testcase(ListInConstructor(), [], subname='list_in_constructor')
 
     # TODO(rchouras): Fix following tests. First two are used very commonly.
-    # testtools.generate_testcase(ListSubscript, [], subname='list_subscript')
+    testtools.generate_testcase(ListSubscript, [], subname='list_subscript')
+    # testtools.generate_testcase(ListSubscript2, [], subname='list_subscript2')
     # testtools.generate_testcase(ListAssignByValueRef, [], subname='list_assign_by_value_ref')
     # testtools.generate_testcase(ListInfinitelyNested(), [], subname='list_nested')
 

@@ -1241,8 +1241,8 @@ class ONNXGenerator:
                         onnx_node = oh.make_node(
                             'ChainerSequenceUpdate',
                             [value2onnx_parameter[node_.target].onnx_name,
-                                value2onnx_parameter[node_.revision].onnx_name,
-                                value2onnx_parameter[node_.indexes[0]].onnx_name],
+                                value2onnx_parameter[node_.indexes[0]].onnx_name,
+                                value2onnx_parameter[node_.revision].onnx_name],
                             [value2onnx_parameter[node.outputs[0]].onnx_name])
                         onnx_graph.nodes.append(onnx_node)
 
