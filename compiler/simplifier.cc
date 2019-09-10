@@ -671,7 +671,7 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
 
 bool ReplaceSequenceEmpty(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySequenceEmpty", node->output(0));
-    gb.Op(Node::kChainerSequenceCreate, {node->input(0)}, node->output(0));
+    gb.Op(Node::kChainerSequenceCreate, {}, node->output(0));
     return true;
 }
 
