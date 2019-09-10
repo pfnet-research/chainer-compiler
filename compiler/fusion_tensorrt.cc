@@ -46,7 +46,9 @@ void FuseTensorRTOperations(Graph* graph) {
 
         switch (node.op_type()) {
             case Node::kConvTranspose:
-                // TODO(hamaji): Disabled, for now.
+                if (node.input(0)->type().ndim() != 4 || node.output(0)->type().ndim() != 4) {
+                    return false;
+                }
                 return true;
             default:
                 break;

@@ -540,7 +540,30 @@ private:
             outputs.emplace_back(GetValueId(value), value);
         }
 
-        EMIT(TensorRT, outputs, inputs, serialized_onnx, batch_size, g_use_tensorrt_fp16);
+        std::vector<int64_t> deconv_output_shapes;
+        auto encode_shape = [&deconv_output_shapes](const std::vector<int64_t>& dims, size_t start) {
+            CHECK_LT(start, dims.size());
+            CHECK_EQ(2, dims.size() - start);
+            for (size_t i = start; i < dims.size(); ++i) {
+                int64_t d = dims[i];
+                deconv_output_shapes.push_back(d);
+            }
+        };
+        for (Node* ct : node.subgraph()->GetTopologicallySortedNodes()) {
+            if (ct->op_type() != Node::kConvTranspose) {
+                continue;
+            }
+            encode_shape(ct->input(0)->type().dims(), 2);
+            encode_shape(ct->input(1)->type().dims(), 2);
+            if (ct->strides().empty()) {
+                encode_shape({1, 1}, 0);
+            } else {
+                encode_shape(ct->strides(), 0);
+            }
+            encode_shape(ct->output(0)->type().dims(), 2);
+        }
+
+        EMIT(TensorRT, outputs, inputs, serialized_onnx, batch_size, g_use_tensorrt_fp16, deconv_output_shapes);
     }
 
     void EmitFusionGroupNVRTC(const Node& node, ChxVMProgramProto* prog) {
