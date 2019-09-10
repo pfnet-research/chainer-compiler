@@ -198,6 +198,7 @@
         "SequenceConstruct": true,
         "SequenceErase": true,
         "SequenceInsert": true,
+        "SequenceLength": true,
         "Shape": true,
         "Sigmoid": true,
         "Sign": true,

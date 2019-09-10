@@ -530,6 +530,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         EMIT(SequenceCreate, out(0), ins);
     } else if (node.op_type() == Node::kChainerSequenceSize) {
         EMIT(SequenceSize, out(0), in(0));
+    } else if (node.op_type() == Node::kSequenceLength) {
+        EMIT(SequenceSize, out(0), in(0));
     } else if (node.op_type() == Node::kChainerSequenceLengths) {
         EMIT(SequenceLengths, out(0), in(0));
     } else if (node.op_type() == Node::kChainerSequenceAppend || node.op_type() == Node::kSequenceInsert) {

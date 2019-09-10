@@ -264,6 +264,8 @@ NodeDef('MeanVarianceNormalization', 1, 1, mvn_axes=[0, 2, 3])
 NodeDef('SequenceEmpty', 0, 1, dtype=Dtype)
 NodeDef('SequenceConstruct', None, 1)
 
+NodeDef('SequenceLength', 1, 1)
+
 NodeDef('SequenceInsert', (2, 3), 1)
 NodeDef('SequenceErase', 2, 1)
 
