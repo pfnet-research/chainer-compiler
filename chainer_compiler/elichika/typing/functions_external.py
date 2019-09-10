@@ -17,7 +17,7 @@ def make_pair(x):
 def get_kwarg(ty_kwargs, key, default=None):
     if key in ty_kwargs.keys():
         # TODO(momohatt): when unable to get the correct value, do something
-        return value_of_type(ty_kwargs[key]), is_dummy_value(ty_kwargs[key])
+        return value_of_type(ty_kwargs[key]), lacks_value(ty_kwargs[key])
     return default, False
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
@@ -60,7 +60,7 @@ def evaluate_function_types(func, narg_tensor=None, fallback_shapes=None, fallba
 
 
 def ty_NumpyOnes(ty_args, ty_kwargs):
-    is_dummy_shape = is_dummy_value(ty_args[0])
+    is_dummy_shape = lacks_value(ty_args[0])
     shape = value_of_type(ty_args[0])
     dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
     if dtype is None:
@@ -126,7 +126,7 @@ def ty_ChainerConcat(func):
         dtypes = [tytensor.dtype for tytensor in ty_args[0].get_tys()]
         assert all_same(dtypes)
 
-        if is_dummy_value(ty_args[0]):
+        if lacks_value(ty_args[0]):
             return TyChainerVariable(dtype=dtypes[0])
 
         dummy_xs = value_of_type(ty_args[0])
@@ -152,7 +152,7 @@ def ty_ChainerExpandDims(ty_args, ty_kwargs):
 
 
 def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
-    if ty_args[0].shape is None or is_dummy_value(ty_args[1]):
+    if ty_args[0].shape is None or lacks_value(ty_args[1]):
         return TyChainerVariable(dtype=ty_args[0].dtype)
 
     in_shape = ty_args[0].shape
@@ -186,25 +186,27 @@ def calculate_reshape(orig_shape, input_shape):
             return None
         return input_shape
     fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
-    return tuple([i if i != -1 else fill for i in input_shape])
+    ret_shape = tuple([i if i != -1 else fill for i in input_shape])
+    assert size_of_shape(orig_shape) == size_of_shape(ret_shape)
+    return ret_shape
 
 
 def ty_ChainerReshape(ty_args, ty_kwargs):
     # TODO: check equality of size
-    dtype = ty_args[0].dtype
-    shape = ty_args[0].shape
+    x_type = ty_args[0]
+    shape_type = ty_args[1]
 
-    if is_dummy_value(ty_args[1]):
-        return TyChainerVariable(dtype=dtype, shape=None)
-    ret_shape = calculate_reshape(shape, value_of_type(ty_args[1]))
-    return TyChainerVariable(dtype=dtype, shape=ret_shape)
+    if lacks_value(shape_type):
+        return TyChainerVariable(dtype=x_type.dtype, shape=None)
+    ret_shape = calculate_reshape(x_type.shape, value_of_type(shape_type))
+    return TyChainerVariable(dtype=x_type.dtype, shape=ret_shape)
 
 
 def ty_ChainerSqueeze(ty_args, ty_kwargs):
     # TODO: don't use F.squeeze
     axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
 
-    if ty_args[0].shape is None or is_dummy_value(ty_args[0]) or is_dummy_axis:
+    if ty_args[0].shape is None or lacks_value(ty_args[0]) or is_dummy_axis:
         return TyChainerVariable(dtype=ty_args[0].dtype)
 
     ret = F.squeeze(value_of_type(ty_args[0]), axis=axis)
@@ -219,7 +221,7 @@ def ty_ChainerSwapAxes(ty_args, ty_kwargs):
 
 
     if ty_args[0].shape is None or \
-            is_dummy_value(ty_args[1]) or is_dummy_value(ty_args[2]):
+            lacks_value(ty_args[1]) or lacks_value(ty_args[2]):
         return TyChainerVariable(dtype=ty_args[0].dtype)
 
     shape = ty_args[0].shape

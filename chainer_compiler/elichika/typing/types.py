@@ -428,7 +428,7 @@ def type_of_value(value) -> 'TyObj':
     return TyUserDefinedClass(type(value).__name__, value)
 
 
-def is_dummy_value(ty) -> bool:
+def lacks_value(ty) -> bool:
     ty = ty.deref()
 
     if isinstance(ty, TyNone):
@@ -440,7 +440,7 @@ def is_dummy_value(ty) -> bool:
     if isinstance(ty, TySequence):
         if not ty.is_fixed_len:
             return True
-        return any([is_dummy_value(t) for t in ty.get_tys()])
+        return any([lacks_value(t) for t in ty.get_tys()])
     if isinstance(ty, TyDict):
         return True
     if isinstance(ty, TyTensor):
