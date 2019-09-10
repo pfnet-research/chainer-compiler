@@ -16,12 +16,24 @@ class ListSubscript(chainer.Chain):
         test_list[1] = 3
         return test_list
 
-class ListSubscript2(chainer.Chain):
+class ArraySubscript(chainer.Chain):
     def forward(self):
         test_list = np.array([0, 1, 2])
         x = test_list[2]
         test_list[1] = x
         return test_list
+
+class ArraySubscriptFancy(chainer.Chain):
+    def forward(self, x, y):
+        # (2, 3, 4, 5) => (2, 3, 4)
+        t = x[:, 1, :3, -4:]
+        return t
+        # TODO(hamaji): Support multi-axes subsription.
+        # y[1, 1:3, :3, :4] = t
+        # return t, y
+        # TODO(hamaji): Support fancy indexing by ndarray.
+        # y = test_list[:, 1, np.array([2, 1]), :-4:]
+        # return x, y
 
 class ListAssignByValueRef(chainer.Chain):
     def forward(self):
@@ -74,7 +86,10 @@ def main():
 
     # TODO(rchouras): Fix following tests. First two are used very commonly.
     testtools.generate_testcase(ListSubscript, [], subname='list_subscript')
-    testtools.generate_testcase(ListSubscript2, [], subname='list_subscript2')
+    testtools.generate_testcase(ArraySubscript, [], subname='array_subscript')
+    x, y = (np.arange(2 * 3 * 4 * 5).reshape((2, 3, 4, 5)) for _ in range(2))
+    testtools.generate_testcase(ArraySubscriptFancy, [x, y],
+                                subname='array_subscript_fancy')
     # testtools.generate_testcase(ListAssignByValueRef, [], subname='list_assign_by_value_ref')
     # testtools.generate_testcase(ListInfinitelyNested(), [], subname='list_nested')
 
