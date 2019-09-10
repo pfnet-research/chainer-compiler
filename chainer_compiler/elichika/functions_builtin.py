@@ -672,6 +672,23 @@ class ConverterReshape(BaseConverter):
             name=str(node.lineprop))
 
 
+class ConverterTranspose(BaseConverter):
+    def __init__(self):
+        self.expected_args = (
+            ('x', oc.ParseType.In),
+            ('axes', oc.ParseType.Att))
+
+    def __call__(self, onnx_graph, node):
+        parser = self.parse_args(onnx_graph, node)
+
+        onnx_graph.add_node(
+            "Transpose",
+            [parser.get('x')],
+            node.outputs,
+            name=str(node.lineprop),
+            perm=parser.get('axes'))
+
+
 class ConverterSplitAxis(BaseConverter):
     def __init__(self):
         self.expected_args = (

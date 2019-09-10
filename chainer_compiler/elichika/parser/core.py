@@ -109,6 +109,7 @@ def convert_model(model: 'chainer.Chain', args=[]):
     add_chainer_function(F.average_pooling_2d)
     add_chainer_function(F.unpooling_2d)
     add_chainer_function(F.reshape)
+    add_chainer_function(F.transpose)
     add_chainer_function(F.split_axis, ret_value_func=ret_tuple)
     add_chainer_function(F.hstack)
     add_chainer_function(F.vstack)
