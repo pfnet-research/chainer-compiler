@@ -284,3 +284,28 @@ def rpn_loss(locs, confs, anchors, sizes,  bboxes):
     conf_loss /= len(sizes)
 
     return loc_loss, conf_loss
+
+
+# ======================================
+
+from chainer_compiler.elichika import testtools
+import numpy as np
+
+def main():
+    np.random.seed(314)
+
+    scales = (0.25, 0.125, 0.0625, 0.03125, 0.015625)
+    model = RPN(scales)
+
+    bsize = 2
+
+    v = [
+        np.random.rand(bsize, 256, 56, 56).astype(np.float32),
+        np.random.rand(bsize, 256, 28, 28).astype(np.float32),
+        np.random.rand(bsize, 256, 14, 14).astype(np.float32),
+        np.random.rand(bsize, 256, 4, 4).astype(np.float32),
+    ]
+    testtools.generate_testcase(model, [v])
+
+if __name__ == '__main__':
+    main()

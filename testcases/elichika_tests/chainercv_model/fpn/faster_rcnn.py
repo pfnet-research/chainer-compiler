@@ -273,3 +273,47 @@ def _flat_to_list(flat, indices, B):
         else:
             array_list.append(None)
     return array_list
+
+
+# ======================================
+
+from chainer_compiler.elichika import testtools
+from testcases.elichika_tests.chainercv_model.resnet import ResNet50
+from testcases.elichika_tests.chainercv_model.fpn.fpn import FPN
+from testcases.elichika_tests.chainercv_model.fpn.rpn import RPN
+from testcases.elichika_tests.chainercv_model.fpn.bbox_head import BboxHead
+from testcases.elichika_tests.chainercv_model.fpn.mask_head import MaskHead
+
+import numpy as np
+
+def main():
+    np.random.seed(314)
+    n_fg_class = 80
+    base = ResNet50(n_class=n_fg_class, arch='he')
+    base.pick = ('res2', 'res3', 'res4', 'res5')
+    base.pool1 = lambda x: F.max_pooling_2d(
+        x, 3, stride=2, pad=1, cover_all=False)
+    base.remove_unused()
+    extractor = FPN(
+        base, len(base.pick), (1 / 4, 1 / 8, 1 / 16, 1 / 32, 1 / 64))
+    
+    return_values=['bboxes', 'labels', 'scores']
+    min_size=800
+    max_size=1333
+
+    model = FasterRCNN(
+        extractor=extractor,
+        rpn=RPN(extractor.scales),
+        bbox_head=BboxHead(n_fg_class + 1, extractor.scales),
+        mask_head=MaskHead(n_fg_class + 1, extractor.scales),
+        return_values=return_values,
+        min_size=min_size, max_size=max_size)
+
+    bsize = 2
+
+    v = np.random.rand(bsize, 3, 224, 224).astype(np.float32)
+
+    testtools.generate_testcase(model, [v])
+
+if __name__ == '__main__':
+    main()
