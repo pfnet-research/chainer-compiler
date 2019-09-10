@@ -34,7 +34,7 @@ void SequenceInsertOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq, const c
     int64_t i = static_cast<int64_t>(index);
     if (i < 0) i += seq.size();
     CHECK_LT(i, seq.size());
-    (*output)[i] = ChxVMVar(value);
+    output->insert(output->begin() + i, ChxVMVar(value));
 }
 
 void SequenceExtendOp::RunImpl(ChxVMState* st, const ChxVMSequence& a, const ChxVMSequence& b, ChxVMSequence* output) {
