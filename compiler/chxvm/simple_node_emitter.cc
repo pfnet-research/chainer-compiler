@@ -556,7 +556,7 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
             EMIT(SequenceCopy, o0, in(0));
             EMIT(SequencePop, out(1), o0.id());
         }
-    } else if (node.op_type() == Node::kChainerSequenceLookup) {
+    } else if (node.op_type() == Node::kChainerSequenceLookup || node.op_type() == Node::kSequenceAt) {
         EMIT(SequenceLookup, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequenceUpdate) {
         EMIT(SequenceUpdate, out(0), in(0), in(1), in(2));

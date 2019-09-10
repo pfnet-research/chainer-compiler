@@ -265,6 +265,8 @@ NodeDef('SequenceEmpty', 0, 1, dtype=Dtype)
 
 NodeDef('SequenceInsert', (2, 3), 1)
 
+NodeDef('SequenceAt', 2, 1)
+
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
 NodeDef('ChainerReluGrad', 2, 1)
