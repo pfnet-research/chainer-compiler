@@ -276,17 +276,16 @@ class TyDType(TyObj):
 class TyTensor(TyObj):
     def __init__(self, dtype=None, kind=None, shape=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
-        assert isinstance(dtype, np.dtype) or dtype is None
-        self.dtype = dtype
+        self.dtype = np.dtype(dtype)
         self.kind = kind
         self.shape = shape
 
     def show(self):
         if self.kind == TensorKind.ndarray:
-            return "ndarray({}, shape={})".format(self.dtype, self.shape)
+            return "ndarray(dtype={}, shape={})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
-            return "Variable({}, shape={})".format(self.dtype, self.shape)
-        return "tensor({})".format(self.dtype)
+            return "Variable(dtype={}, shape={})".format(self.dtype, self.shape)
+        return "tensor(dtype={}, shape={})".format(self.dtype, self.shape)
 
     def __eq__(self, other):
         # TODO: shape?
@@ -353,7 +352,7 @@ class TyVar(TyObj):
         return self
 
 
-# TODO(momohatt): Deprecate TyUnion
+# TODO(momohatt): Deprecate TyUnion (and 'unset')
 class TyUnion(TyObj):
     def __init__(self, *tys):
         assert len(tys) >= 2
@@ -469,9 +468,9 @@ def value_of_type(ty) -> object:
         return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
     if isinstance(ty, TyTensor):
         ret = np.zeros(dtype=ty.dtype, shape=1 if ty.shape is None else ty.shape)
-        if ty.kind == TensorKind.ndarray:
+        if ty.is_ndarray():
             return ret
-        if ty.kind == TensorKind.chainer_variable:
+        if ty.is_chainer_variable():
             return chainer.Variable(ret)
     if isinstance(ty, TyDType):
         return ty.t
@@ -488,11 +487,8 @@ def choose_stronger_ty(ty1, ty2):
 
 
 def copy_ty(ty):
-    if isinstance(ty, TyNone):
-        ret = deepcopy(ty)
-    elif isinstance(ty, TyNum):
-        ret = deepcopy(ty)
-    elif isinstance(ty, TyString):
+    if isinstance(ty, TyNone) or isinstance(ty, TyNum) or \
+            isinstance(ty, TyString):
         ret = deepcopy(ty)
     elif isinstance(ty, TyArrow):
         ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
@@ -527,15 +523,16 @@ class UnifyError(Exception):
         self.msg = "UnifyError: {} and {} are not unifiable".format(ty1, ty2)
 
 
-def unify(ty1, ty2):
-    def set_attr_if_None(obj1, obj2, attr_name):
-        if hasattr(obj1, attr_name) and getattr(obj1, attr_name) is None:
-            setattr(obj1, attr_name, getattr(obj2, attr_name))
-            return
-        if hasattr(obj2, attr_name) and getattr(obj2, attr_name) is None:
-            setattr(obj2, attr_name, getattr(obj1, attr_name))
-            return
+def set_attr_if_None(obj1, obj2, attr_name):
+    if hasattr(obj1, attr_name) and getattr(obj1, attr_name) is None:
+        setattr(obj1, attr_name, getattr(obj2, attr_name))
+        return
+    if hasattr(obj2, attr_name) and getattr(obj2, attr_name) is None:
+        setattr(obj2, attr_name, getattr(obj1, attr_name))
+        return
 
+
+def unify(ty1, ty2):
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 

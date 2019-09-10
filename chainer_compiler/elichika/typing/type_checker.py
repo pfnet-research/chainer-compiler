@@ -684,7 +684,7 @@ class TypeChecker():
                 if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
                     if node.func.attr == 'astype':
                         val_args = [self.evaluate(arg) for arg in node.args]
-                        ty_ret = TyNdarray(dtype=val_args[0].t,
+                        ty_ret = TyNdarray(dtype=val_args[0],
                                 shape=ty_obj.shape)
 
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
