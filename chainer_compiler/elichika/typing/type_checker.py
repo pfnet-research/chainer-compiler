@@ -208,6 +208,13 @@ class TypeChecker():
                 self.stack[-2].func is node
 
 
+    def generate_fresh_TyVar(self, node):
+        assert isinstance(node, gast.Name)
+        t = TyVar()
+        self.nodetype[node] = t
+        self.tyenv[node.id] = t
+
+
     def evaluate(self, node):
         if isinstance(node, gast.Attribute):
             v_value = self.evaluate(node.value)
@@ -450,9 +457,9 @@ class TypeChecker():
 
         if type(target) in [gast.Tuple, gast.List]:
             if isinstance(target, gast.Tuple):
-                ty_target = TyTuple([TyVar() for _ in target.elts])
+                ty_target = TyTuple([self.generate_fresh_TyVar(e) for e in target.elts])
             else:
-                ty_target = TyList([TyVar() for _ in target.elts])
+                ty_target = TyList([self.generate_fresh_TyVar(e) for e in target.elts])
             self.nodetype[target] = ty_target
             unify(ty_target, ty_val)
             for (var, ty) in zip(target.elts, ty_val.get_tys()):
@@ -648,7 +655,7 @@ class TypeChecker():
 
         tc = copy_TypeChecker(self)
         ty_iteration = tc.infer_expr(gen.iter)
-        ty_i = tc.infer_expr(gen.target)
+        ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
             unify(ty_i, TyTensor(
                 dtype=ty_iteration.dtype, kind=ty_iteration.kind))
