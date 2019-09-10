@@ -136,64 +136,64 @@ class TySequence(TyObj):
         super().__init__()
         self.kind = kind
         self.is_fixed_len = isinstance(ty, list) if ty is not None else None
-        self.ty_ = ty
+        self._ty = ty
 
     def show(self):
         if self.is_fixed_len:
             if self.kind == SequenceKind.LIST:
-                return "[" + intercalate([str(t) for t in self.ty_], ", ") + "]"
+                return "[" + intercalate([str(t) for t in self._ty], ", ") + "]"
 
             if self.kind == SequenceKind.TUPLE:
-                if len(self.ty_) == 1:
-                    return "(" + str(self.ty_[0]) + ",)"
-                return "(" + intercalate([str(t) for t in self.ty_], ", ") + ")"
+                if len(self._ty) == 1:
+                    return "(" + str(self._ty[0]) + ",)"
+                return "(" + intercalate([str(t) for t in self._ty], ", ") + ")"
 
-            return "{" + intercalate([str(t) for t in self.ty_], ", ") + "}"
+            return "{" + intercalate([str(t) for t in self._ty], ", ") + "}"
 
         if self.kind == SequenceKind.LIST:
-            return str(self.ty_) + " list"
+            return str(self._ty) + " list"
         if self.kind == SequenceKind.TUPLE:
-            return str(self.ty_) + " tuple"
+            return str(self._ty) + " tuple"
 
-        return str(self.ty_) + " sequence"
+        return str(self._ty) + " sequence"
 
     def __eq__(self, other):
-        return isinstance(other, TySequence) and self.ty_ == other.ty_
+        return isinstance(other, TySequence) and self._ty == other._ty
 
     def is_mutable(self):
         return self.kind == SequenceKind.LIST
 
     def unset(self):
         if self.is_fixed_len:
-            for t in self.ty_:
+            for t in self._ty:
                 t.unset()
             return
-        self.ty_.unset()
+        self._ty.unset()
 
     def deref(self):
         if self.is_fixed_len is not None:
             if self.is_fixed_len:
-                self.ty_ = [t.deref() for t in self.ty_]
+                self._ty = [t.deref() for t in self._ty]
             else:
-                self.ty_ = self.ty_.deref()
+                self._ty = self._ty.deref()
         return self
 
     def get_ty(self):
         assert not self.is_fixed_len
-        return self.ty_
+        return self._ty
 
     def get_tys(self):
         assert self.is_fixed_len
-        return self.ty_
+        return self._ty
 
     def coerce_to_variable_len(self, ty=None):
         # does nothing if self is not fixed-length
         if self.is_fixed_len:
             if ty is None:
                 ty = TyVar()
-            for t in self.ty_:
+            for t in self._ty:
                 unify(ty, t)
-            self.ty_ = ty
+            self._ty = ty
             self.is_fixed_len = False
         return
 
@@ -380,9 +380,9 @@ class TyUnion(TyObj):
 
 
 def all_same_ty(tys):
-    ty_tmp = TyVar()
+    _tytmp = TyVar()
     for t in tys:
-        unify(ty_tmp, t)
+        unify(_tytmp, t)
     return True
 
 def all_same(l):
@@ -421,6 +421,8 @@ def type_of_value(value) -> 'TyObj':
 
     return TyUserDefinedClass(type(value).__name__, value)
 
+
+# ------------------------------------------------------------------------------
 
 def lacks_value(ty) -> bool:
     ty = ty.deref()
@@ -598,7 +600,7 @@ def unify(ty1, ty2):
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
         set_attr_if_None(ty1, ty2, 'is_fixed_len')
-        set_attr_if_None(ty1, ty2, 'ty_')
+        set_attr_if_None(ty1, ty2, '_ty')
 
         if ty1.is_fixed_len and ty2.is_fixed_len:
             if not len(ty1.get_tys()) == len(ty2.get_tys()):
