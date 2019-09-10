@@ -14,11 +14,33 @@ def make_pair(x):
         return (x, x)
     return x
 
+
 def get_kwarg(ty_kwargs, key, default=None):
     if key in ty_kwargs.keys():
         # TODO(momohatt): when unable to get the correct value, do something
         return value_of_type(ty_kwargs[key]), lacks_value(ty_kwargs[key])
     return default, False
+
+
+def marunage(func, args, ty_kwargs, is_fake_shape, is_fake_dtype):
+    dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
+    dummy_result = func(*args, **dummy_kwargs)
+    ty_result = type_of_value(dummy_result)
+
+    if isinstance(ty_result, TyTensor):
+        if is_fake_shape: ty_result.shape = None
+        if is_fake_dtype: ty_result.dtype = None
+    elif isinstance(ty_result, TySequence):
+        assert ty_result.is_fixed_len
+        if is_fake_shape:
+            for t in ty_result.get_tys():
+                t.shape = None
+        if is_fake_dtype:
+            for  t in ty_result.get_tys():
+                t.dtype = None
+
+    return ty_result
+
 
 def make_infer(func, fallback_shapes, fallback_dtypes):
     def infer(ty_args, ty_kwargs):
@@ -64,14 +86,35 @@ def ty_NumpyOnes(ty_args, ty_kwargs):
     is_dummy_shape = lacks_value(shape_type)
     shape = value_of_type(shape_type)
     dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
-    if dtype is None:
+    if not is_dummy_dtype and dtype is None:
         dtype = np.dtype('float64')
     ty_ret = TyNdarray(dtype=TyDType(dtype), shape=shape)
-    if is_dummy_shape:
-        ty_ret.shape = None
-    if is_dummy_dtype:
-        ty_ret.dtype.t = None
+    if is_dummy_shape: ty_ret.shape = None
+    if is_dummy_dtype: ty_ret.dtype = None
     return ty_ret
+
+
+def ty_NumpyFull(ty_args, ty_kwargs):
+    shape_type = ty_args[0]
+    value_type = ty_args[1]
+    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', None)
+
+    if not is_dummy_dtype and dtype is None:
+        if lacks_value(value_type):
+            is_dummy_dtype = True
+        else:
+            dtype = np.dtype(eval(value_type.show()))
+
+    assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
+    is_dummy_shape = lacks_value(shape_type)
+    shape = value_of_type(shape_type)
+    if isinstance(shape, int):
+        shape = (shape, )
+
+    y_type = TyNdarray(dtype=TyDType(dtype), shape=shape)
+    if is_dummy_dtype: y_type.dtype = None
+    if is_dummy_shape: y_type.shape = None
+    return y_type
 
 
 class ty_ChainerPooling2d():
@@ -88,8 +131,8 @@ class ty_ChainerPooling2d():
         fallback_shapes = ((1, 1, minimum_size, minimum_size),)
         fallback_dtypes = (np.float32,)
 
-        return make_infer(self.func, fallback_shapes, fallback_dtypes) \
-                (ty_args, ty_kwargs)
+        infer = make_infer(self.func, fallback_shapes, fallback_dtypes)
+        return infer(ty_args, ty_kwargs)
 
 
 def ty_ChainerSoftmaxCrossEntropy(ty_args, ty_kwargs):
@@ -104,9 +147,9 @@ def ty_ChainerSoftmaxCrossEntropy(ty_args, ty_kwargs):
     else:
         fallback_shapes = ((1, 1), (1,))
 
-    return make_infer(
-            F.softmax_cross_entropy, fallback_shapes, fallback_dtypes) \
-                    (ty_args, ty_kwargs)
+    infer = make_infer(
+            F.softmax_cross_entropy, fallback_shapes, fallback_dtypes)
+    return infer(ty_args, ty_kwargs)
 
 
 class ty_ChainerIdentical():
@@ -158,8 +201,8 @@ def ty_ChainerExpandDims(ty_args, ty_kwargs):
     fallback_shapes = ((1,) * axis,)
     fallback_dtypes = (np.float32,)
 
-    return make_infer(F.expand_dims, fallback_shapes, fallback_dtypes) \
-            (ty_args, ty_kwargs)
+    infer = make_infer(F.expand_dims, fallback_shapes, fallback_dtypes)
+    return infer(ty_args, ty_kwargs)
 
 
 def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
@@ -188,11 +231,11 @@ def ty_ChainerSum(ty_args, ty_kwargs):
     fallback_shapes = ((1,) * (axis + 1),)
     fallback_dtypes = (np.float32,)
 
-    return make_infer(F.sum, fallback_shapes, fallback_dtypes) \
-            (ty_args, ty_kwargs)
+    infer = make_infer(F.sum, fallback_shapes, fallback_dtypes)
+    return infer(ty_args, ty_kwargs)
 
 
-def calculate_reshape(orig_shape, input_shape):
+def infer_reshape(orig_shape, input_shape):
     # orig_shape can be None
     # input_shape should be accurate
     if orig_shape is None:
@@ -211,7 +254,7 @@ def ty_ChainerReshape(ty_args, ty_kwargs):
 
     if lacks_value(shape_type):
         return TyChainerVariable(dtype=x_type.dtype, shape=None)
-    ret_shape = calculate_reshape(x_type.shape, value_of_type(shape_type))
+    ret_shape = infer_reshape(x_type.shape, value_of_type(shape_type))
     return TyChainerVariable(dtype=x_type.dtype, shape=ret_shape)
 
 
@@ -323,7 +366,6 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
     return ty_ret
 
 
-
 class ty_ChainerLinear():
     def __call__(self, linear, ty_args, ty_kwargs):
         x_type = ty_args[0]
@@ -335,51 +377,55 @@ class ty_ChainerLinear():
         if x_type.shape is None or is_dummy_n_batch_axes:
             return TyChainerVariable(dtype=x_type.dtype, shape=None)
 
-        out_shape = self.calculate_return_shape(linear, x_type.shape, n_batch_axes)
+        out_shape = self.infer_return_shape(linear, x_type.shape, n_batch_axes)
         return TyChainerVariable(dtype=x_type.dtype, shape=out_shape)
 
-    def calculate_return_shape(self, linear, x_shape, n_batch_axes):
+    def infer_return_shape(self, linear, x_shape, n_batch_axes):
         assert n_batch_axes >= 1
 
         if n_batch_axes > 1:
             batch_shape = x_shape[:n_batch_axes]
             batch_size = size_of_shape(batch_shape)
-            x_shape = calculate_reshape(x_shape, (batch_size, -1))
+            x_shape = infer_reshape(x_shape, (batch_size, -1))
         elif len(x_shape) > 2:
-            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
+            x_shape = infer_reshape(x_shape, (x_shape[0], -1))
 
         if linear.in_size is not None:
             assert x_shape[1] == linear.in_size
 
         y_shape = (x_shape[0], linear.out_size)
         if n_batch_axes > 1:
-            y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
+            y_shape = infer_reshape(y_shape, (batch_shape + (-1,)))
         return y_shape
 
 
-def ty_ChainerConvolution2D(conv, ty_args, ty_kwargs):
-    x_shape = ty_args[0].shape
-    x_dtype = ty_args[0].dtype
-    if x_dtype.t is not None:
-        assert x_dtype.is_float()
-    if x_shape is None:
-        return TyChainerVariable(dtype=x_dtype, shape=None)
+class ty_ChainerConvolution2D():
+    def __call__(self, conv, ty_args, ty_kwargs):
+        x_shape = ty_args[0].shape
+        x_dtype = ty_args[0].dtype
+        if x_dtype.t is not None:
+            assert x_dtype.is_float()
+        if x_shape is None:
+            return TyChainerVariable(dtype=x_dtype, shape=None)
 
-    assert len(x_shape) == 4
-    if conv.in_channels is not None:
-        assert x_shape[1] == conv.in_channels
+        assert len(x_shape) == 4
+        if conv.in_channels is not None:
+            assert x_shape[1] == conv.in_channels
 
-    ksize = make_pair(conv.ksize)
-    stride = make_pair(conv.stride)
-    pad = make_pair(conv.pad)
-    dilate = make_pair(conv.dilate)
+        y_shape = self.infer_return_shape(conv, x_shape)
+        return TyChainerVariable(dtype=x_dtype, shape=y_shape)
 
-    shape_2 = get_conv_outsize(
-            x_shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
-    shape_3 = get_conv_outsize(
-            x_shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
-    return TyChainerVariable(dtype=x_dtype,
-            shape=(x_shape[0], conv.out_channels, shape_2, shape_3))
+    def infer_return_shape(self, conv, x_shape):
+        ksize = make_pair(conv.ksize)
+        stride = make_pair(conv.stride)
+        pad = make_pair(conv.pad)
+        dilate = make_pair(conv.dilate)
+
+        shape_2 = get_conv_outsize(
+                x_shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
+        shape_3 = get_conv_outsize(
+                x_shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
+        return (x_shape[0], conv.out_channels, shape_2, shape_3)
 
 
 def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
@@ -457,8 +503,8 @@ ext_func_ty = {
             np.array, 0),
         np.cumsum :
             ty_ChainerIdentical(is_float_only=False),
-        np.full : evaluate_function_types(
-            np.full, 0),
+        np.full :
+            ty_NumpyFull,
         np.ones :
             ty_NumpyOnes,
         np.zeros :
@@ -516,10 +562,8 @@ ext_func_ty = {
 
 ext_callable_ty = {
         L.Linear : ty_ChainerLinear(),
-        L.Convolution2D : ty_ChainerConvolution2D,
+        L.Convolution2D : ty_ChainerConvolution2D(),
         L.BatchNormalization : ty_ChainerBatchNormalization,
         L.EmbedID : ty_ChainerEmbedID,
         L.NStepBiLSTM : ty_ChainerNStepBiLSTM,
         }
-
-

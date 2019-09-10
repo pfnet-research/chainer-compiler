@@ -444,7 +444,7 @@ def lacks_value(ty) -> bool:
     if isinstance(ty, TyTensor):
         return ty.shape is None
     if isinstance(ty, TyDType):
-        return False  # XXX: we don't create dummy dtype
+        return ty.t is None
 
 
 def value_of_type(ty) -> object:

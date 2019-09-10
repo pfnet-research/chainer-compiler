@@ -634,9 +634,11 @@ class TypeChecker():
 
         # cannot think of cases where len > 2
         assert len(node.generators) == 1
+        gen = node.generators[0]
+        # TODO: handle cases where len(gen.ifs) > 0
+        assert len(gen.ifs) == 0
 
         tc = copy_TypeChecker(self)
-        gen = node.generators[0]
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.infer_expr(gen.target)
         if isinstance(ty_iteration, TyTensor):
