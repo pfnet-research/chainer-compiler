@@ -585,11 +585,9 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
     } else if (node.op_type() == Node::kChainerSequenceSeparate) {
         EMIT(SequenceSeparate, out(0), in(0), node.axis());
     } else if (node.op_type() == Node::kSplitToSequence) {
-        if (node.inputs().size() == 2) {
-            EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
+        if (node.keepdims()) {
+            EMIT(SequenceSplitAxis, out(0), in(0), oin(1), node.axis());
         } else {
-            // TODO(hamaji): Implement this.
-            CHECK(!node.keepdims()) << "SplitToSequence with keepdims=1 is not supported yet";
             EMIT(SequenceSeparate, out(0), in(0), node.axis());
         }
     } else if (node.op_type() == Node::kChainerSequenceUnpad) {
