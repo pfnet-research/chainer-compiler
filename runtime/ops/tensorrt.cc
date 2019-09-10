@@ -67,6 +67,37 @@ chainerx::Shape GetShape(const int batch_size, const nvinfer1::Dims& dims) {
     return shape;
 }
 
+class DeconvolutionOutputDimensionsFormula : public nvinfer1::IOutputDimensionsFormula {
+public:
+    typedef std::map<std::vector<int64_t>, nvinfer1::DimsHW> ShapeMap;
+
+    explicit DeconvolutionOutputDimensionsFormula(ShapeMap shape_map) : shape_map_(shape_map) {
+    }
+
+    nvinfer1::DimsHW compute(
+            nvinfer1::DimsHW input_dims,
+            nvinfer1::DimsHW kernel_size,
+            nvinfer1::DimsHW stride,
+            nvinfer1::DimsHW padding,
+            nvinfer1::DimsHW dilation,
+            const char* layer_name) const override {
+        // TODO(hamaji): Handle padding and dilation.
+        std::vector<int64_t> key;
+        key.push_back(input_dims.h());
+        key.push_back(input_dims.w());
+        key.push_back(kernel_size.h());
+        key.push_back(kernel_size.w());
+        key.push_back(stride.h());
+        key.push_back(stride.w());
+        auto found = shape_map_.find(key);
+        CHECK(found != shape_map_.end()) << layer_name;
+        return found->second;
+    }
+
+private:
+    ShapeMap shape_map_;
+};
+
 }  // namespace
 
 class TensorRTOp::TensorRTImpl {
@@ -87,6 +118,26 @@ void TensorRTOp::InitImpl() {
     CHECK(builder);
     auto network = UniquePtr<nvinfer1::INetworkDefinition>(builder->createNetwork());
     CHECK(network);
+
+    DeconvolutionOutputDimensionsFormula::ShapeMap shape_map;
+    CHECK_EQ(0, deconv_output_shapes.size() % 8);
+    for (size_t i = 0; i < deconv_output_shapes.size();) {
+        std::vector<int64_t> key;
+        for (int j = 0; j < 6; ++j) {
+            key.push_back(deconv_output_shapes[i++]);
+        }
+        nvinfer1::DimsHW output_shape;
+        output_shape.h() = deconv_output_shapes[i++];
+        output_shape.w() = deconv_output_shapes[i++];
+        auto p = shape_map.emplace(key, output_shape);
+        if (p.second) {
+            CHECK_EQ(p.first->second.h(), output_shape.h()) << "Duplicate ConvTranspose kernel parameters";
+            CHECK_EQ(p.first->second.w(), output_shape.w()) << "Duplicate ConvTranspose kernel parameters";
+        }
+    }
+    DeconvolutionOutputDimensionsFormula deconv_formula(shape_map);
+    network->setDeconvolutionOutputDimensionsFormula(&deconv_formula);
+
     auto parser = UniquePtr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, impl_->logger));
 
     if (!parser->parse(onnx.data(), onnx.size())) {
