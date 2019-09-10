@@ -112,7 +112,8 @@ TESTS = [
     Generator('syntax', 'Dict'),
     Generator('syntax', 'GetItem'),
     Generator('syntax', 'HasItem'),
-    Generator('syntax', 'Lambda')
+    Generator('syntax', 'Lambda'),
+    Generator('syntax', 'List')
 ]
 
 
