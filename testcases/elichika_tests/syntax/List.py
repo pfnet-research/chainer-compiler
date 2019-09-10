@@ -21,13 +21,17 @@ class ArraySubscript(chainer.Chain):
         test_list = np.array([0, 1, 2])
         x = test_list[2]
         test_list[1] = x
+        #TODO(rchouras): Debug error
+        # x = test_list[0:1]
+        # test_list[1:2] = x
         return test_list
 
 class ArraySubscriptFancy(chainer.Chain):
     def forward(self, x, y):
         # (2, 3, 4, 5) => (2, 3, 4)
+        y[1,2,3,4]=x[0,1,2,3]
         t = x[:, 1, :3, -4:]
-        return t
+        return t, y
         # TODO(hamaji): Support multi-axes subsription.
         # y[1, 1:3, :3, :4] = t
         # return t, y

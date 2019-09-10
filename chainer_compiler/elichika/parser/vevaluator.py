@@ -534,7 +534,8 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             return ret
     elif isinstance(value_value, (values.ListValue, values.TupleValue, values.TensorValue)):
         if isinstance(astc.nast.slice, gast.gast.Index):
-            slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
+            with context.eval_as_written_target(False):
+                slice_ = veval_ast(astc.c(astc.nast.slice.value), local_field, graph, context)
             slice_value = utils.try_get_value(slice_, 'subscript', lineprop)
 
             if isinstance(slice_value, values.TupleValue):
@@ -589,7 +590,12 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
 
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.Object(ret_value)
+            if isinstance(value, values.Attribute):
+                ret_attr = value.make_subscript_attribute(values.TupleValue(indices), graph)
+                ret_attr.revise(values.Object(ret_value), update_parent=False)
+                return ret_attr
+            else:
+                return values.Object(ret_value)
 
         elif isinstance(astc.nast.slice, gast.gast.ExtSlice):
             indices = []
@@ -609,7 +615,12 @@ def veval_ast_subscript(astc : 'AstContext', local_field : 'values.Field', graph
             ret_value = functions.generate_value_with_same_type(value_value)
             node.set_outputs([ret_value])
             graph.add_node(node)
-            return values.Object(ret_value)
+            if isinstance(value, values.Attribute):
+                ret_attr = value.make_subscript_attribute(values.TupleValue(indices), graph)
+                ret_attr.revise(values.Object(ret_value), update_parent=False)
+                return ret_attr
+            else:
+                return values.Object(ret_value)
     else:
         utils.print_warning("Subscript not possible for type {}".format(type(value_value)))
 
