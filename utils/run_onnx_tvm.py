@@ -96,8 +96,7 @@ def build_graph_relay(args, ctx, onnx_model, inputs, input_names):
         graph, lib, params = relay.build(mod, args.target, params=params)
 
         if args.dump_nnvm or args.dump_frontend:
-            print(graph.ir())
-            print(graph.json())
+            print(graph)
 
     graph_module = create_graph_module(args, graph, lib, ctx)
     set_inputs(graph_module, ctx, inputs, params)
