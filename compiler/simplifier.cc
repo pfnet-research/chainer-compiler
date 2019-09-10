@@ -482,6 +482,15 @@ bool ReplaceIdentity(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceConcat(Graph* graph, Node* node) {
+    // Replace nop concat
+    if (node->inputs().size() == 1 && node->outputs().size() == 1) {
+        return ReplaceIdentity(graph, node);
+    }
+
+    return false;
+}
+
 bool ReplaceChainerSelectItem(Graph* graph, Node* node) {
     GraphBuilder gb(graph, "SimplifySelectItem", node->output(0));
     Value* x = node->input(0);
@@ -786,6 +795,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
     REGISTER_SIMPLIFIER(SequenceEmpty);
+    REGISTER_SIMPLIFIER(Concat);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);
