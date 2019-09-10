@@ -194,6 +194,7 @@
         "ScatterElements": true,
         "Selu": true,
         "SequenceAt": true,
+        "SequenceConstruct": true,
         "SequenceInsert": true,
         "Shape": true,
         "Sigmoid": true,
