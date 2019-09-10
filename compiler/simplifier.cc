@@ -669,6 +669,12 @@ bool ReplaceResizeForDldt(Graph* graph, Node* node) {
     return true;
 }
 
+bool ReplaceSequenceEmpty(Graph* graph, Node* node) {
+    GraphBuilder gb(graph, "SimplifySequenceEmpty", node->output(0));
+    gb.Op(Node::kChainerSequenceCreate, {}, node->output(0));
+    return true;
+}
+
 SimplifierFn FunctionExpander(const std::string& fn, const onnx::OpSchema* schema) {
     return [fn, schema](Graph* graph, Node* fn_nd) {
         std::unordered_map<std::string, Value*> value_table;
@@ -779,6 +785,7 @@ void Simplify(const BackendConfig& bc, const std::set<std::string>& simplifier_n
     REGISTER_SIMPLIFIER(AveragePool);
     REGISTER_SIMPLIFIER(Split);
     REGISTER_SIMPLIFIER(QLinearMatMul);
+    REGISTER_SIMPLIFIER(SequenceEmpty);
 
     register_simplifier(Node::kResize, "ReplaceResizeForDldt", ReplaceResizeForDldt);
     register_simplifier(Node::kUpsample, "ReplaceUpsampleForDldt", ReplaceResizeForDldt);

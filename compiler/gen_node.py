@@ -261,6 +261,20 @@ NodeDef('NonZero', 1, 1)
 NodeDef('DynamicQuantizeLinear', 1, 3)
 NodeDef('MeanVarianceNormalization', 1, 1, mvn_axes=[0, 2, 3])
 
+NodeDef('SequenceEmpty', 0, 1, dtype=Dtype)
+NodeDef('SequenceConstruct', None, 1)
+
+NodeDef('SequenceLength', 1, 1)
+
+NodeDef('SequenceInsert', (2, 3), 1)
+NodeDef('SequenceErase', 2, 1)
+
+NodeDef('SequenceAt', 2, 1)
+
+# The second argument for the gradient context.
+NodeDef('ConcatFromSequence', (1, 2), 1, axis=Required(int), new_axis=0)
+NodeDef('SplitToSequence', (1, 2), 1, axis=0, keepdims=True)
+
 NodeDef('ChainerLinear', (2, 3), 1, n_batch_axes=1)
 NodeDef('ChainerLinearGradWeight', 2, 1)
 NodeDef('ChainerReluGrad', 2, 1)

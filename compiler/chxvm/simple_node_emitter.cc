@@ -524,17 +524,21 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         std::vector<int> ins;
         for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(Print, ins);
-    } else if (node.op_type() == Node::kChainerSequenceCreate) {
+    } else if (node.op_type() == Node::kChainerSequenceCreate || node.op_type() == Node::kSequenceConstruct) {
         std::vector<int> ins;
         for (size_t i = 0; i < node.inputs().size(); ++i) ins.push_back(in(i));
         EMIT(SequenceCreate, out(0), ins);
     } else if (node.op_type() == Node::kChainerSequenceSize) {
         EMIT(SequenceSize, out(0), in(0));
+    } else if (node.op_type() == Node::kSequenceLength) {
+        EMIT(SequenceSize, out(0), in(0));
     } else if (node.op_type() == Node::kChainerSequenceLengths) {
         EMIT(SequenceLengths, out(0), in(0));
-    } else if (node.op_type() == Node::kChainerSequenceAppend) {
+    } else if (node.op_type() == Node::kChainerSequenceAppend || node.op_type() == Node::kSequenceInsert) {
         ChxVMValue o(out(0));
-        if (node.input(0)->users().size() == 1) {
+        if (node.inputs().size() == 3) {
+            EMIT(SequenceInsert, o, in(0), in(1), in(2));
+        } else if (node.input(0)->users().size() == 1) {
             // Avoid O(N^2) copies for the simple case.
             EMIT(SequenceMove, o, in(0));
             EMIT(SequenceAppend, o.id(), in(1));
@@ -544,6 +548,8 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         }
     } else if (node.op_type() == Node::kChainerSequenceExtend) {
         EMIT(SequenceExtend, out(0), in(0), in(1));
+    } else if (node.op_type() == Node::kSequenceErase) {
+        EMIT(SequenceErase, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequencePop) {
         ChxVMValue o0(out(0));
         if (node.input(0)->users().size() == 1) {
@@ -554,7 +560,7 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
             EMIT(SequenceCopy, o0, in(0));
             EMIT(SequencePop, out(1), o0.id());
         }
-    } else if (node.op_type() == Node::kChainerSequenceLookup) {
+    } else if (node.op_type() == Node::kChainerSequenceLookup || node.op_type() == Node::kSequenceAt) {
         EMIT(SequenceLookup, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequenceUpdate) {
         EMIT(SequenceUpdate, out(0), in(0), in(1), in(2));
@@ -568,10 +574,22 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         EMIT(SequenceStack, out(0), in(0), node.axis());
     } else if (node.op_type() == Node::kChainerSequenceConcat) {
         EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
+    } else if (node.op_type() == Node::kConcatFromSequence) {
+        if (node.new_axis()) {
+            EMIT(SequenceStack, out(0), in(0), node.axis());
+        } else {
+            EMIT(SequenceConcat, out(0), oout(1), in(0), node.axis());
+        }
     } else if (node.op_type() == Node::kChainerSequenceSplitAxis) {
         EMIT(SequenceSplitAxis, out(0), in(0), in(1), node.axis());
     } else if (node.op_type() == Node::kChainerSequenceSeparate) {
         EMIT(SequenceSeparate, out(0), in(0), node.axis());
+    } else if (node.op_type() == Node::kSplitToSequence) {
+        if (node.keepdims()) {
+            EMIT(SequenceSplitAxis, out(0), in(0), oin(1), node.axis());
+        } else {
+            EMIT(SequenceSeparate, out(0), in(0), node.axis());
+        }
     } else if (node.op_type() == Node::kChainerSequenceUnpad) {
         EMIT(SequenceUnpad, out(0), in(0), in(1));
     } else if (node.op_type() == Node::kChainerSequencePad) {
