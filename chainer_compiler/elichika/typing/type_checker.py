@@ -434,8 +434,7 @@ class TypeChecker():
                 self.tyenv[target.id] = ty_val
                 self.nodetype[target] = ty_val
                 return
-            self.tyenv[target.id] = copy_ty(ty_val)
-            self.nodetype[target] = copy_ty(ty_val)
+            self.tyenv[target.id] = self.nodetype[target] = copy_ty(ty_val)
             return
 
         if isinstance(target, gast.Attribute):
@@ -446,7 +445,7 @@ class TypeChecker():
             return
 
         if type(target) in [gast.Tuple, gast.List]:
-            ty_target = self.infer_expr(target)
+            ty_target = TySequence([TyVar() for _ in target.elts])
             unify(ty_target, ty_val)
             for (var, ty) in zip(target.elts, ty_val.get_tys()):
                 self.tyenv[var.id] = ty
@@ -536,7 +535,8 @@ class TypeChecker():
         self.stack.append(node)
 
         if self.is_debug:
-            debug(gast.dump(node))
+            pass
+            # debug(gast.dump(node))
             # self.dump_stack()
             # self.dump_tyenv()
 

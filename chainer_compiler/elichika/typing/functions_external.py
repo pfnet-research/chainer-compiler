@@ -190,6 +190,7 @@ def calculate_reshape(orig_shape, input_shape):
 
 
 def ty_ChainerReshape(ty_args, ty_kwargs):
+    # TODO: check equality of size
     dtype = ty_args[0].dtype
     shape = ty_args[0].shape
 

@@ -493,14 +493,12 @@ def choose_stronger_ty(ty1, ty2):
 
 
 def copy_ty(ty):
-    # XXX: do not copy instance or value
     if isinstance(ty, TyNone):
-        ret = TyNone()
+        ret = deepcopy(ty)
     elif isinstance(ty, TyNum):
         ret = deepcopy(ty)
-        # ret = TyNum(kind=ty.kind, value=None)
     elif isinstance(ty, TyString):
-        ret = TyString()
+        ret = deepcopy(ty)
     elif isinstance(ty, TyArrow):
         ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
     elif isinstance(ty, TySequence):
@@ -510,6 +508,7 @@ def copy_ty(ty):
         else:
             ret = TySequence(ty=copy_ty(ty.get_ty()), kind=ty.kind)
     elif isinstance(ty, TyDict):
+        # XXX: do not copy instance
         ret = TyDict(ty.keyty, ty.valty)
     elif isinstance(ty, TyUserDefinedClass):
         ret = TyUserDefinedClass(ty.name, ty.instance)
