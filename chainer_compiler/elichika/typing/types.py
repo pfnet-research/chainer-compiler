@@ -307,7 +307,9 @@ class TyTensor(TyObj):
         self.dtype = np.dtype(dtype)
         self.kind = kind
         self.ndim = ndim
-        self.shape = shape  # None or Tuple[ShapeElem]
+        if shape is None:
+            shape = (ShapeElem(None),) * ndim
+        self.shape = shape  # Tuple[ShapeElem]
 
     def show(self):
         if self.kind == TensorKind.ndarray:

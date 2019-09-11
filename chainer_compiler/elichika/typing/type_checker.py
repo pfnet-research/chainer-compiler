@@ -136,7 +136,6 @@ def call_binop(op, node, tyl, tyr):
         ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
     return ty_ret
 
-
 # ==============================================================================
 
 # TODO

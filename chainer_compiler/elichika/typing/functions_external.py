@@ -39,10 +39,8 @@ def make_sequence_tc_Variable(ty_arg, name):
     return ret
 
 
-def infer_reshape(orig_shape, input_shape):
-    # orig_shape can be None
-    # input_shape should be accurate
-    if orig_shape is None:
+def calculate_reshape(orig_shape, input_shape):
+    if is_incomplete_shape(orig_shape):
         if any([i == -1 for i in input_shape]):
             return None
         return input_shape
@@ -423,15 +421,19 @@ class ty_ChainerSum():
 
 class ty_ChainerReshape():
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        shape_type = ty_args[1]
+        x_type, shape_type = ty_args
 
         assert shape_type.is_fixed_len
 
         if lacks_value(shape_type):
             # TODO: ndim
-            return TyChainerVariable(x_type.dtype, shape=None)
-        ret_shape = infer_reshape(x_type.shape, value_of_type(shape_type))
+            return TyChainerVariable(x_type.dtype,
+                    ndim=len(shape_type.get_tys()))
+
+        return self.infer_return(x_type, value_of_type(shape_type))
+
+    def infer_return(self, x_type, shape):
+        ret_shape = calculate_reshape(x_type.shape, shape)
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
@@ -633,7 +635,7 @@ class ty_ChainerLocalResponseNormalization():
 
         type_check.expect(
             x.dtype.kind == 'f',
-            # x.ndim >= 2,
+            x.ndim >= 2,
         )
         assert len(x_type.shape) >= 2
 
@@ -651,7 +653,7 @@ class ty_ChainerLinear():
         n_batch_axes, is_dummy_n_batch_axes = \
                 get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
-        if x_type.dtype is not None and linear.b is not None:
+        if linear.b is not None:
             assert x_type.dtype == linear.b.dtype
         if x_type.shape is None or is_dummy_n_batch_axes:
             return TyChainerVariable(x_type.dtype, shape=None)
@@ -665,46 +667,55 @@ class ty_ChainerLinear():
         if n_batch_axes > 1:
             batch_shape = x_shape[:n_batch_axes]
             batch_size = size_of_shape(batch_shape)
-            x_shape = infer_reshape(x_shape, (batch_size, -1))
+            x_shape = calculate_reshape(x_shape, (batch_size, -1))
         elif len(x_shape) > 2:
-            x_shape = infer_reshape(x_shape, (x_shape[0], -1))
+            x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
 
         if linear.in_size is not None:
             assert x_shape[1] == linear.in_size
 
         y_shape = wrap_shape((x_shape[0], linear.out_size))
         if n_batch_axes > 1:
-            y_shape = infer_reshape(y_shape, (batch_shape + (-1,)))
+            y_shape = calculate_reshape(y_shape, (batch_shape + (-1,)))
         return y_shape
 
 
 class ty_ChainerConvolution2D():
     def __call__(self, conv, ty_args, ty_kwargs):
-        x_shape = ty_args[0].shape
-        x_dtype = ty_args[0].dtype
-        if x_dtype is not None:
-            assert x_dtype.kind == 'f'
-        if x_shape is None:
-            return TyChainerVariable(x_dtype, shape=None)
+        x_type, = ty_args
 
-        assert len(x_shape) == 4
+        assert x_type.dtype.kind == 'f'
+        assert x_type.ndim == 4
+
+        if is_incomplete_shape(x_type.shape):
+            return TyChainerVariable(x_type.dtype, ndim=4)
+
         if conv.in_channels is not None:
-            assert x_shape[1] == conv.in_channels
+            assert x_type.shape[1] == conv.in_channels
 
-        y_shape = self.infer_return_shape(conv, x_shape)
-        return TyChainerVariable(x_dtype, shape=y_shape)
+        return self.infer_return(conv, x_type)
 
-    def infer_return_shape(self, conv, x_shape):
+        # TODO
+
+        # w_type = type_of_value(conv.W)
+        # b_type = type_of_value(conv.b)
+        # self.groups = conv.groups
+
+        # self.check_type_forward(make_multiple_tc_variable(
+        #     [x_type, w_type, b_type], ('x', 'w', 'b')))
+
+    def infer_return(self, conv, x_type):
         ksize = make_pair(conv.ksize)
         stride = make_pair(conv.stride)
         pad = make_pair(conv.pad)
         dilate = make_pair(conv.dilate)
 
         shape_2 = get_conv_outsize(
-                x_shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
+                x_type.shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
         shape_3 = get_conv_outsize(
-                x_shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
-        return wrap_shape((x_shape[0], conv.out_channels, shape_2, shape_3))
+                x_type.shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
+        ret_shape = (x_type.shape[0], conv.out_channels, shape_2, shape_3)
+        return TyChainerVariable(x_type.dtype, shape=wrap_shape(ret_shape))
 
 
 class ty_ChainerBatchNormalization():
