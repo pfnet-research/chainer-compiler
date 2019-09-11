@@ -19,10 +19,10 @@ def expr_to_str(node):
     if isinstance(node, gast.UnaryOp):
         return "{}{}".format(unaryop_to_str(node.op), expr_to_str(node.operand))
     if isinstance(node, gast.Call):
-        return "{}({}{})".format(expr_to_str(node.func),
-                intercalate([expr_to_str(arg) for arg in node.args], ", "),
-                intercalate(["{}={}".format(kwarg.arg, expr_to_str(kwarg.value))
-                    for kwarg in node.keywords], ", "))
+        args = [expr_to_str(arg) for arg in node.args] + \
+                ["{}={}".format(kwarg.arg, expr_to_str(kwarg.value))
+                        for kwarg in node.keywords]
+        return "{}({})".format(expr_to_str(node.func), intercalate(args, ", "))
     if isinstance(node, gast.Num):
         return str(node.n)
     if isinstance(node, gast.Str):

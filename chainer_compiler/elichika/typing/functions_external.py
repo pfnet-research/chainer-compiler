@@ -5,6 +5,7 @@ import chainer.links as L
 import numpy as np
 from chainer.utils.conv import get_conv_outsize
 from chainer.utils import size_of_shape
+from chainer.utils import type_check
 
 from chainer_compiler.elichika.typing.types import *
 
@@ -110,52 +111,64 @@ def ty_ChainerVariable(ty_args, ty_kwargs):
 
 class ty_ChainerPooling2d():
     # max_pooling_2d / average_pooling_2d
-    def __init__(self, func):
-        self.func = func
-
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        ksize_type = ty_args[1]
+        self.check_type(*ty_args)
 
-        assert x_type.dtype.kind == 'f'
+        x_type = ty_args[0]
 
         # TODO(momohatt): handle cases where ksize is unknown
         ksize = ty_args[1].value
         # TODO(momohatt): use is_dummy_stride
         stride, is_dummy_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
-        minimum_size = max(ksize, stride)
-        fallback_shapes = (wrap_shape((1, 1, minimum_size, minimum_size)),)
-        fallback_dtypes = (np.float32,)
+        pad, is_dummy_pad = get_kwarg(ty_kwargs, 'pad', default=0)
 
-        infer = make_infer(self.func, fallback_shapes, fallback_dtypes)
-        return infer(ty_args, ty_kwargs)
+        return self.infer_return(x_type, ksize, stride, pad)
 
-    def inference_logic(self, x_shape, ksize, stride, pad):
-        # pad = make_pair(pad)
-        # ksize = make_pair(ksize)
-        # stride = make_pair(stride)
+    def check_type(self, x_type, ksize_type):
+        x = type_check.Variable(x_type, 'x')
+        type_check.expect(
+                x.dtype.kind == 'f',
+                )
 
-        shape_0 = x_shape[0]
-        shape_1 = x_shape[1]
-        shape_2 = (x_shape[2] + pad[0] * 2 - ksize[0]) // stride[0] + 1
-        shape_3 = (x_shape[3] + pad[1] * 2 - ksize[1]) // stride[1] + 1
+        assert isinstance(ksize_type, TyNum)
 
-        return (shape_0, shape_1, shape_2, shpae_3)
+    def infer_return(self, x_type, ksize, stride, pad):
+        pad = make_pair(pad)
+        ksize = make_pair(ksize)
+        stride = make_pair(stride)
+
+        shape_0 = x_type.shape[0]
+        shape_1 = x_type.shape[1]
+        shape_2 = (x_type.shape[2] + pad[0] * 2 - ksize[0]) // stride[0] + 1
+        shape_3 = (x_type.shape[3] + pad[1] * 2 - ksize[1]) // stride[1] + 1
+
+        return TyChainerVariable(
+                dtype=x_type.dtype,
+                shape=(shape_0, shape_1, shape_2, shape_3))
 
 
 class ty_ChainerSoftmaxCrossEntropy():
     def __call__(self, ty_args, ty_kwargs):
         x_type, t_type = ty_args
+        self.check_type(x_type, t_type)
+        return self.infer_return(x_type, t_type)
 
-        assert x_type.dtype.kind == 'f'
-        assert t_type.dtype.kind == 'i'
+    def check_type(self, x_type, t_type):
+        x = type_check.Variable(x_type, 'x')
+        t = type_check.Variable(t_type, 't')
+
+        type_check.expect(
+                x.dtype.kind == 'f',
+                t.dtype.kind == 'i',
+                # len(t.shape) == len(x.shape) - 1,
+                x.shape[0] == t.shape[0],
+                x.shape[2:] == t.shape[1:]
+                )
+
+        # TODO: ndim
         assert len(t_type.shape) == len(x_type.shape) - 1
-        assert x_type.shape[0] == t_type.shape[0]
-        assert x_type.shape[2:] == t_type.shape[1:]
 
-        return self.inference_logic(x_type, t_type)
-
-    def inference_logic(self, x_type, t_type):
+    def infer_return(self, x_type, t_type):
         return TyChainerVariable(dtype=x_type.dtype, shape=())
 
 
@@ -374,10 +387,27 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
     return ty_ret
 
 
-def ty_ChainerLocalResponseNormalization(ty_args, ty_kwargs):
-    infer = make_infer(F.local_response_normalization,
-            wrap_shape((1, 1)), (np.float32,))
-    return infer(ty_args, ty_kwargs)
+class ty_ChainerLocalResponseNormalization():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+
+        self.check_type(x_type)
+        return self.infer_return(x_type)
+
+    def check_type(self, x_type):
+        x = type_check.Variable(x_type, 'x')
+
+        type_check.expect(
+            x.dtype.kind == 'f',
+            # x.ndim >= 2,
+        )
+        assert len(x_type.shape) >= 2
+
+    def infer_return(self, x_type):
+        return TyChainerVariable(
+                dtype=x_type.dtype,
+                shape=x_type.shape)
+
 
 # ================================= Links ======================================
 
@@ -523,14 +553,14 @@ ext_func_ty = {
         np.zeros                       : ty_NumpyOnes,
         chainer.Variable               : ty_ChainerVariable,
         cuda.to_cpu                    : ty_ChainerIdentical(is_float_only=False),
-        F.average_pooling_2d           : ty_ChainerPooling2d(F.average_pooling_2d),
+        F.average_pooling_2d           : ty_ChainerPooling2d(),
         F.broadcast_to                 : ty_ChainerBroadcastTo,
         F.concat                       : ty_ChainerConcat(F.concat),
         F.dropout                      : ty_ChainerIdentical(),
         F.expand_dims                  : ty_ChainerExpandDims,
         F.hstack                       : ty_ChainerConcat(F.hstack),
-        F.local_response_normalization : ty_ChainerLocalResponseNormalization,
-        F.max_pooling_2d               : ty_ChainerPooling2d(F.max_pooling_2d),
+        F.local_response_normalization : ty_ChainerLocalResponseNormalization(),
+        F.max_pooling_2d               : ty_ChainerPooling2d(),
         F.pad_sequence                 : ty_ChainerPadSequence,
         F.relu                         : ty_ChainerIdentical(),
         F.reshape                      : ty_ChainerReshape,
