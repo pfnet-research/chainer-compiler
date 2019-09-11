@@ -655,14 +655,16 @@ class ty_ChainerLinear():
 
         if linear.b is not None:
             assert x_type.dtype == linear.b.dtype
-        if x_type.shape is None or is_dummy_n_batch_axes:
-            return TyChainerVariable(x_type.dtype, shape=None)
+        if is_incomplete_shape(x_type.shape) or is_dummy_n_batch_axes:
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        assert n_batch_axes >= 1
 
         out_shape = self.infer_return_shape(linear, x_type.shape, n_batch_axes)
         return TyChainerVariable(x_type.dtype, shape=out_shape)
 
-    def infer_return_shape(self, linear, x_shape, n_batch_axes):
-        assert n_batch_axes >= 1
+    def infer_return_shape(self, linear, x_type, n_batch_axes):
+        x_shape = x_type.shape
 
         if n_batch_axes > 1:
             batch_shape = x_shape[:n_batch_axes]
@@ -734,8 +736,8 @@ class ty_ChainerEmbedID():
 
         assert x_type.dtype.kind == 'i'
         assert len(x_type.shape) >= 1
-
         assert all([t < w_type.shape[0] for t in x_type.shape])
+
         out_type = x_type.shape + (w_type.shape[1],)
         return TyChainerVariable(w_type.dtype, shape=out_shape)
 
