@@ -548,17 +548,19 @@ void EmitSimpleNode(const Node& node, const ValueIdManager& id_manager, ChxVMPro
         }
     } else if (node.op_type() == Node::kChainerSequenceExtend) {
         EMIT(SequenceExtend, out(0), in(0), in(1));
-    } else if (node.op_type() == Node::kSequenceErase) {
-        EMIT(SequenceErase, out(0), in(0), in(1));
-    } else if (node.op_type() == Node::kChainerSequencePop) {
-        ChxVMValue o0(out(0));
-        if (node.input(0)->users().size() == 1) {
-            // Avoid O(N^2) copies for the simple case.
-            EMIT(SequenceMove, o0, in(0));
-            EMIT(SequencePop, out(1), o0.id());
+    } else if (node.op_type() == Node::kSequenceErase || node.op_type() == Node::kChainerSequencePop) {
+        if (node.inputs().size() == 2) {
+            EMIT(SequenceErase, out(0), in(0), in(1));
         } else {
-            EMIT(SequenceCopy, o0, in(0));
-            EMIT(SequencePop, out(1), o0.id());
+            ChxVMValue o0(out(0));
+            if (node.input(0)->users().size() == 1) {
+                // Avoid O(N^2) copies for the simple case.
+                EMIT(SequenceMove, o0, in(0));
+                EMIT(SequencePop, out(1), o0.id());
+            } else {
+                EMIT(SequenceCopy, o0, in(0));
+                EMIT(SequencePop, out(1), o0.id());
+            }
         }
     } else if (node.op_type() == Node::kChainerSequenceLookup || node.op_type() == Node::kSequenceAt) {
         EMIT(SequenceLookup, out(0), in(0), in(1));
