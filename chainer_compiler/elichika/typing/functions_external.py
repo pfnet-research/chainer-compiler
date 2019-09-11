@@ -199,8 +199,8 @@ class ty_ChainerIdentical():
 
 
 class ty_ChainerConcat():
-    def __init__(self):
-        self.axis = None
+    def __init__(self, axis=None):
+        self.axis = axis
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type = ty_args[0]
@@ -238,17 +238,14 @@ class ty_ChainerConcat():
 
     def infer_return(self, xs_type):
         ret_shape = list(xs_type[0].shape)
-        ret_shape[self.axis] = ShapeElem(0)
-        for x_type in xs_type:
-            ret_shape[self.axis] += x_type.shape[self.axis]
-
+        ret_shape[self.axis] = sum([x_type.shape[self.axis] for x_type in xs_type])
         return TyChainerVariable(dtype=xs_type[0].dtype,
                 shape=wrap_shape(ret_shape))
 
 
 class ty_ChainerStack():
-    def __init__(self):
-        self.axis = None
+    def __init__(self, axis=None):
+        self.axis = axis
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type = ty_args[0]
@@ -258,7 +255,7 @@ class ty_ChainerStack():
 
         if lacks_value(xs_type) or is_dummy_axis:
             x_type = xs_type.get()
-            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim + 1)
 
         self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         self.axis = xs_type.get().ndim + 1 - abs(self.axis)
@@ -292,6 +289,75 @@ class ty_ChainerStack():
         ret_shape.insert(self.axis, len(xs_type))
         return TyChainerVariable(xs_type.get().dtype,
                 shape=wrap_shape(ret_shape))
+
+
+class ty_ChainerHstack():
+    def __call__(self, ty_args, ty_kwargs):
+        xs_type = ty_args[0]
+
+        assert isinstance(xs_type, TySequence)
+        if lacks_value(xs_type):
+            x_type = xs_type.get()
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
+        return self.infer_return(xs_type)
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() > 0)
+        type_check._argname((in_types[0],), ('x0',))
+
+        ndim = type_check.eval(in_types[0].ndim)
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check._argname((in_types[i],), ('x{}'.format(i),))
+            type_check.expect(
+                in_types[0].dtype == in_types[i].dtype,
+                in_types[0].ndim == in_types[i].ndim,
+            )
+            if ndim <= 1:
+                continue
+            for d in six.moves.range(0, ndim):
+                if d == 1:
+                    continue
+                type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
+
+    def infer_return(self, xs_type):
+        if xs_type[0].ndim <= 1:
+            return ty_ChainerConcat(axis=0).infer_return(xs_type)
+        return ty_ChainerConcat(axis=1).infer_return(xs_type)
+
+
+class ty_ChainerVstack():
+    def __call__(self, ty_args, ty_kwargs):
+        xs_type = ty_args[0]
+
+        assert isinstance(xs_type, TySequence)
+        if lacks_value(xs_type):
+            x_type = xs_type.get()
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
+        return self.infer_return(xs_type)
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() > 0)
+
+        ndim = type_check.eval(in_types[0].ndim)
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check.expect(
+                in_types[0].dtype == in_types[i].dtype,
+                in_types[0].ndim == in_types[i].ndim,
+            )
+            if ndim <= 1:
+                type_check.expect(in_types[0].shape == in_types[i].shape)
+                continue
+            for d in six.moves.range(1, ndim):
+                type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
+
+    def infer_return(self, xs_type):
+        if xs_type[0].ndim <= 1:
+            return ty_ChainerStack(axis=0).infer_return(xs_type)
+        return ty_ChainerConcat(axis=0).infer_return(xs_type)
 
 
 def ty_ChainerExpandDims(ty_args, ty_kwargs):
@@ -641,7 +707,7 @@ ext_func_ty = {
         F.concat                       : ty_ChainerConcat(),
         F.dropout                      : ty_ChainerIdentical(),
         F.expand_dims                  : ty_ChainerExpandDims,
-        # F.hstack                       : ty_ChainerConcat(F.hstack),
+        F.hstack                       : ty_ChainerHstack(),
         F.local_response_normalization : ty_ChainerLocalResponseNormalization(),
         F.max_pooling_2d               : ty_ChainerPooling2d(),
         F.pad_sequence                 : ty_ChainerPadSequence,
@@ -657,7 +723,7 @@ ext_func_ty = {
         F.sum                          : ty_ChainerSum,
         F.swapaxes                     : ty_ChainerSwapAxes,
         F.tanh                         : ty_ChainerIdentical(),
-        # F.vstack                       : ty_ChainerConcat(F.vstack),
+        F.vstack                       : ty_ChainerVstack(),
         }
 
 
