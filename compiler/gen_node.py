@@ -267,7 +267,7 @@ NodeDef('SequenceConstruct', None, 1)
 NodeDef('SequenceLength', 1, 1)
 
 NodeDef('SequenceInsert', (2, 3), 1)
-NodeDef('SequenceErase', 2, 1)
+NodeDef('SequenceErase', (1, 2), 1)
 
 NodeDef('SequenceAt', 2, 1)
 
