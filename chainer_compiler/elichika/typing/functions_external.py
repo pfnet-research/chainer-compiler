@@ -39,6 +39,19 @@ def make_sequence_tc_Variable(ty_arg, name):
     return ret
 
 
+def infer_reshape(orig_shape, input_shape):
+    # orig_shape can be None
+    # input_shape should be accurate
+    if orig_shape is None:
+        if any([i == -1 for i in input_shape]):
+            return None
+        return input_shape
+    fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
+    ret_shape = tuple([i if i != -1 else fill for i in input_shape])
+    assert size_of_shape(orig_shape) == size_of_shape(ret_shape)
+    return wrap_shape(ret_shape)
+
+
 # TODO(momohatt): use chainer.utils.type_check.expect
 
 def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
@@ -408,19 +421,6 @@ class ty_ChainerSum():
         return infer(ty_args, ty_kwargs)
 
 
-def infer_reshape(orig_shape, input_shape):
-    # orig_shape can be None
-    # input_shape should be accurate
-    if orig_shape is None:
-        if any([i == -1 for i in input_shape]):
-            return None
-        return input_shape
-    fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
-    ret_shape = tuple([i if i != -1 else fill for i in input_shape])
-    assert size_of_shape(orig_shape) == size_of_shape(ret_shape)
-    return wrap_shape(ret_shape)
-
-
 class ty_ChainerReshape():
     def __call__(self, ty_args, ty_kwargs):
         x_type = ty_args[0]
@@ -433,6 +433,43 @@ class ty_ChainerReshape():
             return TyChainerVariable(x_type.dtype, shape=None)
         ret_shape = infer_reshape(x_type.shape, value_of_type(shape_type))
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
+
+
+class ty_ChainerRepeat():
+    def __init__(self):
+        self.axis = None
+
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        repeats_type = ty_args[1]
+        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
+
+        if lacks_value(repeats_type) or is_dummy_axis:
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        repeats = value_of_type(repeats_type)
+        self.check_type_forward(x_type, repeats)
+        return self.infer_return(x_type, repeats)
+
+    def check_type_forward(self, x_type, repeats):
+        # XXX: This is not taken from chainer nor numpy
+        if isinstance(repeats, int):
+            assert self.axis < x_type.ndim
+            return
+        assert x_type.shape[self.axis] == len(repeats), "repeat"
+
+
+    def infer_return(self, x_type, repeats):
+        if isinstance(repeats, int):
+            if x_type.ndim < 1:
+                ret_shape = (repeats,)
+            else:
+                ret_shape = list(x_type.shape)
+                ret_shape[self.axis] = x_type.shape[self.axis] * repeats
+        else:
+            ret_shape = list(x_type.shape)
+            ret_shape[self.axis] = sum(repeats)
+        return TyChainerVariable(x_type.dtype, shape=wrap_shape(ret_shape))
 
 
 class ty_ChainerSqueeze():
@@ -515,6 +552,41 @@ class ty_ChainerSplitAxis():
         assert len(ty_args[1].shape) == 1
         n = int(ty_args[1].shape[0])
         return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n) # TODO
+
+
+class ty_ChainerPad():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, pad_width_type, mode_type = ty_args
+
+        assert isinstance(mode_type, TyString), \
+                "chainer.functions.pad: mode_type should be string"
+        self.check_type_forward(make_multiple_tc_variable(ty_args[:1], ('x',)))
+
+        if lacks_value(pad_width_type):
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        assert pad_width_type.size() > 0, \
+                "chainer.functions.pad: pad_width is not specified"
+
+        pad_width = value_of_type(pad_width_type)
+        if isinstance(pad_width, int):
+            pad_width = make_pair(pad_width)
+        if isinstance(pad_width[0], int):
+            pad_width = pad_width * x_type.ndim
+        for pad in pad_width:
+            assert len(pad) == 2, "chainer.functions.pad: pad_width is invalid"
+        return self.infer_return(x_type, pad_width)
+
+    def check_type_forward(self, in_types):
+        type_check._argname(in_types, ('x',))
+        x_type = in_types[0]
+        type_check.expect(x_type.dtype.kind == 'f')
+
+    def infer_return(self, x_type, pad_width):
+        ret_shape = list(x_type.shape)
+        for i in range(x_type.ndim):
+            ret_shape[i] += pad_width[i][0] + pad_width[i][1]
+        return TyChainerVariable(x_type.dtype, shape=wrap_shape(ret_shape))
 
 
 class ty_ChainerPadSequence():
@@ -726,9 +798,11 @@ ext_func_ty = {
         F.hstack                       : ty_ChainerHstack(),
         F.local_response_normalization : ty_ChainerLocalResponseNormalization(),
         F.max_pooling_2d               : ty_ChainerPooling2d(),
+        F.pad                          : ty_ChainerPad(),
         F.pad_sequence                 : ty_ChainerPadSequence(),
         F.relu                         : ty_ChainerIdentical(),
         F.reshape                      : ty_ChainerReshape(),
+        F.repeat                       : ty_ChainerRepeat(),
         F.separate                     : ty_ChainerSeparate(),
         F.sigmoid                      : ty_ChainerIdentical(),
         F.split_axis                   : ty_ChainerSplitAxis(),
