@@ -77,7 +77,7 @@ def call_ext_function(func, node, ty_args, ty_kwargs):
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyVar...")
         ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
-        # raise Exception
+        raise Exception
     return ty_ret
 
 
@@ -149,6 +149,7 @@ list_attr_ty = {
 # ==============================================================================
 
 class TypeChecker():
+    # TODO(momohatt): Don't use Exception
     class ArgumentRequired(Exception):
         def __init__(self, func=None, ty_obj=None):
             self.func = func  # callables
@@ -825,7 +826,7 @@ class TypeChecker():
             if not self.is_const_slice(node_slice):
                 return (None,) + shape[1:]
             get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
-            shape0 = len(get_slice((0,) * shape[0]))
+            shape0 = ShapeElem(len(get_slice((0,) * int(shape[0]))))  # TODO
             return (shape0,) + shape[1:]
         if isinstance(node_slice, gast.ExtSlice):
             shape_ = ()

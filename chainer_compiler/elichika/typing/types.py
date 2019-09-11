@@ -278,7 +278,7 @@ class TyTensor(TyObj):
         super().__init__()
         self.dtype = np.dtype(dtype)
         self.kind = kind
-        self.shape = shape
+        self.shape = shape  # None or Tuple[ShapeElem]
 
     def show(self):
         if self.kind == TensorKind.ndarray:
@@ -378,11 +378,74 @@ class TyUnion(TyObj):
         return self
 
 
+# ------------------------------------------------------------------------------
+
+class ShapeElem():
+    # int or None
+    # TODO(momohatt): support string (symbol)
+    def __init__(self, x):
+        assert isinstance(x, int) or x is None
+        self._x = x
+
+    def __str__(self):
+        return str(self._x)
+
+    def __repr__(self):
+        return str(self._x)
+
+    def arith_op(self, sem, other):
+        if isinstance(other, ShapeElem):
+            if self._x is None or other._x is None:
+                return ShapeElem(None)
+            return ShapeElem(sem(self._x, other._x))
+
+        if self._x is None:
+            return ShapeElem(None)
+        return ShapeElem(sem(self._x, other))
+
+    def __add__(self, other):
+        return self.arith_op(lambda x, y: x + y, other)
+
+    def __sub__(self, other):
+        return self.arith_op(lambda x, y: x - y, other)
+
+    def __mul__(self, other):
+        return self.arith_op(lambda x, y: x * y, other)
+
+    def __floordiv__(self, other):
+        return self.arith_op(lambda x, y: x // y, other)
+
+    def __eq__(self, other):
+        if isinstance(other, ShapeElem):
+            return self._x == other._x
+        else:
+            return self._x == other
+
+    def __int__(self):
+        assert isinstance(self._x, int)
+        return self._x
+
+
+def wrap_shape(shape_tuple): # Tuple[int] -> Tuple[ShapeElem]
+    if shape_tuple is None:
+        return None
+    return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_tuple])
+
+
+def unwrap_shape(shape_tuple): # Tuple[ShapeElem] -> Tuple[int]
+    if shape_tuple is None:
+        pass
+    pass
+
+
+# ------------------------------------------------------------------------------
+
 def all_same_ty(tys):
     _tytmp = TyVar()
     for t in tys:
         unify(_tytmp, t)
     return True
+
 
 def all_same(l):
     return all([e == l[0] for e in l])
@@ -409,19 +472,21 @@ def type_of_value(value) -> 'TyObj':
         return TyDict(type_of_value(list(value.keys())[0]),
                 type_of_value(list(value.items())[0]))
     if isinstance(value, np.ndarray):
-        return TyNdarray(value.dtype, shape=value.shape)
+        return TyNdarray(value.dtype, shape=wrap_shape(value.shape))
     if isinstance(value, chainer.Variable):
-        return TyChainerVariable(value.dtype, shape=value.shape)
+        return TyChainerVariable(value.dtype, shape=wrap_shape(value.shape))
     if isinstance(value, np.dtype):
         return TyDType(value)
     if isinstance(value, type) and value in np.typeDict.values():
         # XXX: np.typeDict.values() is a list of all dtypes
         return TyDType(value)
+    if isinstance(value, ShapeElem):
+        if isinstance(value._x, int):
+            return TyInt(int(value))
+        return TyInt()
 
     return TyUserDefinedClass(type(value).__name__, value)
 
-
-# ------------------------------------------------------------------------------
 
 def lacks_value(ty) -> bool:
     ty = ty.deref()

@@ -22,15 +22,14 @@ def get_kwarg(ty_kwargs, key, default=None):
     return default, False
 
 
+# TODO(momohatt): use chainer.utils.type_check.expect
 def assert_dtype_equal(expected, actual):
     msg = "dtype mismatch (Expected: {}, got: {})".format(expected, actual)
     assert expected == actual, msg
 
 
-def marunage(func, args, ty_kwargs, is_fake_shape, is_fake_dtype):
-    dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
-    dummy_result = func(*args, **dummy_kwargs)
-    ty_result = type_of_value(dummy_result)
+def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
+    ty_result = inference_logic(*args)
 
     if isinstance(ty_result, TyTensor):
         if is_fake_shape: ty_result.shape = None
@@ -47,7 +46,7 @@ def marunage(func, args, ty_kwargs, is_fake_shape, is_fake_dtype):
     return ty_result
 
 
-def make_infer(func, fallback_shapes, fallback_dtypes):
+def make_infer(func, fallback_shapes, fallback_dtypes):  # 丸投げ
     def infer(ty_args, ty_kwargs):
         ty_args_tensor = [t for t in ty_args if isinstance(t, TyTensor)]
 
@@ -102,7 +101,7 @@ def ty_NumpyFull(ty_args, ty_kwargs):
     if isinstance(shape, int):
         shape = (shape, )
 
-    y_type = TyNdarray(dtype, shape=shape)
+    y_type = TyNdarray(dtype, shape=wrap_shape(shape))
     if is_dummy_dtype: y_type.dtype = None
     if is_dummy_shape: y_type.shape = None
     return y_type
@@ -119,33 +118,49 @@ class ty_ChainerPooling2d():
         self.func = func
 
     def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        ksize_type = ty_args[1]
+
+        assert_dtype_equal('f', x_type.dtype.kind)
+
         # TODO(momohatt): handle cases where ksize is unknown
         ksize = ty_args[1].value
         # TODO(momohatt): use is_dummy_stride
         stride, is_dummy_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
         minimum_size = max(ksize, stride)
-        fallback_shapes = ((1, 1, minimum_size, minimum_size),)
+        fallback_shapes = (wrap_shape((1, 1, minimum_size, minimum_size)),)
         fallback_dtypes = (np.float32,)
 
         infer = make_infer(self.func, fallback_shapes, fallback_dtypes)
         return infer(ty_args, ty_kwargs)
 
+    def inference_logic(self, x_shape, ksize, stride, pad):
+        # pad = make_pair(pad)
+        # ksize = make_pair(ksize)
+        # stride = make_pair(stride)
 
-def ty_ChainerSoftmaxCrossEntropy(ty_args, ty_kwargs):
-    x_shape, t_shape = ty_args[0].shape, ty_args[1].shape
-    fallback_dtypes = (np.float32, np.int64)
+        shape_0 = x_shape[0]
+        shape_1 = x_shape[1]
+        shape_2 = (x_shape[2] + pad[0] * 2 - ksize[0]) // stride[0] + 1
+        shape_3 = (x_shape[3] + pad[1] * 2 - ksize[1]) // stride[1] + 1
 
-    # x.shape[0] == t.shape[0]
-    if x_shape is None and t_shape is not None:
-        fallback_shapes = ((t_shape[0], 1), t_shape)
-    elif x_shape is not None and t_shape is None:
-        fallback_shapes = (x_shape, (x_shape[0],))
-    else:
-        fallback_shapes = ((1, 1), (1,))
+        return (shape_0, shape_1, shape_2, shpae_3)
 
-    infer = make_infer(
-            F.softmax_cross_entropy, fallback_shapes, fallback_dtypes)
-    return infer(ty_args, ty_kwargs)
+
+class ty_ChainerSoftmaxCrossEntropy():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, t_type = ty_args
+
+        assert_dtype_equal('f', x_type.dtype.kind)
+        assert_dtype_equal('i', t_type.dtype.kind)
+        assert len(t_type.shape) == len(x_type.shape) - 1
+        assert x_type.shape[0] == t_type.shape[0]
+        assert x_type.shape[2:] == t_type.shape[1:]
+
+        return self.inference_logic(x_type, t_type)
+
+    def inference_logic(self, x_type, t_type):
+        return TyChainerVariable(dtype=x_type.dtype, shape=())
 
 
 class ty_ChainerIdentical():
@@ -194,7 +209,7 @@ class ty_ChainerConcat():
 
 def ty_ChainerExpandDims(ty_args, ty_kwargs):
     axis = ty_args[1].value
-    fallback_shapes = ((1,) * axis,)
+    fallback_shapes = (wrap_shape((1,) * axis,))
     fallback_dtypes = (np.float32,)
 
     infer = make_infer(F.expand_dims, fallback_shapes, fallback_dtypes)
@@ -209,7 +224,7 @@ def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
         return TyChainerVariable(x_type.dtype)
 
     in_shape = x_type.shape
-    out_shape = value_of_type(shape_type)
+    out_shape = wrap_shape(value_of_type(shape_type))
 
     # check_type_forward
     ndim = len(out_shape)
@@ -224,7 +239,7 @@ def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
 def ty_ChainerSum(ty_args, ty_kwargs):
     # TODO(momohatt): use is_dummy_axis
     axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
-    fallback_shapes = ((1,) * (axis + 1),)
+    fallback_shapes = (wrap_shape((1,) * (axis + 1)),)
     fallback_dtypes = (np.float32,)
 
     infer = make_infer(F.sum, fallback_shapes, fallback_dtypes)
@@ -241,7 +256,7 @@ def infer_reshape(orig_shape, input_shape):
     fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
     ret_shape = tuple([i if i != -1 else fill for i in input_shape])
     assert size_of_shape(orig_shape) == size_of_shape(ret_shape)
-    return ret_shape
+    return wrap_shape(ret_shape)
 
 
 def ty_ChainerReshape(ty_args, ty_kwargs):
@@ -328,7 +343,7 @@ def ty_ChainerSplitAxis(ty_args, ty_kwargs):
         return TyTuple(TyChainerVariable(x_type.dtype))
 
     assert len(ty_args[1].shape) == 1
-    n = ty_args[1].shape[0]
+    n = int(ty_args[1].shape[0])
     return TyTuple([TyChainerVariable(x_type.dtype)] * n)
 
 
@@ -365,7 +380,7 @@ def ty_ChainerPadSequence(ty_args, ty_kwargs):
 
 def ty_ChainerLocalResponseNormalization(ty_args, ty_kwargs):
     infer = make_infer(F.local_response_normalization,
-            (1, 1), (np.float32,))
+            wrap_shape((1, 1)), (np.float32,))
     return infer(ty_args, ty_kwargs)
 
 # ================================= Links ======================================
@@ -397,7 +412,7 @@ class ty_ChainerLinear():
         if linear.in_size is not None:
             assert x_shape[1] == linear.in_size
 
-        y_shape = (x_shape[0], linear.out_size)
+        y_shape = wrap_shape((x_shape[0], linear.out_size))
         if n_batch_axes > 1:
             y_shape = infer_reshape(y_shape, (batch_shape + (-1,)))
         return y_shape
@@ -429,7 +444,7 @@ class ty_ChainerConvolution2D():
                 x_shape[2], ksize[0], stride[0], pad[0], d=dilate[0])
         shape_3 = get_conv_outsize(
                 x_shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
-        return (x_shape[0], conv.out_channels, shape_2, shape_3)
+        return wrap_shape((x_shape[0], conv.out_channels, shape_2, shape_3))
 
 
 def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
@@ -470,14 +485,16 @@ def ty_ChainerNStepBiLSTM(nblstm, ty_args, ty_kwargs):
         hx_shape = hx_type.shape
         hx_dtype = hx_type.dtype
     else:
-        hx_shape = (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size)
+        hx_shape = wrap_shape(
+                (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
         hx_dtype = xs_type.get_tys()[0].dtype
 
     if isinstance(cx_type, TyTensor):
         cx_shape = cx_type.shape
         cx_dtype = cx_type.dtype
     else:
-        cx_shape = (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size)
+        cx_shape = wrap_shape(
+                (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
         cx_dtype = hx_dtype
 
     if hx_shape is None or cx_shape is None:
@@ -496,7 +513,7 @@ def ty_ChainerNStepBiLSTM(nblstm, ty_args, ty_kwargs):
 
     # TODO(momohatt): nblstm doesn't have attribute in_size
     # assert all([i == nblstm.in_size for _, i in xs_shapes])
-    ys_shapes = [(l, 2 * N) for l, _ in xs_shapes]
+    ys_shapes = [wrap_shape((l, 2 * N)) for l, _ in xs_shapes]
     ys_type = TyList([TyChainerVariable(xs_dtypes[0], shape=s) for s in ys_shapes])
 
     return TyTuple([hy_type, cy_type, ys_type])
@@ -526,7 +543,7 @@ ext_func_ty = {
         F.split_axis                   : ty_ChainerSplitAxis,
         F.squeeze                      : ty_ChainerSqueeze,
         F.softmax                      : ty_ChainerIdentical(),
-        F.softmax_cross_entropy        : ty_ChainerSoftmaxCrossEntropy,
+        F.softmax_cross_entropy        : ty_ChainerSoftmaxCrossEntropy(),
         F.stack                        : ty_ChainerConcat(F.stack),
         F.sum                          : ty_ChainerSum,
         F.swapaxes                     : ty_ChainerSwapAxes,
