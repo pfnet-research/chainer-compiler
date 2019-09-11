@@ -121,7 +121,7 @@ def run(args):
     elif args.frontend == 'relay':
         graph_module = build_graph_relay(args, ctx, onnx_model, inputs, input_names)
     else:
-        raise 'Invalid frontend: {}'.format(args.frontend)
+        raise RuntimeError('Invalid frontend: {}'.format(args.frontend))
 
     graph_module.run()
 
