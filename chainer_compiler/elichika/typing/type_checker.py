@@ -508,8 +508,7 @@ class TypeChecker():
         ty_iteration = self.infer_expr(node.iter)
         ty_i = self.infer_expr(node.target)
         if isinstance(ty_iteration, TyTensor):
-            unify(ty_i, TyTensor(
-                dtype=ty_iteration.dtype, kind=ty_iteration.kind))
+            unify(ty_i, TyTensor(ty_iteration.dtype, ty_iteration.kind))
         else:
             unify(ty_iteration, TySequence(ty=ty_i))
 
@@ -660,7 +659,7 @@ class TypeChecker():
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
-            ty_i_ = TyTensor(dtype=ty_iteration.dtype, kind=ty_iteration.kind)
+            ty_i_ = TyTensor(ty_iteration.dtype, ty_iteration.kind)
             if ty_iteration.shape is not None:
                 ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
@@ -700,8 +699,7 @@ class TypeChecker():
                 if isinstance(ty_obj, TyTensor) and ty_obj.is_ndarray():
                     if node.func.attr == 'astype':
                         val_args = [self.evaluate(arg) for arg in node.args]
-                        ty_ret = TyNdarray(dtype=val_args[0],
-                                shape=ty_obj.shape)
+                        ty_ret = TyNdarray(val_args[0], shape=ty_obj.shape)
 
                 self.nodetype[node.func] = TyArrow(ty_args, ty_ret)
                 return ty_ret
@@ -813,7 +811,7 @@ class TypeChecker():
 
         if isinstance(ty_obj, TyTensor):
             self.infer_slice(node.slice)
-            ty_ret = TyTensor(dtype=ty_obj.dtype, kind=ty_obj.kind)
+            ty_ret = TyTensor(ty_obj.dtype, ty_obj.kind)
             ty_ret.shape = self.infer_Subscript_shape(ty_obj.shape, node.slice)
             return ty_ret
 

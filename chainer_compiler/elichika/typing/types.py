@@ -274,7 +274,7 @@ class TyDType(TyObj):
 
 
 class TyTensor(TyObj):
-    def __init__(self, dtype=None, kind=None, shape=None):  # we do not allow heterogeneous type ndarray
+    def __init__(self, dtype, kind, shape=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
         self.dtype = np.dtype(dtype)
         self.kind = kind
@@ -285,7 +285,6 @@ class TyTensor(TyObj):
             return "ndarray(dtype={}, shape={})".format(self.dtype, self.shape)
         if self.kind == TensorKind.chainer_variable:
             return "Variable(dtype={}, shape={})".format(self.dtype, self.shape)
-        return "tensor(dtype={}, shape={})".format(self.dtype, self.shape)
 
     def __eq__(self, other):
         # TODO: shape?
@@ -301,11 +300,11 @@ class TyTensor(TyObj):
         return self.kind == TensorKind.chainer_variable
 
 
-def TyNdarray(dtype=None, shape=None):
-    return TyTensor(dtype=dtype, kind=TensorKind.ndarray, shape=shape)
+def TyNdarray(dtype, shape=None):
+    return TyTensor(dtype, TensorKind.ndarray, shape=shape)
 
-def TyChainerVariable(dtype=None, shape=None):
-    return TyTensor(dtype=dtype, kind=TensorKind.chainer_variable, shape=shape)
+def TyChainerVariable(dtype, shape=None):
+    return TyTensor(dtype, TensorKind.chainer_variable, shape=shape)
 
 
 # ------------------------ TypeChecker internal types --------------------------
@@ -410,9 +409,9 @@ def type_of_value(value) -> 'TyObj':
         return TyDict(type_of_value(list(value.keys())[0]),
                 type_of_value(list(value.items())[0]))
     if isinstance(value, np.ndarray):
-        return TyNdarray(dtype=value.dtype, shape=value.shape)
+        return TyNdarray(value.dtype, shape=value.shape)
     if isinstance(value, chainer.Variable):
-        return TyChainerVariable(dtype=value.dtype, shape=value.shape)
+        return TyChainerVariable(value.dtype, shape=value.shape)
     if isinstance(value, np.dtype):
         return TyDType(value)
     if isinstance(value, type) and value in np.typeDict.values():
@@ -508,7 +507,7 @@ def copy_ty(ty):
     elif isinstance(ty, TyDType):
         ret = TyDType()
     elif isinstance(ty, TyTensor):
-        ret = TyTensor(dtype=ty.dtype, kind=ty.kind, shape=ty.shape)
+        ret = TyTensor(ty.dtype, ty.kind, shape=ty.shape)
     elif isinstance(ty, TyVar):
         ret = TyVar(None)
         if ty.ty is not None:
