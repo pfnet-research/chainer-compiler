@@ -128,7 +128,7 @@ def ty_ChainerVariable(ty_args, ty_kwargs):
 class ty_ChainerPooling2d():
     # max_pooling_2d / average_pooling_2d
     def __call__(self, ty_args, ty_kwargs):
-        self.check_type(make_multiple_tc_variable(ty_args, ('x', 'ksize')))
+        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 'ksize')))
 
         x_type = ty_args[0]
 
@@ -140,7 +140,7 @@ class ty_ChainerPooling2d():
 
         return self.infer_return(x_type, ksize, stride, pad)
 
-    def check_type(self, in_types: List['type_check.Variable']):
+    def check_type_forward(self, in_types: List['type_check.Variable']):
         x_type = in_types[0]
 
         type_check.expect(
@@ -166,10 +166,10 @@ class ty_ChainerPooling2d():
 class ty_ChainerSoftmaxCrossEntropy():
     def __call__(self, ty_args, ty_kwargs):
         x_type, t_type = ty_args
-        self.check_type(make_multiple_tc_variable(ty_args, ('x', 't')))
+        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x', 't')))
         return self.infer_return(x_type, t_type)
 
-    def check_type(self, in_types):
+    def check_type_forward(self, in_types):
         x_type, t_type = in_types
 
         type_check.expect(
@@ -209,17 +209,13 @@ class ty_ChainerConcat():
         self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
 
         if lacks_value(xs_type) or is_dummy_axis:
-            if not xs_type.is_fixed_len:
-                x_type = xs_type.get_ty()
-            else:
-                x_type = xs_type.get_tys()[0]
+            x_type = xs_type.get()
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
-        self.check_type(type_check.Variable(xs_type, 'xs'))
+        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
         return self.infer_return(xs_type)
 
-
-    def check_type(self, in_types):
+    def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
         type_check.expect(in_types[0].ndim >
                           type_check.make_variable(self.axis, 'axis'))
@@ -247,6 +243,54 @@ class ty_ChainerConcat():
             ret_shape[self.axis] += x_type.shape[self.axis]
 
         return TyChainerVariable(dtype=xs_type[0].dtype,
+                shape=wrap_shape(ret_shape))
+
+
+class ty_ChainerStack():
+    def __init__(self):
+        self.axis = None
+
+    def __call__(self, ty_args, ty_kwargs):
+        xs_type = ty_args[0]
+
+        assert isinstance(xs_type, TySequence)
+        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
+
+        if lacks_value(xs_type) or is_dummy_axis:
+            x_type = xs_type.get()
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
+
+        self.check_type_forward(type_check.Variable(xs_type, 'xs'))
+        self.axis = xs_type.get().ndim + 1 - abs(self.axis)
+        return self.infer_return(xs_type)
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() > 0)
+        type_check.expect(
+            -in_types[0].ndim - 1 <= self.axis,
+            self.axis <= in_types[0].ndim
+        )
+
+        # XXX: modified
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check.expect(
+                in_types[0].dtype == in_types[i].dtype,
+                in_types[0].shape == in_types[i].shape,
+            )
+
+        # XXX: the following doesn't work
+        # dtype = in_types[0].dtype
+        # shape = in_types[0].shape
+        # for x_type in in_types[1:]:
+        #     type_check.expect(
+        #         x_type.dtype == dtype,
+        #         x_type.shape == shape,
+        #     )
+
+    def infer_return(self, xs_type):
+        ret_shape = list(xs_type[0].shape)
+        ret_shape.insert(self.axis, len(xs_type))
+        return TyChainerVariable(xs_type.get().dtype,
                 shape=wrap_shape(ret_shape))
 
 
@@ -609,7 +653,7 @@ ext_func_ty = {
         F.squeeze                      : ty_ChainerSqueeze,
         F.softmax                      : ty_ChainerIdentical(),
         F.softmax_cross_entropy        : ty_ChainerSoftmaxCrossEntropy(),
-        # F.stack                        : ty_ChainerConcat(F.stack),
+        F.stack                        : ty_ChainerStack(),
         F.sum                          : ty_ChainerSum,
         F.swapaxes                     : ty_ChainerSwapAxes,
         F.tanh                         : ty_ChainerIdentical(),
