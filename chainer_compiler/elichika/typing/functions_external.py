@@ -1,14 +1,17 @@
 import chainer
-from chainer.backends import cuda
+from   chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-from chainer.utils.conv import get_conv_outsize
-from chainer.utils import size_of_shape
-from chainer.utils import type_check
+
+import six
+from   typing import List
+
+from   chainer.utils.conv import get_conv_outsize
+from   chainer.utils import size_of_shape
+from   chainer.utils import type_check
 
 from chainer_compiler.elichika.typing.types import *
-
 
 def make_pair(x):
     if isinstance(x, int):
@@ -21,6 +24,18 @@ def get_kwarg(ty_kwargs, key, default=None):
         # TODO(momohatt): when unable to get the correct value, do something
         return value_of_type(ty_kwargs[key]), lacks_value(ty_kwargs[key])
     return default, False
+
+
+def make_multiple_tc_variable(ty_args, names):
+    assert len(ty_args) == len(names)
+    return [type_check.Variable(t, n) for t, n in zip(ty_args, names)]
+
+
+def make_sequence_tc_Variable(ty_arg, name):
+    ret = []
+    for i in range(ty_arg.size()):
+        ret.append(type_check.Variable(ty_arg[i], '{}[{}]'.format(name, i)))
+    return ret
 
 
 # TODO(momohatt): use chainer.utils.type_check.expect
@@ -112,7 +127,7 @@ def ty_ChainerVariable(ty_args, ty_kwargs):
 class ty_ChainerPooling2d():
     # max_pooling_2d / average_pooling_2d
     def __call__(self, ty_args, ty_kwargs):
-        self.check_type(*ty_args)
+        self.check_type(make_multiple_tc_variable(ty_args, ('x', 'ksize')))
 
         x_type = ty_args[0]
 
@@ -124,13 +139,14 @@ class ty_ChainerPooling2d():
 
         return self.infer_return(x_type, ksize, stride, pad)
 
-    def check_type(self, x_type, ksize_type):
-        x = type_check.Variable(x_type, 'x')
+    def check_type(self, in_types: List['type_check.Variable']):
+        x_type = in_types[0]
+
         type_check.expect(
-                x.dtype.kind == 'f',
+                x_type.dtype.kind == 'f',
                 )
 
-        assert isinstance(ksize_type, TyNum)
+        # assert isinstance(ksize_type, TyNum)
 
     def infer_return(self, x_type, ksize, stride, pad):
         pad = make_pair(pad)
@@ -139,37 +155,32 @@ class ty_ChainerPooling2d():
 
         shape_0 = x_type.shape[0]
         shape_1 = x_type.shape[1]
-        shape_2 = (x_type.shape[2] + pad[0] * 2 - ksize[0]) // stride[0] + 1
-        shape_3 = (x_type.shape[3] + pad[1] * 2 - ksize[1]) // stride[1] + 1
+        shape_2 = -(-(x_type.shape[2] + pad[0] * 2 - ksize[0]) // stride[0]) + 1
+        shape_3 = -(-(x_type.shape[3] + pad[1] * 2 - ksize[1]) // stride[1]) + 1
 
-        return TyChainerVariable(
-                dtype=x_type.dtype,
+        return TyChainerVariable(x_type.dtype,
                 shape=(shape_0, shape_1, shape_2, shape_3))
 
 
 class ty_ChainerSoftmaxCrossEntropy():
     def __call__(self, ty_args, ty_kwargs):
         x_type, t_type = ty_args
-        self.check_type(x_type, t_type)
+        self.check_type(make_multiple_tc_variable(ty_args, ('x', 't')))
         return self.infer_return(x_type, t_type)
 
-    def check_type(self, x_type, t_type):
-        x = type_check.Variable(x_type, 'x')
-        t = type_check.Variable(t_type, 't')
+    def check_type(self, in_types):
+        x_type, t_type = in_types
 
         type_check.expect(
-                x.dtype.kind == 'f',
-                t.dtype.kind == 'i',
-                # len(t.shape) == len(x.shape) - 1,
-                x.shape[0] == t.shape[0],
-                x.shape[2:] == t.shape[1:]
+                x_type.dtype.kind == 'f',
+                t_type.dtype.kind == 'i',
+                t_type.ndim == x_type.ndim - 1,
+                x_type.shape[0] == t_type.shape[0],
+                x_type.shape[2:] == t_type.shape[1:]
                 )
 
-        # TODO: ndim
-        assert len(t_type.shape) == len(x_type.shape) - 1
-
     def infer_return(self, x_type, t_type):
-        return TyChainerVariable(dtype=x_type.dtype, shape=())
+        return TyChainerVariable(x_type.dtype, shape=())
 
 
 class ty_ChainerIdentical():
@@ -187,33 +198,55 @@ class ty_ChainerIdentical():
 
 
 class ty_ChainerConcat():
-    # concat, hstack, vstack, stack
-
-    def __init__(self, func):
-        self.func = func
+    def __init__(self):
+        self.axis = None
 
     def __call__(self, ty_args, ty_kwargs):
         xs_type = ty_args[0]
 
         assert isinstance(xs_type, TySequence)
-        if not xs_type.is_fixed_len:
-            dtype = xs_type.get_ty().dtype
-            return TyChainerVariable(dtype)
-
-        xs_dtypes = [x_type.dtype for x_type in xs_type.get_tys()]
-        assert all_same(xs_dtypes)
-
-        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
+        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
 
         if lacks_value(xs_type) or is_dummy_axis:
-            return TyChainerVariable(xs_dtypes[0])
+            if not xs_type.is_fixed_len:
+                x_type = xs_type.get_ty()
+            else:
+                x_type = xs_type.get_tys()[0]
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
-        xs = value_of_type(xs_type)
+        self.check_type(type_check.Variable(xs_type, 'xs'))
+        return self.infer_return(xs_type)
 
-        if self.func is F.vstack or self.func is F.hstack:
-            return type_of_value(self.func(xs))
 
-        return type_of_value(self.func(xs, axis=axis))
+    def check_type(self, in_types):
+        type_check.expect(in_types.size() > 0)
+        type_check.expect(in_types[0].ndim >
+                          type_check.make_variable(self.axis, 'axis'))
+
+        type_check.expect(
+            -in_types[0].ndim <= self.axis,
+            self.axis < in_types[0].ndim
+        )
+        ndim = type_check.eval(in_types[0].ndim)
+        axis = self.axis % ndim
+        for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check.expect(
+                in_types[0].dtype == in_types[i].dtype,
+                in_types[0].ndim == in_types[i].ndim,
+            )
+            for d in six.moves.range(0, ndim):
+                if d == axis:
+                    continue
+                type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
+
+    def infer_return(self, xs_type):
+        ret_shape = list(xs_type[0].shape)
+        ret_shape[self.axis] = ShapeElem(0)
+        for x_type in xs_type:
+            ret_shape[self.axis] += x_type.shape[self.axis]
+
+        return TyChainerVariable(dtype=xs_type[0].dtype,
+                shape=wrap_shape(ret_shape))
 
 
 def ty_ChainerExpandDims(ty_args, ty_kwargs):
@@ -229,8 +262,10 @@ def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
     x_type = ty_args[0]
     shape_type = ty_args[1]
 
+    assert shape_type.is_fixed_len
+
     if x_type.shape is None or lacks_value(shape_type):
-        return TyChainerVariable(x_type.dtype)
+        return TyChainerVariable(x_type.dtype, ndim=len(shape_type.get_tys()))
 
     in_shape = x_type.shape
     out_shape = wrap_shape(value_of_type(shape_type))
@@ -272,7 +307,10 @@ def ty_ChainerReshape(ty_args, ty_kwargs):
     x_type = ty_args[0]
     shape_type = ty_args[1]
 
+    assert shape_type.is_fixed_len
+
     if lacks_value(shape_type):
+        # TODO: ndim
         return TyChainerVariable(x_type.dtype, shape=None)
     ret_shape = infer_reshape(x_type.shape, value_of_type(shape_type))
     return TyChainerVariable(x_type.dtype, shape=ret_shape)
@@ -285,7 +323,7 @@ def ty_ChainerSqueeze(ty_args, ty_kwargs):
     axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
 
     if x_type.shape is None or lacks_value(x_type) or is_dummy_axis:
-        return TyChainerVariable(x_type.dtype)
+        return TyChainerVariable(x_type.dtype, shape=())  # TODO
 
     ret = F.squeeze(value_of_type(x_type), axis=axis)
     return type_of_value(ret)
@@ -323,7 +361,7 @@ def ty_ChainerSeparate(ty_args, ty_kwargs):
     x_dtype = x_type.dtype
 
     if x_shape is None or is_dummy_axis:
-        return TyTuple(TyChainerVariable(x_dtype))
+        return TyTuple(TyChainerVariable(x_dtype, shape=())) # TODO
 
     assert axis < len(x_shape)
 
@@ -342,18 +380,18 @@ def ty_ChainerSplitAxis(ty_args, ty_kwargs):
         if n is None:
             # TODO
             return TyVar()
-        return TyTuple([TyChainerVariable(x_type.dtype)] * n)
+        return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n)  # TODO
 
     assert isinstance(ty_args[1], TyTensor)
     # 1-D array
 
     if ty_args[1].shape is None:
         # variable length tuple
-        return TyTuple(TyChainerVariable(x_type.dtype))
+        return TyTuple(TyChainerVariable(x_type.dtype, shape=()))  # TODO
 
     assert len(ty_args[1].shape) == 1
     n = int(ty_args[1].shape[0])
-    return TyTuple([TyChainerVariable(x_type.dtype)] * n)
+    return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n) # TODO
 
 
 def ty_ChainerPadSequence(ty_args, ty_kwargs):
@@ -483,7 +521,7 @@ def ty_ChainerEmbedID(embed, ty_args, ty_kwargs):
     w_type = embed.W
 
     if x_type.shape is None:
-        return TyChainerVariable(w_type.dtype)
+        return TyChainerVariable(w_type.dtype, shape=())  # TODO
 
     assert x_type.dtype.kind == 'i'
     assert len(x_type.shape) >= 1
@@ -555,10 +593,10 @@ ext_func_ty = {
         cuda.to_cpu                    : ty_ChainerIdentical(is_float_only=False),
         F.average_pooling_2d           : ty_ChainerPooling2d(),
         F.broadcast_to                 : ty_ChainerBroadcastTo,
-        F.concat                       : ty_ChainerConcat(F.concat),
+        F.concat                       : ty_ChainerConcat(),
         F.dropout                      : ty_ChainerIdentical(),
         F.expand_dims                  : ty_ChainerExpandDims,
-        F.hstack                       : ty_ChainerConcat(F.hstack),
+        # F.hstack                       : ty_ChainerConcat(F.hstack),
         F.local_response_normalization : ty_ChainerLocalResponseNormalization(),
         F.max_pooling_2d               : ty_ChainerPooling2d(),
         F.pad_sequence                 : ty_ChainerPadSequence,
@@ -570,11 +608,11 @@ ext_func_ty = {
         F.squeeze                      : ty_ChainerSqueeze,
         F.softmax                      : ty_ChainerIdentical(),
         F.softmax_cross_entropy        : ty_ChainerSoftmaxCrossEntropy(),
-        F.stack                        : ty_ChainerConcat(F.stack),
+        # F.stack                        : ty_ChainerConcat(F.stack),
         F.sum                          : ty_ChainerSum,
         F.swapaxes                     : ty_ChainerSwapAxes,
         F.tanh                         : ty_ChainerIdentical(),
-        F.vstack                       : ty_ChainerConcat(F.vstack),
+        # F.vstack                       : ty_ChainerConcat(F.vstack),
         }
 
 

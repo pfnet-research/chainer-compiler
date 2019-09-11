@@ -195,6 +195,13 @@ class TypeChecker():
         print()
 
 
+    def dump_one_node(self, node):
+        if node not in self.nodetype.keys():
+            return
+        print("{} : \x1b[36m{}\x1b[39m".format(
+            utils.node_description(node), self.nodetype[node]))
+
+
     def dump_stack(self):
         print("=== stack ===\x1b[32m")
         for node in self.stack:
@@ -248,9 +255,9 @@ class TypeChecker():
         """
         self.infer_mod(node)
 
-        if self.is_debug:
-            print('=== Type Environment ===')
-            self.dump_nodetype()
+        # if self.is_debug:
+        #     print('=== Type Environment ===')
+        #     self.dump_nodetype()
 
         return self.nodetype
 
@@ -282,9 +289,9 @@ class TypeChecker():
 
         self.infer_stmt(node)
 
-        if self.is_debug:
-            print('=== Type Environment ===')
-            self.dump_nodetype()
+        # if self.is_debug:
+        #     print('=== Type Environment ===')
+        #     self.dump_nodetype()
 
         return self.nodetype
 
@@ -509,7 +516,8 @@ class TypeChecker():
         ty_iteration = self.infer_expr(node.iter)
         ty_i = self.infer_expr(node.target)
         if isinstance(ty_iteration, TyTensor):
-            unify(ty_i, TyTensor(ty_iteration.dtype, ty_iteration.kind))
+            unify(ty_i, TyTensor(ty_iteration.dtype, ty_iteration.kind,
+                shape=ty_iteration.shape[1:]))
         else:
             unify(ty_iteration, TySequence(ty=ty_i))
 
@@ -600,6 +608,8 @@ class TypeChecker():
         assert node in self.nodetype.keys() and \
                 self.nodetype[node] is not None, type(node).__name__
         self.stack.pop()
+        if self.is_debug:
+            self.dump_one_node(node)
         return self.nodetype[node]
 
 
@@ -660,7 +670,8 @@ class TypeChecker():
         ty_iteration = tc.infer_expr(gen.iter)
         ty_i = tc.generate_fresh_TyVar(gen.target)
         if isinstance(ty_iteration, TyTensor):
-            ty_i_ = TyTensor(ty_iteration.dtype, ty_iteration.kind)
+            ty_i_ = TyTensor(ty_iteration.dtype, ty_iteration.kind,
+                    shape=ty_iteration.shape[1:])
             if ty_iteration.shape is not None:
                 ty_i_.shape = ty_iteration.shape[1:]
             unify(ty_i, ty_i_)
@@ -818,8 +829,6 @@ class TypeChecker():
 
 
     def infer_Subscript_shape(self, shape, node_slice):
-        if shape is None:
-            return None
         if isinstance(node_slice, gast.Index):
             return shape[1:]
         if isinstance(node_slice, gast.Slice):

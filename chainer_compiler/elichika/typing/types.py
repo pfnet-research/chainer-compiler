@@ -160,8 +160,16 @@ class TySequence(TyObj):
     def __eq__(self, other):
         return isinstance(other, TySequence) and self._ty == other._ty
 
+    def __getitem__(self, i):
+        assert self.is_fixed_len
+        return self._ty[i]
+
     def is_mutable(self):
         return self.kind == SequenceKind.LIST
+
+    def size(self):
+        assert self.is_fixed_len
+        return len(self._ty)
 
     def unset(self):
         if self.is_fixed_len:
@@ -274,10 +282,11 @@ class TyDType(TyObj):
 
 
 class TyTensor(TyObj):
-    def __init__(self, dtype, kind, shape=None):  # we do not allow heterogeneous type ndarray
+    def __init__(self, dtype, kind, ndim, shape=None):  # we do not allow heterogeneous type ndarray
         super().__init__()
         self.dtype = np.dtype(dtype)
         self.kind = kind
+        self.ndim = ndim
         self.shape = shape  # None or Tuple[ShapeElem]
 
     def show(self):
@@ -300,11 +309,16 @@ class TyTensor(TyObj):
         return self.kind == TensorKind.chainer_variable
 
 
-def TyNdarray(dtype, shape=None):
-    return TyTensor(dtype, TensorKind.ndarray, shape=shape)
+def TyNdarray(dtype, ndim=None, shape=None):
+    # ndim and shape cannot be None at the same time
+    if ndim is None:
+        ndim = len(shape)
+    return TyTensor(dtype, TensorKind.ndarray, ndim=ndim, shape=shape)
 
-def TyChainerVariable(dtype, shape=None):
-    return TyTensor(dtype, TensorKind.chainer_variable, shape=shape)
+def TyChainerVariable(dtype, ndim=None, shape=None):
+    if ndim is None:
+        ndim = len(shape)
+    return TyTensor(dtype, TensorKind.chainer_variable, ndim=ndim, shape=shape)
 
 
 # ------------------------ TypeChecker internal types --------------------------
@@ -393,7 +407,7 @@ class ShapeElem():
     def __repr__(self):
         return str(self._x)
 
-    def arith_op(self, sem, other):
+    def _arith_op(self, sem, other):
         if isinstance(other, ShapeElem):
             if self._x is None or other._x is None:
                 return ShapeElem(None)
@@ -404,16 +418,38 @@ class ShapeElem():
         return ShapeElem(sem(self._x, other))
 
     def __add__(self, other):
-        return self.arith_op(lambda x, y: x + y, other)
+        return self._arith_op(lambda x, y: x + y, other)
 
     def __sub__(self, other):
-        return self.arith_op(lambda x, y: x - y, other)
+        return self._arith_op(lambda x, y: x - y, other)
 
     def __mul__(self, other):
-        return self.arith_op(lambda x, y: x * y, other)
+        return self._arith_op(lambda x, y: x * y, other)
 
     def __floordiv__(self, other):
-        return self.arith_op(lambda x, y: x // y, other)
+        return self._arith_op(lambda x, y: x // y, other)
+
+    def __neg__(self):
+        if self._x is None:
+            return self
+        return ShapeElem(-self._x)
+
+    def __iadd__(self, other):
+        return self.__add__(other)
+    def __isub__(self, other):
+        return self.__isub__(other)
+    def __imul__(self, other):
+        return self.__mul__(other)
+    def __ifloordiv__(self, other):
+        return self.__floordiv__(other)
+    def __radd__(self, other):
+        return self.__add__(other)
+    def __rsub__(self, other):
+        return self.__isub__(other)
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    def __rfloordiv__(self, other):
+        return self.__floordiv__(other)
 
     def __eq__(self, other):
         if isinstance(other, ShapeElem):
@@ -432,10 +468,15 @@ def wrap_shape(shape_tuple): # Tuple[int] -> Tuple[ShapeElem]
     return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_tuple])
 
 
-def unwrap_shape(shape_tuple): # Tuple[ShapeElem] -> Tuple[int]
-    if shape_tuple is None:
-        pass
-    pass
+# use this if we want to allow ndim to be None...
+class Shape():
+    def __init__(self, shape):
+        self.shape = shape
+
+    def __getitem__(self, i):
+        if self.shape is None:
+            return None
+        return self.shape[i]
 
 
 # ------------------------------------------------------------------------------
@@ -572,7 +613,7 @@ def copy_ty(ty):
     elif isinstance(ty, TyDType):
         ret = TyDType()
     elif isinstance(ty, TyTensor):
-        ret = TyTensor(ty.dtype, ty.kind, shape=ty.shape)
+        ret = TyTensor(ty.dtype, ty.kind, ty.ndim, shape=ty.shape)
     elif isinstance(ty, TyVar):
         ret = TyVar(None)
         if ty.ty is not None:
