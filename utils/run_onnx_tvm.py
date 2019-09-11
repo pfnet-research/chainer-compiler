@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-# import sys
 
 import cupy
 import numpy as np
@@ -72,7 +71,7 @@ def build_graph_nnvm(args, ctx, onnx_model, inputs, input_names):
         symbol, args.target, input_names, inputs, params,
         args.opt_level)
 
-    if args.dump_nnvm or args.dump_frontend:
+    if args.dump_frontend:
         print(graph.ir())
         print(graph.json())
 
@@ -95,7 +94,7 @@ def build_graph_relay(args, ctx, onnx_model, inputs, input_names):
     with relay.build_config(opt_level=args.opt_level):
         graph, lib, params = relay.build(mod, args.target, params=params)
 
-        if args.dump_nnvm or args.dump_frontend:
+        if args.dump_frontend:
             print(graph)
 
     graph_module = create_graph_module(args, graph, lib, ctx)
@@ -146,7 +145,6 @@ def get_args(args=None):
     parser.add_argument('test_dir')
     parser.add_argument('--frontend', type=str, default='relay')
     parser.add_argument('--dump_frontend', action='store_true')
-    parser.add_argument('--dump_nnvm', action='store_true')
     parser.add_argument('--target', type=str, default='cuda')
     parser.add_argument('--debug', '-g', action='store_true')
     parser.add_argument('--iterations', '-I', type=int, default=1)
