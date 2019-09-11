@@ -23,10 +23,6 @@ def get_kwarg(ty_kwargs, key, default=None):
 
 
 # TODO(momohatt): use chainer.utils.type_check.expect
-def assert_dtype_equal(expected, actual):
-    msg = "dtype mismatch (Expected: {}, got: {})".format(expected, actual)
-    assert expected == actual, msg
-
 
 def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
     ty_result = inference_logic(*args)
@@ -121,7 +117,7 @@ class ty_ChainerPooling2d():
         x_type = ty_args[0]
         ksize_type = ty_args[1]
 
-        assert_dtype_equal('f', x_type.dtype.kind)
+        assert x_type.dtype.kind == 'f'
 
         # TODO(momohatt): handle cases where ksize is unknown
         ksize = ty_args[1].value
@@ -151,8 +147,8 @@ class ty_ChainerSoftmaxCrossEntropy():
     def __call__(self, ty_args, ty_kwargs):
         x_type, t_type = ty_args
 
-        assert_dtype_equal('f', x_type.dtype.kind)
-        assert_dtype_equal('i', t_type.dtype.kind)
+        assert x_type.dtype.kind == 'f'
+        assert t_type.dtype.kind == 'i'
         assert len(t_type.shape) == len(x_type.shape) - 1
         assert x_type.shape[0] == t_type.shape[0]
         assert x_type.shape[2:] == t_type.shape[1:]
@@ -173,7 +169,7 @@ class ty_ChainerIdentical():
         x_type = ty_args[0]
         assert isinstance(x_type, TyTensor)
         if self.is_float_only:
-            assert_dtype_equal('f', x_type.dtype.kind)
+            assert x_type.dtype.kind == 'f'
         return copy_ty(x_type)
 
 
@@ -392,7 +388,7 @@ class ty_ChainerLinear():
                 get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
         if x_type.dtype is not None and linear.b is not None:
-            assert_dtype_equal(linear.b.dtype, x_type.dtype)
+            assert x_type.dtype == linear.b.dtype
         if x_type.shape is None or is_dummy_n_batch_axes:
             return TyChainerVariable(x_type.dtype, shape=None)
 
@@ -423,7 +419,7 @@ class ty_ChainerConvolution2D():
         x_shape = ty_args[0].shape
         x_dtype = ty_args[0].dtype
         if x_dtype is not None:
-            assert_dtype_equal('f', x_dtype.kind)
+            assert x_dtype.kind == 'f'
         if x_shape is None:
             return TyChainerVariable(x_dtype, shape=None)
 
@@ -459,7 +455,7 @@ def ty_ChainerEmbedID(embed, ty_args, ty_kwargs):
     if x_type.shape is None:
         return TyChainerVariable(w_type.dtype)
 
-    assert_dtype_equal('i', x_type.dtype.kind)
+    assert x_type.dtype.kind == 'i'
     assert len(x_type.shape) >= 1
 
     assert all([t < w_type.shape[0] for t in x_type.shape])
