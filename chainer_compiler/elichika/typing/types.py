@@ -398,7 +398,7 @@ class ShapeElem():
     # int or None
     # TODO(momohatt): support string (symbol)
     def __init__(self, x):
-        assert isinstance(x, int) or x is None
+        assert isinstance(x, int) or isinstance(x, float) or x is None
         self._x = x
 
     def __str__(self):
@@ -419,13 +419,12 @@ class ShapeElem():
 
     def __add__(self, other):
         return self._arith_op(lambda x, y: x + y, other)
-
     def __sub__(self, other):
         return self._arith_op(lambda x, y: x - y, other)
-
     def __mul__(self, other):
         return self._arith_op(lambda x, y: x * y, other)
-
+    def __truediv__(self, other):
+        return self._arith_op(lambda x, y: x / y, other)
     def __floordiv__(self, other):
         return self._arith_op(lambda x, y: x // y, other)
 
@@ -437,19 +436,29 @@ class ShapeElem():
     def __iadd__(self, other):
         return self.__add__(other)
     def __isub__(self, other):
-        return self.__isub__(other)
+        return self.__sub__(other)
     def __imul__(self, other):
         return self.__mul__(other)
+    def __itruediv__(self, other):
+        return self.__div__(other)
     def __ifloordiv__(self, other):
         return self.__floordiv__(other)
+
     def __radd__(self, other):
         return self.__add__(other)
     def __rsub__(self, other):
         return self.__isub__(other)
     def __rmul__(self, other):
         return self.__mul__(other)
+    def __rtruediv__(self, other):
+        return self.__div__(other)
     def __rfloordiv__(self, other):
         return self.__floordiv__(other)
+
+    def __ceil__(self):
+        if self._x is None:
+            return self
+        return ShapeElem(math.ceil(self._x))
 
     def __eq__(self, other):
         if isinstance(other, ShapeElem):

@@ -3,6 +3,7 @@ from   chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+import math
 
 import six
 from   typing import List
@@ -155,8 +156,8 @@ class ty_ChainerPooling2d():
 
         shape_0 = x_type.shape[0]
         shape_1 = x_type.shape[1]
-        shape_2 = -(-(x_type.shape[2] + pad[0] * 2 - ksize[0]) // stride[0]) + 1
-        shape_3 = -(-(x_type.shape[3] + pad[1] * 2 - ksize[1]) // stride[1]) + 1
+        shape_2 = math.ceil((x_type.shape[2] + pad[0] * 2 - ksize[0]) / stride[0]) + 1
+        shape_3 = math.ceil((x_type.shape[3] + pad[1] * 2 - ksize[1]) / stride[1]) + 1
 
         return TyChainerVariable(x_type.dtype,
                 shape=(shape_0, shape_1, shape_2, shape_3))
