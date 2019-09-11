@@ -728,18 +728,15 @@ class ty_ChainerBatchNormalization():
 class ty_ChainerEmbedID():
     def __call__(self, embed, ty_args, ty_kwargs):
         assert isinstance(ty_args[0], TyTensor)
-        x_type = ty_args[0]
-        w_type = embed.W
-
-        if x_type.shape is None:
-            return TyChainerVariable(w_type.dtype, shape=())  # TODO
+        x_type, = ty_args
 
         assert x_type.dtype.kind == 'i'
-        assert len(x_type.shape) >= 1
-        assert all([t < w_type.shape[0] for t in x_type.shape])
+        assert x_type.ndim >= 1
+        ret_shape = x_type.shape + (ShapeElem(embed.W.shape[1]),)
 
-        out_type = x_type.shape + (w_type.shape[1],)
-        return TyChainerVariable(w_type.dtype, shape=out_shape)
+        if not is_incomplete_shape(x_type.shape):
+            assert all([t < embed.W.shape[0] for t in x_type.shape])
+        return TyChainerVariable(embed.W.dtype, shape=out_shape)
 
 
 class ty_ChainerNStepBiLSTM():
