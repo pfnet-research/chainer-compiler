@@ -12,7 +12,7 @@ from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import size_of_shape
 from   chainer.utils import type_check
 
-from chainer_compiler.elichika.typing.types import *
+from   chainer_compiler.elichika.typing.types import *
 
 def make_pair(x):
     if isinstance(x, int):
@@ -86,43 +86,47 @@ def make_infer(func, fallback_shapes, fallback_dtypes):  # 丸投げ
     return infer
 
 
-def ty_NumpyArray(ty_args, ty_kwargs):
-    infer = make_infer(np.array, (), ())
-    return infer(ty_args, ty_kwargs)
+class ty_NumpyArray():
+    def __call__(self, ty_args, ty_kwargs):
+        infer = make_infer(np.array, (), ())
+        return infer(ty_args, ty_kwargs)
 
 
-def ty_NumpyOnes(ty_args, ty_kwargs):
-    shape_type = ty_args[0]
-    is_dummy_shape = lacks_value(shape_type)
-    shape = value_of_type(shape_type)
-    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
+class ty_NumpyOnes():
+    def __call__(self, ty_args, ty_kwargs):
+        shape_type = ty_args[0]
+        is_dummy_shape = lacks_value(shape_type)
+        shape = value_of_type(shape_type)
+        dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
 
-    ty_ret = TyNdarray(dtype, shape=shape)
-    if is_dummy_shape: ty_ret.shape = None
-    if is_dummy_dtype: ty_ret.dtype = None
-    return ty_ret
-
-
-def ty_NumpyFull(ty_args, ty_kwargs):
-    shape_type = ty_args[0]
-    value_type = ty_args[1]
-    dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
-
-    assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
-    is_dummy_shape = lacks_value(shape_type)
-    shape = value_of_type(shape_type)
-    if isinstance(shape, int):
-        shape = (shape, )
-
-    y_type = TyNdarray(dtype, shape=wrap_shape(shape))
-    if is_dummy_dtype: y_type.dtype = None
-    if is_dummy_shape: y_type.shape = None
-    return y_type
+        ty_ret = TyNdarray(dtype, shape=shape)
+        if is_dummy_shape: ty_ret.shape = None
+        if is_dummy_dtype: ty_ret.dtype = None
+        return ty_ret
 
 
-def ty_ChainerVariable(ty_args, ty_kwargs):
-    infer = make_infer(chainer.Variable, (1,), (np.float32,))
-    return infer(ty_args, ty_kwargs)
+class ty_NumpyFull():
+    def __call__(self, ty_args, ty_kwargs):
+        shape_type = ty_args[0]
+        value_type = ty_args[1]
+        dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
+        assert not is_dummy_dtype
+
+        assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
+        is_dummy_shape = lacks_value(shape_type)
+        shape = value_of_type(shape_type)
+        if isinstance(shape, int):
+            shape = (shape, )
+
+        y_type = TyNdarray(dtype, shape=wrap_shape(shape))
+        if is_dummy_shape: y_type.shape = None
+        return y_type
+
+
+class ty_ChainerVariable():
+    def __call__(self, ty_args, ty_kwargs):
+        infer = make_infer(chainer.Variable, (1,), (np.float32,))
+        return infer(ty_args, ty_kwargs)
 
 
 class ty_ChainerPooling2d():
@@ -360,45 +364,48 @@ class ty_ChainerVstack():
         return ty_ChainerConcat(axis=0).infer_return(xs_type)
 
 
-def ty_ChainerExpandDims(ty_args, ty_kwargs):
-    axis = ty_args[1].value
-    fallback_shapes = (wrap_shape((1,) * axis,))
-    fallback_dtypes = (np.float32,)
+class ty_ChainerExpandDims():
+    def __call__(self, ty_args, ty_kwargs):
+        axis = ty_args[1].value
+        fallback_shapes = (wrap_shape((1,) * axis,))
+        fallback_dtypes = (np.float32,)
 
-    infer = make_infer(F.expand_dims, fallback_shapes, fallback_dtypes)
-    return infer(ty_args, ty_kwargs)
-
-
-def ty_ChainerBroadcastTo(ty_args, ty_kwargs):
-    x_type = ty_args[0]
-    shape_type = ty_args[1]
-
-    assert shape_type.is_fixed_len
-
-    if x_type.shape is None or lacks_value(shape_type):
-        return TyChainerVariable(x_type.dtype, ndim=len(shape_type.get_tys()))
-
-    in_shape = x_type.shape
-    out_shape = wrap_shape(value_of_type(shape_type))
-
-    # check_type_forward
-    ndim = len(out_shape)
-    assert len(in_shape) <= ndim
-
-    for i in range(-1, - len(in_shape) - 1, -1):
-        assert in_shape[i] == out_shape[i] or in_shape[i] == 1
-
-    return TyChainerVariable(x_type.dtype, shape=out_shape)
+        infer = make_infer(F.expand_dims, fallback_shapes, fallback_dtypes)
+        return infer(ty_args, ty_kwargs)
 
 
-def ty_ChainerSum(ty_args, ty_kwargs):
-    # TODO(momohatt): use is_dummy_axis
-    axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
-    fallback_shapes = (wrap_shape((1,) * (axis + 1)),)
-    fallback_dtypes = (np.float32,)
+class ty_ChainerBroadcastTo():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        shape_type = ty_args[1]
 
-    infer = make_infer(F.sum, fallback_shapes, fallback_dtypes)
-    return infer(ty_args, ty_kwargs)
+        assert shape_type.is_fixed_len
+
+        if x_type.shape is None or lacks_value(shape_type):
+            return TyChainerVariable(x_type.dtype, ndim=len(shape_type.get_tys()))
+
+        in_shape = x_type.shape
+        out_shape = wrap_shape(value_of_type(shape_type))
+
+        # check_type_forward
+        ndim = len(out_shape)
+        assert len(in_shape) <= ndim
+
+        for i in range(-1, - len(in_shape) - 1, -1):
+            assert in_shape[i] == out_shape[i] or in_shape[i] == 1
+
+        return TyChainerVariable(x_type.dtype, shape=out_shape)
+
+
+class ty_ChainerSum():
+    def __call__(self, ty_args, ty_kwargs):
+        # TODO(momohatt): use is_dummy_axis
+        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
+        fallback_shapes = (wrap_shape((1,) * (axis + 1)),)
+        fallback_dtypes = (np.float32,)
+
+        infer = make_infer(F.sum, fallback_shapes, fallback_dtypes)
+        return infer(ty_args, ty_kwargs)
 
 
 def infer_reshape(orig_shape, input_shape):
@@ -414,126 +421,132 @@ def infer_reshape(orig_shape, input_shape):
     return wrap_shape(ret_shape)
 
 
-def ty_ChainerReshape(ty_args, ty_kwargs):
-    x_type = ty_args[0]
-    shape_type = ty_args[1]
+class ty_ChainerReshape():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        shape_type = ty_args[1]
 
-    assert shape_type.is_fixed_len
+        assert shape_type.is_fixed_len
 
-    if lacks_value(shape_type):
-        # TODO: ndim
-        return TyChainerVariable(x_type.dtype, shape=None)
-    ret_shape = infer_reshape(x_type.shape, value_of_type(shape_type))
-    return TyChainerVariable(x_type.dtype, shape=ret_shape)
-
-
-def ty_ChainerSqueeze(ty_args, ty_kwargs):
-    x_type = ty_args[0]
-
-    # TODO: don't use F.squeeze
-    axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
-
-    if x_type.shape is None or lacks_value(x_type) or is_dummy_axis:
-        return TyChainerVariable(x_type.dtype, shape=())  # TODO
-
-    ret = F.squeeze(value_of_type(x_type), axis=axis)
-    return type_of_value(ret)
+        if lacks_value(shape_type):
+            # TODO: ndim
+            return TyChainerVariable(x_type.dtype, shape=None)
+        ret_shape = infer_reshape(x_type.shape, value_of_type(shape_type))
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
-def ty_ChainerSwapAxes(ty_args, ty_kwargs):
-    def swap(t, i, j):
-        l = list(t)
-        l[i], l[j] = l[j], l[i]
-        return tuple(l)
+class ty_ChainerSqueeze():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
 
-    x_type = ty_args[0]
-    axis1_type = ty_args[1]
-    axis2_type = ty_args[2]
+        # TODO: don't use F.squeeze
+        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
 
-    if x_type.shape is None or \
-            lacks_value(axis1_type) or lacks_value(axis2_type):
-        return TyChainerVariable(x_type.dtype)
+        if x_type.shape is None or lacks_value(x_type) or is_dummy_axis:
+            return TyChainerVariable(x_type.dtype, shape=())  # TODO
 
-    shape = x_type.shape
-    axis1 = value_of_type(axis1_type)
-    axis2 = value_of_type(axis2_type)
-
-    assert axis1 < len(shape) and axis2 < len(shape)
-
-    return TyChainerVariable(x_type.dtype,
-            shape=swap(shape, axis1, axis2))
+        ret = F.squeeze(value_of_type(x_type), axis=axis)
+        return type_of_value(ret)
 
 
-def ty_ChainerSeparate(ty_args, ty_kwargs):
-    x_type = ty_args[0]
-    axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
-    assert isinstance(x_type, TyTensor)
-    x_shape = x_type.shape
-    x_dtype = x_type.dtype
+class ty_ChainerSwapAxes():
+    def __call__(self, ty_args, ty_kwargs):
+        def swap(t, i, j):
+            l = list(t)
+            l[i], l[j] = l[j], l[i]
+            return tuple(l)
 
-    if x_shape is None or is_dummy_axis:
-        return TyTuple(TyChainerVariable(x_dtype, shape=())) # TODO
+        x_type = ty_args[0]
+        axis1_type = ty_args[1]
+        axis2_type = ty_args[2]
 
-    assert axis < len(x_shape)
+        if x_type.shape is None or \
+                lacks_value(axis1_type) or lacks_value(axis2_type):
+            return TyChainerVariable(x_type.dtype)
 
-    n = x_shape[axis]
-    out_shape = x_shape[:axis] + x_shape[axis + 1:]
-    return TyTuple([TyChainerVariable(x_dtype, shape=out_shape)] * n)
+        shape = x_type.shape
+        axis1 = value_of_type(axis1_type)
+        axis2 = value_of_type(axis2_type)
 
+        assert axis1 < len(shape) and axis2 < len(shape)
 
-def ty_ChainerSplitAxis(ty_args, ty_kwargs):
-    x_type = ty_args[0]
-
-    assert isinstance(x_type, TyTensor)
-
-    if isinstance(ty_args[1], TyNum):
-        n = ty_args[1].value
-        if n is None:
-            # TODO
-            return TyVar()
-        return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n)  # TODO
-
-    assert isinstance(ty_args[1], TyTensor)
-    # 1-D array
-
-    if ty_args[1].shape is None:
-        # variable length tuple
-        return TyTuple(TyChainerVariable(x_type.dtype, shape=()))  # TODO
-
-    assert len(ty_args[1].shape) == 1
-    n = int(ty_args[1].shape[0])
-    return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n) # TODO
+        return TyChainerVariable(x_type.dtype,
+                shape=swap(shape, axis1, axis2))
 
 
-def ty_ChainerPadSequence(ty_args, ty_kwargs):
-    # shape[1:] should be uniform & ndim > 0
-    xs_type = ty_args[0]
-    assert isinstance(xs_type, TySequence)
-    is_dummy_shape = False
-    if xs_type.is_fixed_len:
-        is_shape_None = [t.shape is None for t in xs_type.get_tys()]
-        if any(is_shape_None):
-            is_dummy_shape = True
-            if all(is_shape_None):
-                dummy_arg = [np.zeros((1,), dtype=t.dtype) for t in xs_type.get_tys()]
+class ty_ChainerSeparate():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
+        assert isinstance(x_type, TyTensor)
+        x_shape = x_type.shape
+        x_dtype = x_type.dtype
+
+        if x_shape is None or is_dummy_axis:
+            return TyTuple(TyChainerVariable(x_dtype, shape=())) # TODO
+
+        assert axis < len(x_shape)
+
+        n = x_shape[axis]
+        out_shape = x_shape[:axis] + x_shape[axis + 1:]
+        return TyTuple([TyChainerVariable(x_dtype, shape=out_shape)] * n)
+
+
+class ty_ChainerSplitAxis():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type = ty_args[0]
+
+        assert isinstance(x_type, TyTensor)
+
+        if isinstance(ty_args[1], TyNum):
+            n = ty_args[1].value
+            if n is None:
+                # TODO
+                return TyVar()
+            return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n)  # TODO
+
+        assert isinstance(ty_args[1], TyTensor)
+        # 1-D array
+
+        if ty_args[1].shape is None:
+            # variable length tuple
+            return TyTuple(TyChainerVariable(x_type.dtype, shape=()))  # TODO
+
+        assert len(ty_args[1].shape) == 1
+        n = int(ty_args[1].shape[0])
+        return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n) # TODO
+
+
+class ty_ChainerPadSequence():
+    def __call__(self, ty_args, ty_kwargs):
+        # shape[1:] should be uniform & ndim > 0
+        xs_type = ty_args[0]
+        assert isinstance(xs_type, TySequence)
+        is_dummy_shape = False
+        if xs_type.is_fixed_len:
+            is_shape_None = [t.shape is None for t in xs_type.get_tys()]
+            if any(is_shape_None):
+                is_dummy_shape = True
+                if all(is_shape_None):
+                    dummy_arg = [np.zeros((1,), dtype=t.dtype) for t in xs_type.get_tys()]
+                else:
+                    t = utils.find(xs_type.get_tys(), lambda t: t.shape is not None)
+                    fallback_shape = t.shape
+                    dummy_arg = [
+                            np.zeros(fallback_shape, dtype=t.dtype) if t.shape is None
+                            else np.zeros(t.shape, dtype=t.dtype) for t in xs_type.get_tys()]
             else:
-                t = utils.find(xs_type.get_tys(), lambda t: t.shape is not None)
-                fallback_shape = t.shape
-                dummy_arg = [
-                        np.zeros(fallback_shape, dtype=t.dtype) if t.shape is None
-                        else np.zeros(t.shape, dtype=t.dtype) for t in xs_type.get_tys()]
+                dummy_arg = value_of_type(xs_type)
+
         else:
-            dummy_arg = value_of_type(xs_type)
+            is_dummy_shape = True
+            dummy_arg = [np.zeros((1,), dtype=xs_type.get_ty().dtype)]
 
-    else:
-        is_dummy_shape = True
-        dummy_arg = [np.zeros((1,), dtype=xs_type.get_ty().dtype)]
-
-    dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
-    ty_ret = type_of_value(F.pad_sequence(dummy_arg, **dummy_kwargs))
-    if is_dummy_shape:
-        ty_ret.shape = None
-    return ty_ret
+        dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
+        ty_ret = type_of_value(F.pad_sequence(dummy_arg, **dummy_kwargs))
+        if is_dummy_shape:
+            ty_ret.shape = None
+        return ty_ret
 
 
 class ty_ChainerLocalResponseNormalization():
@@ -622,106 +635,109 @@ class ty_ChainerConvolution2D():
         return wrap_shape((x_shape[0], conv.out_channels, shape_2, shape_3))
 
 
-def ty_ChainerBatchNormalization(obj, ty_args, ty_kwargs):
-    assert False
+class ty_ChainerBatchNormalization():
+    def __call__(self, obj, ty_args, ty_kwargs):
+        assert False
 
 
-def ty_ChainerEmbedID(embed, ty_args, ty_kwargs):
-    assert isinstance(ty_args[0], TyTensor)
-    x_type = ty_args[0]
-    w_type = embed.W
+class ty_ChainerEmbedID():
+    def __call__(self, embed, ty_args, ty_kwargs):
+        assert isinstance(ty_args[0], TyTensor)
+        x_type = ty_args[0]
+        w_type = embed.W
 
-    if x_type.shape is None:
-        return TyChainerVariable(w_type.dtype, shape=())  # TODO
+        if x_type.shape is None:
+            return TyChainerVariable(w_type.dtype, shape=())  # TODO
 
-    assert x_type.dtype.kind == 'i'
-    assert len(x_type.shape) >= 1
+        assert x_type.dtype.kind == 'i'
+        assert len(x_type.shape) >= 1
 
-    assert all([t < w_type.shape[0] for t in x_type.shape])
-    out_type = x_type.shape + (w_type.shape[1],)
-    return TyChainerVariable(w_type.dtype, shape=out_shape)
+        assert all([t < w_type.shape[0] for t in x_type.shape])
+        out_type = x_type.shape + (w_type.shape[1],)
+        return TyChainerVariable(w_type.dtype, shape=out_shape)
 
 
-def ty_ChainerNStepBiLSTM(nblstm, ty_args, ty_kwargs):
-    hx_type = ty_args[0]
-    cx_type = ty_args[1]
-    xs_type = ty_args[2]
-    assert isinstance(xs_type, TySequence)
+class ty_ChainerNStepBiLSTM():
+    def __call__(self, nblstm, ty_args, ty_kwargs):
+        hx_type = ty_args[0]
+        cx_type = ty_args[1]
+        xs_type = ty_args[2]
+        assert isinstance(xs_type, TySequence)
 
-    if not xs_type.is_fixed_len:
-        # TODO
-        return TyTuple([hx_type, cx_type, xs_type])
+        if not xs_type.is_fixed_len:
+            # TODO
+            return TyTuple([hx_type, cx_type, xs_type])
 
-    xs_dtypes = [t.dtype for t in xs_type.get_tys()]
-    xs_shapes = [t.shape for t in xs_type.get_tys()]
-    assert all_same(xs_dtypes)
+        xs_dtypes = [t.dtype for t in xs_type.get_tys()]
+        xs_shapes = [t.shape for t in xs_type.get_tys()]
+        assert all_same(xs_dtypes)
 
-    if isinstance(hx_type, TyTensor):
-        hx_shape = hx_type.shape
-        hx_dtype = hx_type.dtype
-    else:
-        hx_shape = wrap_shape(
-                (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
-        hx_dtype = xs_type.get_tys()[0].dtype
+        if isinstance(hx_type, TyTensor):
+            hx_shape = hx_type.shape
+            hx_dtype = hx_type.dtype
+        else:
+            hx_shape = wrap_shape(
+                    (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
+            hx_dtype = xs_type.get_tys()[0].dtype
 
-    if isinstance(cx_type, TyTensor):
-        cx_shape = cx_type.shape
-        cx_dtype = cx_type.dtype
-    else:
-        cx_shape = wrap_shape(
-                (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
-        cx_dtype = hx_dtype
+        if isinstance(cx_type, TyTensor):
+            cx_shape = cx_type.shape
+            cx_dtype = cx_type.dtype
+        else:
+            cx_shape = wrap_shape(
+                    (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
+            cx_dtype = hx_dtype
 
-    if hx_shape is None or cx_shape is None:
-        # TODO: 適当
-        return TyTuple([hx_type, cx_type, xs_type])
+        if hx_shape is None or cx_shape is None:
+            # TODO: 適当
+            return TyTuple([hx_type, cx_type, xs_type])
 
-    assert hx_shape[0] // 2 == nblstm.n_layers
-    assert hx_shape == cx_shape
-    N = hx_shape[2]
+        assert hx_shape[0] // 2 == nblstm.n_layers
+        assert hx_shape == cx_shape
+        N = hx_shape[2]
 
-    hy_type = TyChainerVariable(hx_dtype, shape=hx_shape)
-    cy_type = TyChainerVariable(cx_dtype, shape=cx_shape)
+        hy_type = TyChainerVariable(hx_dtype, shape=hx_shape)
+        cy_type = TyChainerVariable(cx_dtype, shape=cx_shape)
 
-    if any([t.shape is None for t in xs_type.get_tys()]):
-        return TyTuple([hy_type, cy_type, TyList(TyChainerVariable(xs_dtypes[0]))])
+        if any([t.shape is None for t in xs_type.get_tys()]):
+            return TyTuple([hy_type, cy_type, TyList(TyChainerVariable(xs_dtypes[0]))])
 
-    # TODO(momohatt): nblstm doesn't have attribute in_size
-    # assert all([i == nblstm.in_size for _, i in xs_shapes])
-    ys_shapes = [wrap_shape((l, 2 * N)) for l, _ in xs_shapes]
-    ys_type = TyList([TyChainerVariable(xs_dtypes[0], shape=s) for s in ys_shapes])
+        # TODO(momohatt): nblstm doesn't have attribute in_size
+        # assert all([i == nblstm.in_size for _, i in xs_shapes])
+        ys_shapes = [wrap_shape((l, 2 * N)) for l, _ in xs_shapes]
+        ys_type = TyList([TyChainerVariable(xs_dtypes[0], shape=s) for s in ys_shapes])
 
-    return TyTuple([hy_type, cy_type, ys_type])
+        return TyTuple([hy_type, cy_type, ys_type])
 
 
 ext_func_ty = {
-        np.array                       : ty_NumpyArray,
+        np.array                       : ty_NumpyArray(),
         np.cumsum                      : ty_ChainerIdentical(is_float_only=False),
-        np.full                        : ty_NumpyFull,
-        np.ones                        : ty_NumpyOnes,
-        np.zeros                       : ty_NumpyOnes,
-        chainer.Variable               : ty_ChainerVariable,
+        np.full                        : ty_NumpyFull(),
+        np.ones                        : ty_NumpyOnes(),
+        np.zeros                       : ty_NumpyOnes(),
+        chainer.Variable               : ty_ChainerVariable(),
         cuda.to_cpu                    : ty_ChainerIdentical(is_float_only=False),
         F.average_pooling_2d           : ty_ChainerPooling2d(),
-        F.broadcast_to                 : ty_ChainerBroadcastTo,
+        F.broadcast_to                 : ty_ChainerBroadcastTo(),
         F.concat                       : ty_ChainerConcat(),
         F.dropout                      : ty_ChainerIdentical(),
-        F.expand_dims                  : ty_ChainerExpandDims,
+        F.expand_dims                  : ty_ChainerExpandDims(),
         F.hstack                       : ty_ChainerHstack(),
         F.local_response_normalization : ty_ChainerLocalResponseNormalization(),
         F.max_pooling_2d               : ty_ChainerPooling2d(),
-        F.pad_sequence                 : ty_ChainerPadSequence,
+        F.pad_sequence                 : ty_ChainerPadSequence(),
         F.relu                         : ty_ChainerIdentical(),
-        F.reshape                      : ty_ChainerReshape,
-        F.separate                     : ty_ChainerSeparate,
+        F.reshape                      : ty_ChainerReshape(),
+        F.separate                     : ty_ChainerSeparate(),
         F.sigmoid                      : ty_ChainerIdentical(),
-        F.split_axis                   : ty_ChainerSplitAxis,
-        F.squeeze                      : ty_ChainerSqueeze,
+        F.split_axis                   : ty_ChainerSplitAxis(),
+        F.squeeze                      : ty_ChainerSqueeze(),
         F.softmax                      : ty_ChainerIdentical(),
         F.softmax_cross_entropy        : ty_ChainerSoftmaxCrossEntropy(),
         F.stack                        : ty_ChainerStack(),
-        F.sum                          : ty_ChainerSum,
-        F.swapaxes                     : ty_ChainerSwapAxes,
+        F.sum                          : ty_ChainerSum(),
+        F.swapaxes                     : ty_ChainerSwapAxes(),
         F.tanh                         : ty_ChainerIdentical(),
         F.vstack                       : ty_ChainerVstack(),
         }
@@ -730,7 +746,7 @@ ext_func_ty = {
 ext_callable_ty = {
         L.Linear             : ty_ChainerLinear(),
         L.Convolution2D      : ty_ChainerConvolution2D(),
-        L.BatchNormalization : ty_ChainerBatchNormalization,
-        L.EmbedID            : ty_ChainerEmbedID,
-        L.NStepBiLSTM        : ty_ChainerNStepBiLSTM,
+        L.BatchNormalization : ty_ChainerBatchNormalization(),
+        L.EmbedID            : ty_ChainerEmbedID(),
+        L.NStepBiLSTM        : ty_ChainerNStepBiLSTM(),
         }

@@ -5,6 +5,7 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
+import math
 
 from chainer_compiler.elichika.typing.utils import intercalate
 
