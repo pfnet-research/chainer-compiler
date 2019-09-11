@@ -119,19 +119,21 @@ def call_binop(op, node, tyl, tyr):
     try:
         vall, valr = value_of_type(tyl), value_of_type(tyr)
         ty_ret = type_of_value(func(vall, valr))
-    except Exception:
+    except Exception as e:
+        print_warning(str(e))
         print_warning("Failed to infer type of " + func.__name__ +
                 ". Falling back to TyVar...")
         ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
+        raise Exception
 
     if isinstance(ty_ret, TySequence) and \
             not (tyl.is_fixed_len and tyr.is_fixed_len):
         ty_ret.coerce_to_variable_len()
 
     if isinstance(ty_ret, TyTensor) and \
-            isinstance(tyl, TyTensor) and tyl.shape is None or \
-            isinstance(tyr, TyTensor) and tyr.shape is None:
-        ty_ret.shape = None
+            isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
+            isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape):
+        ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
     return ty_ret
 
 

@@ -490,11 +490,20 @@ class ShapeElem():
         assert isinstance(self._x, int)
         return self._x
 
+    def has_value(self):
+        return self._x is not None
 
-def wrap_shape(shape_tuple): # Tuple[int] -> Tuple[ShapeElem]
-    if shape_tuple is None:
-        return None
-    return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_tuple])
+
+def wrap_shape(shape_seq): # Tuple[int] -> Tuple[ShapeElem]
+    # if shape_seq is None:
+    #     return None
+    return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_seq])
+
+def unwrap_shape(shape_seq):
+    return tuple([s._x if s.has_value() else 1 for s in shape_seq])
+
+def is_incomplete_shape(shape_seq):
+    return any([not s.has_value() for s in shape_seq])
 
 
 # use this if we want to allow ndim to be None...
@@ -574,7 +583,7 @@ def lacks_value(ty) -> bool:
     if isinstance(ty, TyDict):
         return True
     if isinstance(ty, TyTensor):
-        return ty.shape is None
+        return ty.shape is None or any([not i.has_value() for i in ty.shape])
     if isinstance(ty, TyDType):
         return ty.t is None
 
@@ -603,7 +612,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyDict):
         return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
     if isinstance(ty, TyTensor):
-        ret = np.zeros(dtype=ty.dtype, shape=1 if ty.shape is None else ty.shape)
+        ret = np.zeros(dtype=ty.dtype, shape=unwrap_shape(ty.shape))
         if ty.is_ndarray():
             return ret
         if ty.is_chainer_variable():
