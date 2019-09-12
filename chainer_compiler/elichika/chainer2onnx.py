@@ -94,6 +94,7 @@ def compile_model(model, inputs) -> 'ONNXModel':
     oc.f_converter[F.argmin] = fb.ConverterChainerArgMin()
     oc.f_converter[F.max] = fb.ConverterMax()
     oc.f_converter[F.min] = fb.ConverterMin()
+    oc.f_converter[F.transpose] = fb.ConverterTranspose()
 
     oc.f_converter[F.sin] = fb.ConverterChainerMathMisc('Sin')
     oc.f_converter[F.sinh] = fb.ConverterChainerMathMisc('Sinh')
