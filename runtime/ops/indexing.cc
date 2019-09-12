@@ -395,8 +395,8 @@ std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, con
     const int64_t axis = this->axis < 0 ? in_shape.size() - this->axis : this->axis;
     CHECK(0 < axis && axis < in_shape.size());
     const int64_t k = static_cast<int64_t>(k_src);
-    CHECK(k >= 0);
-    CHECK(in_shape[axis] > k);
+    CHECK_GE(k, 0);
+    CHECK_GE(in_shape[axis], k) << axis;
 
     chainerx::Shape out_shape = in_shape;
     out_shape[axis] = k;
