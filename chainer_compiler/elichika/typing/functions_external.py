@@ -51,6 +51,12 @@ def calculate_reshape(orig_shape, input_shape):
     return wrap_shape(ret_shape)
 
 
+def remove_dims(shape, dims_to_remove):
+    # dims_to_remove can have negative indices
+    dims_to_remove = [d % len(shape) for d in dims_to_remove]
+    return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
+
+
 # TODO(momohatt): use chainer.utils.type_check.expect
 
 def infer_return_type(inference_logic, args, is_fake_shape, is_fake_dtype):
@@ -213,6 +219,8 @@ class ty_ChainerIdentical():
             assert x_type.dtype.kind == 'f'
         return copy_ty(x_type)
 
+
+# ========================= chainer.functions.array ============================
 
 class ty_ChainerConcat():
     def __init__(self, axis=None):
@@ -479,12 +487,6 @@ class ty_ChainerRepeat():
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
-def remove_dims(shape, dims_to_remove):
-    # dims_to_remove can have negative indices
-    dims_to_remove = [d % len(shape) for d in dims_to_remove]
-    return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
-
-
 class ty_ChainerSqueeze():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -619,27 +621,36 @@ class ty_ChainerSeparate():
 
 class ty_ChainerSplitAxis():
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
+        x_type, _, axis_type = ty_args
 
-        assert isinstance(x_type, TyTensor)
+        self.axis = axis_type.value
 
         if isinstance(ty_args[1], TyNum):
-            n = ty_args[1].value
-            if n is None:
-                # TODO
-                return TyVar()
-            return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n)  # TODO
+            sections = ty_args[1].value
+            return self.infer_return(x_type, sections)
 
-        assert isinstance(ty_args[1], TyTensor)
         # 1-D array
+        indices_type = ty_args[1]
+        assert isinstance(indices_type, TyTensor)
 
-        if ty_args[1].shape is None:
-            # variable length tuple
-            return TyTuple(TyChainerVariable(x_type.dtype, shape=()))  # TODO
+        assert indices_type.ndim == 1
+        n = indices_type.shape[0].get_value()
+        return self.infer_return(x_type, n)
 
-        assert len(ty_args[1].shape) == 1
-        n = int(ty_args[1].shape[0])
-        return TyTuple([TyChainerVariable(x_type.dtype, shape=())] * n) # TODO
+    # TODO: check_type_forward
+
+    def infer_return(self, x_type, n_split):
+        print('zzz')
+        if n_split is None:
+            if self.axis is None:
+                return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim))
+            ret_shape = list(x_type.shape)
+            ret_shape[self.axis] = None
+            return TyTuple(TyChainerVariable(x_type.dtype, shape=ret_shape))
+        ret_shape = list(x_type.shape)
+        ret_shape[self.axis] = ret_shape[self.axis] // n_split
+        return TyTuple(
+            [TyChainerVariable(x_type.dtype, shape=ret_shape)] * n_split)
 
 
 class ty_ChainerPad():

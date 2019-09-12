@@ -496,7 +496,6 @@ class ShapeElem():
         return self._x is not None
 
     def get_value(self):
-        assert self._x is not None
         return self._x
 
 
