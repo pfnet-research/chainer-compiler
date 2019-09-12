@@ -420,97 +420,63 @@ class TyUnion(TyObj):
 
 # ------------------------------------------------------------------------------
 
-# mini-AST for ShapeElem
-class Expr():
-    pass
-
-class Variable(Expr):
-    def __init__(self, name):
-        self.name = name
-    def __str__(self):
-        return self.name
-    def __eq__(self, other):
-        return self.name == other.name
-
-class Constant(Expr):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return str(self.value)
-    def __eq__(self, other):
-        return self.value == other.value
-
-class UnaryOp(Expr):
-    def __init__(self, symbol, operand):
-        self.symbol = symbol
-        self.operand = operand
-    def __str__(self):
-        return "{}({})".format(self.symbol, self.operand)
-    def __eq__(self, other):
-        return self.symbol == other.symbol and self.operand == other.operand
-
-class BinOp(Expr):
-    def __init__(self, symbol, lhs, rhs):
-        self.symbol = symbol
-        self.lhs = lhs
-        self.rhs = rhs
-    def __str__(self):
-        return "{} {} {}".format(self.lhs, self.symbol, self.rhs)
-    def __eq__(self, other):
-        return self.symbol == other.symbol and self.lhs == other.lhs and \
-                self.rhs == other.rhs
-
-
 class ShapeElem():
     def __init__(self, value_or_name, expr=None):
         assert type(value_or_name) in [int, float, str, type(None)]
         if isinstance(value_or_name, str):
+            # name
             self.value = None
-            self.expr = Variable(value_or_name)
+            self.expr = type_check.Variable(None, value_or_name)
         else:
+            # value
             self.value = value_or_name
-            self.expr = expr if expr else Constant(value_or_name)
+            self.expr = expr if expr is not None else type_check.Constant(value_or_name)
 
     def __str__(self):
-        if isinstance(self.expr, Constant):
+        if isinstance(self.expr, type_check.Constant):
             return str(self.value)
         return "{} ({})".format(self.value, self.expr)
 
     def __repr__(self):
         return self.__str__()
 
-    def _make_unaryop(self, sem, symbol):
+    def _make_unaryop(self, symbol, priority, func):
         if self.value is None:
             return self
-        return ShapeElem(sem(self.value), expr=UnaryOp(symbol, self.expr))
+        value = func(self.value)
+        return ShapeElem(value,
+                expr=type_check.UnaryOperator(
+                    priority, self.expr, symbol, func))
 
-    def _make_binop(self, other, sem, symbol):
+    def _make_binop(self, other, symbol, priority, func):
         if not isinstance(other, ShapeElem):
             if self.value is None:
                 return ShapeElem(None)
-            return ShapeElem(sem(self.value, other),
-                expr=BinOp(symbol, self.expr, Constant(other)))
+            value = func(self.value, other)
+            return ShapeElem(value,
+                    expr=type_check.BinaryOperator(
+                        priority, self.expr, type_check.Constant(other), symbol, func))
 
         if self.value is None or other.value is None:
             return ShapeElem(None)
-        return ShapeElem(sem(self.value, other.value), expr=BinOp(symbol, self.expr, other.expr))
+        return ShapeElem(func(self.value, other.value), expr=BinOp(symbol, self.expr, other.expr))
 
 
     def __neg__(self):
-        return self._make_unaryop(lambda x: -x, '-')
+        return self._make_unaryop('-', 6, lambda x: -x)
     def __ceil__(self):
-        return self._make_unaryop(math.ceil, 'ceil')
+        return self._make_unaryop('ceil', 6, math.ceil)
 
     def __add__(self, other):
-        return self._make_binop(other, lambda x, y: x + y,  '+')
+        return self._make_binop(other, '+',  4, lambda x, y: x + y)
     def __sub__(self, other):
-        return self._make_binop(other, lambda x, y: x - y,  '-')
+        return self._make_binop(other, '-',  4, lambda x, y: x - y)
     def __mul__(self, other):
-        return self._make_binop(other, lambda x, y: x * y,  '*')
+        return self._make_binop(other, '*',  5, lambda x, y: x * y)
     def __truediv__(self, other):
-        return self._make_binop(other, lambda x, y: x / y,  '/')
+        return self._make_binop(other, '/',  5, lambda x, y: x / y)
     def __floordiv__(self, other):
-        return self._make_binop(other, lambda x, y: x // y, '//')
+        return self._make_binop(other, '//', 5, lambda x, y: x // y)
 
     __iadd__ = __add__
     __isub__ = __sub__
