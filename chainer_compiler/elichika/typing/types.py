@@ -420,6 +420,40 @@ class TyUnion(TyObj):
 
 # ------------------------------------------------------------------------------
 
+def _flip(func):
+    return (lambda x, y: func(y, x))
+
+def _make_unaryop(self, symbol, priority, func):
+    if self.value is None:
+        return self
+    value = func(self.value)
+    return ShapeElem(value,
+            expr=type_check.UnaryOperator(
+                priority, self.expr, symbol, func))
+
+def _make_binop(self, other, symbol, priority, func):
+    if not isinstance(other, ShapeElem):
+        if self.value is None:
+            return ShapeElem(None)
+        value = func(self.value, other)
+        return ShapeElem(value,
+                expr=type_check.BinaryOperator(
+                    priority, self.expr, type_check.Constant(other), symbol, func))
+
+    if not isinstance(self, ShapeElem):
+        if other.value is None:
+            return ShapeElem(None)
+        value = func(self, other.value)
+        return ShapeElem(value,
+                expr=type_check.BinaryOperator(
+                    priority, type_check.Constant(self), other.expr, symbol, func))
+
+    if self.value is None or other.value is None:
+        return ShapeElem(None)
+    return ShapeElem(func(self.value, other.value),
+            expr=type_check.BinaryOperator(
+                priority, self.expr, other.expr, symbol, func))
+
 class ShapeElem():
     def __init__(self, value_or_name, expr=None):
         assert type(value_or_name) in [int, float, str, type(None)]
@@ -440,43 +474,21 @@ class ShapeElem():
     def __repr__(self):
         return self.__str__()
 
-    def _make_unaryop(self, symbol, priority, func):
-        if self.value is None:
-            return self
-        value = func(self.value)
-        return ShapeElem(value,
-                expr=type_check.UnaryOperator(
-                    priority, self.expr, symbol, func))
-
-    def _make_binop(self, other, symbol, priority, func):
-        if not isinstance(other, ShapeElem):
-            if self.value is None:
-                return ShapeElem(None)
-            value = func(self.value, other)
-            return ShapeElem(value,
-                    expr=type_check.BinaryOperator(
-                        priority, self.expr, type_check.Constant(other), symbol, func))
-
-        if self.value is None or other.value is None:
-            return ShapeElem(None)
-        return ShapeElem(func(self.value, other.value), expr=BinOp(symbol, self.expr, other.expr))
-
-
     def __neg__(self):
-        return self._make_unaryop('-', 6, lambda x: -x)
+        return _make_unaryop(self, '-', 6, lambda x: -x)
     def __ceil__(self):
-        return self._make_unaryop('ceil', 6, math.ceil)
+        return _make_unaryop(self, 'ceil', 6, math.ceil)
 
     def __add__(self, other):
-        return self._make_binop(other, '+',  4, lambda x, y: x + y)
+        return _make_binop(self, other, '+',  4, lambda x, y: x + y)
     def __sub__(self, other):
-        return self._make_binop(other, '-',  4, lambda x, y: x - y)
+        return _make_binop(self, other, '-',  4, lambda x, y: x - y)
     def __mul__(self, other):
-        return self._make_binop(other, '*',  5, lambda x, y: x * y)
+        return _make_binop(self, other, '*',  5, lambda x, y: x * y)
     def __truediv__(self, other):
-        return self._make_binop(other, '/',  5, lambda x, y: x / y)
+        return _make_binop(self, other, '/',  5, lambda x, y: x / y)
     def __floordiv__(self, other):
-        return self._make_binop(other, '//', 5, lambda x, y: x // y)
+        return _make_binop(self, other, '//', 5, lambda x, y: x // y)
 
     __iadd__ = __add__
     __isub__ = __sub__
@@ -484,11 +496,11 @@ class ShapeElem():
     __itruediv__ = __truediv__
     __ifloordiv__ = __floordiv__
 
-    __radd__ = __add__
-    __rsub__ = __sub__
-    __rmul__ = __mul__
-    __rtruediv__ = __truediv__
-    __rfloordiv__ = __floordiv__
+    __radd__ = _flip(__add__)
+    __rsub__ = _flip(__sub__)
+    __rmul__ = _flip(__mul__)
+    __rtruediv__ = _flip(__truediv__)
+    __rfloordiv__ = _flip(__floordiv__)
 
     def __eq__(self, other):
         if isinstance(other, ShapeElem):
