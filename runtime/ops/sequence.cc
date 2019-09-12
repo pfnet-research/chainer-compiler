@@ -156,7 +156,7 @@ std::tuple<chainerx::Array, chainerx::Array> SequenceConcatOp::RunImpl(ChxVMStat
         indices.push_back(index += v.GetArray().shape()[axis]);
     }
     indices.pop_back();
-    chainerx::Array out = chainerx::Concatenate(NonOptional(seq), ax);
+    chainerx::Array out = chainerx::Concatenate(NonOptional(seq), axis);
     chainerx::Array ctx = MakeHostArray(chainerx::Dtype::kInt64, chainerx::Shape({static_cast<int64_t>(indices.size())}), &indices[0]);
     return std::tie(out, ctx);
 }
