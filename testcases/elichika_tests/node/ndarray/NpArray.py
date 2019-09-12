@@ -18,6 +18,12 @@ class ArrayCast(chainer.Chain):
         return y1
 
 
+class Array2D(chainer.Chain):
+    def forward(self):
+        y1 = np.array([[1, 2], [3, 4]], dtype=np.float32)
+        return y1
+
+
 # ======================================
 
 
@@ -27,6 +33,8 @@ def main():
 
     testtools.generate_testcase(Array, [], subname='default')
     testtools.generate_testcase(ArrayCast, [], subname='cast')
+    # TODO(hamaji): Fix sequence of sequences.
+    # testtools.generate_testcase(Array2D, [], subname='2d')
 
 
 if __name__ == '__main__':
