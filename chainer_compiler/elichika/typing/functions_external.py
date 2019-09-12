@@ -397,9 +397,9 @@ class ty_ChainerExpandDims():
     def infer_return(self, x_type):
         if self.axis < 0:
             self.axis = x_type.ndim + 1 - abs(self.axis)
-        shape = list(x_type.shape)
-        shape.insert(self.axis, 1)
-        return TyChainerVariable(x_type.dtype, shape=shape)
+        ret_shape = list(x_type.shape)
+        ret_shape.insert(self.axis, 1)
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerBroadcastTo():
@@ -477,7 +477,6 @@ class ty_ChainerRepeat():
             return
         assert x_type.shape[self.axis] == len(repeats), "repeat"
 
-
     def infer_return(self, x_type, repeats):
         if isinstance(repeats, int):
             if x_type.ndim < 1:
@@ -493,16 +492,41 @@ class ty_ChainerRepeat():
 
 class ty_ChainerSqueeze():
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
+        x_type, = ty_args
 
-        # TODO: don't use F.squeeze
-        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
+        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
+        if isinstance(self.axis, int):
+            self.axis = (self.axis,)
 
-        if x_type.shape is None or lacks_value(x_type) or is_dummy_axis:
-            return TyChainerVariable(x_type.dtype, shape=())  # TODO
+        if is_incomplete_shape(x_type.shape):
+            if is_dummy_axis or self.axis is None:
+                assert False, "chainer.fucntions.squeeze: cannot guess ndim of return type"
 
-        ret = F.squeeze(value_of_type(x_type), axis=axis)
-        return type_of_value(ret)
+        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
+
+        if self.axis is not None:
+            for i in self.axis:
+                assert x_type.shape[i] == 1, "chainer.fucntions.squeeze: invalid axis"
+        return self.infer_return(x_type)
+
+    def check_type_forward(self, in_types):
+        # type_check.expect(in_types.size() == 1)
+        x_type = in_types[0]
+
+        if self.axis is not None:
+            for x in self.axis:
+                if x >= 0:
+                    type_check.expect(x < x_type.ndim)
+                else:
+                    type_check.expect(-x_type.ndim <= x)
+
+    def infer_return(self, x_type):
+        ret_shape = list(x_type.shape)
+        if isinstance(self.axis, tuple):
+            ret_shape = [ret_shape[i] for i in range(len(ret_shape)) if i not in self.axis]
+        else:
+            ret_shape = [s for s in ret_shape if s != 1]
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerSwapAxes():
@@ -516,8 +540,7 @@ class ty_ChainerSwapAxes():
         axis1_type = ty_args[1]
         axis2_type = ty_args[2]
 
-        if x_type.shape is None or \
-                lacks_value(axis1_type) or lacks_value(axis2_type):
+        if lacks_value(axis1_type) or lacks_value(axis2_type):
             return TyChainerVariable(x_type.dtype)
 
         shape = x_type.shape
@@ -538,7 +561,7 @@ class ty_ChainerSeparate():
         x_shape = x_type.shape
         x_dtype = x_type.dtype
 
-        if x_shape is None or is_dummy_axis:
+        if is_dummy_axis:
             return TyTuple(TyChainerVariable(x_dtype, shape=())) # TODO
 
         assert axis < len(x_shape)

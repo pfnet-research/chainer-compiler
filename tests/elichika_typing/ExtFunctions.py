@@ -115,19 +115,65 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[40]), "int")	# Num 2 (line 3)
 
 
-    def test_chainer_concat(self):
+    def test_squeeze(self):
+        class Test():
+            def forward(self):
+                F.squeeze(np.zeros((2, 1, 1, 3)))
+                F.squeeze(np.zeros((2, 1, 1, 3)), axis=2)
+                F.squeeze(np.zeros((2, 1, 1, 3)), axis=(1,2))
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[6]), "Variable(dtype=float64, shape=(2, 3))")	# Call F.squeeze(np.zeros((2, 1, 1, 3))) (line 2)
+        self.assertEqual(str(id2type[7]), "ndarray(dtype=float64, shape=(2, 1, 1, 3)) -> Variable(dtype=float64, shape=(2, 3))")	# Attribute F.squeeze (line 2)
+        self.assertEqual(str(id2type[11]), "ndarray(dtype=float64, shape=(2, 1, 1, 3))")	# Call np.zeros((2, 1, 1, 3)) (line 2)
+        self.assertEqual(str(id2type[12]), "(int, int, int, int) -> ndarray(dtype=float64, shape=(2, 1, 1, 3))")	# Attribute np.zeros (line 2)
+        self.assertEqual(str(id2type[16]), "(int, int, int, int)")	# Tuple (2, 1, 1, 3) (line 2)
+        self.assertEqual(str(id2type[17]), "int")	# Num 2 (line 2)
+        self.assertEqual(str(id2type[18]), "int")	# Num 1 (line 2)
+        self.assertEqual(str(id2type[19]), "int")	# Num 1 (line 2)
+        self.assertEqual(str(id2type[20]), "int")	# Num 3 (line 2)
+        self.assertEqual(str(id2type[22]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[23]), "Variable(dtype=float64, shape=(2, 1, 3))")	# Call F.squeeze(np.zeros((2, 1, 1, 3)), axis=2) (line 3)
+        self.assertEqual(str(id2type[24]), "ndarray(dtype=float64, shape=(2, 1, 1, 3)) -> Variable(dtype=float64, shape=(2, 1, 3))")	# Attribute F.squeeze (line 3)
+        self.assertEqual(str(id2type[28]), "ndarray(dtype=float64, shape=(2, 1, 1, 3))")	# Call np.zeros((2, 1, 1, 3)) (line 3)
+        self.assertEqual(str(id2type[29]), "(int, int, int, int) -> ndarray(dtype=float64, shape=(2, 1, 1, 3))")	# Attribute np.zeros (line 3)
+        self.assertEqual(str(id2type[33]), "(int, int, int, int)")	# Tuple (2, 1, 1, 3) (line 3)
+        self.assertEqual(str(id2type[34]), "int")	# Num 2 (line 3)
+        self.assertEqual(str(id2type[35]), "int")	# Num 1 (line 3)
+        self.assertEqual(str(id2type[36]), "int")	# Num 1 (line 3)
+        self.assertEqual(str(id2type[37]), "int")	# Num 3 (line 3)
+        self.assertEqual(str(id2type[40]), "int")	# Num 2 (line 3)
+        self.assertEqual(str(id2type[41]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[42]), "Variable(dtype=float64, shape=(2, 3))")	# Call F.squeeze(np.zeros((2, 1, 1, 3)), axis=(1, 2)) (line 4)
+        self.assertEqual(str(id2type[43]), "ndarray(dtype=float64, shape=(2, 1, 1, 3)) -> Variable(dtype=float64, shape=(2, 3))")	# Attribute F.squeeze (line 4)
+        self.assertEqual(str(id2type[47]), "ndarray(dtype=float64, shape=(2, 1, 1, 3))")	# Call np.zeros((2, 1, 1, 3)) (line 4)
+        self.assertEqual(str(id2type[48]), "(int, int, int, int) -> ndarray(dtype=float64, shape=(2, 1, 1, 3))")	# Attribute np.zeros (line 4)
+        self.assertEqual(str(id2type[52]), "(int, int, int, int)")	# Tuple (2, 1, 1, 3) (line 4)
+        self.assertEqual(str(id2type[53]), "int")	# Num 2 (line 4)
+        self.assertEqual(str(id2type[54]), "int")	# Num 1 (line 4)
+        self.assertEqual(str(id2type[55]), "int")	# Num 1 (line 4)
+        self.assertEqual(str(id2type[56]), "int")	# Num 3 (line 4)
+        self.assertEqual(str(id2type[59]), "(int, int)")	# Tuple (1, 2) (line 4)
+        self.assertEqual(str(id2type[60]), "int")	# Num 1 (line 4)
+        self.assertEqual(str(id2type[61]), "int")	# Num 2 (line 4)
+
+
+    def test_concat(self):
         pass
 
 
-    def test_chainer_stack(self):
+    def test_stack(self):
         pass
 
 
-    def test_chainer_hstack(self):
+    def test_hstack(self):
         pass
 
 
-    def test_chainer_vstack(self):
+    def test_vstack(self):
         class Test():
             def forward(self):
                 F.vstack([np.zeros((1, 3, 4)), np.zeros((2, 3, 4))])
