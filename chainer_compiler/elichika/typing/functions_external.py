@@ -45,6 +45,7 @@ def calculate_reshape(orig_shape, input_shape):
         if any([i == -1 for i in input_shape]):
             return None
         return input_shape
+    orig_shape = unwrap_shape(orig_shape)
     fill = abs(size_of_shape(orig_shape) // size_of_shape(input_shape))
     ret_shape = tuple([i if i != -1 else fill for i in input_shape])
     assert size_of_shape(orig_shape) == size_of_shape(ret_shape)

@@ -538,17 +538,6 @@ def is_incomplete_shape(shape_seq):
     return any([not s.has_value() for s in shape_seq])
 
 
-# use this if we want to allow ndim to be None...
-class Shape():
-    def __init__(self, shape):
-        self.shape = shape
-
-    def __getitem__(self, i):
-        if self.shape is None:
-            return None
-        return self.shape[i]
-
-
 # ------------------------------------------------------------------------------
 
 def all_same_ty(tys):
@@ -593,7 +582,7 @@ def type_of_value(value) -> 'TyObj':
         return TyDType(value)
     if isinstance(value, ShapeElem):
         if isinstance(value._x, int):
-            return TyInt(int(value))
+            return TyInt(value.get_value())
         return TyInt()
 
     return TyUserDefinedClass(type(value).__name__, value)
