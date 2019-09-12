@@ -76,6 +76,9 @@ class TyNum(TyObj):
             return
         self.value = eval(str(NumKind(self.kind)))(self.value)
 
+    def is_int(self):
+        return self.kind <= NumKind.INT
+
 
 def TyBool(value=None):
     return TyNum(0, value=value)  # bool or int or float
@@ -592,6 +595,9 @@ def lacks_value(ty) -> bool:
 
 
 def value_of_type(ty) -> object:
+    # creates dummy value
+    # TODO(momohatt): rename this function
+
     ty = ty.deref()
 
     if isinstance(ty, TyNone):
@@ -624,6 +630,37 @@ def value_of_type(ty) -> object:
         return ty.t
 
     assert False, "value_of_type: type not understood: " + str(ty)
+
+
+def extract_value_from_ty(ty):
+    # returns None where it doesn't have value
+    ty = ty.deref()
+
+    if isinstance(ty, TyNone):
+        return None
+    if isinstance(ty, TyNum):
+        if ty.value is not None:
+            return ty.value
+        return None
+    if isinstance(ty, TyString):
+        if ty.value is not None:
+            return ty.value
+        return None
+    if isinstance(ty, TySequence):
+        if not ty.is_fixed_len:
+            return None
+        ret = [extract_value_from_ty(t) for t in ty.get_tys()]
+        if ty.is_list():
+            return ret
+        return tuple(ret)
+    if isinstance(ty, TyDict):
+        return None
+    if isinstance(ty, TyTensor):
+        return None
+    if isinstance(ty, TyDType):
+        return ty.t
+
+    assert False, "extract_value_from_ty: type not understood: " + str(ty)
 
 
 def choose_stronger_ty(ty1, ty2):

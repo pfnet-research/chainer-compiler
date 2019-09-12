@@ -112,39 +112,44 @@ class ty_NumpyArray():
 
 class ty_NumpyOnes():
     def __call__(self, ty_args, ty_kwargs):
-        shape_type = ty_args[0]
-        is_dummy_shape = lacks_value(shape_type)
-        shape = value_of_type(shape_type)
+        shape_type, = ty_args
         dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
 
-        ty_ret = TyNdarray(dtype, shape=shape)
-        if is_dummy_shape: ty_ret.shape = None
-        if is_dummy_dtype: ty_ret.dtype = None
-        return ty_ret
+        assert not is_dummy_dtype
+
+        if isinstance(shape_type, TyNum):
+            assert shape_type.is_int()
+        else:
+            assert shape_type.is_fixed_len
+
+        shape = extract_value_from_ty(shape_type)
+        if isinstance(shape, int):
+            shape = (shape,)
+
+        return TyNdarray(dtype, shape=shape)
 
 
 class ty_NumpyFull():
     def __call__(self, ty_args, ty_kwargs):
-        shape_type = ty_args[0]
-        value_type = ty_args[1]
+        shape_type, value_type = ty_args
         dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
+
         assert not is_dummy_dtype
 
         assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
-        is_dummy_shape = lacks_value(shape_type)
-        shape = value_of_type(shape_type)
-        if isinstance(shape, int):
-            shape = (shape, )
 
-        y_type = TyNdarray(dtype, shape=shape)
-        if is_dummy_shape: y_type.shape = None
-        return y_type
+        shape = extract_value_from_ty(shape_type)
+        if isinstance(shape, int):
+            shape = (shape,)
+        return TyNdarray(dtype, shape=shape)
 
 
 class ty_ChainerVariable():
     def __call__(self, ty_args, ty_kwargs):
-        infer = make_infer(chainer.Variable, (1,), (np.float32,))
-        return infer(ty_args, ty_kwargs)
+        # XXX: data=Noneはkwargsでないと仮定
+        assert len(ty_args) > 0
+        data_type, = ty_args
+        return TyChainerVariable(data_type.dtype, shape=data_type.shape)
 
 
 class ty_ChainerPooling2d():
@@ -640,7 +645,6 @@ class ty_ChainerSplitAxis():
     # TODO: check_type_forward
 
     def infer_return(self, x_type, n_split):
-        print('zzz')
         if n_split is None:
             if self.axis is None:
                 return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim))
