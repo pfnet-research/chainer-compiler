@@ -225,6 +225,29 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[22]), "int")	# Num 0 (line 2)
 
 
+    def test_split_axis(self):
+        class Test():
+            def forward(self):
+                F.split_axis(np.zeros((3, 4, 5)), 2, 1)
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[6]), "(Variable(dtype=float64, shape=(3, 2, 5)), Variable(dtype=float64, shape=(3, 2, 5)))")	# Call F.split_axis(np.zeros((3, 4, 5)), 2, 1) (line 3)
+        self.assertEqual(str(id2type[7]), "ndarray(dtype=float64, shape=(3, 4, 5)) -> int -> int -> (Variable(dtype=float64, shape=(3, 2, 5)), Variable(dtype=float64, shape=(3, 2, 5)))")	# Attribute F.split_axis (line 3)
+        self.assertEqual(str(id2type[11]), "ndarray(dtype=float64, shape=(3, 4, 5))")	# Call np.zeros((3, 4, 5)) (line 3)
+        self.assertEqual(str(id2type[12]), "(int, int, int) -> ndarray(dtype=float64, shape=(3, 4, 5))")	# Attribute np.zeros (line 3)
+        self.assertEqual(str(id2type[16]), "(int, int, int)")	# Tuple (3, 4, 5) (line 3)
+        self.assertEqual(str(id2type[17]), "int")	# Num 3 (line 3)
+        self.assertEqual(str(id2type[18]), "int")	# Num 4 (line 3)
+        self.assertEqual(str(id2type[19]), "int")	# Num 5 (line 3)
+        self.assertEqual(str(id2type[21]), "int")	# Num 2 (line 3)
+        self.assertEqual(str(id2type[22]), "int")	# Num 1 (line 3)
+
+
+
+
     def test_concat(self):
         pass
 
