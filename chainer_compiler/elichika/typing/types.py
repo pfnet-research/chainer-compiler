@@ -495,6 +495,10 @@ class ShapeElem():
     def has_value(self):
         return self._x is not None
 
+    def get_value(self):
+        assert self._x is not None
+        return self._x
+
 
 def wrap_shape(shape_seq): # Tuple[int or ShapeElem] -> Tuple[ShapeElem]
     return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_seq])

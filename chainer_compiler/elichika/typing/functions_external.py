@@ -592,20 +592,29 @@ class ty_ChainerSwapAxes():
 
 class ty_ChainerSeparate():
     def __call__(self, ty_args, ty_kwargs):
-        x_type = ty_args[0]
-        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
-        assert isinstance(x_type, TyTensor)
-        x_shape = x_type.shape
-        x_dtype = x_type.dtype
+        x_type, = ty_args
+        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
 
         if is_dummy_axis:
-            return TyTuple(TyChainerVariable(x_dtype, shape=())) # TODO
+            return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim-1))
 
-        assert axis < len(x_shape)
+        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
+        return self.infer_return(x_type)
 
-        n = x_shape[axis]
-        out_shape = x_shape[:axis] + x_shape[axis + 1:]
-        return TyTuple([TyChainerVariable(x_dtype, shape=out_shape)] * n)
+    def check_type_forward(self, in_types):
+        x_type = in_types[0]
+        if self.axis >= 0:
+            type_check.expect(self.axis < x_type.ndim)
+        else:
+            type_check.expect(-self.axis <= x_type.ndim)
+
+    def infer_return(self, x_type):
+        n = x_type.shape[self.axis]
+        ret_shape = x_type.shape[:self.axis] + x_type.shape[self.axis + 1:]
+        ret_ty = TyChainerVariable(x_type.dtype, shape=ret_shape)
+        if not n.has_value():
+            return TyTuple(ret_ty)
+        return TyTuple([ret_ty] * n.get_value())
 
 
 class ty_ChainerSplitAxis():
