@@ -840,18 +840,17 @@ def unify(ty1, ty2):
         set_attr_if_None(ty1, ty2, 'dtype')
         set_attr_if_None(ty1, ty2, 'kind')
 
-        if ty1.dtype != ty2.dtype:
-            ty1.dtype = ty2.dtype = None
-        if ty1.shape != ty2.shape:
-            ty1.shape = ty2.shape = None
-        return
+        # TODO: shape unification
+
+        if ty1.dtype == ty2.dtype:
+            return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
-        if len(ty1.shape) == 0:
+        if ty1.ndim == 0:
             return
 
     if isinstance(ty1, TyNum) and isinstance(ty2, TyTensor):
-        if len(ty2.shape) == 0:
+        if ty2.ndim == 0:
             return
 
     if isinstance(ty1, TyDType) and isinstance(ty2, TyDType):

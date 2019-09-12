@@ -587,7 +587,7 @@ class ty_ChainerSwapAxes():
         self.axis2 = value_of_type(axis2_type)
 
         # TODO: move this to check_type_forward
-        assert self.axis1 < len(x_type.shape) and self.axis2 < len(x_type.shape)
+        assert self.axis1 < x_type.ndim and self.axis2 < x_type.ndim
         return self.infer_return(x_type)
 
     def infer_return(self, x_type):
@@ -769,7 +769,7 @@ class ty_ChainerLinear():
             batch_shape = x_shape[:n_batch_axes]
             batch_size = size_of_shape(batch_shape)
             x_shape = calculate_reshape(x_shape, (batch_size, -1))
-        elif len(x_shape) > 2:
+        elif x_type.ndim > 2:
             x_shape = calculate_reshape(x_shape, (x_shape[0], -1))
 
         if linear.in_size is not None:
