@@ -283,6 +283,8 @@ CHX_OPS = [
      [Array('gy'), Array('indices'), Shape('shape'), Int('axis')], ['gx']),
     ('Scatter', [Array('data'), Array('indices'), Array('updates'), Int('axis')], [Array('output')]),
     ('GatherElements', [Array('data'), Array('indices'), Int('axis')], ['output']),
+    ('GatherND', [Array('data'), Array('indices')], ['output']),
+    ('ScatterND', [Array('data'), Array('indices'), Array('updates')], ['output']),
     ('SelectItem', [Array('data'), Array('indices')], ['output']),
     ('SelectItemGrad', [Array('gy'), Array('indices'), Shape('shape')], ['gx']),
     ('Concat', [ArrayList('inputs'), Int('axis')], ['concat_result']),
