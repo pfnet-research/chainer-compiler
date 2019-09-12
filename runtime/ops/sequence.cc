@@ -147,13 +147,13 @@ chainerx::Array SequenceStackOp::RunImpl(ChxVMState* st, const ChxVMSequence& se
 }
 
 std::tuple<chainerx::Array, chainerx::Array> SequenceConcatOp::RunImpl(ChxVMState* st, const ChxVMSequence& seq) {
-    const int ax = axis < 0 ? axis + seq.size() : axis;
-    CHECK_GE(ax, 0);
-    CHECK_LT(ax, seq.size());
+    const int axis = this->axis < 0 ? this->axis + seq.size() : this->axis;
+    CHECK_GE(axis, 0);
+    CHECK_LT(axis, seq.size());
     int64_t index = 0;
     std::vector<int64_t> indices;
     for (const ChxVMVar& v : seq) {
-        indices.push_back(index += v.GetArray().shape()[ax]);
+        indices.push_back(index += v.GetArray().shape()[axis]);
     }
     indices.pop_back();
     chainerx::Array out = chainerx::Concatenate(NonOptional(seq), ax);
