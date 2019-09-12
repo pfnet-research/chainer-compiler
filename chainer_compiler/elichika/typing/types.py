@@ -426,33 +426,30 @@ def _flip(func):
 def _make_unaryop(self, symbol, priority, func):
     if self.value is None:
         return self
-    value = func(self.value)
-    return ShapeElem(value,
-            expr=type_check.UnaryOperator(
-                priority, self.expr, symbol, func))
+    expr = type_check.UnaryOperator(priority, self.expr, symbol, func)
+    return ShapeElem(func(self.value), expr=expr)
 
 def _make_binop(self, other, symbol, priority, func):
     if not isinstance(other, ShapeElem):
         if self.value is None:
             return ShapeElem(None)
-        value = func(self.value, other)
-        return ShapeElem(value,
-                expr=type_check.BinaryOperator(
-                    priority, self.expr, type_check.Constant(other), symbol, func))
+        expr = type_check.BinaryOperator(
+                priority, self.expr, type_check.Constant(other), symbol, func)
+        return ShapeElem(func(self.value, other), expr=expr)
 
     if not isinstance(self, ShapeElem):
         if other.value is None:
             return ShapeElem(None)
-        value = func(self, other.value)
-        return ShapeElem(value,
-                expr=type_check.BinaryOperator(
-                    priority, type_check.Constant(self), other.expr, symbol, func))
+        expr = type_check.BinaryOperator(
+                priority, type_check.Constant(self), other.expr, symbol, func)
+        return ShapeElem(func(self, other.value), expr=expr)
 
     if self.value is None or other.value is None:
         return ShapeElem(None)
-    return ShapeElem(func(self.value, other.value),
-            expr=type_check.BinaryOperator(
-                priority, self.expr, other.expr, symbol, func))
+    expr = type_check.BinaryOperator(
+            priority, self.expr, other.expr, symbol, func)
+    return ShapeElem(func(self.value, other.value), expr=expr)
+
 
 class ShapeElem():
     def __init__(self, value_or_name, expr=None):
