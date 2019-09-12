@@ -166,6 +166,8 @@ class TypeChecker():
         # Path from the root of AST to the current node (only stmt and expr)
         self.stack = []
 
+        self.type_hints = {}
+
 
     def dump_tyenv(self):
         if not self.is_debug:
@@ -256,13 +258,13 @@ class TypeChecker():
         return self.nodetype
 
 
-    def infer_function_vargs(self, node, args: List[object]):
+    def infer_function_vargs(self, node, args: List[object], type_hints={}):
         # args: argument value
         ty_args = [type_of_value(arg) for arg in args]
-        return self.infer_function(node, ty_args)
+        return self.infer_function(node, ty_args, type_hints)
 
 
-    def infer_function(self, node, ty_args: List['TyObj']):
+    def infer_function(self, node, ty_args: List['TyObj'], type_hints={}):
         # TODO(momohatt): varargs
         assert isinstance(node, gast.FunctionDef)
         if node.args.vararg == []:
@@ -273,6 +275,8 @@ class TypeChecker():
         if self.is_debug:
             print("\x1b[33m======================= function {} =======================\x1b[39m".format(node.name))
 
+        self.type_hints = type_hints
+
         for arg_node, ty in zip(node.args.args, ty_args):
             self.tyenv[arg_node.id] = ty
         for ty in ty_args:
@@ -281,12 +285,18 @@ class TypeChecker():
                     self.attribute_tyenv[(ty.instance, attr)] = \
                             type_of_value(val)
 
+        # apply type hints
+        for n, t in self.type_hints.items():
+            unify(self.tyenv[n], t)
+            if isinstance(t, TyTensor):
+                for i in range(self.tyenv[n].ndim):
+                    self.tyenv[n].shape[i].expr = t.shape[i].expr
+
         self.infer_stmt(node)
 
-        # if self.is_debug:
-        #     print('=== Type Environment ===')
-        #     self.dump_nodetype()
-
+        if self.is_debug:
+            print('==================== Type Environment ====================')
+            self.dump_nodetype()
         return self.nodetype
 
 
@@ -362,7 +372,8 @@ class TypeChecker():
         self.subroutine_node[node] = func_node
         tc = TypeChecker(is_debug=self.is_debug,
                 module=sys.modules[func.__module__])
-        tc.infer_function(func_node, ty_args)
+        tc.infer_function(func_node, ty_args,
+                type_hints=typing.get_type_hints(func))
 
         # copy nodetype and subroutine_node from subroutine
         utils.add_dict(self.nodetype, tc.nodetype)
@@ -423,9 +434,21 @@ class TypeChecker():
         return self.nodetype[node]
 
 
+    def read_type_annotation(self, node):
+        if isinstance(node, gast.Call):
+            if isinstance(node.func, gast.Name):
+                if node.id == 'Ndarray':
+                    pass
+
+
     def infer_FunctionDef(self, node):
         # FunctionDef(identifier name, arguments args, stmt* body,
         # expr* decorator_list, expr? returns)
+        for arg in node.args.args:
+            if arg.annotation is None:
+                continue
+            # convert type annotation to something
+
         ty_args = [self.tyenv[arg.id] for arg in node.args.args]
         ty = None
 

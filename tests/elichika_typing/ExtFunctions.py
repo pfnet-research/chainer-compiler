@@ -246,8 +246,6 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[22]), "int")	# Num 1 (line 3)
 
 
-
-
     def test_concat(self):
         pass
 

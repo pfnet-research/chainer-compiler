@@ -1,6 +1,7 @@
 import ast, gast
 import inspect
 import sys
+import typing
 
 from chainer_compiler.elichika.typing.type_checker import TypeChecker
 from chainer_compiler.elichika.typing.utils import node_description
@@ -39,11 +40,11 @@ def generate_id2node(node2id):
     return id2node
 
 
-def generate_node2type(tree, args, is_debug=False, module=None):
+def generate_node2type(tree, args, is_debug=False, module=None, type_hints={}):
     tc = TypeChecker(is_debug=is_debug, module=module)
     func_body = tree.body[0]  # XXX: only checks first function
     try:
-        node2type = tc.infer_function_vargs(func_body, args)
+        node2type = tc.infer_function_vargs(func_body, args, type_hints=type_hints)
         return node2type, tc.subroutine_node
     except Exception as e:
         tc.dump_stack()
@@ -65,7 +66,8 @@ def generate_id2type_from_forward(model, args, is_debug=False):
     module = sys.modules[model.forward.__module__]
     args = (model,) + args
     node2type, subroutine_node = generate_node2type(
-            tree, args, is_debug=is_debug, module=module)
+            tree, args, is_debug=is_debug, module=module,
+            type_hints=typing.get_type_hints(model.forward))
     node2id = generate_node2id(tree, subroutine_node)
     id2type = generate_id2type(node2type, node2id)
     return id2type
@@ -100,7 +102,8 @@ if __name__ == '__main__':
     node = gast.ast_to_gast(ast.parse(code))
     module = sys.modules[model.forward.__module__]
     node2type, subroutine_node = generate_node2type(
-            node, forward_args, is_debug=True, module=module)
+            node, forward_args, is_debug=True, module=module,
+            type_hints=typing.get_type_hints(model.forward))
     node2id = generate_node2id(node, subroutine_node)
     id2type = generate_id2type(node2type, node2id)
     id2node = generate_id2node(node2id)

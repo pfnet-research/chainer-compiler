@@ -9,10 +9,16 @@ import six
 from   typing import List
 
 from   chainer.utils.conv import get_conv_outsize
-from   chainer.utils import size_of_shape
 from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.types import *
+
+def size_of_shape(shape):
+    size = 1
+    for i in shape:
+        size *= i
+    return size
+
 
 def make_pair(x):
     if isinstance(x, int):
@@ -787,6 +793,7 @@ class ty_ChainerConvolution2D():
         x_type, = ty_args
 
         assert x_type.dtype.kind == 'f'
+        assert x_type.dtype == conv.b.dtype
         assert x_type.ndim == 4
 
         if conv.in_channels is not None:

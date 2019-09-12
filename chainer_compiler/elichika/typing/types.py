@@ -429,12 +429,16 @@ class Variable(Expr):
         self.name = name
     def __str__(self):
         return self.name
+    def __eq__(self, other):
+        return self.name == other.name
 
 class Constant(Expr):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return str(self.value)
+    def __eq__(self, other):
+        return self.value == other.value
 
 class UnaryOp(Expr):
     def __init__(self, symbol, operand):
@@ -442,6 +446,8 @@ class UnaryOp(Expr):
         self.operand = operand
     def __str__(self):
         return "{}({})".format(self.symbol, self.operand)
+    def __eq__(self, other):
+        return self.symbol == other.symbol and self.operand == other.operand
 
 class BinOp(Expr):
     def __init__(self, symbol, lhs, rhs):
@@ -450,42 +456,45 @@ class BinOp(Expr):
         self.rhs = rhs
     def __str__(self):
         return "{} {} {}".format(self.lhs, self.symbol, self.rhs)
+    def __eq__(self, other):
+        return self.symbol == other.symbol and self.lhs == other.lhs and \
+                self.rhs == other.rhs
 
 
 class ShapeElem():
-    def __init__(self, x, name=None, expr=None):
-        assert isinstance(x, int) or isinstance(x, float) or x is None
-        self._x = x
-        if expr is not None:
-            self.expr = expr
-        elif name is not None:
-            self.expr = Variable(name)
+    def __init__(self, value_or_name, expr=None):
+        assert type(value_or_name) in [int, float, str, type(None)]
+        if isinstance(value_or_name, str):
+            self.value = None
+            self.expr = Variable(value_or_name)
         else:
-            self.expr = Constant(x)
+            self.value = value_or_name
+            self.expr = expr if expr else Constant(value_or_name)
 
     def __str__(self):
-        return str(self._x)
-
-    def show(self):
-        return "{} ({})".format(self._x, self.expr)
+        if isinstance(self.expr, Constant):
+            return str(self.value)
+        return "{} ({})".format(self.value, self.expr)
 
     def __repr__(self):
         return self.__str__()
 
     def _make_unaryop(self, sem, symbol):
-        if self._x is None:
+        if self.value is None:
             return self
-        return ShapeElem(sem(self._x), expr=UnaryOp(symbol, self.expr))
+        return ShapeElem(sem(self.value), expr=UnaryOp(symbol, self.expr))
 
     def _make_binop(self, other, sem, symbol):
-        if isinstance(other, ShapeElem):
-            if self._x is None or other._x is None:
+        if not isinstance(other, ShapeElem):
+            if self.value is None:
                 return ShapeElem(None)
-            return ShapeElem(sem(self._x, other._x), expr=BinOp(symbol, self.expr, other.expr))
+            return ShapeElem(sem(self.value, other),
+                expr=BinOp(symbol, self.expr, Constant(other)))
 
-        if self._x is None:
+        if self.value is None or other.value is None:
             return ShapeElem(None)
-        return ShapeElem(sem(self._x, other))
+        return ShapeElem(sem(self.value, other.value), expr=BinOp(symbol, self.expr, other.expr))
+
 
     def __neg__(self):
         return self._make_unaryop(lambda x: -x, '-')
@@ -517,22 +526,22 @@ class ShapeElem():
 
     def __eq__(self, other):
         if isinstance(other, ShapeElem):
-            return self._x == other._x
+            return self.value == other.value
         else:
-            return self._x == other
+            return self.value == other
 
     def has_value(self):
-        return self._x is not None
+        return self.value is not None
 
     def get_value(self):
-        return self._x
+        return self.value
 
 
 def wrap_shape(shape_seq): # Tuple[int or ShapeElem] -> Tuple[ShapeElem]
-    return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_seq])
+    return tuple([i if isinstance(i, ShapeElem) else ShapeElem(i) for i in shape_seq])
 
 def unwrap_shape(shape_seq):
-    return tuple([s._x if s.has_value() else 1 for s in shape_seq])
+    return tuple([s.value if s.has_value() else 1 for s in shape_seq])
 
 def is_incomplete_shape(shape_seq):
     return any([not s.has_value() for s in shape_seq])
@@ -581,7 +590,7 @@ def type_of_value(value) -> 'TyObj':
         # XXX: np.typeDict.values() is a list of all dtypes
         return TyDType(value)
     if isinstance(value, ShapeElem):
-        if isinstance(value._x, int):
+        if isinstance(value.value, int):
             return TyInt(value.get_value())
         return TyInt()
 
@@ -829,10 +838,13 @@ def unify(ty1, ty2):
         set_attr_if_None(ty1, ty2, 'dtype')
         set_attr_if_None(ty1, ty2, 'kind')
 
-        # TODO: shape unification
-
-        if ty1.dtype == ty2.dtype:
-            return
+        if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
+            for s1, s2 in zip(ty1.shape, ty2.shape):
+                try:
+                    unify_shapeElem(s1, s2)
+                    return
+                except Exception:
+                    raise UnifyError(ty1, ty2)
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
         if ty1.ndim == 0:
@@ -855,3 +867,11 @@ def unify(ty1, ty2):
             raise UnifyError(ty1, ty2)
 
     raise UnifyError(ty1, ty2)
+
+
+def unify_shapeElem(e1, e2):
+    if e1.value and e2.value:
+        if e1.value != e2.value:
+            raise Exception
+
+    set_attr_if_None(e1, e2, 'value')
