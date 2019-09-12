@@ -107,6 +107,17 @@ inline bool SuppressByIOU(const float* boxes_data, int64_t box_idx1, int64_t box
     return intersection_over_union > iou_threshold;
 }
 
+inline std::vector<chainerx::ArrayIndex> ArrayToIndex(const chainerx::Array& ary) {
+    CHECK(ary.shape().size() < 2);
+    std::vector<chainerx::ArrayIndex> ret(ary.GetTotalSize(), 0);
+
+    for (int64_t i = 0; i < ary.GetTotalSize(); ++i) {
+        ret[i] = static_cast<int64_t>(chainerx::AsScalar(ary.At({i})));
+    }
+
+    return ret;
+}
+
 }  // namespace
 
 chainerx::Array DynamicSliceOp::RunImpl(
@@ -195,6 +206,42 @@ chainerx::Array SetItemOp::RunImpl(
     return out;
 }
 
+chainerx::Array GatherNDOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
+    CHECK(indices.shape().back() <= data.shape().size());
+
+    chainerx::Shape out_shape(indices.shape().begin(), indices.shape().end() - 1);
+    out_shape.insert(out_shape.end(), data.shape().begin() + indices.shape().back(), data.shape().end());
+
+    chainerx::Array out = chainerx::Empty(out_shape, data.dtype(), data.device());
+    chainerx::Indexer<> indices_indexer{chainerx::Shape(indices.shape().begin(), indices.shape().end() - 1)};
+
+    std::vector<chainerx::ArrayIndex> idx(indices.shape().size() - 1, 0);
+    CHECK_EQ(idx.size(), indices.shape().size() - 1);
+    for (auto it = indices_indexer.It(0); it; ++it) {
+        std::copy_n(it.index(), it.ndim(), idx.begin());
+        BlitArray(data.At(ArrayToIndex(indices.At(idx))), out.At(idx));
+    }
+
+    return out;
+}
+
+chainerx::Array ScatterNDOp::RunImpl(
+        ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices, const chainerx::Array& updates) {
+    CHECK(indices.shape().back() <= data.shape().size());
+
+    chainerx::Array out = data.Copy();
+    chainerx::Indexer<> indices_indexer{chainerx::Shape(indices.shape().begin(), indices.shape().end() - 1)};
+
+    std::vector<chainerx::ArrayIndex> idx(indices.shape().size() - 1, 0);
+    CHECK_EQ(idx.size(), indices.shape().size() - 1);
+    for (auto it = indices_indexer.It(0); it; ++it) {
+        std::copy_n(it.index(), it.ndim(), idx.begin());
+        BlitArray(updates.At(idx), out.At(ArrayToIndex(indices.At(idx))));
+    }
+
+    return out;
+}
+
 chainerx::Array GatherOp::RunImpl(ChxVMState* st, const chainerx::Array& data, const chainerx::Array& indices) {
     return data.Take(indices.ToDevice(data.device()), axis);
 }
@@ -210,10 +257,8 @@ chainerx::Array GatherElementsOp::RunImpl(ChxVMState* st, const chainerx::Array&
 
     std::vector<chainerx::ArrayIndex> src(indices.shape().size(), 0), dst(indices.shape().size(), 0);
     for (auto it = indices_indexer.It(0); it; ++it) {
-        for (int64_t i = 0; i < it.ndim(); ++i) {
-            dst[i] = it.index()[i];
-            src[i] = it.index()[i];
-        }
+        std::copy_n(it.index(), it.ndim(), src.begin());
+        std::copy_n(it.index(), it.ndim(), dst.begin());
         src[axis] = indices_iarray[it];
         BlitArray(data.At(src), out.At(dst));
     }
@@ -239,10 +284,8 @@ chainerx::Array ScatterOp::RunImpl(
 
     std::vector<chainerx::ArrayIndex> dst(indices.shape().size(), 0), src(indices.shape().size(), 0);
     for (auto it = indices_indexer.It(0); it; ++it) {
-        for (int64_t i = 0; i < it.ndim(); ++i) {
-            src[i] = it.index()[i];
-            dst[i] = it.index()[i];
-        }
+        std::copy_n(it.index(), it.ndim(), src.begin());
+        std::copy_n(it.index(), it.ndim(), dst.begin());
         dst[axis] = indices_iarray[it];
         BlitArray(updates.At(src), data.At(dst));
     }
