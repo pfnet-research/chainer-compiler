@@ -161,6 +161,50 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[61]), "int")	# Num 2 (line 4)
 
 
+    def test_sum(self):
+        class Test():
+            def forward(self):
+                F.sum(np.zeros((1, 2, 3)), axis=-1)
+                F.sum(np.zeros((1, 2, 3)), axis=1, keepdims=True)
+                F.sum(np.zeros((1, 2, 3)), keepdims=True)
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[6]), "Variable(dtype=float64, shape=(1, 2))")	# Call F.sum(np.zeros((1, 2, 3)), axis=-1) (line 3)
+        self.assertEqual(str(id2type[7]), "ndarray(dtype=float64, shape=(1, 2, 3)) -> Variable(dtype=float64, shape=(1, 2))")	# Attribute F.sum (line 3)
+        self.assertEqual(str(id2type[11]), "ndarray(dtype=float64, shape=(1, 2, 3))")	# Call np.zeros((1, 2, 3)) (line 3)
+        self.assertEqual(str(id2type[12]), "(int, int, int) -> ndarray(dtype=float64, shape=(1, 2, 3))")	# Attribute np.zeros (line 3)
+        self.assertEqual(str(id2type[16]), "(int, int, int)")	# Tuple (1, 2, 3) (line 3)
+        self.assertEqual(str(id2type[17]), "int")	# Num 1 (line 3)
+        self.assertEqual(str(id2type[18]), "int")	# Num 2 (line 3)
+        self.assertEqual(str(id2type[19]), "int")	# Num 3 (line 3)
+        self.assertEqual(str(id2type[22]), "int")	# UnaryOp -1 (line 3)
+        self.assertEqual(str(id2type[24]), "int")	# Num 1 (line 3)
+        self.assertEqual(str(id2type[25]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[26]), "Variable(dtype=float64, shape=(1, 1, 3))")	# Call F.sum(np.zeros((1, 2, 3)), axis=1, keepdims=True) (line 4)
+        self.assertEqual(str(id2type[27]), "ndarray(dtype=float64, shape=(1, 2, 3)) -> Variable(dtype=float64, shape=(1, 1, 3))")	# Attribute F.sum (line 4)
+        self.assertEqual(str(id2type[31]), "ndarray(dtype=float64, shape=(1, 2, 3))")	# Call np.zeros((1, 2, 3)) (line 4)
+        self.assertEqual(str(id2type[32]), "(int, int, int) -> ndarray(dtype=float64, shape=(1, 2, 3))")	# Attribute np.zeros (line 4)
+        self.assertEqual(str(id2type[36]), "(int, int, int)")	# Tuple (1, 2, 3) (line 4)
+        self.assertEqual(str(id2type[37]), "int")	# Num 1 (line 4)
+        self.assertEqual(str(id2type[38]), "int")	# Num 2 (line 4)
+        self.assertEqual(str(id2type[39]), "int")	# Num 3 (line 4)
+        self.assertEqual(str(id2type[42]), "int")	# Num 1 (line 4)
+        self.assertEqual(str(id2type[44]), "bool")	# NameConstant True (line 4)
+        self.assertEqual(str(id2type[45]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[46]), "Variable(dtype=float64, shape=(1, 1, 1))")	# Call F.sum(np.zeros((1, 2, 3)), keepdims=True) (line 5)
+        self.assertEqual(str(id2type[47]), "ndarray(dtype=float64, shape=(1, 2, 3)) -> Variable(dtype=float64, shape=(1, 1, 1))")	# Attribute F.sum (line 5)
+        self.assertEqual(str(id2type[51]), "ndarray(dtype=float64, shape=(1, 2, 3))")	# Call np.zeros((1, 2, 3)) (line 5)
+        self.assertEqual(str(id2type[52]), "(int, int, int) -> ndarray(dtype=float64, shape=(1, 2, 3))")	# Attribute np.zeros (line 5)
+        self.assertEqual(str(id2type[56]), "(int, int, int)")	# Tuple (1, 2, 3) (line 5)
+        self.assertEqual(str(id2type[57]), "int")	# Num 1 (line 5)
+        self.assertEqual(str(id2type[58]), "int")	# Num 2 (line 5)
+        self.assertEqual(str(id2type[59]), "int")	# Num 3 (line 5)
+        self.assertEqual(str(id2type[62]), "bool")	# NameConstant True (line 5)
+
+
     def test_concat(self):
         pass
 

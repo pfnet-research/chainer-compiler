@@ -425,17 +425,6 @@ class ty_ChainerBroadcastTo():
         return TyChainerVariable(x_type.dtype, shape=out_shape)
 
 
-class ty_ChainerSum():
-    def __call__(self, ty_args, ty_kwargs):
-        # TODO(momohatt): use is_dummy_axis
-        axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
-        fallback_shapes = ((1,) * (axis + 1),)
-        fallback_dtypes = (np.float32,)
-
-        infer = make_infer(F.sum, fallback_shapes, fallback_dtypes)
-        return infer(ty_args, ty_kwargs)
-
-
 class ty_ChainerReshape():
     def __call__(self, ty_args, ty_kwargs):
         x_type, shape_type = ty_args
@@ -490,6 +479,12 @@ class ty_ChainerRepeat():
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
+def remove_dims(shape, dims_to_remove):
+    # dims_to_remove can have negative indices
+    dims_to_remove = [d % len(shape) for d in dims_to_remove]
+    return tuple([shape[i] for i in range(len(shape)) if i not in dims_to_remove])
+
+
 class ty_ChainerSqueeze():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
@@ -499,6 +494,7 @@ class ty_ChainerSqueeze():
             self.axis = (self.axis,)
 
         if is_incomplete_shape(x_type.shape):
+            # TODO: use ty_kwargs['axis'].size()
             if is_dummy_axis or self.axis is None:
                 assert False, "chainer.fucntions.squeeze: cannot guess ndim of return type"
 
@@ -521,11 +517,55 @@ class ty_ChainerSqueeze():
                     type_check.expect(-x_type.ndim <= x)
 
     def infer_return(self, x_type):
-        ret_shape = list(x_type.shape)
         if isinstance(self.axis, tuple):
-            ret_shape = [ret_shape[i] for i in range(len(ret_shape)) if i not in self.axis]
+            ret_shape = remove_dims(x_type.shape, self.axis)
         else:
-            ret_shape = [s for s in ret_shape if s != 1]
+            ret_shape = [s for s in x_type.shape if s != 1]
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
+
+
+class ty_ChainerSum():
+    def __call__(self, ty_args, ty_kwargs):
+        x_type, = ty_args
+        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
+        self.keepdims, is_dummy_keepdims = \
+                get_kwarg(ty_kwargs, 'keepdims', default=False)
+
+        if isinstance(self.axis, int):
+            self.axis = (self.axis,)
+
+        self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
+
+        if self.axis is None:
+            self.axis = tuple(range(x_type.ndim))
+
+        return self.infer_return(x_type)
+
+    def check_type_forward(self, in_types):
+        # type_check._argname(in_types, ('x',))
+        type_check.expect(in_types[0].dtype.kind == 'f')
+
+        if self.axis is None:
+            return
+
+        for axis in self.axis:
+            if axis >= 0:
+                type_check.expect(
+                    axis < in_types[0].ndim,
+                )
+            else:
+                type_check.expect(
+                    -axis - 1 < in_types[0].ndim,
+                )
+
+    def infer_return(self, x_type):
+        if self.keepdims:
+            ret_shape = list(x_type.shape)
+            for i in self.axis:
+                ret_shape[i] = 1
+            return TyChainerVariable(x_type.dtype, shape=ret_shape)
+
+        ret_shape = remove_dims(x_type.shape, self.axis)
         return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
