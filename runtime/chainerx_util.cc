@@ -414,5 +414,12 @@ void* RawStartPtr(const chainerx::Array& a) {
     return static_cast<char*>(a.raw_data()) + a.offset();
 }
 
+int ResolveAxis(const chainerx::Array& x, int axis) {
+    const int64_t ax = axis < 0 ? axis + x.ndim() : axis;
+    CHECK_GE(ax, 0);
+    CHECK_LT(ax, x.ndim());
+    return ax;
+}
+
 }  // namespace runtime
 }  // namespace chainer_compiler

@@ -82,6 +82,7 @@ std::vector<chainerx::Array> ConcatGradOp::RunImpl(
 }
 
 std::vector<chainerx::Array> SplitOp::RunImpl(ChxVMState* st, const chainerx::Array& input) {
+    const int axis = ResolveAxis(input, this->axis);
     std::vector<int64_t> lens{split.begin(), split.end()};
     if (lens.empty()) {
         int64_t dim = input.shape()[axis];

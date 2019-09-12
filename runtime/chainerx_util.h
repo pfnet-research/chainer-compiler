@@ -82,5 +82,7 @@ chainerx::Array SlowRound(const chainerx::Array& a);
 
 void* RawStartPtr(const chainerx::Array& a);
 
+int ResolveAxis(const chainerx::Array& x, int axis);
+
 }  // namespace runtime
 }  // namespace chainer_compiler
