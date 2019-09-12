@@ -531,26 +531,23 @@ class ty_ChainerSqueeze():
 
 class ty_ChainerSwapAxes():
     def __call__(self, ty_args, ty_kwargs):
-        def swap(t, i, j):
-            l = list(t)
-            l[i], l[j] = l[j], l[i]
-            return tuple(l)
-
-        x_type = ty_args[0]
-        axis1_type = ty_args[1]
-        axis2_type = ty_args[2]
+        x_type, axis1_type, axis2_type = ty_args
 
         if lacks_value(axis1_type) or lacks_value(axis2_type):
             return TyChainerVariable(x_type.dtype)
 
-        shape = x_type.shape
-        axis1 = value_of_type(axis1_type)
-        axis2 = value_of_type(axis2_type)
+        self.axis1 = value_of_type(axis1_type)
+        self.axis2 = value_of_type(axis2_type)
 
-        assert axis1 < len(shape) and axis2 < len(shape)
+        # TODO: move this to check_type_forward
+        assert self.axis1 < len(x_type.shape) and self.axis2 < len(x_type.shape)
+        return self.infer_return(x_type)
 
-        return TyChainerVariable(x_type.dtype,
-                shape=swap(shape, axis1, axis2))
+    def infer_return(self, x_type):
+        ret_shape = list(x_type.shape)
+        ret_shape[self.axis1], ret_shape[self.axis2] = \
+                ret_shape[self.axis2], ret_shape[self.axis1]
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerSeparate():
