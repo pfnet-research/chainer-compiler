@@ -67,17 +67,21 @@ def lazy_initializer(node):
     return None
 
 
+def handle_inference_error(exception, name, node):
+    print_warning(str(exception))
+    print_warning("Failed to infer type of " + name +
+            ". Falling back to TyVar...")
+    # raise Exception
+    return TyVar(lineno=getattr(node, 'lineno', None))
+
+
 def call_ext_function(func, node, ty_args, ty_kwargs):
     # Non-tensor arguments
     inference_logic = ext_func_ty[func]
     try:
         ty_ret = inference_logic(ty_args, ty_kwargs)
     except Exception as e:
-        print_warning(str(e))
-        print_warning("Failed to infer type of " + func.__name__ +
-                ". Falling back to TyVar...")
-        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
-        raise Exception
+        ty_ret = handle_inference_error(e, func.__name__, node)
     return ty_ret
 
 
@@ -86,11 +90,7 @@ def call_ext_callable(obj, node, ty_args, ty_kwargs):
     try:
         ty_ret = inference_logic(obj, ty_args, ty_kwargs)
     except Exception as e:
-        print_warning(str(e))
-        print_warning("Failed to infer type of " + obj.__class__.__name__ +
-                ". Falling back to TyVar...")
-        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
-        # raise Exception
+        ty_ret = handle_inference_error(e, obj.__class__.__name__, node)
     return ty_ret
 
 
@@ -99,11 +99,7 @@ def call_builtin_function(func, node, ty_args):
         dummy_args = [value_of_type(t) for t in ty_args]
         ty_ret = type_of_value(func(*dummy_args))
     except Exception as e:
-        print_warning(str(e))
-        print_warning("Failed to infer type of " + func.__name__ +
-                ". Falling back to TyVar...")
-        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
-        # raise Exception
+        ty_ret = handle_inference_error(e, func.__name__, node)
     return ty_ret
 
 
@@ -120,11 +116,7 @@ def call_binop(op, node, tyl, tyr):
         vall, valr = value_of_type(tyl), value_of_type(tyr)
         ty_ret = type_of_value(func(vall, valr))
     except Exception as e:
-        print_warning(str(e))
-        print_warning("Failed to infer type of " + func.__name__ +
-                ". Falling back to TyVar...")
-        ty_ret = TyVar(lineno=getattr(node, 'lineno', None))
-        raise Exception
+        ty_ret = handle_inference_error(e, op.__class__.__name__, node)
 
     if isinstance(ty_ret, TySequence) and \
             not (tyl.is_fixed_len and tyr.is_fixed_len):
@@ -135,6 +127,7 @@ def call_binop(op, node, tyl, tyr):
             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape):
         ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
     return ty_ret
+
 
 # ==============================================================================
 
