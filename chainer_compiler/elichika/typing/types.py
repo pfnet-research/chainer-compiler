@@ -622,7 +622,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyDType):
         return ty.t
 
-    assert False, str(ty)
+    assert False, "value_of_type: type not understood: " + str(ty)
 
 
 def choose_stronger_ty(ty1, ty2):

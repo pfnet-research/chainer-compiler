@@ -377,12 +377,28 @@ class ty_ChainerVstack():
 
 class ty_ChainerExpandDims():
     def __call__(self, ty_args, ty_kwargs):
-        axis = ty_args[1].value
-        fallback_shapes = (wrap_shape((1,) * axis,))
-        fallback_dtypes = (np.float32,)
+        x_type, axis_type = ty_args
+        if lacks_value(axis_type):
+            return TyChainerVariable(x_type.dtype, ndim=x_type.ndim + 1)
 
-        infer = make_infer(F.expand_dims, fallback_shapes, fallback_dtypes)
-        return infer(ty_args, ty_kwargs)
+        self.axis = value_of_type(axis_type)
+        self.check_type_forward(make_multiple_tc_variable((x_type,), ('x',)))
+        return self.infer_return(x_type)
+
+    def check_type_forward(self, in_types):
+        type_check._argname(in_types, ('x',))
+        x_type, = in_types
+        if self.axis >= 0:
+            type_check.expect(x_type.ndim >= self.axis)
+        else:
+            type_check.expect(x_type.ndim >= -self.axis - 1)
+
+    def infer_return(self, x_type):
+        if self.axis < 0:
+            self.axis = x_type.ndim + 1 - abs(self.axis)
+        shape = list(x_type.shape)
+        shape.insert(self.axis, 1)
+        return TyChainerVariable(x_type.dtype, shape=wrap_shape(shape))
 
 
 class ty_ChainerBroadcastTo():
@@ -640,9 +656,7 @@ class ty_ChainerLocalResponseNormalization():
         assert len(x_type.shape) >= 2
 
     def infer_return(self, x_type):
-        return TyChainerVariable(
-                dtype=x_type.dtype,
-                shape=x_type.shape)
+        return TyChainerVariable(dtype=x_type.dtype, shape=x_type.shape)
 
 
 # ================================= Links ======================================
@@ -655,12 +669,12 @@ class ty_ChainerLinear():
 
         if linear.b is not None:
             assert x_type.dtype == linear.b.dtype
-        if is_incomplete_shape(x_type.shape) or is_dummy_n_batch_axes:
+        if is_dummy_n_batch_axes:
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
         assert n_batch_axes >= 1
 
-        out_shape = self.infer_return_shape(linear, x_type.shape, n_batch_axes)
+        out_shape = self.infer_return_shape(linear, x_type, n_batch_axes)
         return TyChainerVariable(x_type.dtype, shape=out_shape)
 
     def infer_return_shape(self, linear, x_type, n_batch_axes):
@@ -688,9 +702,6 @@ class ty_ChainerConvolution2D():
 
         assert x_type.dtype.kind == 'f'
         assert x_type.ndim == 4
-
-        if is_incomplete_shape(x_type.shape):
-            return TyChainerVariable(x_type.dtype, ndim=4)
 
         if conv.in_channels is not None:
             assert x_type.shape[1] == conv.in_channels
