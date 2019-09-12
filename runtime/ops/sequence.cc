@@ -163,13 +163,11 @@ std::tuple<chainerx::Array, chainerx::Array> SequenceConcatOp::RunImpl(ChxVMStat
 
 void SequenceSplitAxisOp::RunImpl(
         ChxVMState* st, const chainerx::Array& seq, const absl::optional<chainerx::Array>& indices_or_sections, ChxVMSequence* output) {
-    const int ax = axis < 0 ? axis + seq.ndim() : axis;
-    CHECK_GE(ax, 0);
-    CHECK_LT(ax, seq.ndim());
+    const int axis = ResolveAxis(seq, this->axis);
     if (!indices_or_sections.has_value() || indices_or_sections->ndim() == 0) {
         int64_t sections =
-                indices_or_sections.has_value() ? static_cast<int64_t>(chainerx::AsScalar(*indices_or_sections)) : seq.shape()[ax];
-        for (const chainerx::Array& a : chainerx::Split(seq, sections, ax)) {
+                indices_or_sections.has_value() ? static_cast<int64_t>(chainerx::AsScalar(*indices_or_sections)) : seq.shape()[axis];
+        for (const chainerx::Array& a : chainerx::Split(seq, sections, axis)) {
             output->emplace_back(a);
         }
     } else {
@@ -178,7 +176,7 @@ void SequenceSplitAxisOp::RunImpl(
         for (int i = 0; i < indices_or_sections->shape()[0]; ++i) {
             indices.push_back(static_cast<int64_t>(chainerx::AsScalar(indices_or_sections->At({i}))));
         }
-        for (const chainerx::Array& a : chainerx::Split(seq, indices, ax)) {
+        for (const chainerx::Array& a : chainerx::Split(seq, indices, axis)) {
             output->emplace_back(a);
         }
     }
@@ -227,10 +225,8 @@ void SplitToSequence(chainerx::Array v, int axis, ChxVMSequence* seq) {
 }  // namespace
 
 void SequenceSeparateOp::RunImpl(ChxVMState* st, const chainerx::Array& input, ChxVMSequence* output) {
-    const int ax = axis < 0 ? axis + input.ndim() : axis;
-    CHECK_GE(ax, 0);
-    CHECK_LT(ax, input.ndim());
-    SplitToSequence(input, ax, output);
+    const int axis = ResolveAxis(input, this->axis);
+    SplitToSequence(input, axis, output);
 }
 
 void SequenceUnpadOp::RunImpl(ChxVMState* st, const chainerx::Array& input, const ChxVMSequence& lengths, ChxVMSequence* output) {
