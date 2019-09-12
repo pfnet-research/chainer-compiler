@@ -1,5 +1,6 @@
-from copy import deepcopy
-from enum import Enum, IntEnum
+from   copy import deepcopy
+from   enum import Enum, IntEnum
+from   chainer.utils import type_check
 
 import chainer
 import chainer.functions as F
@@ -7,7 +8,7 @@ import chainer.links as L
 import numpy as np
 import math
 
-from chainer_compiler.elichika.typing.utils import intercalate
+from   chainer_compiler.elichika.typing import utils
 
 def print_warning(msg):
     print("\x1b[33m[WARNING] " + msg + "\x1b[39m")
@@ -145,14 +146,14 @@ class TySequence(TyObj):
     def show(self):
         if self.is_fixed_len:
             if self.kind == SequenceKind.LIST:
-                return "[" + intercalate([str(t) for t in self._ty], ", ") + "]"
+                return "[" + utils.intercalate([str(t) for t in self._ty], ", ") + "]"
 
             if self.kind == SequenceKind.TUPLE:
                 if len(self._ty) == 1:
                     return "(" + str(self._ty[0]) + ",)"
-                return "(" + intercalate([str(t) for t in self._ty], ", ") + ")"
+                return "(" + utils.intercalate([str(t) for t in self._ty], ", ") + ")"
 
-            return "{" + intercalate([str(t) for t in self._ty], ", ") + "}"
+            return "{" + utils.intercalate([str(t) for t in self._ty], ", ") + "}"
 
         if self.kind == SequenceKind.LIST:
             return str(self._ty) + " list"
@@ -419,81 +420,106 @@ class TyUnion(TyObj):
 
 # ------------------------------------------------------------------------------
 
+# mini-AST for ShapeElem
+class Expr():
+    pass
+
+class Variable(Expr):
+    def __init__(self, name):
+        self.name = name
+    def __str__(self):
+        return self.name
+
+class Constant(Expr):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return str(self.value)
+
+class UnaryOp(Expr):
+    def __init__(self, symbol, operand):
+        self.symbol = symbol
+        self.operand = operand
+    def __str__(self):
+        return "{}({})".format(self.symbol, self.operand)
+
+class BinOp(Expr):
+    def __init__(self, symbol, lhs, rhs):
+        self.symbol = symbol
+        self.lhs = lhs
+        self.rhs = rhs
+    def __str__(self):
+        return "{} {} {}".format(self.lhs, self.symbol, self.rhs)
+
+
 class ShapeElem():
-    # int or None
-    # TODO(momohatt): support string (symbol)
-    def __init__(self, x):
+    def __init__(self, x, name=None, expr=None):
         assert isinstance(x, int) or isinstance(x, float) or x is None
         self._x = x
+        if expr is not None:
+            self.expr = expr
+        elif name is not None:
+            self.expr = Variable(name)
+        else:
+            self.expr = Constant(x)
 
     def __str__(self):
         return str(self._x)
 
-    def __repr__(self):
-        return str(self._x)
+    def show(self):
+        return "{} ({})".format(self._x, self.expr)
 
-    def _arith_op(self, sem, other):
+    def __repr__(self):
+        return self.__str__()
+
+    def _make_unaryop(self, sem, symbol):
+        if self._x is None:
+            return self
+        return ShapeElem(sem(self._x), expr=UnaryOp(symbol, self.expr))
+
+    def _make_binop(self, other, sem, symbol):
         if isinstance(other, ShapeElem):
             if self._x is None or other._x is None:
                 return ShapeElem(None)
-            return ShapeElem(sem(self._x, other._x))
+            return ShapeElem(sem(self._x, other._x), expr=BinOp(symbol, self.expr, other.expr))
 
         if self._x is None:
             return ShapeElem(None)
         return ShapeElem(sem(self._x, other))
 
-    def __add__(self, other):
-        return self._arith_op(lambda x, y: x + y, other)
-    def __sub__(self, other):
-        return self._arith_op(lambda x, y: x - y, other)
-    def __mul__(self, other):
-        return self._arith_op(lambda x, y: x * y, other)
-    def __truediv__(self, other):
-        return self._arith_op(lambda x, y: x / y, other)
-    def __floordiv__(self, other):
-        return self._arith_op(lambda x, y: x // y, other)
-
     def __neg__(self):
-        if self._x is None:
-            return self
-        return ShapeElem(-self._x)
-
-    def __iadd__(self, other):
-        return self.__add__(other)
-    def __isub__(self, other):
-        return self.__sub__(other)
-    def __imul__(self, other):
-        return self.__mul__(other)
-    def __itruediv__(self, other):
-        return self.__div__(other)
-    def __ifloordiv__(self, other):
-        return self.__floordiv__(other)
-
-    def __radd__(self, other):
-        return self.__add__(other)
-    def __rsub__(self, other):
-        return self.__isub__(other)
-    def __rmul__(self, other):
-        return self.__mul__(other)
-    def __rtruediv__(self, other):
-        return self.__div__(other)
-    def __rfloordiv__(self, other):
-        return self.__floordiv__(other)
-
+        return self._make_unaryop(lambda x: -x, '-')
     def __ceil__(self):
-        if self._x is None:
-            return self
-        return ShapeElem(math.ceil(self._x))
+        return self._make_unaryop(math.ceil, 'ceil')
+
+    def __add__(self, other):
+        return self._make_binop(other, lambda x, y: x + y,  '+')
+    def __sub__(self, other):
+        return self._make_binop(other, lambda x, y: x - y,  '-')
+    def __mul__(self, other):
+        return self._make_binop(other, lambda x, y: x * y,  '*')
+    def __truediv__(self, other):
+        return self._make_binop(other, lambda x, y: x / y,  '/')
+    def __floordiv__(self, other):
+        return self._make_binop(other, lambda x, y: x // y, '//')
+
+    __iadd__ = __add__
+    __isub__ = __sub__
+    __imul__ = __mul__
+    __itruediv__ = __truediv__
+    __ifloordiv__ = __floordiv__
+
+    __radd__ = __add__
+    __rsub__ = __sub__
+    __rmul__ = __mul__
+    __rtruediv__ = __truediv__
+    __rfloordiv__ = __floordiv__
 
     def __eq__(self, other):
         if isinstance(other, ShapeElem):
             return self._x == other._x
         else:
             return self._x == other
-
-    def __int__(self):
-        assert isinstance(self._x, int)
-        return self._x
 
     def has_value(self):
         return self._x is not None

@@ -829,8 +829,8 @@ class TypeChecker():
             if not self.is_const_slice(node_slice):
                 return (None,) + shape[1:]
             get_slice = eval('lambda s: s[{}]'.format(utils.slice_to_str(node_slice)))
-            shape0 = ShapeElem(len(get_slice((0,) * int(shape[0]))))  # TODO
-            return (shape0,) + shape[1:]
+            shape_0 = ShapeElem(len(get_slice((0,) * shape[0].get_value())))  # TODO
+            return (shape_0,) + shape[1:]
         if isinstance(node_slice, gast.ExtSlice):
             shape_ = ()
             for i in range(len(node_slice.dims)):
