@@ -40,6 +40,7 @@ def make_sequence_tc_Variable(ty_arg, name):
 
 
 def calculate_reshape(orig_shape, input_shape):
+    # orig_shape must be wrapped
     if is_incomplete_shape(orig_shape):
         if any([i == -1 for i in input_shape]):
             return None
@@ -129,7 +130,7 @@ class ty_NumpyFull():
         if isinstance(shape, int):
             shape = (shape, )
 
-        y_type = TyNdarray(dtype, shape=wrap_shape(shape))
+        y_type = TyNdarray(dtype, shape=shape)
         if is_dummy_shape: y_type.shape = None
         return y_type
 
@@ -255,7 +256,7 @@ class ty_ChainerConcat():
         ret_shape = list(xs_type[0].shape)
         ret_shape[self.axis] = sum([x_type.shape[self.axis] for x_type in xs_type])
         return TyChainerVariable(dtype=xs_type[0].dtype,
-                shape=wrap_shape(ret_shape))
+                shape=ret_shape)
 
 
 class ty_ChainerStack():
@@ -303,7 +304,7 @@ class ty_ChainerStack():
         ret_shape = list(xs_type[0].shape)
         ret_shape.insert(self.axis, len(xs_type))
         return TyChainerVariable(xs_type.get().dtype,
-                shape=wrap_shape(ret_shape))
+                shape=ret_shape)
 
 
 class ty_ChainerHstack():
@@ -398,7 +399,7 @@ class ty_ChainerExpandDims():
             self.axis = x_type.ndim + 1 - abs(self.axis)
         shape = list(x_type.shape)
         shape.insert(self.axis, 1)
-        return TyChainerVariable(x_type.dtype, shape=wrap_shape(shape))
+        return TyChainerVariable(x_type.dtype, shape=shape)
 
 
 class ty_ChainerBroadcastTo():
@@ -408,7 +409,7 @@ class ty_ChainerBroadcastTo():
 
         assert shape_type.is_fixed_len
 
-        if x_type.shape is None or lacks_value(shape_type):
+        if lacks_value(shape_type): # TODO
             return TyChainerVariable(x_type.dtype, ndim=len(shape_type.get_tys()))
 
         in_shape = x_type.shape
@@ -428,7 +429,7 @@ class ty_ChainerSum():
     def __call__(self, ty_args, ty_kwargs):
         # TODO(momohatt): use is_dummy_axis
         axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
-        fallback_shapes = (wrap_shape((1,) * (axis + 1)),)
+        fallback_shapes = ((1,) * (axis + 1),)
         fallback_dtypes = (np.float32,)
 
         infer = make_infer(F.sum, fallback_shapes, fallback_dtypes)
@@ -487,7 +488,7 @@ class ty_ChainerRepeat():
         else:
             ret_shape = list(x_type.shape)
             ret_shape[self.axis] = sum(repeats)
-        return TyChainerVariable(x_type.dtype, shape=wrap_shape(ret_shape))
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerSqueeze():
@@ -604,7 +605,7 @@ class ty_ChainerPad():
         ret_shape = list(x_type.shape)
         for i in range(x_type.ndim):
             ret_shape[i] += pad_width[i][0] + pad_width[i][1]
-        return TyChainerVariable(x_type.dtype, shape=wrap_shape(ret_shape))
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerPadSequence():
@@ -728,7 +729,7 @@ class ty_ChainerConvolution2D():
         shape_3 = get_conv_outsize(
                 x_type.shape[3], ksize[1], stride[1], pad[1], d=dilate[1])
         ret_shape = (x_type.shape[0], conv.out_channels, shape_2, shape_3)
-        return TyChainerVariable(x_type.dtype, shape=wrap_shape(ret_shape))
+        return TyChainerVariable(x_type.dtype, shape=ret_shape)
 
 
 class ty_ChainerBatchNormalization():
@@ -769,16 +770,14 @@ class ty_ChainerNStepBiLSTM():
             hx_shape = hx_type.shape
             hx_dtype = hx_type.dtype
         else:
-            hx_shape = wrap_shape(
-                    (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
+            hx_shape = (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size)
             hx_dtype = xs_type.get_tys()[0].dtype
 
         if isinstance(cx_type, TyTensor):
             cx_shape = cx_type.shape
             cx_dtype = cx_type.dtype
         else:
-            cx_shape = wrap_shape(
-                    (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size))
+            cx_shape = (nblstm.n_layers * 2, len(xs_type.get_tys()), nblstm.out_size)
             cx_dtype = hx_dtype
 
         if hx_shape is None or cx_shape is None:
@@ -797,7 +796,7 @@ class ty_ChainerNStepBiLSTM():
 
         # TODO(momohatt): nblstm doesn't have attribute in_size
         # assert all([i == nblstm.in_size for _, i in xs_shapes])
-        ys_shapes = [wrap_shape((l, 2 * N)) for l, _ in xs_shapes]
+        ys_shapes = [(l, 2 * N) for l, _ in xs_shapes]
         ys_type = TyList([TyChainerVariable(xs_dtypes[0], shape=s) for s in ys_shapes])
 
         return TyTuple([hy_type, cy_type, ys_type])

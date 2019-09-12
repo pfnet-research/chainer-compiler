@@ -83,6 +83,75 @@ class TestNumpy(unittest.TestCase):
         self.assertEqual(str(id2type[27]), "string")	# Str 'int64' (line 3)
 
 
+    def test_expand_dims(self):
+        class Test():
+            def forward(self):
+                F.expand_dims(np.zeros((2, 3, 4)), 1)
+                F.expand_dims(np.zeros((2, 3, 4)), -2)
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[6]), "Variable(dtype=float64, shape=(2, 1, 3, 4))")	# Call F.expand_dims(np.zeros((2, 3, 4)), 1) (line 2)
+        self.assertEqual(str(id2type[7]), "ndarray(dtype=float64, shape=(2, 3, 4)) -> int -> Variable(dtype=float64, shape=(2, 1, 3, 4))")	# Attribute F.expand_dims (line 2)
+        self.assertEqual(str(id2type[11]), "ndarray(dtype=float64, shape=(2, 3, 4))")	# Call np.zeros((2, 3, 4)) (line 2)
+        self.assertEqual(str(id2type[12]), "(int, int, int) -> ndarray(dtype=float64, shape=(2, 3, 4))")	# Attribute np.zeros (line 2)
+        self.assertEqual(str(id2type[16]), "(int, int, int)")	# Tuple (2, 3, 4) (line 2)
+        self.assertEqual(str(id2type[17]), "int")	# Num 2 (line 2)
+        self.assertEqual(str(id2type[18]), "int")	# Num 3 (line 2)
+        self.assertEqual(str(id2type[19]), "int")	# Num 4 (line 2)
+        self.assertEqual(str(id2type[21]), "int")	# Num 1 (line 2)
+        self.assertEqual(str(id2type[22]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[23]), "Variable(dtype=float64, shape=(2, 3, 1, 4))")	# Call F.expand_dims(np.zeros((2, 3, 4)), -2) (line 3)
+        self.assertEqual(str(id2type[24]), "ndarray(dtype=float64, shape=(2, 3, 4)) -> int -> Variable(dtype=float64, shape=(2, 3, 1, 4))")	# Attribute F.expand_dims (line 3)
+        self.assertEqual(str(id2type[28]), "ndarray(dtype=float64, shape=(2, 3, 4))")	# Call np.zeros((2, 3, 4)) (line 3)
+        self.assertEqual(str(id2type[29]), "(int, int, int) -> ndarray(dtype=float64, shape=(2, 3, 4))")	# Attribute np.zeros (line 3)
+        self.assertEqual(str(id2type[33]), "(int, int, int)")	# Tuple (2, 3, 4) (line 3)
+        self.assertEqual(str(id2type[34]), "int")	# Num 2 (line 3)
+        self.assertEqual(str(id2type[35]), "int")	# Num 3 (line 3)
+        self.assertEqual(str(id2type[36]), "int")	# Num 4 (line 3)
+        self.assertEqual(str(id2type[38]), "int")	# UnaryOp -2 (line 3)
+        self.assertEqual(str(id2type[40]), "int")	# Num 2 (line 3)
+
+
+    def test_chainer_concat(self):
+        pass
+
+
+    def test_chainer_stack(self):
+        pass
+
+
+    def test_chainer_hstack(self):
+        pass
+
+
+    def test_chainer_vstack(self):
+        class Test():
+            def forward(self):
+                F.vstack([np.zeros((1, 3, 4)), np.zeros((2, 3, 4))])
+
+        id2type = generate_id2type_from_forward(Test(), ())
+
+        self.assertEqual(str(id2type[1]), "class Test -> NoneType")	# FunctionDef forward (line 1)
+        self.assertEqual(str(id2type[5]), "NoneType")	# Expr
+        self.assertEqual(str(id2type[6]), "Variable(dtype=float64, shape=(3, 3, 4))")	# Call F.vstack([np.zeros((1, 3, 4)), np.zeros((2, 3, 4))]) (line 2)
+        self.assertEqual(str(id2type[7]), "[ndarray(dtype=float64, shape=(1, 3, 4)), ndarray(dtype=float64, shape=(2, 3, 4))] -> Variable(dtype=float64, shape=(3, 3, 4))")	# Attribute F.vstack (line 2)
+        self.assertEqual(str(id2type[11]), "[ndarray(dtype=float64, shape=(1, 3, 4)), ndarray(dtype=float64, shape=(2, 3, 4))]")	# List [np.zeros((1, 3, 4)), np.zeros((2, 3, 4))] (line 2)
+        self.assertEqual(str(id2type[12]), "ndarray(dtype=float64, shape=(1, 3, 4))")	# Call np.zeros((1, 3, 4)) (line 2)
+        self.assertEqual(str(id2type[13]), "(int, int, int) -> ndarray(dtype=float64, shape=(1, 3, 4))")	# Attribute np.zeros (line 2)
+        self.assertEqual(str(id2type[17]), "(int, int, int)")	# Tuple (1, 3, 4) (line 2)
+        self.assertEqual(str(id2type[18]), "int")	# Num 1 (line 2)
+        self.assertEqual(str(id2type[19]), "int")	# Num 3 (line 2)
+        self.assertEqual(str(id2type[20]), "int")	# Num 4 (line 2)
+        self.assertEqual(str(id2type[22]), "ndarray(dtype=float64, shape=(2, 3, 4))")	# Call np.zeros((2, 3, 4)) (line 2)
+        self.assertEqual(str(id2type[23]), "(int, int, int) -> ndarray(dtype=float64, shape=(2, 3, 4))")	# Attribute np.zeros (line 2)
+        self.assertEqual(str(id2type[27]), "(int, int, int)")	# Tuple (2, 3, 4) (line 2)
+        self.assertEqual(str(id2type[28]), "int")	# Num 2 (line 2)
+        self.assertEqual(str(id2type[29]), "int")	# Num 3 (line 2)
+        self.assertEqual(str(id2type[30]), "int")	# Num 4 (line 2)
+
 def main():
     unittest.main()
 

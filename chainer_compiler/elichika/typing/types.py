@@ -308,8 +308,8 @@ class TyTensor(TyObj):
         self.kind = kind
         self.ndim = ndim
         if shape is None:
-            shape = (ShapeElem(None),) * ndim
-        self.shape = shape  # Tuple[ShapeElem]
+            shape = (None,) * ndim
+        self.shape = wrap_shape(shape)  # Tuple[ShapeElem]
 
     def show(self):
         if self.kind == TensorKind.ndarray:
@@ -496,9 +496,7 @@ class ShapeElem():
         return self._x is not None
 
 
-def wrap_shape(shape_seq): # Tuple[int] -> Tuple[ShapeElem]
-    # if shape_seq is None:
-    #     return None
+def wrap_shape(shape_seq): # Tuple[int or ShapeElem] -> Tuple[ShapeElem]
     return tuple([ShapeElem(i) if isinstance(i, int) else i for i in shape_seq])
 
 def unwrap_shape(shape_seq):
