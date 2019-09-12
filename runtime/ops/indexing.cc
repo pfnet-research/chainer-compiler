@@ -435,8 +435,7 @@ chainerx::Array NonMaxSuppressionOp::RunImpl(
 
 std::tuple<chainerx::Array, chainerx::Array> TopKOp::RunImpl(ChxVMState* st, const chainerx::Array& x, const StrictScalar& k_src) {
     const chainerx::Shape in_shape = x.shape();
-    const int64_t axis = this->axis < 0 ? in_shape.size() - this->axis : this->axis;
-    CHECK(0 < axis && axis < in_shape.size());
+    const int64_t axis = ResolveAxis(x, this->axis);
     const int64_t k = static_cast<int64_t>(k_src);
     CHECK(k >= 0);
     CHECK(in_shape[axis] > k);
