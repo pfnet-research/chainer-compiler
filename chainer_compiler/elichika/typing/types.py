@@ -223,7 +223,7 @@ class TySequence(TyObj):
             if ty is None:
                 ty = TyVar()
             for t in self._ty:
-                unify(ty, t)
+                unify(ty, t, inspect_shape=False)
             self._ty = ty
             self.is_fixed_len = False
         return
@@ -616,7 +616,8 @@ def set_attr_if_None(obj1, obj2, attr_name):
         return
 
 
-def unify(ty1, ty2):
+def unify(ty1, ty2, inspect_shape=True):
+    # inspect_shape: shapeの同一性まで見るかどうか
     ty1 = ty1.deref()
     ty2 = ty2.deref()
 
@@ -709,12 +710,14 @@ def unify(ty1, ty2):
         set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
-            for s1, s2 in zip(ty1.shape, ty2.shape):
-                try:
+            if not inspect_shape:
+                return
+            try:
+                for s1, s2 in zip(ty1.shape, ty2.shape):
                     unify_shapeElem(s1, s2)
-                    return
-                except Exception:
-                    raise UnifyError(ty1, ty2)
+                return
+            except Exception:
+                raise UnifyError(ty1, ty2)
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
         if ty1.ndim == 0:
