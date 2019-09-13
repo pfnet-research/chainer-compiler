@@ -5,6 +5,7 @@ import os
 import sys
 import traceback
 import types
+import typing
 from typing import List
 from pprint import pprint
 
@@ -373,7 +374,7 @@ class TypeChecker():
         tc = TypeChecker(is_debug=self.is_debug,
                 module=sys.modules[func.__module__])
         tc.infer_function(func_node, ty_args,
-                type_hints=typing.get_type_hints(func))
+                type_hints=typing.get_type_hints(func_body))
 
         # copy nodetype and subroutine_node from subroutine
         utils.add_dict(self.nodetype, tc.nodetype)

@@ -475,6 +475,8 @@ class ShapeElem():
         return _make_unaryop(self, '-', 6, lambda x: -x)
     def __ceil__(self):
         return _make_unaryop(self, 'ceil', 6, math.ceil)
+    def __abs__(self):
+        return _make_unaryop(self, 'abs', 6, abs)
 
     def __add__(self, other):
         return _make_binop(self, other, '+',  4, lambda x, y: x + y)
