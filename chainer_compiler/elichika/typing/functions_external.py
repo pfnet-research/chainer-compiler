@@ -27,11 +27,17 @@ def make_pair(x):
     return x
 
 
-def get_kwarg(ty_kwargs, key, default=None):
+def get_kwarg(ty_kwargs, key, default):
     if key in ty_kwargs.keys():
         # TODO(momohatt): when unable to get the correct value, do something
         return value_of_type(ty_kwargs[key]), lacks_value(ty_kwargs[key])
     return default, False
+
+
+def extract_kwarg(ty_kwargs, key, default):
+    if key in ty_kwargs.keys():
+        return extract_kwarg(ty_kwargs[key])
+    return default
 
 
 def make_multiple_tc_variable(ty_args, names):
@@ -712,34 +718,40 @@ class ty_ChainerPad():
 
 class ty_ChainerPadSequence():
     def __call__(self, ty_args, ty_kwargs):
-        # shape[1:] should be uniform & ndim > 0
-        xs_type = ty_args[0]
-        assert isinstance(xs_type, TySequence)
-        is_dummy_shape = False
-        if xs_type.is_fixed_len:
-            is_shape_None = [t.shape is None for t in xs_type.get_tys()]
-            if any(is_shape_None):
-                is_dummy_shape = True
-                if all(is_shape_None):
-                    dummy_arg = [np.zeros((1,), dtype=t.dtype) for t in xs_type.get_tys()]
-                else:
-                    t = utils.find(xs_type.get_tys(), lambda t: t.shape is not None)
-                    fallback_shape = t.shape
-                    dummy_arg = [
-                            np.zeros(fallback_shape, dtype=t.dtype) if t.shape is None
-                            else np.zeros(t.shape, dtype=t.dtype) for t in xs_type.get_tys()]
-            else:
-                dummy_arg = value_of_type(xs_type)
+        xs_type, = ty_args
+        self.length, is_dummy_length = get_kwarg(ty_kwargs, 'length', None)
 
-        else:
-            is_dummy_shape = True
-            dummy_arg = [np.zeros((1,), dtype=xs_type.get_ty().dtype)]
+        if not xs_type.is_fixed_len:
+            ret_shape = (None,) * (xs_type.get().ndim + 1)
+            if not is_dummy_length:
+                ret_shape[1] = self.length
+            return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
 
-        dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
-        ty_ret = type_of_value(F.pad_sequence(dummy_arg, **dummy_kwargs))
-        if is_dummy_shape:
-            ty_ret.shape = None
-        return ty_ret
+        self.check_type_forward(type_check.make_variable(xs_type, 'xs'))
+        return self.infer_return(xs_type, is_dummy_length)
+
+    def check_type_forward(self, xs_type):
+        for i in range(xs_type.size().eval()):
+            type_check.expect(
+                xs_type[i].ndim > 0,
+                xs_type[i].shape[1:] == xs_type[0].shape[1:],
+                xs_type[i].dtype == xs_type[0].dtype
+            )
+
+    def infer_return(self, xs_type, is_dummy_length):
+        n = len(xs_type)
+        ret_shape = list((n,) + xs_type.get().shape)
+
+        if is_dummy_length:
+            ret_shape[1] = None
+            return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
+        if self.length is not None:
+            ret_shape[1] = self.length
+            return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
+
+        shape_0s = [t.shape[0] for t in xs_type.get_tys()]
+        ret_shape[1] = max(shape_0s)
+        return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
 
 
 class ty_ChainerLocalResponseNormalization():

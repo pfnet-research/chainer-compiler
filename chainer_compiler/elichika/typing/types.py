@@ -136,6 +136,7 @@ class SequenceKind(Enum):
     TUPLE = 1
 
 class TySequence(TyObj):
+    # TODO: make ty and kind required
     def __init__(self, ty=None, kind=None):
         super().__init__()
         self.kind = kind
@@ -642,6 +643,8 @@ def unify(ty1, ty2, inspect_shape=True):
         return
 
     if isinstance(ty1, TyVar):
+        if isinstance(ty2, TyVar) and ty1 is ty2:
+            return
         # TODO(momohatt): occur check
         ty1.set(ty2)
         return

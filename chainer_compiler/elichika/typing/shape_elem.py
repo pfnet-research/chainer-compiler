@@ -133,6 +133,12 @@ class ShapeElem():
     def __floordiv__(self, other):
         return _make_binop(self, other, '//')
 
+    def __gt__(self, other):
+        if self.value is None or other.value is None:
+            return True
+        return self.value > other.value
+
+
     __iadd__ = __add__
     __isub__ = __sub__
     __imul__ = __mul__
