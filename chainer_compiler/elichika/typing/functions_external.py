@@ -12,6 +12,7 @@ from   chainer.utils.conv import get_conv_outsize
 from   chainer.utils import type_check
 
 from   chainer_compiler.elichika.typing.types import *
+from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
 
 def size_of_shape(shape):
     size = 1

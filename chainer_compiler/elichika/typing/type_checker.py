@@ -6,16 +6,17 @@ import sys
 import traceback
 import types
 import typing
-from typing import List
-from pprint import pprint
+from   typing import List
+from   pprint import pprint
 
-from chainer_compiler.elichika.parser.utils import clip_head
-from chainer_compiler.elichika.typing.functions_external import ext_func_ty, ext_callable_ty
-from chainer_compiler.elichika.typing.types import *
-from chainer_compiler.elichika.typing import utils
+from   chainer_compiler.elichika.parser.utils import clip_head
+from   chainer_compiler.elichika.typing.functions_external import ext_func_ty, ext_callable_ty
+from   chainer_compiler.elichika.typing.types import *
+from   chainer_compiler.elichika.typing.shape_elem import is_incomplete_shape
+from   chainer_compiler.elichika.typing import utils
 
 import chainer
-from chainer.backends import cuda
+from   chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
