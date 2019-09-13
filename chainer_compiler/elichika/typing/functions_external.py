@@ -425,7 +425,6 @@ class ty_ChainerExpandDims():
         return self.infer_return(x_type)
 
     def check_type_forward(self, in_types):
-        type_check._argname(in_types, ('x',))
         x_type, = in_types
         if self.axis >= 0:
             type_check.expect(x_type.ndim >= self.axis)
@@ -574,7 +573,6 @@ class ty_ChainerSum():
         return self.infer_return(x_type)
 
     def check_type_forward(self, in_types):
-        # type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is None:
@@ -706,7 +704,6 @@ class ty_ChainerPad():
         return self.infer_return(x_type, pad_width)
 
     def check_type_forward(self, in_types):
-        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 

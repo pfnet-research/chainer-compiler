@@ -678,9 +678,6 @@ def unify(ty1, ty2, inspect_shape=True):
         return
 
     if isinstance(ty1, TySequence) and isinstance(ty2, TySequence):
-        set_attr_if_None(ty1, ty2, 'is_fixed_len')
-        set_attr_if_None(ty1, ty2, '_ty')
-
         if ty1.is_fixed_len and ty2.is_fixed_len:
             if not len(ty1.get_tys()) == len(ty2.get_tys()):
                 ty1.coerce_to_variable_len()
@@ -707,18 +704,19 @@ def unify(ty1, ty2, inspect_shape=True):
         return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyTensor):
-        set_attr_if_None(ty1, ty2, 'dtype')
         set_attr_if_None(ty1, ty2, 'kind')
 
         if ty1.dtype == ty2.dtype and ty1.ndim == ty2.ndim:
             if not inspect_shape:
                 return
-            try:
-                for s1, s2 in zip(ty1.shape, ty2.shape):
+            for s1, s2 in zip(ty1.shape, ty2.shape):
+                try:
                     unify_shapeElem(s1, s2)
-                return
-            except Exception:
-                raise UnifyError(ty1, ty2)
+                except Exception:
+                    # TODO(momohatt): How should we handle shape mismatch?
+                    s1.value = s2.value = None
+                    # raise UnifyError(ty1, ty2)
+            return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):
         if ty1.ndim == 0:
@@ -748,4 +746,5 @@ def unify_shapeElem(e1, e2):
         if e1.value != e2.value:
             raise Exception
 
+    # TODO: which expr should we use?
     set_attr_if_None(e1, e2, 'value')
