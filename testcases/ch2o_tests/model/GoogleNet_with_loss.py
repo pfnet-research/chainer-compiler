@@ -8,6 +8,10 @@ from chainer.functions.pooling import max_pooling_2d
 from chainer import link
 from chainer.links.connection import convolution_2d
 
+from   chainer_compiler.elichika.typing import types
+
+import numpy as np
+
 
 class Inception(link.Chain):
 
@@ -109,7 +113,7 @@ class GoogLeNet(chainer.Chain):
             self.loss2_fc1 = L.Linear(None, 1024)
             self.loss2_fc2 = L.Linear(None, 1000)
 
-    def forward(self, x, t):
+    def forward(self, x: types.TyNdarray(np.float32, shape=('bsize', 3, 'height', 'width')), t):
         h = F.relu(self.conv1(x))
         # return h
         h = F.local_response_normalization(

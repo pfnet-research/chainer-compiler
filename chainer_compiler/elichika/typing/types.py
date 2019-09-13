@@ -451,6 +451,16 @@ def _make_binop(self, other, symbol, priority, func):
     return ShapeElem(func(self.value, other.value), expr=expr)
 
 
+def simplify(expr):
+    try:
+        n = expr.eval()
+        if n is not None:
+            return type_check.Constant(n)
+        return expr
+    except Exception:
+        return expr
+
+
 class ShapeElem():
     def __init__(self, value_or_name, expr=None):
         assert type(value_or_name) in [int, float, str, type(None)]
@@ -464,6 +474,7 @@ class ShapeElem():
             self.expr = expr if expr is not None else type_check.Constant(value_or_name)
 
     def __str__(self):
+        self.expr = simplify(self.expr)
         if isinstance(self.expr, type_check.Constant):
             return str(self.value)
         return "{} ({})".format(self.value, self.expr)
