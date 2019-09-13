@@ -136,11 +136,10 @@ class SequenceKind(Enum):
     TUPLE = 1
 
 class TySequence(TyObj):
-    # TODO: make ty and kind required
-    def __init__(self, ty=None, kind=None):
+    def __init__(self, ty, kind):
         super().__init__()
         self.kind = kind
-        self.is_fixed_len = isinstance(ty, list) if ty is not None else None
+        self.is_fixed_len = isinstance(ty, list)
         self._ty = ty
 
     def show(self):
@@ -574,10 +573,9 @@ def copy_ty(ty):
         ret = TyArrow([copy_ty(t) for t in ty.argty], copy_ty(ty.retty))
     elif isinstance(ty, TySequence):
         if ty.is_fixed_len:
-            ret = TySequence(ty=[copy_ty(t) for t in ty.get_tys()],
-                    kind=ty.kind)
+            ret = TySequence([copy_ty(t) for t in ty.get_tys()], ty.kind)
         else:
-            ret = TySequence(ty=copy_ty(ty.get_ty()), kind=ty.kind)
+            ret = TySequence(copy_ty(ty.get_ty()), ty.kind)
     elif isinstance(ty, TyDict):
         # XXX: do not copy instance
         ret = TyDict(ty.keyty, ty.valty)
