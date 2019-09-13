@@ -205,6 +205,7 @@ class TySequence(TyObj):
         return self
 
     def get(self):
+        # get one type as a representative
         if self.is_fixed_len:
             return self.get_tys()[0]
         return self.get_ty()
@@ -488,9 +489,8 @@ def lacks_value(ty) -> bool:
         return ty.t is None
 
 
-def value_of_type(ty) -> object:
+def generate_dummy_value(ty) -> object:
     # creates dummy value
-    # TODO(momohatt): rename this function
 
     ty = ty.deref()
 
@@ -506,14 +506,14 @@ def value_of_type(ty) -> object:
         return ""
     if isinstance(ty, TySequence):
         if ty.is_fixed_len:
-            ret = [value_of_type(t) for t in ty.get_tys()]
+            ret = [generate_dummy_value(t) for t in ty.get_tys()]
         else:
-            ret = [value_of_type(ty.get_ty())]
+            ret = [generate_dummy_value(ty.get_ty())]
         if ty.is_list():
             return ret
         return tuple(ret)
     if isinstance(ty, TyDict):
-        return { value_of_type(ty.keyty) : value_of_type(ty.valty) }
+        return { generate_dummy_value(ty.keyty) : generate_dummy_value(ty.valty) }
     if isinstance(ty, TyTensor):
         ret = np.zeros(dtype=ty.dtype, shape=unwrap_shape(ty.shape))
         if ty.is_ndarray():
@@ -523,7 +523,7 @@ def value_of_type(ty) -> object:
     if isinstance(ty, TyDType):
         return ty.t
 
-    assert False, "value_of_type: type not understood: " + str(ty)
+    assert False, "generate_dummy_value: type not understood: " + str(ty)
 
 
 def extract_value_from_ty(ty):

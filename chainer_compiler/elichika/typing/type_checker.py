@@ -98,7 +98,7 @@ def call_ext_callable(obj, node, ty_args, ty_kwargs):
 
 def call_builtin_function(func, node, ty_args):
     try:
-        dummy_args = [value_of_type(t) for t in ty_args]
+        dummy_args = [generate_dummy_value(t) for t in ty_args]
         ty_ret = type_of_value(func(*dummy_args))
     except Exception as e:
         ty_ret = handle_inference_error(e, func.__name__, node)
@@ -115,7 +115,7 @@ def call_binop(op, node, tyl, tyr):
             }
     func = semantics[type(op)]
     try:
-        vall, valr = value_of_type(tyl), value_of_type(tyr)
+        vall, valr = generate_dummy_value(tyl), generate_dummy_value(tyr)
         ty_ret = type_of_value(func(vall, valr))
     except Exception as e:
         ty_ret = handle_inference_error(e, op.__class__.__name__, node)

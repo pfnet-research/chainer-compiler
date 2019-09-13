@@ -30,7 +30,7 @@ def make_pair(x):
 def get_kwarg(ty_kwargs, key, default):
     if key in ty_kwargs.keys():
         # TODO(momohatt): when unable to get the correct value, do something
-        return value_of_type(ty_kwargs[key]), lacks_value(ty_kwargs[key])
+        return extract_value_from_ty(ty_kwargs[key]), lacks_value(ty_kwargs[key])
     return default, False
 
 
@@ -104,8 +104,8 @@ def make_infer(func, fallback_shapes, fallback_dtypes):  # 丸投げ
 
         # XXX: tensor arguments always come before non-tensor arguments
         dummy_args = [np.zeros(s, t) for s, t in zip(shapes, dtypes)] + \
-                [value_of_type(t) for t in ty_args if not isinstance(t, TyTensor)]
-        dummy_kwargs = {k : value_of_type(t) for (k, t) in ty_kwargs.items()}
+                [generate_dummy_value(t) for t in ty_args if not isinstance(t, TyTensor)]
+        dummy_kwargs = {k : generate_dummy_value(t) for (k, t) in ty_kwargs.items()}
         dummy_result = func(*dummy_args, **dummy_kwargs)
         ty_result = type_of_value(dummy_result)
         if isinstance(ty_result, TyTensor):
@@ -127,9 +127,9 @@ class ty_NumpyArray():
 class ty_NumpyOnes():
     def __call__(self, ty_args, ty_kwargs):
         shape_type, = ty_args
-        dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
+        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', np.dtype('float64'))
 
-        assert not is_dummy_dtype
+        assert not lacks_dtype
 
         if isinstance(shape_type, TyNum):
             assert shape_type.is_int()
@@ -146,9 +146,9 @@ class ty_NumpyOnes():
 class ty_NumpyFull():
     def __call__(self, ty_args, ty_kwargs):
         shape_type, value_type = ty_args
-        dtype, is_dummy_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
+        dtype, lacks_dtype = get_kwarg(ty_kwargs, 'dtype', tyobj2dtype(value_type))
 
-        assert not is_dummy_dtype
+        assert not lacks_dtype
 
         assert isinstance(shape_type, TyNum) or isinstance(shape_type, TyTuple)
 
@@ -178,9 +178,9 @@ class ty_ChainerPooling2d():
 
         # TODO(momohatt): handle cases where ksize is unknown
         ksize = ty_args[1].value
-        # TODO(momohatt): use is_dummy_stride
-        stride, is_dummy_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
-        pad, is_dummy_pad = get_kwarg(ty_kwargs, 'pad', default=0)
+        # TODO(momohatt): use lacks_stride
+        stride, lacks_stride = get_kwarg(ty_kwargs, 'stride', default=ksize)
+        pad, lacks_pad = get_kwarg(ty_kwargs, 'pad', default=0)
 
         if self.cover_all is None:
             self.cover_all = get_kwarg(ty_kwargs, 'cover_all', default=True)
@@ -259,9 +259,9 @@ class ty_ChainerConcat():
         xs_type = ty_args[0]
 
         assert isinstance(xs_type, TySequence)
-        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
+        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
 
-        if lacks_value(xs_type) or is_dummy_axis:
+        if lacks_value(xs_type) or lacks_axis:
             x_type = xs_type.get()
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
@@ -304,9 +304,9 @@ class ty_ChainerStack():
         xs_type = ty_args[0]
 
         assert isinstance(xs_type, TySequence)
-        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=1)
+        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=1)
 
-        if lacks_value(xs_type) or is_dummy_axis:
+        if lacks_value(xs_type) or lacks_axis:
             x_type = xs_type.get()
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim + 1)
 
@@ -416,10 +416,11 @@ class ty_ChainerVstack():
 class ty_ChainerExpandDims():
     def __call__(self, ty_args, ty_kwargs):
         x_type, axis_type = ty_args
-        if lacks_value(axis_type):
+        self.axis = extract_value_from_ty(axis_type)
+
+        if self.axis is None:
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim + 1)
 
-        self.axis = value_of_type(axis_type)
         self.check_type_forward(make_multiple_tc_variable((x_type,), ('x',)))
         return self.infer_return(x_type)
 
@@ -450,7 +451,7 @@ class ty_ChainerBroadcastTo():
             return TyChainerVariable(x_type.dtype, ndim=len(shape_type.get_tys()))
 
         in_shape = x_type.shape
-        out_shape = wrap_shape(value_of_type(shape_type))
+        out_shape = wrap_shape(extract_value_from_ty(shape_type))
 
         # check_type_forward
         ndim = len(out_shape)
@@ -473,7 +474,7 @@ class ty_ChainerReshape():
             return TyChainerVariable(x_type.dtype,
                     ndim=len(shape_type.get_tys()))
 
-        return self.infer_return(x_type, value_of_type(shape_type))
+        return self.infer_return(x_type, extract_value_from_ty(shape_type))
 
     def infer_return(self, x_type, shape):
         ret_shape = calculate_reshape(x_type.shape, shape)
@@ -487,12 +488,12 @@ class ty_ChainerRepeat():
     def __call__(self, ty_args, ty_kwargs):
         x_type = ty_args[0]
         repeats_type = ty_args[1]
-        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
+        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', 0)
 
-        if lacks_value(repeats_type) or is_dummy_axis:
+        if lacks_value(repeats_type) or lacks_axis:
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
-        repeats = value_of_type(repeats_type)
+        repeats = extract_value_from_ty(repeats_type)
         self.check_type_forward(x_type, repeats)
         return self.infer_return(x_type, repeats)
 
@@ -520,13 +521,13 @@ class ty_ChainerSqueeze():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
 
-        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', None)
+        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', None)
         if isinstance(self.axis, int):
             self.axis = (self.axis,)
 
         if is_incomplete_shape(x_type.shape):
             # TODO: use ty_kwargs['axis'].size()
-            if is_dummy_axis or self.axis is None:
+            if lacks_axis or self.axis is None:
                 assert False, "chainer.fucntions.squeeze: cannot guess ndim of return type"
 
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
@@ -558,8 +559,8 @@ class ty_ChainerSqueeze():
 class ty_ChainerSum():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
-        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', default=None)
-        self.keepdims, is_dummy_keepdims = \
+        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', default=None)
+        self.keepdims, lacks_keepdims = \
                 get_kwarg(ty_kwargs, 'keepdims', default=False)
 
         if isinstance(self.axis, int):
@@ -607,8 +608,8 @@ class ty_ChainerSwapAxes():
         if lacks_value(axis1_type) or lacks_value(axis2_type):
             return TyChainerVariable(x_type.dtype)
 
-        self.axis1 = value_of_type(axis1_type)
-        self.axis2 = value_of_type(axis2_type)
+        self.axis1 = extract_value_from_ty(axis1_type)
+        self.axis2 = extract_value_from_ty(axis2_type)
 
         # TODO: move this to check_type_forward
         assert self.axis1 < x_type.ndim and self.axis2 < x_type.ndim
@@ -624,9 +625,9 @@ class ty_ChainerSwapAxes():
 class ty_ChainerSeparate():
     def __call__(self, ty_args, ty_kwargs):
         x_type, = ty_args
-        self.axis, is_dummy_axis = get_kwarg(ty_kwargs, 'axis', 0)
+        self.axis, lacks_axis = get_kwarg(ty_kwargs, 'axis', 0)
 
-        if is_dummy_axis:
+        if lacks_axis:
             return TyTuple(TyChainerVariable(x_type.dtype, ndim=x_type.ndim-1))
 
         self.check_type_forward(make_multiple_tc_variable(ty_args, ('x',)))
@@ -695,7 +696,7 @@ class ty_ChainerPad():
         assert pad_width_type.size() > 0, \
                 "chainer.functions.pad: pad_width is not specified"
 
-        pad_width = value_of_type(pad_width_type)
+        pad_width = extract_value_from_ty(pad_width_type)
         if isinstance(pad_width, int):
             pad_width = make_pair(pad_width)
         if isinstance(pad_width[0], int):
@@ -719,16 +720,16 @@ class ty_ChainerPad():
 class ty_ChainerPadSequence():
     def __call__(self, ty_args, ty_kwargs):
         xs_type, = ty_args
-        self.length, is_dummy_length = get_kwarg(ty_kwargs, 'length', None)
+        self.length, lacks_length = get_kwarg(ty_kwargs, 'length', None)
 
         if not xs_type.is_fixed_len:
             ret_shape = (None,) * (xs_type.get().ndim + 1)
-            if not is_dummy_length:
+            if not lacks_length:
                 ret_shape[1] = self.length
             return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
 
         self.check_type_forward(type_check.make_variable(xs_type, 'xs'))
-        return self.infer_return(xs_type, is_dummy_length)
+        return self.infer_return(xs_type, lacks_length)
 
     def check_type_forward(self, xs_type):
         for i in range(xs_type.size().eval()):
@@ -738,11 +739,11 @@ class ty_ChainerPadSequence():
                 xs_type[i].dtype == xs_type[0].dtype
             )
 
-    def infer_return(self, xs_type, is_dummy_length):
+    def infer_return(self, xs_type, lacks_length):
         n = len(xs_type)
         ret_shape = list((n,) + xs_type.get().shape)
 
-        if is_dummy_length:
+        if lacks_length:
             ret_shape[1] = None
             return TyChainerVariable(xs_type.get().dtype, shape=ret_shape)
         if self.length is not None:
@@ -779,12 +780,12 @@ class ty_ChainerLocalResponseNormalization():
 class ty_ChainerLinear():
     def __call__(self, linear, ty_args, ty_kwargs):
         x_type = ty_args[0]
-        n_batch_axes, is_dummy_n_batch_axes = \
+        n_batch_axes, lacks_n_batch_axes = \
                 get_kwarg(ty_kwargs, 'n_batch_axes', default=1)
 
         if linear.b is not None:
             assert x_type.dtype == linear.b.dtype
-        if is_dummy_n_batch_axes:
+        if lacks_n_batch_axes:
             return TyChainerVariable(x_type.dtype, ndim=x_type.ndim)
 
         assert n_batch_axes >= 1
