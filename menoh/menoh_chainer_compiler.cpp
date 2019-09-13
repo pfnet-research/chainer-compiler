@@ -6,6 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+
 #include <chainerx/array.h>
 #include <chainerx/backprop_mode.h>
 #include <chainerx/routines/creation.h>
@@ -203,15 +206,31 @@ void menoh_delete_model_data(menoh_model_data_handle model_data) {
     delete model_data;
 }
 
+namespace {
+
+onnx::ModelProto load_model_proto(const uint8_t* onnx_data, int64_t size) {
+    onnx::ModelProto proto;
+    ::google::protobuf::io::ArrayInputStream ais(onnx_data, size);
+    ::google::protobuf::io::CodedInputStream cis(&ais);
+    cis.SetTotalBytesLimit(std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
+    CHECK(proto.ParseFromCodedStream(&cis)) << "failed to parse from memory";
+    return proto;
+}
+
+}  // namespace
+
+menoh_error_code menoh_make_model_data_from_onnx_data_on_memory(const uint8_t* onnx_data, int64_t size, menoh_model_data_handle* dst_handle) {
+    return check_error([&]() {
+            *dst_handle =
+                    std::make_unique<menoh_model_data>(menoh_model_data{load_model_proto(onnx_data, size).graph()}).release();
+        return menoh_error_code_success;
+    });
+}
+
 menoh_error_code menoh_make_model_data_from_onnx(const char* onnx_filename, menoh_model_data_handle* dst_handle) {
     return check_error([&]() {
-        chainerx::Context ctx;
-        chainerx::ContextScope ctx_scope(ctx);
-        {
-            chainerx::NoBackpropModeScope scope;
-            *dst_handle =
-                    std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename).graph()}).release();
-        }
+        *dst_handle =
+                std::make_unique<menoh_model_data>(menoh_model_data{LoadLargeProto<onnx::ModelProto>(onnx_filename).graph()}).release();
         return menoh_error_code_success;
     });
 }
