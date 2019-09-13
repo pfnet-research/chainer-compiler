@@ -429,26 +429,22 @@ private:
 
 chainerx::Array ROIMaxPool2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIPool2D(x, rois, roi_indices, output_shape, spatial_scale, chainerx::AMax);
+    return ROIPool2D(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, chainerx::AMax);
 }
 
 chainerx::Array ROIAveragePool2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIPool2D(x, rois, roi_indices, output_shape, spatial_scale, chainerx::Mean);
+    return ROIPool2D(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, chainerx::Mean);
 }
 
 chainerx::Array ROIMaxAlign2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIAlign2D<ReduceByMax>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
+    return ROIAlign2D<ReduceByMax>(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
 chainerx::Array ROIAverageAlign2DOp::RunImpl(
         ChxVMState* st, const chainerx::Array& x, const chainerx::Array& rois, const chainerx::Array& roi_indices) {
-    CHECK(!IsCudaDevice(&x.device())) << "Not implemented";
-    return ROIAlign2D<ReduceByAverage>(x, rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
+    return ROIAlign2D<ReduceByAverage>(x.ToNative(), rois, roi_indices, output_shape, spatial_scale, sampling_ratio);
 }
 
 }  // namespace runtime
