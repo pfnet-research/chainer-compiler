@@ -1,6 +1,6 @@
+from   chainer.utils import type_check
 from   copy import deepcopy
 from   enum import Enum, IntEnum
-from   chainer.utils import type_check
 
 import chainer
 import chainer.functions as F
@@ -423,40 +423,56 @@ class TyUnion(TyObj):
 def _flip(func):
     return (lambda x, y: func(y, x))
 
-def _make_unaryop(self, symbol, priority, func):
-    if self.value is None:
-        return self
-    expr = type_check.UnaryOperator(priority, self.expr, symbol, func)
-    return ShapeElem(func(self.value), expr=expr)
+unaryops = {
+        '-'    : (6, lambda x: -x),
+        'ceil' : (6, math.ceil),
+        'abs'  : (6, abs),
+        }
 
-def _make_binop(self, other, symbol, priority, func):
-    if not isinstance(other, ShapeElem):
-        if self.value is None:
+binops = {
+        '+'  : (4, lambda x, y: x + y),
+        '-'  : (4, lambda x, y: x - y),
+        '*'  : (5, lambda x, y: x * y),
+        '/'  : (5, lambda x, y: x / y),
+        '//' : (5, lambda x, y: x // y),
+        }
+
+def _make_unaryop(term, symbol):
+    priority, func = unaryops[symbol]
+
+    if term.value is None:
+        return term
+    expr = type_check.UnaryOperator(priority, term.expr, symbol, func)
+    return ShapeElem(func(term.value), expr=expr)
+
+def _make_binop(lhs, rhs, symbol):
+    priority, func = binops[symbol]
+
+    if not isinstance(rhs, ShapeElem):
+        if lhs.value is None:
             return ShapeElem(None)
         expr = type_check.BinaryOperator(
-                priority, self.expr, type_check.Constant(other), symbol, func)
-        return ShapeElem(func(self.value, other), expr=expr)
+                priority, lhs.expr, type_check.Constant(rhs), symbol, func)
+        return ShapeElem(func(lhs.value, rhs), expr=expr)
 
-    if not isinstance(self, ShapeElem):
-        if other.value is None:
+    if not isinstance(lhs, ShapeElem):
+        if rhs.value is None:
             return ShapeElem(None)
         expr = type_check.BinaryOperator(
-                priority, type_check.Constant(self), other.expr, symbol, func)
-        return ShapeElem(func(self, other.value), expr=expr)
+                priority, type_check.Constant(lhs), rhs.expr, symbol, func)
+        return ShapeElem(func(lhs, rhs.value), expr=expr)
 
-    if self.value is None or other.value is None:
+    if lhs.value is None or rhs.value is None:
         return ShapeElem(None)
     expr = type_check.BinaryOperator(
-            priority, self.expr, other.expr, symbol, func)
-    return ShapeElem(func(self.value, other.value), expr=expr)
+            priority, lhs.expr, rhs.expr, symbol, func)
+    return ShapeElem(func(lhs.value, rhs.value), expr=expr)
 
 
-def _make_binop_add(x, y):
-    return type_check.BinaryOperator(4, x, y, '+', lambda x, y: x + y)
-
-def _make_binop_sub(x, y):
-    return type_check.BinaryOperator(4, x, y, '-', lambda x, y: x - y)
-
+def _make_binop_expr(lhs_expr, rhs_expr, symbol):
+    priority, func = binops[symbol]
+    return type_check.BinaryOperator(
+            priority, lhs_expr, rhs_expr, symbol, func)
 
 def try_eval(expr):
     try:
@@ -476,7 +492,7 @@ def simplify(expr):
 
         if expr.exp == '+' and try_eval(expr.rhs) < 0:
             expr_rhs = type_check.Constant(- try_eval(expr.rhs))
-            return simplify(_make_binop_sub(expr.lhs, expr_rhs))
+            return simplify(_make_binop_expr(expr.lhs, expr_rhs, '-'))
 
         if (expr.exp == '*' or expr.exp == '/' or expr.exp == '//') and try_eval(expr.rhs) == 1:
             return simplify(expr.lhs)
@@ -519,22 +535,22 @@ class ShapeElem():
         return self.__str__()
 
     def __neg__(self):
-        return _make_unaryop(self, '-', 6, lambda x: -x)
+        return _make_unaryop(self, '-')
     def __ceil__(self):
-        return _make_unaryop(self, 'ceil', 6, math.ceil)
+        return _make_unaryop(self, 'ceil')
     def __abs__(self):
-        return _make_unaryop(self, 'abs', 6, abs)
+        return _make_unaryop(self, 'abs')
 
     def __add__(self, other):
-        return _make_binop(self, other, '+',  4, lambda x, y: x + y)
+        return _make_binop(self, other, '+')
     def __sub__(self, other):
-        return _make_binop(self, other, '-',  4, lambda x, y: x - y)
+        return _make_binop(self, other, '-')
     def __mul__(self, other):
-        return _make_binop(self, other, '*',  5, lambda x, y: x * y)
+        return _make_binop(self, other, '*')
     def __truediv__(self, other):
-        return _make_binop(self, other, '/',  5, lambda x, y: x / y)
+        return _make_binop(self, other, '/')
     def __floordiv__(self, other):
-        return _make_binop(self, other, '//', 5, lambda x, y: x // y)
+        return _make_binop(self, other, '//')
 
     __iadd__ = __add__
     __isub__ = __sub__
