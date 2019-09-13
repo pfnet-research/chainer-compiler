@@ -446,18 +446,14 @@ class ty_ChainerBroadcastTo():
 
         assert shape_type.is_fixed_len
 
-        if lacks_value(shape_type): # TODO
-            return TyChainerVariable(x_type.dtype, ndim=len(shape_type.get_tys()))
-
-        in_shape = x_type.shape
         out_shape = wrap_shape(extract_value_from_ty(shape_type))
 
-        # check_type_forward
+        # TODO: use check_type_forward
         ndim = len(out_shape)
-        assert len(in_shape) <= ndim
+        assert x_type.ndim <= ndim
 
-        for i in range(-1, - len(in_shape) - 1, -1):
-            assert in_shape[i] == out_shape[i] or in_shape[i] == 1
+        for i in range(-1, - x_type.ndim - 1, -1):
+            assert x_type.shape[i] == out_shape[i] or x_type.shape[i] == 1
 
         return TyChainerVariable(x_type.dtype, shape=out_shape)
 
@@ -469,9 +465,8 @@ class ty_ChainerReshape():
         assert shape_type.is_fixed_len
 
         if lacks_value(shape_type):
-            # TODO: ndim
             return TyChainerVariable(x_type.dtype,
-                    ndim=len(shape_type.get_tys()))
+                    shape=extract_value_from_ty(shape_type))
 
         return self.infer_return(x_type, extract_value_from_ty(shape_type))
 

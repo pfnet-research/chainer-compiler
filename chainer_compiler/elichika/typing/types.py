@@ -15,11 +15,11 @@ def print_warning(msg):
 class TyObj():  # base type, meaning 'unknown'
     def __init__(self):
         self.is_optional = False
-    # TODO(momohatt): fix __repr__
     def __str__(self):
         if self.is_optional:
             return "optional({})".format(self.show())
         return self.show()
+    # TODO(momohatt): fix __repr__
     def __repr__(self):
         return self.__str__()
 
@@ -713,9 +713,8 @@ def unify(ty1, ty2, inspect_shape=True):
                 try:
                     unify_shapeElem(s1, s2)
                 except Exception:
-                    # TODO(momohatt): How should we handle shape mismatch?
+                    # XXX: contradicting shape will result in None
                     s1.value = s2.value = None
-                    # raise UnifyError(ty1, ty2)
             return
 
     if isinstance(ty1, TyTensor) and isinstance(ty2, TyNum):

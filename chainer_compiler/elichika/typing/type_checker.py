@@ -127,6 +127,7 @@ def call_binop(op, node, tyl, tyr):
     if isinstance(ty_ret, TyTensor) and \
             isinstance(tyl, TyTensor) and is_incomplete_shape(tyl.shape) or \
             isinstance(tyr, TyTensor) and is_incomplete_shape(tyr.shape):
+        # TODO(momohatt): shape expr collision
         ty_ret.shape = (ShapeElem(None),) * ty_ret.ndim
     return ty_ret
 
